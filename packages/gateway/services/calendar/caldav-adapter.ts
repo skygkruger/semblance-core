@@ -26,7 +26,7 @@ interface ClientEntry {
 /**
  * Parse an iCalendar VEVENT into our CalendarEvent shape.
  */
-function parseVEvent(ical: string, calendarId: string): CalendarEvent | null {
+export function parseVEvent(ical: string, calendarId: string): CalendarEvent | null {
   try {
     // Extract key fields from iCalendar format
     const getField = (name: string): string | undefined => {
@@ -116,7 +116,7 @@ function parseVEvent(ical: string, calendarId: string): CalendarEvent | null {
 /**
  * Parse an iCalendar date string to ISO 8601.
  */
-function parseICalDate(dateStr: string): string | null {
+export function parseICalDate(dateStr: string): string | null {
   if (!dateStr) return null;
 
   // Strip any VALUE=DATE or TZID parameters
@@ -139,7 +139,7 @@ function parseICalDate(dateStr: string): string | null {
 /**
  * Build a simple iCalendar VEVENT string.
  */
-function buildVEvent(params: CalendarCreateParams, uid: string): string {
+export function buildVEvent(params: CalendarCreateParams, uid: string): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -167,7 +167,7 @@ function buildVEvent(params: CalendarCreateParams, uid: string): string {
   return lines.join('\r\n');
 }
 
-function toICalDate(isoDate: string): string {
+export function toICalDate(isoDate: string): string {
   return isoDate.replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
 

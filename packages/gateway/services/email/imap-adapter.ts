@@ -21,7 +21,7 @@ interface ConnectionEntry {
 /**
  * Parse an email address from various formats into our EmailAddress shape.
  */
-function parseAddress(addr: unknown): EmailAddress {
+export function parseAddress(addr: unknown): EmailAddress {
   if (addr && typeof addr === 'object' && 'address' in addr) {
     const a = addr as { name?: string; address?: string };
     return { name: a.name ?? '', address: a.address ?? '' };
@@ -32,7 +32,7 @@ function parseAddress(addr: unknown): EmailAddress {
   return { name: '', address: '' };
 }
 
-function parseAddressList(list: unknown): EmailAddress[] {
+export function parseAddressList(list: unknown): EmailAddress[] {
   if (!list) return [];
   if (Array.isArray(list)) return list.map(parseAddress);
   // imapflow may return a single object
@@ -42,7 +42,7 @@ function parseAddressList(list: unknown): EmailAddress[] {
 /**
  * Derive a thread ID from In-Reply-To and References headers.
  */
-function deriveThreadId(headers: Map<string, string[]> | undefined): string | undefined {
+export function deriveThreadId(headers: Map<string, string[]> | undefined): string | undefined {
   if (!headers) return undefined;
 
   // Use the first References header value as thread ID
