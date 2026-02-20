@@ -11,10 +11,20 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@lancedb/lancedb": "^0.26.2",
+    "better-sqlite3": "^11.10.0",
+    "mammoth": "^1.11.0",
+    "nanoid": "^5.1.6",
+    "ollama": "^0.6.3",
+    "pdf-parse": "^2.4.5",
     "zod": "^3.22.0"
   },
   "semblance": {
     "networkAccess": "FORBIDDEN — This package runs in a sandboxed process with zero network entitlement. Any networking dependency is a critical security violation."
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/pdf-parse": "^1.1.5"
+  }
 }
