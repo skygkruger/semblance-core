@@ -1,0 +1,22 @@
+{
+  "name": "@semblance/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Semblance Gateway — the sole process with network entitlement. Handles typed action requests via IPC, action signing, allowlist enforcement, and audit trail.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.22.0",
+    "nanoid": "^5.0.0",
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0"
+  },
+  "license": "MIT"
+}

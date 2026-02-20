@@ -1,0 +1,17 @@
+{
+  "name": "@semblance/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Semblance AI Core — LLM integration, knowledge graph, agent orchestration. CRITICAL: This package must NEVER have network-capable dependencies.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "semblance": {
+    "networkAccess": "FORBIDDEN — This package runs in a sandboxed process with zero network entitlement. Any networking dependency is a critical security violation."
+  },
+  "license": "MIT"
+}

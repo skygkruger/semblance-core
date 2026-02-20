@@ -1,0 +1,15 @@
+{
+  "name": "semblance-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Your Intelligence. Your Device. Your Rules.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "privacy-audit": "node scripts/privacy-audit/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "MIT",
+  "author": "Veridian Synthetics"
+}

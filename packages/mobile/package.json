@@ -1,0 +1,26 @@
+{
+  "name": "@semblance/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Semblance mobile application — React Native (CLI, not Expo) with on-device inference support.",
+  "main": "index.js",
+  "scripts": {
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.0",
+    "react-native": "^0.76.0",
+    "react-native-reanimated": "^3.16.0"
+  },
+  "devDependencies": {
+    "@react-native/babel-preset": "^0.76.0",
+    "@react-native/metro-config": "^0.76.0",
+    "@react-native/typescript-config": "^0.76.0",
+    "@types/react": "^18.3.0",
+    "typescript": "^5.6.0"
+  },
+  "license": "MIT"
+}
