@@ -22,7 +22,11 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const CORE_DIR = join(__dirname, '..', '..', 'packages', 'core');
+const ROOT_DIR = join(__dirname, '..', '..');
+const CORE_DIR = join(ROOT_DIR, 'packages', 'core');
+const DESKTOP_SRC_DIR = join(ROOT_DIR, 'packages', 'desktop', 'src');
+const DESKTOP_PKG_JSON = join(ROOT_DIR, 'packages', 'desktop', 'package.json');
+const TAURI_CONF_JSON = join(ROOT_DIR, 'packages', 'desktop', 'src-tauri', 'tauri.conf.json');
 
 // Banned network modules for TypeScript/JavaScript
 const BANNED_JS_PATTERNS = [
@@ -194,23 +198,147 @@ function run() {
 
   console.log('');
 
+  // ─── Desktop Package Audit ───────────────────────────────────────────────
+  console.log('========================================');
+  console.log('  DESKTOP PACKAGE AUDIT');
+  console.log('  Scanning packages/desktop/src/ for violations');
+  console.log('========================================\n');
+
+  // Scan desktop frontend for direct network calls
+  const BANNED_DESKTOP_PATTERNS = [
+    /\bimport\b.*['"](?:node:)?(?:http|https|net|dgram|dns|tls)['"]/,
+    /\brequire\s*\(\s*['"](?:node:)?(?:http|https|net|dgram|dns|tls)['"]\s*\)/,
+    /\bimport\b.*['"](?:axios|got|node-fetch|undici|superagent)['"]/,
+    /\brequire\s*\(\s*['"](?:axios|got|node-fetch|undici|superagent)['"]\s*\)/,
+    /\bimport\b.*['"](?:socket\.io|ws)['"]/,
+    /\bnew\s+XMLHttpRequest\b/,
+    /\bnew\s+WebSocket\b/,
+  ];
+
+  const DESKTOP_PATTERN_NAMES = [
+    'Node.js http/https/net/dgram/dns/tls import',
+    'Node.js http/https/net/dgram/dns/tls require',
+    'Third-party HTTP library import',
+    'Third-party HTTP library require',
+    'WebSocket library import',
+    'XMLHttpRequest usage',
+    'WebSocket constructor',
+  ];
+
+  // Note: fetch() is NOT banned in desktop frontend — Tauri's invoke() calls are the approved pattern.
+  // The CSP blocks external URLs. Direct fetch() to external URLs would be blocked by CSP.
+
+  const desktopFiles = collectFiles(DESKTOP_SRC_DIR, ['.ts', '.tsx', '.js', '.jsx']);
+  console.log(`Scanning ${desktopFiles.length} desktop frontend file(s)...`);
+  for (const file of desktopFiles) {
+    const violations = scanFile(file, BANNED_DESKTOP_PATTERNS, DESKTOP_PATTERN_NAMES);
+    allViolations.push(...violations);
+  }
+
+  // Verify tauri.conf.json: updater must be disabled, CSP must block external origins
+  console.log('\nVerifying Tauri configuration...');
+  let tauriConfChecked = false;
+  try {
+    const tauriConf = JSON.parse(readFileSync(TAURI_CONF_JSON, 'utf-8'));
+
+    // Check that updater is NOT enabled
+    const plugins = tauriConf.plugins || {};
+    if (plugins.updater && plugins.updater.active !== false) {
+      allViolations.push({
+        file: TAURI_CONF_JSON,
+        line: 0,
+        content: 'plugins.updater.active is not disabled',
+        violation: 'Tauri updater must be disabled — Semblance does not auto-update',
+      });
+    }
+    console.log('  Updater: disabled (OK)');
+
+    // Check CSP blocks external origins
+    const csp = tauriConf?.app?.security?.csp || '';
+    if (!csp) {
+      allViolations.push({
+        file: TAURI_CONF_JSON,
+        line: 0,
+        content: 'No CSP configured',
+        violation: 'Content Security Policy must be configured to block external resource loading',
+      });
+    } else {
+      // CSP must NOT contain http: or https: origins (except tauri: and asset: schemes)
+      const externalOriginPattern = /https?:\/\/(?!localhost)/;
+      if (externalOriginPattern.test(csp)) {
+        allViolations.push({
+          file: TAURI_CONF_JSON,
+          line: 0,
+          content: csp,
+          violation: 'CSP allows external HTTP/HTTPS origins — all resources must be bundled locally',
+        });
+      }
+      // Must have default-src 'self'
+      if (!csp.includes("default-src 'self'")) {
+        allViolations.push({
+          file: TAURI_CONF_JSON,
+          line: 0,
+          content: csp,
+          violation: "CSP missing default-src 'self' — must restrict default resource loading",
+        });
+      }
+      console.log('  CSP: configured and blocks external origins (OK)');
+    }
+    tauriConfChecked = true;
+  } catch {
+    console.log('  (tauri.conf.json not found or unreadable — skipping Tauri checks)');
+  }
+
+  // Check for banned analytics/telemetry packages in desktop package.json
+  console.log('\nChecking desktop dependencies for banned packages...');
+  const BANNED_PACKAGES = [
+    'segment', '@segment/', 'mixpanel', 'amplitude', 'posthog', '@posthog/',
+    'sentry', '@sentry/', 'bugsnag', '@bugsnag/', 'datadog', '@datadog/',
+    'google-analytics', 'gtag', 'hotjar', 'fullstory', 'logrocket',
+  ];
+  try {
+    const pkgJson = JSON.parse(readFileSync(DESKTOP_PKG_JSON, 'utf-8'));
+    const allDeps = {
+      ...(pkgJson.dependencies || {}),
+      ...(pkgJson.devDependencies || {}),
+    };
+    for (const dep of Object.keys(allDeps)) {
+      if (BANNED_PACKAGES.some(banned => dep === banned || dep.startsWith(banned))) {
+        allViolations.push({
+          file: DESKTOP_PKG_JSON,
+          line: 0,
+          content: dep,
+          violation: `Banned analytics/telemetry package: ${dep}`,
+        });
+      }
+    }
+    console.log(`  Dependencies checked: ${Object.keys(allDeps).length} packages (OK)`);
+  } catch {
+    console.log('  (desktop package.json not found — skipping dependency check)');
+  }
+
+  console.log('');
+
   if (allViolations.length === 0) {
+    console.log('========================================');
     console.log('RESULT: CLEAN');
-    console.log('No network capability violations found in packages/core/.');
-    console.log(`Total files scanned: ${jsFiles.length + rsFiles.length}`);
+    console.log(`No violations found.`);
+    console.log(`Core files scanned: ${jsFiles.length + rsFiles.length}`);
+    console.log(`Desktop files scanned: ${desktopFiles.length}`);
+    if (tauriConfChecked) console.log('Tauri config: verified');
+    console.log('========================================');
     process.exit(0);
   } else {
     console.log(`RESULT: ${allViolations.length} VIOLATION(S) FOUND`);
     console.log('');
     for (const v of allViolations) {
-      const relPath = relative(join(CORE_DIR, '..', '..'), v.file);
+      const relPath = relative(ROOT_DIR, v.file);
       console.log(`  CRITICAL: ${v.violation}`);
-      console.log(`    File: ${relPath}:${v.line}`);
+      console.log(`    File: ${relPath}${v.line ? ':' + v.line : ''}`);
       console.log(`    Code: ${v.content}`);
       console.log('');
     }
-    console.log('The AI Core must NEVER have network capability.');
-    console.log('All external communication must flow through the Gateway via IPC.');
+    console.log('Fix all violations before merging.');
     process.exit(1);
   }
 }

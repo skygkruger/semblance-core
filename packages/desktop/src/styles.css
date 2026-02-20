@@ -1,52 +1,94 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #1A1D2E;
-  color: #ECEDF0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/*
+ * Semblance Design System — Global Styles
+ * All fonts are bundled locally. No CDN. No external requests.
+ * Font files would live in public/fonts/ — for now we use system fallbacks
+ * which are configured in tailwind.config.js and match the design system.
+ */
 
-.container {
-  text-align: center;
-  padding: 64px 24px;
-}
+@layer base {
+  :root {
+    --color-bg: #FAFBFC;
+    --color-surface-1: #FFFFFF;
+    --color-surface-2: #F5F6F8;
+    --color-border: #E2E4E9;
+    --color-text-primary: #1A1D2E;
+    --color-text-secondary: #5A6070;
+    --color-text-tertiary: #8B93A7;
+    --color-primary-subtle: #EBF2F9;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+    --shadow-xl: 0 8px 32px rgba(0,0,0,0.16);
+  }
 
-.title {
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-size: 3rem;
-  font-weight: 700;
-  line-height: 1.1;
-  color: #ECEDF0;
-  margin-bottom: 16px;
-}
+  .dark {
+    --color-bg: #1A1D2E;
+    --color-surface-1: #222538;
+    --color-surface-2: #2A2D42;
+    --color-border: #363952;
+    --color-text-primary: #ECEDF0;
+    --color-text-secondary: #9BA0B0;
+    --color-text-tertiary: #8B93A7;
+    --color-primary-subtle: #1E2A3E;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.3);
+    --shadow-xl: 0 8px 32px rgba(0,0,0,0.3);
+  }
 
-.tagline {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 1.125rem;
-  font-weight: 400;
-  line-height: 1.4;
-  color: #9BA0B0;
-  margin-bottom: 32px;
-}
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-.status {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #4A7FBA;
-  letter-spacing: 0.02em;
-}
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+  }
 
-.vite-install-hint {
-  display: none;
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #8B93A7;
+    border-radius: 9999px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #363952;
+  }
+
+  /* Respect reduced motion — non-negotiable per DESIGN_SYSTEM.md */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
