@@ -5,7 +5,7 @@
 // allowlist, rate limiter, anomaly detector, service registry.
 
 import Database from 'better-sqlite3';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { mkdirSync, existsSync } from 'node:fs';
 
@@ -23,6 +23,8 @@ export interface GatewayConfig {
   dataDir?: string;
   /** Custom socket path for IPC. */
   socketPath?: string;
+  /** Path to write the shared signing key file. Defaults to ~/.semblance/signing.key */
+  signingKeyPath?: string;
   /** Rate limiter configuration overrides. */
   rateLimiter?: ConstructorParameters<typeof RateLimiter>[0];
   /** Anomaly detector configuration overrides. */
@@ -63,6 +65,14 @@ export class Gateway {
     this.allowlist = new Allowlist(this.configDb);
     const keyManager = new KeyManager(this.configDb);
     const signingKey = keyManager.getKey();
+
+    // Write the signing key to a shared file so the Core process can read it
+    const signingKeyPath = this.config.signingKeyPath ?? join(homedir(), '.semblance', 'signing.key');
+    const signingKeyDir = dirname(signingKeyPath);
+    if (!existsSync(signingKeyDir)) {
+      mkdirSync(signingKeyDir, { recursive: true });
+    }
+    keyManager.writeKeyFile(signingKeyPath);
 
     this.rateLimiter = new RateLimiter(this.config.rateLimiter);
     this.anomalyDetector = new AnomalyDetector(this.config.anomalyDetector);

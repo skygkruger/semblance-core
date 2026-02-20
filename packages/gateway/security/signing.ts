@@ -3,6 +3,8 @@
 // This module handles key lifecycle only.
 
 import { randomBytes } from 'node:crypto';
+import { writeFileSync, chmodSync } from 'node:fs';
+import { platform } from 'node:os';
 import type Database from 'better-sqlite3';
 
 const KEY_NAME = 'hmac_signing_key';
@@ -56,5 +58,20 @@ export class KeyManager {
 
     this.cachedKey = key;
     return key;
+  }
+
+  /**
+   * Write the signing key to a shared file so the Core process can read it.
+   * File permissions are set to 0600 (owner read/write only) on Unix systems.
+   * On Windows, the file is written to the user's home directory with default ACLs.
+   */
+  writeKeyFile(filePath: string): void {
+    const key = this.getKey();
+    writeFileSync(filePath, key.toString('hex'), 'utf-8');
+
+    // Set restrictive permissions on Unix systems
+    if (platform() !== 'win32') {
+      chmodSync(filePath, 0o600);
+    }
   }
 }
