@@ -15,6 +15,8 @@ export type {
 } from './types.js';
 
 export { OllamaProvider } from './ollama-provider.js';
+export { ModelManager } from './model-manager.js';
+export type { ModelRecommendation } from './model-manager.js';
 
 import type { LLMProvider } from './types.js';
 import { OllamaProvider } from './ollama-provider.js';
