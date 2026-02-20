@@ -159,7 +159,9 @@ Add dependencies conservatively. Every dependency is attack surface. Before addi
 ├── docs/
 │   ├── DESIGN_SYSTEM.md             # Canonical design reference — read before any UI work
 │   ├── ARCHITECTURE.md              # System architecture deep-dive
-│   └── PRIVACY.md                   # Privacy architecture and audit methodology
+│   ├── PRIVACY.md                   # Privacy architecture and audit methodology
+│   └── decisions/                   # Orbital Director architecture decisions
+│       └── MOBILE_PARITY_PATCH.md   # Mobile elevated to peer device (LOCKED IN)
 ├── packages/
 │   ├── core/                        # AI Core — NO NETWORK ACCESS
 │   │   ├── llm/                     # LLM integration (Ollama, llama.cpp, MLX)
@@ -288,6 +290,8 @@ If ANY validation step fails, the request is rejected and logged as a failed att
 ---
 
 ## Mobile Architecture — Peer Device
+
+> Decision record: `docs/decisions/MOBILE_PARITY_PATCH.md`
 
 Mobile is a peer device, not a companion. It runs full local inference and participates in intelligent task routing with desktop.
 
