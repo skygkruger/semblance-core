@@ -8,8 +8,13 @@
   ],
   "scripts": {
     "privacy-audit": "node scripts/privacy-audit/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "license": "MIT",
-  "author": "Veridian Synthetics"
+  "author": "Veridian Synthetics",
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
 }
