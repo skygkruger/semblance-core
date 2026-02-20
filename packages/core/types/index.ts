@@ -17,3 +17,10 @@ export {
 } from './ipc.js';
 
 export { AuditEntry } from './audit.js';
+
+export {
+  sha256,
+  buildSigningPayload,
+  signRequest,
+  verifySignature,
+} from './signing.js';
