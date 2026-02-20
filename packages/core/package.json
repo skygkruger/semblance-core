@@ -10,6 +10,9 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "zod": "^3.22.0"
+  },
   "semblance": {
     "networkAccess": "FORBIDDEN — This package runs in a sandboxed process with zero network entitlement. Any networking dependency is a critical security violation."
   },

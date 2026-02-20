@@ -1,0 +1,19 @@
+// @semblance/core/types — Shared type definitions for IPC protocol
+// These types are the contract between AI Core and Gateway.
+// CRITICAL: No networking imports. This directory is scanned by the privacy audit.
+
+export {
+  ActionType,
+  ActionRequest,
+  ActionResponse,
+  EmailSendPayload,
+  EmailFetchPayload,
+  CalendarFetchPayload,
+  CalendarCreatePayload,
+  ServiceApiCallPayload,
+  FinanceFetchPayload,
+  HealthFetchPayload,
+  ActionPayloadMap,
+} from './ipc.js';
+
+export { AuditEntry } from './audit.js';
