@@ -328,20 +328,31 @@ describe('Rust Backend: Tauri Commands', () => {
     expect(libContent).toContain('get_onboarding_complete');
   });
 
-  it('emits semblance://chat-token events for streaming', () => {
-    expect(libContent).toContain('semblance://chat-token');
+  // Event names are defined in the sidecar bridge (bridge.ts) and forwarded
+  // dynamically by the Rust backend via format!("semblance://{}", event_name).
+  // Verify the sidecar emits the expected events and Rust forwards them.
+  it('Rust backend forwards sidecar events with semblance:// prefix', () => {
+    expect(libContent).toContain('format!("semblance://{}"');
   });
 
-  it('emits semblance://chat-complete events', () => {
-    expect(libContent).toContain('semblance://chat-complete');
+  it('sidecar emits chat-token events', () => {
+    const bridgeContent = readFileSync(join(ROOT, 'packages', 'desktop', 'src-tauri', 'sidecar', 'bridge.ts'), 'utf-8');
+    expect(bridgeContent).toContain("'chat-token'");
   });
 
-  it('emits semblance://indexing-progress events', () => {
-    expect(libContent).toContain('semblance://indexing-progress');
+  it('sidecar emits chat-complete events', () => {
+    const bridgeContent = readFileSync(join(ROOT, 'packages', 'desktop', 'src-tauri', 'sidecar', 'bridge.ts'), 'utf-8');
+    expect(bridgeContent).toContain("'chat-complete'");
   });
 
-  it('emits semblance://indexing-complete events', () => {
-    expect(libContent).toContain('semblance://indexing-complete');
+  it('sidecar emits indexing-progress events', () => {
+    const bridgeContent = readFileSync(join(ROOT, 'packages', 'desktop', 'src-tauri', 'sidecar', 'bridge.ts'), 'utf-8');
+    expect(bridgeContent).toContain("'indexing-progress'");
+  });
+
+  it('sidecar emits indexing-complete events', () => {
+    const bridgeContent = readFileSync(join(ROOT, 'packages', 'desktop', 'src-tauri', 'sidecar', 'bridge.ts'), 'utf-8');
+    expect(bridgeContent).toContain("'indexing-complete'");
   });
 
   it('has system tray configured', () => {

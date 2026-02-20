@@ -15,6 +15,7 @@
   "license": "MIT",
   "author": "Veridian Synthetics",
   "devDependencies": {
+    "tsx": "^4.19.0",
     "vitest": "^4.0.18"
   }
 }

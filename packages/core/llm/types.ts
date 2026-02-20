@@ -12,6 +12,9 @@ export interface LLMProvider {
   /** Generate a chat completion (multi-turn) */
   chat(request: ChatRequest): Promise<ChatResponse>;
 
+  /** Stream a chat completion token-by-token */
+  chatStream?(request: ChatRequest): AsyncIterable<string>;
+
   /** Generate embeddings for text (used by knowledge graph) */
   embed(request: EmbedRequest): Promise<EmbedResponse>;
 

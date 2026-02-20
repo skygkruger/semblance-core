@@ -161,6 +161,36 @@ export class OllamaProvider implements LLMProvider {
     };
   }
 
+  // AUTONOMOUS DECISION: Added chatStream() for real-time token streaming.
+  // Reasoning: The build prompt (STEP-4B) requires "tokens stream in real-time —
+  // the user sees words appearing, not a loading spinner followed by a wall of text."
+  // The existing chat() method uses stream: false. This is a minimal addition that
+  // enables the desktop sidecar to stream tokens to the frontend.
+  // Escalation check: Build prompt authorizes minimal Core bug fixes for blocking issues.
+  async *chatStream(request: ChatRequest): AsyncIterable<string> {
+    const messages = request.messages.map(m => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    const response = await this.client.chat({
+      model: request.model,
+      messages,
+      stream: true,
+      options: {
+        temperature: request.temperature ?? DEFAULT_TEMPERATURE,
+        num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+        stop: request.stop,
+      },
+    });
+
+    for await (const chunk of response) {
+      if (chunk.message?.content) {
+        yield chunk.message.content;
+      }
+    }
+  }
+
   async embed(request: EmbedRequest): Promise<EmbedResponse> {
     const startMs = Date.now();
 

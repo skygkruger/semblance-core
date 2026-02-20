@@ -1,12 +1,27 @@
 // Semblance Desktop — Tauri 2.0 application library
 //
-// This Rust backend bridges the React frontend to the SemblanceCore and Gateway
-// TypeScript processes. All communication uses Tauri's invoke/event system.
-// No direct network access from this process — it spawns Core and Gateway
-// as child processes and communicates via their APIs.
+// AUTONOMOUS DECISION: Sidecar process model with NDJSON stdin/stdout IPC.
+// Reasoning: SemblanceCore and Gateway are TypeScript packages that require
+// a Node.js runtime. The Rust backend spawns a single Node.js sidecar process
+// that hosts both Core and Gateway, communicating via NDJSON over stdin/stdout.
+// This is the simplest integration approach that gets to real end-to-end
+// functionality in Sprint 1. The production process isolation model (OS-level
+// sandboxing) ships in Sprint 4.
+// Escalation check: Build prompt explicitly authorizes process model decisions.
+//
+// All network access is mediated by the Core's OllamaProvider (localhost-only)
+// and the Gateway's validation pipeline. No direct network calls from this
+// Rust process or the frontend.
 
 use serde::{Deserialize, Serialize};
-use tauri::{Manager, Emitter};
+use serde_json::Value;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tauri::{Emitter, Manager};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::process::{Child, Command};
+use tokio::sync::{oneshot, Mutex};
 
 // ─── Data Types ────────────────────────────────────────────────────────────
 
@@ -68,192 +83,500 @@ pub struct ChatMessage {
     pub timestamp: String,
 }
 
+// ─── Sidecar Bridge ───────────────────────────────────────────────────────────
+
+/// Manages communication with the Node.js sidecar process that hosts
+/// SemblanceCore and Gateway.
+struct SidecarBridge {
+    stdin: Arc<Mutex<tokio::process::ChildStdin>>,
+    pending: Arc<Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>>,
+    next_id: Arc<Mutex<u64>>,
+    child: Arc<Mutex<Child>>,
+}
+
+impl SidecarBridge {
+    /// Spawn the sidecar process and start reading its stdout.
+    /// Events from the sidecar are forwarded as Tauri events to the frontend.
+    async fn spawn(project_root: PathBuf, app_handle: tauri::AppHandle) -> Result<Self, String> {
+        // Find tsx binary for running TypeScript sidecar
+        #[cfg(windows)]
+        let tsx_path = project_root.join("node_modules").join(".bin").join("tsx.cmd");
+        #[cfg(not(windows))]
+        let tsx_path = project_root.join("node_modules").join(".bin").join("tsx");
+
+        let sidecar_script = project_root
+            .join("packages")
+            .join("desktop")
+            .join("src-tauri")
+            .join("sidecar")
+            .join("bridge.ts");
+
+        if !tsx_path.exists() {
+            return Err(format!(
+                "tsx not found at {:?}. Run `pnpm add -Dw tsx` in the project root.",
+                tsx_path
+            ));
+        }
+
+        if !sidecar_script.exists() {
+            return Err(format!("Sidecar script not found at {:?}", sidecar_script));
+        }
+
+        let mut child = Command::new(&tsx_path)
+            .arg(&sidecar_script)
+            .current_dir(&project_root)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true)
+            .spawn()
+            .map_err(|e| format!("Failed to spawn sidecar: {}", e))?;
+
+        let stdin = child
+            .stdin
+            .take()
+            .ok_or("Failed to take sidecar stdin")?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or("Failed to take sidecar stdout")?;
+        let stderr = child
+            .stderr
+            .take()
+            .ok_or("Failed to take sidecar stderr")?;
+
+        let pending: Arc<Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>> =
+            Arc::new(Mutex::new(HashMap::new()));
+
+        let bridge = SidecarBridge {
+            stdin: Arc::new(Mutex::new(stdin)),
+            pending: pending.clone(),
+            next_id: Arc::new(Mutex::new(1)),
+            child: Arc::new(Mutex::new(child)),
+        };
+
+        // Background task: read stdout lines from sidecar, dispatch events and responses
+        let pending_for_stdout = pending.clone();
+        let app_for_stdout = app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            let reader = BufReader::new(stdout);
+            let mut lines = reader.lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                if let Ok(msg) = serde_json::from_str::<Value>(&line) {
+                    if let Some(event_name) = msg.get("event").and_then(|v| v.as_str()) {
+                        // Forward sidecar event as Tauri event
+                        let data = msg.get("data").cloned().unwrap_or(Value::Null);
+                        let full_event = format!("semblance://{}", event_name);
+                        let _ = app_for_stdout.emit(&full_event, &data);
+                    } else if let Some(id) = msg.get("id").and_then(|v| v.as_u64()) {
+                        // Response to a pending request
+                        let mut pending_map = pending_for_stdout.lock().await;
+                        if let Some(sender) = pending_map.remove(&id) {
+                            if let Some(error) = msg.get("error").and_then(|v| v.as_str()) {
+                                let _ = sender.send(Err(error.to_string()));
+                            } else {
+                                let result =
+                                    msg.get("result").cloned().unwrap_or(Value::Null);
+                                let _ = sender.send(Ok(result));
+                            }
+                        }
+                    }
+                }
+            }
+            // stdout closed — sidecar died
+            let _ = app_for_stdout.emit(
+                "semblance://status-update",
+                serde_json::json!({"ollamaStatus": "disconnected", "gatewayStatus": "disconnected", "error": "Sidecar process exited unexpectedly"}),
+            );
+        });
+
+        // Background task: read stderr from sidecar (logging)
+        tauri::async_runtime::spawn(async move {
+            let reader = BufReader::new(stderr);
+            let mut lines = reader.lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                eprintln!("[sidecar] {}", line);
+            }
+        });
+
+        Ok(bridge)
+    }
+
+    /// Send a JSON-RPC request to the sidecar and wait for the response.
+    async fn call(&self, method: &str, params: Value) -> Result<Value, String> {
+        let id = {
+            let mut next = self.next_id.lock().await;
+            let id = *next;
+            *next += 1;
+            id
+        };
+
+        // Register a response channel
+        let (tx, rx) = oneshot::channel();
+        {
+            let mut pending = self.pending.lock().await;
+            pending.insert(id, tx);
+        }
+
+        // Write the request to stdin
+        let request = serde_json::json!({
+            "id": id,
+            "method": method,
+            "params": params,
+        });
+
+        {
+            let mut stdin = self.stdin.lock().await;
+            let line = format!("{}\n", serde_json::to_string(&request).unwrap());
+            stdin
+                .write_all(line.as_bytes())
+                .await
+                .map_err(|e| format!("Failed to write to sidecar stdin: {}", e))?;
+            stdin
+                .flush()
+                .await
+                .map_err(|e| format!("Failed to flush sidecar stdin: {}", e))?;
+        }
+
+        // Wait for the response (with timeout)
+        match tokio::time::timeout(std::time::Duration::from_secs(120), rx).await {
+            Ok(Ok(result)) => result,
+            Ok(Err(_)) => Err("Sidecar response channel closed".to_string()),
+            Err(_) => {
+                // Remove pending entry on timeout
+                let mut pending = self.pending.lock().await;
+                pending.remove(&id);
+                Err("Sidecar request timed out (120s)".to_string())
+            }
+        }
+    }
+
+    /// Send a fire-and-forget request that also registers for a response.
+    /// Used for send_message and start_indexing which respond immediately
+    /// and then emit events asynchronously.
+    async fn call_fire(&self, method: &str, params: Value) -> Result<Value, String> {
+        // Same as call() but with a shorter timeout since these return quickly
+        let id = {
+            let mut next = self.next_id.lock().await;
+            let id = *next;
+            *next += 1;
+            id
+        };
+
+        let (tx, rx) = oneshot::channel();
+        {
+            let mut pending = self.pending.lock().await;
+            pending.insert(id, tx);
+        }
+
+        let request = serde_json::json!({
+            "id": id,
+            "method": method,
+            "params": params,
+        });
+
+        {
+            let mut stdin = self.stdin.lock().await;
+            let line = format!("{}\n", serde_json::to_string(&request).unwrap());
+            stdin
+                .write_all(line.as_bytes())
+                .await
+                .map_err(|e| format!("Failed to write to sidecar stdin: {}", e))?;
+            stdin
+                .flush()
+                .await
+                .map_err(|e| format!("Failed to flush sidecar stdin: {}", e))?;
+        }
+
+        // Short timeout for the initial response
+        match tokio::time::timeout(std::time::Duration::from_secs(10), rx).await {
+            Ok(Ok(result)) => result,
+            Ok(Err(_)) => Err("Sidecar response channel closed".to_string()),
+            Err(_) => {
+                let mut pending = self.pending.lock().await;
+                pending.remove(&id);
+                Err("Sidecar initial response timed out".to_string())
+            }
+        }
+    }
+
+    /// Shut down the sidecar process gracefully.
+    async fn shutdown(&self) {
+        // Try graceful shutdown
+        let _ = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            self.call("shutdown", Value::Null),
+        )
+        .await;
+
+        // Force kill if still running
+        let mut child = self.child.lock().await;
+        let _ = child.kill().await;
+    }
+}
+
+/// Wrapper struct for Tauri managed state.
+struct AppBridge {
+    bridge: SidecarBridge,
+}
+
 // ─── Tauri Commands ────────────────────────────────────────────────────────
 
 /// Send a message to the Orchestrator. Streams tokens back via events.
 #[tauri::command]
-async fn send_message(app: tauri::AppHandle, message: String) -> Result<String, String> {
-    // Emit a thinking indicator
-    let _ = app.emit("semblance://chat-thinking", true);
+async fn send_message(
+    state: tauri::State<'_, AppBridge>,
+    message: String,
+) -> Result<String, String> {
+    let result = state
+        .bridge
+        .call_fire("send_message", serde_json::json!({"message": message}))
+        .await?;
 
-    // In Sprint 1, the Core processes run as TypeScript — this Rust layer
-    // bridges the frontend to them. For now, we return a placeholder response.
-    // The real wiring spawns the Core process and communicates via its API.
-    //
-    // TODO(Sprint 1 wiring): Connect to running SemblanceCore process
-    let response_id = format!("msg_{}", std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis());
-
-    // Simulate streaming tokens
-    let response = format!("I received your message: \"{}\". The Core process integration is being wired — this is the Tauri command bridge confirming the frontend → backend path works correctly.", message);
-
-    for (i, chunk) in response.chars().collect::<Vec<_>>().chunks(3).enumerate() {
-        let token: String = chunk.iter().collect();
-        let _ = app.emit("semblance://chat-token", &token);
-        if i % 5 == 0 {
-            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-        }
-    }
-
-    let _ = app.emit("semblance://chat-thinking", false);
-    let _ = app.emit("semblance://chat-complete", serde_json::json!({
-        "id": response_id,
-        "content": response,
-        "actions": []
-    }));
-
-    Ok(response_id)
+    // The sidecar returns the response ID as a string
+    result
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| "Invalid response ID from sidecar".to_string())
 }
 
 /// Check Ollama connection status and list available models.
 #[tauri::command]
-async fn get_ollama_status() -> Result<OllamaStatus, String> {
-    // TODO(Sprint 1 wiring): Query running SemblanceCore for Ollama status
+async fn get_ollama_status(state: tauri::State<'_, AppBridge>) -> Result<OllamaStatus, String> {
+    let result = state.bridge.call("get_ollama_status", Value::Null).await?;
+
     Ok(OllamaStatus {
-        status: "disconnected".to_string(),
-        active_model: None,
-        available_models: vec![],
+        status: result
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("disconnected")
+            .to_string(),
+        active_model: result
+            .get("active_model")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        available_models: result
+            .get("available_models")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default(),
     })
 }
 
 /// Switch the active LLM model.
 #[tauri::command]
-async fn select_model(_model_id: String) -> Result<(), String> {
-    // TODO(Sprint 1 wiring): Route to ModelManager via Core
+async fn select_model(
+    state: tauri::State<'_, AppBridge>,
+    model_id: String,
+) -> Result<(), String> {
+    state
+        .bridge
+        .call("select_model", serde_json::json!({"model_id": model_id}))
+        .await?;
     Ok(())
 }
 
 /// Start indexing the given directories.
 #[tauri::command]
-async fn start_indexing(app: tauri::AppHandle, directories: Vec<String>) -> Result<(), String> {
-    // Emit initial progress
-    let _ = app.emit("semblance://indexing-progress", serde_json::json!({
-        "filesScanned": 0,
-        "filesTotal": 0,
-        "chunksCreated": 0,
-        "currentFile": null::<String>,
-        "directories": directories,
-    }));
-
-    // TODO(Sprint 1 wiring): Trigger FileScanner + Indexer pipeline via Core
-    // For now, emit a completion event after a brief delay
-    let app_clone = app.clone();
-    tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-        let _ = app_clone.emit("semblance://indexing-complete", serde_json::json!({
-            "filesScanned": 0,
-            "filesTotal": 0,
-            "chunksCreated": 0,
-        }));
-    });
-
+async fn start_indexing(
+    state: tauri::State<'_, AppBridge>,
+    directories: Vec<String>,
+) -> Result<(), String> {
+    state
+        .bridge
+        .call_fire(
+            "start_indexing",
+            serde_json::json!({"directories": directories}),
+        )
+        .await?;
     Ok(())
 }
 
 /// Get current indexing state.
 #[tauri::command]
-async fn get_indexing_status() -> Result<IndexingStatus, String> {
-    Ok(IndexingStatus {
-        state: "idle".to_string(),
-        files_scanned: 0,
-        files_total: 0,
-        chunks_created: 0,
-        current_file: None,
-        error: None,
-    })
+async fn get_indexing_status(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<IndexingStatus, String> {
+    let result = state
+        .bridge
+        .call("get_indexing_status", Value::Null)
+        .await?;
+
+    Ok(serde_json::from_value(result).map_err(|e| format!("Failed to parse indexing status: {}", e))?)
 }
 
 /// Query the audit trail for paginated action log entries.
 #[tauri::command]
-async fn get_action_log(_limit: u32, _offset: u32) -> Result<Vec<ActionLogEntry>, String> {
-    // TODO(Sprint 1 wiring): Query Gateway audit trail
-    Ok(vec![])
+async fn get_action_log(
+    state: tauri::State<'_, AppBridge>,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<ActionLogEntry>, String> {
+    let result = state
+        .bridge
+        .call(
+            "get_action_log",
+            serde_json::json!({"limit": limit, "offset": offset}),
+        )
+        .await?;
+
+    serde_json::from_value(result).map_err(|e| format!("Failed to parse action log: {}", e))
 }
 
 /// Get privacy status from the Gateway.
 #[tauri::command]
-async fn get_privacy_status() -> Result<PrivacyStatus, String> {
+async fn get_privacy_status(state: tauri::State<'_, AppBridge>) -> Result<PrivacyStatus, String> {
+    let result = state
+        .bridge
+        .call("get_privacy_status", Value::Null)
+        .await?;
+
     Ok(PrivacyStatus {
-        all_local: true,
-        connection_count: 0,
-        last_audit_entry: None,
-        anomaly_detected: false,
+        all_local: result
+            .get("all_local")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true),
+        connection_count: result
+            .get("connection_count")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32,
+        last_audit_entry: result
+            .get("last_audit_entry")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        anomaly_detected: result
+            .get("anomaly_detected")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
     })
 }
 
 /// Persist the user's chosen name for their Semblance.
 #[tauri::command]
-async fn set_user_name(_name: String) -> Result<(), String> {
-    // TODO(Sprint 1 wiring): Persist to Core preferences SQLite
+async fn set_user_name(state: tauri::State<'_, AppBridge>, name: String) -> Result<(), String> {
+    state
+        .bridge
+        .call("set_user_name", serde_json::json!({"name": name}))
+        .await?;
     Ok(())
 }
 
 /// Retrieve the user's chosen name.
 #[tauri::command]
-async fn get_user_name() -> Result<Option<String>, String> {
-    // TODO(Sprint 1 wiring): Read from Core preferences SQLite
-    Ok(None)
+async fn get_user_name(state: tauri::State<'_, AppBridge>) -> Result<Option<String>, String> {
+    let result = state.bridge.call("get_user_name", Value::Null).await?;
+    Ok(result
+        .get("name")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string()))
 }
 
 /// Update autonomy tier for a domain.
 #[tauri::command]
-async fn set_autonomy_tier(_domain: String, _tier: String) -> Result<(), String> {
-    // TODO(Sprint 1 wiring): Update AutonomyFramework config via Core
+async fn set_autonomy_tier(
+    state: tauri::State<'_, AppBridge>,
+    domain: String,
+    tier: String,
+) -> Result<(), String> {
+    state
+        .bridge
+        .call(
+            "set_autonomy_tier",
+            serde_json::json!({"domain": domain, "tier": tier}),
+        )
+        .await?;
     Ok(())
 }
 
 /// Get current autonomy configuration.
 #[tauri::command]
-async fn get_autonomy_config() -> Result<AutonomyConfig, String> {
-    let mut domains = std::collections::HashMap::new();
-    domains.insert("email".to_string(), "partner".to_string());
-    domains.insert("calendar".to_string(), "partner".to_string());
-    domains.insert("files".to_string(), "partner".to_string());
-    domains.insert("finances".to_string(), "guardian".to_string());
-    domains.insert("health".to_string(), "partner".to_string());
-    domains.insert("services".to_string(), "guardian".to_string());
+async fn get_autonomy_config(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<AutonomyConfig, String> {
+    let result = state
+        .bridge
+        .call("get_autonomy_config", Value::Null)
+        .await?;
+
+    let domains = result
+        .get("domains")
+        .and_then(|v| serde_json::from_value::<HashMap<String, String>>(v.clone()).ok())
+        .unwrap_or_default();
+
     Ok(AutonomyConfig { domains })
 }
 
 /// Get list of currently indexed directories.
 #[tauri::command]
-async fn get_indexed_directories() -> Result<Vec<String>, String> {
-    // TODO(Sprint 1 wiring): Query Core for indexed directories
-    Ok(vec![])
+async fn get_indexed_directories(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Vec<String>, String> {
+    let result = state
+        .bridge
+        .call("get_indexed_directories", Value::Null)
+        .await?;
+
+    serde_json::from_value(result)
+        .map_err(|e| format!("Failed to parse indexed directories: {}", e))
 }
 
 /// Get knowledge graph statistics.
 #[tauri::command]
-async fn get_knowledge_stats() -> Result<KnowledgeStats, String> {
-    Ok(KnowledgeStats {
-        document_count: 0,
-        chunk_count: 0,
-        index_size_bytes: 0,
-        last_indexed_at: None,
-    })
+async fn get_knowledge_stats(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<KnowledgeStats, String> {
+    let result = state
+        .bridge
+        .call("get_knowledge_stats", Value::Null)
+        .await?;
+
+    Ok(serde_json::from_value(result)
+        .map_err(|e| format!("Failed to parse knowledge stats: {}", e))?)
 }
 
 /// Get chat history (paginated).
 #[tauri::command]
-async fn get_chat_history(_limit: u32, _offset: u32) -> Result<Vec<ChatMessage>, String> {
-    // TODO(Sprint 1 wiring): Query Core SQLite for conversation history
-    Ok(vec![])
+async fn get_chat_history(
+    state: tauri::State<'_, AppBridge>,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<ChatMessage>, String> {
+    let result = state
+        .bridge
+        .call(
+            "get_chat_history",
+            serde_json::json!({"limit": limit, "offset": offset}),
+        )
+        .await?;
+
+    serde_json::from_value(result).map_err(|e| format!("Failed to parse chat history: {}", e))
 }
 
 /// Set onboarding complete flag.
 #[tauri::command]
-async fn set_onboarding_complete() -> Result<(), String> {
-    // TODO(Sprint 1 wiring): Persist to Core preferences
+async fn set_onboarding_complete(state: tauri::State<'_, AppBridge>) -> Result<(), String> {
+    state
+        .bridge
+        .call("set_onboarding_complete", Value::Null)
+        .await?;
     Ok(())
 }
 
 /// Check if onboarding has been completed.
 #[tauri::command]
-async fn get_onboarding_complete() -> Result<bool, String> {
-    // TODO(Sprint 1 wiring): Read from Core preferences
-    Ok(false)
+async fn get_onboarding_complete(state: tauri::State<'_, AppBridge>) -> Result<bool, String> {
+    let result = state
+        .bridge
+        .call("get_onboarding_complete", Value::Null)
+        .await?;
+    Ok(result
+        .get("complete")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false))
 }
 
 // ─── Application Entry Point ───────────────────────────────────────────────
@@ -264,6 +587,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
+            let app_handle = app.handle().clone();
+
             // System tray setup
             let _tray = tauri::tray::TrayIconBuilder::new()
                 .tooltip("Semblance — Local Only")
@@ -283,7 +608,81 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // AUTONOMOUS DECISION: Locate project root by walking up from the
+            // Tauri resource directory. In development, the Tauri app runs from
+            // packages/desktop/src-tauri/, so the project root is 3 levels up.
+            // In production, the sidecar would be bundled — that's Sprint 4 scope.
+            let project_root = std::env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .join("packages")
+                .join("desktop")
+                .join("src-tauri");
+
+            // Walk up to find the project root (directory containing package.json with workspaces)
+            let project_root = find_project_root(&project_root).unwrap_or_else(|| {
+                // Fallback: assume we're running from project root
+                std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+            });
+
+            // Spawn the sidecar asynchronously
+            let app_handle_clone = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                match SidecarBridge::spawn(project_root, app_handle_clone.clone()).await {
+                    Ok(bridge) => {
+                        // Initialize Core and Gateway via the sidecar
+                        match bridge.call("initialize", Value::Null).await {
+                            Ok(init_result) => {
+                                // Emit initial status to frontend
+                                let _ = app_handle_clone.emit(
+                                    "semblance://status-update",
+                                    &init_result,
+                                );
+                                eprintln!(
+                                    "[tauri] Sidecar initialized: {}",
+                                    serde_json::to_string(&init_result).unwrap_or_default()
+                                );
+
+                                // Store the bridge in managed state
+                                app_handle_clone.manage(AppBridge { bridge });
+                            }
+                            Err(e) => {
+                                eprintln!("[tauri] Sidecar initialization failed: {}", e);
+                                let _ = app_handle_clone.emit(
+                                    "semblance://status-update",
+                                    serde_json::json!({
+                                        "ollamaStatus": "disconnected",
+                                        "error": format!("Initialization failed: {}", e)
+                                    }),
+                                );
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[tauri] Failed to spawn sidecar: {}", e);
+                        let _ = app_handle_clone.emit(
+                            "semblance://status-update",
+                            serde_json::json!({
+                                "ollamaStatus": "disconnected",
+                                "error": format!("Sidecar spawn failed: {}", e)
+                            }),
+                        );
+                    }
+                }
+            });
+
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                // Graceful shutdown: tell sidecar to clean up
+                let app = window.app_handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Some(bridge) = app.try_state::<AppBridge>() {
+                        bridge.bridge.shutdown().await;
+                        eprintln!("[tauri] Sidecar shut down cleanly");
+                    }
+                });
+            }
         })
         .invoke_handler(tauri::generate_handler![
             send_message,
@@ -305,4 +704,23 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Walk up directory tree to find the project root (contains package.json with "workspaces").
+fn find_project_root(start: &std::path::Path) -> Option<PathBuf> {
+    let mut current = start.to_path_buf();
+    for _ in 0..10 {
+        let pkg_json = current.join("package.json");
+        if pkg_json.exists() {
+            if let Ok(content) = std::fs::read_to_string(&pkg_json) {
+                if content.contains("\"workspaces\"") {
+                    return Some(current);
+                }
+            }
+        }
+        if !current.pop() {
+            break;
+        }
+    }
+    None
 }
