@@ -7,6 +7,12 @@
  * for imports of banned network modules. The AI Core must NEVER have
  * network capability. Any violation is a critical security incident.
  *
+ * EXCEPTION: The `ollama` npm package is allowed in packages/core/llm/ ONLY.
+ * Ollama communicates with the local Ollama server via HTTP to localhost:11434.
+ * This is architecturally equivalent to a local database — no data leaves the device.
+ * The OllamaProvider enforces a hard localhost-only check at initialization.
+ * See STEP-3-CC.md for the full rationale.
+ *
  * Exit code 0: Clean — no violations found.
  * Exit code 1: Violations found — merge must be blocked.
  */
@@ -33,6 +39,9 @@ const BANNED_JS_PATTERNS = [
   /\bfetch\s*\(/,
   /\bnew\s+XMLHttpRequest\b/,
   /\bnew\s+WebSocket\b/,
+  // Ollama — allowed ONLY in packages/core/llm/ (see exception logic below)
+  /\bimport\b.*['"]ollama['"]/,
+  /\brequire\s*\(\s*['"]ollama['"]\s*\)/,
 ];
 
 // Banned network crates for Rust
@@ -56,7 +65,22 @@ const PATTERN_NAMES_JS = [
   'fetch() call',
   'XMLHttpRequest usage',
   'WebSocket constructor',
+  'ollama import (allowed in packages/core/llm/ only)',
+  'ollama require (allowed in packages/core/llm/ only)',
 ];
+
+// Indices of patterns that are allowed in specific directories
+// ollama import/require are the last two patterns (indices 9, 10)
+const OLLAMA_PATTERN_INDICES = [BANNED_JS_PATTERNS.length - 2, BANNED_JS_PATTERNS.length - 1];
+
+// Directory where ollama is permitted (relative to CORE_DIR, normalized to forward slashes)
+const OLLAMA_ALLOWED_DIR = 'llm';
+
+// The IPC client file is permitted to use node:net for local domain socket / named pipe communication.
+// This is the typed IPC channel to the Gateway — it is NOT internet networking.
+// We allow ONLY 'node:net' — NOT http, https, tls, dgram, dns.
+const IPC_CLIENT_FILE = 'agent/ipc-client.ts';
+const IPC_NET_ALLOWED_PATTERN = /\bimport\b.*['"]node:net['"]/;
 
 const PATTERN_NAMES_RUST = [
   'Rust reqwest crate usage',
@@ -91,7 +115,23 @@ function collectFiles(dir, extensions) {
   return files;
 }
 
-function scanFile(filePath, patterns, patternNames) {
+/**
+ * Check if a file is within the ollama-allowed directory (packages/core/llm/).
+ */
+function isInOllamaAllowedDir(filePath) {
+  const relPath = relative(CORE_DIR, filePath).replace(/\\/g, '/');
+  return relPath.startsWith(OLLAMA_ALLOWED_DIR + '/');
+}
+
+/**
+ * Check if a file is the IPC client (allowed to use node:net for local domain sockets).
+ */
+function isIPCClientFile(filePath) {
+  const relPath = relative(CORE_DIR, filePath).replace(/\\/g, '/');
+  return relPath === IPC_CLIENT_FILE;
+}
+
+function scanFile(filePath, patterns, patternNames, skipIndices = []) {
   const violations = [];
   const content = readFileSync(filePath, 'utf-8');
   const lines = content.split('\n');
@@ -99,6 +139,7 @@ function scanFile(filePath, patterns, patternNames) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     for (let p = 0; p < patterns.length; p++) {
+      if (skipIndices.includes(p)) continue;
       if (patterns[p].test(line)) {
         violations.push({
           file: filePath,
@@ -124,9 +165,23 @@ function run() {
   // Scan TypeScript and JavaScript files
   const jsFiles = collectFiles(CORE_DIR, ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
   console.log(`Scanning ${jsFiles.length} TypeScript/JavaScript file(s)...`);
+  let ollamaExceptionsApplied = 0;
   for (const file of jsFiles) {
-    const violations = scanFile(file, BANNED_JS_PATTERNS, PATTERN_NAMES_JS);
+    // Files in packages/core/llm/ may import 'ollama' — skip those pattern checks
+    const skipIndices = isInOllamaAllowedDir(file) ? OLLAMA_PATTERN_INDICES : [];
+    if (skipIndices.length > 0) ollamaExceptionsApplied++;
+    let violations = scanFile(file, BANNED_JS_PATTERNS, PATTERN_NAMES_JS, skipIndices);
+
+    // Post-filter: the IPC client may use node:net for local domain socket / named pipe.
+    // Allow ONLY 'node:net' (not http, https, tls, dgram, dns).
+    if (isIPCClientFile(file)) {
+      violations = violations.filter(v => !IPC_NET_ALLOWED_PATTERN.test(v.content));
+    }
+
     allViolations.push(...violations);
+  }
+  if (ollamaExceptionsApplied > 0) {
+    console.log(`  (Ollama localhost exception applied to ${ollamaExceptionsApplied} file(s) in packages/core/llm/)`);
   }
 
   // Scan Rust files
