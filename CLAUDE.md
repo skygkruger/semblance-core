@@ -8,6 +8,20 @@ Semblance is not a chatbot. It is not an assistant. It is a digital semblance �
 
 ---
 
+## Product Philosophy
+
+Semblance is positioned as **"more capable because it's private"** — NOT "private."
+
+The product's structural advantage is that because it has ALL the user's data — locally, permanently, compounding — it can do things no cloud AI assistant can do. A cloud assistant starts every session at zero. Semblance starts every session with the accumulated understanding of the user's entire digital life. That gap widens every day and is unbridgeable without becoming surveillance infrastructure.
+
+**The product is judged by actions taken and time saved, not information surfaced.** Every feature should bias toward doing something, not showing something. The audit trail and undo capabilities exist to make aggressive autonomy trustworthy.
+
+When implementing any feature, ask: "Does this take an action on the user's behalf, or does it just show them information?" Bias toward action. When in doubt, implement the active version with appropriate autonomy controls.
+
+**Privacy is the reason the capability is possible, and the proof that it's trustworthy.** It is not the headline — it is the second sentence.
+
+---
+
 ## Architecture Rules — NON-NEGOTIABLE
 
 These rules are absolute. No exception. No workaround. No "temporary" violation. Any code that breaks these rules is a critical security incident regardless of intent.
@@ -23,6 +37,10 @@ The AI Core process must NEVER import, reference, call, or use any networking li
 - `socket.io`, `ws` (WebSocket libraries)
 - Any Rust crate that provides network capabilities (`reqwest`, `hyper`, `tokio::net`, `std::net`)
 - Any code that resolves DNS, opens sockets, or makes outbound connections
+
+**Approved exceptions:**
+- `node:net` in `packages/core/agent/ipc-client.ts` ONLY — for Unix domain socket / named pipe IPC (local, not internet)
+- `ollama` npm package in `packages/core/llm/` ONLY — runtime check refuses non-localhost URLs
 
 **How to verify:** The automated privacy audit (`scripts/privacy-audit/`) scans all imports and FFI calls in the AI Core. This runs on every commit in CI. A failure blocks the merge.
 
@@ -43,14 +61,17 @@ ALL external network calls MUST flow through the Semblance Gateway (`packages/ga
 - Requests that fail schema validation
 - Requests that trigger anomaly detection thresholds
 
-### RULE 3 — Action Signing
+### RULE 3 — Action Signing and Time Tracking
 
 Every action that passes through the Gateway MUST be:
 1. Cryptographically signed with a request ID, timestamp, action type, and payload hash
 2. Logged to the append-only audit trail (SQLite WAL) BEFORE execution
 3. Verified against the audit log after execution with the response recorded
+4. Tagged with an `estimated_time_saved_seconds` field in the audit trail entry
 
 No action may execute without a log entry. No log entry may be modified after creation. The audit trail is append-only and tamper-evident.
+
+**Time-saved tracking** is part of the audit trail data model from Sprint 2 onward. Every logged action includes an estimated time the user would have spent doing this manually. This powers the weekly digest. The field is required on all action log entries — set to `0` for actions where time savings are not applicable. Do NOT retrofit this later — it must be in the schema from the first Sprint 2 commit.
 
 ### RULE 4 — No Telemetry
 
@@ -83,8 +104,10 @@ No cloud sync. No cloud backup. No remote storage of any kind. If the device is 
 | Component | Technology | Notes |
 |-----------|-----------|-------|
 | Desktop App | Tauri 2.0 (Rust + Web frontend) | Native webview, system tray, OS integration |
-| Mobile App | React Native + react-native-reanimated | First-class interface, not a companion |
-| LLM Runtime | Ollama (default) / llama.cpp (power) / MLX (Apple) | User-selectable |
+| Mobile App | React Native + react-native-reanimated | Peer device, not a companion. Full local inference. |
+| LLM Runtime (Desktop) | Ollama (default) / llama.cpp (power) / MLX (macOS) | User-selectable |
+| LLM Runtime (iOS) | MLX (default) / llama.cpp (fallback) | MLX optimized for Apple Silicon |
+| LLM Runtime (Android) | llama.cpp | Best ARM cross-platform support |
 | Vector Database | LanceDB (embedded, Rust-native) | No server process |
 | Structured Storage | SQLite | Relational data, action logs, audit trail |
 | Embedding | all-MiniLM-L6-v2 / nomic-embed-text | Local only. No cloud embedding APIs. |
@@ -141,7 +164,7 @@ Add dependencies conservatively. Every dependency is attack surface. Before addi
 │   ├── core/                        # AI Core — NO NETWORK ACCESS
 │   │   ├── llm/                     # LLM integration (Ollama, llama.cpp, MLX)
 │   │   ├── knowledge/               # Knowledge graph, embeddings, entity resolution
-│   │   ├── agent/                   # Orchestration, tool-use, approval flows
+│   │   ├── agent/                   # Orchestration, tool-use, approval flows, task routing
 │   │   └── types/                   # Shared TypeScript type definitions
 │   ├── gateway/                     # Semblance Gateway — SOLE NETWORK ACCESS
 │   │   ├── ipc/                     # IPC protocol handler
@@ -154,7 +177,8 @@ Add dependencies conservatively. Every dependency is attack surface. Before addi
 │   ├── mobile/                      # React Native mobile application
 │   │   ├── ios/
 │   │   ├── android/
-│   │   └── src/
+│   │   ├── src/
+│   │   └── src/inference/           # Platform-specific inference (MLX iOS, llama.cpp Android)
 │   └── semblance-ui/                # Shared component library
 │       ├── components/              # UI components
 │       ├── tokens/                  # Design tokens (colors, spacing, typography)
@@ -173,6 +197,9 @@ Add dependencies conservatively. Every dependency is attack surface. Before addi
 - **`packages/gateway/`** — NEVER import from `packages/core/` knowledge graph or user data stores. It receives structured action requests and returns structured responses. It does not reason about user data.
 - **`packages/semblance-ui/`** — Pure presentation. No business logic. No data fetching. No side effects beyond UI state.
 - **`packages/desktop/`** and **`packages/mobile/`** — Compose from `core`, `gateway`, and `semblance-ui`. Platform-specific code only.
+- **`packages/mobile/src/inference/`** — Platform-specific inference runtime (MLX on iOS, llama.cpp on Android). May import from `packages/core/` types but NOT from `packages/gateway/` or `packages/desktop/`.
+- **`packages/core/agent/task-router.ts`** — Query complexity assessment and routing decisions. Pure logic, no platform-specific code.
+- **`packages/core/agent/device-handoff.ts`** — Desktop discovery and handoff protocol. Uses local network only — NO cloud relay, NO external discovery service.
 
 ---
 
@@ -226,18 +253,79 @@ interface ActionResponse {
 }
 ```
 
+### Audit Trail Entry Schema
+
+```typescript
+interface AuditTrailEntry {
+  id: string;                           // Unique entry ID
+  requestId: string;                    // Matches ActionRequest.id
+  timestamp: string;                    // ISO 8601
+  action: ActionType;
+  payloadHash: string;                  // SHA-256 of the payload
+  status: 'pending' | 'success' | 'error' | 'rejected';
+  autonomyTier: 'guardian' | 'partner' | 'alter_ego';
+  approvalRequired: boolean;
+  approvalGiven: boolean | null;        // null if not yet decided
+  estimatedTimeSavedSeconds: number;    // REQUIRED from Sprint 2 — time user would have spent
+  responseHash: string | null;          // SHA-256 of response, null if pending
+  chainHash: string;                    // Hash of this entry + previous chainHash (tamper evidence)
+}
+```
+
 ### Validation Flow
 
 1. AI Core constructs an `ActionRequest` with typed payload
 2. AI Core signs the request
 3. Request is sent to Gateway via IPC
 4. Gateway validates: schema → allowlist → rate limit → anomaly check
-5. Gateway logs to audit trail (BEFORE execution)
+5. Gateway logs to audit trail (BEFORE execution) — including `estimatedTimeSavedSeconds`
 6. Gateway executes the action using user's credentials
 7. Gateway logs the response to audit trail
 8. Gateway returns `ActionResponse` to AI Core via IPC
 
 If ANY validation step fails, the request is rejected and logged as a failed attempt. The AI Core receives an error response.
+
+---
+
+## Mobile Architecture — Peer Device
+
+Mobile is a peer device, not a companion. It runs full local inference and participates in intelligent task routing with desktop.
+
+### Model Defaults
+
+| Device Class | Available RAM | Default Model | Fallback |
+|-------------|--------------|---------------|----------|
+| Capable (iPhone 15 Pro+, flagship Android) | 6GB+ | Llama 3.2 3B Q4 / Phi-3-mini 3.8B Q4 | 1B models |
+| Constrained (older devices) | <6GB | Llama 3.2 1B / Gemma 2B | — |
+
+Device capability is assessed at first launch and periodically. User can always override the default.
+
+### Task Routing
+
+The `TaskRouter` in `packages/core/agent/` decides where to run inference:
+
+- **Local:** Conversational queries, retrieval, email triage, calendar, quick lookups, standard drafts
+- **Desktop handoff:** Complex multi-step reasoning, large document analysis, heavy multi-tool orchestration
+
+Handoff is seamless and invisible to the user. Desktop discovery via mDNS/Bonjour over local network. Handoff uses IPC action request format over local TLS with mutual authentication.
+
+If desktop is unavailable, mobile always runs locally with the best available model.
+
+### Model Caching
+
+- Primary model stays loaded in memory while app is foregrounded
+- Graceful unload on OS memory pressure (iOS background tasks, Android onTrimMemory)
+- Model weights cached on device storage for fast reload (<2s target)
+- Default model cache budget: 4GB (user configurable)
+
+### Rules
+
+- Mobile inference code lives in `packages/mobile/src/inference/`
+- Task routing logic lives in `packages/core/agent/task-router.ts`
+- Desktop discovery and handoff protocol lives in `packages/core/agent/device-handoff.ts`
+- The handoff protocol MUST use mutual TLS authentication — no unauthenticated local network connections
+- Model downloads and caching MUST go through the Gateway (respecting allowlist)
+- Device capability detection MUST NOT phone home — all assessment is local hardware inspection
 
 ---
 
@@ -291,15 +379,32 @@ Premium features are proprietary and live in a separate repository:
 
 ## Autonomy Framework
 
-User autonomy is configured per-domain at three tiers. Default varies by domain sensitivity.
+User autonomy is configured per-domain at three tiers. **Partner is the default onboarding selection.** Guardian is the conservative opt-down. Alter Ego is positioned as the aspirational destination.
 
 | Tier | Name | Behavior | Default For |
 |------|------|----------|-------------|
 | 1 | **Guardian** | Prepare actions, show preview, wait for explicit approval | Finances, legal, new integrations |
-| 2 | **Partner** | Routine actions autonomous, novel/high-stakes require approval, daily digest | Email, calendar, health |
-| 3 | **Alter Ego** | Acts as user for nearly everything, interrupts only for genuinely high-stakes | Power users who opt in |
+| 2 | **Partner** | Routine actions autonomous, novel/high-stakes require approval, daily digest | **Default onboarding selection.** Email, calendar, health |
+| 3 | **Alter Ego** | Acts as user for nearly everything, interrupts only for genuinely high-stakes | Users who opt in. Aspirational, not hidden. |
 
-Every action, regardless of autonomy tier, is logged to the Universal Action Log with full context (what, why, when, what data was used) and is reviewable and reversible where possible.
+Every action, regardless of autonomy tier, is logged to the Universal Action Log with full context (what, why, when, what data was used, estimated time saved) and is reviewable and reversible where possible.
+
+### Autonomy Escalation (Active)
+
+Semblance actively encourages autonomy escalation based on approval patterns:
+- After 10 consecutive approvals of the same action type in Guardian: suggest upgrading that action type to Partner
+- After consistent Partner mode success across a domain: suggest Alter Ego with concrete explanation of what changes
+- Escalation prompts are opt-in, contextual, and tied to demonstrated success
+
+### Per-Feature Implementation Requirements
+
+For every agent action implemented, the following are ALL required:
+1. The action itself
+2. Autonomy tier behavior (what happens in Guardian vs. Partner vs. Alter Ego)
+3. Action log entry with full context
+4. Undo capability where the action is reversible
+5. `estimatedTimeSavedSeconds` value for the audit trail
+6. Escalation prompt logic (when to suggest granting more autonomy for this action type)
 
 ---
 
@@ -333,6 +438,7 @@ You MUST escalate (do not proceed independently) when:
 - The task would change the IPC protocol schema
 - The task would modify the privacy audit pipeline
 - You encounter a conflict between this document and the design system
+- The task involves the device handoff protocol (requires Gemini audit)
 
 ### When to Proceed Independently
 
@@ -365,7 +471,9 @@ You should proceed without escalating when:
 - **Gateway tests (`tests/gateway/`):** Verify schema validation rejects malformed requests. Verify allowlist enforcement. Verify audit trail integrity. Verify rate limiting.
 - **Integration tests (`tests/integration/`):** End-to-end flows: user asks question → Core reasons → Core sends action to Gateway → Gateway executes → response flows back → audit trail is correct.
 - All agent actions must have tests verifying the action is logged before execution.
+- All agent actions must have tests verifying `estimatedTimeSavedSeconds` is present in the audit trail entry.
 - All approval flows must have tests verifying Guardian/Partner/Alter Ego behavior.
+- All autonomy escalation prompts must have tests verifying trigger conditions.
 
 ### Commits
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `security:`
@@ -379,12 +487,25 @@ You should proceed without escalating when:
 
 | Sprint | Weeks | Focus | Key Deliverables |
 |--------|-------|-------|-----------------|
-| 1 | 1–4 | The Spine | LLM integration, knowledge graph, Gateway, app shells, CLAUDE.md, design system |
-| 2 | 5–8 | Becomes Useful | Universal Inbox, proactive context, basic agent actions, onboarding, Network Monitor |
-| 3 | 9–12 | Becomes Powerful | Financial awareness, form automation, Digital Representative, health tracking |
-| 4 | 13–16 | Becomes Undeniable | Relationship intelligence, learning/adaptation, Privacy Dashboard, mobile parity, launch prep |
+| 1 | 1–4 | The Spine | LLM integration, knowledge graph, Gateway, desktop app shell, mobile inference foundation (MLX/llama.cpp, 3B defaults, model caching), CLAUDE.md, design system |
+| 2 | 5–8 | Becomes Useful | Universal Inbox (active, not passive), proactive context, autonomous agent actions, subscription detection, time-saved tracking, onboarding Knowledge Moment, task routing, Network Monitor |
+| 3 | 9–12 | Becomes Powerful | Full financial awareness, form automation, Digital Representative, health tracking, communication style learning, mobile feature parity |
+| 4 | 13–16 | Becomes Undeniable | Relationship intelligence, learning/adaptation, Privacy Dashboard, Alter Ego fully operational, full mobile parity, launch prep |
 
-Refer to `semblance_build_map.docx` for full sprint details including exit criteria.
+### Sprint 2 Exit Criteria (Action-Based)
+
+Sprint 2 is judged by actions taken and time saved, not information surfaced:
+
+1. Semblance autonomously completed at least 10 meaningful actions in its first week
+2. Weekly digest includes concrete time-saved estimate
+3. Knowledge Moment works within 5 minutes of connecting email + calendar
+4. Email is active: Partner mode responds, archives, drafts, follows up
+5. Calendar is active: resolves conflicts, handles scheduling autonomously in Partner mode
+6. Subscription detection: CSV/OFX import identifies recurring charges, flags forgotten subscriptions
+7. Autonomy escalation feels natural — Guardian→Partner and Partner→Alter Ego transitions are guided
+8. Network Monitor shows zero unauthorized connections
+
+Refer to `SEMBLANCE_BUILD_MAP_REVISION_2.md` for full sprint details including all exit criteria.
 
 ---
 
@@ -393,3 +514,5 @@ Refer to `semblance_build_map.docx` for full sprint details including exit crite
 The entire foundation of Semblance is trust. Every line of code either builds trust or erodes it. There is no neutral ground. When in doubt between convenience and security, choose security. When in doubt between speed and correctness, choose correctness. When in doubt between assumption and escalation, escalate.
 
 The user is trusting us with everything. Build accordingly.
+
+And remember: the product is judged by what it does, not what it shows. Build the active version.
