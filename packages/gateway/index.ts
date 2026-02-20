@@ -190,6 +190,7 @@ export class Gateway {
 
 // Re-export key types and classes for consumers
 export { AuditTrail } from './audit/trail.js';
+export { TIME_SAVED_DEFAULTS, TIME_SAVED_GRANULAR, getDefaultTimeSaved } from './audit/time-saved-defaults.js';
 export { Allowlist } from './security/allowlist.js';
 export { KeyManager } from './security/signing.js';
 export { RateLimiter } from './security/rate-limiter.js';
@@ -197,6 +198,13 @@ export { AnomalyDetector } from './security/anomaly-detector.js';
 export { ServiceRegistry } from './services/registry.js';
 export { GatewayTransport } from './ipc/transport.js';
 export { validateAndExecute } from './ipc/validator.js';
+export { CredentialStore } from './credentials/store.js';
+export { PROVIDER_PRESETS } from './credentials/types.js';
+export { EmailAdapter, IMAPAdapter, SMTPAdapter } from './services/email/index.js';
+export { CalendarAdapter, CalDAVAdapter } from './services/calendar/index.js';
 export type { ServiceAdapter } from './services/types.js';
 export type { TransportConfig } from './ipc/transport.js';
 export type { ValidatorDeps } from './ipc/validator.js';
+export type { ServiceCredential, ServiceCredentialInput, ConnectionTestResult, ProviderPreset } from './credentials/types.js';
+export type { EmailMessage, EmailAddress, EmailFetchParams, EmailSendParams } from './services/email/types.js';
+export type { CalendarEvent, CalendarInfo, CalendarFetchParams, CalendarCreateParams, CalendarUpdateParams } from './services/calendar/types.js';

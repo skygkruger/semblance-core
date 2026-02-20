@@ -15,5 +15,6 @@ export const AuditEntry = z.object({
   signature: z.string(),
   chainHash: z.string(),
   metadata: z.record(z.unknown()).optional(),
+  estimatedTimeSavedSeconds: z.number().int().min(0).default(0),
 });
 export type AuditEntry = z.infer<typeof AuditEntry>;

@@ -9,9 +9,9 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Button, Input, AutonomySelector, ProgressBar } from '@semblance/ui';
+import { Button, Input, AutonomySelector, ProgressBar, CredentialForm } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
-import type { AutonomyTier } from '@semblance/ui';
+import type { AutonomyTier, CredentialFormData } from '@semblance/ui';
 
 const TOTAL_STEPS = 8;
 
@@ -24,6 +24,17 @@ export function OnboardingScreen() {
   const [autonomyTier, setAutonomyTier] = useState<AutonomyTier>('partner');
   const [visible, setVisible] = useState(true);
   const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [connectingEmail, setConnectingEmail] = useState(false);
+  const [connectingCalendar, setConnectingCalendar] = useState(false);
+  const [emailConnected, setEmailConnected] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [presets, setPresets] = useState<Record<string, { name: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; caldavUrl: string | null; notes: string | null }>>({});
+
+  useEffect(() => {
+    invoke<Record<string, { name: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; caldavUrl: string | null; notes: string | null }>>('get_provider_presets')
+      .then(setPresets)
+      .catch(() => {});
+  }, []);
 
   const name = state.userName || nameInput;
 
@@ -74,6 +85,45 @@ export function OnboardingScreen() {
       // User cancelled
     }
   }, [dispatch]);
+
+  const handleAddCredential = useCallback(async (credentials: CredentialFormData[]) => {
+    for (const cred of credentials) {
+      await invoke('add_credential', {
+        serviceType: cred.serviceType,
+        protocol: cred.protocol,
+        host: cred.host,
+        port: cred.port,
+        username: cred.username,
+        password: cred.password,
+        useTls: cred.useTLS,
+        displayName: cred.displayName,
+      });
+    }
+    if (credentials[0]?.serviceType === 'email') {
+      setEmailConnected(true);
+      setConnectingEmail(false);
+    } else {
+      setCalendarConnected(true);
+      setConnectingCalendar(false);
+    }
+  }, []);
+
+  const handleTestCredential = useCallback(async (cred: CredentialFormData): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await invoke<{ success: boolean; error?: string }>('test_credential', {
+        serviceType: cred.serviceType,
+        protocol: cred.protocol,
+        host: cred.host,
+        port: cred.port,
+        username: cred.username,
+        password: cred.password,
+        useTls: cred.useTLS,
+      });
+      return result;
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }, []);
 
   const handleComplete = useCallback(async () => {
     // Save autonomy config
@@ -173,27 +223,97 @@ export function OnboardingScreen() {
                 </p>
               </button>
 
-              {/* Email — coming soon */}
-              <div className="p-5 rounded-lg border border-semblance-border-dark/30 opacity-50">
-                <div className="flex items-center gap-3">
-                  <svg className="w-6 h-6 text-semblance-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                  </svg>
-                  <span className="font-semibold text-semblance-muted">Email</span>
-                  <span className="text-xs text-semblance-muted ml-auto">Coming in the next update</span>
+              {/* Email */}
+              {connectingEmail ? (
+                <div className="p-5 rounded-lg border-2 border-semblance-primary/30 bg-semblance-surface-2-dark text-left">
+                  <div className="flex items-center gap-3 mb-4">
+                    <svg className="w-6 h-6 text-semblance-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                    <span className="font-semibold text-semblance-text-primary-dark">Connect Email</span>
+                  </div>
+                  <CredentialForm
+                    serviceType="email"
+                    presets={presets}
+                    onSave={handleAddCredential}
+                    onTest={handleTestCredential}
+                    onCancel={() => setConnectingEmail(false)}
+                  />
                 </div>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConnectingEmail(true)}
+                  disabled={emailConnected}
+                  className={`p-5 rounded-lg border-2 text-left transition-colors duration-fast ${
+                    emailConnected
+                      ? 'border-semblance-success/30 bg-semblance-success/5'
+                      : 'border-semblance-primary/30 bg-semblance-primary-subtle-dark hover:border-semblance-primary'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <svg className={`w-6 h-6 ${emailConnected ? 'text-semblance-success' : 'text-semblance-primary'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                    <span className={`font-semibold ${emailConnected ? 'text-semblance-success' : 'text-semblance-text-primary-dark'}`}>
+                      {emailConnected ? 'Email Connected' : 'Email'}
+                    </span>
+                    {emailConnected && (
+                      <svg className="w-5 h-5 text-semblance-success ml-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
+                    )}
+                  </div>
+                  <p className="text-xs text-semblance-muted mt-2 flex items-center gap-1">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                    Credentials stored locally, encrypted
+                  </p>
+                </button>
+              )}
 
-              {/* Calendar — coming soon */}
-              <div className="p-5 rounded-lg border border-semblance-border-dark/30 opacity-50">
-                <div className="flex items-center gap-3">
-                  <svg className="w-6 h-6 text-semblance-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" />
-                  </svg>
-                  <span className="font-semibold text-semblance-muted">Calendar</span>
-                  <span className="text-xs text-semblance-muted ml-auto">Coming in the next update</span>
+              {/* Calendar */}
+              {connectingCalendar ? (
+                <div className="p-5 rounded-lg border-2 border-semblance-primary/30 bg-semblance-surface-2-dark text-left">
+                  <div className="flex items-center gap-3 mb-4">
+                    <svg className="w-6 h-6 text-semblance-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" />
+                    </svg>
+                    <span className="font-semibold text-semblance-text-primary-dark">Connect Calendar</span>
+                  </div>
+                  <CredentialForm
+                    serviceType="calendar"
+                    presets={presets}
+                    onSave={handleAddCredential}
+                    onTest={handleTestCredential}
+                    onCancel={() => setConnectingCalendar(false)}
+                  />
                 </div>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConnectingCalendar(true)}
+                  disabled={calendarConnected}
+                  className={`p-5 rounded-lg border-2 text-left transition-colors duration-fast ${
+                    calendarConnected
+                      ? 'border-semblance-success/30 bg-semblance-success/5'
+                      : 'border-semblance-primary/30 bg-semblance-primary-subtle-dark hover:border-semblance-primary'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <svg className={`w-6 h-6 ${calendarConnected ? 'text-semblance-success' : 'text-semblance-primary'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" />
+                    </svg>
+                    <span className={`font-semibold ${calendarConnected ? 'text-semblance-success' : 'text-semblance-text-primary-dark'}`}>
+                      {calendarConnected ? 'Calendar Connected' : 'Calendar'}
+                    </span>
+                    {calendarConnected && (
+                      <svg className="w-5 h-5 text-semblance-success ml-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
+                    )}
+                  </div>
+                  <p className="text-xs text-semblance-muted mt-2 flex items-center gap-1">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                    Credentials stored locally, encrypted
+                  </p>
+                </button>
+              )}
             </div>
           </div>
         )}

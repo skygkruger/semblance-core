@@ -10,6 +10,7 @@ export {
   EmailFetchPayload,
   CalendarFetchPayload,
   CalendarCreatePayload,
+  CalendarUpdatePayload,
   ServiceApiCallPayload,
   FinanceFetchPayload,
   HealthFetchPayload,

@@ -29,3 +29,5 @@ export { AutonomySelector } from './components/AutonomySelector/index.js';
 export type { AutonomyTier } from './components/AutonomySelector/index.js';
 export { ThemeToggle } from './components/ThemeToggle/index.js';
 export type { ThemeMode } from './components/ThemeToggle/index.js';
+export { CredentialForm } from './components/CredentialForm/index.js';
+export type { CredentialFormData, ProviderPreset as CredentialProviderPreset } from './components/CredentialForm/index.js';

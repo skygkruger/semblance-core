@@ -31,26 +31,38 @@ export type EmailSendPayload = z.infer<typeof EmailSendPayload>;
 export const EmailFetchPayload = z.object({
   folder: z.string().default('INBOX'),
   limit: z.number().int().positive().default(50),
-  since: z.string().datetime().optional(),
+  since: z.string().optional(),
+  search: z.string().optional(),
+  messageIds: z.array(z.string()).optional(),
 });
 export type EmailFetchPayload = z.infer<typeof EmailFetchPayload>;
 
 export const CalendarFetchPayload = z.object({
-  calendarId: z.string().default('primary'),
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
+  calendarId: z.string().optional(),
+  startDate: z.string(),
+  endDate: z.string(),
 });
 export type CalendarFetchPayload = z.infer<typeof CalendarFetchPayload>;
 
 export const CalendarCreatePayload = z.object({
-  calendarId: z.string().default('primary'),
+  calendarId: z.string().optional(),
   title: z.string(),
-  startTime: z.string().datetime(),
-  endTime: z.string().datetime(),
+  startTime: z.string(),
+  endTime: z.string(),
   description: z.string().optional(),
-  attendees: z.array(z.string().email()).optional(),
+  location: z.string().optional(),
+  attendees: z.array(z.object({
+    name: z.string(),
+    email: z.string(),
+  })).optional(),
 });
 export type CalendarCreatePayload = z.infer<typeof CalendarCreatePayload>;
+
+export const CalendarUpdatePayload = z.object({
+  eventId: z.string(),
+  updates: CalendarCreatePayload.partial(),
+});
+export type CalendarUpdatePayload = z.infer<typeof CalendarUpdatePayload>;
 
 export const ServiceApiCallPayload = z.object({
   service: z.string(),
@@ -80,7 +92,7 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'email.fetch': EmailFetchPayload,
   'calendar.fetch': CalendarFetchPayload,
   'calendar.create': CalendarCreatePayload,
-  'calendar.update': CalendarCreatePayload,
+  'calendar.update': CalendarUpdatePayload,
   'finance.fetch_transactions': FinanceFetchPayload,
   'health.fetch': HealthFetchPayload,
   'service.api_call': ServiceApiCallPayload,

@@ -23,8 +23,14 @@ const CREATE_TABLE = `
     signature TEXT NOT NULL,
     chain_hash TEXT NOT NULL,
     metadata TEXT,
+    estimated_time_saved_seconds INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+`;
+
+// Migration: add estimated_time_saved_seconds to existing tables that lack it
+const MIGRATE_TIME_SAVED = `
+  ALTER TABLE audit_log ADD COLUMN estimated_time_saved_seconds INTEGER NOT NULL DEFAULT 0;
 `;
 
 const CREATE_INDEXES = `
@@ -44,6 +50,7 @@ interface AuditRow {
   signature: string;
   chain_hash: string;
   metadata: string | null;
+  estimated_time_saved_seconds: number;
 }
 
 function rowToEntry(row: AuditRow): AuditEntry {
@@ -58,6 +65,7 @@ function rowToEntry(row: AuditRow): AuditEntry {
     signature: row.signature,
     chainHash: row.chain_hash,
     metadata: row.metadata ? JSON.parse(row.metadata) as Record<string, unknown> : undefined,
+    estimatedTimeSavedSeconds: row.estimated_time_saved_seconds,
   };
 }
 
@@ -84,9 +92,16 @@ export class AuditTrail {
     this.db.exec(CREATE_TABLE);
     this.db.exec(CREATE_INDEXES);
 
+    // Migration: add estimated_time_saved_seconds if upgrading from Sprint 1 schema
+    try {
+      this.db.exec(MIGRATE_TIME_SAVED);
+    } catch {
+      // Column already exists — expected for new databases or already-migrated ones
+    }
+
     this.insertStmt = this.db.prepare(`
-      INSERT INTO audit_log (id, request_id, timestamp, action, direction, status, payload_hash, signature, chain_hash, metadata)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO audit_log (id, request_id, timestamp, action, direction, status, payload_hash, signature, chain_hash, metadata, estimated_time_saved_seconds)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     // Load the last entry for chain continuity
@@ -116,6 +131,7 @@ export class AuditTrail {
     payloadHash: string;
     signature: string;
     metadata?: Record<string, unknown>;
+    estimatedTimeSavedSeconds?: number;
   }): string {
     const id = nanoid();
 
@@ -134,6 +150,7 @@ export class AuditTrail {
       params.signature,
       chainHash,
       params.metadata ? JSON.stringify(params.metadata) : null,
+      params.estimatedTimeSavedSeconds ?? 0,
     );
 
     this.lastEntry = {

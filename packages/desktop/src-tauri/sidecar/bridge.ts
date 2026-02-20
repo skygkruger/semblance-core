@@ -26,7 +26,14 @@ import Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
 import { createSemblanceCore, type SemblanceCore, type ChatMessage } from '../../../core/index.js';
 import { scanDirectory, readFileContent } from '../../../core/knowledge/file-scanner.js';
-import { Gateway } from '../../../gateway/index.js';
+import {
+  Gateway,
+  CredentialStore,
+  EmailAdapter,
+  CalendarAdapter,
+  PROVIDER_PRESETS,
+} from '../../../gateway/index.js';
+import type { ServiceCredential } from '../../../gateway/credentials/types.js';
 
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
@@ -47,6 +54,9 @@ function respondError(id: number | string, error: string): void {
 let core: SemblanceCore | null = null;
 let gateway: Gateway | null = null;
 let prefsDb: Database.Database | null = null;
+let credentialStore: CredentialStore | null = null;
+let emailAdapter: EmailAdapter | null = null;
+let calendarAdapter: CalendarAdapter | null = null;
 let indexingInProgress = false;
 let currentConversationId: string | null = null;
 let dataDir = '';
@@ -136,6 +146,16 @@ async function handleInitialize(): Promise<unknown> {
   prefsDb = new Database(join(dataDir, 'core.db'));
   prefsDb.pragma('journal_mode = WAL');
   prefsDb.exec(PREFS_TABLE_SQL);
+
+  // Initialize credential store in Gateway's database
+  const gatewayDataDir = join(homedir(), '.semblance', 'gateway');
+  if (!existsSync(gatewayDataDir)) mkdirSync(gatewayDataDir, { recursive: true });
+  const credDb = new Database(join(gatewayDataDir, 'credentials.db'));
+  credentialStore = new CredentialStore(credDb);
+
+  // Initialize service adapters
+  emailAdapter = new EmailAdapter(credentialStore);
+  calendarAdapter = new CalendarAdapter(credentialStore);
 
   // Check Ollama status
   const ollamaAvailable = await core.llm.isAvailable();
@@ -427,6 +447,7 @@ async function handleGetActionLog(params: { limit: number; offset: number }): Pr
       autonomy_tier: 'partner',
       payload_hash: entry.payloadHash,
       audit_ref: entry.id,
+      estimated_time_saved_seconds: entry.estimatedTimeSavedSeconds ?? 0,
     }));
   } catch {
     return [];
@@ -525,8 +546,212 @@ async function handleGetChatHistory(params: { limit: number; offset: number }): 
   }
 }
 
+// ─── Credential Management Handlers ──────────────────────────────────────────
+
+function handleAddCredential(params: {
+  serviceType: 'email' | 'calendar';
+  protocol: 'imap' | 'smtp' | 'caldav';
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  useTLS: boolean;
+  displayName: string;
+}): unknown {
+  if (!credentialStore) throw new Error('Credential store not initialized');
+
+  const credential = credentialStore.add(params);
+
+  // Auto-update the Gateway allowlist with the credential host
+  if (gateway) {
+    try {
+      const allowlist = gateway.getAllowlist();
+      allowlist.addService({
+        serviceName: params.displayName,
+        domain: params.host,
+        port: params.port,
+        protocol: params.protocol,
+        addedBy: 'credential_auto',
+      });
+
+      // Log allowlist change to audit trail
+      const trail = gateway.getAuditTrail();
+      trail.append({
+        requestId: `allowlist-auto-${credential.id}`,
+        timestamp: new Date().toISOString(),
+        action: 'service.api_call',
+        direction: 'response',
+        status: 'success',
+        payloadHash: 'allowlist_update',
+        signature: 'allowlist_update',
+        metadata: {
+          event: 'allowlist_updated',
+          domain: params.host,
+          port: params.port,
+          credentialId: credential.id,
+          operation: 'add',
+        },
+      });
+    } catch (err) {
+      console.error('[sidecar] Failed to update allowlist:', err);
+    }
+  }
+
+  // Return credential without encrypted password
+  return {
+    id: credential.id,
+    serviceType: credential.serviceType,
+    protocol: credential.protocol,
+    host: credential.host,
+    port: credential.port,
+    username: credential.username,
+    useTLS: credential.useTLS,
+    displayName: credential.displayName,
+    createdAt: credential.createdAt,
+    lastVerifiedAt: credential.lastVerifiedAt,
+  };
+}
+
+function handleListCredentials(params: { service_type: string }): unknown[] {
+  if (!credentialStore) return [];
+
+  const creds = params.service_type === 'all'
+    ? credentialStore.getAll()
+    : credentialStore.getByType(params.service_type as 'email' | 'calendar');
+
+  // Strip encrypted passwords from response
+  return creds.map(c => ({
+    id: c.id,
+    serviceType: c.serviceType,
+    protocol: c.protocol,
+    host: c.host,
+    port: c.port,
+    username: c.username,
+    useTLS: c.useTLS,
+    displayName: c.displayName,
+    createdAt: c.createdAt,
+    lastVerifiedAt: c.lastVerifiedAt,
+  }));
+}
+
+function handleRemoveCredential(params: { id: string }): unknown {
+  if (!credentialStore) throw new Error('Credential store not initialized');
+
+  const credential = credentialStore.get(params.id);
+  if (!credential) throw new Error(`Credential not found: ${params.id}`);
+
+  credentialStore.remove(params.id);
+
+  // Remove from allowlist and log
+  if (gateway) {
+    try {
+      const allowlist = gateway.getAllowlist();
+      const services = allowlist.listServices();
+      const matching = services.filter(
+        s => s.domain === credential.host && s.port === credential.port
+      );
+      for (const svc of matching) {
+        allowlist.removeService(svc.id);
+      }
+
+      const trail = gateway.getAuditTrail();
+      trail.append({
+        requestId: `allowlist-remove-${params.id}`,
+        timestamp: new Date().toISOString(),
+        action: 'service.api_call',
+        direction: 'response',
+        status: 'success',
+        payloadHash: 'allowlist_update',
+        signature: 'allowlist_update',
+        metadata: {
+          event: 'allowlist_updated',
+          domain: credential.host,
+          port: credential.port,
+          credentialId: params.id,
+          operation: 'remove',
+        },
+      });
+    } catch (err) {
+      console.error('[sidecar] Failed to update allowlist on remove:', err);
+    }
+  }
+
+  return { success: true };
+}
+
+async function handleTestCredential(params: { id: string }): Promise<unknown> {
+  if (!credentialStore) throw new Error('Credential store not initialized');
+
+  const credential = credentialStore.get(params.id);
+  if (!credential) throw new Error(`Credential not found: ${params.id}`);
+
+  const password = credentialStore.decryptPassword(credential);
+
+  let result: { success: boolean; error?: string; calendars?: unknown[] };
+
+  switch (credential.protocol) {
+    case 'imap':
+      if (!emailAdapter) throw new Error('Email adapter not initialized');
+      result = await emailAdapter.imap.testConnection(credential, password);
+      break;
+    case 'smtp':
+      if (!emailAdapter) throw new Error('Email adapter not initialized');
+      result = await emailAdapter.smtp.testConnection(credential, password);
+      break;
+    case 'caldav':
+      if (!calendarAdapter) throw new Error('Calendar adapter not initialized');
+      result = await calendarAdapter.caldav.testConnection(credential, password);
+      break;
+    default:
+      result = { success: false, error: `Unknown protocol: ${credential.protocol}` };
+  }
+
+  // Update lastVerifiedAt on success
+  if (result.success) {
+    credentialStore.update(params.id, { lastVerifiedAt: new Date().toISOString() });
+  }
+
+  return result;
+}
+
+async function handleDiscoverCalendars(params: { credential_id: string }): Promise<unknown[]> {
+  if (!calendarAdapter) throw new Error('Calendar adapter not initialized');
+  return await calendarAdapter.caldav.discoverCalendars(params.credential_id);
+}
+
+function handleGetAccountsStatus(): unknown[] {
+  if (!credentialStore) return [];
+
+  const allCreds = credentialStore.getAll();
+  return allCreds.map(c => ({
+    id: c.id,
+    serviceType: c.serviceType,
+    protocol: c.protocol,
+    displayName: c.displayName,
+    host: c.host,
+    username: c.username,
+    lastVerifiedAt: c.lastVerifiedAt,
+    status: c.lastVerifiedAt ? 'verified' : 'unverified',
+  }));
+}
+
+function handleGetProviderPresets(): unknown {
+  return PROVIDER_PRESETS;
+}
+
 async function handleShutdown(): Promise<unknown> {
   console.error('[sidecar] Shutting down...');
+
+  // Shut down adapters first
+  if (emailAdapter) {
+    await emailAdapter.shutdown();
+    console.error('[sidecar] Email adapter shut down');
+  }
+
+  if (calendarAdapter) {
+    await calendarAdapter.shutdown();
+    console.error('[sidecar] Calendar adapter shut down');
+  }
 
   if (core) {
     await core.shutdown();
@@ -644,6 +869,54 @@ async function handleRequest(req: Request): Promise<void> {
         result = await handleGetChatHistory(params as { limit: number; offset: number });
         respond(id, result);
         break;
+
+      // ── Credential Management ──
+
+      case 'add_credential':
+        result = handleAddCredential(params as {
+          serviceType: 'email' | 'calendar';
+          protocol: 'imap' | 'smtp' | 'caldav';
+          host: string;
+          port: number;
+          username: string;
+          password: string;
+          useTLS: boolean;
+          displayName: string;
+        });
+        respond(id, result);
+        break;
+
+      case 'list_credentials':
+        result = handleListCredentials(params as { service_type: string });
+        respond(id, result);
+        break;
+
+      case 'remove_credential':
+        result = handleRemoveCredential(params as { id: string });
+        respond(id, result);
+        break;
+
+      case 'test_credential':
+        result = await handleTestCredential(params as { id: string });
+        respond(id, result);
+        break;
+
+      case 'discover_calendars':
+        result = await handleDiscoverCalendars(params as { credential_id: string });
+        respond(id, result);
+        break;
+
+      case 'get_accounts_status':
+        result = handleGetAccountsStatus();
+        respond(id, result);
+        break;
+
+      case 'get_provider_presets':
+        result = handleGetProviderPresets();
+        respond(id, result);
+        break;
+
+      // ── Shutdown ──
 
       case 'shutdown':
         result = await handleShutdown();

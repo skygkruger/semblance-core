@@ -60,6 +60,7 @@ pub struct ActionLogEntry {
     pub autonomy_tier: String,
     pub payload_hash: String,
     pub audit_ref: String,
+    pub estimated_time_saved_seconds: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -81,6 +82,50 @@ pub struct ChatMessage {
     pub role: String,
     pub content: String,
     pub timestamp: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ServiceCredentialInfo {
+    pub id: String,
+    pub service_type: String,
+    pub protocol: String,
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub use_tls: bool,
+    pub display_name: String,
+    pub created_at: String,
+    pub last_verified_at: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ConnectionTestResult {
+    pub success: bool,
+    pub error: Option<String>,
+    pub calendars: Option<Vec<CalendarInfo>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CalendarInfo {
+    pub id: String,
+    #[serde(rename = "displayName")]
+    pub display_name: String,
+    pub description: Option<String>,
+    pub color: Option<String>,
+    #[serde(rename = "readOnly")]
+    pub read_only: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AccountStatus {
+    pub id: String,
+    pub service_type: String,
+    pub protocol: String,
+    pub display_name: String,
+    pub host: String,
+    pub username: String,
+    pub last_verified_at: Option<String>,
+    pub status: String,
 }
 
 // ─── Sidecar Bridge ───────────────────────────────────────────────────────────
@@ -579,6 +624,131 @@ async fn get_onboarding_complete(state: tauri::State<'_, AppBridge>) -> Result<b
         .unwrap_or(false))
 }
 
+// ─── Credential Management Commands ─────────────────────────────────────────
+
+/// Add a new service credential (email or calendar).
+#[tauri::command]
+async fn add_credential(
+    state: tauri::State<'_, AppBridge>,
+    service_type: String,
+    protocol: String,
+    host: String,
+    port: u16,
+    username: String,
+    password: String,
+    use_tls: bool,
+    display_name: String,
+) -> Result<ServiceCredentialInfo, String> {
+    let result = state
+        .bridge
+        .call(
+            "add_credential",
+            serde_json::json!({
+                "serviceType": service_type,
+                "protocol": protocol,
+                "host": host,
+                "port": port,
+                "username": username,
+                "password": password,
+                "useTLS": use_tls,
+                "displayName": display_name,
+            }),
+        )
+        .await?;
+
+    serde_json::from_value(result)
+        .map_err(|e| format!("Failed to parse credential response: {}", e))
+}
+
+/// List credentials by service type ("email", "calendar", or "all").
+#[tauri::command]
+async fn list_credentials(
+    state: tauri::State<'_, AppBridge>,
+    service_type: String,
+) -> Result<Vec<ServiceCredentialInfo>, String> {
+    let result = state
+        .bridge
+        .call(
+            "list_credentials",
+            serde_json::json!({"service_type": service_type}),
+        )
+        .await?;
+
+    serde_json::from_value(result)
+        .map_err(|e| format!("Failed to parse credentials list: {}", e))
+}
+
+/// Remove a credential by ID.
+#[tauri::command]
+async fn remove_credential(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+) -> Result<(), String> {
+    state
+        .bridge
+        .call("remove_credential", serde_json::json!({"id": id}))
+        .await?;
+    Ok(())
+}
+
+/// Test a credential's connection (IMAP, SMTP, or CalDAV).
+#[tauri::command]
+async fn test_credential(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+) -> Result<ConnectionTestResult, String> {
+    let result = state
+        .bridge
+        .call("test_credential", serde_json::json!({"id": id}))
+        .await?;
+
+    serde_json::from_value(result)
+        .map_err(|e| format!("Failed to parse connection test result: {}", e))
+}
+
+/// Discover available calendars for a CalDAV credential.
+#[tauri::command]
+async fn discover_calendars(
+    state: tauri::State<'_, AppBridge>,
+    credential_id: String,
+) -> Result<Vec<CalendarInfo>, String> {
+    let result = state
+        .bridge
+        .call(
+            "discover_calendars",
+            serde_json::json!({"credential_id": credential_id}),
+        )
+        .await?;
+
+    serde_json::from_value(result)
+        .map_err(|e| format!("Failed to parse calendars: {}", e))
+}
+
+/// Get status of all configured accounts.
+#[tauri::command]
+async fn get_accounts_status(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Vec<AccountStatus>, String> {
+    let result = state
+        .bridge
+        .call("get_accounts_status", Value::Null)
+        .await?;
+
+    serde_json::from_value(result)
+        .map_err(|e| format!("Failed to parse accounts status: {}", e))
+}
+
+/// Get provider presets for email/calendar configuration.
+#[tauri::command]
+async fn get_provider_presets(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call("get_provider_presets", Value::Null)
+        .await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -701,6 +871,13 @@ pub fn run() {
             get_chat_history,
             set_onboarding_complete,
             get_onboarding_complete,
+            add_credential,
+            list_credentials,
+            remove_credential,
+            test_credential,
+            discover_calendars,
+            get_accounts_status,
+            get_provider_presets,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

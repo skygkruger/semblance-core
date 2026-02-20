@@ -234,6 +234,11 @@ export async function validateAndExecute(
 /**
  * Extract the target domain from a request payload, if applicable.
  * Returns null for actions that don't target external domains.
+ *
+ * Email and calendar actions use domains from user-configured credentials.
+ * The domain check happens during adapter execution (the adapter uses stored
+ * credentials which were validated and added to the allowlist at setup time).
+ * Only service.api_call requires pipeline-level domain validation.
  */
 function extractTargetDomain(
   action: ActionType,
@@ -242,7 +247,5 @@ function extractTargetDomain(
   if (action === 'service.api_call' && typeof payload['service'] === 'string') {
     return payload['service'];
   }
-  // Email, calendar, etc. use domains from the user's configured service connections
-  // Those are checked during service adapter execution, not at the pipeline level
   return null;
 }
