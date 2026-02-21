@@ -8,6 +8,7 @@ import { FilesScreen } from './screens/FilesScreen';
 import { ActivityScreen } from './screens/ActivityScreen';
 import { PrivacyScreen } from './screens/PrivacyScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { InboxScreen } from './screens/InboxScreen';
 import type { ThemeMode } from '@semblance/ui';
 
 // Lucide-style inline SVG icons (16×16, stroke-based)
@@ -23,6 +24,14 @@ function FolderIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+    </svg>
+  );
+}
+function InboxIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
     </svg>
   );
 }
@@ -51,6 +60,7 @@ function GearIcon() {
 
 const navItems: NavItem[] = [
   { id: 'chat', label: 'Chat', icon: <ChatIcon /> },
+  { id: 'inbox', label: 'Inbox', icon: <InboxIcon /> },
   { id: 'files', label: 'Files', icon: <FolderIcon /> },
   { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
   { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
@@ -69,6 +79,7 @@ function AppContent() {
   const renderScreen = () => {
     switch (state.activeScreen) {
       case 'chat': return <ChatScreen />;
+      case 'inbox': return <InboxScreen />;
       case 'files': return <FilesScreen />;
       case 'activity': return <ActivityScreen />;
       case 'privacy': return <PrivacyScreen />;

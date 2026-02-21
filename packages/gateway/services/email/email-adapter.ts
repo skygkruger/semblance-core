@@ -1,7 +1,7 @@
 // Email Adapter — Unified service adapter for email operations.
 // Routes email.fetch to IMAP, email.send to SMTP, email.draft to IMAP (APPEND).
 
-import type { ActionType } from '@semblance/core';
+import type { ActionType, EmailArchivePayload, EmailMovePayload, EmailMarkReadPayload } from '@semblance/core';
 import type { ServiceAdapter } from '../types.js';
 import type { CredentialStore } from '../../credentials/store.js';
 import { IMAPAdapter } from './imap-adapter.js';
@@ -32,6 +32,12 @@ export class EmailAdapter implements ServiceAdapter {
           return await this.handleSend(payload as EmailSendParams);
         case 'email.draft':
           return await this.handleDraft(payload as EmailSendParams);
+        case 'email.archive':
+          return await this.handleArchive(payload as EmailArchivePayload);
+        case 'email.move':
+          return await this.handleMove(payload as EmailMovePayload);
+        case 'email.markRead':
+          return await this.handleMarkRead(payload as EmailMarkReadPayload);
         default:
           return {
             success: false,
@@ -108,6 +114,57 @@ export class EmailAdapter implements ServiceAdapter {
 
     await this.imap.saveDraft(imapCreds[0]!.id, params);
     return { success: true, data: { saved: true } };
+  }
+
+  private async handleArchive(params: EmailArchivePayload): Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: { code: string; message: string };
+  }> {
+    const imapCreds = this.credentialStore.getByType('email')
+      .filter(c => c.protocol === 'imap');
+
+    if (imapCreds.length === 0) {
+      return { success: false, error: { code: 'NO_IMAP_CREDENTIALS', message: 'No IMAP credentials configured' } };
+    }
+
+    const credId = params.accountId ?? imapCreds[0]!.id;
+    await this.imap.archiveMessages(credId, params.messageIds, params.targetFolder);
+    return { success: true, data: { archived: params.messageIds.length } };
+  }
+
+  private async handleMove(params: EmailMovePayload): Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: { code: string; message: string };
+  }> {
+    const imapCreds = this.credentialStore.getByType('email')
+      .filter(c => c.protocol === 'imap');
+
+    if (imapCreds.length === 0) {
+      return { success: false, error: { code: 'NO_IMAP_CREDENTIALS', message: 'No IMAP credentials configured' } };
+    }
+
+    const credId = params.accountId ?? imapCreds[0]!.id;
+    await this.imap.moveMessages(credId, params.messageIds, params.fromFolder, params.toFolder);
+    return { success: true, data: { moved: params.messageIds.length } };
+  }
+
+  private async handleMarkRead(params: EmailMarkReadPayload): Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: { code: string; message: string };
+  }> {
+    const imapCreds = this.credentialStore.getByType('email')
+      .filter(c => c.protocol === 'imap');
+
+    if (imapCreds.length === 0) {
+      return { success: false, error: { code: 'NO_IMAP_CREDENTIALS', message: 'No IMAP credentials configured' } };
+    }
+
+    const credId = params.accountId ?? imapCreds[0]!.id;
+    await this.imap.markAsRead(credId, params.messageIds, params.read);
+    return { success: true, data: { updated: params.messageIds.length } };
   }
 
   async shutdown(): Promise<void> {

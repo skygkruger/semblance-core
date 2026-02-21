@@ -19,6 +19,7 @@ import type {
   AutonomyDomain,
 } from './types.js';
 import type { ActionType, ActionResponse } from '../types/ipc.js';
+import { ApprovalPatternTracker } from './approval-patterns.js';
 
 // --- Conversation Storage ---
 
@@ -73,54 +74,122 @@ const TOOLS: ToolDefinition[] = [
     },
   },
   {
-    name: 'send_email',
-    description: 'Send an email on behalf of the user',
+    name: 'fetch_inbox',
+    description: 'Fetch recent emails from the user\'s inbox. Returns a summary of unread and recent messages with sender, subject, date, and AI-assigned priority.',
     parameters: {
       type: 'object',
       properties: {
-        to: { type: 'array', items: { type: 'string' }, description: 'Recipients' },
-        subject: { type: 'string' },
-        body: { type: 'string' },
+        limit: { type: 'number', description: 'Max messages to return (default 20)' },
+        unreadOnly: { type: 'boolean', description: 'Only return unread messages (default false)' },
+        folder: { type: 'string', description: 'IMAP folder (default INBOX)' },
+      },
+    },
+  },
+  {
+    name: 'search_emails',
+    description: 'Search the user\'s indexed emails by keyword, sender, date range, or semantic meaning.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query (natural language or keyword)' },
+        from: { type: 'string', description: 'Filter by sender email or name' },
+        dateAfter: { type: 'string', description: 'ISO date — only emails after this date' },
+        dateBefore: { type: 'string', description: 'ISO date — only emails before this date' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'send_email',
+    description: 'Send an email on behalf of the user. In Guardian mode, this shows a preview and waits for approval. In Partner mode, routine responses are sent automatically; novel emails require approval. In Alter Ego mode, all emails are sent automatically.',
+    parameters: {
+      type: 'object',
+      properties: {
+        to: { type: 'array', items: { type: 'string' }, description: 'Recipient email addresses' },
         cc: { type: 'array', items: { type: 'string' }, description: 'CC recipients' },
+        subject: { type: 'string' },
+        body: { type: 'string', description: 'Email body (plain text)' },
+        replyToMessageId: { type: 'string', description: 'Message-ID to reply to (for threading)' },
       },
       required: ['to', 'subject', 'body'],
     },
   },
   {
-    name: 'fetch_email',
-    description: 'Fetch recent emails from the user\'s inbox',
+    name: 'draft_email',
+    description: 'Save an email draft without sending. Always available regardless of autonomy tier.',
     parameters: {
       type: 'object',
       properties: {
-        folder: { type: 'string', description: 'Email folder (default: INBOX)' },
-        limit: { type: 'number', description: 'Max emails to fetch' },
+        to: { type: 'array', items: { type: 'string' } },
+        cc: { type: 'array', items: { type: 'string' } },
+        subject: { type: 'string' },
+        body: { type: 'string' },
+        replyToMessageId: { type: 'string' },
       },
+      required: ['to', 'subject', 'body'],
+    },
+  },
+  {
+    name: 'archive_email',
+    description: 'Archive one or more emails (move from INBOX to Archive/All Mail). In Partner mode, archiving routine emails is automatic.',
+    parameters: {
+      type: 'object',
+      properties: {
+        messageIds: { type: 'array', items: { type: 'string' }, description: 'Message IDs to archive' },
+      },
+      required: ['messageIds'],
+    },
+  },
+  {
+    name: 'categorize_email',
+    description: 'Apply AI-determined categories and priority to emails. Always automatic — categorization is informational, not an action.',
+    parameters: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string' },
+        categories: { type: 'array', items: { type: 'string' }, description: 'Category labels' },
+        priority: { type: 'string', enum: ['high', 'normal', 'low'] },
+      },
+      required: ['messageId', 'categories', 'priority'],
     },
   },
   {
     name: 'fetch_calendar',
-    description: 'Fetch calendar events within a date range',
+    description: 'Fetch upcoming calendar events.',
     parameters: {
       type: 'object',
       properties: {
-        startDate: { type: 'string', description: 'Start date (ISO 8601)' },
-        endDate: { type: 'string', description: 'End date (ISO 8601)' },
+        daysAhead: { type: 'number', description: 'Number of days ahead to retrieve (default 7)' },
+        includeAllDay: { type: 'boolean', description: 'Include all-day events (default true)' },
       },
-      required: ['startDate', 'endDate'],
     },
   },
   {
     name: 'create_calendar_event',
-    description: 'Create a new calendar event',
+    description: 'Create a new calendar event. In Guardian mode, shows preview and waits. In Partner mode, routine scheduling is automatic. In Alter Ego mode, all scheduling is automatic.',
     parameters: {
       type: 'object',
       properties: {
         title: { type: 'string' },
-        startTime: { type: 'string', description: 'Start time (ISO 8601)' },
-        endTime: { type: 'string', description: 'End time (ISO 8601)' },
+        startTime: { type: 'string', description: 'ISO 8601 start time' },
+        endTime: { type: 'string', description: 'ISO 8601 end time' },
         description: { type: 'string' },
+        location: { type: 'string' },
+        attendees: { type: 'array', items: { type: 'string' }, description: 'Attendee email addresses' },
       },
       required: ['title', 'startTime', 'endTime'],
+    },
+  },
+  {
+    name: 'detect_calendar_conflicts',
+    description: 'Check for scheduling conflicts with existing events. Returns conflicting events if any.',
+    parameters: {
+      type: 'object',
+      properties: {
+        startTime: { type: 'string' },
+        endTime: { type: 'string' },
+      },
+      required: ['startTime', 'endTime'],
     },
   },
 ];
@@ -128,30 +197,46 @@ const TOOLS: ToolDefinition[] = [
 // Map tool names to ActionTypes
 const TOOL_ACTION_MAP: Record<string, ActionType> = {
   'send_email': 'email.send',
-  'fetch_email': 'email.fetch',
+  'fetch_inbox': 'email.fetch',
+  'draft_email': 'email.draft',
+  'archive_email': 'email.archive',
   'fetch_calendar': 'calendar.fetch',
   'create_calendar_event': 'calendar.create',
 };
+
+// Tools that are handled locally (no IPC needed)
+const LOCAL_TOOLS = new Set([
+  'search_files',
+  'search_emails',
+  'categorize_email',
+  'detect_calendar_conflicts',
+]);
 
 // --- System Prompt ---
 
 const SYSTEM_PROMPT = `You are Semblance, the user's personal AI. You run entirely on their device — their data never leaves their machine.
 
-You have access to their local files, documents, emails, and calendar through secure tools. You can search their knowledge base, send emails on their behalf, and manage their calendar.
+You have access to their local files, documents, emails, and calendar through secure tools. You can search, send emails, manage their calendar, and take autonomous actions based on their configured autonomy tier.
 
 Core principles:
 - You are helpful, warm, proactive, and concise
 - You respect the user's privacy absolutely — all processing happens locally
-- When you need information, search the user's knowledge base first
+- When you need information, search the user's knowledge base and indexed emails first
 - When taking actions (sending emails, creating events), explain what you plan to do and why
 - Be transparent about what data you're accessing and what actions you're taking
+- Bias toward action — do things on the user's behalf, don't just show information
 
 Available tools:
 - search_files: Search the user's local documents and files
-- send_email: Send an email (requires user approval)
-- fetch_email: Check the user's inbox
+- fetch_inbox: Fetch recent emails with AI-assigned priority
+- search_emails: Search indexed emails by keyword, sender, or date
+- send_email: Send an email (autonomy tier determines if approval is needed)
+- draft_email: Save an email draft (always available)
+- archive_email: Archive emails from inbox
+- categorize_email: Apply AI categories and priority to emails
 - fetch_calendar: View upcoming calendar events
-- create_calendar_event: Schedule a new event
+- create_calendar_event: Schedule a new event (checks for conflicts first)
+- detect_calendar_conflicts: Check for scheduling conflicts
 
 Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.`;
 
@@ -163,6 +248,8 @@ export interface Orchestrator {
   approveAction(actionId: string): Promise<ActionResponse>;
   rejectAction(actionId: string): Promise<void>;
   getPendingActions(): Promise<AgentAction[]>;
+  getApprovalCount(actionType: ActionType, payload: Record<string, unknown>): number;
+  getApprovalThreshold(actionType: ActionType, payload: Record<string, unknown>): number;
 }
 
 export interface OrchestratorResponse {
@@ -182,6 +269,7 @@ export class OrchestratorImpl implements Orchestrator {
   private autonomy: AutonomyManager;
   private db: Database.Database;
   private model: string;
+  private patternTracker: ApprovalPatternTracker;
 
   constructor(config: {
     llm: LLMProvider;
@@ -197,6 +285,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.autonomy = config.autonomy;
     this.db = config.db;
     this.model = config.model;
+    this.patternTracker = new ApprovalPatternTracker(config.db);
     this.db.exec(CREATE_TABLES);
   }
 
@@ -326,13 +415,30 @@ export class OrchestratorImpl implements Orchestrator {
       actionId,
     );
 
+    // Track approval pattern (foundation for Step 7 autonomy escalation)
+    if (response.status === 'success') {
+      this.patternTracker.recordApproval(action, payload);
+    }
+
     return response;
   }
 
   async rejectAction(actionId: string): Promise<void> {
+    // Get action details before rejecting (for pattern tracking)
+    const row = this.db.prepare(
+      'SELECT action, payload FROM pending_actions WHERE id = ? AND status = \'pending_approval\''
+    ).get(actionId) as { action: string; payload: string } | undefined;
+
     this.db.prepare(
       'UPDATE pending_actions SET status = \'rejected\' WHERE id = ? AND status = \'pending_approval\''
     ).run(actionId);
+
+    // Track rejection pattern (resets consecutive approvals)
+    if (row) {
+      const action = row.action as ActionType;
+      const payload = JSON.parse(row.payload) as Record<string, unknown>;
+      this.patternTracker.recordRejection(action, payload);
+    }
   }
 
   async getPendingActions(): Promise<AgentAction[]> {
@@ -359,6 +465,14 @@ export class OrchestratorImpl implements Orchestrator {
       status: r.status as AgentAction['status'],
       createdAt: r.created_at,
     }));
+  }
+
+  getApprovalCount(actionType: ActionType, payload: Record<string, unknown>): number {
+    return this.patternTracker.getConsecutiveApprovals(actionType, payload);
+  }
+
+  getApprovalThreshold(actionType: ActionType, payload: Record<string, unknown>): number {
+    return this.patternTracker.getThreshold(actionType, payload);
   }
 
   // --- Private helpers ---
@@ -409,7 +523,7 @@ export class OrchestratorImpl implements Orchestrator {
     const executedResults: Array<{ tool: string; result: unknown }> = [];
 
     for (const tc of toolCalls) {
-      // Handle local tools (search_files doesn't go through Gateway)
+      // Handle local-only tools (no IPC needed)
       if (tc.name === 'search_files') {
         const query = tc.arguments['query'] as string;
         const results = await this.knowledge.search(query, { limit: 5 });
@@ -420,6 +534,56 @@ export class OrchestratorImpl implements Orchestrator {
             content: r.chunk.content.slice(0, 500),
             score: r.score,
           })),
+        });
+        continue;
+      }
+
+      if (tc.name === 'search_emails') {
+        // Search indexed emails locally — no Gateway needed
+        const results = await this.knowledge.search(tc.arguments['query'] as string, {
+          limit: 10,
+          source: 'email',
+        });
+        executedResults.push({
+          tool: 'search_emails',
+          result: results.map(r => ({
+            title: r.document.title,
+            content: r.chunk.content.slice(0, 300),
+            score: r.score,
+            metadata: r.document.metadata,
+          })),
+        });
+        continue;
+      }
+
+      if (tc.name === 'categorize_email') {
+        // Categorization is informational — always auto-execute, local-only
+        executedResults.push({
+          tool: 'categorize_email',
+          result: {
+            messageId: tc.arguments['messageId'],
+            categories: tc.arguments['categories'],
+            priority: tc.arguments['priority'],
+          },
+        });
+        continue;
+      }
+
+      if (tc.name === 'detect_calendar_conflicts') {
+        // Conflict detection is read-only local query
+        const conflicts = await this.knowledge.search(
+          `calendar event ${tc.arguments['startTime']} ${tc.arguments['endTime']}`,
+          { limit: 10, source: 'calendar' },
+        );
+        executedResults.push({
+          tool: 'detect_calendar_conflicts',
+          result: {
+            conflicts: conflicts.map(c => ({
+              title: c.document.title,
+              metadata: c.document.metadata,
+            })),
+            hasConflicts: conflicts.length > 0,
+          },
         });
         continue;
       }
@@ -451,7 +615,7 @@ export class OrchestratorImpl implements Orchestrator {
           agentAction.executedAt = new Date().toISOString();
           agentAction.response = response;
           executedResults.push({ tool: tc.name, result: response.data });
-        } catch (err) {
+        } catch {
           agentAction.status = 'failed';
         }
       } else {

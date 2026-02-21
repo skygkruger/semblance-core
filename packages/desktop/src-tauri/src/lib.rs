@@ -749,6 +749,243 @@ async fn get_provider_presets(
         .await
 }
 
+// ─── Universal Inbox & AI Action Commands (Step 6) ───────────────────────
+
+/// Get inbox items (indexed emails) with pagination.
+#[tauri::command]
+async fn get_inbox_items(
+    state: tauri::State<'_, AppBridge>,
+    limit: u32,
+    offset: u32,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "inbox:getItems",
+            serde_json::json!({"limit": limit, "offset": offset}),
+        )
+        .await
+}
+
+/// Get proactive insights (meeting preps, follow-ups, deadlines).
+#[tauri::command]
+async fn get_proactive_insights(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state
+        .bridge
+        .call("inbox:getProactiveInsights", Value::Null)
+        .await
+}
+
+/// Get today's calendar events.
+#[tauri::command]
+async fn get_today_events(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state
+        .bridge
+        .call("inbox:getTodayEvents", Value::Null)
+        .await
+}
+
+/// Get actions summary (count, time saved, recent actions).
+#[tauri::command]
+async fn get_actions_summary(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state
+        .bridge
+        .call("inbox:getActionsSummary", Value::Null)
+        .await
+}
+
+/// Archive one or more emails by message ID.
+#[tauri::command]
+async fn archive_emails(
+    state: tauri::State<'_, AppBridge>,
+    message_ids: Vec<String>,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "email:archive",
+            serde_json::json!({"message_ids": message_ids}),
+        )
+        .await
+}
+
+/// Send an email (user-initiated, routed through orchestrator for autonomy).
+#[tauri::command]
+async fn send_email_action(
+    state: tauri::State<'_, AppBridge>,
+    to: Vec<String>,
+    subject: String,
+    body: String,
+    reply_to_message_id: Option<String>,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "email:sendAction",
+            serde_json::json!({
+                "to": to,
+                "subject": subject,
+                "body": body,
+                "replyToMessageId": reply_to_message_id,
+            }),
+        )
+        .await
+}
+
+/// Save a draft email.
+#[tauri::command]
+async fn draft_email_action(
+    state: tauri::State<'_, AppBridge>,
+    to: Vec<String>,
+    subject: String,
+    body: String,
+    reply_to_message_id: Option<String>,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "email:draftAction",
+            serde_json::json!({
+                "to": to,
+                "subject": subject,
+                "body": body,
+                "replyToMessageId": reply_to_message_id,
+            }),
+        )
+        .await
+}
+
+/// Undo a previously executed action.
+#[tauri::command]
+async fn undo_action(
+    state: tauri::State<'_, AppBridge>,
+    action_id: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call("action:undo", serde_json::json!({"action_id": action_id}))
+        .await
+}
+
+/// Dismiss a proactive insight.
+#[tauri::command]
+async fn dismiss_insight(
+    state: tauri::State<'_, AppBridge>,
+    insight_id: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "insight:dismiss",
+            serde_json::json!({"insight_id": insight_id}),
+        )
+        .await
+}
+
+/// Get pending actions awaiting user approval.
+#[tauri::command]
+async fn get_pending_actions(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("action:getPending", Value::Null).await
+}
+
+/// Approve a pending action for execution.
+#[tauri::command]
+async fn approve_action(
+    state: tauri::State<'_, AppBridge>,
+    action_id: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "action:approve",
+            serde_json::json!({"action_id": action_id}),
+        )
+        .await
+}
+
+/// Reject a pending action.
+#[tauri::command]
+async fn reject_action(
+    state: tauri::State<'_, AppBridge>,
+    action_id: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "action:reject",
+            serde_json::json!({"action_id": action_id}),
+        )
+        .await
+}
+
+/// Get approval count for an action type (how many consecutive approvals).
+#[tauri::command]
+async fn get_approval_count(
+    state: tauri::State<'_, AppBridge>,
+    action_type: String,
+    payload: Value,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "action:getApprovalCount",
+            serde_json::json!({"action_type": action_type, "payload": payload}),
+        )
+        .await
+}
+
+/// Get approval threshold for an action type.
+#[tauri::command]
+async fn get_approval_threshold(
+    state: tauri::State<'_, AppBridge>,
+    action_type: String,
+    payload: Value,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "action:getApprovalThreshold",
+            serde_json::json!({"action_type": action_type, "payload": payload}),
+        )
+        .await
+}
+
+/// Start email indexing for a specific account.
+#[tauri::command]
+async fn start_email_index(
+    state: tauri::State<'_, AppBridge>,
+    account_id: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call_fire(
+            "email:startIndex",
+            serde_json::json!({"account_id": account_id}),
+        )
+        .await
+}
+
+/// Start calendar indexing for a specific account.
+#[tauri::command]
+async fn start_calendar_index(
+    state: tauri::State<'_, AppBridge>,
+    account_id: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call_fire(
+            "calendar:startIndex",
+            serde_json::json!({"account_id": account_id}),
+        )
+        .await
+}
+
+/// Run the proactive context engine manually.
+#[tauri::command]
+async fn run_proactive_engine(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("proactive:run", Value::Null).await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -878,6 +1115,24 @@ pub fn run() {
             discover_calendars,
             get_accounts_status,
             get_provider_presets,
+            // Universal Inbox & AI Actions (Step 6)
+            get_inbox_items,
+            get_proactive_insights,
+            get_today_events,
+            get_actions_summary,
+            archive_emails,
+            send_email_action,
+            draft_email_action,
+            undo_action,
+            dismiss_insight,
+            get_pending_actions,
+            approve_action,
+            reject_action,
+            get_approval_count,
+            get_approval_threshold,
+            start_email_index,
+            start_calendar_index,
+            run_proactive_engine,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

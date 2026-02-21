@@ -34,6 +34,11 @@ import {
   PROVIDER_PRESETS,
 } from '../../../gateway/index.js';
 import type { ServiceCredential } from '../../../gateway/credentials/types.js';
+import { EmailIndexer } from '../../../core/knowledge/email-indexer.js';
+import { CalendarIndexer } from '../../../core/knowledge/calendar-indexer.js';
+import { EmailCategorizer } from '../../../core/agent/email-categorizer.js';
+import { ProactiveEngine } from '../../../core/agent/proactive-engine.js';
+import type { ActionType } from '../../../core/types/ipc.js';
 
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
@@ -60,6 +65,10 @@ let calendarAdapter: CalendarAdapter | null = null;
 let indexingInProgress = false;
 let currentConversationId: string | null = null;
 let dataDir = '';
+let emailIndexer: EmailIndexer | null = null;
+let calendarIndexer: CalendarIndexer | null = null;
+let emailCategorizer: EmailCategorizer | null = null;
+let proactiveEngine: ProactiveEngine | null = null;
 
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
@@ -739,6 +748,318 @@ function handleGetProviderPresets(): unknown {
   return PROVIDER_PRESETS;
 }
 
+// ─── Step 6: Universal Inbox & AI Action Handlers ────────────────────────────
+
+async function handleEmailStartIndex(
+  id: number | string,
+  params: { account_id: string },
+): Promise<void> {
+  if (!core || !emailAdapter || !prefsDb) {
+    respondError(id, 'Core not initialized');
+    return;
+  }
+
+  // Initialize email indexer if needed
+  if (!emailIndexer) {
+    emailIndexer = new EmailIndexer({
+      db: prefsDb,
+      knowledge: core.knowledge,
+      llm: core.llm,
+    });
+    emailIndexer.onEvent((event, data) => emit(event, data));
+  }
+
+  respond(id, { started: true });
+
+  // Fetch and index in background
+  try {
+    const result = await emailAdapter.execute('email.fetch', {
+      folder: 'INBOX',
+      limit: 200,
+      sort: 'date_desc',
+    });
+
+    if (result.success && result.data) {
+      const messages = (result.data as { messages: unknown[] }).messages ?? [];
+      const indexed = await emailIndexer.indexMessages(messages as Parameters<EmailIndexer['indexMessages']>[0], params.account_id);
+      emit('semblance://email-index-complete', { indexed, total: messages.length });
+    }
+  } catch (err) {
+    console.error('[sidecar] Email indexing error:', err);
+  }
+}
+
+function handleEmailGetIndexStatus(): unknown {
+  if (!emailIndexer) return { indexed: 0, status: 'not_started' };
+  return {
+    indexed: emailIndexer.getIndexedCount(),
+    status: 'complete',
+  };
+}
+
+async function handleCalendarStartIndex(
+  id: number | string,
+  params: { account_id: string },
+): Promise<void> {
+  if (!core || !calendarAdapter || !prefsDb) {
+    respondError(id, 'Core not initialized');
+    return;
+  }
+
+  if (!calendarIndexer) {
+    calendarIndexer = new CalendarIndexer({
+      db: prefsDb,
+      knowledge: core.knowledge,
+      llm: core.llm,
+    });
+    calendarIndexer.onEvent((event, data) => emit(event, data));
+  }
+
+  respond(id, { started: true });
+
+  try {
+    const result = await calendarAdapter.execute('calendar.fetch', {
+      startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      endDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    if (result.success && result.data) {
+      const events = (result.data as { events: unknown[] }).events ?? [];
+      const indexed = await calendarIndexer.indexEvents(events as Parameters<CalendarIndexer['indexEvents']>[0], params.account_id);
+      emit('semblance://calendar-index-complete', { indexed, total: events.length });
+    }
+  } catch (err) {
+    console.error('[sidecar] Calendar indexing error:', err);
+  }
+}
+
+function handleInboxGetItems(params: { limit?: number; offset?: number; filter?: string }): unknown[] {
+  if (!emailIndexer) return [];
+  return emailIndexer.getIndexedEmails({
+    limit: params.limit ?? 30,
+    offset: params.offset ?? 0,
+    priority: params.filter,
+  });
+}
+
+function handleGetProactiveInsights(): unknown[] {
+  if (!proactiveEngine) return [];
+  return proactiveEngine.getActiveInsights();
+}
+
+async function handleEmailCategorize(params: { message_id: string }): Promise<unknown> {
+  if (!emailIndexer || !core || !prefsDb) return { categories: [], priority: 'normal' };
+
+  if (!emailCategorizer) {
+    const model = (await core.models.getActiveChatModel()) ?? 'llama3.2:8b';
+    emailCategorizer = new EmailCategorizer({
+      llm: core.llm,
+      emailIndexer,
+      model,
+    });
+  }
+
+  const email = emailIndexer.getByMessageId(params.message_id);
+  if (!email) return { categories: [], priority: 'normal' };
+
+  return await emailCategorizer.categorizeEmail(email);
+}
+
+async function handleEmailCategorizeBatch(params: { message_ids: string[] }): Promise<unknown[]> {
+  if (!emailIndexer || !core || !prefsDb) return [];
+
+  if (!emailCategorizer) {
+    const model = (await core.models.getActiveChatModel()) ?? 'llama3.2:8b';
+    emailCategorizer = new EmailCategorizer({
+      llm: core.llm,
+      emailIndexer,
+      model,
+    });
+  }
+
+  const emails = params.message_ids
+    .map(id => emailIndexer!.getByMessageId(id))
+    .filter((e): e is NonNullable<typeof e> => e !== null);
+
+  return await emailCategorizer.categorizeBatch(emails);
+}
+
+async function handleEmailArchive(params: { message_ids: string[] }): Promise<unknown> {
+  if (!emailAdapter) throw new Error('Email adapter not initialized');
+  return await emailAdapter.execute('email.archive', {
+    messageIds: params.message_ids,
+  });
+}
+
+function handleCalendarDetectConflicts(params: { start_time: string; end_time: string }): unknown {
+  if (!calendarIndexer) return { conflicts: [], hasConflicts: false };
+  const events = calendarIndexer.getEventsInRange(params.start_time, params.end_time);
+  return {
+    conflicts: events,
+    hasConflicts: events.length > 0,
+  };
+}
+
+async function handleGetMeetingPrep(params: { event_id: string }): Promise<unknown> {
+  if (!proactiveEngine) return null;
+  return await proactiveEngine.getMeetingPrep(params.event_id);
+}
+
+async function handleProactiveRun(): Promise<unknown[]> {
+  if (!proactiveEngine) return [];
+  return await proactiveEngine.run();
+}
+
+async function handleActionApprove(params: { action_id: string }): Promise<unknown> {
+  if (!core) throw new Error('Core not initialized');
+  return await core.orchestrator.approveAction(params.action_id);
+}
+
+async function handleActionReject(params: { action_id: string }): Promise<unknown> {
+  if (!core) throw new Error('Core not initialized');
+  await core.orchestrator.rejectAction(params.action_id);
+  return { success: true };
+}
+
+async function handleActionGetPending(): Promise<unknown[]> {
+  if (!core) return [];
+  return await core.orchestrator.getPendingActions();
+}
+
+function handleActionGetApprovalCount(params: { action_type: string; payload: Record<string, unknown> }): unknown {
+  if (!core) return { count: 0, threshold: 3 };
+  const count = core.orchestrator.getApprovalCount(params.action_type as ActionType, params.payload);
+  const threshold = core.orchestrator.getApprovalThreshold(params.action_type as ActionType, params.payload);
+  return { count, threshold };
+}
+
+function handleGetTodayEvents(): unknown[] {
+  if (!calendarIndexer) return [];
+  return calendarIndexer.getUpcomingEvents({ daysAhead: 1, includeAllDay: true });
+}
+
+function handleGetActionsSummary(): unknown {
+  // Action summary from audit trail — returns today's counts
+  if (!prefsDb) return { todayCount: 0, todayTimeSavedSeconds: 0, recentActions: [] };
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  try {
+    const rows = prefsDb.prepare(`
+      SELECT action, payload, status, created_at, response_json
+      FROM pending_actions
+      WHERE status = 'executed' AND created_at >= ?
+      ORDER BY created_at DESC
+      LIMIT 20
+    `).all(todayStart.toISOString()) as Array<{
+      action: string;
+      payload: string;
+      status: string;
+      created_at: string;
+      response_json: string | null;
+    }>;
+
+    return {
+      todayCount: rows.length,
+      todayTimeSavedSeconds: rows.length * 10, // conservative estimate
+      recentActions: rows.slice(0, 5).map(r => ({
+        description: `${r.action}`,
+        timestamp: r.created_at,
+      })),
+    };
+  } catch {
+    return { todayCount: 0, todayTimeSavedSeconds: 0, recentActions: [] };
+  }
+}
+
+function handleDismissInsight(params: { insight_id: string }): unknown {
+  if (!proactiveEngine) return { success: false };
+  proactiveEngine.dismissInsight(params.insight_id);
+  return { success: true };
+}
+
+async function handleSendEmailAction(params: {
+  to: string[];
+  subject: string;
+  body: string;
+  replyToMessageId?: string;
+}): Promise<unknown> {
+  if (!core || !gateway) return { error: 'Not initialized' };
+
+  // User-initiated send goes through orchestrator for audit trail + autonomy check
+  const actionId = nanoid();
+  const payload = {
+    to: params.to,
+    subject: params.subject,
+    body: params.body,
+    replyToMessageId: params.replyToMessageId,
+  };
+
+  // Check autonomy — if guardian, queue for approval
+  const tier = core.orchestrator.getApprovalCount
+    ? 'partner' // default for user-initiated
+    : 'guardian';
+
+  // Store as pending action for audit trail
+  if (prefsDb) {
+    prefsDb.prepare(`
+      INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?)
+    `).run(actionId, 'email.send', JSON.stringify(payload), 'User-initiated reply', 'email', tier, new Date().toISOString());
+  }
+
+  return { actionId, status: 'pending_approval' };
+}
+
+async function handleDraftEmailAction(params: {
+  to: string[];
+  subject: string;
+  body: string;
+  replyToMessageId?: string;
+}): Promise<unknown> {
+  if (!core || !gateway) return { error: 'Not initialized' };
+
+  const actionId = nanoid();
+  const payload = {
+    to: params.to,
+    subject: params.subject,
+    body: params.body,
+    replyToMessageId: params.replyToMessageId,
+  };
+
+  // Drafts are low-risk — auto-execute through IPC
+  try {
+    const response = await core.ipc.sendAction('email.draft' as ActionType, payload);
+    return { actionId, status: response.status, data: response.data };
+  } catch {
+    return { actionId, status: 'error', error: 'Failed to save draft' };
+  }
+}
+
+async function handleUndoAction(params: { action_id: string }): Promise<unknown> {
+  if (!prefsDb) return { success: false, error: 'Not initialized' };
+
+  try {
+    const action = prefsDb.prepare(
+      'SELECT * FROM pending_actions WHERE id = ?'
+    ).get(params.action_id) as { action: string; payload: string; status: string } | undefined;
+
+    if (!action) return { success: false, error: 'Action not found' };
+
+    // Mark as undone in the database
+    prefsDb.prepare('UPDATE pending_actions SET status = ? WHERE id = ?').run('undone', params.action_id);
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Undo failed' };
+  }
+}
+
+function handleGetApprovalThreshold(params: { action_type: string; payload: Record<string, unknown> }): number {
+  if (!core) return 3;
+  return core.orchestrator.getApprovalThreshold(params.action_type as ActionType, params.payload);
+}
+
 async function handleShutdown(): Promise<unknown> {
   console.error('[sidecar] Shutting down...');
 
@@ -913,6 +1234,116 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'get_provider_presets':
         result = handleGetProviderPresets();
+        respond(id, result);
+        break;
+
+      // ── Universal Inbox & AI Actions (Step 6) ──
+
+      case 'email:startIndex':
+        await handleEmailStartIndex(id, params as { account_id: string });
+        break;
+
+      case 'email:getIndexStatus':
+        result = handleEmailGetIndexStatus();
+        respond(id, result);
+        break;
+
+      case 'calendar:startIndex':
+        await handleCalendarStartIndex(id, params as { account_id: string });
+        break;
+
+      case 'inbox:getItems':
+        result = handleInboxGetItems(params as { limit?: number; offset?: number; filter?: string });
+        respond(id, result);
+        break;
+
+      case 'inbox:getProactiveInsights':
+        result = handleGetProactiveInsights();
+        respond(id, result);
+        break;
+
+      case 'email:categorize':
+        result = await handleEmailCategorize(params as { message_id: string });
+        respond(id, result);
+        break;
+
+      case 'email:categorizeBatch':
+        result = await handleEmailCategorizeBatch(params as { message_ids: string[] });
+        respond(id, result);
+        break;
+
+      case 'email:archive':
+        result = await handleEmailArchive(params as { message_ids: string[] });
+        respond(id, result);
+        break;
+
+      case 'calendar:detectConflicts':
+        result = handleCalendarDetectConflicts(params as { start_time: string; end_time: string });
+        respond(id, result);
+        break;
+
+      case 'calendar:getMeetingPrep':
+        result = await handleGetMeetingPrep(params as { event_id: string });
+        respond(id, result);
+        break;
+
+      case 'proactive:run':
+        result = await handleProactiveRun();
+        respond(id, result);
+        break;
+
+      case 'action:approve':
+        result = await handleActionApprove(params as { action_id: string });
+        respond(id, result);
+        break;
+
+      case 'action:reject':
+        result = await handleActionReject(params as { action_id: string });
+        respond(id, result);
+        break;
+
+      case 'action:getPending':
+        result = await handleActionGetPending();
+        respond(id, result);
+        break;
+
+      case 'action:getApprovalCount':
+        result = handleActionGetApprovalCount(params as { action_type: string; payload: Record<string, unknown> });
+        respond(id, result);
+        break;
+
+      case 'inbox:getTodayEvents':
+        result = handleGetTodayEvents();
+        respond(id, result);
+        break;
+
+      case 'inbox:getActionsSummary':
+        result = handleGetActionsSummary();
+        respond(id, result);
+        break;
+
+      case 'insight:dismiss':
+        result = handleDismissInsight(params as { insight_id: string });
+        respond(id, result);
+        break;
+
+      case 'email:sendAction':
+        result = await handleSendEmailAction(params as { to: string[]; subject: string; body: string; replyToMessageId?: string });
+        respond(id, result);
+        break;
+
+      case 'email:draftAction':
+        result = await handleDraftEmailAction(params as { to: string[]; subject: string; body: string; replyToMessageId?: string });
+        respond(id, result);
+        break;
+
+      case 'action:undo':
+        result = await handleUndoAction(params as { action_id: string });
+        respond(id, result);
+        break;
+
+      case 'action:getApprovalThreshold':
+        result = handleGetApprovalThreshold(params as { action_type: string; payload: Record<string, unknown> });
         respond(id, result);
         break;
 

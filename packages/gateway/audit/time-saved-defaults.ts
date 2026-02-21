@@ -23,9 +23,13 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'email.fetch': 0,              // Fetching is infrastructure, no direct time saved
   'email.send': 60,              // Routine email send
   'email.draft': 120,            // Draft composition
+  'email.archive': 10,           // Archive per batch
+  'email.move': 10,              // Move per batch
+  'email.markRead': 5,           // Mark read per batch
   'calendar.fetch': 0,           // Fetching is infrastructure
   'calendar.create': 180,        // Calendar event creation + conflict check
   'calendar.update': 180,        // Calendar event modification + conflict check
+  'calendar.delete': 60,         // Calendar event deletion
   'finance.fetch_transactions': 0, // Fetching is infrastructure
   'health.fetch': 0,             // Fetching is infrastructure
   'service.api_call': 0,         // Generic — no default estimate

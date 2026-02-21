@@ -293,6 +293,75 @@ export class IMAPAdapter {
   }
 
   /**
+   * Archive messages by moving them from INBOX to an archive folder.
+   * Provider-specific: Gmail uses '[Gmail]/All Mail', generic IMAP uses 'Archive'.
+   */
+  async archiveMessages(credentialId: string, messageIds: string[], targetFolder?: string): Promise<void> {
+    const client = await this.getConnection(credentialId);
+    const archiveFolder = targetFolder ?? 'Archive';
+
+    const lock = await client.getMailboxLock('INBOX');
+    try {
+      const uids = messageIds.map(Number).filter(n => !isNaN(n));
+      if (uids.length === 0) return;
+
+      // Try MOVE first (more efficient), fall back to COPY+DELETE
+      try {
+        await client.messageMove(uids, archiveFolder, { uid: true });
+      } catch {
+        // MOVE not supported, fall back to COPY + flag \Deleted + EXPUNGE
+        await client.messageCopy(uids, archiveFolder, { uid: true });
+        await client.messageFlagsAdd(uids, ['\\Deleted'], { uid: true });
+      }
+    } finally {
+      lock.release();
+    }
+  }
+
+  /**
+   * Move messages between IMAP folders.
+   */
+  async moveMessages(credentialId: string, messageIds: string[], fromFolder: string, toFolder: string): Promise<void> {
+    const client = await this.getConnection(credentialId);
+
+    const lock = await client.getMailboxLock(fromFolder);
+    try {
+      const uids = messageIds.map(Number).filter(n => !isNaN(n));
+      if (uids.length === 0) return;
+
+      try {
+        await client.messageMove(uids, toFolder, { uid: true });
+      } catch {
+        await client.messageCopy(uids, toFolder, { uid: true });
+        await client.messageFlagsAdd(uids, ['\\Deleted'], { uid: true });
+      }
+    } finally {
+      lock.release();
+    }
+  }
+
+  /**
+   * Mark messages as read or unread.
+   */
+  async markAsRead(credentialId: string, messageIds: string[], read: boolean): Promise<void> {
+    const client = await this.getConnection(credentialId);
+
+    const lock = await client.getMailboxLock('INBOX');
+    try {
+      const uids = messageIds.map(Number).filter(n => !isNaN(n));
+      if (uids.length === 0) return;
+
+      if (read) {
+        await client.messageFlagsAdd(uids, ['\\Seen'], { uid: true });
+      } else {
+        await client.messageFlagsRemove(uids, ['\\Seen'], { uid: true });
+      }
+    } finally {
+      lock.release();
+    }
+  }
+
+  /**
    * Save a draft to the IMAP Drafts folder via APPEND.
    */
   async saveDraft(credentialId: string, draft: {

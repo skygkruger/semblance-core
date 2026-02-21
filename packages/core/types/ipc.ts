@@ -8,9 +8,13 @@ export const ActionType = z.enum([
   'email.fetch',
   'email.send',
   'email.draft',
+  'email.archive',
+  'email.move',
+  'email.markRead',
   'calendar.fetch',
   'calendar.create',
   'calendar.update',
+  'calendar.delete',
   'finance.fetch_transactions',
   'health.fetch',
   'service.api_call',
@@ -64,6 +68,34 @@ export const CalendarUpdatePayload = z.object({
 });
 export type CalendarUpdatePayload = z.infer<typeof CalendarUpdatePayload>;
 
+export const CalendarDeletePayload = z.object({
+  eventId: z.string(),
+  calendarId: z.string().optional(),
+});
+export type CalendarDeletePayload = z.infer<typeof CalendarDeletePayload>;
+
+export const EmailArchivePayload = z.object({
+  accountId: z.string().optional(),
+  messageIds: z.array(z.string()),
+  targetFolder: z.string().default('[Gmail]/All Mail'),
+});
+export type EmailArchivePayload = z.infer<typeof EmailArchivePayload>;
+
+export const EmailMovePayload = z.object({
+  accountId: z.string().optional(),
+  messageIds: z.array(z.string()),
+  fromFolder: z.string(),
+  toFolder: z.string(),
+});
+export type EmailMovePayload = z.infer<typeof EmailMovePayload>;
+
+export const EmailMarkReadPayload = z.object({
+  accountId: z.string().optional(),
+  messageIds: z.array(z.string()),
+  read: z.boolean(),
+});
+export type EmailMarkReadPayload = z.infer<typeof EmailMarkReadPayload>;
+
 export const ServiceApiCallPayload = z.object({
   service: z.string(),
   endpoint: z.string(),
@@ -90,9 +122,13 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'email.send': EmailSendPayload,
   'email.draft': EmailSendPayload,
   'email.fetch': EmailFetchPayload,
+  'email.archive': EmailArchivePayload,
+  'email.move': EmailMovePayload,
+  'email.markRead': EmailMarkReadPayload,
   'calendar.fetch': CalendarFetchPayload,
   'calendar.create': CalendarCreatePayload,
   'calendar.update': CalendarUpdatePayload,
+  'calendar.delete': CalendarDeletePayload,
   'finance.fetch_transactions': FinanceFetchPayload,
   'health.fetch': HealthFetchPayload,
   'service.api_call': ServiceApiCallPayload,

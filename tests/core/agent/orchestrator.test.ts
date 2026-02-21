@@ -193,7 +193,7 @@ describe('Orchestrator', () => {
           tokensUsed: { prompt: 100, completion: 20, total: 120 },
           durationMs: 500,
           toolCalls: [{
-            name: 'fetch_email',
+            name: 'fetch_inbox',
             arguments: { folder: 'INBOX', limit: 5 },
           }],
         } satisfies ChatResponse)
