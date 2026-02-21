@@ -1111,6 +1111,126 @@ async fn list_digests(state: tauri::State<'_, AppBridge>) -> Result<Value, Strin
     state.bridge.call("digest:list", Value::Null).await
 }
 
+// ─── Network Monitor (Step 8) ──────────────────────────────────────────────
+
+#[tauri::command]
+async fn get_active_connections(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("network:getActiveConnections", Value::Null).await
+}
+
+#[tauri::command]
+async fn get_network_statistics(
+    state: tauri::State<'_, AppBridge>,
+    period: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call("network:getStatistics", serde_json::json!({ "period": period }))
+        .await
+}
+
+#[tauri::command]
+async fn get_network_allowlist(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("network:getAllowlist", Value::Null).await
+}
+
+#[tauri::command]
+async fn get_unauthorized_attempts(
+    state: tauri::State<'_, AppBridge>,
+    period: Option<String>,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "network:getUnauthorizedAttempts",
+            serde_json::json!({ "period": period }),
+        )
+        .await
+}
+
+#[tauri::command]
+async fn get_connection_timeline(
+    state: tauri::State<'_, AppBridge>,
+    period: String,
+    granularity: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "network:getTimeline",
+            serde_json::json!({ "period": period, "granularity": granularity }),
+        )
+        .await
+}
+
+#[tauri::command]
+async fn get_connection_history(
+    state: tauri::State<'_, AppBridge>,
+    limit: Option<u32>,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call("network:getHistory", serde_json::json!({ "limit": limit }))
+        .await
+}
+
+#[tauri::command]
+async fn generate_privacy_report(
+    state: tauri::State<'_, AppBridge>,
+    start_date: String,
+    end_date: String,
+    format: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "network:generateReport",
+            serde_json::json!({
+                "start_date": start_date,
+                "end_date": end_date,
+                "format": format
+            }),
+        )
+        .await
+}
+
+#[tauri::command]
+async fn get_network_trust_status(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state
+        .bridge
+        .call("network:getTrustStatus", Value::Null)
+        .await
+}
+
+// ─── Task Routing (Step 8) ─────────────────────────────────────────────────
+
+#[tauri::command]
+async fn get_routing_devices(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("routing:getDevices", Value::Null).await
+}
+
+#[tauri::command]
+async fn route_task(
+    state: tauri::State<'_, AppBridge>,
+    task: Value,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call("routing:routeTask", serde_json::json!({ "task": task }))
+        .await
+}
+
+#[tauri::command]
+async fn assess_task(
+    state: tauri::State<'_, AppBridge>,
+    task: Value,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call("routing:assessTask", serde_json::json!({ "task": task }))
+        .await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1273,6 +1393,19 @@ pub fn run() {
             generate_digest,
             get_latest_digest,
             list_digests,
+            // Network Monitor (Step 8)
+            get_active_connections,
+            get_network_statistics,
+            get_network_allowlist,
+            get_unauthorized_attempts,
+            get_connection_timeline,
+            get_connection_history,
+            generate_privacy_report,
+            get_network_trust_status,
+            // Task Routing (Step 8)
+            get_routing_devices,
+            route_task,
+            assess_task,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

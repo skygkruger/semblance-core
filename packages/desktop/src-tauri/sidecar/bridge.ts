@@ -19,7 +19,7 @@
 
 import { createInterface } from 'node:readline';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { homedir, hostname, totalmem } from 'node:os';
 import { mkdirSync, existsSync } from 'node:fs';
 
 import Database from 'better-sqlite3';
@@ -47,6 +47,14 @@ import { RecurringDetector } from '../../../core/finance/recurring-detector.js';
 import { EscalationEngine } from '../../../core/agent/autonomy-escalation.js';
 import { KnowledgeMomentGenerator } from '../../../core/agent/knowledge-moment.js';
 import { WeeklyDigestGenerator } from '../../../core/digest/weekly-digest.js';
+
+// Step 8 imports
+import { NetworkMonitor } from '../../../gateway/monitor/network-monitor.js';
+import { PrivacyReportGenerator } from '../../../gateway/monitor/privacy-report.js';
+import { AuditQuery } from '../../../gateway/audit/audit-query.js';
+import { DeviceRegistry } from '../../../core/routing/device-registry.js';
+import { TaskAssessor } from '../../../core/routing/task-assessor.js';
+import { TaskRouter } from '../../../core/routing/router.js';
 
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
@@ -85,6 +93,14 @@ let recurringDetector: RecurringDetector | null = null;
 let escalationEngine: EscalationEngine | null = null;
 let knowledgeMomentGenerator: KnowledgeMomentGenerator | null = null;
 let weeklyDigestGenerator: WeeklyDigestGenerator | null = null;
+
+// Step 8 state
+let networkMonitor: NetworkMonitor | null = null;
+let privacyReportGenerator: PrivacyReportGenerator | null = null;
+let auditQuery: AuditQuery | null = null;
+let deviceRegistry: DeviceRegistry | null = null;
+let taskAssessor: TaskAssessor | null = null;
+let taskRouter: TaskRouter | null = null;
 
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
@@ -1232,6 +1248,149 @@ function handleListDigests(): unknown[] {
   return weeklyDigestGenerator.list();
 }
 
+// ─── Step 8: Network Monitor Handlers ────────────────────────────────────────
+
+function ensureNetworkMonitor(): void {
+  if (!networkMonitor && gateway && dataDir) {
+    const allowlist = gateway.getAllowlist();
+    // Open a read-only handle to the audit database for query purposes.
+    // The Gateway writes to this db via its AuditTrail instance; we read it for monitoring.
+    const gatewayDataDir = join(dataDir, 'gateway');
+    const auditDbPath = join(gatewayDataDir, 'audit.db');
+    if (existsSync(auditDbPath)) {
+      const monitorDb = new Database(auditDbPath, { readonly: true });
+      networkMonitor = new NetworkMonitor({ auditDb: monitorDb, allowlist });
+      auditQuery = new AuditQuery(monitorDb);
+      privacyReportGenerator = new PrivacyReportGenerator({ auditDb: monitorDb, allowlist });
+      console.error('[sidecar] Network monitor initialized');
+    }
+  }
+}
+
+function ensureDeviceRegistry(): void {
+  if (!deviceRegistry && prefsDb) {
+    deviceRegistry = new DeviceRegistry(prefsDb);
+    taskAssessor = new TaskAssessor();
+    taskRouter = new TaskRouter(deviceRegistry, taskAssessor);
+
+    // Auto-register the local desktop device
+    const os = process.platform;
+    const platform = os === 'darwin' ? 'macos' : os === 'win32' ? 'windows' : 'linux';
+    deviceRegistry.register({
+      id: 'local-desktop',
+      name: `${hostname()} (Desktop)`,
+      type: 'desktop',
+      platform: platform as 'macos' | 'windows' | 'linux',
+      llmRuntime: 'ollama',
+      maxModelSize: '70B',
+      gpuAvailable: true,
+      ramGB: Math.round(totalmem() / (1024 * 1024 * 1024)),
+      isOnline: true,
+      lastSeen: new Date().toISOString(),
+      networkType: 'ethernet',
+      batteryLevel: null,
+      isCharging: false,
+      features: ['email', 'calendar', 'files', 'subscriptions'],
+      activeTasks: 0,
+      inferenceActive: false,
+    });
+    console.error('[sidecar] Device registry initialized, local desktop registered');
+  }
+}
+
+function handleGetActiveConnections(): unknown[] {
+  ensureNetworkMonitor();
+  if (!networkMonitor) return [];
+  return networkMonitor.getActiveConnections();
+}
+
+function handleGetNetworkStatistics(params: { period: string }): unknown {
+  ensureNetworkMonitor();
+  if (!networkMonitor) {
+    return {
+      period: params.period,
+      totalConnections: 0,
+      connectionsByService: {},
+      connectionsByAction: {},
+      unauthorizedAttempts: 0,
+      uniqueServicesContacted: 0,
+      averageTimeSavedSeconds: 0,
+      totalTimeSavedSeconds: 0,
+    };
+  }
+  return networkMonitor.getStatistics(params.period as 'today' | 'week' | 'month' | 'all');
+}
+
+function handleGetNetworkAllowlist(): unknown[] {
+  ensureNetworkMonitor();
+  if (!networkMonitor) return [];
+  return networkMonitor.getEnrichedAllowlist();
+}
+
+function handleGetUnauthorizedAttempts(params: { period?: string }): unknown[] {
+  ensureNetworkMonitor();
+  if (!networkMonitor) return [];
+  return networkMonitor.getUnauthorizedAttempts(params.period);
+}
+
+function handleGetConnectionTimeline(params: { period: string; granularity: string }): unknown[] {
+  ensureNetworkMonitor();
+  if (!networkMonitor) return [];
+  return networkMonitor.getTimeline({
+    period: params.period as 'today' | 'week' | 'month',
+    granularity: params.granularity as 'hour' | 'day',
+  });
+}
+
+function handleGetConnectionHistory(params: { limit?: number; offset?: number }): unknown[] {
+  ensureNetworkMonitor();
+  if (!networkMonitor) return [];
+  return networkMonitor.getConnectionHistory({ limit: params.limit, offset: params.offset });
+}
+
+function handleGeneratePrivacyReport(params: { start_date: string; end_date: string; format: string }): unknown {
+  ensureNetworkMonitor();
+  if (!privacyReportGenerator) return { error: 'Privacy report generator not initialized' };
+  return privacyReportGenerator.generate({
+    startDate: params.start_date,
+    endDate: params.end_date,
+    format: params.format as 'json' | 'text',
+  });
+}
+
+function handleGetNetworkTrustStatus(): unknown {
+  ensureNetworkMonitor();
+  if (!networkMonitor) return { clean: true, unauthorizedCount: 0, activeServiceCount: 0 };
+  return networkMonitor.getTrustStatus();
+}
+
+// ─── Step 8: Task Routing Handlers ──────────────────────────────────────────
+
+function handleGetDevices(): unknown[] {
+  ensureDeviceRegistry();
+  if (!deviceRegistry) return [];
+  return deviceRegistry.getDevices();
+}
+
+function handleRegisterDevice(params: { device: Record<string, unknown> }): unknown {
+  ensureDeviceRegistry();
+  if (!deviceRegistry) return { success: false };
+  deviceRegistry.register(params.device as unknown as import('../../../core/routing/device-registry.js').DeviceCapabilities);
+  return { success: true };
+}
+
+function handleRouteTask(params: { task: Record<string, unknown> }): unknown {
+  ensureDeviceRegistry();
+  if (!taskRouter) return null;
+  return taskRouter.route(params.task as unknown as import('../../../core/routing/task-assessor.js').TaskDescription);
+}
+
+function handleAssessTask(params: { task: Record<string, unknown> }): unknown {
+  ensureDeviceRegistry();
+  if (!taskAssessor) return null;
+  return taskAssessor.assess(params.task as unknown as import('../../../core/routing/task-assessor.js').TaskDescription);
+}
+
 async function handleShutdown(): Promise<unknown> {
   console.error('[sidecar] Shutting down...');
 
@@ -1584,6 +1743,70 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'digest:list':
         result = handleListDigests();
+        respond(id, result);
+        break;
+
+      // ── Step 8: Network Monitor ──
+
+      case 'network:getActiveConnections':
+        result = handleGetActiveConnections();
+        respond(id, result);
+        break;
+
+      case 'network:getStatistics':
+        result = handleGetNetworkStatistics(params as { period: string });
+        respond(id, result);
+        break;
+
+      case 'network:getAllowlist':
+        result = handleGetNetworkAllowlist();
+        respond(id, result);
+        break;
+
+      case 'network:getUnauthorizedAttempts':
+        result = handleGetUnauthorizedAttempts(params as { period?: string });
+        respond(id, result);
+        break;
+
+      case 'network:getTimeline':
+        result = handleGetConnectionTimeline(params as { period: string; granularity: string });
+        respond(id, result);
+        break;
+
+      case 'network:getHistory':
+        result = handleGetConnectionHistory(params as { limit?: number; offset?: number });
+        respond(id, result);
+        break;
+
+      case 'network:generateReport':
+        result = handleGeneratePrivacyReport(params as { start_date: string; end_date: string; format: string });
+        respond(id, result);
+        break;
+
+      case 'network:getTrustStatus':
+        result = handleGetNetworkTrustStatus();
+        respond(id, result);
+        break;
+
+      // ── Step 8: Task Routing ──
+
+      case 'routing:getDevices':
+        result = handleGetDevices();
+        respond(id, result);
+        break;
+
+      case 'routing:registerDevice':
+        result = handleRegisterDevice(params as { device: Record<string, unknown> });
+        respond(id, result);
+        break;
+
+      case 'routing:routeTask':
+        result = handleRouteTask(params as { task: Record<string, unknown> });
+        respond(id, result);
+        break;
+
+      case 'routing:assessTask':
+        result = handleAssessTask(params as { task: Record<string, unknown> });
         respond(id, result);
         break;
 

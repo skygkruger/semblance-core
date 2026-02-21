@@ -10,6 +10,8 @@ import { PrivacyScreen } from './screens/PrivacyScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { InboxScreen } from './screens/InboxScreen';
 import { DigestScreen } from './screens/DigestScreen';
+import { NetworkMonitorScreen } from './screens/NetworkMonitorScreen';
+import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import type { ThemeMode } from '@semblance/ui';
 
 // Lucide-style inline SVG icons (16×16, stroke-based)
@@ -58,6 +60,14 @@ function DigestIcon() {
     </svg>
   );
 }
+function NetworkIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 2v6" /><path d="M15 2v6" /><path d="M12 18v4" /><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+      <path d="M9 8a6 6 0 0 0-6 6" /><path d="M15 8a6 6 0 0 1 6 6" />
+    </svg>
+  );
+}
 function GearIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -74,6 +84,7 @@ const navItems: NavItem[] = [
   { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
   { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
   { id: 'digest', label: 'Digest', icon: <DigestIcon /> },
+  { id: 'network', label: 'Network', icon: <NetworkIcon /> },
 ];
 
 function AppContent() {
@@ -94,6 +105,7 @@ function AppContent() {
       case 'activity': return <ActivityScreen />;
       case 'privacy': return <PrivacyScreen />;
       case 'digest': return <DigestScreen />;
+      case 'network': return <NetworkMonitorScreen />;
       case 'settings': return <SettingsScreen />;
       default: return <ChatScreen />;
     }
@@ -107,6 +119,7 @@ function AppContent() {
         onNavigate={(id) => dispatch({ type: 'SET_ACTIVE_SCREEN', screen: id })}
         footer={
           <div className="space-y-3">
+            <NetworkStatusIndicator onClick={() => dispatch({ type: 'SET_ACTIVE_SCREEN', screen: 'network' })} />
             <PrivacyBadge />
             <button
               type="button"

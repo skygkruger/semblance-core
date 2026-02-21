@@ -208,3 +208,13 @@ export type { ValidatorDeps } from './ipc/validator.js';
 export type { ServiceCredential, ServiceCredentialInput, ConnectionTestResult, ProviderPreset } from './credentials/types.js';
 export type { EmailMessage, EmailAddress, EmailFetchParams, EmailSendParams } from './services/email/types.js';
 export type { CalendarEvent, CalendarInfo, CalendarFetchParams, CalendarCreateParams, CalendarUpdateParams } from './services/calendar/types.js';
+export { AuditQuery } from './audit/audit-query.js';
+export type { QueryOptions, ServiceAggregate, TimelinePoint } from './audit/audit-query.js';
+export { NetworkMonitor } from './monitor/network-monitor.js';
+export { PrivacyReportGenerator } from './monitor/privacy-report.js';
+export type {
+  ActiveConnection, ConnectionRecord, NetworkStatistics,
+  AllowlistEntry as MonitorAllowlistEntry, UnauthorizedAttempt,
+  HistoryOptions, NetworkMonitorConfig,
+} from './monitor/network-monitor.js';
+export type { PrivacyReport, PrivacyReportConfig } from './monitor/privacy-report.js';
