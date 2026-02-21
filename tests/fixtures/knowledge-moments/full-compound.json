@@ -1,0 +1,33 @@
+{
+  "tier": 1,
+  "upcomingMeeting": {
+    "title": "Budget Review Q4",
+    "startTime": "2025-01-15T10:00:00Z",
+    "attendees": ["alice@company.com", "bob@company.com"]
+  },
+  "emailContext": {
+    "attendeeName": "Alice",
+    "recentEmailCount": 7,
+    "lastEmailSubject": "Budget Q4 final numbers",
+    "lastEmailDate": "2025-01-14T15:30:00Z",
+    "hasUnansweredEmail": true,
+    "unansweredSubject": "Budget Q4 final numbers"
+  },
+  "relatedDocuments": [
+    {
+      "fileName": "Q4-Budget-Report.xlsx",
+      "filePath": "/Users/user/Documents/Finance/Q4-Budget-Report.xlsx",
+      "relevanceReason": "Related to \"Budget Review Q4\""
+    },
+    {
+      "fileName": "Revenue-Projections-2025.pdf",
+      "filePath": "/Users/user/Documents/Finance/Revenue-Projections-2025.pdf",
+      "relevanceReason": "Related to \"Budget Review Q4\""
+    }
+  ],
+  "message": "You have a Budget Review Q4 meeting tomorrow at 10 AM with Alice and Bob. Alice sent you 7 emails this week — the last one, \"Budget Q4 final numbers\", is still unanswered. Two relevant documents are in your Finance folder.",
+  "suggestedAction": {
+    "type": "draft_reply",
+    "description": "Draft reply to Alice's budget email"
+  }
+}

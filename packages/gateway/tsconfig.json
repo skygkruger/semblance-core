@@ -12,10 +12,8 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "dist",
-    "rootDir": ".",
-    "composite": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true
   },
   "include": ["ipc/**/*.ts", "services/**/*.ts", "security/**/*.ts", "audit/**/*.ts", "index.ts"],
   "exclude": ["node_modules", "dist"]

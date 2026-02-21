@@ -19,7 +19,7 @@ import type {
   AutonomyDomain,
 } from './types.js';
 import type { ActionType, ActionResponse } from '../types/ipc.js';
-import { ApprovalPatternTracker } from './approval-patterns.js';
+import { ApprovalPatternTracker, type ApprovalPattern } from './approval-patterns.js';
 
 // --- Conversation Storage ---
 
@@ -250,6 +250,9 @@ export interface Orchestrator {
   getPendingActions(): Promise<AgentAction[]>;
   getApprovalCount(actionType: ActionType, payload: Record<string, unknown>): number;
   getApprovalThreshold(actionType: ActionType, payload: Record<string, unknown>): number;
+  getApprovalPatterns(): ApprovalPattern[];
+  /** The autonomy manager — exposed for escalation engine */
+  readonly autonomy: AutonomyManager;
 }
 
 export interface OrchestratorResponse {
@@ -266,7 +269,7 @@ export class OrchestratorImpl implements Orchestrator {
   private llm: LLMProvider;
   private knowledge: KnowledgeGraph;
   private ipc: IPCClient;
-  private autonomy: AutonomyManager;
+  readonly autonomy: AutonomyManager;
   private db: Database.Database;
   private model: string;
   private patternTracker: ApprovalPatternTracker;
@@ -473,6 +476,10 @@ export class OrchestratorImpl implements Orchestrator {
 
   getApprovalThreshold(actionType: ActionType, payload: Record<string, unknown>): number {
     return this.patternTracker.getThreshold(actionType, payload);
+  }
+
+  getApprovalPatterns(): ApprovalPattern[] {
+    return this.patternTracker.getAllPatterns();
   }
 
   // --- Private helpers ---

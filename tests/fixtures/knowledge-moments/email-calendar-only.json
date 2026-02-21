@@ -1,0 +1,22 @@
+{
+  "tier": 2,
+  "upcomingMeeting": {
+    "title": "Weekly Standup",
+    "startTime": "2025-01-16T09:00:00Z",
+    "attendees": ["team@company.com"]
+  },
+  "emailContext": {
+    "attendeeName": "Team",
+    "recentEmailCount": 3,
+    "lastEmailSubject": "Standup notes - Jan 9",
+    "lastEmailDate": "2025-01-09T10:00:00Z",
+    "hasUnansweredEmail": false,
+    "unansweredSubject": null
+  },
+  "relatedDocuments": [],
+  "message": "Your Weekly Standup is tomorrow at 9 AM. You have 3 recent emails with Team — all caught up.",
+  "suggestedAction": {
+    "type": "prepare_meeting",
+    "description": "Prepare standup notes"
+  }
+}

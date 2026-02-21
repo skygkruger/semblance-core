@@ -986,6 +986,131 @@ async fn run_proactive_engine(state: tauri::State<'_, AppBridge>) -> Result<Valu
     state.bridge.call("proactive:run", Value::Null).await
 }
 
+// ─── Step 7: Subscription Detection ─────────────────────────────────────────
+
+/// Import a bank statement (CSV/OFX) from local filesystem.
+#[tauri::command]
+async fn import_statement(
+    state: tauri::State<'_, AppBridge>,
+    file_path: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "finance:importStatement",
+            serde_json::json!({"file_path": file_path}),
+        )
+        .await
+}
+
+/// Get stored subscription/recurring charges.
+#[tauri::command]
+async fn get_subscriptions(
+    state: tauri::State<'_, AppBridge>,
+    status: Option<String>,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "finance:getSubscriptions",
+            serde_json::json!({"status": status}),
+        )
+        .await
+}
+
+/// Update subscription status (cancel, keep, etc.).
+#[tauri::command]
+async fn update_subscription_status(
+    state: tauri::State<'_, AppBridge>,
+    charge_id: String,
+    status: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "finance:updateSubscriptionStatus",
+            serde_json::json!({"charge_id": charge_id, "status": status}),
+        )
+        .await
+}
+
+/// Get subscription summary (totals, forgotten count, savings).
+#[tauri::command]
+async fn get_subscription_summary(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("finance:getSummary", Value::Null).await
+}
+
+// ─── Step 7: Autonomy Escalation ────────────────────────────────────────────
+
+/// Check for available autonomy escalation prompts.
+#[tauri::command]
+async fn check_escalations(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("escalation:check", Value::Null).await
+}
+
+/// Respond to an escalation prompt (accept or dismiss).
+#[tauri::command]
+async fn respond_to_escalation(
+    state: tauri::State<'_, AppBridge>,
+    prompt_id: String,
+    accepted: bool,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "escalation:respond",
+            serde_json::json!({"prompt_id": prompt_id, "accepted": accepted}),
+        )
+        .await
+}
+
+/// Get active (pending) escalation prompts.
+#[tauri::command]
+async fn get_active_escalations(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("escalation:getActive", Value::Null).await
+}
+
+// ─── Step 7: Knowledge Moment ───────────────────────────────────────────────
+
+/// Generate a cross-source knowledge moment.
+#[tauri::command]
+async fn generate_knowledge_moment(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state
+        .bridge
+        .call("knowledge:generateMoment", Value::Null)
+        .await
+}
+
+// ─── Step 7: Weekly Digest ──────────────────────────────────────────────────
+
+/// Generate a weekly digest for the specified period.
+#[tauri::command]
+async fn generate_digest(
+    state: tauri::State<'_, AppBridge>,
+    week_start: String,
+    week_end: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "digest:generate",
+            serde_json::json!({"week_start": week_start, "week_end": week_end}),
+        )
+        .await
+}
+
+/// Get the most recent weekly digest.
+#[tauri::command]
+async fn get_latest_digest(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("digest:getLatest", Value::Null).await
+}
+
+/// List all generated digests (summaries).
+#[tauri::command]
+async fn list_digests(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("digest:list", Value::Null).await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1133,6 +1258,21 @@ pub fn run() {
             start_email_index,
             start_calendar_index,
             run_proactive_engine,
+            // Subscription Detection (Step 7)
+            import_statement,
+            get_subscriptions,
+            update_subscription_status,
+            get_subscription_summary,
+            // Autonomy Escalation (Step 7)
+            check_escalations,
+            respond_to_escalation,
+            get_active_escalations,
+            // Knowledge Moment (Step 7)
+            generate_knowledge_moment,
+            // Weekly Digest (Step 7)
+            generate_digest,
+            get_latest_digest,
+            list_digests,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

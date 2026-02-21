@@ -19,11 +19,6 @@
       "@semblance/ui/*": ["./packages/semblance-ui/*"]
     }
   },
-  "references": [
-    { "path": "./packages/core" },
-    { "path": "./packages/gateway" },
-    { "path": "./packages/semblance-ui" }
-  ],
   "exclude": [
     "node_modules",
     "dist",

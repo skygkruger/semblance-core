@@ -12,10 +12,8 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "dist",
-    "rootDir": ".",
-    "composite": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true
   },
   "include": ["tokens/**/*.ts", "components/**/*.ts", "components/**/*.tsx", "hooks/**/*.ts", "index.ts"],
   "exclude": ["node_modules", "dist"]

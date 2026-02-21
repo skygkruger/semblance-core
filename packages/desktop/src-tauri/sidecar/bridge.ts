@@ -40,6 +40,14 @@ import { EmailCategorizer } from '../../../core/agent/email-categorizer.js';
 import { ProactiveEngine } from '../../../core/agent/proactive-engine.js';
 import type { ActionType } from '../../../core/types/ipc.js';
 
+// Step 7 imports
+import { StatementParser } from '../../../core/finance/statement-parser.js';
+import { MerchantNormalizer } from '../../../core/finance/merchant-normalizer.js';
+import { RecurringDetector } from '../../../core/finance/recurring-detector.js';
+import { EscalationEngine } from '../../../core/agent/autonomy-escalation.js';
+import { KnowledgeMomentGenerator } from '../../../core/agent/knowledge-moment.js';
+import { WeeklyDigestGenerator } from '../../../core/digest/weekly-digest.js';
+
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
 function emit(event: string, data: unknown): void {
@@ -69,6 +77,14 @@ let emailIndexer: EmailIndexer | null = null;
 let calendarIndexer: CalendarIndexer | null = null;
 let emailCategorizer: EmailCategorizer | null = null;
 let proactiveEngine: ProactiveEngine | null = null;
+
+// Step 7 state
+let statementParser: StatementParser | null = null;
+let merchantNormalizer: MerchantNormalizer | null = null;
+let recurringDetector: RecurringDetector | null = null;
+let escalationEngine: EscalationEngine | null = null;
+let knowledgeMomentGenerator: KnowledgeMomentGenerator | null = null;
+let weeklyDigestGenerator: WeeklyDigestGenerator | null = null;
 
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
@@ -912,24 +928,24 @@ async function handleProactiveRun(): Promise<unknown[]> {
 
 async function handleActionApprove(params: { action_id: string }): Promise<unknown> {
   if (!core) throw new Error('Core not initialized');
-  return await core.orchestrator.approveAction(params.action_id);
+  return await core.agent.approveAction(params.action_id);
 }
 
 async function handleActionReject(params: { action_id: string }): Promise<unknown> {
   if (!core) throw new Error('Core not initialized');
-  await core.orchestrator.rejectAction(params.action_id);
+  await core.agent.rejectAction(params.action_id);
   return { success: true };
 }
 
 async function handleActionGetPending(): Promise<unknown[]> {
   if (!core) return [];
-  return await core.orchestrator.getPendingActions();
+  return await core.agent.getPendingActions();
 }
 
 function handleActionGetApprovalCount(params: { action_type: string; payload: Record<string, unknown> }): unknown {
   if (!core) return { count: 0, threshold: 3 };
-  const count = core.orchestrator.getApprovalCount(params.action_type as ActionType, params.payload);
-  const threshold = core.orchestrator.getApprovalThreshold(params.action_type as ActionType, params.payload);
+  const count = core.agent.getApprovalCount(params.action_type as ActionType, params.payload);
+  const threshold = core.agent.getApprovalThreshold(params.action_type as ActionType, params.payload);
   return { count, threshold };
 }
 
@@ -997,7 +1013,7 @@ async function handleSendEmailAction(params: {
   };
 
   // Check autonomy — if guardian, queue for approval
-  const tier = core.orchestrator.getApprovalCount
+  const tier = core.agent.getApprovalCount
     ? 'partner' // default for user-initiated
     : 'guardian';
 
@@ -1057,7 +1073,163 @@ async function handleUndoAction(params: { action_id: string }): Promise<unknown>
 
 function handleGetApprovalThreshold(params: { action_type: string; payload: Record<string, unknown> }): number {
   if (!core) return 3;
-  return core.orchestrator.getApprovalThreshold(params.action_type as ActionType, params.payload);
+  return core.agent.getApprovalThreshold(params.action_type as ActionType, params.payload);
+}
+
+// ─── Step 7: Subscription Detection Handlers ────────────────────────────────
+
+function ensureFinanceComponents(): void {
+  if (!prefsDb) throw new Error('Database not initialized');
+  if (!merchantNormalizer) {
+    merchantNormalizer = new MerchantNormalizer({ llm: core?.llm });
+  }
+  if (!statementParser) {
+    statementParser = new StatementParser({ llm: core?.llm });
+  }
+  if (!recurringDetector) {
+    recurringDetector = new RecurringDetector({ db: prefsDb, normalizer: merchantNormalizer });
+  }
+}
+
+async function handleImportStatement(params: { file_path: string }): Promise<unknown> {
+  ensureFinanceComponents();
+  if (!statementParser || !merchantNormalizer || !recurringDetector) {
+    return { error: 'Finance components not initialized' };
+  }
+
+  const { transactions, import: importRecord } = await statementParser.parseStatement(params.file_path);
+  const normalized = merchantNormalizer.normalizeAll(transactions);
+  const charges = recurringDetector.detect(normalized);
+
+  // Flag forgotten subscriptions using email index
+  const emailSearchFn = (merchant: string) => {
+    if (!emailIndexer) return [];
+    return emailIndexer.searchEmails(merchant, { limit: 5 });
+  };
+  const flaggedCharges = await recurringDetector.flagForgotten(charges, emailSearchFn);
+
+  // Store
+  recurringDetector.storeImport(importRecord, normalized);
+  recurringDetector.storeCharges(flaggedCharges);
+
+  const forgotten = flaggedCharges.filter(c => c.status === 'forgotten');
+  const summary = recurringDetector.getSummary();
+
+  return {
+    transactionCount: importRecord.transactionCount,
+    merchantCount: new Set(normalized.map(t => t.normalizedMerchant)).size,
+    dateRange: importRecord.dateRange,
+    recurringCount: flaggedCharges.length,
+    forgottenCount: forgotten.length,
+    potentialSavings: summary.potentialSavings,
+  };
+}
+
+function handleGetSubscriptions(params: { status?: string }): unknown[] {
+  ensureFinanceComponents();
+  if (!recurringDetector) return [];
+  return recurringDetector.getStoredCharges(params.status);
+}
+
+function handleUpdateSubscriptionStatus(params: { charge_id: string; status: string }): unknown {
+  ensureFinanceComponents();
+  if (!recurringDetector) return { success: false };
+  recurringDetector.updateStatus(params.charge_id, params.status as 'active' | 'forgotten' | 'cancelled' | 'user_confirmed');
+  return { success: true };
+}
+
+function handleGetImportHistory(): unknown[] {
+  ensureFinanceComponents();
+  if (!recurringDetector) return [];
+  return recurringDetector.getImports();
+}
+
+function handleGetSubscriptionSummary(): unknown {
+  ensureFinanceComponents();
+  if (!recurringDetector) return { totalMonthly: 0, totalAnnual: 0, activeCount: 0, forgottenCount: 0, potentialSavings: 0 };
+  return recurringDetector.getSummary();
+}
+
+// ─── Step 7: Autonomy Escalation Handlers ────────────────────────────────────
+
+function ensureEscalationEngine(): void {
+  if (!prefsDb || !core) throw new Error('Core not initialized');
+  if (!escalationEngine) {
+    escalationEngine = new EscalationEngine({
+      db: prefsDb,
+      autonomy: core.agent.autonomy,
+      aiName: getPref('ai_name') ?? 'Semblance',
+    });
+  }
+}
+
+function handleCheckEscalations(): unknown[] {
+  ensureEscalationEngine();
+  if (!escalationEngine || !core) return [];
+  const patterns = core.agent.getApprovalPatterns();
+  return escalationEngine.checkForEscalations(patterns);
+}
+
+function handleRespondToEscalation(params: { prompt_id: string; accepted: boolean }): unknown {
+  ensureEscalationEngine();
+  if (!escalationEngine) return { success: false };
+  escalationEngine.recordResponse(params.prompt_id, params.accepted);
+  return { success: true };
+}
+
+function handleGetActiveEscalations(): unknown[] {
+  ensureEscalationEngine();
+  if (!escalationEngine) return [];
+  return escalationEngine.getActivePrompts();
+}
+
+// ─── Step 7: Knowledge Moment Handler ────────────────────────────────────────
+
+async function handleGenerateKnowledgeMoment(): Promise<unknown> {
+  if (!core) return null;
+  if (!knowledgeMomentGenerator) {
+    knowledgeMomentGenerator = new KnowledgeMomentGenerator({
+      emailIndexer: emailIndexer ?? undefined,
+      calendarIndexer: calendarIndexer ?? undefined,
+      knowledgeGraph: core.knowledge,
+      llm: core.llm,
+      aiName: getPref('ai_name') ?? 'Semblance',
+    });
+  }
+  return await knowledgeMomentGenerator.generate();
+}
+
+// ─── Step 7: Weekly Digest Handlers ──────────────────────────────────────────
+
+function ensureDigestGenerator(): void {
+  if (!prefsDb) throw new Error('Database not initialized');
+  if (!weeklyDigestGenerator) {
+    // The audit trail is in the same core.db (prefsDb)
+    weeklyDigestGenerator = new WeeklyDigestGenerator({
+      db: prefsDb,
+      auditDb: prefsDb,
+      llm: core?.llm,
+      aiName: getPref('ai_name') ?? 'Semblance',
+    });
+  }
+}
+
+async function handleGenerateDigest(params: { week_start: string; week_end: string }): Promise<unknown> {
+  ensureDigestGenerator();
+  if (!weeklyDigestGenerator) return null;
+  return await weeklyDigestGenerator.generate(params.week_start, params.week_end);
+}
+
+function handleGetLatestDigest(): unknown {
+  ensureDigestGenerator();
+  if (!weeklyDigestGenerator) return null;
+  return weeklyDigestGenerator.getLatest();
+}
+
+function handleListDigests(): unknown[] {
+  ensureDigestGenerator();
+  if (!weeklyDigestGenerator) return [];
+  return weeklyDigestGenerator.list();
 }
 
 async function handleShutdown(): Promise<unknown> {
@@ -1344,6 +1516,74 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'action:getApprovalThreshold':
         result = handleGetApprovalThreshold(params as { action_type: string; payload: Record<string, unknown> });
+        respond(id, result);
+        break;
+
+      // ── Step 7: Subscription Detection ──
+
+      case 'finance:importStatement':
+        result = await handleImportStatement(params as { file_path: string });
+        respond(id, result);
+        break;
+
+      case 'finance:getSubscriptions':
+        result = handleGetSubscriptions(params as { status?: string });
+        respond(id, result);
+        break;
+
+      case 'finance:updateSubscriptionStatus':
+        result = handleUpdateSubscriptionStatus(params as { charge_id: string; status: string });
+        respond(id, result);
+        break;
+
+      case 'finance:getImportHistory':
+        result = handleGetImportHistory();
+        respond(id, result);
+        break;
+
+      case 'finance:getSummary':
+        result = handleGetSubscriptionSummary();
+        respond(id, result);
+        break;
+
+      // ── Step 7: Autonomy Escalation ──
+
+      case 'escalation:check':
+        result = handleCheckEscalations();
+        respond(id, result);
+        break;
+
+      case 'escalation:respond':
+        result = handleRespondToEscalation(params as { prompt_id: string; accepted: boolean });
+        respond(id, result);
+        break;
+
+      case 'escalation:getActive':
+        result = handleGetActiveEscalations();
+        respond(id, result);
+        break;
+
+      // ── Step 7: Knowledge Moment ──
+
+      case 'knowledge:generateMoment':
+        result = await handleGenerateKnowledgeMoment();
+        respond(id, result);
+        break;
+
+      // ── Step 7: Weekly Digest ──
+
+      case 'digest:generate':
+        result = await handleGenerateDigest(params as { week_start: string; week_end: string });
+        respond(id, result);
+        break;
+
+      case 'digest:getLatest':
+        result = handleGetLatestDigest();
+        respond(id, result);
+        break;
+
+      case 'digest:list':
+        result = handleListDigests();
         respond(id, result);
         break;
 

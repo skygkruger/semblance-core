@@ -1,0 +1,18 @@
+{
+  "tier": 3,
+  "upcomingMeeting": null,
+  "emailContext": {
+    "attendeeName": "Sarah",
+    "recentEmailCount": 12,
+    "lastEmailSubject": "Project update - need your input",
+    "lastEmailDate": "2025-01-14T11:00:00Z",
+    "hasUnansweredEmail": true,
+    "unansweredSubject": "Project update - need your input"
+  },
+  "relatedDocuments": [],
+  "message": "Sarah has sent you 12 emails recently. Her last message \"Project update - need your input\" is unanswered.",
+  "suggestedAction": {
+    "type": "draft_reply",
+    "description": "Draft reply to Sarah"
+  }
+}

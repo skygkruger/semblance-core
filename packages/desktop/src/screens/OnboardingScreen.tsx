@@ -11,6 +11,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Button, Input, AutonomySelector, ProgressBar, CredentialForm } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
+import { KnowledgeMomentDisplay } from '../components/KnowledgeMomentDisplay';
 import type { AutonomyTier, CredentialFormData } from '@semblance/ui';
 
 const TOTAL_STEPS = 8;
@@ -29,12 +30,25 @@ export function OnboardingScreen() {
   const [emailConnected, setEmailConnected] = useState(false);
   const [calendarConnected, setCalendarConnected] = useState(false);
   const [presets, setPresets] = useState<Record<string, { name: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; caldavUrl: string | null; notes: string | null }>>({});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [knowledgeMoment, setKnowledgeMoment] = useState<any>(null);
+  const [momentLoading, setMomentLoading] = useState(false);
 
   useEffect(() => {
     invoke<Record<string, { name: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; caldavUrl: string | null; notes: string | null }>>('get_provider_presets')
       .then(setPresets)
       .catch(() => {});
   }, []);
+
+  // Generate Knowledge Moment when entering step 5
+  useEffect(() => {
+    if (step !== 5) return;
+    setMomentLoading(true);
+    invoke('generate_knowledge_moment')
+      .then((result) => { if (result) setKnowledgeMoment(result); })
+      .catch(() => {})
+      .finally(() => setMomentLoading(false));
+  }, [step]);
 
   const name = state.userName || nameInput;
 
@@ -355,16 +369,44 @@ export function OnboardingScreen() {
         {/* Step 5: Knowledge Moment */}
         {step === 5 && (
           <div>
-            <h2 className="font-display text-3xl mb-6">
-              <span className="text-semblance-accent">{name}</span> is exploring your documents...
-            </h2>
-            <ProgressBar indeterminate className="max-w-sm mx-auto mb-8" />
-            <p className="text-sm text-semblance-text-secondary-dark mb-6">
-              {state.knowledgeStats.documentCount > 0
-                ? `${name} found ${state.knowledgeStats.documentCount} documents and ${state.knowledgeStats.chunkCount} passages to learn from.`
-                : 'Scanning and indexing your files...'}
-            </p>
-            <Button onClick={advance} variant="ghost">Continue</Button>
+            {momentLoading && !knowledgeMoment && (
+              <>
+                <h2 className="font-display text-3xl mb-6">
+                  <span className="text-semblance-accent">{name}</span> is exploring your world...
+                </h2>
+                <ProgressBar indeterminate className="max-w-sm mx-auto mb-8" />
+                <p className="text-sm text-semblance-text-secondary-dark mb-6">
+                  Cross-referencing your email, calendar, and documents...
+                </p>
+              </>
+            )}
+            {knowledgeMoment ? (
+              <>
+                <h2 className="font-display text-3xl mb-6">
+                  <span className="text-semblance-accent">{name}</span> already knows something.
+                </h2>
+                <div className="max-w-lg mx-auto">
+                  <KnowledgeMomentDisplay
+                    moment={knowledgeMoment}
+                    aiName={name}
+                    onContinue={advance}
+                    isOnboarding
+                  />
+                </div>
+              </>
+            ) : !momentLoading && (
+              <>
+                <h2 className="font-display text-3xl mb-6">
+                  <span className="text-semblance-accent">{name}</span> is exploring your documents...
+                </h2>
+                <p className="text-sm text-semblance-text-secondary-dark mb-6">
+                  {state.knowledgeStats.documentCount > 0
+                    ? `${name} found ${state.knowledgeStats.documentCount} documents and ${state.knowledgeStats.chunkCount} passages to learn from.`
+                    : 'Connect email and calendar in the previous step for a richer experience.'}
+                </p>
+                <Button onClick={advance} variant="ghost">Continue</Button>
+              </>
+            )}
           </div>
         )}
 
