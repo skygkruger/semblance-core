@@ -1,5 +1,18 @@
 # SEMBLANCE
 
+## NO STUBS. NO DE-FLAGGING. REAL CODE ONLY.
+
+**This rule is absolute and non-negotiable.**
+
+- Every function, method, and code path must contain a REAL working implementation — not an empty body, not a hardcoded return, not a no-op.
+- If a function cannot be fully implemented yet because it depends on a runtime integration (e.g., Tauri plugin not yet wired), it MUST explicitly delegate to the mock adapter and document WHY with a TODO referencing the sprint where it will be completed. Follow the `desktop-contacts.ts` pattern.
+- You may NEVER remove or reword a comment that flags a stub (TODO, FIXME, PLACEHOLDER, "stub", "not implemented") to make it pass a grep check. That is falsifying the record. The grep checks exist to catch incomplete work — defeating them defeats the purpose.
+- If a stub grep fires, the correct response is to IMPLEMENT the code or HONESTLY label it as a TODO with a sprint reference. Never de-flag.
+- Empty function bodies, empty callback bodies, and methods that return hardcoded null/false/empty without doing real work are stubs regardless of whether they have a comment saying so.
+- This rule survives compaction.
+
+---
+
 ## MANDATORY CONTEXT — READ ON EVERY SESSION START AND AFTER EVERY COMPACTION
 
 **Before doing ANY work, read BOTH of these documents:**
