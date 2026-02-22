@@ -38,10 +38,10 @@ export interface Reminder {
   id: string;
   text: string;
   dueAt: string;
-  recurrence: 'none' | 'daily' | 'weekly' | 'monthly';
+  recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
   status: 'pending' | 'fired' | 'dismissed' | 'snoozed';
   snoozedUntil: string | null;
-  source: 'chat' | 'quick-capture' | 'proactive';
+  source: 'chat' | 'quick-capture' | 'proactive' | 'birthday_tracker';
   createdAt: string;
   updatedAt: string;
 }
@@ -49,14 +49,14 @@ export interface Reminder {
 export interface CreateReminderInput {
   text: string;
   dueAt: string;
-  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
-  source?: 'chat' | 'quick-capture' | 'proactive';
+  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+  source?: 'chat' | 'quick-capture' | 'proactive' | 'birthday_tracker';
 }
 
 export interface UpdateReminderInput {
   text?: string;
   dueAt?: string;
-  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
+  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
   status?: 'pending' | 'fired' | 'dismissed' | 'snoozed';
   snoozedUntil?: string | null;
 }
@@ -95,6 +95,9 @@ export function computeNextOccurrence(
       break;
     case 'monthly':
       date.setMonth(date.getMonth() + 1);
+      break;
+    case 'yearly':
+      date.setFullYear(date.getFullYear() + 1);
       break;
   }
   return date.toISOString();

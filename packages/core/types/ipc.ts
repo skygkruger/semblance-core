@@ -194,8 +194,8 @@ export type WebFetchResponse = z.infer<typeof WebFetchResponse>;
 export const ReminderCreatePayload = z.object({
   text: z.string().min(1),
   dueAt: z.string().datetime(),
-  recurrence: z.enum(['none', 'daily', 'weekly', 'monthly']).optional().default('none'),
-  source: z.enum(['chat', 'quick-capture', 'proactive']).optional().default('chat'),
+  recurrence: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']).optional().default('none'),
+  source: z.enum(['chat', 'quick-capture', 'proactive', 'birthday_tracker']).optional().default('chat'),
 });
 export type ReminderCreatePayload = z.infer<typeof ReminderCreatePayload>;
 
@@ -203,7 +203,7 @@ export const ReminderUpdatePayload = z.object({
   id: z.string(),
   text: z.string().min(1).optional(),
   dueAt: z.string().datetime().optional(),
-  recurrence: z.enum(['none', 'daily', 'weekly', 'monthly']).optional(),
+  recurrence: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']).optional(),
   status: z.enum(['pending', 'fired', 'dismissed', 'snoozed']).optional(),
   snoozedUntil: z.string().datetime().optional(),
 });
