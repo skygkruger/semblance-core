@@ -29,6 +29,7 @@ class SemblanceLlamaModule(reactContext: ReactApplicationContext) :
     private var batchSize = 32
     private var gpuLayers = 0
     private var nativeHandle: Long = 0
+    @Volatile private var isGenerating = false
 
     override fun getName(): String = "SemblanceLlama"
 
@@ -47,30 +48,62 @@ class SemblanceLlamaModule(reactContext: ReactApplicationContext) :
         gpuLayers: Int,
         promise: Promise
     ) {
-        try {
-            val file = File(modelPath)
-            if (!file.exists()) {
-                promise.reject("MODEL_NOT_FOUND", "Model file not found at $modelPath")
-                return
-            }
-
-            this.modelPath = modelPath
-            this.contextLength = contextLength
-            this.batchSize = batchSize
-            this.gpuLayers = gpuLayers
-
-            // TODO: Initialize llama.cpp via JNI
-            // nativeHandle = nativeLoadModel(modelPath, contextLength, batchSize, threads, gpuLayers)
-
-            isLoaded = true
-
-            val result = Arguments.createMap()
-            result.putString("status", "loaded")
-            result.putString("modelPath", modelPath)
-            promise.resolve(result)
-        } catch (e: Exception) {
-            promise.reject("LOAD_ERROR", "Failed to load model: ${e.message}")
+        if (isGenerating) {
+            promise.reject("BUSY", "Cannot load model while inference is in progress.")
+            return
         }
+
+        Thread {
+            try {
+                val file = File(modelPath)
+                if (!file.exists()) {
+                    promise.reject("MODEL_NOT_FOUND", "Model file not found at $modelPath")
+                    return@Thread
+                }
+
+                // Check available memory before loading
+                val runtime = Runtime.getRuntime()
+                val availableMemory = runtime.maxMemory() - runtime.totalMemory() + runtime.freeMemory()
+                val minimumMemory = 512L * 1024 * 1024 // 512MB minimum
+                if (availableMemory < minimumMemory) {
+                    promise.reject(
+                        "INSUFFICIENT_MEMORY",
+                        "Not enough memory to load model. Available: ${availableMemory / 1024 / 1024}MB"
+                    )
+                    return@Thread
+                }
+
+                // Unload existing model if any
+                if (nativeHandle != 0L) {
+                    nativeFreeModel(nativeHandle)
+                    nativeHandle = 0
+                }
+
+                this.modelPath = modelPath
+                this.contextLength = contextLength
+                this.batchSize = batchSize
+                this.gpuLayers = gpuLayers
+
+                // Load model via JNI — llama_model_load_from_file
+                val effectiveThreads = if (threads <= 0) Runtime.getRuntime().availableProcessors() else threads
+                nativeHandle = nativeLoadModel(modelPath, contextLength, batchSize, effectiveThreads, gpuLayers)
+
+                if (nativeHandle == 0L) {
+                    promise.reject("LOAD_FAILED", "llama.cpp failed to load model from $modelPath")
+                    return@Thread
+                }
+
+                isLoaded = true
+
+                val result = Arguments.createMap()
+                result.putString("status", "loaded")
+                result.putString("modelPath", modelPath)
+                result.putInt("contextLength", contextLength)
+                promise.resolve(result)
+            } catch (e: Exception) {
+                promise.reject("LOAD_ERROR", "Failed to load model: ${e.message}")
+            }
+        }.start()
     }
 
     /**
@@ -78,12 +111,21 @@ class SemblanceLlamaModule(reactContext: ReactApplicationContext) :
      */
     @ReactMethod
     fun unloadModel(promise: Promise) {
+        if (isGenerating) {
+            promise.reject("BUSY", "Cannot unload while inference is in progress.")
+            return
+        }
+
         try {
-            // TODO: Release llama.cpp model via JNI
-            // if (nativeHandle != 0L) nativeFreeModel(nativeHandle)
+            if (nativeHandle != 0L) {
+                nativeFreeModel(nativeHandle)
+            }
             nativeHandle = 0
             isLoaded = false
             modelPath = null
+
+            // Suggest GC after releasing native memory
+            System.gc()
 
             val result = Arguments.createMap()
             result.putString("status", "unloaded")
@@ -114,28 +156,50 @@ class SemblanceLlamaModule(reactContext: ReactApplicationContext) :
         systemPrompt: String?,
         promise: Promise
     ) {
-        if (!isLoaded) {
+        if (!isLoaded || nativeHandle == 0L) {
             promise.reject("NOT_LOADED", "No model loaded. Call loadModel() first.")
             return
         }
+
+        if (isGenerating) {
+            promise.reject("BUSY", "Inference already in progress. Wait for completion.")
+            return
+        }
+
+        isGenerating = true
 
         Thread {
             try {
                 val startTime = System.currentTimeMillis()
 
-                // TODO: Run llama.cpp inference via JNI
-                // var fullPrompt = if (systemPrompt != null) "<|system|>\n$systemPrompt\n<|user|>\n$prompt\n<|assistant|>\n" else prompt
-                // val tokens = nativeGenerate(nativeHandle, fullPrompt, maxTokens, temperature)
-                // for (token in tokens) { sendTokenEvent(token) }
+                // Build full prompt with optional system message
+                val fullPrompt = if (systemPrompt != null && systemPrompt.isNotEmpty()) {
+                    "<|system|>\n$systemPrompt\n<|user|>\n$prompt\n<|assistant|>\n"
+                } else {
+                    prompt
+                }
 
+                // Run llama.cpp generation via JNI with streaming callback
+                val generatedTokens = mutableListOf<String>()
+                nativeGenerate(nativeHandle, fullPrompt, maxTokens, temperature) { token ->
+                    generatedTokens.add(token)
+                    sendTokenEvent(token)
+                }
+
+                val fullText = generatedTokens.joinToString("")
                 val durationMs = System.currentTimeMillis() - startTime
+                val tokensPerSecond = if (durationMs > 0) generatedTokens.size * 1000.0 / durationMs else 0.0
+
+                isGenerating = false
 
                 val result = Arguments.createMap()
-                result.putString("text", "[LlamaCpp inference placeholder]")
-                result.putInt("tokensGenerated", 0)
+                result.putString("text", fullText)
+                result.putInt("tokensGenerated", generatedTokens.size)
                 result.putDouble("durationMs", durationMs.toDouble())
+                result.putDouble("tokensPerSecond", tokensPerSecond)
                 promise.resolve(result)
             } catch (e: Exception) {
+                isGenerating = false
                 promise.reject("GENERATE_ERROR", "Generation failed: ${e.message}")
             }
         }.start()
@@ -146,25 +210,24 @@ class SemblanceLlamaModule(reactContext: ReactApplicationContext) :
      */
     @ReactMethod
     fun embed(text: String, promise: Promise) {
-        if (!isLoaded) {
+        if (!isLoaded || nativeHandle == 0L) {
             promise.reject("NOT_LOADED", "No model loaded. Call loadModel() first.")
             return
         }
 
         Thread {
             try {
-                // TODO: Run llama.cpp embedding via JNI
-                // val embedding = nativeEmbed(nativeHandle, text)
+                // Run llama.cpp embedding via JNI
+                val embeddingArray = nativeEmbed(nativeHandle, text)
 
-                val dim = 384
                 val embedding = Arguments.createArray()
-                for (i in 0 until dim) {
-                    embedding.pushDouble(0.0)
+                for (value in embeddingArray) {
+                    embedding.pushDouble(value.toDouble())
                 }
 
                 val result = Arguments.createMap()
                 result.putArray("embedding", embedding)
-                result.putInt("dimensions", dim)
+                result.putInt("dimensions", embeddingArray.size)
                 promise.resolve(result)
             } catch (e: Exception) {
                 promise.reject("EMBED_ERROR", "Embedding failed: ${e.message}")
@@ -183,12 +246,13 @@ class SemblanceLlamaModule(reactContext: ReactApplicationContext) :
         val maxMemory = runtime.maxMemory()
         val totalMemory = runtime.totalMemory()
         val freeMemory = runtime.freeMemory()
-        val usedMemory = if (isLoaded) 1_800_000_000L else 0L // Approximate model size
+        val nativeMemory = if (nativeHandle != 0L) nativeGetMemoryUsage(nativeHandle) else 0L
 
         val result = Arguments.createMap()
-        result.putDouble("used", usedMemory.toDouble())
+        result.putDouble("used", nativeMemory.toDouble())
         result.putDouble("available", (maxMemory - totalMemory + freeMemory).toDouble())
         result.putDouble("maxMemory", maxMemory.toDouble())
+        result.putBoolean("modelLoaded", isLoaded)
         promise.resolve(result)
     }
 
@@ -202,11 +266,20 @@ class SemblanceLlamaModule(reactContext: ReactApplicationContext) :
 
     // ─── Token Streaming ─────────────────────────────────────────────────────
 
-    @Suppress("unused")
     private fun sendTokenEvent(token: String) {
+        val params = Arguments.createMap()
+        params.putString("token", token)
         reactApplicationContext
             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            .emit("onToken", token)
+            .emit("onToken", params)
+    }
+
+    private fun sendModelUnloadedEvent(reason: String) {
+        val params = Arguments.createMap()
+        params.putString("reason", reason)
+        reactApplicationContext
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            .emit("onModelUnloaded", params)
     }
 
     // ─── Memory Pressure ─────────────────────────────────────────────────────
@@ -217,29 +290,67 @@ class SemblanceLlamaModule(reactContext: ReactApplicationContext) :
      */
     fun onTrimMemory(level: Int) {
         // TRIM_MEMORY_RUNNING_CRITICAL = 15
-        if (level >= 15 && isLoaded) {
+        if (level >= 15 && isLoaded && !isGenerating) {
+            if (nativeHandle != 0L) {
+                nativeFreeModel(nativeHandle)
+            }
+            nativeHandle = 0
             isLoaded = false
             modelPath = null
-            // TODO: Release llama.cpp model via JNI
-            // TODO: Notify JS of model unload
+            sendModelUnloadedEvent("memory_pressure")
         }
     }
 
-    // ─── JNI Declarations ────────────────────────────────────────────────────
+    // ─── JNI Native Methods ──────────────────────────────────────────────────
 
     companion object {
         init {
             try {
                 System.loadLibrary("semblance_llama")
             } catch (_: UnsatisfiedLinkError) {
-                // Library not available yet — will be built with NDK
+                // Library not available yet — built with NDK during Android build
             }
         }
     }
 
-    // TODO: Implement these native methods in C++ via JNI
-    // private external fun nativeLoadModel(path: String, contextLength: Int, batchSize: Int, threads: Int, gpuLayers: Int): Long
-    // private external fun nativeFreeModel(handle: Long)
-    // private external fun nativeGenerate(handle: Long, prompt: String, maxTokens: Int, temperature: Double): Array<String>
-    // private external fun nativeEmbed(handle: Long, text: String): FloatArray
+    /**
+     * Load a GGUF model file. Returns a native handle (pointer) or 0 on failure.
+     * Calls llama_model_load_from_file and llama_new_context_with_model.
+     */
+    private external fun nativeLoadModel(
+        path: String,
+        contextLength: Int,
+        batchSize: Int,
+        threads: Int,
+        gpuLayers: Int
+    ): Long
+
+    /**
+     * Free a previously loaded model and its context.
+     * Calls llama_free and llama_model_free.
+     */
+    private external fun nativeFreeModel(handle: Long)
+
+    /**
+     * Generate tokens from a prompt. Calls the streaming callback for each token.
+     * Uses llama_decode and llama_token_to_piece for token-by-token generation.
+     */
+    private external fun nativeGenerate(
+        handle: Long,
+        prompt: String,
+        maxTokens: Int,
+        temperature: Double,
+        callback: (String) -> Unit
+    )
+
+    /**
+     * Generate an embedding vector for the input text.
+     * Uses llama_decode with embedding mode to extract the hidden state.
+     */
+    private external fun nativeEmbed(handle: Long, text: String): FloatArray
+
+    /**
+     * Get the native memory usage of the loaded model in bytes.
+     */
+    private external fun nativeGetMemoryUsage(handle: Long): Long
 }
