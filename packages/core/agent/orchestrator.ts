@@ -20,6 +20,9 @@ import type {
 } from './types.js';
 import type { ActionType, ActionResponse } from '../types/ipc.js';
 import { ApprovalPatternTracker, type ApprovalPattern } from './approval-patterns.js';
+import type { StyleProfileStore, StyleProfile } from '../style/style-profile.js';
+import { buildStylePrompt, buildInactiveStylePrompt, buildRetryPrompt, type DraftContext } from '../style/style-injector.js';
+import { scoreDraft, type StyleScore } from '../style/style-scorer.js';
 
 // --- Conversation Storage ---
 
@@ -338,6 +341,7 @@ export interface OrchestratorResponse {
   actions: AgentAction[];
   context: SearchResult[];
   tokensUsed: { prompt: number; completion: number };
+  styleScore?: StyleScore;
 }
 
 // --- Implementation ---
@@ -350,6 +354,9 @@ export class OrchestratorImpl implements Orchestrator {
   private db: Database.Database;
   private model: string;
   private patternTracker: ApprovalPatternTracker;
+  private styleProfileStore: StyleProfileStore | null;
+  private styleScoreThreshold: number;
+  private lastStyleScore: StyleScore | null = null;
 
   constructor(config: {
     llm: LLMProvider;
@@ -358,6 +365,8 @@ export class OrchestratorImpl implements Orchestrator {
     autonomy: AutonomyManager;
     db: Database.Database;
     model: string;
+    styleProfileStore?: StyleProfileStore;
+    styleScoreThreshold?: number;
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -366,6 +375,8 @@ export class OrchestratorImpl implements Orchestrator {
     this.db = config.db;
     this.model = config.model;
     this.patternTracker = new ApprovalPatternTracker(config.db);
+    this.styleProfileStore = config.styleProfileStore ?? null;
+    this.styleScoreThreshold = config.styleScoreThreshold ?? 70;
     this.db.exec(CREATE_TABLES);
   }
 
@@ -393,6 +404,7 @@ export class OrchestratorImpl implements Orchestrator {
     // Step 5: Process tool calls
     const actions: AgentAction[] = [];
     let finalMessage = response.message.content;
+    this.lastStyleScore = null;
 
     if (response.toolCalls && response.toolCalls.length > 0) {
       const toolResults = await this.processToolCalls(response.toolCalls, context);
@@ -439,6 +451,7 @@ export class OrchestratorImpl implements Orchestrator {
       actions,
       context,
       tokensUsed: response.tokensUsed,
+      styleScore: this.lastStyleScore ?? undefined,
     };
   }
 
@@ -672,6 +685,15 @@ export class OrchestratorImpl implements Orchestrator {
         continue;
       }
 
+      // --- Style-enhanced drafting for email tools ---
+      if ((tc.name === 'draft_email' || tc.name === 'send_email') && tc.arguments['body']) {
+        const styled = await this.applyStyleToDraft(tc.arguments);
+        tc.arguments['body'] = styled.body;
+        if (styled.styleScore) {
+          this.lastStyleScore = styled.styleScore;
+        }
+      }
+
       // Gateway-routed tools
       const actionType = TOOL_ACTION_MAP[tc.name];
       if (!actionType) continue;
@@ -722,6 +744,90 @@ export class OrchestratorImpl implements Orchestrator {
     }
 
     return { actions, executedResults };
+  }
+
+  /**
+   * Apply style profile to an email draft. If profile is active, regenerates
+   * the body using style injection and scores the result. Retries up to 2 times
+   * if below threshold.
+   */
+  private async applyStyleToDraft(
+    args: Record<string, unknown>,
+  ): Promise<{ body: string; styleScore: StyleScore | null }> {
+    if (!this.styleProfileStore) {
+      return { body: args['body'] as string, styleScore: null };
+    }
+
+    const profile = this.styleProfileStore.getActiveProfile();
+    if (!profile) {
+      return { body: args['body'] as string, styleScore: null };
+    }
+
+    const draftContext: DraftContext = {
+      recipientEmail: Array.isArray(args['to']) ? (args['to'] as string[])[0] : undefined,
+      recipientName: undefined,
+      isReply: !!args['replyToMessageId'],
+      subject: (args['subject'] as string) ?? '',
+    };
+
+    const stylePrompt = profile.isActive
+      ? buildStylePrompt(profile, draftContext)
+      : buildInactiveStylePrompt();
+
+    const originalBody = args['body'] as string;
+    let bestBody = originalBody;
+    let bestScore: StyleScore | null = null;
+
+    // Generate styled draft with up to 2 retries
+    const maxAttempts = profile.isActive ? 3 : 1; // Only retry with active profile
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      let prompt = `${stylePrompt}\n\nDraft this email:\nTo: ${Array.isArray(args['to']) ? (args['to'] as string[]).join(', ') : ''}\nSubject: ${args['subject'] ?? ''}\n\nOriginal draft intent:\n${originalBody}`;
+
+      if (attempt > 0 && bestScore && profile.isActive) {
+        const weakDimensions = Object.entries(bestScore.breakdown)
+          .map(([name, score]) => ({ name, score }))
+          .sort((a, b) => a.score - b.score);
+        const retryHint = buildRetryPrompt(weakDimensions, profile);
+        if (retryHint) {
+          prompt += `\n\n${retryHint}`;
+        }
+      }
+
+      try {
+        const response = await this.llm.chat({
+          model: this.model,
+          messages: [
+            { role: 'system', content: 'You are drafting an email. Output ONLY the email body text, nothing else.' },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.7,
+        });
+
+        const generatedBody = response.message.content.trim();
+
+        if (profile.isActive) {
+          const score = scoreDraft(generatedBody, profile);
+
+          if (!bestScore || score.overall > bestScore.overall) {
+            bestBody = generatedBody;
+            bestScore = score;
+          }
+
+          if (score.overall >= this.styleScoreThreshold) {
+            break; // Good enough, stop retrying
+          }
+        } else {
+          bestBody = generatedBody;
+          break;
+        }
+      } catch {
+        // LLM call failed — keep the original body
+        break;
+      }
+    }
+
+    return { body: bestBody, styleScore: bestScore };
   }
 
   private createConversation(): string {
