@@ -20,6 +20,8 @@ export type AutonomyDomain =
   | 'services'
   | 'web'
   | 'reminders'
+  | 'messaging'
+  | 'clipboard'
   | 'system';
 
 export interface AgentAction {

@@ -26,6 +26,7 @@ import { scoreDraft, type StyleScore } from '../style/style-scorer.js';
 import type { DocumentContextManager } from './document-context.js';
 import type { ContactResolver } from '../knowledge/contacts/contact-resolver.js';
 import type { ResolvedContactResult } from '../knowledge/contacts/contact-types.js';
+import type { MessageDrafter } from './messaging/message-drafter.js';
 
 // --- Conversation Storage ---
 
@@ -269,6 +270,18 @@ const TOOLS: ToolDefinition[] = [
       required: ['url'],
     },
   },
+  {
+    name: 'send_text',
+    description: 'Send a text message (SMS) on behalf of the user. Use when the user says "text [name]", "message [name]", or "send a text to [name]". The message will be style-matched to the user\'s writing. In Guardian mode, shows a preview. In Partner mode, the message is presented for sending. In Alter Ego mode, sends autonomously if the platform supports it.',
+    parameters: {
+      type: 'object',
+      properties: {
+        recipientName: { type: 'string', description: 'Name of the person to text' },
+        intent: { type: 'string', description: 'What the user wants to say (natural language)' },
+      },
+      required: ['recipientName', 'intent'],
+    },
+  },
 ];
 
 // Map tool names to ActionTypes
@@ -285,6 +298,7 @@ const TOOL_ACTION_MAP: Record<string, ActionType> = {
   'list_reminders': 'reminder.list',
   'snooze_reminder': 'reminder.update',
   'dismiss_reminder': 'reminder.update',
+  'send_text': 'messaging.send',
 };
 
 // Tools that are handled locally (no IPC needed)
@@ -320,6 +334,7 @@ Available tools:
 - fetch_calendar: View upcoming calendar events
 - create_calendar_event: Schedule a new event (checks for conflicts first)
 - detect_calendar_conflicts: Check for scheduling conflicts
+- send_text: Send a text message to a contact
 
 Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.`;
 
@@ -362,6 +377,7 @@ export class OrchestratorImpl implements Orchestrator {
   private lastStyleScore: StyleScore | null = null;
   private documentContext: DocumentContextManager | null;
   private contactResolver: ContactResolver | null;
+  private messageDrafter: MessageDrafter | null;
 
   constructor(config: {
     llm: LLMProvider;
@@ -374,6 +390,7 @@ export class OrchestratorImpl implements Orchestrator {
     styleScoreThreshold?: number;
     documentContext?: DocumentContextManager;
     contactResolver?: ContactResolver;
+    messageDrafter?: MessageDrafter;
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -386,6 +403,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.styleScoreThreshold = config.styleScoreThreshold ?? 70;
     this.documentContext = config.documentContext ?? null;
     this.contactResolver = config.contactResolver ?? null;
+    this.messageDrafter = config.messageDrafter ?? null;
     this.db.exec(CREATE_TABLES);
   }
 
@@ -721,6 +739,31 @@ export class OrchestratorImpl implements Orchestrator {
         tc.arguments['body'] = styled.body;
         if (styled.styleScore) {
           this.lastStyleScore = styled.styleScore;
+        }
+      }
+
+      // --- SMS style enhancement for send_text ---
+      if (tc.name === 'send_text' && this.messageDrafter) {
+        const recipientName = tc.arguments['recipientName'] as string | undefined;
+        const intent = tc.arguments['intent'] as string | undefined;
+
+        if (recipientName && intent) {
+          // Resolve contact to get phone number
+          const resolved = this.contactResolver?.resolve(recipientName);
+          if (resolved?.contact?.phones && resolved.contact.phones.length > 0) {
+            const phone = resolved.contact.phones[0]!;
+            const styleProfile = this.styleProfileStore?.getActiveProfile() ?? null;
+
+            const drafted = await this.messageDrafter.draftMessage({
+              intent,
+              recipientName,
+              relationship: resolved.contact.relationshipType,
+              styleProfile,
+            });
+
+            tc.arguments['phone'] = phone;
+            tc.arguments['body'] = drafted.body;
+          }
         }
       }
 

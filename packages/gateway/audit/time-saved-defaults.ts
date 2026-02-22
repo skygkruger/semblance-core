@@ -46,6 +46,12 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'contacts.list': 0,            // Read-only
   'contacts.get': 0,             // Read-only
   'contacts.search': 0,          // Read-only
+  'messaging.draft': 60,         // Composing a text message
+  'messaging.send': 60,          // Sending a text message
+  'messaging.read': 0,           // Reading messages is informational
+  'clipboard.analyze': 0,        // Analysis is informational
+  'clipboard.act': 30,           // Taking action on clipboard content
+  'clipboard.web_action': 120,   // Web action (tracking, summarizing, etc.)
 };
 
 /**

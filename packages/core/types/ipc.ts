@@ -27,6 +27,12 @@ export const ActionType = z.enum([
   'contacts.list',
   'contacts.get',
   'contacts.search',
+  'messaging.draft',
+  'messaging.send',
+  'messaging.read',
+  'clipboard.analyze',
+  'clipboard.act',
+  'clipboard.web_action',
   'service.api_call',
   'model.download',
   'model.download_cancel',
@@ -245,6 +251,50 @@ export const ContactsSearchPayload = z.object({
 });
 export type ContactsSearchPayload = z.infer<typeof ContactsSearchPayload>;
 
+// --- Messaging payload schemas (Step 15) ---
+
+export const MessagingDraftPayload = z.object({
+  recipientName: z.string().optional(),
+  recipientPhone: z.string(),
+  intent: z.string(),
+  relationship: z.string().optional(),
+});
+export type MessagingDraftPayload = z.infer<typeof MessagingDraftPayload>;
+
+export const MessagingSendPayload = z.object({
+  phone: z.string(),
+  body: z.string(),
+  autonomous: z.boolean().optional(),
+});
+export type MessagingSendPayload = z.infer<typeof MessagingSendPayload>;
+
+export const MessagingReadPayload = z.object({
+  contactPhone: z.string(),
+  limit: z.number().int().positive().optional(),
+});
+export type MessagingReadPayload = z.infer<typeof MessagingReadPayload>;
+
+// --- Clipboard payload schemas (Step 15) ---
+
+export const ClipboardAnalyzePayload = z.object({
+  text: z.string(),
+});
+export type ClipboardAnalyzePayload = z.infer<typeof ClipboardAnalyzePayload>;
+
+export const ClipboardActPayload = z.object({
+  patternType: z.string(),
+  extractedValue: z.string(),
+  actionType: z.string(),
+});
+export type ClipboardActPayload = z.infer<typeof ClipboardActPayload>;
+
+export const ClipboardWebActionPayload = z.object({
+  actionType: z.string(),
+  url: z.string().optional(),
+  query: z.string().optional(),
+});
+export type ClipboardWebActionPayload = z.infer<typeof ClipboardWebActionPayload>;
+
 // Map ActionType to its payload schema
 export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'email.send': EmailSendPayload,
@@ -269,6 +319,12 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'contacts.list': ContactsListPayload,
   'contacts.get': ContactsGetPayload,
   'contacts.search': ContactsSearchPayload,
+  'messaging.draft': MessagingDraftPayload,
+  'messaging.send': MessagingSendPayload,
+  'messaging.read': MessagingReadPayload,
+  'clipboard.analyze': ClipboardAnalyzePayload,
+  'clipboard.act': ClipboardActPayload,
+  'clipboard.web_action': ClipboardWebActionPayload,
   'service.api_call': ServiceApiCallPayload,
   'model.download': ModelDownloadPayload,
   'model.download_cancel': ModelDownloadCancelPayload,

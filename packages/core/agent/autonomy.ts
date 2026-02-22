@@ -41,6 +41,12 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'contacts.list': 'contacts',
   'contacts.get': 'contacts',
   'contacts.search': 'contacts',
+  'messaging.draft': 'messaging',
+  'messaging.send': 'messaging',
+  'messaging.read': 'messaging',
+  'clipboard.analyze': 'clipboard',
+  'clipboard.act': 'clipboard',
+  'clipboard.web_action': 'clipboard',
   'service.api_call': 'services',
   'model.download': 'system',
   'model.download_cancel': 'system',
@@ -73,6 +79,12 @@ const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'contacts.list': 'read',
   'contacts.get': 'read',
   'contacts.search': 'read',
+  'messaging.draft': 'write',
+  'messaging.send': 'execute',
+  'messaging.read': 'read',
+  'clipboard.analyze': 'read',
+  'clipboard.act': 'write',
+  'clipboard.web_action': 'execute',
   'service.api_call': 'execute',
   'model.download': 'execute',
   'model.download_cancel': 'write',
@@ -175,7 +187,7 @@ export class AutonomyManager {
    * Get current autonomy configuration for all domains.
    */
   getConfig(): Record<AutonomyDomain, AutonomyTier> {
-    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'system'];
+    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'messaging', 'clipboard', 'system'];
     const config = {} as Record<AutonomyDomain, AutonomyTier>;
     for (const domain of domains) {
       config[domain] = this.getDomainTier(domain);
