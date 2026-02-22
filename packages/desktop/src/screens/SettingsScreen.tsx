@@ -4,6 +4,7 @@ import { Card, Input, Button, StatusIndicator, AutonomySelector, ThemeToggle, Cr
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { HardwareProfileDisplay } from '../components/HardwareProfileDisplay';
 import { ClipboardSettingsSection } from '../components/ClipboardSettingsSection';
+import { LocationSettingsSection } from '../components/LocationSettingsSection';
 import type { HardwareDisplayInfo } from '../components/HardwareProfileDisplay';
 import type { AutonomyTier } from '@semblance/ui';
 import type { ThemeMode } from '@semblance/ui';
@@ -461,6 +462,9 @@ export function SettingsScreen() {
 
       {/* Clipboard Intelligence */}
       <ClipboardSettingsSection />
+
+      {/* Location Services */}
+      <LocationSettingsSection />
 
       {/* Autonomy */}
       <Card>

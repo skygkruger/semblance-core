@@ -45,6 +45,14 @@ export interface AppState {
     monitoringEnabled: boolean;
     recentActions: Array<{ patternType: string; action: string; timestamp: string }>;
   };
+  locationSettings: {
+    enabled: boolean;
+    remindersEnabled: boolean;
+    commuteEnabled: boolean;
+    weatherEnabled: boolean;
+    defaultCity: string;
+    retentionDays: number;
+  };
 }
 
 export interface DocumentContext {
@@ -89,7 +97,9 @@ export type AppAction =
   | { type: 'SET_CONTACTS_SELECTED'; id: string | null }
   | { type: 'SET_CONTACTS_LOADING'; loading: boolean }
   | { type: 'SET_CLIPBOARD_MONITORING'; enabled: boolean }
-  | { type: 'SET_CLIPBOARD_RECENT_ACTIONS'; actions: AppState['clipboardSettings']['recentActions'] };
+  | { type: 'SET_CLIPBOARD_RECENT_ACTIONS'; actions: AppState['clipboardSettings']['recentActions'] }
+  | { type: 'SET_LOCATION_SETTINGS'; settings: AppState['locationSettings'] }
+  | { type: 'CLEAR_LOCATION_HISTORY' };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -142,6 +152,14 @@ const initialState: AppState = {
   clipboardSettings: {
     monitoringEnabled: false,
     recentActions: [],
+  },
+  locationSettings: {
+    enabled: false,
+    remindersEnabled: false,
+    commuteEnabled: false,
+    weatherEnabled: false,
+    defaultCity: '',
+    retentionDays: 7,
   },
 };
 
@@ -210,6 +228,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, clipboardSettings: { ...state.clipboardSettings, monitoringEnabled: action.enabled } };
     case 'SET_CLIPBOARD_RECENT_ACTIONS':
       return { ...state, clipboardSettings: { ...state.clipboardSettings, recentActions: action.actions } };
+    case 'SET_LOCATION_SETTINGS':
+      return { ...state, locationSettings: action.settings };
+    case 'CLEAR_LOCATION_HISTORY':
+      return state; // Side effect handled by component — state stays the same
     default:
       return state;
   }
