@@ -241,6 +241,61 @@ export class Gateway {
   isConnected(): boolean {
     return this.transport?.isConnected() ?? false;
   }
+
+  /**
+   * Save web search settings and auto-add required domains to the allowlist.
+   * Called by the desktop app when the user saves search configuration.
+   */
+  saveWebSearchSettings(settings: {
+    provider?: 'brave' | 'searxng';
+    braveApiKey?: string;
+    searxngUrl?: string;
+    rateLimit?: number;
+  }): void {
+    if (!this.configDb || !this.allowlist) throw new Error('Gateway not started');
+
+    const upsert = this.configDb.prepare(
+      'INSERT INTO web_search_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+    );
+
+    if (settings.provider !== undefined) {
+      upsert.run('provider', settings.provider);
+    }
+    if (settings.braveApiKey !== undefined) {
+      upsert.run('brave_api_key', settings.braveApiKey);
+      // Auto-add Brave Search domain to allowlist when API key is configured
+      if (settings.braveApiKey && !this.allowlist.isAllowed('api.search.brave.com')) {
+        this.allowlist.addService({
+          serviceName: 'Brave Search API',
+          domain: 'api.search.brave.com',
+          protocol: 'https',
+          addedBy: 'system',
+        });
+      }
+    }
+    if (settings.searxngUrl !== undefined) {
+      upsert.run('searxng_url', settings.searxngUrl);
+      // Auto-add SearXNG domain to allowlist when URL is configured
+      if (settings.searxngUrl) {
+        try {
+          const searxngDomain = new URL(settings.searxngUrl).hostname;
+          if (searxngDomain && !this.allowlist.isAllowed(searxngDomain)) {
+            this.allowlist.addService({
+              serviceName: 'SearXNG',
+              domain: searxngDomain,
+              protocol: 'https',
+              addedBy: 'system',
+            });
+          }
+        } catch {
+          // Invalid URL — skip allowlist addition
+        }
+      }
+    }
+    if (settings.rateLimit !== undefined) {
+      upsert.run('rate_limit', String(settings.rateLimit));
+    }
+  }
 }
 
 // Re-export key types and classes for consumers
