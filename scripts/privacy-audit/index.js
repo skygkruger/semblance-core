@@ -80,10 +80,13 @@ const OLLAMA_PATTERN_INDICES = [BANNED_JS_PATTERNS.length - 2, BANNED_JS_PATTERN
 // Directory where ollama is permitted (relative to CORE_DIR, normalized to forward slashes)
 const OLLAMA_ALLOWED_DIR = 'llm';
 
-// The IPC client file is permitted to use node:net for local domain socket / named pipe communication.
+// IPC files are permitted to use node:net for local domain socket / named pipe communication.
 // This is the typed IPC channel to the Gateway — it is NOT internet networking.
 // We allow ONLY 'node:net' — NOT http, https, tls, dgram, dns.
-const IPC_CLIENT_FILE = 'agent/ipc-client.ts';
+const IPC_NET_ALLOWED_FILES = [
+  'agent/ipc-client.ts',         // Legacy IPC client (uses dynamic import of SocketTransport)
+  'ipc/socket-transport.ts',     // SocketTransport — desktop IPC transport via Unix socket / named pipe
+];
 const IPC_NET_ALLOWED_PATTERN = /\bimport\b.*['"]node:net['"]/;
 
 const PATTERN_NAMES_RUST = [
@@ -128,11 +131,11 @@ function isInOllamaAllowedDir(filePath) {
 }
 
 /**
- * Check if a file is the IPC client (allowed to use node:net for local domain sockets).
+ * Check if a file is an IPC transport file (allowed to use node:net for local domain sockets).
  */
-function isIPCClientFile(filePath) {
+function isIPCNetAllowedFile(filePath) {
   const relPath = relative(CORE_DIR, filePath).replace(/\\/g, '/');
-  return relPath === IPC_CLIENT_FILE;
+  return IPC_NET_ALLOWED_FILES.includes(relPath);
 }
 
 function scanFile(filePath, patterns, patternNames, skipIndices = []) {
@@ -176,9 +179,9 @@ function run() {
     if (skipIndices.length > 0) ollamaExceptionsApplied++;
     let violations = scanFile(file, BANNED_JS_PATTERNS, PATTERN_NAMES_JS, skipIndices);
 
-    // Post-filter: the IPC client may use node:net for local domain socket / named pipe.
+    // Post-filter: IPC transport files may use node:net for local domain socket / named pipe.
     // Allow ONLY 'node:net' (not http, https, tls, dgram, dns).
-    if (isIPCClientFile(file)) {
+    if (isIPCNetAllowedFile(file)) {
       violations = violations.filter(v => !IPC_NET_ALLOWED_PATTERN.test(v.content));
     }
 

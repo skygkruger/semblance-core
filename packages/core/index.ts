@@ -63,9 +63,14 @@ export type {
 } from './agent/types.js';
 
 export type { Orchestrator, OrchestratorResponse } from './agent/orchestrator.js';
-export type { IPCClient, IPCClientConfig } from './agent/ipc-client.js';
+export type { IPCClient, IPCClientConfig, IPCClientTransportConfig } from './agent/ipc-client.js';
 export { CoreIPCClient } from './agent/ipc-client.js';
 export { createOrchestrator } from './agent/index.js';
+
+// Re-export IPC transport abstraction
+export type { IPCTransport, IPCHandler } from './ipc/transport.js';
+export { SocketTransport, type SocketTransportConfig } from './ipc/socket-transport.js';
+export { InProcessTransport } from './ipc/in-process-transport.js';
 
 // --- SemblanceCore Interface ---
 
