@@ -15,6 +15,7 @@ import type { Allowlist } from '../security/allowlist.js';
 import type { RateLimiter } from '../security/rate-limiter.js';
 import type { AnomalyDetector } from '../security/anomaly-detector.js';
 import type { ServiceRegistry } from '../services/registry.js';
+import { getDefaultTimeSaved } from '../audit/time-saved-defaults.js';
 
 export interface ValidatorDeps {
   signingKey: Buffer;
@@ -187,6 +188,7 @@ export async function validateAndExecute(
     metadata: anomalyResult.flagged
       ? { anomalies: anomalyResult.anomalies.map(a => a.message) }
       : undefined,
+    estimatedTimeSavedSeconds: getDefaultTimeSaved(request.action),
   });
 
   // --- Step 7: Execute action via service adapter ---
@@ -218,6 +220,7 @@ export async function validateAndExecute(
     metadata: executionResult.error
       ? { error: executionResult.error }
       : undefined,
+    estimatedTimeSavedSeconds: getDefaultTimeSaved(request.action),
   });
 
   // --- Step 9: Return ActionResponse ---
