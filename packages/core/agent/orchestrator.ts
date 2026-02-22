@@ -24,6 +24,8 @@ import type { StyleProfileStore, StyleProfile } from '../style/style-profile.js'
 import { buildStylePrompt, buildInactiveStylePrompt, buildRetryPrompt, type DraftContext } from '../style/style-injector.js';
 import { scoreDraft, type StyleScore } from '../style/style-scorer.js';
 import type { DocumentContextManager } from './document-context.js';
+import type { ContactResolver } from '../knowledge/contacts/contact-resolver.js';
+import type { ResolvedContactResult } from '../knowledge/contacts/contact-types.js';
 
 // --- Conversation Storage ---
 
@@ -359,6 +361,7 @@ export class OrchestratorImpl implements Orchestrator {
   private styleScoreThreshold: number;
   private lastStyleScore: StyleScore | null = null;
   private documentContext: DocumentContextManager | null;
+  private contactResolver: ContactResolver | null;
 
   constructor(config: {
     llm: LLMProvider;
@@ -370,6 +373,7 @@ export class OrchestratorImpl implements Orchestrator {
     styleProfileStore?: StyleProfileStore;
     styleScoreThreshold?: number;
     documentContext?: DocumentContextManager;
+    contactResolver?: ContactResolver;
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -381,6 +385,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.styleProfileStore = config.styleProfileStore ?? null;
     this.styleScoreThreshold = config.styleScoreThreshold ?? 70;
     this.documentContext = config.documentContext ?? null;
+    this.contactResolver = config.contactResolver ?? null;
     this.db.exec(CREATE_TABLES);
   }
 
@@ -853,6 +858,15 @@ export class OrchestratorImpl implements Orchestrator {
     }
 
     return { body: bestBody, styleScore: bestScore };
+  }
+
+  /**
+   * Resolve a name reference to a contact entity.
+   * Used before building email/calendar action payloads.
+   */
+  resolveContact(nameRef: string, context?: { topic?: string; actionType?: string }): ResolvedContactResult | null {
+    if (!this.contactResolver) return null;
+    return this.contactResolver.resolve(nameRef, context);
   }
 
   private createConversation(): string {

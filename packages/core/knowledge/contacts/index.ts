@@ -4,6 +4,7 @@ export { ContactStore } from './contact-store.js';
 export { ContactIngestionPipeline } from './contact-ingestion.js';
 export { ContactEntityResolver, levenshteinDistance } from './entity-resolver.js';
 export { RelationshipAnalyzer } from './relationship-analyzer.js';
+export { ContactResolver } from './contact-resolver.js';
 export type {
   ContactEntity,
   RelationshipType,
