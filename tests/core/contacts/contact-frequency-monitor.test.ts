@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../../../packages/core/platform/types.js';
 import { ContactStore } from '../../../packages/core/knowledge/contacts/contact-store.js';
 import { RelationshipAnalyzer } from '../../../packages/core/knowledge/contacts/relationship-analyzer.js';
 import { ContactFrequencyMonitor } from '../../../packages/core/agent/proactive/contact-frequency-monitor.js';
@@ -67,11 +68,11 @@ function insertTestEmail(database: Database.Database, from: string, to: string[]
 
 beforeEach(() => {
   db = new Database(':memory:');
-  store = new ContactStore(db);
+  store = new ContactStore(db as unknown as DatabaseHandle);
   setupEmailTable(db);
   setupCalendarTable(db);
-  analyzer = new RelationshipAnalyzer({ db, contactStore: store });
-  monitor = new ContactFrequencyMonitor({ db, contactStore: store, analyzer });
+  analyzer = new RelationshipAnalyzer({ db: db as unknown as DatabaseHandle, contactStore: store });
+  monitor = new ContactFrequencyMonitor({ db: db as unknown as DatabaseHandle, contactStore: store, analyzer });
 });
 
 describe('ContactFrequencyMonitor', () => {

@@ -114,7 +114,7 @@ export class RelationshipAnalyzer {
     this.contactStore.updateContact(contactId, {
       communicationFrequency: freq,
       interactionCount: emailCount + meetingCount,
-      lastContactDate: lastEmailDate ?? lastMeetingDate ?? null,
+      lastContactDate: lastEmailDate ?? lastMeetingDate ?? undefined,
     });
 
     return freq;

@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../../../packages/core/platform/types.js';
 import { ContactStore } from '../../../packages/core/knowledge/contacts/contact-store.js';
 import { ReminderStore } from '../../../packages/core/knowledge/reminder-store.js';
 import { BirthdayTracker } from '../../../packages/core/agent/proactive/birthday-tracker.js';
@@ -31,8 +32,8 @@ function fullBirthdayInDays(days: number): string {
 
 beforeEach(() => {
   db = new Database(':memory:');
-  contactStore = new ContactStore(db);
-  reminderStore = new ReminderStore(db);
+  contactStore = new ContactStore(db as unknown as DatabaseHandle);
+  reminderStore = new ReminderStore(db as unknown as DatabaseHandle);
   tracker = new BirthdayTracker({ contactStore, reminderStore });
 });
 

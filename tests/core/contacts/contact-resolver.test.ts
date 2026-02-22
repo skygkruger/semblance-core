@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../../../packages/core/platform/types.js';
 import { ContactStore } from '../../../packages/core/knowledge/contacts/contact-store.js';
 import { ContactResolver } from '../../../packages/core/knowledge/contacts/contact-resolver.js';
 
@@ -11,7 +12,7 @@ let resolver: ContactResolver;
 
 beforeEach(() => {
   db = new Database(':memory:');
-  store = new ContactStore(db);
+  store = new ContactStore(db as unknown as DatabaseHandle);
   resolver = new ContactResolver({ contactStore: store });
 
   // Seed contacts

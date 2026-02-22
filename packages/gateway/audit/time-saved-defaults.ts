@@ -42,6 +42,10 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'model.download': 0,           // Infrastructure — model management
   'model.download_cancel': 0,    // Infrastructure — model management
   'model.verify': 0,             // Infrastructure — model management
+  'contacts.import': 0,          // Infrastructure — contact sync
+  'contacts.list': 0,            // Read-only
+  'contacts.get': 0,             // Read-only
+  'contacts.search': 0,          // Read-only
 };
 
 /**

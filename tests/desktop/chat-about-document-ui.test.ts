@@ -35,6 +35,7 @@ describe('AppState document context', () => {
     isResponding: false,
     indexedDirectories: [],
     documentContext: null,
+    contacts: { list: [], selectedId: null, loading: false },
   };
 
   const mockDoc: DocumentContext = {

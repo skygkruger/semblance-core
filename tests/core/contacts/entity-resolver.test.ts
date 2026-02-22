@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../../../packages/core/platform/types.js';
 import { ContactStore } from '../../../packages/core/knowledge/contacts/contact-store.js';
 import { ContactEntityResolver, levenshteinDistance } from '../../../packages/core/knowledge/contacts/entity-resolver.js';
 import { DocumentStore } from '../../../packages/core/knowledge/document-store.js';
@@ -13,8 +14,8 @@ let resolver: ContactEntityResolver;
 
 beforeEach(() => {
   db = new Database(':memory:');
-  contactStore = new ContactStore(db);
-  documentStore = new DocumentStore(db);
+  contactStore = new ContactStore(db as unknown as DatabaseHandle);
+  documentStore = new DocumentStore(db as unknown as DatabaseHandle);
   resolver = new ContactEntityResolver({ contactStore, documentStore });
 });
 
