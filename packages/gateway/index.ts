@@ -17,6 +17,10 @@ import { AnomalyDetector } from './security/anomaly-detector.js';
 import { ServiceRegistry } from './services/registry.js';
 import { GatewayTransport } from './ipc/transport.js';
 import { validateAndExecute } from './ipc/validator.js';
+import { ReminderAdapter } from './services/reminder-adapter.js';
+import { WebSearchAdapterFactory } from './services/web-search-factory.js';
+import { WebFetchAdapter } from './services/web-fetch-adapter.js';
+import { ReminderStore } from '@semblance/core/knowledge/reminder-store.js';
 
 export interface GatewayConfig {
   /** Directory for Gateway databases. Defaults to ~/.semblance/gateway/ */
@@ -35,6 +39,7 @@ export class Gateway {
   private transport: GatewayTransport | null = null;
   private auditDb: Database.Database | null = null;
   private configDb: Database.Database | null = null;
+  private reminderDb: Database.Database | null = null;
   private auditTrail: AuditTrail | null = null;
   private allowlist: Allowlist | null = null;
   private rateLimiter: RateLimiter | null = null;
@@ -77,6 +82,51 @@ export class Gateway {
     this.rateLimiter = new RateLimiter(this.config.rateLimiter);
     this.anomalyDetector = new AnomalyDetector(this.config.anomalyDetector);
     this.serviceRegistry = new ServiceRegistry();
+
+    // --- Step 10: Register web search, web fetch, and reminder adapters ---
+
+    // Initialize web search settings table in configDb
+    this.configDb.exec(`
+      CREATE TABLE IF NOT EXISTS web_search_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `);
+
+    // Helper: read a web search setting
+    const getWebSetting = (key: string): string | null => {
+      const row = this.configDb!.prepare(
+        'SELECT value FROM web_search_settings WHERE key = ?'
+      ).get(key) as { value: string } | undefined;
+      return row?.value ?? null;
+    };
+
+    // Web Search: factory selects Brave vs. SearXNG based on user config
+    const searchFactory = new WebSearchAdapterFactory({
+      getProvider: () => (getWebSetting('provider') as 'brave' | 'searxng') ?? 'brave',
+      getBraveApiKey: () => getWebSetting('brave_api_key'),
+      getSearXNGUrl: () => getWebSetting('searxng_url'),
+    });
+    // Register a delegating adapter that resolves the active search provider per-call
+    const searchDelegator = {
+      async execute(action: Parameters<import('./services/types.js').ServiceAdapter['execute']>[0], payload: Parameters<import('./services/types.js').ServiceAdapter['execute']>[1]) {
+        return searchFactory.getAdapter().execute(action, payload);
+      },
+    };
+    this.serviceRegistry.register('web.search', searchDelegator);
+
+    // Web Fetch: content extraction adapter
+    const webFetchAdapter = new WebFetchAdapter();
+    this.serviceRegistry.register('web.fetch', webFetchAdapter);
+
+    // Reminders: local-only CRUD via SQLite
+    this.reminderDb = new Database(join(dataDir, 'reminders.db'));
+    const reminderStore = new ReminderStore(this.reminderDb);
+    const reminderAdapter = new ReminderAdapter(reminderStore);
+    this.serviceRegistry.register('reminder.create', reminderAdapter);
+    this.serviceRegistry.register('reminder.update', reminderAdapter);
+    this.serviceRegistry.register('reminder.list', reminderAdapter);
+    this.serviceRegistry.register('reminder.delete', reminderAdapter);
 
     // Pre-seed the anomaly detector with existing allowlisted domains
     for (const service of this.allowlist.listServices()) {
@@ -143,6 +193,11 @@ export class Gateway {
     if (this.configDb) {
       this.configDb.close();
       this.configDb = null;
+    }
+
+    if (this.reminderDb) {
+      this.reminderDb.close();
+      this.reminderDb = null;
     }
 
     console.log('[Gateway] Stopped');
