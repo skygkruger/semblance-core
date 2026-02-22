@@ -175,7 +175,9 @@ describe('Step 10 Privacy: Reminder and capture data stored locally only', () =>
     const filePath = join(CORE_DIR, 'knowledge', 'reminder-store.ts');
     const content = readFileSync(filePath, 'utf-8');
 
-    expect(content).toContain("import type Database from 'better-sqlite3'");
+    // Uses DatabaseHandle (platform-agnostic) instead of direct better-sqlite3
+    const usesSQLite = content.includes('DatabaseHandle') || content.includes("from 'better-sqlite3'");
+    expect(usesSQLite).toBe(true);
     expect(content).not.toMatch(/\bfetch\s*\(/);
   });
 
@@ -183,7 +185,9 @@ describe('Step 10 Privacy: Reminder and capture data stored locally only', () =>
     const filePath = join(CORE_DIR, 'knowledge', 'capture-store.ts');
     const content = readFileSync(filePath, 'utf-8');
 
-    expect(content).toContain("import type Database from 'better-sqlite3'");
+    // Uses DatabaseHandle (platform-agnostic) instead of direct better-sqlite3
+    const usesSQLite = content.includes('DatabaseHandle') || content.includes("from 'better-sqlite3'");
+    expect(usesSQLite).toBe(true);
     expect(content).not.toMatch(/\bfetch\s*\(/);
   });
 });
