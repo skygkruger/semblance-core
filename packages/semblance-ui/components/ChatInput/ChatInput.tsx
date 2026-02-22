@@ -2,12 +2,13 @@ import { useRef, useState, useCallback, type KeyboardEvent } from 'react';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
+  onAttach?: () => void;
   disabled?: boolean;
   placeholder?: string;
   className?: string;
 }
 
-export function ChatInput({ onSend, disabled = false, placeholder = 'Type a message...', className = '' }: ChatInputProps) {
+export function ChatInput({ onSend, onAttach, disabled = false, placeholder = 'Type a message...', className = '' }: ChatInputProps) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -48,6 +49,26 @@ export function ChatInput({ onSend, disabled = false, placeholder = 'Type a mess
         ${className}
       `.trim()}
     >
+      {onAttach && (
+        <button
+          type="button"
+          onClick={onAttach}
+          disabled={disabled}
+          className="
+            flex-shrink-0 p-2 rounded-full
+            text-semblance-text-secondary dark:text-semblance-text-secondary-dark
+            hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark
+            disabled:opacity-50 disabled:pointer-events-none
+            transition-colors duration-fast
+            focus-visible:outline-none focus-visible:shadow-focus
+          "
+          aria-label="Attach document"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+          </svg>
+        </button>
+      )}
       <textarea
         ref={textareaRef}
         value={value}

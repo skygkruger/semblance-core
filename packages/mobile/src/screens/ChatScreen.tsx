@@ -24,9 +24,19 @@ export interface ChatMessage {
   routedTo?: string;
 }
 
+export interface DocumentContext {
+  documentId: string;
+  fileName: string;
+  filePath: string;
+  mimeType: string;
+}
+
 interface ChatScreenProps {
   messages?: ChatMessage[];
   onSend?: (text: string) => void;
+  onAttachDocument?: () => void;
+  onClearDocument?: () => void;
+  documentContext?: DocumentContext | null;
   isProcessing?: boolean;
   deviceName?: string;
 }
@@ -47,7 +57,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   );
 }
 
-export function ChatScreen({ messages = [], onSend, isProcessing = false }: ChatScreenProps) {
+export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDocument, documentContext, isProcessing = false }: ChatScreenProps) {
   const [input, setInput] = useState('');
   const flatListRef = useRef<FlatList>(null);
 
@@ -64,6 +74,24 @@ export function ChatScreen({ messages = [], onSend, isProcessing = false }: Chat
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={90}
     >
+      {/* Document context banner */}
+      {documentContext && (
+        <View style={styles.documentBanner}>
+          <Text style={styles.documentIcon}>&#128196;</Text>
+          <Text style={styles.documentFileName} numberOfLines={1}>
+            {documentContext.fileName}
+          </Text>
+          <TouchableOpacity
+            onPress={onClearDocument}
+            style={styles.documentClearButton}
+            accessibilityRole="button"
+            accessibilityLabel="Clear document context"
+          >
+            <Text style={styles.documentClearText}>X</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -89,6 +117,16 @@ export function ChatScreen({ messages = [], onSend, isProcessing = false }: Chat
       )}
 
       <View style={styles.inputBar}>
+        {onAttachDocument && (
+          <TouchableOpacity
+            onPress={onAttachDocument}
+            style={styles.attachButton}
+            accessibilityRole="button"
+            accessibilityLabel="Attach document"
+          >
+            <Text style={styles.attachButtonText}>+</Text>
+          </TouchableOpacity>
+        )}
         <TextInput
           style={styles.input}
           value={input}
@@ -212,6 +250,49 @@ const styles = StyleSheet.create({
     fontSize: typography.size.base,
     fontWeight: typography.weight.semibold,
     color: '#FFFFFF',
+  },
+  documentBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface1Dark,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDark,
+  },
+  documentIcon: {
+    fontSize: typography.size.base,
+    marginRight: spacing.sm,
+  },
+  documentFileName: {
+    flex: 1,
+    fontFamily: typography.fontBody,
+    fontSize: typography.size.sm,
+    color: colors.textSecondaryDark,
+  },
+  documentClearButton: {
+    padding: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  documentClearText: {
+    fontFamily: typography.fontMono,
+    fontSize: typography.size.sm,
+    color: colors.textTertiary,
+  },
+  attachButton: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface2Dark,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  attachButtonText: {
+    fontFamily: typography.fontMono,
+    fontSize: typography.size.lg,
+    color: colors.textSecondaryDark,
+    lineHeight: typography.size.lg * 1.1,
   },
   empty: {
     flex: 1,

@@ -35,6 +35,14 @@ export interface AppState {
   chatMessages: ChatMessage[];
   isResponding: boolean;
   indexedDirectories: string[];
+  documentContext: DocumentContext | null;
+}
+
+export interface DocumentContext {
+  documentId: string;
+  fileName: string;
+  filePath: string;
+  mimeType: string;
 }
 
 export interface ChatMessage {
@@ -65,7 +73,9 @@ export type AppAction =
   | { type: 'SET_IS_RESPONDING'; value: boolean }
   | { type: 'ADD_DIRECTORY'; path: string }
   | { type: 'REMOVE_DIRECTORY'; path: string }
-  | { type: 'SET_DIRECTORIES'; dirs: string[] };
+  | { type: 'SET_DIRECTORIES'; dirs: string[] }
+  | { type: 'SET_DOCUMENT_CONTEXT'; context: DocumentContext }
+  | { type: 'CLEAR_DOCUMENT_CONTEXT' };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -109,6 +119,7 @@ const initialState: AppState = {
   chatMessages: [],
   isResponding: false,
   indexedDirectories: [],
+  documentContext: null,
 };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
@@ -162,6 +173,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, indexedDirectories: state.indexedDirectories.filter((d) => d !== action.path) };
     case 'SET_DIRECTORIES':
       return { ...state, indexedDirectories: action.dirs };
+    case 'SET_DOCUMENT_CONTEXT':
+      return { ...state, documentContext: action.context };
+    case 'CLEAR_DOCUMENT_CONTEXT':
+      return { ...state, documentContext: null };
     default:
       return state;
   }
