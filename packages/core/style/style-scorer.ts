@@ -74,7 +74,7 @@ function scoreGreeting(draft: string, profile: StyleProfile): number {
   const lines = draft.split('\n').filter(l => l.trim().length > 0);
   if (lines.length === 0) return 20;
 
-  const firstLine = lines[0].trim().toLowerCase();
+  const firstLine = lines[0]!.trim().toLowerCase();
   const profileGreetings = profile.greetings.patterns.map(p => p.text.toLowerCase());
 
   // Exact match (greeting word appears at start of first line)

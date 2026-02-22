@@ -59,8 +59,8 @@ export function computeStyleMatch(
 
   // Check greeting
   if (profile.greetingStyle && draft.length > 0) {
-    const firstLine = draft.split('\n')[0].toLowerCase();
-    if (!firstLine.includes(profile.greetingStyle.toLowerCase().split(' ')[0])) {
+    const firstLine = draft.split('\n')[0]!.toLowerCase();
+    if (!firstLine.includes(profile.greetingStyle.toLowerCase().split(' ')[0]!)) {
       score -= 10;
       adjustments.push({
         type: 'greeting',
@@ -73,7 +73,7 @@ export function computeStyleMatch(
   // Check signoff
   if (profile.signoffStyle && draft.length > 0) {
     const lastLine = draft.split('\n').filter(l => l.trim()).pop()?.toLowerCase() ?? '';
-    if (!lastLine.includes(profile.signoffStyle.toLowerCase().split(' ')[0])) {
+    if (!lastLine.includes(profile.signoffStyle.toLowerCase().split(' ')[0]!)) {
       score -= 10;
       adjustments.push({
         type: 'signoff',

@@ -24,7 +24,7 @@ export class PlatformSyncCrypto implements SyncCryptoProvider {
     // Derive a 32-byte key from the shared secret
     const keyHex = p.crypto.sha256(sharedSecret);
     // Generate a random IV (12 bytes for AES-GCM, represented as 24 hex chars)
-    const iv = p.crypto.randomBytes(12);
+    const iv = p.crypto.randomBytes(12).toString('hex');
 
     // For the platform crypto layer, we use HMAC to create a deterministic
     // cipher output. In a full implementation, this would use AES-256-GCM.

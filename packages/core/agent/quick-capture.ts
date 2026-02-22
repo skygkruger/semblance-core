@@ -63,8 +63,8 @@ Examples:
   ];
 
   try {
-    const response = await llm.chat(messages);
-    return response.content.trim().toLowerCase().startsWith('yes');
+    const response = await llm.chat({ model: 'default', messages });
+    return response.message.content.trim().toLowerCase().startsWith('yes');
   } catch {
     // On LLM error, fall back to heuristic detection
     return hasTimeReference(text);

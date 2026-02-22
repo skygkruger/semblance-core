@@ -60,7 +60,7 @@ describe('classifyQueryFast: URL detection', () => {
 describe('classifyQueryWithLLM', () => {
   it('classifies with LLM for ambiguous queries', async () => {
     const mockLLM = {
-      chat: vi.fn().mockResolvedValue({ content: 'web_required' }),
+      chat: vi.fn().mockResolvedValue({ message: { role: 'assistant', content: 'web_required' } }),
       generate: vi.fn(),
       embed: vi.fn(),
       listModels: vi.fn(),
@@ -73,7 +73,7 @@ describe('classifyQueryWithLLM', () => {
 
   it('returns local_only from LLM classification', async () => {
     const mockLLM = {
-      chat: vi.fn().mockResolvedValue({ content: 'local_only' }),
+      chat: vi.fn().mockResolvedValue({ message: { role: 'assistant', content: 'local_only' } }),
       generate: vi.fn(),
       embed: vi.fn(),
       listModels: vi.fn(),
@@ -85,7 +85,7 @@ describe('classifyQueryWithLLM', () => {
 
   it('returns local_then_web from LLM classification', async () => {
     const mockLLM = {
-      chat: vi.fn().mockResolvedValue({ content: 'local_then_web' }),
+      chat: vi.fn().mockResolvedValue({ message: { role: 'assistant', content: 'local_then_web' } }),
       generate: vi.fn(),
       embed: vi.fn(),
       listModels: vi.fn(),
@@ -109,7 +109,7 @@ describe('classifyQueryWithLLM', () => {
 
   it('defaults to local_then_web on unexpected LLM response', async () => {
     const mockLLM = {
-      chat: vi.fn().mockResolvedValue({ content: 'I think you should search the web' }),
+      chat: vi.fn().mockResolvedValue({ message: { role: 'assistant', content: 'I think you should search the web' } }),
       generate: vi.fn(),
       embed: vi.fn(),
       listModels: vi.fn(),
@@ -153,7 +153,7 @@ describe('searchWithRouting: local_then_web threshold behavior', () => {
     const { searchWithRouting } = await import('@semblance/core/agent/web-intelligence.js');
 
     const mockLLM = {
-      chat: vi.fn().mockResolvedValue({ content: 'local_then_web' }),
+      chat: vi.fn().mockResolvedValue({ message: { role: 'assistant', content: 'local_then_web' } }),
       generate: vi.fn(),
       embed: vi.fn(),
       listModels: vi.fn(),
@@ -187,7 +187,7 @@ describe('searchWithRouting: local_then_web threshold behavior', () => {
     const { searchWithRouting } = await import('@semblance/core/agent/web-intelligence.js');
 
     const mockLLM = {
-      chat: vi.fn().mockResolvedValue({ content: 'local_then_web' }),
+      chat: vi.fn().mockResolvedValue({ message: { role: 'assistant', content: 'local_then_web' } }),
       generate: vi.fn(),
       embed: vi.fn(),
       listModels: vi.fn(),

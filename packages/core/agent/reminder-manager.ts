@@ -45,8 +45,8 @@ Examples:
   ];
 
   try {
-    const response = await llm.chat(messages);
-    const jsonStr = response.content.trim()
+    const response = await llm.chat({ model: 'default', messages });
+    const jsonStr = response.message.content.trim()
       .replace(/^```json?\s*/, '')
       .replace(/```\s*$/, '');
     const parsed = JSON.parse(jsonStr) as ParsedReminder;
@@ -124,7 +124,7 @@ export async function listReminders(
   ipcClient: IPCClient,
   status?: 'pending' | 'fired' | 'dismissed' | 'snoozed' | 'all',
 ): Promise<ActionResponse> {
-  const payload: ReminderListPayload = { status: status ?? 'all' };
+  const payload: ReminderListPayload = { status: status ?? 'all', limit: 50 };
   return ipcClient.sendAction('reminder.list', payload);
 }
 

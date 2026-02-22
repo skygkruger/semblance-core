@@ -99,8 +99,8 @@ Respond with ONLY one of: local_only, web_required, local_then_web`,
   ];
 
   try {
-    const response = await llm.chat(messages);
-    const text = response.content.trim().toLowerCase();
+    const response = await llm.chat({ model: 'default', messages });
+    const text = response.message.content.trim().toLowerCase();
     if (text.includes('local_only')) return 'local_only';
     if (text.includes('web_required')) return 'web_required';
     if (text.includes('local_then_web')) return 'local_then_web';
@@ -193,7 +193,7 @@ export async function fetchUrl(
   maxContentLength?: number,
 ): Promise<{ success: boolean; data?: { url: string; title: string; content: string; bytesFetched: number; contentType: string }; error?: string }> {
   try {
-    const payload: WebFetchPayload = { url, maxContentLength };
+    const payload: WebFetchPayload = { url, maxContentLength: maxContentLength ?? 50000 };
     const response = await ipcClient.sendAction('web.fetch', payload);
 
     if (response.status === 'success' && response.data) {

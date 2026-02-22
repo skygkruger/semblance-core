@@ -87,8 +87,8 @@ export function detectTimeReference(text: string): { hasTime: boolean; suggested
   // "in X hours" or "in X minutes"
   const inMatch = lower.match(/in (\d+)\s*(hours?|minutes?|mins?)/);
   if (inMatch) {
-    const amount = parseInt(inMatch[1], 10);
-    const unit = inMatch[2];
+    const amount = parseInt(inMatch[1]!, 10);
+    const unit = inMatch[2]!;
     const ms = unit.startsWith('hour') ? amount * 3_600_000 : amount * 60_000;
     return { hasTime: true, suggestedTime: new Date(now.getTime() + ms) };
   }
@@ -96,9 +96,9 @@ export function detectTimeReference(text: string): { hasTime: boolean; suggested
   // "at Xpm" or "at Xam"
   const atMatch = lower.match(/at (\d{1,2})\s*(am|pm)/);
   if (atMatch) {
-    let hour = parseInt(atMatch[1], 10);
-    if (atMatch[2] === 'pm' && hour !== 12) hour += 12;
-    if (atMatch[2] === 'am' && hour === 12) hour = 0;
+    let hour = parseInt(atMatch[1]!, 10);
+    if (atMatch[2]! === 'pm' && hour !== 12) hour += 12;
+    if (atMatch[2]! === 'am' && hour === 12) hour = 0;
     const target = new Date(now);
     target.setHours(hour, 0, 0, 0);
     if (target <= now) target.setDate(target.getDate() + 1);

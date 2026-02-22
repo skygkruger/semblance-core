@@ -95,7 +95,7 @@ export function detectGreeting(text: string): string | null {
   const lines = text.split('\n').filter(l => l.trim().length > 0);
   if (lines.length === 0) return null;
 
-  const firstLine = lines[0].trim();
+  const firstLine = lines[0]!.trim();
 
   // Check against known greeting patterns
   for (const pattern of GREETING_PATTERNS) {
@@ -231,14 +231,14 @@ export async function extractStyleFromEmails(
     const greeting = detectGreeting(userText);
     if (greeting) {
       // Normalize: extract just the greeting word
-      const greetingWord = greeting.split(/[\s,]/)[0].toLowerCase();
+      const greetingWord = greeting.split(/[\s,]/)[0]!.toLowerCase();
       const normalized = greetingWord.charAt(0).toUpperCase() + greetingWord.slice(1);
       greetingCounts.set(normalized, (greetingCounts.get(normalized) ?? 0) + 1);
 
       // Check if recipient name is used
       recipientNameChecked++;
       const toName = email.to[0]?.split('@')[0] ?? '';
-      if (toName && greeting.toLowerCase().includes(toName.toLowerCase().split('.')[0])) {
+      if (toName && greeting.toLowerCase().includes(toName.toLowerCase().split('.')[0] ?? '')) {
         recipientNameUsed++;
       }
     }

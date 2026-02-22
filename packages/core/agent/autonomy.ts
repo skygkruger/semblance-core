@@ -31,7 +31,16 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'calendar.delete': 'calendar',
   'finance.fetch_transactions': 'finances',
   'health.fetch': 'health',
+  'web.search': 'web',
+  'web.fetch': 'web',
+  'reminder.create': 'reminders',
+  'reminder.update': 'reminders',
+  'reminder.list': 'reminders',
+  'reminder.delete': 'reminders',
   'service.api_call': 'services',
+  'model.download': 'system',
+  'model.download_cancel': 'system',
+  'model.verify': 'system',
 };
 
 // Actions classified as read (safe), write (moderate), or execute (high-stakes)
@@ -50,7 +59,16 @@ const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'calendar.delete': 'execute',
   'finance.fetch_transactions': 'read',
   'health.fetch': 'read',
+  'web.search': 'read',
+  'web.fetch': 'read',
+  'reminder.create': 'write',
+  'reminder.update': 'write',
+  'reminder.list': 'read',
+  'reminder.delete': 'write',
   'service.api_call': 'execute',
+  'model.download': 'execute',
+  'model.download_cancel': 'write',
+  'model.verify': 'read',
 };
 
 export type AutonomyDecision = 'auto_approve' | 'requires_approval' | 'blocked';
@@ -144,7 +162,7 @@ export class AutonomyManager {
    * Get current autonomy configuration for all domains.
    */
   getConfig(): Record<AutonomyDomain, AutonomyTier> {
-    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'services'];
+    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'services', 'web', 'reminders', 'system'];
     const config = {} as Record<AutonomyDomain, AutonomyTier>;
     for (const domain of domains) {
       config[domain] = this.getDomainTier(domain);

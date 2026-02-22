@@ -260,7 +260,7 @@ function applyGreetingCorrections(
   for (const c of corrections) {
     const correctedGreeting = detectGreeting(c.correctedDraft);
     if (correctedGreeting) {
-      const word = correctedGreeting.split(/[\s,]/)[0].toLowerCase();
+      const word = correctedGreeting.split(/[\s,]/)[0]!.toLowerCase();
       const normalized = word.charAt(0).toUpperCase() + word.slice(1);
       preferredGreetings.set(normalized, (preferredGreetings.get(normalized) ?? 0) + 1);
     }
@@ -470,7 +470,7 @@ function stripGreetingAndSignoff(text: string): string {
   if (signoff) {
     // Find the signoff line and trim from there
     for (let i = nonEmpty.length - 1; i >= Math.max(0, nonEmpty.length - 4); i--) {
-      if (nonEmpty[i].trim().toLowerCase().startsWith(signoff.toLowerCase())) {
+      if (nonEmpty[i]!.trim().toLowerCase().startsWith(signoff.toLowerCase())) {
         endIdx = i;
         break;
       }

@@ -16,7 +16,10 @@ export type AutonomyDomain =
   | 'finances'
   | 'health'
   | 'files'
-  | 'services';
+  | 'services'
+  | 'web'
+  | 'reminders'
+  | 'system';
 
 export interface AgentAction {
   id: string;

@@ -10,7 +10,7 @@ import type { ParsedReminder, SnoozeDuration } from '@semblance/core/agent/remin
 
 function mockLLM(response: string) {
   return {
-    chat: vi.fn().mockResolvedValue({ content: response }),
+    chat: vi.fn().mockResolvedValue({ message: { role: 'assistant', content: response } }),
     generate: vi.fn(),
     embed: vi.fn(),
     listModels: vi.fn(),
