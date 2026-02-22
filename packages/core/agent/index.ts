@@ -14,6 +14,10 @@ export { CoreIPCClient } from './ipc-client.js';
 export type { IPCClient, IPCClientConfig } from './ipc-client.js';
 export { OrchestratorImpl } from './orchestrator.js';
 export type { Orchestrator, OrchestratorResponse } from './orchestrator.js';
+export { DocumentContextManager } from './document-context.js';
+export type { DocumentContextInfo } from './document-context.js';
+export { DailyDigestGenerator } from './daily-digest.js';
+export type { DailyDigest, DailyDigestPreferences } from './daily-digest.js';
 
 import type { LLMProvider } from '../llm/types.js';
 import type { KnowledgeGraph } from '../knowledge/index.js';

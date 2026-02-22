@@ -23,6 +23,7 @@ import { ApprovalPatternTracker, type ApprovalPattern } from './approval-pattern
 import type { StyleProfileStore, StyleProfile } from '../style/style-profile.js';
 import { buildStylePrompt, buildInactiveStylePrompt, buildRetryPrompt, type DraftContext } from '../style/style-injector.js';
 import { scoreDraft, type StyleScore } from '../style/style-scorer.js';
+import type { DocumentContextManager } from './document-context.js';
 
 // --- Conversation Storage ---
 
@@ -357,6 +358,7 @@ export class OrchestratorImpl implements Orchestrator {
   private styleProfileStore: StyleProfileStore | null;
   private styleScoreThreshold: number;
   private lastStyleScore: StyleScore | null = null;
+  private documentContext: DocumentContextManager | null;
 
   constructor(config: {
     llm: LLMProvider;
@@ -367,6 +369,7 @@ export class OrchestratorImpl implements Orchestrator {
     model: string;
     styleProfileStore?: StyleProfileStore;
     styleScoreThreshold?: number;
+    documentContext?: DocumentContextManager;
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -377,6 +380,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.patternTracker = new ApprovalPatternTracker(config.db);
     this.styleProfileStore = config.styleProfileStore ?? null;
     this.styleScoreThreshold = config.styleScoreThreshold ?? 70;
+    this.documentContext = config.documentContext ?? null;
     this.db.exec(CREATE_TABLES);
   }
 
@@ -384,16 +388,21 @@ export class OrchestratorImpl implements Orchestrator {
     // Get or create conversation
     const convId = conversationId ?? this.createConversation();
 
-    // Step 1: Search knowledge graph for context
+    // Step 1: Fetch document-scoped context (if active)
+    const documentChunks = this.documentContext
+      ? await this.documentContext.getContextForPrompt(message, 5)
+      : [];
+
+    // Step 2: Search knowledge graph for general context
     const context = await this.knowledge.search(message, { limit: 5 });
 
-    // Step 2: Build conversation history
+    // Step 3: Build conversation history
     const history = conversationId ? await this.getConversation(convId) : [];
 
-    // Step 3: Construct messages for LLM
-    const messages = this.buildMessages(message, context, history);
+    // Step 4: Construct messages for LLM (document context injected between system prompt and general context)
+    const messages = this.buildMessages(message, context, history, documentChunks);
 
-    // Step 4: Call LLM with tools
+    // Step 5: Call LLM with tools
     const response = await this.llm.chat({
       model: this.model,
       messages,
@@ -401,7 +410,7 @@ export class OrchestratorImpl implements Orchestrator {
       temperature: 0.7,
     });
 
-    // Step 5: Process tool calls
+    // Step 6: Process tool calls
     const actions: AgentAction[] = [];
     let finalMessage = response.message.content;
     this.lastStyleScore = null;
@@ -438,7 +447,7 @@ export class OrchestratorImpl implements Orchestrator {
       }
     }
 
-    // Step 6: Store conversation turns
+    // Step 7: Store conversation turns
     this.storeTurn(convId, 'user', message, context, null, 0, 0);
     this.storeTurn(
       convId, 'assistant', finalMessage, null, actions,
@@ -578,14 +587,30 @@ export class OrchestratorImpl implements Orchestrator {
     message: string,
     context: SearchResult[],
     history: ConversationTurn[],
+    documentChunks: SearchResult[] = [],
   ): ChatMessage[] {
     const messages: ChatMessage[] = [
       { role: 'system', content: SYSTEM_PROMPT },
     ];
 
-    // Add context from knowledge graph
-    if (context.length > 0) {
-      const contextStr = context.map((r, i) =>
+    // Add document-scoped context (high priority — before general context)
+    if (documentChunks.length > 0) {
+      const docName = this.documentContext?.getActiveDocument()?.fileName ?? 'document';
+      const docContextStr = documentChunks.map((r, i) =>
+        `[${i + 1}] ${r.chunk.content.slice(0, 800)}`
+      ).join('\n\n');
+      messages.push({
+        role: 'system',
+        content: `The user is asking about '${docName}'. Relevant passages:\n${docContextStr}`,
+      });
+    }
+
+    // Add general context from knowledge graph (deduplicated against document chunks)
+    const docChunkIds = new Set(documentChunks.map(r => r.chunk.id));
+    const deduplicatedContext = context.filter(r => !docChunkIds.has(r.chunk.id));
+
+    if (deduplicatedContext.length > 0) {
+      const contextStr = deduplicatedContext.map((r, i) =>
         `[${i + 1}] ${r.document.title} (${r.document.source}): ${r.chunk.content.slice(0, 500)}`
       ).join('\n\n');
       messages.push({
