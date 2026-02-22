@@ -1,0 +1,7 @@
+Run these exact commands on the current HEAD and paste the raw output:
+
+git log --oneline -5 — confirm the remediation commit (2502e92) is on HEAD
+npx tsc --noEmit 2>&1 | tail -20 — show the last 20 lines of TypeScript compilation output, including any error count or clean exit
+npx vitest run --reporter=verbose 2>&1 | tail -30 — show the last 30 lines of test output with pass/fail counts
+grep -r "syncPreferenceChange" packages/ --include="*.ts" -l — show which files reference the sync function (if it's only defined but never called, only the definition file appears; if it's wired, callers appear too)
+grep -r "dataSource" packages/mobile/src/App.tsx — show whether the data source is passed to the tab view
