@@ -11,6 +11,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { InboxScreen } from './screens/InboxScreen';
 import { DigestScreen } from './screens/DigestScreen';
 import { NetworkMonitorScreen } from './screens/NetworkMonitorScreen';
+import { RelationshipsScreen } from './screens/RelationshipsScreen';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import type { ThemeMode } from '@semblance/ui';
 
@@ -52,6 +53,16 @@ function ShieldIcon() {
     </svg>
   );
 }
+function ContactsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
 function DigestIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -83,6 +94,7 @@ const navItems: NavItem[] = [
   { id: 'files', label: 'Files', icon: <FolderIcon /> },
   { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
   { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
+  { id: 'relationships', label: 'Contacts', icon: <ContactsIcon /> },
   { id: 'digest', label: 'Digest', icon: <DigestIcon /> },
   { id: 'network', label: 'Network', icon: <NetworkIcon /> },
 ];
@@ -104,6 +116,7 @@ function AppContent() {
       case 'files': return <FilesScreen />;
       case 'activity': return <ActivityScreen />;
       case 'privacy': return <PrivacyScreen />;
+      case 'relationships': return <RelationshipsScreen />;
       case 'digest': return <DigestScreen />;
       case 'network': return <NetworkMonitorScreen />;
       case 'settings': return <SettingsScreen />;

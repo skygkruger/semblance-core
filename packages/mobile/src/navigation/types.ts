@@ -23,6 +23,7 @@ export type RootStackParamList = {
   WritingStyle: undefined;
   WebSearchSettings: undefined;
   AutonomySettings: undefined;
+  ContactDetail: { contactId: string };
 };
 
 /** Tab icon names for each tab */

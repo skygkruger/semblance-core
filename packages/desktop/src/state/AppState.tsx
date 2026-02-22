@@ -36,6 +36,11 @@ export interface AppState {
   isResponding: boolean;
   indexedDirectories: string[];
   documentContext: DocumentContext | null;
+  contacts: {
+    list: Array<{ id: string; displayName: string; relationshipType: string }>;
+    selectedId: string | null;
+    loading: boolean;
+  };
 }
 
 export interface DocumentContext {
@@ -75,7 +80,10 @@ export type AppAction =
   | { type: 'REMOVE_DIRECTORY'; path: string }
   | { type: 'SET_DIRECTORIES'; dirs: string[] }
   | { type: 'SET_DOCUMENT_CONTEXT'; context: DocumentContext }
-  | { type: 'CLEAR_DOCUMENT_CONTEXT' };
+  | { type: 'CLEAR_DOCUMENT_CONTEXT' }
+  | { type: 'SET_CONTACTS_LIST'; list: AppState['contacts']['list'] }
+  | { type: 'SET_CONTACTS_SELECTED'; id: string | null }
+  | { type: 'SET_CONTACTS_LOADING'; loading: boolean };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -120,6 +128,11 @@ const initialState: AppState = {
   isResponding: false,
   indexedDirectories: [],
   documentContext: null,
+  contacts: {
+    list: [],
+    selectedId: null,
+    loading: false,
+  },
 };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
@@ -177,6 +190,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, documentContext: action.context };
     case 'CLEAR_DOCUMENT_CONTEXT':
       return { ...state, documentContext: null };
+    case 'SET_CONTACTS_LIST':
+      return { ...state, contacts: { ...state.contacts, list: action.list } };
+    case 'SET_CONTACTS_SELECTED':
+      return { ...state, contacts: { ...state.contacts, selectedId: action.id } };
+    case 'SET_CONTACTS_LOADING':
+      return { ...state, contacts: { ...state.contacts, loading: action.loading } };
     default:
       return state;
   }

@@ -49,6 +49,10 @@ import { KnowledgeMomentGenerator } from '../../../core/agent/knowledge-moment.j
 import { WeeklyDigestGenerator } from '../../../core/digest/weekly-digest.js';
 
 // Step 8 imports
+import { ContactStore } from '../../../core/knowledge/contacts/contact-store.js';
+import { RelationshipAnalyzer } from '../../../core/knowledge/contacts/relationship-analyzer.js';
+import { BirthdayTracker } from '../../../core/agent/proactive/birthday-tracker.js';
+import { ContactFrequencyMonitor } from '../../../core/agent/proactive/contact-frequency-monitor.js';
 import { NetworkMonitor } from '../../../gateway/monitor/network-monitor.js';
 import { PrivacyReportGenerator } from '../../../gateway/monitor/privacy-report.js';
 import { AuditQuery } from '../../../gateway/audit/audit-query.js';
@@ -168,6 +172,12 @@ let auditQuery: AuditQuery | null = null;
 let deviceRegistry: DeviceRegistry | null = null;
 let taskAssessor: TaskAssessor | null = null;
 let taskRouter: TaskRouter | null = null;
+
+// Step 14 state
+let contactStore: ContactStore | null = null;
+let relationshipAnalyzer: RelationshipAnalyzer | null = null;
+let birthdayTracker: BirthdayTracker | null = null;
+let contactFrequencyMonitor: ContactFrequencyMonitor | null = null;
 
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
@@ -1507,6 +1517,67 @@ function handleDetectHardware(): unknown {
   };
 }
 
+// ─── Contact Handlers (Step 14) ──────────────────────────────────────────────
+
+function ensureContactStore(): ContactStore {
+  if (!contactStore && core) {
+    const db = (core as unknown as { db: Database.Database }).db;
+    if (db) {
+      contactStore = new ContactStore(db);
+      relationshipAnalyzer = new RelationshipAnalyzer({ db, contactStore });
+      birthdayTracker = new BirthdayTracker({ contactStore });
+      contactFrequencyMonitor = new ContactFrequencyMonitor({ db, contactStore, analyzer: relationshipAnalyzer });
+    }
+  }
+  if (!contactStore) throw new Error('Contact store not initialized');
+  return contactStore;
+}
+
+function handleContactsList(params: { limit?: number; sortBy?: string }): unknown {
+  const store = ensureContactStore();
+  const contacts = store.listContacts({
+    limit: params.limit ?? 100,
+    sortBy: (params.sortBy as 'display_name' | 'last_contact_date' | 'interaction_count') ?? 'display_name',
+  });
+  return { contacts };
+}
+
+function handleContactsGet(params: { id: string }): unknown {
+  const store = ensureContactStore();
+  const contact = store.getContact(params.id);
+  if (!contact) throw new Error(`Contact not found: ${params.id}`);
+  return contact;
+}
+
+function handleContactsSearch(params: { query: string; limit?: number }): unknown {
+  const store = ensureContactStore();
+  const contacts = store.searchContacts(params.query, params.limit ?? 20);
+  return { contacts };
+}
+
+function handleContactsGetStats(): unknown {
+  const store = ensureContactStore();
+  return store.getStats();
+}
+
+function handleContactsGetRelationshipGraph(): unknown {
+  ensureContactStore();
+  if (!relationshipAnalyzer) throw new Error('Relationship analyzer not initialized');
+  return relationshipAnalyzer.buildRelationshipGraph();
+}
+
+function handleContactsGetUpcomingBirthdays(): unknown {
+  ensureContactStore();
+  if (!birthdayTracker) throw new Error('Birthday tracker not initialized');
+  return { birthdays: birthdayTracker.getUpcomingBirthdays() };
+}
+
+function handleContactsGetFrequencyAlerts(): unknown {
+  ensureContactStore();
+  if (!contactFrequencyMonitor) throw new Error('Frequency monitor not initialized');
+  return { alerts: contactFrequencyMonitor.getDecreasingContacts() };
+}
+
 async function handleShutdown(): Promise<unknown> {
   console.error('[sidecar] Shutting down...');
 
@@ -1930,6 +2001,48 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'hardware:detect':
         result = handleDetectHardware();
+        respond(id, result);
+        break;
+
+      // ── Contacts (Step 14) ──
+
+      case 'contacts:import':
+        result = { success: true, imported: 0, message: 'Contact import not yet connected to device adapter' };
+        respond(id, result);
+        break;
+
+      case 'contacts:list':
+        result = handleContactsList(params as { limit?: number; sortBy?: string });
+        respond(id, result);
+        break;
+
+      case 'contacts:get':
+        result = handleContactsGet(params as { id: string });
+        respond(id, result);
+        break;
+
+      case 'contacts:search':
+        result = handleContactsSearch(params as { query: string; limit?: number });
+        respond(id, result);
+        break;
+
+      case 'contacts:getStats':
+        result = handleContactsGetStats();
+        respond(id, result);
+        break;
+
+      case 'contacts:getRelationshipGraph':
+        result = handleContactsGetRelationshipGraph();
+        respond(id, result);
+        break;
+
+      case 'contacts:getUpcomingBirthdays':
+        result = handleContactsGetUpcomingBirthdays();
+        respond(id, result);
+        break;
+
+      case 'contacts:getFrequencyAlerts':
+        result = handleContactsGetFrequencyAlerts();
         respond(id, result);
         break;
 
