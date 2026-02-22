@@ -305,7 +305,7 @@ describe('Task Routing — Transparency Events', () => {
 
     await engine.executeTask('email.categorize', {}, async () => 'done');
     expect(events).toHaveLength(1);
-    expect(events[0].type).toBe('executing_local');
+    expect(events[0]!.type).toBe('executing_local');
   });
 
   it('emits routed_remote when offloading to desktop', async () => {

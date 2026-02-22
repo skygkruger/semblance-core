@@ -76,11 +76,13 @@ export type AutonomyDecision = 'auto_approve' | 'requires_approval' | 'blocked';
 export class AutonomyManager {
   private db: DatabaseHandle;
   private defaultTier: AutonomyTier;
+  private onPreferenceChanged?: (domain: string, tier: string) => void;
 
-  constructor(db: DatabaseHandle, config?: AutonomyConfig) {
+  constructor(db: DatabaseHandle, config?: AutonomyConfig & { onPreferenceChanged?: (domain: string, tier: string) => void }) {
     this.db = db;
     this.db.exec(CREATE_TABLE);
     this.defaultTier = config?.defaultTier ?? 'partner';
+    this.onPreferenceChanged = config?.onPreferenceChanged;
 
     // Apply domain overrides from config
     if (config?.domainOverrides) {
@@ -151,11 +153,14 @@ export class AutonomyManager {
 
   /**
    * Set the tier for a specific domain.
+   * Triggers sync callback if configured.
    */
   setDomainTier(domain: AutonomyDomain, tier: AutonomyTier): void {
     this.db.prepare(
       'INSERT OR REPLACE INTO autonomy_config (domain, tier, updated_at) VALUES (?, ?, datetime(\'now\'))'
     ).run(domain, tier);
+
+    this.onPreferenceChanged?.(domain, tier);
   }
 
   /**

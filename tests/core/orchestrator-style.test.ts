@@ -8,6 +8,7 @@ import { StyleProfileStore, createEmptyProfile, type StyleProfile } from '@sembl
 import type { LLMProvider, ChatResponse, ToolCall } from '@semblance/core/llm/types.js';
 import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index.js';
 import type { IPCClient } from '@semblance/core/agent/ipc-client.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -105,8 +106,8 @@ describe('Orchestrator — Style Integration', () => {
   beforeEach(() => {
     db = new Database(':memory:');
     styleDb = new Database(':memory:');
-    styleStore = new StyleProfileStore(styleDb);
-    autonomy = new AutonomyManager(db);
+    styleStore = new StyleProfileStore(styleDb as unknown as DatabaseHandle);
+    autonomy = new AutonomyManager(db as unknown as DatabaseHandle);
     ipc = createMockIPC();
   });
 
@@ -139,7 +140,7 @@ describe('Orchestrator — Style Integration', () => {
 
     autonomy.setDomainTier('email', 'guardian');
     const orchestrator = new OrchestratorImpl({
-      llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+      llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       styleProfileStore: styleStore,
     });
 
@@ -150,7 +151,7 @@ describe('Orchestrator — Style Integration', () => {
     // The second call (index 1) should contain the style prompt
     const styleCall = chatCalls[1];
     expect(styleCall).toBeDefined();
-    const styleMessages = styleCall[0].messages;
+    const styleMessages = styleCall![0].messages;
     const userMessage = styleMessages.find((m: { role: string; content: string }) =>
       m.role === 'user' && m.content.includes('style')
     );
@@ -179,7 +180,7 @@ describe('Orchestrator — Style Integration', () => {
 
     autonomy.setDomainTier('email', 'guardian');
     const orchestrator = new OrchestratorImpl({
-      llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+      llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       // No styleProfileStore
     });
 
@@ -217,7 +218,7 @@ describe('Orchestrator — Style Integration', () => {
 
     autonomy.setDomainTier('email', 'guardian');
     const orchestrator = new OrchestratorImpl({
-      llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+      llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       styleProfileStore: styleStore,
     });
 
@@ -273,7 +274,7 @@ describe('Orchestrator — Style Integration', () => {
 
     autonomy.setDomainTier('email', 'guardian');
     const orchestrator = new OrchestratorImpl({
-      llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+      llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       styleProfileStore: styleStore,
       styleScoreThreshold: 70,
     });
@@ -313,7 +314,7 @@ describe('Orchestrator — Style Integration', () => {
 
     autonomy.setDomainTier('email', 'guardian');
     const orchestrator = new OrchestratorImpl({
-      llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+      llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       styleProfileStore: styleStore,
     });
 
@@ -350,7 +351,7 @@ describe('Orchestrator — Style Integration', () => {
 
     autonomy.setDomainTier('email', 'guardian');
     const orchestrator = new OrchestratorImpl({
-      llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+      llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       styleProfileStore: styleStore,
     });
 
@@ -379,7 +380,7 @@ describe('Orchestrator — Style Integration', () => {
 
     autonomy.setDomainTier('email', 'guardian');
     const orchestrator = new OrchestratorImpl({
-      llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+      llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       styleProfileStore: styleStore,
     });
 
@@ -394,7 +395,7 @@ describe('Orchestrator — Style Integration', () => {
       knowledge: createMockKnowledge(),
       ipc,
       autonomy,
-      db,
+      db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
     });
     expect(orchestrator).toBeDefined();
@@ -442,7 +443,7 @@ describe('Orchestrator — Style Integration', () => {
 
     autonomy.setDomainTier('email', 'guardian');
     const orchestrator = new OrchestratorImpl({
-      llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+      llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       styleProfileStore: styleStore,
       styleScoreThreshold: 95, // Very high threshold to force all retries
     });

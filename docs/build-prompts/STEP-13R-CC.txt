@@ -1,0 +1,37 @@
+What Failed — Three Items
+Failure 1: TypeScript Clean Slate — 821 errors (EXIT CRITERION 18: FAIL)
+This was the most explicitly stated requirement in the entire prompt. Section C said: "After this step, npx tsc --noEmit must produce ZERO errors across ALL packages. Not just packages/core/. ALL of them." The prompt listed all five packages by name. 821 errors is not a partial — it's a miss.
+The root cause analysis is useful: the root tsconfig.json excludes mobile/desktop packages, and JSX configuration is inconsistent. The Commit 6 plan correctly identified the 243 pre-existing errors and the tsconfig fix that would kill 174 of them, but the execution clearly didn't extend to packages/mobile/ or comprehensive test file cleanup. The 821 number suggests the mobile package alone may account for several hundred errors that were never in scope for the original 243 count.
+Failure 2: Settings Sync Wiring — Not Pushing to SyncEngine (EXIT CRITERION 8: FAIL)
+Preferences save to local SQLite but don't trigger SyncEngine.upsertItem(). This was explicitly specified in the Step 13 prompt under A4: "When user changes autonomy tier, per-domain config, or notification preferences on any device, the change is added to the next sync payload." The implementation plan also called this out in Commit 5. The adapter exists but the trigger is unwired.
+Failure 3: Mobile Inbox End-to-End — UI Not Connected (EXIT CRITERION 7: PARTIAL)
+inbox-provider.ts exists and the adapter layer is correct, but TabNavigator.tsx doesn't instantiate data providers, so InboxScreen renders empty. The backend plumbing is there but the UI isn't consuming it. This was the exact same pattern from Step 12 (adapter exists, UI shows mock/empty data) that the carry-forward was supposed to fix.
+
+Additional Issue: vitest-results.txt Stale
+The audit notes vitest-results.txt last modified Feb 21, not reflecting the current state. This is the exact issue A7 was designed to catch — but the verification script in Commit 12 checks test count floors, not file freshness. The script passes because the live vitest run returns 2,728, but the cached results file is stale. Minor issue — the live run is what matters, not the file on disk.
+
+What I Need For Remediation
+This needs a targeted remediation, not a full re-prompt. The scope is narrow and well-defined:
+Fix 1: TypeScript Clean Slate (the big one)
+The 821 errors break down into predictable categories per the audit:
+
+JSX configuration missing in mobile and potentially other packages
+Database vs DatabaseHandle type mismatches in test files (leftover from Step 12 refactoring)
+Strict null checks (Object is possibly 'undefined') in integration tests
+
+This is tedious but mechanical. No architectural decisions needed.
+Fix 2: Settings Sync Trigger
+Wire preference changes to SyncEngine.upsertItem(). When dailyDigestEnabled, dailyDigestTime, autonomy tier, or per-domain config changes, create a SyncItem with type 'preference' and the current timestamp. The sync infrastructure already handles the rest (last-write-wins conflict resolution).
+Probably 10–20 lines of actual code plus tests.
+Fix 3: Mobile Inbox Provider Instantiation
+TabNavigator.tsx needs to instantiate the data providers/hooks so InboxScreen receives real data from inbox-provider.ts. The provider exists — it just needs to be wired into the component tree.
+Probably 20–30 lines of code plus tests.
+
+My Recommendation
+Yes — have the agent fix all three. The scope is tight enough that it should be a single remediation pass, not a multi-commit affair. The target is clear:
+
+npx tsc --noEmit → zero errors across all 5 packages
+Settings preference changes trigger SyncEngine.upsertItem() — verified by test
+InboxScreen receives data from inbox-provider.ts when Core has indexed emails — verified by test
+All 2,728 existing tests still pass
+scripts/ci/verify-test-count.js passes

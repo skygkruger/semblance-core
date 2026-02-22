@@ -139,7 +139,7 @@ describe('Integration — Mobile ↔ Desktop Reminder Sync', () => {
 
     expect(result.accepted).toBe(1);
     const mobileReminders = mobileSync.getItemsByType('reminder');
-    expect((mobileReminders[0].data as { status: string }).status).toBe('snoozed');
+    expect((mobileReminders[0]!.data as { status: string }).status).toBe('snoozed');
   });
 });
 
@@ -323,8 +323,8 @@ describe('Integration — Reminder Notifications', () => {
     await scheduler.scheduleReminder('r1', 'Meeting with Sarah', dueAt);
 
     expect(provider.scheduled).toHaveLength(1);
-    expect(provider.scheduled[0].body).toBe('Meeting with Sarah');
-    expect(provider.scheduled[0].actions).toHaveLength(2);
+    expect(provider.scheduled[0]!.body).toBe('Meeting with Sarah');
+    expect(provider.scheduled[0]!.actions).toHaveLength(2);
   });
 
   it('dismissed reminder cancels notification', async () => {

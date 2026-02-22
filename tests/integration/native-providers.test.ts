@@ -187,7 +187,7 @@ describe('Native Providers — mDNS + Encrypted Sync', () => {
       provider.simulateFound(testMobileDevice);
       const discovered = manager.getDiscoveredDevices();
       expect(discovered.length).toBe(1);
-      expect(discovered[0].deviceId).toBe(testMobileDevice.deviceId);
+      expect(discovered[0]!.deviceId).toBe(testMobileDevice.deviceId);
     });
 
     it('removes lost devices', async () => {

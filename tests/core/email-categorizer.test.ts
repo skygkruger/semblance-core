@@ -6,6 +6,7 @@ import { EmailCategorizer } from '@semblance/core/agent/email-categorizer.js';
 import { EmailIndexer } from '@semblance/core/knowledge/email-indexer.js';
 import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index.js';
 import type { LLMProvider, ChatResponse } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createMockKnowledge(): KnowledgeGraph {
   return {
@@ -75,7 +76,7 @@ describe('EmailCategorizer', () => {
     db = new Database(':memory:');
     const knowledge = createMockKnowledge();
     llm = createMockLLM();
-    emailIndexer = new EmailIndexer({ db, knowledge, llm });
+    emailIndexer = new EmailIndexer({ db: db as unknown as DatabaseHandle, knowledge, llm });
     categorizer = new EmailCategorizer({ llm, emailIndexer, model: 'llama3.2:8b' });
   });
 

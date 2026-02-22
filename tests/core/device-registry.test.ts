@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { DeviceRegistry } from '@semblance/core/routing/device-registry.js';
 import type { DeviceCapabilities, TaskRequirements } from '@semblance/core/routing/device-registry.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function makeDesktop(overrides?: Partial<DeviceCapabilities>): DeviceCapabilities {
   return {
@@ -55,7 +56,7 @@ describe('DeviceRegistry', () => {
 
   beforeEach(() => {
     db = new Database(':memory:');
-    registry = new DeviceRegistry(db);
+    registry = new DeviceRegistry(db as unknown as DatabaseHandle);
   });
 
   describe('schema', () => {

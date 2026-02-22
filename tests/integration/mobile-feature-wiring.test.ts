@@ -106,8 +106,8 @@ describe('Mobile Feature Wiring', () => {
     it('transforms emails to inbox items', () => {
       const items = emailsToInboxItems(emails);
       expect(items.length).toBe(1);
-      expect(items[0].title).toContain('Meeting');
-      expect(items[0].type).toBe('email');
+      expect(items[0]!.title).toContain('Meeting');
+      expect(items[0]!.type).toBe('email');
     });
 
     it('transforms reminders to inbox items', () => {
@@ -116,7 +116,7 @@ describe('Mobile Feature Wiring', () => {
       ];
       const items = remindersToInboxItems(reminders);
       expect(items.length).toBe(1);
-      expect(items[0].type).toBe('reminder');
+      expect(items[0]!.type).toBe('reminder');
     });
 
     it('transforms actions to inbox items', () => {
@@ -125,7 +125,7 @@ describe('Mobile Feature Wiring', () => {
       ];
       const items = actionsToInboxItems(actions);
       expect(items.length).toBe(1);
-      expect(items[0].type).toBe('action');
+      expect(items[0]!.type).toBe('action');
     });
 
     it('merges and sorts inbox items by timestamp', () => {
@@ -160,8 +160,8 @@ describe('Mobile Feature Wiring', () => {
       ];
       const formatted = formatChatMessages(messages);
       expect(formatted.length).toBe(3);
-      expect(formatted[0].role).toBe('system');
-      expect(formatted[1].role).toBe('user');
+      expect(formatted[0]!.role).toBe('system');
+      expect(formatted[1]!.role).toBe('user');
     });
 
     it('generates session title from first message', () => {
@@ -172,7 +172,7 @@ describe('Mobile Feature Wiring', () => {
     it('creates chat session with system prompt', () => {
       const session = createChatSession('s1', 'You are Semblance AI');
       expect(session.messages.length).toBe(1);
-      expect(session.messages[0].role).toBe('system');
+      expect(session.messages[0]!.role).toBe('system');
     });
 
     it('builds user and assistant messages', () => {
@@ -234,7 +234,7 @@ describe('Mobile Feature Wiring', () => {
         { ...reminder, id: 'r2', dueAt: new Date(Date.now() + 3600000).toISOString() }, // future
       ]);
       expect(due.length).toBe(1);
-      expect(due[0].id).toBe('r1');
+      expect(due[0]!.id).toBe('r1');
     });
   });
 
@@ -250,7 +250,7 @@ describe('Mobile Feature Wiring', () => {
     it('transforms audit entries to monitor entries', () => {
       const entries = auditEntriesToMonitorEntries(auditEntries);
       expect(entries.length).toBe(3);
-      expect(entries[0].service).toBe('email');
+      expect(entries[0]!.service).toBe('email');
     });
 
     it('computes monitor stats correctly', () => {
@@ -274,14 +274,14 @@ describe('Mobile Feature Wiring', () => {
 
   describe('subscription adapter', () => {
     const charges = [
-      { id: 'c1', merchant: 'Netflix', amount: 15.99, frequency: 'monthly' as const, confidence: 0.95, lastCharged: '2026-02-01' },
-      { id: 'c2', merchant: 'Gym', amount: 49.99, frequency: 'monthly' as const, confidence: 0.8, lastCharged: '2025-10-15' },
+      { id: 'c1', merchant: 'Netflix', amount: 15.99, frequency: 'monthly' as const, confidence: 0.95, isForgotten: false, lastDate: '2026-02-01' },
+      { id: 'c2', merchant: 'Gym', amount: 49.99, frequency: 'monthly' as const, confidence: 0.8, isForgotten: false, lastDate: '2025-10-15' },
     ];
 
     it('converts charges to subscription items', () => {
       const items = chargesToSubscriptionItems(charges);
       expect(items.length).toBe(2);
-      expect(items[0].annualCost).toBeCloseTo(191.88, 1);
+      expect(items[0]!.annualCost).toBeCloseTo(191.88, 1);
     });
 
     it('builds subscription summary', () => {
@@ -294,7 +294,7 @@ describe('Mobile Feature Wiring', () => {
     it('detects forgotten subscriptions', () => {
       const items = chargesToSubscriptionItems(charges);
       // Mark old charge as forgotten
-      items[1].isForgotten = true;
+      items[1]!.isForgotten = true;
       const summary = buildSubscriptionSummary(items);
       expect(summary.forgottenCount).toBe(1);
     });
@@ -311,7 +311,7 @@ describe('Mobile Feature Wiring', () => {
     it('converts core results to mobile format', () => {
       const response = toMobileSearchResults('test', coreResults, 'web');
       expect(response.results.length).toBe(2);
-      expect(response.results[0].source).toBe('example.com');
+      expect(response.results[0]!.source).toBe('example.com');
     });
 
     it('formats search as chat message', () => {
@@ -383,13 +383,13 @@ describe('Mobile Feature Wiring', () => {
 
     it('formats results with truncated snippets', () => {
       const formatted = formatSearchResults(results, 20);
-      expect(formatted[0].snippet.length).toBeLessThanOrEqual(20);
+      expect(formatted[0]!.snippet.length).toBeLessThanOrEqual(20);
     });
 
     it('filters by type', () => {
       const filtered = filterByType(results, ['email']);
       expect(filtered.length).toBe(1);
-      expect(filtered[0].type).toBe('email');
+      expect(filtered[0]!.type).toBe('email');
     });
 
     it('filters by date range', () => {
@@ -399,13 +399,13 @@ describe('Mobile Feature Wiring', () => {
 
     it('sorts by relevance', () => {
       const sorted = sortByRelevance(results);
-      expect(sorted[0].score).toBeGreaterThanOrEqual(sorted[1].score);
+      expect(sorted[0]!.score).toBeGreaterThanOrEqual(sorted[1]!.score);
     });
 
     it('sorts by recency', () => {
       const sorted = sortByRecency(results);
-      expect(new Date(sorted[0].timestamp).getTime()).toBeGreaterThanOrEqual(
-        new Date(sorted[1].timestamp).getTime(),
+      expect(new Date(sorted[0]!.timestamp).getTime()).toBeGreaterThanOrEqual(
+        new Date(sorted[1]!.timestamp).getTime(),
       );
     });
 
@@ -416,7 +416,7 @@ describe('Mobile Feature Wiring', () => {
       ];
       const kw = keywordSearch(items, 'budget meeting');
       expect(kw.length).toBe(1);
-      expect(kw[0].id).toBe('i1');
+      expect(kw[0]!.id).toBe('i1');
     });
 
     it('groups results by type', () => {

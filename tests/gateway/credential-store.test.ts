@@ -247,7 +247,7 @@ describe('Credential Encryption', () => {
 
     // Tamper with the encrypted data
     const decoded = Buffer.from(encrypted, 'base64');
-    decoded[decoded.length - 1] ^= 0xFF; // flip last byte
+    decoded[decoded.length - 1] = decoded[decoded.length - 1]! ^ 0xFF; // flip last byte
     const tampered = decoded.toString('base64');
 
     expect(() => decryptPassword(key, tampered)).toThrow();

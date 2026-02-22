@@ -151,8 +151,8 @@ describe('UX Polish — Gestures, Haptics, Notifications', () => {
       expect(notif.title).toBe('Reminder');
       expect(notif.body).toBe('Call dentist');
       expect(notif.actions).toHaveLength(2);
-      expect(notif.actions![0].id).toBe('snooze');
-      expect(notif.actions![1].id).toBe('dismiss');
+      expect(notif.actions![0]!.id).toBe('snooze');
+      expect(notif.actions![1]!.id).toBe('dismiss');
     });
 
     it('builds insight notification', () => {

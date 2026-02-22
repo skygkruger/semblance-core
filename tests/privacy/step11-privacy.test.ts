@@ -104,8 +104,8 @@ describe('Step 11 Privacy: Style files have no network imports', () => {
         const importPath = match[1];
 
         // Must be either a relative import or an approved dependency
-        const isRelative = importPath.startsWith('.');
-        const isApproved = approvedDeps.some(d => importPath === d || importPath.startsWith(d + '/'));
+        const isRelative = importPath!.startsWith('.');
+        const isApproved = approvedDeps.some(d => importPath! === d || importPath!.startsWith(d + '/'));
 
         if (!isRelative && !isApproved) {
           throw new Error(

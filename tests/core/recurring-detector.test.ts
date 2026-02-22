@@ -5,6 +5,7 @@ import Database from 'better-sqlite3';
 import { RecurringDetector } from '@semblance/core/finance/recurring-detector.js';
 import { MerchantNormalizer } from '@semblance/core/finance/merchant-normalizer.js';
 import type { Transaction } from '@semblance/core/finance/statement-parser.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function makeTxn(merchant: string, date: string, amount: number): Transaction {
   return {
@@ -36,7 +37,7 @@ describe('RecurringDetector', () => {
   beforeEach(() => {
     db = new Database(':memory:');
     normalizer = new MerchantNormalizer();
-    detector = new RecurringDetector({ db, normalizer });
+    detector = new RecurringDetector({ db: db as unknown as DatabaseHandle, normalizer });
   });
 
   describe('schema', () => {

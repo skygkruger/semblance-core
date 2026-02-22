@@ -176,7 +176,7 @@ describe('Cross-Device Sync — SyncEngine Local', () => {
 
     const items = engine.getItems();
     expect(items).toHaveLength(1);
-    expect((items[0].data as { v: number }).v).toBe(2);
+    expect((items[0]!.data as { v: number }).v).toBe(2);
   });
 
   it('filters items by type', () => {
@@ -208,7 +208,7 @@ describe('Cross-Device Sync — SyncEngine Local', () => {
 
     const changed = engine.getChangedSince('2026-02-20T11:00:00Z');
     expect(changed).toHaveLength(1);
-    expect(changed[0].id).toBe('new-1');
+    expect(changed[0]!.id).toBe('new-1');
   });
 });
 
@@ -268,7 +268,7 @@ describe('Cross-Device Sync — Manifest Application', () => {
     const result = engine.applyManifest(manifest, 'mobile');
     expect(result.rejected).toBe(1);
     expect(result.conflicts).toHaveLength(1);
-    expect(result.conflicts[0].resolution).toBe('local_wins');
+    expect(result.conflicts[0]!.resolution).toBe('local_wins');
   });
 
   it('action trail items merge without conflict', () => {

@@ -7,6 +7,7 @@ import { TaskAssessor } from '@semblance/core/routing/task-assessor.js';
 import { TaskRouter } from '@semblance/core/routing/router.js';
 import type { DeviceCapabilities } from '@semblance/core/routing/device-registry.js';
 import type { TaskDescription } from '@semblance/core/routing/task-assessor.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function makeDesktop(overrides?: Partial<DeviceCapabilities>): DeviceCapabilities {
   return {
@@ -59,7 +60,7 @@ describe('TaskRouter', () => {
 
   beforeEach(() => {
     db = new Database(':memory:');
-    registry = new DeviceRegistry(db);
+    registry = new DeviceRegistry(db as unknown as DatabaseHandle);
     router = new TaskRouter(registry);
   });
 

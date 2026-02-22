@@ -7,6 +7,7 @@ import { AutonomyManager } from '@semblance/core/agent/autonomy.js';
 import type { LLMProvider, ChatResponse, ToolCall } from '@semblance/core/llm/types.js';
 import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index.js';
 import type { IPCClient } from '@semblance/core/agent/ipc-client.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createMockLLM(overrides?: Partial<LLMProvider>): LLMProvider {
   return {
@@ -66,14 +67,14 @@ describe('Orchestrator', () => {
     mockLLM = createMockLLM();
     mockKnowledge = createMockKnowledge();
     mockIPC = createMockIPC();
-    autonomy = new AutonomyManager(db, { defaultTier: 'partner', domainOverrides: {} });
+    autonomy = new AutonomyManager(db as unknown as DatabaseHandle, { defaultTier: 'partner', domainOverrides: {} });
 
     orchestrator = new OrchestratorImpl({
       llm: mockLLM,
       knowledge: mockKnowledge,
       ipc: mockIPC,
       autonomy,
-      db,
+      db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
     });
   });
@@ -142,7 +143,7 @@ describe('Orchestrator', () => {
       knowledge: mockKnowledge,
       ipc: mockIPC,
       autonomy,
-      db,
+      db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
     });
 
@@ -172,7 +173,7 @@ describe('Orchestrator', () => {
       knowledge: mockKnowledge,
       ipc: mockIPC,
       autonomy,
-      db,
+      db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
     });
 
@@ -210,7 +211,7 @@ describe('Orchestrator', () => {
       knowledge: mockKnowledge,
       ipc: mockIPC,
       autonomy,
-      db,
+      db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
     });
 
@@ -241,7 +242,7 @@ describe('Orchestrator', () => {
       knowledge: mockKnowledge,
       ipc: mockIPC,
       autonomy,
-      db,
+      db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
     });
 
@@ -273,7 +274,7 @@ describe('Orchestrator', () => {
       knowledge: mockKnowledge,
       ipc: mockIPC,
       autonomy,
-      db,
+      db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
     });
 
@@ -305,7 +306,7 @@ describe('Orchestrator', () => {
       knowledge: mockKnowledge,
       ipc: mockIPC,
       autonomy,
-      db,
+      db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
     });
 

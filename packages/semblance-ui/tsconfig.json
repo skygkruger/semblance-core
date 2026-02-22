@@ -13,7 +13,8 @@
     "declarationMap": true,
     "sourceMap": true,
     "noUncheckedIndexedAccess": true,
-    "noEmit": true
+    "noEmit": true,
+    "jsx": "react-jsx"
   },
   "include": ["tokens/**/*.ts", "components/**/*.ts", "components/**/*.tsx", "hooks/**/*.ts", "index.ts"],
   "exclude": ["node_modules", "dist"]

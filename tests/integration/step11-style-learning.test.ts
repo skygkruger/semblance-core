@@ -12,6 +12,7 @@ import { scoreDraft, type StyleScore } from '@semblance/core/style/style-scorer.
 import { StyleExtractionJob, type SentEmailQuery } from '@semblance/core/style/style-extraction-job.js';
 import { classifyCorrection, applyCorrections } from '@semblance/core/style/style-correction-processor.js';
 import type { LLMProvider, ChatResponse } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -74,7 +75,7 @@ function generateCasualEmails(count: number): SentEmail[] {
       from: 'alex@example.com',
       to: [`recipient${i}@example.com`],
       subject: `Subject ${i}`,
-      body: bodies[i % bodies.length],
+      body: bodies[i % bodies.length]!,
       date: new Date(2026, 1, 20, 10, i).toISOString(),
     });
   }
@@ -86,7 +87,7 @@ let store: StyleProfileStore;
 
 beforeEach(() => {
   db = new Database(':memory:');
-  store = new StyleProfileStore(db);
+  store = new StyleProfileStore(db as unknown as DatabaseHandle);
 });
 
 // ─── End-to-End Tests ─────────────────────────────────────────────────────────

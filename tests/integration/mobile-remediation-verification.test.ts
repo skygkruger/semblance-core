@@ -112,10 +112,10 @@ describe('Root Cause 2: Native inference bridges are not placeholder', () => {
   it('MockMLXBridge generates non-placeholder text', async () => {
     const { MockMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
     const bridge = new MockMLXBridge();
-    await bridge.loadModel('/models/test.gguf');
+    await bridge.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
 
     const chunks: string[] = [];
-    for await (const token of bridge.generate('Test prompt')) {
+    for await (const token of bridge.generate('Test prompt', {})) {
       chunks.push(token);
     }
     const fullText = chunks.join('');
@@ -129,10 +129,10 @@ describe('Root Cause 2: Native inference bridges are not placeholder', () => {
   it('MockLlamaCppBridge generates non-placeholder text', async () => {
     const { MockLlamaCppBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
     const bridge = new MockLlamaCppBridge();
-    await bridge.loadModel('/models/test.gguf');
+    await bridge.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
 
     const chunks: string[] = [];
-    for await (const token of bridge.generate('Test prompt')) {
+    for await (const token of bridge.generate('Test prompt', {})) {
       chunks.push(token);
     }
     const fullText = chunks.join('');
@@ -165,9 +165,10 @@ describe('InferenceRouter routes to mobile provider', () => {
     const { MobileProvider } = await import('../../packages/core/llm/mobile-provider.js');
 
     const bridge = new MockMLXBridge();
-    const mobileProvider = new MobileProvider(bridge, {
-      reasoningModel: 'test-3b',
-      embeddingModel: 'test-embed',
+    const mobileProvider = new MobileProvider({
+      bridge,
+      modelName: 'test-3b',
+      embeddingModelName: 'test-embed',
     });
 
     const router = new InferenceRouter({
@@ -195,7 +196,7 @@ describe('InferenceRouter routes to mobile provider', () => {
       embeddingModelName: 'test-embed',
     });
 
-    await bridge.loadModel('/models/test.gguf');
+    await bridge.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
     const result = await provider.generate({ prompt: 'Test prompt', model: 'test-3b' });
     expect(result).toBeDefined();
     expect(result.text).toBeDefined();
@@ -213,7 +214,7 @@ describe('InferenceRouter routes to mobile provider', () => {
       embeddingModelName: 'test-embed',
     });
 
-    await bridge.loadModel('/models/test.gguf');
+    await bridge.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
     const result = await provider.embed({ input: ['Test text'], model: 'test-embed' });
     expect(result).toBeDefined();
     expect(result.embeddings).toBeDefined();
@@ -242,7 +243,7 @@ describe('Cross-device discovery and sync', () => {
     };
 
     const dm = new DiscoveryManager({
-      thisDevice: { id: 'dev1', name: 'TestPhone', platform: 'ios', capabilities: { canRunLLM: true, maxModelSize: '3B' } },
+      thisDevice: { deviceId: 'dev1', deviceName: 'TestPhone', deviceType: 'mobile', platform: 'ios', protocolVersion: 1, syncPort: 9876, ipAddress: '192.168.1.1' },
       mdns: mockMDNS,
     });
 
@@ -282,7 +283,7 @@ describe('Cross-device discovery and sync', () => {
       hmac: vi.fn(async () => 'mock-hmac'),
     };
 
-    const transport = new EncryptedSyncTransportImpl(mockTCP, mockCrypto);
+    const transport = new EncryptedSyncTransportImpl(mockTCP as any);
     expect(transport).toBeDefined();
   });
 

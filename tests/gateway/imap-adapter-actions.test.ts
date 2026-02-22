@@ -143,7 +143,7 @@ describe('IMAP Adapter Actions', () => {
         body: 'Draft body content',
       });
       expect(mockClient.append).toHaveBeenCalled();
-      const appendArgs = mockClient.append.mock.calls[0];
+      const appendArgs = mockClient.append.mock.calls[0]!;
       expect(appendArgs[0]).toBe('Drafts');
     });
 
@@ -154,7 +154,7 @@ describe('IMAP Adapter Actions', () => {
         body: 'Reply content',
         replyToMessageId: '<original@example.com>',
       });
-      const appendArgs = mockClient.append.mock.calls[0];
+      const appendArgs = mockClient.append.mock.calls[0]!;
       const rawMessage = appendArgs[1] instanceof Buffer ? appendArgs[1].toString() : String(appendArgs[1]);
       expect(rawMessage).toContain('In-Reply-To: <original@example.com>');
     });

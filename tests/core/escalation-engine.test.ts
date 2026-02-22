@@ -5,6 +5,7 @@ import Database from 'better-sqlite3';
 import { EscalationEngine } from '@semblance/core/agent/autonomy-escalation.js';
 import { AutonomyManager } from '@semblance/core/agent/autonomy.js';
 import type { ApprovalPattern } from '@semblance/core/agent/approval-patterns.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function makePattern(
   actionType: string,
@@ -33,8 +34,8 @@ describe('EscalationEngine', () => {
 
   beforeEach(() => {
     db = new Database(':memory:');
-    autonomy = new AutonomyManager(db);
-    engine = new EscalationEngine({ db, autonomy, aiName: 'Semblance' });
+    autonomy = new AutonomyManager(db as unknown as DatabaseHandle);
+    engine = new EscalationEngine({ db: db as unknown as DatabaseHandle, autonomy, aiName: 'Semblance' });
   });
 
   describe('schema', () => {

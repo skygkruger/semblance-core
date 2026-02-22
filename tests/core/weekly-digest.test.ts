@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { WeeklyDigestGenerator } from '@semblance/core/digest/weekly-digest.js';
 import type { LLMProvider } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createMockLLM(): LLMProvider {
   return {
@@ -65,8 +66,8 @@ describe('WeeklyDigestGenerator', () => {
     llm = createMockLLM();
     seedAuditTrail(db, weekStart, weekEnd, 15);
     generator = new WeeklyDigestGenerator({
-      db,
-      auditDb: db,
+      db: db as unknown as DatabaseHandle,
+      auditDb: db as unknown as DatabaseHandle,
       llm,
       aiName: 'Semblance',
     });
@@ -145,8 +146,8 @@ describe('WeeklyDigestGenerator', () => {
         );
       `);
       const emptyGen = new WeeklyDigestGenerator({
-        db: emptyDb,
-        auditDb: emptyDb,
+        db: emptyDb as unknown as DatabaseHandle,
+        auditDb: emptyDb as unknown as DatabaseHandle,
         llm,
         aiName: 'Semblance',
       });

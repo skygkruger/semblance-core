@@ -7,6 +7,7 @@ import {
   createEmptyProfile,
   type StyleProfile,
 } from '@semblance/core/style/style-profile.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 describe('StyleProfileStore', () => {
   let db: Database.Database;
@@ -14,7 +15,7 @@ describe('StyleProfileStore', () => {
 
   beforeEach(() => {
     db = new Database(':memory:');
-    store = new StyleProfileStore(db);
+    store = new StyleProfileStore(db as unknown as DatabaseHandle);
   });
 
   // ─── CRUD ─────────────────────────────────────────────────────────────────
@@ -27,12 +28,12 @@ describe('StyleProfileStore', () => {
     const created = store.createProfile(profile);
     expect(created.id).toMatch(/^sp_/);
     expect(created.emailsAnalyzed).toBe(5);
-    expect(created.greetings.patterns[0].text).toBe('Hi');
+    expect(created.greetings.patterns[0]!.text).toBe('Hi');
 
     const retrieved = store.getProfileById(created.id);
     expect(retrieved).not.toBeNull();
     expect(retrieved!.id).toBe(created.id);
-    expect(retrieved!.greetings.patterns[0].text).toBe('Hi');
+    expect(retrieved!.greetings.patterns[0]!.text).toBe('Hi');
   });
 
   it('getActiveProfile returns the most recent profile for user', () => {
@@ -80,7 +81,7 @@ describe('StyleProfileStore', () => {
 
     const history = store.getProfileHistory(created.id);
     expect(history).toHaveLength(1);
-    expect(history[0].version).toBe(1);
+    expect(history[0]!.version).toBe(1);
   });
 
   it('multiple updates create multiple history entries', () => {
@@ -92,9 +93,9 @@ describe('StyleProfileStore', () => {
 
     const history = store.getProfileHistory(created.id);
     expect(history).toHaveLength(3);
-    expect(history[0].version).toBe(1);
-    expect(history[1].version).toBe(2);
-    expect(history[2].version).toBe(3);
+    expect(history[0]!.version).toBe(1);
+    expect(history[1]!.version).toBe(2);
+    expect(history[2]!.version).toBe(3);
 
     const current = store.getProfileById(created.id);
     expect(current!.version).toBe(4);
@@ -119,11 +120,11 @@ describe('StyleProfileStore', () => {
     });
 
     const history = store.getProfileHistory(created.id);
-    const historyProfile = JSON.parse(history[0].profileJson) as StyleProfile;
-    expect(historyProfile.greetings.patterns[0].text).toBe('Hey');
+    const historyProfile = JSON.parse(history[0]!.profileJson) as StyleProfile;
+    expect(historyProfile.greetings.patterns[0]!.text).toBe('Hey');
 
     const current = store.getProfileById(created.id);
-    expect(current!.greetings.patterns[0].text).toBe('Hi');
+    expect(current!.greetings.patterns[0]!.text).toBe('Hi');
   });
 
   // ─── isActive Threshold ──────────────────────────────────────────────────
@@ -186,7 +187,7 @@ describe('StyleProfileStore', () => {
 
     const unapplied = store.getUnappliedCorrections(profile.id);
     expect(unapplied).toHaveLength(1);
-    expect(unapplied[0].correctionType).toBe('tone');
+    expect(unapplied[0]!.correctionType).toBe('tone');
   });
 
   it('countUnappliedCorrectionsByType groups correctly', () => {

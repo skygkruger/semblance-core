@@ -7,6 +7,7 @@ import { AutonomyManager } from '@semblance/core/agent/autonomy.js';
 import type { LLMProvider, ChatResponse, ToolCall } from '@semblance/core/llm/types.js';
 import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index.js';
 import type { IPCClient } from '@semblance/core/agent/ipc-client.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createMockLLM(overrides?: Partial<LLMProvider>): LLMProvider {
   return {
@@ -64,14 +65,14 @@ function makeToolCallResponse(toolCalls: ToolCall[]): ChatResponse {
 }
 
 describe('Orchestrator — Email Tools', () => {
-  let db: Database.Database;
+  let db: DatabaseHandle;
   let orchestrator: OrchestratorImpl;
   let autonomy: AutonomyManager;
   let ipc: IPCClient;
   let llm: LLMProvider;
 
   beforeEach(() => {
-    db = new Database(':memory:');
+    db = new Database(':memory:') as unknown as DatabaseHandle;
     autonomy = new AutonomyManager(db);
     ipc = createMockIPC();
   });
@@ -111,8 +112,8 @@ describe('Orchestrator — Email Tools', () => {
       const result = await orchestrator.processMessage('Send an email to bob');
       const pending = await orchestrator.getPendingActions();
       expect(pending.length).toBeGreaterThanOrEqual(1);
-      expect(pending[0].action).toBe('email.send');
-      expect(pending[0].status).toBe('pending_approval');
+      expect(pending[0]!.action).toBe('email.send');
+      expect(pending[0]!.status).toBe('pending_approval');
     });
 
     it('does not call IPC directly in guardian mode', async () => {
@@ -183,7 +184,7 @@ describe('Orchestrator — Email Tools', () => {
     it('routes archive_email to email.archive action type', async () => {
       const result = await orchestrator.processMessage('Archive these emails');
       expect(result.actions.length).toBeGreaterThanOrEqual(1);
-      expect(result.actions[0].action).toBe('email.archive');
+      expect(result.actions[0]!.action).toBe('email.archive');
     });
   });
 
@@ -215,7 +216,7 @@ describe('Orchestrator — Email Tools', () => {
     it('routes draft_email to email.draft action type', async () => {
       const result = await orchestrator.processMessage('Save a draft to bob');
       expect(result.actions.length).toBeGreaterThanOrEqual(1);
-      expect(result.actions[0].action).toBe('email.draft');
+      expect(result.actions[0]!.action).toBe('email.draft');
     });
   });
 
@@ -245,14 +246,14 @@ describe('Orchestrator — Email Tools', () => {
       const pending = await orchestrator.getPendingActions();
       expect(pending.length).toBe(1);
 
-      await orchestrator.approveAction(pending[0].id);
+      await orchestrator.approveAction(pending[0]!.id);
       expect(ipc.sendAction).toHaveBeenCalledWith('email.send', expect.any(Object));
     });
 
     it('rejectAction removes from pending', async () => {
       await orchestrator.processMessage('Send email');
       const pending = await orchestrator.getPendingActions();
-      await orchestrator.rejectAction(pending[0].id);
+      await orchestrator.rejectAction(pending[0]!.id);
 
       const afterReject = await orchestrator.getPendingActions();
       expect(afterReject.length).toBe(0);
@@ -287,7 +288,7 @@ describe('Orchestrator — Email Tools', () => {
     it('increments approval count after approving an action', async () => {
       await orchestrator.processMessage('Send email');
       const pending = await orchestrator.getPendingActions();
-      await orchestrator.approveAction(pending[0].id);
+      await orchestrator.approveAction(pending[0]!.id);
 
       const count = orchestrator.getApprovalCount('email.send', { to: ['bob@example.com'] });
       expect(count).toBe(1);

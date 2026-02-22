@@ -7,14 +7,17 @@ import {
   calculateSnoozeTime,
 } from '@semblance/core/agent/reminder-manager.js';
 import type { ParsedReminder, SnoozeDuration } from '@semblance/core/agent/reminder-manager.js';
+import type { LLMProvider } from '@semblance/core/llm/types.js';
 
-function mockLLM(response: string) {
+function mockLLM(response: string): LLMProvider {
   return {
     chat: vi.fn().mockResolvedValue({ message: { role: 'assistant', content: response } }),
     generate: vi.fn(),
     embed: vi.fn(),
     listModels: vi.fn(),
-  };
+    isAvailable: vi.fn().mockResolvedValue(true),
+    getModel: vi.fn(),
+  } as unknown as LLMProvider;
 }
 
 const NOW = new Date('2026-02-22T12:00:00.000Z');
@@ -107,7 +110,9 @@ describe('parseReminder: natural language parsing', () => {
       generate: vi.fn(),
       embed: vi.fn(),
       listModels: vi.fn(),
-    };
+      isAvailable: vi.fn().mockResolvedValue(true),
+      getModel: vi.fn(),
+    } as unknown as LLMProvider;
     const result = await parseReminder('call the dentist', llm, NOW);
     expect(result.text).toBe('call the dentist');
     expect(result.recurrence).toBe('none');

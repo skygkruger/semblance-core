@@ -3,6 +3,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { DocumentStore } from '@semblance/core/knowledge/document-store.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 describe('DocumentStore', () => {
   let db: Database.Database;
@@ -10,7 +11,7 @@ describe('DocumentStore', () => {
 
   beforeEach(() => {
     db = new Database(':memory:');
-    store = new DocumentStore(db);
+    store = new DocumentStore(db as unknown as DatabaseHandle);
   });
 
   afterEach(() => {

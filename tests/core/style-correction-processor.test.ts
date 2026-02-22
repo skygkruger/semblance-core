@@ -10,6 +10,7 @@ import {
 } from '@semblance/core/style/style-correction-processor.js';
 import { StyleProfileStore, createEmptyProfile, type StyleProfile } from '@semblance/core/style/style-profile.js';
 import type { LLMProvider, ChatResponse } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ let store: StyleProfileStore;
 
 beforeEach(() => {
   db = new Database(':memory:');
-  store = new StyleProfileStore(db);
+  store = new StyleProfileStore(db as unknown as DatabaseHandle);
 });
 
 // ─── Classification Tests ─────────────────────────────────────────────────────

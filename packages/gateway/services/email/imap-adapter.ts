@@ -151,11 +151,13 @@ export class IMAPAdapter {
         if (uids.length === 0) return [];
       } else if (Object.keys(searchCriteria).length > 0) {
         const searchResult = await client.search(searchCriteria);
-        uids = searchResult.slice(-limit).map(Number);
+        if (!searchResult) return [];
+        uids = (searchResult as number[]).slice(-limit).map(Number);
         if (uids.length === 0) return [];
       } else {
         // Default: fetch most recent messages
-        uids = `${Math.max(1, (client.mailbox?.exists ?? limit) - limit + 1)}:*`;
+        const exists = client.mailbox && client.mailbox.exists;
+        uids = `${Math.max(1, ((exists || limit) as number) - limit + 1)}:*`;
       }
 
       const fetchOptions = {
@@ -416,7 +418,7 @@ export class IMAPAdapter {
   /**
    * Close all connections and clean up.
    */
-  async shutdown(): void {
+  async shutdown(): Promise<void> {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;

@@ -38,7 +38,7 @@ describe('WebSearchAdapter: successful search', () => {
     await adapter.execute('web.search', { query: 'weather in Portland', count: 5 });
 
     expect(fetchFn).toHaveBeenCalledOnce();
-    const [url, opts] = (fetchFn as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [url, opts] = (fetchFn as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(url).toContain('https://api.search.brave.com/res/v1/web/search');
     expect(url).toContain('q=weather+in+Portland');
     expect(url).toContain('count=5');
@@ -61,11 +61,11 @@ describe('WebSearchAdapter: successful search', () => {
     const result = await adapter.execute('web.search', { query: 'test' });
 
     const data = result.data as { results: Array<{ title: string; url: string; snippet: string; age?: string }> };
-    expect(data.results[0].title).toBe('Weather in Portland');
-    expect(data.results[0].url).toBe('https://weather.com/portland');
-    expect(data.results[0].snippet).toBe('Current weather is 52°F');
-    expect(data.results[0].age).toBe('2 hours ago');
-    expect(data.results[1].age).toBeUndefined();
+    expect(data.results[0]!.title).toBe('Weather in Portland');
+    expect(data.results[0]!.url).toBe('https://weather.com/portland');
+    expect(data.results[0]!.snippet).toBe('Current weather is 52°F');
+    expect(data.results[0]!.age).toBe('2 hours ago');
+    expect(data.results[1]!.age).toBeUndefined();
   });
 
   it('uses default count of 5 when not specified', async () => {
@@ -74,7 +74,7 @@ describe('WebSearchAdapter: successful search', () => {
 
     await adapter.execute('web.search', { query: 'test' });
 
-    const [url] = (fetchFn as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [url] = (fetchFn as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(url).toContain('count=5');
   });
 
@@ -84,7 +84,7 @@ describe('WebSearchAdapter: successful search', () => {
 
     await adapter.execute('web.search', { query: 'latest news', freshness: 'day' });
 
-    const [url] = (fetchFn as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [url] = (fetchFn as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(url).toContain('freshness=day');
   });
 

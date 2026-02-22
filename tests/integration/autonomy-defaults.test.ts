@@ -17,6 +17,7 @@ import Database from 'better-sqlite3';
 import { AutonomyManager } from '@semblance/core/agent/autonomy.js';
 import { EscalationEngine } from '@semblance/core/agent/autonomy-escalation.js';
 import { ApprovalPatternTracker } from '@semblance/core/agent/approval-patterns.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 
@@ -49,22 +50,22 @@ describe('Autonomy Defaults', () => {
     });
 
     it('default tier is partner when no config provided', () => {
-      const manager = new AutonomyManager(db);
+      const manager = new AutonomyManager(db as unknown as DatabaseHandle);
       expect(manager.getDomainTier('email')).toBe('partner');
     });
 
     it('default tier is partner for calendar domain', () => {
-      const manager = new AutonomyManager(db);
+      const manager = new AutonomyManager(db as unknown as DatabaseHandle);
       expect(manager.getDomainTier('calendar')).toBe('partner');
     });
 
     it('default tier is partner for health domain', () => {
-      const manager = new AutonomyManager(db);
+      const manager = new AutonomyManager(db as unknown as DatabaseHandle);
       expect(manager.getDomainTier('health')).toBe('partner');
     });
 
     it('finance domain can be overridden to guardian via config', () => {
-      const manager = new AutonomyManager(db, {
+      const manager = new AutonomyManager(db as unknown as DatabaseHandle, {
         defaultTier: 'partner',
         domainOverrides: { finances: 'guardian' },
       });
@@ -72,12 +73,12 @@ describe('Autonomy Defaults', () => {
     });
 
     it('custom default tier is respected', () => {
-      const manager = new AutonomyManager(db, { defaultTier: 'guardian' });
+      const manager = new AutonomyManager(db as unknown as DatabaseHandle, { defaultTier: 'guardian', domainOverrides: {} });
       expect(manager.getDomainTier('email')).toBe('guardian');
     });
 
     it('domain override persists after manager creation', () => {
-      const manager = new AutonomyManager(db, {
+      const manager = new AutonomyManager(db as unknown as DatabaseHandle, {
         defaultTier: 'partner',
         domainOverrides: { finances: 'guardian' },
       });
@@ -95,7 +96,7 @@ describe('Autonomy Defaults', () => {
 
     beforeEach(() => {
       db = new Database(':memory:');
-      manager = new AutonomyManager(db);
+      manager = new AutonomyManager(db as unknown as DatabaseHandle);
     });
 
     it('Partner auto-approves email.fetch (read action)', () => {

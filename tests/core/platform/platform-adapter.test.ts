@@ -14,7 +14,7 @@ import {
 } from '@semblance/core/platform/index.js';
 import { createDesktopAdapter } from '@semblance/core/platform/desktop-adapter.js';
 import { createMobileAdapter, mobilePath } from '@semblance/core/platform/mobile-adapter.js';
-import type { PlatformAdapter } from '@semblance/core/platform/types.js';
+import type { PlatformAdapter, FileSystemAdapter, CryptoAdapter } from '@semblance/core/platform/types.js';
 
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -331,7 +331,7 @@ describe('Mobile Adapter — Injected Implementations', () => {
 
     const mobile = createMobileAdapter({
       name: 'mobile-ios',
-      fs: mockFs,
+      fs: mockFs as unknown as FileSystemAdapter,
     });
 
     expect(mobile.fs.existsSync('/anything')).toBe(true);
@@ -347,7 +347,7 @@ describe('Mobile Adapter — Injected Implementations', () => {
 
     const mobile = createMobileAdapter({
       name: 'mobile-android',
-      crypto: mockCrypto,
+      crypto: mockCrypto as unknown as CryptoAdapter,
     });
 
     expect(mobile.crypto.sha256('test')).toBe('mock-hash-test');

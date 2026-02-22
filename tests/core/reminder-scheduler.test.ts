@@ -7,10 +7,11 @@ import { ReminderScheduler } from '@semblance/core/agent/reminder-scheduler.js';
 import { ReminderStore } from '@semblance/core/knowledge/reminder-store.js';
 import type { Reminder } from '@semblance/core/knowledge/reminder-store.js';
 import DatabaseConstructor from 'better-sqlite3';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createStoreAndScheduler(pollIntervalMs = 30_000) {
   const db = new DatabaseConstructor(':memory:');
-  const store = new ReminderStore(db);
+  const store = new ReminderStore(db as unknown as DatabaseHandle);
   const scheduler = new ReminderScheduler({ store, pollIntervalMs });
   return { db, store, scheduler };
 }
@@ -30,11 +31,11 @@ describe('ReminderScheduler: tick()', () => {
 
     const fired = scheduler.tick(now);
     expect(fired).toHaveLength(1);
-    expect(fired[0].text).toBe('call dentist');
+    expect(fired[0]!.text).toBe('call dentist');
 
     // Verify status is now 'fired'
     const all = store.findAll();
-    expect(all[0].status).toBe('fired');
+    expect(all[0]!.status).toBe('fired');
   });
 
   it('does not fire reminders that are not yet due', () => {
@@ -74,7 +75,7 @@ describe('ReminderScheduler: tick()', () => {
     // After reactivation, the reminder becomes pending with its original due_at,
     // which is in the past, so it should fire immediately
     expect(fired).toHaveLength(1);
-    expect(fired[0].text).toBe('snoozed item');
+    expect(fired[0]!.text).toBe('snoozed item');
   });
 
   it('does not reactivate snoozed reminders still in snooze period', () => {
@@ -119,8 +120,8 @@ describe('ReminderScheduler: tick()', () => {
     // Next occurrence should be pending for tomorrow
     const pending = store.findByStatus('pending');
     expect(pending).toHaveLength(1);
-    expect(pending[0].text).toBe('daily standup');
-    expect(pending[0].dueAt).toContain('2026-02-23');
+    expect(pending[0]!.text).toBe('daily standup');
+    expect(pending[0]!.dueAt).toContain('2026-02-23');
   });
 
   it('calls notification handler when reminder fires', () => {

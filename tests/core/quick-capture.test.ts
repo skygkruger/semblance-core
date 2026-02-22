@@ -8,19 +8,23 @@ import {
 } from '@semblance/core/agent/quick-capture.js';
 import { CaptureStore } from '@semblance/core/knowledge/capture-store.js';
 import type { LinkedContextRef } from '@semblance/core/knowledge/capture-store.js';
+import type { LLMProvider } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 import DatabaseConstructor from 'better-sqlite3';
 
-function mockLLM(response: string) {
+function mockLLM(response: string): LLMProvider {
   return {
+    isAvailable: vi.fn().mockResolvedValue(true),
     chat: vi.fn().mockResolvedValue({ message: { role: 'assistant', content: response } }),
     generate: vi.fn(),
     embed: vi.fn(),
-    listModels: vi.fn(),
-  };
+    listModels: vi.fn().mockResolvedValue([]),
+    getModel: vi.fn().mockResolvedValue(null),
+  } as unknown as LLMProvider;
 }
 
-function createTestDb() {
-  return new DatabaseConstructor(':memory:');
+function createTestDb(): DatabaseHandle {
+  return new DatabaseConstructor(':memory:') as unknown as DatabaseHandle;
 }
 
 describe('hasTimeReference: heuristic detection', () => {
@@ -66,7 +70,7 @@ describe('hasTimeReference: heuristic detection', () => {
 });
 
 describe('CaptureStore', () => {
-  let db: InstanceType<typeof DatabaseConstructor>;
+  let db: DatabaseHandle;
   let store: CaptureStore;
 
   beforeEach(() => {
@@ -94,7 +98,7 @@ describe('CaptureStore', () => {
     const capture = store.create({ text: 'project notes', linkedContext: context });
     expect(capture.processed).toBe(true);
     expect(capture.linkedContext).toHaveLength(1);
-    expect(capture.linkedContext[0].title).toBe('Email from Sarah');
+    expect(capture.linkedContext[0]!.title).toBe('Email from Sarah');
   });
 
   it('creates a capture with reminder ID', () => {
@@ -111,8 +115,8 @@ describe('CaptureStore', () => {
     const all = store.findAll();
     expect(all).toHaveLength(3);
     // Reverse chronological — newest first
-    expect(all[0].text).toBe('third');
-    expect(all[2].text).toBe('first');
+    expect(all[0]!.text).toBe('third');
+    expect(all[2]!.text).toBe('first');
   });
 
   it('findUnprocessed returns only unprocessed captures', () => {
@@ -121,7 +125,7 @@ describe('CaptureStore', () => {
 
     const unprocessed = store.findUnprocessed();
     expect(unprocessed).toHaveLength(1);
-    expect(unprocessed[0].text).toBe('unprocessed');
+    expect(unprocessed[0]!.text).toBe('unprocessed');
   });
 
   it('markProcessed updates a capture', () => {
@@ -157,7 +161,7 @@ describe('CaptureStore', () => {
 });
 
 describe('processCapture', () => {
-  let db: InstanceType<typeof DatabaseConstructor>;
+  let db: DatabaseHandle;
   let captureStore: CaptureStore;
 
   beforeEach(() => {
@@ -242,8 +246,8 @@ describe('processCapture', () => {
     );
 
     expect(result.linkedContext).toHaveLength(1);
-    expect(result.linkedContext[0].documentId).toBe('doc-1');
-    expect(result.linkedContext[0].score).toBe(0.85);
+    expect(result.linkedContext[0]!.documentId).toBe('doc-1');
+    expect(result.linkedContext[0]!.score).toBe(0.85);
     expect(mockKnowledgeGraph.search).toHaveBeenCalledWith(
       'thoughts about the Portland project',
       expect.objectContaining({ limit: 3 }),

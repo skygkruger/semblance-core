@@ -41,7 +41,7 @@ describe('Mobile Wiring — Web Search', () => {
 
     expect(results.query).toBe('TypeScript generics');
     expect(results.results).toHaveLength(2);
-    expect(results.results[0].source).toBe('typescriptlang.org');
+    expect(results.results[0]!.source).toBe('typescriptlang.org');
     expect(results.provider).toBe('brave');
   });
 
@@ -134,7 +134,7 @@ describe('Mobile Wiring — Reminders', () => {
 
     const due = getDueReminders(reminders);
     expect(due).toHaveLength(1);
-    expect(due[0].id).toBe('r1');
+    expect(due[0]!.id).toBe('r1');
   });
 });
 

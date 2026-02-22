@@ -20,6 +20,8 @@ import {
 } from '@semblance/core/agent/quick-capture.js';
 import { CaptureStore } from '@semblance/core/knowledge/capture-store.js';
 import DatabaseConstructor from 'better-sqlite3';
+import type { LLMProvider } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 // ─── Utility ───────────────────────────────────────────────────────────────
 
@@ -52,7 +54,7 @@ function mockLLM(response: string) {
     generate: vi.fn(),
     embed: vi.fn(),
     listModels: vi.fn(),
-  };
+  } as unknown as LLMProvider;
 }
 
 // ─── Privacy Guard Tests ────────────────────────────────────────────────────
@@ -275,7 +277,7 @@ describe('Step 10 Integration: Quick capture end-to-end', () => {
 
   it('capture without time reference stores without reminder', async () => {
     const db = new DatabaseConstructor(':memory:');
-    const captureStore = new CaptureStore(db);
+    const captureStore = new CaptureStore(db as unknown as DatabaseHandle);
     const llm = mockLLM('no');
 
     const result = await processCapture(

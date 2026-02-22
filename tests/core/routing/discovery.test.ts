@@ -140,8 +140,8 @@ describe('mDNS Discovery — Discovery Manager', () => {
 
     const discovered = manager.getDiscoveredDevices();
     expect(discovered).toHaveLength(1);
-    expect(discovered[0].deviceId).toBe('device-mobile-1');
-    expect(discovered[0].deviceName).toBe("Sky's iPhone");
+    expect(discovered[0]!.deviceId).toBe('device-mobile-1');
+    expect(discovered[0]!.deviceName).toBe("Sky's iPhone");
   });
 
   it('ignores own device in discovery', () => {

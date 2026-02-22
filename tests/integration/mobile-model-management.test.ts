@@ -21,7 +21,7 @@ import { classifyMobileDevice } from '../../packages/core/llm/mobile-bridge-type
 
 describe('Mobile Model Management', () => {
   let manager: MobileModelManager;
-  const testModel = MOBILE_MODEL_REGISTRY[0]; // llama-3.2-3b-q4
+  const testModel = MOBILE_MODEL_REGISTRY[0]!; // llama-3.2-3b-q4
 
   const wifiConnected: NetworkConnectivity = { isConnected: true, isWifi: true, isCellular: false };
   const cellularOnly: NetworkConnectivity = { isConnected: true, isWifi: false, isCellular: true };
@@ -84,12 +84,12 @@ describe('Mobile Model Management', () => {
       manager.verifyIntegrity(testModel, testModel.expectedSha256);
       const log = manager.getAuditLog();
       expect(log.length).toBe(1);
-      expect(log[0].action).toBe('integrity.passed');
+      expect(log[0]!.action).toBe('integrity.passed');
 
       manager.verifyIntegrity(testModel, 'bad-hash');
       const log2 = manager.getAuditLog();
       expect(log2.length).toBe(2);
-      expect(log2[1].action).toBe('integrity.failed');
+      expect(log2[1]!.action).toBe('integrity.failed');
     });
   });
 

@@ -16,29 +16,29 @@ import type { MobileDeviceProfile } from '@semblance/core/llm/mobile-bridge-type
 
 // ─── Test Device Profiles ───────────────────────────────────────────────────
 
-const CAPABLE_DEVICE: MobileDeviceProfile = {
+const CAPABLE_DEVICE = {
   platform: 'ios',
   ramMb: 8192,
   tier: 'capable',
   recommendedModelSize: '3B',
   description: 'iPhone 15 Pro — 8GB RAM, capable tier',
-};
+} as unknown as MobileDeviceProfile;
 
-const CONSTRAINED_DEVICE: MobileDeviceProfile = {
+const CONSTRAINED_DEVICE = {
   platform: 'android',
   ramMb: 4096,
   tier: 'constrained',
   recommendedModelSize: '1.5B',
   description: 'Budget Android — 4GB RAM, constrained tier',
-};
+} as unknown as MobileDeviceProfile;
 
-const NONE_DEVICE: MobileDeviceProfile = {
+const NONE_DEVICE = {
   platform: 'android',
   ramMb: 2048,
   tier: 'none',
   recommendedModelSize: null,
   description: 'Low-end device — 2GB RAM, inference not supported',
-};
+} as unknown as MobileDeviceProfile;
 
 // ─── Model Registry ─────────────────────────────────────────────────────────
 
@@ -122,13 +122,13 @@ describe('Mobile Model Selection', () => {
   });
 
   it('respects RAM limits — does not select model exceeding device RAM', () => {
-    const lowRamCapable: MobileDeviceProfile = {
+    const lowRamCapable = {
       platform: 'android',
       ramMb: 3200, // Just above 1.5B min (3072) but below 3B min (5120)
       tier: 'capable',
       recommendedModelSize: '3B',
       description: 'Low RAM capable device',
-    };
+    } as unknown as MobileDeviceProfile;
 
     const model = selectReasoningModel(lowRamCapable);
     // Should return null because 3B model needs 5120 MB but device only has 3200

@@ -5,15 +5,18 @@
 // Note: This component depends on @react-navigation/bottom-tabs which is
 // a React Native library. In test environments, we render screens directly.
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { colors, typography, spacing } from '../theme/tokens.js';
 import type { TabParamList } from './types.js';
 
 import { InboxScreen } from '../screens/InboxScreen.js';
+import type { InboxItem } from '../screens/InboxScreen.js';
 import { ChatScreen } from '../screens/ChatScreen.js';
 import { CaptureScreen } from '../screens/CaptureScreen.js';
 import { SettingsScreen } from '../screens/SettingsScreen.js';
+import { createEmptyDataSource, fetchInbox } from '../data/inbox-provider.js';
+import type { InboxDataSource } from '../data/inbox-provider.js';
 
 // Tab configuration for the bottom navigation
 export const TAB_CONFIG: Array<{
@@ -51,15 +54,49 @@ export const TAB_BAR_COLORS = {
 /**
  * Simplified tab view for environments without React Navigation.
  * Full navigation integration happens when running in React Native.
+ * Instantiates data providers and passes real data to screens.
  */
-export function SimpleTabView({ activeTab = 'Inbox' }: { activeTab?: keyof TabParamList }) {
-  const tab = TAB_CONFIG.find(t => t.name === activeTab);
-  const Screen = tab?.screen ?? InboxScreen;
+export function SimpleTabView({
+  activeTab = 'Inbox',
+  dataSource,
+}: {
+  activeTab?: keyof TabParamList;
+  dataSource?: InboxDataSource;
+}) {
+  const [inboxItems, setInboxItems] = useState<InboxItem[]>([]);
+  const source = dataSource ?? createEmptyDataSource();
+
+  const loadInbox = useCallback(async () => {
+    const result = await fetchInbox(source);
+    setInboxItems(result.items);
+  }, [source]);
+
+  useEffect(() => {
+    void loadInbox();
+  }, [loadInbox]);
+
+  const handleRefresh = useCallback(async () => {
+    await loadInbox();
+  }, [loadInbox]);
+
+  const renderScreen = () => {
+    if (activeTab === 'Inbox') {
+      return (
+        <InboxScreen
+          items={inboxItems}
+          onRefresh={handleRefresh}
+        />
+      );
+    }
+    const tab = TAB_CONFIG.find(t => t.name === activeTab);
+    const Screen = tab?.screen ?? InboxScreen;
+    return <Screen />;
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Screen />
+        {renderScreen()}
       </View>
       <View style={styles.tabBar}>
         {TAB_CONFIG.map(t => (

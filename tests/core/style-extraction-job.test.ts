@@ -11,6 +11,7 @@ import {
 import { StyleProfileStore, createEmptyProfile } from '@semblance/core/style/style-profile.js';
 import type { SentEmail } from '@semblance/core/style/style-extractor.js';
 import type { LLMProvider, ChatResponse } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ let store: StyleProfileStore;
 
 beforeEach(() => {
   db = new Database(':memory:');
-  store = new StyleProfileStore(db);
+  store = new StyleProfileStore(db as unknown as DatabaseHandle);
 });
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -171,7 +172,7 @@ describe('StyleExtractionJob', () => {
       }
 
       // Last update should be 'completed'
-      const lastUpdate = progressUpdates[progressUpdates.length - 1];
+      const lastUpdate = progressUpdates[progressUpdates.length - 1]!;
       expect(lastUpdate.status).toBe('completed');
       expect(lastUpdate.processed).toBe(25);
     });
@@ -268,7 +269,7 @@ describe('StyleExtractionJob', () => {
       expect(result!.emailsAnalyzed).toBeLessThan(50);
 
       // Last progress update should report 'paused'
-      const lastUpdate = progressUpdates[progressUpdates.length - 1];
+      const lastUpdate = progressUpdates[progressUpdates.length - 1]!;
       expect(lastUpdate.status).toBe('paused');
 
       // Job should no longer be running
@@ -416,7 +417,7 @@ describe('StyleExtractionJob', () => {
       expect(incrementalUpdates.length).toBeGreaterThanOrEqual(3); // 3+3+2 batches + completed
 
       // Last update should be completed
-      const lastUpdate = progressUpdates[progressUpdates.length - 1];
+      const lastUpdate = progressUpdates[progressUpdates.length - 1]!;
       expect(lastUpdate.status).toBe('completed');
       expect(lastUpdate.phase).toBe('incremental');
     });

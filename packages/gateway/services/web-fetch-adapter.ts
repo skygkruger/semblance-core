@@ -293,6 +293,6 @@ export class WebFetchAdapter implements ServiceAdapter {
 
   private extractTitle(html: string): string {
     const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    return match ? match[1].trim() : 'Untitled';
+    return match?.[1] ? match[1].trim() : 'Untitled';
   }
 }

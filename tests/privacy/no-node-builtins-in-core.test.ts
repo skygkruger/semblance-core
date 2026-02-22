@@ -23,6 +23,7 @@ const CORE_DIR = join(ROOT, 'packages', 'core');
 // Files that are approved to have Node.js imports
 const APPROVED_FILES = new Set([
   'platform/desktop-adapter.ts',     // The adapter itself wraps Node.js
+  'platform/desktop-vector-store.ts', // LanceDB wrapper (only @lancedb/lancedb import)
   'ipc/socket-transport.ts',         // Desktop-only IPC transport (node:net approved)
 ]);
 
@@ -65,6 +66,7 @@ const BANNED_PATTERNS: Array<{ pattern: RegExp; description: string }> = [
   { pattern: /require\s*\(\s*['"]node:/,          description: "require('node:...')" },
   { pattern: /require\s*\(\s*['"]better-sqlite3['"]/, description: "require('better-sqlite3')" },
   { pattern: /import\s*\(\s*['"]node:fs['"]\s*\)/, description: "dynamic import('node:fs')" },
+  { pattern: /from\s+['"]@lancedb\/lancedb['"]/, description: "import from '@lancedb/lancedb'" },
 ];
 
 describe('No Node.js Builtins in packages/core/', () => {

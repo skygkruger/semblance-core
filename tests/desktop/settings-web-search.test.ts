@@ -30,7 +30,7 @@ describe('Settings Web Search: Provider Selection', () => {
     const showSearxngUrl = provider === 'searxng';
     expect(showSearxngUrl).toBe(true);
 
-    const providerBrave = 'brave';
+    const providerBrave: string = 'brave';
     const showSearxngUrlBrave = providerBrave === 'searxng';
     expect(showSearxngUrlBrave).toBe(false);
   });

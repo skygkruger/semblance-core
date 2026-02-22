@@ -30,6 +30,7 @@ import type {
   PreparedStatement,
   HardwareAdapter,
   NotificationAdapter,
+  VectorStoreAdapter,
 } from './types.js';
 
 // ─── Pure JS Path Implementation ────────────────────────────────────────────
@@ -101,6 +102,9 @@ const stubCrypto: CryptoAdapter = {
   sha256: () => notConfigured('Crypto'),
   hmacSha256: () => notConfigured('Crypto'),
   randomBytes: () => notConfigured('Crypto'),
+  generateEncryptionKey: () => notConfigured('Crypto'),
+  encrypt: () => notConfigured('Crypto'),
+  decrypt: () => notConfigured('Crypto'),
 };
 
 const stubSqlite: SQLiteAdapter = {
@@ -138,6 +142,8 @@ export interface MobileAdapterConfig {
   hardware?: HardwareAdapter;
   /** Notifications (wraps notifee for local notifications) */
   notifications?: NotificationAdapter;
+  /** Vector store (SQLiteVectorStore for mobile) */
+  vectorStore?: VectorStoreAdapter;
 }
 
 /**
@@ -154,5 +160,6 @@ export function createMobileAdapter(config: MobileAdapterConfig): PlatformAdapte
     sqlite: config.sqlite ?? stubSqlite,
     hardware: config.hardware ?? stubHardware,
     notifications: config.notifications ?? stubNotifications,
+    vectorStore: config.vectorStore,
   };
 }

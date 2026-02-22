@@ -5,6 +5,7 @@ import Database from 'better-sqlite3';
 import { EmailIndexer } from '@semblance/core/knowledge/email-indexer.js';
 import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index.js';
 import type { LLMProvider } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createMockKnowledge(): KnowledgeGraph {
   return {
@@ -56,7 +57,7 @@ describe('EmailIndexer', () => {
     db = new Database(':memory:');
     knowledge = createMockKnowledge();
     llm = createMockLLM();
-    indexer = new EmailIndexer({ db, knowledge, llm });
+    indexer = new EmailIndexer({ db: db as unknown as DatabaseHandle, knowledge, llm });
   });
 
   describe('schema', () => {
@@ -234,7 +235,7 @@ describe('EmailIndexer', () => {
       ], 'account-1');
       const results = indexer.searchEmails('meeting');
       expect(results.length).toBeGreaterThanOrEqual(1);
-      expect(results[0].subject).toContain('Meeting');
+      expect(results[0]!.subject).toContain('Meeting');
     });
   });
 

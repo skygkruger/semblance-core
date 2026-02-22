@@ -215,7 +215,7 @@ describe('PendingActionBanner — Approval Pattern Display', () => {
   });
 
   it('displays plural times approved', () => {
-    const count = 5;
+    const count: number = 5;
     const display = `Similar actions approved: ${count} time${count !== 1 ? 's' : ''}`;
     expect(display).toBe('Similar actions approved: 5 times');
   });

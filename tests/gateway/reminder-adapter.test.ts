@@ -5,10 +5,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { ReminderStore } from '@semblance/core/knowledge/reminder-store.js';
 import { ReminderAdapter } from '@semblance/gateway/services/reminder-adapter.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createAdapter(): { adapter: ReminderAdapter; store: ReminderStore } {
   const db = new Database(':memory:');
-  const store = new ReminderStore(db);
+  const store = new ReminderStore(db as unknown as DatabaseHandle);
   const adapter = new ReminderAdapter(store);
   return { adapter, store };
 }
@@ -152,7 +153,7 @@ describe('ReminderAdapter: unsupported actions', () => {
 describe('ReminderAdapter: error handling', () => {
   it('catches and wraps unexpected errors', async () => {
     const db = new Database(':memory:');
-    const store = new ReminderStore(db);
+    const store = new ReminderStore(db as unknown as DatabaseHandle);
     const adapter = new ReminderAdapter(store);
 
     // Close the database to force an error

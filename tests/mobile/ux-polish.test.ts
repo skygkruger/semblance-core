@@ -163,8 +163,8 @@ describe('Mobile UX — Local Notifications', () => {
     expect(notif.body).toBe('Call dentist');
     expect(notif.fireDate).toEqual(dueAt);
     expect(notif.actions).toHaveLength(2);
-    expect(notif.actions![0].id).toBe('snooze');
-    expect(notif.actions![1].id).toBe('dismiss');
+    expect(notif.actions![0]!.id).toBe('snooze');
+    expect(notif.actions![1]!.id).toBe('dismiss');
   });
 
   it('builds insight notification', () => {

@@ -56,23 +56,23 @@ describe('Mobile Feature Wiring — Email Inbox', () => {
     const items = emailsToInboxItems(mockEmails);
 
     expect(items).toHaveLength(2);
-    expect(items[0].type).toBe('email');
-    expect(items[0].title).toBe('Q1 Report Review');
-    expect(items[0].read).toBe(false);
-    expect(items[0].priority).toBe('high');
-    expect(items[0].category).toBe('actionable');
+    expect(items[0]!.type).toBe('email');
+    expect(items[0]!.title).toBe('Q1 Report Review');
+    expect(items[0]!.read).toBe(false);
+    expect(items[0]!.priority).toBe('high');
+    expect(items[0]!.category).toBe('actionable');
   });
 
   it('handles empty subject', () => {
     const items = emailsToInboxItems([
-      { ...mockEmails[0], subject: '' },
+      { ...mockEmails[0]!, subject: '' },
     ]);
-    expect(items[0].title).toBe('(no subject)');
+    expect(items[0]!.title).toBe('(no subject)');
   });
 
   it('prefixes email IDs', () => {
     const items = emailsToInboxItems(mockEmails);
-    expect(items[0].id).toBe('email-1');
+    expect(items[0]!.id).toBe('email-1');
   });
 });
 
@@ -103,10 +103,10 @@ describe('Mobile Feature Wiring — Reminders Inbox', () => {
 
     const items = remindersToInboxItems(reminders);
     expect(items).toHaveLength(2); // Excludes completed
-    expect(items[0].type).toBe('reminder');
-    expect(items[0].id).toBe('reminder-r1');
-    expect(items[0].priority).toBe('high'); // Due within 1 hour
-    expect(items[1].priority).toBe('normal'); // Due in 2 days
+    expect(items[0]!.type).toBe('reminder');
+    expect(items[0]!.id).toBe('reminder-r1');
+    expect(items[0]!.priority).toBe('high'); // Due within 1 hour
+    expect(items[1]!.priority).toBe('normal'); // Due in 2 days
   });
 });
 
@@ -127,8 +127,8 @@ describe('Mobile Feature Wiring — Autonomous Actions', () => {
 
     const items = actionsToInboxItems(actions);
     expect(items).toHaveLength(1);
-    expect(items[0].type).toBe('action');
-    expect(items[0].preview).toContain('partner');
+    expect(items[0]!.type).toBe('action');
+    expect(items[0]!.preview).toContain('partner');
   });
 });
 
@@ -189,8 +189,8 @@ describe('Mobile Feature Wiring — Network Monitor', () => {
   it('converts audit entries to monitor entries', () => {
     const entries = auditEntriesToMonitorEntries(mockEntries);
     expect(entries).toHaveLength(4);
-    expect(entries[0].service).toBe('email');
-    expect(entries[2].service).toBe('calendar');
+    expect(entries[0]!.service).toBe('email');
+    expect(entries[2]!.service).toBe('calendar');
   });
 
   it('computes monitor stats correctly', () => {
@@ -219,9 +219,9 @@ describe('Mobile Feature Wiring — Subscriptions', () => {
     const items = chargesToSubscriptionItems(mockCharges);
 
     expect(items).toHaveLength(3);
-    expect(items[0].annualCost).toBeCloseTo(15.99 * 12);
-    expect(items[1].isForgotten).toBe(true);
-    expect(items[2].annualCost).toBe(1200);
+    expect(items[0]!.annualCost).toBeCloseTo(15.99 * 12);
+    expect(items[1]!.isForgotten).toBe(true);
+    expect(items[2]!.annualCost).toBe(1200);
   });
 
   it('builds subscription summary', () => {

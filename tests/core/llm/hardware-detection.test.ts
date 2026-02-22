@@ -64,7 +64,7 @@ describe('Hardware → Model Selection Pipeline', () => {
     // All should be the same model
     const ids = new Set(embeddings.map(e => e.id));
     expect(ids.size).toBe(1);
-    expect(embeddings[0].embeddingDimensions).toBe(768);
+    expect(embeddings[0]!.embeddingDimensions).toBe(768);
   });
 
   it('every tier model fits within its RAM budget', () => {

@@ -5,6 +5,7 @@ import Database from 'better-sqlite3';
 import { CalendarIndexer } from '@semblance/core/knowledge/calendar-indexer.js';
 import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index.js';
 import type { LLMProvider } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createMockKnowledge(): KnowledgeGraph {
   return {
@@ -61,7 +62,7 @@ describe('CalendarIndexer', () => {
     db = new Database(':memory:');
     knowledge = createMockKnowledge();
     llm = createMockLLM();
-    indexer = new CalendarIndexer({ db, knowledge, llm });
+    indexer = new CalendarIndexer({ db: db as unknown as DatabaseHandle, knowledge, llm });
   });
 
   describe('schema', () => {

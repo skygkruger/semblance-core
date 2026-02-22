@@ -7,6 +7,7 @@ import { AutonomyManager } from '@semblance/core/agent/autonomy.js';
 import type { LLMProvider, ChatResponse, ToolCall } from '@semblance/core/llm/types.js';
 import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index.js';
 import type { IPCClient } from '@semblance/core/agent/ipc-client.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createMockLLM(overrides?: Partial<LLMProvider>): LLMProvider {
   return {
@@ -69,7 +70,7 @@ describe('Orchestrator — Calendar Tools', () => {
 
   beforeEach(() => {
     db = new Database(':memory:');
-    autonomy = new AutonomyManager(db);
+    autonomy = new AutonomyManager(db as unknown as DatabaseHandle);
     ipc = createMockIPC();
   });
 
@@ -94,14 +95,14 @@ describe('Orchestrator — Calendar Tools', () => {
           } satisfies ChatResponse),
       });
       const orchestrator = new OrchestratorImpl({
-        llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+        llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       });
 
       await orchestrator.processMessage('Schedule a team lunch tomorrow');
       const pending = await orchestrator.getPendingActions();
       expect(pending.length).toBeGreaterThanOrEqual(1);
-      expect(pending[0].action).toBe('calendar.create');
-      expect(pending[0].status).toBe('pending_approval');
+      expect(pending[0]!.action).toBe('calendar.create');
+      expect(pending[0]!.status).toBe('pending_approval');
     });
   });
 
@@ -126,7 +127,7 @@ describe('Orchestrator — Calendar Tools', () => {
           } satisfies ChatResponse),
       });
       const orchestrator = new OrchestratorImpl({
-        llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+        llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       });
 
       await orchestrator.processMessage('Add a standup at 9am');
@@ -151,7 +152,7 @@ describe('Orchestrator — Calendar Tools', () => {
           } satisfies ChatResponse),
       });
       const orchestrator = new OrchestratorImpl({
-        llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+        llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       });
 
       await orchestrator.processMessage("What's on my calendar?");
@@ -179,7 +180,7 @@ describe('Orchestrator — Calendar Tools', () => {
           } satisfies ChatResponse),
       });
       const orchestrator = new OrchestratorImpl({
-        llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+        llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       });
 
       await orchestrator.processMessage('Check for conflicts at 10am');
@@ -212,13 +213,13 @@ describe('Orchestrator — Calendar Tools', () => {
           } satisfies ChatResponse),
       });
       const orchestrator = new OrchestratorImpl({
-        llm, knowledge: createMockKnowledge(), ipc, autonomy, db, model: 'llama3.2:8b',
+        llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       });
 
       const result = await orchestrator.processMessage('Schedule a quick sync');
       // In partner mode, calendar.create may be auto-approved depending on action classification
       expect(result.actions.length).toBeGreaterThanOrEqual(1);
-      expect(result.actions[0].action).toBe('calendar.create');
+      expect(result.actions[0]!.action).toBe('calendar.create');
     });
   });
 });

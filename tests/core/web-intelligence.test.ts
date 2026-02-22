@@ -8,6 +8,9 @@ import {
   detectUrls,
 } from '@semblance/core/agent/web-intelligence.js';
 import type { QueryClassification } from '@semblance/core/agent/web-intelligence.js';
+import type { LLMProvider } from '@semblance/core/llm/types.js';
+import type { KnowledgeGraph } from '@semblance/core/knowledge/index.js';
+import type { IPCClient } from '@semblance/core/agent/ipc-client.js';
 
 describe('classifyQueryFast: web_required queries', () => {
   const webQueries: Array<[string, string]> = [
@@ -66,7 +69,7 @@ describe('classifyQueryWithLLM', () => {
       listModels: vi.fn(),
     };
 
-    const result = await classifyQueryWithLLM('tell me about quantum computing', mockLLM);
+    const result = await classifyQueryWithLLM('tell me about quantum computing', mockLLM as unknown as LLMProvider);
     expect(result).toBe('web_required');
     expect(mockLLM.chat).toHaveBeenCalledOnce();
   });
@@ -79,7 +82,7 @@ describe('classifyQueryWithLLM', () => {
       listModels: vi.fn(),
     };
 
-    const result = await classifyQueryWithLLM('find my notes', mockLLM);
+    const result = await classifyQueryWithLLM('find my notes', mockLLM as unknown as LLMProvider);
     expect(result).toBe('local_only');
   });
 
@@ -91,7 +94,7 @@ describe('classifyQueryWithLLM', () => {
       listModels: vi.fn(),
     };
 
-    const result = await classifyQueryWithLLM('what about the Portland contract', mockLLM);
+    const result = await classifyQueryWithLLM('what about the Portland contract', mockLLM as unknown as LLMProvider);
     expect(result).toBe('local_then_web');
   });
 
@@ -103,7 +106,7 @@ describe('classifyQueryWithLLM', () => {
       listModels: vi.fn(),
     };
 
-    const result = await classifyQueryWithLLM('ambiguous query', mockLLM);
+    const result = await classifyQueryWithLLM('ambiguous query', mockLLM as unknown as LLMProvider);
     expect(result).toBe('local_then_web');
   });
 
@@ -115,7 +118,7 @@ describe('classifyQueryWithLLM', () => {
       listModels: vi.fn(),
     };
 
-    const result = await classifyQueryWithLLM('ambiguous query', mockLLM);
+    const result = await classifyQueryWithLLM('ambiguous query', mockLLM as unknown as LLMProvider);
     expect(result).toBe('local_then_web');
   });
 });
@@ -174,7 +177,7 @@ describe('searchWithRouting: local_then_web threshold behavior', () => {
       isConnected: vi.fn(),
     };
 
-    const result = await searchWithRouting('Portland contract details', mockLLM, mockKG, mockIpc);
+    const result = await searchWithRouting('Portland contract details', mockLLM as unknown as LLMProvider, mockKG as unknown as KnowledgeGraph, mockIpc as unknown as IPCClient);
 
     expect(result.source).toBe('local');
     expect(result.localResults).toHaveLength(2);
@@ -215,7 +218,7 @@ describe('searchWithRouting: local_then_web threshold behavior', () => {
       isConnected: vi.fn(),
     };
 
-    const result = await searchWithRouting('Portland weather', mockLLM, mockKG, mockIpc);
+    const result = await searchWithRouting('Portland weather', mockLLM as unknown as LLMProvider, mockKG as unknown as KnowledgeGraph, mockIpc as unknown as IPCClient);
 
     expect(result.webResults).toHaveLength(1);
     // Web search SHOULD have been called — local results were insufficient

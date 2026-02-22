@@ -20,6 +20,11 @@ export type {
   PreparedStatement,
   HardwareAdapter,
   NotificationAdapter,
+  VectorStoreAdapter,
+  VectorEntry,
+  VectorResult,
+  VectorFilter,
+  EncryptedPayload,
 } from './types.js';
 
 // Re-export adapter factories

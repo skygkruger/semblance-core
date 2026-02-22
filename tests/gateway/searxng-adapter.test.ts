@@ -29,7 +29,7 @@ describe('SearXNGAdapter: successful search', () => {
     await adapter.execute('web.search', { query: 'test query' });
 
     expect(fetchFn).toHaveBeenCalledOnce();
-    const [url] = (fetchFn as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [url] = (fetchFn as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(url).toContain('https://searx.example.com/search');
     expect(url).toContain('q=test+query');
     expect(url).toContain('format=json');
@@ -64,7 +64,7 @@ describe('SearXNGAdapter: successful search', () => {
 
     await adapter.execute('web.search', { query: 'test' });
 
-    const [url] = (fetchFn as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [url] = (fetchFn as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(url).not.toContain('//search');
     expect(url).toContain('example.com/search');
   });

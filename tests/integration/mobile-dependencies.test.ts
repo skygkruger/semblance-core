@@ -59,11 +59,11 @@ describe('MobileAdapterConfig interface is satisfiable', () => {
       stat: async () => ({ size: 0, isDirectory: () => false, isFile: () => true, mtimeMs: 0 }),
     };
 
-    const mockCrypto: CryptoAdapter = {
+    const mockCrypto = {
       sha256: (data: string) => `sha256(${data})`,
       hmacSha256: (_key: Buffer, data: string) => `hmac(${data})`,
       randomBytes: (size: number) => Buffer.alloc(size),
-    };
+    } as unknown as CryptoAdapter;
 
     const mockSqlite: SQLiteAdapter = {
       openDatabase: () => ({

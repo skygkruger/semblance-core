@@ -121,6 +121,27 @@ export function digestToInboxItem(digest: WeeklyDigest): InboxItem {
 }
 
 /**
+ * Convert a daily digest to an inbox item.
+ */
+export function dailyDigestToInboxItem(digest: {
+  id: string;
+  summary: string;
+  totalActions: number;
+  timeSavedFormatted: string;
+  date: string;
+}): InboxItem {
+  return {
+    id: `daily-digest-${digest.id}`,
+    type: 'digest' as const,
+    title: `Daily Digest — ${digest.timeSavedFormatted} saved`,
+    preview: digest.summary,
+    timestamp: digest.date,
+    read: false,
+    priority: 'normal',
+  };
+}
+
+/**
  * Merge and sort all inbox items by timestamp (newest first).
  */
 export function mergeInboxItems(...groups: InboxItem[][]): InboxItem[] {

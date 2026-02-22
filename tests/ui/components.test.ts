@@ -90,11 +90,11 @@ describe('Design Token Usage — No Hardcoded Colors', () => {
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         // Only check lines that contain className
-        if (line.includes('className') && HEX_COLOR_PATTERN.test(line)) {
+        if (line!.includes('className') && HEX_COLOR_PATTERN.test(line!)) {
           // Allow opacity modifiers like bg-semblance-primary/30 which don't contain #
           // But fail on actual hex values in className strings
           throw new Error(
-            `${name}.tsx line ${i + 1}: Hardcoded hex color in className: "${line.trim()}"`
+            `${name}.tsx line ${i + 1}: Hardcoded hex color in className: "${line!.trim()}"`
           );
         }
       }

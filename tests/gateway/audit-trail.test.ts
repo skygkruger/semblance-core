@@ -47,18 +47,18 @@ describe('Audit Trail', () => {
 
     // Direct SQL attempt to update should fail integrity
     // The AuditTrail class has no update method — this test verifies the API surface
-    expect(typeof (trail as Record<string, unknown>)['update']).toBe('undefined');
-    expect(typeof (trail as Record<string, unknown>)['updateEntry']).toBe('undefined');
-    expect(typeof (trail as Record<string, unknown>)['modify']).toBe('undefined');
+    expect(typeof (trail as unknown as Record<string, unknown>)['update']).toBe('undefined');
+    expect(typeof (trail as unknown as Record<string, unknown>)['updateEntry']).toBe('undefined');
+    expect(typeof (trail as unknown as Record<string, unknown>)['modify']).toBe('undefined');
   });
 
   it('entry cannot be deleted via API (no DELETE method)', () => {
     trail.append(makeEntry());
 
-    expect(typeof (trail as Record<string, unknown>)['delete']).toBe('undefined');
-    expect(typeof (trail as Record<string, unknown>)['deleteEntry']).toBe('undefined');
-    expect(typeof (trail as Record<string, unknown>)['remove']).toBe('undefined');
-    expect(typeof (trail as Record<string, unknown>)['truncate']).toBe('undefined');
+    expect(typeof (trail as unknown as Record<string, unknown>)['delete']).toBe('undefined');
+    expect(typeof (trail as unknown as Record<string, unknown>)['deleteEntry']).toBe('undefined');
+    expect(typeof (trail as unknown as Record<string, unknown>)['remove']).toBe('undefined');
+    expect(typeof (trail as unknown as Record<string, unknown>)['truncate']).toBe('undefined');
   });
 
   it('chain hash integrity can be verified across multiple entries', () => {

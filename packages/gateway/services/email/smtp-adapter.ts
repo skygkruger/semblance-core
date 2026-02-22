@@ -214,7 +214,7 @@ export class SMTPAdapter {
   /**
    * Close all transports and clean up.
    */
-  async shutdown(): void {
+  async shutdown(): Promise<void> {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;

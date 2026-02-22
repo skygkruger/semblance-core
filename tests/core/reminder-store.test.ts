@@ -8,10 +8,11 @@ import {
   computeNextOccurrence,
 } from '@semblance/core/knowledge/reminder-store.js';
 import type { Reminder, CreateReminderInput } from '@semblance/core/knowledge/reminder-store.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createInMemoryStore(): ReminderStore {
   const db = new Database(':memory:');
-  return new ReminderStore(db);
+  return new ReminderStore(db as unknown as DatabaseHandle);
 }
 
 describe('ReminderStore: CRUD operations', () => {
@@ -94,8 +95,8 @@ describe('ReminderStore: CRUD operations', () => {
     store.create({ text: 'Earlier', dueAt: '2026-02-22T10:00:00.000Z' });
     const all = store.findAll();
     expect(all).toHaveLength(2);
-    expect(all[0].text).toBe('Earlier');
-    expect(all[1].text).toBe('Later');
+    expect(all[0]!.text).toBe('Earlier');
+    expect(all[1]!.text).toBe('Later');
   });
 
   it('findAll respects limit', () => {
@@ -141,7 +142,7 @@ describe('ReminderStore: findByStatus', () => {
 
     const dismissed = store.findByStatus('dismissed');
     expect(dismissed).toHaveLength(1);
-    expect(dismissed[0].text).toBe('Dismissed');
+    expect(dismissed[0]!.text).toBe('Dismissed');
   });
 });
 
@@ -159,8 +160,8 @@ describe('ReminderStore: findDue', () => {
 
     const due = store.findDue('2026-02-22T12:00:00.000Z');
     expect(due).toHaveLength(2);
-    expect(due[0].text).toBe('Past due');
-    expect(due[1].text).toBe('Due now');
+    expect(due[0]!.text).toBe('Past due');
+    expect(due[1]!.text).toBe('Due now');
   });
 
   it('does not find dismissed or fired reminders', () => {
@@ -172,7 +173,7 @@ describe('ReminderStore: findDue', () => {
 
     const due = store.findDue('2026-02-22T00:00:00.000Z');
     expect(due).toHaveLength(1);
-    expect(due[0].text).toBe('Still pending');
+    expect(due[0]!.text).toBe('Still pending');
   });
 
   it('returns empty array when no reminders are due', () => {
@@ -205,7 +206,7 @@ describe('ReminderStore: snooze', () => {
 
     const ready = store.findSnoozedReady('2026-02-22T10:00:00.000Z');
     expect(ready).toHaveLength(1);
-    expect(ready[0].text).toBe('Snooze 1');
+    expect(ready[0]!.text).toBe('Snooze 1');
   });
 
   it('reactivate sets status back to pending and clears snoozedUntil', () => {
@@ -236,8 +237,8 @@ describe('ReminderStore: snooze', () => {
     // Now shows up as due
     const due = store.findDue('2026-02-22T10:15:00.000Z');
     expect(due).toHaveLength(1);
-    expect(due[0].text).toBe('Round trip');
-    expect(due[0].status).toBe('pending');
+    expect(due[0]!.text).toBe('Round trip');
+    expect(due[0]!.status).toBe('pending');
   });
 });
 

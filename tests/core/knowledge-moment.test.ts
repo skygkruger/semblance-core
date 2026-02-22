@@ -7,6 +7,7 @@ import { EmailIndexer } from '@semblance/core/knowledge/email-indexer.js';
 import { CalendarIndexer } from '@semblance/core/knowledge/calendar-indexer.js';
 import type { KnowledgeGraph } from '@semblance/core/knowledge/index.js';
 import type { LLMProvider } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createMockKnowledge(): KnowledgeGraph {
   return {
@@ -42,8 +43,8 @@ describe('KnowledgeMomentGenerator', () => {
     db = new Database(':memory:');
     knowledge = createMockKnowledge();
     llm = createMockLLM();
-    emailIndexer = new EmailIndexer({ db, knowledge, llm });
-    calendarIndexer = new CalendarIndexer({ db, knowledge, llm });
+    emailIndexer = new EmailIndexer({ db: db as unknown as DatabaseHandle, knowledge, llm });
+    calendarIndexer = new CalendarIndexer({ db: db as unknown as DatabaseHandle, knowledge, llm });
   });
 
   describe('with no data', () => {

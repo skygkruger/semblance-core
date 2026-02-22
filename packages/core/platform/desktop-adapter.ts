@@ -7,7 +7,7 @@ import * as fs from 'node:fs';
 import * as fsPromises from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { createHmac, createHash, randomBytes } from 'node:crypto';
+import { createHmac, createHash, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
 import Database from 'better-sqlite3';
 
 import type {
@@ -19,7 +19,9 @@ import type {
   DatabaseHandle,
   HardwareAdapter,
   NotificationAdapter,
+  VectorStoreAdapter,
 } from './types.js';
+import { LanceDBVectorStore } from './desktop-vector-store.js';
 
 // ─── File System ────────────────────────────────────────────────────────────
 
@@ -84,6 +86,43 @@ const desktopCrypto: CryptoAdapter = {
   sha256: (data: string) => createHash('sha256').update(data, 'utf-8').digest('hex'),
   hmacSha256: (key: Buffer, data: string) => createHmac('sha256', key).update(data, 'utf-8').digest('hex'),
   randomBytes: (size: number) => randomBytes(size),
+
+  async generateEncryptionKey(): Promise<string> {
+    return randomBytes(32).toString('hex');
+  },
+
+  async encrypt(plaintext: string, keyHex: string): Promise<import('./types.js').EncryptedPayload> {
+    const key = Buffer.from(keyHex, 'hex');
+    const iv = randomBytes(12); // 96-bit IV for GCM
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+    const encrypted = Buffer.concat([
+      cipher.update(plaintext, 'utf-8'),
+      cipher.final(),
+    ]);
+    const tag = cipher.getAuthTag(); // 16 bytes
+
+    return {
+      ciphertext: encrypted.toString('base64'),
+      iv: iv.toString('base64'),
+      tag: tag.toString('base64'),
+    };
+  },
+
+  async decrypt(payload: import('./types.js').EncryptedPayload, keyHex: string): Promise<string> {
+    const key = Buffer.from(keyHex, 'hex');
+    const iv = Buffer.from(payload.iv, 'base64');
+    const tag = Buffer.from(payload.tag, 'base64');
+    const ciphertext = Buffer.from(payload.ciphertext, 'base64');
+
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+
+    const decrypted = Buffer.concat([
+      decipher.update(ciphertext),
+      decipher.final(),
+    ]);
+    return decrypted.toString('utf-8');
+  },
 };
 
 // ─── SQLite ─────────────────────────────────────────────────────────────────
@@ -145,6 +184,14 @@ const desktopNotifications: NotificationAdapter = {
 // ─── Combined Adapter ───────────────────────────────────────────────────────
 
 /**
+ * Create a LanceDB-backed vector store for the given data directory.
+ * Returns an uninitialized adapter — caller must call initialize().
+ */
+export function createDesktopVectorStore(dataDir: string): VectorStoreAdapter {
+  return new LanceDBVectorStore(dataDir);
+}
+
+/**
  * Create the desktop platform adapter wrapping all Node.js APIs.
  */
 export function createDesktopAdapter(): PlatformAdapter {
@@ -156,5 +203,7 @@ export function createDesktopAdapter(): PlatformAdapter {
     sqlite: desktopSqlite,
     hardware: desktopHardware,
     notifications: desktopNotifications,
+    // vectorStore is not set here — it requires a data directory.
+    // Use createDesktopVectorStore(dataDir) and assign to adapter.vectorStore.
   };
 }

@@ -84,14 +84,14 @@ describe('Bridge Unification + InferenceRouter Wiring', () => {
         input: 'hello world',
       });
       expect(result.embeddings.length).toBe(1);
-      expect(result.embeddings[0].length).toBe(384);
+      expect(result.embeddings[0]!.length).toBe(384);
     });
 
     it('listModels returns loaded model info', async () => {
       const models = await provider.listModels();
       expect(models.length).toBe(2); // reasoning + embedding
-      expect(models[0].name).toBe('llama-3.2-3b');
-      expect(models[0].family).toBe('mobile-ios');
+      expect(models[0]!.name).toBe('llama-3.2-3b');
+      expect(models[0]!.family).toBe('mobile-ios');
     });
   });
 

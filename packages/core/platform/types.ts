@@ -89,6 +89,15 @@ export interface CryptoAdapter {
 
   /** Generate random bytes */
   randomBytes(size: number): Buffer;
+
+  /** Generate a random 256-bit encryption key, returns hex */
+  generateEncryptionKey(): Promise<string>;
+
+  /** AES-256-GCM encrypt. keyHex is a 64-char hex string (32 bytes). */
+  encrypt(plaintext: string, keyHex: string): Promise<EncryptedPayload>;
+
+  /** AES-256-GCM decrypt. keyHex is a 64-char hex string (32 bytes). */
+  decrypt(payload: EncryptedPayload, keyHex: string): Promise<string>;
 }
 
 /**
@@ -187,6 +196,82 @@ export interface NotificationAdapter {
   cancelAll(): Promise<void>;
 }
 
+// ─── Vector Store Adapter ────────────────────────────────────────────────────
+
+/**
+ * A single vector entry to be inserted into the vector store.
+ */
+export interface VectorEntry {
+  id: string;
+  documentId: string;
+  content: string;
+  chunkIndex: number;
+  vector: number[];
+  metadata: string;          // JSON string
+  sourceType?: string;
+  sourceId?: string;
+}
+
+/**
+ * A search result from the vector store.
+ */
+export interface VectorResult {
+  id: string;
+  documentId: string;
+  content: string;
+  chunkIndex: number;
+  metadata: string;
+  sourceType: string;
+  sourceId: string;
+  score: number;
+}
+
+/**
+ * Filter options for vector search.
+ */
+export interface VectorFilter {
+  sourceTypes?: string[];
+}
+
+/**
+ * Platform-agnostic vector storage adapter.
+ * Desktop: LanceDB (Rust-native embedded vector DB).
+ * Mobile: SQLite with brute-force cosine similarity.
+ */
+export interface VectorStoreAdapter {
+  /** Initialize the vector store for a given table/collection. */
+  initialize(name: string, dimensions: number): Promise<void>;
+
+  /** Insert vector entries. */
+  insertChunks(chunks: VectorEntry[]): Promise<void>;
+
+  /** Search for nearest neighbors by embedding vector. */
+  search(queryVector: number[], limit: number, filter?: VectorFilter): Promise<VectorResult[]>;
+
+  /** Delete all entries for a given document ID. */
+  deleteByDocumentId(documentId: string): Promise<void>;
+
+  /** Get total entry count. */
+  count(): Promise<number>;
+
+  /** Close/release resources. */
+  close(): void;
+}
+
+// ─── Encrypted Payload ──────────────────────────────────────────────────────
+
+/**
+ * AES-256-GCM encrypted payload.
+ */
+export interface EncryptedPayload {
+  /** Base64-encoded ciphertext */
+  ciphertext: string;
+  /** Base64-encoded 12-byte initialization vector */
+  iv: string;
+  /** Base64-encoded 16-byte GCM authentication tag */
+  tag: string;
+}
+
 /**
  * The unified platform adapter.
  * One instance is set globally at app startup.
@@ -213,4 +298,7 @@ export interface PlatformAdapter {
 
   /** Notifications */
   notifications: NotificationAdapter;
+
+  /** Vector storage (optional — not all platforms configure this at adapter creation) */
+  vectorStore?: VectorStoreAdapter;
 }

@@ -43,7 +43,7 @@ function createMockKnowledgeGraph(): KnowledgeGraph & { _docs: Map<string, strin
       const results: SearchResult[] = [];
       for (const [docId, content] of docs) {
         if (content.toLowerCase().includes(query.toLowerCase()) || query === '*') {
-          const doc: Document = {
+          const doc = {
             id: docId,
             title: `Document ${docId}`,
             source: 'local_file' as DocumentSource,
@@ -51,7 +51,7 @@ function createMockKnowledgeGraph(): KnowledgeGraph & { _docs: Map<string, strin
             mimeType: 'text/plain',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-          };
+          } as unknown as Document;
           results.push({
             chunk: {
               id: `chunk-${docId}-0`,

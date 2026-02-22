@@ -345,7 +345,7 @@ export function SettingsScreen() {
                 <StatusIndicator status="success" />
               )}
               {apiKeyStatus === 'invalid' && (
-                <StatusIndicator status="error" />
+                <StatusIndicator status="attention" />
               )}
             </div>
             <p className="text-xs text-semblance-text-tertiary mt-1">

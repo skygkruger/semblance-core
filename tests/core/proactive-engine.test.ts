@@ -8,6 +8,7 @@ import { CalendarIndexer } from '@semblance/core/knowledge/calendar-indexer.js';
 import { AutonomyManager } from '@semblance/core/agent/autonomy.js';
 import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index.js';
 import type { LLMProvider } from '@semblance/core/llm/types.js';
+import type { DatabaseHandle } from '@semblance/core/platform/types.js';
 
 function createMockKnowledge(): KnowledgeGraph {
   return {
@@ -44,10 +45,10 @@ describe('ProactiveEngine', () => {
     db = new Database(':memory:');
     knowledge = createMockKnowledge();
     const llm = createMockLLM();
-    emailIndexer = new EmailIndexer({ db, knowledge, llm });
-    calendarIndexer = new CalendarIndexer({ db, knowledge, llm });
-    autonomy = new AutonomyManager(db);
-    engine = new ProactiveEngine({ db, knowledge, emailIndexer, calendarIndexer, autonomy });
+    emailIndexer = new EmailIndexer({ db: db as unknown as DatabaseHandle, knowledge, llm });
+    calendarIndexer = new CalendarIndexer({ db: db as unknown as DatabaseHandle, knowledge, llm });
+    autonomy = new AutonomyManager(db as unknown as DatabaseHandle);
+    engine = new ProactiveEngine({ db: db as unknown as DatabaseHandle, knowledge, emailIndexer, calendarIndexer, autonomy });
   });
 
   describe('schema', () => {
@@ -93,7 +94,7 @@ describe('ProactiveEngine', () => {
       const insights = await engine.run();
       const meetingPreps = insights.filter(i => i.type === 'meeting_prep');
       expect(meetingPreps.length).toBeGreaterThanOrEqual(1);
-      expect(meetingPreps[0].title).toContain('Design Review');
+      expect(meetingPreps[0]!.title).toContain('Design Review');
     });
   });
 
@@ -115,7 +116,7 @@ describe('ProactiveEngine', () => {
 
       const preps = await engine.generateMeetingPreps();
       expect(preps.length).toBeGreaterThanOrEqual(1);
-      expect(preps[0].type).toBe('meeting_prep');
+      expect(preps[0]!.type).toBe('meeting_prep');
     });
 
     it('skips all-day events', async () => {
@@ -162,7 +163,7 @@ describe('ProactiveEngine', () => {
 
       const followUps = engine.checkFollowUps();
       expect(followUps.length).toBeGreaterThanOrEqual(1);
-      expect(followUps[0].type).toBe('follow_up');
+      expect(followUps[0]!.type).toBe('follow_up');
     });
 
     it('does not flag emails less than 24 hours old', async () => {
@@ -206,7 +207,7 @@ describe('ProactiveEngine', () => {
 
       const deadlines = engine.checkDeadlines();
       expect(deadlines.length).toBeGreaterThanOrEqual(1);
-      expect(deadlines[0].type).toBe('deadline');
+      expect(deadlines[0]!.type).toBe('deadline');
     });
   });
 
@@ -235,7 +236,7 @@ describe('ProactiveEngine', () => {
       await engine.run();
       const before = engine.getActiveInsights();
       if (before.length > 0) {
-        engine.dismissInsight(before[0].id);
+        engine.dismissInsight(before[0]!.id);
         const after = engine.getActiveInsights();
         expect(after.length).toBeLessThan(before.length);
       }

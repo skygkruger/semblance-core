@@ -110,9 +110,9 @@ describe('Inbox — Priority Sorting', () => {
       makeEmail({ messageId: 'normal', priority: 'normal' }),
     ];
     const sorted = sortEmailsByPriority(emails);
-    expect(sorted[0].messageId).toBe('high');
-    expect(sorted[1].messageId).toBe('normal');
-    expect(sorted[2].messageId).toBe('low');
+    expect(sorted[0]!.messageId).toBe('high');
+    expect(sorted[1]!.messageId).toBe('normal');
+    expect(sorted[2]!.messageId).toBe('low');
   });
 
   it('preserves order within same priority', () => {
@@ -251,7 +251,7 @@ describe('Inbox — Insight Data', () => {
 
 describe('Inbox — Actions Summary', () => {
   it('correctly calculates action count display', () => {
-    const count = 5;
+    const count: number = 5;
     const display = `${count} action${count !== 1 ? 's' : ''}`;
     expect(display).toBe('5 actions');
   });

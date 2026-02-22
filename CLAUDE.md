@@ -2,9 +2,15 @@
 
 ## MANDATORY CONTEXT — READ ON EVERY SESSION START AND AFTER EVERY COMPACTION
 
-**Before doing ANY work, read `docs/decisions/SEMBLANCE_SPRINT_RESTRUCTURE.md`.** This is the canonical sprint plan that supersedes all previous sprint sequencing. It defines Steps 9–27 across Sprints 3–5, step ordering, exit criteria, test targets, and the free/premium boundary. If you have not read it in this session, stop and read it now. This instruction survives compaction.
+**Before doing ANY work, read BOTH of these documents:**
 
-**Current position:** Step 9 COMPLETE (1,522 tests). Step 10 is NEXT. Sprint 3 focus: the undeniable free product (web search, web fetch, reminders, quick capture, style learning, mobile, chat-about-document).
+1. **`docs/decisions/SEMBLANCE_SPRINT_RESTRUCTURE.md`** — Canonical sprint plan (Revision 3). Defines Steps 1–13 and Sprint 3 exit criteria. Remains canonical for Steps 1–13 and the free/premium boundary. If you have not read it in this session, stop and read it now.
+
+2. **`docs/decisions/SEMBLANCE_BUILD_MAP_ELEVATION.md`** — Build Map Elevation (Revision 4). Adds and restructures Steps 14–33 across Sprints 4–6. Incorporates 9 pre-launch feature elevations: Proactive Morning Brief, Alter Ego Week, Comparison Statement, Visual Knowledge Graph, Import Everything Moment, Living Will, Semblance Witness, Inheritance Protocol, and Adversarial Self-Defense. Adds new Sprint 5 ("Becomes Permanent — Sovereignty + Trust") and renumbers Sprint 6 ("Becomes Undeniable — Hardening + Launch"). **This document supersedes Revision 3 for all steps beyond Step 13.** If you have not read it in this session, stop and read it now.
+
+Both instructions survive compaction.
+
+**Current position:** Step 12 COMPLETE (remediated). Step 13 is IN PROGRESS. Sprint 3 focus: Daily Digest, Chat-About-Document, Sprint 3 Validation. Total build is now 33 steps across 6 sprints (was 27 steps across 5 sprints).
 
 ---
 
@@ -497,12 +503,18 @@ You should proceed without escalating when:
 
 ## Sprint Plan Reference
 
-| Sprint | Weeks | Focus | Key Deliverables |
+> **Canonical sources:** `docs/decisions/SEMBLANCE_SPRINT_RESTRUCTURE.md` (Revision 3, Steps 1–13) and `docs/decisions/SEMBLANCE_BUILD_MAP_ELEVATION.md` (Revision 4, Steps 14–33).
+
+| Sprint | Steps | Theme | Key Deliverables |
 |--------|-------|-------|-----------------|
-| 1 | 1–4 | The Spine | LLM integration, knowledge graph, Gateway, desktop app shell, mobile inference foundation (MLX/llama.cpp, 3B defaults, model caching), CLAUDE.md, design system |
-| 2 | 5–8 | Becomes Useful | Universal Inbox (active, not passive), proactive context, autonomous agent actions, subscription detection, time-saved tracking, onboarding Knowledge Moment, task routing, Network Monitor |
-| 3 | 9–12 | Becomes Powerful | Full financial awareness, form automation, Digital Representative, health tracking, communication style learning, mobile feature parity |
-| 4 | 13–16 | Becomes Undeniable | Relationship intelligence, learning/adaptation, Privacy Dashboard, Alter Ego fully operational, full mobile parity, launch prep |
+| 1 | 1–4 | The Spine | LLM integration, knowledge graph, Gateway, desktop app shell, mobile inference foundation, CLAUDE.md, design system |
+| 2 | 5–8 | Becomes Useful | Universal Inbox, proactive context, autonomous agent actions, subscription detection, time-saved tracking, Knowledge Moment, task routing, Network Monitor |
+| 3 | 9–13 | Becomes Powerful (Free Product) | Runtime ownership, web search/fetch, reminders, quick capture, style learning, mobile parity, daily digest, chat-about-document |
+| 4 | 14–22 | Becomes Part of You (Native + Premium) | Contacts, SMS, location/weather, voice, cloud storage, financial awareness, Digital Representative, form automation, health & wellness |
+| 5 | 23–28 | Becomes Permanent (Sovereignty + Trust) | Alter Ego verification + Morning Brief + Alter Ego Week, Visual Knowledge Graph, Import Everything + Adversarial Self-Defense, Living Will + Semblance Witness, Inheritance Protocol, Semblance Network |
+| 6 | 29–33 | Becomes Undeniable (Hardening + Launch) | Privacy Dashboard + Comparison Statement, OS sandboxing + security hardening, mobile feature parity for all sprints, launch preparation, final validation + ship |
+
+**Total: 33 steps across 6 sprints. Target: 3,800–4,100 tests at ship.**
 
 ### Sprint 2 Exit Criteria (Action-Based)
 

@@ -121,7 +121,7 @@ export class Gateway {
 
     // Reminders: local-only CRUD via SQLite
     this.reminderDb = new Database(join(dataDir, 'reminders.db'));
-    const reminderStore = new ReminderStore(this.reminderDb);
+    const reminderStore = new ReminderStore(this.reminderDb as unknown as import('@semblance/core/platform/types.js').DatabaseHandle);
     const reminderAdapter = new ReminderAdapter(reminderStore);
     this.serviceRegistry.register('reminder.create', reminderAdapter);
     this.serviceRegistry.register('reminder.update', reminderAdapter);

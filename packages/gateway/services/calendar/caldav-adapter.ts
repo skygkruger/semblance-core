@@ -208,12 +208,12 @@ export class CalDAVAdapter {
     });
 
     this.clients.set(credentialId, {
-      client,
+      client: client as unknown as DAVClient,
       lastUsed: Date.now(),
       credentialId,
     });
 
-    return client;
+    return client as unknown as DAVClient;
   }
 
   /**
@@ -225,7 +225,7 @@ export class CalDAVAdapter {
 
     return calendars.map((cal: DAVCalendar) => ({
       id: cal.url,
-      displayName: cal.displayName ?? 'Calendar',
+      displayName: String(cal.displayName ?? 'Calendar'),
       description: cal.description ?? undefined,
       color: undefined,
       readOnly: false,
@@ -377,7 +377,7 @@ export class CalDAVAdapter {
         success: true,
         calendars: calendars.map((cal: DAVCalendar) => ({
           id: cal.url,
-          displayName: cal.displayName ?? 'Calendar',
+          displayName: String(cal.displayName ?? 'Calendar'),
           description: cal.description ?? undefined,
           color: undefined,
           readOnly: false,
@@ -421,7 +421,7 @@ export class CalDAVAdapter {
   /**
    * Close all clients and clean up.
    */
-  async shutdown(): void {
+  async shutdown(): Promise<void> {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;

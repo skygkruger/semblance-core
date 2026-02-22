@@ -52,7 +52,7 @@ describe('NDJSON Callback Protocol', () => {
     sendCallback('native_generate', { prompt: 'test' });
 
     expect(sentMessages).toHaveLength(1);
-    const msg = JSON.parse(sentMessages[0]);
+    const msg = JSON.parse(sentMessages[0]!);
     expect(msg.type).toBe('callback');
     expect(msg.id).toBe('cb-1');
     expect(msg.method).toBe('native_generate');
@@ -63,8 +63,8 @@ describe('NDJSON Callback Protocol', () => {
     sendCallback('native_generate', {});
     sendCallback('native_embed', {});
 
-    const id1 = JSON.parse(sentMessages[0]).id;
-    const id2 = JSON.parse(sentMessages[1]).id;
+    const id1 = JSON.parse(sentMessages[0]!).id;
+    const id2 = JSON.parse(sentMessages[1]!).id;
     expect(id1).not.toBe(id2);
   });
 
@@ -125,7 +125,7 @@ describe('NDJSON Callback Protocol', () => {
   it('callback request format matches expected NDJSON schema', () => {
     sendCallback('native_embed', { input: ['hello', 'world'] });
 
-    const msg = JSON.parse(sentMessages[0]);
+    const msg = JSON.parse(sentMessages[0]!);
     // Required fields
     expect(msg).toHaveProperty('type', 'callback');
     expect(msg).toHaveProperty('id');

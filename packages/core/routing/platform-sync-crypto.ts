@@ -1,6 +1,6 @@
 // Platform Sync Crypto — SyncCryptoProvider backed by PlatformAdapter.
 //
-// Uses the platform's crypto adapter for AES-256-GCM encryption and HMAC-SHA256.
+// Uses the platform's crypto adapter for AES-256-GCM encryption.
 // On desktop: Node.js crypto module. On mobile: react-native-quick-crypto.
 //
 // CRITICAL: No direct crypto imports. All crypto via getPlatform().crypto.
@@ -9,13 +9,17 @@ import type { SyncCryptoProvider } from './sync.js';
 import { getPlatform } from '../platform/index.js';
 
 /**
- * PlatformSyncCrypto — SyncCryptoProvider using PlatformAdapter's crypto.
+ * PlatformSyncCrypto — SyncCryptoProvider using PlatformAdapter's AES-256-GCM.
  *
- * Encryption: AES-256-GCM (via platform crypto)
- * Integrity: HMAC-SHA256 (via platform crypto)
+ * Encryption: AES-256-GCM (via platform crypto adapter)
+ * Integrity: HMAC-SHA256 (via platform crypto adapter)
  *
- * The shared secret from pairing is used as the key material.
+ * The shared secret from pairing is used as key material.
+ * Key derivation: sha256(sharedSecret) → 32-byte hex key.
  * IV is generated fresh for each encryption operation.
+ *
+ * GCM auth tag is encoded inside the ciphertext field as JSON
+ * to preserve the SyncCryptoProvider interface { ciphertext, iv }.
  */
 export class PlatformSyncCrypto implements SyncCryptoProvider {
   async encrypt(plaintext: string, sharedSecret: string): Promise<{ ciphertext: string; iv: string }> {
@@ -23,28 +27,16 @@ export class PlatformSyncCrypto implements SyncCryptoProvider {
 
     // Derive a 32-byte key from the shared secret
     const keyHex = p.crypto.sha256(sharedSecret);
-    // Generate a random IV (12 bytes for AES-GCM, represented as 24 hex chars)
-    const iv = p.crypto.randomBytes(12).toString('hex');
 
-    // For the platform crypto layer, we use HMAC to create a deterministic
-    // cipher output. In a full implementation, this would use AES-256-GCM.
-    // The PlatformAdapter crypto exposes sha256 and hmacSha256.
-    // We simulate encryption using HMAC-based transform.
-    const combined = `${iv}:${plaintext}`;
-    const ciphertext = p.crypto.hmacSha256(
-      Buffer.from(keyHex, 'hex'),
-      combined,
-    );
+    // Encrypt with AES-256-GCM
+    const payload = await p.crypto.encrypt(plaintext, keyHex);
 
-    // Store the plaintext length and a verification tag so we can "decrypt"
-    // In production, this would use Web Crypto API's AES-GCM directly.
-    // For now, we encode plaintext as base64 XOR'd with key-derived stream.
-    const plaintextB64 = Buffer.from(plaintext, 'utf-8').toString('base64');
-    const encryptedPayload = `${ciphertext}:${plaintextB64}`;
+    // Encode GCM tag inside ciphertext field to preserve SyncCryptoProvider interface
+    const combined = JSON.stringify({ c: payload.ciphertext, t: payload.tag });
 
     return {
-      ciphertext: encryptedPayload,
-      iv,
+      ciphertext: combined,
+      iv: payload.iv,
     };
   }
 
@@ -54,28 +46,23 @@ export class PlatformSyncCrypto implements SyncCryptoProvider {
     // Derive the same key
     const keyHex = p.crypto.sha256(sharedSecret);
 
-    // Extract the HMAC tag and base64-encoded plaintext
-    const parts = ciphertext.split(':');
-    if (parts.length < 2) {
-      throw new Error('Invalid ciphertext format');
+    // Extract GCM ciphertext and tag from combined format
+    let parsed: { c: string; t: string };
+    try {
+      parsed = JSON.parse(ciphertext) as { c: string; t: string };
+    } catch {
+      throw new Error('Decryption failed: invalid ciphertext format');
     }
 
-    const hmacTag = parts[0];
-    const plaintextB64 = parts.slice(1).join(':');
+    if (!parsed.c || !parsed.t) {
+      throw new Error('Decryption failed: missing ciphertext or tag');
+    }
 
-    // Verify HMAC
-    const plaintext = Buffer.from(plaintextB64, 'base64').toString('utf-8');
-    const combined = `${iv}:${plaintext}`;
-    const expectedHmac = p.crypto.hmacSha256(
-      Buffer.from(keyHex, 'hex'),
-      combined,
+    // Decrypt with AES-256-GCM
+    return p.crypto.decrypt(
+      { ciphertext: parsed.c, iv, tag: parsed.t },
+      keyHex,
     );
-
-    if (hmacTag !== expectedHmac) {
-      throw new Error('Decryption failed: HMAC verification failed — data may be tampered');
-    }
-
-    return plaintext;
   }
 
   async hmac(data: string, key: string): Promise<string> {
