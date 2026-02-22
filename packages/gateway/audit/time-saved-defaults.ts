@@ -52,6 +52,9 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'clipboard.analyze': 0,        // Analysis is informational
   'clipboard.act': 30,           // Taking action on clipboard content
   'clipboard.web_action': 120,   // Web action (tracking, summarizing, etc.)
+  'location.reminder_fire': 120, // Location-triggered reminder (saves remembering manually)
+  'location.commute_alert': 300, // Commute departure alert (saves checking map + calendar)
+  'location.weather_query': 30,  // Weather lookup (saves opening weather app)
 };
 
 /**

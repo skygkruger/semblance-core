@@ -21,7 +21,7 @@ import { AutonomyManager } from './autonomy.js';
 
 export interface ProactiveInsight {
   id: string;
-  type: 'meeting_prep' | 'follow_up' | 'deadline' | 'conflict' | 'birthday' | 'contact_frequency';
+  type: 'meeting_prep' | 'follow_up' | 'deadline' | 'conflict' | 'birthday' | 'contact_frequency' | 'location-reminder' | 'weather-alert' | 'commute-departure' | 'weather-summary';
   priority: 'high' | 'normal' | 'low';
   title: string;
   summary: string;

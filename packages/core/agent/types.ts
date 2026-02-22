@@ -22,6 +22,7 @@ export type AutonomyDomain =
   | 'reminders'
   | 'messaging'
   | 'clipboard'
+  | 'location'
   | 'system';
 
 export interface AgentAction {

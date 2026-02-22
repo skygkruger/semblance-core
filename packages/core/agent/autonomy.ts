@@ -47,6 +47,9 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'clipboard.analyze': 'clipboard',
   'clipboard.act': 'clipboard',
   'clipboard.web_action': 'clipboard',
+  'location.reminder_fire': 'location',
+  'location.commute_alert': 'location',
+  'location.weather_query': 'location',
   'service.api_call': 'services',
   'model.download': 'system',
   'model.download_cancel': 'system',
@@ -85,6 +88,9 @@ const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'clipboard.analyze': 'read',
   'clipboard.act': 'write',
   'clipboard.web_action': 'execute',
+  'location.reminder_fire': 'read',
+  'location.commute_alert': 'read',
+  'location.weather_query': 'read',
   'service.api_call': 'execute',
   'model.download': 'execute',
   'model.download_cancel': 'write',
@@ -187,7 +193,7 @@ export class AutonomyManager {
    * Get current autonomy configuration for all domains.
    */
   getConfig(): Record<AutonomyDomain, AutonomyTier> {
-    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'messaging', 'clipboard', 'system'];
+    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'messaging', 'clipboard', 'location', 'system'];
     const config = {} as Record<AutonomyDomain, AutonomyTier>;
     for (const domain of domains) {
       config[domain] = this.getDomainTier(domain);

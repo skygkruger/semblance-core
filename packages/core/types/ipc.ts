@@ -33,6 +33,9 @@ export const ActionType = z.enum([
   'clipboard.analyze',
   'clipboard.act',
   'clipboard.web_action',
+  'location.reminder_fire',
+  'location.commute_alert',
+  'location.weather_query',
   'service.api_call',
   'model.download',
   'model.download_cancel',
@@ -295,6 +298,28 @@ export const ClipboardWebActionPayload = z.object({
 });
 export type ClipboardWebActionPayload = z.infer<typeof ClipboardWebActionPayload>;
 
+// --- Location payload schemas (Step 16) ---
+
+export const LocationReminderFirePayload = z.object({
+  reminderId: z.string(),
+  label: z.string().optional(),
+});
+export type LocationReminderFirePayload = z.infer<typeof LocationReminderFirePayload>;
+
+export const LocationCommuteAlertPayload = z.object({
+  eventId: z.string(),
+  destination: z.string(),
+  departureTime: z.string(),
+  travelTimeMinutes: z.number(),
+});
+export type LocationCommuteAlertPayload = z.infer<typeof LocationCommuteAlertPayload>;
+
+export const LocationWeatherQueryPayload = z.object({
+  locationLabel: z.string().optional(),
+  hours: z.number().int().min(1).max(48).optional().default(24),
+});
+export type LocationWeatherQueryPayload = z.infer<typeof LocationWeatherQueryPayload>;
+
 // Map ActionType to its payload schema
 export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'email.send': EmailSendPayload,
@@ -325,6 +350,9 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'clipboard.analyze': ClipboardAnalyzePayload,
   'clipboard.act': ClipboardActPayload,
   'clipboard.web_action': ClipboardWebActionPayload,
+  'location.reminder_fire': LocationReminderFirePayload,
+  'location.commute_alert': LocationCommuteAlertPayload,
+  'location.weather_query': LocationWeatherQueryPayload,
   'service.api_call': ServiceApiCallPayload,
   'model.download': ModelDownloadPayload,
   'model.download_cancel': ModelDownloadCancelPayload,
