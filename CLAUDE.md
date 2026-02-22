@@ -1,5 +1,13 @@
 # SEMBLANCE
 
+## MANDATORY CONTEXT — READ ON EVERY SESSION START AND AFTER EVERY COMPACTION
+
+**Before doing ANY work, read `docs/decisions/SEMBLANCE_SPRINT_RESTRUCTURE.md`.** This is the canonical sprint plan that supersedes all previous sprint sequencing. It defines Steps 9–27 across Sprints 3–5, step ordering, exit criteria, test targets, and the free/premium boundary. If you have not read it in this session, stop and read it now. This instruction survives compaction.
+
+**Current position:** Step 9 COMPLETE (1,522 tests). Step 10 is NEXT. Sprint 3 focus: the undeniable free product (web search, web fetch, reminders, quick capture, style learning, mobile, chat-about-document).
+
+---
+
 **Your Intelligence. Your Device. Your Rules.**
 
 Semblance is a fully local, self-hosted sovereign personal AI. It ingests a user's emails, files, calendar, messages, health data, financial records, and browser history into a local knowledge graph. It reasons about their life using locally-running language models. It acts as their agent in the world. User data never leaves their device. Ever.
