@@ -32,7 +32,16 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'calendar.delete': 60,         // Calendar event deletion
   'finance.fetch_transactions': 0, // Fetching is infrastructure
   'health.fetch': 0,             // Fetching is infrastructure
+  'web.search': 30,              // Faster than switching to browser, searching, reading results
+  'web.fetch': 120,              // Avoids reading and manually summarizing article
+  'reminder.create': 60,         // Avoids opening another app or setting a manual alarm
+  'reminder.update': 15,         // Quick snooze/dismiss vs manual re-scheduling
+  'reminder.list': 0,            // Read-only, no time saved
+  'reminder.delete': 10,         // Quick cleanup
   'service.api_call': 0,         // Generic — no default estimate
+  'model.download': 0,           // Infrastructure — model management
+  'model.download_cancel': 0,    // Infrastructure — model management
+  'model.verify': 0,             // Infrastructure — model management
 };
 
 /**

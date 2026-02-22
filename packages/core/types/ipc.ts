@@ -17,6 +17,12 @@ export const ActionType = z.enum([
   'calendar.delete',
   'finance.fetch_transactions',
   'health.fetch',
+  'web.search',
+  'web.fetch',
+  'reminder.create',
+  'reminder.update',
+  'reminder.list',
+  'reminder.delete',
   'service.api_call',
   'model.download',
   'model.download_cancel',
@@ -143,6 +149,73 @@ export const ModelVerifyPayload = z.object({
 });
 export type ModelVerifyPayload = z.infer<typeof ModelVerifyPayload>;
 
+// --- Web Intelligence payload schemas (Step 10) ---
+
+export const WebSearchPayload = z.object({
+  query: z.string().min(1),
+  count: z.number().int().min(1).max(20).optional().default(5),
+  freshness: z.enum(['day', 'week', 'month']).optional(),
+});
+export type WebSearchPayload = z.infer<typeof WebSearchPayload>;
+
+export const WebSearchResponse = z.object({
+  results: z.array(z.object({
+    title: z.string(),
+    url: z.string(),
+    snippet: z.string(),
+    age: z.string().optional(),
+  })),
+  query: z.string(),
+  provider: z.enum(['brave', 'searxng']),
+});
+export type WebSearchResponse = z.infer<typeof WebSearchResponse>;
+
+export const WebFetchPayload = z.object({
+  url: z.string().url(),
+  maxContentLength: z.number().int().positive().optional().default(50000),
+});
+export type WebFetchPayload = z.infer<typeof WebFetchPayload>;
+
+export const WebFetchResponse = z.object({
+  url: z.string(),
+  title: z.string(),
+  content: z.string(),
+  bytesFetched: z.number(),
+  contentType: z.string(),
+});
+export type WebFetchResponse = z.infer<typeof WebFetchResponse>;
+
+// --- Reminder payload schemas (Step 10) ---
+
+export const ReminderCreatePayload = z.object({
+  text: z.string().min(1),
+  dueAt: z.string().datetime(),
+  recurrence: z.enum(['none', 'daily', 'weekly', 'monthly']).optional().default('none'),
+  source: z.enum(['chat', 'quick-capture', 'proactive']).optional().default('chat'),
+});
+export type ReminderCreatePayload = z.infer<typeof ReminderCreatePayload>;
+
+export const ReminderUpdatePayload = z.object({
+  id: z.string(),
+  text: z.string().min(1).optional(),
+  dueAt: z.string().datetime().optional(),
+  recurrence: z.enum(['none', 'daily', 'weekly', 'monthly']).optional(),
+  status: z.enum(['pending', 'fired', 'dismissed', 'snoozed']).optional(),
+  snoozedUntil: z.string().datetime().optional(),
+});
+export type ReminderUpdatePayload = z.infer<typeof ReminderUpdatePayload>;
+
+export const ReminderListPayload = z.object({
+  status: z.enum(['pending', 'fired', 'dismissed', 'snoozed', 'all']).optional().default('all'),
+  limit: z.number().int().positive().optional().default(50),
+});
+export type ReminderListPayload = z.infer<typeof ReminderListPayload>;
+
+export const ReminderDeletePayload = z.object({
+  id: z.string(),
+});
+export type ReminderDeletePayload = z.infer<typeof ReminderDeletePayload>;
+
 // Map ActionType to its payload schema
 export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'email.send': EmailSendPayload,
@@ -157,6 +230,12 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'calendar.delete': CalendarDeletePayload,
   'finance.fetch_transactions': FinanceFetchPayload,
   'health.fetch': HealthFetchPayload,
+  'web.search': WebSearchPayload,
+  'web.fetch': WebFetchPayload,
+  'reminder.create': ReminderCreatePayload,
+  'reminder.update': ReminderUpdatePayload,
+  'reminder.list': ReminderListPayload,
+  'reminder.delete': ReminderDeletePayload,
   'service.api_call': ServiceApiCallPayload,
   'model.download': ModelDownloadPayload,
   'model.download_cancel': ModelDownloadCancelPayload,

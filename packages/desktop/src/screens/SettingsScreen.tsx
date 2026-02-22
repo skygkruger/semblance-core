@@ -40,6 +40,12 @@ export function SettingsScreen() {
   const [removingAccountId, setRemovingAccountId] = useState<string | null>(null);
   const [runtimeMode, setRuntimeMode] = useState<'builtin' | 'ollama' | 'custom'>('builtin');
   const [hardwareInfo, setHardwareInfo] = useState<HardwareDisplayInfo | null>(null);
+  const [searchProvider, setSearchProvider] = useState<'brave' | 'searxng'>('brave');
+  const [braveApiKey, setBraveApiKey] = useState('');
+  const [searxngUrl, setSearxngUrl] = useState('');
+  const [searchRateLimit, setSearchRateLimit] = useState(60);
+  const [apiKeyStatus, setApiKeyStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
+  const [apiKeySaved, setApiKeySaved] = useState(false);
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -130,6 +136,53 @@ export function SettingsScreen() {
       setRemovingAccountId(null);
     }
   }, [loadAccounts]);
+
+  const handleSaveSearchSettings = useCallback(async () => {
+    if (searchProvider === 'brave' && braveApiKey) {
+      // Test the API key
+      setApiKeyStatus('testing');
+      try {
+        const result = await invoke<{ success: boolean; error?: string }>('test_brave_api_key', { apiKey: braveApiKey });
+        if (result.success) {
+          setApiKeyStatus('valid');
+          setApiKeySaved(true);
+          await invoke('save_search_settings', {
+            provider: searchProvider,
+            braveApiKey,
+            searxngUrl: searxngUrl || null,
+            rateLimit: searchRateLimit,
+          }).catch(() => {});
+        } else {
+          setApiKeyStatus('invalid');
+        }
+      } catch {
+        setApiKeyStatus('invalid');
+      }
+    } else {
+      await invoke('save_search_settings', {
+        provider: searchProvider,
+        braveApiKey: braveApiKey || null,
+        searxngUrl: searxngUrl || null,
+        rateLimit: searchRateLimit,
+      }).catch(() => {});
+      setApiKeySaved(true);
+    }
+  }, [searchProvider, braveApiKey, searxngUrl, searchRateLimit]);
+
+  // Load saved search settings on mount
+  useEffect(() => {
+    invoke<{ provider: string; braveApiKeySet: boolean; searxngUrl: string | null; rateLimit: number }>('get_search_settings')
+      .then((settings) => {
+        setSearchProvider(settings.provider as 'brave' | 'searxng');
+        if (settings.braveApiKeySet) {
+          setBraveApiKey('\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'); // Masked
+          setApiKeySaved(true);
+        }
+        if (settings.searxngUrl) setSearxngUrl(settings.searxngUrl);
+        if (settings.rateLimit) setSearchRateLimit(settings.rateLimit);
+      })
+      .catch(() => {});
+  }, []);
 
   const defaultTier = (state.autonomyConfig['email'] || 'partner') as AutonomyTier;
 
@@ -244,6 +297,103 @@ export function SettingsScreen() {
             ))}
           </select>
         )}
+      </Card>
+
+      {/* Web Search */}
+      <Card>
+        <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+          Web Search
+        </h2>
+
+        {/* Search Provider */}
+        <div className="mb-4">
+          <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
+            Search Provider
+          </label>
+          <div className="flex gap-2">
+            {(['brave', 'searxng'] as const).map((provider) => (
+              <button
+                key={provider}
+                type="button"
+                onClick={() => { setSearchProvider(provider); setApiKeySaved(false); }}
+                className={`px-4 py-2 text-sm rounded-md border transition-colors duration-fast ${
+                  searchProvider === provider
+                    ? 'border-semblance-primary bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark text-semblance-primary font-medium'
+                    : 'border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:border-semblance-primary/50'
+                }`}
+              >
+                {provider === 'brave' ? 'Brave Search' : 'SearXNG'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Brave API Key */}
+        {searchProvider === 'brave' && (
+          <div className="mb-4">
+            <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
+              Brave Search API Key
+            </label>
+            <div className="flex gap-2">
+              <Input
+                type="password"
+                value={braveApiKey}
+                onChange={(e) => { setBraveApiKey(e.target.value); setApiKeyStatus('idle'); setApiKeySaved(false); }}
+                placeholder="Enter your Brave Search API key"
+              />
+              {apiKeyStatus === 'valid' && (
+                <StatusIndicator status="success" />
+              )}
+              {apiKeyStatus === 'invalid' && (
+                <StatusIndicator status="error" />
+              )}
+            </div>
+            <p className="text-xs text-semblance-text-tertiary mt-1">
+              Get a free API key at search.brave.com/api
+            </p>
+          </div>
+        )}
+
+        {/* SearXNG URL */}
+        {searchProvider === 'searxng' && (
+          <div className="mb-4">
+            <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
+              SearXNG Instance URL
+            </label>
+            <Input
+              value={searxngUrl}
+              onChange={(e) => { setSearxngUrl(e.target.value); setApiKeySaved(false); }}
+              placeholder="https://searx.example.com"
+            />
+            <p className="text-xs text-semblance-text-tertiary mt-1">
+              URL of your self-hosted SearXNG instance
+            </p>
+          </div>
+        )}
+
+        {/* Rate Limit */}
+        <div className="mb-4">
+          <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
+            Rate Limit (requests per minute)
+          </label>
+          <Input
+            type="number"
+            value={String(searchRateLimit)}
+            onChange={(e) => { setSearchRateLimit(parseInt(e.target.value, 10) || 60); setApiKeySaved(false); }}
+            min={1}
+            max={120}
+          />
+        </div>
+
+        {/* Save Button */}
+        <div className="flex items-center gap-3">
+          <Button size="sm" onClick={handleSaveSearchSettings} disabled={apiKeyStatus === 'testing'}>
+            {apiKeyStatus === 'testing' ? 'Testing...' : 'Save'}
+          </Button>
+          {apiKeySaved && (
+            <span className="text-xs text-semblance-success">Settings saved</span>
+          )}
+        </div>
       </Card>
 
       {/* Connected Accounts */}

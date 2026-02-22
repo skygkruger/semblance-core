@@ -192,6 +192,77 @@ const TOOLS: ToolDefinition[] = [
       required: ['startTime', 'endTime'],
     },
   },
+  {
+    name: 'create_reminder',
+    description: 'Create a reminder from natural language or structured input. In Guardian mode, shows preview and waits for approval. In Partner and Alter Ego mode, creates immediately.',
+    parameters: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Reminder text (natural language or structured)' },
+        dueAt: { type: 'string', description: 'ISO 8601 due date/time (optional if using natural language parsing)' },
+        recurrence: { type: 'string', enum: ['none', 'daily', 'weekly', 'monthly'], description: 'Recurrence pattern' },
+      },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'list_reminders',
+    description: 'List the user\'s reminders. Available in all autonomy tiers.',
+    parameters: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['pending', 'fired', 'dismissed', 'snoozed', 'all'], description: 'Filter by status (default: all)' },
+      },
+    },
+  },
+  {
+    name: 'snooze_reminder',
+    description: 'Snooze a reminder for a specified duration. Available in all autonomy tiers.',
+    parameters: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Reminder ID' },
+        duration: { type: 'string', enum: ['15min', '1hr', '3hr', 'tomorrow'], description: 'Snooze duration' },
+      },
+      required: ['id', 'duration'],
+    },
+  },
+  {
+    name: 'dismiss_reminder',
+    description: 'Dismiss a reminder. Available in all autonomy tiers.',
+    parameters: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Reminder ID' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'search_web',
+    description: 'Search the web for current information. Use for weather, news, prices, general knowledge, or any query the user\'s local data cannot answer. Available in all autonomy tiers (informational, not an action).',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The search query' },
+        count: { type: 'number', description: 'Number of results (default 5, max 20)' },
+        freshness: { type: 'string', enum: ['day', 'week', 'month'], description: 'Recency filter' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'fetch_url',
+    description: 'Fetch and extract content from a URL. Use when the user shares a link or asks to summarize an article. Available in all autonomy tiers (informational).',
+    parameters: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'The URL to fetch' },
+        maxContentLength: { type: 'number', description: 'Max characters to return (default 50000)' },
+      },
+      required: ['url'],
+    },
+  },
 ];
 
 // Map tool names to ActionTypes
@@ -202,6 +273,12 @@ const TOOL_ACTION_MAP: Record<string, ActionType> = {
   'archive_email': 'email.archive',
   'fetch_calendar': 'calendar.fetch',
   'create_calendar_event': 'calendar.create',
+  'search_web': 'web.search',
+  'fetch_url': 'web.fetch',
+  'create_reminder': 'reminder.create',
+  'list_reminders': 'reminder.list',
+  'snooze_reminder': 'reminder.update',
+  'dismiss_reminder': 'reminder.update',
 };
 
 // Tools that are handled locally (no IPC needed)
