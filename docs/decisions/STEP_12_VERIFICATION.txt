@@ -1,0 +1,8 @@
+What I Need Verified
+Before I close Step 12, I need Claude Code to confirm three specific things. Have them run these checks:
+Check 1: Exit criteria coverage. Have Claude Code report pass/fail against all 20 exit criteria from the remediation prompt. The test count and root cause fixes look right, but I want explicit confirmation on criteria 7 (mDNS native provider implemented), 8 (encrypted sync — no cloud relay), 9 (real emails on mobile), 11 (semantic search on mobile), and 15 (offline with on-device inference). These are the ones most likely to have been partially addressed through mocks rather than real wiring.
+Check 2: LanceDB on mobile. Does the mobile adapter path hit LanceDB, and if so, does it fail loud or silently degrade? This was a pre-identified escalation trigger. If LanceDB is being bypassed or mocked on mobile, I need to know — that affects Step 13's Sprint 3 exit criteria for semantic search on mobile.
+Check 3: The autonomy.ts type regression. Your audit flagged that ACTION_DOMAIN_MAP and ACTION_RISK_MAP don't handle new action types (web.search, reminder.create, etc.), causing tsc --noEmit to fail on the core package. This needs to be fixed before Step 13. It's a small fix — add the new actions to both maps — but TypeScript compilation must be clean.
+
+Running Assessment
+Pending those three checks, this is looking like a clean close. The remediation delivered what it needed to: PlatformAdapter is enforced, native inference is real, 289 new tests, privacy audit clean. The architecture is sound.
