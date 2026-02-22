@@ -60,6 +60,13 @@ import { DeviceRegistry } from '../../../core/routing/device-registry.js';
 import { TaskAssessor } from '../../../core/routing/task-assessor.js';
 import { TaskRouter } from '../../../core/routing/router.js';
 
+// Step 15 imports
+import { MessageDrafter } from '../../../core/agent/messaging/message-drafter.js';
+import { maskPhoneNumber } from '../../../core/agent/messaging/phone-utils.js';
+import { ClipboardPatternRecognizer } from '../../../core/agent/clipboard/pattern-recognizer.js';
+import { sanitizeForAuditTrail } from '../../../core/agent/clipboard/clipboard-privacy.js';
+import type { MessagingAdapter } from '../../../core/platform/messaging-types.js';
+
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
 function emit(event: string, data: unknown): void {
@@ -172,6 +179,13 @@ let auditQuery: AuditQuery | null = null;
 let deviceRegistry: DeviceRegistry | null = null;
 let taskAssessor: TaskAssessor | null = null;
 let taskRouter: TaskRouter | null = null;
+
+// Step 15 state
+let messageDrafter: MessageDrafter | null = null;
+let messagingAdapter: MessagingAdapter | null = null;
+let clipboardRecognizer: ClipboardPatternRecognizer | null = null;
+let clipboardMonitoringEnabled = false;
+let clipboardRecentActions: Array<{ patternType: string; action: string; timestamp: string }> = [];
 
 // Step 14 state
 let contactStore: ContactStore | null = null;
@@ -1578,6 +1592,86 @@ function handleContactsGetFrequencyAlerts(): unknown {
   return { alerts: contactFrequencyMonitor.getDecreasingContacts() };
 }
 
+// ─── Step 15: Messaging + Clipboard Handlers ─────────────────────────────────
+
+function ensureMessageDrafter(): MessageDrafter {
+  if (!messageDrafter && core) {
+    const model = getPref('active_chat_model') ?? 'llama3.2:8b';
+    messageDrafter = new MessageDrafter({ llm: core.llm, model });
+  }
+  if (!messageDrafter) throw new Error('Message drafter not initialized');
+  return messageDrafter;
+}
+
+function ensureClipboardRecognizer(): ClipboardPatternRecognizer {
+  if (!clipboardRecognizer) {
+    clipboardRecognizer = new ClipboardPatternRecognizer({
+      llm: core?.llm,
+      model: getPref('active_chat_model') ?? 'llama3.2:8b',
+    });
+  }
+  return clipboardRecognizer;
+}
+
+async function handleMessagingDraft(params: { recipientName?: string; recipientPhone: string; intent: string; relationship?: string }): Promise<unknown> {
+  const drafter = ensureMessageDrafter();
+  const result = await drafter.draftMessage({
+    intent: params.intent,
+    recipientName: params.recipientName,
+    relationship: params.relationship,
+  });
+  return {
+    body: result.body,
+    styleApplied: result.styleApplied,
+    maskedPhone: maskPhoneNumber(params.recipientPhone),
+  };
+}
+
+async function handleMessagingSend(params: { phone: string; body: string }): Promise<unknown> {
+  if (!messagingAdapter) {
+    return { status: 'failed', error: 'Messaging adapter not initialized' };
+  }
+  const result = await messagingAdapter.sendMessage({ phone: params.phone, body: params.body });
+  return result;
+}
+
+async function handleMessagingHistory(params: { contactPhone: string; limit?: number }): Promise<unknown> {
+  if (!messagingAdapter?.readMessages) {
+    return { messages: null };
+  }
+  const messages = await messagingAdapter.readMessages(params.contactPhone, params.limit);
+  return { messages };
+}
+
+async function handleClipboardAnalyze(params: { text: string }): Promise<unknown> {
+  const recognizer = ensureClipboardRecognizer();
+  const analysis = await recognizer.analyze(params.text);
+  // Sanitize patterns for output — never expose full clipboard text
+  const sanitized = analysis.patterns.map(p => sanitizeForAuditTrail(p));
+  return {
+    patterns: sanitized,
+    hasActionableContent: analysis.hasActionableContent,
+  };
+}
+
+function handleClipboardGetSettings(): unknown {
+  return {
+    monitoringEnabled: clipboardMonitoringEnabled,
+    recentActions: clipboardRecentActions.slice(0, 5),
+  };
+}
+
+function handleClipboardSetSettings(params: { monitoringEnabled: boolean }): unknown {
+  clipboardMonitoringEnabled = params.monitoringEnabled;
+  setPref('clipboard_monitoring_enabled', String(params.monitoringEnabled));
+  return { success: true };
+}
+
+function handleClipboardGetRecent(): unknown {
+  // Returns pattern type + action only, never content
+  return { recentActions: clipboardRecentActions.slice(0, 10) };
+}
+
 async function handleShutdown(): Promise<unknown> {
   console.error('[sidecar] Shutting down...');
 
@@ -2043,6 +2137,45 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'contacts:getFrequencyAlerts':
         result = handleContactsGetFrequencyAlerts();
+        respond(id, result);
+        break;
+
+      // ── Messaging (Step 15) ──
+
+      case 'messaging:draft':
+        result = await handleMessagingDraft(params as { recipientName?: string; recipientPhone: string; intent: string; relationship?: string });
+        respond(id, result);
+        break;
+
+      case 'messaging:send':
+        result = await handleMessagingSend(params as { phone: string; body: string });
+        respond(id, result);
+        break;
+
+      case 'messaging:history':
+        result = await handleMessagingHistory(params as { contactPhone: string; limit?: number });
+        respond(id, result);
+        break;
+
+      // ── Clipboard (Step 15) ──
+
+      case 'clipboard:analyze':
+        result = await handleClipboardAnalyze(params as { text: string });
+        respond(id, result);
+        break;
+
+      case 'clipboard:getSettings':
+        result = handleClipboardGetSettings();
+        respond(id, result);
+        break;
+
+      case 'clipboard:setSettings':
+        result = handleClipboardSetSettings(params as { monitoringEnabled: boolean });
+        respond(id, result);
+        break;
+
+      case 'clipboard:getRecent':
+        result = handleClipboardGetRecent();
         respond(id, result);
         break;
 
