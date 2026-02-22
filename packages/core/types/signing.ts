@@ -1,14 +1,15 @@
 // Action Signing — Pure cryptographic functions
-// CRITICAL: No networking imports. Uses only Node.js built-in crypto.
+// CRITICAL: No networking imports. Uses PlatformAdapter for crypto.
 // These functions live in core/types/ so both Core and Gateway can use them.
+// Gateway auto-detects Node.js → desktop adapter → node:crypto under the hood.
 
-import { createHmac, createHash } from 'node:crypto';
+import { getPlatform } from '../platform/index.js';
 
 /**
  * Compute SHA-256 hash of arbitrary data.
  */
 export function sha256(data: string): string {
-  return createHash('sha256').update(data, 'utf-8').digest('hex');
+  return getPlatform().crypto.sha256(data);
 }
 
 /**
@@ -37,7 +38,7 @@ export function signRequest(
   payload: Record<string, unknown>,
 ): string {
   const signingPayload = buildSigningPayload(id, timestamp, action, payload);
-  return createHmac('sha256', key).update(signingPayload, 'utf-8').digest('hex');
+  return getPlatform().crypto.hmacSha256(key, signingPayload);
 }
 
 /**

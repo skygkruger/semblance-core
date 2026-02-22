@@ -1,7 +1,7 @@
 // Reminder Store — SQLite storage for reminders with CRUD, snooze, and recurrence.
 // Reminders are fully local. No data ever leaves the device.
 
-import type Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 
 const CREATE_TABLES = `
@@ -101,9 +101,9 @@ export function computeNextOccurrence(
 }
 
 export class ReminderStore {
-  private db: Database.Database;
+  private db: DatabaseHandle;
 
-  constructor(db: Database.Database) {
+  constructor(db: DatabaseHandle) {
     this.db = db;
     this.db.pragma('journal_mode = WAL');
     this.db.exec(CREATE_TABLES);

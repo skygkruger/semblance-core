@@ -1,7 +1,7 @@
 // Orchestrator — The main reasoning loop. Heart of Semblance.
 // User message → knowledge search → LLM prompt → tool calls → autonomy → IPC → response.
 
-import Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type {
   LLMProvider,
@@ -351,7 +351,7 @@ export class OrchestratorImpl implements Orchestrator {
   private knowledge: KnowledgeGraph;
   private ipc: IPCClient;
   readonly autonomy: AutonomyManager;
-  private db: Database.Database;
+  private db: DatabaseHandle;
   private model: string;
   private patternTracker: ApprovalPatternTracker;
   private styleProfileStore: StyleProfileStore | null;
@@ -363,7 +363,7 @@ export class OrchestratorImpl implements Orchestrator {
     knowledge: KnowledgeGraph;
     ipc: IPCClient;
     autonomy: AutonomyManager;
-    db: Database.Database;
+    db: DatabaseHandle;
     model: string;
     styleProfileStore?: StyleProfileStore;
     styleScoreThreshold?: number;

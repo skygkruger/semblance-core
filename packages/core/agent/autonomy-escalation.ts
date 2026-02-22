@@ -11,7 +11,7 @@
  * CRITICAL: This file is in packages/core/. No network imports.
  */
 
-import Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type { ApprovalPattern } from './approval-patterns.js';
 import type { AutonomyManager } from './autonomy.js';
@@ -154,11 +154,11 @@ const CREATE_ESCALATION_TABLE = `
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 export class EscalationEngine {
-  private db: Database.Database;
+  private db: DatabaseHandle;
   private autonomy: AutonomyManager;
   private aiName: string;
 
-  constructor(config: { db: Database.Database; autonomy: AutonomyManager; aiName?: string }) {
+  constructor(config: { db: DatabaseHandle; autonomy: AutonomyManager; aiName?: string }) {
     this.db = config.db;
     this.autonomy = config.autonomy;
     this.aiName = config.aiName ?? 'Semblance';

@@ -2,17 +2,13 @@
 // Wires together LLM, Knowledge Graph, Agent Orchestrator, and IPC Client.
 // ZERO network access. The only external communication is via typed IPC to the Gateway.
 
-import { join } from 'node:path';
-import { mkdirSync, existsSync } from 'node:fs';
-import { homedir, platform } from 'node:os';
-
 import type { LLMProvider } from './llm/types.js';
 import type { KnowledgeGraph } from './knowledge/index.js';
 import type { Orchestrator } from './agent/orchestrator.js';
 import type { IPCClient } from './agent/ipc-client.js';
 import type { AutonomyConfig } from './agent/types.js';
 
-import Database from 'better-sqlite3';
+import { getPlatform } from './platform/index.js';
 import { createLLMProvider } from './llm/index.js';
 import { ModelManager } from './llm/model-manager.js';
 import { createKnowledgeGraph } from './knowledge/index.js';
@@ -157,10 +153,11 @@ export interface SemblanceCoreConfig {
 
 // Default socket path varies by platform
 function defaultSocketPath(): string {
-  if (platform() === 'win32') {
+  const p = getPlatform();
+  if (p.hardware.platform() === 'win32') {
     return '\\\\.\\pipe\\semblance-gateway';
   }
-  return join(homedir(), '.semblance', 'gateway.sock');
+  return p.path.join(p.hardware.homedir(), '.semblance', 'gateway.sock');
 }
 
 /**
@@ -168,9 +165,10 @@ function defaultSocketPath(): string {
  * Call initialize() after creation to connect all subsystems.
  */
 export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore {
-  const dataDir = config?.dataDir ?? join(homedir(), '.semblance', 'data');
+  const p = getPlatform();
+  const dataDir = config?.dataDir ?? p.path.join(p.hardware.homedir(), '.semblance', 'data');
   const ollamaBaseUrl = config?.ollamaBaseUrl ?? 'http://localhost:11434';
-  const signingKeyPath = config?.signingKeyPath ?? join(homedir(), '.semblance', 'signing.key');
+  const signingKeyPath = config?.signingKeyPath ?? p.path.join(p.hardware.homedir(), '.semblance', 'signing.key');
   const socketPath = config?.socketPath ?? defaultSocketPath();
   const embeddingModel = config?.embeddingModel ?? 'nomic-embed-text';
 
@@ -213,12 +211,12 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
       if (initialized) return;
 
       // Ensure data directory exists
-      if (!existsSync(dataDir)) {
-        mkdirSync(dataDir, { recursive: true });
+      if (!p.fs.existsSync(dataDir)) {
+        p.fs.mkdirSync(dataDir, { recursive: true });
       }
 
       // Initialize model manager (needs SQLite for preferences)
-      const coreDb = new Database(join(dataDir, 'core.db'));
+      const coreDb = p.sqlite.openDatabase(p.path.join(dataDir, 'core.db'));
       coreDb.pragma('journal_mode = WAL');
       models = new ModelManager(llm, coreDb);
 
@@ -239,7 +237,7 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
       chatModel = chatModel ?? 'llama3.2:8b';
 
       // Step 3: Initialize the knowledge graph (LanceDB + SQLite)
-      const knowledgeDir = join(dataDir, 'knowledge');
+      const knowledgeDir = p.path.join(dataDir, 'knowledge');
       knowledge = await createKnowledgeGraph({
         dataDir: knowledgeDir,
         llmProvider: llm,

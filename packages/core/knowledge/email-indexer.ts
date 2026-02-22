@@ -8,7 +8,7 @@
 // CRITICAL: This file is in packages/core/. No network imports. All email data arrives
 // via IPC responses from the Gateway.
 
-import type Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type { KnowledgeGraph } from './index.js';
 import type { LLMProvider } from '../llm/types.js';
@@ -93,7 +93,7 @@ const CREATE_EMAIL_INDEX_TABLE = `
 // ─── Email Indexer ─────────────────────────────────────────────────────────────
 
 export class EmailIndexer {
-  private db: Database.Database;
+  private db: DatabaseHandle;
   private knowledge: KnowledgeGraph;
   private llm: LLMProvider;
   private embeddingModel: string;
@@ -102,7 +102,7 @@ export class EmailIndexer {
   private syncTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: {
-    db: Database.Database;
+    db: DatabaseHandle;
     knowledge: KnowledgeGraph;
     llm: LLMProvider;
     embeddingModel?: string;

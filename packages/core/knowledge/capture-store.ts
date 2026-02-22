@@ -1,7 +1,7 @@
 // Capture Store — SQLite storage for quick captures with context linking.
 // Captures are fully local. No data ever leaves the device.
 
-import type Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 
 const CREATE_TABLES = `
@@ -61,9 +61,9 @@ function rowToCapture(row: CaptureRow): Capture {
 }
 
 export class CaptureStore {
-  private db: Database.Database;
+  private db: DatabaseHandle;
 
-  constructor(db: Database.Database) {
+  constructor(db: DatabaseHandle) {
     this.db = db;
     this.db.exec(CREATE_TABLES);
   }

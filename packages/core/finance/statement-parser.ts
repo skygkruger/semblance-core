@@ -6,7 +6,7 @@
  * The user selects a file → Core reads it → Core analyzes it.
  */
 
-import { readFileSync } from 'node:fs';
+import { getPlatform } from '../platform/index.js';
 import { nanoid } from 'nanoid';
 import type { LLMProvider } from '../llm/types.js';
 
@@ -286,7 +286,7 @@ export class StatementParser {
    * Reads from local filesystem only — no network involved.
    */
   async parseStatement(filePath: string): Promise<{ transactions: Transaction[]; import: StatementImport }> {
-    const content = readFileSync(filePath, 'utf-8');
+    const content = getPlatform().fs.readFileSync(filePath, 'utf-8');
     const ext = filePath.toLowerCase().split('.').pop() || '';
 
     let transactions: Transaction[];

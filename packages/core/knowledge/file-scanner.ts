@@ -4,8 +4,7 @@
 // DOCX: mammoth (lightweight DOCX → text)
 // Both are local-only document parsers with ZERO network capabilities.
 
-import { readdir, stat, readFile } from 'node:fs/promises';
-import { join, extname, basename } from 'node:path';
+import { getPlatform } from '../platform/index.js';
 
 const SUPPORTED_EXTENSIONS = new Set(['.txt', '.md', '.pdf', '.docx', '.csv', '.json']);
 
@@ -50,9 +49,10 @@ export async function scanDirectory(dirPath: string): Promise<ScannedFile[]> {
 }
 
 async function scanRecursive(dirPath: string, results: ScannedFile[]): Promise<void> {
+  const p = getPlatform();
   let entries;
   try {
-    entries = await readdir(dirPath, { withFileTypes: true });
+    entries = await p.fs.readdir(dirPath, { withFileTypes: true });
   } catch {
     return; // Skip directories we can't read
   }
@@ -61,7 +61,7 @@ async function scanRecursive(dirPath: string, results: ScannedFile[]): Promise<v
     // Skip hidden files and excluded directories
     if (entry.name.startsWith('.')) continue;
 
-    const fullPath = join(dirPath, entry.name);
+    const fullPath = p.path.join(dirPath, entry.name);
 
     if (entry.isDirectory()) {
       if (!EXCLUDED_DIRS.has(entry.name)) {
@@ -72,17 +72,17 @@ async function scanRecursive(dirPath: string, results: ScannedFile[]): Promise<v
 
     if (!entry.isFile()) continue;
 
-    const ext = extname(entry.name).toLowerCase();
+    const ext = p.path.extname(entry.name).toLowerCase();
     if (!SUPPORTED_EXTENSIONS.has(ext)) continue;
 
     try {
-      const stats = await stat(fullPath);
+      const stats = await p.fs.stat(fullPath);
       results.push({
         path: fullPath,
         name: entry.name,
         extension: ext,
         size: stats.size,
-        lastModified: stats.mtime.toISOString(),
+        lastModified: new Date(stats.mtimeMs).toISOString(),
       });
     } catch {
       // Skip files we can't stat
@@ -94,25 +94,25 @@ async function scanRecursive(dirPath: string, results: ScannedFile[]): Promise<v
  * Read and extract text content from a file.
  */
 export async function readFileContent(filePath: string): Promise<FileContent> {
-  const ext = extname(filePath).toLowerCase();
-  const name = basename(filePath, ext);
+  const p = getPlatform();
+  const ext = p.path.extname(filePath).toLowerCase();
+  const name = p.path.basename(filePath, ext);
 
   switch (ext) {
     case '.txt':
     case '.md':
     case '.csv': {
-      const buffer = await readFile(filePath);
+      const content = await p.fs.readFile(filePath, 'utf-8');
       return {
         path: filePath,
         title: name,
-        content: buffer.toString('utf-8'),
+        content,
         mimeType: ext === '.md' ? 'text/markdown' : ext === '.csv' ? 'text/csv' : 'text/plain',
       };
     }
 
     case '.json': {
-      const buffer = await readFile(filePath);
-      const text = buffer.toString('utf-8');
+      const text = await p.fs.readFile(filePath, 'utf-8');
       // Pretty-print JSON for better chunking
       try {
         const parsed = JSON.parse(text) as unknown;
@@ -128,7 +128,7 @@ export async function readFileContent(filePath: string): Promise<FileContent> {
     }
 
     case '.pdf': {
-      const buffer = await readFile(filePath);
+      const buffer = await p.fs.readFileBuffer(filePath);
       const { PDFParse } = await import('pdf-parse');
       const parser = new PDFParse({ data: new Uint8Array(buffer) });
       const result = await parser.getText();
@@ -141,7 +141,7 @@ export async function readFileContent(filePath: string): Promise<FileContent> {
     }
 
     case '.docx': {
-      const buffer = await readFile(filePath);
+      const buffer = await p.fs.readFileBuffer(filePath);
       const mammoth = await import('mammoth');
       const result = await mammoth.extractRawText({ buffer });
       return {

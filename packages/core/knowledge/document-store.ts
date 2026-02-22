@@ -2,7 +2,7 @@
 // The actual content is chunked and stored in the vector store (LanceDB).
 // This store handles metadata, deduplication, and entity resolution.
 
-import type Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type {
   Document,
@@ -105,9 +105,9 @@ function rowToEntity(row: EntityRow): Entity {
 }
 
 export class DocumentStore {
-  private db: Database.Database;
+  private db: DatabaseHandle;
 
-  constructor(db: Database.Database) {
+  constructor(db: DatabaseHandle) {
     this.db = db;
     this.db.pragma('journal_mode = WAL');
     this.db.exec(CREATE_TABLES);

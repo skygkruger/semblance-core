@@ -47,6 +47,7 @@ const desktopFs: FileSystemAdapter = {
   },
   readdirSync: (p: string) => fs.readdirSync(p),
   readFile: (p: string, encoding: 'utf-8') => fsPromises.readFile(p, encoding),
+  readFileBuffer: (p: string) => fsPromises.readFile(p),
   readdir: async (p: string, _options: { withFileTypes: true }) => {
     const entries = await fsPromises.readdir(p, { withFileTypes: true });
     return entries.map(e => ({
@@ -99,6 +100,11 @@ const desktopSqlite: SQLiteAdapter = {
           all: (...params: unknown[]) => stmt.all(...params),
           run: (...params: unknown[]) => stmt.run(...params),
         };
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transaction: <T extends (...args: any[]) => any>(fn: T): T => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return db.transaction(fn as any) as unknown as T;
       },
       exec: (sql: string) => {
         db.exec(sql);

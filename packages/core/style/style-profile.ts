@@ -3,7 +3,7 @@
 // All data stored locally in SQLite. Never transmitted through Gateway.
 // CRITICAL: This file is in packages/core/. No network imports.
 
-import type Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 
 // ─── Style Profile Interface ──────────────────────────────────────────────────
@@ -168,9 +168,9 @@ export function createEmptyProfile(): StyleProfile {
 // ─── Profile Store ────────────────────────────────────────────────────────────
 
 export class StyleProfileStore {
-  private db: Database.Database;
+  private db: DatabaseHandle;
 
-  constructor(db: Database.Database) {
+  constructor(db: DatabaseHandle) {
     this.db = db;
     this.db.pragma('journal_mode = WAL');
     this.db.exec(CREATE_TABLES);

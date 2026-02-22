@@ -7,7 +7,7 @@
  * CRITICAL: This file is in packages/core/. No network imports.
  */
 
-import Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type { LLMProvider } from '../llm/types.js';
 
@@ -126,15 +126,15 @@ function formatTimeSaved(seconds: number): string {
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 export class WeeklyDigestGenerator {
-  private db: Database.Database;
-  private auditDb: Database.Database;
+  private db: DatabaseHandle;
+  private auditDb: DatabaseHandle;
   private llm?: LLMProvider;
   private model: string;
   private aiName: string;
 
   constructor(config: {
-    db: Database.Database;
-    auditDb: Database.Database;
+    db: DatabaseHandle;
+    auditDb: DatabaseHandle;
     llm?: LLMProvider;
     model?: string;
     aiName?: string;

@@ -1,7 +1,7 @@
 // Autonomy Framework — Determines whether actions require user approval.
 // Three tiers: Guardian (all approval), Partner (smart auto-approve), Alter Ego (mostly auto).
 
-import type Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import type { ActionType } from '../types/ipc.js';
 import type {
   AutonomyTier,
@@ -56,10 +56,10 @@ const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
 export type AutonomyDecision = 'auto_approve' | 'requires_approval' | 'blocked';
 
 export class AutonomyManager {
-  private db: Database.Database;
+  private db: DatabaseHandle;
   private defaultTier: AutonomyTier;
 
-  constructor(db: Database.Database, config?: AutonomyConfig) {
+  constructor(db: DatabaseHandle, config?: AutonomyConfig) {
     this.db = db;
     this.db.exec(CREATE_TABLE);
     this.defaultTier = config?.defaultTier ?? 'partner';

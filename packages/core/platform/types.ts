@@ -43,6 +43,9 @@ export interface FileSystemAdapter {
   /** Read directory contents with file type info (async) */
   readdir(path: string, options: { withFileTypes: true }): Promise<Array<{ name: string; isDirectory(): boolean; isFile(): boolean }>>;
 
+  /** Read file contents as Buffer (async) */
+  readFileBuffer(path: string): Promise<Buffer>;
+
   /** Get file stats (async) */
   stat(path: string): Promise<{ size: number; isDirectory(): boolean; isFile(): boolean; mtimeMs: number }>;
 }
@@ -114,6 +117,10 @@ export interface DatabaseHandle {
 
   /** Execute raw SQL (no return value) */
   exec(sql: string): void;
+
+  /** Wrap operations in a transaction. Returns a function that executes the transaction. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  transaction<T extends (...args: any[]) => any>(fn: T): T;
 
   /** Close the database connection */
   close(): void;

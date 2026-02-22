@@ -92,6 +92,7 @@ const stubFs: FileSystemAdapter = {
   statSync: () => notConfigured('FileSystem'),
   readdirSync: () => notConfigured('FileSystem'),
   readFile: () => notConfigured('FileSystem'),
+  readFileBuffer: () => notConfigured('FileSystem'),
   readdir: () => notConfigured('FileSystem'),
   stat: () => notConfigured('FileSystem'),
 };

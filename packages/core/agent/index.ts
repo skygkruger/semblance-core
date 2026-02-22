@@ -22,8 +22,7 @@ import type { AutonomyConfig } from './types.js';
 import type { Orchestrator } from './orchestrator.js';
 import { OrchestratorImpl } from './orchestrator.js';
 import { AutonomyManager } from './autonomy.js';
-import Database from 'better-sqlite3';
-import { join } from 'node:path';
+import { getPlatform } from '../platform/index.js';
 
 /**
  * Create an Orchestrator instance.
@@ -36,7 +35,8 @@ export function createOrchestrator(config: {
   dataDir: string;
   model: string;
 }): Orchestrator {
-  const db = new Database(join(config.dataDir, 'agent.db'));
+  const p = getPlatform();
+  const db = p.sqlite.openDatabase(p.path.join(config.dataDir, 'agent.db'));
   db.pragma('journal_mode = WAL');
 
   const autonomy = new AutonomyManager(db, config.autonomyConfig);

@@ -9,7 +9,7 @@
 //
 // CRITICAL: This file is in packages/core/. No network imports.
 
-import type Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type { KnowledgeGraph, SearchResult } from '../knowledge/index.js';
 import type { EmailIndexer, IndexedEmail } from '../knowledge/email-indexer.js';
@@ -137,7 +137,7 @@ const DEADLINE_PATTERNS = [
 // ─── Proactive Context Engine ──────────────────────────────────────────────────
 
 export class ProactiveEngine {
-  private db: Database.Database;
+  private db: DatabaseHandle;
   private knowledge: KnowledgeGraph;
   private emailIndexer: EmailIndexer;
   private calendarIndexer: CalendarIndexer;
@@ -147,7 +147,7 @@ export class ProactiveEngine {
   private eventHandler: ProactiveEventHandler | null = null;
 
   constructor(config: {
-    db: Database.Database;
+    db: DatabaseHandle;
     knowledge: KnowledgeGraph;
     emailIndexer: EmailIndexer;
     calendarIndexer: CalendarIndexer;

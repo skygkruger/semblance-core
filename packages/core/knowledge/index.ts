@@ -1,8 +1,6 @@
 // Knowledge Graph — Unified interface for document indexing, search, and management.
 
-import Database from 'better-sqlite3';
-import { join } from 'node:path';
-import { mkdirSync, existsSync } from 'node:fs';
+import { getPlatform } from '../platform/index.js';
 import type { LLMProvider } from '../llm/types.js';
 import type {
   Document,
@@ -201,19 +199,20 @@ export async function createKnowledgeGraph(config: {
   embeddingModel?: string;
   embeddingDimensions?: number;
 }): Promise<KnowledgeGraph> {
+  const p = getPlatform();
   const dataDir = config.dataDir;
-  if (!existsSync(dataDir)) {
-    mkdirSync(dataDir, { recursive: true });
+  if (!p.fs.existsSync(dataDir)) {
+    p.fs.mkdirSync(dataDir, { recursive: true });
   }
 
   // Initialize SQLite for document metadata
-  const db = new Database(join(dataDir, 'documents.db'));
+  const db = p.sqlite.openDatabase(p.path.join(dataDir, 'documents.db'));
   const documentStore = new DocumentStore(db);
 
   // Initialize LanceDB for vector storage
-  const vectorDir = join(dataDir, 'vectors');
-  if (!existsSync(vectorDir)) {
-    mkdirSync(vectorDir, { recursive: true });
+  const vectorDir = p.path.join(dataDir, 'vectors');
+  if (!p.fs.existsSync(vectorDir)) {
+    p.fs.mkdirSync(vectorDir, { recursive: true });
   }
   const vectorStore = new VectorStore(vectorDir);
   await vectorStore.initialize();

@@ -8,7 +8,7 @@
 //
 // CRITICAL: This file is in packages/core/. No network imports.
 
-import type Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import type { ActionType } from '../types/ipc.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -72,9 +72,9 @@ export function deriveSubType(actionType: ActionType, payload: Record<string, un
 // ─── Approval Pattern Tracker ──────────────────────────────────────────────────
 
 export class ApprovalPatternTracker {
-  private db: Database.Database;
+  private db: DatabaseHandle;
 
-  constructor(db: Database.Database) {
+  constructor(db: DatabaseHandle) {
     this.db = db;
     this.db.exec(CREATE_APPROVAL_PATTERNS_TABLE);
   }

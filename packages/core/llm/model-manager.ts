@@ -1,7 +1,7 @@
 // Model Manager — Tracks available models, selects defaults, stores preferences.
 
-import type Database from 'better-sqlite3';
-import { freemem, totalmem } from 'node:os';
+import type { DatabaseHandle } from '../platform/types.js';
+import { getPlatform } from '../platform/index.js';
 import type { LLMProvider, ModelInfo } from './types.js';
 
 const PREFERRED_CHAT_MODELS = [
@@ -36,10 +36,10 @@ export interface ModelRecommendation {
 
 export class ModelManager {
   private provider: LLMProvider;
-  private db: Database.Database;
+  private db: DatabaseHandle;
   private cachedModels: ModelInfo[] | null = null;
 
-  constructor(provider: LLMProvider, db: Database.Database) {
+  constructor(provider: LLMProvider, db: DatabaseHandle) {
     this.provider = provider;
     this.db = db;
     this.db.exec(CREATE_TABLE);
@@ -96,8 +96,9 @@ export class ModelManager {
    * Get hardware-aware model recommendations.
    */
   getRecommendations(): ModelRecommendation[] {
-    const totalGb = Math.round(totalmem() / (1024 * 1024 * 1024));
-    const freeGb = Math.round(freemem() / (1024 * 1024 * 1024));
+    const hw = getPlatform().hardware;
+    const totalGb = Math.round(hw.totalmem() / (1024 * 1024 * 1024));
+    const freeGb = Math.round(hw.freemem() / (1024 * 1024 * 1024));
     const recommendations: ModelRecommendation[] = [];
 
     if (totalGb >= 32) {

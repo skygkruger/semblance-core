@@ -3,7 +3,7 @@
 // CRITICAL: No networking imports. Pure local data management.
 // Device discovery (mDNS/Bonjour) is Sprint 3 — this step stores capabilities only.
 
-import type Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 
 // --- Interfaces ---
@@ -109,9 +109,9 @@ function rowToDevice(row: DeviceRow): DeviceCapabilities {
 // --- DeviceRegistry ---
 
 export class DeviceRegistry {
-  private db: Database.Database;
+  private db: DatabaseHandle;
 
-  constructor(db: Database.Database) {
+  constructor(db: DatabaseHandle) {
     this.db = db;
     this.db.exec(CREATE_TABLE);
     this.db.exec(CREATE_ROUTING_LOG);

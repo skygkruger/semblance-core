@@ -65,9 +65,8 @@ export class CoreIPCClient implements IPCClient {
     }
 
     // Legacy: load signing key from file, create SocketTransport
-    const { readFileSync } = await import('node:fs');
     try {
-      const keyHex = readFileSync(this.signingKeyPath!, 'utf-8').trim();
+      const keyHex = (await import('../platform/index.js')).getPlatform().fs.readFileSync(this.signingKeyPath!, 'utf-8').trim();
       this.signingKey = Buffer.from(keyHex, 'hex');
     } catch (err) {
       throw new Error(

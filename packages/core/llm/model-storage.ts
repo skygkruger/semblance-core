@@ -1,9 +1,7 @@
 // Model Storage — Platform path resolution, model file operations, storage management.
-// CRITICAL: No network imports. File system operations only.
+// CRITICAL: No network imports. File system operations via PlatformAdapter only.
 
-import { join } from 'node:path';
-import { homedir } from 'node:os';
-import { existsSync, mkdirSync, statSync, unlinkSync, readdirSync } from 'node:fs';
+import { getPlatform } from '../platform/index.js';
 
 const MODELS_DIR_NAME = 'models';
 
@@ -12,10 +10,11 @@ const MODELS_DIR_NAME = 'models';
  * Default: ~/.semblance/models/
  */
 export function getModelsDir(dataDir?: string): string {
-  const base = dataDir ?? join(homedir(), '.semblance');
-  const modelsDir = join(base, MODELS_DIR_NAME);
-  if (!existsSync(modelsDir)) {
-    mkdirSync(modelsDir, { recursive: true });
+  const p = getPlatform();
+  const base = dataDir ?? p.path.join(p.hardware.homedir(), '.semblance');
+  const modelsDir = p.path.join(base, MODELS_DIR_NAME);
+  if (!p.fs.existsSync(modelsDir)) {
+    p.fs.mkdirSync(modelsDir, { recursive: true });
   }
   return modelsDir;
 }
@@ -24,14 +23,14 @@ export function getModelsDir(dataDir?: string): string {
  * Get the full path for a model file.
  */
 export function getModelPath(modelId: string, dataDir?: string): string {
-  return join(getModelsDir(dataDir), `${modelId}.gguf`);
+  return getPlatform().path.join(getModelsDir(dataDir), `${modelId}.gguf`);
 }
 
 /**
  * Check if a model file exists locally.
  */
 export function isModelDownloaded(modelId: string, dataDir?: string): boolean {
-  return existsSync(getModelPath(modelId, dataDir));
+  return getPlatform().fs.existsSync(getModelPath(modelId, dataDir));
 }
 
 /**
@@ -39,18 +38,20 @@ export function isModelDownloaded(modelId: string, dataDir?: string): boolean {
  * Returns 0 if the file doesn't exist.
  */
 export function getModelFileSize(modelId: string, dataDir?: string): number {
+  const p = getPlatform();
   const path = getModelPath(modelId, dataDir);
-  if (!existsSync(path)) return 0;
-  return statSync(path).size;
+  if (!p.fs.existsSync(path)) return 0;
+  return p.fs.statSync(path).size;
 }
 
 /**
  * Delete a model file.
  */
 export function deleteModel(modelId: string, dataDir?: string): boolean {
+  const p = getPlatform();
   const path = getModelPath(modelId, dataDir);
-  if (!existsSync(path)) return false;
-  unlinkSync(path);
+  if (!p.fs.existsSync(path)) return false;
+  p.fs.unlinkSync(path);
   return true;
 }
 
@@ -62,14 +63,15 @@ export function listDownloadedModels(dataDir?: string): Array<{
   sizeBytes: number;
   modelId: string;
 }> {
+  const p = getPlatform();
   const dir = getModelsDir(dataDir);
-  if (!existsSync(dir)) return [];
+  if (!p.fs.existsSync(dir)) return [];
 
-  return readdirSync(dir)
+  return p.fs.readdirSync(dir)
     .filter(f => f.endsWith('.gguf'))
     .map(filename => {
-      const fullPath = join(dir, filename);
-      const stat = statSync(fullPath);
+      const fullPath = p.path.join(dir, filename);
+      const stat = p.fs.statSync(fullPath);
       return {
         filename,
         sizeBytes: stat.size,

@@ -7,7 +7,7 @@
 //
 // CRITICAL: This file is in packages/core/. No network imports.
 
-import type Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type { KnowledgeGraph } from './index.js';
 import type { LLMProvider } from '../llm/types.js';
@@ -82,7 +82,7 @@ const CREATE_CALENDAR_INDEX_TABLE = `
 // ─── Calendar Indexer ──────────────────────────────────────────────────────────
 
 export class CalendarIndexer {
-  private db: Database.Database;
+  private db: DatabaseHandle;
   private knowledge: KnowledgeGraph;
   private llm: LLMProvider;
   private embeddingModel: string;
@@ -91,7 +91,7 @@ export class CalendarIndexer {
   private syncTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: {
-    db: Database.Database;
+    db: DatabaseHandle;
     knowledge: KnowledgeGraph;
     llm: LLMProvider;
     embeddingModel?: string;

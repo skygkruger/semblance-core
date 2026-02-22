@@ -5,7 +5,7 @@
  * flags "forgotten" subscriptions by cross-referencing email index.
  */
 
-import Database from 'better-sqlite3';
+import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type { Transaction, StatementImport } from './statement-parser.js';
 import type { MerchantNormalizer } from './merchant-normalizer.js';
@@ -147,10 +147,10 @@ const CREATE_TABLES = `
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 export class RecurringDetector {
-  private db: Database.Database;
+  private db: DatabaseHandle;
   private normalizer: MerchantNormalizer;
 
-  constructor(config: { db: Database.Database; normalizer: MerchantNormalizer }) {
+  constructor(config: { db: DatabaseHandle; normalizer: MerchantNormalizer }) {
     this.db = config.db;
     this.normalizer = config.normalizer;
     this.db.exec(CREATE_TABLES);
