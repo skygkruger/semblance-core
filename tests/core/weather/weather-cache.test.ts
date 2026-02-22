@@ -32,7 +32,7 @@ describe('WeatherCache', () => {
 
   it('same area (3dp key) is cache hit', () => {
     const key1 = WeatherCache.coordKey(45.52312, -122.67654);
-    const key2 = WeatherCache.coordKey(45.52387, -122.67699);
+    const key2 = WeatherCache.coordKey(45.52349, -122.67699);
     // Both round to 45.523, -122.677
     expect(key1).toBe(key2);
   });

@@ -37,6 +37,7 @@ describe('AppState document context', () => {
     documentContext: null,
     contacts: { list: [], selectedId: null, loading: false },
     clipboardSettings: { monitoringEnabled: false, recentActions: [] },
+    locationSettings: { enabled: false, remindersEnabled: false, commuteEnabled: false, weatherEnabled: false, defaultCity: '', retentionDays: 7 },
   };
 
   const mockDoc: DocumentContext = {
