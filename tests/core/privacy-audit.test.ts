@@ -50,8 +50,12 @@ describe('Privacy Audit', () => {
       expect(output).toContain('VIOLATION');
       expect(output).toContain('ollama');
     } finally {
-      if (existsSync(testDir)) {
-        rmSync(testDir, { recursive: true, force: true });
+      try {
+        if (existsSync(testDir)) {
+          rmSync(testDir, { recursive: true, force: true });
+        }
+      } catch {
+        // Windows EPERM on temp cleanup is non-fatal
       }
     }
   });
@@ -76,8 +80,12 @@ describe('Privacy Audit', () => {
       expect(output).toContain('VIOLATION');
       expect(output).toContain('fetch');
     } finally {
-      if (existsSync(testDir)) {
-        rmSync(testDir, { recursive: true, force: true });
+      try {
+        if (existsSync(testDir)) {
+          rmSync(testDir, { recursive: true, force: true });
+        }
+      } catch {
+        // Windows EPERM on temp cleanup is non-fatal
       }
     }
   });
@@ -102,8 +110,12 @@ describe('Privacy Audit', () => {
       expect(output).toContain('VIOLATION');
       expect(output).toContain('http');
     } finally {
-      if (existsSync(testDir)) {
-        rmSync(testDir, { recursive: true, force: true });
+      try {
+        if (existsSync(testDir)) {
+          rmSync(testDir, { recursive: true, force: true });
+        }
+      } catch {
+        // Windows EPERM on temp cleanup is non-fatal
       }
     }
   });

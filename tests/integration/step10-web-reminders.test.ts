@@ -237,16 +237,17 @@ describe('Step 10 Integration: Reminder end-to-end', () => {
     }));
 
     const mockIPC = {
-      send: vi.fn().mockResolvedValue({ status: 'success', data: { id: 'rem-1' } }),
+      sendAction: vi.fn().mockResolvedValue({ status: 'success', data: { id: 'rem-1' } }),
       connect: vi.fn(),
       disconnect: vi.fn(),
+      isConnected: vi.fn(),
     };
 
     const parsed = await parseReminder('remind me to call Sarah at 3pm', llm);
     expect(parsed.text).toBe('call Sarah');
 
     const result = await createReminder('remind me to call Sarah at 3pm', llm, mockIPC);
-    expect(mockIPC.send).toHaveBeenCalledWith('reminder.create', expect.objectContaining({
+    expect(mockIPC.sendAction).toHaveBeenCalledWith('reminder.create', expect.objectContaining({
       text: 'call Sarah',
       source: 'chat',
     }));
