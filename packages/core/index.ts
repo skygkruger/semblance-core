@@ -72,6 +72,47 @@ export type { IPCTransport, IPCHandler } from './ipc/transport.js';
 export { SocketTransport, type SocketTransportConfig } from './ipc/socket-transport.js';
 export { InProcessTransport } from './ipc/in-process-transport.js';
 
+// Re-export platform abstraction
+export {
+  getPlatform,
+  setPlatform,
+  hasPlatform,
+  resetPlatform,
+  initDesktopPlatform,
+  isMobilePlatform,
+  isDesktopPlatform,
+  createMobileAdapter,
+  mobilePath,
+} from './platform/index.js';
+export { createDesktopAdapter } from './platform/desktop-adapter.js';
+export type {
+  PlatformAdapter,
+  FileSystemAdapter,
+  PathAdapter,
+  CryptoAdapter,
+  SQLiteAdapter,
+  DatabaseHandle,
+  PreparedStatement,
+  HardwareAdapter,
+  NotificationAdapter,
+  MobileAdapterConfig,
+} from './platform/index.js';
+
+// Re-export mobile model management
+export {
+  MobileModelManager,
+  MOBILE_MODEL_REGISTRY,
+  selectReasoningModel,
+  selectEmbeddingModel,
+  getRequiredModels,
+  getTotalDownloadSize,
+  formatBytes,
+} from './llm/mobile-model-manager.js';
+export type {
+  MobileModelEntry,
+  MobileModelDownload,
+} from './llm/mobile-model-manager.js';
+
 // --- SemblanceCore Interface ---
 
 export interface SemblanceCore {
