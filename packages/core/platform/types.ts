@@ -258,6 +258,68 @@ export interface VectorStoreAdapter {
   close(): void;
 }
 
+// ─── Contacts Adapter ────────────────────────────────────────────────────────
+
+/**
+ * A single field value from a device contact (email, phone, etc.).
+ */
+export interface ContactField {
+  label: string;        // e.g. 'home', 'work', 'mobile', 'other'
+  value: string;
+}
+
+/**
+ * A physical address from a device contact.
+ */
+export interface ContactAddress {
+  label: string;
+  street: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  country: string;
+}
+
+/**
+ * A contact entry as returned from the device's native contacts store.
+ */
+export interface DeviceContact {
+  /** Platform-specific unique ID for this contact */
+  deviceContactId: string;
+  displayName: string;
+  givenName: string;
+  familyName: string;
+  emails: ContactField[];
+  phones: ContactField[];
+  organization: string;
+  jobTitle: string;
+  birthday: string;         // ISO date string or empty
+  addresses: ContactAddress[];
+  thumbnailPath: string;    // Path to thumbnail image, or empty
+}
+
+/**
+ * Platform-agnostic contacts adapter.
+ * Desktop: Tauri plugin for CNContactStore (macOS), empty on Windows/Linux.
+ * Mobile: react-native-contacts wrapper.
+ */
+export interface ContactsAdapter {
+  /** Check if contacts permission has been granted */
+  checkPermission(): Promise<'authorized' | 'denied' | 'undetermined'>;
+
+  /** Request contacts permission from the user */
+  requestPermission(): Promise<'authorized' | 'denied'>;
+
+  /** Fetch all contacts from the device store */
+  getAllContacts(): Promise<DeviceContact[]>;
+
+  /**
+   * Register a listener for contact changes.
+   * Returns an unsubscribe function.
+   */
+  onContactsChanged(listener: () => void): () => void;
+}
+
 // ─── Encrypted Payload ──────────────────────────────────────────────────────
 
 /**
@@ -301,4 +363,7 @@ export interface PlatformAdapter {
 
   /** Vector storage (optional — not all platforms configure this at adapter creation) */
   vectorStore?: VectorStoreAdapter;
+
+  /** Contacts access (optional — not available on all platforms) */
+  contacts?: ContactsAdapter;
 }
