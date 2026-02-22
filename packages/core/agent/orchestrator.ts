@@ -282,6 +282,17 @@ const TOOLS: ToolDefinition[] = [
       required: ['recipientName', 'intent'],
     },
   },
+  {
+    name: 'get_weather',
+    description: 'Get current weather conditions and forecast. Use when the user asks about weather, temperature, rain, or needs weather context for planning. Available in all autonomy tiers (informational, not an action).',
+    parameters: {
+      type: 'object',
+      properties: {
+        location: { type: 'string', description: 'City or location name (optional — uses current location if not specified)' },
+        hours: { type: 'number', description: 'Forecast hours ahead (default 24, max 48)' },
+      },
+    },
+  },
 ];
 
 // Map tool names to ActionTypes
@@ -299,6 +310,7 @@ const TOOL_ACTION_MAP: Record<string, ActionType> = {
   'snooze_reminder': 'reminder.update',
   'dismiss_reminder': 'reminder.update',
   'send_text': 'messaging.send',
+  'get_weather': 'location.weather_query',
 };
 
 // Tools that are handled locally (no IPC needed)
@@ -335,6 +347,7 @@ Available tools:
 - create_calendar_event: Schedule a new event (checks for conflicts first)
 - detect_calendar_conflicts: Check for scheduling conflicts
 - send_text: Send a text message to a contact
+- get_weather: Get current weather and forecast
 
 Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.`;
 
