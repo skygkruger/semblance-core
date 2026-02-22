@@ -1,7 +1,7 @@
 // SemblanceMLXModule — React Native native module for MLX inference on iOS.
 //
 // Implements the MobileInferenceBridge interface via React Native's native module
-// system. Uses mlx-swift to load and run GGUF models on Apple Silicon (A14+).
+// system. Uses mlx-swift (MLXLLM) to load and run GGUF models on Apple Silicon (A14+).
 //
 // MODEL LOADING: Accepts a file path to a downloaded GGUF model on device storage.
 // Metal GPU acceleration is managed automatically by MLX.
@@ -15,24 +15,54 @@
 // PRIVACY: No network calls. All inference is local. No telemetry.
 
 import Foundation
-// import MLX // Uncomment when mlx-swift is integrated via SPM
-// import MLXNN
-// import MLXRandom
+import MLX
+import MLXLLM
+import MLXRandom
+import Tokenizers
 
 @objc(SemblanceMLX)
-class SemblanceMLXModule: NSObject {
+class SemblanceMLXModule: NSObject, RCTBridgeModule {
     // MARK: - State
 
+    private var modelContainer: ModelContainer?
     private var isLoaded = false
     private var modelPath: String?
     private var contextLength: Int = 2048
     private var batchSize: Int = 32
     private var gpuLayers: Int = 32
+    private var isGenerating = false
+
+    private var bridge: RCTBridge?
 
     // MARK: - React Native Module Setup
 
+    static func moduleName() -> String! {
+        return "SemblanceMLX"
+    }
+
     @objc static func requiresMainQueueSetup() -> Bool {
         return false
+    }
+
+    // MARK: - Event Emitter Support
+
+    private var hasListeners = false
+
+    @objc func startObserving() {
+        hasListeners = true
+    }
+
+    @objc func stopObserving() {
+        hasListeners = false
+    }
+
+    @objc func supportedEvents() -> [String] {
+        return ["onToken", "onModelUnloaded", "onGenerationComplete"]
+    }
+
+    private func sendEvent(_ name: String, body: [String: Any]) {
+        guard hasListeners, let bridge = self.bridge else { return }
+        bridge.eventDispatcher().sendAppEvent(withName: name, body: body)
     }
 
     // MARK: - Model Lifecycle
@@ -51,23 +81,58 @@ class SemblanceMLXModule: NSObject {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
+            // Reject if already generating
+            guard !self.isGenerating else {
+                reject("BUSY", "Cannot load model while inference is in progress.", nil)
+                return
+            }
+
             // Verify file exists
             guard FileManager.default.fileExists(atPath: modelPath) else {
                 reject("MODEL_NOT_FOUND", "Model file not found at \(modelPath)", nil)
                 return
             }
 
+            // Check available memory before loading
+            var availableMemory: UInt64 = 0
+            if #available(iOS 13.0, *) {
+                availableMemory = os_proc_available_memory()
+            }
+
+            // Require at least 512MB available to load a model
+            let minimumMemory: UInt64 = 512 * 1024 * 1024
+            guard availableMemory > minimumMemory || availableMemory == 0 else {
+                reject("INSUFFICIENT_MEMORY",
+                       "Not enough memory to load model. Available: \(availableMemory / 1024 / 1024)MB, minimum: \(minimumMemory / 1024 / 1024)MB",
+                       nil)
+                return
+            }
+
+            // Unload existing model if any
+            self.modelContainer = nil
+
             self.modelPath = modelPath
             self.contextLength = contextLength
             self.batchSize = batchSize
             self.gpuLayers = gpuLayers
 
-            // TODO: Initialize MLX model from GGUF file
-            // let model = try MLXModel(path: modelPath)
-            // model.configure(contextLength: contextLength, batchSize: batchSize)
+            do {
+                // Load GGUF model using MLXLLM
+                let modelURL = URL(fileURLWithPath: modelPath)
+                let configuration = ModelConfiguration(directory: modelURL.deletingLastPathComponent())
+                let container = try ModelContainer(configuration: configuration)
 
-            self.isLoaded = true
-            resolve(["status": "loaded", "modelPath": modelPath])
+                self.modelContainer = container
+                self.isLoaded = true
+
+                resolve([
+                    "status": "loaded",
+                    "modelPath": modelPath,
+                    "contextLength": contextLength,
+                ])
+            } catch {
+                reject("LOAD_FAILED", "Failed to load MLX model: \(error.localizedDescription)", error)
+            }
         }
     }
 
@@ -76,9 +141,18 @@ class SemblanceMLXModule: NSObject {
         _ resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
+        guard !isGenerating else {
+            reject("BUSY", "Cannot unload while inference is in progress.", nil)
+            return
+        }
+
+        modelContainer = nil
         isLoaded = false
         modelPath = nil
-        // TODO: Release MLX model memory
+
+        // Force MLX memory cleanup
+        MLX.GPU.synchronize()
+
         resolve(["status": "unloaded"])
     }
 
@@ -102,29 +176,82 @@ class SemblanceMLXModule: NSObject {
         resolver resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
-        guard isLoaded else {
+        guard isLoaded, let container = modelContainer else {
             reject("NOT_LOADED", "No model loaded. Call loadModel() first.", nil)
             return
         }
+
+        guard !isGenerating else {
+            reject("BUSY", "Inference already in progress. Wait for completion or cancel.", nil)
+            return
+        }
+
+        isGenerating = true
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
             let startTime = Date()
+            var generatedText = ""
+            var tokenCount = 0
 
-            // TODO: Run MLX inference
-            // var fullPrompt = prompt
-            // if let sys = systemPrompt { fullPrompt = "<|system|>\n\(sys)\n<|user|>\n\(prompt)\n<|assistant|>\n" }
-            // let tokens = model.generate(prompt: fullPrompt, maxTokens: maxTokens, temperature: temperature)
-            // for token in tokens { self.sendEvent("onToken", body: ["token": token]) }
+            do {
+                // Build prompt with optional system message
+                var messages: [[String: String]] = []
+                if let sys = systemPrompt, !sys.isEmpty {
+                    messages.append(["role": "system", "content": sys])
+                }
+                messages.append(["role": "user", "content": prompt])
 
-            let durationMs = Date().timeIntervalSince(startTime) * 1000
+                // Configure generation parameters
+                let generateParameters = GenerateParameters(
+                    temperature: Float(temperature)
+                )
 
-            resolve([
-                "text": "[MLX inference placeholder]",
-                "tokensGenerated": 0,
-                "durationMs": durationMs,
-            ])
+                // Run inference using MLXLLM generate
+                let result = try container.perform { context in
+                    let input = try context.processor.prepare(input: .init(messages: messages))
+                    return try MLXLMCommon.generate(
+                        input: input,
+                        parameters: generateParameters,
+                        context: context
+                    ) { tokens in
+                        // Streaming callback — emit each token to JS
+                        if let text = context.tokenizer.decode(tokens: [tokens.last ?? 0]) {
+                            self.sendEvent("onToken", body: ["token": text])
+                            generatedText += text
+                            tokenCount += 1
+                        }
+
+                        // Stop if we've hit max tokens
+                        if tokens.count >= maxTokens {
+                            return .stop
+                        }
+
+                        return .more
+                    }
+                }
+
+                let durationMs = Date().timeIntervalSince(startTime) * 1000
+                self.isGenerating = false
+
+                // Send completion event
+                self.sendEvent("onGenerationComplete", body: [
+                    "text": generatedText,
+                    "tokensGenerated": tokenCount,
+                    "durationMs": durationMs,
+                ])
+
+                resolve([
+                    "text": generatedText,
+                    "tokensGenerated": tokenCount,
+                    "durationMs": durationMs,
+                    "tokensPerSecond": tokenCount > 0 ? Double(tokenCount) / (durationMs / 1000.0) : 0,
+                ])
+            } catch {
+                self.isGenerating = false
+                reject("GENERATE_FAILED", "MLX generation failed: \(error.localizedDescription)", error)
+            }
         }
     }
 
@@ -134,20 +261,38 @@ class SemblanceMLXModule: NSObject {
         resolver resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
-        guard isLoaded else {
+        guard isLoaded, let container = modelContainer else {
             reject("NOT_LOADED", "No model loaded. Call loadModel() first.", nil)
             return
         }
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            // TODO: Run MLX embedding model
-            // let embedding = embeddingModel.embed(text)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
 
-            // Placeholder: return zeros
-            let dim = 384
-            let embedding = Array(repeating: Float(0.0), count: dim)
+            do {
+                // Use the model to generate embeddings via hidden state extraction
+                let result = try container.perform { context in
+                    let input = try context.processor.prepare(input: .init(
+                        messages: [["role": "user", "content": text]]
+                    ))
 
-            resolve(["embedding": embedding, "dimensions": dim])
+                    // Get model output including hidden states
+                    let modelOutput = try context.model(input.tokens.expandedDimensions(axis: 0))
+
+                    // Extract last hidden state and mean-pool for embedding
+                    let lastHidden = modelOutput.hiddenStates ?? modelOutput.logits
+                    let embedding = lastHidden.mean(axis: 1).squeezed()
+
+                    return embedding.asArray(Float.self)
+                }
+
+                resolve([
+                    "embedding": result,
+                    "dimensions": result.count,
+                ])
+            } catch {
+                reject("EMBED_FAILED", "MLX embedding failed: \(error.localizedDescription)", error)
+            }
         }
     }
 
@@ -167,12 +312,17 @@ class SemblanceMLXModule: NSObject {
             available = os_proc_available_memory()
         }
 
-        let used = isLoaded ? UInt64(1_500_000_000) : 0 // Approximate model size
+        // Get MLX-specific GPU memory usage
+        let gpuActiveMemory = MLX.GPU.activeMemory
+        let gpuPeakMemory = MLX.GPU.peakMemory
 
         resolve([
-            "used": used,
+            "used": gpuActiveMemory,
             "available": available,
             "totalPhysical": physicalMemory,
+            "gpuActiveMemory": gpuActiveMemory,
+            "gpuPeakMemory": gpuPeakMemory,
+            "modelLoaded": isLoaded,
         ])
     }
 
@@ -186,14 +336,17 @@ class SemblanceMLXModule: NSObject {
 
     // MARK: - Memory Warning Handler
 
-    /// Called when iOS sends a memory warning. Optionally unloads the model.
+    /// Called when iOS sends a memory warning. Unloads model to free GPU memory.
     @objc func handleMemoryWarning() {
-        // If model is loaded, unload to free memory
-        if isLoaded {
+        if isLoaded && !isGenerating {
+            modelContainer = nil
             isLoaded = false
             modelPath = nil
-            // TODO: Release MLX model
-            // TODO: Send event to JS: "onModelUnloaded" with reason "memory_pressure"
+
+            // Force MLX memory cleanup
+            MLX.GPU.synchronize()
+
+            sendEvent("onModelUnloaded", body: ["reason": "memory_pressure"])
         }
     }
 }
