@@ -366,4 +366,10 @@ export interface PlatformAdapter {
 
   /** Contacts access (optional — not available on all platforms) */
   contacts?: ContactsAdapter;
+
+  /** Messaging / SMS (optional — not available on all platforms) */
+  messaging?: import('./messaging-types.js').MessagingAdapter;
+
+  /** Clipboard access (optional — not available on all platforms) */
+  clipboard?: import('./clipboard-types.js').ClipboardAdapter;
 }
