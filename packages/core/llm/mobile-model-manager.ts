@@ -159,20 +159,186 @@ export function formatBytes(bytes: number): string {
  * Model downloads go through the Gateway's model.download action (audit trailed).
  * The manager tracks download state and progress locally.
  */
+/**
+ * Network connectivity info, provided by the mobile platform layer.
+ */
+export interface NetworkConnectivity {
+  isConnected: boolean;
+  isWifi: boolean;
+  isCellular: boolean;
+}
+
+/**
+ * Result of a download request.
+ */
+export interface DownloadResult {
+  success: boolean;
+  modelId: string;
+  localPath?: string;
+  error?: string;
+  /** Whether this was served from cache (no download needed) */
+  cached: boolean;
+}
+
+/**
+ * SHA-256 verification result.
+ */
+export interface IntegrityResult {
+  valid: boolean;
+  expected: string;
+  actual: string;
+}
+
+/**
+ * Storage budget configuration.
+ */
+export interface StorageBudget {
+  /** Maximum total bytes for all cached models. Default: 4GB */
+  maxTotalBytes: number;
+}
+
 export class MobileModelManager {
   private downloads: Map<string, MobileModelDownload> = new Map();
   private modelPaths: Map<string, string> = new Map();
   private storageDir: string;
   private wifiOnly: boolean;
+  private storageBudget: StorageBudget;
+  private auditLog: Array<{ action: string; modelId: string; timestamp: string; details: string }> = [];
 
   constructor(config: {
     /** Directory for storing downloaded models on device */
     storageDir: string;
     /** Whether to require WiFi for model downloads. Default: true */
     wifiOnly?: boolean;
+    /** Storage budget for model cache. Default: 4GB */
+    storageBudget?: StorageBudget;
   }) {
     this.storageDir = config.storageDir;
     this.wifiOnly = config.wifiOnly ?? true;
+    this.storageBudget = config.storageBudget ?? { maxTotalBytes: 4_000_000_000 };
+  }
+
+  /**
+   * Request a model download with all checks: WiFi, cache, storage budget.
+   * Returns immediately if model is already cached.
+   * Rejects on cellular if wifiOnly is enabled.
+   * Rejects if adding this model would exceed storage budget.
+   */
+  requestDownload(
+    modelEntry: MobileModelEntry,
+    connectivity: NetworkConnectivity,
+  ): DownloadResult {
+    // Check cache first — skip download if already cached
+    if (this.isModelCached(modelEntry.id)) {
+      return {
+        success: true,
+        modelId: modelEntry.id,
+        localPath: this.getModelPath(modelEntry.id) ?? undefined,
+        cached: true,
+      };
+    }
+
+    // Network connectivity check (before WiFi check — offline is a distinct error)
+    if (!connectivity.isConnected) {
+      this.logAudit('download.rejected', modelEntry.id, 'No network connectivity');
+      return {
+        success: false,
+        modelId: modelEntry.id,
+        error: 'No network connection available.',
+        cached: false,
+      };
+    }
+
+    // WiFi-only enforcement
+    if (this.wifiOnly && !connectivity.isWifi) {
+      this.logAudit('download.rejected', modelEntry.id, 'WiFi required but not connected');
+      return {
+        success: false,
+        modelId: modelEntry.id,
+        error: 'WiFi connection required for model download. Connect to WiFi or disable WiFi-only mode.',
+        cached: false,
+      };
+    }
+
+    // Storage budget check
+    const currentUsage = this.getCachedModelsSize();
+    if (currentUsage + modelEntry.expectedSizeBytes > this.storageBudget.maxTotalBytes) {
+      this.logAudit('download.rejected', modelEntry.id,
+        `Storage budget exceeded: ${currentUsage} + ${modelEntry.expectedSizeBytes} > ${this.storageBudget.maxTotalBytes}`);
+      return {
+        success: false,
+        modelId: modelEntry.id,
+        error: `Insufficient storage budget. Need ${formatBytes(modelEntry.expectedSizeBytes)} but only ${formatBytes(this.storageBudget.maxTotalBytes - currentUsage)} available in budget.`,
+        cached: false,
+      };
+    }
+
+    // Start tracking the download
+    this.startDownload(modelEntry.id, modelEntry.expectedSizeBytes);
+    this.logAudit('download.started', modelEntry.id,
+      `Downloading ${modelEntry.name} (${formatBytes(modelEntry.expectedSizeBytes)})`);
+
+    return {
+      success: true,
+      modelId: modelEntry.id,
+      cached: false,
+    };
+  }
+
+  /**
+   * Verify SHA-256 integrity of a downloaded model file.
+   * The actual hashing is done via PlatformAdapter crypto.
+   */
+  verifyIntegrity(modelEntry: MobileModelEntry, actualHash: string): IntegrityResult {
+    const valid = actualHash === modelEntry.expectedSha256;
+    if (valid) {
+      this.logAudit('integrity.passed', modelEntry.id, `SHA-256 verified: ${actualHash.slice(0, 16)}...`);
+    } else {
+      this.logAudit('integrity.failed', modelEntry.id,
+        `SHA-256 mismatch: expected ${modelEntry.expectedSha256.slice(0, 16)}..., got ${actualHash.slice(0, 16)}...`);
+    }
+    return {
+      valid,
+      expected: modelEntry.expectedSha256,
+      actual: actualHash,
+    };
+  }
+
+  /**
+   * Get total size of all cached models in bytes.
+   */
+  getCachedModelsSize(): number {
+    // In a real implementation, this would sum file sizes on disk.
+    // For the manager's tracking, count models registered as cached.
+    let total = 0;
+    for (const modelId of this.modelPaths.keys()) {
+      const entry = MOBILE_MODEL_REGISTRY.find(m => m.id === modelId);
+      if (entry) total += entry.expectedSizeBytes;
+    }
+    return total;
+  }
+
+  /**
+   * Get remaining storage budget in bytes.
+   */
+  getRemainingBudget(): number {
+    return Math.max(0, this.storageBudget.maxTotalBytes - this.getCachedModelsSize());
+  }
+
+  /**
+   * Get the audit log entries.
+   */
+  getAuditLog(): ReadonlyArray<{ action: string; modelId: string; timestamp: string; details: string }> {
+    return this.auditLog;
+  }
+
+  private logAudit(action: string, modelId: string, details: string): void {
+    this.auditLog.push({
+      action,
+      modelId,
+      timestamp: new Date().toISOString(),
+      details,
+    });
   }
 
   /**
