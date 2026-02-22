@@ -23,6 +23,9 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::{oneshot, Mutex};
 
+mod hardware;
+mod native_runtime;
+
 // ─── Data Types ────────────────────────────────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -142,7 +145,7 @@ struct SidecarBridge {
 impl SidecarBridge {
     /// Spawn the sidecar process and start reading its stdout.
     /// Events from the sidecar are forwarded as Tauri events to the frontend.
-    async fn spawn(project_root: PathBuf, app_handle: tauri::AppHandle) -> Result<Self, String> {
+    async fn spawn(project_root: PathBuf, app_handle: tauri::AppHandle, runtime: native_runtime::SharedNativeRuntime) -> Result<Self, String> {
         // Find tsx binary for running TypeScript sidecar
         #[cfg(windows)]
         let tsx_path = project_root.join("node_modules").join(".bin").join("tsx.cmd");
@@ -200,15 +203,46 @@ impl SidecarBridge {
             child: Arc::new(Mutex::new(child)),
         };
 
-        // Background task: read stdout lines from sidecar, dispatch events and responses
+        // Background task: read stdout lines from sidecar, dispatch events, responses, and callbacks
         let pending_for_stdout = pending.clone();
         let app_for_stdout = app_handle.clone();
+        let stdin_for_callbacks = bridge.stdin.clone();
+        let runtime_for_callbacks = runtime.clone();
         tauri::async_runtime::spawn(async move {
             let reader = BufReader::new(stdout);
             let mut lines = reader.lines();
             while let Ok(Some(line)) = lines.next_line().await {
                 if let Ok(msg) = serde_json::from_str::<Value>(&line) {
-                    if let Some(event_name) = msg.get("event").and_then(|v| v.as_str()) {
+                    // Step 9: NDJSON callback requests from sidecar → Rust NativeRuntime
+                    if msg.get("type").and_then(|v| v.as_str()) == Some("callback") {
+                        let callback_id = msg.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let method = msg.get("method").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let params = msg.get("params").cloned().unwrap_or(Value::Null);
+
+                        // Dispatch callback to NativeRuntime in background
+                        let stdin_ref = stdin_for_callbacks.clone();
+                        let runtime_ref = runtime_for_callbacks.clone();
+                        tauri::async_runtime::spawn(async move {
+                            let response = dispatch_native_callback(runtime_ref, &method, params).await;
+                            let response_msg = match response {
+                                Ok(result) => serde_json::json!({
+                                    "type": "callback_response",
+                                    "id": callback_id,
+                                    "result": result,
+                                }),
+                                Err(error) => serde_json::json!({
+                                    "type": "callback_response",
+                                    "id": callback_id,
+                                    "error": error,
+                                }),
+                            };
+
+                            let line = format!("{}\n", serde_json::to_string(&response_msg).unwrap());
+                            let mut stdin = stdin_ref.lock().await;
+                            let _ = stdin.write_all(line.as_bytes()).await;
+                            let _ = stdin.flush().await;
+                        });
+                    } else if let Some(event_name) = msg.get("event").and_then(|v| v.as_str()) {
                         // Forward sidecar event as Tauri event
                         let data = msg.get("data").cloned().unwrap_or(Value::Null);
                         let full_event = format!("semblance://{}", event_name);
@@ -1231,6 +1265,73 @@ async fn assess_task(
         .await
 }
 
+// ─── NDJSON Callback Dispatch (Step 9) ────────────────────────────────────────
+
+/// Dispatch a callback request from the Node.js sidecar to NativeRuntime.
+/// Called when the stdout reader detects a {"type":"callback",...} message.
+///
+/// LOCKED DECISION: Uses NDJSON callbacks, not Tauri invoke from sidecar.
+async fn dispatch_native_callback(
+    runtime: native_runtime::SharedNativeRuntime,
+    method: &str,
+    params: Value,
+) -> Result<Value, String> {
+    match method {
+        "native_generate" => {
+            let request: native_runtime::GenerateRequest =
+                serde_json::from_value(params).map_err(|e| format!("Invalid generate params: {}", e))?;
+
+            let rt = runtime.lock().await;
+            let result = rt.generate(request)?;
+            serde_json::to_value(result).map_err(|e| format!("Serialization error: {}", e))
+        }
+        "native_embed" => {
+            let request: native_runtime::EmbedRequest =
+                serde_json::from_value(params).map_err(|e| format!("Invalid embed params: {}", e))?;
+
+            let rt = runtime.lock().await;
+            let result = rt.embed(request)?;
+            serde_json::to_value(result).map_err(|e| format!("Serialization error: {}", e))
+        }
+        "native_load_model" => {
+            let model_path = params
+                .get("model_path")
+                .and_then(|v| v.as_str())
+                .ok_or("Missing model_path parameter")?;
+            let model_type = params
+                .get("model_type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("reasoning");
+
+            let path = PathBuf::from(model_path);
+            let mut rt = runtime.lock().await;
+            if model_type == "embedding" {
+                rt.load_embedding_model(path)?;
+            } else {
+                rt.load_reasoning_model(path)?;
+            }
+            Ok(serde_json::json!({ "status": "loaded" }))
+        }
+        "native_status" => {
+            let rt = runtime.lock().await;
+            Ok(serde_json::json!({
+                "status": format!("{:?}", rt.status()),
+                "reasoning_model": rt.reasoning_model_path().map(|p| p.display().to_string()),
+                "embedding_model": rt.embedding_model_path().map(|p| p.display().to_string()),
+            }))
+        }
+        _ => Err(format!("Unknown native callback method: {}", method)),
+    }
+}
+
+// ─── Hardware Detection & Runtime Management (Step 9) ───────────────────────
+
+/// Detect hardware profile for model selection. All detection is local.
+#[tauri::command]
+async fn detect_hardware() -> Result<hardware::HardwareProfile, String> {
+    Ok(hardware::detect_hardware())
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1276,10 +1377,13 @@ pub fn run() {
                 std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
             });
 
+            // Create NativeRuntime for direct llama.cpp inference
+            let native_runtime = native_runtime::create_runtime();
+
             // Spawn the sidecar asynchronously
             let app_handle_clone = app_handle.clone();
             tauri::async_runtime::spawn(async move {
-                match SidecarBridge::spawn(project_root, app_handle_clone.clone()).await {
+                match SidecarBridge::spawn(project_root, app_handle_clone.clone(), native_runtime).await {
                     Ok(bridge) => {
                         // Initialize Core and Gateway via the sidecar
                         match bridge.call("initialize", Value::Null).await {
@@ -1406,6 +1510,8 @@ pub fn run() {
             get_routing_devices,
             route_task,
             assess_task,
+            // Hardware & Runtime (Step 9)
+            detect_hardware,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

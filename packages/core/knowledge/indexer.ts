@@ -3,6 +3,7 @@
 import { nanoid } from 'nanoid';
 import { sha256 } from '../types/signing.js';
 import type { LLMProvider } from '../llm/types.js';
+import type { EmbeddingPipeline } from './embedding-pipeline.js';
 import type { DocumentSource, DocumentChunk } from './types.js';
 import type { DocumentStore } from './document-store.js';
 import type { VectorStore } from './vector-store.js';
@@ -17,6 +18,7 @@ export interface IndexResult {
 
 export class Indexer {
   private llm: LLMProvider;
+  private embeddingPipeline: EmbeddingPipeline | null;
   private documentStore: DocumentStore;
   private vectorStore: VectorStore;
   private embeddingModel: string;
@@ -26,8 +28,10 @@ export class Indexer {
     documentStore: DocumentStore;
     vectorStore: VectorStore;
     embeddingModel: string;
+    embeddingPipeline?: EmbeddingPipeline;
   }) {
     this.llm = config.llm;
+    this.embeddingPipeline = config.embeddingPipeline ?? null;
     this.documentStore = config.documentStore;
     this.vectorStore = config.vectorStore;
     this.embeddingModel = config.embeddingModel;
@@ -97,12 +101,19 @@ export class Indexer {
       };
     }
 
-    // Generate embeddings in batch
+    // Generate embeddings in batch (prefer pipeline if available)
     const chunkTexts = textChunks.map(c => c.content);
-    const embedResponse = await this.llm.embed({
-      model: this.embeddingModel,
-      input: chunkTexts,
-    });
+    let embeddings: number[][];
+    if (this.embeddingPipeline) {
+      const pipelineResult = await this.embeddingPipeline.embedBatch(chunkTexts);
+      embeddings = pipelineResult.embeddings;
+    } else {
+      const embedResponse = await this.llm.embed({
+        model: this.embeddingModel,
+        input: chunkTexts,
+      });
+      embeddings = embedResponse.embeddings;
+    }
 
     // Build vector chunks
     const vectorChunks = textChunks.map((chunk, i) => ({
@@ -110,8 +121,10 @@ export class Indexer {
       documentId,
       content: chunk.content,
       chunkIndex: chunk.chunkIndex,
-      embedding: embedResponse.embeddings[i]!,
+      embedding: embeddings[i]!,
       metadata: JSON.stringify(params.metadata ?? {}),
+      sourceType: params.source,
+      sourceId: params.sourcePath ?? '',
     }));
 
     // Store in vector database

@@ -13,6 +13,7 @@ import { DocumentStore } from './document-store.js';
 import { VectorStore } from './vector-store.js';
 import { Indexer } from './indexer.js';
 import { SemanticSearch } from './search.js';
+import { EmbeddingPipeline } from './embedding-pipeline.js';
 import { scanDirectory, readFileContent } from './file-scanner.js';
 
 export type {
@@ -27,8 +28,14 @@ export type {
 
 export { DocumentStore } from './document-store.js';
 export { VectorStore } from './vector-store.js';
+export type { VectorChunk } from './vector-store.js';
 export { Indexer } from './indexer.js';
 export { SemanticSearch } from './search.js';
+export type { SearchOptions } from './search.js';
+export { EmbeddingPipeline } from './embedding-pipeline.js';
+export type { EmbeddingPipelineConfig, EmbeddingResult, EmbeddingProgress } from './embedding-pipeline.js';
+export { RetroactiveEmbedder } from './retroactive-embedder.js';
+export type { RetroactiveEmbedderConfig, RetroactiveResult, RetroactiveStatus } from './retroactive-embedder.js';
 export { scanDirectory, readFileContent } from './file-scanner.js';
 export type { ScannedFile, FileContent } from './file-scanner.js';
 export { chunkText } from './chunker.js';
@@ -192,6 +199,7 @@ export async function createKnowledgeGraph(config: {
   dataDir: string;
   llmProvider: LLMProvider;
   embeddingModel?: string;
+  embeddingDimensions?: number;
 }): Promise<KnowledgeGraph> {
   const dataDir = config.dataDir;
   if (!existsSync(dataDir)) {
@@ -211,12 +219,21 @@ export async function createKnowledgeGraph(config: {
   await vectorStore.initialize();
 
   const embeddingModel = config.embeddingModel ?? 'nomic-embed-text';
+  const dimensions = config.embeddingDimensions ?? 768;
+
+  // Create EmbeddingPipeline for batched, retried embedding operations
+  const embeddingPipeline = new EmbeddingPipeline({
+    llm: config.llmProvider,
+    model: embeddingModel,
+    dimensions,
+  });
 
   const indexer = new Indexer({
     llm: config.llmProvider,
     documentStore,
     vectorStore,
     embeddingModel,
+    embeddingPipeline,
   });
 
   const semanticSearch = new SemanticSearch({
@@ -224,6 +241,7 @@ export async function createKnowledgeGraph(config: {
     documentStore,
     vectorStore,
     embeddingModel,
+    embeddingPipeline,
   });
 
   return new KnowledgeGraphImpl(documentStore, vectorStore, indexer, semanticSearch);

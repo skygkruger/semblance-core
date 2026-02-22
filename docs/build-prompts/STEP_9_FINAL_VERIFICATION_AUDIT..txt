@@ -1,0 +1,36 @@
+Step 9 — Final Verification Audit. Do not write any code. Report only.
+Read STEP_9_RUNTIME_OWNERSHIP.md (the implementation prompt in the repo). It defines 25 exit criteria. For each criterion, verify the current codebase state and report PASS or FAIL with specific evidence (file path, line number, or test name).
+Runtime (Criteria 1–7):
+
+Native inference generates coherent text on macOS Apple Silicon (Metal) — cite the generate() implementation in native_runtime.rs
+CPU fallback works — cite the fallback logic when Metal/GPU is unavailable
+Hardware detection returns accurate profile — cite the test file and test names
+Model download flows through Gateway with audit trail — cite model-adapter.ts and the audit trail test
+Model download resumes on interrupt — cite HTTP Range header logic
+Model integrity verification (SHA-256) — cite the verification logic
+Ollama still works — cite that OllamaProvider tests still pass
+
+Inference Routing (Criteria 8–10):
+8. No direct LLMProvider calls outside allowed files — cite the guard test file and verify it passes
+9. Task-to-tier mapping is correct — cite inference-router.ts routing logic
+10. All Sprint 2 features work with NativeProvider — verify no test regressions
+Embedding Pipeline (Criteria 11–17):
+11. Embedding model generates real vectors — cite embed() in native_runtime.rs
+12. File indexer generates embeddings — cite the integration
+13. Email indexer generates embeddings — cite the integration
+14. Calendar indexer generates embeddings — cite the integration
+15. Semantic search returns relevant results — cite the test
+16. Semantic search filters by source type — cite the test
+17. Retroactive embedding generation works — cite retroactive-embedder.ts and test
+Onboarding (Criteria 18–20):
+18. Zero-config onboarding flow — cite onboarding screen sequence (11 stages, no Ollama references)
+19. Hardware profile displayed in plain language — cite the UI component
+20. Model download progress visible — cite the UI component and Network Monitor integration
+Settings (Criterion 21):
+21. AI Engine settings section exists — cite SettingsScreen.tsx
+Testing & Privacy (Criteria 22–25):
+22. All existing tests pass — report total test count
+23. New tests added (target 120–150) — report count of Step 9 tests
+24. Privacy audit clean — report result of scripts/privacy-audit/
+25. Total test count — report number
+Format: Numbered list, one line per criterion. PASS/FAIL + evidence. Nothing else.

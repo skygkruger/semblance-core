@@ -2,6 +2,8 @@ import { useCallback, useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Card, Input, Button, StatusIndicator, AutonomySelector, ThemeToggle, CredentialForm } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
+import { HardwareProfileDisplay } from '../components/HardwareProfileDisplay';
+import type { HardwareDisplayInfo } from '../components/HardwareProfileDisplay';
 import type { AutonomyTier } from '@semblance/ui';
 import type { ThemeMode } from '@semblance/ui';
 import type { CredentialFormData } from '@semblance/ui';
@@ -36,6 +38,8 @@ export function SettingsScreen() {
   const [presets, setPresets] = useState<Record<string, { name: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; caldavUrl: string | null; notes: string | null }>>({});
   const [testingAccountId, setTestingAccountId] = useState<string | null>(null);
   const [removingAccountId, setRemovingAccountId] = useState<string | null>(null);
+  const [runtimeMode, setRuntimeMode] = useState<'builtin' | 'ollama' | 'custom'>('builtin');
+  const [hardwareInfo, setHardwareInfo] = useState<HardwareDisplayInfo | null>(null);
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -50,6 +54,9 @@ export function SettingsScreen() {
     loadAccounts();
     invoke<Record<string, { name: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; caldavUrl: string | null; notes: string | null }>>('get_provider_presets')
       .then(setPresets)
+      .catch(() => {});
+    invoke<HardwareDisplayInfo>('detect_hardware')
+      .then(setHardwareInfo)
       .catch(() => {});
   }, [loadAccounts]);
 
@@ -160,20 +167,69 @@ export function SettingsScreen() {
         )}
       </Card>
 
-      {/* AI Model */}
+      {/* AI Engine */}
       <Card>
         <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-          AI Model
+          AI Engine
         </h2>
-        <div className="flex items-center gap-3 mb-4">
-          <StatusIndicator status={state.ollamaStatus === 'connected' ? 'success' : 'attention'} />
-          <span className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-            {state.ollamaStatus === 'connected'
-              ? `Connected — ${state.activeModel || 'No model selected'}`
-              : 'Ollama not connected. Make sure Ollama is running on this device.'}
-          </span>
+
+        {/* Runtime Selection */}
+        <div className="mb-4">
+          <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
+            Runtime
+          </label>
+          <div className="flex gap-2">
+            {(['builtin', 'ollama', 'custom'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setRuntimeMode(mode)}
+                className={`px-4 py-2 text-sm rounded-md border transition-colors duration-fast ${
+                  runtimeMode === mode
+                    ? 'border-semblance-primary bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark text-semblance-primary font-medium'
+                    : 'border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:border-semblance-primary/50'
+                }`}
+              >
+                {mode === 'builtin' ? 'Built-in' : mode === 'ollama' ? 'Ollama' : 'Custom'}
+              </button>
+            ))}
+          </div>
         </div>
-        {state.availableModels.length > 0 && (
+
+        {/* Runtime Status */}
+        {runtimeMode === 'builtin' && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <StatusIndicator status="success" />
+              <span className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                Built-in runtime — {state.activeModel || 'Models ready'}
+              </span>
+            </div>
+            {hardwareInfo && (
+              <HardwareProfileDisplay hardware={hardwareInfo} compact />
+            )}
+          </div>
+        )}
+
+        {runtimeMode === 'ollama' && (
+          <div className="flex items-center gap-3">
+            <StatusIndicator status={state.ollamaStatus === 'connected' ? 'success' : 'attention'} />
+            <span className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+              {state.ollamaStatus === 'connected'
+                ? `Connected — ${state.activeModel || 'No model selected'}`
+                : 'Ollama not connected. Make sure Ollama is running on this device.'}
+            </span>
+          </div>
+        )}
+
+        {runtimeMode === 'custom' && (
+          <p className="text-sm text-semblance-text-tertiary">
+            Custom runtime configuration coming in a future update.
+          </p>
+        )}
+
+        {/* Model Selection (Ollama mode) */}
+        {runtimeMode === 'ollama' && state.availableModels.length > 0 && (
           <select
             value={state.activeModel || ''}
             onChange={async (e) => {
@@ -181,7 +237,7 @@ export function SettingsScreen() {
               dispatch({ type: 'SET_ACTIVE_MODEL', model });
               await invoke('select_model', { modelId: model }).catch(() => {});
             }}
-            className="w-full px-4 py-3 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus"
+            className="w-full mt-3 px-4 py-3 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus"
           >
             {state.availableModels.map((model) => (
               <option key={model} value={model}>{model}</option>

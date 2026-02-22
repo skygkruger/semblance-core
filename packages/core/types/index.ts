@@ -18,6 +18,9 @@ export {
   ServiceApiCallPayload,
   FinanceFetchPayload,
   HealthFetchPayload,
+  ModelDownloadPayload,
+  ModelDownloadCancelPayload,
+  ModelVerifyPayload,
   ActionPayloadMap,
 } from './ipc.js';
 

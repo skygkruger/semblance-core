@@ -14,6 +14,8 @@ export interface VectorChunk {
   chunkIndex: number;
   embedding: number[];
   metadata: string;          // JSON string
+  sourceType?: string;       // DocumentSource type for cross-source filtering
+  sourceId?: string;         // External source identifier (email ID, file path, etc.)
 }
 
 export class VectorStore {
@@ -53,6 +55,8 @@ export class VectorStore {
       chunkIndex: c.chunkIndex,
       embedding: c.embedding,
       metadata: c.metadata,
+      sourceType: c.sourceType ?? '',
+      sourceId: c.sourceId ?? '',
     }));
 
     if (!this.table) {
@@ -68,34 +72,51 @@ export class VectorStore {
 
   /**
    * Search for nearest neighbors by embedding vector.
+   * Optionally filter by source types.
    */
-  async search(queryEmbedding: number[], limit: number = 10): Promise<Array<{
+  async search(queryEmbedding: number[], limit: number = 10, options?: {
+    sourceTypes?: string[];
+  }): Promise<Array<{
     id: string;
     documentId: string;
     content: string;
     chunkIndex: number;
     metadata: string;
+    sourceType: string;
+    sourceId: string;
     score: number;
   }>> {
     if (!this.table) return [];
+
+    // Fetch extra results if we need to filter by sourceType
+    const fetchLimit = options?.sourceTypes ? limit * 3 : limit;
 
     const results = await this.table
       .query()
       .nearestTo(queryEmbedding)
       .distanceType('cosine')
-      .limit(limit)
+      .limit(fetchLimit)
       .toArray();
 
-    return results.map(r => ({
+    let mapped = results.map(r => ({
       id: r['id'] as string,
       documentId: r['documentId'] as string,
       content: r['content'] as string,
       chunkIndex: r['chunkIndex'] as number,
       metadata: r['metadata'] as string,
+      sourceType: (r['sourceType'] as string) ?? '',
+      sourceId: (r['sourceId'] as string) ?? '',
       // LanceDB cosine distance: 0 = identical, 2 = opposite
       // Convert to similarity score: 1 - (distance / 2)
       score: 1 - ((r['_distance'] as number) / 2),
     }));
+
+    // Filter by source types if specified
+    if (options?.sourceTypes && options.sourceTypes.length > 0) {
+      mapped = mapped.filter(r => options.sourceTypes!.includes(r.sourceType));
+    }
+
+    return mapped.slice(0, limit);
   }
 
   /**

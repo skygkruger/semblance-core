@@ -152,8 +152,8 @@ describe('Chat Interface: Streaming Pattern', () => {
 describe('Onboarding Flow', () => {
   const onboardingContent = readFileSync(ONBOARDING_SCREEN, 'utf-8');
 
-  it('has all 8 steps', () => {
-    expect(onboardingContent).toContain('TOTAL_STEPS = 8');
+  it('has all 11 steps', () => {
+    expect(onboardingContent).toContain('TOTAL_STEPS = 11');
   });
 
   it('has Welcome screen (step 0)', () => {

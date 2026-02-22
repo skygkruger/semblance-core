@@ -1,0 +1,13 @@
+Step 9 is still failing on Exit Criterion 1. This is the third attempt. The problem is specific and narrow.
+native_runtime.rs declares llama-cpp-2 as a dependency but never uses it for actual inference. The generate() method returns a hardcoded placeholder string. The embed() method returns placeholder values. load_reasoning_model() and load_embedding_model() do not load real models.
+What must happen — nothing else:
+
+load_reasoning_model(path) must call LlamaModel::load_from_file() with the provided GGUF path and store the loaded model.
+load_embedding_model(path) must do the same for the embedding model.
+generate(prompt, params) must: create a context from the loaded model, tokenize the input, run the sampler chain (temperature, top-p, min-p), generate tokens in a loop until stop sequence or max tokens, decode tokens back to text, and return the real generated text. Not a placeholder. Real tokens from the model.
+embed(text) must: tokenize the input, run it through the embedding model with embeddings enabled, extract the embedding vector, apply mean pooling and L2 normalization, and return the real vector. Not placeholder values.
+
+You already have the llama-cpp-2 crate available. The API is: LlamaModel, LlamaContext, LlamaBatch, LlamaSampler. Use them.
+Do not touch any other files. The routing, wiring, bridge, tests, UI — all of that is done. The ONLY file that needs work is packages/desktop/src-tauri/src/native_runtime.rs. Write the real implementation using the real llama-cpp-2 API.
+If you cannot implement real inference because you're unsure of the llama-cpp-2 API: That is the escalation trigger. Say "I cannot implement llama-cpp-2 inference because [specific reason]" and we will assess the managed llama-server subprocess fallback. Do not return another stub.
+Acceptance: Run cargo check --lib to verify compilation. The generate() function must NOT contain any hardcoded strings or TODO comments. The embed() function must NOT return fixed values.

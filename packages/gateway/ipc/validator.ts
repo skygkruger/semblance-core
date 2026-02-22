@@ -247,5 +247,9 @@ function extractTargetDomain(
   if (action === 'service.api_call' && typeof payload['service'] === 'string') {
     return payload['service'];
   }
+  // Model downloads always target huggingface.co
+  if (action === 'model.download') {
+    return 'huggingface.co';
+  }
   return null;
 }

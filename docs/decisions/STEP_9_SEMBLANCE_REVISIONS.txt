@@ -1,0 +1,16 @@
+Concerns I want addressed before greenlight:
+1. The reverse-call mechanism (Commit 5) needs a clearer decision.
+The plan says "the sidecar bridge is unidirectional" and then proposes two approaches — Tauri invoke from the bridge process, or a callback-request NDJSON pattern. This is the second-highest risk after Rust FFI compilation. If the bridge architecture doesn't support reverse calls cleanly, commits 5-6 stall.
+My read: The NDJSON callback approach is safer. The bridge already speaks NDJSON. Adding a "request from Node.js to Rust" message type is a protocol extension, not an architectural change. The Tauri invoke path from within a sidecar process may have undocumented behavior — sidecar processes aren't typical Tauri frontend contexts.
+Recommendation: Claude Code should attempt the NDJSON callback approach first. If the Rust stdin reader can parse a "request" message type and dispatch to NativeRuntime, this is the cleanest path. Document this as an autonomous decision.
+2. llama-cpp-2 vs llama-cpp-rs — which crate?
+The prompt says llama-cpp-rs. The plan says llama-cpp-2 (or llama-cpp-sys-2). These are different crates with different maintenance status and APIs. The prompt grants autonomous authority here ("if llama-cpp-rs proves problematic, another maintained Rust binding may be substituted"), so this is within bounds — but I want to make sure Claude Code has actually checked which one compiles and is maintained as of today, not just picked a name.
+Recommendation: This is fine as-is — the exploration phase likely surfaced llama-cpp-2 as the more current option. The commit 3 spike will prove it either way. Just make sure the commit message documents which crate was chosen and why.
+3. Vector dimension handling needs explicit attention.
+The plan notes VectorStore defaults to 768-dim and all-MiniLM-L6-v2 produces 384-dim. This is a schema-level concern. If a user starts with apple_silicon_base (384-dim embeddings) and later upgrades hardware to apple_silicon_high (768-dim nomic-embed-text), all their existing embeddings are in the wrong dimension space.
+Recommendation: Lock the embedding model to one dimension for v1. Either always use 384-dim (all-MiniLM-L6-v2 everywhere — smaller, faster, good enough) or always use 768-dim (nomic-embed-text everywhere — better quality, larger). Mixing dimensions per hardware profile creates a migration problem. My preference: nomic-embed-text-v1.5 for all profiles — it's only ~275MB, well within budget even for constrained hardware, and 768-dim gives better retrieval quality. The 90MB savings of MiniLM isn't worth the dimension inconsistency.
+If Claude Code disagrees and wants per-profile embedding models, that's an escalation — not an autonomous decision — because it affects data portability.
+4. Test count feels light for commit 8 (router migration).
+"~0 new tests (existing tests validate)" is technically correct — if all 1,239 tests pass after the refactor, the migration worked. But there's no test that verifies "no direct LLMProvider calls remain outside InferenceRouter." The exit criteria require this (criterion 8). Add at least one test or a script that greps for direct provider usage, similar to how the privacy audit greps for network imports.
+
+Verdict: Greenlight with the above notes.

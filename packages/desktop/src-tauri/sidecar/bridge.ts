@@ -70,6 +70,73 @@ function respondError(id: number | string, error: string): void {
   process.stdout.write(JSON.stringify({ id, error }) + '\n');
 }
 
+// ─── NDJSON Callback Protocol Extension (Step 9) ─────────────────────────────
+//
+// LOCKED DECISION: Reverse-call mechanism uses NDJSON callbacks, not Tauri invoke.
+//
+// When the sidecar (Node.js) needs to call Rust NativeRuntime:
+// 1. Sidecar writes: {"type":"callback","id":"cb-xxx","method":"native_generate","params":{...}}
+// 2. Rust reads this from stdout, dispatches to NativeRuntime
+// 3. Rust writes back: {"type":"callback_response","id":"cb-xxx","result":{...}}
+// 4. Sidecar reads this from stdin and resolves the pending Promise
+
+type CallbackResolver = {
+  resolve: (value: unknown) => void;
+  reject: (reason: string) => void;
+  timeout: ReturnType<typeof setTimeout>;
+};
+
+const pendingCallbacks = new Map<string, CallbackResolver>();
+let callbackIdCounter = 0;
+
+const CALLBACK_TIMEOUT_MS = 120_000; // 2 minutes — model loading can be slow
+
+/**
+ * Send a callback request to Rust and wait for the response.
+ * This is how Node.js calls into the NativeRuntime (Rust side).
+ */
+function sendCallback(method: string, params: Record<string, unknown>): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const id = `cb-${++callbackIdCounter}`;
+
+    const timeout = setTimeout(() => {
+      pendingCallbacks.delete(id);
+      reject(`Callback ${method} timed out after ${CALLBACK_TIMEOUT_MS}ms`);
+    }, CALLBACK_TIMEOUT_MS);
+
+    pendingCallbacks.set(id, { resolve, reject, timeout });
+
+    // Write callback request to stdout (Rust reads this)
+    process.stdout.write(JSON.stringify({
+      type: 'callback',
+      id,
+      method,
+      params,
+    }) + '\n');
+  });
+}
+
+/**
+ * Handle a callback response from Rust.
+ * Called when the stdin line parser encounters a "callback_response" message.
+ */
+function handleCallbackResponse(msg: { id: string; result?: unknown; error?: string }): void {
+  const pending = pendingCallbacks.get(msg.id);
+  if (!pending) {
+    console.error(`[sidecar] Received callback_response for unknown id: ${msg.id}`);
+    return;
+  }
+
+  clearTimeout(pending.timeout);
+  pendingCallbacks.delete(msg.id);
+
+  if (msg.error) {
+    pending.reject(msg.error);
+  } else {
+    pending.resolve(msg.result);
+  }
+}
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let core: SemblanceCore | null = null;
@@ -1391,6 +1458,55 @@ function handleAssessTask(params: { task: Record<string, unknown> }): unknown {
   return taskAssessor.assess(params.task as unknown as import('../../../core/routing/task-assessor.js').TaskDescription);
 }
 
+// ─── Hardware & Runtime Handlers (Step 9) ────────────────────────────────────
+
+function handleDetectHardware(): unknown {
+  // Hardware detection runs in-process using Node.js os module.
+  // The Rust-side detection is used when called from a Tauri command directly.
+  // This TypeScript fallback provides the same data for the sidecar path.
+  const cpuInfo = require('node:os');
+  const cpus = cpuInfo.cpus();
+  const totalRamMb = Math.round(cpuInfo.totalmem() / (1024 * 1024));
+  const availableRamMb = Math.round(cpuInfo.freemem() / (1024 * 1024));
+  const cpuCores = cpus.length;
+  const cpuArch = process.arch === 'x64' ? 'x64' : process.arch === 'arm64' ? 'arm64' : 'unknown';
+  const os = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'macos' : process.platform === 'linux' ? 'linux' : 'unknown';
+
+  // Basic GPU detection: Apple Silicon detection via arch + platform
+  let gpu: { name: string; vendor: string; vramMb: number; computeCapable: boolean } | null = null;
+  if (process.platform === 'darwin' && process.arch === 'arm64') {
+    const estimatedVramMb = Math.round(totalRamMb * 0.75);
+    gpu = {
+      name: 'Apple Silicon (Metal)',
+      vendor: 'apple',
+      vramMb: estimatedVramMb,
+      computeCapable: true,
+    };
+  }
+
+  const ramGb = totalRamMb / 1024;
+  let tier: string;
+  if (ramGb >= 32 || (gpu && gpu.computeCapable && gpu.vramMb >= 8192)) {
+    tier = 'workstation';
+  } else if (ramGb >= 16) {
+    tier = 'performance';
+  } else if (ramGb >= 8) {
+    tier = 'standard';
+  } else {
+    tier = 'constrained';
+  }
+
+  return {
+    tier,
+    cpuCores,
+    cpuArch,
+    totalRamMb,
+    availableRamMb,
+    os,
+    gpu,
+  };
+}
+
 async function handleShutdown(): Promise<unknown> {
   console.error('[sidecar] Shutting down...');
 
@@ -1810,6 +1926,13 @@ async function handleRequest(req: Request): Promise<void> {
         respond(id, result);
         break;
 
+      // ── Hardware & Runtime (Step 9) ──
+
+      case 'hardware:detect':
+        result = handleDetectHardware();
+        respond(id, result);
+        break;
+
       // ── Shutdown ──
 
       case 'shutdown':
@@ -1835,7 +1958,16 @@ rl.on('line', (line: string) => {
   if (!line.trim()) return;
 
   try {
-    const req = JSON.parse(line) as Request;
+    const msg = JSON.parse(line);
+
+    // Check for callback_response from Rust (Step 9 NDJSON reverse-call)
+    if (msg.type === 'callback_response' && typeof msg.id === 'string') {
+      handleCallbackResponse(msg as { id: string; result?: unknown; error?: string });
+      return;
+    }
+
+    // Regular request from Rust
+    const req = msg as Request;
     if (typeof req.id === 'undefined' || !req.method) {
       console.error('[sidecar] Invalid request (missing id or method):', line);
       return;

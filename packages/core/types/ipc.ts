@@ -18,6 +18,9 @@ export const ActionType = z.enum([
   'finance.fetch_transactions',
   'health.fetch',
   'service.api_call',
+  'model.download',
+  'model.download_cancel',
+  'model.verify',
 ]);
 export type ActionType = z.infer<typeof ActionType>;
 
@@ -117,6 +120,29 @@ export const HealthFetchPayload = z.object({
 });
 export type HealthFetchPayload = z.infer<typeof HealthFetchPayload>;
 
+export const ModelDownloadPayload = z.object({
+  modelId: z.string(),
+  hfRepo: z.string(),
+  hfFilename: z.string(),
+  expectedSizeBytes: z.number().int().positive(),
+  expectedSha256: z.string(),
+  targetPath: z.string(),
+});
+export type ModelDownloadPayload = z.infer<typeof ModelDownloadPayload>;
+
+export const ModelDownloadCancelPayload = z.object({
+  modelId: z.string(),
+  downloadId: z.string(),
+});
+export type ModelDownloadCancelPayload = z.infer<typeof ModelDownloadCancelPayload>;
+
+export const ModelVerifyPayload = z.object({
+  modelId: z.string(),
+  filePath: z.string(),
+  expectedSha256: z.string(),
+});
+export type ModelVerifyPayload = z.infer<typeof ModelVerifyPayload>;
+
 // Map ActionType to its payload schema
 export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'email.send': EmailSendPayload,
@@ -132,6 +158,9 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'finance.fetch_transactions': FinanceFetchPayload,
   'health.fetch': HealthFetchPayload,
   'service.api_call': ServiceApiCallPayload,
+  'model.download': ModelDownloadPayload,
+  'model.download_cancel': ModelDownloadCancelPayload,
+  'model.verify': ModelVerifyPayload,
 };
 
 // --- Core protocol schemas ---
