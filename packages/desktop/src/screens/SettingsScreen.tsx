@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Card, Input, Button, StatusIndicator, AutonomySelector, ThemeToggle, CredentialForm } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { HardwareProfileDisplay } from '../components/HardwareProfileDisplay';
+import { ClipboardSettingsSection } from '../components/ClipboardSettingsSection';
 import type { HardwareDisplayInfo } from '../components/HardwareProfileDisplay';
 import type { AutonomyTier } from '@semblance/ui';
 import type { ThemeMode } from '@semblance/ui';
@@ -457,6 +458,9 @@ export function SettingsScreen() {
           </div>
         )}
       </Card>
+
+      {/* Clipboard Intelligence */}
+      <ClipboardSettingsSection />
 
       {/* Autonomy */}
       <Card>

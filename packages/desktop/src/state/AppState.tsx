@@ -41,6 +41,10 @@ export interface AppState {
     selectedId: string | null;
     loading: boolean;
   };
+  clipboardSettings: {
+    monitoringEnabled: boolean;
+    recentActions: Array<{ patternType: string; action: string; timestamp: string }>;
+  };
 }
 
 export interface DocumentContext {
@@ -83,7 +87,9 @@ export type AppAction =
   | { type: 'CLEAR_DOCUMENT_CONTEXT' }
   | { type: 'SET_CONTACTS_LIST'; list: AppState['contacts']['list'] }
   | { type: 'SET_CONTACTS_SELECTED'; id: string | null }
-  | { type: 'SET_CONTACTS_LOADING'; loading: boolean };
+  | { type: 'SET_CONTACTS_LOADING'; loading: boolean }
+  | { type: 'SET_CLIPBOARD_MONITORING'; enabled: boolean }
+  | { type: 'SET_CLIPBOARD_RECENT_ACTIONS'; actions: AppState['clipboardSettings']['recentActions'] };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -132,6 +138,10 @@ const initialState: AppState = {
     list: [],
     selectedId: null,
     loading: false,
+  },
+  clipboardSettings: {
+    monitoringEnabled: false,
+    recentActions: [],
   },
 };
 
@@ -196,6 +206,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, contacts: { ...state.contacts, selectedId: action.id } };
     case 'SET_CONTACTS_LOADING':
       return { ...state, contacts: { ...state.contacts, loading: action.loading } };
+    case 'SET_CLIPBOARD_MONITORING':
+      return { ...state, clipboardSettings: { ...state.clipboardSettings, monitoringEnabled: action.enabled } };
+    case 'SET_CLIPBOARD_RECENT_ACTIONS':
+      return { ...state, clipboardSettings: { ...state.clipboardSettings, recentActions: action.actions } };
     default:
       return state;
   }

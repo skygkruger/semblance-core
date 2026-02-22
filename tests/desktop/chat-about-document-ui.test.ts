@@ -36,6 +36,7 @@ describe('AppState document context', () => {
     indexedDirectories: [],
     documentContext: null,
     contacts: { list: [], selectedId: null, loading: false },
+    clipboardSettings: { monitoringEnabled: false, recentActions: [] },
   };
 
   const mockDoc: DocumentContext = {
