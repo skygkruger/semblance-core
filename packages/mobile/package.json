@@ -13,7 +13,16 @@
   "dependencies": {
     "react": "^18.3.0",
     "react-native": "^0.76.0",
-    "react-native-reanimated": "^3.16.0"
+    "react-native-reanimated": "^3.16.0",
+    "react-native-fs": "^2.20.0",
+    "@op-engineering/op-sqlite": "^9.0.0",
+    "react-native-device-info": "^11.1.0",
+    "react-native-quick-crypto": "^0.7.0",
+    "@react-native-community/netinfo": "^11.3.0",
+    "react-native-haptic-feedback": "^2.2.0",
+    "@notifee/react-native": "^9.0.0",
+    "react-native-gesture-handler": "^2.20.0",
+    "react-native-tcp-socket": "^6.2.0"
   },
   "devDependencies": {
     "@react-native/babel-preset": "^0.76.0",
