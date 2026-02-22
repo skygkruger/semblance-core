@@ -21,6 +21,8 @@ import type {
 import type { TaskType, InferenceTier } from './inference-types.js';
 import { TASK_TIER_MAP, TIER_FALLBACK_CHAIN } from './inference-types.js';
 
+export type InferencePlatform = 'desktop' | 'ios' | 'android';
+
 export interface InferenceRouterConfig {
   /** Provider for fast/primary/quality tier reasoning (typically the same in Step 9) */
   reasoningProvider: LLMProvider;
@@ -30,6 +32,14 @@ export interface InferenceRouterConfig {
   reasoningModel: string;
   /** Model name for embedding tasks */
   embeddingModel: string;
+  /** Platform this router is running on. Default: 'desktop'. */
+  platform?: InferencePlatform;
+  /** Mobile-specific provider (used when platform is 'ios' or 'android'). */
+  mobileProvider?: LLMProvider;
+  /** Mobile reasoning model name. */
+  mobileReasoningModel?: string;
+  /** Mobile embedding model name. */
+  mobileEmbeddingModel?: string;
 }
 
 /**
@@ -44,12 +54,20 @@ export class InferenceRouter implements LLMProvider {
   private embeddingProvider: LLMProvider;
   private reasoningModel: string;
   private embeddingModel: string;
+  private platform: InferencePlatform;
+  private mobileProvider: LLMProvider | null;
+  private mobileReasoningModel: string | null;
+  private mobileEmbeddingModel: string | null;
 
   constructor(config: InferenceRouterConfig) {
     this.reasoningProvider = config.reasoningProvider;
     this.embeddingProvider = config.embeddingProvider;
     this.reasoningModel = config.reasoningModel;
     this.embeddingModel = config.embeddingModel;
+    this.platform = config.platform ?? 'desktop';
+    this.mobileProvider = config.mobileProvider ?? null;
+    this.mobileReasoningModel = config.mobileReasoningModel ?? null;
+    this.mobileEmbeddingModel = config.mobileEmbeddingModel ?? null;
   }
 
   // ─── LLMProvider Interface ───────────────────────────────────────────────
@@ -192,19 +210,55 @@ export class InferenceRouter implements LLMProvider {
     this.embeddingModel = model;
   }
 
+  /**
+   * Set or update the mobile provider (used when platform is 'ios' or 'android').
+   */
+  setMobileProvider(provider: LLMProvider, reasoningModel: string, embeddingModel: string): void {
+    this.mobileProvider = provider;
+    this.mobileReasoningModel = reasoningModel;
+    this.mobileEmbeddingModel = embeddingModel;
+  }
+
+  /**
+   * Get the current platform.
+   */
+  getPlatform(): InferencePlatform {
+    return this.platform;
+  }
+
+  /**
+   * Check if this router is running on a mobile platform.
+   */
+  isMobile(): boolean {
+    return this.platform === 'ios' || this.platform === 'android';
+  }
+
+  /**
+   * Check if the mobile provider is available and ready.
+   */
+  async isMobileReady(): Promise<boolean> {
+    if (!this.mobileProvider) return false;
+    return this.mobileProvider.isAvailable();
+  }
+
   // ─── Private ──────────────────────────────────────────────────────────────
 
   /**
    * Get the provider for a given inference tier.
-   * For Step 9, all reasoning tiers (fast/primary/quality) use the same provider.
-   * Embedding tier uses the embedding provider.
+   * On mobile, uses the mobile provider if available.
+   * On desktop, uses the desktop reasoning/embedding providers.
+   * Embedding tier always uses the dedicated embedding provider for the platform.
    */
   private getProviderForTier(tier: InferenceTier): LLMProvider {
+    if (this.isMobile() && this.mobileProvider) {
+      // On mobile, use the mobile provider for all tiers
+      return this.mobileProvider;
+    }
+
     if (tier === 'embedding') {
       return this.embeddingProvider;
     }
-    // For Step 9, all reasoning tiers use the same provider.
-    // Future: different models for fast vs quality tiers.
+    // For desktop, all reasoning tiers use the same provider.
     return this.reasoningProvider;
   }
 }
