@@ -2,6 +2,7 @@
 // Reminders are fully local. No data ever leaves the device.
 
 import type { DatabaseHandle } from '../platform/types.js';
+import type { LocationCoordinate } from '../platform/location-types.js';
 import { nanoid } from 'nanoid';
 
 const CREATE_TABLES = `
@@ -30,8 +31,20 @@ export interface ReminderRow {
   status: string;
   snoozed_until: string | null;
   source: string;
+  location_trigger_json: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * A location-based trigger for a reminder.
+ * When the user enters the radius around the coordinate, the reminder fires.
+ */
+export interface LocationTrigger {
+  coordinate: LocationCoordinate;
+  radiusMeters: number;
+  label: string;
+  armed: boolean;
 }
 
 export interface Reminder {
@@ -41,7 +54,8 @@ export interface Reminder {
   recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
   status: 'pending' | 'fired' | 'dismissed' | 'snoozed';
   snoozedUntil: string | null;
-  source: 'chat' | 'quick-capture' | 'proactive' | 'birthday_tracker';
+  source: 'chat' | 'quick-capture' | 'proactive' | 'birthday_tracker' | 'location_trigger';
+  locationTrigger?: LocationTrigger;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,7 +64,8 @@ export interface CreateReminderInput {
   text: string;
   dueAt: string;
   recurrence?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-  source?: 'chat' | 'quick-capture' | 'proactive' | 'birthday_tracker';
+  source?: 'chat' | 'quick-capture' | 'proactive' | 'birthday_tracker' | 'location_trigger';
+  locationTrigger?: LocationTrigger;
 }
 
 export interface UpdateReminderInput {
@@ -62,7 +77,7 @@ export interface UpdateReminderInput {
 }
 
 function rowToReminder(row: ReminderRow): Reminder {
-  return {
+  const reminder: Reminder = {
     id: row.id,
     text: row.text,
     dueAt: row.due_at,
@@ -73,6 +88,14 @@ function rowToReminder(row: ReminderRow): Reminder {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+  if (row.location_trigger_json) {
+    try {
+      reminder.locationTrigger = JSON.parse(row.location_trigger_json) as LocationTrigger;
+    } catch {
+      // Ignore malformed JSON
+    }
+  }
+  return reminder;
 }
 
 /**
@@ -110,6 +133,12 @@ export class ReminderStore {
     this.db = db;
     this.db.pragma('journal_mode = WAL');
     this.db.exec(CREATE_TABLES);
+    // Add location trigger column (idempotent migration)
+    try {
+      this.db.exec('ALTER TABLE reminders ADD COLUMN location_trigger_json TEXT');
+    } catch {
+      // Column already exists — expected on subsequent opens
+    }
   }
 
   create(input: CreateReminderInput): Reminder {
@@ -117,11 +146,14 @@ export class ReminderStore {
     const id = `rem_${nanoid()}`;
     const recurrence = input.recurrence ?? 'none';
     const source = input.source ?? 'chat';
+    const locationTriggerJson = input.locationTrigger
+      ? JSON.stringify(input.locationTrigger)
+      : null;
 
     this.db.prepare(`
-      INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)
-    `).run(id, input.text, input.dueAt, recurrence, source, now, now);
+      INSERT INTO reminders (id, text, due_at, recurrence, status, source, location_trigger_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)
+    `).run(id, input.text, input.dueAt, recurrence, source, locationTriggerJson, now, now);
 
     return this.findById(id)!;
   }
@@ -232,6 +264,32 @@ export class ReminderStore {
       'SELECT * FROM reminders ORDER BY due_at ASC LIMIT ?'
     ).all(limit) as ReminderRow[];
     return rows.map(rowToReminder);
+  }
+
+  /**
+   * Update the location trigger JSON on a reminder.
+   */
+  updateLocationTrigger(id: string, trigger: LocationTrigger | null): Reminder | null {
+    const existing = this.findById(id);
+    if (!existing) return null;
+    const now = new Date().toISOString();
+    const json = trigger ? JSON.stringify(trigger) : null;
+    this.db.prepare(
+      'UPDATE reminders SET location_trigger_json = ?, updated_at = ? WHERE id = ?'
+    ).run(json, now, id);
+    return this.findById(id)!;
+  }
+
+  /**
+   * Find all pending reminders with armed location triggers.
+   */
+  findArmedLocationReminders(): Reminder[] {
+    const rows = this.db.prepare(
+      "SELECT * FROM reminders WHERE status = 'pending' AND location_trigger_json IS NOT NULL ORDER BY created_at ASC"
+    ).all() as ReminderRow[];
+    return rows
+      .map(rowToReminder)
+      .filter(r => r.locationTrigger?.armed === true);
   }
 
   count(status?: Reminder['status']): number {
