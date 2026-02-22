@@ -147,6 +147,82 @@ describe('detectUrls', () => {
   });
 });
 
+describe('searchWithRouting: local_then_web threshold behavior', () => {
+  it('skips web search when local results exceed relevance threshold', async () => {
+    // Import the routing function
+    const { searchWithRouting } = await import('@semblance/core/agent/web-intelligence.js');
+
+    const mockLLM = {
+      chat: vi.fn().mockResolvedValue({ content: 'local_then_web' }),
+      generate: vi.fn(),
+      embed: vi.fn(),
+      listModels: vi.fn(),
+    };
+
+    const mockKG = {
+      search: vi.fn().mockResolvedValue([
+        { document: { id: 'd1', title: 'Email about Portland', source: 'email' }, score: 0.9, chunk: { id: 'c1', text: 'contract' } },
+        { document: { id: 'd2', title: 'Portland meeting notes', source: 'file' }, score: 0.85, chunk: { id: 'c2', text: 'notes' } },
+      ]),
+      index: vi.fn(),
+    };
+
+    const mockIpc = {
+      sendAction: vi.fn(),
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      isConnected: vi.fn(),
+    };
+
+    const result = await searchWithRouting('Portland contract details', mockLLM, mockKG, mockIpc);
+
+    expect(result.source).toBe('local');
+    expect(result.localResults).toHaveLength(2);
+    expect(result.webResults).toHaveLength(0);
+    // Web search should NOT have been called — local results were sufficient
+    expect(mockIpc.sendAction).not.toHaveBeenCalled();
+  });
+
+  it('fires web search when local results are below relevance threshold', async () => {
+    const { searchWithRouting } = await import('@semblance/core/agent/web-intelligence.js');
+
+    const mockLLM = {
+      chat: vi.fn().mockResolvedValue({ content: 'local_then_web' }),
+      generate: vi.fn(),
+      embed: vi.fn(),
+      listModels: vi.fn(),
+    };
+
+    // Local results exist but scores are below threshold (0.7)
+    const mockKG = {
+      search: vi.fn().mockResolvedValue([
+        { document: { id: 'd1', title: 'Unrelated doc', source: 'file' }, score: 0.3, chunk: { id: 'c1', text: 'stuff' } },
+      ]),
+      index: vi.fn(),
+    };
+
+    const mockIpc = {
+      sendAction: vi.fn().mockResolvedValue({
+        status: 'success',
+        data: {
+          results: [
+            { title: 'Web result', url: 'https://example.com', snippet: 'Found on web', age: '1h ago' },
+          ],
+        },
+      }),
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      isConnected: vi.fn(),
+    };
+
+    const result = await searchWithRouting('Portland weather', mockLLM, mockKG, mockIpc);
+
+    expect(result.webResults).toHaveLength(1);
+    // Web search SHOULD have been called — local results were insufficient
+    expect(mockIpc.sendAction).toHaveBeenCalledWith('web.search', expect.objectContaining({ query: 'Portland weather' }));
+  });
+});
+
 describe('Orchestrator tool registration', () => {
   it('search_web and fetch_url are defined in TOOL_ACTION_MAP', async () => {
     // Read the orchestrator module to verify tool registration
