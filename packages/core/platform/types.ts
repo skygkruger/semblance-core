@@ -372,4 +372,10 @@ export interface PlatformAdapter {
 
   /** Clipboard access (optional — not available on all platforms) */
   clipboard?: import('./clipboard-types.js').ClipboardAdapter;
+
+  /** Location access (optional — not available on all platforms) */
+  location?: import('./location-types.js').LocationAdapter;
+
+  /** Weather data (optional — iOS only via WeatherKit, others use web search fallback) */
+  weather?: import('./weather-types.js').WeatherAdapter;
 }
