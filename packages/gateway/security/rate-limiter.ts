@@ -12,6 +12,12 @@ const DEFAULT_ACTION_LIMITS: Partial<Record<ActionType, number>> = {
   'email.fetch': 60,
   'calendar.create': 30,
   'service.api_call': 100,
+  'web.search': 60,           // Brave free tier: ~33/hour; conservative limit
+  'web.fetch': 120,           // URL fetching is less API-constrained
+  'reminder.create': 300,     // Local-only, no API cost
+  'reminder.update': 300,     // Local-only
+  'reminder.list': 600,       // Read-only, local
+  'reminder.delete': 300,     // Local-only
 };
 
 const DEFAULT_PER_ACTION_LIMIT = 60;
