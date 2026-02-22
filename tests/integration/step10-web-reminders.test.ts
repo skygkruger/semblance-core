@@ -145,8 +145,8 @@ describe('Step 10 Privacy: Web traffic goes through Gateway only', () => {
     const content = readFileSync(filePath, 'utf-8');
 
     expect(content).toContain("import type { IPCClient }");
-    expect(content).toContain("ipcClient.send('web.search'");
-    expect(content).toContain("ipcClient.send('web.fetch'");
+    expect(content).toContain("ipcClient.sendAction('web.search'");
+    expect(content).toContain("ipcClient.sendAction('web.fetch'");
     expect(content).not.toMatch(/\bfetch\s*\(/);
   });
 
@@ -155,9 +155,9 @@ describe('Step 10 Privacy: Web traffic goes through Gateway only', () => {
     const content = readFileSync(filePath, 'utf-8');
 
     expect(content).toContain("import type { IPCClient }");
-    expect(content).toContain("ipcClient.send('reminder.create'");
-    expect(content).toContain("ipcClient.send('reminder.update'");
-    expect(content).toContain("ipcClient.send('reminder.list'");
+    expect(content).toContain("ipcClient.sendAction('reminder.create'");
+    expect(content).toContain("ipcClient.sendAction('reminder.update'");
+    expect(content).toContain("ipcClient.sendAction('reminder.list'");
     expect(content).not.toMatch(/\bfetch\s*\(/);
   });
 
@@ -165,7 +165,7 @@ describe('Step 10 Privacy: Web traffic goes through Gateway only', () => {
     const filePath = join(CORE_DIR, 'agent', 'quick-capture.ts');
     const content = readFileSync(filePath, 'utf-8');
 
-    expect(content).toContain("ipcClient.send('reminder.create'");
+    expect(content).toContain("ipcClient.sendAction('reminder.create'");
     expect(content).not.toMatch(/\bfetch\s*\(/);
   });
 });

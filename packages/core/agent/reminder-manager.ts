@@ -114,7 +114,7 @@ export async function createReminder(
     payload = input;
   }
 
-  return ipcClient.send('reminder.create', payload);
+  return ipcClient.sendAction('reminder.create', payload);
 }
 
 /**
@@ -125,7 +125,7 @@ export async function listReminders(
   status?: 'pending' | 'fired' | 'dismissed' | 'snoozed' | 'all',
 ): Promise<ActionResponse> {
   const payload: ReminderListPayload = { status: status ?? 'all' };
-  return ipcClient.send('reminder.list', payload);
+  return ipcClient.sendAction('reminder.list', payload);
 }
 
 /**
@@ -142,7 +142,7 @@ export async function snoozeReminder(
     status: 'snoozed',
     snoozedUntil,
   };
-  return ipcClient.send('reminder.update', payload);
+  return ipcClient.sendAction('reminder.update', payload);
 }
 
 /**
@@ -156,5 +156,5 @@ export async function dismissReminder(
     id,
     status: 'dismissed',
   };
-  return ipcClient.send('reminder.update', payload);
+  return ipcClient.sendAction('reminder.update', payload);
 }

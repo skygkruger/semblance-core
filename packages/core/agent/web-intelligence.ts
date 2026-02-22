@@ -166,7 +166,7 @@ export async function searchWithRouting(
   // Step 2: Web search
   try {
     const payload: WebSearchPayload = { query, count: 5 };
-    const response = await ipcClient.send('web.search', payload);
+    const response = await ipcClient.sendAction('web.search', payload);
 
     if (response.status === 'success' && response.data) {
       const data = response.data as { results: WebSearchResult[] };
@@ -194,7 +194,7 @@ export async function fetchUrl(
 ): Promise<{ success: boolean; data?: { url: string; title: string; content: string; bytesFetched: number; contentType: string }; error?: string }> {
   try {
     const payload: WebFetchPayload = { url, maxContentLength };
-    const response = await ipcClient.send('web.fetch', payload);
+    const response = await ipcClient.sendAction('web.fetch', payload);
 
     if (response.status === 'success' && response.data) {
       return { success: true, data: response.data as { url: string; title: string; content: string; bytesFetched: number; contentType: string } };

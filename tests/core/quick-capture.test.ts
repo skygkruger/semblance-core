@@ -189,12 +189,13 @@ describe('processCapture', () => {
       recurrence: 'none',
     }));
     const mockIpc = {
-      send: vi.fn().mockResolvedValue({
+      sendAction: vi.fn().mockResolvedValue({
         status: 'success',
         data: { id: 'rem-123' },
       }),
       connect: vi.fn(),
       disconnect: vi.fn(),
+      isConnected: vi.fn(),
     };
 
     const result = await processCapture(
@@ -208,7 +209,7 @@ describe('processCapture', () => {
     expect(result.hasReminder).toBe(true);
     expect(result.reminderId).toBe('rem-123');
     expect(result.reminderDueAt).toBe('2026-02-23T15:00:00.000Z');
-    expect(mockIpc.send).toHaveBeenCalledWith('reminder.create', expect.objectContaining({
+    expect(mockIpc.sendAction).toHaveBeenCalledWith('reminder.create', expect.objectContaining({
       text: 'call dentist',
       source: 'quick-capture',
     }));
@@ -275,9 +276,10 @@ describe('processCapture', () => {
       recurrence: 'none',
     }));
     const mockIpc = {
-      send: vi.fn().mockRejectedValue(new Error('IPC failed')),
+      sendAction: vi.fn().mockRejectedValue(new Error('IPC failed')),
       connect: vi.fn(),
       disconnect: vi.fn(),
+      isConnected: vi.fn(),
     };
 
     const result = await processCapture(

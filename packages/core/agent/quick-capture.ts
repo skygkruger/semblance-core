@@ -93,7 +93,7 @@ export async function processCapture(
       const parsed = await parseReminder(text, llm);
       // Create reminder via IPC if available
       if (ipcClient) {
-        const response = await ipcClient.send('reminder.create', {
+        const response = await ipcClient.sendAction('reminder.create', {
           text: parsed.text,
           dueAt: parsed.dueAt,
           recurrence: parsed.recurrence,
