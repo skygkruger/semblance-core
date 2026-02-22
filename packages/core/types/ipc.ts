@@ -23,6 +23,10 @@ export const ActionType = z.enum([
   'reminder.update',
   'reminder.list',
   'reminder.delete',
+  'contacts.import',
+  'contacts.list',
+  'contacts.get',
+  'contacts.search',
   'service.api_call',
   'model.download',
   'model.download_cancel',
@@ -216,6 +220,31 @@ export const ReminderDeletePayload = z.object({
 });
 export type ReminderDeletePayload = z.infer<typeof ReminderDeletePayload>;
 
+// --- Contact payload schemas (Step 14) ---
+
+export const ContactsImportPayload = z.object({
+  source: z.enum(['device']).optional().default('device'),
+});
+export type ContactsImportPayload = z.infer<typeof ContactsImportPayload>;
+
+export const ContactsListPayload = z.object({
+  limit: z.number().int().positive().optional().default(100),
+  offset: z.number().int().min(0).optional().default(0),
+  sortBy: z.enum(['display_name', 'last_contact_date', 'interaction_count']).optional().default('display_name'),
+});
+export type ContactsListPayload = z.infer<typeof ContactsListPayload>;
+
+export const ContactsGetPayload = z.object({
+  id: z.string(),
+});
+export type ContactsGetPayload = z.infer<typeof ContactsGetPayload>;
+
+export const ContactsSearchPayload = z.object({
+  query: z.string().min(1),
+  limit: z.number().int().positive().optional().default(20),
+});
+export type ContactsSearchPayload = z.infer<typeof ContactsSearchPayload>;
+
 // Map ActionType to its payload schema
 export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'email.send': EmailSendPayload,
@@ -236,6 +265,10 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'reminder.update': ReminderUpdatePayload,
   'reminder.list': ReminderListPayload,
   'reminder.delete': ReminderDeletePayload,
+  'contacts.import': ContactsImportPayload,
+  'contacts.list': ContactsListPayload,
+  'contacts.get': ContactsGetPayload,
+  'contacts.search': ContactsSearchPayload,
   'service.api_call': ServiceApiCallPayload,
   'model.download': ModelDownloadPayload,
   'model.download_cancel': ModelDownloadCancelPayload,

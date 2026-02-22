@@ -37,6 +37,10 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'reminder.update': 'reminders',
   'reminder.list': 'reminders',
   'reminder.delete': 'reminders',
+  'contacts.import': 'contacts',
+  'contacts.list': 'contacts',
+  'contacts.get': 'contacts',
+  'contacts.search': 'contacts',
   'service.api_call': 'services',
   'model.download': 'system',
   'model.download_cancel': 'system',
@@ -65,6 +69,10 @@ const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'reminder.update': 'write',
   'reminder.list': 'read',
   'reminder.delete': 'write',
+  'contacts.import': 'read',
+  'contacts.list': 'read',
+  'contacts.get': 'read',
+  'contacts.search': 'read',
   'service.api_call': 'execute',
   'model.download': 'execute',
   'model.download_cancel': 'write',
@@ -167,7 +175,7 @@ export class AutonomyManager {
    * Get current autonomy configuration for all domains.
    */
   getConfig(): Record<AutonomyDomain, AutonomyTier> {
-    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'services', 'web', 'reminders', 'system'];
+    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'system'];
     const config = {} as Record<AutonomyDomain, AutonomyTier>;
     for (const domain of domains) {
       config[domain] = this.getDomainTier(domain);

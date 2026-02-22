@@ -16,6 +16,7 @@ export type AutonomyDomain =
   | 'finances'
   | 'health'
   | 'files'
+  | 'contacts'
   | 'services'
   | 'web'
   | 'reminders'
