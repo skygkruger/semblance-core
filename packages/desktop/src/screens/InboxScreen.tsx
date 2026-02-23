@@ -9,7 +9,7 @@ import { PendingActionBanner } from '../components/PendingActionBanner';
 
 // ─── Types (mirror core types for the desktop boundary) ─────────────────────
 
-interface IndexedEmail {
+export interface IndexedEmail {
   id: string;
   messageId: string;
   threadId: string;
@@ -64,6 +64,30 @@ interface ActionTaken {
   timestamp: string;
   undoAvailable: boolean;
   description: string;
+}
+
+// ─── Helpers (exported for testing) ──────────────────────────────────────────
+
+export function formatTimeSaved(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  return `~${minutes} min`;
+}
+
+export function formatTime(isoString: string): string {
+  try {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
+export function sortEmailsByPriority(emails: IndexedEmail[]): IndexedEmail[] {
+  const high = emails.filter(e => e.priority === 'high');
+  const normal = emails.filter(e => e.priority === 'normal');
+  const low = emails.filter(e => e.priority === 'low');
+  return [...high, ...normal, ...low];
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -159,21 +183,6 @@ export function InboxScreen() {
       setInsights(prev => prev.filter(i => i.id !== insightId));
     } catch {
       // Sidecar not wired
-    }
-  };
-
-  const formatTimeSaved = (seconds: number): string => {
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.round(seconds / 60);
-    return `~${minutes} min`;
-  };
-
-  const formatTime = (isoString: string): string => {
-    try {
-      const date = new Date(isoString);
-      return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    } catch {
-      return '';
     }
   };
 

@@ -1,82 +1,15 @@
-// Tests for Universal Inbox — data model, priority sorting, time formatting, action handling.
-// These are logic-level tests since we don't have a DOM testing environment (jsdom) configured.
-// They validate the data transformations and logic that InboxScreen uses.
+// Tests for Universal Inbox — imports real logic functions from InboxScreen source.
+// Logic tests validate formatTimeSaved, formatTime, sortEmailsByPriority from real source.
 
 import { describe, it, expect } from 'vitest';
+import {
+  formatTimeSaved,
+  formatTime,
+  sortEmailsByPriority,
+  type IndexedEmail,
+} from '@semblance/desktop/screens/InboxScreen';
 
-// ─── Types (mirror InboxScreen) ─────────────────────────────────────────────
-
-interface IndexedEmail {
-  id: string;
-  messageId: string;
-  threadId: string;
-  folder: string;
-  from: string;
-  fromName: string;
-  to: string;
-  subject: string;
-  snippet: string;
-  receivedAt: string;
-  isRead: boolean;
-  isStarred: boolean;
-  hasAttachments: boolean;
-  labels: string;
-  priority: 'high' | 'normal' | 'low';
-  accountId: string;
-}
-
-interface CalendarEvent {
-  id: string;
-  uid: string;
-  title: string;
-  startTime: string;
-  endTime: string;
-  isAllDay: boolean;
-  location: string;
-  attendees: string;
-  status: string;
-}
-
-interface ProactiveInsight {
-  id: string;
-  type: 'meeting_prep' | 'follow_up' | 'deadline' | 'conflict';
-  priority: 'high' | 'normal' | 'low';
-  title: string;
-  summary: string;
-  sourceIds: string[];
-  suggestedAction: { actionType: string; payload: Record<string, unknown>; description: string } | null;
-  createdAt: string;
-  expiresAt: string | null;
-  estimatedTimeSavedSeconds: number;
-}
-
-// ─── Extracted Logic Functions (from InboxScreen) ────────────────────────────
-
-function formatTimeSaved(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.round(seconds / 60);
-  return `~${minutes} min`;
-}
-
-function formatTime(isoString: string): string {
-  try {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  } catch {
-    return '';
-  }
-}
-
-function sortEmailsByPriority(emails: IndexedEmail[]): IndexedEmail[] {
-  const high = emails.filter(e => e.priority === 'high');
-  const normal = emails.filter(e => e.priority === 'normal');
-  const low = emails.filter(e => e.priority === 'low');
-  return [...high, ...normal, ...low];
-}
-
-function parseLabels(labelString: string): string[] {
-  try { return JSON.parse(labelString) as string[]; } catch { return []; }
-}
+// ─── Test Helpers ─────────────────────────────────────────────────────────────
 
 function makeEmail(overrides: Partial<IndexedEmail> = {}): IndexedEmail {
   return {
@@ -100,9 +33,9 @@ function makeEmail(overrides: Partial<IndexedEmail> = {}): IndexedEmail {
   };
 }
 
-// ─── Tests ───────────────────────────────────────────────────────────────────
+// ─── Priority Sorting (real import) ───────────────────────────────────────────
 
-describe('Inbox — Priority Sorting', () => {
+describe('Inbox — sortEmailsByPriority (real import)', () => {
   it('sorts high priority emails first', () => {
     const emails = [
       makeEmail({ messageId: 'low', priority: 'low' }),
@@ -130,7 +63,9 @@ describe('Inbox — Priority Sorting', () => {
   });
 });
 
-describe('Inbox — Time Formatting', () => {
+// ─── Time Formatting (real import) ────────────────────────────────────────────
+
+describe('Inbox — formatTimeSaved (real import)', () => {
   it('formats seconds under a minute', () => {
     expect(formatTimeSaved(30)).toBe('30s');
     expect(formatTimeSaved(0)).toBe('0s');
@@ -144,10 +79,12 @@ describe('Inbox — Time Formatting', () => {
   });
 
   it('rounds to nearest minute', () => {
-    expect(formatTimeSaved(90)).toBe('~2 min'); // rounds 1.5 to 2
-    expect(formatTimeSaved(150)).toBe('~3 min'); // rounds 2.5 to 3
+    expect(formatTimeSaved(90)).toBe('~2 min');
+    expect(formatTimeSaved(150)).toBe('~3 min');
   });
+});
 
+describe('Inbox — formatTime (real import)', () => {
   it('formats ISO time string', () => {
     const result = formatTime('2025-06-15T14:30:00Z');
     expect(result).toBeTruthy();
@@ -156,12 +93,19 @@ describe('Inbox — Time Formatting', () => {
 
   it('returns empty string for invalid date', () => {
     const result = formatTime('not-a-date');
-    // Date constructor may return 'Invalid Date' string in some environments
     expect(result === '' || result === 'Invalid Date').toBe(true);
   });
 });
 
+// ─── Label Parsing ────────────────────────────────────────────────────────────
+// parseLabels is inline in JSX (not extracted as a named function).
+// We test the same logic here against the pattern used in the component.
+
 describe('Inbox — Label Parsing', () => {
+  function parseLabels(labelString: string): string[] {
+    try { return JSON.parse(labelString) as string[]; } catch { return []; }
+  }
+
   it('parses valid JSON array', () => {
     expect(parseLabels('["actionable","urgent"]')).toEqual(['actionable', 'urgent']);
   });
@@ -175,6 +119,8 @@ describe('Inbox — Label Parsing', () => {
   });
 });
 
+// ─── Email Card Data (using real type and sort) ───────────────────────────────
+
 describe('Inbox — Email Card Data', () => {
   it('email has required fields for card rendering', () => {
     const email = makeEmail();
@@ -184,81 +130,43 @@ describe('Inbox — Email Card Data', () => {
     expect(['high', 'normal', 'low']).toContain(email.priority);
   });
 
-  it('email priority dot color mapping', () => {
-    const colorMap: Record<string, string> = {
-      high: 'attention',
-      normal: 'primary',
-      low: 'muted',
-    };
-    expect(colorMap['high']).toBe('attention');
-    expect(colorMap['normal']).toBe('primary');
-    expect(colorMap['low']).toBe('muted');
+  it('sorted emails maintain all required fields', () => {
+    const emails = [
+      makeEmail({ messageId: 'a', priority: 'low' }),
+      makeEmail({ messageId: 'b', priority: 'high' }),
+    ];
+    const sorted = sortEmailsByPriority(emails);
+    expect(sorted[0]!.priority).toBe('high');
+    expect(sorted[0]!.subject).toBeTruthy();
   });
 });
 
+// ─── Calendar Event Display ───────────────────────────────────────────────────
+
 describe('Inbox — Calendar Event Display', () => {
-  it('all-day event displays "All day"', () => {
-    const event: CalendarEvent = {
-      id: '1', uid: 'uid-1', title: 'Holiday',
-      startTime: '2025-06-15T00:00:00Z', endTime: '2025-06-16T00:00:00Z',
-      isAllDay: true, location: '', attendees: '[]', status: 'confirmed',
-    };
+  it('all-day event displays "All day" using real formatTime', () => {
+    const event = { isAllDay: true, startTime: '2025-06-15T00:00:00Z' };
     const display = event.isAllDay ? 'All day' : formatTime(event.startTime);
     expect(display).toBe('All day');
   });
 
-  it('timed event displays formatted time', () => {
-    const event: CalendarEvent = {
-      id: '2', uid: 'uid-2', title: 'Meeting',
-      startTime: '2025-06-15T14:30:00Z', endTime: '2025-06-15T15:30:00Z',
-      isAllDay: false, location: 'Room A', attendees: '[]', status: 'confirmed',
-    };
+  it('timed event displays formatted time using real formatTime', () => {
+    const event = { isAllDay: false, startTime: '2025-06-15T14:30:00Z' };
     const display = event.isAllDay ? 'All day' : formatTime(event.startTime);
     expect(display).not.toBe('All day');
     expect(display.length).toBeGreaterThan(0);
   });
 });
 
-describe('Inbox — Insight Data', () => {
-  it('insight types are correctly typed', () => {
-    const types: ProactiveInsight['type'][] = ['meeting_prep', 'follow_up', 'deadline', 'conflict'];
-    types.forEach(t => {
-      expect(['meeting_prep', 'follow_up', 'deadline', 'conflict']).toContain(t);
-    });
+// ─── Actions Summary ──────────────────────────────────────────────────────────
+
+describe('Inbox — Actions Summary with real formatTimeSaved', () => {
+  it('formats time saved for summary display', () => {
+    const seconds = 360;
+    expect(formatTimeSaved(seconds)).toBe('~6 min');
   });
 
-  it('insight with suggested action has correct structure', () => {
-    const insight: ProactiveInsight = {
-      id: 'ins-1',
-      type: 'follow_up',
-      priority: 'high',
-      title: 'Follow up with Alice',
-      summary: 'Alice asked about the report 3 days ago',
-      sourceIds: ['msg-123'],
-      suggestedAction: {
-        actionType: 'email.send',
-        payload: { to: ['alice@example.com'] },
-        description: 'Send a follow-up reply',
-      },
-      createdAt: new Date().toISOString(),
-      expiresAt: null,
-      estimatedTimeSavedSeconds: 30,
-    };
-    expect(insight.suggestedAction).not.toBeNull();
-    expect(insight.suggestedAction!.actionType).toBe('email.send');
-  });
-});
-
-describe('Inbox — Actions Summary', () => {
-  it('correctly calculates action count display', () => {
-    const count: number = 5;
-    const display = `${count} action${count !== 1 ? 's' : ''}`;
-    expect(display).toBe('5 actions');
-  });
-
-  it('singular action display', () => {
-    const count = 1;
-    const display = `${count} action${count !== 1 ? 's' : ''}`;
-    expect(display).toBe('1 action');
+  it('formats zero time saved', () => {
+    expect(formatTimeSaved(0)).toBe('0s');
   });
 });
