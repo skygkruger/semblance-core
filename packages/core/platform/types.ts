@@ -381,4 +381,7 @@ export interface PlatformAdapter {
 
   /** Voice interaction (optional — STT via Whisper.cpp, TTS via Piper) */
   voice?: import('./voice-types.js').VoiceAdapter;
+
+  /** Cloud storage access (optional — Google Drive, Dropbox, OneDrive via IPC) */
+  cloudStorage?: import('./cloud-storage-types.js').CloudStorageAdapter;
 }

@@ -24,6 +24,7 @@ export type AutonomyDomain =
   | 'clipboard'
   | 'location'
   | 'voice'
+  | 'cloud-storage'
   | 'system';
 
 export interface AgentAction {

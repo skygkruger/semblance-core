@@ -53,6 +53,13 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'voice.transcribe': 'voice',
   'voice.speak': 'voice',
   'voice.conversation': 'voice',
+  'cloud.auth': 'cloud-storage',
+  'cloud.auth_status': 'cloud-storage',
+  'cloud.disconnect': 'cloud-storage',
+  'cloud.list_files': 'cloud-storage',
+  'cloud.file_metadata': 'cloud-storage',
+  'cloud.download_file': 'cloud-storage',
+  'cloud.check_changed': 'cloud-storage',
   'service.api_call': 'services',
   'model.download': 'system',
   'model.download_cancel': 'system',
@@ -97,6 +104,13 @@ const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'voice.transcribe': 'read',
   'voice.speak': 'read',
   'voice.conversation': 'read',
+  'cloud.auth': 'write',
+  'cloud.auth_status': 'read',
+  'cloud.disconnect': 'write',
+  'cloud.list_files': 'read',
+  'cloud.file_metadata': 'read',
+  'cloud.download_file': 'read',
+  'cloud.check_changed': 'read',
   'service.api_call': 'execute',
   'model.download': 'execute',
   'model.download_cancel': 'write',
@@ -199,7 +213,7 @@ export class AutonomyManager {
    * Get current autonomy configuration for all domains.
    */
   getConfig(): Record<AutonomyDomain, AutonomyTier> {
-    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'messaging', 'clipboard', 'location', 'voice', 'system'];
+    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'messaging', 'clipboard', 'location', 'voice', 'cloud-storage', 'system'];
     const config = {} as Record<AutonomyDomain, AutonomyTier>;
     for (const domain of domains) {
       config[domain] = this.getDomainTier(domain);

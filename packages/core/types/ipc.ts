@@ -39,6 +39,13 @@ export const ActionType = z.enum([
   'voice.transcribe',
   'voice.speak',
   'voice.conversation',
+  'cloud.auth',
+  'cloud.auth_status',
+  'cloud.disconnect',
+  'cloud.list_files',
+  'cloud.file_metadata',
+  'cloud.download_file',
+  'cloud.check_changed',
   'service.api_call',
   'model.download',
   'model.download_cancel',
@@ -342,6 +349,52 @@ export const VoiceConversationPayload = z.object({
 });
 export type VoiceConversationPayload = z.infer<typeof VoiceConversationPayload>;
 
+// --- Cloud Storage payload schemas (Step 18) ---
+
+export const CloudAuthPayload = z.object({
+  provider: z.enum(['google_drive', 'dropbox', 'onedrive']),
+});
+export type CloudAuthPayload = z.infer<typeof CloudAuthPayload>;
+
+export const CloudAuthStatusPayload = z.object({
+  provider: z.enum(['google_drive', 'dropbox', 'onedrive']),
+});
+export type CloudAuthStatusPayload = z.infer<typeof CloudAuthStatusPayload>;
+
+export const CloudDisconnectPayload = z.object({
+  provider: z.enum(['google_drive', 'dropbox', 'onedrive']),
+});
+export type CloudDisconnectPayload = z.infer<typeof CloudDisconnectPayload>;
+
+export const CloudListFilesPayload = z.object({
+  provider: z.enum(['google_drive', 'dropbox', 'onedrive']),
+  folderId: z.string().optional(),
+  pageToken: z.string().optional(),
+  pageSize: z.number().int().positive().optional(),
+  mimeTypeFilter: z.string().optional(),
+});
+export type CloudListFilesPayload = z.infer<typeof CloudListFilesPayload>;
+
+export const CloudFileMetadataPayload = z.object({
+  provider: z.enum(['google_drive', 'dropbox', 'onedrive']),
+  fileId: z.string(),
+});
+export type CloudFileMetadataPayload = z.infer<typeof CloudFileMetadataPayload>;
+
+export const CloudDownloadFilePayload = z.object({
+  provider: z.enum(['google_drive', 'dropbox', 'onedrive']),
+  fileId: z.string(),
+  localPath: z.string(),
+});
+export type CloudDownloadFilePayload = z.infer<typeof CloudDownloadFilePayload>;
+
+export const CloudCheckChangedPayload = z.object({
+  provider: z.enum(['google_drive', 'dropbox', 'onedrive']),
+  fileId: z.string(),
+  sinceTimestamp: z.string(),
+});
+export type CloudCheckChangedPayload = z.infer<typeof CloudCheckChangedPayload>;
+
 // Map ActionType to its payload schema
 export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'email.send': EmailSendPayload,
@@ -378,6 +431,13 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'voice.transcribe': VoiceTranscribePayload,
   'voice.speak': VoiceSpeakPayload,
   'voice.conversation': VoiceConversationPayload,
+  'cloud.auth': CloudAuthPayload,
+  'cloud.auth_status': CloudAuthStatusPayload,
+  'cloud.disconnect': CloudDisconnectPayload,
+  'cloud.list_files': CloudListFilesPayload,
+  'cloud.file_metadata': CloudFileMetadataPayload,
+  'cloud.download_file': CloudDownloadFilePayload,
+  'cloud.check_changed': CloudCheckChangedPayload,
   'service.api_call': ServiceApiCallPayload,
   'model.download': ModelDownloadPayload,
   'model.download_cancel': ModelDownloadCancelPayload,

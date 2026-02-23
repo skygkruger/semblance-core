@@ -58,6 +58,13 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'voice.transcribe': 30,        // Voice transcription (saves typing on mobile)
   'voice.speak': 15,             // TTS response (hands-free information)
   'voice.conversation': 60,      // Full voice conversation (hands-free interaction)
+  'cloud.auth': 5,               // OAuth setup
+  'cloud.auth_status': 5,        // Auth status check
+  'cloud.disconnect': 5,         // Disconnect/revoke
+  'cloud.list_files': 15,        // List files (faster than browsing manually)
+  'cloud.file_metadata': 5,      // File metadata lookup
+  'cloud.download_file': 60,     // Download + index (saves manual download + read)
+  'cloud.check_changed': 5,      // Change detection
 };
 
 /**
