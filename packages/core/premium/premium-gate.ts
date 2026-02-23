@@ -22,7 +22,9 @@ export type PremiumFeature =
   | 'financial-dashboard'
   | 'representative-drafting'
   | 'subscription-cancellation'
-  | 'representative-dashboard';
+  | 'representative-dashboard'
+  | 'form-automation'
+  | 'bureaucracy-tracking';
 
 export interface ActivationResult {
   success: boolean;
@@ -49,6 +51,8 @@ const FEATURE_TIER_MAP: Record<PremiumFeature, LicenseTier> = {
   'representative-drafting': 'digital-representative',
   'subscription-cancellation': 'digital-representative',
   'representative-dashboard': 'digital-representative',
+  'form-automation': 'digital-representative',
+  'bureaucracy-tracking': 'digital-representative',
 };
 
 const TIER_RANK: Record<LicenseTier, number> = {

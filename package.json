@@ -29,5 +29,8 @@
       "better-sqlite3",
       "esbuild"
     ]
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
   }
 }
