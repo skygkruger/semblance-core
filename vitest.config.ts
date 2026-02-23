@@ -15,6 +15,9 @@ export default defineConfig({
       '@semblance/desktop': resolve(__dirname, 'packages/desktop/src'),
       '@tauri-apps/api/core': resolve(__dirname, 'tests/helpers/mock-tauri.ts'),
       '@tauri-apps/plugin-dialog': resolve(__dirname, 'tests/helpers/mock-tauri-dialog.ts'),
+      '@semblance/mobile': resolve(__dirname, 'packages/mobile/src'),
+      'react-native': resolve(__dirname, 'tests/helpers/mock-react-native.ts'),
+      '@react-navigation/native-stack': resolve(__dirname, 'tests/helpers/mock-react-navigation.ts'),
     },
   },
 });

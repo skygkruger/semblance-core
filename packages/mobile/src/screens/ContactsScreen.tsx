@@ -36,7 +36,7 @@ interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList>;
 }
 
-function getInitials(name: string): string {
+export function getInitials(name: string): string {
   return name
     .split(/\s+/)
     .map(p => p[0])
