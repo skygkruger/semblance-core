@@ -323,6 +323,8 @@ const LOCAL_TOOLS = new Set([
 
 // --- System Prompt ---
 
+const VOICE_MODE_CONTEXT = `The user is in voice conversation mode. Keep responses concise and conversational — they will be spoken aloud. Avoid long lists, code blocks, and complex formatting.`;
+
 const SYSTEM_PROMPT = `You are Semblance, the user's personal AI. You run entirely on their device — their data never leaves their machine.
 
 You have access to their local files, documents, emails, and calendar through secure tools. You can search, send emails, manage their calendar, and take autonomous actions based on their configured autonomy tier.
@@ -364,6 +366,8 @@ export interface Orchestrator {
   getApprovalPatterns(): ApprovalPattern[];
   /** The autonomy manager — exposed for escalation engine */
   readonly autonomy: AutonomyManager;
+  /** Set voice mode active/inactive (affects system prompt) */
+  setVoiceMode(active: boolean): void;
 }
 
 export interface OrchestratorResponse {
@@ -391,6 +395,7 @@ export class OrchestratorImpl implements Orchestrator {
   private documentContext: DocumentContextManager | null;
   private contactResolver: ContactResolver | null;
   private messageDrafter: MessageDrafter | null;
+  private voiceModeActive = false;
 
   constructor(config: {
     llm: LLMProvider;
@@ -404,6 +409,7 @@ export class OrchestratorImpl implements Orchestrator {
     documentContext?: DocumentContextManager;
     contactResolver?: ContactResolver;
     messageDrafter?: MessageDrafter;
+    voiceModeActive?: boolean;
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -417,6 +423,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.documentContext = config.documentContext ?? null;
     this.contactResolver = config.contactResolver ?? null;
     this.messageDrafter = config.messageDrafter ?? null;
+    this.voiceModeActive = config.voiceModeActive ?? false;
     this.db.exec(CREATE_TABLES);
   }
 
@@ -617,6 +624,10 @@ export class OrchestratorImpl implements Orchestrator {
     return this.patternTracker.getAllPatterns();
   }
 
+  setVoiceMode(active: boolean): void {
+    this.voiceModeActive = active;
+  }
+
   // --- Private helpers ---
 
   private buildMessages(
@@ -625,8 +636,12 @@ export class OrchestratorImpl implements Orchestrator {
     history: ConversationTurn[],
     documentChunks: SearchResult[] = [],
   ): ChatMessage[] {
+    const systemContent = this.voiceModeActive
+      ? `${SYSTEM_PROMPT}\n\n${VOICE_MODE_CONTEXT}`
+      : SYSTEM_PROMPT;
+
     const messages: ChatMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: systemContent },
     ];
 
     // Add document-scoped context (high priority — before general context)
