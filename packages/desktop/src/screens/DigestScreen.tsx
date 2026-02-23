@@ -51,7 +51,7 @@ interface DigestSummary {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function formatDateRange(start: string, end: string): string {
+export function formatDateRange(start: string, end: string): string {
   const s = new Date(start);
   const e = new Date(end);
   return `${s.toLocaleDateString([], { month: 'short', day: 'numeric' })}–${e.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`;
