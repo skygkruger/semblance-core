@@ -26,6 +26,7 @@ export type RootStackParamList = {
   ContactDetail: { contactId: string };
   MessageCompose: { contactId: string; draftBody: string };
   LocationSettings: undefined;
+  VoiceSettings: undefined;
 };
 
 /** Tab icon names for each tab */

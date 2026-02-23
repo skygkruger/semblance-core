@@ -5,6 +5,7 @@ import { useAppState, useAppDispatch } from '../state/AppState';
 import { HardwareProfileDisplay } from '../components/HardwareProfileDisplay';
 import { ClipboardSettingsSection } from '../components/ClipboardSettingsSection';
 import { LocationSettingsSection } from '../components/LocationSettingsSection';
+import { VoiceSettingsSection } from '../components/VoiceSettingsSection';
 import type { HardwareDisplayInfo } from '../components/HardwareProfileDisplay';
 import type { AutonomyTier } from '@semblance/ui';
 import type { ThemeMode } from '@semblance/ui';
@@ -465,6 +466,9 @@ export function SettingsScreen() {
 
       {/* Location Services */}
       <LocationSettingsSection />
+
+      {/* Voice Interaction */}
+      <VoiceSettingsSection />
 
       {/* Autonomy */}
       <Card>

@@ -53,6 +53,13 @@ export interface AppState {
     defaultCity: string;
     retentionDays: number;
   };
+  voiceSettings: {
+    enabled: boolean;
+    whisperModel: string | null;
+    piperVoice: string | null;
+    speed: number;
+    silenceSensitivity: 'low' | 'medium' | 'high';
+  };
 }
 
 export interface DocumentContext {
@@ -99,7 +106,8 @@ export type AppAction =
   | { type: 'SET_CLIPBOARD_MONITORING'; enabled: boolean }
   | { type: 'SET_CLIPBOARD_RECENT_ACTIONS'; actions: AppState['clipboardSettings']['recentActions'] }
   | { type: 'SET_LOCATION_SETTINGS'; settings: AppState['locationSettings'] }
-  | { type: 'CLEAR_LOCATION_HISTORY' };
+  | { type: 'CLEAR_LOCATION_HISTORY' }
+  | { type: 'SET_VOICE_SETTINGS'; settings: AppState['voiceSettings'] };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -160,6 +168,13 @@ const initialState: AppState = {
     weatherEnabled: false,
     defaultCity: '',
     retentionDays: 7,
+  },
+  voiceSettings: {
+    enabled: false,
+    whisperModel: null,
+    piperVoice: null,
+    speed: 1.0,
+    silenceSensitivity: 'medium',
   },
 };
 
@@ -232,6 +247,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, locationSettings: action.settings };
     case 'CLEAR_LOCATION_HISTORY':
       return state; // Side effect handled by component — state stays the same
+    case 'SET_VOICE_SETTINGS':
+      return { ...state, voiceSettings: action.settings };
     default:
       return state;
   }
