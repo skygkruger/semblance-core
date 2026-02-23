@@ -72,6 +72,9 @@ export interface AppState {
     storageUsedBytes: number;
     filesSynced: number;
   };
+  // Extension slot: Digital Representative
+  // These defaults represent "DR not installed." When @semblance/dr is active,
+  // it manages this state via extension adapter registration.
   financeSettings: {
     plaidConnected: boolean;
     autoSyncEnabled: boolean;

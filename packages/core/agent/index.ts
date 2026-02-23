@@ -27,9 +27,11 @@ import type { Orchestrator } from './orchestrator.js';
 import { OrchestratorImpl } from './orchestrator.js';
 import { AutonomyManager } from './autonomy.js';
 import { getPlatform } from '../platform/index.js';
+import type { SemblanceExtension } from '../extensions/types.js';
 
 /**
  * Create an Orchestrator instance.
+ * If extensions are provided, their tools are registered with the orchestrator.
  */
 export function createOrchestrator(config: {
   llmProvider: LLMProvider;
@@ -38,6 +40,7 @@ export function createOrchestrator(config: {
   autonomyConfig?: AutonomyConfig;
   dataDir: string;
   model: string;
+  extensions?: SemblanceExtension[];
 }): Orchestrator {
   const p = getPlatform();
   const db = p.sqlite.openDatabase(p.path.join(config.dataDir, 'agent.db'));
@@ -45,7 +48,7 @@ export function createOrchestrator(config: {
 
   const autonomy = new AutonomyManager(db, config.autonomyConfig);
 
-  return new OrchestratorImpl({
+  const orchestrator = new OrchestratorImpl({
     llm: config.llmProvider,
     knowledge: config.knowledgeGraph,
     ipc: config.ipcClient,
@@ -53,4 +56,15 @@ export function createOrchestrator(config: {
     db,
     model: config.model,
   });
+
+  // Wire extension tools
+  if (config.extensions) {
+    for (const ext of config.extensions) {
+      if (ext.tools && ext.tools.length > 0) {
+        orchestrator.registerTools(ext.tools);
+      }
+    }
+  }
+
+  return orchestrator;
 }

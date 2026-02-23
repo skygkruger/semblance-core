@@ -23,6 +23,7 @@ import { WebFetchAdapter } from './services/web-fetch-adapter.js';
 import { ReminderStore } from '@semblance/core/knowledge/reminder-store.js';
 import { OAuthTokenManager } from './services/oauth-token-manager.js';
 import { GoogleDriveAdapter } from './services/google-drive-adapter.js';
+import type { ExtensionGatewayAdapter, GatewayExtensionContext } from '@semblance/core/extensions/types.js';
 
 export interface GatewayConfig {
   /** Directory for Gateway databases. Defaults to ~/.semblance/gateway/ */
@@ -47,6 +48,7 @@ export class Gateway {
   private rateLimiter: RateLimiter | null = null;
   private anomalyDetector: AnomalyDetector | null = null;
   private serviceRegistry: ServiceRegistry | null = null;
+  private oauthTokenManager: OAuthTokenManager | null = null;
   private config: GatewayConfig;
 
   constructor(config?: GatewayConfig) {
@@ -131,8 +133,8 @@ export class Gateway {
     this.serviceRegistry.register('reminder.delete', reminderAdapter);
 
     // --- Cloud Storage: Google Drive adapter (OAuth + read-only API v3) ---
-    const oauthTokenManager = new OAuthTokenManager(this.configDb);
-    const googleDriveAdapter = new GoogleDriveAdapter(oauthTokenManager, {
+    this.oauthTokenManager = new OAuthTokenManager(this.configDb);
+    const googleDriveAdapter = new GoogleDriveAdapter(this.oauthTokenManager, {
       clientId: process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? '',
       clientSecret: process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'] ?? '',
     });
@@ -275,6 +277,32 @@ export class Gateway {
   getServiceRegistry(): ServiceRegistry {
     if (!this.serviceRegistry) throw new Error('Gateway not started');
     return this.serviceRegistry;
+  }
+
+  /**
+   * Get the OAuth token manager (for extensions that need OAuth).
+   */
+  getOAuthTokenManager(): OAuthTokenManager {
+    if (!this.oauthTokenManager) throw new Error('Gateway not started');
+    return this.oauthTokenManager;
+  }
+
+  /**
+   * Register extension gateway adapters. Each adapter is created via its
+   * factory function and registered with the service registry.
+   */
+  registerExtensionAdapters(adapters: ExtensionGatewayAdapter[]): void {
+    if (!this.serviceRegistry) throw new Error('Gateway not started');
+
+    const ctx: GatewayExtensionContext = {
+      getOAuthTokenManager: () => this.oauthTokenManager,
+      configDb: this.configDb,
+    };
+
+    for (const adapter of adapters) {
+      const serviceAdapter = adapter.createAdapter(ctx);
+      this.serviceRegistry.register(adapter.actionType, serviceAdapter);
+    }
   }
 
   /**

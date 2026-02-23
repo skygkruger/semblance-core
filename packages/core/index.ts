@@ -94,6 +94,32 @@ export type {
   MobileAdapterConfig,
 } from './platform/index.js';
 
+// Re-export extension system
+export type {
+  SemblanceExtension,
+  ExtensionTool,
+  ExtensionInsightTracker,
+  ExtensionGatewayAdapter,
+  ExtensionServiceAdapter,
+  ExtensionInitContext,
+  GatewayExtensionContext,
+  ToolHandler,
+  ToolHandlerResult,
+  UISlotComponent,
+} from './extensions/index.js';
+
+export {
+  loadExtensions,
+  getLoadedExtensions,
+  registerExtension,
+  clearExtensions,
+  registerSlot,
+  getSlot,
+  hasSlot,
+  getSlotNames,
+  clearSlots,
+} from './extensions/index.js';
+
 // Re-export mobile model management
 export {
   MobileModelManager,

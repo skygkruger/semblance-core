@@ -16,13 +16,27 @@ import type { EmailIndexer, IndexedEmail } from '../knowledge/email-indexer.js';
 import type { CalendarIndexer, IndexedCalendarEvent } from '../knowledge/calendar-indexer.js';
 import type { AutonomyTier } from './types.js';
 import { AutonomyManager } from './autonomy.js';
-import type { FinancialInsightTracker } from '../finance/financial-insight-tracker.js';
+import type { ExtensionInsightTracker } from '../extensions/types.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
+/** Core insight types built into the proactive engine. */
+export type ProactiveInsightType =
+  | 'meeting_prep'
+  | 'follow_up'
+  | 'deadline'
+  | 'conflict'
+  | 'birthday'
+  | 'contact_frequency'
+  | 'location-reminder'
+  | 'weather-alert'
+  | 'commute-departure'
+  | 'weather-summary';
+
 export interface ProactiveInsight {
   id: string;
-  type: 'meeting_prep' | 'follow_up' | 'deadline' | 'conflict' | 'birthday' | 'contact_frequency' | 'location-reminder' | 'weather-alert' | 'commute-departure' | 'weather-summary' | 'spending-alert' | 'anomaly-alert' | 'subscription-renewal' | 'balance-low';
+  /** Core types are autocomplete-friendly; extensions supply arbitrary strings. */
+  type: ProactiveInsightType | (string & {});
   priority: 'high' | 'normal' | 'low';
   title: string;
   summary: string;
@@ -146,7 +160,7 @@ export class ProactiveEngine {
   private pollIntervalMs: number;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private eventHandler: ProactiveEventHandler | null = null;
-  private financialInsightTracker: FinancialInsightTracker | null;
+  private extensionTrackers: ExtensionInsightTracker[] = [];
 
   constructor(config: {
     db: DatabaseHandle;
@@ -155,7 +169,6 @@ export class ProactiveEngine {
     calendarIndexer: CalendarIndexer;
     autonomy: AutonomyManager;
     pollIntervalMs?: number;
-    financialInsightTracker?: FinancialInsightTracker;
   }) {
     this.db = config.db;
     this.knowledge = config.knowledge;
@@ -163,12 +176,19 @@ export class ProactiveEngine {
     this.calendarIndexer = config.calendarIndexer;
     this.autonomy = config.autonomy;
     this.pollIntervalMs = config.pollIntervalMs ?? 15 * 60 * 1000; // default 15 minutes
-    this.financialInsightTracker = config.financialInsightTracker ?? null;
     this.db.exec(CREATE_INSIGHTS_TABLE);
   }
 
   onEvent(handler: ProactiveEventHandler): void {
     this.eventHandler = handler;
+  }
+
+  /**
+   * Register an extension insight tracker. Its generateInsights() will be
+   * called during each proactive run alongside built-in trackers.
+   */
+  registerTracker(tracker: ExtensionInsightTracker): void {
+    this.extensionTrackers.push(tracker);
   }
 
   private emit(event: string, data: unknown): void {
@@ -195,14 +215,19 @@ export class ProactiveEngine {
     const deadlines = this.checkDeadlines();
     insights.push(...deadlines);
 
-    // 4. Financial insights
-    let financialInsights: ProactiveInsight[] = [];
-    if (this.financialInsightTracker) {
-      financialInsights = this.financialInsightTracker.generateInsights();
-      insights.push(...financialInsights);
+    // 4. Extension tracker insights
+    let extensionInsightCount = 0;
+    for (const tracker of this.extensionTrackers) {
+      try {
+        const extInsights = tracker.generateInsights();
+        insights.push(...extInsights);
+        extensionInsightCount += extInsights.length;
+      } catch {
+        // Extension tracker failed — continue with remaining trackers
+      }
     }
 
-    // 5. Store insights
+    // 6. Store insights
     for (const insight of insights) {
       this.storeInsight(insight);
     }
@@ -213,7 +238,7 @@ export class ProactiveEngine {
         meeting_prep: meetingPreps.length,
         follow_up: followUps.length,
         deadline: deadlines.length,
-        financial: financialInsights.length,
+        extension: extensionInsightCount,
       },
     });
 
