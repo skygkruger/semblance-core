@@ -293,6 +293,18 @@ const TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    name: 'search_cloud_files',
+    description: 'Search cloud-synced files (Google Drive, Dropbox, etc.) that have been indexed locally. Returns matching documents from the local knowledge index — no network access needed.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query (natural language or keyword)' },
+        provider: { type: 'string', description: 'Filter by cloud provider (optional)' },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 // Map tool names to ActionTypes
@@ -319,6 +331,7 @@ const LOCAL_TOOLS = new Set([
   'search_emails',
   'categorize_email',
   'detect_calendar_conflicts',
+  'search_cloud_files',
 ]);
 
 // --- System Prompt ---
@@ -350,6 +363,7 @@ Available tools:
 - detect_calendar_conflicts: Check for scheduling conflicts
 - send_text: Send a text message to a contact
 - get_weather: Get current weather and forecast
+- search_cloud_files: Search cloud-synced files (Google Drive, Dropbox) indexed locally
 
 Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.`;
 
@@ -757,6 +771,24 @@ export class OrchestratorImpl implements Orchestrator {
             })),
             hasConflicts: conflicts.length > 0,
           },
+        });
+        continue;
+      }
+
+      if (tc.name === 'search_cloud_files') {
+        // Search cloud-synced files in the local index — no IPC needed
+        const results = await this.knowledge.search(tc.arguments['query'] as string, {
+          limit: 10,
+          source: 'cloud_storage',
+        });
+        executedResults.push({
+          tool: 'search_cloud_files',
+          result: results.map(r => ({
+            title: r.document.title,
+            content: r.chunk.content.slice(0, 500),
+            score: r.score,
+            metadata: r.document.metadata,
+          })),
         });
         continue;
       }

@@ -60,6 +60,18 @@ export interface AppState {
     speed: number;
     silenceSensitivity: 'low' | 'medium' | 'high';
   };
+  cloudStorageSettings: {
+    connected: boolean;
+    provider: string | null;
+    userEmail: string | null;
+    selectedFolders: Array<{ folderId: string; folderName: string }>;
+    syncIntervalMinutes: number;
+    maxFileSizeMB: number;
+    storageBudgetGB: number;
+    lastSyncedAt: string | null;
+    storageUsedBytes: number;
+    filesSynced: number;
+  };
 }
 
 export interface DocumentContext {
@@ -107,7 +119,8 @@ export type AppAction =
   | { type: 'SET_CLIPBOARD_RECENT_ACTIONS'; actions: AppState['clipboardSettings']['recentActions'] }
   | { type: 'SET_LOCATION_SETTINGS'; settings: AppState['locationSettings'] }
   | { type: 'CLEAR_LOCATION_HISTORY' }
-  | { type: 'SET_VOICE_SETTINGS'; settings: AppState['voiceSettings'] };
+  | { type: 'SET_VOICE_SETTINGS'; settings: AppState['voiceSettings'] }
+  | { type: 'SET_CLOUD_STORAGE_SETTINGS'; settings: AppState['cloudStorageSettings'] };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -175,6 +188,18 @@ const initialState: AppState = {
     piperVoice: null,
     speed: 1.0,
     silenceSensitivity: 'medium',
+  },
+  cloudStorageSettings: {
+    connected: false,
+    provider: null,
+    userEmail: null,
+    selectedFolders: [],
+    syncIntervalMinutes: 30,
+    maxFileSizeMB: 50,
+    storageBudgetGB: 5,
+    lastSyncedAt: null,
+    storageUsedBytes: 0,
+    filesSynced: 0,
   },
 };
 
@@ -249,6 +274,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return state; // Side effect handled by component — state stays the same
     case 'SET_VOICE_SETTINGS':
       return { ...state, voiceSettings: action.settings };
+    case 'SET_CLOUD_STORAGE_SETTINGS':
+      return { ...state, cloudStorageSettings: action.settings };
     default:
       return state;
   }

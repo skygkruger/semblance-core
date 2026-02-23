@@ -6,6 +6,7 @@ import { HardwareProfileDisplay } from '../components/HardwareProfileDisplay';
 import { ClipboardSettingsSection } from '../components/ClipboardSettingsSection';
 import { LocationSettingsSection } from '../components/LocationSettingsSection';
 import { VoiceSettingsSection } from '../components/VoiceSettingsSection';
+import { CloudStorageSettingsSection } from '../components/CloudStorageSettingsSection';
 import type { HardwareDisplayInfo } from '../components/HardwareProfileDisplay';
 import type { AutonomyTier } from '@semblance/ui';
 import type { ThemeMode } from '@semblance/ui';
@@ -469,6 +470,9 @@ export function SettingsScreen() {
 
       {/* Voice Interaction */}
       <VoiceSettingsSection />
+
+      {/* Cloud Storage */}
+      <CloudStorageSettingsSection />
 
       {/* Autonomy */}
       <Card>
