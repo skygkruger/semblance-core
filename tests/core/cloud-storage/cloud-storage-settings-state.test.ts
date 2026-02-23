@@ -1,54 +1,22 @@
-// Cloud Storage AppState Tests — Initial defaults, reducer updates.
+// Cloud Storage AppState Tests — imports real initialState and appReducer from source.
 
 import { describe, it, expect } from 'vitest';
-
-// We test the AppState shape and reducer logic directly without React rendering.
-// The actual AppState is in packages/desktop/src/state/AppState.tsx.
+import { initialState, appReducer } from '@semblance/desktop/state/AppState';
 
 describe('CloudStorage AppState', () => {
   it('initial cloudStorageSettings defaults are correct', () => {
-    // These values must match the initialState in AppState.tsx
-    const initialCloudStorageSettings = {
-      connected: false,
-      provider: null,
-      userEmail: null,
-      selectedFolders: [],
-      syncIntervalMinutes: 30,
-      maxFileSizeMB: 50,
-      storageBudgetGB: 5,
-      lastSyncedAt: null,
-      storageUsedBytes: 0,
-      filesSynced: 0,
-    };
-
-    expect(initialCloudStorageSettings.connected).toBe(false);
-    expect(initialCloudStorageSettings.provider).toBeNull();
-    expect(initialCloudStorageSettings.syncIntervalMinutes).toBe(30);
-    expect(initialCloudStorageSettings.maxFileSizeMB).toBe(50);
-    expect(initialCloudStorageSettings.storageBudgetGB).toBe(5);
-    expect(initialCloudStorageSettings.lastSyncedAt).toBeNull();
-    expect(initialCloudStorageSettings.storageUsedBytes).toBe(0);
-    expect(initialCloudStorageSettings.filesSynced).toBe(0);
+    const settings = initialState.cloudStorageSettings;
+    expect(settings.connected).toBe(false);
+    expect(settings.provider).toBeNull();
+    expect(settings.syncIntervalMinutes).toBe(30);
+    expect(settings.maxFileSizeMB).toBe(50);
+    expect(settings.storageBudgetGB).toBe(5);
+    expect(settings.lastSyncedAt).toBeNull();
+    expect(settings.storageUsedBytes).toBe(0);
+    expect(settings.filesSynced).toBe(0);
   });
 
   it('SET_CLOUD_STORAGE_SETTINGS reducer updates state', () => {
-    // Simulate the reducer behavior
-    const initialState = {
-      cloudStorageSettings: {
-        connected: false,
-        provider: null as string | null,
-        userEmail: null as string | null,
-        selectedFolders: [] as Array<{ folderId: string; folderName: string }>,
-        syncIntervalMinutes: 30,
-        maxFileSizeMB: 50,
-        storageBudgetGB: 5,
-        lastSyncedAt: null as string | null,
-        storageUsedBytes: 0,
-        filesSynced: 0,
-      },
-    };
-
-    // Apply SET_CLOUD_STORAGE_SETTINGS action
     const newSettings = {
       connected: true,
       provider: 'google_drive' as string | null,
@@ -62,11 +30,10 @@ describe('CloudStorage AppState', () => {
       filesSynced: 5,
     };
 
-    // Reducer replaces the entire cloudStorageSettings object
-    const nextState = {
-      ...initialState,
-      cloudStorageSettings: newSettings,
-    };
+    const nextState = appReducer(initialState, {
+      type: 'SET_CLOUD_STORAGE_SETTINGS',
+      settings: newSettings,
+    });
 
     expect(nextState.cloudStorageSettings.connected).toBe(true);
     expect(nextState.cloudStorageSettings.provider).toBe('google_drive');

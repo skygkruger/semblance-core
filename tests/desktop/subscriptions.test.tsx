@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Tests for SubscriptionInsightCard — renders real component.
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SubscriptionInsightCard } from '@semblance/desktop/components/SubscriptionInsightCard';
@@ -103,5 +103,3 @@ describe('SubscriptionInsightCard', () => {
   });
 });
 
-// Need vi import for vi.fn()
-import { vi } from 'vitest';

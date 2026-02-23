@@ -91,62 +91,19 @@ function respondError(id: number | string, error: string): void {
 // 3. Rust writes back: {"type":"callback_response","id":"cb-xxx","result":{...}}
 // 4. Sidecar reads this from stdin and resolves the pending Promise
 
-type CallbackResolver = {
-  resolve: (value: unknown) => void;
-  reject: (reason: string) => void;
-  timeout: ReturnType<typeof setTimeout>;
-};
-
-const pendingCallbacks = new Map<string, CallbackResolver>();
-let callbackIdCounter = 0;
+// Callback protocol extracted to ndjson-callback.ts for testability.
+// Re-exported here for backward compatibility within bridge.ts.
+import { createCallbackProtocol } from './ndjson-callback';
 
 const CALLBACK_TIMEOUT_MS = 120_000; // 2 minutes — model loading can be slow
 
-/**
- * Send a callback request to Rust and wait for the response.
- * This is how Node.js calls into the NativeRuntime (Rust side).
- */
-function sendCallback(method: string, params: Record<string, unknown>): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    const id = `cb-${++callbackIdCounter}`;
+const callbackProtocol = createCallbackProtocol(
+  (line: string) => process.stdout.write(line),
+  CALLBACK_TIMEOUT_MS,
+);
 
-    const timeout = setTimeout(() => {
-      pendingCallbacks.delete(id);
-      reject(`Callback ${method} timed out after ${CALLBACK_TIMEOUT_MS}ms`);
-    }, CALLBACK_TIMEOUT_MS);
-
-    pendingCallbacks.set(id, { resolve, reject, timeout });
-
-    // Write callback request to stdout (Rust reads this)
-    process.stdout.write(JSON.stringify({
-      type: 'callback',
-      id,
-      method,
-      params,
-    }) + '\n');
-  });
-}
-
-/**
- * Handle a callback response from Rust.
- * Called when the stdin line parser encounters a "callback_response" message.
- */
-function handleCallbackResponse(msg: { id: string; result?: unknown; error?: string }): void {
-  const pending = pendingCallbacks.get(msg.id);
-  if (!pending) {
-    console.error(`[sidecar] Received callback_response for unknown id: ${msg.id}`);
-    return;
-  }
-
-  clearTimeout(pending.timeout);
-  pendingCallbacks.delete(msg.id);
-
-  if (msg.error) {
-    pending.reject(msg.error);
-  } else {
-    pending.resolve(msg.result);
-  }
-}
+const { sendCallback, handleCallbackResponse } = callbackProtocol;
+const pendingCallbacks = callbackProtocol.pendingCallbacks;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
