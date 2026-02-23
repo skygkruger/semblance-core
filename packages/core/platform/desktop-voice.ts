@@ -87,9 +87,10 @@ export function createMockVoiceAdapter(options?: {
       const session: AudioSession = {
         async stop() {
           recording = false;
-          const elapsed = Date.now() - startTime;
+          const elapsed = Math.max(Date.now() - startTime, 100); // Minimum 100ms of audio
+          const sampleCount = Math.max(Math.floor(16000 * (elapsed / 1000)), 1600);
           return {
-            pcmData: new Float32Array(Math.floor(16000 * (elapsed / 1000))),
+            pcmData: new Float32Array(sampleCount).fill(0.1),
             sampleRate: 16000,
             durationMs: elapsed,
             format: { ...defaultFormat },
