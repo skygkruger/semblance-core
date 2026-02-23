@@ -24,6 +24,7 @@ export type DocumentSource =
   | 'financial'
   | 'health'
   | 'browser_history'
+  | 'cloud_storage'
   | 'manual';
 
 export interface DocumentChunk {

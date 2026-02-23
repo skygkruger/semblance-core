@@ -43,6 +43,8 @@ export interface DownloadResult {
   localPath: string;
   sizeBytes: number;
   mimeType: string;
+  /** Text content (if text-extractable). Gateway populates for text/plain, CSV, etc. */
+  content?: string;
   error?: string;
 }
 
