@@ -378,4 +378,7 @@ export interface PlatformAdapter {
 
   /** Weather data (optional — iOS only via WeatherKit, others use web search fallback) */
   weather?: import('./weather-types.js').WeatherAdapter;
+
+  /** Voice interaction (optional — STT via Whisper.cpp, TTS via Piper) */
+  voice?: import('./voice-types.js').VoiceAdapter;
 }
