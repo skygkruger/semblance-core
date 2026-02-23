@@ -6,10 +6,6 @@ export default defineConfig({
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     testTimeout: 10000,
     setupFiles: ['./tests/setup/dom-setup.ts'],
-    environmentMatchGlobs: [
-      ['tests/desktop/**', 'jsdom'],
-      ['tests/mobile/**', 'jsdom'],
-    ],
   },
   resolve: {
     alias: {

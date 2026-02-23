@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-interface PendingAction {
+export interface PendingAction {
   id: string;
   action: string;
   payload: Record<string, unknown>;
@@ -21,7 +21,7 @@ interface PendingActionBannerProps {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function describeAction(action: PendingAction): string {
+export function describeAction(action: PendingAction): string {
   const payload = action.payload;
   switch (action.action) {
     case 'email.send': {
@@ -49,7 +49,7 @@ function describeAction(action: PendingAction): string {
   }
 }
 
-function getPreviewContent(action: PendingAction): string | null {
+export function getPreviewContent(action: PendingAction): string | null {
   if (action.action === 'email.send' || action.action === 'email.draft') {
     const body = action.payload['body'] as string | undefined;
     if (body) {
