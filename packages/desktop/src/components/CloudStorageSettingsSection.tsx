@@ -116,7 +116,7 @@ export function CloudStorageSettingsSection() {
       {/* Provider Cards */}
       <div className="space-y-3 mb-4">
         <div className="flex items-center gap-3 p-3 rounded-md bg-semblance-surface-1 dark:bg-semblance-surface-1-dark">
-          <StatusIndicator status={cloudStorageSettings.connected ? 'success' : 'neutral'} />
+          <StatusIndicator status={cloudStorageSettings.connected ? 'success' : 'muted'} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
               Google Drive
@@ -141,7 +141,7 @@ export function CloudStorageSettingsSection() {
         {/* Coming soon providers */}
         {(['Dropbox', 'OneDrive'] as const).map((name) => (
           <div key={name} className="flex items-center gap-3 p-3 rounded-md bg-semblance-surface-1 dark:bg-semblance-surface-1-dark opacity-50">
-            <StatusIndicator status="neutral" />
+            <StatusIndicator status="muted" />
             <div className="flex-1">
               <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
                 {name}
