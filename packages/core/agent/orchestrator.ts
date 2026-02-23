@@ -27,6 +27,11 @@ import type { DocumentContextManager } from './document-context.js';
 import type { ContactResolver } from '../knowledge/contacts/contact-resolver.js';
 import type { ResolvedContactResult } from '../knowledge/contacts/contact-types.js';
 import type { MessageDrafter } from './messaging/message-drafter.js';
+import type { TransactionStore } from '../finance/transaction-store.js';
+import type { SpendingAnalyzer } from '../finance/spending-analyzer.js';
+import type { AnomalyDetector } from '../finance/anomaly-detector.js';
+import type { RecurringDetector } from '../finance/recurring-detector.js';
+import type { PremiumGate } from '../premium/premium-gate.js';
 
 // --- Conversation Storage ---
 
@@ -305,6 +310,52 @@ const TOOLS: ToolDefinition[] = [
       required: ['query'],
     },
   },
+  {
+    name: 'query_spending',
+    description: 'Query spending breakdown, trends, and comparisons for a given month. Returns category breakdown, totals, and month-over-month changes. Requires Digital Representative activation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        year: { type: 'number', description: 'Year (e.g. 2026)' },
+        month: { type: 'number', description: 'Month (1-12)' },
+      },
+      required: ['year', 'month'],
+    },
+  },
+  {
+    name: 'query_transactions',
+    description: 'Query recent transactions with optional filters by date, category, or merchant. Requires Digital Representative activation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        startDate: { type: 'string', description: 'ISO date — transactions after this date' },
+        endDate: { type: 'string', description: 'ISO date — transactions before this date' },
+        category: { type: 'string', description: 'Filter by category' },
+        merchant: { type: 'string', description: 'Filter by merchant name' },
+        limit: { type: 'number', description: 'Max results (default 20)' },
+      },
+    },
+  },
+  {
+    name: 'query_anomalies',
+    description: 'Query active financial anomalies (unusual charges, duplicate payments, spending spikes). Requires Digital Representative activation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        includeDissmissed: { type: 'boolean', description: 'Include dismissed anomalies (default false)' },
+      },
+    },
+  },
+  {
+    name: 'query_subscriptions',
+    description: 'Query detected recurring charges and subscriptions. Available in all tiers.',
+    parameters: {
+      type: 'object',
+      properties: {
+        activeOnly: { type: 'boolean', description: 'Only active subscriptions (default true)' },
+      },
+    },
+  },
 ];
 
 // Map tool names to ActionTypes
@@ -332,6 +383,10 @@ const LOCAL_TOOLS = new Set([
   'categorize_email',
   'detect_calendar_conflicts',
   'search_cloud_files',
+  'query_spending',
+  'query_transactions',
+  'query_anomalies',
+  'query_subscriptions',
 ]);
 
 // --- System Prompt ---
@@ -410,6 +465,11 @@ export class OrchestratorImpl implements Orchestrator {
   private contactResolver: ContactResolver | null;
   private messageDrafter: MessageDrafter | null;
   private voiceModeActive = false;
+  private transactionStore: TransactionStore | null;
+  private spendingAnalyzer: SpendingAnalyzer | null;
+  private anomalyDetector: AnomalyDetector | null;
+  private recurringDetector: RecurringDetector | null;
+  private premiumGate: PremiumGate | null;
 
   constructor(config: {
     llm: LLMProvider;
@@ -424,6 +484,11 @@ export class OrchestratorImpl implements Orchestrator {
     contactResolver?: ContactResolver;
     messageDrafter?: MessageDrafter;
     voiceModeActive?: boolean;
+    transactionStore?: TransactionStore;
+    spendingAnalyzer?: SpendingAnalyzer;
+    anomalyDetector?: AnomalyDetector;
+    recurringDetector?: RecurringDetector;
+    premiumGate?: PremiumGate;
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -438,6 +503,11 @@ export class OrchestratorImpl implements Orchestrator {
     this.contactResolver = config.contactResolver ?? null;
     this.messageDrafter = config.messageDrafter ?? null;
     this.voiceModeActive = config.voiceModeActive ?? false;
+    this.transactionStore = config.transactionStore ?? null;
+    this.spendingAnalyzer = config.spendingAnalyzer ?? null;
+    this.anomalyDetector = config.anomalyDetector ?? null;
+    this.recurringDetector = config.recurringDetector ?? null;
+    this.premiumGate = config.premiumGate ?? null;
     this.db.exec(CREATE_TABLES);
   }
 
@@ -790,6 +860,70 @@ export class OrchestratorImpl implements Orchestrator {
             metadata: r.document.metadata,
           })),
         });
+        continue;
+      }
+
+      // --- Financial query tools (local SQLite, no IPC) ---
+
+      if (tc.name === 'query_spending') {
+        if (this.premiumGate && !this.premiumGate.isFeatureAvailable('spending-insights')) {
+          executedResults.push({ tool: 'query_spending', result: { error: 'Activate your Digital Representative to access spending insights.' } });
+          continue;
+        }
+        if (!this.spendingAnalyzer) {
+          executedResults.push({ tool: 'query_spending', result: { error: 'Spending analyzer not available.' } });
+          continue;
+        }
+        const year = tc.arguments['year'] as number;
+        const month = tc.arguments['month'] as number;
+        const breakdown = this.spendingAnalyzer.getMonthlyBreakdown(year, month);
+        const comparison = this.spendingAnalyzer.getMonthComparison(year, month);
+        executedResults.push({ tool: 'query_spending', result: { breakdown, comparison } });
+        continue;
+      }
+
+      if (tc.name === 'query_transactions') {
+        if (this.premiumGate && !this.premiumGate.isFeatureAvailable('spending-insights')) {
+          executedResults.push({ tool: 'query_transactions', result: { error: 'Activate your Digital Representative to access transaction data.' } });
+          continue;
+        }
+        if (!this.transactionStore) {
+          executedResults.push({ tool: 'query_transactions', result: { error: 'Transaction store not available.' } });
+          continue;
+        }
+        const filter: Record<string, unknown> = {};
+        if (tc.arguments['startDate']) filter['startDate'] = tc.arguments['startDate'];
+        if (tc.arguments['endDate']) filter['endDate'] = tc.arguments['endDate'];
+        if (tc.arguments['category']) filter['category'] = tc.arguments['category'];
+        if (tc.arguments['merchant']) filter['merchant'] = tc.arguments['merchant'];
+        const limit = (tc.arguments['limit'] as number) ?? 20;
+        const txns = this.transactionStore.getTransactions(filter);
+        executedResults.push({ tool: 'query_transactions', result: txns.slice(0, limit) });
+        continue;
+      }
+
+      if (tc.name === 'query_anomalies') {
+        if (this.premiumGate && !this.premiumGate.isFeatureAvailable('anomaly-detection')) {
+          executedResults.push({ tool: 'query_anomalies', result: { error: 'Activate your Digital Representative to access anomaly detection.' } });
+          continue;
+        }
+        if (!this.anomalyDetector) {
+          executedResults.push({ tool: 'query_anomalies', result: { error: 'Anomaly detector not available.' } });
+          continue;
+        }
+        const anomalies = this.anomalyDetector.getActiveAnomalies();
+        executedResults.push({ tool: 'query_anomalies', result: anomalies });
+        continue;
+      }
+
+      if (tc.name === 'query_subscriptions') {
+        // Available in all tiers — no premium gate check
+        if (!this.recurringDetector) {
+          executedResults.push({ tool: 'query_subscriptions', result: { error: 'Recurring detector not available.' } });
+          continue;
+        }
+        const summary = this.recurringDetector.getSummary();
+        executedResults.push({ tool: 'query_subscriptions', result: summary });
         continue;
       }
 

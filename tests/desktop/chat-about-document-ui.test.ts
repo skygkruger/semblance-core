@@ -40,6 +40,7 @@ describe('AppState document context', () => {
     locationSettings: { enabled: false, remindersEnabled: false, commuteEnabled: false, weatherEnabled: false, defaultCity: '', retentionDays: 7 },
     voiceSettings: { enabled: false, whisperModel: null, piperVoice: null, speed: 1.0, silenceSensitivity: 'medium' as const },
     cloudStorageSettings: { connected: false, provider: null, userEmail: null, selectedFolders: [], syncIntervalMinutes: 30, maxFileSizeMB: 50, storageBudgetGB: 5, lastSyncedAt: null, storageUsedBytes: 0, filesSynced: 0 },
+    financeSettings: { plaidConnected: false, autoSyncEnabled: false, anomalySensitivity: 'medium' as const, lastImportAt: null, connectedAccounts: [] },
   };
 
   const mockDoc: DocumentContext = {

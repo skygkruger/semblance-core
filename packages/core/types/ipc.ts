@@ -46,6 +46,12 @@ export const ActionType = z.enum([
   'cloud.file_metadata',
   'cloud.download_file',
   'cloud.check_changed',
+  'finance.plaid_link',
+  'finance.plaid_exchange',
+  'finance.plaid_sync',
+  'finance.plaid_balances',
+  'finance.plaid_status',
+  'finance.plaid_disconnect',
   'service.api_call',
   'model.download',
   'model.download_cancel',
@@ -142,6 +148,42 @@ export const FinanceFetchPayload = z.object({
   limit: z.number().optional(),
 });
 export type FinanceFetchPayload = z.infer<typeof FinanceFetchPayload>;
+
+// --- Plaid payload schemas (Step 19) ---
+
+export const PlaidLinkPayload = z.object({
+  clientUserId: z.string(),
+  products: z.array(z.string()).optional().default(['transactions']),
+});
+export type PlaidLinkPayload = z.infer<typeof PlaidLinkPayload>;
+
+export const PlaidExchangePayload = z.object({
+  publicToken: z.string(),
+});
+export type PlaidExchangePayload = z.infer<typeof PlaidExchangePayload>;
+
+export const PlaidSyncPayload = z.object({
+  accessToken: z.string().optional(),
+  cursor: z.string().optional(),
+  count: z.number().int().positive().optional().default(100),
+});
+export type PlaidSyncPayload = z.infer<typeof PlaidSyncPayload>;
+
+export const PlaidBalancesPayload = z.object({
+  accessToken: z.string().optional(),
+  accountIds: z.array(z.string()).optional(),
+});
+export type PlaidBalancesPayload = z.infer<typeof PlaidBalancesPayload>;
+
+export const PlaidStatusPayload = z.object({
+  accessToken: z.string().optional(),
+});
+export type PlaidStatusPayload = z.infer<typeof PlaidStatusPayload>;
+
+export const PlaidDisconnectPayload = z.object({
+  accessToken: z.string().optional(),
+});
+export type PlaidDisconnectPayload = z.infer<typeof PlaidDisconnectPayload>;
 
 export const HealthFetchPayload = z.object({
   dataType: z.string(),
@@ -408,6 +450,12 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'calendar.update': CalendarUpdatePayload,
   'calendar.delete': CalendarDeletePayload,
   'finance.fetch_transactions': FinanceFetchPayload,
+  'finance.plaid_link': PlaidLinkPayload,
+  'finance.plaid_exchange': PlaidExchangePayload,
+  'finance.plaid_sync': PlaidSyncPayload,
+  'finance.plaid_balances': PlaidBalancesPayload,
+  'finance.plaid_status': PlaidStatusPayload,
+  'finance.plaid_disconnect': PlaidDisconnectPayload,
   'health.fetch': HealthFetchPayload,
   'web.search': WebSearchPayload,
   'web.fetch': WebFetchPayload,

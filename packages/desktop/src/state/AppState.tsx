@@ -72,6 +72,13 @@ export interface AppState {
     storageUsedBytes: number;
     filesSynced: number;
   };
+  financeSettings: {
+    plaidConnected: boolean;
+    autoSyncEnabled: boolean;
+    anomalySensitivity: 'low' | 'medium' | 'high';
+    lastImportAt: string | null;
+    connectedAccounts: Array<{ id: string; name: string; institution: string; type: string }>;
+  };
 }
 
 export interface DocumentContext {
@@ -120,7 +127,8 @@ export type AppAction =
   | { type: 'SET_LOCATION_SETTINGS'; settings: AppState['locationSettings'] }
   | { type: 'CLEAR_LOCATION_HISTORY' }
   | { type: 'SET_VOICE_SETTINGS'; settings: AppState['voiceSettings'] }
-  | { type: 'SET_CLOUD_STORAGE_SETTINGS'; settings: AppState['cloudStorageSettings'] };
+  | { type: 'SET_CLOUD_STORAGE_SETTINGS'; settings: AppState['cloudStorageSettings'] }
+  | { type: 'SET_FINANCE_SETTINGS'; settings: AppState['financeSettings'] };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -201,6 +209,13 @@ export const initialState: AppState = {
     storageUsedBytes: 0,
     filesSynced: 0,
   },
+  financeSettings: {
+    plaidConnected: false,
+    autoSyncEnabled: false,
+    anomalySensitivity: 'medium',
+    lastImportAt: null,
+    connectedAccounts: [],
+  },
 };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
@@ -276,6 +291,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, voiceSettings: action.settings };
     case 'SET_CLOUD_STORAGE_SETTINGS':
       return { ...state, cloudStorageSettings: action.settings };
+    case 'SET_FINANCE_SETTINGS':
+      return { ...state, financeSettings: action.settings };
     default:
       return state;
   }

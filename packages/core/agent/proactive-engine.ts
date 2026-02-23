@@ -16,12 +16,13 @@ import type { EmailIndexer, IndexedEmail } from '../knowledge/email-indexer.js';
 import type { CalendarIndexer, IndexedCalendarEvent } from '../knowledge/calendar-indexer.js';
 import type { AutonomyTier } from './types.js';
 import { AutonomyManager } from './autonomy.js';
+import type { FinancialInsightTracker } from '../finance/financial-insight-tracker.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 export interface ProactiveInsight {
   id: string;
-  type: 'meeting_prep' | 'follow_up' | 'deadline' | 'conflict' | 'birthday' | 'contact_frequency' | 'location-reminder' | 'weather-alert' | 'commute-departure' | 'weather-summary';
+  type: 'meeting_prep' | 'follow_up' | 'deadline' | 'conflict' | 'birthday' | 'contact_frequency' | 'location-reminder' | 'weather-alert' | 'commute-departure' | 'weather-summary' | 'spending-alert' | 'anomaly-alert' | 'subscription-renewal' | 'balance-low';
   priority: 'high' | 'normal' | 'low';
   title: string;
   summary: string;
@@ -145,6 +146,7 @@ export class ProactiveEngine {
   private pollIntervalMs: number;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private eventHandler: ProactiveEventHandler | null = null;
+  private financialInsightTracker: FinancialInsightTracker | null;
 
   constructor(config: {
     db: DatabaseHandle;
@@ -153,6 +155,7 @@ export class ProactiveEngine {
     calendarIndexer: CalendarIndexer;
     autonomy: AutonomyManager;
     pollIntervalMs?: number;
+    financialInsightTracker?: FinancialInsightTracker;
   }) {
     this.db = config.db;
     this.knowledge = config.knowledge;
@@ -160,6 +163,7 @@ export class ProactiveEngine {
     this.calendarIndexer = config.calendarIndexer;
     this.autonomy = config.autonomy;
     this.pollIntervalMs = config.pollIntervalMs ?? 15 * 60 * 1000; // default 15 minutes
+    this.financialInsightTracker = config.financialInsightTracker ?? null;
     this.db.exec(CREATE_INSIGHTS_TABLE);
   }
 
@@ -191,7 +195,14 @@ export class ProactiveEngine {
     const deadlines = this.checkDeadlines();
     insights.push(...deadlines);
 
-    // 4. Store insights
+    // 4. Financial insights
+    let financialInsights: ProactiveInsight[] = [];
+    if (this.financialInsightTracker) {
+      financialInsights = this.financialInsightTracker.generateInsights();
+      insights.push(...financialInsights);
+    }
+
+    // 5. Store insights
     for (const insight of insights) {
       this.storeInsight(insight);
     }
@@ -202,6 +213,7 @@ export class ProactiveEngine {
         meeting_prep: meetingPreps.length,
         follow_up: followUps.length,
         deadline: deadlines.length,
+        financial: financialInsights.length,
       },
     });
 

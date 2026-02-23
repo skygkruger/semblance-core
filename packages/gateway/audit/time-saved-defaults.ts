@@ -31,6 +31,12 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'calendar.update': 180,        // Calendar event modification + conflict check
   'calendar.delete': 60,         // Calendar event deletion
   'finance.fetch_transactions': 0, // Fetching is infrastructure
+  'finance.plaid_link': 5,       // Plaid Link setup
+  'finance.plaid_exchange': 5,   // Token exchange
+  'finance.plaid_sync': 120,     // Transaction sync (saves manual import)
+  'finance.plaid_balances': 30,  // Balance check
+  'finance.plaid_status': 5,     // Connection status check
+  'finance.plaid_disconnect': 5, // Disconnect cleanup
   'health.fetch': 0,             // Fetching is infrastructure
   'web.search': 30,              // Faster than switching to browser, searching, reading results
   'web.fetch': 120,              // Avoids reading and manually summarizing article
