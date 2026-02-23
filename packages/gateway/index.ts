@@ -21,6 +21,8 @@ import { ReminderAdapter } from './services/reminder-adapter.js';
 import { WebSearchAdapterFactory } from './services/web-search-factory.js';
 import { WebFetchAdapter } from './services/web-fetch-adapter.js';
 import { ReminderStore } from '@semblance/core/knowledge/reminder-store.js';
+import { OAuthTokenManager } from './services/oauth-token-manager.js';
+import { GoogleDriveAdapter } from './services/google-drive-adapter.js';
 
 export interface GatewayConfig {
   /** Directory for Gateway databases. Defaults to ~/.semblance/gateway/ */
@@ -127,6 +129,46 @@ export class Gateway {
     this.serviceRegistry.register('reminder.update', reminderAdapter);
     this.serviceRegistry.register('reminder.list', reminderAdapter);
     this.serviceRegistry.register('reminder.delete', reminderAdapter);
+
+    // --- Cloud Storage: Google Drive adapter (OAuth + read-only API v3) ---
+    const oauthTokenManager = new OAuthTokenManager(this.configDb);
+    const googleDriveAdapter = new GoogleDriveAdapter(oauthTokenManager, {
+      clientId: process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? '',
+      clientSecret: process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'] ?? '',
+    });
+    this.serviceRegistry.register('cloud.auth', googleDriveAdapter);
+    this.serviceRegistry.register('cloud.auth_status', googleDriveAdapter);
+    this.serviceRegistry.register('cloud.disconnect', googleDriveAdapter);
+    this.serviceRegistry.register('cloud.list_files', googleDriveAdapter);
+    this.serviceRegistry.register('cloud.file_metadata', googleDriveAdapter);
+    this.serviceRegistry.register('cloud.download_file', googleDriveAdapter);
+    this.serviceRegistry.register('cloud.check_changed', googleDriveAdapter);
+
+    // Auto-add Google Drive API domain to allowlist
+    if (!this.allowlist.isAllowed('www.googleapis.com')) {
+      this.allowlist.addService({
+        serviceName: 'Google Drive API',
+        domain: 'www.googleapis.com',
+        protocol: 'https',
+        addedBy: 'system',
+      });
+    }
+    if (!this.allowlist.isAllowed('oauth2.googleapis.com')) {
+      this.allowlist.addService({
+        serviceName: 'Google OAuth2',
+        domain: 'oauth2.googleapis.com',
+        protocol: 'https',
+        addedBy: 'system',
+      });
+    }
+    if (!this.allowlist.isAllowed('accounts.google.com')) {
+      this.allowlist.addService({
+        serviceName: 'Google Accounts',
+        domain: 'accounts.google.com',
+        protocol: 'https',
+        addedBy: 'system',
+      });
+    }
 
     // Pre-seed the anomaly detector with existing allowlisted domains
     for (const service of this.allowlist.listServices()) {
@@ -334,3 +376,9 @@ export type {
   HistoryOptions, NetworkMonitorConfig,
 } from './monitor/network-monitor.js';
 export type { PrivacyReport, PrivacyReportConfig } from './monitor/privacy-report.js';
+export { OAuthTokenManager } from './services/oauth-token-manager.js';
+export type { OAuthTokens } from './services/oauth-token-manager.js';
+export { OAuthCallbackServer } from './services/oauth-callback-server.js';
+export type { CallbackServerResult, AuthCodeResult } from './services/oauth-callback-server.js';
+export { GoogleDriveAdapter, GOOGLE_DRIVE_READONLY_SCOPE } from './services/google-drive-adapter.js';
+export type { GoogleDriveConfig } from './services/google-drive-adapter.js';

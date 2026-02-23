@@ -18,6 +18,13 @@ const DEFAULT_ACTION_LIMITS: Partial<Record<ActionType, number>> = {
   'reminder.update': 300,     // Local-only
   'reminder.list': 600,       // Read-only, local
   'reminder.delete': 300,     // Local-only
+  'cloud.auth': 5,            // OAuth flow — very low frequency
+  'cloud.auth_status': 120,   // Status checks can be frequent
+  'cloud.disconnect': 5,      // Disconnect is rare
+  'cloud.list_files': 120,    // File listing — moderate
+  'cloud.file_metadata': 120, // Metadata lookups — moderate
+  'cloud.download_file': 60,  // Downloads are heavier, lower limit
+  'cloud.check_changed': 120, // Change polling — moderate
 };
 
 const DEFAULT_PER_ACTION_LIMIT = 60;

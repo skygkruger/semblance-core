@@ -26,7 +26,7 @@ describe('CloudStorageClient', () => {
       connect: vi.fn(),
       disconnect: vi.fn(),
       isConnected: vi.fn().mockReturnValue(true),
-      sendAction: sendActionFn,
+      sendAction: sendActionFn as IPCClient['sendAction'],
     };
     client = new CloudStorageClient(mockIpc, 'google_drive');
   });

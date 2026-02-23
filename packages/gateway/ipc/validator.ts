@@ -267,6 +267,10 @@ function extractTargetDomain(
       return null;
     }
   }
+  // Cloud storage actions target Google Drive API
+  if (action.startsWith('cloud.')) {
+    return 'www.googleapis.com';
+  }
   // Reminder actions are local-only — no domain
   return null;
 }
