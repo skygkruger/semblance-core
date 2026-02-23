@@ -124,7 +124,7 @@ export type AppAction =
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
-const initialState: AppState = {
+export const initialState: AppState = {
   userName: null,
   onboardingComplete: false,
   onboardingStep: 0,
@@ -205,7 +205,7 @@ const initialState: AppState = {
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
 
-function appReducer(state: AppState, action: AppAction): AppState {
+export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_USER_NAME':
       return { ...state, userName: action.name };
@@ -283,8 +283,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
 // ─── Context ───────────────────────────────────────────────────────────────
 
-const AppStateContext = createContext<AppState>(initialState);
-const AppDispatchContext = createContext<Dispatch<AppAction>>(() => {});
+export const AppStateContext = createContext<AppState>(initialState);
+export const AppDispatchContext = createContext<Dispatch<AppAction>>(() => {});
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
