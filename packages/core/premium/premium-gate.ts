@@ -19,7 +19,10 @@ export type PremiumFeature =
   | 'spending-insights'
   | 'anomaly-detection'
   | 'plaid-integration'
-  | 'financial-dashboard';
+  | 'financial-dashboard'
+  | 'representative-drafting'
+  | 'subscription-cancellation'
+  | 'representative-dashboard';
 
 export interface ActivationResult {
   success: boolean;
@@ -43,6 +46,9 @@ const FEATURE_TIER_MAP: Record<PremiumFeature, LicenseTier> = {
   'anomaly-detection': 'digital-representative',
   'plaid-integration': 'digital-representative',
   'financial-dashboard': 'digital-representative',
+  'representative-drafting': 'digital-representative',
+  'subscription-cancellation': 'digital-representative',
+  'representative-dashboard': 'digital-representative',
 };
 
 const TIER_RANK: Record<LicenseTier, number> = {

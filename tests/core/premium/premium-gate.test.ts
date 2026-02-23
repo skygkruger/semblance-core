@@ -59,7 +59,10 @@ describe('PremiumGate (Step 19)', () => {
     expect(features).toContain('anomaly-detection');
     expect(features).toContain('plaid-integration');
     expect(features).toContain('financial-dashboard');
-    expect(features).toHaveLength(5);
+    expect(features).toContain('representative-drafting');
+    expect(features).toContain('subscription-cancellation');
+    expect(features).toContain('representative-dashboard');
+    expect(features).toHaveLength(8);
 
     expect(gate.isFeatureAvailable('spending-insights')).toBe(true);
   });
