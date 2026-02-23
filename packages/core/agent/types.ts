@@ -23,6 +23,7 @@ export type AutonomyDomain =
   | 'messaging'
   | 'clipboard'
   | 'location'
+  | 'voice'
   | 'system';
 
 export interface AgentAction {

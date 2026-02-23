@@ -36,6 +36,9 @@ export const ActionType = z.enum([
   'location.reminder_fire',
   'location.commute_alert',
   'location.weather_query',
+  'voice.transcribe',
+  'voice.speak',
+  'voice.conversation',
   'service.api_call',
   'model.download',
   'model.download_cancel',
@@ -320,6 +323,25 @@ export const LocationWeatherQueryPayload = z.object({
 });
 export type LocationWeatherQueryPayload = z.infer<typeof LocationWeatherQueryPayload>;
 
+// --- Voice payload schemas (Step 17) ---
+
+export const VoiceTranscribePayload = z.object({
+  durationMs: z.number().int().positive(),
+  language: z.string().optional().default('en'),
+});
+export type VoiceTranscribePayload = z.infer<typeof VoiceTranscribePayload>;
+
+export const VoiceSpeakPayload = z.object({
+  textLength: z.number().int().positive(),
+  voiceId: z.string().optional(),
+});
+export type VoiceSpeakPayload = z.infer<typeof VoiceSpeakPayload>;
+
+export const VoiceConversationPayload = z.object({
+  sessionDurationMs: z.number().int().positive(),
+});
+export type VoiceConversationPayload = z.infer<typeof VoiceConversationPayload>;
+
 // Map ActionType to its payload schema
 export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'email.send': EmailSendPayload,
@@ -353,6 +375,9 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'location.reminder_fire': LocationReminderFirePayload,
   'location.commute_alert': LocationCommuteAlertPayload,
   'location.weather_query': LocationWeatherQueryPayload,
+  'voice.transcribe': VoiceTranscribePayload,
+  'voice.speak': VoiceSpeakPayload,
+  'voice.conversation': VoiceConversationPayload,
   'service.api_call': ServiceApiCallPayload,
   'model.download': ModelDownloadPayload,
   'model.download_cancel': ModelDownloadCancelPayload,

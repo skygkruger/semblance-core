@@ -55,6 +55,9 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'location.reminder_fire': 120, // Location-triggered reminder (saves remembering manually)
   'location.commute_alert': 300, // Commute departure alert (saves checking map + calendar)
   'location.weather_query': 30,  // Weather lookup (saves opening weather app)
+  'voice.transcribe': 30,        // Voice transcription (saves typing on mobile)
+  'voice.speak': 15,             // TTS response (hands-free information)
+  'voice.conversation': 60,      // Full voice conversation (hands-free interaction)
 };
 
 /**

@@ -50,6 +50,9 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'location.reminder_fire': 'location',
   'location.commute_alert': 'location',
   'location.weather_query': 'location',
+  'voice.transcribe': 'voice',
+  'voice.speak': 'voice',
+  'voice.conversation': 'voice',
   'service.api_call': 'services',
   'model.download': 'system',
   'model.download_cancel': 'system',
@@ -91,6 +94,9 @@ const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'location.reminder_fire': 'read',
   'location.commute_alert': 'read',
   'location.weather_query': 'read',
+  'voice.transcribe': 'read',
+  'voice.speak': 'read',
+  'voice.conversation': 'read',
   'service.api_call': 'execute',
   'model.download': 'execute',
   'model.download_cancel': 'write',
@@ -193,7 +199,7 @@ export class AutonomyManager {
    * Get current autonomy configuration for all domains.
    */
   getConfig(): Record<AutonomyDomain, AutonomyTier> {
-    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'messaging', 'clipboard', 'location', 'system'];
+    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'messaging', 'clipboard', 'location', 'voice', 'system'];
     const config = {} as Record<AutonomyDomain, AutonomyTier>;
     for (const domain of domains) {
       config[domain] = this.getDomainTier(domain);
