@@ -12,7 +12,7 @@ import type { ProactiveEngine, ProactiveInsight } from './proactive-engine.js';
 import type { ReminderStore, Reminder } from '../knowledge/reminder-store.js';
 import type { RecurringCharge } from '../finance/recurring-detector.js';
 import type { LLMProvider, GenerateRequest } from '../llm/types.js';
-import type { ContactStore } from '../contacts/contact-store.js';
+import type { ContactStore } from '../knowledge/contacts/contact-store.js';
 import type { WeatherConditions, HourlyForecast } from '../platform/weather-types.js';
 import { nanoid } from 'nanoid';
 
@@ -357,7 +357,7 @@ export class MorningBriefGenerator {
         if (current) {
           items.push({
             id: `weather-current-${Date.now()}`,
-            text: `${current.temperature}° ${current.condition}`,
+            text: `${current.temperature}° ${current.conditionDescription ?? current.condition}`,
             context: current.humidity != null ? `Humidity: ${current.humidity}%` : undefined,
             actionable: false,
             source: 'weather',

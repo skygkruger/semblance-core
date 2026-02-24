@@ -41,6 +41,8 @@ describe('AppState document context', () => {
     voiceSettings: { enabled: false, whisperModel: null, piperVoice: null, speed: 1.0, silenceSensitivity: 'medium' as const },
     cloudStorageSettings: { connected: false, provider: null, userEmail: null, selectedFolders: [], syncIntervalMinutes: 30, maxFileSizeMB: 50, storageBudgetGB: 5, lastSyncedAt: null, storageUsedBytes: 0, filesSynced: 0 },
     financeSettings: { plaidConnected: false, autoSyncEnabled: false, anomalySensitivity: 'medium' as const, lastImportAt: null, connectedAccounts: [] },
+    morningBriefSettings: { enabled: true, time: '07:00', lastDeliveredAt: null },
+    alterEgoWeek: { isActive: false, currentDay: 0, completedDays: [], skipped: false },
   };
 
   const mockDoc: DocumentContext = {

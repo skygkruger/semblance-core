@@ -197,7 +197,7 @@ describe('MorningBriefGenerator — Aggregation', () => {
   it('gathers weather section from WeatherService', async () => {
     const calendarIndexer = createMockCalendarIndexer();
     const weatherService = createMockWeatherService(
-      { temperature: 72, condition: 'Sunny', humidity: 45, windSpeed: 5, uvIndex: 6 } as WeatherConditions,
+      { temperature: 72, feelsLike: 70, condition: 'clear', conditionDescription: 'Sunny', humidity: 45, windSpeedKmh: 8, precipitationMm: 0, uvIndex: 6, timestamp: new Date().toISOString() } as WeatherConditions,
       null,
     );
 
