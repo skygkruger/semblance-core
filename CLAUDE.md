@@ -377,34 +377,63 @@ If the design system doesn't cover a specific scenario, escalate to Orbital Dire
 
 ---
 
-## Repository Separation — Public vs. Private
+## Repository Split — Public/Private Boundary
 
-### Public Repository: `semblance-core`
+Semblance is split across two repositories:
 
-All code in this repository is open source (MIT or Apache 2.0). It contains:
-- AI Core (LLM integration, knowledge graph, agent orchestration)
-- Semblance Gateway (network isolation, action signing, audit trail)
-- Desktop and mobile apps with Tier 1 features
-- semblance-ui component library
-- Privacy audit tools
-- Full documentation
+### semblance-core (Public, MIT/Apache 2.0)
+- **Remote:** https://github.com/skygkruger/semblance-core.git
+- **Contains:** All free-tier features + open-core premium features
+- **Open-core premium features** are source-visible and publicly auditable but runtime-gated via `PremiumGate.isPremium()`. These are sovereignty features where public auditability strengthens trust:
+  - Living Will (Step 26) — encrypted digital twin export
+  - Semblance Witness (Step 26) — cryptographic action attestation
+  - Inheritance Protocol (Step 27) — pre-authorized posthumous actions
+  - Adversarial Self-Defense (Step 25) — dark pattern detection, financial advocacy
+  - Morning Brief (Step 23) — proactive daily briefing
+  - Visual Knowledge Graph (Step 24) — interactive knowledge visualization
+  - Alter Ego Week (Step 23) — trust-building activation sequence
+  - Import Everything (Step 25) — browser history, notes, photos, messaging import
+  - Shared attestation infrastructure (Step 26) — signing, verification, JSON-LD format
+- **Classification rule:** Features that *prove, preserve, or protect* user data belong here. Their value comes from trust, and auditability strengthens that trust.
 
-### Private Repository: `semblance-premium`
+### semblence-representative (Private, Proprietary)
+- **Remote:** https://github.com/skygkruger/semblence-representative.git
+- **Package name:** `@semblance/dr` (note: repo name typo "semblence" is intentional/locked)
+- **Contains:** Digital Representative agency capabilities — features where Semblance *acts on the user's behalf*:
+  - Representative email mode + style-matched drafting
+  - Subscription cancellation workflows + follow-up tracking
+  - Customer service templates
+  - Form & Bureaucracy automation (PDF auto-fill, smart field mapping)
+  - Health & Wellness tracking (HealthKit integration, pattern correlation)
+  - Premium finance modules (Plaid integration, transaction categorization)
+  - Premium UI components
+- **Classification rule:** Features that *act as the user's agent* in the world belong here. Their commercial value is in the implementation — the email drafting algorithms, cancellation workflow logic, form auto-fill heuristics.
+- **Integration:** Loaded via `loadExtensions()` → `@semblance/dr` → `createExtension()` with typed `ExtensionInitContext`.
 
-Premium features are proprietary and live in a separate repository:
-- Advanced agent autonomy (full Alter Ego capabilities)
-- Financial intelligence (bank integration, subscription management, anomaly detection)
-- Digital Representative mode (voice matching, negotiation playbooks)
-- Health & wellness analytics (pattern correlation, insight engine)
-- Relationship intelligence (social graph, relationship health)
-- Premium integrations and connectors
+### How to Classify New Features
+
+When implementing a new premium feature, determine which repo it belongs in:
+
+| Question | If Yes → | If No → |
+|----------|----------|---------|
+| Does this feature *act on behalf of* the user (send emails, cancel subscriptions, fill forms, execute transactions)? | `semblence-representative` (proprietary) | Continue below |
+| Does this feature *prove, preserve, or protect* user data (export, attest, verify, detect threats, visualize)? | `semblance-core` (open-core, premium-gated) | Continue below |
+| Is this feature primarily about *trust and auditability*? | `semblance-core` (open-core) | Ask Orbital Directors |
+
+**When in doubt:** If public auditability of the source code would *increase* user trust in the feature, it belongs in semblance-core. If the feature's value is in proprietary implementation logic, it belongs in semblence-representative.
+
+### Premium Gating in Open-Core Features
+
+Open-core premium features in semblance-core use `PremiumGate.isPremium()` at their entry points (exporters, generators, handlers). Internal helper functions and shared infrastructure (e.g., attestation signing, archive building) are NOT gated — they may be used by both free and premium code paths.
+
+Do NOT create a "grant all" bypass or disable the premium gate in open-core features. The gate is the revenue protection layer. The open source code is the trust layer. Both are required.
 
 ### Enforcement
 
-- NEVER place premium feature code in `semblance-core`
-- Premium features integrate with the open core via a plugin/extension API — they do not modify core code
 - The open core must be fully functional without premium features installed
-- If you're unsure whether something belongs in public or private, **escalate to Orbital Directors**
+- No proprietary DR code (`@semblance/dr`) may be imported from `packages/core/`
+- Premium-gated open-core features must use `PremiumGate.isPremium()` at entry points
+- If you're unsure whether a new premium feature belongs in semblance-core (open-core) or semblence-representative (proprietary), use the classification table above and escalate if still unclear
 
 ---
 
@@ -465,7 +494,7 @@ You MUST escalate (do not proceed independently) when:
 - The task touches security-critical components (Gateway, IPC, action signing, audit trail, sandboxing)
 - The task requires adding a new external dependency not on the pre-approved list
 - The design system doesn't cover the UI scenario you're implementing
-- You're unsure whether code belongs in the public or private repository
+- You're unsure whether a new premium feature belongs in semblance-core (open-core) or semblence-representative (proprietary) — use the classification table in the Repository Split section first, escalate if still unclear
 - The task would change the IPC protocol schema
 - The task would modify the privacy audit pipeline
 - You encounter a conflict between this document and the design system
