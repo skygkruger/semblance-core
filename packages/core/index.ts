@@ -16,6 +16,9 @@ import { CoreIPCClient } from './agent/ipc-client.js';
 import { createOrchestrator } from './agent/index.js';
 import { loadExtensions } from './extensions/loader.js';
 import { PremiumGate } from './premium/premium-gate.js';
+import { StyleProfileStore } from './style/style-profile.js';
+import { RecurringDetector } from './finance/recurring-detector.js';
+import { MerchantNormalizer } from './finance/merchant-normalizer.js';
 import type { ExtensionInitContext } from './extensions/types.js';
 
 // Re-export shared types
@@ -306,6 +309,9 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
       const extensions = await loadExtensions();
       if (extensions.length > 0) {
         const premiumGate = new PremiumGate(coreDb);
+        const styleProfileStore = new StyleProfileStore(coreDb);
+        const merchantNormalizer = new MerchantNormalizer({ llm, model: chatModel });
+        const recurringDetector = new RecurringDetector({ db: coreDb, normalizer: merchantNormalizer });
         const extCtx: ExtensionInitContext = {
           db: coreDb,
           llm,
@@ -313,6 +319,9 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
           ipcClient: ipc,
           autonomyManager: agent.autonomy,
           premiumGate,
+          styleProfileStore,
+          semanticSearch: knowledge.semanticSearch,
+          recurringDetector,
           knowledgeGraph: knowledge,
           dataDir,
         };

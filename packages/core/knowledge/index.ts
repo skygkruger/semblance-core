@@ -82,13 +82,16 @@ export interface KnowledgeGraph {
 
   /** Delete a document and its chunks */
   deleteDocument(id: string): Promise<void>;
+
+  /** Access the underlying SemanticSearch instance (used by extensions) */
+  readonly semanticSearch: SemanticSearch;
 }
 
 class KnowledgeGraphImpl implements KnowledgeGraph {
   private documentStore: DocumentStore;
   private vectorStore: VectorStore;
   private indexer: Indexer;
-  private semanticSearch: SemanticSearch;
+  readonly semanticSearch: SemanticSearch;
 
   constructor(
     documentStore: DocumentStore,
