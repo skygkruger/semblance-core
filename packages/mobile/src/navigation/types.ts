@@ -28,6 +28,7 @@ export type RootStackParamList = {
   LocationSettings: undefined;
   VoiceSettings: undefined;
   CloudStorageSettings: undefined;
+  KnowledgeGraph: undefined;
 };
 
 /** Tab icon names for each tab */
