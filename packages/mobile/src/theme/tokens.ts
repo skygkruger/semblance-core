@@ -75,6 +75,35 @@ export const typography = {
   },
 } as const;
 
+// ─── Typography Presets ─────────────────────────────────────────────────────
+// Convenience presets matching design system semantic names.
+// Spread into StyleSheet.create() for consistent text styling.
+
+export const typographyPresets = {
+  titleLg: {
+    fontFamily: typography.fontDisplay,
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semibold,
+    lineHeight: Math.round(typography.size.lg * typography.lineHeight.tight),
+  },
+  titleMd: {
+    fontFamily: typography.fontDisplay,
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    lineHeight: Math.round(typography.size.md * typography.lineHeight.tight),
+  },
+  bodySm: {
+    fontFamily: typography.fontBody,
+    fontSize: typography.size.sm,
+    lineHeight: Math.round(typography.size.sm * typography.lineHeight.normal),
+  },
+  bodyXs: {
+    fontFamily: typography.fontBody,
+    fontSize: typography.size.xs,
+    lineHeight: Math.round(typography.size.xs * typography.lineHeight.normal),
+  },
+} as const;
+
 // ─── Spacing ────────────────────────────────────────────────────────────────
 
 export const spacing = {

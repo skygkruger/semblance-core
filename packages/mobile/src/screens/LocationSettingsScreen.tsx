@@ -11,7 +11,7 @@ import {
   TextInput,
   TouchableOpacity,
 } from 'react-native';
-import { colors, typography, spacing, radius } from '../theme/tokens.js';
+import { colors, spacing, radius, typographyPresets } from '../theme/tokens.js';
 
 export interface LocationSettingsState {
   enabled: boolean;
@@ -143,9 +143,9 @@ export function LocationSettingsScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface0 },
+  container: { flex: 1, backgroundColor: colors.bgDark },
   content: { padding: spacing.md },
-  title: { ...typography.titleLg, color: colors.textPrimary, marginBottom: spacing.md },
+  title: { ...typographyPresets.titleLg, color: colors.textPrimary, marginBottom: spacing.md },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -153,8 +153,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   rowText: { flex: 1, marginRight: spacing.md },
-  label: { ...typography.bodySm, color: colors.textPrimary, fontWeight: '500' },
-  description: { ...typography.bodyXs, color: colors.textTertiary, marginTop: 2 },
+  label: { ...typographyPresets.bodySm, color: colors.textPrimary, fontWeight: '500' },
+  description: { ...typographyPresets.bodyXs, color: colors.textTertiary, marginTop: 2 },
   subSection: {
     marginLeft: spacing.md,
     borderLeftWidth: 2,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   },
   inputSection: { marginTop: spacing.sm },
   sectionLabel: {
-    ...typography.bodyXs,
+    ...typographyPresets.bodyXs,
     color: colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -189,11 +189,11 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primarySubtle,
   },
-  retentionText: { ...typography.bodyXs, color: colors.textSecondary },
+  retentionText: { ...typographyPresets.bodyXs, color: colors.textSecondary },
   retentionTextActive: { color: colors.primary, fontWeight: '600' },
   clearButton: {
     marginTop: spacing.md,
     paddingVertical: spacing.sm,
   },
-  clearButtonText: { ...typography.bodySm, color: colors.error },
+  clearButtonText: { ...typographyPresets.bodySm, color: colors.attention },
 });

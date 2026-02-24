@@ -1,5 +1,5 @@
 import React, { useReducer, type ReactElement } from 'react';
-import { render, type RenderOptions } from '@testing-library/react';
+import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
 import type { AppState, AppAction } from '@semblance/desktop/state/AppState';
 import {
   appReducer,
@@ -34,7 +34,7 @@ interface ProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
 export function renderWithProviders(
   ui: ReactElement,
   { stateOverrides, ...renderOptions }: ProvidersOptions = {},
-) {
+): RenderResult {
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <TestAppStateProvider stateOverrides={stateOverrides}>

@@ -8,7 +8,7 @@ import type {
   CancellationFlowProps,
   CancellableSubscriptionView,
   DraftPreview,
-} from '@semblance/desktop/src/components/CancellationFlow';
+} from '@semblance/desktop/components/CancellationFlow';
 
 function makeSub(overrides?: Partial<CancellableSubscriptionView>): CancellableSubscriptionView {
   return {

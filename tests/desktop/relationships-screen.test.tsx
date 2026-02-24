@@ -19,7 +19,8 @@ const mockStats = {
 };
 
 function mockRelationshipsInvoke() {
-  invoke.mockImplementation(async (_cmd: string, args?: Record<string, unknown>) => {
+  invoke.mockImplementation(async (_cmd: string, ...rest: unknown[]) => {
+    const args = rest[0] as Record<string, unknown> | undefined;
     const req = args?.request as { method: string } | undefined;
     if (req?.method === 'contacts:list') return { contacts: mockContacts };
     if (req?.method === 'contacts:getStats') return mockStats;

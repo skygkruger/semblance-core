@@ -17,7 +17,9 @@
     "paths": {
       "@semblance/core/*": ["./packages/core/*"],
       "@semblance/gateway/*": ["./packages/gateway/*"],
-      "@semblance/ui/*": ["./packages/semblance-ui/*"]
+      "@semblance/ui/*": ["./packages/semblance-ui/*"],
+      "@semblance/desktop/*": ["./packages/desktop/src/*"],
+      "@semblance/mobile/*": ["./packages/mobile/src/*"]
     }
   },
   "exclude": [

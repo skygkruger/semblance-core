@@ -55,7 +55,7 @@ describe('Inbox — sortEmailsByPriority (real import)', () => {
       makeEmail({ messageId: 'n3', priority: 'normal' }),
     ];
     const sorted = sortEmailsByPriority(emails);
-    expect(sorted.map(e => e.messageId)).toEqual(['n1', 'n2', 'n3']);
+    expect(sorted.map((e: IndexedEmail) => e.messageId)).toEqual(['n1', 'n2', 'n3']);
   });
 
   it('handles empty list', () => {

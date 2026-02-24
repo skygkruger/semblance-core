@@ -30,6 +30,7 @@ function createMockAdapter(files: CloudFileMetadata[]): CloudStorageAdapter {
         success: true,
         localPath,
         sizeBytes: file?.sizeBytes ?? 100,
+        mimeType: file?.mimeType ?? 'application/octet-stream',
         content: `Content of ${file?.name ?? fileId}`,
       };
     }),
@@ -54,9 +55,9 @@ describe('Cloud Storage E2E', () => {
     const provider = 'google_drive' as const;
 
     const cloudFiles: CloudFileMetadata[] = [
-      { id: 'file-1', name: 'report.pdf', mimeType: 'application/pdf', sizeBytes: 1024 * 100, modifiedTime: '2026-01-15T10:00:00Z', path: '/Documents/report.pdf', isFolder: false },
-      { id: 'file-2', name: 'notes.txt', mimeType: 'text/plain', sizeBytes: 2048, modifiedTime: '2026-01-16T10:00:00Z', path: '/Documents/notes.txt', isFolder: false },
-      { id: 'folder-1', name: 'Documents', mimeType: 'application/vnd.google-apps.folder', sizeBytes: 0, modifiedTime: '2026-01-10T10:00:00Z', path: '/Documents', isFolder: true },
+      { id: 'file-1', name: 'report.pdf', mimeType: 'application/pdf', sizeBytes: 1024 * 100, modifiedTime: '2026-01-15T10:00:00Z', createdTime: '2026-01-10T10:00:00Z', parentId: 'folder-1', md5Checksum: 'abc123', isFolder: false },
+      { id: 'file-2', name: 'notes.txt', mimeType: 'text/plain', sizeBytes: 2048, modifiedTime: '2026-01-16T10:00:00Z', createdTime: '2026-01-10T10:00:00Z', parentId: 'folder-1', md5Checksum: 'def456', isFolder: false },
+      { id: 'folder-1', name: 'Documents', mimeType: 'application/vnd.google-apps.folder', sizeBytes: 0, modifiedTime: '2026-01-10T10:00:00Z', createdTime: '2026-01-05T10:00:00Z', parentId: null, md5Checksum: null, isFolder: true },
     ];
 
     const adapter = createMockAdapter(cloudFiles);
@@ -110,8 +111,8 @@ describe('Cloud Storage E2E', () => {
     const provider = 'google_drive' as const;
 
     const cloudFiles: CloudFileMetadata[] = [
-      { id: 'file-1', name: 'doc.txt', mimeType: 'text/plain', sizeBytes: 500, modifiedTime: '2026-01-15T10:00:00Z', path: '/doc.txt', isFolder: false },
-      { id: 'file-2', name: 'log.txt', mimeType: 'text/plain', sizeBytes: 300, modifiedTime: '2026-01-16T10:00:00Z', path: '/log.txt', isFolder: false },
+      { id: 'file-1', name: 'doc.txt', mimeType: 'text/plain', sizeBytes: 500, modifiedTime: '2026-01-15T10:00:00Z', createdTime: '2026-01-10T10:00:00Z', parentId: null, md5Checksum: 'aaa', isFolder: false },
+      { id: 'file-2', name: 'log.txt', mimeType: 'text/plain', sizeBytes: 300, modifiedTime: '2026-01-16T10:00:00Z', createdTime: '2026-01-10T10:00:00Z', parentId: null, md5Checksum: 'bbb', isFolder: false },
     ];
 
     const adapter = createMockAdapter(cloudFiles);
@@ -131,8 +132,8 @@ describe('Cloud Storage E2E', () => {
 
     // Now simulate incremental: file-1 unchanged, file-2 has newer modifiedTime
     const updatedFiles: CloudFileMetadata[] = [
-      { id: 'file-1', name: 'doc.txt', mimeType: 'text/plain', sizeBytes: 500, modifiedTime: '2026-01-15T10:00:00Z', path: '/doc.txt', isFolder: false },
-      { id: 'file-2', name: 'log.txt', mimeType: 'text/plain', sizeBytes: 350, modifiedTime: '2026-01-17T10:00:00Z', path: '/log.txt', isFolder: false },
+      { id: 'file-1', name: 'doc.txt', mimeType: 'text/plain', sizeBytes: 500, modifiedTime: '2026-01-15T10:00:00Z', createdTime: '2026-01-10T10:00:00Z', parentId: null, md5Checksum: 'aaa', isFolder: false },
+      { id: 'file-2', name: 'log.txt', mimeType: 'text/plain', sizeBytes: 350, modifiedTime: '2026-01-17T10:00:00Z', createdTime: '2026-01-10T10:00:00Z', parentId: null, md5Checksum: 'bbb2', isFolder: false },
     ];
     (adapter.listFiles as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ files: updatedFiles, nextPageToken: null });
@@ -147,7 +148,7 @@ describe('Cloud Storage E2E', () => {
     const provider = 'google_drive' as const;
 
     const cloudFiles: CloudFileMetadata[] = [
-      { id: 'file-1', name: 'data.csv', mimeType: 'text/csv', sizeBytes: 1000, modifiedTime: '2026-01-15T10:00:00Z', path: '/data.csv', isFolder: false },
+      { id: 'file-1', name: 'data.csv', mimeType: 'text/csv', sizeBytes: 1000, modifiedTime: '2026-01-15T10:00:00Z', createdTime: '2026-01-10T10:00:00Z', parentId: null, md5Checksum: 'ccc', isFolder: false },
     ];
 
     const adapter = createMockAdapter(cloudFiles);

@@ -7,7 +7,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type {
   FormFillFlowProps,
   FormFieldView,
-} from '@semblance/desktop/src/components/FormFillFlow';
+} from '@semblance/desktop/components/FormFillFlow';
 import type { FormSubmission } from '@semblance/core/forms/types';
 
 function makeField(overrides?: Partial<FormFieldView>): FormFieldView {

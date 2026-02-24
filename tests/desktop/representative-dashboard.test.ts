@@ -8,7 +8,7 @@ import type {
   RepresentativeDashboardProps,
   RepresentativeActionSummary,
   ActiveFollowUp,
-} from '@semblance/desktop/src/components/RepresentativeDashboard';
+} from '@semblance/desktop/components/RepresentativeDashboard';
 
 function makeAction(overrides?: Partial<RepresentativeActionSummary>): RepresentativeActionSummary {
   return {
