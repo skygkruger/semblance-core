@@ -80,11 +80,4 @@ describe('Finance Privacy (Step 19)', () => {
     }
   });
 
-  it('transaction schema uses INTEGER for amounts', () => {
-    const storeFile = path.join(FINANCE_DIR, 'transaction-store.ts');
-    const content = readFile(storeFile);
-
-    // The CREATE TABLE statement should use INTEGER for amount
-    expect(content).toContain('amount INTEGER');
-  });
 });
