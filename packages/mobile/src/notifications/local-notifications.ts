@@ -111,6 +111,28 @@ export function buildRoutingNotification(
 }
 
 /**
+ * Build an Alter Ego Week daily notification.
+ */
+export function buildAlterEgoWeekNotification(
+  day: number,
+  theme: string,
+  description: string,
+): LocalNotification {
+  return {
+    id: `alter-ego-week-day-${day}`,
+    type: 'alter_ego_week',
+    title: `Alter Ego Week — Day ${day}: ${theme}`,
+    body: description,
+    fireDate: new Date(),
+    actions: [
+      { id: 'start', label: 'Start', foreground: true },
+      { id: 'skip', label: 'Skip', foreground: false },
+    ],
+    data: { day: String(day), theme },
+  };
+}
+
+/**
  * NotificationScheduler manages the lifecycle of local notifications.
  * Ensures no remote push, no notification servers.
  */
