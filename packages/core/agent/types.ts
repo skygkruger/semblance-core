@@ -25,6 +25,7 @@ export type AutonomyDomain =
   | 'location'
   | 'voice'
   | 'cloud-storage'
+  | 'network'
   | 'system';
 
 export interface AgentAction {

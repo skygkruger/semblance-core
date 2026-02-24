@@ -71,6 +71,12 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'cloud.file_metadata': 5,      // File metadata lookup
   'cloud.download_file': 60,     // Download + index (saves manual download + read)
   'cloud.check_changed': 5,      // Change detection
+  'network.startDiscovery': 0,   // Infrastructure — mDNS discovery
+  'network.stopDiscovery': 0,    // Infrastructure — stop discovery
+  'network.sendOffer': 30,       // Sending sharing offer to peer
+  'network.sendAcceptance': 30,  // Accepting sharing offer from peer
+  'network.sendRevocation': 15,  // Revoking sharing with peer
+  'network.syncContext': 60,     // Syncing context with peer (saves manual sharing)
 };
 
 /**

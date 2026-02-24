@@ -56,6 +56,12 @@ export const ActionType = z.enum([
   'model.download',
   'model.download_cancel',
   'model.verify',
+  'network.startDiscovery',
+  'network.stopDiscovery',
+  'network.sendOffer',
+  'network.sendAcceptance',
+  'network.sendRevocation',
+  'network.syncContext',
 ]);
 export type ActionType = z.infer<typeof ActionType>;
 
@@ -437,6 +443,28 @@ export const CloudCheckChangedPayload = z.object({
 });
 export type CloudCheckChangedPayload = z.infer<typeof CloudCheckChangedPayload>;
 
+// --- Network payload schemas (Step 28) ---
+
+export const NetworkStartDiscoveryPayload = z.object({
+  serviceType: z.string(),
+  protocolVersion: z.number().int().positive(),
+  localDeviceId: z.string(),
+});
+export type NetworkStartDiscoveryPayload = z.infer<typeof NetworkStartDiscoveryPayload>;
+
+export const NetworkStopDiscoveryPayload = z.object({
+  serviceType: z.string(),
+});
+export type NetworkStopDiscoveryPayload = z.infer<typeof NetworkStopDiscoveryPayload>;
+
+export const NetworkSendPayload = z.object({
+  peerId: z.string(),
+  ipAddress: z.string(),
+  port: z.number().int().positive(),
+  data: z.string(),
+});
+export type NetworkSendPayload = z.infer<typeof NetworkSendPayload>;
+
 // Map ActionType to its payload schema
 export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'email.send': EmailSendPayload,
@@ -490,6 +518,12 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'model.download': ModelDownloadPayload,
   'model.download_cancel': ModelDownloadCancelPayload,
   'model.verify': ModelVerifyPayload,
+  'network.startDiscovery': NetworkStartDiscoveryPayload,
+  'network.stopDiscovery': NetworkStopDiscoveryPayload,
+  'network.sendOffer': NetworkSendPayload,
+  'network.sendAcceptance': NetworkSendPayload,
+  'network.sendRevocation': NetworkSendPayload,
+  'network.syncContext': NetworkSendPayload,
 };
 
 // --- Core protocol schemas ---
