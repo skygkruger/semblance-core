@@ -82,6 +82,17 @@ export interface AppState {
     lastImportAt: string | null;
     connectedAccounts: Array<{ id: string; name: string; institution: string; type: string }>;
   };
+  morningBriefSettings: {
+    enabled: boolean;
+    time: string;
+    lastDeliveredAt: string | null;
+  };
+  alterEgoWeek: {
+    isActive: boolean;
+    currentDay: number;
+    completedDays: number[];
+    skipped: boolean;
+  };
 }
 
 export interface DocumentContext {
@@ -131,7 +142,9 @@ export type AppAction =
   | { type: 'CLEAR_LOCATION_HISTORY' }
   | { type: 'SET_VOICE_SETTINGS'; settings: AppState['voiceSettings'] }
   | { type: 'SET_CLOUD_STORAGE_SETTINGS'; settings: AppState['cloudStorageSettings'] }
-  | { type: 'SET_FINANCE_SETTINGS'; settings: AppState['financeSettings'] };
+  | { type: 'SET_FINANCE_SETTINGS'; settings: AppState['financeSettings'] }
+  | { type: 'SET_MORNING_BRIEF_SETTINGS'; settings: AppState['morningBriefSettings'] }
+  | { type: 'SET_ALTER_EGO_WEEK_PROGRESS'; progress: AppState['alterEgoWeek'] };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -219,6 +232,17 @@ export const initialState: AppState = {
     lastImportAt: null,
     connectedAccounts: [],
   },
+  morningBriefSettings: {
+    enabled: true,
+    time: '07:00',
+    lastDeliveredAt: null,
+  },
+  alterEgoWeek: {
+    isActive: false,
+    currentDay: 0,
+    completedDays: [],
+    skipped: false,
+  },
 };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
@@ -296,6 +320,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, cloudStorageSettings: action.settings };
     case 'SET_FINANCE_SETTINGS':
       return { ...state, financeSettings: action.settings };
+    case 'SET_MORNING_BRIEF_SETTINGS':
+      return { ...state, morningBriefSettings: action.settings };
+    case 'SET_ALTER_EGO_WEEK_PROGRESS':
+      return { ...state, alterEgoWeek: action.progress };
     default:
       return state;
   }

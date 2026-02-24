@@ -2,7 +2,7 @@
 // NO remote push. NO notification servers. All scheduling is on-device.
 // Types: reminder due, proactive insight, morning digest.
 
-export type NotificationType = 'reminder' | 'insight' | 'digest' | 'routing';
+export type NotificationType = 'reminder' | 'insight' | 'digest' | 'routing' | 'morning_brief' | 'alter_ego_week';
 
 export interface LocalNotification {
   id: string;
