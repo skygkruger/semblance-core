@@ -69,7 +69,9 @@ describe('PremiumGate (Step 19)', () => {
     expect(features).toContain('import-digital-life');
     expect(features).toContain('dark-pattern-detection');
     expect(features).toContain('financial-advocacy');
-    expect(features).toHaveLength(15);
+    expect(features).toContain('living-will');
+    expect(features).toContain('witness-attestation');
+    expect(features).toHaveLength(17);
 
     expect(gate.isFeatureAvailable('spending-insights')).toBe(true);
   });

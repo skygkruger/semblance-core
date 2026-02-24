@@ -29,7 +29,9 @@ export type PremiumFeature =
   | 'health-insights'
   | 'import-digital-life'
   | 'dark-pattern-detection'
-  | 'financial-advocacy';
+  | 'financial-advocacy'
+  | 'living-will'
+  | 'witness-attestation';
 
 export interface ActivationResult {
   success: boolean;
@@ -63,6 +65,8 @@ const FEATURE_TIER_MAP: Record<PremiumFeature, LicenseTier> = {
   'import-digital-life': 'digital-representative',
   'dark-pattern-detection': 'digital-representative',
   'financial-advocacy': 'digital-representative',
+  'living-will': 'digital-representative',
+  'witness-attestation': 'digital-representative',
 };
 
 const TIER_RANK: Record<LicenseTier, number> = {
