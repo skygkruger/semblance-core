@@ -14,6 +14,9 @@ import { ModelManager } from './llm/model-manager.js';
 import { createKnowledgeGraph } from './knowledge/index.js';
 import { CoreIPCClient } from './agent/ipc-client.js';
 import { createOrchestrator } from './agent/index.js';
+import { loadExtensions } from './extensions/loader.js';
+import { PremiumGate } from './premium/premium-gate.js';
+import type { ExtensionInitContext } from './extensions/types.js';
 
 // Re-export shared types
 export * from './types/index.js';
@@ -298,6 +301,31 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
         model: chatModel,
       });
       console.log('[SemblanceCore] Orchestrator initialized');
+
+      // Step 6: Load and initialize extensions (e.g. @semblance/dr)
+      const extensions = await loadExtensions();
+      if (extensions.length > 0) {
+        const premiumGate = new PremiumGate(coreDb);
+        const extCtx: ExtensionInitContext = {
+          db: coreDb,
+          llm,
+          model: chatModel,
+          ipcClient: ipc,
+          autonomyManager: agent.autonomy,
+          premiumGate,
+          knowledgeGraph: knowledge,
+          dataDir,
+        };
+        for (const ext of extensions) {
+          if (ext.initialize) {
+            await ext.initialize(extCtx);
+          }
+          if (ext.tools && ext.tools.length > 0) {
+            agent.registerTools(ext.tools);
+          }
+        }
+        console.log(`[SemblanceCore] Loaded ${extensions.length} extension(s)`);
+      }
 
       initialized = true;
       console.log('[SemblanceCore] All subsystems initialized');

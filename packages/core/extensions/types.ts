@@ -66,6 +66,26 @@ export interface ExtensionGatewayAdapter {
 export interface ExtensionInitContext {
   /** The core database handle for extension-specific tables */
   db: unknown;
+  /** LLM provider for inference */
+  llm?: unknown;
+  /** Active chat model name */
+  model?: string;
+  /** IPC client for Gateway communication */
+  ipcClient?: unknown;
+  /** Autonomy manager for approval flows */
+  autonomyManager?: unknown;
+  /** Premium gate for feature gating */
+  premiumGate?: unknown;
+  /** Style profile store for writing style */
+  styleProfileStore?: unknown;
+  /** Semantic search for knowledge queries */
+  semanticSearch?: unknown;
+  /** Recurring detector for subscription analysis */
+  recurringDetector?: unknown;
+  /** Knowledge graph for entity/document access */
+  knowledgeGraph?: unknown;
+  /** Data directory path */
+  dataDir?: string;
 }
 
 // --- UI slot types ---
