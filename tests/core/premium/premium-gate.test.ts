@@ -64,7 +64,9 @@ describe('PremiumGate (Step 19)', () => {
     expect(features).toContain('representative-dashboard');
     expect(features).toContain('form-automation');
     expect(features).toContain('bureaucracy-tracking');
-    expect(features).toHaveLength(10);
+    expect(features).toContain('health-tracking');
+    expect(features).toContain('health-insights');
+    expect(features).toHaveLength(12);
 
     expect(gate.isFeatureAvailable('spending-insights')).toBe(true);
   });

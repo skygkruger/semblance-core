@@ -24,7 +24,9 @@ export type PremiumFeature =
   | 'subscription-cancellation'
   | 'representative-dashboard'
   | 'form-automation'
-  | 'bureaucracy-tracking';
+  | 'bureaucracy-tracking'
+  | 'health-tracking'
+  | 'health-insights';
 
 export interface ActivationResult {
   success: boolean;
@@ -53,6 +55,8 @@ const FEATURE_TIER_MAP: Record<PremiumFeature, LicenseTier> = {
   'representative-dashboard': 'digital-representative',
   'form-automation': 'digital-representative',
   'bureaucracy-tracking': 'digital-representative',
+  'health-tracking': 'digital-representative',
+  'health-insights': 'digital-representative',
 };
 
 const TIER_RANK: Record<LicenseTier, number> = {
