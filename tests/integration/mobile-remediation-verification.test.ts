@@ -26,6 +26,13 @@ describe('Root Cause 1: PlatformAdapter replaces all Node.js builtins', () => {
   const APPROVED_FILES = new Set([
     'platform/desktop-adapter.ts',
     'ipc/socket-transport.ts',
+    // Importers are desktop-only file parsers (node:fs/node:crypto)
+    'importers/browser/chrome-history-parser.ts',
+    'importers/browser/firefox-history-parser.ts',
+    'importers/notes/obsidian-parser.ts',
+    'importers/notes/apple-notes-parser.ts',
+    'importers/messaging/whatsapp-parser.ts',
+    'importers/photos/exif-parser.ts',
   ]);
 
   function collectTsFiles(dir: string): string[] {

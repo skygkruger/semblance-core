@@ -25,6 +25,14 @@ const APPROVED_FILES = new Set([
   'platform/desktop-adapter.ts',     // The adapter itself wraps Node.js
   'platform/desktop-vector-store.ts', // LanceDB wrapper (only @lancedb/lancedb import)
   'ipc/socket-transport.ts',         // Desktop-only IPC transport (node:net approved)
+  // Importers are desktop-only file parsers — they inherently require node:fs/node:crypto
+  // On mobile, imports use platform-specific document picker APIs, not these parsers.
+  'importers/browser/chrome-history-parser.ts',
+  'importers/browser/firefox-history-parser.ts',
+  'importers/notes/obsidian-parser.ts',
+  'importers/notes/apple-notes-parser.ts',
+  'importers/messaging/whatsapp-parser.ts',
+  'importers/photos/exif-parser.ts',
 ]);
 
 function collectTsFiles(dir: string, baseDir: string): string[] {

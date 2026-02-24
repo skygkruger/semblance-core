@@ -25,6 +25,8 @@ export type DocumentSource =
   | 'health'
   | 'browser_history'
   | 'cloud_storage'
+  | 'photos_metadata'
+  | 'messaging'
   | 'manual';
 
 export interface DocumentChunk {

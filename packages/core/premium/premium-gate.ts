@@ -26,7 +26,10 @@ export type PremiumFeature =
   | 'form-automation'
   | 'bureaucracy-tracking'
   | 'health-tracking'
-  | 'health-insights';
+  | 'health-insights'
+  | 'import-digital-life'
+  | 'dark-pattern-detection'
+  | 'financial-advocacy';
 
 export interface ActivationResult {
   success: boolean;
@@ -57,6 +60,9 @@ const FEATURE_TIER_MAP: Record<PremiumFeature, LicenseTier> = {
   'bureaucracy-tracking': 'digital-representative',
   'health-tracking': 'digital-representative',
   'health-insights': 'digital-representative',
+  'import-digital-life': 'digital-representative',
+  'dark-pattern-detection': 'digital-representative',
+  'financial-advocacy': 'digital-representative',
 };
 
 const TIER_RANK: Record<LicenseTier, number> = {

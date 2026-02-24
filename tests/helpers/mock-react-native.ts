@@ -20,6 +20,11 @@ export const TextInput = ({ onChangeText, ...props }: AnyProps) =>
 export const TouchableOpacity = ({ children, onPress, ...props }: React.PropsWithChildren<AnyProps>) =>
   React.createElement('button', { ...props, onClick: onPress }, children);
 
+export const ScrollView = ({ children, contentContainerStyle, ...props }: React.PropsWithChildren<AnyProps>) =>
+  React.createElement('div', props, children);
+
+export const RefreshControl = (_props: AnyProps) => null;
+
 export const FlatList = ({ data, renderItem, ListHeaderComponent, ListEmptyComponent, keyExtractor, ...props }: AnyProps) => {
   const header = ListHeaderComponent
     ? typeof ListHeaderComponent === 'function'
