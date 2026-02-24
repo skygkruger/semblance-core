@@ -42,6 +42,7 @@ export class ArchiveBuilder {
     if (data.relationshipMap !== undefined) sections.push('relationshipMap');
     if (data.preferences !== undefined) sections.push('preferences');
     if (data.actionSummary !== undefined) sections.push('actionSummary');
+    if (data.inheritanceConfig !== undefined) sections.push('inheritanceConfig');
 
     const manifest = this.buildManifest(deviceId, sections);
 
@@ -53,6 +54,7 @@ export class ArchiveBuilder {
       relationshipMap: data.relationshipMap,
       preferences: data.preferences,
       actionSummary: data.actionSummary,
+      inheritanceConfig: data.inheritanceConfig,
     };
   }
 

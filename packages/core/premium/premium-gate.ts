@@ -31,7 +31,8 @@ export type PremiumFeature =
   | 'dark-pattern-detection'
   | 'financial-advocacy'
   | 'living-will'
-  | 'witness-attestation';
+  | 'witness-attestation'
+  | 'inheritance-protocol';
 
 export interface ActivationResult {
   success: boolean;
@@ -67,6 +68,7 @@ const FEATURE_TIER_MAP: Record<PremiumFeature, LicenseTier> = {
   'financial-advocacy': 'digital-representative',
   'living-will': 'digital-representative',
   'witness-attestation': 'digital-representative',
+  'inheritance-protocol': 'digital-representative',
 };
 
 const TIER_RANK: Record<LicenseTier, number> = {

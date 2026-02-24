@@ -26,6 +26,7 @@ export interface LivingWillExporterDeps {
   contactStore?: { getAllContacts?: () => unknown[] };
   autonomyManager?: { getConfig: () => Record<string, unknown> };
   attestationSigner?: AttestationSigner;
+  inheritanceIntegration?: { collectForExport: () => unknown };
 }
 
 /**
@@ -154,6 +155,13 @@ export class LivingWillExporter {
       data.preferences = { autonomy: this.deps.autonomyManager.getConfig() };
     }
 
+    if (this.deps.inheritanceIntegration) {
+      const inheritanceData = this.deps.inheritanceIntegration.collectForExport();
+      if (inheritanceData) {
+        data.inheritanceConfig = inheritanceData;
+      }
+    }
+
     // Action summary from audit trail
     const auditCount = this.getAuditCount();
     if (auditCount > 0) {
@@ -188,6 +196,7 @@ export class LivingWillExporter {
     }
     if (data.preferences !== undefined) counts.preferences = 1;
     if (data.actionSummary !== undefined) counts.actionSummary = 1;
+    if (data.inheritanceConfig !== undefined) counts.inheritanceConfig = 1;
     return counts;
   }
 

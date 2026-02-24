@@ -71,7 +71,8 @@ describe('PremiumGate (Step 19)', () => {
     expect(features).toContain('financial-advocacy');
     expect(features).toContain('living-will');
     expect(features).toContain('witness-attestation');
-    expect(features).toHaveLength(17);
+    expect(features).toContain('inheritance-protocol');
+    expect(features).toHaveLength(18);
 
     expect(gate.isFeatureAvailable('spending-insights')).toBe(true);
   });

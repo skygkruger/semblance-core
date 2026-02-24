@@ -39,6 +39,7 @@ export interface LivingWillSectionData {
   relationshipMap?: unknown;
   preferences?: unknown;
   actionSummary?: unknown;
+  inheritanceConfig?: unknown;
 }
 
 /**
@@ -52,6 +53,7 @@ export interface LivingWillArchive {
   relationshipMap?: unknown;
   preferences?: unknown;
   actionSummary?: unknown;
+  inheritanceConfig?: unknown;
   signature?: string;
 }
 

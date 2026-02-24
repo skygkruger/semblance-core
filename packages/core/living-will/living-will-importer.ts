@@ -22,6 +22,8 @@ export interface LivingWillImporterDeps {
   contactStore?: { insertContact?: (contact: unknown) => unknown };
   autonomyManager?: { setDomainTier?: (domain: string, tier: string) => void };
   attestationVerifier?: AttestationVerifier;
+  inheritanceIntegration?: { importInheritanceConfig: (data: unknown) => { success: boolean; warnings: string[] } };
+  knowledgeMomentTrigger?: { triggerIfReady: (sectionCount: number) => void };
 }
 
 /**
@@ -165,6 +167,19 @@ export class LivingWillImporter {
 
     if (archive.actionSummary !== undefined) {
       sectionsRestored.push('actionSummary');
+    }
+
+    if (archive.inheritanceConfig !== undefined) {
+      if (this.deps.inheritanceIntegration) {
+        const importResult = this.deps.inheritanceIntegration.importInheritanceConfig(archive.inheritanceConfig);
+        warnings.push(...importResult.warnings);
+      }
+      sectionsRestored.push('inheritanceConfig');
+    }
+
+    // Knowledge Moment trigger: fire when 3+ sections restored (Step 26 gap patch)
+    if (sectionsRestored.length >= 3 && this.deps.knowledgeMomentTrigger) {
+      this.deps.knowledgeMomentTrigger.triggerIfReady(sectionsRestored.length);
     }
 
     return {
