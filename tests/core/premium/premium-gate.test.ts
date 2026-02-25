@@ -73,7 +73,8 @@ describe('PremiumGate (Step 19)', () => {
     expect(features).toContain('witness-attestation');
     expect(features).toContain('inheritance-protocol');
     expect(features).toContain('semblance-network');
-    expect(features).toHaveLength(19);
+    expect(features).toContain('proof-of-privacy');
+    expect(features).toHaveLength(20);
 
     expect(gate.isFeatureAvailable('spending-insights')).toBe(true);
   });

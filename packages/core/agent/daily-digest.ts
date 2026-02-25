@@ -5,6 +5,7 @@
 
 import { nanoid } from 'nanoid';
 import type { DatabaseHandle } from '../platform/types.js';
+import type { ComparisonStatement } from '../privacy/types.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -112,16 +113,26 @@ function categorizeAction(actionType: string): {
 
 // ─── Generator ──────────────────────────────────────────────────────────────
 
+/** Provider interface for comparison statement (avoids importing full privacy module). */
+export interface ComparisonStatementProvider {
+  getComparisonStatementOnly(): Promise<ComparisonStatement>;
+}
+
 export class DailyDigestGenerator {
   private db: DatabaseHandle;
   private initialized = false;
   private onPreferenceChanged?: (prefs: DailyDigestPreferences) => void;
+  private comparisonStatementProvider?: ComparisonStatementProvider;
 
-  constructor(db: DatabaseHandle, options?: { onPreferenceChanged?: (prefs: DailyDigestPreferences) => void }) {
+  constructor(db: DatabaseHandle, options?: {
+    onPreferenceChanged?: (prefs: DailyDigestPreferences) => void;
+    comparisonStatementProvider?: ComparisonStatementProvider;
+  }) {
     this.db = db;
     this.db.exec(CREATE_TABLES);
     this.initialized = true;
     this.onPreferenceChanged = options?.onPreferenceChanged;
+    this.comparisonStatementProvider = options?.comparisonStatementProvider;
   }
 
   /**
@@ -206,6 +217,28 @@ export class DailyDigestGenerator {
       digest.emailsHandled, digest.meetingsPrepped, digest.followUpsTracked,
       digest.remindersCreated, digest.webSearches, digest.summary,
     );
+
+    return digest;
+  }
+
+  /**
+   * Generate the daily digest with an appended comparison statement.
+   * Async because comparison generation may query data stores.
+   * Falls back to regular generate() if comparison provider is absent or errors.
+   */
+  async generateWithComparison(date: Date = new Date()): Promise<DailyDigest> {
+    const digest = this.generate(date);
+
+    if (!this.comparisonStatementProvider) return digest;
+
+    try {
+      const comparison = await this.comparisonStatementProvider.getComparisonStatementOnly();
+      if (comparison.summaryText && comparison.totalDataPoints > 0) {
+        digest.summary = `${digest.summary}\n\n${comparison.summaryText}`;
+      }
+    } catch {
+      // Comparison provider error should never break digest generation
+    }
 
     return digest;
   }

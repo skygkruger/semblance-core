@@ -33,7 +33,8 @@ export type PremiumFeature =
   | 'living-will'
   | 'witness-attestation'
   | 'inheritance-protocol'
-  | 'semblance-network';
+  | 'semblance-network'
+  | 'proof-of-privacy';
 
 export interface ActivationResult {
   success: boolean;
@@ -71,6 +72,7 @@ const FEATURE_TIER_MAP: Record<PremiumFeature, LicenseTier> = {
   'witness-attestation': 'digital-representative',
   'inheritance-protocol': 'digital-representative',
   'semblance-network': 'digital-representative',
+  'proof-of-privacy': 'digital-representative',
 };
 
 const TIER_RANK: Record<LicenseTier, number> = {
