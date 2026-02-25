@@ -1,8 +1,10 @@
 // Archive Builder — Assembles and encrypts Living Will archives.
-// Key derivation: sha256(passphrase) -> 32-byte hex key (matches PlatformSyncCrypto pattern).
+// v2: Argon2id key derivation (64MB, 3 iterations).
+// v1 legacy: sha256(passphrase) — preserved in archive-reader for backward compat.
 // CRITICAL: No networking imports. All crypto via PlatformAdapter.
 
 import { getPlatform } from '../platform/index.js';
+import { deriveKey } from '../crypto/key-derivation.js';
 import type {
   ArchiveManifest,
   LivingWillArchive,
@@ -10,8 +12,8 @@ import type {
   EncryptedArchive,
 } from './types.js';
 
-const ARCHIVE_VERSION = 1;
-const SEMBLANCE_MIN_VERSION = '0.26.0';
+const ARCHIVE_VERSION = 2;
+const SEMBLANCE_MIN_VERSION = '0.30.0';
 
 /**
  * Builds and encrypts Living Will archives.
@@ -67,22 +69,24 @@ export class ArchiveBuilder {
 
   /**
    * Encrypt a Living Will archive with a passphrase.
-   * Key derivation: sha256(passphrase) -> 64-char hex string (32 bytes).
+   * v2: Argon2id(64MB, 3 iter) key derivation with random salt.
    */
   async createEncryptedArchive(
     archive: LivingWillArchive,
     passphrase: string,
   ): Promise<EncryptedArchive> {
     const p = getPlatform();
-    const keyHex = p.crypto.sha256(passphrase);
+    const kdfResult = await deriveKey(passphrase);
     const serialized = this.serializeArchive(archive);
-    const payload = await p.crypto.encrypt(serialized, keyHex);
+    const payload = await p.crypto.encrypt(serialized, kdfResult.keyHex);
 
     return {
       header: {
         version: ARCHIVE_VERSION,
         encrypted: true,
         createdAt: archive.manifest.createdAt,
+        kdf: 'argon2id',
+        salt: kdfResult.saltHex,
       },
       payload,
     };

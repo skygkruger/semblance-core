@@ -137,7 +137,7 @@ describe('LivingWillImporter (Step 26)', () => {
     // Export and then tamper with the archive to set a higher version
     await exportArchive('pass', '/tmp/ver.semblance');
 
-    // Manually decrypt, modify, re-encrypt to simulate version 2
+    // Manually decrypt, modify, re-encrypt to simulate a future version (3)
     const { ArchiveReader } = await import('@semblance/core/living-will/archive-reader');
     const { ArchiveBuilder } = await import('@semblance/core/living-will/archive-builder');
     const reader = new ArchiveReader();
@@ -145,7 +145,7 @@ describe('LivingWillImporter (Step 26)', () => {
 
     const encrypted = JSON.parse(fileStore['/tmp/ver.semblance']!);
     const archive = await reader.decryptArchive(encrypted, 'pass');
-    archive.manifest.version = 2;
+    archive.manifest.version = 3;
     const reEncrypted = await builder.createEncryptedArchive(archive, 'pass');
     fileStore['/tmp/ver.semblance'] = JSON.stringify(reEncrypted);
 

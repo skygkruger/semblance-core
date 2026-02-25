@@ -23,7 +23,7 @@ describe('ArchiveReader (Step 26)', () => {
     const encrypted = await builder.createEncryptedArchive(archive, 'correct-pass');
     const decrypted = await reader.decryptArchive(encrypted, 'correct-pass');
 
-    expect(decrypted.manifest.version).toBe(1);
+    expect(decrypted.manifest.version).toBe(2);
     expect(decrypted.knowledgeGraph).toEqual({ entities: ['Alice'] });
     expect(decrypted.styleProfile).toEqual({ tone: 'formal' });
   });

@@ -1,7 +1,9 @@
 // Archive Reader — Decrypts and validates Living Will archives.
+// Supports both v2 (Argon2id) and v1 (SHA-256) key derivation.
 // CRITICAL: No networking imports. All crypto via PlatformAdapter.
 
 import { getPlatform } from '../platform/index.js';
+import { deriveKey, deriveKeyLegacy } from '../crypto/key-derivation.js';
 import type {
   ArchiveManifest,
   LivingWillArchive,
@@ -14,14 +16,24 @@ import type {
 export class ArchiveReader {
   /**
    * Decrypt an encrypted archive with a passphrase.
-   * Key derivation: sha256(passphrase) -> 64-char hex string.
+   * Auto-detects v1 (SHA-256) vs v2 (Argon2id) from header fields.
    */
   async decryptArchive(
     encrypted: EncryptedArchive,
     passphrase: string,
   ): Promise<LivingWillArchive> {
     const p = getPlatform();
-    const keyHex = p.crypto.sha256(passphrase);
+
+    let keyHex: string;
+    if (encrypted.header.kdf === 'argon2id' && encrypted.header.salt) {
+      // v2: Argon2id with stored salt
+      const salt = Buffer.from(encrypted.header.salt, 'hex');
+      const kdfResult = await deriveKey(passphrase, salt);
+      keyHex = kdfResult.keyHex;
+    } else {
+      // v1: Legacy SHA-256
+      keyHex = deriveKeyLegacy(passphrase);
+    }
 
     let decrypted: string;
     try {
@@ -54,8 +66,8 @@ export class ArchiveReader {
       return { valid: false, warnings: ['Version field is not a number'] };
     }
 
-    if (manifest.version > 1) {
-      warnings.push(`Archive version ${manifest.version} is newer than supported (1). Some data may not import correctly.`);
+    if (manifest.version > 2) {
+      warnings.push(`Archive version ${manifest.version} is newer than supported (2). Some data may not import correctly.`);
     }
 
     if (!manifest.createdAt) {

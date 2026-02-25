@@ -65,6 +65,10 @@ export interface EncryptedArchive {
     version: number;
     encrypted: boolean;
     createdAt: string;
+    /** KDF algorithm — absent in v1 (sha256 implicit), present in v2+ */
+    kdf?: 'argon2id' | 'sha256';
+    /** KDF salt as hex — absent in v1, present in v2+ (argon2id) */
+    salt?: string;
   };
   payload: EncryptedPayload;
 }
