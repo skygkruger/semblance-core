@@ -320,6 +320,26 @@ export interface ContactsAdapter {
   onContactsChanged(listener: () => void): () => void;
 }
 
+// ─── Secure Storage Adapter ─────────────────────────────────────────────────
+
+/**
+ * Platform-agnostic secure key storage.
+ * Desktop: Tauri plugin (OS keychain)
+ * iOS: Keychain Services
+ * Android: Android Keystore
+ * Tests: In-memory mock
+ */
+export interface SecureStorageAdapter {
+  /** Retrieve a value by key. Returns null if not found. */
+  get(key: string): Promise<string | null>;
+
+  /** Store a value by key. Overwrites if already present. */
+  set(key: string, value: string): Promise<void>;
+
+  /** Delete a value by key. No-op if not found. */
+  delete(key: string): Promise<void>;
+}
+
 // ─── Encrypted Payload ──────────────────────────────────────────────────────
 
 /**
