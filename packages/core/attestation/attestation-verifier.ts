@@ -1,36 +1,47 @@
-// Attestation Verifier — Verifies HMAC-SHA256 signed attestations.
+// Attestation Verifier — Verifies Ed25519 or HMAC-SHA256 signed attestations.
+// Auto-detects algorithm from proof.type.
 // NOT premium-gated — verification is a public good.
 // CRITICAL: No networking imports.
 
 import { getPlatform } from '../platform/index.js';
 import type { SignedAttestation, AttestationVerificationResult } from './types.js';
-import { canonicalizePayload } from './attestation-format.js';
+import { canonicalizePayload, ED25519_PROOF_TYPE } from './attestation-format.js';
+import { verify as ed25519Verify } from '../crypto/ed25519.js';
 
 /**
- * Verifies attestation signatures using HMAC-SHA256.
- * Uses constant-time comparison to prevent timing attacks (same pattern as verifySignature).
+ * Verifies attestation signatures.
+ * Auto-detects Ed25519 vs HMAC-SHA256 from proof.type.
  */
 export class AttestationVerifier {
   /**
    * Verify a signed attestation against a verification key.
    *
-   * Process:
-   * 1. Extract and canonicalize the payload
-   * 2. SHA-256 hash the canonical string
-   * 3. HMAC-SHA256 with the verification key
-   * 4. Constant-time compare with proof value
+   * Ed25519 path (proof.type === 'Ed25519Signature2020'):
+   *   verificationKey = 32-byte Ed25519 public key
+   *   Canonicalize → SHA-256 → ed25519Verify(hash, signature, publicKey)
+   *
+   * HMAC path (proof.type === 'HmacSha256Signature'):
+   *   verificationKey = HMAC key (same symmetric key used for signing)
+   *   Canonicalize → SHA-256 → HMAC-SHA256 → constant-time compare
    */
   verify(attestation: SignedAttestation, verificationKey: Buffer): AttestationVerificationResult {
     const p = getPlatform();
 
     const canonical = canonicalizePayload(attestation.payload);
     const payloadHash = p.crypto.sha256(canonical);
-    const expected = p.crypto.hmacSha256(verificationKey, payloadHash);
-
     const actual = attestation.proof.proofValue;
 
-    // Constant-time comparison to prevent timing attacks
-    const valid = constantTimeEqual(actual, expected);
+    let valid: boolean;
+
+    if (attestation.proof.type === ED25519_PROOF_TYPE) {
+      const hashBytes = Buffer.from(payloadHash, 'hex');
+      const signatureBytes = Buffer.from(actual, 'hex');
+      valid = ed25519Verify(hashBytes, signatureBytes, verificationKey);
+    } else {
+      // Legacy HMAC-SHA256 path
+      const expected = p.crypto.hmacSha256(verificationKey, payloadHash);
+      valid = constantTimeEqual(actual, expected);
+    }
 
     // Extract device from verificationMethod (format: "device:<id>")
     const signerDevice = attestation.proof.verificationMethod?.startsWith('device:')

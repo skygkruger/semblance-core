@@ -6,6 +6,12 @@ import type { AttestationPayload, AttestationProof } from './types.js';
 const ATTESTATION_CONTEXT = 'https://veridian.run/attestation/v1';
 const ATTESTATION_TYPE = 'VeridianAttestation';
 
+/** Ed25519 signature proof type — asymmetric, verifier cannot forge. */
+export const ED25519_PROOF_TYPE = 'Ed25519Signature2020';
+
+/** HMAC-SHA256 signature proof type — symmetric, legacy. */
+export const HMAC_PROOF_TYPE = 'HmacSha256Signature';
+
 /**
  * Wrap a payload and proof in a JSON-LD attestation envelope.
  */
