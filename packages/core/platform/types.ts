@@ -404,4 +404,7 @@ export interface PlatformAdapter {
 
   /** Cloud storage access (optional — Google Drive, Dropbox, OneDrive via IPC) */
   cloudStorage?: import('./cloud-storage-types.js').CloudStorageAdapter;
+
+  /** Biometric authentication (optional — Face ID, Touch ID, Windows Hello) */
+  biometric?: import('../auth/types.js').BiometricAdapter;
 }
