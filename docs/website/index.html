@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Semblance — Your Intelligence. Your Device. Your Rules.</title>
+  <meta name="description" content="Semblance is a fully local, self-hosted sovereign personal AI. Your data never leaves your device. Ever.">
+
+  <!-- OG Tags -->
+  <meta property="og:title" content="Semblance — Your Sovereign Personal AI">
+  <meta property="og:description" content="A fully local AI that ingests your emails, files, calendar, and more into a private knowledge graph. More capable because it's private.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://semblance.run">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Semblance — Your Sovereign Personal AI">
+  <meta name="twitter:description" content="A fully local AI that ingests your emails, files, calendar, and more into a private knowledge graph. More capable because it's private.">
+
+  <style>
+    /* Design Tokens (from packages/semblance-ui/tokens/) */
+    :root {
+      --color-bg-dark: #1A1D2E;
+      --color-bg-light: #FAFBFC;
+      --color-primary: #4A7FBA;
+      --color-accent: #E8A838;
+      --color-success: #3DB87A;
+      --color-attention: #E85D5D;
+      --color-muted: #8B93A7;
+      --color-primary-hover: #3D6CA3;
+      --color-surface-1-dark: #222538;
+      --color-surface-2-dark: #2A2D42;
+      --color-border-dark: #363952;
+      --color-text-primary-dark: #ECEDF0;
+      --color-text-secondary-dark: #9BA0B0;
+      --color-text-tertiary: #8B93A7;
+      --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+      --space-16: 64px;
+      --space-20: 80px;
+      --container-lg: 1024px;
+      --container-xl: 1200px;
+    }
+
+    /* Reset */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: var(--color-bg-dark);
+      color: var(--color-text-primary-dark);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--color-primary); text-decoration: none; }
+    a:hover { color: var(--color-primary-hover); }
+
+    .container {
+      max-width: var(--container-xl);
+      margin: 0 auto;
+      padding: 0 var(--space-5);
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(26, 29, 46, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border-dark);
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .nav-brand {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-text-primary-dark);
+    }
+
+    .nav-links { display: flex; gap: var(--space-6); align-items: center; }
+    .nav-links a { color: var(--color-text-secondary-dark); font-size: 0.875rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--color-text-primary-dark); }
+
+    .nav-cta {
+      background: var(--color-primary);
+      color: #fff !important;
+      padding: var(--space-2) var(--space-5);
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: background 0.15s;
+    }
+    .nav-cta:hover { background: var(--color-primary-hover); color: #fff !important; }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--color-text-primary-dark);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    /* Hero */
+    .hero {
+      padding: calc(64px + var(--space-20)) 0 var(--space-20);
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: var(--space-6);
+      letter-spacing: -0.02em;
+    }
+
+    .hero h1 em {
+      color: var(--color-primary);
+      font-style: normal;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--color-text-secondary-dark);
+      max-width: 640px;
+      margin: 0 auto var(--space-8);
+      line-height: 1.5;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: var(--color-primary);
+      color: #fff;
+      padding: var(--space-3) var(--space-8);
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: background 0.15s;
+      display: inline-block;
+    }
+    .btn-primary:hover { background: var(--color-primary-hover); color: #fff; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--color-primary);
+      padding: var(--space-3) var(--space-8);
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 1rem;
+      border: 1px solid var(--color-primary);
+      transition: background 0.15s;
+      display: inline-block;
+    }
+    .btn-secondary:hover { background: rgba(74, 127, 186, 0.1); }
+
+    /* Sections */
+    section { padding: var(--space-20) 0; }
+
+    .section-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: var(--space-3);
+    }
+
+    .section-title {
+      font-size: 2.375rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: var(--space-4);
+    }
+
+    .section-subtitle {
+      font-size: 1.125rem;
+      color: var(--color-text-secondary-dark);
+      max-width: 640px;
+      line-height: 1.5;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: var(--space-12);
+    }
+
+    .section-header .section-subtitle {
+      margin: 0 auto;
+    }
+
+    /* Problem */
+    .problem {
+      background: var(--color-surface-1-dark);
+      border-top: 1px solid var(--color-border-dark);
+      border-bottom: 1px solid var(--color-border-dark);
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-12);
+      align-items: center;
+    }
+
+    .problem-list { list-style: none; }
+    .problem-list li {
+      padding: var(--space-4) 0;
+      border-bottom: 1px solid var(--color-border-dark);
+      color: var(--color-text-secondary-dark);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    .problem-list li strong { color: var(--color-text-primary-dark); }
+
+    /* Feature Cards */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-6);
+    }
+
+    .feature-card {
+      background: var(--color-surface-1-dark);
+      border: 1px solid var(--color-border-dark);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .feature-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: var(--space-5);
+      background: rgba(74, 127, 186, 0.15);
+      color: var(--color-primary);
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: var(--space-3);
+    }
+
+    .feature-card p {
+      color: var(--color-text-secondary-dark);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* Privacy Promise */
+    .privacy { background: var(--color-surface-1-dark); border-top: 1px solid var(--color-border-dark); border-bottom: 1px solid var(--color-border-dark); }
+
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--space-5);
+    }
+
+    .rule-card {
+      background: var(--color-surface-2-dark);
+      border: 1px solid var(--color-border-dark);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+    }
+
+    .rule-number {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-success);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: var(--space-2);
+    }
+
+    .rule-card h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: var(--space-2);
+    }
+
+    .rule-card p {
+      color: var(--color-text-secondary-dark);
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+
+    /* Pricing */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-6);
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .price-card {
+      background: var(--color-surface-1-dark);
+      border: 1px solid var(--color-border-dark);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+      text-align: center;
+    }
+
+    .price-card.featured {
+      border-color: var(--color-primary);
+      position: relative;
+    }
+
+    .price-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 16px;
+      border-radius: 9999px;
+      white-space: nowrap;
+    }
+
+    .price-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: var(--space-2);
+    }
+
+    .price-amount {
+      font-size: 2.375rem;
+      font-weight: 700;
+      margin: var(--space-4) 0;
+    }
+
+    .price-amount span {
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--color-text-secondary-dark);
+    }
+
+    .price-card ul {
+      list-style: none;
+      text-align: left;
+      margin: var(--space-6) 0;
+    }
+
+    .price-card li {
+      padding: var(--space-2) 0;
+      color: var(--color-text-secondary-dark);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+    }
+
+    .price-card li::before {
+      content: "\2713";
+      color: var(--color-success);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* Open Source */
+    .open-source-content {
+      max-width: 720px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .open-source-content p {
+      color: var(--color-text-secondary-dark);
+      font-size: 1.125rem;
+      line-height: 1.6;
+      margin-bottom: var(--space-6);
+    }
+
+    /* Enterprise */
+    .enterprise {
+      background: var(--color-surface-1-dark);
+      border-top: 1px solid var(--color-border-dark);
+      border-bottom: 1px solid var(--color-border-dark);
+    }
+
+    .enterprise-content {
+      max-width: 720px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .enterprise-content p {
+      color: var(--color-text-secondary-dark);
+      font-size: 1.125rem;
+      line-height: 1.6;
+      margin-bottom: var(--space-6);
+    }
+
+    /* Footer */
+    footer {
+      padding: var(--space-12) 0 var(--space-8);
+      border-top: 1px solid var(--color-border-dark);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: var(--space-8);
+      margin-bottom: var(--space-10);
+    }
+
+    .footer-brand p {
+      color: var(--color-text-secondary-dark);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin-top: var(--space-3);
+    }
+
+    .footer-column h4 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-4);
+    }
+
+    .footer-column a {
+      display: block;
+      color: var(--color-text-secondary-dark);
+      font-size: 0.875rem;
+      padding: var(--space-1) 0;
+    }
+    .footer-column a:hover { color: var(--color-text-primary-dark); }
+
+    .footer-bottom {
+      border-top: 1px solid var(--color-border-dark);
+      padding-top: var(--space-6);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8125rem;
+      color: var(--color-text-tertiary);
+    }
+
+    .footer-sanctuary {
+      color: var(--color-success);
+      font-size: 0.8125rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 400px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.375rem; }
+      .section-title { font-size: 1.875rem; }
+      .features-grid { grid-template-columns: 1fr; }
+      .problem-grid { grid-template-columns: 1fr; }
+      .rules-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; }
+
+      .nav-links { display: none; }
+      .nav-links.open {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: var(--color-bg-dark);
+        border-bottom: 1px solid var(--color-border-dark);
+        padding: var(--space-5);
+        gap: var(--space-4);
+      }
+      .hamburger { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <div class="container">
+      <span class="nav-brand">Semblance</span>
+      <button class="hamburger" aria-label="Toggle menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">&#9776;</button>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#pricing">Pricing</a>
+        <a href="https://github.com/skygkruger/semblance-core">GitHub</a>
+        <a href="#pricing" class="nav-cta">Get Started</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <h1>Your Intelligence.<br><em>Your Device.</em><br>Your Rules.</h1>
+      <p>Semblance is a fully local AI that ingests your entire digital life into a private knowledge graph. It reasons about your world, acts on your behalf, and is architecturally incapable of betraying your trust.</p>
+      <div class="hero-cta">
+        <a href="https://github.com/skygkruger/semblance-core" class="btn-primary">Download Free</a>
+        <a href="#features" class="btn-secondary">See Features</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Problem -->
+  <section class="problem">
+    <div class="container">
+      <div class="problem-grid">
+        <div>
+          <div class="section-label">The Problem</div>
+          <h2 class="section-title">Cloud AI starts at zero. Every single time.</h2>
+          <p class="section-subtitle">Cloud assistants know nothing about you. To know more, they need your data on their servers. That makes you the product.</p>
+        </div>
+        <ul class="problem-list">
+          <li><strong>Semblance starts every session with your accumulated understanding.</strong> That gap widens every day.</li>
+          <li><strong>More capable because it's private.</strong> Full access to your emails, calendar, files, health data, finances — locally, permanently.</li>
+          <li><strong>Privacy is not the headline.</strong> It's the reason the capability is possible, and the proof that it's trustworthy.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Features</div>
+        <h2 class="section-title">Your digital twin, working for you</h2>
+        <p class="section-subtitle">Semblance doesn't just show you information. It takes action on your behalf — with full transparency and control.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(232, 168, 56, 0.15); color: var(--color-accent);">&#9733;</div>
+          <h3>Alter Ego</h3>
+          <p>Full autonomous operation. Semblance acts as your digital representative — responding to emails, managing calendar, canceling subscriptions — with every action logged and reversible.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(74, 127, 186, 0.15); color: var(--color-primary);">&#9670;</div>
+          <h3>Knowledge Graph</h3>
+          <p>Your entire digital life as an interconnected graph. People, projects, topics, events — all linked, searchable, and growing more connected every day. Visualize it in interactive 3D.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(61, 184, 122, 0.15); color: var(--color-success);">&#9635;</div>
+          <h3>Living Will</h3>
+          <p>Encrypted export of your digital twin. Your data, your format, your rules. Create verifiable snapshots with cryptographic attestation that prove exactly what Semblance knew and when.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(232, 93, 93, 0.15); color: var(--color-attention);">&#9888;</div>
+          <h3>Adversarial Self-Defense</h3>
+          <p>Dark pattern detection, subscription tracking, and financial advocacy. Semblance identifies manipulative UX, forgotten charges, and duplicate billing — then takes action to protect you.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(61, 184, 122, 0.15); color: var(--color-success);">&#9670;</div>
+          <h3>Proof of Privacy</h3>
+          <p>Open source. Automated privacy audit on every commit. OS-level sandboxing. Network monitor showing every outbound connection in real time. Verify every claim yourself.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(74, 127, 186, 0.15); color: var(--color-primary);">&#9788;</div>
+          <h3>Morning Brief</h3>
+          <p>Wake up to a proactive summary of what matters today. Actions already queued. Conflicts already resolved. Calendar optimized. Decisions waiting for a single tap.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Privacy Promise -->
+  <section id="privacy" class="privacy">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Privacy Architecture</div>
+        <h2 class="section-title">5 inviolable rules. Enforced in code.</h2>
+        <p class="section-subtitle">These aren't guidelines. They're architectural constraints verified by automated audits and confirmed by the source code.</p>
+      </div>
+
+      <div class="rules-grid">
+        <div class="rule-card">
+          <div class="rule-number">Rule 1</div>
+          <h3>Zero Network in AI Core</h3>
+          <p>The AI Core has no network libraries, no HTTP, no WebSocket, no DNS. Enforced at import level, build level, and OS sandbox level.</p>
+        </div>
+        <div class="rule-card">
+          <div class="rule-number">Rule 2</div>
+          <h3>Gateway Only</h3>
+          <p>All external communication flows through a single auditable Gateway. Only typed, schema-validated requests to your personal allowlist.</p>
+        </div>
+        <div class="rule-card">
+          <div class="rule-number">Rule 3</div>
+          <h3>Signed Audit Trail</h3>
+          <p>Every action cryptographically signed and logged before execution. Tamper-evident chain. Review every action Semblance has ever taken.</p>
+        </div>
+        <div class="rule-card">
+          <div class="rule-number">Rule 4</div>
+          <h3>No Telemetry</h3>
+          <p>Zero analytics. Zero crash reporting. Zero tracking. Not opt-in. Not opt-out. The architecture makes telemetry impossible.</p>
+        </div>
+        <div class="rule-card">
+          <div class="rule-number">Rule 5</div>
+          <h3>Local Only Data</h3>
+          <p>All data on your device. No cloud sync. No cloud backup. If the device is off, the data is inaccessible. That is the point.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Pricing</div>
+        <h2 class="section-title">Free forever. Pay for agency.</h2>
+        <p class="section-subtitle">The core product is free with no limits. Digital Representative adds autonomous action on your behalf.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <div class="price-card">
+          <h3>Free</h3>
+          <div class="price-amount">$0</div>
+          <p style="color: var(--color-text-secondary-dark); font-size: 0.875rem;">Forever. No trial. No limits.</p>
+          <ul>
+            <li>Universal Inbox</li>
+            <li>Knowledge Graph</li>
+            <li>Proactive Context</li>
+            <li>Daily Digest</li>
+            <li>Web Search</li>
+            <li>Style Learning</li>
+            <li>Network Monitor</li>
+          </ul>
+          <a href="https://github.com/skygkruger/semblance-core" class="btn-secondary" style="width: 100%; text-align: center;">Download</a>
+        </div>
+
+        <div class="price-card featured">
+          <div class="price-badge">Most Popular</div>
+          <h3>Digital Representative</h3>
+          <div class="price-amount">$18<span>/month</span></div>
+          <p style="color: var(--color-text-secondary-dark); font-size: 0.875rem;">Or $349 lifetime</p>
+          <ul>
+            <li>Everything in Free</li>
+            <li>Alter Ego Mode</li>
+            <li>Morning Brief</li>
+            <li>Visual Knowledge Graph</li>
+            <li>Adversarial Self-Defense</li>
+            <li>Living Will + Witness</li>
+            <li>Representative Email</li>
+            <li>Form Automation</li>
+          </ul>
+          <a href="#" class="btn-primary" style="width: 100%; text-align: center;">Get Started</a>
+        </div>
+
+        <div class="price-card">
+          <h3>Founding Member</h3>
+          <div class="price-amount">$199</div>
+          <p style="color: var(--color-text-secondary-dark); font-size: 0.875rem;">Lifetime. First 500 users only.</p>
+          <ul>
+            <li>Everything in DR</li>
+            <li>Lifetime access</li>
+            <li>Founding Member badge</li>
+            <li>Priority feature requests</li>
+            <li>Early access to new features</li>
+          </ul>
+          <a href="#" class="btn-primary" style="width: 100%; text-align: center;">Claim Your Spot</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Open Source -->
+  <section>
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Open Source</div>
+        <h2 class="section-title">Trust, verified</h2>
+      </div>
+      <div class="open-source-content">
+        <p>The entire core product is open source under MIT + Apache 2.0. The AI Core, Gateway, privacy audit, and all free-tier features are publicly auditable. Read every line of code that touches your data.</p>
+        <p>The Digital Representative module is proprietary — but every action it takes still flows through the open source Gateway and audit trail. You can always verify what Semblance does on your behalf.</p>
+        <a href="https://github.com/skygkruger/semblance-core" class="btn-secondary">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Enterprise -->
+  <section class="enterprise">
+    <div class="container">
+      <div class="enterprise-content">
+        <div class="section-label">Enterprise</div>
+        <h2 class="section-title">Sovereign AI for organizations</h2>
+        <p>Deploy Semblance across your organization with centralized management, compliance controls, and dedicated support. All data stays on your infrastructure. Coming Year 2.</p>
+        <a href="mailto:enterprise@semblance.run" class="btn-secondary">Contact Us</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="nav-brand">Semblance</span>
+          <p>Your Intelligence. Your Device. Your Rules.<br>Built by Veridian Synthetics.</p>
+        </div>
+        <div class="footer-column">
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#privacy">Privacy</a>
+        </div>
+        <div class="footer-column">
+          <h4>Developers</h4>
+          <a href="https://github.com/skygkruger/semblance-core">GitHub</a>
+          <a href="https://github.com/skygkruger/semblance-core/blob/main/CONTRIBUTING.md">Contributing</a>
+          <a href="https://github.com/skygkruger/semblance-core/blob/main/docs/PRIVACY.md">Privacy Docs</a>
+        </div>
+        <div class="footer-column">
+          <h4>Company</h4>
+          <a href="mailto:hello@semblance.run">Contact</a>
+          <a href="mailto:security@semblance.run">Security</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Veridian Synthetics. MIT + Apache 2.0.</span>
+        <span class="footer-sanctuary">15% of Digital Representative revenue funds free emotional wellness sanctuaries.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
+      anchor.addEventListener('click', function(e) {
+        var target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Close mobile menu if open
+          document.querySelector('.nav-links').classList.remove('open');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

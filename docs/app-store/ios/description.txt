@@ -1,0 +1,47 @@
+Semblance is a fully local personal AI that ingests your emails, files, calendar, messages, health data, and financial records into a private knowledge graph. It reasons about your life using on-device language models and acts as your agent in the world. Your data never leaves your device.
+
+WHAT MAKES SEMBLANCE DIFFERENT
+
+Cloud AI assistants start every session at zero. They know nothing about you beyond what you paste into a chat window. Semblance starts every session with the accumulated understanding of your entire digital life — because everything runs locally, permanently, on your device.
+
+More capable because it's private.
+
+CORE FEATURES (FREE)
+
+- Universal Inbox: Email, calendar, and notifications in one local view
+- Knowledge Graph: Your digital life as an interconnected graph of entities, relationships, and events
+- Proactive Context: Relevant information surfaced before you ask
+- Daily Digest: Morning summary of what matters today
+- Style Learning: Drafts that match your writing voice
+- Web Search: AI-powered research through an auditable Gateway
+- Network Monitor: Real-time visibility into every outbound connection
+
+DIGITAL REPRESENTATIVE
+
+When you're ready for Semblance to act on your behalf:
+
+- Alter Ego Mode: Full autonomous operation as your digital representative
+- Morning Brief: Proactive daily briefing with actions already queued
+- Visual Knowledge Graph: Interactive 3D visualization
+- Adversarial Self-Defense: Dark pattern detection and financial advocacy
+- Living Will: Encrypted digital twin export
+- Representative Email: Style-matched drafting and autonomous responses
+- Form Automation: PDF auto-fill and smart field mapping
+- Health Integration: Local HealthKit data with pattern correlation
+
+PRIVACY ARCHITECTURE
+
+Semblance's AI Core has zero network access — no HTTP, no WebSocket, no DNS. This is enforced at the OS level, not just by policy. All external communication flows through a single auditable Gateway. Every action is cryptographically signed and logged. The code is open source.
+
+Five inviolable rules:
+1. Zero Network in AI Core
+2. Gateway Only communication
+3. Cryptographic action signing
+4. Zero telemetry
+5. Local only data
+
+PEER DEVICE
+
+Semblance on mobile is a peer device, not a companion. It runs full on-device inference and can seamlessly hand off complex tasks to your desktop over your local network.
+
+Built by Veridian Synthetics. Open source core. MIT + Apache 2.0.

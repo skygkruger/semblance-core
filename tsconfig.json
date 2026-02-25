@@ -27,6 +27,8 @@
     "dist",
     "build",
     "packages/desktop",
-    "packages/mobile"
+    "packages/mobile",
+    "**/*.stories.tsx",
+    "**/.storybook"
   ]
 }

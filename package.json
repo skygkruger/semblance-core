@@ -1,8 +1,13 @@
 {
   "name": "semblance-core",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Your Intelligence. Your Device. Your Rules.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skygkruger/semblance-core.git"
+  },
+  "homepage": "https://semblance.run",
   "workspaces": [
     "packages/*"
   ],
@@ -12,7 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "Veridian Synthetics",
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

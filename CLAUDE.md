@@ -15,15 +15,17 @@
 
 ## MANDATORY CONTEXT — READ ON EVERY SESSION START AND AFTER EVERY COMPACTION
 
-**Before doing ANY work, read BOTH of these documents:**
+**Before doing ANY work, read ALL THREE of these documents:**
 
 1. **`docs/decisions/SEMBLANCE_SPRINT_RESTRUCTURE.md`** — Canonical sprint plan (Revision 3). Defines Steps 1–13 and Sprint 3 exit criteria. Remains canonical for Steps 1–13 and the free/premium boundary. If you have not read it in this session, stop and read it now.
 
 2. **`docs/decisions/SEMBLANCE_BUILD_MAP_ELEVATION.md`** — Build Map Elevation (Revision 4). Adds and restructures Steps 14–33 across Sprints 4–6. Incorporates 9 pre-launch feature elevations: Proactive Morning Brief, Alter Ego Week, Comparison Statement, Visual Knowledge Graph, Import Everything Moment, Living Will, Semblance Witness, Inheritance Protocol, and Adversarial Self-Defense. Adds new Sprint 5 ("Becomes Permanent — Sovereignty + Trust") and renumbers Sprint 6 ("Becomes Undeniable — Hardening + Launch"). **This document supersedes Revision 3 for all steps beyond Step 13.** If you have not read it in this session, stop and read it now.
 
-Both instructions survive compaction.
+3. **`docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md`** — Canonical brand and design system reference. Defines colors, typography (Geist Sans/Mono), spacing, logo (Mirrored S), component patterns, motion, responsive breakpoints, the living dot field background, and the biometric approval briefing card. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now.
 
-**Current position:** Step 12 COMPLETE (remediated). Step 13 is IN PROGRESS. Sprint 3 focus: Daily Digest, Chat-About-Document, Sprint 3 Validation. Total build is now 33 steps across 6 sprints (was 27 steps across 5 sprints).
+All three instructions survive compaction.
+
+**Current position:** Step 32 COMPLETE. Step 33 (Final Validation + Ship) is NEXT. Sprint 6 focus: Hardening + Launch. Total build is 33 steps across 6 sprints.
 
 ---
 
@@ -139,7 +141,7 @@ No cloud sync. No cloud backup. No remote storage of any kind. If the device is 
 | Structured Storage | SQLite | Relational data, action logs, audit trail |
 | Embedding | all-MiniLM-L6-v2 / nomic-embed-text | Local only. No cloud embedding APIs. |
 | Agent Framework | Custom orchestration with function-calling | Typed action requests, approval flows |
-| UI Framework | React + Tailwind CSS + Radix UI + semblance-ui | See DESIGN_SYSTEM.md |
+| UI Framework | React + Tailwind CSS + Radix UI + semblance-ui | See SEMBLANCE_BRAND_DESIGN_SYSTEM.md |
 | Shared Logic | TypeScript (strict mode) | Business logic shared desktop/mobile |
 | Performance Core | Rust | Embedding, search, crypto, IPC |
 
@@ -184,7 +186,7 @@ Add dependencies conservatively. Every dependency is attack surface. Before addi
 /
 ├── CLAUDE.md                        # This file — read first, always
 ├── docs/
-│   ├── DESIGN_SYSTEM.md             # Canonical design reference — read before any UI work
+│   ├── SEMBLANCE_BRAND_DESIGN_SYSTEM.md  # Canonical brand + design reference — MANDATORY READ before any UI work
 │   ├── ARCHITECTURE.md              # System architecture deep-dive
 │   ├── PRIVACY.md                   # Privacy architecture and audit methodology
 │   └── decisions/                   # Orbital Director architecture decisions
@@ -362,16 +364,16 @@ If desktop is unavailable, mobile always runs locally with the best available mo
 
 ## Design System
 
-**Read `/docs/DESIGN_SYSTEM.md` before creating or modifying ANY UI component.**
+**Read `/docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md` before creating or modifying ANY UI component.**
 
-The design system is the canonical visual reference. It defines colors, typography, spacing, components, motion, and responsive breakpoints. Every UI element must conform to the design system.
+The brand and design system is the canonical visual reference. It defines brand philosophy, colors (warm dark palette with Veridian accent #00D4A1), typography (Geist Sans/Mono), spacing (4px base unit), the Mirrored S logo, component patterns, motion, responsive breakpoints, the living dot field background, and the biometric approval briefing card.
 
-Key principles (details in DESIGN_SYSTEM.md):
-- Calm confidence — restraint over noise, white space as feature
-- Warm intelligence — rounded, soft, approachable, not clinical
-- Transparency by design — privacy and activity indicators always visible
-- Motion with purpose — smooth transitions that communicate state, never decorative
-- Progressive disclosure — power users see depth, casual users see simplicity
+Key principles (details in SEMBLANCE_BRAND_DESIGN_SYSTEM.md):
+- Agency on your behalf — "I've got this. You don't need to worry."
+- Warm darkness with luminous accent — deep backgrounds, Veridian teal life signal
+- Understated intelligence — anticipatory, "already done," never showy
+- Purposeful motion — every animation communicates something, never decorative
+- Dark theme is primary and default — light theme is future consideration, not launch priority
 
 If the design system doesn't cover a specific scenario, escalate to Orbital Directors rather than improvising.
 
@@ -479,7 +481,7 @@ Orbital Directors (Human + Claude in conversation)
 
 Claude Code (this terminal)
     → Executes implementation based on Orbital Director decisions
-    → References this CLAUDE.md and DESIGN_SYSTEM.md
+    → References this CLAUDE.md and SEMBLANCE_BRAND_DESIGN_SYSTEM.md
     → Escalates when outside guardrails
 
 Gemini (Antigravity)
@@ -497,7 +499,7 @@ You MUST escalate (do not proceed independently) when:
 - You're unsure whether a new premium feature belongs in semblance-core (open-core) or semblence-representative (proprietary) — use the classification table in the Repository Split section first, escalate if still unclear
 - The task would change the IPC protocol schema
 - The task would modify the privacy audit pipeline
-- You encounter a conflict between this document and the design system
+- You encounter a conflict between this document and the brand design system
 - The task involves the device handoff protocol (requires Gemini audit)
 
 ### When to Proceed Independently

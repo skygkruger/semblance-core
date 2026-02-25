@@ -1,0 +1,10 @@
+Semblance 1.0.0 — Initial Release
+
+- Full local AI with on-device inference (MLX optimized for Apple Silicon)
+- Knowledge graph ingesting emails, calendar, files, and more
+- Alter Ego Mode for autonomous digital representation
+- Morning Brief with proactive daily actions
+- Adversarial Self-Defense for dark pattern detection
+- Living Will encrypted export
+- Peer device handoff to desktop over local network
+- Real-time Network Monitor for complete transparency

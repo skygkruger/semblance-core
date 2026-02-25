@@ -1,0 +1,50 @@
+name: Privacy Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/core/**'
+      - 'packages/gateway/**'
+      - 'scripts/privacy-audit/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/core/**'
+      - 'packages/gateway/**'
+      - 'scripts/privacy-audit/**'
+
+jobs:
+  privacy-audit:
+    name: Full Privacy Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run privacy audit script
+        run: node scripts/privacy-audit/index.js
+
+      - name: Verify no @semblance/dr imports in core
+        run: |
+          if grep -r "@semblance/dr" packages/core/ 2>/dev/null; then
+            echo "ERROR: @semblance/dr imported in packages/core/ — this violates the boundary rule"
+            exit 1
+          fi
+          echo "OK: No @semblance/dr imports in core"
+
+      - name: Scan for telemetry packages
+        run: |
+          TELEMETRY_PKGS="segment|mixpanel|amplitude|posthog|sentry|bugsnag|datadog|google-analytics|gtag"
+          if grep -rE "\"($TELEMETRY_PKGS)" package.json packages/*/package.json 2>/dev/null; then
+            echo "ERROR: Telemetry package detected in dependencies"
+            exit 1
+          fi
+          echo "OK: No telemetry packages found"
