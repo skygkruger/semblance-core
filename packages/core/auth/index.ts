@@ -11,3 +11,5 @@ export type {
 
 export { DEFAULT_AUTH_CONFIG, LOCK_TIMEOUT_MS } from './types.js';
 export { BiometricAuthManager } from './biometric-auth-manager.js';
+export { SensitiveActionGuard, AuthRequiredError, SENSITIVE_ACTIONS } from './sensitive-action-guard.js';
+export type { SensitiveAction } from './sensitive-action-guard.js';
