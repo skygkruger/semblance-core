@@ -1,6 +1,6 @@
 # Semblance Security Threat Model
 
-> Step 30a — Cryptographic Overhaul. Last updated: 2026-02-24.
+> Steps 30a + 30b — Cryptographic Overhaul + Platform Hardening. Last updated: 2026-02-24.
 
 ---
 
@@ -18,6 +18,8 @@
 | Device identity | Ed25519 key pair | Device authentication | Current |
 | IPC signing | HMAC-SHA256 | Request authentication | Current |
 | PlatformSyncCrypto | SHA-256 | Shared secret derivation (high-entropy input) | Current — adequate |
+| Backup encryption | AES-256-GCM + Argon2id | Encrypted .sbk backup files | Current |
+| Backup signing | Ed25519 | Backup integrity verification | Current |
 | Embedding vectors | None (LanceDB) | Vector search | **Deferred — see below** |
 
 ---
@@ -87,6 +89,60 @@
 
 **Residual risk:** A compromised update could add a domain to the allowlist and exfiltrate data. Mitigated by update signing (planned) and user-visible allowlist management.
 
+### 6. Unauthorized App Access (Step 30b)
+
+**Threat:** Someone picks up an unlocked device and accesses Semblance data.
+
+**Mitigations:**
+- Biometric authentication (Face ID, Touch ID, Windows Hello) required to open app
+- Configurable lock timeout (immediate, 1min, 5min, 15min, never)
+- Sensitive actions (Living Will export, inheritance config, encryption key export) require biometric re-confirmation regardless of timeout
+- SensitiveActionGuard protects 10 high-risk operations with mandatory re-auth
+- Auth can be disabled by user but requires biometric confirmation to disable
+
+**Residual risk:** If biometric hardware is not available (e.g., remote desktop), falls back to no app-level auth. OS-level screen lock remains the primary defense in this scenario.
+
+### 7. Data Loss / Device Failure (Step 30b)
+
+**Threat:** User loses device (theft, damage, failure) with no recovery path.
+
+**Mitigations:**
+- Encrypted local backup (.sbk files) with Argon2id + AES-256-GCM
+- Backup signed with Ed25519 device key for integrity verification
+- Backup manifest with SHA-256 integrity hash for tamper detection
+- External drive detection prompts users to back up when drives connect
+- Backup nudge tracker identifies single-device users with no backup
+- Rolling backup window (configurable max backups) prevents storage exhaustion
+- Backup restoration triggers Knowledge Moment and inheritance package invalidation
+
+**Residual risk:** If user never creates a backup and loses their only device, data is unrecoverable. Nudge system mitigates but cannot prevent this. Backup passphrase loss is also unrecoverable (by design — Argon2id prevents brute force).
+
+### 8. External Drive Compromise (Step 30b)
+
+**Threat:** Attacker obtains a backup drive containing .sbk files.
+
+**Mitigations:**
+- All backup data encrypted with AES-256-GCM (per-backup random IV)
+- Encryption key derived via Argon2id (64MB, 3 iterations) from user passphrase
+- Backup manifest is unencrypted but contains no user data (only metadata: version, timestamps, section names)
+- Ed25519 signature on integrity hash — forged backups detectable
+- Argon2id makes brute-force passphrase recovery computationally expensive
+
+**Residual risk:** Weak passphrase reduces effective key strength. User education recommended. Passphrase strength meter is a future enhancement.
+
+### 9. OS Sandbox Escape (Step 30b)
+
+**Threat:** Malicious code running alongside Semblance accesses its data or network capabilities.
+
+**Mitigations:**
+- macOS: App Sandbox enabled, camera/microphone/inbound-network denied
+- Linux: AppArmor profile denies ptrace, raw sockets, inbound network; filesystem restricted
+- Windows: MSIX capabilities deny internetClientServer, webcam, microphone
+- Sandbox verifier audits configuration at build time
+- Only Gateway process has network client capability
+
+**Residual risk:** Sandbox escape vulnerabilities in the OS itself. Mitigated by keeping OS updated. Semblance's defense-in-depth (encrypted data, signed actions) provides additional layers.
+
 ---
 
 ## Deferred: LanceDB Embedding Encryption
@@ -140,6 +196,12 @@
 # No network imports in crypto module
 grep -rn "import.*\bnet\b\|import.*\bhttp\b\|import.*\bfetch\b" packages/core/crypto/ --include="*.ts"
 
+# No network imports in auth or backup modules
+grep -rn "import.*\bnet\b\|import.*\bhttp\b\|import.*\bfetch\b" packages/core/auth/ packages/core/backup/ --include="*.ts"
+
+# No cloud service references in backup
+grep -rn "icloud\|google.*drive\|dropbox\|onedrive\|s3\|azure.*blob" packages/core/ --include="*.ts"
+
 # No TLS/pinning code in core
 grep -rn "import.*tls\|import.*https\|certificate.*pin" packages/core/ --include="*.ts"
 
@@ -148,4 +210,10 @@ grep -n "Ed25519Signature2020" packages/core/attestation/attestation-format.ts
 
 # Argon2id in archive builder
 grep -n "argon2id\|deriveKey" packages/core/living-will/archive-builder.ts
+
+# Backup not premium-gated
+grep -rn "isPremium\|PremiumGate" packages/core/backup/ --include="*.ts"  # Must be empty
+
+# No DR imports in core
+grep -rn "from.*@semblance/dr" packages/core/ --include="*.ts"
 ```
