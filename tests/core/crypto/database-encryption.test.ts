@@ -33,7 +33,8 @@ function createMockDb(): DatabaseHandle & { pragmaCalls: string[]; execCalls: st
     pragma: (stmt: string) => { pragmaCalls.push(stmt); return undefined; },
     prepare: () => ({ get: () => undefined, all: () => [], run: () => ({ changes: 0, lastInsertRowid: 0 }) }),
     exec: (sql: string) => { execCalls.push(sql); },
-    transaction: (fn: (...args: unknown[]) => unknown) => fn as ReturnType<DatabaseHandle['transaction']>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transaction: <T extends (...args: any[]) => any>(fn: T): T => fn,
     close: () => {},
   };
 }

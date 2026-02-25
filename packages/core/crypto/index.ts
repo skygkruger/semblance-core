@@ -11,3 +11,5 @@ export {
   migrateToEncrypted,
   isDatabaseEncrypted,
 } from './database-encryption.js';
+export type { LegacyFormatReport, MigrationStatus, MigrationItemStatus } from './migration.js';
+export { detectLegacyFormats, getMigrationStatus } from './migration.js';
