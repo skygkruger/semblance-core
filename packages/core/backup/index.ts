@@ -19,3 +19,6 @@ export {
   verifyIntegrity,
 } from './backup-manifest.js';
 export type { CreateManifestOptions } from './backup-manifest.js';
+
+export { BackupManager } from './backup-manager.js';
+export type { BackupManagerDeps, BackupDataSection } from './backup-manager.js';
