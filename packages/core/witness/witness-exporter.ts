@@ -1,9 +1,6 @@
 // Witness Exporter — Exports attestations and public keys as JSON.
+// Supports Ed25519 (asymmetric, preferred) and HMAC-SHA256 (legacy symmetric).
 // CRITICAL: No networking imports.
-//
-// Known limitation: HMAC is symmetric — the verifier holding the exported key can forge
-// attestations. Asymmetric signing (Ed25519) planned for VTI bridge upgrade in Step 30
-// security hardening.
 
 import type { DeviceIdentity } from '../attestation/types.js';
 import type { WitnessAttestation } from './types.js';
@@ -22,14 +19,17 @@ export class WitnessExporter {
   /**
    * Export the verification key for sharing with verifiers.
    *
-   * Known limitation: HMAC is symmetric — the verifier holding this key can forge
-   * attestations. Asymmetric signing (Ed25519) planned for VTI bridge upgrade
-   * in Step 30 security hardening.
+   * Ed25519: exports the 32-byte public key — verifier cannot forge attestations.
+   * HMAC-SHA256 (legacy): exports the symmetric key — verifier CAN forge attestations.
    */
-  exportPublicKey(key: Buffer, deviceIdentity: DeviceIdentity): string {
+  exportPublicKey(
+    key: Buffer,
+    deviceIdentity: DeviceIdentity,
+    algorithm: 'ed25519' | 'hmac-sha256' = 'hmac-sha256',
+  ): string {
     return JSON.stringify(
       {
-        algorithm: 'hmac-sha256',
+        algorithm,
         key: key.toString('hex'),
         deviceId: deviceIdentity.id,
         exportedAt: new Date().toISOString(),

@@ -1,9 +1,10 @@
 // VTI Bridge — Stub for Veridian Trust Infrastructure registry.
 // VTI Registry is not yet live. This stub returns null/false for all operations.
-// Full implementation planned for Step 30 security hardening (asymmetric Ed25519 signing).
+// Includes signatureAlgorithm metadata for future Ed25519 integration.
 // CRITICAL: No networking imports.
 
 import type { WitnessAttestation } from './types.js';
+import { ED25519_PROOF_TYPE, HMAC_PROOF_TYPE } from '../attestation/attestation-format.js';
 
 /**
  * Stub bridge to the Veridian Trust Infrastructure.
@@ -28,14 +29,19 @@ export class VtiBridge {
 
   /**
    * Format an attestation for VTI submission.
-   * Returns the attestation as-is with an empty VTI block.
+   * Includes signatureAlgorithm in VTI block for future registry compatibility.
    */
   formatForVti(attestation: WitnessAttestation): Record<string, unknown> {
+    const signatureAlgorithm = attestation.proof.type === ED25519_PROOF_TYPE
+      ? ED25519_PROOF_TYPE
+      : HMAC_PROOF_TYPE;
+
     return {
       ...attestation,
       vti: {
         registryRef: null,
         registryStatus: 'unavailable',
+        signatureAlgorithm,
       },
     };
   }
