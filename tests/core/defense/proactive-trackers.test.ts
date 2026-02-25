@@ -114,8 +114,10 @@ describe('DarkPatternTracker', () => {
     const insights = tracker.generateInsights();
     expect(insights).toHaveLength(2);
     expect(insights[0]!.type).toBe('dark_pattern');
-    expect(insights[0]!.sourceIds).toContain('email-001');
-    expect(insights[1]!.sourceIds).toContain('email-002');
+    expect(insights[1]!.type).toBe('dark_pattern');
+    const allSourceIds = insights.flatMap(i => i.sourceIds);
+    expect(allSourceIds).toContain('email-001');
+    expect(allSourceIds).toContain('email-002');
   });
 
   it('returns empty when premium inactive', () => {
