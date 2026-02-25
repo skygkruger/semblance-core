@@ -47,7 +47,7 @@ function createMockDb(): import('../../packages/core/platform/types.js').Databas
     },
     close(): void {},
     transaction<T>(fn: () => T): () => T { return fn; },
-  } as import('../../packages/core/platform/types.js').DatabaseHandle;
+  } as unknown as import('../../packages/core/platform/types.js').DatabaseHandle;
 }
 
 describe('Step 33 — Sprint 1+2 Cross-Cutting Validation', () => {
@@ -124,14 +124,14 @@ describe('Step 33 — Sprint 1+2 Cross-Cutting Validation', () => {
     });
 
     it('guardian mode requires approval for all risk levels', () => {
-      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'guardian' });
+      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'guardian', domainOverrides: {} });
       expect(mgr.decide('email.fetch')).toBe('requires_approval');
       expect(mgr.decide('email.draft')).toBe('requires_approval');
       expect(mgr.decide('email.send')).toBe('requires_approval');
     });
 
     it('alter ego still requires approval for email.send', () => {
-      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'alter_ego' });
+      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'alter_ego', domainOverrides: {} });
       expect(mgr.decide('email.send')).toBe('requires_approval');
     });
 

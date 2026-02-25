@@ -41,7 +41,7 @@ describe('Step 33 — Sprint 5 (Sovereignty + Trust) Validation', () => {
     it('has exactly 7 days', async () => {
       const mod = await import('../../packages/core/onboarding/alter-ego-week.js');
       const week = new mod.AlterEgoWeek({
-        db: { exec() {}, prepare() { return { run() { return { changes: 0, lastInsertRowid: 0 }; }, get() { return undefined; }, all() { return []; } }; }, close() {}, transaction: ((fn: () => unknown) => fn) as never },
+        db: { exec() {}, prepare() { return { run() { return { changes: 0, lastInsertRowid: 0 }; }, get() { return undefined; }, all() { return []; } }; }, close() {}, pragma() { return undefined; }, transaction: ((fn: () => unknown) => fn) as never } as never,
       });
       const days = week.getAllDays();
       expect(days).toHaveLength(7);
@@ -135,7 +135,7 @@ describe('Step 33 — Sprint 5 (Sovereignty + Trust) Validation', () => {
   describe('Attestation', () => {
     it('AttestationSigner rejects no-key construction', () => {
       expect(() => {
-        new AttestationSigner({ deviceIdentity: { deviceId: 'test', deviceName: 'test', platform: 'test' } });
+        new AttestationSigner({ deviceIdentity: { id: 'test', platform: 'test' } });
       }).toThrow('requires at least one signing key');
     });
 

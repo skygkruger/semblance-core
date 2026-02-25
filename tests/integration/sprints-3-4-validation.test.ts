@@ -46,7 +46,7 @@ function createMockDb(): DatabaseHandle {
     },
     close(): void {},
     transaction<T>(fn: () => T): () => T { return fn; },
-  } as DatabaseHandle;
+  } as unknown as DatabaseHandle;
 }
 
 describe('Step 33 — Sprint 3+4 Cross-Cutting Validation', () => {

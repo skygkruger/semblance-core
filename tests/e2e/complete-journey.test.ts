@@ -52,7 +52,7 @@ function createMockDb(): DatabaseHandle {
     },
     close(): void {},
     transaction<T>(fn: () => T): () => T { return fn; },
-  } as DatabaseHandle;
+  } as unknown as DatabaseHandle;
 }
 
 function createMockDbWithLicense(tier: string): DatabaseHandle {
@@ -72,7 +72,7 @@ function createMockDbWithLicense(tier: string): DatabaseHandle {
     },
     close(): void {},
     transaction<T>(fn: () => T): () => T { return fn; },
-  } as DatabaseHandle;
+  } as unknown as DatabaseHandle;
 }
 
 describe('Step 33 — Complete User Journeys (E2E)', () => {
@@ -151,7 +151,7 @@ describe('Step 33 — Complete User Journeys (E2E)', () => {
     });
 
     it('DR email mode has safety lock (email.send requires approval)', () => {
-      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'alter_ego' });
+      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'alter_ego', domainOverrides: {} });
       expect(mgr.decide('email.send')).toBe('requires_approval');
     });
 
@@ -192,7 +192,7 @@ describe('Step 33 — Complete User Journeys (E2E)', () => {
     it('attestation signer produces signed output with signing key', () => {
       const signer = new AttestationSigner({
         signingKey: Buffer.from('a'.repeat(64), 'hex'),
-        deviceIdentity: { deviceId: 'test', deviceName: 'test', platform: 'test' },
+        deviceIdentity: { id: 'test', platform: 'test' },
       });
       expect(signer).toBeDefined();
     });
@@ -231,19 +231,19 @@ describe('Step 33 — Complete User Journeys (E2E)', () => {
     });
 
     it('guardian mode blocks all actions after day 7 if user declines', () => {
-      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'guardian' });
+      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'guardian', domainOverrides: {} });
       expect(mgr.decide('email.fetch')).toBe('requires_approval');
       expect(mgr.decide('web.search')).toBe('requires_approval');
     });
 
     it('guardian pre-approves nothing — even reads require approval', () => {
-      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'guardian' });
+      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'guardian', domainOverrides: {} });
       expect(mgr.decide('calendar.fetch')).toBe('requires_approval');
       expect(mgr.decide('reminder.list')).toBe('requires_approval');
     });
 
     it('escalation routes uncertain actions to require approval', () => {
-      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'partner' });
+      const mgr = new AutonomyManager(createMockDb(), { defaultTier: 'partner', domainOverrides: {} });
       // Partner requires approval for execute-risk actions
       expect(mgr.decide('service.api_call')).toBe('requires_approval');
       expect(mgr.decide('messaging.send')).toBe('requires_approval');
