@@ -30,6 +30,20 @@ export type RootStackParamList = {
   CloudStorageSettings: undefined;
   KnowledgeGraph: undefined;
   ImportDigitalLife: undefined;
+  // Step 31 — Sovereignty screens
+  LivingWill: undefined;
+  Witness: { attestationId?: string };
+  Inheritance: undefined;
+  InheritanceActivation: undefined;
+  Network: undefined;
+  // Step 31 — Adversarial screens
+  AdversarialDashboard: undefined;
+  // Step 31 — Privacy screens
+  PrivacyDashboard: undefined;
+  ProofOfPrivacy: undefined;
+  // Step 31 — Security screens
+  BiometricSetup: undefined;
+  Backup: undefined;
 };
 
 /** Tab icon names for each tab */

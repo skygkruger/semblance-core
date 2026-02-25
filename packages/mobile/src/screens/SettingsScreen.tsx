@@ -93,8 +93,24 @@ const DEFAULT_SECTIONS: SettingsSection[] = [
     ],
   },
   {
+    title: 'Your Digital Twin',
+    items: [
+      { id: 'living-will', label: 'Living Will', type: 'navigate', description: 'Encrypted digital twin export' },
+      { id: 'inheritance', label: 'Inheritance Protocol', type: 'navigate', description: 'Trusted party access' },
+      { id: 'semblance-network', label: 'Semblance Network', type: 'navigate', description: 'Peer-to-peer sharing' },
+    ],
+  },
+  {
+    title: 'Security',
+    items: [
+      { id: 'biometric', label: 'Biometric Lock', type: 'navigate', description: 'Face ID, Touch ID, fingerprint' },
+      { id: 'backup', label: 'Encrypted Backup', type: 'navigate', description: 'Create and restore backups' },
+    ],
+  },
+  {
     title: 'Privacy',
     items: [
+      { id: 'privacy-dashboard', label: 'Privacy Dashboard', type: 'navigate', description: 'Data inventory and guarantees' },
       { id: 'network-monitor', label: 'Network Monitor', type: 'navigate', description: 'View all network activity' },
       { id: 'action-log', label: 'Action Log', type: 'navigate', description: 'Review autonomous actions' },
     ],
