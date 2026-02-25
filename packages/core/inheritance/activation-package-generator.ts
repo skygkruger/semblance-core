@@ -1,12 +1,14 @@
 // Activation Package Generator — Creates AES-256-GCM encrypted .inheritance packages.
+// v2: Argon2id key derivation (64MB, 3 iterations) with salt in header.
 // Header is unencrypted (for identification). Payload encrypted with party's passphrase-derived key.
 // CRITICAL: No networking imports. All crypto via PlatformAdapter.
 
 import { getPlatform } from '../platform/index.js';
+import { deriveKey } from '../crypto/key-derivation.js';
 import type { InheritanceConfigStore } from './inheritance-config-store.js';
 import type { ActivationPackage, ActivationPackageHeader } from './types.js';
 
-const PACKAGE_VERSION = 1;
+const PACKAGE_VERSION = 2;
 
 export interface ActivationPackageGeneratorDeps {
   store: InheritanceConfigStore;
@@ -24,7 +26,8 @@ export class ActivationPackageGenerator {
 
   /**
    * Generate an encrypted activation package for a trusted party.
-   * Key derivation: sha256(passphrase) → 64-char hex key (32 bytes).
+   * v2: Argon2id key derivation with random salt.
+   * Passphrase verification still uses sha256(passphrase) === party.passphraseHash.
    */
   async generate(partyId: string, passphrase: string): Promise<ActivationPackage> {
     const party = this.store.getParty(partyId);
@@ -34,7 +37,7 @@ export class ActivationPackageGenerator {
 
     const p = getPlatform();
 
-    // Verify passphrase matches stored hash
+    // Verify passphrase matches stored hash (sha256 comparison — unchanged)
     const passphraseHash = p.crypto.sha256(passphrase);
     if (passphraseHash !== party.passphraseHash) {
       throw new Error('Passphrase does not match');
@@ -76,14 +79,16 @@ export class ActivationPackageGenerator {
       },
     };
 
-    // Encrypt with passphrase-derived key
-    const keyHex = passphraseHash; // sha256 returns 64-char hex
-    const encrypted = await p.crypto.encrypt(JSON.stringify(payloadData), keyHex);
+    // Derive encryption key with Argon2id
+    const kdfResult = await deriveKey(passphrase);
+    const encrypted = await p.crypto.encrypt(JSON.stringify(payloadData), kdfResult.keyHex);
 
     const header: ActivationPackageHeader = {
       partyId: party.id,
       version: PACKAGE_VERSION,
       createdAt: new Date().toISOString(),
+      kdf: 'argon2id',
+      salt: kdfResult.saltHex,
     };
 
     return { header, payload: encrypted };

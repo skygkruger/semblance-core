@@ -1,8 +1,10 @@
 // Activation Handler — Decrypts activation package, verifies, enters Inheritance Mode.
 // Handles time-lock, cancel, and state transitions.
+// Supports v1 (SHA-256) and v2 (Argon2id) key derivation.
 // CRITICAL: No networking imports. All crypto via PlatformAdapter.
 
 import { getPlatform } from '../platform/index.js';
+import { deriveKey, deriveKeyLegacy } from '../crypto/key-derivation.js';
 import type { InheritanceConfigStore } from './inheritance-config-store.js';
 import type { ActivationPackage, Activation } from './types.js';
 import { enableInheritanceMode, disableInheritanceMode } from './inheritance-mode-guard.js';
@@ -21,7 +23,7 @@ export interface ActivationResult {
 }
 
 /**
- * Handles the activation flow: decrypt package → verify → enter Inheritance Mode → time-lock.
+ * Handles the activation flow: decrypt package -> verify -> enter Inheritance Mode -> time-lock.
  */
 export class ActivationHandler {
   private store: InheritanceConfigStore;
@@ -32,16 +34,25 @@ export class ActivationHandler {
 
   /**
    * Activate the Inheritance Protocol with a package and passphrase.
-   * 1. Decrypt package with passphrase-derived key
-   * 2. Verify party exists
-   * 3. Enable Inheritance Mode guard
-   * 4. Create activation record in time_locked state
+   * 1. Derive key (Argon2id for v2, SHA-256 for v1)
+   * 2. Decrypt package with derived key
+   * 3. Verify party exists
+   * 4. Enable Inheritance Mode guard
+   * 5. Create activation record in time_locked state
    */
   async activate(pkg: ActivationPackage, passphrase: string): Promise<ActivationResult> {
     const p = getPlatform();
 
-    // Derive key from passphrase
-    const keyHex = p.crypto.sha256(passphrase);
+    // Derive key based on header version/kdf
+    let keyHex: string;
+    if (pkg.header.kdf === 'argon2id' && pkg.header.salt) {
+      const salt = Buffer.from(pkg.header.salt, 'hex');
+      const kdfResult = await deriveKey(passphrase, salt);
+      keyHex = kdfResult.keyHex;
+    } else {
+      // v1 legacy: sha256(passphrase)
+      keyHex = deriveKeyLegacy(passphrase);
+    }
 
     // Decrypt the payload
     let decryptedData: Record<string, unknown>;
@@ -59,8 +70,8 @@ export class ActivationHandler {
       return { success: false, error: `Trusted party not found: ${partyId}` };
     }
 
-    // Verify passphrase matches stored hash
-    const passphraseHash = keyHex;
+    // Verify passphrase matches stored hash (always sha256 comparison)
+    const passphraseHash = p.crypto.sha256(passphrase);
     if (passphraseHash !== party.passphraseHash) {
       return { success: false, error: 'Passphrase does not match party record' };
     }

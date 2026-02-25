@@ -101,7 +101,9 @@ describe('TrustedPartyManager + ActivationPackageGenerator (Step 27)', () => {
 
     // Header is unencrypted
     expect(pkg.header.partyId).toBe(party.id);
-    expect(pkg.header.version).toBe(1);
+    expect(pkg.header.version).toBe(2);
+    expect(pkg.header.kdf).toBe('argon2id');
+    expect(pkg.header.salt).toMatch(/^[0-9a-f]{32}$/);
     expect(pkg.header.createdAt).toBeTruthy();
 
     // Payload is encrypted
