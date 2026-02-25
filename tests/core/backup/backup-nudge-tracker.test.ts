@@ -33,8 +33,8 @@ describe('BackupNudgeTracker', () => {
     const insights = tracker.generateInsights();
 
     expect(insights).toHaveLength(1);
-    expect(insights[0].title).toContain('Set up encrypted backup');
-    expect(insights[0].priority).toBe('normal');
+    expect(insights[0]!.title).toContain('Set up encrypted backup');
+    expect(insights[0]!.priority).toBe('normal');
   });
 
   it('nudges when backup is stale (>14 days)', () => {
@@ -49,7 +49,7 @@ describe('BackupNudgeTracker', () => {
     const insights = tracker.generateInsights();
 
     expect(insights).toHaveLength(1);
-    expect(insights[0].title).toContain('Backup is stale');
+    expect(insights[0]!.title).toContain('Backup is stale');
   });
 
   it('no nudge when backup is fresh and configured', () => {

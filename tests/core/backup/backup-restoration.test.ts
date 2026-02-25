@@ -21,7 +21,8 @@ function createMockDb(): DatabaseHandle {
     pragma: vi.fn(),
     prepare: vi.fn().mockReturnValue({ get: vi.fn(), all: vi.fn(), run: vi.fn() }),
     exec: vi.fn(),
-    transaction: vi.fn((fn: unknown) => fn),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transaction: vi.fn((fn: any) => fn) as any,
     close: vi.fn(),
   };
 }
