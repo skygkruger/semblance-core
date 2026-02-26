@@ -1,0 +1,115 @@
+/* Veridian Moment #3 — Approval card; silver border at rest, Veridian on approved */
+.approval-card {
+  background: linear-gradient(135deg, var(--s2), var(--s1));
+  border: 1px solid var(--b2);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  transition: box-shadow var(--duration-slow) var(--eo),
+              border-color var(--duration-slow) var(--eo);
+  animation: dissolve var(--duration-slower) var(--ease-spring) both;
+}
+
+.approval-card:hover {
+  border-color: var(--b3);
+  box-shadow: 0 0 24px var(--v-glow-md);
+}
+
+.approval-card--approved {
+  border-color: var(--v-wire);
+  box-shadow: 0 0 16px var(--v-glow);
+  animation: approve-pulse 600ms var(--eo) 1;
+}
+
+.approval-card--dismissed {
+  opacity: 0.5;
+  border-color: var(--b1);
+  box-shadow: none;
+}
+
+.approval-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.approval-card__action {
+  font-family: var(--fd);
+  font-weight: 300;
+  font-size: var(--text-xl);
+  color: var(--w-dim);
+  margin: 0;
+}
+
+.approval-card__risk {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  flex-shrink: 0;
+}
+
+.approval-card__risk--low {
+  color: var(--v);
+  background: var(--v-dim);
+}
+
+.approval-card__risk--medium {
+  color: var(--amber);
+  background: rgba(201, 168, 92, 0.1);
+}
+
+.approval-card__risk--high {
+  color: var(--rust);
+  background: rgba(201, 123, 110, 0.1);
+}
+
+.approval-card__context {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  color: var(--sv3);
+  margin-top: var(--sp-3);
+  line-height: 1.6;
+}
+
+/* Veridian Moment #7 — Wire-line divider */
+.approval-card__divider {
+  height: 1px;
+  margin: var(--sp-5) 0;
+  background: linear-gradient(90deg, var(--v), transparent);
+  max-width: 72px;
+}
+
+.approval-card__data-label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--slate3);
+  margin-bottom: var(--sp-2);
+}
+
+.approval-card__data-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.approval-card__data-item {
+  font-family: var(--fm);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+}
+
+.approval-card__actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}

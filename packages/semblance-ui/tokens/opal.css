@@ -1,0 +1,66 @@
+/* Opal Layer — ambient surface texture for card and interactive surfaces.
+   Two pseudo-element layers: organic wireframe (::after) + opal sweep (::before).
+   mix-blend-mode: screen on the sweep brightens wireframe lines as it passes.
+   Wireframe echoes the Semblance logo's triangulated dissolution aesthetic.
+   NOT a Veridian moment. Always present, recedes when Veridian fires. */
+
+.opal-surface {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Layer 1 — Organic triangulated wireframe (always present, static)
+   Generated from seeded Voronoi-style nearest-neighbor triangulation (seed=42, 28 points).
+   400x400 canvas — large enough that tiling isn't obvious on card-sized surfaces. */
+.opal-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cline x1='0.0' y1='0.0' x2='39.2' y2='76.6' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='0.0' y1='0.0' x2='100.9' y2='35.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='0.0' y1='0.0' x2='7.6' y2='111.2' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='400.0' y1='0.0' x2='238.6' y2='36.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='400.0' y1='0.0' x2='321.9' y2='155.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='400.0' y1='0.0' x2='396.1' y2='179.9' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='0.0' y1='400.0' x2='56.1' y2='380.0' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='0.0' y1='400.0' x2='62.1' y2='331.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='0.0' y1='400.0' x2='133.6' y2='353.1' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='400.0' y1='400.0' x2='349.5' y2='397.9' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='400.0' y1='400.0' x2='369.8' y2='355.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='400.0' y1='400.0' x2='377.2' y2='328.6' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='200.0' y1='0.0' x2='186.8' y2='24.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='200.0' y1='0.0' x2='150.3' y2='10.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='200.0' y1='0.0' x2='178.9' y2='47.4' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='0.0' y1='200.0' x2='9.0' y2='214.9' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='0.0' y1='200.0' x2='7.6' y2='111.2' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='0.0' y1='200.0' x2='86.3' y2='108.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='400.0' y1='200.0' x2='396.1' y2='179.9' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='400.0' y1='200.0' x2='341.3' y2='199.9' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='400.0' y1='200.0' x2='321.9' y2='155.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='200.0' y1='400.0' x2='256.8' y2='344.6' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='200.0' y1='400.0' x2='133.6' y2='353.1' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='200.0' y1='400.0' x2='234.3' y2='278.6' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='100.9' y1='35.3' x2='150.3' y2='10.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='100.9' y1='35.3' x2='39.2' y2='76.6' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='100.9' y1='35.3' x2='86.3' y2='108.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='230.9' y1='89.0' x2='220.0' y2='103.6' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='230.9' y1='89.0' x2='220.2' y2='72.2' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='230.9' y1='89.0' x2='238.6' y2='36.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='150.3' y1='10.3' x2='186.8' y2='24.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='150.3' y1='10.3' x2='178.9' y2='47.4' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='150.3' y1='10.3' x2='179.0' y2='50.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='178.9' y1='47.4' x2='179.0' y2='50.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='178.9' y1='47.4' x2='186.8' y2='24.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='349.5' y1='397.9' x2='369.8' y2='355.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='349.5' y1='397.9' x2='332.0' y2='338.1' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='341.3' y1='199.9' x2='321.9' y2='155.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='341.3' y1='199.9' x2='307.5' y2='237.5' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='341.3' y1='199.9' x2='396.1' y2='179.9' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='256.8' y1='344.6' x2='284.5' y2='287.4' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='256.8' y1='344.6' x2='234.3' y2='278.6' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='256.8' y1='344.6' x2='332.0' y2='338.1' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='238.6' y1='36.3' x2='220.2' y2='72.2' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='200.0' y1='0.0' x2='238.6' y2='36.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='238.6' y1='36.3' x2='186.8' y2='24.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='56.1' y1='380.0' x2='62.1' y2='331.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='56.1' y1='380.0' x2='133.6' y2='353.1' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='369.8' y1='355.8' x2='377.2' y2='328.6' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='369.8' y1='355.8' x2='332.0' y2='338.1' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='220.2' y1='72.2' x2='220.0' y2='103.6' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='220.0' y1='103.6' x2='179.0' y2='50.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='377.2' y1='328.6' x2='332.0' y2='338.1' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='349.5' y1='397.9' x2='377.2' y2='328.6' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='62.1' y1='331.8' x2='133.6' y2='353.1' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='186.8' y1='24.3' x2='179.0' y2='50.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='9.0' y1='214.9' x2='7.6' y2='111.2' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='62.1' y1='331.8' x2='9.0' y2='214.9' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='272.4' y1='152.3' x2='321.9' y2='155.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='220.0' y1='103.6' x2='272.4' y2='152.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='230.9' y1='89.0' x2='272.4' y2='152.3' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='234.3' y1='278.6' x2='284.5' y2='287.4' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='234.3' y1='278.6' x2='307.5' y2='237.5' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='284.5' y1='287.4' x2='307.5' y2='237.5' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='396.1' y1='179.9' x2='321.9' y2='155.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='39.2' y1='76.6' x2='7.6' y2='111.2' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='39.2' y1='76.6' x2='86.3' y2='108.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='220.2' y1='72.2' x2='179.0' y2='50.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='307.5' y1='237.5' x2='321.9' y2='155.8' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3Cline x1='86.3' y1='108.8' x2='7.6' y2='111.2' stroke='%236b5fa8' stroke-width='0.5' stroke-opacity='0.15'/%3E%3C/svg%3E");
+  background-size: 400px 400px;
+  background-position: center;
+  opacity: 1;
+}
+
+/* Layer 2 — Opal sweep (traces over the wireframe) */
+.opal-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent                    0%,
+    transparent                   15%,
+    rgba(74,  63, 107, 0.0)       20%,
+    rgba(107, 95, 168, 0.10)      32%,
+    rgba(154, 168, 184, 0.13)     44%,
+    rgba(216, 221, 232, 0.18)     52%,
+    rgba(216, 221, 232, 0.14)     58%,
+    rgba(154, 168, 184, 0.10)     66%,
+    rgba(107, 95, 168, 0.05)      76%,
+    transparent                   85%,
+    transparent                  100%
+  );
+  background-size: 200% 100%;
+  animation: opal-sweep 8s linear infinite;
+  animation-delay: -4s;
+  mix-blend-mode: screen;
+  transition: opacity 0.6s ease;
+}
+
+/* Recede when Veridian fires — clear completely */
+.opal-recede::before {
+  opacity: 0;
+}
+
+/* Children always above both texture layers */
+.opal-surface > * {
+  position: relative;
+  z-index: 2;
+}

@@ -1,0 +1,118 @@
+/* Semblance Design System v3 — CSS Custom Properties
+   Canonical source: docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md (locked Feb 25, 2026)
+   This file is imported by Storybook preview and app entry points. */
+
+:root {
+  /* Foundation */
+  --void: #060809;
+  --base: #0B0E11;
+  --s1: #111518;
+  --s2: #171B1F;
+  --s3: #1E2227;
+  --b1: rgba(255, 255, 255, 0.05);
+  --b2: rgba(255, 255, 255, 0.09);
+  --b3: rgba(255, 255, 255, 0.15);
+
+  /* Silver scale */
+  --slate1: #2A2F35;
+  --slate2: #3D444C;
+  --slate3: #525A64;
+  --sv1: #5E6B7C;
+  --sv2: #8593A4;
+  --sv3: #A8B4C0;
+  --w-dim: #CDD4DB;
+  --white: #EEF1F4;
+  --white-pure: #F8FAFB;
+
+  /* Veridian signal */
+  --v: #6ECFA3;
+  --v-dim: rgba(110, 207, 163, 0.10);
+  --v-glow: rgba(110, 207, 163, 0.08);
+  --v-glow-md: rgba(110, 207, 163, 0.18);
+  --v-glow-lg: rgba(110, 207, 163, 0.28);
+  --v-wire: rgba(110, 207, 163, 0.32);
+
+  /* Status */
+  --amber: #C9A85C;
+  --rust: #C97B6E;
+
+  /* Typography */
+  --fd: 'Fraunces', Georgia, serif;
+  --fb: 'DM Sans', system-ui, sans-serif;
+  --fm: 'DM Mono', monospace;
+
+  /* Type scale */
+  --text-3xl: 52px;
+  --text-2xl: 38px;
+  --text-xl: 28px;
+  --text-lg: 21px;
+  --text-md: 17px;
+  --text-base: 15px;
+  --text-sm: 13px;
+  --text-xs: 11px;
+
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+  --sp-24: 96px;
+
+  /* Radius */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 9999px;
+
+  /* Motion */
+  --eo: cubic-bezier(0.16, 1, 0.3, 1);
+  --eio: cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 120ms;
+  --duration-base: 220ms;
+  --duration-slow: 400ms;
+  --duration-slower: 700ms;
+  --duration-ambient: 16000ms;
+
+  /* Opal Layer */
+  --opal-purple-deep: #4a3f6b;
+  --opal-purple-mid:  #6b5fa8;
+  --opal-silver:      #9aa8b8;
+  --opal-white:       #d8dde8;
+  --opal-peak-opacity: 0.09;
+  --opal-angle:       105deg;
+  --opal-speed:       16s;
+}
+
+@keyframes shimmer {
+  from { background-position: 300% center; }
+  to   { background-position: -100% center; }
+}
+
+@keyframes dissolve {
+  from { opacity: 0; filter: blur(8px); transform: translateY(6px); }
+  to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes approve-pulse {
+  0% { box-shadow: 0 0 0 0 var(--v-glow-lg); }
+  100% { box-shadow: 0 0 0 12px transparent; }
+}
+
+@keyframes opal-sweep {
+  from { background-position: 200% 0; }
+  to   { background-position: 0% 0; }
+}

@@ -1,6 +1,9 @@
 // @semblance/ui — Shared component library entry point
 // Re-exports all design tokens and components.
 
+// CSS Tokens
+import './tokens/opal.css';
+
 // Design Tokens
 export { colors, colorTokens } from './tokens/colors.js';
 export { fontFamily, fontSize, fontWeight, lineHeight, typographyTokens } from './tokens/typography.js';
@@ -31,3 +34,16 @@ export { ThemeToggle } from './components/ThemeToggle/index.js';
 export type { ThemeMode } from './components/ThemeToggle/index.js';
 export { CredentialForm } from './components/CredentialForm/index.js';
 export type { CredentialFormData, ProviderPreset as CredentialProviderPreset } from './components/CredentialForm/index.js';
+
+// v3 Components
+export { Wordmark } from './components/Wordmark/index.js';
+export { LogoMark } from './components/LogoMark/index.js';
+export { DotMatrix } from './components/DotMatrix/index.js';
+export { ApprovalCard } from './components/ApprovalCard/index.js';
+export { BriefingCard } from './components/BriefingCard/index.js';
+export { ActionLogItem } from './components/ActionLogItem/index.js';
+export { AgentInput } from './components/AgentInput/index.js';
+export { DesktopSidebar } from './components/Nav/DesktopSidebar.js';
+export { MobileTabBar } from './components/Nav/MobileTabBar.js';
+export { KnowledgeGraph } from './components/KnowledgeGraph/index.js';
+export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
