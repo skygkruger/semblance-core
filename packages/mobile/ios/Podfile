@@ -1,0 +1,87 @@
+# Semblance iOS — React Native + MLX inference
+
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+platform :ios, '16.0'
+prepare_react_native_project!
+
+linkage = ENV['USE_FRAMEWORKS']
+if linkage != nil
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
+
+target 'Semblance' do
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => true,
+    :fabric_enabled => ENV['RCT_NEW_ARCH_ENABLED'] == '1',
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  # ─── Native Modules ──────────────────────────────────────────────────────────
+
+  # SQLite (op-sqlite)
+  pod 'op-sqlite', :path => '../node_modules/@op-engineering/op-sqlite'
+
+  # Device info for hardware capability detection
+  pod 'RNDeviceInfo', :path => '../node_modules/react-native-device-info'
+
+  # Cryptographic operations (action signing, audit trail)
+  pod 'RNQuickCrypto', :path => '../node_modules/react-native-quick-crypto'
+
+  # Local notifications (Morning Brief, reminders)
+  pod 'RNNotifee', :path => '../node_modules/@notifee/react-native'
+
+  # Gesture handling
+  pod 'RNGestureHandler', :path => '../node_modules/react-native-gesture-handler'
+
+  # Reanimated for animations
+  pod 'RNReanimated', :path => '../node_modules/react-native-reanimated'
+
+  # Contacts access (Step 14)
+  pod 'RNContacts', :path => '../node_modules/react-native-contacts'
+
+  # File system access for knowledge graph
+  pod 'RNFS', :path => '../node_modules/react-native-fs'
+
+  # TCP sockets for mDNS device discovery
+  pod 'react-native-tcp-socket', :path => '../node_modules/react-native-tcp-socket'
+
+  # Network info
+  pod 'react-native-netinfo', :path => '../node_modules/@react-native-community/netinfo'
+
+  # ─── MLX Dependencies ────────────────────────────────────────────────────────
+  # MLX Swift packages are linked via the SemblanceMLX native module
+  # which is built as part of the Xcode project (not a CocoaPod)
+
+  target 'SemblanceTests' do
+    inherit! :complete
+  end
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false
+    )
+
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+        # Exclude arm64 for simulator to support Intel Macs in development
+        config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64' if ENV['EXCLUDED_ARCHS_SIMULATOR'] == 'YES'
+      end
+    end
+  end
+end
+
+# Widget extension target
+target 'SemblanceWidget' do
+  platform :ios, '17.0'
+  use_frameworks!
+  # Widget uses SwiftUI + WidgetKit only, no React Native pods needed
+end

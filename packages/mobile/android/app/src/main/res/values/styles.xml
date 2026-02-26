@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="SemblanceTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Brand colors from SEMBLANCE_BRAND_DESIGN_SYSTEM.md -->
+        <item name="android:windowBackground">#0B0E11</item>
+        <item name="android:statusBarColor">#0B0E11</item>
+        <item name="android:navigationBarColor">#0B0E11</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="colorPrimary">#00D4A1</item>
+        <item name="colorPrimaryDark">#0B0E11</item>
+        <item name="colorAccent">#00D4A1</item>
+    </style>
+
+    <string name="app_name">Semblance</string>
+</resources>

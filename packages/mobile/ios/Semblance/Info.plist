@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+
+    <key>CFBundleDisplayName</key>
+    <string>Semblance</string>
+
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+
+    <key>CFBundleIdentifier</key>
+    <string>run.semblance.app</string>
+
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+
+    <key>MinimumOSVersion</key>
+    <string>16.0</string>
+
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+
+    <key>UIMainStoryboardFile</key>
+    <string></string>
+
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+
+    <key>UIStatusBarStyle</key>
+    <string>UIStatusBarStyleLightContent</string>
+
+    <!-- Background modes -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>processing</string>
+    </array>
+
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>run.semblance.app.morning-brief</string>
+        <string>run.semblance.app.background-inference</string>
+    </array>
+
+    <!-- URL scheme for deep linking -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>semblance</string>
+            </array>
+            <key>CFBundleURLName</key>
+            <string>run.semblance.app</string>
+        </dict>
+    </array>
+
+    <!-- Privacy usage descriptions (required for App Store) -->
+    <key>NSContactsUsageDescription</key>
+    <string>Semblance uses your contacts to build a local relationship graph on your device. Contact data never leaves your device.</string>
+
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Semblance uses your location for context-aware features like weather and commute awareness. Location data stays on your device.</string>
+
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Semblance uses the microphone for voice input. Audio is processed locally and never sent to any server.</string>
+
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Semblance can index your photos to build your local knowledge graph. Photos are processed on-device only.</string>
+
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Semblance uses the local network to discover your desktop Semblance instance for task handoff. No data is sent outside your local network.</string>
+
+    <!-- App Groups for widget shared storage -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.run.semblance.app</string>
+    </array>
+
+    <!-- App Transport Security: allow localhost for Ollama -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
+</dict>
+</plist>

@@ -244,17 +244,26 @@ function run() {
   try {
     const tauriConf = JSON.parse(readFileSync(TAURI_CONF_JSON, 'utf-8'));
 
-    // Check that updater is NOT enabled
+    // Check updater config: allowed only if endpoints point to GitHub Releases
+    // (one-way download of update manifest — no user data transmitted)
     const plugins = tauriConf.plugins || {};
-    if (plugins.updater && plugins.updater.active !== false) {
-      allViolations.push({
-        file: TAURI_CONF_JSON,
-        line: 0,
-        content: 'plugins.updater.active is not disabled',
-        violation: 'Tauri updater must be disabled — Semblance does not auto-update',
-      });
+    if (plugins.updater) {
+      const endpoints = plugins.updater.endpoints || [];
+      const allGitHub = endpoints.length > 0 && endpoints.every(
+        (ep) => ep.startsWith('https://github.com/') && ep.includes('/releases/')
+      );
+      if (!allGitHub) {
+        allViolations.push({
+          file: TAURI_CONF_JSON,
+          line: 0,
+          content: `plugins.updater.endpoints: ${JSON.stringify(endpoints)}`,
+          violation: 'Tauri updater endpoints must point to GitHub Releases only (no custom servers)',
+        });
+      }
+      console.log(`  Updater: configured with GitHub Releases endpoint (OK)`);
+    } else {
+      console.log('  Updater: not configured (OK)');
     }
-    console.log('  Updater: disabled (OK)');
 
     // Check CSP blocks external origins
     const csp = tauriConf?.app?.security?.csp || '';

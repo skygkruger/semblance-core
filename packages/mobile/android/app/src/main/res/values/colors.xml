@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="splash_background">#0B0E11</color>
+    <color name="semblance_primary">#00D4A1</color>
+    <color name="semblance_bg_dark">#0B0E11</color>
+    <color name="semblance_surface">#141719</color>
+</resources>

@@ -1,0 +1,44 @@
+app-id: run.semblance.Semblance
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: semblance
+
+finish-args:
+  # Display access
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  # Gateway needs outbound network for email, calendar, web search
+  - --share=network
+  # User files for knowledge graph indexing
+  - --filesystem=home
+  # GPU acceleration for local LLM inference
+  - --device=dri
+  # System tray support
+  - --talk-name=org.kde.StatusNotifierWatcher
+  # mDNS for device discovery
+  - --system-talk-name=org.freedesktop.Avahi
+
+modules:
+  - name: webkit2gtk
+    buildsystem: cmake-ninja
+    sources:
+      - type: archive
+        url: https://webkitgtk.org/releases/webkitgtk-2.44.0.tar.xz
+        sha256: PLACEHOLDER_SHA256
+    # Note: In practice, use the shared-module for webkit2gtk from
+    # flathub/shared-modules rather than building from source.
+
+  - name: semblance
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 semblance -t /app/bin/
+      - install -Dm644 semblance.desktop -t /app/share/applications/
+      - install -Dm644 icons/128x128.png /app/share/icons/hicolor/128x128/apps/run.semblance.Semblance.png
+      - install -Dm644 icons/32x32.png /app/share/icons/hicolor/32x32/apps/run.semblance.Semblance.png
+      - install -Dm644 run.semblance.Semblance.metainfo.xml -t /app/share/metainfo/
+    sources:
+      - type: archive
+        url: https://github.com/skygkruger/semblance-core/releases/download/vVERSION/semblance_VERSION_amd64.tar.gz
+        sha256: PLACEHOLDER_SHA256

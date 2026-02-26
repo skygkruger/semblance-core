@@ -13,6 +13,7 @@ import { DigestScreen } from './screens/DigestScreen';
 import { NetworkMonitorScreen } from './screens/NetworkMonitorScreen';
 import { RelationshipsScreen } from './screens/RelationshipsScreen';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
+import { UpdateChecker } from './components/UpdateChecker';
 import type { ThemeMode } from '@semblance/ui';
 
 // Lucide-style inline SVG icons (16×16, stroke-based)
@@ -126,6 +127,7 @@ function AppContent() {
 
   return (
     <div className="flex h-screen bg-semblance-bg-light dark:bg-semblance-bg-dark">
+      <UpdateChecker />
       <Navigation
         items={navItems}
         activeId={state.activeScreen}

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>run.semblance.Semblance</id>
+
+  <name>Semblance</name>
+  <summary>Fully local, self-hosted personal AI</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <developer id="run.veridian">
+    <name>Veridian Synthetics</name>
+  </developer>
+
+  <description>
+    <p>
+      Semblance is a fully local, self-hosted personal AI that ingests your emails,
+      files, calendar, messages, and more into a local knowledge graph. It reasons
+      about your life using locally-running language models and acts as your agent
+      in the world.
+    </p>
+    <p>
+      Your data never leaves your device. Ever. No cloud sync, no telemetry, no
+      analytics. Semblance is architecturally incapable of betraying your trust.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Local LLM inference via Ollama, llama.cpp, or MLX</li>
+      <li>Knowledge graph built from your emails, files, and calendar</li>
+      <li>Autonomous agent actions with full audit trail</li>
+      <li>Three autonomy tiers: Guardian, Partner, Alter Ego</li>
+      <li>Zero telemetry, zero analytics, zero cloud dependency</li>
+    </ul>
+  </description>
+
+  <url type="homepage">https://semblance.run</url>
+  <url type="bugtracker">https://github.com/skygkruger/semblance-core/issues</url>
+  <url type="vcs-browser">https://github.com/skygkruger/semblance-core</url>
+
+  <launchable type="desktop-id">run.semblance.Semblance.desktop</launchable>
+
+  <branding>
+    <color type="primary" scheme_preference="dark">#0B0E11</color>
+    <color type="primary" scheme_preference="light">#F8F6F4</color>
+  </branding>
+
+  <categories>
+    <category>Office</category>
+    <category>Utility</category>
+  </categories>
+
+  <keywords>
+    <keyword>AI</keyword>
+    <keyword>assistant</keyword>
+    <keyword>privacy</keyword>
+    <keyword>local</keyword>
+    <keyword>LLM</keyword>
+    <keyword>knowledge graph</keyword>
+  </keywords>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Semblance chat interface with local AI reasoning</caption>
+      <image>https://semblance.run/screenshots/chat.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Privacy dashboard showing zero network telemetry</caption>
+      <image>https://semblance.run/screenshots/privacy.png</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="0.1.0" date="2026-03-01">
+      <description>
+        <p>Initial release of Semblance.</p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1" />
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+</component>

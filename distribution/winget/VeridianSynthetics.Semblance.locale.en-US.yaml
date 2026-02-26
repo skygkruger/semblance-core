@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+PackageIdentifier: VeridianSynthetics.Semblance
+PackageVersion: 0.1.0
+PackageLocale: en-US
+Publisher: Veridian Synthetics
+PublisherUrl: https://semblance.run
+PublisherSupportUrl: https://github.com/skygkruger/semblance-core/issues
+PrivacyUrl: https://semblance.run/privacy
+PackageName: Semblance
+PackageUrl: https://semblance.run
+License: MIT
+LicenseUrl: https://github.com/skygkruger/semblance-core/blob/main/LICENSE
+ShortDescription: Fully local, self-hosted personal AI
+Description: |-
+  Semblance is a fully local, self-hosted personal AI that ingests your emails,
+  files, calendar, messages, and more into a local knowledge graph. It reasons
+  about your life using locally-running language models and acts as your agent
+  in the world. Your data never leaves your device.
+Tags:
+  - ai
+  - assistant
+  - privacy
+  - local
+  - llm
+  - knowledge-graph
+  - personal-ai
+  - offline
+ReleaseNotesUrl: https://github.com/skygkruger/semblance-core/releases/tag/v0.1.0
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
