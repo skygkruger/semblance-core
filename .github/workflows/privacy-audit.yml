@@ -37,7 +37,7 @@ jobs:
           # Check for static import/require of @semblance/dr in core TypeScript files.
           # The dynamic extension loader (extensions/loader.ts) uses a variable-based
           # import() which is the approved integration pattern — not a static import.
-          if grep -r --include="*.ts" --include="*.tsx" -E "from ['\"]@semblance/dr['\"/]|require\(['\"]@semblance/dr" packages/core/ 2>/dev/null; then
+          if grep -r --include="*.ts" --include="*.tsx" -E "from ['\"]@semblance/dr['\"/]|require\(['\"]@semblance/dr|import\(['\"]@semblance/dr" packages/core/ 2>/dev/null; then
             echo "ERROR: Static @semblance/dr import found in packages/core/ — this violates the boundary rule"
             exit 1
           fi
