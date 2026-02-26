@@ -26,8 +26,11 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
+    "better-sqlite3": "^12.6.2",
     "jsdom": "^28.1.0",
     "nanoid": "^5.1.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tsx": "^4.19.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

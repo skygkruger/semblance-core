@@ -13,7 +13,9 @@
     "jsx": "react-jsx",
     "noUncheckedIndexedAccess": true,
     "paths": {
-      "@semblance/ui": ["../semblance-ui"],
+      "@semblance/core": ["../core/index.ts"],
+      "@semblance/core/*": ["../core/*"],
+      "@semblance/ui": ["../semblance-ui/index.ts"],
       "@semblance/ui/*": ["../semblance-ui/*"]
     },
     "baseUrl": "."

@@ -13,8 +13,13 @@
     "declarationMap": true,
     "sourceMap": true,
     "noUncheckedIndexedAccess": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": "..",
+    "paths": {
+      "@semblance/core": ["core/index.ts"],
+      "@semblance/core/*": ["core/*"]
+    }
   },
-  "include": ["ipc/**/*.ts", "services/**/*.ts", "security/**/*.ts", "audit/**/*.ts", "index.ts"],
+  "include": ["ipc/**/*.ts", "services/**/*.ts", "security/**/*.ts", "audit/**/*.ts", "monitor/**/*.ts", "credentials/**/*.ts", "index.ts"],
   "exclude": ["node_modules", "dist"]
 }
