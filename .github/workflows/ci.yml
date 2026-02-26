@@ -24,7 +24,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: tsc --noEmit
+      - run: pnpm exec tsc --noEmit
 
   test:
     name: Test Suite
@@ -39,7 +39,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: vitest run
+      - run: pnpm exec vitest run
 
   privacy-audit:
     name: Privacy Audit

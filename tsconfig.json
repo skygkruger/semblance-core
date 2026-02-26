@@ -15,8 +15,11 @@
     "sourceMap": true,
     "noUncheckedIndexedAccess": true,
     "paths": {
+      "@semblance/core": ["./packages/core/index.ts"],
       "@semblance/core/*": ["./packages/core/*"],
+      "@semblance/gateway": ["./packages/gateway/index.ts"],
       "@semblance/gateway/*": ["./packages/gateway/*"],
+      "@semblance/ui": ["./packages/semblance-ui/index.ts"],
       "@semblance/ui/*": ["./packages/semblance-ui/*"],
       "@semblance/desktop/*": ["./packages/desktop/src/*"],
       "@semblance/mobile/*": ["./packages/mobile/src/*"]
