@@ -15,6 +15,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSync, safeWalkDirectory } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 // Notion appends a 32-hex-char UUID to filenames: "Title abc123def456789012345678901234.md"
@@ -141,8 +142,8 @@ export class NotionExportParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { readFileSync, readdirSync, statSync } = await import('node:fs');
-    const { join, basename, extname } = await import('node:path');
+    const { statSync } = await import('node:fs');
+    const { basename, extname } = await import('node:path');
 
     // Verify the path is a directory
     try {
@@ -164,41 +165,15 @@ export class NotionExportParser implements ImportParser {
       };
     }
 
-    // Recursively find all .md and .html files
-    const contentFiles: string[] = [];
-    const walk = (dir: string): void => {
-      try {
-        const entries = readdirSync(dir);
-        for (const entry of entries) {
-          const fullPath = join(dir, entry);
-          try {
-            const stat = statSync(fullPath);
-            if (stat.isDirectory()) {
-              // Skip hidden directories
-              if (!entry.startsWith('.')) walk(fullPath);
-            } else {
-              const ext = extname(entry).toLowerCase();
-              if (ext === '.md' || ext === '.html') {
-                contentFiles.push(fullPath);
-              }
-            }
-          } catch {
-            errors.push({ message: `Cannot stat ${fullPath}` });
-          }
-        }
-      } catch {
-        errors.push({ message: `Cannot read directory ${dir}` });
-      }
-    };
-
-    walk(path);
+    // Recursively find all .md and .html files using safe walker (symlink-aware)
+    const contentFiles = safeWalkDirectory(path, ['.md', '.html']);
 
     const totalFound = contentFiles.length;
     let items: ImportedItem[] = [];
 
     for (const filePath of contentFiles) {
       try {
-        const raw = readFileSync(filePath, 'utf-8');
+        const raw = safeReadFileSync(filePath);
         const ext = extname(filePath).toLowerCase();
         const fileBasename = basename(filePath, ext);
 

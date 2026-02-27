@@ -228,14 +228,30 @@ function run() {
     'WebSocket constructor',
   ];
 
-  // Note: fetch() is NOT banned in desktop frontend — Tauri's invoke() calls are the approved pattern.
-  // The CSP blocks external URLs. Direct fetch() to external URLs would be blocked by CSP.
+  // fetch() is banned in desktop frontend EXCEPT for explicitly allowlisted files.
+  // LicenseContext.tsx calls fetch() for user-initiated Stripe portal redirect and license
+  // worker communication — these are the ONLY approved external fetch() calls in the frontend.
+  const DESKTOP_FETCH_PATTERN = /\bfetch\s*\(/;
+  const DESKTOP_FETCH_ALLOWLIST = new Set([
+    'contexts/LicenseContext.tsx', // User-initiated Stripe portal + license worker calls
+  ]);
 
   const desktopFiles = collectFiles(DESKTOP_SRC_DIR, ['.ts', '.tsx', '.js', '.jsx']);
   console.log(`Scanning ${desktopFiles.length} desktop frontend file(s)...`);
   for (const file of desktopFiles) {
     const violations = scanFile(file, BANNED_DESKTOP_PATTERNS, DESKTOP_PATTERN_NAMES);
     allViolations.push(...violations);
+
+    // Scan for fetch() calls — banned unless file is on the allowlist
+    const relPath = relative(DESKTOP_SRC_DIR, file).replace(/\\/g, '/');
+    if (!DESKTOP_FETCH_ALLOWLIST.has(relPath)) {
+      const fetchViolations = scanFile(
+        file,
+        [DESKTOP_FETCH_PATTERN],
+        ['fetch() call in desktop frontend (not allowlisted — use Tauri invoke() instead)'],
+      );
+      allViolations.push(...fetchViolations);
+    }
   }
 
   // Verify tauri.conf.json: updater must be disabled, CSP must block external origins

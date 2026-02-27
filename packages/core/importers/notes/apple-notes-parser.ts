@@ -8,6 +8,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSync } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 function deterministicId(titleAndContent: string): string {
@@ -81,7 +82,7 @@ export class AppleNotesParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { readFileSync, statSync, readdirSync } = await import('node:fs');
+    const { statSync, readdirSync } = await import('node:fs');
     const { join, basename, extname } = await import('node:path');
 
     // Gather HTML files
@@ -112,7 +113,7 @@ export class AppleNotesParser implements ImportParser {
 
     for (const filePath of htmlFiles) {
       try {
-        const html = readFileSync(filePath, 'utf-8');
+        const html = safeReadFileSync(filePath);
         const title = extractTitle(html) || basename(filePath, extname(filePath));
         const content = stripHtml(html);
 

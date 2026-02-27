@@ -20,6 +20,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSync, rejectXmlEntities, XML_MAX_BYTES } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 function deterministicId(title: string, created: string): string {
@@ -236,8 +237,7 @@ export class EvernoteExportParser implements ImportParser {
     let rawData: string;
 
     try {
-      const { readFileSync } = await import('node:fs');
-      rawData = readFileSync(path, 'utf-8');
+      rawData = safeReadFileSync(path, XML_MAX_BYTES);
     } catch (err) {
       return {
         format: 'evernote_enex',
@@ -246,6 +246,9 @@ export class EvernoteExportParser implements ImportParser {
         totalFound: 0,
       };
     }
+
+    // Reject XML files with DOCTYPE ENTITY definitions (XXE prevention)
+    rejectXmlEntities(rawData, path);
 
     // Validate it looks like ENEX
     if (!rawData.includes('<en-export') && !rawData.includes('<!DOCTYPE en-export')) {

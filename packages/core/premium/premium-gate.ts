@@ -6,6 +6,10 @@
  *
  * Gate checks happen at orchestrator/UI level, NOT inside analysis classes.
  * This keeps SpendingAnalyzer, AnomalyDetector, LLMCategorizer pure and testable.
+ *
+ * SECURITY: License keys are stored in the OS keychain (via KeyStorage), NOT in SQLite.
+ * SQLite stores only metadata: tier, activated_at, expires_at, founding_seat.
+ * The actual key material never touches the database.
  */
 
 import type { DatabaseHandle } from '../platform/types.js';
@@ -49,8 +53,21 @@ interface LicenseRow {
   tier: string;
   activated_at: string;
   expires_at: string | null;
-  license_key: string;
   founding_seat: number | null;
+}
+
+/**
+ * KeyStorage interface for license key persistence in OS keychain.
+ * Matches the KeyStorage interface from gateway/credentials/key-storage.ts.
+ * Defined here to avoid importing gateway code into core.
+ */
+export interface LicenseKeyStorage {
+  /** Store a license key in the OS keychain. */
+  setLicenseKey(key: string): Promise<void>;
+  /** Retrieve the license key from the OS keychain. Returns null if not set. */
+  getLicenseKey(): Promise<string | null>;
+  /** Delete the license key from the OS keychain. */
+  deleteLicenseKey(): Promise<void>;
 }
 
 // ─── Feature → Tier Mapping ─────────────────────────────────────────────────
@@ -89,31 +106,70 @@ const TIER_RANK: Record<LicenseTier, number> = {
 
 export class PremiumGate {
   private db: DatabaseHandle;
+  private keyStorage: LicenseKeyStorage | null;
 
-  constructor(db: DatabaseHandle) {
+  constructor(db: DatabaseHandle, keyStorage?: LicenseKeyStorage) {
     this.db = db;
+    this.keyStorage = keyStorage ?? null;
     this.ensureTable();
   }
 
   private ensureTable(): void {
+    // SECURITY: license_key column removed — keys stored in OS keychain only.
+    // Metadata-only schema: tier, activated_at, expires_at, founding_seat.
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS license (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         tier TEXT NOT NULL DEFAULT 'free',
         activated_at TEXT NOT NULL,
         expires_at TEXT,
-        license_key TEXT NOT NULL,
         founding_seat INTEGER
       )
     `);
 
     // Migration: add founding_seat column to existing tables that lack it.
-    // SQLite ALTER TABLE ADD COLUMN is a no-op if the column already exists
-    // when wrapped in a try-catch.
     try {
       this.db.exec('ALTER TABLE license ADD COLUMN founding_seat INTEGER');
     } catch {
       // Column already exists — expected on subsequent runs
+    }
+
+    // Migration: drop license_key column from legacy databases.
+    // SQLite doesn't support DROP COLUMN before 3.35.0, so we
+    // recreate the table without it. Wrapped in try-catch because
+    // the column may already be absent on fresh installs.
+    this.migrateLegacyKeyColumn();
+  }
+
+  /**
+   * Remove the license_key column from legacy databases.
+   * The key is now stored in the OS keychain, never in SQLite.
+   */
+  private migrateLegacyKeyColumn(): void {
+    try {
+      // Check if license_key column exists by querying table_info
+      const columns = this.db.prepare("PRAGMA table_info('license')").all() as Array<{ name: string }>;
+      const hasKeyColumn = columns.some(c => c.name === 'license_key');
+
+      if (!hasKeyColumn) return; // Already migrated or fresh install
+
+      // Recreate table without license_key column
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS license_new (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          tier TEXT NOT NULL DEFAULT 'free',
+          activated_at TEXT NOT NULL,
+          expires_at TEXT,
+          founding_seat INTEGER
+        );
+        INSERT OR REPLACE INTO license_new (id, tier, activated_at, expires_at, founding_seat)
+          SELECT id, tier, activated_at, expires_at, founding_seat FROM license;
+        DROP TABLE license;
+        ALTER TABLE license_new RENAME TO license;
+      `);
+    } catch {
+      // Migration failed — table may be in unexpected state.
+      // On next launch the ensureTable() CREATE IF NOT EXISTS handles fresh state.
     }
   }
 
@@ -205,17 +261,23 @@ export class PremiumGate {
     const now = new Date().toISOString();
     const seat = tier === 'founding' && payload.seat ? payload.seat : null;
 
-    // Upsert license (include founding_seat for founding tier keys)
+    // Upsert license metadata in SQLite (NO license key stored here)
     this.db.prepare(`
-      INSERT INTO license (id, tier, activated_at, expires_at, license_key, founding_seat)
-      VALUES (1, ?, ?, ?, ?, ?)
+      INSERT INTO license (id, tier, activated_at, expires_at, founding_seat)
+      VALUES (1, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         tier = excluded.tier,
         activated_at = excluded.activated_at,
         expires_at = excluded.expires_at,
-        license_key = excluded.license_key,
         founding_seat = excluded.founding_seat
-    `).run(tier, now, expiresAt, key, seat);
+    `).run(tier, now, expiresAt, seat);
+
+    // Store the actual license key in OS keychain (async, fire-and-forget for sync compat)
+    if (this.keyStorage) {
+      this.keyStorage.setLicenseKey(key).catch(() => {
+        // Best-effort keychain storage — metadata is already in SQLite
+      });
+    }
 
     return {
       success: true,
@@ -237,17 +299,23 @@ export class PremiumGate {
 
     const now = new Date().toISOString();
 
-    // Upsert license row — founding membership never expires
+    // Upsert license metadata — founding membership never expires
     this.db.prepare(`
-      INSERT INTO license (id, tier, activated_at, expires_at, license_key, founding_seat)
-      VALUES (1, 'founding', ?, NULL, ?, ?)
+      INSERT INTO license (id, tier, activated_at, expires_at, founding_seat)
+      VALUES (1, 'founding', ?, NULL, ?)
       ON CONFLICT(id) DO UPDATE SET
         tier = 'founding',
         activated_at = excluded.activated_at,
         expires_at = NULL,
-        license_key = excluded.license_key,
         founding_seat = excluded.founding_seat
-    `).run(now, token, result.payload.seat);
+    `).run(now, result.payload.seat);
+
+    // Store founding token in OS keychain
+    if (this.keyStorage) {
+      this.keyStorage.setLicenseKey(token).catch(() => {
+        // Best-effort keychain storage
+      });
+    }
 
     return {
       success: true,
@@ -274,14 +342,29 @@ export class PremiumGate {
   }
 
   /**
-   * Returns the stored license key, or null if no license.
+   * Returns the stored license key from OS keychain, or null if no license.
+   * Async because keychain access is async.
    */
-  getLicenseKey(): string | null {
-    const row = this.db.prepare('SELECT license_key FROM license WHERE id = 1').get() as
-      | { license_key: string | null }
-      | undefined;
-    if (!row) return null;
-    return row.license_key ?? null;
+  async getLicenseKey(): Promise<string | null> {
+    if (!this.keyStorage) return null;
+    try {
+      return await this.keyStorage.getLicenseKey();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Disconnect / deactivate the current license.
+   * Clears both SQLite metadata and OS keychain key.
+   */
+  async disconnect(): Promise<void> {
+    // Clear keychain first
+    if (this.keyStorage) {
+      await this.keyStorage.deleteLicenseKey().catch(() => {});
+    }
+    // Clear SQLite metadata
+    this.db.prepare('DELETE FROM license WHERE id = 1').run();
   }
 
   /**

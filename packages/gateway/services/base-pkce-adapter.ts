@@ -61,6 +61,7 @@ export abstract class BasePKCEAdapter extends BaseOAuthAdapter {
 
   /**
    * Build token exchange body with code_verifier instead of client_secret.
+   * SECURITY: Clears the codeVerifier after use to prevent reuse or memory leakage.
    */
   protected override buildTokenExchangeBody(code: string, callbackUrl: string): Record<string, string> {
     const body: Record<string, string> = {
@@ -72,6 +73,9 @@ export abstract class BasePKCEAdapter extends BaseOAuthAdapter {
 
     if (this.codeVerifier) {
       body['code_verifier'] = this.codeVerifier;
+      // Clear immediately after use — prevents concurrent flow cross-contamination
+      // and reduces the window for in-memory key exposure
+      this.codeVerifier = null;
     }
 
     return body;

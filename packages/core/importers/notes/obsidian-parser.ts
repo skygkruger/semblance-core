@@ -11,6 +11,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSync, safeWalkDirectory } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 function deterministicId(filePath: string): string {
@@ -80,41 +81,18 @@ export class ObsidianParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { readFileSync, readdirSync, statSync } = await import('node:fs');
-    const { join, basename, extname } = await import('node:path');
+    const { statSync } = await import('node:fs');
+    const { basename } = await import('node:path');
 
-    // Recursively find all .md files
-    const mdFiles: string[] = [];
-    const walk = (dir: string): void => {
-      try {
-        const entries = readdirSync(dir);
-        for (const entry of entries) {
-          const fullPath = join(dir, entry);
-          try {
-            const stat = statSync(fullPath);
-            if (stat.isDirectory()) {
-              // Skip hidden directories
-              if (!entry.startsWith('.')) walk(fullPath);
-            } else if (extname(entry).toLowerCase() === '.md') {
-              mdFiles.push(fullPath);
-            }
-          } catch {
-            errors.push({ message: `Cannot stat ${fullPath}` });
-          }
-        }
-      } catch {
-        errors.push({ message: `Cannot read directory ${dir}` });
-      }
-    };
-
-    walk(path);
+    // Recursively find all .md files using safe walker (symlink-aware)
+    const mdFiles = safeWalkDirectory(path, ['.md']);
 
     const totalFound = mdFiles.length;
     let items: ImportedItem[] = [];
 
     for (const filePath of mdFiles) {
       try {
-        const raw = readFileSync(filePath, 'utf-8');
+        const raw = safeReadFileSync(filePath);
         const { frontmatter, body } = parseFrontmatter(raw);
         const title = basename(filePath, '.md');
         const tags = extractTags(raw);

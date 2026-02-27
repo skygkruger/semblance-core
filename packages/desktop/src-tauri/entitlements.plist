@@ -10,10 +10,6 @@
     <key>com.apple.security.network.client</key>
     <true/>
 
-    <!-- Network: mDNS for local device discovery (mobile handoff) -->
-    <key>com.apple.security.network.server</key>
-    <true/>
-
     <!-- Files: User-selected files for knowledge graph indexing -->
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
@@ -28,14 +24,6 @@
 
     <!-- Location: Location-aware features (Step 16) -->
     <key>com.apple.security.personal-information.location</key>
-    <true/>
-
-    <!-- Microphone: Voice features (Step 17) -->
-    <key>com.apple.security.device.microphone</key>
-    <true/>
-
-    <!-- Audio Input: Voice features (Step 17) -->
-    <key>com.apple.security.device.audio-input</key>
     <true/>
 </dict>
 </plist>

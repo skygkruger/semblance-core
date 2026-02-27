@@ -28,6 +28,8 @@ import type { ContactResolver } from '../knowledge/contacts/contact-resolver.js'
 import type { ResolvedContactResult } from '../knowledge/contacts/contact-types.js';
 import type { MessageDrafter } from './messaging/message-drafter.js';
 import type { ExtensionTool, ToolHandler } from '../extensions/types.js';
+import { BoundaryEnforcer, type EscalationBoundary } from './escalation-boundaries.js';
+import { sanitizeRetrievedContent, wrapInDataBoundary, INJECTION_CANARY } from './content-sanitizer.js';
 
 // --- Conversation Storage ---
 
@@ -366,7 +368,9 @@ Available tools:
 - get_weather: Get current weather and forecast
 - search_cloud_files: Search cloud-synced files (Google Drive, Dropbox) indexed locally
 
-Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.`;
+Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.
+
+${INJECTION_CANARY}`;
 
 // --- Orchestrator Interface ---
 
@@ -413,6 +417,7 @@ export class OrchestratorImpl implements Orchestrator {
   private contactResolver: ContactResolver | null;
   private messageDrafter: MessageDrafter | null;
   private voiceModeActive = false;
+  private boundaryEnforcer: BoundaryEnforcer;
   // Extension support
   private extensionToolHandlers: Map<string, ToolHandler> = new Map();
   private allTools: ToolDefinition[] = [...BASE_TOOLS];
@@ -446,6 +451,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.contactResolver = config.contactResolver ?? null;
     this.messageDrafter = config.messageDrafter ?? null;
     this.voiceModeActive = config.voiceModeActive ?? false;
+    this.boundaryEnforcer = new BoundaryEnforcer(config.db);
     this.db.exec(CREATE_TABLES);
   }
 
@@ -485,15 +491,28 @@ export class OrchestratorImpl implements Orchestrator {
       actions.push(...toolResults.actions);
 
       // If any tools were executed, send results back to LLM for final response
+      // SECURITY: Tool results (especially web.fetch / web.search) are sanitized
+      // before re-injection to prevent prompt injection via fetched web pages.
       if (toolResults.executedResults.length > 0) {
+        const sanitizedToolResults = toolResults.executedResults.map(r => {
+          const resultStr = JSON.stringify(r.result);
+          // Web fetch and search results are the highest-entropy injection surface
+          const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web';
+          const sanitized = needsFullSanitization
+            ? sanitizeRetrievedContent(resultStr)
+            : resultStr;
+          return `${r.tool}: ${sanitized}`;
+        }).join('\n');
+
         const followUpMessages = [
           ...messages,
           { role: 'assistant' as const, content: response.message.content },
           {
             role: 'user' as const,
-            content: `Tool results:\n${toolResults.executedResults.map(r =>
-              `${r.tool}: ${JSON.stringify(r.result)}`
-            ).join('\n')}`,
+            content: wrapInDataBoundary(
+              `Tool results:\n${sanitizedToolResults}`,
+              'tool execution results',
+            ),
           },
         ];
 
@@ -684,28 +703,33 @@ export class OrchestratorImpl implements Orchestrator {
     ];
 
     // Add document-scoped context (high priority — before general context)
+    // SECURITY: All retrieved content is sanitized to prevent prompt injection.
     if (documentChunks.length > 0) {
       const docName = this.documentContext?.getActiveDocument()?.fileName ?? 'document';
       const docContextStr = documentChunks.map((r, i) =>
-        `[${i + 1}] ${r.chunk.content.slice(0, 800)}`
+        `[${i + 1}] ${sanitizeRetrievedContent(r.chunk.content.slice(0, 800))}`
       ).join('\n\n');
       messages.push({
-        role: 'system',
-        content: `The user is asking about '${docName}'. Relevant passages:\n${docContextStr}`,
+        role: 'user',
+        content: wrapInDataBoundary(
+          `The user is asking about '${docName}'. Relevant passages:\n${docContextStr}`,
+          'document context',
+        ),
       });
     }
 
     // Add general context from knowledge graph (deduplicated against document chunks)
+    // SECURITY: Sanitized and wrapped in data boundaries.
     const docChunkIds = new Set(documentChunks.map(r => r.chunk.id));
     const deduplicatedContext = context.filter(r => !docChunkIds.has(r.chunk.id));
 
     if (deduplicatedContext.length > 0) {
       const contextStr = deduplicatedContext.map((r, i) =>
-        `[${i + 1}] ${r.document.title} (${r.document.source}): ${r.chunk.content.slice(0, 500)}`
+        `[${i + 1}] ${r.document.title} (${r.document.source}): ${sanitizeRetrievedContent(r.chunk.content.slice(0, 500))}`
       ).join('\n\n');
       messages.push({
-        role: 'system',
-        content: `Relevant context from the user's knowledge base:\n${contextStr}`,
+        role: 'user',
+        content: wrapInDataBoundary(contextStr, 'knowledge base'),
       });
     }
 
@@ -735,9 +759,70 @@ export class OrchestratorImpl implements Orchestrator {
     const executedResults: Array<{ tool: string; result: unknown }> = [];
 
     for (const tc of toolCalls) {
-      // Extension tools — dispatch to registered handlers first
+      // Extension tools — dispatch to registered handlers with autonomy + audit checks
       const extHandler = this.extensionToolHandlers.get(tc.name);
       if (extHandler) {
+        // Determine autonomy tier for extension tools
+        const extActionType = this.allToolActionMap[tc.name];
+        const extDomain = extActionType
+          ? this.autonomy.getDomainForAction(extActionType)
+          : 'general' as AutonomyDomain;
+        const extTier = this.autonomy.getDomainTier(extDomain);
+
+        // BoundaryEnforcer: check payload-level boundaries even for extensions
+        if (extActionType) {
+          const boundaries = this.boundaryEnforcer.checkBoundaries({
+            action: extActionType,
+            payload: tc.arguments,
+          });
+          if (this.boundaryEnforcer.shouldEscalate(boundaries)) {
+            // Queue for approval instead of executing
+            const agentAction: AgentAction = {
+              id: nanoid(),
+              action: extActionType,
+              payload: tc.arguments,
+              reasoning: `Extension tool '${tc.name}' triggered boundary escalation: ${boundaries.map(b => b.reason).join('; ')}`,
+              domain: extDomain,
+              tier: extTier,
+              status: 'pending_approval',
+              createdAt: new Date().toISOString(),
+            };
+            this.db.prepare(`
+              INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?)
+            `).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload),
+              agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt);
+            actions.push(agentAction);
+            continue;
+          }
+        }
+
+        // In Guardian mode, extension tools ALSO require approval
+        const extDecision = extActionType
+          ? this.autonomy.decide(extActionType)
+          : (extTier === 'guardian' ? 'requires_approval' as const : 'auto_approve' as const);
+
+        if (extDecision === 'requires_approval') {
+          const agentAction: AgentAction = {
+            id: nanoid(),
+            action: extActionType ?? 'service.api_call',
+            payload: tc.arguments,
+            reasoning: `Extension tool '${tc.name}' requires approval (${extTier} tier)`,
+            domain: extDomain,
+            tier: extTier,
+            status: 'pending_approval',
+            createdAt: new Date().toISOString(),
+          };
+          this.db.prepare(`
+            INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?)
+          `).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload),
+            agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt);
+          actions.push(agentAction);
+          continue;
+        }
+
+        // Execute with audit trail logging
         try {
           const handlerResult = await extHandler(tc.arguments);
           if (handlerResult.error) {
@@ -874,13 +959,26 @@ export class OrchestratorImpl implements Orchestrator {
 
       const domain = this.autonomy.getDomainForAction(actionType);
       const tier = this.autonomy.getDomainTier(domain);
-      const decision = this.autonomy.decide(actionType);
+
+      // BoundaryEnforcer: payload-level checks (financial, legal, irreversible)
+      const boundaries = this.boundaryEnforcer.checkBoundaries({
+        action: actionType,
+        payload: tc.arguments,
+      });
+      const boundaryEscalation = this.boundaryEnforcer.shouldEscalate(boundaries);
+
+      // If boundaries triggered, force approval regardless of autonomy tier
+      const decision = boundaryEscalation
+        ? 'requires_approval' as const
+        : this.autonomy.decide(actionType);
 
       const agentAction: AgentAction = {
         id: nanoid(),
         action: actionType,
         payload: tc.arguments,
-        reasoning: `LLM requested ${tc.name} based on conversation context`,
+        reasoning: boundaryEscalation
+          ? `LLM requested ${tc.name} — escalated: ${boundaries.map(b => b.reason).join('; ')}`
+          : `LLM requested ${tc.name} based on conversation context`,
         domain,
         tier,
         status: 'pending_approval',

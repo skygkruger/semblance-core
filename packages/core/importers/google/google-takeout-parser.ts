@@ -22,6 +22,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSync, safeWalkDirectory } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 function deterministicId(prefix: string, ...parts: string[]): string {
@@ -33,10 +34,9 @@ function deterministicId(prefix: string, ...parts: string[]): string {
 /**
  * Safely parse JSON from a file path. Returns null on failure.
  */
-async function readJsonFile(filePath: string): Promise<unknown | null> {
+function readJsonFile(filePath: string): unknown | null {
   try {
-    const { readFileSync } = await import('node:fs');
-    const raw = readFileSync(filePath, 'utf-8');
+    const raw = safeReadFileSync(filePath);
     return JSON.parse(raw);
   } catch {
     return null;
@@ -45,25 +45,28 @@ async function readJsonFile(filePath: string): Promise<unknown | null> {
 
 /**
  * Recursively find files matching a predicate within a directory.
- * Returns full file paths.
+ * Returns full file paths. Uses lstatSync for symlink detection.
  */
-async function findFiles(dir: string, predicate: (name: string) => boolean, maxDepth: number = 5): Promise<string[]> {
+function findFiles(dir: string, predicate: (name: string) => boolean, maxDepth: number = 5): string[] {
   const results: string[] = [];
   if (maxDepth <= 0) return results;
 
   try {
-    const { readdirSync, statSync } = await import('node:fs');
-    const { join } = await import('node:path');
+    const { readdirSync, lstatSync } = require('node:fs') as typeof import('node:fs');
+    const { join } = require('node:path') as typeof import('node:path');
     const entries = readdirSync(dir);
 
     for (const entry of entries) {
+      if (entry === 'node_modules' || entry === '.git' || entry === '__MACOSX') continue;
       const fullPath = join(dir, entry);
       try {
-        const stat = statSync(fullPath);
-        if (stat.isDirectory()) {
-          const subFiles = await findFiles(fullPath, predicate, maxDepth - 1);
+        // SECURITY: Use lstatSync to detect symlinks before following
+        const lstat = lstatSync(fullPath);
+        if (lstat.isSymbolicLink()) continue;
+        if (lstat.isDirectory()) {
+          const subFiles = findFiles(fullPath, predicate, maxDepth - 1);
           results.push(...subFiles);
-        } else if (stat.isFile() && predicate(entry)) {
+        } else if (lstat.isFile() && predicate(entry)) {
           results.push(fullPath);
         }
       } catch {
@@ -291,8 +294,8 @@ export class GoogleTakeoutParser implements ImportParser {
 
     // Determine the Takeout root directory
     let takeoutRoot = path;
-    const { statSync, existsSync } = await import('node:fs');
-    const { join } = await import('node:path');
+    const { statSync, existsSync } = require('node:fs') as typeof import('node:fs');
+    const { join } = require('node:path') as typeof import('node:path');
 
     try {
       const stat = statSync(path);
@@ -322,11 +325,11 @@ export class GoogleTakeoutParser implements ImportParser {
     }
 
     // 1. YouTube watch history
-    const ytHistoryFiles = await findFiles(takeoutRoot, (name) =>
+    const ytHistoryFiles = findFiles(takeoutRoot, (name) =>
       name.toLowerCase() === 'watch-history.json',
     );
     for (const file of ytHistoryFiles) {
-      const data = await readJsonFile(file);
+      const data = readJsonFile(file);
       if (data) {
         const ytItems = parseYouTubeHistory(data, options, errors);
         allItems.push(...ytItems);
@@ -334,14 +337,14 @@ export class GoogleTakeoutParser implements ImportParser {
     }
 
     // 2. Search activity
-    const searchFiles = await findFiles(takeoutRoot, (name) =>
+    const searchFiles = findFiles(takeoutRoot, (name) =>
       name.toLowerCase() === 'myactivity.json' || name.toLowerCase() === 'my activity.json',
     );
     for (const file of searchFiles) {
       const lowerFile = file.toLowerCase().replace(/\\/g, '/');
       // Only parse files in a Search directory
       if (lowerFile.includes('/search/')) {
-        const data = await readJsonFile(file);
+        const data = readJsonFile(file);
         if (data) {
           const searchItems = parseSearchActivity(data, options, errors);
           allItems.push(...searchItems);
@@ -350,7 +353,7 @@ export class GoogleTakeoutParser implements ImportParser {
     }
 
     // 3. Maps activity
-    const mapsFiles = await findFiles(takeoutRoot, (name) => {
+    const mapsFiles = findFiles(takeoutRoot, (name) => {
       const lower = name.toLowerCase();
       return lower === 'myactivity.json' ||
              lower === 'my activity.json' ||
@@ -359,7 +362,7 @@ export class GoogleTakeoutParser implements ImportParser {
     for (const file of mapsFiles) {
       const lowerFile = file.toLowerCase().replace(/\\/g, '/');
       if (lowerFile.includes('/maps/') || lowerFile.includes('/maps (')) {
-        const data = await readJsonFile(file);
+        const data = readJsonFile(file);
         if (data) {
           const mapsItems = parseMapsActivity(data, options, errors);
           allItems.push(...mapsItems);
@@ -368,11 +371,11 @@ export class GoogleTakeoutParser implements ImportParser {
     }
 
     // 4. Chrome browser history -- delegate detection but parse inline
-    const chromeFiles = await findFiles(takeoutRoot, (name) =>
+    const chromeFiles = findFiles(takeoutRoot, (name) =>
       name.toLowerCase() === 'browserhistory.json',
     );
     for (const file of chromeFiles) {
-      const data = await readJsonFile(file) as { 'Browser History'?: Array<{ title: string; url: string; time_usec: number; page_transition: string }> } | null;
+      const data = readJsonFile(file) as { 'Browser History'?: Array<{ title: string; url: string; time_usec: number; page_transition: string }> } | null;
       if (data && Array.isArray(data['Browser History'])) {
         const entries = data['Browser History'];
         for (let i = 0; i < entries.length; i++) {
@@ -426,7 +429,7 @@ export class GoogleTakeoutParser implements ImportParser {
    */
   private async parseSingleFile(filePath: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const data = await readJsonFile(filePath);
+    const data = readJsonFile(filePath);
 
     if (!data || !Array.isArray(data)) {
       return {

@@ -1,52 +1,68 @@
 // Credential Encryption — AES-256-GCM encryption for passwords at rest.
 //
-// AUTONOMOUS DECISION: Local key file at ~/.semblance/credential.key
-// Reasoning: OS keychain integration (tauri-plugin-stronghold) requires Rust-side
-// changes and is complex to wire through the Node.js sidecar. The local key file
-// approach (256-bit random key, 0600 permissions on Unix, stored in the user's
-// .semblance directory) provides strong encryption at rest. This is the same pattern
-// used by the Gateway's signing key. OS-level keychain integration is documented as
-// a Sprint 4 improvement (OS-level sandboxing step).
-// Escalation check: Build prompt explicitly authorizes this decision.
+// The encryption key is stored via KeyStorage:
+// - Desktop: OS keychain (Tauri secure storage / stronghold)
+// - Headless/CI: File-based fallback with 0600 permissions
+//
+// SECURITY: The key MUST be stored in the OS keychain on desktop.
+// The file-based fallback is for headless environments only.
 
 import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { homedir } from 'node:os';
+import type { KeyStorage } from './key-storage.js';
+import { FileKeyStorage } from './key-storage.js';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;      // 96-bit IV for GCM
 const AUTH_TAG_LENGTH = 16; // 128-bit auth tag
 
+// Cached key for synchronous access after async initialization
+let cachedKey: Buffer | null = null;
+let activeKeyStorage: KeyStorage | null = null;
+
 /**
- * Get or create the credential encryption key.
- * The key is a 256-bit random value stored at ~/.semblance/credential.key.
+ * Initialize encryption with a KeyStorage backend.
+ * Must be called once at app startup before any encrypt/decrypt operations.
+ */
+export async function initEncryption(storage: KeyStorage): Promise<Buffer> {
+  activeKeyStorage = storage;
+  cachedKey = await storage.getKey();
+  return cachedKey;
+}
+
+/**
+ * Get the encryption key synchronously.
+ * Requires initEncryption() to have been called first.
+ *
+ * Falls back to FileKeyStorage if not initialized (for backward compatibility
+ * during migration). This fallback will be removed in a future version.
  */
 export function getEncryptionKey(keyPath?: string): Buffer {
-  const path = keyPath ?? join(homedir(), '.semblance', 'credential.key');
+  if (cachedKey) return cachedKey;
 
-  if (existsSync(path)) {
-    return readFileSync(path);
-  }
+  // LEGACY FALLBACK: Direct file access when initEncryption hasn't been called.
+  // This path is only reached during migration or in headless/CI environments.
+  const fileStorage = new FileKeyStorage(keyPath);
+  // Synchronous wrapper — FileKeyStorage.getKey() does sync I/O internally
+  const key = require('node:fs').existsSync(
+    keyPath ?? require('node:path').join(require('node:os').homedir(), '.semblance', 'credential.key')
+  )
+    ? require('node:fs').readFileSync(
+        keyPath ?? require('node:path').join(require('node:os').homedir(), '.semblance', 'credential.key')
+      )
+    : (() => {
+        // Generate synchronously for legacy compat
+        const newKey = randomBytes(32);
+        const path = keyPath ?? require('node:path').join(require('node:os').homedir(), '.semblance', 'credential.key');
+        const dir = require('node:path').dirname(path);
+        if (!require('node:fs').existsSync(dir)) {
+          require('node:fs').mkdirSync(dir, { recursive: true });
+        }
+        require('node:fs').writeFileSync(path, newKey);
+        try { require('node:fs').chmodSync(path, 0o600); } catch { /* Windows */ }
+        return newKey;
+      })();
 
-  // Generate a new key
-  const key = randomBytes(32);
-
-  // Ensure directory exists
-  const dir = dirname(path);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-
-  writeFileSync(path, key);
-
-  // Set restrictive permissions on Unix-like systems
-  try {
-    chmodSync(path, 0o600);
-  } catch {
-    // Windows doesn't support chmod — file permissions are handled differently
-  }
-
+  cachedKey = key;
   return key;
 }
 

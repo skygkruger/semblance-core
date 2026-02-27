@@ -14,6 +14,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSync, safeWalkDirectory } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 function deterministicId(filePath: string): string {
@@ -104,13 +105,13 @@ function extractTitle(content: string, fileBasename: string): string {
  * - Flat directory structure (Bear doesn't use subdirectories)
  * - .md file extension
  */
-function looksBearExport(files: string[], readFileSync: (p: string, e: string) => string): boolean {
+function looksBearExport(files: string[], readFn: (p: string) => string): boolean {
   let taggedFileCount = 0;
   const filesToCheck = files.slice(0, 10); // Check first 10 files max
 
   for (const file of filesToCheck) {
     try {
-      const content = readFileSync(file, 'utf-8');
+      const content = readFn(file);
       const tags = extractBearTags(content);
       if (tags.length > 0) {
         taggedFileCount++;
@@ -130,7 +131,7 @@ export class BearExportParser implements ImportParser {
 
   canParse(path: string): boolean {
     try {
-      const { statSync, readdirSync, readFileSync } = require('node:fs') as typeof import('node:fs');
+      const { statSync, readdirSync } = require('node:fs') as typeof import('node:fs');
       const { join, extname } = require('node:path') as typeof import('node:path');
 
       const stat = statSync(path);
@@ -145,7 +146,7 @@ export class BearExportParser implements ImportParser {
       if (mdFiles.length === 0) return false;
 
       // Check if they look like Bear exports (have #tags)
-      return looksBearExport(mdFiles, (p, e) => readFileSync(p, e as BufferEncoding) as string);
+      return looksBearExport(mdFiles, (p) => safeReadFileSync(p));
     } catch {
       return false;
     }
@@ -153,8 +154,8 @@ export class BearExportParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { readFileSync, readdirSync, statSync } = await import('node:fs');
-    const { join, basename, extname } = await import('node:path');
+    const { statSync } = await import('node:fs');
+    const { basename } = await import('node:path');
 
     // Verify the path is a directory
     try {
@@ -176,37 +177,15 @@ export class BearExportParser implements ImportParser {
       };
     }
 
-    // Find all .md files (Bear exports are typically flat, but handle subdirectories)
-    const mdFiles: string[] = [];
-    const walk = (dir: string): void => {
-      try {
-        const entries = readdirSync(dir);
-        for (const entry of entries) {
-          const fullPath = join(dir, entry);
-          try {
-            const stat = statSync(fullPath);
-            if (stat.isDirectory()) {
-              if (!entry.startsWith('.')) walk(fullPath);
-            } else if (extname(entry).toLowerCase() === '.md') {
-              mdFiles.push(fullPath);
-            }
-          } catch {
-            errors.push({ message: `Cannot stat ${fullPath}` });
-          }
-        }
-      } catch {
-        errors.push({ message: `Cannot read directory ${dir}` });
-      }
-    };
-
-    walk(path);
+    // Find all .md files using safe walker (symlink-aware)
+    const mdFiles = safeWalkDirectory(path, ['.md']);
 
     const totalFound = mdFiles.length;
     let items: ImportedItem[] = [];
 
     for (const filePath of mdFiles) {
       try {
-        const raw = readFileSync(filePath, 'utf-8');
+        const raw = safeReadFileSync(filePath);
         const fileBasename = basename(filePath, '.md');
         const title = extractTitle(raw, fileBasename);
         const tags = extractBearTags(raw);

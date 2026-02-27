@@ -12,6 +12,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSync } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 // Match various WhatsApp timestamp formats
@@ -80,8 +81,7 @@ export class WhatsAppParser implements ImportParser {
     let rawData: string;
 
     try {
-      const { readFileSync } = await import('node:fs');
-      rawData = readFileSync(path, 'utf-8');
+      rawData = safeReadFileSync(path);
     } catch (err) {
       return {
         format: 'whatsapp_txt',

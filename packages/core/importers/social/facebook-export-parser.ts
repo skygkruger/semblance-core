@@ -13,6 +13,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSync } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 /**
@@ -119,7 +120,7 @@ export class FacebookExportParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { readFileSync, statSync, existsSync, readdirSync } = await import('node:fs');
+    const { statSync, existsSync, readdirSync } = await import('node:fs');
     const { join, basename } = await import('node:path');
 
     let items: ImportedItem[] = [];
@@ -134,7 +135,7 @@ export class FacebookExportParser implements ImportParser {
 
         for (const postFile of postFiles) {
           try {
-            const raw = readFileSync(postFile, 'utf-8');
+            const raw = safeReadFileSync(postFile);
             const result = this.parsePostsJson(raw, postFile, options, errors);
             totalFound += result.totalFound;
             items.push(...result.items);
@@ -152,7 +153,7 @@ export class FacebookExportParser implements ImportParser {
         for (const commentPath of commentPaths) {
           if (existsSync(commentPath)) {
             try {
-              const raw = readFileSync(commentPath, 'utf-8');
+              const raw = safeReadFileSync(commentPath);
               const result = this.parseCommentsJson(raw, commentPath, options, errors);
               totalFound += result.totalFound;
               items.push(...result.items);
@@ -164,7 +165,7 @@ export class FacebookExportParser implements ImportParser {
       } else if (path.endsWith('.json')) {
         // Single JSON file
         try {
-          const raw = readFileSync(path, 'utf-8');
+          const raw = safeReadFileSync(path);
           const result = this.parsePostsJson(raw, path, options, errors);
           totalFound = result.totalFound;
           items = result.items;

@@ -28,6 +28,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSync } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 function deterministicId(...parts: string[]): string {
@@ -153,7 +154,7 @@ export class SlackExportParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { readFileSync, statSync, existsSync, readdirSync } = await import('node:fs');
+    const { statSync, existsSync, readdirSync, lstatSync } = await import('node:fs');
     const { join } = await import('node:path');
 
     // Verify the path is a directory
@@ -181,7 +182,7 @@ export class SlackExportParser implements ImportParser {
     const usersPath = join(path, 'users.json');
     if (existsSync(usersPath)) {
       try {
-        const usersRaw = readFileSync(usersPath, 'utf-8');
+        const usersRaw = safeReadFileSync(usersPath);
         const users = JSON.parse(usersRaw) as SlackUser[];
         if (Array.isArray(users)) {
           for (const user of users) {
@@ -205,7 +206,7 @@ export class SlackExportParser implements ImportParser {
     const channelsPath = join(path, 'channels.json');
     if (existsSync(channelsPath)) {
       try {
-        const channelsRaw = readFileSync(channelsPath, 'utf-8');
+        const channelsRaw = safeReadFileSync(channelsPath);
         const channels = JSON.parse(channelsRaw) as SlackChannel[];
         if (Array.isArray(channels)) {
           for (const ch of channels) {
@@ -227,8 +228,10 @@ export class SlackExportParser implements ImportParser {
     for (const entry of rootEntries) {
       const channelDir = join(path, entry);
       try {
-        const stat = statSync(channelDir);
-        if (!stat.isDirectory()) continue;
+        // Use lstatSync to detect symlinks before following
+        const lstat = lstatSync(channelDir);
+        if (lstat.isSymbolicLink()) continue; // Skip symlinks for safety
+        if (!lstat.isDirectory()) continue;
 
         // Skip hidden directories and metadata files
         if (entry.startsWith('.')) continue;
@@ -245,7 +248,7 @@ export class SlackExportParser implements ImportParser {
           const filePath = join(channelDir, dateFile);
 
           try {
-            const raw = readFileSync(filePath, 'utf-8');
+            const raw = safeReadFileSync(filePath);
             const messages = JSON.parse(raw) as SlackMessage[];
 
             if (!Array.isArray(messages)) {
