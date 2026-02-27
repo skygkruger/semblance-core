@@ -48,6 +48,7 @@ const SOURCE_TYPE_TO_DOCUMENT_SOURCE: Record<ImportSourceType, DocumentSource> =
   notes: 'note',
   photos_metadata: 'photos_metadata',
   messaging: 'messaging',
+  social: 'social',
 };
 
 // ─── SQL Schema ─────────────────────────────────────────────────────────────
