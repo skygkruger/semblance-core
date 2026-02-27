@@ -9,6 +9,37 @@ export interface DataInventoryCollectorDeps {
   db: DatabaseHandle;
 }
 
+/** Tables that are safe to query for inventory counts. */
+const KNOWN_TABLES = new Set([
+  'indexed_emails', 'indexed_calendar_events', 'documents', 'contacts',
+  'reminders', 'location_history', 'captures', 'imported_items',
+  'transactions', 'health_entries',
+]);
+
+/** Columns that are safe to use in GROUP BY queries. */
+const KNOWN_GROUP_COLUMNS = new Set([
+  'source', 'relationship', 'source_type',
+]);
+
+/**
+ * Validate a table name against the known tables whitelist.
+ * Throws if the table is not in the whitelist — prevents SQL injection.
+ */
+function assertKnownTable(table: string): void {
+  if (!KNOWN_TABLES.has(table)) {
+    throw new Error(`Unknown table: ${table}. Only whitelisted tables are allowed.`);
+  }
+}
+
+/**
+ * Validate a column name against the known columns whitelist.
+ */
+function assertKnownColumn(column: string): void {
+  if (!KNOWN_GROUP_COLUMNS.has(column)) {
+    throw new Error(`Unknown column: ${column}. Only whitelisted columns are allowed.`);
+  }
+}
+
 /**
  * Collects a full data inventory by querying each known table directly.
  * Missing tables return 0 (finance, health, etc. may not exist yet).
@@ -80,10 +111,12 @@ export class DataInventoryCollector {
 
   /**
    * Safe COUNT(*) — returns 0 if table doesn't exist.
+   * SECURITY: table name validated against whitelist to prevent SQL injection.
    */
   private safeCount(table: string): number {
+    assertKnownTable(table);
     try {
-      const row = this.db.prepare(`SELECT COUNT(*) as count FROM ${table}`).get() as { count: number } | undefined;
+      const row = this.db.prepare(`SELECT COUNT(*) as count FROM "${table}"`).get() as { count: number } | undefined;
       return row?.count ?? 0;
     } catch {
       return 0;
@@ -92,11 +125,14 @@ export class DataInventoryCollector {
 
   /**
    * Safe GROUP BY count — returns {} if table doesn't exist.
+   * SECURITY: table and column names validated against whitelists.
    */
   private safeGroupCount(table: string, column: string): Record<string, number> {
+    assertKnownTable(table);
+    assertKnownColumn(column);
     try {
       const rows = this.db.prepare(
-        `SELECT ${column}, COUNT(*) as count FROM ${table} GROUP BY ${column}`
+        `SELECT "${column}", COUNT(*) as count FROM "${table}" GROUP BY "${column}"`
       ).all() as Array<Record<string, unknown>>;
 
       const result: Record<string, number> = {};

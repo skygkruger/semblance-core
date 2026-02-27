@@ -30,9 +30,59 @@ type RejectionReason =
   | 'schema_invalid'
   | 'payload_invalid'
   | 'signature_invalid'
+  | 'timestamp_stale'
+  | 'request_replayed'
   | 'domain_not_allowed'
   | 'rate_limited'
   | 'anomaly_detected';
+
+// --- Replay Protection ---
+// Requests older than TTL_MS are rejected. Duplicate request IDs within
+// the TTL window are rejected. The rolling set caps at MAX_SEEN_IDS to
+// bound memory; oldest entries are evicted when the cap is reached.
+const TTL_MS = 30_000;
+const MAX_SEEN_IDS = 10_000;
+
+const recentRequestIds: Map<string, number> = new Map(); // id → receive timestamp
+
+function isStale(timestamp: string): boolean {
+  const requestTime = new Date(timestamp).getTime();
+  if (Number.isNaN(requestTime)) return true;
+  const age = Date.now() - requestTime;
+  return age > TTL_MS || age < -TTL_MS; // Also reject future-dated requests
+}
+
+function isDuplicate(requestId: string): boolean {
+  if (recentRequestIds.has(requestId)) return true;
+
+  // Evict oldest entries if at capacity
+  if (recentRequestIds.size >= MAX_SEEN_IDS) {
+    const entriesToEvict = recentRequestIds.size - MAX_SEEN_IDS + 1;
+    const iter = recentRequestIds.keys();
+    for (let i = 0; i < entriesToEvict; i++) {
+      const oldest = iter.next().value;
+      if (oldest !== undefined) recentRequestIds.delete(oldest);
+    }
+  }
+
+  recentRequestIds.set(requestId, Date.now());
+  return false;
+}
+
+/** Purge expired entries from the dedup set. Called periodically. */
+function purgeExpiredIds(): void {
+  const cutoff = Date.now() - TTL_MS;
+  for (const [id, ts] of recentRequestIds) {
+    if (ts < cutoff) recentRequestIds.delete(id);
+  }
+}
+
+// Purge every 60s to prevent unbounded growth from long-running processes
+const purgeInterval = setInterval(purgeExpiredIds, 60_000);
+// Don't block process exit
+if (typeof purgeInterval === 'object' && 'unref' in purgeInterval) {
+  purgeInterval.unref();
+}
 
 function makeErrorResponse(
   requestId: string,
@@ -102,7 +152,27 @@ export async function validateAndExecute(
   const request = parseResult.data;
   const payloadHash = sha256(JSON.stringify(request.payload));
 
-  // --- Step 1b: Payload schema validation (action-specific) ---
+  // --- Step 1b: Timestamp freshness check (replay protection) ---
+  if (isStale(request.timestamp)) {
+    const auditRef = logRejection(
+      deps.auditTrail, request.id, request.action, payloadHash,
+      request.signature, 'timestamp_stale',
+      `Request timestamp ${request.timestamp} is outside the ${TTL_MS}ms freshness window`,
+    );
+    return makeErrorResponse(request.id, 'error', 'TIMESTAMP_STALE', 'Request timestamp is stale or future-dated', auditRef);
+  }
+
+  // --- Step 1c: Request ID deduplication (replay protection) ---
+  if (isDuplicate(request.id)) {
+    const auditRef = logRejection(
+      deps.auditTrail, request.id, request.action, payloadHash,
+      request.signature, 'request_replayed',
+      `Duplicate request ID: ${request.id}`,
+    );
+    return makeErrorResponse(request.id, 'error', 'REQUEST_REPLAYED', 'Duplicate request ID rejected', auditRef);
+  }
+
+  // --- Step 1d: Payload schema validation (action-specific) ---
   const payloadSchema = ActionPayloadMap[request.action];
   if (payloadSchema) {
     const payloadResult = payloadSchema.safeParse(request.payload);

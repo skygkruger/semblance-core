@@ -67,20 +67,31 @@ export class Allowlist {
   }
 
   /**
+   * Normalize a domain for consistent matching:
+   * - Lowercase (domain names are case-insensitive per RFC 4343)
+   * - Strip trailing dot (FQDN form equivalent per DNS spec)
+   */
+  private normalizeDomain(domain: string): string {
+    return domain.toLowerCase().replace(/\.$/, '');
+  }
+
+  /**
    * Check if a domain (and optionally port) is on the active allowlist.
+   * Domain matching is case-insensitive and trailing-dot-insensitive.
    */
   isAllowed(domain: string, port?: number): boolean {
+    const normalized = this.normalizeDomain(domain);
     let stmt;
     if (port !== undefined) {
       stmt = this.db.prepare(
         'SELECT 1 FROM allowed_services WHERE domain = ? AND (port IS NULL OR port = ?) AND is_active = 1 LIMIT 1'
       );
-      return stmt.get(domain, port) !== undefined;
+      return stmt.get(normalized, port) !== undefined;
     }
     stmt = this.db.prepare(
       'SELECT 1 FROM allowed_services WHERE domain = ? AND is_active = 1 LIMIT 1'
     );
-    return stmt.get(domain) !== undefined;
+    return stmt.get(normalized) !== undefined;
   }
 
   /**
@@ -98,6 +109,7 @@ export class Allowlist {
       throw new Error(`Wildcard domains are not allowed: ${params.domain}`);
     }
 
+    const normalizedDomain = this.normalizeDomain(params.domain);
     const id = nanoid();
     const addedAt = new Date().toISOString();
 
@@ -106,7 +118,7 @@ export class Allowlist {
     ).run(
       id,
       params.serviceName,
-      params.domain,
+      normalizedDomain,
       params.port ?? null,
       params.protocol,
       addedAt,
@@ -116,7 +128,7 @@ export class Allowlist {
     return {
       id,
       serviceName: params.serviceName,
-      domain: params.domain,
+      domain: normalizedDomain,
       port: params.port ?? null,
       protocol: params.protocol,
       addedAt,

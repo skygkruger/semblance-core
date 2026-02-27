@@ -86,12 +86,17 @@ export class PrivacyTracker implements ExtensionInsightTracker {
     }];
   }
 
+  /** Tables that are safe to query for data existence checks. */
+  private static readonly KNOWN_DATA_TABLES = new Set([
+    'indexed_emails', 'documents', 'contacts', 'captures',
+  ]);
+
   private hasIndexedData(): boolean {
     // Check a few key tables for any data
-    const tables = ['indexed_emails', 'documents', 'contacts', 'captures'];
-    for (const table of tables) {
+    for (const table of PrivacyTracker.KNOWN_DATA_TABLES) {
       try {
-        const row = this.db.prepare(`SELECT COUNT(*) as count FROM ${table}`).get() as { count: number } | undefined;
+        // SECURITY: table name validated against whitelist — no interpolation risk.
+        const row = this.db.prepare(`SELECT COUNT(*) as count FROM "${table}"`).get() as { count: number } | undefined;
         if (row && row.count > 0) return true;
       } catch {
         // Table doesn't exist

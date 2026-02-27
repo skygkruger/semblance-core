@@ -205,6 +205,40 @@ describe('Desktop Privacy: No Direct Network Calls in Frontend', () => {
   });
 });
 
+describe('Desktop Privacy: fetch() Allowlist Enforcement', () => {
+  const srcFiles = collectFiles(DESKTOP_SRC, ['.ts', '.tsx']);
+  // Only LicenseContext.tsx is allowed to call fetch() — for user-initiated Stripe portal
+  // and license worker communication. All other files must use Tauri invoke().
+  const FETCH_ALLOWLIST = new Set(['contexts/LicenseContext.tsx']);
+
+  it('only allowlisted files contain fetch() calls', () => {
+    const violators: string[] = [];
+    for (const file of srcFiles) {
+      const relPath = file.replace(/\\/g, '/').split('/src/').pop() || '';
+      if (FETCH_ALLOWLIST.has(relPath)) continue;
+
+      const content = readFileSync(file, 'utf-8');
+      if (/\bfetch\s*\(/.test(content)) {
+        violators.push(relPath);
+      }
+    }
+    expect(
+      violators,
+      `Unexpected fetch() calls found in: ${violators.join(', ')}. ` +
+      `Use Tauri invoke() instead, or add to FETCH_ALLOWLIST with justification.`
+    ).toEqual([]);
+  });
+
+  it('LicenseContext.tsx exists and contains fetch (sanity check)', () => {
+    const licenseCtx = srcFiles.find(f => f.replace(/\\/g, '/').endsWith('contexts/LicenseContext.tsx'));
+    expect(licenseCtx, 'LicenseContext.tsx must exist in desktop src').toBeDefined();
+    if (licenseCtx) {
+      const content = readFileSync(licenseCtx, 'utf-8');
+      expect(content).toMatch(/\bfetch\s*\(/);
+    }
+  });
+});
+
 describe('Desktop Privacy: Privacy audit script passes', () => {
   it('privacy audit exits clean with desktop checks', () => {
     const { execSync } = require('node:child_process');

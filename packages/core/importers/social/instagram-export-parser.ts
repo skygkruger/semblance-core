@@ -14,6 +14,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSync } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 // Reuse the same encoding fix as Facebook — Instagram has the same issue
@@ -108,7 +109,7 @@ export class InstagramExportParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { readFileSync, statSync, existsSync, readdirSync } = await import('node:fs');
+    const { statSync, existsSync, readdirSync } = await import('node:fs');
     const { join } = await import('node:path');
 
     let items: ImportedItem[] = [];
@@ -123,7 +124,7 @@ export class InstagramExportParser implements ImportParser {
 
         for (const postFile of postFiles) {
           try {
-            const raw = readFileSync(postFile, 'utf-8');
+            const raw = safeReadFileSync(postFile);
             const result = this.parsePostsJson(raw, postFile, options, errors);
             totalFound += result.totalFound;
             items.push(...result.items);
@@ -141,7 +142,7 @@ export class InstagramExportParser implements ImportParser {
         for (const storyPath of storyPaths) {
           if (existsSync(storyPath)) {
             try {
-              const raw = readFileSync(storyPath, 'utf-8');
+              const raw = safeReadFileSync(storyPath);
               const result = this.parseStoriesJson(raw, storyPath, options, errors);
               totalFound += result.totalFound;
               items.push(...result.items);
@@ -155,7 +156,7 @@ export class InstagramExportParser implements ImportParser {
         const mediaPath = join(path, 'media.json');
         if (existsSync(mediaPath) && items.length === 0) {
           try {
-            const raw = readFileSync(mediaPath, 'utf-8');
+            const raw = safeReadFileSync(mediaPath);
             const result = this.parseMediaJson(raw, mediaPath, options, errors);
             totalFound += result.totalFound;
             items.push(...result.items);
@@ -166,7 +167,7 @@ export class InstagramExportParser implements ImportParser {
       } else if (path.endsWith('.json')) {
         // Single JSON file
         try {
-          const raw = readFileSync(path, 'utf-8');
+          const raw = safeReadFileSync(path);
           const result = this.parsePostsJson(raw, path, options, errors);
           totalFound = result.totalFound;
           items = result.items;

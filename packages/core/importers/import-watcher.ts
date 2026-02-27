@@ -13,6 +13,7 @@
 import { createHash } from 'node:crypto';
 import type { ImportPipeline } from './import-pipeline.js';
 import type { ImportParser, ImportSourceType } from './types.js';
+import { safeReadFileSyncBuffer } from './safe-read.js';
 
 export interface ImportWatcherConfig {
   /** Directory to watch for new import files. Default: ~/Semblance/imports/ */
@@ -133,7 +134,7 @@ export class ImportWatcher {
       const filePath = path.join(this.watchDir, entry.name);
 
       // Check if we've already processed this file (by content hash)
-      const content = fs.readFileSync(filePath);
+      const content = safeReadFileSyncBuffer(filePath);
       const hash = hashFileContent(content);
 
       if (this.processedHashes.has(hash)) {

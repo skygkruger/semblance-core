@@ -12,14 +12,16 @@ export const MACOS_ENTITLEMENTS = {
   // Granted
   'com.apple.security.app-sandbox': true,
   'com.apple.security.files.user-selected.read-write': true,
-  'com.apple.security.files.bookmarks.app-scope': true,
-  'com.apple.security.network.client': true,            // Gateway needs outbound
-  'com.apple.security.keychain-access-groups': true,
+  'com.apple.security.files.downloads.read-write': true,  // Model downloads
+  'com.apple.security.network.client': true,               // Gateway needs outbound
+  'com.apple.security.personal-information.contacts': true, // Contact ingestion (Step 14)
+  'com.apple.security.personal-information.location': true, // Location features (Step 16)
 
   // Denied — Semblance must not have these
   'com.apple.security.network.server': false,            // No inbound connections
   'com.apple.security.device.camera': false,             // No camera access
-  'com.apple.security.device.microphone': false,         // No microphone access (voice uses Whisper.cpp, not live mic entitlement)
+  'com.apple.security.device.microphone': false,         // No microphone access (voice uses local Whisper.cpp, not live mic)
+  'com.apple.security.device.audio-input': false,        // No audio input capture
   'com.apple.security.device.usb': false,                // No raw USB access
   'com.apple.security.device.bluetooth': false,          // No Bluetooth
 } as const;

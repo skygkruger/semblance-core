@@ -65,7 +65,7 @@ export class SMTPAdapter {
         pass: password,
       },
       tls: {
-        rejectUnauthorized: credential.useTLS,
+        rejectUnauthorized: true, // SECURITY: Always verify TLS certificates — never disable
       },
     });
 
@@ -152,7 +152,7 @@ export class SMTPAdapter {
         pass: password,
       },
       tls: {
-        rejectUnauthorized: credential.useTLS,
+        rejectUnauthorized: true, // SECURITY: Always verify TLS certificates — never disable
       },
     });
 

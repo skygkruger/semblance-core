@@ -85,21 +85,60 @@ export class WebFetchAdapter implements ServiceAdapter {
     const ipError = this.validateNotPrivateIP(urlStr);
     if (ipError) return ipError;
 
-    // Fetch with timeout and redirect limit
+    // Manually follow redirects — validates each redirect target against SSRF rules.
+    // We set redirect: 'manual' and check Location headers ourselves.
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
     let response: Response;
+    let currentUrl = urlStr;
+    let redirectCount = 0;
     try {
-      response = await this.fetchFn(urlStr, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Semblance/1.0 (Local AI Assistant)',
-          'Accept': 'text/html, application/xhtml+xml, text/plain, */*',
-        },
-        redirect: 'follow',
-        signal: controller.signal,
-      });
+      while (true) {
+        response = await this.fetchFn(currentUrl, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Semblance/1.0 (Local AI Assistant)',
+            'Accept': 'text/html, application/xhtml+xml, text/plain, */*',
+          },
+          redirect: 'manual', // SECURITY: Manual redirects — validate each hop
+          signal: controller.signal,
+        });
+
+        // Check if it's a redirect (3xx status)
+        if (response.status >= 300 && response.status < 400) {
+          redirectCount++;
+          if (redirectCount > MAX_REDIRECTS) {
+            return {
+              success: false,
+              error: { code: 'TOO_MANY_REDIRECTS', message: `Exceeded ${MAX_REDIRECTS} redirects` },
+            };
+          }
+
+          const location = response.headers.get('location');
+          if (!location) {
+            return {
+              success: false,
+              error: { code: 'INVALID_REDIRECT', message: 'Redirect response missing Location header' },
+            };
+          }
+
+          // Resolve relative URLs against the current URL
+          const resolvedUrl = new URL(location, currentUrl).toString();
+
+          // SSRF check on the redirect target
+          const redirectSchemeError = this.validateUrlScheme(resolvedUrl);
+          if (redirectSchemeError) return redirectSchemeError;
+
+          const redirectIpError = this.validateNotPrivateIP(resolvedUrl);
+          if (redirectIpError) return redirectIpError;
+
+          currentUrl = resolvedUrl;
+          continue;
+        }
+
+        break;
+      }
     } catch (err) {
       clearTimeout(timeout);
       if (err instanceof Error && err.name === 'AbortError') {

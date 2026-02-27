@@ -9,6 +9,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { safeReadFileSyncBuffer, safeWalkDirectory } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 const SUPPORTED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.heic']);
@@ -273,37 +274,17 @@ export class ExifParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { readFileSync, readdirSync, statSync } = await import('node:fs');
-    const { join, basename, extname } = await import('node:path');
+    const { statSync } = await import('node:fs');
+    const { basename, extname } = await import('node:path');
 
     // Gather image files
-    const imageFiles: string[] = [];
-
-    const walkDir = (dir: string): void => {
-      try {
-        const entries = readdirSync(dir);
-        for (const entry of entries) {
-          const fullPath = join(dir, entry);
-          try {
-            const stat = statSync(fullPath);
-            if (stat.isDirectory() && !entry.startsWith('.')) {
-              walkDir(fullPath);
-            } else if (SUPPORTED_EXTENSIONS.has(extname(entry).toLowerCase())) {
-              imageFiles.push(fullPath);
-            }
-          } catch {
-            errors.push({ message: `Cannot access ${fullPath}` });
-          }
-        }
-      } catch {
-        errors.push({ message: `Cannot read directory ${dir}` });
-      }
-    };
+    let imageFiles: string[] = [];
 
     try {
       const stat = statSync(path);
       if (stat.isDirectory()) {
-        walkDir(path);
+        // Use safe walker with symlink detection
+        imageFiles = safeWalkDirectory(path, ['.jpg', '.jpeg', '.png', '.heic']);
       } else {
         imageFiles.push(path);
       }
@@ -321,7 +302,7 @@ export class ExifParser implements ImportParser {
 
     for (const filePath of imageFiles) {
       try {
-        const buffer = readFileSync(filePath);
+        const buffer = safeReadFileSyncBuffer(filePath);
         const ext = extname(filePath).toLowerCase();
 
         let exif: ExifData = {};

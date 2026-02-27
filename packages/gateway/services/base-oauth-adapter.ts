@@ -11,10 +11,26 @@
  */
 
 import type { ActionType } from '@semblance/core';
+import { z } from 'zod';
 import type { ServiceAdapter } from './types.js';
 import type { OAuthTokenManager } from './oauth-token-manager.js';
 import type { OAuthConfig } from './oauth-config.js';
 import { OAuthCallbackServer } from './oauth-callback-server.js';
+
+// Zod schema for token exchange responses — validates before trusting
+const TokenResponseSchema = z.object({
+  access_token: z.string().optional(),
+  refresh_token: z.string().optional(),
+  expires_in: z.number().optional(),
+  error: z.string().optional(),
+  error_description: z.string().optional(),
+}).passthrough(); // Allow extra provider-specific fields
+
+const RefreshTokenResponseSchema = z.object({
+  access_token: z.string(),
+  expires_in: z.number(),
+  refresh_token: z.string().optional(),
+}).passthrough();
 
 export interface AdapterResult {
   success: boolean;
@@ -73,13 +89,18 @@ export abstract class BaseOAuthAdapter implements ServiceAdapter {
         body: new URLSearchParams(tokenBody),
       });
 
-      const tokenData = await tokenResponse.json() as {
-        access_token?: string;
-        refresh_token?: string;
-        expires_in?: number;
-        error?: string;
-        error_description?: string;
-      };
+      const rawTokenData = await tokenResponse.json();
+      const tokenParse = TokenResponseSchema.safeParse(rawTokenData);
+      if (!tokenParse.success) {
+        return {
+          success: false,
+          error: {
+            code: 'TOKEN_PARSE_ERROR',
+            message: `Invalid token response from ${this.config.providerKey}: ${tokenParse.error.message}`,
+          },
+        };
+      }
+      const tokenData = tokenParse.data;
 
       if (tokenData.error || !tokenData.access_token) {
         return {
@@ -139,8 +160,12 @@ export abstract class BaseOAuthAdapter implements ServiceAdapter {
       const accessToken = this.tokenManager.getAccessToken(this.config.providerKey);
       if (accessToken) {
         try {
-          await globalThis.fetch(`${this.config.revokeUrl}?token=${accessToken}`, {
+          // SECURITY: Send token in POST body, not URL query string.
+          // Tokens in URLs are logged in server access logs and HTTP Referer headers.
+          await globalThis.fetch(this.config.revokeUrl, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ token: accessToken }),
           });
         } catch {
           // Revocation is best-effort
@@ -182,11 +207,12 @@ export abstract class BaseOAuthAdapter implements ServiceAdapter {
       body: new URLSearchParams(body),
     });
 
-    const data = await response.json() as {
-      access_token: string;
-      expires_in: number;
-      refresh_token?: string;
-    };
+    const rawData = await response.json();
+    const refreshParse = RefreshTokenResponseSchema.safeParse(rawData);
+    if (!refreshParse.success) {
+      throw new Error(`Invalid refresh token response from ${this.config.providerKey}: ${refreshParse.error.message}`);
+    }
+    const data = refreshParse.data;
 
     this.tokenManager.refreshAccessToken(
       this.config.providerKey,

@@ -18,6 +18,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { rejectXmlEntities } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
 /** Extract an XML attribute value from a tag string */
@@ -102,6 +103,10 @@ export class AppleHealthXmlParser implements ImportParser {
       let recordBuffer = '';
       let insideRecord = false;
 
+      // XXE detection: accumulate first ~4KB of the stream for DOCTYPE ENTITY check
+      let headerBuffer = '';
+      let headerChecked = false;
+
       const processRecord = (tag: string): void => {
         totalFound++;
 
@@ -157,6 +162,27 @@ export class AppleHealthXmlParser implements ImportParser {
       };
 
       rl.on('line', (line: string) => {
+        // XXE detection on first ~4KB of the file
+        if (!headerChecked) {
+          headerBuffer += line + '\n';
+          if (headerBuffer.length >= 4096) {
+            try {
+              rejectXmlEntities(headerBuffer, path);
+            } catch (err) {
+              rl.close();
+              stream.destroy();
+              resolve({
+                format: 'apple_health_xml',
+                items: [],
+                errors: [{ message: (err as Error).message }],
+                totalFound: 0,
+              });
+              return;
+            }
+            headerChecked = true;
+          }
+        }
+
         const trimmed = line.trim();
 
         if (!insideRecord) {
@@ -197,6 +223,21 @@ export class AppleHealthXmlParser implements ImportParser {
       });
 
       rl.on('close', () => {
+        // Check XXE on remaining header buffer if file was smaller than 4KB
+        if (!headerChecked && headerBuffer.length > 0) {
+          try {
+            rejectXmlEntities(headerBuffer, path);
+          } catch (err) {
+            resolve({
+              format: 'apple_health_xml',
+              items: [],
+              errors: [{ message: (err as Error).message }],
+              totalFound: 0,
+            });
+            return;
+          }
+        }
+
         // Sort by timestamp descending
         items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 

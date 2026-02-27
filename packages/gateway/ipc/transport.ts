@@ -5,8 +5,8 @@
 
 import { createServer, type Server, type Socket } from 'node:net';
 import { join } from 'node:path';
-import { homedir, platform } from 'node:os';
-import { mkdirSync, existsSync, unlinkSync } from 'node:fs';
+import { homedir, platform, userInfo } from 'node:os';
+import { mkdirSync, existsSync, unlinkSync, chmodSync } from 'node:fs';
 
 export interface TransportConfig {
   socketPath?: string;
@@ -18,10 +18,15 @@ export interface TransportConfig {
 
 /**
  * Get the default socket path for the current platform.
+ * SECURITY: Windows uses per-user pipe name to prevent cross-user access.
+ * Unix uses a socket in the user's home directory with 0600 permissions.
  */
 export function getDefaultSocketPath(): string {
   if (platform() === 'win32') {
-    return '\\\\.\\pipe\\semblance-gateway';
+    // Per-user pipe name — prevents other users from connecting to our pipe
+    const uid = userInfo().uid;
+    const userSuffix = uid >= 0 ? `-${uid}` : `-${userInfo().username}`;
+    return `\\\\.\\pipe\\semblance-gateway${userSuffix}`;
   }
   const dir = join(homedir(), '.semblance');
   if (!existsSync(dir)) {
@@ -103,6 +108,11 @@ export class GatewayTransport {
       this.server.on('error', reject);
 
       this.server.listen(this.socketPath, () => {
+        // SECURITY: Restrict socket file permissions to owner only (Unix).
+        // Prevents other local users from connecting to the Gateway IPC.
+        if (platform() !== 'win32') {
+          try { chmodSync(this.socketPath, 0o600); } catch { /* best-effort */ }
+        }
         resolve();
       });
     });
