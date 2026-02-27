@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { GraphRenderer } from './graph-renderer';
 import { createSimulation } from './graph-physics';
 import { DetailPanel } from './detail-panel';
+import { CategoryLegend, deriveLegendCategories } from './CategoryLegend';
 import type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps } from './graph-types';
 import './KnowledgeGraph.css';
 
@@ -18,6 +19,8 @@ export function KnowledgeGraph({
   const driftRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [selectedNode, setSelectedNode] = useState<KnowledgeNode | null>(null);
+
+  const legendCategories = useMemo(() => deriveLegendCategories(nodes), [nodes]);
 
   // Handle node selection from renderer
   const handleNodeSelect = useCallback((node: KnowledgeNode | null) => {
@@ -95,6 +98,9 @@ export function KnowledgeGraph({
   return (
     <div className="knowledge-graph" style={{ width, height }}>
       <canvas ref={canvasRef} className="knowledge-graph__canvas" />
+      {legendCategories.length > 0 && (
+        <CategoryLegend categories={legendCategories} />
+      )}
       <DetailPanel
         node={selectedNode}
         edges={edges}
