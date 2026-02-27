@@ -50,6 +50,7 @@ const LEGAL_PATTERNS = [
 
 const IRREVERSIBLE_ACTIONS: ActionType[] = [
   'calendar.delete',
+  'connector.disconnect', // Re-auth requires user interaction with third-party OAuth
 ];
 
 const DEFAULT_CONFIG: BoundaryConfig = {
