@@ -1,4 +1,4 @@
-export type NodeType = 'person' | 'email' | 'file' | 'calendar' | 'topic';
+export type NodeType = 'person' | 'email' | 'file' | 'calendar' | 'topic' | 'category';
 
 export interface KnowledgeNode {
   id: string;
@@ -6,6 +6,12 @@ export interface KnowledgeNode {
   label: string;
   sublabel?: string;
   weight: number;
+  metadata?: {
+    category?: string;
+    color?: string;
+    nodeCount?: number;
+    expanded?: boolean;
+  };
   x?: number;
   y?: number;
   z?: number;

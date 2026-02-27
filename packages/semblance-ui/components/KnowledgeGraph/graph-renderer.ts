@@ -9,6 +9,8 @@ interface NodeMesh {
   core: THREE.Mesh;
   glow: THREE.Sprite;
   label: THREE.Sprite | null;
+  wireframe?: THREE.LineSegments;
+  countSprite?: THREE.Sprite;
   node: KnowledgeNode;
 }
 
@@ -28,6 +30,7 @@ const SHARED_GEO = {
   fileBox: new THREE.BoxGeometry(1, 1, 1),
   calendarOcta: new THREE.OctahedronGeometry(1),
   topicSphere: new THREE.SphereGeometry(1, 12, 8),
+  categoryIcosa: new THREE.IcosahedronGeometry(1, 1),
 };
 
 function getGeometryForType(type: NodeType): THREE.BufferGeometry {
@@ -37,6 +40,7 @@ function getGeometryForType(type: NodeType): THREE.BufferGeometry {
     case 'file': return SHARED_GEO.fileBox;
     case 'calendar': return SHARED_GEO.calendarOcta;
     case 'topic': return SHARED_GEO.topicSphere;
+    case 'category': return SHARED_GEO.categoryIcosa;
   }
 }
 
@@ -71,6 +75,50 @@ function getGlowTexture(type: NodeType): THREE.CanvasTexture {
   return texture;
 }
 
+// ─── Category glow texture cache (one per color) ───
+
+const categoryGlowCache = new Map<string, THREE.CanvasTexture>();
+
+function getCategoryGlowTexture(hexColor: string): THREE.CanvasTexture {
+  const cached = categoryGlowCache.get(hexColor);
+  if (cached) return cached;
+
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  const gradient = ctx.createRadialGradient(
+    size / 2, size / 2, 0,
+    size / 2, size / 2, size / 2,
+  );
+  gradient.addColorStop(0, hexColor + 'AA');
+  gradient.addColorStop(0.3, hexColor + '33');
+  gradient.addColorStop(1, hexColor + '00');
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  categoryGlowCache.set(hexColor, texture);
+  return texture;
+}
+
+// ─── Edge color helpers ───
+
+function hexToRgb(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  return [r, g, b];
+}
+
+function getEdgeNodeColor(node: KnowledgeNode): string {
+  if (node.type === 'category' && node.metadata?.color) return node.metadata.color;
+  return getNodeColorHex(node.type);
+}
+
 // ─── GraphRenderer class ───
 
 export class GraphRenderer {
@@ -83,6 +131,7 @@ export class GraphRenderer {
   private nodeMeshes: Map<string, NodeMesh> = new Map();
   private edgeLines: THREE.LineSegments | null = null;
   private edgePositions: Float32Array | null = null;
+  private edgeColors: Float32Array | null = null;
 
   // Interaction state
   private raycaster = new THREE.Raycaster();
@@ -111,6 +160,16 @@ export class GraphRenderer {
   // Focus animation
   private cameraTarget = new THREE.Vector3(0, 0, 0);
   private targetCameraTarget = new THREE.Vector3(0, 0, 0);
+
+  // Snap-back animation (400ms ease-in-out)
+  private snapAnimation: {
+    startRadius: number;
+    startPhi: number;
+    startTheta: number;
+    startTarget: THREE.Vector3;
+    startTime: number;
+  } | null = null;
+  private static readonly SNAP_DURATION = 400;
 
   // Data
   private edges: KnowledgeEdge[] = [];
@@ -221,9 +280,20 @@ export class GraphRenderer {
     this.secondNeighborSet.clear();
     this.targetCameraTarget.set(0, 0, 0);
     this.targetSpherical.radius = 200;
+    this.resetCamera();
     this.updateNodeVisuals();
     this.onNodeSelect?.(null);
     this.wake();
+  }
+
+  private resetCamera(): void {
+    this.snapAnimation = {
+      startRadius: this.spherical.radius,
+      startPhi: this.spherical.phi,
+      startTheta: this.spherical.theta,
+      startTarget: this.cameraTarget.clone(),
+      startTime: performance.now(),
+    };
   }
 
   dispose(): void {
@@ -245,6 +315,14 @@ export class GraphRenderer {
       if (nm.label) {
         (nm.label.material as THREE.SpriteMaterial).map?.dispose();
         (nm.label.material as THREE.Material).dispose();
+      }
+      if (nm.wireframe) {
+        nm.wireframe.geometry.dispose();
+        (nm.wireframe.material as THREE.Material).dispose();
+      }
+      if (nm.countSprite) {
+        (nm.countSprite.material as THREE.SpriteMaterial).map?.dispose();
+        (nm.countSprite.material as THREE.Material).dispose();
       }
       this.scene.remove(nm.group);
     });
@@ -268,16 +346,22 @@ export class GraphRenderer {
 
     for (const node of nodes) {
       const radius = getNodeRadius(node);
-      const color = getNodeColor(node.type);
       const geo = getGeometryForType(node.type);
+      const isCategory = node.type === 'category';
 
-      // Core mesh
+      // Resolve color — categories use metadata.color
+      const baseColor = getNodeColor(node.type);
+      const colorValue = isCategory && node.metadata?.color
+        ? new THREE.Color(node.metadata.color).getHex()
+        : baseColor;
+
+      // Core mesh — categories are translucent orbs
       const coreMat = new THREE.MeshPhongMaterial({
-        color,
-        emissive: color,
-        emissiveIntensity: 0.15,
+        color: colorValue,
+        emissive: colorValue,
+        emissiveIntensity: isCategory ? 0.25 : 0.15,
         transparent: true,
-        opacity: 0.9,
+        opacity: isCategory ? 0.12 : 0.9,
       });
       const core = new THREE.Mesh(geo, coreMat);
       const scale = radius * GraphRenderer.SCALE;
@@ -298,28 +382,61 @@ export class GraphRenderer {
       group.position.set(node.x ?? 0, node.y ?? 0, node.z ?? 0);
       group.userData = { nodeId: node.id };
 
+      // Category extras: dashed wireframe shell + count label
+      let wireframe: THREE.LineSegments | undefined;
+      let countSprite: THREE.Sprite | undefined;
+
+      if (isCategory) {
+        const catHex = node.metadata?.color ?? '#6ECFA3';
+        const wireGeo = new THREE.EdgesGeometry(SHARED_GEO.categoryIcosa, 15);
+        const wireMat = new THREE.LineDashedMaterial({
+          color: new THREE.Color(catHex),
+          dashSize: 0.3,
+          gapSize: 0.15,
+          transparent: true,
+          opacity: 0.6,
+        });
+        wireframe = new THREE.LineSegments(wireGeo, wireMat);
+        wireframe.computeLineDistances();
+        const wireScale = scale * 1.15;
+        wireframe.scale.set(wireScale, wireScale, wireScale);
+        group.add(wireframe);
+
+        if (node.metadata?.nodeCount != null) {
+          countSprite = this.createCountSprite(node.metadata.nodeCount);
+          group.add(countSprite);
+        }
+      }
+
       this.scene.add(group);
-      this.nodeMeshes.set(node.id, { group, core, glow, label, node });
+      this.nodeMeshes.set(node.id, { group, core, glow, label, wireframe, countSprite, node });
     }
   }
 
   private createGlowSprite(node: KnowledgeNode, radius: number): THREE.Sprite {
-    const texture = getGlowTexture(node.type);
+    const isCategory = node.type === 'category';
+    const texture = isCategory
+      ? getCategoryGlowTexture(node.metadata?.color ?? '#6ECFA3')
+      : getGlowTexture(node.type);
+
     const material = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
-      opacity: 0.6,
+      opacity: isCategory ? 0.45 : 0.6,
     });
 
     const sprite = new THREE.Sprite(material);
-    const glowScale = radius * (node.type === 'person' ? 1.4 : 1.0) * GraphRenderer.SCALE;
+    const typeScale = isCategory ? 1.6 : (node.type === 'person' ? 1.4 : 1.0);
+    const glowScale = radius * typeScale * GraphRenderer.SCALE;
     sprite.scale.set(glowScale, glowScale, 1);
     return sprite;
   }
 
   private createLabelSprite(node: KnowledgeNode, radius: number): THREE.Sprite | null {
+    // Category nodes always get labels
+    if (node.type === 'category') return this.buildLabelSprite(node, radius);
     // Topic nodes never get labels
     if (node.type === 'topic') return null;
     // Show labels for nodes with meaningful weight — legible at a glance
@@ -373,6 +490,43 @@ export class GraphRenderer {
     return sprite;
   }
 
+  private createCountSprite(count: number): THREE.Sprite {
+    const text = String(count);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+
+    const fontSize = 56;
+    const font = `700 ${fontSize}px DM Mono, monospace`;
+    ctx.font = font;
+    const metrics = ctx.measureText(text);
+    const pad = 24;
+    const w = Math.ceil(metrics.width) + pad;
+    const h = fontSize + 16;
+
+    canvas.width = w;
+    canvas.height = h;
+
+    ctx.font = font;
+    ctx.fillStyle = '#EEF1F4';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, w / 2, h / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.95,
+      depthTest: false,
+      depthWrite: false,
+    });
+
+    const sprite = new THREE.Sprite(material);
+    const scaleFactor = 0.08;
+    sprite.scale.set(w * scaleFactor, h * scaleFactor, 1);
+    return sprite;
+  }
+
   // ─── Edge geometry ───
 
   private createEdgeGeometry(edges: KnowledgeEdge[], nodes: KnowledgeNode[]): void {
@@ -383,9 +537,15 @@ export class GraphRenderer {
     }
 
     const positions = new Float32Array(edges.length * 6);
+    const colors = new Float32Array(edges.length * 6); // 2 vertices × 3 RGB per edge
     this.edgePositions = positions;
+    this.edgeColors = colors;
 
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+    // Max opacity across all edge types — used as material opacity
+    // Cat-to-cat: 0.7, cross-category: 0.6, same: 0.25, fallback: 0.12
+    const maxOpacity = 0.7;
 
     for (let i = 0; i < edges.length; i++) {
       const edge = edges[i]!;
@@ -393,22 +553,61 @@ export class GraphRenderer {
       const tgtId = typeof edge.target === 'object' ? edge.target.id : edge.target;
       const src = nodeMap.get(srcId);
       const tgt = nodeMap.get(tgtId);
-      const offset = i * 6;
-      positions[offset] = src?.x ?? 0;
-      positions[offset + 1] = src?.y ?? 0;
-      positions[offset + 2] = src?.z ?? 0;
-      positions[offset + 3] = tgt?.x ?? 0;
-      positions[offset + 4] = tgt?.y ?? 0;
-      positions[offset + 5] = tgt?.z ?? 0;
+
+      // Positions
+      const pOff = i * 6;
+      positions[pOff] = src?.x ?? 0;
+      positions[pOff + 1] = src?.y ?? 0;
+      positions[pOff + 2] = src?.z ?? 0;
+      positions[pOff + 3] = tgt?.x ?? 0;
+      positions[pOff + 4] = tgt?.y ?? 0;
+      positions[pOff + 5] = tgt?.z ?? 0;
+
+      // Colors — determine edge type and assign vertex colors
+      const cOff = i * 6;
+      if (!src || !tgt) {
+        // Fallback: dim white
+        const f = 0.12 / maxOpacity;
+        colors[cOff] = f; colors[cOff + 1] = f; colors[cOff + 2] = f;
+        colors[cOff + 3] = f; colors[cOff + 4] = f; colors[cOff + 5] = f;
+        continue;
+      }
+
+      const srcColor = getEdgeNodeColor(src);
+      const tgtColor = getEdgeNodeColor(tgt);
+      const srcRgb = hexToRgb(srcColor);
+      const tgtRgb = hexToRgb(tgtColor);
+      const bothCategory = src.type === 'category' && tgt.type === 'category';
+      const sameColor = srcColor.toLowerCase() === tgtColor.toLowerCase();
+
+      let scale: number;
+      if (bothCategory) {
+        // Category-to-category: always full brightness at 0.7 opacity
+        scale = 1.0;
+      } else if (sameColor) {
+        // Same category: flat color, 0.25 effective opacity
+        scale = 0.25 / maxOpacity;
+      } else {
+        // Cross-category: gradient, 0.6 effective opacity
+        scale = 0.6 / maxOpacity;
+      }
+
+      colors[cOff] = srcRgb[0] * scale;
+      colors[cOff + 1] = srcRgb[1] * scale;
+      colors[cOff + 2] = srcRgb[2] * scale;
+      colors[cOff + 3] = tgtRgb[0] * scale;
+      colors[cOff + 4] = tgtRgb[1] * scale;
+      colors[cOff + 5] = tgtRgb[2] * scale;
     }
 
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const mat = new THREE.LineBasicMaterial({
-      color: 0x6ECFA3,
+      vertexColors: true,
       transparent: true,
-      opacity: 0.35,
+      opacity: maxOpacity,
       depthWrite: false,
     });
 
@@ -478,32 +677,40 @@ export class GraphRenderer {
     this.nodeMeshes.forEach((nm, nodeId) => {
       const coreMat = nm.core.material as THREE.MeshPhongMaterial;
       const glowMat = nm.glow.material as THREE.SpriteMaterial;
+      const isCategory = nm.node.type === 'category';
+      const defaultOpacity = isCategory ? 0.12 : 0.9;
 
       if (!activeId) {
         // Default state
-        coreMat.opacity = 0.9;
-        coreMat.emissiveIntensity = 0.15;
-        glowMat.opacity = 0.6;
+        coreMat.opacity = defaultOpacity;
+        coreMat.emissiveIntensity = isCategory ? 0.25 : 0.15;
+        glowMat.opacity = isCategory ? 0.45 : 0.6;
+        if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.6;
+        if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 0.95;
         // Label visibility
         if (nm.label) {
           (nm.label.material as THREE.SpriteMaterial).opacity =
-            nm.node.weight >= 12 ? 0.9 : 0.6;
+            isCategory ? 0.95 : (nm.node.weight >= 12 ? 0.9 : 0.6);
           nm.label.visible = true;
         }
       } else if (nodeId === activeId) {
-        // Focused node — bright
-        coreMat.opacity = 1.0;
-        coreMat.emissiveIntensity = 0.5;
-        glowMat.opacity = 1.0;
+        // Focused node — bright, stronger emissive for expanded anchor effect
+        coreMat.opacity = isCategory ? 0.18 : 1.0;
+        coreMat.emissiveIntensity = isCategory ? 0.4 : 0.5;
+        glowMat.opacity = isCategory ? 0.7 : 1.0;
+        if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.9;
+        if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 1.0;
         if (nm.label) {
           (nm.label.material as THREE.SpriteMaterial).opacity = 1.0;
           nm.label.visible = true;
         }
       } else if (this.neighborSet.has(nodeId)) {
         // Direct neighbor — clearly visible
-        coreMat.opacity = 0.75;
+        coreMat.opacity = isCategory ? 0.15 : 0.75;
         coreMat.emissiveIntensity = 0.2;
         glowMat.opacity = 0.5;
+        if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.4;
+        if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 0.7;
         // Show label for neighbors on focus
         this.ensureLabel(nm);
         if (nm.label) {
@@ -512,23 +719,27 @@ export class GraphRenderer {
         }
       } else if (this.secondNeighborSet.has(nodeId)) {
         // 2nd degree — faintly visible
-        coreMat.opacity = 0.3;
+        coreMat.opacity = isCategory ? 0.2 : 0.3;
         coreMat.emissiveIntensity = 0.05;
         glowMat.opacity = 0.15;
+        if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.15;
+        if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 0.3;
         if (nm.label) nm.label.visible = false;
       } else {
-        // Unrelated — nearly gone
-        coreMat.opacity = 0.08;
+        // Unrelated — nearly gone (categories stay slightly visible as landmarks)
+        coreMat.opacity = isCategory ? 0.12 : 0.08;
         coreMat.emissiveIntensity = 0.0;
         glowMat.opacity = 0.0;
+        if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.08;
+        if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 0.1;
         if (nm.label) nm.label.visible = false;
       }
     });
 
-    // Edge opacity
+    // Edge opacity — dim during selection focus
     if (this.edgeLines) {
       const mat = this.edgeLines.material as THREE.LineBasicMaterial;
-      mat.opacity = activeId ? 0.06 : 0.35;
+      mat.opacity = activeId ? 0.08 : 0.7;
     }
   }
 
@@ -588,13 +799,25 @@ export class GraphRenderer {
     const animate = () => {
       this.animationFrameId = requestAnimationFrame(animate);
 
-      // Lerp spherical toward target
-      this.spherical.radius += (this.targetSpherical.radius - this.spherical.radius) * 0.08;
-      this.spherical.phi += (this.targetSpherical.phi - this.spherical.phi) * 0.08;
-      this.spherical.theta += (this.targetSpherical.theta - this.spherical.theta) * 0.08;
+      if (this.snapAnimation) {
+        // Time-based snap animation (400ms ease-in-out quad)
+        const elapsed = performance.now() - this.snapAnimation.startTime;
+        const t = Math.min(elapsed / GraphRenderer.SNAP_DURATION, 1);
+        const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
-      // Lerp camera target
-      this.cameraTarget.lerp(this.targetCameraTarget, 0.06);
+        this.spherical.radius = this.snapAnimation.startRadius + (this.targetSpherical.radius - this.snapAnimation.startRadius) * eased;
+        this.spherical.phi = this.snapAnimation.startPhi + (this.targetSpherical.phi - this.snapAnimation.startPhi) * eased;
+        this.spherical.theta = this.snapAnimation.startTheta + (this.targetSpherical.theta - this.snapAnimation.startTheta) * eased;
+        this.cameraTarget.lerpVectors(this.snapAnimation.startTarget, this.targetCameraTarget, eased);
+
+        if (t >= 1) this.snapAnimation = null;
+      } else {
+        // Normal per-frame lerp
+        this.spherical.radius += (this.targetSpherical.radius - this.spherical.radius) * 0.08;
+        this.spherical.phi += (this.targetSpherical.phi - this.spherical.phi) * 0.08;
+        this.spherical.theta += (this.targetSpherical.theta - this.spherical.theta) * 0.08;
+        this.cameraTarget.lerp(this.targetCameraTarget, 0.06);
+      }
 
       this.updateCameraFromSpherical();
 
@@ -630,6 +853,7 @@ export class GraphRenderer {
 
   private handlePointerDown = (e: PointerEvent): void => {
     this.wake();
+    this.snapAnimation = null; // cancel any running snap
     this.isDragging = true;
     this.dragStart = { x: e.clientX, y: e.clientY };
     this.dragSphericalStart.copy(this.targetSpherical);

@@ -38,6 +38,7 @@ const DOT_COLORS: Record<NodeType, string> = {
   file: '#C8CAD0',
   email: '#8593A4',
   topic: '#4A5568',
+  category: '#6ECFA3',
 };
 
 export function DetailPanel({ node, edges, allNodes, onClose }: DetailPanelProps) {
@@ -54,11 +55,19 @@ export function DetailPanel({ node, edges, allNodes, onClose }: DetailPanelProps
           <h3 className="kg-detail-panel__title">
             <span
               className={`kg-detail-panel__dot kg-detail-panel__conn-dot--${node.type}`}
-              style={{ backgroundColor: DOT_COLORS[node.type] }}
+              style={{
+                backgroundColor: node.type === 'category' && node.metadata?.color
+                  ? node.metadata.color
+                  : DOT_COLORS[node.type],
+              }}
             />
             {node.label}
           </h3>
-          <div className="kg-detail-panel__type">{node.type}</div>
+          <div className="kg-detail-panel__type">
+            {node.type === 'category' && node.metadata?.category
+              ? node.metadata.category
+              : node.type}
+          </div>
           {node.sublabel && (
             <div className="kg-detail-panel__sublabel">{node.sublabel}</div>
           )}
