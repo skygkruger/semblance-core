@@ -16,9 +16,8 @@ export const Empty: Story = {
 };
 
 export const Focused: Story = {
-  args: {
-    placeholder: 'Type here to see Veridian focus ring...',
-    autoFocus: true,
+  render: () => {
+    return <AgentInput placeholder="Type here to see Veridian focus ring..." autoFocus />;
   },
 };
 

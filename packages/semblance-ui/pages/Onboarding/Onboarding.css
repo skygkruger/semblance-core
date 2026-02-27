@@ -1,0 +1,84 @@
+/* ─── Onboarding shared styles ─── */
+
+.naming__headline {
+  font-family: var(--fd);
+  font-size: clamp(28px, 5vw, 48px);
+  font-weight: 400;
+  color: #EEF1F4;
+  text-align: center;
+  line-height: 1.25;
+  margin: 0 0 16px;
+}
+
+/* Gradient pronouns — exact gradient from Wordmark shimmer (semblance.run hero) */
+.naming__pronoun {
+  font-style: italic;
+  background: linear-gradient(
+    105deg,
+    #6b7a8a 0%, #9aa8b8 18%, #c8d2d8 30%, #9aa8b8 42%,
+    #6b7a8a 58%, #8a97a8 74%, #6b7a8a 100%
+  );
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 16s linear infinite;
+  animation-delay: -6s;
+}
+
+.naming__subtext {
+  font-family: var(--fb);
+  font-size: 13px;
+  color: #8593A4;
+  text-align: center;
+  max-width: 300px;
+  margin: 8px auto 0;
+  line-height: 1.5;
+}
+
+/* ─── AI name opal preview ─── */
+.naming__ai-preview {
+  font-family: var(--fd);
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-align: center;
+  min-height: 48px;
+  background: linear-gradient(
+    135deg,
+    rgba(210, 208, 222, 0.95) 0%,
+    rgba(198, 192, 215, 0.9) 25%,
+    rgba(215, 218, 228, 1.0) 50%,
+    rgba(195, 188, 214, 0.9) 75%,
+    rgba(212, 210, 224, 0.95) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 350ms ease, transform 350ms ease;
+}
+
+.naming__ai-preview--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.naming__ai-subtext {
+  font-family: var(--fb);
+  font-size: 13px;
+  color: #8593A4;
+  text-align: center;
+  max-width: 340px;
+  margin: 4px auto 0;
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 350ms ease 100ms, transform 350ms ease 100ms;
+}
+
+.naming__ai-subtext--visible {
+  opacity: 1;
+  transform: translateY(0);
+}

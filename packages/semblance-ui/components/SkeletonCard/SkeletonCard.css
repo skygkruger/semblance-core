@@ -1,0 +1,71 @@
+/* ─── SkeletonCard — loading placeholder with WireframeSpinner ─── */
+
+.skeleton-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  min-height: 180px;
+  animation: skeleton-breathe 3s ease-in-out infinite;
+}
+
+/* Opal shimmer layer */
+.skeleton-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent                    0%,
+    transparent                   15%,
+    rgba(74,  63, 107, 0.0)       20%,
+    rgba(107, 95, 168, 0.06)      32%,
+    rgba(154, 168, 184, 0.08)     44%,
+    rgba(216, 221, 232, 0.11)     52%,
+    rgba(216, 221, 232, 0.08)     58%,
+    rgba(154, 168, 184, 0.06)     66%,
+    rgba(107, 95, 168, 0.03)      76%,
+    transparent                   85%,
+    transparent                  100%
+  );
+  background-size: 200% 100%;
+  animation: opal-sweep 8s linear infinite;
+  animation-delay: -4s;
+  mix-blend-mode: screen;
+}
+
+/* Children above shimmer */
+.skeleton-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Subtle border pulse — the card is alive */
+@keyframes skeleton-breathe {
+  0%, 100% { border-color: rgba(255, 255, 255, 0.06); }
+  50% { border-color: rgba(110, 207, 163, 0.12); }
+}
+
+.skeleton-card__status {
+  font-family: var(--fb);
+  font-size: 14px;
+  color: #8593A4;
+  text-align: center;
+}
+
+.skeleton-card__sub {
+  font-family: var(--fb);
+  font-size: 12px;
+  color: rgba(133, 147, 164, 0.6);
+  text-align: center;
+}

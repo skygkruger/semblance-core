@@ -1,136 +1,202 @@
 .agent-input {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
 }
 
+/* ─── Document pill ─── */
 .agent-input__document-pill {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-1);
-  font-family: var(--fm);
-  font-size: 12px;
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #C8CAD0;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  padding: 2px 8px;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  margin-bottom: 8px;
+  max-width: 100%;
 }
 
-.agent-input__document-pill-dismiss {
+.agent-input__document-name {
+  font-family: var(--fm);
+  font-size: 12px;
+  color: #C8CAD0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.agent-input__document-dismiss {
   background: none;
   border: none;
   color: #8593A4;
   cursor: pointer;
-  padding: 2px;
+  padding: 0;
   display: flex;
+  align-items: center;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
+.agent-input__document-dismiss:hover {
+  color: #EEF1F4;
+}
+
+/* ─── Container — rest state ─── */
 .agent-input__container {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 56px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
+  min-height: 56px !important;
   padding: 14px 16px;
-  transition: border-color 220ms ease-out,
-              box-shadow 220ms ease-out;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  transition: border-color 220ms ease-out, box-shadow 220ms ease-out;
+  overflow: hidden;
 }
 
-/* Veridian Moment #4 — Focus container */
+/* Opal shimmer — the input is alive at rest */
+.agent-input__container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 15%,
+    rgba(107, 95, 168, 0.04) 32%,
+    rgba(154, 168, 184, 0.06) 44%,
+    rgba(216, 221, 232, 0.08) 52%,
+    rgba(154, 168, 184, 0.04) 66%,
+    transparent 85%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: opal-sweep 8s linear infinite;
+  animation-delay: -4s;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* ─── Focus state — unmissable Veridian moment ─── */
 .agent-input__container:focus-within {
-  border-color: #6ECFA3;
-  box-shadow: 0 0 0 3px rgba(110,207,163,0.12);
+  border-color: #6ECFA3 !important;
+  box-shadow: 0 0 0 3px rgba(110, 207, 163, 0.12), 0 0 24px rgba(110, 207, 163, 0.06) !important;
 }
 
+/* Faint Veridian radial bleed on focus — illuminates from within */
+.agent-input__container:focus-within::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, rgba(110, 207, 163, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* ─── Textarea ─── */
 .agent-input__field {
+  position: relative;
+  z-index: 1;
   flex: 1;
   background: none;
   border: none;
   outline: none;
-  font-family: var(--fb);
-  font-size: var(--text-base);
-  font-weight: 300;
-  color: var(--w-dim);
   resize: none;
   overflow: hidden;
   min-height: 24px;
-  max-height: 120px;
+  max-height: 200px;
+  font-family: var(--fb);
+  font-size: 15px;
+  line-height: 1.5;
+  color: #EEF1F4;
+  caret-color: #6ECFA3;
 }
 
 .agent-input__field::placeholder {
   color: #8593A4;
 }
 
-.agent-input__field[disabled] {
-  pointer-events: none;
-}
-
-/* Thinking state: hide textarea */
-.agent-input--thinking .agent-input__field {
-  display: none;
-}
-
-/* Veridian Moment #6 — Thinking indicator (inside container, replaces textarea) */
+/* ─── Thinking state ─── */
 .agent-input__thinking {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex: 1;
 }
 
 .agent-input__thinking-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--r-full);
-  background: var(--v);
-  animation: pulse 2s ease-in-out infinite;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6ECFA3;
+  box-shadow: 0 0 0 0 rgba(110, 207, 163, 0.4);
+  animation: thinking-pulse 2s ease-in-out infinite;
   flex-shrink: 0;
+}
+
+@keyframes thinking-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(110, 207, 163, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(110, 207, 163, 0);
+  }
 }
 
 .agent-input__thinking-text {
   font-family: var(--fb);
-  font-size: var(--text-base);
-  font-weight: 300;
+  font-size: 15px;
   color: #8593A4;
 }
 
-/* Actions group (send + future attachment) */
+/* ─── Actions group ─── */
 .agent-input__actions {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
 
-/* Veridian Moment #8 — Send button */
+/* ─── Send button — bordered square with return symbol ─── */
 .agent-input__send {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #8593A4;
+  border-radius: 6px;
   background: none;
   color: #8593A4;
   cursor: pointer;
-  border-radius: var(--r-md);
-  transition: color var(--duration-fast) var(--eo),
-              background var(--duration-fast) var(--eo);
+  flex-shrink: 0;
+  transition: color 180ms ease-out, border-color 180ms ease-out, background 180ms ease-out;
+  font-size: 14px;
+  line-height: 1;
 }
 
-/* Send activates to Veridian when content exists */
 .agent-input--has-value .agent-input__send {
   color: #6ECFA3;
+  border-color: #6ECFA3;
+  background: rgba(110, 207, 163, 0.06);
 }
 
 .agent-input__send:hover {
-  color: var(--v);
-  background: var(--v-dim);
+  background: rgba(110, 207, 163, 0.08);
+  border-color: #6ECFA3;
+  color: #6ECFA3;
 }
 
 .agent-input__send:disabled {

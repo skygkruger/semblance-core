@@ -15,13 +15,31 @@ const navItems = [
   { id: 'settings', label: 'Settings', icon: icon('M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z') },
 ];
 
-const meta: Meta<typeof DesktopSidebar> = {
+export default {
   title: 'Navigation/DesktopSidebar',
   component: DesktopSidebar,
-  parameters: { layout: 'fullscreen' },
-};
-
-export default meta;
+  parameters: {
+    layout: 'fullscreen',
+  },
+  decorators: [
+    (Story: any) => (
+      <div style={{
+        display: 'flex',
+        height: '100vh',
+        width: '100vw',
+        background: '#0B0E11',
+      }}>
+        <Story />
+        {/* Fake content area so sidebar has context */}
+        <div style={{
+          flex: 1,
+          background: 'rgba(255,255,255,0.01)',
+          borderLeft: '1px solid rgba(255,255,255,0.04)',
+        }} />
+      </div>
+    ),
+  ],
+} satisfies Meta<typeof DesktopSidebar>;
 type Story = StoryObj<typeof DesktopSidebar>;
 
 export const Default: Story = {

@@ -32,6 +32,12 @@
   color: var(--v);
 }
 
+/* Story mode — override fixed positioning for Storybook rendering */
+.mobile-tab-bar--story-mode {
+  position: relative !important;
+  bottom: auto !important;
+}
+
 .mobile-tab-bar__label {
   font-family: var(--fb);
   font-size: 10px;

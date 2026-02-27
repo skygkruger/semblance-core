@@ -4,6 +4,7 @@ const config: StorybookConfig = {
   stories: [
     '../components/**/*.stories.tsx',
     '../stories/**/*.stories.tsx',
+    '../pages/**/*.stories.tsx',
   ],
   framework: {
     name: '@storybook/react-vite',

@@ -15,20 +15,6 @@ const tabItems = [
   { id: 'settings', label: 'Settings', icon: icon('M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z') },
 ];
 
-const MobileTabBarDecorator = (Story: React.ComponentType) => (
-  <div style={{
-    position: 'relative',
-    height: '100vh',
-    width: '100%',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-  }}>
-    <Story />
-  </div>
-);
-
 const meta: Meta<typeof MobileTabBar> = {
   title: 'Navigation/MobileTabBar',
   component: MobileTabBar,
@@ -36,18 +22,17 @@ const meta: Meta<typeof MobileTabBar> = {
     layout: 'fullscreen',
     viewport: { defaultViewport: 'mobile' },
   },
-  decorators: [MobileTabBarDecorator],
 };
 
 export default meta;
 type Story = StoryObj<typeof MobileTabBar>;
 
 export const InboxActive: Story = {
-  args: { items: tabItems, activeId: 'inbox' },
+  args: { items: tabItems, activeId: 'inbox', className: 'mobile-tab-bar--story-mode' },
 };
 
 export const BriefActive: Story = {
-  args: { items: tabItems, activeId: 'brief' },
+  args: { items: tabItems, activeId: 'brief', className: 'mobile-tab-bar--story-mode' },
 };
 
 export const AllStates: Story = {
@@ -56,16 +41,14 @@ export const AllStates: Story = {
       display: 'flex',
       flexDirection: 'column',
       gap: 80,
-      paddingBottom: 80,
-      height: '100%',
-      overflow: 'auto',
+      padding: '24px 0',
     }}>
       {tabItems.map(tab => (
         <div key={tab.id}>
           <p style={{ color: '#8593A4', fontFamily: 'DM Sans, sans-serif', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.1em', padding: '0 16px', marginBottom: 8 }}>
             Active: {tab.label}
           </p>
-          <MobileTabBar items={tabItems} activeId={tab.id} />
+          <MobileTabBar items={tabItems} activeId={tab.id} className="mobile-tab-bar--story-mode" />
         </div>
       ))}
     </div>

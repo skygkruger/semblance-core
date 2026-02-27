@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { DotMatrix } from '../DotMatrix/DotMatrix';
 import { LogoMark } from '../LogoMark/LogoMark';
@@ -5,6 +6,7 @@ import { Wordmark } from '../Wordmark/Wordmark';
 import { Button } from '../Button/Button';
 import { Input } from '../Input/Input';
 import { PrivacyBadge } from '../PrivacyBadge/PrivacyBadge';
+import '../../pages/Onboarding/Onboarding.css';
 
 const PageWrapper = ({ children }: { children: React.ReactNode }) => (
   <div style={{
@@ -242,8 +244,11 @@ export const AutonomyTier: Story = {
   ),
 };
 
-export const NamingMoment: Story = {
-  render: () => (
+const NamingMomentScreen = ({ defaultValue = '' }: { defaultValue?: string }) => {
+  const [name, setName] = useState(defaultValue);
+  const hasValue = name.trim().length > 0;
+
+  return (
     <PageWrapper>
       <div style={{
         display: 'flex',
@@ -251,30 +256,38 @@ export const NamingMoment: Story = {
         alignItems: 'center',
         gap: 24,
         maxWidth: 420,
+        width: '100%',
         animation: 'dissolve 700ms var(--eo) both',
       }}>
         <LogoMark size={80} />
-        <h2 style={{
-          fontFamily: 'var(--fd)',
-          fontWeight: 300,
-          fontSize: 'var(--text-2xl)',
-          color: 'var(--white)',
-          textAlign: 'center',
-          margin: 0,
-        }}>
-          What should it call you?
-        </h2>
-        <p style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-base)', color: 'var(--sv3)', textAlign: 'center' }}>
-          This name is stored only on your device. It makes the experience personal.
+        <h1 className="naming__headline">
+          What should it call{' '}
+          <em className="naming__pronoun">you</em>
+          ?
+        </h1>
+        <p className="naming__subtext">
+          Stored only on your device. Never transmitted.
         </p>
-        <div style={{ width: '100%', marginTop: 8 }}>
-          <Input placeholder="Your name" />
+        <div style={{ width: '100%' }}>
+          <Input
+            placeholder="Your name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
         </div>
         <PrivacyBadge status="active" />
-        <div style={{ marginTop: 16 }}>
-          <Button variant="approve" size="lg">Start Semblance</Button>
+        <div style={{ marginTop: 8 }}>
+          <Button variant="approve" size="lg" disabled={!hasValue}>Continue</Button>
         </div>
       </div>
     </PageWrapper>
-  ),
+  );
+};
+
+export const NamingMoment: Story = {
+  render: () => <NamingMomentScreen />,
+};
+
+export const NamingMomentFilled: Story = {
+  render: () => <NamingMomentScreen defaultValue="Sky" />,
 };
