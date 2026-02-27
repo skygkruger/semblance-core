@@ -20,5 +20,5 @@
     },
     "baseUrl": "."
   },
-  "include": ["src"]
+  "include": ["src", "../semblance-ui/**/*.d.ts"]
 }

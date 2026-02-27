@@ -1,41 +1,57 @@
+/* ─── KnowledgeGraph — 3D force-directed constellation ─── */
+
 .knowledge-graph {
   width: 100%;
   height: 100%;
-  background: var(--base);
-  border-radius: var(--r-lg);
-  overflow: hidden;
+  background: transparent;
   position: relative;
+  overflow: hidden;
+  touch-action: none;
 }
 
-.knowledge-graph__svg {
+.knowledge-graph__canvas {
   width: 100%;
   height: 100%;
+  display: block;
+  cursor: grab;
 }
 
-.knowledge-graph__edge {
-  stroke: var(--b2);
-  stroke-width: 1;
-  transition: stroke var(--duration-fast) var(--eo);
+.knowledge-graph__canvas:active {
+  cursor: grabbing;
 }
 
-.knowledge-graph__edge--highlighted {
-  stroke: var(--v-wire);
-  stroke-width: 1.5;
-}
-
-.knowledge-graph__node {
-  cursor: pointer;
-  transition: r var(--duration-fast) var(--eo);
-}
-
-.knowledge-graph__node:hover {
-  r: 8;
-}
-
-.knowledge-graph__label {
-  font-family: var(--fm);
-  font-size: 10px;
-  fill: var(--sv2);
+/* Soft edge vignette — gentle fade, never clips content */
+.knowledge-graph::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 70%,
+    rgba(11, 14, 17, 0.3) 90%,
+    rgba(11, 14, 17, 0.6) 100%
+  );
   pointer-events: none;
-  text-anchor: middle;
+  z-index: 2;
+}
+
+/* Idle snapshot overlay — frozen frame when GPU released */
+.knowledge-graph__snapshot {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.knowledge-graph__snapshot--visible {
+  opacity: 1;
+}
+
+/* Detail panel sits above vignette */
+.knowledge-graph .kg-detail-panel {
+  z-index: 10;
 }
