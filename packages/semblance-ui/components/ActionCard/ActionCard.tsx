@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import './ActionCard.css';
 
 interface ActionCardProps {
   id: string;
@@ -10,13 +11,6 @@ interface ActionCardProps {
   detail?: ReactNode;
   className?: string;
 }
-
-const statusDotColor: Record<ActionCardProps['status'], string> = {
-  success: 'bg-semblance-success',
-  pending: 'bg-semblance-accent',
-  error: 'bg-semblance-attention',
-  rejected: 'bg-semblance-muted',
-};
 
 const statusLabel: Record<ActionCardProps['status'], string> = {
   success: 'Completed',
@@ -37,40 +31,28 @@ export function ActionCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div
-      className={`
-        bg-semblance-surface-1 dark:bg-semblance-surface-1-dark
-        border border-semblance-border dark:border-semblance-border-dark
-        rounded-lg shadow-md p-5
-        transition-all duration-normal ease-in-out
-        ${className}
-      `.trim()}
-    >
+    <div className={`action-card opal-surface ${className}`.trim()}>
       <button
         type="button"
-        className="w-full text-left flex items-start gap-3 focus:outline-none focus-visible:shadow-focus rounded-md"
+        className="action-card__toggle"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
       >
-        <span className={`mt-1.5 inline-block w-2 h-2 rounded-full flex-shrink-0 ${statusDotColor[status]}`} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark truncate">
-              {actionType}
-            </span>
-            <span className="text-xs text-semblance-text-tertiary flex-shrink-0">{timestamp}</span>
+        <span className={`action-card__dot action-card__dot--${status}`} />
+        <div className="action-card__content">
+          <div className="action-card__header">
+            <span className="action-card__type">{actionType}</span>
+            <span className="action-card__timestamp">{timestamp}</span>
           </div>
-          <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-1">
-            {description}
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs text-semblance-text-tertiary">{statusLabel[status]}</span>
-            <span className="text-xs text-semblance-text-tertiary">·</span>
-            <span className="text-xs text-semblance-text-tertiary capitalize">{autonomyTier}</span>
+          <p className="action-card__description">{description}</p>
+          <div className="action-card__meta">
+            <span className="action-card__meta-item">{statusLabel[status]}</span>
+            <span className="action-card__meta-separator">&middot;</span>
+            <span className="action-card__meta-item">{autonomyTier}</span>
           </div>
         </div>
         <svg
-          className={`w-4 h-4 text-semblance-muted flex-shrink-0 mt-1 transition-transform duration-fast ${expanded ? 'rotate-180' : ''}`}
+          className={`action-card__chevron ${expanded ? 'action-card__chevron--expanded' : ''}`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -82,7 +64,7 @@ export function ActionCard({
         </svg>
       </button>
       {expanded && detail && (
-        <div className="mt-4 pt-4 border-t border-semblance-border dark:border-semblance-border-dark text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+        <div className="action-card__detail">
           {detail}
         </div>
       )}

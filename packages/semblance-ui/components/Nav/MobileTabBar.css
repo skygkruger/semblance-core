@@ -8,8 +8,10 @@
   display: flex;
   align-items: center;
   justify-content: space-around;
-  background: var(--void);
-  border-top: 1px solid var(--b1);
+  background: rgba(11,14,17,0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.06);
   z-index: 100;
 }
 
@@ -31,7 +33,7 @@
 }
 
 .mobile-tab-bar__label {
-  font-family: var(--fm);
+  font-family: var(--fb);
   font-size: 10px;
   font-weight: 400;
   text-transform: uppercase;

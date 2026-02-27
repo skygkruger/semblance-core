@@ -29,8 +29,8 @@ export function DesktopSidebar({
   return (
     <nav className={`${rootClass} opal-surface ${className}`.trim()}>
       <div className="desktop-sidebar__brand">
-        <LogoMark size={collapsed ? 28 : 32} />
-        {!collapsed && <Wordmark size="nav" />}
+        <LogoMark size={collapsed ? 40 : 64} />
+        {!collapsed && <Wordmark size="nav" className="desktop-sidebar__wordmark" />}
       </div>
 
       <div className="desktop-sidebar__nav">
@@ -40,6 +40,7 @@ export function DesktopSidebar({
             type="button"
             className={`desktop-sidebar__item ${activeId === item.id ? 'desktop-sidebar__item--active' : ''}`}
             onClick={() => onNavigate?.(item.id)}
+            title={collapsed ? item.label : undefined}
           >
             {item.icon}
             {!collapsed && <span className="desktop-sidebar__item-label">{item.label}</span>}

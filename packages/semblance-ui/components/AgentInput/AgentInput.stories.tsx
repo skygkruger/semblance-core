@@ -12,16 +12,18 @@ export default meta;
 type Story = StoryObj<typeof AgentInput>;
 
 export const Empty: Story = {
-  args: {},
+  args: { placeholder: 'Ask Semblance' },
 };
 
 export const Focused: Story = {
-  args: { placeholder: 'Type here to see Veridian focus ring...' },
+  args: {
+    placeholder: 'Type here to see Veridian focus ring...',
+    autoFocus: true,
+  },
 };
 
 export const WithValue: Story = {
   render: () => {
-    // Story demonstrates the component — value is internal state
     return <AgentInput placeholder="Cancel my Figma subscription" />;
   },
 };
@@ -31,11 +33,11 @@ export const Thinking: Story = {
 };
 
 export const WithActiveDocument: Story = {
-  args: { activeDocument: 'taxes-2025.pdf' },
+  args: { activeDocument: { name: 'taxes-2025.pdf', onDismiss: () => {} } },
 };
 
 export const Mobile: Story = {
-  args: {},
+  args: { placeholder: 'Ask Semblance' },
   parameters: { viewport: { defaultViewport: 'mobile' } },
   decorators: [
     (Story) => (

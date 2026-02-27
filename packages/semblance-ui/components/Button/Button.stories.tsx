@@ -8,7 +8,7 @@ const meta: Meta<typeof Button> = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['ghost', 'solid', 'subtle', 'approve', 'destructive'],
+      options: ['ghost', 'solid', 'subtle', 'approve', 'dismiss', 'destructive'],
     },
     size: {
       control: 'select',
@@ -37,6 +37,10 @@ export const Approve: Story = {
   args: { variant: 'approve', children: 'Approve Action' },
 };
 
+export const Dismiss: Story = {
+  args: { variant: 'dismiss', children: 'Dismiss' },
+};
+
 export const Destructive: Story = {
   args: { variant: 'destructive', children: 'Delete' },
 };
@@ -55,6 +59,7 @@ export const AllVariants: Story = {
           <Button variant="solid" size={size}>Solid</Button>
           <Button variant="subtle" size={size}>Subtle</Button>
           <Button variant="approve" size={size}>Approve</Button>
+          <Button variant="dismiss" size={size}>Dismiss</Button>
           <Button variant="destructive" size={size}>Delete</Button>
         </div>
       ))}
@@ -69,6 +74,7 @@ export const AllDisabled: Story = {
       <Button variant="solid" disabled>Solid</Button>
       <Button variant="subtle" disabled>Subtle</Button>
       <Button variant="approve" disabled>Approve</Button>
+      <Button variant="dismiss" disabled>Dismiss</Button>
       <Button variant="destructive" disabled>Delete</Button>
     </div>
   ),
