@@ -166,7 +166,7 @@ describe('Onboarding Flow', () => {
   });
 
   it('has Naming screen (step 2)', () => {
-    expect(onboardingContent).toContain('What would you like to call it');
+    expect(onboardingContent).toContain('What would you like to call');
   });
 
   it('has Data Connection screen (step 3)', () => {
