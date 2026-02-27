@@ -23,7 +23,7 @@ export function DotMatrix({ mobile = false, className = '', width, height }: Dot
   const SP = mobile ? 40 : 28;
   const DB = 0.7;
   const DM = 2.0;
-  const INF = mobile ? 100 : 150;
+  const INF = mobile ? 85 : 125;
   const WAVE_PERIOD = 16000;
 
   const buildGrid = useCallback((w: number, h: number) => {
@@ -114,17 +114,29 @@ export function DotMatrix({ mobile = false, className = '', width, height }: Dot
         const inf = Math.max(0, 1 - dist / INF);
 
         if (inf > 0) {
-          // Cursor interaction — Veridian
+          // Cursor interaction — Veridian with lensing depth
+          // Cubic falloff = pronounced convex/raised feel near center
+          const lens = inf * inf * inf;
           const ri = Math.round(110 * inf + 90 * (1 - inf));
           const gi = Math.round(207 * inf + 106 * (1 - inf));
           const bi = Math.round(163 * inf + 122 * (1 - inf));
-          const radius = DB + (DM - DB) * inf;
-          const alpha = 0.15 + 0.6 * inf;
+          const radius = DB + (DM - DB) * lens * 1.15;
+          const alpha = 0.12 + 0.72 * lens;
 
           ctx.beginPath();
           ctx.arc(d.x, d.y, radius, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${ri},${gi},${bi},${alpha})`;
+          ctx.fillStyle = `rgba(${ri},${gi},${bi},${alpha.toFixed(2)})`;
           ctx.fill();
+
+          // Bright core highlight on dots close to cursor — sells the "raised" illusion
+          if (lens > 0.15) {
+            const coreAlpha = (lens - 0.15) * 0.75;
+            const coreR = radius * 0.45;
+            ctx.beginPath();
+            ctx.arc(d.x, d.y, coreR, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(200,235,220,${coreAlpha.toFixed(2)})`;
+            ctx.fill();
+          }
         } else {
           // Silver wave — take the stronger of two offset waves
           const proj = d.x * 0.259 + d.y * 0.966;

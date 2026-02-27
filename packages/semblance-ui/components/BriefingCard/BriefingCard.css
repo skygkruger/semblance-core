@@ -61,11 +61,30 @@
 }
 
 .briefing-item__dot {
-  width: 6px;
-  height: 6px;
+  display: block;
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  margin-top: 7px;
+  margin-top: 6px;
+  /* Fallback — overridden by type-specific rules below */
+  background-color: #8593A4;
+}
+
+/* ─── Dot colors by type (CSS as primary, inline style as reinforcement) ─── */
+.briefing-item--action .briefing-item__dot {
+  background-color: #6ECFA3 !important;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.briefing-item--pending .briefing-item__dot {
+  background-color: #C9A85C !important;
+}
+
+.briefing-item--insight .briefing-item__dot {
+  background-color: #8593A4 !important;
 }
 
 .briefing-item__text {
@@ -77,10 +96,6 @@
 }
 
 /* Veridian Moment #2 — action item dots pulse */
-.briefing-item--action .briefing-item__dot {
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; box-shadow: 0 0 6px #6ECFA3; }
   50%      { opacity: 0.35; box-shadow: 0 0 2px #6ECFA3; }
