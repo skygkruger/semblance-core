@@ -53,12 +53,7 @@ const SHAPE_SPHERE: [number, number, number][] = DODECA.map((v, i) => {
   return [nx * r, ny * r, nz * r] as [number, number, number];
 });
 
-// Shape 3: Compressed disc — flatten Y, stretch X/Z
-const SHAPE_DISC: [number, number, number][] = DODECA.map(v => {
-  return [v[0] * 1.4, v[1] * 0.2, v[2] * 1.4] as [number, number, number];
-});
-
-// Shape 4: Twisted — top rotates clockwise, bottom counter-clockwise
+// Shape 3: Twisted — top rotates clockwise, bottom counter-clockwise
 const SHAPE_TWIST: [number, number, number][] = DODECA.map(v => {
   const twist = v[1] * 1.2; // twist amount based on Y position
   const cosT = Math.cos(twist);
@@ -76,7 +71,55 @@ const SHAPE_STAR: [number, number, number][] = DODECA.map((v, i) => {
   return [v[0] * scale, v[1] * scale, v[2] * scale] as [number, number, number];
 });
 
-const BASE_SHAPES = [SHAPE_DODECA, SHAPE_SPHERE, SHAPE_TWIST, SHAPE_DISC, SHAPE_STAR];
+// Shape 6: Gem — pinch poles, expand equator. Faceted gemstone silhouette.
+const SHAPE_GEM: [number, number, number][] = DODECA.map(v => {
+  const ay = Math.abs(v[1]);
+  const polar = ay > 0.5;
+  return (polar
+    ? [v[0] * 0.5, v[1] * 1.3, v[2] * 0.5]
+    : [v[0] * 1.3, v[1] * 0.6, v[2] * 1.3]) as [number, number, number];
+});
+
+// Shape 7: Helix — Y-based spiral with radial push. DNA-like double helix.
+const SHAPE_HELIX: [number, number, number][] = DODECA.map(v => {
+  const angle = v[1] * 2.5;
+  const radial = 0.25 * Math.sin(v[1] * Math.PI);
+  const cos = Math.cos(angle), sin = Math.sin(angle);
+  return [
+    (v[0] + radial) * cos - v[2] * sin,
+    v[1] * 0.9,
+    v[0] * sin + (v[2] + radial) * cos,
+  ] as [number, number, number];
+});
+
+// Shape 8: Bloom — asymmetric: top half blooms outward, bottom half contracts.
+const SHAPE_BLOOM: [number, number, number][] = DODECA.map(v => {
+  const scale = v[1] > 0
+    ? 1.0 + v[1] * 0.7
+    : 1.0 + v[1] * 0.3;
+  return [v[0] * scale, v[1] * scale, v[2] * scale] as [number, number, number];
+});
+
+// Shape 9: Ripple — sinusoidal radial displacement based on Y. Vase/hourglass silhouette.
+const SHAPE_RIPPLE: [number, number, number][] = DODECA.map(v => {
+  const wave = 1.0 + 0.35 * Math.sin(v[1] * Math.PI * 2);
+  return [v[0] * wave, v[1], v[2] * wave] as [number, number, number];
+});
+
+// Shape 10: Spire — tapers to a point at top, widens at base. Tornado/obelisk silhouette.
+const SHAPE_SPIRE: [number, number, number][] = DODECA.map(v => {
+  const taper = 0.4 + 0.6 * (1 - (v[1] + 1) / 2); // wide at bottom, narrow at top
+  return [v[0] * taper, v[1] * 1.2, v[2] * taper] as [number, number, number];
+});
+
+// Shape 11: Cage — equatorial vertices push far out, poles collapse inward. Lantern silhouette.
+const SHAPE_CAGE: [number, number, number][] = DODECA.map(v => {
+  const eq = 1 - Math.abs(v[1]);
+  const scale = 0.6 + eq * 0.9;
+  return [v[0] * scale, v[1] * 0.7, v[2] * scale] as [number, number, number];
+});
+
+const BASE_SHAPES = [SHAPE_DODECA, SHAPE_SPHERE, SHAPE_TWIST, SHAPE_STAR, SHAPE_GEM, SHAPE_HELIX, SHAPE_BLOOM, SHAPE_RIPPLE, SHAPE_SPIRE, SHAPE_CAGE];
 const SHAPE_DURATION = 3.0; // seconds per shape
 const TRANSITION_TIME = 1.2; // seconds to blend between shapes
 
@@ -88,11 +131,11 @@ function generateHybrid(seed: number): [number, number, number][] {
   if (idxB === idxA) idxB = (idxB + 1) % BASE_SHAPES.length; // ensure different bases
   const a = BASE_SHAPES[idxA]!;
   const b = BASE_SHAPES[idxB]!;
-  const mix = 0.3 + (Math.sin(seed * 13.7) * 0.5 + 0.5) * 0.4; // 0.3–0.7
+  const mix = 0.2 + (Math.sin(seed * 13.7) * 0.5 + 0.5) * 0.6; // 0.2–0.8
   return DODECA.map((_, i) => {
     const va = a[i]!;
     const vb = b[i]!;
-    const wobble = 0.08;
+    const wobble = 0.12;
     return [
       va[0] * (1 - mix) + vb[0] * mix + Math.sin(seed * 3.1 + i * 2.1) * wobble,
       va[1] * (1 - mix) + vb[1] * mix + Math.cos(seed * 5.3 + i * 1.7) * wobble,
@@ -137,9 +180,9 @@ function refillQueue(queue: ShapeQueue): void {
     const j = queue.seed % (i + 1);
     [batch[i], batch[j]] = [batch[j]!, batch[i]!];
   }
-  // Generate 1-2 hybrids and insert at seeded positions
+  // Generate 2-3 hybrids and insert at seeded positions
   queue.seed = lcg(queue.seed);
-  const hybridCount = 1 + (queue.seed % 2);
+  const hybridCount = 2 + (queue.seed % 2);
   for (let h = 0; h < hybridCount; h++) {
     const hybrid = generateHybrid(queue.seed * 0.0001 + h * 53.1);
     queue.seed = lcg(queue.seed);
