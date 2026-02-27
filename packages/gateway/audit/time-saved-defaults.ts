@@ -44,6 +44,13 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'reminder.update': 15,         // Quick snooze/dismiss vs manual re-scheduling
   'reminder.list': 0,            // Read-only, no time saved
   'reminder.delete': 10,         // Quick cleanup
+  'connector.auth': 5,            // OAuth connector setup
+  'connector.auth_status': 0,    // Status check — informational
+  'connector.disconnect': 5,     // Disconnect/revoke connector
+  'connector.sync': 120,         // Sync data from connector (saves manual export/import)
+  'connector.list_items': 15,    // List items (faster than browsing service manually)
+  'import.run': 300,             // Run import (saves manual data migration)
+  'import.status': 0,            // Status check — informational
   'service.api_call': 0,         // Generic — no default estimate
   'model.download': 0,           // Infrastructure — model management
   'model.download_cancel': 0,    // Infrastructure — model management

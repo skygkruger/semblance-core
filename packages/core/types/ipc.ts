@@ -52,6 +52,13 @@ export const ActionType = z.enum([
   'finance.plaid_balances',
   'finance.plaid_status',
   'finance.plaid_disconnect',
+  'connector.auth',
+  'connector.auth_status',
+  'connector.disconnect',
+  'connector.sync',
+  'connector.list_items',
+  'import.run',
+  'import.status',
   'service.api_call',
   'model.download',
   'model.download_cancel',
@@ -443,6 +450,50 @@ export const CloudCheckChangedPayload = z.object({
 });
 export type CloudCheckChangedPayload = z.infer<typeof CloudCheckChangedPayload>;
 
+// --- Connector payload schemas (Connector Surface) ---
+
+export const ConnectorAuthPayload = z.object({
+  connectorId: z.string(),
+  /** API key for key-based connectors (Readwise, Toggl, etc.) */
+  apiKey: z.string().optional(),
+});
+export type ConnectorAuthPayload = z.infer<typeof ConnectorAuthPayload>;
+
+export const ConnectorAuthStatusPayload = z.object({
+  connectorId: z.string(),
+});
+export type ConnectorAuthStatusPayload = z.infer<typeof ConnectorAuthStatusPayload>;
+
+export const ConnectorDisconnectPayload = z.object({
+  connectorId: z.string(),
+});
+export type ConnectorDisconnectPayload = z.infer<typeof ConnectorDisconnectPayload>;
+
+export const ConnectorSyncPayload = z.object({
+  connectorId: z.string(),
+  since: z.string().datetime().optional(),
+  limit: z.number().int().positive().optional(),
+});
+export type ConnectorSyncPayload = z.infer<typeof ConnectorSyncPayload>;
+
+export const ConnectorListItemsPayload = z.object({
+  connectorId: z.string(),
+  pageToken: z.string().optional(),
+  pageSize: z.number().int().positive().optional(),
+});
+export type ConnectorListItemsPayload = z.infer<typeof ConnectorListItemsPayload>;
+
+export const ImportRunPayload = z.object({
+  sourcePath: z.string(),
+  sourceType: z.string(),
+});
+export type ImportRunPayload = z.infer<typeof ImportRunPayload>;
+
+export const ImportStatusPayload = z.object({
+  importId: z.string().optional(),
+});
+export type ImportStatusPayload = z.infer<typeof ImportStatusPayload>;
+
 // --- Network payload schemas (Step 28) ---
 
 export const NetworkStartDiscoveryPayload = z.object({
@@ -514,6 +565,13 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'cloud.file_metadata': CloudFileMetadataPayload,
   'cloud.download_file': CloudDownloadFilePayload,
   'cloud.check_changed': CloudCheckChangedPayload,
+  'connector.auth': ConnectorAuthPayload,
+  'connector.auth_status': ConnectorAuthStatusPayload,
+  'connector.disconnect': ConnectorDisconnectPayload,
+  'connector.sync': ConnectorSyncPayload,
+  'connector.list_items': ConnectorListItemsPayload,
+  'import.run': ImportRunPayload,
+  'import.status': ImportStatusPayload,
   'service.api_call': ServiceApiCallPayload,
   'model.download': ModelDownloadPayload,
   'model.download_cancel': ModelDownloadCancelPayload,

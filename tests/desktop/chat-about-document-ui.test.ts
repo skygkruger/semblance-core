@@ -44,6 +44,9 @@ describe('AppState document context', () => {
     morningBriefSettings: { enabled: true, time: '07:00', lastDeliveredAt: null },
     alterEgoWeek: { isActive: false, currentDay: 0, completedDays: [], skipped: false },
     license: { tier: 'free', isFoundingMember: false, foundingSeat: null, licenseKey: null },
+    connectorStates: {},
+    importHistory: [],
+    importWatchPath: '',
   };
 
   const mockDoc: DocumentContext = {

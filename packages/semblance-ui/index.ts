@@ -49,6 +49,10 @@ export { KnowledgeGraph } from './components/KnowledgeGraph/index.js';
 export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
 export { WireframeSpinner } from './components/WireframeSpinner/index.js';
 
+// Connectors
+export { ConnectorCard } from './components/ConnectorCard/index.js';
+export type { ConnectorCardProps, ConnectorCardStatus } from './components/ConnectorCard/index.js';
+
 // License / Premium
 export { FeatureGate } from './components/FeatureGate/index.js';
 export { UpgradeScreen } from './components/UpgradeScreen/index.js';

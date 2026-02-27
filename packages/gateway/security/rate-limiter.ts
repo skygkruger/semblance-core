@@ -25,6 +25,13 @@ const DEFAULT_ACTION_LIMITS: Partial<Record<ActionType, number>> = {
   'cloud.file_metadata': 120, // Metadata lookups — moderate
   'cloud.download_file': 60,  // Downloads are heavier, lower limit
   'cloud.check_changed': 120, // Change polling — moderate
+  'connector.auth': 10,       // OAuth flow — low frequency
+  'connector.auth_status': 120, // Status checks can be frequent
+  'connector.disconnect': 10, // Disconnect is rare
+  'connector.sync': 30,       // Sync is moderate — rate limited by provider too
+  'connector.list_items': 120, // Listing items — moderate
+  'import.run': 20,           // Import runs are heavy, low limit
+  'import.status': 120,       // Status checks can be frequent
 };
 
 const DEFAULT_PER_ACTION_LIMIT = 60;

@@ -99,6 +99,23 @@ export interface AppState {
     foundingSeat: number | null;
     licenseKey: string | null;
   };
+  connectorStates: Record<string, {
+    connectorId: string;
+    status: 'connected' | 'disconnected' | 'error' | 'pending';
+    userEmail?: string;
+    lastSyncedAt?: string;
+    errorMessage?: string;
+    itemCount?: number;
+  }>;
+  importHistory: Array<{
+    id: string;
+    filename: string;
+    sourceType: string;
+    format: string;
+    imported: number;
+    importedAt: string;
+  }>;
+  importWatchPath: string;
 }
 
 export interface DocumentContext {
@@ -151,7 +168,11 @@ export type AppAction =
   | { type: 'SET_FINANCE_SETTINGS'; settings: AppState['financeSettings'] }
   | { type: 'SET_MORNING_BRIEF_SETTINGS'; settings: AppState['morningBriefSettings'] }
   | { type: 'SET_ALTER_EGO_WEEK_PROGRESS'; progress: AppState['alterEgoWeek'] }
-  | { type: 'SET_LICENSE'; license: AppState['license'] };
+  | { type: 'SET_LICENSE'; license: AppState['license'] }
+  | { type: 'SET_CONNECTOR_STATE'; connectorId: string; state: AppState['connectorStates'][string] }
+  | { type: 'SET_CONNECTOR_STATES'; states: AppState['connectorStates'] }
+  | { type: 'ADD_IMPORT_HISTORY'; entry: AppState['importHistory'][number] }
+  | { type: 'SET_IMPORT_WATCH_PATH'; path: string };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -256,6 +277,9 @@ export const initialState: AppState = {
     foundingSeat: null,
     licenseKey: null,
   },
+  connectorStates: {},
+  importHistory: [],
+  importWatchPath: '',
 };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
@@ -339,6 +363,20 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, alterEgoWeek: action.progress };
     case 'SET_LICENSE':
       return { ...state, license: action.license };
+    case 'SET_CONNECTOR_STATE':
+      return {
+        ...state,
+        connectorStates: {
+          ...state.connectorStates,
+          [action.connectorId]: action.state,
+        },
+      };
+    case 'SET_CONNECTOR_STATES':
+      return { ...state, connectorStates: action.states };
+    case 'ADD_IMPORT_HISTORY':
+      return { ...state, importHistory: [action.entry, ...state.importHistory] };
+    case 'SET_IMPORT_WATCH_PATH':
+      return { ...state, importWatchPath: action.path };
     default:
       return state;
   }
