@@ -251,7 +251,7 @@ export class AutonomyManager {
    * Get current autonomy configuration for all domains.
    */
   getConfig(): Record<AutonomyDomain, AutonomyTier> {
-    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'messaging', 'clipboard', 'location', 'voice', 'cloud-storage', 'network', 'system'];
+    const domains: AutonomyDomain[] = ['email', 'calendar', 'finances', 'health', 'files', 'contacts', 'services', 'web', 'reminders', 'messaging', 'clipboard', 'location', 'voice', 'cloud-storage', 'network', 'system', 'connectors'];
     const config = {} as Record<AutonomyDomain, AutonomyTier>;
     for (const domain of domains) {
       config[domain] = this.getDomainTier(domain);
