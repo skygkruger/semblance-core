@@ -32,7 +32,7 @@
   box-shadow: 0 0 24px var(--v-glow-md);
 }
 
-/* ─── State: approved — Veridian border, same card surface as pending ─── */
+/* ─── State: approved — Veridian border only, matches dismissed proportions ─── */
 .approval-card--approved {
   border-color: var(--v-wire);
 }
@@ -200,4 +200,17 @@
 .approval-card[data-risk="high"]:hover {
   border-color: rgba(201, 123, 110, 0.30);
   box-shadow: 0 0 24px rgba(201, 123, 110, 0.12);
+}
+
+/* ═══ Dismiss Button Hover — color-coded by risk ═══ */
+/* Low: default grey hover (no override needed) */
+
+/* Medium: grey resting, amber hover */
+.approval-card[data-risk="medium"] .btn--dismiss:hover {
+  background: rgba(201, 168, 92, 0.06);
+}
+
+/* High: grey resting, rust hover */
+.approval-card[data-risk="high"] .btn--dismiss:hover {
+  background: rgba(201, 123, 110, 0.06);
 }

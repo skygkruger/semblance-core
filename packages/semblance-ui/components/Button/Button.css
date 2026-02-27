@@ -98,6 +98,17 @@
   box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
 }
 
+/* Dismiss — peer to Approve, equal weight, silver tone */
+.btn--dismiss {
+  background: transparent;
+  color: #8593A4;
+  border-color: #8593A4;
+  transition: all var(--duration-slow) var(--eo);
+}
+.btn--dismiss:hover {
+  background: rgba(133, 147, 164, 0.06);
+}
+
 /* Destructive */
 .btn--destructive {
   background: transparent;

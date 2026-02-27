@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import './Button.css';
 
-type ButtonVariant = 'ghost' | 'solid' | 'subtle' | 'approve' | 'destructive';
+type ButtonVariant = 'ghost' | 'solid' | 'subtle' | 'approve' | 'dismiss' | 'destructive';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

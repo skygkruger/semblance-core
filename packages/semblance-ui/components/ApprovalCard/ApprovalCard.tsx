@@ -69,7 +69,7 @@ export function ApprovalCard({
           <Button variant="approve" size="md" onClick={onApprove}>
             Approve
           </Button>
-          <Button variant="subtle" size="md" onClick={onDismiss}>
+          <Button variant="dismiss" size="md" onClick={onDismiss}>
             Dismiss
           </Button>
         </div>
