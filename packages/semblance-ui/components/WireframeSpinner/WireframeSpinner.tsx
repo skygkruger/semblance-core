@@ -247,7 +247,7 @@ export function WireframeSpinner({
 
     const cx = size / 2;
     const cy = size / 2;
-    const r = size * 0.32;
+    const r = size * 0.26;
 
     let t = 0;
     let shapeTime = 0; // time spent on current shape pair
