@@ -4,6 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { Navigation, PrivacyBadge, ThemeToggle } from '@semblance/ui';
 import type { NavItem } from '@semblance/ui';
 import { AppStateProvider, useAppState, useAppDispatch } from './state/AppState';
+import { LicenseProvider, useLicense } from './contexts/LicenseContext';
 import { useTheme } from './hooks/useTheme';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { ChatScreen } from './screens/ChatScreen';
@@ -17,6 +18,7 @@ import { NetworkMonitorScreen } from './screens/NetworkMonitorScreen';
 import { RelationshipsScreen } from './screens/RelationshipsScreen';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
+import { UpgradeScreen as UpgradeScreenComponent } from '@semblance/ui';
 import type { ThemeMode } from '@semblance/ui';
 
 // Lucide-style inline SVG icons (16×16, stroke-based)
@@ -103,59 +105,24 @@ const navItems: NavItem[] = [
   { id: 'network', label: 'Network', icon: <NetworkIcon /> },
 ];
 
-interface LicenseStatus {
-  tier: 'free' | 'founding' | 'digital-representative' | 'lifetime';
-  isPremium: boolean;
-  isFoundingMember: boolean;
-  foundingSeat: number | null;
-}
-
-interface ActivationResult {
-  success: boolean;
-  tier?: string;
-  error?: string;
-}
-
 function AppContent() {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { theme, setTheme } = useTheme();
+  const license = useLicense();
 
-  // Hydrate license status on startup + listen for deep link founding activation
+  // Hydrate license status on startup + listen for deep link activations
   useEffect(() => {
     // Hydrate license from SQLite on startup
-    invoke<LicenseStatus>('get_license_status')
-      .then((status) => {
-        dispatch({
-          type: 'SET_LICENSE',
-          license: {
-            tier: status.tier,
-            isFoundingMember: status.isFoundingMember,
-            foundingSeat: status.foundingSeat,
-          },
-        });
-      })
-      .catch(() => {
-        // Not yet initialized — will be free tier by default
-      });
+    license.refresh().catch(() => {
+      // Not yet initialized — will be free tier by default
+    });
 
     // Listen for deep link founding activation (forwarded from Rust)
-    const unlistenPromise = listen<{ token: string }>('founding-activate', async (event) => {
+    const unlistenFoundingPromise = listen<{ token: string }>('founding-activate', async (event) => {
       try {
-        const result = await invoke<ActivationResult>('activate_founding_token', {
-          token: event.payload.token,
-        });
+        const result = await license.activateFoundingToken(event.payload.token);
         if (result.success) {
-          // Re-fetch full license status after activation
-          const status = await invoke<LicenseStatus>('get_license_status');
-          dispatch({
-            type: 'SET_LICENSE',
-            license: {
-              tier: status.tier,
-              isFoundingMember: status.isFoundingMember,
-              foundingSeat: status.foundingSeat,
-            },
-          });
           // If in onboarding, jump to the autonomy step (which shows founding member moment)
           if (!state.onboardingComplete) {
             dispatch({ type: 'SET_ONBOARDING_STEP', step: 9 });
@@ -166,8 +133,24 @@ function AppContent() {
       }
     });
 
+    // Listen for deep link license key activation (forwarded from Rust)
+    const unlistenLicensePromise = listen<{ key: string }>('license-activate', async (event) => {
+      try {
+        await license.activateKey(event.payload.key);
+      } catch {
+        // Activation failed — user can try manual code entry
+      }
+    });
+
+    // Listen for automatic license detection from email indexing
+    const unlistenAutoDetectPromise = listen<{ tier: string; expiresAt?: string }>('semblance://license-auto-activated', async () => {
+      await license.refresh();
+    });
+
     return () => {
-      unlistenPromise.then((fn) => fn());
+      unlistenFoundingPromise.then((fn) => fn());
+      unlistenLicensePromise.then((fn) => fn());
+      unlistenAutoDetectPromise.then((fn) => fn());
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -188,6 +171,17 @@ function AppContent() {
       case 'digest': return <DigestScreen />;
       case 'network': return <NetworkMonitorScreen />;
       case 'settings': return <SettingsScreen />;
+      case 'upgrade': return (
+        <UpgradeScreenComponent
+          currentTier={license.tier}
+          isFoundingMember={license.isFoundingMember}
+          foundingSeat={license.foundingSeat}
+          onCheckout={license.openCheckout}
+          onActivateKey={license.activateKey}
+          onManageSubscription={license.manageSubscription}
+          onBack={() => dispatch({ type: 'SET_ACTIVE_SCREEN', screen: 'settings' })}
+        />
+      );
       default: return <ChatScreen />;
     }
   };
@@ -240,7 +234,9 @@ function AppContent() {
 export function App() {
   return (
     <AppStateProvider>
-      <AppContent />
+      <LicenseProvider>
+        <AppContent />
+      </LicenseProvider>
     </AppStateProvider>
   );
 }

@@ -30,6 +30,7 @@ interface LicenseStatus {
   isPremium: boolean;
   isFoundingMember: boolean;
   foundingSeat: number | null;
+  licenseKey: string | null;
 }
 
 const TOTAL_STEPS = 11;
@@ -220,6 +221,7 @@ export function OnboardingScreen() {
             tier: status.tier,
             isFoundingMember: status.isFoundingMember,
             foundingSeat: status.foundingSeat,
+            licenseKey: status.licenseKey ?? null,
           },
         });
         setShowFoundingCodeInput(false);

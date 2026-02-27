@@ -1,0 +1,53 @@
+/* FeatureGate — Locked fallback card */
+
+.feature-gate__locked {
+  background: linear-gradient(135deg, var(--s2), var(--s1));
+  border: 1px solid var(--v-wire);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  max-width: 480px;
+}
+
+.feature-gate__locked-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.feature-gate__lock-icon {
+  color: var(--v);
+  flex-shrink: 0;
+}
+
+.feature-gate__locked-label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--v);
+}
+
+.feature-gate__locked-divider {
+  height: 1px;
+  margin: var(--sp-4) 0;
+  background: linear-gradient(90deg, var(--v), transparent);
+  max-width: 72px;
+}
+
+.feature-gate__locked-body {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  color: var(--sv3);
+  line-height: 1.6;
+  margin: 0 0 var(--sp-3) 0;
+}
+
+.feature-gate__locked-body:last-of-type {
+  margin-bottom: var(--sp-5);
+}
+
+.feature-gate__locked-actions {
+  display: flex;
+  gap: var(--sp-3);
+}

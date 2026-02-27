@@ -97,6 +97,7 @@ export interface AppState {
     tier: 'free' | 'founding' | 'digital-representative' | 'lifetime';
     isFoundingMember: boolean;
     foundingSeat: number | null;
+    licenseKey: string | null;
   };
 }
 
@@ -253,6 +254,7 @@ export const initialState: AppState = {
     tier: 'free',
     isFoundingMember: false,
     foundingSeat: null,
+    licenseKey: null,
   },
 };
 

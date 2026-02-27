@@ -1347,6 +1347,19 @@ async fn activate_founding_token(
         .await
 }
 
+/// Activate a sem_ license key via the sidecar bridge.
+/// Called from the frontend after manual key entry or deep link activation.
+#[tauri::command]
+async fn activate_license_key(
+    state: tauri::State<'_, AppBridge>,
+    key: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call("license:activate_key", serde_json::json!({ "key": key }))
+        .await
+}
+
 /// Get current license status from the sidecar bridge.
 #[tauri::command]
 async fn get_license_status(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
@@ -1394,10 +1407,16 @@ pub fn run() {
                 // The payload is a JSON string containing the URL(s)
                 if let Ok(urls) = serde_json::from_str::<Vec<String>>(payload_str) {
                     for url in urls {
-                        // Parse semblance://activate?tier=founding&token=xxx
+                        // Parse semblance://activate?token=xxx or semblance://activate?key=sem_xxx
                         if url.starts_with("semblance://activate") {
                             if let Ok(parsed) = url::Url::parse(&url.replace("semblance://", "https://")) {
-                                if let Some(token) = parsed.query_pairs().find(|(k, _)| k == "token").map(|(_, v)| v.to_string()) {
+                                // License key activation (sem_ format)
+                                if let Some(key) = parsed.query_pairs().find(|(k, _)| k == "key").map(|(_, v)| v.to_string()) {
+                                    eprintln!("[tauri] Deep link received: license key activation");
+                                    let _ = app_for_deeplink.emit("license-activate", serde_json::json!({ "key": key }));
+                                }
+                                // Founding token activation (JWT format)
+                                else if let Some(token) = parsed.query_pairs().find(|(k, _)| k == "token").map(|(_, v)| v.to_string()) {
                                     eprintln!("[tauri] Deep link received: founding activation");
                                     let _ = app_for_deeplink.emit("founding-activate", serde_json::json!({ "token": token }));
                                 }
@@ -1560,6 +1579,7 @@ pub fn run() {
             detect_hardware,
             // Founding Member Activation
             activate_founding_token,
+            activate_license_key,
             get_license_status,
         ])
         .run(tauri::generate_context!())

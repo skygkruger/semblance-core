@@ -43,7 +43,7 @@ describe('AppState document context', () => {
     financeSettings: { plaidConnected: false, autoSyncEnabled: false, anomalySensitivity: 'medium' as const, lastImportAt: null, connectedAccounts: [] },
     morningBriefSettings: { enabled: true, time: '07:00', lastDeliveredAt: null },
     alterEgoWeek: { isActive: false, currentDay: 0, completedDays: [], skipped: false },
-    license: { tier: 'free', isFoundingMember: false, foundingSeat: null },
+    license: { tier: 'free', isFoundingMember: false, foundingSeat: null, licenseKey: null },
   };
 
   const mockDoc: DocumentContext = {

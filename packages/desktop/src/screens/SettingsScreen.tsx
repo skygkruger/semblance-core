@@ -1,7 +1,8 @@
 import { useCallback, useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Card, Input, Button, StatusIndicator, AutonomySelector, ThemeToggle, CredentialForm } from '@semblance/ui';
+import { Card, Input, Button, StatusIndicator, AutonomySelector, ThemeToggle, CredentialForm, LicenseActivation, FoundingMemberBadge } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
+import { useLicense } from '../contexts/LicenseContext';
 import { HardwareProfileDisplay } from '../components/HardwareProfileDisplay';
 import { ClipboardSettingsSection } from '../components/ClipboardSettingsSection';
 import { LocationSettingsSection } from '../components/LocationSettingsSection';
@@ -30,6 +31,70 @@ interface AccountStatus {
   username: string;
   protocols: string[];
   connected: boolean;
+}
+
+function LicenseSection() {
+  const license = useLicense();
+  const dispatch = useAppDispatch();
+
+  const tierLabel =
+    license.tier === 'digital-representative' ? 'Digital Representative' :
+    license.tier === 'founding' ? 'Founding Member' :
+    license.tier === 'lifetime' ? 'Lifetime' :
+    'Free';
+
+  return (
+    <Card>
+      <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+        License
+      </h2>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark font-medium">
+              {tierLabel}
+            </p>
+            <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+              {license.isPremium ? 'All premium features active' : 'Core features only'}
+            </p>
+          </div>
+          {license.isFoundingMember && license.foundingSeat !== null && (
+            <FoundingMemberBadge seat={license.foundingSeat} variant="inline" />
+          )}
+        </div>
+
+        {!license.isPremium && (
+          <Button
+            variant="solid"
+            size="sm"
+            onClick={() => dispatch({ type: 'SET_ACTIVE_SCREEN', screen: 'upgrade' })}
+          >
+            Upgrade
+          </Button>
+        )}
+
+        {license.isPremium && license.tier === 'digital-representative' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => license.manageSubscription()}
+          >
+            Manage Subscription
+          </Button>
+        )}
+
+        <div>
+          <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark mb-2">
+            {license.isPremium ? 'Enter a different license key:' : 'Have a license key?'}
+          </p>
+          <LicenseActivation
+            onActivate={license.activateKey}
+            alreadyActive={false}
+          />
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 export function SettingsScreen() {
@@ -489,6 +554,9 @@ export function SettingsScreen() {
         </h2>
         <ThemeToggle value={state.theme} onChange={handleThemeChange} />
       </Card>
+
+      {/* License */}
+      <LicenseSection />
 
       {/* About */}
       <Card>

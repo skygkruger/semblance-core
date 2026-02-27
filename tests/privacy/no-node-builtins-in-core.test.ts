@@ -36,6 +36,9 @@ const APPROVED_FILES = new Set([
   // Founding member JWT verification uses node:crypto for Ed25519 signature verification.
   // On mobile, this would use the platform CryptoAdapter (not yet supporting Ed25519 verify).
   'premium/founding-token.ts',
+  // License key Ed25519 signature verification uses node:crypto for Ed25519 verify.
+  // On mobile, this would use the platform CryptoAdapter (not yet supporting Ed25519 verify).
+  'premium/license-keys.ts',
 ]);
 
 function collectTsFiles(dir: string, baseDir: string): string[] {
