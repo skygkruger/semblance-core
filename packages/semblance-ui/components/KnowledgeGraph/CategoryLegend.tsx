@@ -5,12 +5,14 @@ interface CategoryLegendItem {
   label: string;
   color: string;
   nodeCount: number;
+  category?: string;
 }
 
 interface CategoryLegendProps {
   categories: CategoryLegendItem[];
   leftOffset?: number;
   onCategoryClick?: (categoryId: string) => void;
+  compact?: boolean;
 }
 
 export function deriveLegendCategories(nodes: KnowledgeNode[]): CategoryLegendItem[] {
@@ -21,13 +23,83 @@ export function deriveLegendCategories(nodes: KnowledgeNode[]): CategoryLegendIt
       label: n.label,
       color: (n.metadata?.color as string) ?? '#6ECFA3',
       nodeCount: (n.metadata?.nodeCount as number) ?? 0,
+      category: n.metadata?.category,
     }))
     .sort((a, b) => b.nodeCount - a.nodeCount);
 }
 
-export function CategoryLegend({ categories, leftOffset, onCategoryClick }: CategoryLegendProps) {
+function DotElement({ cat, isLocked }: { cat: CategoryLegendItem; isLocked: boolean }) {
+  const isPeople = cat.category === 'people';
+
+  if (isPeople) {
+    return (
+      <div style={{
+        width: 8,
+        height: 8,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, #F5E6C8 30%, transparent 70%)',
+        boxShadow: '0 0 6px rgba(245, 230, 200, 0.5)',
+        flexShrink: 0,
+        opacity: isLocked ? 0.5 : 1,
+      }} />
+    );
+  }
+
+  return (
+    <div style={{
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      backgroundColor: cat.color,
+      flexShrink: 0,
+      opacity: isLocked ? 0.5 : 1,
+    }} />
+  );
+}
+
+export function CategoryLegend({ categories, leftOffset, onCategoryClick, compact }: CategoryLegendProps) {
   if (categories.length === 0) return null;
 
+  // Compact mode: horizontal dot row at bottom-center (mobile)
+  if (compact) {
+    return (
+      <div style={{
+        position: 'absolute',
+        bottom: 72,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        flexDirection: 'row',
+        gap: 8,
+        zIndex: 10,
+        pointerEvents: 'auto',
+      }}>
+        {categories.map(cat => {
+          const isLocked = cat.nodeCount === 0;
+          const isPeople = cat.category === 'people';
+          return (
+            <div
+              key={cat.id}
+              onClick={onCategoryClick && !isLocked ? () => onCategoryClick(cat.id) : undefined}
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: isPeople
+                  ? 'radial-gradient(circle, #F5E6C8 30%, transparent 70%)'
+                  : cat.color,
+                boxShadow: isPeople ? '0 0 6px rgba(245, 230, 200, 0.5)' : 'none',
+                cursor: onCategoryClick && !isLocked ? 'pointer' : 'default',
+                opacity: isLocked ? 0.3 : 1,
+              }}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Desktop mode: full card with labels
   return (
     <div style={{
       position: 'absolute',
@@ -86,14 +158,7 @@ export function CategoryLegend({ categories, leftOffset, onCategoryClick }: Cate
               if (label) label.style.color = '#A8B4C0';
             }}
           >
-            <div style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor: cat.color,
-              flexShrink: 0,
-              opacity: isLocked ? 0.5 : 1,
-            }} />
+            <DotElement cat={cat} isLocked={isLocked} />
             <div
               data-legend-label
               style={{

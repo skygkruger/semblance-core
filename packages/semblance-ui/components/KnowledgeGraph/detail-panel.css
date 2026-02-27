@@ -142,13 +142,15 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 0;
+  padding: 7px 8px;
+  margin: 0 -8px;
+  border-radius: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   font-family: var(--fb, 'DM Sans', sans-serif);
   font-size: 13px;
   color: #C8CAD0;
   cursor: pointer;
-  transition: color 150ms ease;
+  transition: color 150ms ease, background-color 150ms ease;
 }
 
 .kg-detail-panel__connection:last-child {
@@ -157,13 +159,31 @@
 
 .kg-detail-panel__connection:hover {
   color: #EEF1F4;
+  background-color: #1A2030;
+}
+
+.kg-detail-panel__connection-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .kg-detail-panel__connection-weight {
   font-family: var(--fm, 'DM Mono', monospace);
   font-size: 10px;
   color: #5E6B7C;
-  margin-left: auto;
+}
+
+.kg-detail-panel__connection-arrow {
+  font-size: 16px;
+  color: #5E6B7C;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.kg-detail-panel__connection:hover .kg-detail-panel__connection-arrow {
+  opacity: 1;
 }
 
 /* ─── Connection dots — type-specific shapes ─── */
@@ -203,21 +223,34 @@
 
 /* ─── Mobile bottom sheet ─── */
 
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .kg-detail-panel {
     top: auto;
     bottom: 0;
     left: 0;
     right: 0;
     width: 100%;
-    height: 55%;
+    height: 50vh;
     border-left: none;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px 16px 0 0;
+    border-radius: 12px 12px 0 0;
     transform: translateY(100%);
+    padding-top: 16px;
   }
 
   .kg-detail-panel--open {
     transform: translateY(0);
+  }
+
+  .kg-detail-panel--open::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 4px;
+    background: #525A64;
+    border-radius: 2px;
   }
 }

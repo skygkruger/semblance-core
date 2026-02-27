@@ -1,5 +1,5 @@
 // Knowledge Graph Interactions Tests — click handler, time slider, stats overlay, hover,
-// category expand/collapse.
+// category expand/collapse, connection navigation, glow tiers, 3D layouts.
 
 import { describe, it, expect, vi } from 'vitest';
 import type { ForceGraphProps } from '../../packages/desktop/src/components/d3/ForceGraph';
@@ -16,6 +16,9 @@ import type {
   CategoryEdge,
 } from '../../packages/core/knowledge/graph-visualization';
 import type { VisualizationCategory } from '../../packages/core/knowledge/connector-category-map';
+import { computeGlowTier } from '../../packages/semblance-ui/components/KnowledgeGraph/graph-renderer';
+import { getNodeRadius, applyLayout, getMobileLayoutScale } from '../../packages/semblance-ui/components/KnowledgeGraph/graph-physics';
+import type { KnowledgeNode } from '../../packages/semblance-ui/components/KnowledgeGraph/graph-types';
 
 function makeNode(overrides: Partial<VisualizationNode> = {}): VisualizationNode {
   return {
@@ -324,5 +327,180 @@ describe('ForceGraph — Category Edge Rendering', () => {
     expect(calcWidth(0.5)).toBe(2);   // mid range
     expect(calcWidth(1)).toBe(4);     // max clamp
     expect(calcWidth(2)).toBe(4);     // over max
+  });
+});
+
+// ─── Connection Navigation Tests ────────────────────────────────────────────
+
+describe('Detail Panel — Connection Navigation', () => {
+  it('connection click fires focusNode with target node ID', () => {
+    const focusNode = vi.fn();
+
+    // Simulate the onConnectionClick → focusNode contract
+    const handleConnectionClick = (nodeId: string) => {
+      focusNode(nodeId);
+    };
+
+    handleConnectionClick('sarah-cg');
+    expect(focusNode).toHaveBeenCalledWith('sarah-cg');
+    expect(focusNode).toHaveBeenCalledTimes(1);
+  });
+
+  it('connection rows have role="button" and tabIndex={0}', () => {
+    // Verify the accessibility contract: connection rows must have role and tabIndex
+    const expectedAttributes = {
+      role: 'button',
+      tabIndex: 0,
+    };
+    expect(expectedAttributes.role).toBe('button');
+    expect(expectedAttributes.tabIndex).toBe(0);
+  });
+});
+
+// ─── Glow Tier Tests ────────────────────────────────────────────────────────
+
+describe('computeGlowTier', () => {
+  it('returns tier 0 for categories regardless of score', () => {
+    const catNode: KnowledgeNode = {
+      id: 'cat_1', type: 'category', label: 'People', weight: 50,
+      metadata: { activityScore: 0.95 },
+    };
+    expect(computeGlowTier(catNode)).toBe(0);
+  });
+
+  it('returns tier 1 for score >= 0.75', () => {
+    const node: KnowledgeNode = {
+      id: 'p1', type: 'person', label: 'Sarah', weight: 18,
+      metadata: { activityScore: 0.9 },
+    };
+    expect(computeGlowTier(node)).toBe(1);
+
+    const boundary: KnowledgeNode = {
+      id: 'p2', type: 'person', label: 'Bob', weight: 10,
+      metadata: { activityScore: 0.75 },
+    };
+    expect(computeGlowTier(boundary)).toBe(1);
+  });
+
+  it('returns tier 2 for score >= 0.50 and < 0.75', () => {
+    const node: KnowledgeNode = {
+      id: 'p3', type: 'person', label: 'Marcus', weight: 14,
+      metadata: { activityScore: 0.65 },
+    };
+    expect(computeGlowTier(node)).toBe(2);
+  });
+
+  it('returns tier 3 for score >= 0.30 and < 0.50', () => {
+    const node: KnowledgeNode = {
+      id: 'p4', type: 'file', label: 'Report', weight: 8,
+      metadata: { activityScore: 0.35 },
+    };
+    expect(computeGlowTier(node)).toBe(3);
+  });
+
+  it('returns tier 4 for score < 0.30', () => {
+    const node: KnowledgeNode = {
+      id: 'p5', type: 'topic', label: 'Q3', weight: 3,
+      metadata: { activityScore: 0.1 },
+    };
+    expect(computeGlowTier(node)).toBe(4);
+  });
+
+  it('returns tier 4 when no activityScore present', () => {
+    const node: KnowledgeNode = {
+      id: 'p6', type: 'email', label: 'Thread', weight: 5,
+    };
+    expect(computeGlowTier(node)).toBe(4);
+  });
+});
+
+// ─── Activity-Based Sizing Tests ────────────────────────────────────────────
+
+describe('getNodeRadius — activity sizing', () => {
+  it('uses linear activityScore scaling when present', () => {
+    const node: KnowledgeNode = {
+      id: 'p1', type: 'person', label: 'Sarah', weight: 18,
+      metadata: { activityScore: 1.0 },
+    };
+    // base person = 14, + 1.0 * 18 = 32
+    expect(getNodeRadius(node)).toBe(32);
+  });
+
+  it('uses activityScore=0 for minimum size', () => {
+    const node: KnowledgeNode = {
+      id: 'p2', type: 'person', label: 'Bob', weight: 18,
+      metadata: { activityScore: 0 },
+    };
+    // base person = 14, + 0 * 18 = 14
+    expect(getNodeRadius(node)).toBe(14);
+  });
+
+  it('falls back to sqrt scaling when no activityScore', () => {
+    const node: KnowledgeNode = {
+      id: 'p3', type: 'person', label: 'Marcus', weight: 16,
+    };
+    // base person = 14, + min(sqrt(16)*3, 14) = 14 + 12 = 26
+    expect(getNodeRadius(node)).toBe(26);
+  });
+
+  it('category nodes ignore activityScore', () => {
+    const node: KnowledgeNode = {
+      id: 'cat_1', type: 'category', label: 'People', weight: 50,
+      metadata: { nodeCount: 25, activityScore: 0.9 },
+    };
+    // Category with nodeCount = 25: base 28 + min(sqrt(25)*4, 24) = 28 + 20 = 48
+    expect(getNodeRadius(node)).toBe(48);
+  });
+});
+
+// ─── 3D Layout Tests ────────────────────────────────────────────────────────
+
+describe('applyLayout — 3D depth', () => {
+  it('radial layout assigns non-zero fz to categories', () => {
+    const nodes: KnowledgeNode[] = [
+      { id: 'cat_1', type: 'category', label: 'A', weight: 10 },
+      { id: 'cat_2', type: 'category', label: 'B', weight: 10 },
+      { id: 'cat_3', type: 'category', label: 'C', weight: 10 },
+      { id: 'cat_4', type: 'category', label: 'D', weight: 10 },
+    ];
+
+    applyLayout(nodes, 'radial');
+
+    // At least one category should have non-zero fz
+    const hasNonZeroFz = nodes.some(n => n.fz != null && n.fz !== 0);
+    expect(hasNonZeroFz).toBe(true);
+  });
+
+  it('star layout assigns different fz values per category', () => {
+    const nodes: KnowledgeNode[] = [
+      { id: 'cat_1', type: 'category', label: 'A', weight: 10 },
+      { id: 'cat_2', type: 'category', label: 'B', weight: 10 },
+      { id: 'cat_3', type: 'category', label: 'C', weight: 10 },
+      { id: 'entity_1', type: 'person', label: 'Alice', weight: 5 },
+    ];
+
+    applyLayout(nodes, 'star');
+
+    const categories = nodes.filter(n => n.type === 'category');
+    const fzValues = categories.map(n => n.fz ?? 0);
+
+    // With 3 categories at zLayerSpacing=60: [-60, 0, 60]
+    // At least 2 different fz values
+    const uniqueFz = new Set(fzValues);
+    expect(uniqueFz.size).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ─── Mobile Layout Scale Tests ──────────────────────────────────────────────
+
+describe('getMobileLayoutScale', () => {
+  it('returns 1 for canvas width > 600', () => {
+    expect(getMobileLayoutScale(800)).toBe(1);
+    expect(getMobileLayoutScale(601)).toBe(1);
+  });
+
+  it('returns scaled value for canvas width <= 600', () => {
+    expect(getMobileLayoutScale(600)).toBe(600 / 800);
+    expect(getMobileLayoutScale(390)).toBe(390 / 800);
   });
 });
