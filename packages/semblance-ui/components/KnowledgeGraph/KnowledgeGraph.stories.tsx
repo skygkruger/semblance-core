@@ -46,18 +46,18 @@ const meta: Meta<typeof KnowledgeGraph> = {
 export default meta;
 type Story = StoryObj<typeof KnowledgeGraph>;
 
-// ─── Realistic small graph ───
+// ─── Realistic small graph (with activityScores) ───
 
 const smallNodes: KnowledgeNode[] = [
-  { id: 'sarah', type: 'person', label: 'Sarah Chen', sublabel: '47 emails', weight: 18 },
-  { id: 'marcus', type: 'person', label: 'Marcus Webb', sublabel: '31 emails', weight: 14 },
-  { id: 'david', type: 'person', label: 'David Park', sublabel: '23 emails', weight: 11 },
-  { id: 'contract', type: 'file', label: 'Portland Contract.pdf', sublabel: 'PDF \u2022 1.2MB', weight: 8 },
-  { id: 'q3report', type: 'file', label: 'Q3 Report.xlsx', sublabel: 'Excel \u2022 847KB', weight: 6 },
-  { id: 'meeting1', type: 'calendar', label: 'Strategy Review', sublabel: 'Tomorrow 2pm', weight: 7 },
-  { id: 'meeting2', type: 'calendar', label: 'Portland Call', sublabel: 'Friday 10am', weight: 5 },
-  { id: 'topic-portland', type: 'topic', label: 'Portland Project', weight: 3 },
-  { id: 'topic-q3', type: 'topic', label: 'Q3 Planning', weight: 3 },
+  { id: 'sarah', type: 'person', label: 'Sarah Chen', sublabel: '47 emails', weight: 18, metadata: { activityScore: 0.9 } },
+  { id: 'marcus', type: 'person', label: 'Marcus Webb', sublabel: '31 emails', weight: 14, metadata: { activityScore: 0.65 } },
+  { id: 'david', type: 'person', label: 'David Park', sublabel: '23 emails', weight: 11, metadata: { activityScore: 0.4 } },
+  { id: 'contract', type: 'file', label: 'Portland Contract.pdf', sublabel: 'PDF \u2022 1.2MB', weight: 8, metadata: { activityScore: 0.8 } },
+  { id: 'q3report', type: 'file', label: 'Q3 Report.xlsx', sublabel: 'Excel \u2022 847KB', weight: 6, metadata: { activityScore: 0.2 } },
+  { id: 'meeting1', type: 'calendar', label: 'Strategy Review', sublabel: 'Tomorrow 2pm', weight: 7, metadata: { activityScore: 0.55 } },
+  { id: 'meeting2', type: 'calendar', label: 'Portland Call', sublabel: 'Friday 10am', weight: 5, metadata: { activityScore: 0.35 } },
+  { id: 'topic-portland', type: 'topic', label: 'Portland Project', weight: 3, metadata: { activityScore: 0.15 } },
+  { id: 'topic-q3', type: 'topic', label: 'Q3 Planning', weight: 3, metadata: { activityScore: 0.1 } },
 ];
 
 const smallEdges: KnowledgeEdge[] = [
@@ -97,12 +97,12 @@ const categoryGraphNodes: KnowledgeNode[] = [
   { id: 'cat_health', type: 'category', label: 'Health & Fitness', sublabel: '12 entities', weight: 30, metadata: { category: 'health', color: '#3DB87A', nodeCount: 12 } },
   { id: 'cat_social', type: 'category', label: 'Social & Messaging', sublabel: '10 entities', weight: 28, metadata: { category: 'social', color: '#8B5CF6', nodeCount: 10 } },
   { id: 'cat_reading', type: 'category', label: 'Reading & Research', sublabel: '7 entities', weight: 20, metadata: { category: 'reading', color: '#C97B6E', nodeCount: 7 } },
-  // 5 expanded person nodes (People category expanded)
-  { id: 'sarah-cg', type: 'person', label: 'Sarah Chen', sublabel: '47 emails', weight: 18 },
-  { id: 'marcus-cg', type: 'person', label: 'Marcus Webb', sublabel: '31 emails', weight: 14 },
-  { id: 'david-cg', type: 'person', label: 'David Park', sublabel: '23 emails', weight: 11 },
-  { id: 'lisa-cg', type: 'person', label: 'Lisa Torres', sublabel: '19 emails', weight: 9 },
-  { id: 'james-cg', type: 'person', label: 'James Kim', sublabel: '15 emails', weight: 7 },
+  // 5 expanded person nodes with activityScores
+  { id: 'sarah-cg', type: 'person', label: 'Sarah Chen', sublabel: '47 emails', weight: 18, metadata: { activityScore: 0.9 } },
+  { id: 'marcus-cg', type: 'person', label: 'Marcus Webb', sublabel: '31 emails', weight: 14, metadata: { activityScore: 0.62 } },
+  { id: 'david-cg', type: 'person', label: 'David Park', sublabel: '23 emails', weight: 11, metadata: { activityScore: 0.45 } },
+  { id: 'lisa-cg', type: 'person', label: 'Lisa Torres', sublabel: '19 emails', weight: 9, metadata: { activityScore: 0.3 } },
+  { id: 'james-cg', type: 'person', label: 'James Kim', sublabel: '15 emails', weight: 7, metadata: { activityScore: 0.15 } },
 ];
 
 const categoryGraphEdges: KnowledgeEdge[] = [
@@ -150,6 +150,22 @@ export const Mobile: Story = {
     width: 390,
     height: 500,
   },
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
+};
+
+// ─── Mobile with stats + filter ───
+
+export const MobileWithOverlays: Story = {
+  render: () => (
+    <KnowledgeGraph
+      nodes={categoryGraphNodes}
+      edges={categoryGraphEdges}
+      width={390}
+      height={844}
+      layoutMode="radial"
+      stats={{ entities: 2847, insights: 847 }}
+    />
+  ),
   parameters: { viewport: { defaultViewport: 'mobile1' } },
 };
 
@@ -208,6 +224,22 @@ export const CategoryView: Story = {
   ),
 };
 
+// ─── Mobile Category View ───
+
+export const MobileCategoryView: Story = {
+  render: () => (
+    <KnowledgeGraph
+      nodes={categoryNodes}
+      edges={categoryEdges}
+      width={390}
+      height={844}
+      layoutMode="radial"
+      stats={{ entities: 2847, insights: 847 }}
+    />
+  ),
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
+};
+
 // ─── Mixed — expanded "People" category + collapsed others ───
 
 export const MixedCategoryEntity: Story = {
@@ -215,12 +247,12 @@ export const MixedCategoryEntity: Story = {
     const nodes: KnowledgeNode[] = [
       // Collapsed categories (all except People)
       ...categoryNodes.filter(n => n.id !== 'cat_people'),
-      // Expanded People → individual person nodes
-      { id: 'sarah', type: 'person', label: 'Sarah Chen', sublabel: '47 emails', weight: 18 },
-      { id: 'marcus', type: 'person', label: 'Marcus Webb', sublabel: '31 emails', weight: 14 },
-      { id: 'david', type: 'person', label: 'David Park', sublabel: '23 emails', weight: 11 },
-      { id: 'lisa', type: 'person', label: 'Lisa Torres', sublabel: '19 emails', weight: 9 },
-      { id: 'james', type: 'person', label: 'James Kim', sublabel: '15 emails', weight: 7 },
+      // Expanded People → individual person nodes with activityScores
+      { id: 'sarah', type: 'person', label: 'Sarah Chen', sublabel: '47 emails', weight: 18, metadata: { activityScore: 0.85 } },
+      { id: 'marcus', type: 'person', label: 'Marcus Webb', sublabel: '31 emails', weight: 14, metadata: { activityScore: 0.55 } },
+      { id: 'david', type: 'person', label: 'David Park', sublabel: '23 emails', weight: 11, metadata: { activityScore: 0.38 } },
+      { id: 'lisa', type: 'person', label: 'Lisa Torres', sublabel: '19 emails', weight: 9, metadata: { activityScore: 0.75 } },
+      { id: 'james', type: 'person', label: 'James Kim', sublabel: '15 emails', weight: 7, metadata: { activityScore: 0.12 } },
     ];
     const edges: KnowledgeEdge[] = [
       // Person → category cross-domain edges

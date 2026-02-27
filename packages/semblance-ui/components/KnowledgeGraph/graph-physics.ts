@@ -63,6 +63,11 @@ export function getNodeRadius(node: KnowledgeNode): number {
   if (node.type === 'category' && node.metadata?.nodeCount) {
     return base.category + Math.min(Math.sqrt(node.metadata.nodeCount) * 4, 24);
   }
+  // Activity-based linear scaling when activityScore is present
+  const score = node.metadata?.activityScore;
+  if (score != null) {
+    return base[node.type] + score * 18;
+  }
   const weightBonus = Math.min(Math.sqrt(node.weight) * 3, 14);
   return base[node.type] + weightBonus;
 }
@@ -82,18 +87,24 @@ export function getNodeColorHex(type: KnowledgeNode['type']): string {
   return '#' + getNodeColor(type).toString(16).padStart(6, '0');
 }
 
+// ─── Mobile layout scale ───
+
+export function getMobileLayoutScale(canvasWidth: number): number {
+  return canvasWidth <= 600 ? canvasWidth / 800 : 1;
+}
+
 // ─── Layout modes ───
 
-export function applyLayout(nodes: KnowledgeNode[], mode: LayoutMode): void {
+export function applyLayout(nodes: KnowledgeNode[], mode: LayoutMode, canvasWidth?: number): void {
   switch (mode) {
     case 'radial':
-      applyRadialLayout(nodes);
+      applyRadialLayout(nodes, canvasWidth);
       break;
     case 'star':
-      applyStarLayout(nodes);
+      applyStarLayout(nodes, canvasWidth);
       break;
     case 'ego':
-      applyStarLayout(nodes);
+      applyStarLayout(nodes, canvasWidth);
       break;
     case 'force':
     default:
@@ -101,31 +112,36 @@ export function applyLayout(nodes: KnowledgeNode[], mode: LayoutMode): void {
   }
 }
 
-/** Radial: categories fixed in a circle, entities free to float. */
-function applyRadialLayout(nodes: KnowledgeNode[]): void {
+/** Radial: categories fixed in a tilted ring with Z variance. */
+function applyRadialLayout(nodes: KnowledgeNode[], canvasWidth?: number): void {
   const categories = nodes.filter(n => n.type === 'category');
   if (categories.length === 0) return;
 
-  const radius = 80 + categories.length * 8;
+  const scale = getMobileLayoutScale(canvasWidth ?? 800);
+  const radius = (80 + categories.length * 8) * scale;
+  const zAmplitude = 120;
   categories.forEach((node, i) => {
     const angle = (2 * Math.PI * i) / categories.length - Math.PI / 2;
     node.fx = Math.cos(angle) * radius;
     node.fy = Math.sin(angle) * radius;
-    node.fz = 0;
+    node.fz = Math.sin(angle * 1.3 + Math.PI / 4) * zAmplitude;
   });
 }
 
-/** Star: categories in outer ring, entity nodes cluster near center. */
-function applyStarLayout(nodes: KnowledgeNode[]): void {
+/** Star: categories in outer ring at staggered Z depths, entities cluster near center. */
+function applyStarLayout(nodes: KnowledgeNode[], canvasWidth?: number): void {
   const categories = nodes.filter(n => n.type === 'category');
   const entities = nodes.filter(n => n.type !== 'category');
 
-  const outerRadius = 100 + categories.length * 6;
+  const scale = getMobileLayoutScale(canvasWidth ?? 800);
+  const outerRadius = (100 + categories.length * 6) * scale;
+  const zLayerSpacing = 60;
   categories.forEach((node, i) => {
     const angle = (2 * Math.PI * i) / categories.length - Math.PI / 2;
     node.fx = Math.cos(angle) * outerRadius;
     node.fy = Math.sin(angle) * outerRadius;
-    node.fz = 0;
+    const layerIndex = i - Math.floor(categories.length / 2);
+    node.fz = layerIndex * zLayerSpacing;
   });
 
   // Seed entity nodes near center (not fixed — they settle via forces)
@@ -141,7 +157,7 @@ function applyStarLayout(nodes: KnowledgeNode[]): void {
 /** Clamp node positions to prevent stray outliers (margin 80 sim units). */
 export function clampNodePositions(nodes: KnowledgeNode[]): void {
   const maxCoord = 250;
-  const maxZ = 100;
+  const maxZ = 200;
   for (const node of nodes) {
     if (node.fx != null) continue; // Don't clamp fixed nodes
     if (node.x != null) node.x = Math.max(-maxCoord, Math.min(maxCoord, node.x));

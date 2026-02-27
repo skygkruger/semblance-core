@@ -55,3 +55,112 @@
 .knowledge-graph .kg-detail-panel {
   z-index: 10;
 }
+
+/* ─── Mobile stats pill ─── */
+
+.kg-stats-pill {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #111518;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 20px;
+  padding: 8px 16px;
+  z-index: 10;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.kg-stats-pill__text {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #A8B4C0;
+}
+
+.kg-stats-pill__separator {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #525A64;
+}
+
+.kg-stats-pill__insights {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #6ECFA3;
+}
+
+.kg-stats-pill__arrow {
+  font-size: 14px;
+  color: #5E6B7C;
+  margin-left: 2px;
+}
+
+/* ─── Mobile filter icon ─── */
+
+.kg-filter-icon {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 21, 24, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  color: #A8B4C0;
+  cursor: pointer;
+  z-index: 10;
+  pointer-events: auto;
+  padding: 0;
+}
+
+.kg-filter-icon__indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6ECFA3;
+}
+
+/* ─── Mobile bottom sheet (shared) ─── */
+
+.kg-bottom-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.kg-bottom-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 60vh;
+  background: #0B0E11;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px 12px 0 0;
+  padding: 8px 20px 24px;
+  overflow-y: auto;
+}
+
+.kg-bottom-sheet__handle {
+  width: 32px;
+  height: 4px;
+  background: #525A64;
+  border-radius: 2px;
+  margin: 0 auto 12px;
+}
+
+.kg-bottom-sheet__content {
+  /* Content container */
+}

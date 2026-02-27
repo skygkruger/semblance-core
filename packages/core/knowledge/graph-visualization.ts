@@ -525,6 +525,7 @@ export class GraphVisualizationProvider {
           contactId: contact.id,
           organization: contact.organization,
           relationshipType: contact.relationshipType,
+          activityScore: Math.min(1, contact.interactionCount / 50),
         },
       });
     }
@@ -568,7 +569,11 @@ export class GraphVisualizationProvider {
         size: Math.max(1, topic.mention_count),
         createdAt: topic.first_seen,
         domain: 'general',
-        metadata: { entityId: topic.id, mentionCount: topic.mention_count },
+        metadata: {
+          entityId: topic.id,
+          mentionCount: topic.mention_count,
+          activityScore: Math.min(1, topic.mention_count / 20),
+        },
       });
     }
   }
@@ -590,7 +595,11 @@ export class GraphVisualizationProvider {
         size: Math.max(1, doc.mention_count),
         createdAt: doc.created_at,
         domain: doc.source === 'financial' ? 'finance' : doc.source === 'health' ? 'health' : 'general',
-        metadata: { documentId: doc.id, source: doc.source },
+        metadata: {
+          documentId: doc.id,
+          source: doc.source,
+          activityScore: Math.min(1, doc.mention_count / 10),
+        },
       });
     }
   }
@@ -629,7 +638,10 @@ export class GraphVisualizationProvider {
           size: attendeeCount,
           createdAt: event.start_time,
           domain: 'general',
-          metadata: { calendarEventId: event.id },
+          metadata: {
+            calendarEventId: event.id,
+            activityScore: Math.min(1, attendeeCount / 8),
+          },
         });
       }
     } catch {
@@ -657,7 +669,11 @@ export class GraphVisualizationProvider {
           size: thread.msg_count,
           createdAt: thread.first_date,
           domain: 'general',
-          metadata: { threadId: thread.thread_id, messageCount: thread.msg_count },
+          metadata: {
+            threadId: thread.thread_id,
+            messageCount: thread.msg_count,
+            activityScore: Math.min(1, thread.msg_count / 15),
+          },
         });
       }
     } catch {

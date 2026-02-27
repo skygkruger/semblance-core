@@ -11,6 +11,9 @@ interface NodeMesh {
   label: THREE.Sprite | null;
   wireframe?: THREE.LineSegments;
   countSprite?: THREE.Sprite;
+  glowSphere?: THREE.Mesh;
+  pointLight?: THREE.PointLight;
+  glowTier: 0 | 1 | 2 | 3 | 4;
   node: KnowledgeNode;
 }
 
@@ -18,8 +21,20 @@ export interface GraphRendererOptions {
   canvas: HTMLCanvasElement;
   width: number;
   height: number;
+  isMobile?: boolean;
   onNodeHover?: (node: KnowledgeNode | null) => void;
   onNodeSelect?: (node: KnowledgeNode | null) => void;
+}
+
+// ─── Glow tier computation ───
+
+export function computeGlowTier(node: KnowledgeNode): 0 | 1 | 2 | 3 | 4 {
+  if (node.type === 'category') return 0;
+  const score = node.metadata?.activityScore ?? 0;
+  if (score >= 0.75) return 1;
+  if (score >= 0.50) return 2;
+  if (score >= 0.30) return 3;
+  return 4;
 }
 
 // ─── Geometry factories (reused across nodes) ───
@@ -58,7 +73,7 @@ function getGlowTexture(type: NodeType): THREE.CanvasTexture {
   canvas.height = size;
   const ctx = canvas.getContext('2d')!;
 
-  const hex = getNodeColorHex(type);
+  const hex = type === 'person' ? '#F5E6C8' : getNodeColorHex(type);
   const gradient = ctx.createRadialGradient(
     size / 2, size / 2, 0,
     size / 2, size / 2, size / 2,
@@ -141,9 +156,13 @@ export class GraphRenderer {
   private neighborSet: Set<string> = new Set();
   private secondNeighborSet: Set<string> = new Set();
 
-  // Trackball rotation
-  private spherical = new THREE.Spherical(200, Math.PI / 2, 0);
-  private targetSpherical = new THREE.Spherical(200, Math.PI / 2, 0);
+  // PointLight budget
+  private pointLightCount = 0;
+  private static readonly MAX_POINT_LIGHTS = 6;
+
+  // Trackball rotation — slight tilt to reveal Z depth
+  private spherical = new THREE.Spherical(200, Math.PI / 2 - 0.25, 0.15);
+  private targetSpherical = new THREE.Spherical(200, Math.PI / 2 - 0.25, 0.15);
   private isDragging = false;
   private dragStart = { x: 0, y: 0 };
   private dragSphericalStart = new THREE.Spherical();
@@ -191,6 +210,12 @@ export class GraphRenderer {
     this.height = options.height;
     this.onNodeHover = options.onNodeHover;
     this.onNodeSelect = options.onNodeSelect;
+
+    // Mobile: pull camera back further
+    if (options.isMobile) {
+      this.spherical.radius = 300;
+      this.targetSpherical.radius = 300;
+    }
 
     // Scene
     this.scene = new THREE.Scene();
@@ -350,9 +375,14 @@ export class GraphRenderer {
         (nm.countSprite.material as THREE.SpriteMaterial).map?.dispose();
         (nm.countSprite.material as THREE.Material).dispose();
       }
+      if (nm.glowSphere) {
+        nm.glowSphere.geometry.dispose();
+        (nm.glowSphere.material as THREE.Material).dispose();
+      }
       this.scene.remove(nm.group);
     });
     this.nodeMeshes.clear();
+    this.pointLightCount = 0;
 
     if (this.edgeLines) {
       this.edgeLines.geometry.dispose();
@@ -366,28 +396,40 @@ export class GraphRenderer {
   // ─── Node mesh creation ───
 
   private createNodeMeshes(nodes: KnowledgeNode[]): void {
-    // Clear existing
-    this.nodeMeshes.forEach(nm => this.scene.remove(nm.group));
+    // Clear existing — dispose glow spheres and reset PointLight count
+    this.nodeMeshes.forEach(nm => {
+      if (nm.glowSphere) {
+        nm.glowSphere.geometry.dispose();
+        (nm.glowSphere.material as THREE.Material).dispose();
+      }
+      this.scene.remove(nm.group);
+    });
     this.nodeMeshes.clear();
+    this.pointLightCount = 0;
 
     for (const node of nodes) {
       const radius = getNodeRadius(node);
       const geo = getGeometryForType(node.type);
       const isCategory = node.type === 'category';
+      const isPerson = node.type === 'person';
+      const tier = computeGlowTier(node);
 
-      // Resolve color — categories use metadata.color
+      // Resolve color — categories use metadata.color, persons use warm gold
       const baseColor = getNodeColor(node.type);
-      const colorValue = isCategory && node.metadata?.color
-        ? new THREE.Color(node.metadata.color).getHex()
-        : baseColor;
+      const nodeColor = isPerson
+        ? 0xF5E6C8
+        : isCategory && node.metadata?.color
+          ? new THREE.Color(node.metadata.color).getHex()
+          : baseColor;
 
       // Core mesh — categories are translucent orbs
       const coreMat = new THREE.MeshPhongMaterial({
-        color: colorValue,
-        emissive: colorValue,
-        emissiveIntensity: isCategory ? 0.25 : 0.15,
+        color: nodeColor,
+        emissive: nodeColor,
+        emissiveIntensity: isCategory ? 0.25 : (isPerson ? 0.3 : 0.15),
         transparent: true,
         opacity: isCategory ? 0.12 : 0.9,
+        shininess: isPerson ? 60 : 30,
       });
       const core = new THREE.Mesh(geo, coreMat);
       const scale = radius * GraphRenderer.SCALE;
@@ -395,7 +437,7 @@ export class GraphRenderer {
       core.userData = { nodeId: node.id };
 
       // Glow sprite (billboard, additive blending)
-      const glow = this.createGlowSprite(node, radius);
+      const glow = this.createGlowSprite(node, radius, tier);
 
       // Label sprite
       const label = this.createLabelSprite(node, radius);
@@ -407,6 +449,29 @@ export class GraphRenderer {
       if (label) group.add(label);
       group.position.set(node.x ?? 0, node.y ?? 0, node.z ?? 0);
       group.userData = { nodeId: node.id };
+
+      // Tier-based glow sphere + PointLight (Tier 1 & 2, within budget)
+      let glowSphere: THREE.Mesh | undefined;
+      let pointLight: THREE.PointLight | undefined;
+
+      if ((tier === 1 || tier === 2) && this.pointLightCount < GraphRenderer.MAX_POINT_LIGHTS) {
+        // Glow sphere — additive blending, surrounds node
+        const glowGeo = new THREE.SphereGeometry(scale * 2.5, 16, 12);
+        const glowMat = new THREE.MeshBasicMaterial({
+          color: nodeColor,
+          transparent: true,
+          opacity: tier === 1 ? 0.15 : 0.08,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        glowSphere = new THREE.Mesh(glowGeo, glowMat);
+        group.add(glowSphere);
+
+        // PointLight
+        pointLight = new THREE.PointLight(nodeColor, tier === 1 ? 0.6 : 0.3, scale * 8 * GraphRenderer.SCALE * 32);
+        group.add(pointLight);
+        this.pointLightCount++;
+      }
 
       // Category extras: dashed wireframe shell + count label + lock glyph
       let wireframe: THREE.LineSegments | undefined;
@@ -441,26 +506,34 @@ export class GraphRenderer {
       }
 
       this.scene.add(group);
-      this.nodeMeshes.set(node.id, { group, core, glow, label, wireframe, countSprite, node });
+      this.nodeMeshes.set(node.id, {
+        group, core, glow, label, wireframe, countSprite,
+        glowSphere, pointLight, glowTier: tier, node,
+      });
     }
   }
 
-  private createGlowSprite(node: KnowledgeNode, radius: number): THREE.Sprite {
+  private createGlowSprite(node: KnowledgeNode, radius: number, tier?: 0 | 1 | 2 | 3 | 4): THREE.Sprite {
     const isCategory = node.type === 'category';
     const texture = isCategory
       ? getCategoryGlowTexture(node.metadata?.color ?? '#6ECFA3')
       : getGlowTexture(node.type);
+
+    // Opacity and scale by glow tier
+    const glowTier = tier ?? (isCategory ? 0 : 3);
+    const tierOpacity: Record<number, number> = { 0: 0.45, 1: 0.8, 2: 0.6, 3: 0.4, 4: 0 };
+    const tierScale: Record<number, number> = { 0: 1.6, 1: 1.6, 2: 1.3, 3: 1.0, 4: 1.0 };
 
     const material = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
-      opacity: isCategory ? 0.45 : 0.6,
+      opacity: tierOpacity[glowTier] ?? 0.4,
     });
 
     const sprite = new THREE.Sprite(material);
-    const typeScale = isCategory ? 1.6 : (node.type === 'person' ? 1.4 : 1.0);
+    const typeScale = tierScale[glowTier] ?? 1.0;
     const glowScale = radius * typeScale * GraphRenderer.SCALE;
     sprite.scale.set(glowScale, glowScale, 1);
     return sprite;
@@ -753,20 +826,26 @@ export class GraphRenderer {
 
   private updateNodeVisuals(): void {
     const activeId = this.selectedId ?? this.hoveredId;
+    const isPerson = (n: KnowledgeNode) => n.type === 'person';
 
     this.nodeMeshes.forEach((nm, nodeId) => {
       const coreMat = nm.core.material as THREE.MeshPhongMaterial;
       const glowMat = nm.glow.material as THREE.SpriteMaterial;
       const isCategory = nm.node.type === 'category';
       const defaultOpacity = isCategory ? 0.12 : 0.9;
+      const defaultEmissive = isCategory ? 0.25 : (isPerson(nm.node) ? 0.3 : 0.15);
 
       if (!activeId) {
         // Default state
         coreMat.opacity = defaultOpacity;
-        coreMat.emissiveIntensity = isCategory ? 0.25 : 0.15;
-        glowMat.opacity = isCategory ? 0.45 : 0.6;
+        coreMat.emissiveIntensity = defaultEmissive;
+        const tierOpacity: Record<number, number> = { 0: 0.45, 1: 0.8, 2: 0.6, 3: 0.4, 4: 0 };
+        glowMat.opacity = tierOpacity[nm.glowTier] ?? 0.4;
         if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.6;
         if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 0.95;
+        // PointLight + glowSphere — restore tier defaults
+        if (nm.pointLight) nm.pointLight.intensity = nm.glowTier === 1 ? 0.6 : 0.3;
+        if (nm.glowSphere) (nm.glowSphere.material as THREE.MeshBasicMaterial).opacity = nm.glowTier === 1 ? 0.15 : 0.08;
         // Label visibility
         if (nm.label) {
           (nm.label.material as THREE.SpriteMaterial).opacity =
@@ -780,6 +859,8 @@ export class GraphRenderer {
         glowMat.opacity = isCategory ? 0.7 : 1.0;
         if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.9;
         if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 1.0;
+        if (nm.pointLight) nm.pointLight.intensity = 1.0;
+        if (nm.glowSphere) (nm.glowSphere.material as THREE.MeshBasicMaterial).opacity = 0.25;
         if (nm.label) {
           (nm.label.material as THREE.SpriteMaterial).opacity = 1.0;
           nm.label.visible = true;
@@ -791,6 +872,8 @@ export class GraphRenderer {
         glowMat.opacity = 0.5;
         if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.4;
         if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 0.7;
+        if (nm.pointLight) nm.pointLight.intensity = 0.5;
+        if (nm.glowSphere) (nm.glowSphere.material as THREE.MeshBasicMaterial).opacity = 0.10;
         // Show label for neighbors on focus
         this.ensureLabel(nm);
         if (nm.label) {
@@ -804,6 +887,8 @@ export class GraphRenderer {
         glowMat.opacity = 0.15;
         if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.15;
         if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 0.3;
+        if (nm.pointLight) nm.pointLight.intensity = 0.1;
+        if (nm.glowSphere) (nm.glowSphere.material as THREE.MeshBasicMaterial).opacity = 0.02;
         if (nm.label) nm.label.visible = false;
       } else {
         // Unrelated — nearly gone (categories stay slightly visible as landmarks)
@@ -812,6 +897,8 @@ export class GraphRenderer {
         glowMat.opacity = 0.0;
         if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.08;
         if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 0.1;
+        if (nm.pointLight) nm.pointLight.intensity = 0.0;
+        if (nm.glowSphere) (nm.glowSphere.material as THREE.MeshBasicMaterial).opacity = 0.0;
         if (nm.label) nm.label.visible = false;
       }
     });
@@ -900,6 +987,15 @@ export class GraphRenderer {
       }
 
       this.updateCameraFromSpherical();
+
+      // Pulse animation for Tier 1 nodes (breathing glow)
+      const time = performance.now() * 0.001;
+      const pulsePhase = 0.5 + 0.5 * Math.sin(time * (2 * Math.PI / 2.5));
+      this.nodeMeshes.forEach(nm => {
+        if (nm.glowTier !== 1 || !nm.pointLight || !nm.glowSphere) return;
+        nm.pointLight.intensity = 0.4 + 0.4 * pulsePhase;
+        (nm.glowSphere.material as THREE.MeshBasicMaterial).opacity = 0.08 + 0.07 * pulsePhase;
+      });
 
       this.renderer.render(this.scene, this.camera);
 

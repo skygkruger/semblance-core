@@ -6,6 +6,7 @@ interface DetailPanelProps {
   edges: KnowledgeEdge[];
   allNodes: KnowledgeNode[];
   onClose: () => void;
+  onConnectionClick?: (nodeId: string) => void;
 }
 
 function getConnections(
@@ -41,7 +42,7 @@ const DOT_COLORS: Record<NodeType, string> = {
   category: '#6ECFA3',
 };
 
-export function DetailPanel({ node, edges, allNodes, onClose }: DetailPanelProps) {
+export function DetailPanel({ node, edges, allNodes, onClose, onConnectionClick }: DetailPanelProps) {
   if (!node) {
     return <div className="kg-detail-panel" />;
   }
@@ -86,10 +87,23 @@ export function DetailPanel({ node, edges, allNodes, onClose }: DetailPanelProps
           </div>
           <ul className="kg-detail-panel__connections">
             {connections.map(conn => (
-              <li key={conn.node.id} className="kg-detail-panel__connection">
+              <li
+                key={conn.node.id}
+                className="kg-detail-panel__connection"
+                onClick={() => onConnectionClick?.(conn.node.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onConnectionClick?.(conn.node.id);
+                  }
+                }}
+              >
                 <span className={`kg-detail-panel__conn-dot kg-detail-panel__conn-dot--${conn.node.type}`} />
-                {conn.node.label}
+                <span className="kg-detail-panel__connection-label">{conn.node.label}</span>
                 <span className="kg-detail-panel__connection-weight">{conn.weight}</span>
+                <span className="kg-detail-panel__connection-arrow">&rsaquo;</span>
               </li>
             ))}
           </ul>

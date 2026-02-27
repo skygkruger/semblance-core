@@ -13,6 +13,7 @@ export interface KnowledgeNode {
     color?: string;
     nodeCount?: number;
     expanded?: boolean;
+    activityScore?: number;
   };
   x?: number;
   y?: number;
@@ -31,6 +32,14 @@ export interface KnowledgeEdge {
   weight: number;
 }
 
+export interface CategoryLegendItem {
+  id: string;
+  label: string;
+  color: string;
+  nodeCount: number;
+  category?: string;
+}
+
 export interface KnowledgeGraphProps {
   nodes: KnowledgeNode[];
   edges: KnowledgeEdge[];
@@ -39,4 +48,12 @@ export interface KnowledgeGraphProps {
   layoutMode?: LayoutMode;
   legendLeftOffset?: number;
   onNodeSelect?: (node: KnowledgeNode | null) => void;
+  stats?: { entities: number; insights: number };
+  filterConfig?: {
+    categories: CategoryLegendItem[];
+    enabled: Set<string>;
+    onToggle: (id: string) => void;
+    onReset: () => void;
+  };
+  isMobile?: boolean;
 }
