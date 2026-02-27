@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { GraphRenderer } from './graph-renderer';
-import { createSimulation } from './graph-physics';
+import { createSimulation, applyLayout, clampNodePositions } from './graph-physics';
 import { DetailPanel } from './detail-panel';
 import { CategoryLegend, deriveLegendCategories } from './CategoryLegend';
 import type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps } from './graph-types';
@@ -11,6 +11,8 @@ export function KnowledgeGraph({
   edges,
   width = 600,
   height = 600,
+  layoutMode = 'force',
+  legendLeftOffset,
   onNodeSelect,
 }: KnowledgeGraphProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,6 +36,10 @@ export function KnowledgeGraph({
     onNodeSelect?.(null);
   }, [onNodeSelect]);
 
+  const handleLegendCategoryClick = useCallback((categoryId: string) => {
+    rendererRef.current?.focusNode(categoryId);
+  }, []);
+
   // Initialize renderer + simulation
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -52,6 +58,9 @@ export function KnowledgeGraph({
     const simNodes: KnowledgeNode[] = nodes.map(n => ({ ...n }));
     const simEdges: KnowledgeEdge[] = edges.map(e => ({ ...e }));
 
+    // Apply layout mode (sets fx/fy for radial/star before simulation)
+    applyLayout(simNodes, layoutMode);
+
     // Set initial data
     renderer.setData(simNodes, simEdges);
 
@@ -62,6 +71,7 @@ export function KnowledgeGraph({
     let driftDelayTimer: ReturnType<typeof setTimeout> | null = null;
 
     simulation.on('tick', () => {
+      clampNodePositions(simNodes);
       renderer.updatePositions(simNodes);
     });
 
@@ -88,7 +98,7 @@ export function KnowledgeGraph({
       rendererRef.current = null;
       simRef.current = null;
     };
-  }, [nodes, edges, width, height, handleNodeSelect]);
+  }, [nodes, edges, width, height, layoutMode, handleNodeSelect]);
 
   // Handle resize
   useEffect(() => {
@@ -99,7 +109,11 @@ export function KnowledgeGraph({
     <div className="knowledge-graph" style={{ width, height }}>
       <canvas ref={canvasRef} className="knowledge-graph__canvas" />
       {legendCategories.length > 0 && (
-        <CategoryLegend categories={legendCategories} />
+        <CategoryLegend
+          categories={legendCategories}
+          leftOffset={legendLeftOffset}
+          onCategoryClick={handleLegendCategoryClick}
+        />
       )}
       <DetailPanel
         node={selectedNode}
@@ -111,4 +125,4 @@ export function KnowledgeGraph({
   );
 }
 
-export type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps, NodeType } from './graph-types';
+export type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps, NodeType, LayoutMode } from './graph-types';

@@ -18,7 +18,8 @@ export type VisualizationEntityType =
   | 'event'
   | 'email_thread'
   | 'reminder'
-  | 'location';
+  | 'location'
+  | 'category';
 
 export interface VisualizationNode {
   id: string;
@@ -59,6 +60,11 @@ export interface GraphStats {
   mostConnectedNode: { id: string; label: string; connections: number } | null;
   graphDensity: number;
   growthRate: number;      // New nodes in last 7 days
+  activeSources?: number;           // Count of categories with at least 1 node
+  totalSources?: number;            // 10 (fixed)
+  crossDomainInsights?: number;     // Count of cross-category edges
+  nodesByCategory?: Record<string, number>;
+  fastestGrowingCategory?: string;
 }
 
 export interface GrowthDataPoint {
@@ -80,6 +86,34 @@ export interface GraphOptions {
   includeLocations?: boolean;
   daysBack?: number;       // For events, default 90
   daysForward?: number;    // For events, default 30
+}
+
+// ─── Category Types (for collapsed category node view) ───────────────────────
+
+import {
+  type VisualizationCategory,
+  getCategoryForEntityType,
+  CATEGORY_META,
+} from './connector-category-map.js';
+
+export interface CategoryNode {
+  id: string;                      // 'cat_health', 'cat_people', etc.
+  category: VisualizationCategory;
+  label: string;
+  color: string;
+  icon: string;
+  nodeCount: number;
+  totalSize: number;
+  nodeIds: string[];               // IDs of contained VisualizationNodes
+}
+
+export interface CategoryEdge {
+  id: string;
+  sourceCategoryId: string;
+  targetCategoryId: string;
+  weight: number;                  // Aggregated 0-1
+  edgeCount: number;               // Count of underlying entity edges
+  relationshipTypes: string[];     // Distinct edge labels
 }
 
 // ─── Cache Table ─────────────────────────────────────────────────────────────
@@ -119,6 +153,13 @@ export class GraphVisualizationProvider {
   /**
    * Build a complete visualization graph from all data stores.
    * Applies node/edge caps for performance.
+   *
+   * Auto-connection: When new connectors are added (e.g. email, calendar,
+   * contacts), new nodes and edges are automatically included here because
+   * this method queries all underlying data stores on every call. The
+   * graph_cache table (TTL-based) should be invalidated whenever a connector
+   * finishes an indexing pass — call setCachedGraph() after each import run
+   * or rely on the 1-hour TTL expiry for eventual freshness.
    */
   getGraphData(options?: GraphOptions): VisualizationGraph {
     const maxNodes = options?.maxNodes ?? 200;
@@ -310,6 +351,156 @@ export class GraphVisualizationProvider {
       INSERT OR REPLACE INTO graph_cache (id, graph_json, updated_at)
       VALUES (?, ?, ?)
     `).run('default', JSON.stringify(graph), now);
+  }
+
+  /**
+   * Build a category-level graph from the entity graph.
+   * Groups nodes by visualization category, aggregates cross-category edges.
+   */
+  getCategoryGraph(options?: GraphOptions): VisualizationGraph & {
+    categoryNodes: CategoryNode[];
+    categoryEdges: CategoryEdge[];
+  } {
+    const baseGraph = this.getGraphData(options);
+
+    // Assign each node to a category
+    const categoryMap = new Map<VisualizationCategory, VisualizationNode[]>();
+    for (const node of baseGraph.nodes) {
+      if (node.type === 'category') continue;
+      const cat = getCategoryForEntityType(node.type, node.metadata);
+      const list = categoryMap.get(cat);
+      if (list) {
+        list.push(node);
+      } else {
+        categoryMap.set(cat, [node]);
+      }
+    }
+
+    // Build CategoryNode for each non-empty category
+    const categoryNodes: CategoryNode[] = [];
+    for (const [cat, catNodes] of categoryMap) {
+      const meta = CATEGORY_META[cat];
+      categoryNodes.push({
+        id: `cat_${cat}`,
+        category: cat,
+        label: meta.displayName,
+        color: meta.color,
+        icon: meta.icon,
+        nodeCount: catNodes.length,
+        totalSize: catNodes.reduce((sum, n) => sum + n.size, 0),
+        nodeIds: catNodes.map(n => n.id),
+      });
+    }
+
+    // Build cross-category edges
+    const nodeToCat = new Map<string, VisualizationCategory>();
+    for (const [cat, catNodes] of categoryMap) {
+      for (const n of catNodes) {
+        nodeToCat.set(n.id, cat);
+      }
+    }
+
+    const catEdgeAgg = new Map<string, {
+      sourceCat: VisualizationCategory;
+      targetCat: VisualizationCategory;
+      edgeCount: number;
+      labels: Set<string>;
+    }>();
+
+    for (const edge of baseGraph.edges) {
+      const srcCat = nodeToCat.get(edge.sourceId);
+      const tgtCat = nodeToCat.get(edge.targetId);
+      if (!srcCat || !tgtCat || srcCat === tgtCat) continue;
+
+      const [a, b] = [srcCat, tgtCat].sort();
+      const key = `${a}::${b}`;
+      const existing = catEdgeAgg.get(key);
+      if (existing) {
+        existing.edgeCount++;
+        existing.labels.add(edge.label);
+      } else {
+        catEdgeAgg.set(key, {
+          sourceCat: a as VisualizationCategory,
+          targetCat: b as VisualizationCategory,
+          edgeCount: 1,
+          labels: new Set([edge.label]),
+        });
+      }
+    }
+
+    const categoryEdges: CategoryEdge[] = [];
+    for (const [key, agg] of catEdgeAgg) {
+      const srcCount = categoryMap.get(agg.sourceCat)?.length ?? 1;
+      const tgtCount = categoryMap.get(agg.targetCat)?.length ?? 1;
+      const maxCat = Math.max(srcCount, tgtCount);
+      const weight = Math.min(1, agg.edgeCount / maxCat);
+
+      categoryEdges.push({
+        id: `cat_edge_${key.replace('::', '_')}`,
+        sourceCategoryId: `cat_${agg.sourceCat}`,
+        targetCategoryId: `cat_${agg.targetCat}`,
+        weight,
+        edgeCount: agg.edgeCount,
+        relationshipTypes: Array.from(agg.labels),
+      });
+    }
+
+    // Build enhanced stats
+    const nodesByCategory: Record<string, number> = {};
+    for (const [cat, catNodes] of categoryMap) {
+      nodesByCategory[cat] = catNodes.length;
+    }
+
+    // Fastest growing: category with most nodes created in last 7 days
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const growthByCategory = new Map<VisualizationCategory, number>();
+    for (const [cat, catNodes] of categoryMap) {
+      const recentCount = catNodes.filter(n => n.createdAt >= sevenDaysAgo).length;
+      growthByCategory.set(cat, recentCount);
+    }
+    let fastestGrowingCategory: string | undefined;
+    let maxGrowth = 0;
+    for (const [cat, count] of growthByCategory) {
+      if (count > maxGrowth) {
+        maxGrowth = count;
+        fastestGrowingCategory = CATEGORY_META[cat].displayName;
+      }
+    }
+
+    const enhancedStats: GraphStats = {
+      ...baseGraph.stats,
+      activeSources: categoryMap.size,
+      totalSources: 10,
+      crossDomainInsights: categoryEdges.length,
+      nodesByCategory,
+      fastestGrowingCategory,
+    };
+
+    return {
+      ...baseGraph,
+      stats: enhancedStats,
+      categoryNodes,
+      categoryEdges,
+    };
+  }
+
+  /**
+   * Get entity nodes and edges for a specific category (used for expand-in-place).
+   */
+  getNodesForCategory(
+    category: VisualizationCategory,
+    options?: GraphOptions,
+  ): { nodes: VisualizationNode[]; edges: VisualizationEdge[] } {
+    const graph = this.getGraphData(options);
+    const catNodes = graph.nodes.filter(n => {
+      if (n.type === 'category') return false;
+      return getCategoryForEntityType(n.type, n.metadata) === category;
+    });
+    const catNodeIds = new Set(catNodes.map(n => n.id));
+    const catEdges = graph.edges.filter(
+      e => catNodeIds.has(e.sourceId) && catNodeIds.has(e.targetId),
+    );
+    return { nodes: catNodes, edges: catEdges };
   }
 
   // ─── Private: Node Builders ────────────────────────────────────────────────

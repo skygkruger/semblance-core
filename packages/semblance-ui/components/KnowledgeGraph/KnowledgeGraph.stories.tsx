@@ -136,6 +136,7 @@ export const CategoryGraph: Story = {
       edges={categoryGraphEdges}
       width={window.innerWidth}
       height={window.innerHeight}
+      layoutMode="radial"
     />
   ),
 };
@@ -202,6 +203,7 @@ export const CategoryView: Story = {
       edges={categoryEdges}
       width={window.innerWidth}
       height={window.innerHeight}
+      layoutMode="radial"
     />
   ),
 };
@@ -246,6 +248,7 @@ export const MixedCategoryEntity: Story = {
         edges={edges}
         width={window.innerWidth}
         height={window.innerHeight}
+        layoutMode="star"
       />
     );
   },
@@ -270,12 +273,37 @@ const lockedCategoryEdges: KnowledgeEdge[] = [
 
 export const LockedCategories: Story = {
   render: () => (
-    <KnowledgeGraph
-      nodes={lockedCategoryNodes}
-      edges={lockedCategoryEdges}
-      width={window.innerWidth}
-      height={window.innerHeight}
-    />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <KnowledgeGraph
+        nodes={lockedCategoryNodes}
+        edges={lockedCategoryEdges}
+        width={window.innerWidth}
+        height={window.innerHeight}
+        layoutMode="radial"
+      />
+      {/* Instructional overlay for locked categories */}
+      <div style={{
+        position: 'absolute',
+        bottom: 24,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: '#111518',
+        border: '1px solid rgba(255, 255, 255, 0.09)',
+        borderRadius: 8,
+        padding: '12px 20px',
+        zIndex: 10,
+        textAlign: 'center',
+      }}>
+        <div style={{
+          fontFamily: "'DM Sans', system-ui, sans-serif",
+          fontSize: 13,
+          color: '#A8B4C0',
+          lineHeight: 1.5,
+        }}>
+          Connect more sources to unlock categories and grow your knowledge graph
+        </div>
+      </div>
+    </div>
   ),
 };
 
@@ -416,6 +444,7 @@ export const FilterPanelView: Story = {
             edges={filteredEdges}
             width={window.innerWidth - 240}
             height={window.innerHeight}
+            layoutMode="radial"
           />
         </div>
       </div>
@@ -443,6 +472,7 @@ export const StatsOverlayView: Story = {
         edges={categoryEdges}
         width={window.innerWidth}
         height={window.innerHeight}
+        layoutMode="radial"
       />
       {/* Stats overlay positioned top-right */}
       <div

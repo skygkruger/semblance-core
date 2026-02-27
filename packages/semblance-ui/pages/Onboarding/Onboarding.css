@@ -10,20 +10,26 @@
   margin: 0 0 16px;
 }
 
-/* Gradient pronouns — exact gradient from Wordmark shimmer (semblance.run hero) */
+/* Gradient pronouns — metallic shimmer (steel-blue / sage tones) */
 .naming__pronoun {
   font-style: italic;
   background: linear-gradient(
     105deg,
-    #6b7a8a 0%, #9aa8b8 18%, #c8d2d8 30%, #9aa8b8 42%,
-    #6b7a8a 58%, #8a97a8 74%, #6b7a8a 100%
+    #5a6472 0%,
+    #7a8898 15%,
+    #8a9890 28%,
+    #c0cbc4 38%,
+    #8f9ba8 50%,
+    #6b7a72 62%,
+    #7a8898 78%,
+    #5a6472 100%
   );
-  background-size: 250% auto;
+  background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: shimmer 16s linear infinite;
-  animation-delay: -6s;
+  display: inline;
 }
 
 .naming__subtext {
@@ -36,25 +42,31 @@
   line-height: 1.5;
 }
 
-/* ─── AI name opal preview ─── */
+/* ─── AI name shimmer preview ─── */
 .naming__ai-preview {
   font-family: var(--fd);
   font-size: 36px;
   font-weight: 400;
+  font-style: italic;
   letter-spacing: 0.06em;
   text-align: center;
   min-height: 48px;
   background: linear-gradient(
-    135deg,
-    rgba(210, 208, 222, 0.95) 0%,
-    rgba(198, 192, 215, 0.9) 25%,
-    rgba(215, 218, 228, 1.0) 50%,
-    rgba(195, 188, 214, 0.9) 75%,
-    rgba(212, 210, 224, 0.95) 100%
+    105deg,
+    #5a6472 0%,
+    #7a8898 15%,
+    #8a9890 28%,
+    #c0cbc4 38%,
+    #8f9ba8 50%,
+    #6b7a72 62%,
+    #7a8898 78%,
+    #5a6472 100%
   );
+  background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: shimmer 16s linear infinite;
   opacity: 0;
   transform: translateY(6px);
   transition: opacity 350ms ease, transform 350ms ease;

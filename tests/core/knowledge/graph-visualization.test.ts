@@ -319,3 +319,216 @@ describe('GraphVisualizationProvider', () => {
     expect(context!.recentActivity.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+// ─── Category Graph Builder Tests ────────────────────────────────────────────
+
+describe('GraphVisualizationProvider — getCategoryGraph', () => {
+  let tmpDir: string;
+  let db: DatabaseHandle;
+  let docStore: DocumentStore;
+  let contactStore: ContactStore;
+  let analyzer: RelationshipAnalyzer;
+  let reminderStore: ReminderStore;
+  let provider: GraphVisualizationProvider;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'graph-cat-'));
+    db = wrapDatabase(join(tmpDir, 'test.db'));
+
+    docStore = new DocumentStore(db);
+    contactStore = new ContactStore(db);
+    analyzer = new RelationshipAnalyzer({ db, contactStore });
+    reminderStore = new ReminderStore(db);
+
+    provider = new GraphVisualizationProvider({
+      db,
+      contactStore,
+      relationshipAnalyzer: analyzer,
+      reminderStore,
+    });
+    provider.initSchema();
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS indexed_emails (
+        id TEXT PRIMARY KEY,
+        message_id TEXT NOT NULL UNIQUE,
+        thread_id TEXT NOT NULL DEFAULT '',
+        folder TEXT NOT NULL DEFAULT 'INBOX',
+        "from" TEXT NOT NULL,
+        from_name TEXT NOT NULL DEFAULT '',
+        "to" TEXT NOT NULL DEFAULT '[]',
+        subject TEXT NOT NULL DEFAULT '',
+        snippet TEXT NOT NULL DEFAULT '',
+        received_at TEXT NOT NULL,
+        is_read INTEGER NOT NULL DEFAULT 0,
+        is_starred INTEGER NOT NULL DEFAULT 0,
+        has_attachments INTEGER NOT NULL DEFAULT 0,
+        labels TEXT NOT NULL DEFAULT '[]',
+        priority TEXT NOT NULL DEFAULT 'normal',
+        account_id TEXT NOT NULL DEFAULT '',
+        indexed_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS indexed_calendar_events (
+        id TEXT PRIMARY KEY,
+        uid TEXT NOT NULL UNIQUE,
+        calendar_id TEXT NOT NULL DEFAULT '',
+        title TEXT NOT NULL DEFAULT '',
+        description TEXT NOT NULL DEFAULT '',
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL,
+        is_all_day INTEGER NOT NULL DEFAULT 0,
+        location TEXT NOT NULL DEFAULT '',
+        attendees TEXT NOT NULL DEFAULT '[]',
+        organizer TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'confirmed',
+        recurrence_rule TEXT,
+        account_id TEXT NOT NULL DEFAULT '',
+        indexed_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS location_history (
+        id TEXT PRIMARY KEY,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        accuracy_m REAL NOT NULL,
+        timestamp TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `);
+  });
+
+  afterEach(() => {
+    db.close();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('getCategoryGraph returns categoryNodes for non-empty categories only', () => {
+    contactStore.insertContact({ displayName: 'Alice', emails: ['alice@test.com'] });
+    docStore.insertDocument({ source: 'local_file', title: 'Doc1', contentHash: 'h1', mimeType: 'text/plain' });
+
+    const catGraph = provider.getCategoryGraph();
+
+    // Should have at least 'people' (person node) and 'knowledge' (document node)
+    expect(catGraph.categoryNodes.length).toBeGreaterThanOrEqual(2);
+    const catIds = catGraph.categoryNodes.map(cn => cn.category);
+    expect(catIds).toContain('people');
+    expect(catIds).toContain('knowledge');
+
+    // No empty categories should be present
+    for (const cn of catGraph.categoryNodes) {
+      expect(cn.nodeCount).toBeGreaterThan(0);
+      expect(cn.nodeIds.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('person nodes are assigned to "people" category', () => {
+    contactStore.insertContact({ displayName: 'Bob', emails: ['bob@test.com'] });
+    contactStore.insertContact({ displayName: 'Carol', emails: ['carol@test.com'] });
+
+    const catGraph = provider.getCategoryGraph();
+    const peopleCat = catGraph.categoryNodes.find(cn => cn.category === 'people');
+
+    expect(peopleCat).toBeDefined();
+    expect(peopleCat!.nodeCount).toBeGreaterThanOrEqual(2);
+    expect(peopleCat!.nodeIds.some(id => id.startsWith('person_'))).toBe(true);
+  });
+
+  it('category edges aggregate correctly (weight computation)', () => {
+    // Create a person + document + mention edge → people↔knowledge cross-category edge
+    const { id: contactId } = contactStore.insertContact({
+      displayName: 'Dan',
+      emails: ['dan@test.com'],
+    });
+    const { id: docId } = docStore.insertDocument({
+      source: 'local_file',
+      title: 'Report',
+      contentHash: 'hdan',
+      mimeType: 'text/plain',
+    });
+    const entityId = docStore.insertEntity({ name: 'Dan', type: 'person' });
+    docStore.insertMention({ entityId, documentId: docId, chunkId: 'c1', context: 'Dan' });
+
+    const catGraph = provider.getCategoryGraph();
+
+    // There should be a cross-category edge between people and knowledge
+    const crossEdge = catGraph.categoryEdges.find(
+      e => (e.sourceCategoryId.includes('knowledge') && e.targetCategoryId.includes('people')) ||
+           (e.sourceCategoryId.includes('people') && e.targetCategoryId.includes('knowledge')),
+    );
+    expect(crossEdge).toBeDefined();
+    expect(crossEdge!.edgeCount).toBeGreaterThanOrEqual(1);
+    expect(crossEdge!.weight).toBeGreaterThan(0);
+    expect(crossEdge!.weight).toBeLessThanOrEqual(1);
+  });
+
+  it('CategoryEdge.relationshipTypes is deduplicated', () => {
+    // Create multiple edges of the same type between people and knowledge
+    for (let i = 0; i < 3; i++) {
+      const { id: docId } = docStore.insertDocument({
+        source: 'local_file', title: `Doc ${i}`, contentHash: `hdup${i}`, mimeType: 'text/plain',
+      });
+      const entityId = docStore.insertEntity({ name: `Person ${i}`, type: 'person' });
+      docStore.insertMention({ entityId, documentId: docId, chunkId: `c${i}`, context: `P${i}` });
+    }
+
+    const catGraph = provider.getCategoryGraph();
+    for (const ce of catGraph.categoryEdges) {
+      // No duplicates in relationshipTypes
+      const unique = new Set(ce.relationshipTypes);
+      expect(unique.size).toBe(ce.relationshipTypes.length);
+    }
+  });
+
+  it('getNodesForCategory("people") returns only person/email_thread nodes', () => {
+    contactStore.insertContact({ displayName: 'Eve', emails: ['eve@test.com'] });
+    docStore.insertDocument({ source: 'local_file', title: 'Doc', contentHash: 'hev', mimeType: 'text/plain' });
+
+    const result = provider.getNodesForCategory('people');
+
+    // Should have person nodes, not documents
+    for (const n of result.nodes) {
+      expect(['person', 'email_thread', 'location']).toContain(n.type);
+    }
+    // Should not contain documents
+    expect(result.nodes.some(n => n.type === 'document')).toBe(false);
+  });
+
+  it('empty categories are excluded from categoryNodes', () => {
+    // Only create person nodes → most categories empty
+    contactStore.insertContact({ displayName: 'Faye', emails: ['faye@test.com'] });
+
+    const catGraph = provider.getCategoryGraph();
+
+    // finance, music, cloud, browser should have 0 nodes → excluded
+    const catIds = catGraph.categoryNodes.map(cn => cn.category);
+    expect(catIds).not.toContain('finance');
+    expect(catIds).not.toContain('music');
+    expect(catIds).not.toContain('cloud');
+    expect(catIds).not.toContain('browser');
+  });
+
+  it('stats include activeSources, crossDomainInsights, nodesByCategory', () => {
+    contactStore.insertContact({ displayName: 'Grace', emails: ['grace@test.com'] });
+    docStore.insertDocument({ source: 'local_file', title: 'Report', contentHash: 'hg', mimeType: 'text/plain' });
+
+    const catGraph = provider.getCategoryGraph();
+    const stats = catGraph.stats;
+
+    expect(stats.activeSources).toBeDefined();
+    expect(stats.activeSources).toBeGreaterThanOrEqual(2);
+    expect(stats.totalSources).toBe(10);
+    expect(stats.crossDomainInsights).toBeDefined();
+    expect(typeof stats.crossDomainInsights).toBe('number');
+    expect(stats.nodesByCategory).toBeDefined();
+    expect(stats.nodesByCategory!['people']).toBeGreaterThanOrEqual(1);
+    expect(stats.nodesByCategory!['knowledge']).toBeGreaterThanOrEqual(1);
+  });
+
+  it('category graph with no data returns empty arrays', () => {
+    const catGraph = provider.getCategoryGraph();
+
+    expect(catGraph.categoryNodes).toEqual([]);
+    expect(catGraph.categoryEdges).toEqual([]);
+    expect(catGraph.stats.activeSources).toBe(0);
+    expect(catGraph.stats.totalSources).toBe(10);
+  });
+});
