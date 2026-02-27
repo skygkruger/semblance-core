@@ -1,0 +1,1 @@
+export { BriefingCard } from './BriefingCard';

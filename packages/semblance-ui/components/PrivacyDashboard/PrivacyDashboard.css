@@ -1,0 +1,106 @@
+.privacy-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+}
+
+.privacy-dashboard__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.privacy-dashboard__section-title {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--slate3);
+}
+
+/* Comparison statement */
+.privacy-dashboard__comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+}
+
+.privacy-dashboard__stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.privacy-dashboard__stat-value {
+  font-family: var(--fd);
+  font-weight: 300;
+  font-size: var(--text-2xl);
+  color: var(--white);
+}
+
+.privacy-dashboard__stat-value--veridian {
+  color: var(--v);
+}
+
+.privacy-dashboard__stat-label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sv1);
+}
+
+/* Veridian Moment #7 — Wire-line divider */
+.privacy-dashboard__divider {
+  height: 1px;
+  background: linear-gradient(90deg, var(--v), transparent);
+  max-width: 72px;
+}
+
+/* Network activity */
+.privacy-dashboard__network-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--b1);
+}
+
+.privacy-dashboard__network-label {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  color: var(--sv3);
+}
+
+.privacy-dashboard__network-value {
+  font-family: var(--fm);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+}
+
+.privacy-dashboard__network-value--zero {
+  color: var(--v);
+}
+
+/* Proof badge */
+.privacy-dashboard__proof {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--s1);
+  border: 1px solid var(--v-wire);
+  border-radius: var(--r-md);
+}
+
+.privacy-dashboard__proof-icon {
+  color: var(--v);
+}
+
+.privacy-dashboard__proof-text {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+}

@@ -135,7 +135,7 @@ export function ImportDigitalLifeView({
               <div className="ml-4">
                 {isPremium ? (
                   <Button
-                    variant="secondary"
+                    variant="ghost"
                     size="sm"
                     onClick={() => onImport?.(source.id)}
                     disabled={progress?.isActive}

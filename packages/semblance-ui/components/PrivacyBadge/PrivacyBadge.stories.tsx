@@ -4,30 +4,30 @@ import { PrivacyBadge } from './PrivacyBadge';
 const meta: Meta<typeof PrivacyBadge> = {
   title: 'Components/PrivacyBadge',
   component: PrivacyBadge,
-  argTypes: {
-    actionsToday: { control: 'number' },
-  },
+  parameters: { layout: 'centered' },
 };
 
 export default meta;
 type Story = StoryObj<typeof PrivacyBadge>;
 
-export const Default: Story = {
-  args: {},
+export const Active: Story = {
+  args: { status: 'active' },
 };
 
-export const WithActionCount: Story = {
-  args: { actionsToday: 14 },
+export const Syncing: Story = {
+  args: { status: 'syncing' },
 };
 
-export const SingleAction: Story = {
-  args: { actionsToday: 1 },
+export const Offline: Story = {
+  args: { status: 'offline' },
 };
 
-export const ZeroActions: Story = {
-  args: { actionsToday: 0 },
-};
-
-export const HighActivity: Story = {
-  args: { actionsToday: 127 },
+export const OverlayPlacement: Story = {
+  render: () => (
+    <div style={{ position: 'relative', width: 300, height: 200, background: 'var(--s1)', borderRadius: 'var(--r-lg)', padding: 16 }}>
+      <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
+        <PrivacyBadge status="active" />
+      </div>
+    </div>
+  ),
 };

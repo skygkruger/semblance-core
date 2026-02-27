@@ -1,0 +1,29 @@
+.card {
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  transition: background var(--duration-base) var(--eo),
+              border-color var(--duration-base) var(--eo),
+              box-shadow var(--duration-base) var(--eo);
+}
+
+.card--hoverable:hover {
+  background: var(--s2);
+  border-color: var(--b2);
+  cursor: pointer;
+}
+
+.card--elevated {
+  background: var(--s2);
+  border-color: var(--b2);
+}
+
+.card--briefing {
+  background: linear-gradient(135deg, var(--s2), var(--s1));
+  border-color: var(--b2);
+}
+
+.card--hoverable:hover .card__veridian-glow {
+  box-shadow: 0 0 24px var(--v-glow);
+}

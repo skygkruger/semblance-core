@@ -182,7 +182,7 @@ export function StatementImportDialog({ onClose, onImportComplete }: StatementIm
               {error ?? 'Could not parse the statement file.'}
             </p>
             <div className="flex gap-3 justify-center pt-2">
-              <Button variant="secondary" onClick={() => setPhase('select')}>
+              <Button variant="ghost" onClick={() => setPhase('select')}>
                 Try Again
               </Button>
               <Button variant="ghost" onClick={onClose}>

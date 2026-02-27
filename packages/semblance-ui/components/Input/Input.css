@@ -1,0 +1,51 @@
+.input-wrapper {
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 16px;
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  font-weight: 300;
+  color: var(--w-dim);
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-md);
+  outline: none;
+  transition: border-color var(--duration-base) var(--eo),
+              box-shadow var(--duration-base) var(--eo);
+}
+
+.input::placeholder {
+  color: var(--sv1);
+}
+
+/* Veridian Moment #4 — Focus ring */
+.input:focus {
+  border-color: var(--v-glow-lg);
+  box-shadow: 0 0 0 3px var(--v-glow);
+}
+
+/* Error state */
+.input--error {
+  border-color: var(--rust);
+}
+.input--error:focus {
+  border-color: var(--rust);
+  box-shadow: 0 0 0 3px rgba(201, 123, 110, 0.15);
+}
+
+.input__error-message {
+  margin-top: var(--sp-1);
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--rust);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

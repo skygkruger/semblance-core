@@ -1,0 +1,12 @@
+.logomark {
+  display: inline-block;
+  position: relative;
+}
+
+.logomark__img {
+  mix-blend-mode: screen;
+  filter: brightness(1.2) contrast(1.15);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 52%, black 38%, transparent 72%);
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 52%, black 38%, transparent 72%);
+  display: block;
+}

@@ -1,0 +1,111 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fb);
+  font-weight: 400;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--duration-base) var(--eo);
+  outline: none;
+  border: 1px solid transparent;
+}
+
+.btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--base), 0 0 0 4px var(--v-wire);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Sizes */
+.btn--sm { padding: 6px 12px; font-size: var(--text-sm); }
+.btn--md { padding: 10px 20px; font-size: var(--text-base); }
+.btn--lg { padding: 14px 28px; font-size: var(--text-md); }
+
+/* Ghost */
+.btn--ghost {
+  background: transparent;
+  color: var(--sv2);
+  border-color: var(--b2);
+}
+.btn--ghost:hover {
+  background: var(--s2);
+  color: var(--white);
+  border-color: var(--b3);
+}
+
+/* Solid */
+.btn--solid {
+  background: linear-gradient(180deg, var(--s3), #141820);
+  color: var(--sv3);
+  border-color: var(--b2);
+}
+.btn--solid:hover {
+  background: linear-gradient(180deg, #1a1e26, #0e1118);
+  color: var(--white);
+}
+
+/* Metallic shimmer for Ghost + Solid */
+.btn--ghost::after,
+.btn--solid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(200, 210, 220, 0.07) 40%,
+    rgba(240, 245, 250, 0.13) 50%,
+    rgba(200, 210, 220, 0.07) 60%,
+    transparent 100%
+  );
+  background-size: 250% auto;
+  background-position: 200% center;
+  transition: background-position 2.2s var(--eo);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.btn--ghost:hover::after,
+.btn--solid:hover::after {
+  background-position: -50% center;
+}
+
+/* Subtle */
+.btn--subtle {
+  background: transparent;
+  color: var(--sv1);
+  border-color: transparent;
+}
+.btn--subtle:hover {
+  background: rgba(160, 175, 195, 0.05);
+  color: var(--sv3);
+}
+
+/* Approve — Veridian Moment #1 */
+.btn--approve {
+  background: transparent;
+  color: var(--v);
+  border-color: var(--v-wire);
+  transition: all var(--duration-slow) var(--eo);
+}
+.btn--approve:hover {
+  background: var(--v-dim);
+  box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
+}
+
+/* Destructive */
+.btn--destructive {
+  background: transparent;
+  color: var(--sv2);
+  border-color: var(--b1);
+}
+.btn--destructive:hover {
+  color: var(--rust);
+  border-color: var(--rust);
+  background: rgba(201, 123, 110, 0.06);
+}

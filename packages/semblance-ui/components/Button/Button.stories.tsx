@@ -4,10 +4,11 @@ import { Button } from './Button';
 const meta: Meta<typeof Button> = {
   title: 'Components/Button',
   component: Button,
+  parameters: { layout: 'centered' },
   argTypes: {
     variant: {
       control: 'select',
-      options: ['primary', 'secondary', 'ghost', 'danger'],
+      options: ['ghost', 'solid', 'subtle', 'approve', 'destructive'],
     },
     size: {
       control: 'select',
@@ -20,67 +21,43 @@ const meta: Meta<typeof Button> = {
 export default meta;
 type Story = StoryObj<typeof Button>;
 
-export const Primary: Story = {
-  args: { variant: 'primary', size: 'md', children: 'Primary Button' },
-};
-
-export const Secondary: Story = {
-  args: { variant: 'secondary', size: 'md', children: 'Secondary Button' },
-};
-
 export const Ghost: Story = {
-  args: { variant: 'ghost', size: 'md', children: 'Ghost Button' },
+  args: { variant: 'ghost', children: 'Ghost Button' },
 };
 
-export const Danger: Story = {
-  args: { variant: 'danger', size: 'md', children: 'Danger Button' },
+export const Solid: Story = {
+  args: { variant: 'solid', children: 'Solid Button' },
 };
 
-export const Small: Story = {
-  args: { variant: 'primary', size: 'sm', children: 'Small' },
+export const Subtle: Story = {
+  args: { variant: 'subtle', children: 'Subtle Button' },
 };
 
-export const Medium: Story = {
-  args: { variant: 'primary', size: 'md', children: 'Medium' },
+export const Approve: Story = {
+  args: { variant: 'approve', children: 'Approve Action' },
 };
 
-export const Large: Story = {
-  args: { variant: 'primary', size: 'lg', children: 'Large' },
+export const Destructive: Story = {
+  args: { variant: 'destructive', children: 'Delete' },
 };
 
 export const Disabled: Story = {
-  args: { variant: 'primary', size: 'md', children: 'Disabled', disabled: true },
+  args: { variant: 'ghost', children: 'Disabled', disabled: true },
 };
 
-export const AllVariantsSmall: Story = {
+export const AllVariants: Story = {
   render: () => (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-      <Button variant="primary" size="sm">Primary</Button>
-      <Button variant="secondary" size="sm">Secondary</Button>
-      <Button variant="ghost" size="sm">Ghost</Button>
-      <Button variant="danger" size="sm">Danger</Button>
-    </div>
-  ),
-};
-
-export const AllVariantsMedium: Story = {
-  render: () => (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-      <Button variant="primary" size="md">Primary</Button>
-      <Button variant="secondary" size="md">Secondary</Button>
-      <Button variant="ghost" size="md">Ghost</Button>
-      <Button variant="danger" size="md">Danger</Button>
-    </div>
-  ),
-};
-
-export const AllVariantsLarge: Story = {
-  render: () => (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-      <Button variant="primary" size="lg">Primary</Button>
-      <Button variant="secondary" size="lg">Secondary</Button>
-      <Button variant="ghost" size="lg">Ghost</Button>
-      <Button variant="danger" size="lg">Danger</Button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {(['sm', 'md', 'lg'] as const).map(size => (
+        <div key={size} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <span style={{ color: 'var(--sv1)', fontFamily: 'var(--fm)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', width: 28 }}>{size}</span>
+          <Button variant="ghost" size={size}>Ghost</Button>
+          <Button variant="solid" size={size}>Solid</Button>
+          <Button variant="subtle" size={size}>Subtle</Button>
+          <Button variant="approve" size={size}>Approve</Button>
+          <Button variant="destructive" size={size}>Delete</Button>
+        </div>
+      ))}
     </div>
   ),
 };
@@ -88,10 +65,11 @@ export const AllVariantsLarge: Story = {
 export const AllDisabled: Story = {
   render: () => (
     <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-      <Button variant="primary" disabled>Primary</Button>
-      <Button variant="secondary" disabled>Secondary</Button>
       <Button variant="ghost" disabled>Ghost</Button>
-      <Button variant="danger" disabled>Danger</Button>
+      <Button variant="solid" disabled>Solid</Button>
+      <Button variant="subtle" disabled>Subtle</Button>
+      <Button variant="approve" disabled>Approve</Button>
+      <Button variant="destructive" disabled>Delete</Button>
     </div>
   ),
 };

@@ -117,30 +117,55 @@ describe('TypeScript Quality — No `any` Types', () => {
 });
 
 describe('Dark Mode Support', () => {
-  const COMPONENTS_REQUIRING_DARK_MODE = [
-    'Button', 'Input', 'Card', 'ActionCard', 'PrivacyBadge',
+  // v3 components (Button, Input, Card, PrivacyBadge) use CSS files with
+  // CSS custom properties — dark mode is the default, no `dark:` prefix needed.
+  // v1/v2 components still use Tailwind `dark:` classes.
+  const TAILWIND_COMPONENTS_REQUIRING_DARK_MODE = [
+    'ActionCard',
     'Navigation', 'ChatBubble', 'ChatInput', 'AutonomySelector',
     'ThemeToggle', 'Toast', 'DirectoryPicker',
   ];
 
-  for (const name of COMPONENTS_REQUIRING_DARK_MODE) {
+  // v3 components use co-located CSS files with CSS custom properties
+  const CSS_COMPONENTS = ['Button', 'Input', 'Card', 'PrivacyBadge'];
+
+  for (const name of TAILWIND_COMPONENTS_REQUIRING_DARK_MODE) {
     it(`${name} includes dark: mode classes`, () => {
       const content = readComponent(name);
       expect(content).toContain('dark:');
     });
   }
+
+  for (const name of CSS_COMPONENTS) {
+    it(`${name} uses CSS custom properties for theming`, () => {
+      const content = readComponent(name);
+      // v3 components import a CSS file that uses custom properties
+      expect(content).toMatch(/import\s+['"]\.\/.*\.css['"]/);
+    });
+  }
 });
 
 describe('Focus-Visible Styling', () => {
-  const INTERACTIVE_COMPONENTS = [
-    'Button', 'Input', 'ChatInput', 'Navigation',
+  // v1/v2 components have focus-visible in Tailwind classes within the .tsx
+  const TAILWIND_INTERACTIVE = [
+    'ChatInput', 'Navigation',
     'AutonomySelector', 'ThemeToggle', 'ActionCard', 'DirectoryPicker',
   ];
 
-  for (const name of INTERACTIVE_COMPONENTS) {
+  // v3 components have focus-visible in co-located CSS files
+  const CSS_INTERACTIVE = ['Button', 'Input'];
+
+  for (const name of TAILWIND_INTERACTIVE) {
     it(`${name} has focus-visible styling`, () => {
       const content = readComponent(name);
       expect(content).toMatch(/focus-visible:|focus:/);
+    });
+  }
+
+  for (const name of CSS_INTERACTIVE) {
+    it(`${name} has focus-visible styling in CSS`, () => {
+      const cssContent = readFileSync(join(COMPONENTS_DIR, name, `${name}.css`), 'utf-8');
+      expect(cssContent).toMatch(/focus-visible|:focus/);
     });
   }
 });

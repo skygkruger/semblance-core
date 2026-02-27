@@ -12,7 +12,11 @@ const config: StorybookConfig = {
   core: {
     disableTelemetry: true,
   },
-  addons: ['@storybook/addon-essentials'],
+  addons: [
+    '@storybook/addon-essentials',
+    '@storybook/addon-a11y',
+  ],
+  staticDirs: ['../public'],
 };
 
 export default config;

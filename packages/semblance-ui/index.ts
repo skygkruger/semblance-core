@@ -47,3 +47,4 @@ export { DesktopSidebar } from './components/Nav/DesktopSidebar.js';
 export { MobileTabBar } from './components/Nav/MobileTabBar.js';
 export { KnowledgeGraph } from './components/KnowledgeGraph/index.js';
 export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
+export { WireframeSpinner } from './components/WireframeSpinner/index.js';

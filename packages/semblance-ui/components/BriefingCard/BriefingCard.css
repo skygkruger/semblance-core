@@ -1,0 +1,87 @@
+.briefing-card {
+  background: linear-gradient(135deg, var(--s2), var(--s1));
+  border: 1px solid var(--b2);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Arrival animation via data attribute */
+.briefing-card[data-animating="true"] {
+  animation: card-arrive 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes card-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.briefing-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.briefing-card__title {
+  font-family: var(--fd);
+  font-weight: 300;
+  font-size: var(--text-xl);
+  color: var(--w-dim);
+  margin: 0;
+}
+
+.briefing-card__timestamp {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--slate3);
+}
+
+.briefing-card__items {
+  margin: var(--sp-5) 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.briefing-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.briefing-item__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+
+.briefing-item__text {
+  font-family: var(--fb);
+  font-weight: 300;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--sv3);
+}
+
+/* Veridian Moment #2 — action item dots pulse */
+.briefing-item--action .briefing-item__dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px #6ECFA3; }
+  50%      { opacity: 0.35; box-shadow: 0 0 2px #6ECFA3; }
+}

@@ -33,6 +33,9 @@ const APPROVED_FILES = new Set([
   'importers/notes/apple-notes-parser.ts',
   'importers/messaging/whatsapp-parser.ts',
   'importers/photos/exif-parser.ts',
+  // Founding member JWT verification uses node:crypto for Ed25519 signature verification.
+  // On mobile, this would use the platform CryptoAdapter (not yet supporting Ed25519 verify).
+  'premium/founding-token.ts',
 ]);
 
 function collectTsFiles(dir: string, baseDir: string): string[] {

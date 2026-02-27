@@ -39,9 +39,11 @@ describe('Storybook Configuration — Step 32', () => {
     expect(existsSync(join(STORYBOOK_DIR, 'preview.ts'))).toBe(true);
   });
 
-  it('preview imports from ../tokens/colors (applies design tokens)', () => {
+  it('preview applies design tokens (imports token CSS or TS)', () => {
     const preview = readFileSync(join(STORYBOOK_DIR, 'preview.ts'), 'utf-8');
-    expect(preview).toContain('../tokens/colors');
+    // v3 imports CSS custom properties; v2 imported TS token objects
+    const hasTokens = preview.includes('../tokens/colors') || preview.includes('../tokens/tokens.css');
+    expect(hasTokens).toBe(true);
   });
 
   it('storybook is devDependency only (not in "dependencies")', () => {

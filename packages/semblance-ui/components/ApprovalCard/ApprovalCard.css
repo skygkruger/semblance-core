@@ -1,12 +1,30 @@
-/* Veridian Moment #3 — Approval card; silver border at rest, Veridian on approved */
+/* Veridian Moment #3 — Approval card; risk color bleeds through surface */
+
 .approval-card {
   background: linear-gradient(135deg, var(--s2), var(--s1));
   border: 1px solid var(--b2);
   border-radius: var(--r-lg);
   padding: var(--sp-6);
+  max-width: 100%;
+  box-sizing: border-box;
   transition: box-shadow var(--duration-slow) var(--eo),
               border-color var(--duration-slow) var(--eo);
-  animation: dissolve var(--duration-slower) var(--ease-spring) both;
+}
+
+/* ─── Arrival animation via data attribute ─── */
+.approval-card[data-animating="true"] {
+  animation: card-arrive 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes card-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .approval-card:hover {
@@ -14,18 +32,18 @@
   box-shadow: 0 0 24px var(--v-glow-md);
 }
 
+/* ─── State: approved — Veridian border, same card surface as pending ─── */
 .approval-card--approved {
   border-color: var(--v-wire);
-  box-shadow: 0 0 16px var(--v-glow);
-  animation: approve-pulse 600ms var(--eo) 1;
 }
 
+/* ─── State: dismissed ─── */
 .approval-card--dismissed {
-  opacity: 0.5;
   border-color: var(--b1);
   box-shadow: none;
 }
 
+/* ─── Header ─── */
 .approval-card__header {
   display: flex;
   justify-content: space-between;
@@ -67,6 +85,7 @@
   background: rgba(201, 123, 110, 0.1);
 }
 
+/* ─── Context ─── */
 .approval-card__context {
   font-family: var(--fb);
   font-size: var(--text-base);
@@ -75,7 +94,7 @@
   line-height: 1.6;
 }
 
-/* Veridian Moment #7 — Wire-line divider */
+/* ─── Wire-line divider — default Veridian ─── */
 .approval-card__divider {
   height: 1px;
   margin: var(--sp-5) 0;
@@ -83,6 +102,7 @@
   max-width: 72px;
 }
 
+/* ─── Data section ─── */
 .approval-card__data-label {
   font-family: var(--fm);
   font-size: var(--text-xs);
@@ -112,4 +132,72 @@
   display: flex;
   gap: var(--sp-3);
   margin-top: var(--sp-5);
+}
+
+/* ═══ Risk Color System ═══ */
+
+/* LOW — Veridian bleeds through divider, data label, data items, border */
+.approval-card[data-risk="low"] {
+  border-color: rgba(110, 207, 163, 0.12);
+}
+
+.approval-card[data-risk="low"] .approval-card__divider {
+  background: linear-gradient(90deg, #6ECFA3, transparent);
+}
+
+.approval-card[data-risk="low"] .approval-card__data-label {
+  color: #6ECFA3;
+}
+
+.approval-card[data-risk="low"] .approval-card__data-item {
+  color: #6ECFA3;
+}
+
+.approval-card[data-risk="low"]:hover {
+  border-color: rgba(110, 207, 163, 0.25);
+  box-shadow: 0 0 24px rgba(110, 207, 163, 0.12);
+}
+
+/* MEDIUM — amber bleeds through divider, data label, data items, border */
+.approval-card[data-risk="medium"] {
+  border-color: rgba(201, 168, 92, 0.12);
+}
+
+.approval-card[data-risk="medium"] .approval-card__divider {
+  background: linear-gradient(90deg, var(--amber), transparent);
+}
+
+.approval-card[data-risk="medium"] .approval-card__data-label {
+  color: var(--amber);
+}
+
+.approval-card[data-risk="medium"] .approval-card__data-item {
+  color: var(--amber);
+}
+
+.approval-card[data-risk="medium"]:hover {
+  border-color: rgba(201, 168, 92, 0.25);
+  box-shadow: 0 0 24px rgba(201, 168, 92, 0.12);
+}
+
+/* HIGH — rust bleeds through divider, data label, data items, border */
+.approval-card[data-risk="high"] {
+  border-color: rgba(201, 123, 110, 0.15);
+}
+
+.approval-card[data-risk="high"] .approval-card__divider {
+  background: linear-gradient(90deg, var(--rust), transparent);
+}
+
+.approval-card[data-risk="high"] .approval-card__data-label {
+  color: var(--rust);
+}
+
+.approval-card[data-risk="high"] .approval-card__data-item {
+  color: var(--rust);
+}
+
+.approval-card[data-risk="high"]:hover {
+  border-color: rgba(201, 123, 110, 0.30);
+  box-shadow: 0 0 24px rgba(201, 123, 110, 0.12);
 }

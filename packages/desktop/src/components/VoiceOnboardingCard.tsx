@@ -49,7 +49,7 @@ export function VoiceOnboardingCard({
           </div>
           {!whisperDownloaded && (
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
               onClick={onDownloadWhisper}
               disabled={downloading}
@@ -74,7 +74,7 @@ export function VoiceOnboardingCard({
           </div>
           {!piperDownloaded && (
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
               onClick={onDownloadPiper}
               disabled={downloading}

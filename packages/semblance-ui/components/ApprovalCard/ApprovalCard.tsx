@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Button } from '../Button/Button';
 import './ApprovalCard.css';
 
@@ -25,11 +26,23 @@ export function ApprovalCard({
   onDismiss,
   className = '',
 }: ApprovalCardProps) {
-  const stateClass = state !== 'pending' ? `approval-card--${state}` : '';
-  const opalClass = state === 'approved' ? 'opal-surface opal-recede' : 'opal-surface';
+  const [animating, setAnimating] = useState(true);
+
+  useEffect(() => {
+    console.log('[ApprovalCard] mounted');
+    const timer = setTimeout(() => setAnimating(false), 700);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const stateClass = `approval-card--${state}`;
+  const opalClass = 'opal-surface';
 
   return (
-    <div className={`approval-card ${opalClass} ${stateClass} ${className}`.trim()}>
+    <div
+      className={`approval-card ${opalClass} ${stateClass} ${className}`.trim()}
+      data-risk={risk}
+      data-animating={animating ? 'true' : undefined}
+    >
       <div className="approval-card__header">
         <h3 className="approval-card__action">{action}</h3>
         <span className={`approval-card__risk approval-card__risk--${risk}`}>

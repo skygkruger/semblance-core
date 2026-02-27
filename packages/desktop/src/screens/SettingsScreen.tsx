@@ -452,10 +452,10 @@ export function SettingsScreen() {
           </div>
         ) : (
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setAddingAccount('email')}>
+            <Button variant="ghost" size="sm" onClick={() => setAddingAccount('email')}>
               Add Email
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => setAddingAccount('calendar')}>
+            <Button variant="ghost" size="sm" onClick={() => setAddingAccount('calendar')}>
               Add Calendar
             </Button>
           </div>

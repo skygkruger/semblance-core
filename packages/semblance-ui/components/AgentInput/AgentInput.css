@@ -1,0 +1,106 @@
+.agent-input {
+  position: relative;
+}
+
+.agent-input__document-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sv2);
+  background: var(--s2);
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  margin-bottom: var(--sp-2);
+}
+
+.agent-input__container {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-2);
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4);
+  transition: border-color var(--duration-slow) var(--eo),
+              box-shadow var(--duration-slow) var(--eo);
+}
+
+/* Veridian Moment #4 — Focus container */
+.agent-input__container:focus-within {
+  border-color: var(--v-glow-lg);
+  box-shadow: 0 0 0 3px var(--v-glow);
+}
+
+.agent-input__field {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  font-weight: 300;
+  color: var(--w-dim);
+  resize: none;
+  min-height: 24px;
+  max-height: 120px;
+}
+
+.agent-input__field::placeholder {
+  color: var(--sv1);
+}
+
+/* Veridian Moment #6 — Thinking indicator */
+.agent-input__thinking {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+}
+
+.agent-input__thinking-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--v);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.agent-input__thinking-text {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sv1);
+}
+
+/* Veridian Moment #8 — Send button */
+.agent-input__send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--sv1);
+  cursor: pointer;
+  border-radius: var(--r-md);
+  transition: color var(--duration-fast) var(--eo),
+              background var(--duration-fast) var(--eo);
+  flex-shrink: 0;
+}
+
+.agent-input__send:hover {
+  color: var(--v);
+  background: var(--v-dim);
+}
+
+.agent-input__send:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}

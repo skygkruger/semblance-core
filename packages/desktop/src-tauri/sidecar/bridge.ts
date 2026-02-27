@@ -40,6 +40,9 @@ import { EmailCategorizer } from '../../../core/agent/email-categorizer.js';
 import { ProactiveEngine } from '../../../core/agent/proactive-engine.js';
 import type { ActionType } from '../../../core/types/ipc.js';
 
+// Premium / Founding Member imports
+import { PremiumGate } from '../../../core/premium/index.js';
+
 // Step 7 imports
 import { StatementParser } from '../../../core/finance/statement-parser.js';
 import { MerchantNormalizer } from '../../../core/finance/merchant-normalizer.js';
@@ -144,6 +147,9 @@ let clipboardRecognizer: ClipboardPatternRecognizer | null = null;
 let clipboardMonitoringEnabled = false;
 let clipboardRecentActions: Array<{ patternType: string; action: string; timestamp: string }> = [];
 
+// Premium state
+let premiumGate: PremiumGate | null = null;
+
 // Step 14 state
 let contactStore: ContactStore | null = null;
 let relationshipAnalyzer: RelationshipAnalyzer | null = null;
@@ -235,6 +241,10 @@ async function handleInitialize(): Promise<unknown> {
   prefsDb = new Database(join(dataDir, 'core.db'));
   prefsDb.pragma('journal_mode = WAL');
   prefsDb.exec(PREFS_TABLE_SQL);
+
+  // Initialize PremiumGate (uses core.db for license storage)
+  premiumGate = new PremiumGate(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
+  console.error('[sidecar] PremiumGate initialized');
 
   // Initialize credential store in Gateway's database
   const gatewayDataDir = join(homedir(), '.semblance', 'gateway');
@@ -2135,6 +2145,34 @@ async function handleRequest(req: Request): Promise<void> {
         result = handleClipboardGetRecent();
         respond(id, result);
         break;
+
+      // ── License / Founding Member ──
+
+      case 'license:activate_founding': {
+        if (!premiumGate) {
+          respondError(id, 'PremiumGate not initialized');
+          break;
+        }
+        const { token } = params as { token: string };
+        result = premiumGate.activateFoundingMember(token);
+        respond(id, result);
+        break;
+      }
+
+      case 'license:status': {
+        if (!premiumGate) {
+          result = { tier: 'free', isPremium: false, isFoundingMember: false, foundingSeat: null };
+        } else {
+          result = {
+            tier: premiumGate.getLicenseTier(),
+            isPremium: premiumGate.isPremium(),
+            isFoundingMember: premiumGate.isFoundingMember(),
+            foundingSeat: premiumGate.getFoundingSeat(),
+          };
+        }
+        respond(id, result);
+        break;
+      }
 
       // ── Shutdown ──
 

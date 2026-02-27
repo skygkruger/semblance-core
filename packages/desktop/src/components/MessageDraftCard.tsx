@@ -115,7 +115,7 @@ export function MessageDraftCard({
             )}
 
             {autonomyTier === 'partner' && countdown !== null && (
-              <Button size="sm" onClick={handleCancel} variant="secondary">
+              <Button size="sm" onClick={handleCancel} variant="ghost">
                 Cancel ({countdown}s)
               </Button>
             )}

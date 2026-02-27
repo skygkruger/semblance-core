@@ -1,4 +1,5 @@
 import { forwardRef, type InputHTMLAttributes } from 'react';
+import './Input.css';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: boolean;
@@ -7,28 +8,17 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ error = false, errorMessage, className = '', ...props }, ref) => {
+    const inputClasses = [
+      'input',
+      error ? 'input--error' : '',
+      className,
+    ].filter(Boolean).join(' ');
+
     return (
-      <div className="w-full">
-        <input
-          ref={ref}
-          className={`
-            w-full px-4 py-3 text-base font-ui
-            bg-semblance-surface-1 dark:bg-semblance-surface-1-dark
-            border rounded-md
-            transition-all duration-fast ease-out
-            placeholder:text-semblance-text-tertiary
-            focus:outline-none focus:shadow-focus
-            ${error
-              ? 'border-semblance-attention bg-semblance-attention-subtle dark:bg-semblance-attention/10'
-              : 'border-semblance-border dark:border-semblance-border-dark focus:border-semblance-primary'
-            }
-            text-semblance-text-primary dark:text-semblance-text-primary-dark
-            ${className}
-          `.trim()}
-          {...props}
-        />
+      <div className="input-wrapper">
+        <input ref={ref} className={inputClasses} {...props} />
         {error && errorMessage && (
-          <p className="mt-1 text-xs text-semblance-attention">{errorMessage}</p>
+          <p className="input__error-message">{errorMessage}</p>
         )}
       </div>
     );

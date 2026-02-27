@@ -2,17 +2,18 @@
  * Premium Gate -- Feature gating for Digital Representative tier.
  *
  * License key format: sem_<base64(JSON{tier,exp})>.<signature>
- * Tiers: 'free', 'digital-representative', 'lifetime'
+ * Tiers: 'free', 'founding', 'digital-representative', 'lifetime'
  *
  * Gate checks happen at orchestrator/UI level, NOT inside analysis classes.
  * This keeps SpendingAnalyzer, AnomalyDetector, LLMCategorizer pure and testable.
  */
 
 import type { DatabaseHandle } from '../platform/types.js';
+import { verifyFoundingToken } from './founding-token.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type LicenseTier = 'free' | 'digital-representative' | 'lifetime';
+export type LicenseTier = 'free' | 'founding' | 'digital-representative' | 'lifetime';
 
 export type PremiumFeature =
   | 'transaction-categorization'
@@ -48,6 +49,7 @@ interface LicenseRow {
   activated_at: string;
   expires_at: string | null;
   license_key: string;
+  founding_seat: number | null;
 }
 
 // ─── Feature → Tier Mapping ─────────────────────────────────────────────────
@@ -77,6 +79,7 @@ const FEATURE_TIER_MAP: Record<PremiumFeature, LicenseTier> = {
 
 const TIER_RANK: Record<LicenseTier, number> = {
   'free': 0,
+  'founding': 1,
   'digital-representative': 1,
   'lifetime': 2,
 };
@@ -98,13 +101,23 @@ export class PremiumGate {
         tier TEXT NOT NULL DEFAULT 'free',
         activated_at TEXT NOT NULL,
         expires_at TEXT,
-        license_key TEXT NOT NULL
+        license_key TEXT NOT NULL,
+        founding_seat INTEGER
       )
     `);
+
+    // Migration: add founding_seat column to existing tables that lack it.
+    // SQLite ALTER TABLE ADD COLUMN is a no-op if the column already exists
+    // when wrapped in a try-catch.
+    try {
+      this.db.exec('ALTER TABLE license ADD COLUMN founding_seat INTEGER');
+    } catch {
+      // Column already exists — expected on subsequent runs
+    }
   }
 
   /**
-   * Returns true if current license is digital-representative or lifetime AND not expired.
+   * Returns true if current license is founding, digital-representative, or lifetime AND not expired.
    */
   isPremium(): boolean {
     const tier = this.getLicenseTier();
@@ -113,8 +126,8 @@ export class PremiumGate {
     const row = this.db.prepare('SELECT expires_at FROM license WHERE id = 1').get() as LicenseRow | undefined;
     if (!row) return false;
 
-    // Lifetime never expires
-    if (tier === 'lifetime') return true;
+    // Founding and lifetime never expire
+    if (tier === 'lifetime' || tier === 'founding') return true;
 
     // Check expiration
     if (row.expires_at) {
@@ -195,6 +208,55 @@ export class PremiumGate {
       tier: tier as LicenseTier,
       expiresAt: expiresAt ?? undefined,
     };
+  }
+
+  /**
+   * Activate a founding member token (JWT signed with Ed25519).
+   * Separate entry point from activateLicense() which handles sem_ format keys.
+   */
+  activateFoundingMember(token: string): ActivationResult {
+    const result = verifyFoundingToken(token);
+
+    if (!result.valid || !result.payload) {
+      return { success: false, error: result.error ?? 'Invalid founding member token' };
+    }
+
+    const now = new Date().toISOString();
+
+    // Upsert license row — founding membership never expires
+    this.db.prepare(`
+      INSERT INTO license (id, tier, activated_at, expires_at, license_key, founding_seat)
+      VALUES (1, 'founding', ?, NULL, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        tier = 'founding',
+        activated_at = excluded.activated_at,
+        expires_at = NULL,
+        license_key = excluded.license_key,
+        founding_seat = excluded.founding_seat
+    `).run(now, token, result.payload.seat);
+
+    return {
+      success: true,
+      tier: 'founding',
+    };
+  }
+
+  /**
+   * Returns true if the current license is a founding member tier.
+   */
+  isFoundingMember(): boolean {
+    return this.getLicenseTier() === 'founding';
+  }
+
+  /**
+   * Returns the founding member seat number, or null if not a founding member.
+   */
+  getFoundingSeat(): number | null {
+    const row = this.db.prepare('SELECT founding_seat FROM license WHERE id = 1').get() as
+      | { founding_seat: number | null }
+      | undefined;
+    if (!row) return null;
+    return row.founding_seat ?? null;
   }
 
   /**

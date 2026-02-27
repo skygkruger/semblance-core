@@ -1,0 +1,40 @@
+.privacy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--s1);
+  border: 1px solid var(--b1);
+}
+
+.privacy-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  flex-shrink: 0;
+}
+
+/* Veridian Moment #2 — Active badge dot */
+.privacy-badge__dot--active {
+  background: var(--v);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.privacy-badge__dot--syncing {
+  background: var(--amber);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.privacy-badge__dot--offline {
+  background: var(--sv1);
+}
+
+.privacy-badge__label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sv2);
+}

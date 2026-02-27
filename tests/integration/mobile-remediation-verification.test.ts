@@ -33,6 +33,8 @@ describe('Root Cause 1: PlatformAdapter replaces all Node.js builtins', () => {
     'importers/notes/apple-notes-parser.ts',
     'importers/messaging/whatsapp-parser.ts',
     'importers/photos/exif-parser.ts',
+    // Founding member JWT verification uses node:crypto for Ed25519 signature verification.
+    'premium/founding-token.ts',
   ]);
 
   function collectTsFiles(dir: string): string[] {

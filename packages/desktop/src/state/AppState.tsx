@@ -93,6 +93,11 @@ export interface AppState {
     completedDays: number[];
     skipped: boolean;
   };
+  license: {
+    tier: 'free' | 'founding' | 'digital-representative' | 'lifetime';
+    isFoundingMember: boolean;
+    foundingSeat: number | null;
+  };
 }
 
 export interface DocumentContext {
@@ -144,7 +149,8 @@ export type AppAction =
   | { type: 'SET_CLOUD_STORAGE_SETTINGS'; settings: AppState['cloudStorageSettings'] }
   | { type: 'SET_FINANCE_SETTINGS'; settings: AppState['financeSettings'] }
   | { type: 'SET_MORNING_BRIEF_SETTINGS'; settings: AppState['morningBriefSettings'] }
-  | { type: 'SET_ALTER_EGO_WEEK_PROGRESS'; progress: AppState['alterEgoWeek'] };
+  | { type: 'SET_ALTER_EGO_WEEK_PROGRESS'; progress: AppState['alterEgoWeek'] }
+  | { type: 'SET_LICENSE'; license: AppState['license'] };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -243,6 +249,11 @@ export const initialState: AppState = {
     completedDays: [],
     skipped: false,
   },
+  license: {
+    tier: 'free',
+    isFoundingMember: false,
+    foundingSeat: null,
+  },
 };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
@@ -324,6 +335,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, morningBriefSettings: action.settings };
     case 'SET_ALTER_EGO_WEEK_PROGRESS':
       return { ...state, alterEgoWeek: action.progress };
+    case 'SET_LICENSE':
+      return { ...state, license: action.license };
     default:
       return state;
   }

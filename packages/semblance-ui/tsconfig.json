@@ -16,6 +16,6 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["tokens/**/*.ts", "components/**/*.ts", "components/**/*.tsx", "hooks/**/*.ts", "stories/**/*.tsx", "index.ts"],
+  "include": ["global.d.ts", "tokens/**/*.ts", "components/**/*.ts", "components/**/*.tsx", "hooks/**/*.ts", "stories/**/*.tsx", "index.ts"],
   "exclude": ["node_modules", "dist", "**/*.stories.tsx"]
 }

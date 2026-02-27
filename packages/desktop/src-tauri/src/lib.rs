@@ -1332,6 +1332,30 @@ async fn detect_hardware() -> Result<hardware::HardwareProfile, String> {
     Ok(hardware::detect_hardware())
 }
 
+// ─── Founding Member Activation (Deep Link) ─────────────────────────────────
+
+/// Activate a founding member token via the sidecar bridge.
+/// Called from the frontend after receiving a deep link or manual code entry.
+#[tauri::command]
+async fn activate_founding_token(
+    state: tauri::State<'_, AppBridge>,
+    token: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call("license:activate_founding", serde_json::json!({ "token": token }))
+        .await
+}
+
+/// Get current license status from the sidecar bridge.
+#[tauri::command]
+async fn get_license_status(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state
+        .bridge
+        .call("license:status", serde_json::json!({}))
+        .await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1340,6 +1364,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_deep_link::init())
         .setup(|app| {
             let app_handle = app.handle().clone();
 
@@ -1361,6 +1386,26 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            // Deep link handler: listen for semblance:// URLs and forward to frontend
+            let app_for_deeplink = app_handle.clone();
+            app.listen("deep-link://new-url", move |event| {
+                let payload_str = event.payload();
+                // The payload is a JSON string containing the URL(s)
+                if let Ok(urls) = serde_json::from_str::<Vec<String>>(payload_str) {
+                    for url in urls {
+                        // Parse semblance://activate?tier=founding&token=xxx
+                        if url.starts_with("semblance://activate") {
+                            if let Ok(parsed) = url::Url::parse(&url.replace("semblance://", "https://")) {
+                                if let Some(token) = parsed.query_pairs().find(|(k, _)| k == "token").map(|(_, v)| v.to_string()) {
+                                    eprintln!("[tauri] Deep link received: founding activation");
+                                    let _ = app_for_deeplink.emit("founding-activate", serde_json::json!({ "token": token }));
+                                }
+                            }
+                        }
+                    }
+                }
+            });
 
             // AUTONOMOUS DECISION: Locate project root by walking up from the
             // Tauri resource directory. In development, the Tauri app runs from
@@ -1513,6 +1558,9 @@ pub fn run() {
             assess_task,
             // Hardware & Runtime (Step 9)
             detect_hardware,
+            // Founding Member Activation
+            activate_founding_token,
+            get_license_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -107,7 +107,7 @@ export function VoiceSettingsSection() {
                   {settings.whisperModel ?? 'Not downloaded'}
                 </span>
                 {!settings.whisperModel && (
-                  <Button variant="secondary" size="sm" onClick={() => {}}>
+                  <Button variant="ghost" size="sm" onClick={() => {}}>
                     Download
                   </Button>
                 )}
@@ -124,7 +124,7 @@ export function VoiceSettingsSection() {
                   {settings.piperVoice ?? 'Not downloaded'}
                 </span>
                 {!settings.piperVoice && (
-                  <Button variant="secondary" size="sm" onClick={() => {}}>
+                  <Button variant="ghost" size="sm" onClick={() => {}}>
                     Download
                   </Button>
                 )}

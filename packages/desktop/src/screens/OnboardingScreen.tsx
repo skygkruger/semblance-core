@@ -19,6 +19,19 @@ import type { HardwareDisplayInfo } from '../components/HardwareProfileDisplay';
 import type { ModelDownloadState } from '../components/ModelDownloadProgress';
 import type { AutonomyTier, CredentialFormData } from '@semblance/ui';
 
+interface ActivationResult {
+  success: boolean;
+  tier?: string;
+  error?: string;
+}
+
+interface LicenseStatus {
+  tier: 'free' | 'founding' | 'digital-representative' | 'lifetime';
+  isPremium: boolean;
+  isFoundingMember: boolean;
+  foundingSeat: number | null;
+}
+
 const TOTAL_STEPS = 11;
 
 export function OnboardingScreen() {
@@ -42,6 +55,10 @@ export function OnboardingScreen() {
   const [hardwareDetecting, setHardwareDetecting] = useState(false);
   const [modelDownloads, setModelDownloads] = useState<ModelDownloadState[]>([]);
   const [downloadConsented, setDownloadConsented] = useState(false);
+  const [showFoundingCodeInput, setShowFoundingCodeInput] = useState(false);
+  const [foundingCodeInput, setFoundingCodeInput] = useState('');
+  const [foundingCodeError, setFoundingCodeError] = useState<string | null>(null);
+  const [foundingActivating, setFoundingActivating] = useState(false);
 
   useEffect(() => {
     invoke<Record<string, { name: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; caldavUrl: string | null; notes: string | null }>>('get_provider_presets')
@@ -186,6 +203,35 @@ export function OnboardingScreen() {
       return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   }, []);
+
+  const handleFoundingCodeSubmit = useCallback(async () => {
+    if (!foundingCodeInput.trim()) return;
+    setFoundingActivating(true);
+    setFoundingCodeError(null);
+    try {
+      const result = await invoke<ActivationResult>('activate_founding_token', {
+        token: foundingCodeInput.trim(),
+      });
+      if (result.success) {
+        const status = await invoke<LicenseStatus>('get_license_status');
+        dispatch({
+          type: 'SET_LICENSE',
+          license: {
+            tier: status.tier,
+            isFoundingMember: status.isFoundingMember,
+            foundingSeat: status.foundingSeat,
+          },
+        });
+        setShowFoundingCodeInput(false);
+      } else {
+        setFoundingCodeError(result.error ?? 'Invalid founding member code');
+      }
+    } catch (err) {
+      setFoundingCodeError(err instanceof Error ? err.message : 'Activation failed');
+    } finally {
+      setFoundingActivating(false);
+    }
+  }, [foundingCodeInput, dispatch]);
 
   const handleComplete = useCallback(async () => {
     // Save autonomy config
@@ -488,7 +534,7 @@ export function OnboardingScreen() {
             )}
 
             <div className="flex flex-col items-center gap-4">
-              <Button variant="secondary" onClick={handleFileSelection}>
+              <Button variant="ghost" onClick={handleFileSelection}>
                 Add Folder
               </Button>
               {state.indexedDirectories.length > 0 && (
@@ -544,21 +590,86 @@ export function OnboardingScreen() {
           </div>
         )}
 
-        {/* Step 9: Autonomy */}
+        {/* Step 9: Autonomy / Founding Member Moment */}
         {step === 9 && (
           <div onClick={(e) => e.stopPropagation()} role="presentation">
-            <h2 className="font-display text-3xl mb-2">
-              How much should <span className="text-semblance-accent">{name}</span> do on its own?
-            </h2>
-            <p className="text-sm text-semblance-text-secondary-dark mb-8">You can change this anytime in Settings.</p>
+            {state.license.isFoundingMember ? (
+              /* ── Founding Member Moment ── */
+              <div>
+                <h2 className="font-display text-3xl mb-4 text-semblance-accent">
+                  Founding Member #{state.license.foundingSeat}.
+                </h2>
+                <p className="font-display text-2xl mb-8 text-semblance-text-primary-dark">
+                  You were here before anyone else.
+                </p>
 
-            <div className="max-w-md mx-auto text-left">
-              <AutonomySelector value={autonomyTier} onChange={setAutonomyTier} />
-            </div>
+                <div className="max-w-md mx-auto p-6 rounded-lg border-2 border-semblance-accent/30 bg-semblance-accent/5 mb-8">
+                  <p className="text-sm text-semblance-text-primary-dark leading-relaxed">
+                    Full Digital Representative access, permanently.
+                    <br /><br />
+                    Every capability Semblance builds, yours from day one.
+                    <br /><br />
+                    Your support makes the zero-cloud promise possible.
+                  </p>
+                </div>
 
-            <div className="mt-8">
-              <Button onClick={advance}>Continue</Button>
-            </div>
+                <Button onClick={advance}>Continue</Button>
+              </div>
+            ) : (
+              /* ── Standard Autonomy Selector ── */
+              <div>
+                <h2 className="font-display text-3xl mb-2">
+                  How much should <span className="text-semblance-accent">{name}</span> do on its own?
+                </h2>
+                <p className="text-sm text-semblance-text-secondary-dark mb-8">You can change this anytime in Settings.</p>
+
+                <div className="max-w-md mx-auto text-left">
+                  <AutonomySelector value={autonomyTier} onChange={setAutonomyTier} />
+                </div>
+
+                <div className="mt-8">
+                  <Button onClick={advance}>Continue</Button>
+                </div>
+
+                {/* Manual founding member code entry */}
+                <div className="mt-6">
+                  {!showFoundingCodeInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowFoundingCodeInput(true)}
+                      className="text-xs text-semblance-muted hover:text-semblance-accent transition-colors duration-fast"
+                    >
+                      Have a founding member code?
+                    </button>
+                  ) : (
+                    <div className="max-w-md mx-auto mt-4" onClick={(e) => e.stopPropagation()} role="presentation">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={foundingCodeInput}
+                          onChange={(e) => { setFoundingCodeInput(e.target.value); setFoundingCodeError(null); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleFoundingCodeSubmit(); }}
+                          placeholder="Paste your founding member code..."
+                          autoFocus
+                          className="flex-1 text-sm bg-semblance-surface-2-dark border border-semblance-muted/30 rounded-md px-3 py-2 outline-none text-semblance-text-primary-dark placeholder:text-semblance-muted/50 focus:border-semblance-accent transition-colors duration-fast"
+                        />
+                        <Button
+                          onClick={handleFoundingCodeSubmit}
+                          disabled={foundingActivating || !foundingCodeInput.trim()}
+                          variant="ghost"
+                          size="sm"
+                        >
+                          {foundingActivating ? 'Verifying...' : 'Activate'}
+                        </Button>
+                      </div>
+                      {foundingCodeError && (
+                        <p className="text-xs text-semblance-error mt-2">{foundingCodeError}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
