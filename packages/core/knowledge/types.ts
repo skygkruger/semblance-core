@@ -27,6 +27,7 @@ export type DocumentSource =
   | 'cloud_storage'
   | 'photos_metadata'
   | 'messaging'
+  | 'social'
   | 'manual';
 
 export interface DocumentChunk {

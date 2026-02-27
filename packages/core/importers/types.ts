@@ -7,7 +7,7 @@
  * CRITICAL: This file is in packages/core/. No network imports.
  */
 
-export type ImportSourceType = 'browser_history' | 'notes' | 'photos_metadata' | 'messaging';
+export type ImportSourceType = 'browser_history' | 'notes' | 'photos_metadata' | 'messaging' | 'social';
 
 export interface ImportParser<T = ImportedItem> {
   /** Source type this parser handles */

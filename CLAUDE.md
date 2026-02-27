@@ -21,7 +21,7 @@
 
 2. **`docs/decisions/SEMBLANCE_BUILD_MAP_ELEVATION.md`** — Build Map Elevation (Revision 4). Adds and restructures Steps 14–33 across Sprints 4–6. Incorporates 9 pre-launch feature elevations: Proactive Morning Brief, Alter Ego Week, Comparison Statement, Visual Knowledge Graph, Import Everything Moment, Living Will, Semblance Witness, Inheritance Protocol, and Adversarial Self-Defense. Adds new Sprint 5 ("Becomes Permanent — Sovereignty + Trust") and renumbers Sprint 6 ("Becomes Undeniable — Hardening + Launch"). **This document supersedes Revision 3 for all steps beyond Step 13.** If you have not read it in this session, stop and read it now.
 
-3. **`docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md`** — Canonical brand and design system reference. Defines colors, typography (Geist Sans/Mono), spacing, logo (Mirrored S), component patterns, motion, responsive breakpoints, the living dot field background, and the biometric approval briefing card. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now.
+3. **`docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md`** — Canonical brand and design system reference. Defines colors, typography (DM Sans / Fraunces / DM Mono), spacing, logo (Mirrored S), component patterns, motion, responsive breakpoints, the living dot field background, and the biometric approval briefing card. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now.
 
 All three instructions survive compaction.
 
@@ -144,6 +144,35 @@ No cloud sync. No cloud backup. No remote storage of any kind. If the device is 
 | UI Framework | React + Tailwind CSS + Radix UI + semblance-ui | See SEMBLANCE_BRAND_DESIGN_SYSTEM.md |
 | Shared Logic | TypeScript (strict mode) | Business logic shared desktop/mobile |
 | Performance Core | Rust | Embedding, search, crypto, IPC |
+
+---
+
+## Payment & License System
+
+The Semblance app makes zero outbound API calls. Ever.
+
+Stripe processes payments via Stripe-hosted checkout (system browser, not in-app).
+A Cloudflare Worker receives Stripe webhooks, generates Ed25519-signed license keys,
+and delivers them via Resend email. The app detects license emails and activates silently.
+All license validation is offline against a public key compiled into the binary.
+
+License key format: sem_<header>.<base64payload>.<ed25519_signature>
+Tiers: 'founding' | 'digital-representative' | 'lifetime'
+Storage: OS keychain via Tauri secure storage. Never localStorage. Never plain files.
+
+Key files:
+- packages/core/premium/premium-gate.ts — PremiumGate class, activateLicense(), isPremium()
+- packages/core/premium/license-keys.ts — Ed25519 signature verification
+- packages/core/premium/license-email-detector.ts — SEMBLANCE_LICENSE_KEY pattern detection
+- packages/desktop/src/contexts/LicenseContext.tsx — React context, openCheckout(), manageSubscription()
+- infrastructure/license-worker/ — Cloudflare Worker (deployed, do not modify without Orbital Director approval)
+
+Canonical reference: SEMBLANCE_PAYMENT_SYSTEM.md in Orbital Command project.
+
+RULE: Never add Veridian server calls to the app. Never store license data outside OS keychain.
+Never use "Premium" in user-facing copy — always "Digital Representative".
+
+---
 
 ### Approved Dependencies
 
@@ -366,7 +395,9 @@ If desktop is unavailable, mobile always runs locally with the best available mo
 
 **Read `/docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md` before creating or modifying ANY UI component.**
 
-The brand and design system is the canonical visual reference. It defines brand philosophy, colors (warm dark palette with Veridian accent #00D4A1), typography (Geist Sans/Mono), spacing (4px base unit), the Mirrored S logo, component patterns, motion, responsive breakpoints, the living dot field background, and the biometric approval briefing card.
+The brand and design system is the canonical visual reference. It defines brand philosophy, colors, typography (DM Sans (UI), Fraunces (brand moments), DM Mono (data/code/monospace)), spacing (4px base unit), the Mirrored S logo, component patterns, motion, responsive breakpoints, the living dot field background, and the biometric approval briefing card.
+Design system: Trellis. Colors: Background #0B0E11, Veridian #6ECFA3, Amber #C9A85C, Rust #C97B6E, Silver #8593A4.
+Never use var() in React inline styles — hex values only.
 
 Key principles (details in SEMBLANCE_BRAND_DESIGN_SYSTEM.md):
 - Agency on your behalf — "I've got this. You don't need to worry."
