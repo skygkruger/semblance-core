@@ -31,7 +31,7 @@ export function BriefingCard({
 
   useEffect(() => {
     console.log('[BriefingCard] mounted');
-    const timer = setTimeout(() => setAnimating(false), 700);
+    const timer = setTimeout(() => setAnimating(false), 1100);
     return () => clearTimeout(timer);
   }, []);
 

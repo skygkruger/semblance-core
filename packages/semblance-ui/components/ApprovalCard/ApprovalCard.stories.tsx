@@ -51,11 +51,29 @@ export const Approved: Story = {
   },
 };
 
-export const Dismissed: Story = {
+export const DismissedLow: Story = {
+  args: {
+    action: 'Send weekly digest email',
+    context: 'Dismissed — no action taken.',
+    risk: 'low',
+    state: 'dismissed',
+  },
+};
+
+export const DismissedMedium: Story = {
   args: {
     action: 'Cancel Figma subscription',
     context: 'Dismissed — no action taken.',
     risk: 'medium',
+    state: 'dismissed',
+  },
+};
+
+export const DismissedHigh: Story = {
+  args: {
+    action: 'Transfer $2,400 to savings',
+    context: 'Dismissed — no action taken.',
+    risk: 'high',
     state: 'dismissed',
   },
 };
