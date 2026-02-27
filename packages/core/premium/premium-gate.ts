@@ -10,6 +10,7 @@
 
 import type { DatabaseHandle } from '../platform/types.js';
 import { verifyFoundingToken } from './founding-token.js';
+import { verifyLicenseKeySignature } from './license-keys.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -164,10 +165,21 @@ export class PremiumGate {
       return { success: false, error: 'Invalid license key format: expected 3 dot-separated segments' };
     }
 
-    // Decode middle segment (base64 JSON)
-    let payload: { tier?: string; exp?: string };
+    // Verify Ed25519 signature before trusting payload contents
+    const sigResult = verifyLicenseKeySignature(key);
+    if (!sigResult.valid) {
+      return { success: false, error: sigResult.error ?? 'Invalid license key signature' };
+    }
+
+    // Decode middle segment (base64url JSON)
+    let payload: { tier?: string; exp?: string; seat?: number };
     try {
-      const decoded = Buffer.from(segments[1]!, 'base64').toString('utf-8');
+      // Handle both standard base64 and base64url encoding
+      let b64 = segments[1]!.replace(/-/g, '+').replace(/_/g, '/');
+      const padding = b64.length % 4;
+      if (padding === 2) b64 += '==';
+      else if (padding === 3) b64 += '=';
+      const decoded = Buffer.from(b64, 'base64').toString('utf-8');
       payload = JSON.parse(decoded);
     } catch {
       return { success: false, error: 'Invalid license key: could not decode payload' };
@@ -175,11 +187,11 @@ export class PremiumGate {
 
     // Validate tier
     const tier = payload.tier;
-    if (tier !== 'digital-representative' && tier !== 'lifetime') {
+    if (tier !== 'digital-representative' && tier !== 'lifetime' && tier !== 'founding') {
       return { success: false, error: `Invalid license tier: ${tier}` };
     }
 
-    // Parse expiration
+    // Parse expiration — founding and lifetime keys have no expiry
     const expiresAt = payload.exp ?? null;
     if (expiresAt && isNaN(new Date(expiresAt).getTime())) {
       return { success: false, error: 'Invalid expiration date in license key' };
@@ -191,17 +203,19 @@ export class PremiumGate {
     }
 
     const now = new Date().toISOString();
+    const seat = tier === 'founding' && payload.seat ? payload.seat : null;
 
-    // Upsert license
+    // Upsert license (include founding_seat for founding tier keys)
     this.db.prepare(`
-      INSERT INTO license (id, tier, activated_at, expires_at, license_key)
-      VALUES (1, ?, ?, ?, ?)
+      INSERT INTO license (id, tier, activated_at, expires_at, license_key, founding_seat)
+      VALUES (1, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         tier = excluded.tier,
         activated_at = excluded.activated_at,
         expires_at = excluded.expires_at,
-        license_key = excluded.license_key
-    `).run(tier, now, expiresAt, key);
+        license_key = excluded.license_key,
+        founding_seat = excluded.founding_seat
+    `).run(tier, now, expiresAt, key, seat);
 
     return {
       success: true,
@@ -257,6 +271,17 @@ export class PremiumGate {
       | undefined;
     if (!row) return null;
     return row.founding_seat ?? null;
+  }
+
+  /**
+   * Returns the stored license key, or null if no license.
+   */
+  getLicenseKey(): string | null {
+    const row = this.db.prepare('SELECT license_key FROM license WHERE id = 1').get() as
+      | { license_key: string | null }
+      | undefined;
+    if (!row) return null;
+    return row.license_key ?? null;
   }
 
   /**

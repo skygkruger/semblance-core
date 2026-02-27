@@ -14,6 +14,7 @@ export default defineConfig({
       '@semblance/ui': resolve(__dirname, 'packages/semblance-ui'),
       '@semblance/desktop': resolve(__dirname, 'packages/desktop/src'),
       '@tauri-apps/api/core': resolve(__dirname, 'tests/helpers/mock-tauri.ts'),
+      '@tauri-apps/api/event': resolve(__dirname, 'tests/helpers/mock-tauri-event.ts'),
       '@tauri-apps/plugin-dialog': resolve(__dirname, 'tests/helpers/mock-tauri-dialog.ts'),
       '@semblance/mobile': resolve(__dirname, 'packages/mobile/src'),
       'react-native': resolve(__dirname, 'tests/helpers/mock-react-native.ts'),

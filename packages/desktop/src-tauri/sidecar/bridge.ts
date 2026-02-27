@@ -42,6 +42,7 @@ import type { ActionType } from '../../../core/types/ipc.js';
 
 // Premium / Founding Member imports
 import { PremiumGate } from '../../../core/premium/index.js';
+import { extractLicenseKey } from '../../../core/premium/license-email-detector.js';
 
 // Step 7 imports
 import { StatementParser } from '../../../core/finance/statement-parser.js';
@@ -873,6 +874,26 @@ async function handleEmailStartIndex(
       const messages = (result.data as { messages: unknown[] }).messages ?? [];
       const indexed = await emailIndexer.indexMessages(messages as Parameters<EmailIndexer['indexMessages']>[0], params.account_id);
       emit('semblance://email-index-complete', { indexed, total: messages.length });
+
+      // License auto-detection: scan email bodies for SEMBLANCE_LICENSE_KEY pattern
+      if (premiumGate) {
+        for (const msg of messages) {
+          const bodyText = (msg as { body?: { text?: string } })?.body?.text;
+          if (!bodyText) continue;
+          const detectedKey = extractLicenseKey(bodyText);
+          if (detectedKey) {
+            const activationResult = premiumGate.activateLicense(detectedKey);
+            if (activationResult.success) {
+              console.error(`[sidecar] License auto-detected and activated: tier=${activationResult.tier}`);
+              emit('license-auto-activated', {
+                tier: activationResult.tier,
+                expiresAt: activationResult.expiresAt,
+              });
+              break; // Only activate the first valid key found
+            }
+          }
+        }
+      }
     }
   } catch (err) {
     console.error('[sidecar] Email indexing error:', err);
@@ -2159,15 +2180,27 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      case 'license:activate_key': {
+        if (!premiumGate) {
+          respondError(id, 'PremiumGate not initialized');
+          break;
+        }
+        const { key } = params as { key: string };
+        result = premiumGate.activateLicense(key);
+        respond(id, result);
+        break;
+      }
+
       case 'license:status': {
         if (!premiumGate) {
-          result = { tier: 'free', isPremium: false, isFoundingMember: false, foundingSeat: null };
+          result = { tier: 'free', isPremium: false, isFoundingMember: false, foundingSeat: null, licenseKey: null };
         } else {
           result = {
             tier: premiumGate.getLicenseTier(),
             isPremium: premiumGate.isPremium(),
             isFoundingMember: premiumGate.isFoundingMember(),
             foundingSeat: premiumGate.getFoundingSeat(),
+            licenseKey: premiumGate.getLicenseKey(),
           };
         }
         respond(id, result);

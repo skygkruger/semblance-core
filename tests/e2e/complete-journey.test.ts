@@ -7,13 +7,14 @@
  * 35 tests.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ActionType } from '../../packages/core/types/ipc.js';
 import { classifyHardware } from '../../packages/core/llm/hardware-types.js';
 import { PremiumGate, type PremiumFeature } from '../../packages/core/premium/premium-gate.js';
+import { setLicensePublicKey } from '../../packages/core/premium/license-keys.js';
 import { AutonomyManager } from '../../packages/core/agent/autonomy.js';
 import { ArchiveBuilder } from '../../packages/core/living-will/archive-builder.js';
 import { AttestationSigner } from '../../packages/core/attestation/attestation-signer.js';
@@ -22,6 +23,10 @@ import { createEmptyProfile } from '../../packages/core/style/style-profile.js';
 import { scoreDraft } from '../../packages/core/style/style-scorer.js';
 import { canonicalizePayload } from '../../packages/core/attestation/attestation-format.js';
 import type { DatabaseHandle } from '../../packages/core/platform/types.js';
+import {
+  LICENSE_TEST_PUBLIC_KEY_PEM,
+  generateTestLicenseKey,
+} from '../fixtures/license-keys.js';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 
@@ -74,6 +79,10 @@ function createMockDbWithLicense(tier: string): DatabaseHandle {
     transaction<T>(fn: () => T): () => T { return fn; },
   } as unknown as DatabaseHandle;
 }
+
+beforeAll(() => {
+  setLicensePublicKey(LICENSE_TEST_PUBLIC_KEY_PEM);
+});
 
 describe('Step 33 — Complete User Journeys (E2E)', () => {
   // ═══════════════════════════════════════════════════════════════════════
@@ -137,8 +146,7 @@ describe('Step 33 — Complete User Journeys (E2E)', () => {
 
     it('activation succeeds with valid license key', () => {
       const gate = new PremiumGate(createMockDb());
-      const payload = Buffer.from(JSON.stringify({ tier: 'digital-representative', exp: '2030-01-01T00:00:00Z' })).toString('base64');
-      const key = `sem_header.${payload}.signature`;
+      const key = generateTestLicenseKey({ tier: 'digital-representative', exp: '2030-01-01T00:00:00Z' });
       const result = gate.activateLicense(key);
       expect(result.success).toBe(true);
       expect(result.tier).toBe('digital-representative');

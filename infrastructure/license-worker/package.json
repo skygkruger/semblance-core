@@ -1,0 +1,15 @@
+{
+  "name": "@semblance/license-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker for Stripe webhook handling, license key generation, and email delivery",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240129.0",
+    "wrangler": "^3.0.0"
+  }
+}

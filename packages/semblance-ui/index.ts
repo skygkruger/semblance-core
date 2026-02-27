@@ -48,3 +48,9 @@ export { MobileTabBar } from './components/Nav/MobileTabBar.js';
 export { KnowledgeGraph } from './components/KnowledgeGraph/index.js';
 export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
 export { WireframeSpinner } from './components/WireframeSpinner/index.js';
+
+// License / Premium
+export { FeatureGate } from './components/FeatureGate/index.js';
+export { UpgradeScreen } from './components/UpgradeScreen/index.js';
+export { LicenseActivation } from './components/LicenseActivation/index.js';
+export { FoundingMemberBadge } from './components/FoundingMemberBadge/index.js';

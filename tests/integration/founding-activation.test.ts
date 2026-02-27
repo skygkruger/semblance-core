@@ -211,7 +211,8 @@ describe('Phase 4b: App.tsx Deep Link Listener', () => {
   });
 
   it('App.tsx hydrates license status on startup', () => {
-    expect(appContent).toContain("invoke<LicenseStatus>('get_license_status')");
+    // License hydration is now done via LicenseContext.refresh()
+    expect(appContent).toContain("license.refresh()");
   });
 
   it('App.tsx listens for founding-activate events', () => {
@@ -219,7 +220,8 @@ describe('Phase 4b: App.tsx Deep Link Listener', () => {
   });
 
   it('App.tsx calls activate_founding_token on deep link', () => {
-    expect(appContent).toContain("invoke<ActivationResult>('activate_founding_token'");
+    // Founding token activation is now done via LicenseContext.activateFoundingToken()
+    expect(appContent).toContain("license.activateFoundingToken(event.payload.token)");
   });
 });
 

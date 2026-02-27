@@ -3,7 +3,7 @@
  * Covers signed offers, validation, acceptance, rejection, premium gate, asymmetric consent.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import type { DatabaseHandle } from '@semblance/core/platform/types';
 import { NetworkConfigStore } from '@semblance/core/network/network-config-store';
@@ -11,15 +11,22 @@ import { SharingOfferHandler } from '@semblance/core/network/sharing-offer-handl
 import { AttestationSigner } from '@semblance/core/attestation/attestation-signer';
 import { AttestationVerifier } from '@semblance/core/attestation/attestation-verifier';
 import { PremiumGate } from '@semblance/core/premium/premium-gate';
+import { setLicensePublicKey } from '@semblance/core/premium/license-keys';
+import {
+  LICENSE_TEST_PUBLIC_KEY_PEM,
+  generateTestLicenseKey,
+} from '../../fixtures/license-keys';
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
 function makeLicenseKey(tier: string): string {
   const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-  const payload = JSON.stringify({ tier, exp: futureDate });
-  const encoded = Buffer.from(payload).toString('base64');
-  return `sem_header.${encoded}.signature`;
+  return generateTestLicenseKey({ tier, exp: futureDate });
 }
+
+beforeAll(() => {
+  setLicensePublicKey(LICENSE_TEST_PUBLIC_KEY_PEM);
+});
 
 const SIGNING_KEY = Buffer.from('test-signing-key-32-bytes-long!!');
 

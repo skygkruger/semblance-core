@@ -1,0 +1,37 @@
+/* LicenseActivation — Manual key entry form */
+
+.license-activation__form {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-start;
+}
+
+.license-activation__input {
+  flex: 1;
+  font-family: var(--fm);
+  font-size: var(--text-sm);
+}
+
+/* ─── Status Messages ─── */
+
+.license-activation__status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  margin-top: var(--sp-3);
+  line-height: 1.4;
+}
+
+.license-activation__status--success {
+  color: var(--v);
+}
+
+.license-activation__status--error {
+  color: var(--rust);
+}
+
+.license-activation--active {
+  padding: var(--sp-2) 0;
+}

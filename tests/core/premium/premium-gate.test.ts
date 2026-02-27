@@ -3,19 +3,26 @@
  * Tests isPremium, getLicenseTier, feature availability, activation valid/invalid.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import Database from 'better-sqlite3';
 import type { DatabaseHandle } from '@semblance/core/platform/types';
 import { PremiumGate } from '@semblance/core/premium/premium-gate';
+import { setLicensePublicKey } from '@semblance/core/premium/license-keys';
+import {
+  LICENSE_TEST_PUBLIC_KEY_PEM,
+  generateTestLicenseKey,
+} from '../../fixtures/license-keys';
 
 let db: InstanceType<typeof Database>;
 let gate: PremiumGate;
 
 function makeLicenseKey(tier: string, exp?: string): string {
-  const payload = JSON.stringify({ tier, exp });
-  const encoded = Buffer.from(payload).toString('base64');
-  return `sem_header.${encoded}.signature`;
+  return generateTestLicenseKey({ tier, exp });
 }
+
+beforeAll(() => {
+  setLicensePublicKey(LICENSE_TEST_PUBLIC_KEY_PEM);
+});
 
 beforeEach(() => {
   db = new Database(':memory:');

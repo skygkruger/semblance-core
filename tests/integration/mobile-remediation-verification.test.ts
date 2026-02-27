@@ -35,6 +35,10 @@ describe('Root Cause 1: PlatformAdapter replaces all Node.js builtins', () => {
     'importers/photos/exif-parser.ts',
     // Founding member JWT verification uses node:crypto for Ed25519 signature verification.
     'premium/founding-token.ts',
+    // License key Ed25519 signature verification uses node:crypto for Ed25519 verify.
+    'premium/license-keys.ts',
+    // LanceDB wrapper (only @lancedb/lancedb import)
+    'platform/desktop-vector-store.ts',
   ]);
 
   function collectTsFiles(dir: string): string[] {

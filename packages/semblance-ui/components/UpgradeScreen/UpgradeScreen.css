@@ -1,0 +1,231 @@
+/* UpgradeScreen — Plan selection and checkout */
+
+.upgrade-screen {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--sp-8) var(--sp-6);
+}
+
+.upgrade-screen__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: var(--sp-6);
+  transition: color var(--duration-base) var(--eo);
+}
+
+.upgrade-screen__back:hover {
+  color: var(--white);
+}
+
+.upgrade-screen__header {
+  text-align: center;
+  margin-bottom: var(--sp-8);
+}
+
+.upgrade-screen__title {
+  font-family: var(--fd);
+  font-weight: 300;
+  font-size: var(--text-2xl);
+  color: var(--white);
+  margin: 0 0 var(--sp-2) 0;
+}
+
+.upgrade-screen__subtitle {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  color: var(--sv3);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ─── Plan Grid ─── */
+
+.upgrade-screen__plans {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-5);
+  margin-bottom: var(--sp-8);
+}
+
+@media (max-width: 768px) {
+  .upgrade-screen__plans {
+    grid-template-columns: 1fr;
+  }
+}
+
+.upgrade-screen__plan {
+  background: linear-gradient(135deg, var(--s2), var(--s1));
+  border: 1px solid var(--b2);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: border-color var(--duration-base) var(--eo),
+              box-shadow var(--duration-base) var(--eo);
+}
+
+.upgrade-screen__plan:hover {
+  border-color: var(--b3);
+  box-shadow: 0 0 24px var(--v-glow);
+}
+
+.upgrade-screen__plan--recommended {
+  border-color: var(--v-wire);
+}
+
+.upgrade-screen__plan--recommended:hover {
+  border-color: var(--v);
+  box-shadow: 0 0 32px var(--v-glow-md);
+}
+
+.upgrade-screen__plan-badge {
+  position: absolute;
+  top: calc(-1 * var(--sp-3));
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--base);
+  background: var(--v);
+  padding: 2px 12px;
+  border-radius: var(--r-sm);
+}
+
+.upgrade-screen__plan-header {
+  margin-bottom: var(--sp-4);
+}
+
+.upgrade-screen__plan-label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sv2);
+  display: block;
+  margin-bottom: var(--sp-2);
+}
+
+.upgrade-screen__plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+}
+
+.upgrade-screen__price-amount {
+  font-family: var(--fd);
+  font-weight: 300;
+  font-size: var(--text-xl);
+  color: var(--white);
+}
+
+.upgrade-screen__price-period {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+}
+
+.upgrade-screen__plan-note {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+  line-height: 1.5;
+  margin: 0 0 var(--sp-4) 0;
+}
+
+/* ─── Feature List ─── */
+
+.upgrade-screen__feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--sp-5) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  flex: 1;
+}
+
+.upgrade-screen__feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+  line-height: 1.4;
+}
+
+.upgrade-screen__feature-item svg {
+  color: var(--v);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.upgrade-screen__feature-item--bonus {
+  color: var(--v);
+}
+
+.upgrade-screen__cta {
+  width: 100%;
+}
+
+/* ─── Active Plan Info ─── */
+
+.upgrade-screen__active-info {
+  text-align: center;
+  padding: var(--sp-6);
+  background: linear-gradient(135deg, var(--s2), var(--s1));
+  border: 1px solid var(--v-wire);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-8);
+}
+
+.upgrade-screen__active-tier {
+  font-family: var(--fd);
+  font-weight: 300;
+  font-size: var(--text-xl);
+  color: var(--v);
+  margin: 0 0 var(--sp-2) 0;
+}
+
+.upgrade-screen__active-note {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  color: var(--sv3);
+  margin: 0;
+}
+
+/* ─── Activation Section ─── */
+
+.upgrade-screen__activation {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.upgrade-screen__activation-divider {
+  height: 1px;
+  background: var(--b1);
+  margin-bottom: var(--sp-5);
+}
+
+.upgrade-screen__activation-label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sv2);
+  margin: 0 0 var(--sp-3) 0;
+}
