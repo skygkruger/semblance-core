@@ -12,7 +12,7 @@ import { Allowlist } from '@semblance/gateway/security/allowlist.js';
 import { RateLimiter } from '@semblance/gateway/security/rate-limiter.js';
 import { AnomalyDetector } from '@semblance/gateway/security/anomaly-detector.js';
 import { ServiceRegistry } from '@semblance/gateway/services/registry.js';
-import { validateAndExecute, type ValidatorDeps } from '@semblance/gateway/ipc/validator.js';
+import { validateAndExecute, resetReplayProtection, type ValidatorDeps } from '@semblance/gateway/ipc/validator.js';
 
 describe('Validation Pipeline', () => {
   let db: Database.Database;
@@ -50,6 +50,7 @@ describe('Validation Pipeline', () => {
   };
 
   beforeEach(() => {
+    resetReplayProtection();
     db = new Database(':memory:');
     auditTrail = new AuditTrail(db);
     allowlist = new Allowlist(db);

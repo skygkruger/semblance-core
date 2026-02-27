@@ -20,8 +20,8 @@ const SIGNING_KEY = Buffer.from('test-living-will-signing-key-32bytes!!!!');
 
 function activatePremium(): void {
   db.prepare(`
-    INSERT OR REPLACE INTO license (id, tier, activated_at, expires_at, license_key)
-    VALUES (1, 'digital-representative', ?, NULL, 'sem_test.eyJ0aWVyIjoiZGlnaXRhbC1yZXByZXNlbnRhdGl2ZSJ9.sig')
+    INSERT OR REPLACE INTO license (id, tier, activated_at, expires_at)
+    VALUES (1, 'digital-representative', ?, NULL)
   `).run(new Date().toISOString());
 }
 

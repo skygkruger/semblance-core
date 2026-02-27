@@ -8,6 +8,8 @@ import { TwitterArchiveParser, parseTwitterJsFile } from '../../../packages/core
 // Mock fs module
 vi.mock('node:fs', () => ({
   readFileSync: vi.fn(),
+  lstatSync: vi.fn(() => ({ isSymbolicLink: () => false })),
+  statSync: vi.fn(() => ({ size: 1024 })),
 }));
 
 describe('TwitterArchiveParser', () => {

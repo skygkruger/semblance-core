@@ -68,7 +68,7 @@ function createMockDbWithLicense(tier: string): DatabaseHandle {
         run(..._args: unknown[]) { return { changes: 1, lastInsertRowid: 1 }; },
         get(..._args: unknown[]) {
           if (sql.includes('license')) {
-            return { tier, activated_at: new Date().toISOString(), expires_at: null, license_key: 'sem_test' };
+            return { tier, activated_at: new Date().toISOString(), expires_at: null };
           }
           return undefined;
         },

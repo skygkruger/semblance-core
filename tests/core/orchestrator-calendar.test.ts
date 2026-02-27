@@ -71,6 +71,22 @@ describe('Orchestrator — Calendar Tools', () => {
 
   beforeEach(() => {
     db = new Database(':memory:');
+    // Create approval_patterns table so BoundaryEnforcer doesn't flag everything as "novel"
+    db.exec(`CREATE TABLE IF NOT EXISTS approval_patterns (
+      action_type TEXT NOT NULL,
+      sub_type TEXT NOT NULL,
+      consecutive_approvals INTEGER NOT NULL DEFAULT 0,
+      total_approvals INTEGER NOT NULL DEFAULT 0,
+      total_rejections INTEGER NOT NULL DEFAULT 0,
+      last_approval_at TEXT,
+      last_rejection_at TEXT,
+      auto_execute_threshold INTEGER NOT NULL DEFAULT 3,
+      PRIMARY KEY (action_type, sub_type)
+    )`);
+    const seedApproval = db.prepare('INSERT INTO approval_patterns (action_type, sub_type, total_approvals) VALUES (?, ?, 1)');
+    for (const a of ['email.fetch', 'email.send', 'calendar.fetch', 'calendar.create', 'calendar.update', 'calendar.delete']) {
+      seedApproval.run(a, 'default');
+    }
     autonomy = new AutonomyManager(db as unknown as DatabaseHandle);
     ipc = createMockIPC();
   });
