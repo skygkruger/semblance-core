@@ -1,5 +1,7 @@
 export type NodeType = 'person' | 'email' | 'file' | 'calendar' | 'topic' | 'category';
 
+export type LayoutMode = 'force' | 'radial' | 'star' | 'ego';
+
 export interface KnowledgeNode {
   id: string;
   type: NodeType;
@@ -34,5 +36,7 @@ export interface KnowledgeGraphProps {
   edges: KnowledgeEdge[];
   width?: number;
   height?: number;
+  layoutMode?: LayoutMode;
+  legendLeftOffset?: number;
   onNodeSelect?: (node: KnowledgeNode | null) => void;
 }

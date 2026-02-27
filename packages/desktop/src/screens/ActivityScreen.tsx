@@ -68,7 +68,7 @@ export function ActivityScreen() {
       {filtered.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-            No actions yet. As <span className="text-semblance-accent font-semibold">{name}</span> works for you, every action will appear here — fully transparent and reviewable.
+            No actions yet. As <span className="ai-name-shimmer font-semibold">{name}</span> works for you, every action will appear here — fully transparent and reviewable.
           </p>
         </div>
       ) : (

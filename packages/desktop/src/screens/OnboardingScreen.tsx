@@ -285,9 +285,9 @@ export function OnboardingScreen() {
         {/* Step 2: Naming */}
         {step === 2 && (
           <div onClick={(e) => e.stopPropagation()} role="presentation">
-            <h2 className="font-display text-3xl mb-8">What would you like to call it?</h2>
+            <h2 className="font-display text-3xl mb-8">What would you like to call <span className="ai-name-shimmer">it</span>?</h2>
             {nameConfirmed ? (
-              <p className="text-2xl font-semibold text-semblance-accent animate-fade-in">
+              <p className="text-2xl font-semibold ai-name-shimmer animate-fade-in">
                 {name}
               </p>
             ) : (
@@ -310,7 +310,7 @@ export function OnboardingScreen() {
         {step === 3 && (
           <div>
             <h2 className="font-display text-3xl mb-2">
-              Setting up <span className="text-semblance-accent">{name}</span>&apos;s mind...
+              Setting up <span className="ai-name-shimmer">{name}</span>&apos;s mind...
             </h2>
             <p className="text-sm text-semblance-text-secondary-dark mb-8">
               Checking what your device can do.
@@ -334,7 +334,7 @@ export function OnboardingScreen() {
         {step === 4 && (
           <div onClick={(e) => e.stopPropagation()} role="presentation">
             <h2 className="font-display text-3xl mb-2">
-              <span className="text-semblance-accent">{name}</span> needs a brain.
+              <span className="ai-name-shimmer">{name}</span> needs a brain.
             </h2>
             <p className="text-sm text-semblance-text-secondary-dark mb-8">
               We&apos;ll download AI models that run entirely on your device. Nothing leaves your machine.
@@ -376,7 +376,7 @@ export function OnboardingScreen() {
         {step === 5 && (
           <div>
             <h2 className="font-display text-3xl mb-2">
-              Downloading <span className="text-semblance-accent">{name}</span>&apos;s intelligence...
+              Downloading <span className="ai-name-shimmer">{name}</span>&apos;s intelligence...
             </h2>
             <p className="text-sm text-semblance-text-secondary-dark mb-8">
               This may take a few minutes depending on your connection.
@@ -396,7 +396,7 @@ export function OnboardingScreen() {
         {step === 6 && (
           <div onClick={(e) => e.stopPropagation()} role="presentation">
             <h2 className="font-display text-3xl mb-2">
-              Let&apos;s connect <span className="text-semblance-accent">{name}</span> to your world.
+              Let&apos;s connect <span className="ai-name-shimmer">{name}</span> to your world.
             </h2>
             <p className="text-sm text-semblance-text-secondary-dark mb-8">Choose what to connect.</p>
 
@@ -518,7 +518,7 @@ export function OnboardingScreen() {
         {step === 7 && (
           <div onClick={(e) => e.stopPropagation()} role="presentation">
             <h2 className="font-display text-3xl mb-2">
-              Choose folders for <span className="text-semblance-accent">{name}</span> to learn from.
+              Choose folders for <span className="ai-name-shimmer">{name}</span> to learn from.
             </h2>
             <p className="text-sm text-semblance-text-secondary-dark mb-8">
               Select directories with documents you want {name} to understand.
@@ -554,7 +554,7 @@ export function OnboardingScreen() {
             {momentLoading && !knowledgeMoment && (
               <>
                 <h2 className="font-display text-3xl mb-6">
-                  <span className="text-semblance-accent">{name}</span> is exploring your world...
+                  <span className="ai-name-shimmer">{name}</span> is exploring your world...
                 </h2>
                 <ProgressBar indeterminate className="max-w-sm mx-auto mb-8" />
                 <p className="text-sm text-semblance-text-secondary-dark mb-6">
@@ -565,7 +565,7 @@ export function OnboardingScreen() {
             {knowledgeMoment ? (
               <>
                 <h2 className="font-display text-3xl mb-6">
-                  <span className="text-semblance-accent">{name}</span> already knows something.
+                  <span className="ai-name-shimmer">{name}</span> already knows something.
                 </h2>
                 <div className="max-w-lg mx-auto">
                   <KnowledgeMomentDisplay
@@ -579,7 +579,7 @@ export function OnboardingScreen() {
             ) : !momentLoading && (
               <>
                 <h2 className="font-display text-3xl mb-6">
-                  <span className="text-semblance-accent">{name}</span> is exploring your documents...
+                  <span className="ai-name-shimmer">{name}</span> is exploring your documents...
                 </h2>
                 <p className="text-sm text-semblance-text-secondary-dark mb-6">
                   {state.knowledgeStats.documentCount > 0
@@ -621,7 +621,7 @@ export function OnboardingScreen() {
               /* ── Standard Autonomy Selector ── */
               <div>
                 <h2 className="font-display text-3xl mb-2">
-                  How much should <span className="text-semblance-accent">{name}</span> do on its own?
+                  How much should <span className="ai-name-shimmer">{name}</span> do on its own?
                 </h2>
                 <p className="text-sm text-semblance-text-secondary-dark mb-8">You can change this anytime in Settings.</p>
 
@@ -679,7 +679,7 @@ export function OnboardingScreen() {
         {step === 10 && (
           <div>
             <h1 className="font-display text-display leading-tight mb-4">
-              <span className="text-semblance-accent">{name}</span> is ready.
+              <span className="ai-name-shimmer">{name}</span> is ready.
             </h1>
             <p className="text-sm text-semblance-text-secondary-dark mb-8">
               {state.knowledgeStats.documentCount > 0

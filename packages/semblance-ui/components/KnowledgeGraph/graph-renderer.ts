@@ -286,6 +286,32 @@ export class GraphRenderer {
     this.wake();
   }
 
+  /** Focus camera on a specific node (used by legend click). */
+  focusNode(nodeId: string): void {
+    const nm = this.nodeMeshes.get(nodeId);
+    if (!nm) return;
+
+    // Select
+    this.selectedId = nodeId;
+    this.neighborSet = this.neighborMap.get(nodeId) ?? new Set();
+    this.secondNeighborSet = this.getSecondNeighborIds(nodeId);
+    this.updateNodeVisuals();
+
+    // Camera zoom with snap animation
+    this.targetCameraTarget.copy(nm.group.position);
+    this.targetSpherical.radius = 120;
+    this.resetCamera();
+
+    // Click flash: briefly boost glow for 200ms
+    const glowMat = nm.glow.material as THREE.SpriteMaterial;
+    const baseOpacity = glowMat.opacity;
+    glowMat.opacity = 1.0;
+    setTimeout(() => { glowMat.opacity = baseOpacity; }, 200);
+
+    this.onNodeSelect?.(nm.node);
+    this.wake();
+  }
+
   private resetCamera(): void {
     this.snapAnimation = {
       startRadius: this.spherical.radius,
@@ -382,9 +408,10 @@ export class GraphRenderer {
       group.position.set(node.x ?? 0, node.y ?? 0, node.z ?? 0);
       group.userData = { nodeId: node.id };
 
-      // Category extras: dashed wireframe shell + count label
+      // Category extras: dashed wireframe shell + count label + lock glyph
       let wireframe: THREE.LineSegments | undefined;
       let countSprite: THREE.Sprite | undefined;
+      let lockGlyph: THREE.Sprite | undefined;
 
       if (isCategory) {
         const catHex = node.metadata?.color ?? '#6ECFA3';
@@ -402,9 +429,14 @@ export class GraphRenderer {
         wireframe.scale.set(wireScale, wireScale, wireScale);
         group.add(wireframe);
 
-        if (node.metadata?.nodeCount != null) {
-          countSprite = this.createCountSprite(node.metadata.nodeCount);
+        const nodeCount = (node.metadata?.nodeCount as number) ?? 0;
+        if (nodeCount > 0) {
+          countSprite = this.createCountSprite(nodeCount);
           group.add(countSprite);
+        } else {
+          // Locked category — show lock glyph at top-center
+          lockGlyph = this.createLockGlyphSprite(catHex, scale);
+          group.add(lockGlyph);
         }
       }
 
@@ -487,6 +519,50 @@ export class GraphRenderer {
     const scaleFactor = 0.09;
     sprite.scale.set(w * scaleFactor, h * scaleFactor, 1);
     sprite.userData = { isLabel: true };
+    return sprite;
+  }
+
+  private createLockGlyphSprite(catColor: string, scale: number): THREE.Sprite {
+    const canvas = document.createElement('canvas');
+    canvas.width = 28;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.strokeStyle = catColor;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6;
+
+    // Shackle arc
+    ctx.beginPath();
+    ctx.arc(14, 12, 6, Math.PI, 0);
+    ctx.stroke();
+
+    // Body
+    ctx.fillStyle = catColor;
+    ctx.globalAlpha = 0.35;
+    ctx.fillRect(6, 12, 16, 14);
+    ctx.globalAlpha = 0.6;
+    ctx.strokeRect(6, 12, 16, 14);
+
+    // Keyhole
+    ctx.fillStyle = '#0B0E11';
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    ctx.arc(14, 19, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(12.5, 19, 3, 4);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+    });
+
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(3.5, 4, 1);
+    sprite.position.y = scale + 2;
     return sprite;
   }
 
@@ -580,16 +656,20 @@ export class GraphRenderer {
       const bothCategory = src.type === 'category' && tgt.type === 'category';
       const sameColor = srcColor.toLowerCase() === tgtColor.toLowerCase();
 
+      // Weight-based brightness: heavier edges are more prominent
+      const edgeWeight = (edge as { weight: number }).weight ?? 1;
+      const weightFactor = 0.4 + 0.6 * Math.min(edgeWeight / 8, 1);
+
       let scale: number;
       if (bothCategory) {
         // Category-to-category: always full brightness at 0.7 opacity
-        scale = 1.0;
+        scale = 1.0 * weightFactor;
       } else if (sameColor) {
         // Same category: flat color, 0.25 effective opacity
-        scale = 0.25 / maxOpacity;
+        scale = (0.25 / maxOpacity) * weightFactor;
       } else {
         // Cross-category: gradient, 0.6 effective opacity
-        scale = 0.6 / maxOpacity;
+        scale = (0.6 / maxOpacity) * weightFactor;
       }
 
       colors[cOff] = srcRgb[0] * scale;

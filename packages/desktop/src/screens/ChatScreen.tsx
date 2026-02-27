@@ -203,7 +203,7 @@ export function ChatScreen() {
         {state.chatMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <p className="text-lg text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              Ask <span className="text-semblance-accent font-semibold">{name}</span> anything about your documents.
+              Ask <span className="ai-name-shimmer font-semibold">{name}</span> anything about your documents.
             </p>
             <div className="mt-6 space-y-2">
               {['What topics are in my files?', 'Summarize my recent documents', 'What should I work on today?'].map(

@@ -6,9 +6,27 @@ import {
   forceZ,
   forceCollide,
 } from 'd3-force-3d';
-import type { KnowledgeNode, KnowledgeEdge, NodeType } from './graph-types';
+import type { KnowledgeNode, KnowledgeEdge, NodeType, LayoutMode } from './graph-types';
+
+/** Custom XY centering pull force (forceX/forceY not typed in d3-force-3d). */
+function forceCenterPull(strength: number) {
+  let simNodes: KnowledgeNode[] = [];
+  function force(alpha: number) {
+    for (const node of simNodes) {
+      if (node.fx != null) continue;
+      node.vx = (node.vx ?? 0) - (node.x ?? 0) * strength * alpha;
+      node.vy = (node.vy ?? 0) - (node.y ?? 0) * strength * alpha;
+    }
+  }
+  force.initialize = (n: KnowledgeNode[]) => { simNodes = n; };
+  return force;
+}
 
 export function createSimulation(nodes: KnowledgeNode[], edges: KnowledgeEdge[]) {
+  // Sparse graphs (≤6 nodes) get stronger centering to avoid drifting apart
+  const isSparse = nodes.length <= 6;
+  const centerStrength = isSparse ? 0.15 : 0.06;
+
   const simulation = forceSimulation(nodes, 3)
     .force('link', forceLink(edges)
       .id((d: KnowledgeNode) => d.id)
@@ -21,6 +39,7 @@ export function createSimulation(nodes: KnowledgeNode[], edges: KnowledgeEdge[])
       )
     )
     .force('center', forceCenter(0, 0, 0))
+    .force('centerPull', forceCenterPull(centerStrength))
     .force('z', forceZ(0).strength(0.05))
     .force('collide', forceCollide()
       .radius((d: KnowledgeNode) => getNodeRadius(d) + (d.type === 'category' ? 16 : 6))
@@ -40,9 +59,9 @@ export function getNodeRadius(node: KnowledgeNode): number {
     topic: 4,
     category: 28,
   };
-  // Category nodes size based on nodeCount instead of weight
+  // Category nodes size based on nodeCount instead of weight (range 28–52)
   if (node.type === 'category' && node.metadata?.nodeCount) {
-    return base.category + Math.min(Math.sqrt(node.metadata.nodeCount) * 3, 14);
+    return base.category + Math.min(Math.sqrt(node.metadata.nodeCount) * 4, 24);
   }
   const weightBonus = Math.min(Math.sqrt(node.weight) * 3, 14);
   return base[node.type] + weightBonus;
@@ -61,4 +80,72 @@ export function getNodeColor(type: KnowledgeNode['type']): number {
 
 export function getNodeColorHex(type: KnowledgeNode['type']): string {
   return '#' + getNodeColor(type).toString(16).padStart(6, '0');
+}
+
+// ─── Layout modes ───
+
+export function applyLayout(nodes: KnowledgeNode[], mode: LayoutMode): void {
+  switch (mode) {
+    case 'radial':
+      applyRadialLayout(nodes);
+      break;
+    case 'star':
+      applyStarLayout(nodes);
+      break;
+    case 'ego':
+      applyStarLayout(nodes);
+      break;
+    case 'force':
+    default:
+      break;
+  }
+}
+
+/** Radial: categories fixed in a circle, entities free to float. */
+function applyRadialLayout(nodes: KnowledgeNode[]): void {
+  const categories = nodes.filter(n => n.type === 'category');
+  if (categories.length === 0) return;
+
+  const radius = 80 + categories.length * 8;
+  categories.forEach((node, i) => {
+    const angle = (2 * Math.PI * i) / categories.length - Math.PI / 2;
+    node.fx = Math.cos(angle) * radius;
+    node.fy = Math.sin(angle) * radius;
+    node.fz = 0;
+  });
+}
+
+/** Star: categories in outer ring, entity nodes cluster near center. */
+function applyStarLayout(nodes: KnowledgeNode[]): void {
+  const categories = nodes.filter(n => n.type === 'category');
+  const entities = nodes.filter(n => n.type !== 'category');
+
+  const outerRadius = 100 + categories.length * 6;
+  categories.forEach((node, i) => {
+    const angle = (2 * Math.PI * i) / categories.length - Math.PI / 2;
+    node.fx = Math.cos(angle) * outerRadius;
+    node.fy = Math.sin(angle) * outerRadius;
+    node.fz = 0;
+  });
+
+  // Seed entity nodes near center (not fixed — they settle via forces)
+  const innerRadius = 30;
+  entities.forEach((node, i) => {
+    const angle = (2 * Math.PI * i) / Math.max(entities.length, 1);
+    node.x = Math.cos(angle) * innerRadius;
+    node.y = Math.sin(angle) * innerRadius;
+    node.z = 0;
+  });
+}
+
+/** Clamp node positions to prevent stray outliers (margin 80 sim units). */
+export function clampNodePositions(nodes: KnowledgeNode[]): void {
+  const maxCoord = 250;
+  const maxZ = 100;
+  for (const node of nodes) {
+    if (node.fx != null) continue; // Don't clamp fixed nodes
+    if (node.x != null) node.x = Math.max(-maxCoord, Math.min(maxCoord, node.x));
+    if (node.y != null) node.y = Math.max(-maxCoord, Math.min(maxCoord, node.y));
+    if (node.z != null) node.z = Math.max(-maxZ, Math.min(maxZ, node.z));
+  }
 }

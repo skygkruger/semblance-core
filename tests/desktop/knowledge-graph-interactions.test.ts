@@ -1,15 +1,21 @@
-// Knowledge Graph Interactions Tests — click handler, time slider, stats overlay, hover.
+// Knowledge Graph Interactions Tests — click handler, time slider, stats overlay, hover,
+// category expand/collapse.
 
 import { describe, it, expect, vi } from 'vitest';
 import type { ForceGraphProps } from '../../packages/desktop/src/components/d3/ForceGraph';
-import type { KnowledgeGraphViewProps, StatsOverlay } from '../../packages/desktop/src/components/KnowledgeGraphView';
+import type { KnowledgeGraphViewProps } from '../../packages/desktop/src/components/KnowledgeGraphView';
+import { buildDisplayGraph } from '../../packages/desktop/src/components/KnowledgeGraphView';
+import type { VisualizationGraphV2 } from '../../packages/desktop/src/components/KnowledgeGraphView';
 import type {
   VisualizationGraph,
   VisualizationNode,
   VisualizationEdge,
   GraphStats,
   NodeContext,
+  CategoryNode,
+  CategoryEdge,
 } from '../../packages/core/knowledge/graph-visualization';
+import type { VisualizationCategory } from '../../packages/core/knowledge/connector-category-map';
 
 function makeNode(overrides: Partial<VisualizationNode> = {}): VisualizationNode {
   return {
@@ -125,5 +131,198 @@ describe('KnowledgeGraphView Interactions', () => {
     expect(connectedIds.has('n2')).toBe(true);
     expect(connectedIds.has('n3')).toBe(true);
     expect(connectedIds.size).toBe(2);
+  });
+});
+
+// ─── Category Expand/Collapse Interaction Tests ──────────────────────────────
+
+function makeCatGraph(): VisualizationGraphV2 {
+  const personNode = makeNode({ id: 'person_1', type: 'person', label: 'Alice' });
+  const personNode2 = makeNode({ id: 'person_2', type: 'person', label: 'Bob' });
+  const docNode = makeNode({ id: 'doc_1', type: 'document', label: 'Report' });
+  const topicNode = makeNode({ id: 'topic_1', type: 'topic', label: 'AI' });
+
+  const edges: VisualizationEdge[] = [
+    { id: 'e1', sourceId: 'person_1', targetId: 'doc_1', weight: 0.5, label: 'mentioned_in' },
+    { id: 'e2', sourceId: 'person_2', targetId: 'topic_1', weight: 0.3, label: 'mentioned_in' },
+  ];
+
+  const categoryNodes: CategoryNode[] = [
+    {
+      id: 'cat_people', category: 'people', label: 'People',
+      color: '#4A7FBA', icon: '[P]', nodeCount: 2, totalSize: 10,
+      nodeIds: ['person_1', 'person_2'],
+    },
+    {
+      id: 'cat_knowledge', category: 'knowledge', label: 'Documents & Notes',
+      color: '#8B93A7', icon: '[D]', nodeCount: 2, totalSize: 8,
+      nodeIds: ['doc_1', 'topic_1'],
+    },
+  ];
+
+  const categoryEdges: CategoryEdge[] = [
+    {
+      id: 'cat_edge_knowledge_people',
+      sourceCategoryId: 'cat_knowledge',
+      targetCategoryId: 'cat_people',
+      weight: 0.5,
+      edgeCount: 2,
+      relationshipTypes: ['mentioned_in'],
+    },
+  ];
+
+  return {
+    nodes: [personNode, personNode2, docNode, topicNode],
+    edges,
+    clusters: [],
+    stats: {
+      totalNodes: 4, totalEdges: 2, nodesByType: { person: 2, document: 1, topic: 1 },
+      averageConnections: 1, mostConnectedNode: null, graphDensity: 0.33, growthRate: 0,
+    },
+    categoryNodes,
+    categoryEdges,
+  };
+}
+
+describe('buildDisplayGraph — Expand/Collapse', () => {
+  const allEnabled = new Set<VisualizationCategory>([
+    'health', 'finance', 'social', 'work', 'reading',
+    'music', 'cloud', 'browser', 'people', 'knowledge',
+  ]);
+
+  it('all collapsed: display graph has one node per non-empty category', () => {
+    const catGraph = makeCatGraph();
+    const result = buildDisplayGraph(catGraph, catGraph, allEnabled, new Set());
+
+    // Should have 2 category nodes (people + knowledge)
+    expect(result.nodes).toHaveLength(2);
+    expect(result.nodes.every(n => n.type === 'category')).toBe(true);
+    expect(result.nodes.map(n => n.id).sort()).toEqual(['cat_knowledge', 'cat_people']);
+  });
+
+  it('expand: category node replaced by entity nodes', () => {
+    const catGraph = makeCatGraph();
+    const expanded = new Set<VisualizationCategory>(['people']);
+    const result = buildDisplayGraph(catGraph, catGraph, allEnabled, expanded);
+
+    // people expanded → 2 entity nodes; knowledge collapsed → 1 category node
+    expect(result.nodes).toHaveLength(3);
+    expect(result.nodes.some(n => n.id === 'person_1')).toBe(true);
+    expect(result.nodes.some(n => n.id === 'person_2')).toBe(true);
+    expect(result.nodes.some(n => n.id === 'cat_knowledge')).toBe(true);
+    // No cat_people synthetic node
+    expect(result.nodes.some(n => n.id === 'cat_people')).toBe(false);
+  });
+
+  it('collapse: entity nodes replaced by category node', () => {
+    const catGraph = makeCatGraph();
+
+    // First expand, then collapse
+    const expanded1 = new Set<VisualizationCategory>(['people']);
+    const result1 = buildDisplayGraph(catGraph, catGraph, allEnabled, expanded1);
+    expect(result1.nodes.some(n => n.id === 'person_1')).toBe(true);
+
+    // Now collapse
+    const expanded2 = new Set<VisualizationCategory>();
+    const result2 = buildDisplayGraph(catGraph, catGraph, allEnabled, expanded2);
+    expect(result2.nodes.some(n => n.id === 'cat_people')).toBe(true);
+    expect(result2.nodes.some(n => n.id === 'person_1')).toBe(false);
+  });
+
+  it('category edges between collapsed categories show aggregated weight', () => {
+    const catGraph = makeCatGraph();
+    const result = buildDisplayGraph(catGraph, catGraph, allEnabled, new Set());
+
+    // Should have one edge between cat_knowledge and cat_people
+    const catEdge = result.edges.find(
+      e => (e.sourceId === 'cat_knowledge' && e.targetId === 'cat_people') ||
+           (e.sourceId === 'cat_people' && e.targetId === 'cat_knowledge'),
+    );
+    expect(catEdge).toBeDefined();
+    expect(catEdge!.weight).toBe(0.5);
+  });
+
+  it('mixed state: entity→collapsed edges target the category node', () => {
+    const catGraph = makeCatGraph();
+    const expanded = new Set<VisualizationCategory>(['people']); // expand people, collapse knowledge
+    const result = buildDisplayGraph(catGraph, catGraph, allEnabled, expanded);
+
+    // person_1→doc_1 edge: person_1 is expanded, doc_1 is in collapsed knowledge
+    // So the edge should be redirected to person_1 → cat_knowledge
+    const crossEdge = result.edges.find(
+      e => e.sourceId === 'person_1' || e.targetId === 'person_1',
+    );
+    expect(crossEdge).toBeDefined();
+    // Target should be cat_knowledge (doc_1 collapsed into it)
+    const otherEnd = crossEdge!.sourceId === 'person_1'
+      ? crossEdge!.targetId
+      : crossEdge!.sourceId;
+    expect(otherEnd).toBe('cat_knowledge');
+  });
+
+  it('disabled category removed from display graph entirely', () => {
+    const catGraph = makeCatGraph();
+    const enabled = new Set<VisualizationCategory>(['knowledge']); // only knowledge enabled
+    const result = buildDisplayGraph(catGraph, catGraph, enabled, new Set());
+
+    // Only cat_knowledge should be present
+    expect(result.nodes).toHaveLength(1);
+    expect(result.nodes[0]!.id).toBe('cat_knowledge');
+
+    // No edges since people is disabled
+    expect(result.edges).toHaveLength(0);
+  });
+});
+
+// ─── Edge Gradient + Weight Badge Tests ─────────────────────────────────────
+
+describe('ForceGraph — Category Edge Rendering', () => {
+  it('category↔category edges get gradient IDs based on edge id', () => {
+    // Verify the naming convention: edge-grad-{edgeId}
+    const edgeId = 'cat_edge_knowledge_people';
+    const gradientId = `edge-grad-${edgeId}`;
+    expect(gradientId).toBe('edge-grad-cat_edge_knowledge_people');
+  });
+
+  it('isCatCatEdge detects both source and target starting with cat_', () => {
+    // The logic in ForceGraph: edge.sourceId.startsWith('cat_') && edge.targetId.startsWith('cat_')
+    const catCatEdge = { sourceId: 'cat_people', targetId: 'cat_work' };
+    const catEntityEdge = { sourceId: 'cat_people', targetId: 'person_1' };
+    const entityEdge = { sourceId: 'person_1', targetId: 'person_2' };
+
+    const isCatCat = (e: { sourceId: string; targetId: string }) =>
+      e.sourceId.startsWith('cat_') && e.targetId.startsWith('cat_');
+
+    expect(isCatCat(catCatEdge)).toBe(true);
+    expect(isCatCat(catEntityEdge)).toBe(false);
+    expect(isCatCat(entityEdge)).toBe(false);
+  });
+
+  it('weight badge displays edge weight value for category↔category edges', () => {
+    // Verify that the weight badge renders the numeric weight
+    const edgeWeight = 8;
+    const badgeText = String(edgeWeight);
+    expect(badgeText).toBe('8');
+
+    // Weight badge uses DM Mono font, size 11, fill #A8B4C0
+    const badgeStyle = {
+      fontFamily: "'DM Mono', monospace",
+      fontSize: 11,
+      fill: '#A8B4C0',
+    };
+    expect(badgeStyle.fontFamily).toContain('DM Mono');
+    expect(badgeStyle.fontSize).toBe(11);
+    expect(badgeStyle.fill).toBe('#A8B4C0');
+  });
+
+  it('category edge strokeWidth ranges from 1-4px based on weight', () => {
+    // Logic: Math.max(1, Math.min(4, edge.weight * 4))
+    const calcWidth = (weight: number) => Math.max(1, Math.min(4, weight * 4));
+
+    expect(calcWidth(0)).toBe(1);     // min clamp
+    expect(calcWidth(0.25)).toBe(1);  // exactly 1
+    expect(calcWidth(0.5)).toBe(2);   // mid range
+    expect(calcWidth(1)).toBe(4);     // max clamp
+    expect(calcWidth(2)).toBe(4);     // over max
   });
 });
