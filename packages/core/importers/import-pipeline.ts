@@ -49,6 +49,10 @@ const SOURCE_TYPE_TO_DOCUMENT_SOURCE: Record<ImportSourceType, DocumentSource> =
   photos_metadata: 'photos_metadata',
   messaging: 'messaging',
   social: 'social',
+  health: 'health',
+  finance: 'financial',
+  productivity: 'note',
+  research: 'note',
 };
 
 // ─── SQL Schema ─────────────────────────────────────────────────────────────

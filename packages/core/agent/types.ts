@@ -25,6 +25,7 @@ export type AutonomyDomain =
   | 'location'
   | 'voice'
   | 'cloud-storage'
+  | 'connectors'
   | 'network'
   | 'system';
 

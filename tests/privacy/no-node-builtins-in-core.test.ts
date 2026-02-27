@@ -35,6 +35,34 @@ const APPROVED_FILES = new Set([
   'importers/photos/exif-parser.ts',
   'importers/social/twitter-archive-parser.ts',
   'importers/social/linkedin-export-parser.ts',
+  // Phase 2 Native Connectors (desktop-only SQLite readers)
+  'platform/desktop-imessage-reader.ts',
+  'importers/browser/safari-history-parser.ts',
+  'importers/browser/edge-history-parser.ts',
+  'importers/browser/arc-history-parser.ts',
+  'importers/health/apple-health-xml-parser.ts',
+  'importers/research/zotero-reader.ts',
+  'importers/productivity/things-reader.ts',
+  // Phase 6 Batch 1 Export Parsers (desktop-only file parsers)
+  'importers/notes/notion-export-parser.ts',
+  'importers/social/facebook-export-parser.ts',
+  'importers/social/instagram-export-parser.ts',
+  'importers/messaging/signal-export-parser.ts',
+  'importers/social/discord-export-parser.ts',
+  'importers/productivity/slack-export-parser.ts',
+  'importers/notes/bear-export-parser.ts',
+  // Phase 6 Batch 2 Export Parsers (desktop-only file parsers)
+  'importers/notes/evernote-export-parser.ts',
+  'importers/finance/ynab-export-parser.ts',
+  'importers/finance/mint-export-parser.ts',
+  'importers/google/google-takeout-parser.ts',
+  'importers/media/goodreads-export-parser.ts',
+  'importers/fitness/strava-export-parser.ts',
+  'importers/messaging/telegram-export-parser.ts',
+  // ImportWatcher uses node:fs for directory watching
+  'importers/import-watcher.ts',
+  // Registration file imports all parsers
+  'importers/registration.ts',
   // Founding member JWT verification uses node:crypto for Ed25519 signature verification.
   // On mobile, this would use the platform CryptoAdapter (not yet supporting Ed25519 verify).
   'premium/founding-token.ts',
