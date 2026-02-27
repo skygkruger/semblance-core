@@ -65,6 +65,16 @@ function createMockTransport(): SyncTransport & {
   };
 }
 
+// ─── Relative Date Helpers (avoid 7-day boundary flakiness) ─────────────────
+
+// All test dates are anchored 3 days ago to stay well within MAX_INITIAL_SYNC_AGE (7 days)
+const THREE_DAYS_AGO = Date.now() - 3 * 24 * 60 * 60 * 1000;
+const T08 = new Date(THREE_DAYS_AGO + 8 * 3600_000).toISOString();
+const T09 = new Date(THREE_DAYS_AGO + 9 * 3600_000).toISOString();
+const T10 = new Date(THREE_DAYS_AGO + 10 * 3600_000).toISOString();
+const T11 = new Date(THREE_DAYS_AGO + 11 * 3600_000).toISOString();
+const T12 = new Date(THREE_DAYS_AGO + 12 * 3600_000).toISOString();
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function makeSyncItem(overrides: Partial<SyncItem> & { id: string; type: SyncItemType }): SyncItem {
@@ -80,8 +90,8 @@ function makeSyncItem(overrides: Partial<SyncItem> & { id: string; type: SyncIte
 
 describe('Cross-Device Sync — Conflict Resolution', () => {
   it('preference: last-write-wins (remote newer)', () => {
-    const local = makeSyncItem({ id: 'pref-1', type: 'preference', updatedAt: '2026-02-20T10:00:00Z' });
-    const remote = makeSyncItem({ id: 'pref-1', type: 'preference', updatedAt: '2026-02-20T11:00:00Z' });
+    const local = makeSyncItem({ id: 'pref-1', type: 'preference', updatedAt: T10 });
+    const remote = makeSyncItem({ id: 'pref-1', type: 'preference', updatedAt: T11 });
 
     const result = resolveConflict(local, remote, 'desktop', 'mobile');
     expect(result.resolution).toBe('remote_wins');
@@ -89,8 +99,8 @@ describe('Cross-Device Sync — Conflict Resolution', () => {
   });
 
   it('preference: last-write-wins (local newer)', () => {
-    const local = makeSyncItem({ id: 'pref-1', type: 'preference', updatedAt: '2026-02-20T12:00:00Z' });
-    const remote = makeSyncItem({ id: 'pref-1', type: 'preference', updatedAt: '2026-02-20T11:00:00Z' });
+    const local = makeSyncItem({ id: 'pref-1', type: 'preference', updatedAt: T12 });
+    const remote = makeSyncItem({ id: 'pref-1', type: 'preference', updatedAt: T11 });
 
     const result = resolveConflict(local, remote, 'desktop', 'mobile');
     expect(result.resolution).toBe('local_wins');
@@ -98,8 +108,8 @@ describe('Cross-Device Sync — Conflict Resolution', () => {
   });
 
   it('style_profile: desktop takes precedence over mobile', () => {
-    const local = makeSyncItem({ id: 'style-1', type: 'style_profile', updatedAt: '2026-02-20T10:00:00Z' });
-    const remote = makeSyncItem({ id: 'style-1', type: 'style_profile', updatedAt: '2026-02-20T12:00:00Z' });
+    const local = makeSyncItem({ id: 'style-1', type: 'style_profile', updatedAt: T10 });
+    const remote = makeSyncItem({ id: 'style-1', type: 'style_profile', updatedAt: T12 });
 
     // Local is desktop, remote is mobile — desktop wins regardless of time
     const result = resolveConflict(local, remote, 'desktop', 'mobile');
@@ -108,8 +118,8 @@ describe('Cross-Device Sync — Conflict Resolution', () => {
   });
 
   it('style_profile: mobile accepts desktop profile', () => {
-    const local = makeSyncItem({ id: 'style-1', type: 'style_profile', updatedAt: '2026-02-20T12:00:00Z' });
-    const remote = makeSyncItem({ id: 'style-1', type: 'style_profile', updatedAt: '2026-02-20T10:00:00Z' });
+    const local = makeSyncItem({ id: 'style-1', type: 'style_profile', updatedAt: T12 });
+    const remote = makeSyncItem({ id: 'style-1', type: 'style_profile', updatedAt: T10 });
 
     // Local is mobile, remote is desktop — desktop wins regardless of time
     const result = resolveConflict(local, remote, 'mobile', 'desktop');
@@ -143,8 +153,8 @@ describe('Cross-Device Sync — Conflict Resolution', () => {
   });
 
   it('reminder: last-write-wins', () => {
-    const local = makeSyncItem({ id: 'rem-1', type: 'reminder', updatedAt: '2026-02-20T08:00:00Z' });
-    const remote = makeSyncItem({ id: 'rem-1', type: 'reminder', updatedAt: '2026-02-20T09:00:00Z' });
+    const local = makeSyncItem({ id: 'rem-1', type: 'reminder', updatedAt: T08 });
+    const remote = makeSyncItem({ id: 'rem-1', type: 'reminder', updatedAt: T09 });
 
     const result = resolveConflict(local, remote, 'desktop', 'mobile');
     expect(result.resolution).toBe('remote_wins');
@@ -189,8 +199,8 @@ describe('Cross-Device Sync — SyncEngine Local', () => {
   });
 
   it('builds delta manifest — only changed items since last sync', () => {
-    const past = '2026-02-20T10:00:00Z';
-    const future = '2026-02-20T12:00:00Z';
+    const past = T10;
+    const future = T12;
 
     engine.upsertItem(makeSyncItem({ id: 'old-1', type: 'preference', updatedAt: past }));
     engine.upsertItem(makeSyncItem({ id: 'new-1', type: 'preference', updatedAt: future }));
@@ -203,10 +213,10 @@ describe('Cross-Device Sync — SyncEngine Local', () => {
   });
 
   it('getChangedSince returns only newer items', () => {
-    engine.upsertItem(makeSyncItem({ id: 'old-1', type: 'preference', updatedAt: '2026-02-20T10:00:00Z' }));
-    engine.upsertItem(makeSyncItem({ id: 'new-1', type: 'preference', updatedAt: '2026-02-20T12:00:00Z' }));
+    engine.upsertItem(makeSyncItem({ id: 'old-1', type: 'preference', updatedAt: T10 }));
+    engine.upsertItem(makeSyncItem({ id: 'new-1', type: 'preference', updatedAt: T12 }));
 
-    const changed = engine.getChangedSince('2026-02-20T11:00:00Z');
+    const changed = engine.getChangedSince(T11);
     expect(changed).toHaveLength(1);
     expect(changed[0]!.id).toBe('new-1');
   });
@@ -246,7 +256,7 @@ describe('Cross-Device Sync — Manifest Application', () => {
     // Local item exists
     engine.upsertItem(makeSyncItem({
       id: 'pref-1', type: 'preference',
-      updatedAt: '2026-02-20T12:00:00Z',
+      updatedAt: T12,
       data: { local: true },
     }));
 
@@ -258,7 +268,7 @@ describe('Cross-Device Sync — Manifest Application', () => {
       items: [
         makeSyncItem({
           id: 'pref-1', type: 'preference',
-          updatedAt: '2026-02-20T10:00:00Z',
+          updatedAt: T10,
           data: { remote: true },
         }),
       ],

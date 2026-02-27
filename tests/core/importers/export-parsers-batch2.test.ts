@@ -23,16 +23,30 @@ import { TelegramExportParser } from '../../../packages/core/importers/messaging
 
 // ─── Mocks must be hoisted ─────────────────────────────────────────────────
 
-const mockReadFileSync = vi.fn();
-const mockReaddirSync = vi.fn();
-const mockStatSync = vi.fn();
-const mockExistsSync = vi.fn();
+const { mockReadFileSync, mockReaddirSync, mockStatSync, mockExistsSync, mockLstatSync } = vi.hoisted(() => {
+  const _statSync = vi.fn(() => ({ size: 1024, isFile: () => true, isDirectory: () => false }));
+  return {
+    mockReadFileSync: vi.fn(),
+    mockReaddirSync: vi.fn(),
+    mockStatSync: _statSync,
+    mockExistsSync: vi.fn(),
+    // lstatSync proxies through statSync so tests that configure statSync for
+    // directory/file detection automatically work with safeReadFileSync/safeWalkDirectory
+    mockLstatSync: vi.fn((...args: unknown[]) => {
+      try {
+        const stat = _statSync(...(args as [string]));
+        return { ...(stat && typeof stat === 'object' ? stat : {}), isSymbolicLink: () => false };
+      } catch (e) { throw e; }
+    }),
+  };
+});
 
 vi.mock('node:fs', () => ({
   readFileSync: mockReadFileSync,
   readdirSync: mockReaddirSync,
   statSync: mockStatSync,
   existsSync: mockExistsSync,
+  lstatSync: mockLstatSync,
 }));
 
 vi.mock('node:path', () => ({
@@ -55,6 +69,16 @@ function resetAllMocks() {
   mockReaddirSync.mockReset();
   mockStatSync.mockReset();
   mockExistsSync.mockReset();
+  mockLstatSync.mockReset();
+  // Re-set defaults needed by safeReadFileSync/safeWalkDirectory
+  mockStatSync.mockReturnValue({ size: 1024, isFile: () => true, isDirectory: () => false });
+  // lstatSync proxies through statSync so tests only need to configure statSync
+  mockLstatSync.mockImplementation((...args: unknown[]) => {
+    try {
+      const stat = mockStatSync(...(args as [string]));
+      return { ...(stat && typeof stat === 'object' ? stat : {}), isSymbolicLink: () => false };
+    } catch (e) { throw e; }
+  });
 }
 
 // ============================================================================
@@ -539,7 +563,8 @@ describe('GoogleTakeoutParser', () => {
     it('rejects non-Google JSON data', () => {
       expect(parser.canParse('/data.json', '{"key": "value"}')).toBe(false);
     });
-  });
+
+});
 
   describe('parse (single file mode)', () => {
     it('parses YouTube watch history JSON', async () => {

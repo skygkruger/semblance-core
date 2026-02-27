@@ -14,7 +14,7 @@ function createDb(): Database.Database {
       tier TEXT NOT NULL DEFAULT 'free',
       activated_at TEXT NOT NULL,
       expires_at TEXT,
-      license_key TEXT NOT NULL
+      founding_seat INTEGER
     )
   `);
   return db;
@@ -22,8 +22,8 @@ function createDb(): Database.Database {
 
 function activatePremium(db: Database.Database): void {
   db.prepare(`
-    INSERT OR REPLACE INTO license (id, tier, activated_at, expires_at, license_key)
-    VALUES (1, 'digital-representative', ?, NULL, 'sem_test.eyJ0aWVyIjoiZGlnaXRhbC1yZXByZXNlbnRhdGl2ZSJ9.sig')
+    INSERT OR REPLACE INTO license (id, tier, activated_at, expires_at)
+    VALUES (1, 'digital-representative', ?, NULL)
   `).run(new Date().toISOString());
 }
 

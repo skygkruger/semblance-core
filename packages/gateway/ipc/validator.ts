@@ -69,6 +69,11 @@ function isDuplicate(requestId: string): boolean {
   return false;
 }
 
+/** Reset replay protection state. Used in tests to avoid cross-test contamination. */
+export function resetReplayProtection(): void {
+  recentRequestIds.clear();
+}
+
 /** Purge expired entries from the dedup set. Called periodically. */
 function purgeExpiredIds(): void {
   const cutoff = Date.now() - TTL_MS;

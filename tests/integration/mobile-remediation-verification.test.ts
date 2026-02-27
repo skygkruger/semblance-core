@@ -59,6 +59,8 @@ describe('Root Cause 1: PlatformAdapter replaces all Node.js builtins', () => {
     'importers/media/goodreads-export-parser.ts',
     'importers/fitness/strava-export-parser.ts',
     'importers/messaging/telegram-export-parser.ts',
+    // Safe file reading utility (wraps node:fs with size/symlink checks)
+    'importers/safe-read.ts',
     // ImportWatcher uses node:fs for directory watching
     'importers/import-watcher.ts',
     // Registration file imports all parsers

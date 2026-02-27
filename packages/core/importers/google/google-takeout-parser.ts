@@ -22,6 +22,8 @@
  */
 
 import { createHash } from 'node:crypto';
+import { statSync, existsSync, readdirSync, lstatSync } from 'node:fs';
+import { join } from 'node:path';
 import { safeReadFileSync, safeWalkDirectory } from '../safe-read.js';
 import type { ImportParser, ImportResult, ImportedItem, ParseOptions, ParseError } from '../types.js';
 
@@ -52,8 +54,6 @@ function findFiles(dir: string, predicate: (name: string) => boolean, maxDepth: 
   if (maxDepth <= 0) return results;
 
   try {
-    const { readdirSync, lstatSync } = require('node:fs') as typeof import('node:fs');
-    const { join } = require('node:path') as typeof import('node:path');
     const entries = readdirSync(dir);
 
     for (const entry of entries) {
@@ -294,8 +294,6 @@ export class GoogleTakeoutParser implements ImportParser {
 
     // Determine the Takeout root directory
     let takeoutRoot = path;
-    const { statSync, existsSync } = require('node:fs') as typeof import('node:fs');
-    const { join } = require('node:path') as typeof import('node:path');
 
     try {
       const stat = statSync(path);

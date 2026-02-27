@@ -8,6 +8,8 @@ import { LinkedInExportParser, parseCSV } from '../../../packages/core/importers
 // Mock fs module
 vi.mock('node:fs', () => ({
   readFileSync: vi.fn(),
+  lstatSync: vi.fn(() => ({ isSymbolicLink: () => false })),
+  statSync: vi.fn(() => ({ size: 1024 })),
 }));
 
 describe('LinkedInExportParser', () => {
