@@ -4,8 +4,20 @@ import { PrivacyDashboard } from './PrivacyDashboard';
 const meta: Meta<typeof PrivacyDashboard> = {
   title: 'Components/PrivacyDashboard',
   component: PrivacyDashboard,
-  parameters: { layout: 'centered' },
-  decorators: [(Story) => <div style={{ width: 560, padding: 24 }}><Story /></div>],
+  parameters: {
+    backgrounds: {
+      default: 'void',
+      values: [{ name: 'void', value: '#0B0E11' }],
+    },
+    layout: 'fullscreen',
+  },
+  decorators: [
+    (Story) => (
+      <div style={{ maxWidth: 560, width: '100%', padding: 24 }}>
+        <Story />
+      </div>
+    ),
+  ],
 };
 
 export default meta;
@@ -61,5 +73,15 @@ export const Mobile: Story = {
     ],
     proofVerified: true,
   },
-  parameters: { viewport: { defaultViewport: 'mobile' } },
+  parameters: {
+    viewport: { defaultViewport: 'mobile' },
+    backgrounds: { default: 'void' },
+  },
+  decorators: [
+    (Story) => (
+      <div style={{ width: '100%', padding: 16 }}>
+        <Story />
+      </div>
+    ),
+  ],
 };
