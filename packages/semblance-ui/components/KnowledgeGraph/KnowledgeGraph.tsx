@@ -20,7 +20,6 @@ export function KnowledgeGraph({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<GraphRenderer | null>(null);
   const simRef = useRef<ReturnType<typeof createSimulation> | null>(null);
-  const driftRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [selectedNode, setSelectedNode] = useState<KnowledgeNode | null>(null);
   const [statsSheetOpen, setStatsSheetOpen] = useState(false);
@@ -78,32 +77,36 @@ export function KnowledgeGraph({
     const simulation = createSimulation(simNodes, simEdges);
     simRef.current = simulation;
 
-    let driftDelayTimer: ReturnType<typeof setTimeout> | null = null;
+    // Pre-settle: run simulation to near-equilibrium so nodes appear at final positions
+    // 300 ticks with alphaDecay 0.015 → alpha ≈ 0.011 (near alphaMin 0.001)
+    for (let i = 0; i < 300; i++) {
+      simulation.tick();
+    }
+    clampNodePositions(simNodes);
+
+    // Release category XY pins now that simulation is settled (alpha ≈ 0.01)
+    // No visible jump — forces are near-zero, so categories stay in place
+    // but are free to drift organically via the periodic nudge interval
+    simNodes.forEach(node => {
+      if (node.type === 'category') {
+        node.fx = null;
+        node.fy = null;
+        // Keep fz for Z-depth anchoring
+      }
+    });
+
+    renderer.updatePositions(simNodes);
 
     simulation.on('tick', () => {
       clampNodePositions(simNodes);
       renderer.updatePositions(simNodes);
     });
 
-    simulation.on('end', () => {
-      // Simulation settled — wait 4s for natural spread before allowing drift + idle
-      driftDelayTimer = setTimeout(() => {
-        driftRef.current = setInterval(() => {
-          simNodes.forEach(node => {
-            if (node.fx != null) return;
-            node.vx = (node.vx ?? 0) + (Math.random() - 0.5) * 0.008;
-            node.vy = (node.vy ?? 0) + (Math.random() - 0.5) * 0.008;
-            node.vz = (node.vz ?? 0) + (Math.random() - 0.5) * 0.008;
-          });
-          simulation.alpha(0.005).restart();
-        }, 3000);
-      }, 4000);
-    });
+    // No simulation restart / drift interval — the render loop's sinusoidal
+    // micro-drift handles all "alive" movement without centering force collapse
 
     return () => {
       simulation.stop();
-      if (driftDelayTimer) clearTimeout(driftDelayTimer);
-      if (driftRef.current) clearInterval(driftRef.current);
       renderer.dispose();
       rendererRef.current = null;
       simRef.current = null;

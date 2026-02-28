@@ -112,19 +112,30 @@ export function applyLayout(nodes: KnowledgeNode[], mode: LayoutMode, canvasWidt
   }
 }
 
-/** Radial: categories fixed in a tilted ring with Z variance. */
+/** Radial: categories at deterministic equal angles, sorted by nodeCount descending. */
 function applyRadialLayout(nodes: KnowledgeNode[], canvasWidth?: number): void {
   const categories = nodes.filter(n => n.type === 'category');
   if (categories.length === 0) return;
 
+  // Sort by nodeCount (or weight) descending — largest categories get top positions
+  categories.sort((a, b) =>
+    (b.metadata?.nodeCount ?? b.weight) - (a.metadata?.nodeCount ?? a.weight),
+  );
+
   const scale = getMobileLayoutScale(canvasWidth ?? 800);
-  const radius = (80 + categories.length * 8) * scale;
-  const zAmplitude = 120;
+  const baseRadius = canvasWidth
+    ? Math.min(canvasWidth, 800) * 0.13
+    : (80 + categories.length * 8);
+  const radius = baseRadius * scale;
+
   categories.forEach((node, i) => {
+    // Equal angular spacing starting at 12 o'clock (-PI/2)
     const angle = (2 * Math.PI * i) / categories.length - Math.PI / 2;
     node.fx = Math.cos(angle) * radius;
     node.fy = Math.sin(angle) * radius;
-    node.fz = Math.sin(angle * 1.3 + Math.PI / 4) * zAmplitude;
+    // Alternating Z stagger ±(50–100) for depth
+    const zSign = i % 2 === 0 ? 1 : -1;
+    node.fz = zSign * (50 + Math.sin(i * 1.8) * 50);
   });
 }
 
@@ -135,22 +146,26 @@ function applyStarLayout(nodes: KnowledgeNode[], canvasWidth?: number): void {
 
   const scale = getMobileLayoutScale(canvasWidth ?? 800);
   const outerRadius = (100 + categories.length * 6) * scale;
-  const zLayerSpacing = 60;
   categories.forEach((node, i) => {
     const angle = (2 * Math.PI * i) / categories.length - Math.PI / 2;
     node.fx = Math.cos(angle) * outerRadius;
     node.fy = Math.sin(angle) * outerRadius;
-    const layerIndex = i - Math.floor(categories.length / 2);
-    node.fz = layerIndex * zLayerSpacing;
+    // Outer categories at staggered Z depths with wide spread
+    const isPeopleCategory = node.metadata?.category === 'people';
+    if (isPeopleCategory) {
+      node.fz = 80; // People category elevated forward
+    } else {
+      node.fz = -40 + Math.cos(angle) * 80;
+    }
   });
 
-  // Seed entity nodes near center (not fixed — they settle via forces)
+  // Seed entity nodes near center at varied Z depths
   const innerRadius = 30;
   entities.forEach((node, i) => {
     const angle = (2 * Math.PI * i) / Math.max(entities.length, 1);
     node.x = Math.cos(angle) * innerRadius;
     node.y = Math.sin(angle) * innerRadius;
-    node.z = 0;
+    node.z = 20 + Math.sin(angle) * 60;
   });
 }
 
