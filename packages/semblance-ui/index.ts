@@ -53,6 +53,17 @@ export { WireframeSpinner } from './components/WireframeSpinner/index.js';
 export { ConnectorCard } from './components/ConnectorCard/index.js';
 export type { ConnectorCardProps, ConnectorCardStatus } from './components/ConnectorCard/index.js';
 
+// Settings
+export { SettingsNavigator } from './components/Settings/index.js';
+export { SettingsRoot } from './components/Settings/index.js';
+export type { SettingsScreen } from './components/Settings/index.js';
+export { SettingsAIEngine } from './components/Settings/index.js';
+export { SettingsConnections } from './components/Settings/index.js';
+export { SettingsNotifications } from './components/Settings/index.js';
+export { SettingsAutonomy } from './components/Settings/index.js';
+export { SettingsPrivacy } from './components/Settings/index.js';
+export { SettingsAccount } from './components/Settings/index.js';
+
 // License / Premium
 export { FeatureGate } from './components/FeatureGate/index.js';
 export { UpgradeScreen } from './components/UpgradeScreen/index.js';
