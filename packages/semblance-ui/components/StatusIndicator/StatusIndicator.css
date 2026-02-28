@@ -1,0 +1,28 @@
+/* StatusIndicator — small status dot using design system tokens */
+
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+}
+
+.status-indicator--success {
+  background-color: var(--v);
+}
+
+.status-indicator--accent {
+  background-color: var(--amber);
+}
+
+.status-indicator--attention {
+  background-color: var(--rust);
+}
+
+.status-indicator--muted {
+  background-color: var(--sv2);
+}
+
+.status-indicator--pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}

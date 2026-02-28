@@ -4,6 +4,13 @@ import { StatusIndicator } from './StatusIndicator';
 const meta: Meta<typeof StatusIndicator> = {
   title: 'Components/StatusIndicator',
   component: StatusIndicator,
+  parameters: {
+    backgrounds: {
+      default: 'void',
+      values: [{ name: 'void', value: '#0B0E11' }],
+    },
+    layout: 'centered',
+  },
   argTypes: {
     status: {
       control: 'select',
@@ -45,19 +52,19 @@ export const AllStatuses: Story = {
     <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <StatusIndicator status="success" />
-        <span style={{ fontSize: 13, color: '#9BA0B0' }}>Success</span>
+        <span style={{ fontSize: 13, color: '#8593A4' }}>Success</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <StatusIndicator status="accent" />
-        <span style={{ fontSize: 13, color: '#9BA0B0' }}>Accent</span>
+        <span style={{ fontSize: 13, color: '#8593A4' }}>Accent</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <StatusIndicator status="attention" />
-        <span style={{ fontSize: 13, color: '#9BA0B0' }}>Attention</span>
+        <span style={{ fontSize: 13, color: '#8593A4' }}>Attention</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <StatusIndicator status="muted" />
-        <span style={{ fontSize: 13, color: '#9BA0B0' }}>Muted</span>
+        <span style={{ fontSize: 13, color: '#8593A4' }}>Muted</span>
       </div>
     </div>
   ),
@@ -66,10 +73,22 @@ export const AllStatuses: Story = {
 export const AllPulsing: Story = {
   render: () => (
     <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-      <StatusIndicator status="success" pulse />
-      <StatusIndicator status="accent" pulse />
-      <StatusIndicator status="attention" pulse />
-      <StatusIndicator status="muted" pulse />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <StatusIndicator status="success" pulse />
+        <span style={{ fontSize: 13, color: '#8593A4' }}>Success</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <StatusIndicator status="accent" pulse />
+        <span style={{ fontSize: 13, color: '#8593A4' }}>Accent</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <StatusIndicator status="attention" pulse />
+        <span style={{ fontSize: 13, color: '#8593A4' }}>Attention</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <StatusIndicator status="muted" pulse />
+        <span style={{ fontSize: 13, color: '#8593A4' }}>Muted</span>
+      </div>
     </div>
   ),
 };
