@@ -1,0 +1,190 @@
+/* ConnectorCard — Individual connector display with status and actions */
+
+.connector-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  transition: background 220ms ease, border-color 220ms ease;
+  box-sizing: border-box;
+}
+
+.connector-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.connector-card--connected {
+  border-left: 2px solid #6ECFA3;
+}
+
+/* ─── Layout ─── */
+
+.connector-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.connector-card__info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.connector-card__icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #8593A4;
+}
+
+.connector-card__text {
+  min-width: 0;
+}
+
+.connector-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.connector-card__name {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #C8D4E0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connector-card__dr-badge {
+  flex-shrink: 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(201, 168, 92, 0.13);
+  color: #C9A85C;
+  letter-spacing: 0.04em;
+}
+
+.connector-card__description {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  color: #5E6B7C;
+  margin: 2px 0 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Actions ─── */
+
+.connector-card__actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.connector-card__btn {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 220ms ease, opacity 220ms ease;
+  white-space: nowrap;
+}
+
+.connector-card__btn:hover {
+  opacity: 0.85;
+}
+
+.connector-card__btn--connect {
+  background: transparent;
+  color: #6ECFA3;
+  border: 1px solid rgba(110, 207, 163, 0.32);
+}
+
+.connector-card__btn--connect:hover {
+  background: rgba(110, 207, 163, 0.08);
+}
+
+.connector-card__btn--sync {
+  background: rgba(133, 147, 164, 0.1);
+  color: #8593A4;
+}
+
+.connector-card__btn--disconnect {
+  background: transparent;
+  color: #5E6B7C;
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.connector-card__btn--disconnect:hover {
+  color: #C97B6E;
+}
+
+.connector-card__pending-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #C9A85C;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Status bar ─── */
+
+.connector-card__status {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.connector-card__status-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.connector-card__status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.connector-card__status-email {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #5E6B7C;
+  margin-left: 4px;
+}
+
+.connector-card__status-sync {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #5E6B7C;
+}

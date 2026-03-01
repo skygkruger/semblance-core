@@ -1,103 +1,77 @@
-import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { BriefingCard } from './BriefingCard';
 
 const meta: Meta<typeof BriefingCard> = {
-  title: 'Components/BriefingCard',
+  title: 'Screens/MorningBrief',
   component: BriefingCard,
-  parameters: { layout: 'centered' },
-  decorators: [(Story) => <div style={{ width: '100%', maxWidth: 480 }}><Story /></div>],
+  parameters: {
+    layout: 'fullscreen',
+    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
+  },
+  decorators: [
+    (Story) => (
+      <div style={{ background: '#0B0E11', minHeight: '100vh', width: '100%', padding: 40, boxSizing: 'border-box' as const }}>
+        <div style={{ maxWidth: 560, margin: '0 auto' }}>
+          <Story />
+        </div>
+      </div>
+    ),
+  ],
 };
 
 export default meta;
 type Story = StoryObj<typeof BriefingCard>;
 
+const defaultItems = [
+  { type: 'action' as const, text: 'Sent weekly digest to sky@veridian.run. 12 actions summarized, 47 minutes saved.' },
+  { type: 'action' as const, text: 'Rescheduled dentist to Thursday 2pm -- resolved conflict with standup.' },
+  { type: 'pending' as const, text: 'Figma subscription renewal tomorrow ($15/mo). Last used 47 days ago.' },
+  { type: 'insight' as const, text: 'Sleep quality improving -- 3rd consecutive week above 7h average.' },
+  { type: 'insight' as const, text: 'Spending 23% less on food delivery this month vs. last.' },
+];
+
 export const Default: Story = {
   args: {
     title: 'Morning Brief',
-    timestamp: 'FEB 26 08:12',
-    items: [
-      { type: 'action', text: 'Sent weekly digest to sky@veridian.run. 12 actions summarized, 47 minutes saved.' },
-      { type: 'action', text: 'Rescheduled dentist to Thursday 2pm — resolved conflict with standup.' },
-      { type: 'pending', text: 'Figma subscription renewal tomorrow ($15/mo). Last used 47 days ago.' },
-      { type: 'insight', text: 'Sleep quality improving — 3rd consecutive week above 7h average.' },
-      { type: 'insight', text: 'Spending 23% less on food delivery this month vs. last.' },
-    ],
+    timestamp: undefined,
+    userName: 'Sky',
+    isFoundingMember: false,
+    items: defaultItems,
   },
 };
 
-export const Expanded: Story = {
+export const FoundingMember: Story = {
   args: {
-    title: 'Weekly Summary',
-    timestamp: 'WEEK 9',
-    items: [
-      { type: 'action', text: 'Completed 34 autonomous actions across email, calendar, and finance.' },
-      { type: 'action', text: 'Saved approximately 4.2 hours of manual work.' },
-      { type: 'action', text: 'Cancelled unused Canva Pro subscription ($12.99/mo).' },
-      { type: 'pending', text: 'AWS bill increased 18% — may want to review Lambda usage.' },
-      { type: 'pending', text: 'Two meeting conflicts next Tuesday need resolution.' },
-      { type: 'insight', text: 'Email response time down to 2.1 hours average (was 6.4h).' },
-      { type: 'insight', text: 'Exercise frequency: 4x this week (target: 3x). On track.' },
-      { type: 'insight', text: 'You have 3 upcoming renewals in the next 14 days.' },
-    ],
+    title: 'Morning Brief',
+    timestamp: undefined,
+    userName: 'Sky',
+    isFoundingMember: true,
+    foundingSeat: 1,
+    items: defaultItems,
   },
 };
 
 export const Mobile: Story = {
   args: {
     title: 'Morning Brief',
-    timestamp: 'FEB 26',
+    timestamp: undefined,
+    userName: 'Sky',
+    isFoundingMember: true,
+    foundingSeat: 42,
     items: [
-      { type: 'action', text: 'Archived 8 promotional emails.' },
-      { type: 'pending', text: 'Package arriving today — requires signature.' },
-      { type: 'insight', text: 'Clear schedule after 2pm.' },
+      { type: 'action' as const, text: 'Archived 8 promotional emails.' },
+      { type: 'pending' as const, text: 'Package arriving today -- requires signature.' },
+      { type: 'insight' as const, text: 'Clear schedule after 2pm.' },
     ],
   },
-  parameters: { viewport: { defaultViewport: 'mobile' } },
+  parameters: {
+    viewport: { defaultViewport: 'mobile1' },
+  },
   decorators: [
     (Story) => (
-      <div style={{ width: '100%', maxWidth: 390, padding: 16, boxSizing: 'border-box' as const }}>
+      <div style={{ background: '#0B0E11', minHeight: '100vh', width: '100%', maxWidth: 390, padding: 16, boxSizing: 'border-box' as const }}>
         <Story />
       </div>
     ),
   ],
-};
-
-export const WithAnimation: Story = {
-  args: {
-    title: 'Morning Brief',
-    timestamp: 'FEB 26 08:12',
-    items: [
-      { type: 'action', text: 'Sent weekly digest to sky@veridian.run. 12 actions summarized, 47 minutes saved.' },
-      { type: 'action', text: 'Rescheduled dentist to Thursday 2pm — resolved conflict with standup.' },
-      { type: 'pending', text: 'Figma subscription renewal tomorrow ($15/mo). Last used 47 days ago.' },
-      { type: 'insight', text: 'Sleep quality improving — 3rd consecutive week above 7h average.' },
-      { type: 'insight', text: 'Spending 23% less on food delivery this month vs. last.' },
-    ],
-  },
-  render: function WithAnimationStory(args) {
-    const [key, setKey] = useState(0);
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
-        <button
-          onClick={() => setKey((k) => k + 1)}
-          style={{
-            background: 'transparent',
-            border: '1px solid var(--b2)',
-            color: 'var(--sv3)',
-            padding: '6px 16px',
-            borderRadius: 'var(--r-md)',
-            cursor: 'pointer',
-            fontFamily: 'DM Mono, monospace',
-            fontSize: 11,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase' as const,
-          }}
-        >
-          Replay Animation
-        </button>
-        <BriefingCard key={key} {...args} />
-      </div>
-    );
-  },
 };
