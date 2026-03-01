@@ -23,7 +23,7 @@ type FeedbackState =
 
 export function QuickCaptureInput({
   onCapture,
-  placeholder = 'Quick capture... jot a thought, set a reminder',
+  placeholder = 'Awaiting direction',
   disabled = false,
 }: QuickCaptureInputProps) {
   const [text, setText] = useState('');

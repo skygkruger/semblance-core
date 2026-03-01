@@ -118,39 +118,50 @@
   line-height: 1.5;
   color: #EEF1F4;
   caret-color: #6ECFA3;
+  transition: opacity 180ms ease;
 }
 
 .agent-input__field::placeholder {
   color: #8593A4;
 }
 
-/* ─── Thinking state ─── */
-.agent-input__thinking {
-  position: relative;
+/* Suppress textarea when thinking or voice active — opacity 0 preserves layout */
+.agent-input--thinking .agent-input__field,
+.agent-input--listening .agent-input__field,
+.agent-input--processing .agent-input__field,
+.agent-input--speaking .agent-input__field {
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ─── Custom placeholder hint — replaces native placeholder for crossfade ─── */
+.agent-input__placeholder-hint {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 16px;
+  right: 80px;
+  font-family: var(--fb);
+  font-size: 14px;
+  color: #5E6B7C;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   z-index: 1;
+}
+
+/* ─── Thinking state — overlay with wireframe spinner ─── */
+.agent-input__thinking-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
+  padding-left: 16px;
   gap: 10px;
-  flex: 1;
-}
-
-.agent-input__thinking-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #6ECFA3;
-  box-shadow: 0 0 0 0 rgba(110, 207, 163, 0.4);
-  animation: thinking-pulse 2s ease-in-out infinite;
-  flex-shrink: 0;
-}
-
-@keyframes thinking-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(110, 207, 163, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(110, 207, 163, 0);
-  }
+  pointer-events: none;
 }
 
 .agent-input__thinking-text {
@@ -202,4 +213,176 @@
 .agent-input__send:disabled {
   opacity: 0.3;
   pointer-events: none;
+}
+
+/* ─── Mic button — metallic base, ring communicates state ─── */
+.agent-input__mic {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8593A4;
+  transition: color 180ms, border-color 180ms, background 180ms;
+  flex-shrink: 0;
+  position: relative;
+  padding: 0;
+}
+
+.agent-input__mic:hover {
+  color: #A8B4C0;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Active (listening) — ring only, button stays metallic */
+.agent-input__mic--listening {
+  color: #A8B4C0;
+  border-color: rgba(110, 207, 163, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Pulse ring radiates from button perimeter */
+.agent-input__mic--listening::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(110, 207, 163, 0.5);
+  animation: mic-ring-pulse 1.4s ease-out infinite;
+  pointer-events: none;
+}
+
+/* Processing — amber ring, faster pulse */
+.agent-input__mic--processing {
+  border-color: rgba(201, 168, 92, 0.30);
+  pointer-events: none;
+}
+
+.agent-input__mic--processing::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(201, 168, 92, 0.4);
+  animation: mic-ring-pulse 0.9s ease-out infinite;
+  pointer-events: none;
+}
+
+/* Speaking — subtle Veridian tint, no animation */
+.agent-input__mic--speaking {
+  color: #A8B4C0;
+  border-color: rgba(110, 207, 163, 0.25);
+}
+
+/* Error — rust tint, no animation */
+.agent-input__mic--error {
+  color: #C97B6E;
+  border-color: rgba(201, 123, 110, 0.35);
+}
+
+.agent-input__mic--error::after {
+  display: none;
+}
+
+.agent-input__mic--error:hover {
+  background: rgba(201, 123, 110, 0.08);
+}
+
+/* ─── Voice overlay — floats above textarea ─── */
+.agent-input__voice-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ─── Waveform bars ─── */
+.agent-input__waveform {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+}
+
+.agent-input__waveform-bar {
+  width: 3px;
+  background: #6ECFA3;
+  border-radius: 1.5px;
+  min-height: 4px;
+  transition: height 100ms ease-out;
+}
+
+.agent-input__waveform-bar:nth-child(1) { animation: voice-bar 0.8s ease-in-out 0s infinite alternate; }
+.agent-input__waveform-bar:nth-child(2) { animation: voice-bar 0.8s ease-in-out 0.15s infinite alternate; }
+.agent-input__waveform-bar:nth-child(3) { animation: voice-bar 0.8s ease-in-out 0.3s infinite alternate; }
+.agent-input__waveform-bar:nth-child(4) { animation: voice-bar 0.8s ease-in-out 0.45s infinite alternate; }
+.agent-input__waveform-bar:nth-child(5) { animation: voice-bar 0.8s ease-in-out 0.6s infinite alternate; }
+
+/* ─── Voice status text ─── */
+.agent-input__voice-status {
+  font-family: var(--fb);
+  font-size: 13px;
+  color: #8593A4;
+  user-select: none;
+}
+
+/* ─── Voice container state modifiers ─── */
+.agent-input--processing .agent-input__container {
+  border-color: rgba(201, 168, 92, 0.25);
+}
+
+.agent-input--listening .agent-input__container {
+  border-color: #6ECFA3;
+  box-shadow: 0 0 0 2px rgba(110, 207, 163, 0.1), 0 0 16px rgba(110, 207, 163, 0.05);
+}
+
+.agent-input--speaking .agent-input__container {
+  border-color: rgba(110, 207, 163, 0.4);
+}
+
+.agent-input--speaking .agent-input__container::before {
+  animation: opal-sweep 4s linear infinite;
+}
+
+.agent-input--voice-error .agent-input__container {
+  border-color: #C97B6E;
+  animation: voice-error-flash 0.6s ease-out;
+}
+
+/* ─── Voice animations ─── */
+@keyframes mic-ring-pulse {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  70%  { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+@keyframes voice-bar {
+  0% {
+    height: 4px;
+  }
+  100% {
+    height: var(--voice-bar-max, 16px);
+  }
+}
+
+@keyframes voice-error-flash {
+  0% {
+    border-color: #C97B6E;
+  }
+  50% {
+    border-color: rgba(201, 123, 110, 0.6);
+  }
+  100% {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
 }

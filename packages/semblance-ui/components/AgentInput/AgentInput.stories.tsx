@@ -12,18 +12,18 @@ export default meta;
 type Story = StoryObj<typeof AgentInput>;
 
 export const Empty: Story = {
-  args: { placeholder: 'Ask Semblance' },
+  args: {},
 };
 
 export const Focused: Story = {
   render: () => {
-    return <AgentInput placeholder="Type here to see Veridian focus ring..." autoFocus />;
+    return <AgentInput autoFocus />;
   },
 };
 
 export const WithValue: Story = {
   render: () => {
-    return <AgentInput placeholder="Cancel my Figma subscription" />;
+    return <AgentInput />;
   },
 };
 
@@ -36,7 +36,7 @@ export const WithActiveDocument: Story = {
 };
 
 export const Mobile: Story = {
-  args: { placeholder: 'Ask Semblance' },
+  args: {},
   parameters: { viewport: { defaultViewport: 'mobile' } },
   decorators: [
     (Story) => (
@@ -45,4 +45,48 @@ export const Mobile: Story = {
       </div>
     ),
   ],
+};
+
+/* ─── Voice stories ─── */
+
+export const VoiceIdle: Story = {
+  args: {
+    voiceEnabled: true,
+    voiceState: 'idle',
+  },
+};
+
+export const VoiceListening: Story = {
+  args: {
+    voiceEnabled: true,
+    voiceState: 'listening',
+    audioLevel: 0.6,
+  },
+};
+
+export const VoiceProcessing: Story = {
+  args: {
+    voiceEnabled: true,
+    voiceState: 'processing',
+  },
+};
+
+export const VoiceSpeaking: Story = {
+  args: {
+    voiceEnabled: true,
+    voiceState: 'speaking',
+  },
+};
+
+export const VoiceError: Story = {
+  args: {
+    voiceEnabled: true,
+    voiceState: 'error',
+  },
+};
+
+export const VoiceDisabled: Story = {
+  args: {
+    voiceEnabled: false,
+  },
 };
