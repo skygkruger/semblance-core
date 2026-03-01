@@ -93,7 +93,7 @@ describe('ConnectorCard', () => {
     expect(screen.getByText('Connected')).toBeTruthy();
 
     rerender(<ConnectorCard {...defaultProps({ status: 'disconnected' })} />);
-    expect(screen.getByText('Not connected')).toBeTruthy();
+    expect(screen.getByText('Available')).toBeTruthy();
 
     rerender(<ConnectorCard {...defaultProps({ status: 'error' })} />);
     expect(screen.getByText('Error')).toBeTruthy();

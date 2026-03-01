@@ -6,6 +6,7 @@
  */
 
 import type { ReactNode } from 'react';
+import './ConnectorCard.css';
 
 export type ConnectorCardStatus = 'connected' | 'disconnected' | 'error' | 'pending';
 
@@ -27,22 +28,22 @@ export interface ConnectorCardProps {
 const statusConfig: Record<ConnectorCardStatus, { label: string; dotColor: string; textColor: string }> = {
   connected: {
     label: 'Connected',
-    dotColor: '#6ECFA3',    // Veridian
+    dotColor: '#6ECFA3',
     textColor: '#6ECFA3',
   },
   disconnected: {
-    label: 'Not connected',
-    dotColor: '#8593A4',    // Silver
+    label: 'Available',
+    dotColor: '#8593A4',
     textColor: '#8593A4',
   },
   error: {
     label: 'Error',
-    dotColor: '#C97B6E',    // Rust
+    dotColor: '#C97B6E',
     textColor: '#C97B6E',
   },
   pending: {
     label: 'Connecting...',
-    dotColor: '#C9A85C',    // Amber
+    dotColor: '#C9A85C',
     textColor: '#C9A85C',
   },
 };
@@ -78,102 +79,75 @@ export function ConnectorCard({
   const isConnected = status === 'connected';
   const isPending = status === 'pending';
 
+  const rootClass = `connector-card${isConnected ? ' connector-card--connected' : ''}`;
+
   return (
-    <div
-      className="opal-surface rounded-lg p-4 border border-transparent hover:border-semblance-border dark:hover:border-semblance-border-dark transition-colors duration-150"
-      data-testid={`connector-card-${id}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 min-w-0">
+    <div className={rootClass} data-testid={`connector-card-${id}`}>
+      <div className="connector-card__top">
+        <div className="connector-card__info">
           {icon && (
-            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-semblance-surface-2 dark:bg-semblance-surface-2-dark">
+            <div className="connector-card__icon">
               {icon}
             </div>
           )}
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-semblance-text dark:text-semblance-text-dark truncate">
-                {displayName}
-              </h3>
+          <div className="connector-card__text">
+            <div className="connector-card__name-row">
+              <h3 className="connector-card__name">{displayName}</h3>
               {isPremium && (
-                <span
-                  className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium"
-                  style={{ backgroundColor: '#C9A85C22', color: '#C9A85C' }}
-                >
-                  DR
-                </span>
+                <span className="connector-card__dr-badge">DR</span>
               )}
             </div>
-            <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-0.5 line-clamp-2">
-              {description}
-            </p>
+            <p className="connector-card__description">{description}</p>
           </div>
         </div>
 
-        <div className="flex-shrink-0">
+        <div className="connector-card__actions">
           {!isConnected && !isPending && (
             <button
               type="button"
+              className="connector-card__btn connector-card__btn--connect"
               onClick={() => onConnect(id)}
-              className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
-              style={{
-                backgroundColor: '#6ECFA318',
-                color: '#6ECFA3',
-              }}
             >
               Connect
             </button>
           )}
           {isConnected && (
-            <div className="flex items-center gap-1.5">
+            <>
               <button
                 type="button"
+                className="connector-card__btn connector-card__btn--sync"
                 onClick={() => onSync(id)}
-                className="text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors"
-                style={{
-                  backgroundColor: '#8593A418',
-                  color: '#8593A4',
-                }}
               >
                 Sync
               </button>
               <button
                 type="button"
+                className="connector-card__btn connector-card__btn--disconnect"
                 onClick={() => onDisconnect(id)}
-                className="text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors"
-                style={{
-                  backgroundColor: '#C97B6E18',
-                  color: '#C97B6E',
-                }}
               >
                 Disconnect
               </button>
-            </div>
+            </>
           )}
           {isPending && (
-            <span className="text-xs" style={{ color: '#C9A85C' }}>
-              Connecting...
-            </span>
+            <span className="connector-card__pending-text">Connecting...</span>
           )}
         </div>
       </div>
 
-      {/* Status bar */}
-      <div className="mt-3 pt-2 border-t border-semblance-border/30 dark:border-semblance-border-dark/30 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1.5">
+      <div className="connector-card__status">
+        <div className="connector-card__status-left">
           <span
-            className="inline-block w-1.5 h-1.5 rounded-full"
+            className="connector-card__status-dot"
             style={{ backgroundColor: dotColor }}
           />
           <span style={{ color: textColor }}>{statusLabel}</span>
           {isConnected && userEmail && (
-            <span className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark ml-1">
-              {userEmail}
-            </span>
+            <span className="connector-card__status-email">{userEmail}</span>
           )}
         </div>
         {isConnected && lastSyncedAt && (
-          <span className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+          <span className="connector-card__status-sync">
             Synced {formatLastSynced(lastSyncedAt)}
           </span>
         )}

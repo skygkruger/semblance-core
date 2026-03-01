@@ -52,6 +52,8 @@ export { WireframeSpinner } from './components/WireframeSpinner/index.js';
 // Connectors
 export { ConnectorCard } from './components/ConnectorCard/index.js';
 export type { ConnectorCardProps, ConnectorCardStatus } from './components/ConnectorCard/index.js';
+export { ConnectionsScreen } from './components/ConnectionsScreen/index.js';
+export type { ConnectionsScreenProps, ConnectorEntry, ConnectorCategory } from './components/ConnectionsScreen/index.js';
 
 // Settings
 export { SettingsNavigator } from './components/Settings/index.js';

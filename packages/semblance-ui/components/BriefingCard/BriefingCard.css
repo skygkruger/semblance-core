@@ -2,9 +2,9 @@
   background: linear-gradient(135deg, var(--s2), var(--s1));
   border: 1px solid var(--b2);
   border-radius: var(--r-lg);
-  padding: var(--sp-6);
   max-width: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* Arrival animation via data attribute */
@@ -23,10 +23,69 @@
   }
 }
 
+/* ─── Header Region ─── */
+
+.briefing-card__header-region {
+  padding: var(--sp-6);
+  padding-bottom: 0;
+  background: linear-gradient(180deg, rgba(110, 207, 163, 0.04) 0%, transparent 100%);
+}
+
+.briefing-card__date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* When the badge wraps to a second line, center it across the full width */
+.briefing-card__date-row > .founding-badge--inline {
+  flex-shrink: 0;
+}
+
+/* Container query: when the card is narrow, stack date + badge vertically centered */
+@container (max-width: 400px) {
+  .briefing-card__date-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.briefing-card__date {
+  font-family: var(--fm);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8593A4;
+}
+
+.briefing-card__greeting {
+  font-family: var(--fd);
+  font-weight: 300;
+  font-size: 28px;
+  color: #E8EDF2;
+  margin: 8px 0 20px 0;
+  line-height: 1.2;
+}
+
+/* ─── Divider ─── */
+
+.briefing-card__divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 var(--sp-6) var(--sp-6) var(--sp-6);
+}
+
+/* ─── Brief header (title + timestamp) ─── */
+
 .briefing-card__header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  padding: 0 var(--sp-6);
 }
 
 .briefing-card__title {
@@ -46,8 +105,11 @@
   color: var(--slate3);
 }
 
+/* ─── Items ─── */
+
 .briefing-card__items {
   margin: var(--sp-5) 0 0 0;
+  padding: 0 var(--sp-6) var(--sp-6) var(--sp-6);
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
@@ -69,11 +131,10 @@
   border-radius: 50%;
   flex-shrink: 0;
   margin-top: 6px;
-  /* Fallback — overridden by type-specific rules below */
   background-color: #8593A4;
 }
 
-/* ─── Dot colors by type (CSS as primary, inline style as reinforcement) ─── */
+/* ─── Dot colors by type ─── */
 .briefing-item--action .briefing-item__dot {
   background-color: #6ECFA3 !important;
   animation: pulse-dot 2s ease-in-out infinite;
@@ -99,4 +160,36 @@
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; box-shadow: 0 0 6px #6ECFA3; }
   50%      { opacity: 0.35; box-shadow: 0 0 2px #6ECFA3; }
+}
+
+/* ─── Narrow card (container query) ─── */
+
+.briefing-card {
+  container-type: inline-size;
+}
+
+@container (max-width: 420px) {
+  .briefing-card__date-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .briefing-card__date {
+    text-align: center;
+  }
+
+  .briefing-card__greeting {
+    font-size: 22px;
+    margin: 8px 0 16px 0;
+    text-align: center;
+  }
+
+  .briefing-card__header {
+    justify-content: center;
+  }
+
+  .briefing-card__title {
+    text-align: center;
+  }
 }
