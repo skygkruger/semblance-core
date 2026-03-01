@@ -131,7 +131,7 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
           style={styles.input}
           value={input}
           onChangeText={setInput}
-          placeholder="Message Semblance..."
+          placeholder="Awaiting direction"
           placeholderTextColor={colors.textTertiary}
           multiline
           maxLength={4000}

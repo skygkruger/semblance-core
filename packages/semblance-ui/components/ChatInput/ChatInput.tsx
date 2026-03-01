@@ -8,7 +8,7 @@ interface ChatInputProps {
   className?: string;
 }
 
-export function ChatInput({ onSend, onAttach, disabled = false, placeholder = 'Type a message...', className = '' }: ChatInputProps) {
+export function ChatInput({ onSend, onAttach, disabled = false, placeholder = 'Awaiting direction', className = '' }: ChatInputProps) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
