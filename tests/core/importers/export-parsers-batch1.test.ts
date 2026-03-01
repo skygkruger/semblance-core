@@ -18,8 +18,15 @@ import { extractBearTags } from '../../../packages/core/importers/notes/bear-exp
 
 // ─── Mocks must be hoisted ─────────────────────────────────────────────────
 
+interface MockStat {
+  size: number;
+  isFile: () => boolean;
+  isDirectory: () => boolean;
+  mtime?: Date;
+}
+
 const { mockReadFileSync, mockReaddirSync, mockStatSync, mockExistsSync, mockLstatSync } = vi.hoisted(() => {
-  const _statSync = vi.fn(() => ({ size: 1024, isFile: () => true, isDirectory: () => false }));
+  const _statSync = vi.fn((_path: string): MockStat => ({ size: 1024, isFile: () => true, isDirectory: () => false }));
   return {
     mockReadFileSync: vi.fn(),
     mockReaddirSync: vi.fn(),
@@ -60,12 +67,12 @@ vi.mock('node:path', () => ({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-function createDirStat(mtime?: Date) {
-  return { isDirectory: () => true, isFile: () => false, mtime: mtime ?? new Date('2024-06-15T10:00:00Z') };
+function createDirStat(mtime?: Date): MockStat {
+  return { size: 0, isDirectory: () => true, isFile: () => false, mtime: mtime ?? new Date('2024-06-15T10:00:00Z') };
 }
 
-function createFileStat(mtime?: Date) {
-  return { isDirectory: () => false, isFile: () => true, mtime: mtime ?? new Date('2024-06-15T10:00:00Z') };
+function createFileStat(mtime?: Date): MockStat {
+  return { size: 1024, isDirectory: () => false, isFile: () => true, mtime: mtime ?? new Date('2024-06-15T10:00:00Z') };
 }
 
 function resetAllMocks() {

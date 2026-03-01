@@ -44,7 +44,7 @@ describe('DataSourcesStep', () => {
     render(<DataSourcesStep />);
     // Get the first Connect button (Email)
     const connectButtons = screen.getAllByText('Connect');
-    fireEvent.click(connectButtons[0]);
+    fireEvent.click(connectButtons[0]!);
     // Now Email should show "Connected" text
     expect(screen.getByText('Connected')).toBeTruthy();
     // And only 5 Connect buttons remain
@@ -85,7 +85,7 @@ describe('DataSourcesStep', () => {
     expect(screen.getByText(/Connecting at least one source/)).toBeTruthy();
     // Connect a source
     const connectButtons = screen.getAllByText('Connect');
-    fireEvent.click(connectButtons[0]);
+    fireEvent.click(connectButtons[0]!);
     // Nudge should be gone
     expect(screen.queryByText(/Connecting at least one source/)).toBeNull();
   });
