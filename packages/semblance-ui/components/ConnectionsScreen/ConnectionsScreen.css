@@ -8,6 +8,8 @@
   box-sizing: border-box;
   max-width: 960px;
   margin: 0 auto;
+  container-type: inline-size;
+  overflow-x: hidden;
 }
 
 .connections-screen__title {
@@ -46,7 +48,7 @@
 
 .connections-section__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 12px;
 }
 
@@ -108,9 +110,9 @@
   background: rgba(110, 207, 163, 0.18);
 }
 
-/* ─── Mobile ─── */
+/* ─── Narrow container ─── */
 
-@media (max-width: 600px) {
+@container (max-width: 500px) {
   .connections-screen {
     padding: 24px 16px;
   }
