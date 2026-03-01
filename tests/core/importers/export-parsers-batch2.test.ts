@@ -23,8 +23,15 @@ import { TelegramExportParser } from '../../../packages/core/importers/messaging
 
 // ─── Mocks must be hoisted ─────────────────────────────────────────────────
 
+interface MockStat {
+  size: number;
+  isFile: () => boolean;
+  isDirectory: () => boolean;
+  mtime?: Date;
+}
+
 const { mockReadFileSync, mockReaddirSync, mockStatSync, mockExistsSync, mockLstatSync } = vi.hoisted(() => {
-  const _statSync = vi.fn(() => ({ size: 1024, isFile: () => true, isDirectory: () => false }));
+  const _statSync = vi.fn((_path: string): MockStat => ({ size: 1024, isFile: () => true, isDirectory: () => false }));
   return {
     mockReadFileSync: vi.fn(),
     mockReaddirSync: vi.fn(),
@@ -569,7 +576,7 @@ describe('GoogleTakeoutParser', () => {
   describe('parse (single file mode)', () => {
     it('parses YouTube watch history JSON', async () => {
       mockReadFileSync.mockReturnValue(GOOGLE_YOUTUBE_HISTORY);
-      mockStatSync.mockImplementation(() => ({ isDirectory: () => false, isFile: () => true }));
+      mockStatSync.mockImplementation(() => ({ size: 1024, isDirectory: () => false, isFile: () => true }));
 
       const result = await parser.parse('/Takeout/YouTube/history/watch-history.json');
       expect(result.format).toBe('google_takeout');
@@ -585,7 +592,7 @@ describe('GoogleTakeoutParser', () => {
 
     it('parses search activity JSON', async () => {
       mockReadFileSync.mockReturnValue(GOOGLE_SEARCH_ACTIVITY);
-      mockStatSync.mockImplementation(() => ({ isDirectory: () => false, isFile: () => true }));
+      mockStatSync.mockImplementation(() => ({ size: 1024, isDirectory: () => false, isFile: () => true }));
 
       const result = await parser.parse('/Takeout/My Activity/Search/MyActivity.json');
       expect(result.items).toHaveLength(2);
@@ -595,7 +602,7 @@ describe('GoogleTakeoutParser', () => {
 
     it('applies since filter', async () => {
       mockReadFileSync.mockReturnValue(GOOGLE_YOUTUBE_HISTORY);
-      mockStatSync.mockImplementation(() => ({ isDirectory: () => false, isFile: () => true }));
+      mockStatSync.mockImplementation(() => ({ size: 1024, isDirectory: () => false, isFile: () => true }));
 
       const result = await parser.parse('/Takeout/YouTube/history/watch-history.json', {
         since: new Date('2024-01-14T00:00:00Z'),
@@ -605,7 +612,7 @@ describe('GoogleTakeoutParser', () => {
 
     it('applies limit', async () => {
       mockReadFileSync.mockReturnValue(GOOGLE_YOUTUBE_HISTORY);
-      mockStatSync.mockImplementation(() => ({ isDirectory: () => false, isFile: () => true }));
+      mockStatSync.mockImplementation(() => ({ size: 1024, isDirectory: () => false, isFile: () => true }));
 
       const result = await parser.parse('/Takeout/YouTube/history/watch-history.json', { limit: 1 });
       expect(result.items).toHaveLength(1);
@@ -621,7 +628,7 @@ describe('GoogleTakeoutParser', () => {
 
     it('generates deterministic IDs with gto_ prefix', async () => {
       mockReadFileSync.mockReturnValue(GOOGLE_YOUTUBE_HISTORY);
-      mockStatSync.mockImplementation(() => ({ isDirectory: () => false, isFile: () => true }));
+      mockStatSync.mockImplementation(() => ({ size: 1024, isDirectory: () => false, isFile: () => true }));
 
       const result1 = await parser.parse('/Takeout/YouTube/history/watch-history.json');
       mockReadFileSync.mockReturnValue(GOOGLE_YOUTUBE_HISTORY);
@@ -636,9 +643,9 @@ describe('GoogleTakeoutParser', () => {
     it('scans Takeout directory for known data files', async () => {
       mockStatSync.mockImplementation((p: string) => {
         if (p.includes('watch-history.json') || p.includes('MyActivity.json')) {
-          return { isDirectory: () => false, isFile: () => true };
+          return { size: 1024, isDirectory: () => false, isFile: () => true };
         }
-        return { isDirectory: () => true, isFile: () => false };
+        return { size: 0, isDirectory: () => true, isFile: () => false };
       });
       mockExistsSync.mockReturnValue(false);
       mockReaddirSync.mockImplementation((dir: string) => {

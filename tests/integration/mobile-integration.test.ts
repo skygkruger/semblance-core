@@ -113,12 +113,13 @@ describe('Integration — Mobile ↔ Desktop Reminder Sync', () => {
       deviceType: 'mobile',
     });
 
-    // Both have the same reminder
+    // Both have the same reminder (use relative timestamps to avoid 7-day sync window expiry)
+    const baseTime = new Date(Date.now() - 3600000).toISOString(); // 1 hour ago
     const reminderBase: SyncItem = {
       id: 'reminder-shared-1',
       type: 'reminder',
       data: { text: 'Call dentist', status: 'pending' },
-      updatedAt: '2026-02-21T10:00:00Z',
+      updatedAt: baseTime,
       sourceDeviceId: 'mobile-1',
     };
     mobileSync.upsertItem(reminderBase);
@@ -128,7 +129,7 @@ describe('Integration — Mobile ↔ Desktop Reminder Sync', () => {
     const snoozed: SyncItem = {
       ...reminderBase,
       data: { text: 'Call dentist', status: 'snoozed', snoozeCount: 1 },
-      updatedAt: '2026-02-21T11:00:00Z',
+      updatedAt: new Date().toISOString(), // now
       sourceDeviceId: 'desktop-1',
     };
     desktopSync.upsertItem(snoozed);
