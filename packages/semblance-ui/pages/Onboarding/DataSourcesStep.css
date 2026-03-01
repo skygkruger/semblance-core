@@ -1,0 +1,235 @@
+/* DataSourcesStep — Onboarding connector selection (Step 3) */
+
+.datasources {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: 520px;
+  width: 100%;
+  animation: dissolve 700ms var(--eo) both;
+  container-type: inline-size;
+}
+
+.datasources__headline {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 300;
+  font-size: 28px;
+  color: #E8EDF2;
+  text-align: center;
+  margin: 0;
+}
+
+.datasources__subtext {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-weight: 300;
+  font-size: 15px;
+  color: #8593A4;
+  text-align: center;
+  max-width: 420px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ─── Connector grid ─── */
+
+.datasources__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.datasources__card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  transition: background 220ms ease, border-color 220ms ease;
+}
+
+.datasources__card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.datasources__card--connected {
+  border-left: 2px solid #6ECFA3;
+}
+
+.datasources__card-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.datasources__card-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #8593A4;
+}
+
+.datasources__card--connected .datasources__card-icon {
+  color: #6ECFA3;
+  background: rgba(110, 207, 163, 0.08);
+}
+
+.datasources__card-text {
+  min-width: 0;
+}
+
+.datasources__card-name {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #C8D4E0;
+  margin: 0;
+}
+
+.datasources__card-desc {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #5E6B7C;
+  margin: 2px 0 0 0;
+}
+
+.datasources__card-status {
+  flex-shrink: 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: #6ECFA3;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.datasources__card-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6ECFA3;
+}
+
+/* ─── More sources disclosure ─── */
+
+.datasources__more {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  color: #5E6B7C;
+  text-align: center;
+  margin: 0;
+}
+
+/* ─── Privacy signal ─── */
+
+.datasources__privacy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(110, 207, 163, 0.04);
+  border: 1px solid rgba(110, 207, 163, 0.1);
+  border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.datasources__privacy-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: #6ECFA3;
+}
+
+.datasources__privacy-text {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #8593A4;
+  line-height: 1.5;
+}
+
+/* ─── Action row ─── */
+
+.datasources__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.datasources__skip {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #5E6B7C;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: color 220ms ease;
+}
+
+.datasources__skip:hover {
+  color: #8593A4;
+}
+
+/* ─── Inline nudge (shown when 0 connected + continue) ─── */
+
+.datasources__nudge {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  color: #C9A85C;
+  text-align: center;
+  margin: 0;
+  animation: dissolve 350ms ease both;
+}
+
+/* ─── Narrow container (mobile) ─── */
+
+@container (max-width: 420px) {
+  .datasources__headline {
+    font-size: 22px;
+  }
+
+  .datasources__subtext {
+    font-size: 14px;
+  }
+
+  .datasources__card {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .datasources__card-desc {
+    display: none;
+  }
+
+  .datasources__actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .datasources__privacy {
+    padding: 8px 12px;
+  }
+}

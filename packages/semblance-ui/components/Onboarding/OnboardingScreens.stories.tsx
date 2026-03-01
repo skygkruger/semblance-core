@@ -6,6 +6,7 @@ import { Wordmark } from '../Wordmark/Wordmark';
 import { Button } from '../Button/Button';
 import { Input } from '../Input/Input';
 import { PrivacyBadge } from '../PrivacyBadge/PrivacyBadge';
+import { DataSourcesStep } from '../../pages/Onboarding/DataSourcesStep';
 import '../../pages/Onboarding/Onboarding.css';
 
 const PageWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -135,48 +136,36 @@ export const HardwareDetection: Story = {
 export const DataSources: Story = {
   render: () => (
     <PageWrapper>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 24,
-        maxWidth: 520,
-        animation: 'dissolve 700ms var(--eo) both',
-      }}>
-        <h2 style={{
-          fontFamily: 'var(--fd)',
-          fontWeight: 300,
-          fontSize: 'var(--text-2xl)',
-          color: 'var(--white)',
-          textAlign: 'center',
-          margin: 0,
-        }}>
-          Connect your world
-        </h2>
-        <p style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-base)', color: 'var(--sv3)', textAlign: 'center' }}>
-          Everything stays on this device. Semblance connects to your accounts through the Gateway, fetches your data, and stores it locally.
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', marginTop: 8 }}>
-          {['Email (Gmail)', 'Calendar', 'Contacts', 'Files (iCloud)', 'Bank (Plaid)', 'Health (Apple Health)'].map((source, i) => (
-            <div key={i} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px 16px',
-              background: 'var(--s1)',
-              borderRadius: 'var(--r-md)',
-              border: '1px solid var(--b1)',
-              animation: `dissolve 700ms var(--eo) both`,
-              animationDelay: `${i * 80}ms`,
-            }}>
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-base)', color: 'var(--sv3)' }}>{source}</span>
-              <Button variant="ghost" size="sm">Connect</Button>
-            </div>
-          ))}
-        </div>
-      </div>
+      <DataSourcesStep />
     </PageWrapper>
   ),
+};
+
+export const DataSourcesTwoConnected: Story = {
+  render: () => (
+    <PageWrapper>
+      <DataSourcesStep initialConnected={new Set(['email', 'calendar'])} />
+    </PageWrapper>
+  ),
+};
+
+export const DataSourcesAllConnected: Story = {
+  render: () => (
+    <PageWrapper>
+      <DataSourcesStep initialConnected={new Set(['email', 'calendar', 'files', 'contacts', 'health', 'slack'])} />
+    </PageWrapper>
+  ),
+};
+
+export const DataSourcesMobile: Story = {
+  render: () => (
+    <PageWrapper>
+      <DataSourcesStep />
+    </PageWrapper>
+  ),
+  parameters: {
+    viewport: { defaultViewport: 'mobile' },
+  },
 };
 
 export const AutonomyTier: Story = {
