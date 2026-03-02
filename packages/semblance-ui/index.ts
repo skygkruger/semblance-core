@@ -53,6 +53,12 @@ export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
 export type { PrivacyDashboardProps, NetworkEntry, AuditEntry } from './components/PrivacyDashboard/index.js';
 export { WireframeSpinner } from './components/WireframeSpinner/index.js';
 
+// Document / Artifact Panels
+export { DocumentPanel } from './components/DocumentPanel/index.js';
+export type { DocumentPanelProps, DocumentPanelFile } from './components/DocumentPanel/index.js';
+export { ArtifactPanel } from './components/ArtifactPanel/index.js';
+export type { ArtifactPanelProps, ArtifactItem, ArtifactType } from './components/ArtifactPanel/index.js';
+
 // Connectors
 export { ConnectorCard } from './components/ConnectorCard/index.js';
 export type { ConnectorCardProps, ConnectorCardStatus } from './components/ConnectorCard/index.js';

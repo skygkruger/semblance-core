@@ -1,12 +1,27 @@
 // File Scanner — Discovers and reads local files for indexing.
-// Supported: .txt, .md, .pdf, .docx, .csv, .json
+// Supported: .txt, .md, .pdf, .docx, .csv, .json, .rtf (documents)
+//            .xlsx, .xls (spreadsheets — placeholder, structured extraction TBD)
+//            .ts, .js, .py, .rs, .go, .java, etc. (code files — plain text)
+//            .png, .jpg, .webp, etc. (images — metadata only, no text extraction)
 // PDF: pdf-parse (lightweight, no native deps)
 // DOCX: mammoth (lightweight DOCX → text)
 // Both are local-only document parsers with ZERO network capabilities.
 
 import { getPlatform } from '../platform/index.js';
 
-const SUPPORTED_EXTENSIONS = new Set(['.txt', '.md', '.pdf', '.docx', '.csv', '.json']);
+const SUPPORTED_EXTENSIONS = new Set([
+  // Documents
+  '.txt', '.md', '.pdf', '.docx', '.csv', '.json', '.rtf',
+  // Spreadsheets
+  '.xlsx', '.xls',
+  // Code files
+  '.ts', '.tsx', '.js', '.jsx', '.py', '.rs', '.go', '.java', '.c', '.cpp',
+  '.h', '.hpp', '.cs', '.rb', '.swift', '.kt', '.lua', '.sh', '.bash',
+  '.zsh', '.fish', '.yaml', '.yml', '.toml', '.ini', '.xml', '.html',
+  '.css', '.scss', '.less', '.sql', '.graphql', '.proto', '.dockerfile',
+  // Images (metadata only — not text-extractable)
+  '.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.svg',
+]);
 
 const EXCLUDED_DIRS = new Set([
   'node_modules',
@@ -101,13 +116,60 @@ export async function readFileContent(filePath: string): Promise<FileContent> {
   switch (ext) {
     case '.txt':
     case '.md':
-    case '.csv': {
+    case '.csv':
+    case '.rtf': {
       const content = await p.fs.readFile(filePath, 'utf-8');
+      const mimeMap: Record<string, string> = {
+        '.md': 'text/markdown', '.csv': 'text/csv', '.rtf': 'application/rtf',
+      };
       return {
         path: filePath,
         title: name,
         content,
-        mimeType: ext === '.md' ? 'text/markdown' : ext === '.csv' ? 'text/csv' : 'text/plain',
+        mimeType: mimeMap[ext] ?? 'text/plain',
+      };
+    }
+
+    // Code files — read as plain text
+    case '.ts': case '.tsx': case '.js': case '.jsx':
+    case '.py': case '.rs': case '.go': case '.java':
+    case '.c': case '.cpp': case '.h': case '.hpp':
+    case '.cs': case '.rb': case '.swift': case '.kt':
+    case '.lua': case '.sh': case '.bash': case '.zsh': case '.fish':
+    case '.yaml': case '.yml': case '.toml': case '.ini':
+    case '.xml': case '.html': case '.css': case '.scss': case '.less':
+    case '.sql': case '.graphql': case '.proto': case '.dockerfile': {
+      const content = await p.fs.readFile(filePath, 'utf-8');
+      return { path: filePath, title: name, content, mimeType: 'text/plain' };
+    }
+
+    // Spreadsheets — read as text representation
+    // TODO: Sprint 4 — add xlsx parsing via SheetJS or similar for structured extraction
+    case '.xlsx':
+    case '.xls': {
+      return {
+        path: filePath,
+        title: name,
+        content: `[Spreadsheet: ${name}${ext}] — Structured extraction pending. File attached for reference.`,
+        mimeType: ext === '.xlsx'
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : 'application/vnd.ms-excel',
+      };
+    }
+
+    // Images — no text extraction, metadata placeholder
+    case '.png': case '.jpg': case '.jpeg':
+    case '.webp': case '.gif': case '.bmp': case '.svg': {
+      const imageMime: Record<string, string> = {
+        '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+        '.webp': 'image/webp', '.gif': 'image/gif', '.bmp': 'image/bmp',
+        '.svg': 'image/svg+xml',
+      };
+      return {
+        path: filePath,
+        title: name,
+        content: `[Image: ${name}${ext}] — Visual content attached. No text extraction available.`,
+        mimeType: imageMime[ext] ?? 'image/png',
       };
     }
 

@@ -1,10 +1,13 @@
 // Document Context Manager — Scoped document context for chat-about-document.
 //
-// When a user drops a file into the chat, this module indexes it and provides
-// document-scoped context for subsequent queries. One document at a time.
+// Supports up to MAX_ATTACHMENTS files simultaneously. Each file is indexed
+// into the knowledge graph and searched together for context retrieval.
+// Document context is conversation-scoped — clearing removes the active
+// reference but leaves the data in the KG.
 
 import type { KnowledgeGraph, SearchResult } from '../knowledge/index.js';
 import { readFileContent } from '../knowledge/file-scanner.js';
+import { MAX_ATTACHMENTS } from './attachments.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,26 +23,33 @@ export interface DocumentContextInfo {
 
 export class DocumentContextManager {
   private knowledgeGraph: KnowledgeGraph;
-  private activeDocument: DocumentContextInfo | null = null;
+  private activeDocuments: Map<string, DocumentContextInfo> = new Map();
 
   constructor(knowledgeGraph: KnowledgeGraph) {
     this.knowledgeGraph = knowledgeGraph;
   }
 
   /**
-   * Set the active document context.
+   * Add a document to the active context.
    * Reads the file, indexes it, and stores the context info.
-   * If another document was active, it is replaced (but stays in KG).
+   * Returns the document info. Throws if at capacity.
    */
-  async setDocument(filePath: string): Promise<DocumentContextInfo> {
-    // Read and parse file content
+  async addDocument(filePath: string): Promise<DocumentContextInfo> {
+    if (this.activeDocuments.size >= MAX_ATTACHMENTS) {
+      throw new Error(`Maximum ${MAX_ATTACHMENTS} documents allowed`);
+    }
+
+    // Check for duplicate path
+    for (const doc of this.activeDocuments.values()) {
+      if (doc.filePath === filePath) return doc;
+    }
+
     const content = await readFileContent(filePath);
 
-    // Index into knowledge graph
     const result = await this.knowledgeGraph.indexDocument({
       content: content.content,
       title: content.title,
-      source: 'local_file',
+      source: 'chat_attachment',
       sourcePath: filePath,
       mimeType: content.mimeType,
     });
@@ -52,48 +62,103 @@ export class DocumentContextManager {
       chunksCreated: result.chunksCreated,
     };
 
-    this.activeDocument = info;
+    this.activeDocuments.set(result.documentId, info);
     return info;
   }
 
   /**
-   * Check if a document is currently active.
+   * Remove a document from the active context by document ID.
+   * The document stays in the knowledge graph — only the active reference is removed.
    */
-  hasActiveDocument(): boolean {
-    return this.activeDocument !== null;
+  removeDocument(documentId: string): boolean {
+    return this.activeDocuments.delete(documentId);
   }
 
   /**
-   * Get info about the active document (null if none).
+   * Set a single document context (backward-compat with single-file flow).
+   * Clears all existing documents and sets the new one.
+   */
+  async setDocument(filePath: string): Promise<DocumentContextInfo> {
+    this.activeDocuments.clear();
+    return this.addDocument(filePath);
+  }
+
+  /**
+   * Check if any documents are currently active.
+   */
+  hasActiveDocument(): boolean {
+    return this.activeDocuments.size > 0;
+  }
+
+  /**
+   * Get info about the first active document (backward-compat).
+   * Returns null if none.
    */
   getActiveDocument(): DocumentContextInfo | null {
-    return this.activeDocument;
+    if (this.activeDocuments.size === 0) return null;
+    return this.activeDocuments.values().next().value ?? null;
+  }
+
+  /**
+   * Get all active document infos.
+   */
+  getActiveDocuments(): DocumentContextInfo[] {
+    return [...this.activeDocuments.values()];
+  }
+
+  /**
+   * Get the count of active documents.
+   */
+  getDocumentCount(): number {
+    return this.activeDocuments.size;
   }
 
   /**
    * Get document-scoped context for a user query.
-   * Searches the knowledge graph and filters results to the active document.
-   * Returns empty if no active document.
+   * Searches the knowledge graph and filters results to active documents.
+   * Returns empty if no active documents.
    */
   async getContextForPrompt(userQuery: string, limit: number = 5): Promise<SearchResult[]> {
-    if (!this.activeDocument) return [];
+    if (this.activeDocuments.size === 0) return [];
 
-    // Fetch extra results then filter to active document
+    const docIds = new Set(this.activeDocuments.keys());
+
+    // Fetch extra results then filter to active documents
     const results = await this.knowledgeGraph.search(userQuery, {
-      limit: limit * 3,
+      limit: limit * 3 * Math.max(1, this.activeDocuments.size),
     });
 
-    const docId = this.activeDocument.documentId;
-    const filtered = results.filter(r => r.document.id === docId);
-
+    const filtered = results.filter(r => docIds.has(r.document.id));
     return filtered.slice(0, limit);
   }
 
   /**
-   * Clear the active document context.
-   * The document stays in the knowledge graph — only the active context is cleared.
+   * Promote a chat attachment to permanent knowledge by re-indexing
+   * with source 'local_file'. Returns true if the document was found
+   * and promoted, false if not in active context.
+   */
+  async addToKnowledge(documentId: string): Promise<boolean> {
+    const doc = this.activeDocuments.get(documentId);
+    if (!doc) return false;
+
+    const content = await readFileContent(doc.filePath);
+    await this.knowledgeGraph.indexDocument({
+      content: content.content,
+      title: content.title,
+      source: 'local_file',
+      sourcePath: doc.filePath,
+      mimeType: content.mimeType,
+      metadata: { promotedFromChat: true },
+    });
+
+    return true;
+  }
+
+  /**
+   * Clear all active document contexts.
+   * Documents stay in the knowledge graph — only the active references are cleared.
    */
   clearDocument(): void {
-    this.activeDocument = null;
+    this.activeDocuments.clear();
   }
 }

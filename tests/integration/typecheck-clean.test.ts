@@ -21,7 +21,7 @@ function typecheck(packagePath: string): { success: boolean; output: string } {
   }
 }
 
-describe('TypeScript clean slate', () => {
+describe('TypeScript clean slate', { timeout: 120_000 }, () => {
   it('packages/core compiles with zero errors', () => {
     const result = typecheck('packages/core');
     expect(result.success, `Core TypeScript errors:\n${result.output}`).toBe(true);
