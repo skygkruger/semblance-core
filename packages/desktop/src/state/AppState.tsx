@@ -121,6 +121,12 @@ export interface AppState {
   conversations: ConversationSummaryState[];
   historyPanelOpen: boolean;
   conversationSettings: { autoExpiryDays: number | null };
+  intentProfile: {
+    primaryGoal: string | null;
+    hardLimits: Array<{ id: string; rawText: string; active: boolean; source: string; createdAt: string }>;
+    personalValues: Array<{ id: string; rawText: string; theme: string; active: boolean; source: string; createdAt: string }>;
+    lastUpdated: string | null;
+  };
 }
 
 export interface ConversationSummaryState {
@@ -214,7 +220,14 @@ export type AppAction =
   | { type: 'TOGGLE_HISTORY_PANEL' }
   | { type: 'SET_HISTORY_PANEL'; open: boolean }
   | { type: 'REPLACE_CHAT_MESSAGES'; messages: ChatMessage[] }
-  | { type: 'SET_CONVERSATION_SETTINGS'; settings: AppState['conversationSettings'] };
+  | { type: 'SET_CONVERSATION_SETTINGS'; settings: AppState['conversationSettings'] }
+  | { type: 'SET_INTENT_PROFILE'; profile: AppState['intentProfile'] }
+  | { type: 'SET_PRIMARY_GOAL'; goal: string }
+  | { type: 'ADD_HARD_LIMIT'; limit: AppState['intentProfile']['hardLimits'][number] }
+  | { type: 'TOGGLE_HARD_LIMIT'; id: string; active: boolean }
+  | { type: 'REMOVE_HARD_LIMIT'; id: string }
+  | { type: 'ADD_PERSONAL_VALUE'; value: AppState['intentProfile']['personalValues'][number] }
+  | { type: 'REMOVE_PERSONAL_VALUE'; id: string };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -327,6 +340,12 @@ export const initialState: AppState = {
   conversations: [],
   historyPanelOpen: false,
   conversationSettings: { autoExpiryDays: null },
+  intentProfile: {
+    primaryGoal: null,
+    hardLimits: [],
+    personalValues: [],
+    lastUpdated: null,
+  },
 };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
@@ -452,6 +471,20 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, chatMessages: action.messages };
     case 'SET_CONVERSATION_SETTINGS':
       return { ...state, conversationSettings: action.settings };
+    case 'SET_INTENT_PROFILE':
+      return { ...state, intentProfile: action.profile };
+    case 'SET_PRIMARY_GOAL':
+      return { ...state, intentProfile: { ...state.intentProfile, primaryGoal: action.goal, lastUpdated: new Date().toISOString() } };
+    case 'ADD_HARD_LIMIT':
+      return { ...state, intentProfile: { ...state.intentProfile, hardLimits: [...state.intentProfile.hardLimits, action.limit], lastUpdated: new Date().toISOString() } };
+    case 'TOGGLE_HARD_LIMIT':
+      return { ...state, intentProfile: { ...state.intentProfile, hardLimits: state.intentProfile.hardLimits.map(l => l.id === action.id ? { ...l, active: action.active } : l), lastUpdated: new Date().toISOString() } };
+    case 'REMOVE_HARD_LIMIT':
+      return { ...state, intentProfile: { ...state.intentProfile, hardLimits: state.intentProfile.hardLimits.filter(l => l.id !== action.id), lastUpdated: new Date().toISOString() } };
+    case 'ADD_PERSONAL_VALUE':
+      return { ...state, intentProfile: { ...state.intentProfile, personalValues: [...state.intentProfile.personalValues, action.value], lastUpdated: new Date().toISOString() } };
+    case 'REMOVE_PERSONAL_VALUE':
+      return { ...state, intentProfile: { ...state.intentProfile, personalValues: state.intentProfile.personalValues.filter(v => v.id !== action.id), lastUpdated: new Date().toISOString() } };
     default:
       return state;
   }

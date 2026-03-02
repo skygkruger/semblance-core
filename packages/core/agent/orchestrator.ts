@@ -8,6 +8,7 @@ import type {
   ChatMessage,
   ToolDefinition,
   ToolCall,
+  GenerateRequest,
 } from '../llm/types.js';
 import type { KnowledgeGraph, SearchResult } from '../knowledge/index.js';
 import type { IPCClient } from './ipc-client.js';
@@ -30,6 +31,7 @@ import type { MessageDrafter } from './messaging/message-drafter.js';
 import type { ExtensionTool, ToolHandler } from '../extensions/types.js';
 import { BoundaryEnforcer, type EscalationBoundary } from './escalation-boundaries.js';
 import { sanitizeRetrievedContent, wrapInDataBoundary, INJECTION_CANARY } from './content-sanitizer.js';
+import type { IntentManager } from './intent-manager.js';
 
 // --- Conversation Storage ---
 
@@ -403,6 +405,8 @@ export interface Orchestrator {
   setVoiceMode(active: boolean): void;
   /** Register extension tools for LLM dispatch */
   registerTools(tools: ExtensionTool[]): void;
+  /** Set the intent manager for values/limits context (optional) */
+  setIntentManager?(manager: IntentManager): void;
 }
 
 export interface OrchestratorResponse {
@@ -432,6 +436,7 @@ export class OrchestratorImpl implements Orchestrator {
   private messageDrafter: MessageDrafter | null;
   private voiceModeActive = false;
   private boundaryEnforcer: BoundaryEnforcer;
+  private intentManager: IntentManager | null;
   // Extension support
   private extensionToolHandlers: Map<string, ToolHandler> = new Map();
   private allTools: ToolDefinition[] = [...BASE_TOOLS];
@@ -451,6 +456,7 @@ export class OrchestratorImpl implements Orchestrator {
     contactResolver?: ContactResolver;
     messageDrafter?: MessageDrafter;
     voiceModeActive?: boolean;
+    intentManager?: IntentManager;
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -466,6 +472,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.messageDrafter = config.messageDrafter ?? null;
     this.voiceModeActive = config.voiceModeActive ?? false;
     this.boundaryEnforcer = new BoundaryEnforcer(config.db);
+    this.intentManager = config.intentManager ?? null;
     this.db.exec(CREATE_TABLES);
   }
 
@@ -545,7 +552,15 @@ export class OrchestratorImpl implements Orchestrator {
       }
     }
 
-    // Step 7: Store conversation turns
+    // Step 7: In-chat check-in (rate-limited 1/day, never during emotional conversations)
+    if (this.intentManager && this.shouldTriggerCheckIn()) {
+      const checkIn = await this.evaluateCheckIn(message, history);
+      if (checkIn) {
+        finalMessage += `\n\n---\n${checkIn}`;
+      }
+    }
+
+    // Step 8: Store conversation turns
     this.storeTurn(convId, 'user', message, context, null, 0, 0);
     this.storeTurn(
       convId, 'assistant', finalMessage, null, actions,
@@ -683,6 +698,122 @@ export class OrchestratorImpl implements Orchestrator {
     this.voiceModeActive = active;
   }
 
+  setIntentManager(manager: IntentManager): void {
+    this.intentManager = manager;
+  }
+
+  // ─── In-Chat Check-In (Phase 2d) ───────────────────────────────────────
+
+  /**
+   * Rate-limited check: should we attempt a check-in this turn?
+   * Returns false if < 24h since last check-in or no pending observations.
+   */
+  private shouldTriggerCheckIn(): boolean {
+    if (!this.intentManager) return false;
+
+    // Check for pending in-chat observations first (cheap)
+    const pending = this.intentManager.getPendingObservations('chat');
+    if (pending.length === 0) return false;
+
+    // Rate limit: 1 check-in per 24 hours
+    const lastTs = this.intentManager.getLastCheckInTimestamp();
+    if (lastTs) {
+      const elapsed = Date.now() - new Date(lastTs).getTime();
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+      if (elapsed < twentyFourHours) return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Classify whether recent conversation is emotionally sensitive.
+   * Uses local LLM with binary YES/NO prompt on last 3 messages.
+   *
+   * FAIL-SAFE: If LLM is unavailable or classification fails for ANY reason,
+   * returns true (suppress check-in). A false positive (check-in during grief/crisis)
+   * is genuinely harmful — worth the extra inference call to avoid it.
+   */
+  private async isEmotionallySensitive(recentMessages: ConversationTurn[]): Promise<boolean> {
+    // No LLM → suppress (fail-safe)
+    if (!this.llm) return true;
+
+    const last3 = recentMessages.slice(-3);
+    if (last3.length === 0) return false;
+
+    const messageText = last3.map(m => `${m.role}: ${m.content}`).join('\n');
+
+    try {
+      const request: GenerateRequest = {
+        model: this.model,
+        system: 'You classify conversation tone. Reply with exactly YES or NO. Nothing else.',
+        prompt: `Are the following messages emotionally sensitive? Reply YES or NO only.\n\n${messageText}`,
+        temperature: 0,
+        maxTokens: 8,
+      };
+
+      const response = await this.llm.generate(request);
+      const answer = response.text.trim().toUpperCase();
+
+      // Only suppress if clearly YES — ambiguous or malformed responses → suppress (fail-safe)
+      if (answer === 'NO') return false;
+      return true;
+    } catch {
+      // Any failure → suppress check-in (fail-safe: never risk interrupting a crisis)
+      return true;
+    }
+  }
+
+  /**
+   * Evaluate whether to fire a check-in and generate the message.
+   * Calls isEmotionallySensitive first. Returns null if sensitive or no observation.
+   * Otherwise generates a gentle one-sentence check-in via LLM.
+   */
+  private async evaluateCheckIn(
+    _message: string,
+    history: ConversationTurn[],
+  ): Promise<string | null> {
+    // Check emotional sensitivity first — never interrupt a crisis
+    const sensitive = await this.isEmotionallySensitive(history);
+    if (sensitive) return null;
+
+    if (!this.intentManager) return null;
+
+    const pending = this.intentManager.getPendingObservations('chat');
+    if (pending.length === 0) return null;
+
+    const obs = pending[0]!;
+
+    // If no LLM, return the observation description directly (plain fallback)
+    if (!this.llm) {
+      this.intentManager.markSurfacedInChat(obs.id);
+      this.intentManager.setLastCheckInTimestamp(new Date().toISOString());
+      return obs.description;
+    }
+
+    try {
+      const request: GenerateRequest = {
+        model: this.model,
+        system: 'You are curious and caring, like a trusted friend, not a therapist or notification. Write exactly one sentence.',
+        prompt: `Gently surface this observation to the user in one sentence:\n\n"${obs.description}"`,
+        temperature: 0.4,
+        maxTokens: 128,
+      };
+
+      const response = await this.llm.generate(request);
+      const checkIn = response.text.trim();
+      if (!checkIn) return null;
+
+      // Mark surfaced and update timestamp
+      this.intentManager.markSurfacedInChat(obs.id);
+      this.intentManager.setLastCheckInTimestamp(new Date().toISOString());
+
+      return checkIn;
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Register extension tools. Adds tool definitions to the LLM tool list
    * and stores handlers for dispatch during processToolCalls.
@@ -708,9 +839,15 @@ export class OrchestratorImpl implements Orchestrator {
     history: ConversationTurn[],
     documentChunks: SearchResult[] = [],
   ): ChatMessage[] {
-    const systemContent = this.voiceModeActive
+    let systemContent = this.voiceModeActive
       ? `${SYSTEM_PROMPT}\n\n${VOICE_MODE_CONTEXT}`
       : SYSTEM_PROMPT;
+
+    // Intent context: injected into system message (cannot be overridden by doc/knowledge injection)
+    if (this.intentManager) {
+      const intentCtx = this.intentManager.buildIntentContext();
+      if (intentCtx) systemContent += `\n\n${intentCtx}`;
+    }
 
     const messages: ChatMessage[] = [
       { role: 'system', content: systemContent },
@@ -776,6 +913,32 @@ export class OrchestratorImpl implements Orchestrator {
     const executedResults: Array<{ tool: string; result: unknown }> = [];
 
     for (const tc of toolCalls) {
+      // HARD LIMIT ENFORCEMENT — runs before ALL other checks (boundary, autonomy, extension)
+      if (this.intentManager) {
+        const actionType = this.allToolActionMap[tc.name];
+        if (actionType) {
+          const intentCheck = this.intentManager.checkAction(actionType, tc.arguments);
+          if (!intentCheck.allowed && intentCheck.matchedLimits.length > 0) {
+            const firstLimit = intentCheck.matchedLimits[0]!;
+            actions.push({
+              id: nanoid(),
+              action: actionType,
+              payload: tc.arguments,
+              reasoning: `Blocked by hard limit: ${intentCheck.matchedLimits.map(l => l.rawText).join('; ')}`,
+              domain: this.autonomy.getDomainForAction(actionType),
+              tier: this.autonomy.getDomainTier(this.autonomy.getDomainForAction(actionType)),
+              status: 'rejected',
+              createdAt: new Date().toISOString(),
+            });
+            executedResults.push({
+              tool: tc.name,
+              result: { blocked: true, reason: `Blocked by your hard limit: "${firstLimit.rawText}"` },
+            });
+            continue; // Skip all subsequent checks for this tool call
+          }
+        }
+      }
+
       // Extension tools — dispatch to registered handlers with autonomy + audit checks
       const extHandler = this.extensionToolHandlers.get(tc.name);
       if (extHandler) {

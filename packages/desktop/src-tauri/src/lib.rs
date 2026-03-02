@@ -1465,6 +1465,95 @@ async fn set_conversation_auto_expiry(
     state.bridge.call("set_conversation_auto_expiry", serde_json::json!({ "days": days })).await
 }
 
+// ─── Intent Layer ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+async fn get_intent(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("get_intent", Value::Null).await
+}
+
+#[tauri::command]
+async fn set_primary_goal(state: tauri::State<'_, AppBridge>, text: String) -> Result<Value, String> {
+    state.bridge.call("set_primary_goal", serde_json::json!({ "text": text })).await
+}
+
+#[tauri::command]
+async fn add_hard_limit(
+    state: tauri::State<'_, AppBridge>,
+    raw_text: String,
+    source: String,
+) -> Result<Value, String> {
+    state.bridge.call("add_hard_limit", serde_json::json!({ "rawText": raw_text, "source": source })).await
+}
+
+#[tauri::command]
+async fn remove_hard_limit(state: tauri::State<'_, AppBridge>, id: String) -> Result<Value, String> {
+    state.bridge.call("remove_hard_limit", serde_json::json!({ "id": id })).await
+}
+
+#[tauri::command]
+async fn toggle_hard_limit(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+    active: bool,
+) -> Result<Value, String> {
+    state.bridge.call("toggle_hard_limit", serde_json::json!({ "id": id, "active": active })).await
+}
+
+#[tauri::command]
+async fn add_personal_value(
+    state: tauri::State<'_, AppBridge>,
+    raw_text: String,
+    source: String,
+) -> Result<Value, String> {
+    state.bridge.call("add_personal_value", serde_json::json!({ "rawText": raw_text, "source": source })).await
+}
+
+#[tauri::command]
+async fn remove_personal_value(state: tauri::State<'_, AppBridge>, id: String) -> Result<Value, String> {
+    state.bridge.call("remove_personal_value", serde_json::json!({ "id": id })).await
+}
+
+#[tauri::command]
+async fn get_intent_observations(
+    state: tauri::State<'_, AppBridge>,
+    channel: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("get_intent_observations", serde_json::json!({ "channel": channel })).await
+}
+
+#[tauri::command]
+async fn dismiss_observation(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+    user_response: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("dismiss_observation", serde_json::json!({ "id": id, "userResponse": user_response })).await
+}
+
+#[tauri::command]
+async fn check_action_intent(
+    state: tauri::State<'_, AppBridge>,
+    action: String,
+    context: Value,
+) -> Result<Value, String> {
+    state.bridge.call("check_action_intent", serde_json::json!({ "action": action, "context": context })).await
+}
+
+#[tauri::command]
+async fn set_intent_onboarding(
+    state: tauri::State<'_, AppBridge>,
+    primary_goal: Option<String>,
+    hard_limit: Option<String>,
+    personal_value: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("set_intent_onboarding", serde_json::json!({
+        "primaryGoal": primary_goal,
+        "hardLimit": hard_limit,
+        "personalValue": personal_value,
+    })).await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1689,6 +1778,18 @@ pub fn run() {
             search_conversations,
             clear_all_conversations,
             set_conversation_auto_expiry,
+            // Intent Layer
+            get_intent,
+            set_primary_goal,
+            add_hard_limit,
+            remove_hard_limit,
+            toggle_hard_limit,
+            add_personal_value,
+            remove_personal_value,
+            get_intent_observations,
+            dismiss_observation,
+            check_action_intent,
+            set_intent_onboarding,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

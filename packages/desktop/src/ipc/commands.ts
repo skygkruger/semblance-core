@@ -413,6 +413,60 @@ export function setConversationAutoExpiry(days: number | null): Promise<void> {
   return invoke<void>('set_conversation_auto_expiry', { days });
 }
 
+// ─── Intent Layer ──────────────────────────────────────────────────────────
+
+export function getIntent(): Promise<import('./types.js').IntentProfile | null> {
+  return invoke<import('./types.js').IntentProfile | null>('get_intent');
+}
+
+export function setPrimaryGoal(text: string): Promise<void> {
+  return invoke<void>('set_primary_goal', { text });
+}
+
+export function addHardLimit(rawText: string, source: 'onboarding' | 'settings' | 'chat'): Promise<import('./types.js').HardLimitData> {
+  return invoke<import('./types.js').HardLimitData>('add_hard_limit', { rawText, source });
+}
+
+export function removeHardLimit(id: string): Promise<void> {
+  return invoke<void>('remove_hard_limit', { id });
+}
+
+export function toggleHardLimit(id: string, active: boolean): Promise<void> {
+  return invoke<void>('toggle_hard_limit', { id, active });
+}
+
+export function addPersonalValue(rawText: string, source: 'onboarding' | 'settings' | 'chat'): Promise<import('./types.js').PersonalValueData> {
+  return invoke<import('./types.js').PersonalValueData>('add_personal_value', { rawText, source });
+}
+
+export function removePersonalValue(id: string): Promise<void> {
+  return invoke<void>('remove_personal_value', { id });
+}
+
+export function getIntentObservations(channel?: 'morning_brief' | 'chat'): Promise<import('./types.js').IntentObservationData[]> {
+  return invoke<import('./types.js').IntentObservationData[]>('get_intent_observations', { channel });
+}
+
+export function dismissObservation(id: string, userResponse?: string): Promise<void> {
+  return invoke<void>('dismiss_observation', { id, userResponse });
+}
+
+export function checkActionIntent(action: string, context: Record<string, unknown>): Promise<import('./types.js').IntentCheckResultData> {
+  return invoke<import('./types.js').IntentCheckResultData>('check_action_intent', { action, context });
+}
+
+export function setIntentOnboarding(responses: {
+  primaryGoal?: string;
+  hardLimit?: string;
+  personalValue?: string;
+}): Promise<void> {
+  return invoke<void>('set_intent_onboarding', {
+    primaryGoal: responses.primaryGoal,
+    hardLimit: responses.hardLimit,
+    personalValue: responses.personalValue,
+  });
+}
+
 // ─── Files / Indexing ───────────────────────────────────────────────────────
 
 export function startIndexing(directories: string[]): Promise<void> {

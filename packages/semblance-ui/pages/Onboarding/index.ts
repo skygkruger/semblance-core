@@ -14,3 +14,5 @@ export { InitializeStep } from './InitializeStep';
 export type { InitializeStepProps, ModelDownload, KnowledgeMomentData } from './InitializeStep.types';
 export { TermsAcceptanceStep } from './TermsAcceptanceStep';
 export type { TermsAcceptanceStepProps } from './TermsAcceptanceStep.types';
+export { IntentCapture } from './IntentCapture';
+export type { IntentCaptureProps } from './IntentCapture.types';

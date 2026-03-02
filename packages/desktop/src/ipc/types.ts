@@ -451,6 +451,61 @@ export interface SendMessageResult {
   conversationId: string;
 }
 
+// ─── Intent Layer ──────────────────────────────────────────────────────────
+
+export interface IntentProfile {
+  primaryGoal: string | null;
+  primaryGoalSetAt: string | null;
+  hardLimits: HardLimitData[];
+  personalValues: PersonalValueData[];
+  updatedAt: string;
+}
+
+export interface HardLimitData {
+  id: string;
+  rawText: string;
+  parsedRule: {
+    action: 'never' | 'always_ask' | 'always';
+    scope: string;
+    target?: string;
+    category?: 'person' | 'topic' | 'action' | 'data';
+    confidence: number;
+  };
+  active: boolean;
+  source: 'onboarding' | 'settings' | 'chat';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PersonalValueData {
+  id: string;
+  rawText: string;
+  theme: string;
+  source: 'onboarding' | 'settings' | 'chat';
+  createdAt: string;
+  active: boolean;
+}
+
+export interface IntentObservationData {
+  id: string;
+  observedAt: string;
+  type: 'drift' | 'alignment' | 'conflict';
+  description: string;
+  evidence: string[];
+  surfacedMorningBrief: boolean;
+  surfacedInChat: boolean;
+  dismissed: boolean;
+  dismissedAt?: string;
+  userResponse?: string;
+}
+
+export interface IntentCheckResultData {
+  allowed: boolean;
+  matchedLimits: HardLimitData[];
+  alignmentScore: number;
+  reasoning: string;
+}
+
 // ─── Event Payloads ─────────────────────────────────────────────────────────
 
 export interface ChatTokenPayload {

@@ -97,6 +97,7 @@
     "contacts": "Contacts",
     "digest": "Digest",
     "network": "Network",
+    "intent": "Intent",
     "settings": "Settings"
   },
   "empty": {
@@ -580,6 +581,22 @@
       "guarantees_verified": "Guarantees verified",
       "requests_audited": "Requests audited",
       "unauthorized": "Unauthorized"
+    },
+    "intent": {
+      "title": "Your Intent",
+      "loading": "Loading intent profile...",
+      "section_goal": "Your Goal",
+      "section_limits": "Hard Limits",
+      "section_values": "Your Values",
+      "section_alignment": "Recent Alignment",
+      "goal_empty": "No goal set.",
+      "limits_empty": "No hard limits set.",
+      "values_empty": "Tell Semblance what matters most.",
+      "placeholder_goal": "What's your primary reason for using Semblance?",
+      "placeholder_limit": "Add a hard limit...",
+      "placeholder_value": "Add a personal value...",
+      "limit_active_title": "Active — click to deactivate",
+      "limit_inactive_title": "Inactive — click to activate"
     }
   },
   "upgrade": {

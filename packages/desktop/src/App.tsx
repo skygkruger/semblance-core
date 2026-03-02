@@ -20,6 +20,7 @@ import { RelationshipsScreen } from './screens/RelationshipsScreen';
 import { ConnectionsScreen } from './screens/ConnectionsScreen';
 import { MorningBriefScreen } from './screens/MorningBriefScreen';
 import { KnowledgeGraphScreen } from './screens/KnowledgeGraphScreen';
+import { IntentScreen } from './screens/IntentScreen';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
 import { UpgradeScreen as UpgradeScreenComponent } from '@semblance/ui';
@@ -120,12 +121,21 @@ function BrainIcon() {
     </svg>
   );
 }
+function CompassIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+    </svg>
+  );
+}
 
 const navItems: NavItem[] = [
   { id: 'chat', label: 'Chat', icon: <ChatIcon /> },
   { id: 'inbox', label: 'Inbox', icon: <InboxIcon /> },
   { id: 'morning-brief', label: 'Brief', icon: <SunriseIcon /> },
   { id: 'knowledge', label: 'Knowledge', icon: <BrainIcon /> },
+  { id: 'intent', label: 'Intent', icon: <CompassIcon /> },
   { id: 'files', label: 'Files', icon: <FolderIcon /> },
   { id: 'connections', label: 'Connections', icon: <PlugIcon /> },
   { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
@@ -234,6 +244,7 @@ function AppContent() {
           <Route path="/inbox" element={<InboxScreen />} />
           <Route path="/morning-brief" element={<MorningBriefScreen />} />
           <Route path="/knowledge" element={<KnowledgeGraphScreen />} />
+          <Route path="/intent" element={<IntentScreen />} />
           <Route path="/files" element={<FilesScreen />} />
           <Route path="/connections" element={<ConnectionsScreen />} />
           <Route path="/activity" element={<ActivityScreen />} />
