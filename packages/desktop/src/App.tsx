@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { listen } from '@tauri-apps/api/event';
-import { Navigation, PrivacyBadge, ThemeToggle } from '@semblance/ui';
-import type { NavItem } from '@semblance/ui';
+import { DesktopSidebar, PrivacyBadge, ThemeToggle } from '@semblance/ui';
+import type { NavItem, ThemeMode } from '@semblance/ui';
 import { AppStateProvider, useAppState, useAppDispatch } from './state/AppState';
 import { LicenseProvider, useLicense } from './contexts/LicenseContext';
 import { useTheme } from './hooks/useTheme';
-import { OnboardingScreen } from './screens/OnboardingScreen';
+import { OnboardingFlow } from './screens/OnboardingFlow';
 import { ChatScreen } from './screens/ChatScreen';
 import { FilesScreen } from './screens/FilesScreen';
 import { ActivityScreen } from './screens/ActivityScreen';
@@ -17,13 +17,13 @@ import { DigestScreen } from './screens/DigestScreen';
 import { NetworkMonitorScreen } from './screens/NetworkMonitorScreen';
 import { RelationshipsScreen } from './screens/RelationshipsScreen';
 import { ConnectionsScreen } from './screens/ConnectionsScreen';
+import { MorningBriefScreen } from './screens/MorningBriefScreen';
+import { KnowledgeGraphScreen } from './screens/KnowledgeGraphScreen';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
 import { UpgradeScreen as UpgradeScreenComponent } from '@semblance/ui';
-import type { ThemeMode } from '@semblance/ui';
 
-// Lucide-style inline SVG icons (16×16, stroke-based)
-// Using inline SVGs to avoid needing lucide-react to be installed for build
+// Lucide-style inline SVG icons (20x20, stroke-based)
 function ChatIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -101,10 +101,30 @@ function GearIcon() {
     </svg>
   );
 }
+function SunriseIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2v4" /><path d="m4.93 10.93 2.83 2.83" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m19.07 10.93-2.83 2.83" />
+      <path d="M22 22H2" /><path d="M16 6l-4 4-4-4" /><path d="M16 18a4 4 0 0 0-8 0" />
+    </svg>
+  );
+}
+function BrainIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+      <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+      <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" />
+      <path d="M12 18v4" />
+    </svg>
+  );
+}
 
 const navItems: NavItem[] = [
   { id: 'chat', label: 'Chat', icon: <ChatIcon /> },
   { id: 'inbox', label: 'Inbox', icon: <InboxIcon /> },
+  { id: 'morning-brief', label: 'Brief', icon: <SunriseIcon /> },
+  { id: 'knowledge', label: 'Knowledge', icon: <BrainIcon /> },
   { id: 'files', label: 'Files', icon: <FolderIcon /> },
   { id: 'connections', label: 'Connections', icon: <PlugIcon /> },
   { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
@@ -117,22 +137,24 @@ const navItems: NavItem[] = [
 function AppContent() {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { theme, setTheme } = useTheme();
   const license = useLicense();
 
+  // Derive active screen from URL path
+  const activeId = location.pathname.slice(1) || 'chat';
+
   // Hydrate license status on startup + listen for deep link activations
   useEffect(() => {
-    // Hydrate license from SQLite on startup
     license.refresh().catch(() => {
       // Not yet initialized — will be free tier by default
     });
 
-    // Listen for deep link founding activation (forwarded from Rust)
     const unlistenFoundingPromise = listen<{ token: string }>('founding-activate', async (event) => {
       try {
         const result = await license.activateFoundingToken(event.payload.token);
         if (result.success) {
-          // If in onboarding, jump to the autonomy step (which shows founding member moment)
           if (!state.onboardingComplete) {
             dispatch({ type: 'SET_ONBOARDING_STEP', step: 9 });
           }
@@ -142,7 +164,6 @@ function AppContent() {
       }
     });
 
-    // Listen for deep link license key activation (forwarded from Rust)
     const unlistenLicensePromise = listen<{ key: string }>('license-activate', async (event) => {
       try {
         await license.activateKey(event.payload.key);
@@ -151,7 +172,6 @@ function AppContent() {
       }
     });
 
-    // Listen for automatic license detection from email indexing
     const unlistenAutoDetectPromise = listen<{ tier: string; expiresAt?: string }>('semblance://license-auto-activated', async () => {
       await license.refresh();
     });
@@ -166,55 +186,28 @@ function AppContent() {
 
   // Show onboarding if not complete
   if (!state.onboardingComplete) {
-    return <OnboardingScreen />;
+    return <OnboardingFlow />;
   }
-
-  const renderScreen = () => {
-    switch (state.activeScreen) {
-      case 'chat': return <ChatScreen />;
-      case 'inbox': return <InboxScreen />;
-      case 'files': return <FilesScreen />;
-      case 'connections': return <ConnectionsScreen />;
-      case 'activity': return <ActivityScreen />;
-      case 'privacy': return <PrivacyScreen />;
-      case 'relationships': return <RelationshipsScreen />;
-      case 'digest': return <DigestScreen />;
-      case 'network': return <NetworkMonitorScreen />;
-      case 'settings': return <SettingsScreen />;
-      case 'upgrade': return (
-        <UpgradeScreenComponent
-          currentTier={license.tier}
-          isFoundingMember={license.isFoundingMember}
-          foundingSeat={license.foundingSeat}
-          onCheckout={license.openCheckout}
-          onActivateKey={license.activateKey}
-          onManageSubscription={license.manageSubscription}
-          onBack={() => dispatch({ type: 'SET_ACTIVE_SCREEN', screen: 'settings' })}
-        />
-      );
-      default: return <ChatScreen />;
-    }
-  };
 
   return (
     <div className="flex h-screen bg-semblance-bg-light dark:bg-semblance-bg-dark">
       <UpdateChecker />
-      <Navigation
+      <DesktopSidebar
         items={navItems}
-        activeId={state.activeScreen}
-        onNavigate={(id) => dispatch({ type: 'SET_ACTIVE_SCREEN', screen: id })}
+        activeId={activeId}
+        onNavigate={(id) => navigate('/' + id)}
         footer={
           <div className="space-y-3">
-            <NetworkStatusIndicator onClick={() => dispatch({ type: 'SET_ACTIVE_SCREEN', screen: 'network' })} />
+            <NetworkStatusIndicator onClick={() => navigate('/network')} />
             <PrivacyBadge />
             <button
               type="button"
-              onClick={() => dispatch({ type: 'SET_ACTIVE_SCREEN', screen: 'settings' })}
+              onClick={() => navigate('/settings')}
               className={`
                 w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
                 transition-colors duration-fast
                 focus-visible:outline-none focus-visible:shadow-focus
-                ${state.activeScreen === 'settings'
+                ${activeId === 'settings'
                   ? 'bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark text-semblance-primary'
                   : 'text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark'
                 }
@@ -235,7 +228,36 @@ function AppContent() {
         }
       />
       <main className="flex-1 overflow-hidden">
-        {renderScreen()}
+        <Routes>
+          <Route path="/chat" element={<ChatScreen />} />
+          <Route path="/inbox" element={<InboxScreen />} />
+          <Route path="/morning-brief" element={<MorningBriefScreen />} />
+          <Route path="/knowledge" element={<KnowledgeGraphScreen />} />
+          <Route path="/files" element={<FilesScreen />} />
+          <Route path="/connections" element={<ConnectionsScreen />} />
+          <Route path="/activity" element={<ActivityScreen />} />
+          <Route path="/privacy" element={<PrivacyScreen />} />
+          <Route path="/relationships" element={<RelationshipsScreen />} />
+          <Route path="/digest" element={<DigestScreen />} />
+          <Route path="/network" element={<NetworkMonitorScreen />} />
+          <Route path="/settings" element={<SettingsScreen />} />
+          <Route
+            path="/upgrade"
+            element={
+              <UpgradeScreenComponent
+                currentTier={license.tier}
+                isFoundingMember={license.isFoundingMember}
+                foundingSeat={license.foundingSeat}
+                onCheckout={license.openCheckout}
+                onActivateKey={license.activateKey}
+                onManageSubscription={license.manageSubscription}
+                onBack={() => navigate('/settings')}
+              />
+            }
+          />
+          <Route path="/" element={<Navigate to="/chat" replace />} />
+          <Route path="*" element={<Navigate to="/chat" replace />} />
+        </Routes>
       </main>
     </div>
   );

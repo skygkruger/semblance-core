@@ -1,0 +1,72 @@
+{
+  "button": {
+    "continue": "[ZH-CN] Continue",
+    "skip": "[ZH-CN] Skip",
+    "cancel": "[ZH-CN] Cancel",
+    "save": "[ZH-CN] Save",
+    "done": "[ZH-CN] Done",
+    "back": "[ZH-CN] Back",
+    "close": "[ZH-CN] Close",
+    "confirm": "[ZH-CN] Confirm",
+    "approve": "[ZH-CN] Approve",
+    "reject": "[ZH-CN] Reject",
+    "undo": "[ZH-CN] Undo",
+    "retry": "[ZH-CN] Retry",
+    "connect": "[ZH-CN] Connect",
+    "disconnect": "[ZH-CN] Disconnect",
+    "sync": "[ZH-CN] Sync",
+    "upgrade": "[ZH-CN] Upgrade",
+    "begin": "[ZH-CN] Begin",
+    "start": "[ZH-CN] Start"
+  },
+  "status": {
+    "connected": "[ZH-CN] Connected",
+    "disconnected": "[ZH-CN] Disconnected",
+    "pending": "[ZH-CN] Pending",
+    "error": "[ZH-CN] Error",
+    "loading": "[ZH-CN] Loading...",
+    "idle": "[ZH-CN] Idle",
+    "thinking": "[ZH-CN] Thinking",
+    "acting": "[ZH-CN] Acting",
+    "syncing": "[ZH-CN] Syncing...",
+    "complete": "[ZH-CN] Complete"
+  },
+  "time": {
+    "just_now": "[ZH-CN] Just now",
+    "minutes_ago": "[ZH-CN] {{count}}m ago",
+    "hours_ago": "[ZH-CN] {{count}}h ago",
+    "days_ago": "[ZH-CN] {{count}}d ago",
+    "today": "[ZH-CN] Today",
+    "yesterday": "[ZH-CN] Yesterday"
+  },
+  "license": {
+    "free": "[ZH-CN] Free",
+    "founding": "[ZH-CN] Founding Member",
+    "digital_representative": "[ZH-CN] Digital Representative",
+    "lifetime": "[ZH-CN] Lifetime"
+  },
+  "privacy": {
+    "all_local": "[ZH-CN] All local",
+    "zero_network": "[ZH-CN] Zero network",
+    "badge_label": "[ZH-CN] Privacy"
+  },
+  "nav": {
+    "chat": "[ZH-CN] Chat",
+    "inbox": "[ZH-CN] Inbox",
+    "brief": "[ZH-CN] Brief",
+    "knowledge": "[ZH-CN] Knowledge",
+    "files": "[ZH-CN] Files",
+    "connections": "[ZH-CN] Connections",
+    "activity": "[ZH-CN] Activity",
+    "privacy": "[ZH-CN] Privacy",
+    "contacts": "[ZH-CN] Contacts",
+    "digest": "[ZH-CN] Digest",
+    "network": "[ZH-CN] Network",
+    "settings": "[ZH-CN] Settings"
+  },
+  "empty": {
+    "no_data": "[ZH-CN] No data yet",
+    "no_results": "[ZH-CN] No results",
+    "get_started": "[ZH-CN] Get started by connecting a data source."
+  }
+}

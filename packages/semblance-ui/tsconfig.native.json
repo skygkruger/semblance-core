@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "tokens/**/*.ts",
+    "components/**/*.native.tsx",
+    "components/**/*.types.ts",
+    "components/**/*.logic.ts",
+    "pages/**/*.native.tsx",
+    "pages/**/*.types.ts",
+    "pages/**/*.logic.ts",
+    "index.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.web.tsx",
+    "**/*.stories.tsx",
+    "**/*.css"
+  ]
+}

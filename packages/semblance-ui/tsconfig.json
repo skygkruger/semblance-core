@@ -14,8 +14,9 @@
     "sourceMap": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "moduleSuffixes": [".web", ""]
   },
-  "include": ["global.d.ts", "tokens/**/*.ts", "components/**/*.ts", "components/**/*.tsx", "hooks/**/*.ts", "stories/**/*.tsx", "index.ts"],
-  "exclude": ["node_modules", "dist", "**/*.stories.tsx"]
+  "include": ["global.d.ts", "tokens/**/*.ts", "components/**/*.ts", "components/**/*.tsx", "pages/**/*.ts", "pages/**/*.tsx", "hooks/**/*.ts", "stories/**/*.tsx", "index.ts"],
+  "exclude": ["node_modules", "dist", "**/*.stories.tsx", "**/*.native.tsx"]
 }

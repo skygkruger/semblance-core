@@ -1,1 +1,2 @@
-export { ChatBubble } from './ChatBubble.js';
+export { ChatBubble } from './ChatBubble';
+export type * from './ChatBubble.types';

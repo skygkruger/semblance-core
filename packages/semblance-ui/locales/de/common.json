@@ -1,0 +1,72 @@
+{
+  "button": {
+    "continue": "[DE] Continue",
+    "skip": "[DE] Skip",
+    "cancel": "[DE] Cancel",
+    "save": "[DE] Save",
+    "done": "[DE] Done",
+    "back": "[DE] Back",
+    "close": "[DE] Close",
+    "confirm": "[DE] Confirm",
+    "approve": "[DE] Approve",
+    "reject": "[DE] Reject",
+    "undo": "[DE] Undo",
+    "retry": "[DE] Retry",
+    "connect": "[DE] Connect",
+    "disconnect": "[DE] Disconnect",
+    "sync": "[DE] Sync",
+    "upgrade": "[DE] Upgrade",
+    "begin": "[DE] Begin",
+    "start": "[DE] Start"
+  },
+  "status": {
+    "connected": "[DE] Connected",
+    "disconnected": "[DE] Disconnected",
+    "pending": "[DE] Pending",
+    "error": "[DE] Error",
+    "loading": "[DE] Loading...",
+    "idle": "[DE] Idle",
+    "thinking": "[DE] Thinking",
+    "acting": "[DE] Acting",
+    "syncing": "[DE] Syncing...",
+    "complete": "[DE] Complete"
+  },
+  "time": {
+    "just_now": "[DE] Just now",
+    "minutes_ago": "[DE] {{count}}m ago",
+    "hours_ago": "[DE] {{count}}h ago",
+    "days_ago": "[DE] {{count}}d ago",
+    "today": "[DE] Today",
+    "yesterday": "[DE] Yesterday"
+  },
+  "license": {
+    "free": "[DE] Free",
+    "founding": "[DE] Founding Member",
+    "digital_representative": "[DE] Digital Representative",
+    "lifetime": "[DE] Lifetime"
+  },
+  "privacy": {
+    "all_local": "[DE] All local",
+    "zero_network": "[DE] Zero network",
+    "badge_label": "[DE] Privacy"
+  },
+  "nav": {
+    "chat": "[DE] Chat",
+    "inbox": "[DE] Inbox",
+    "brief": "[DE] Brief",
+    "knowledge": "[DE] Knowledge",
+    "files": "[DE] Files",
+    "connections": "[DE] Connections",
+    "activity": "[DE] Activity",
+    "privacy": "[DE] Privacy",
+    "contacts": "[DE] Contacts",
+    "digest": "[DE] Digest",
+    "network": "[DE] Network",
+    "settings": "[DE] Settings"
+  },
+  "empty": {
+    "no_data": "[DE] No data yet",
+    "no_results": "[DE] No results",
+    "get_started": "[DE] Get started by connecting a data source."
+  }
+}

@@ -1,1 +1,2 @@
-export { WireframeSpinner } from './WireframeSpinner.js';
+export { WireframeSpinner } from './WireframeSpinner';
+export type { WireframeSpinnerProps } from './WireframeSpinner.types';

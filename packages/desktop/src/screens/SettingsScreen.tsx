@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { Card, Input, Button, StatusIndicator, AutonomySelector, ThemeToggle, CredentialForm, LicenseActivation, FoundingMemberBadge } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
@@ -35,7 +36,7 @@ interface AccountStatus {
 
 function LicenseSection() {
   const license = useLicense();
-  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   const tierLabel =
     license.tier === 'digital-representative' ? 'Digital Representative' :
@@ -67,7 +68,7 @@ function LicenseSection() {
           <Button
             variant="solid"
             size="sm"
-            onClick={() => dispatch({ type: 'SET_ACTIVE_SCREEN', screen: 'upgrade' })}
+            onClick={() => navigate('/upgrade')}
           >
             Upgrade
           </Button>
