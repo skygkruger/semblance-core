@@ -7,6 +7,7 @@
 import type { DatabaseHandle } from '../../platform/types.js';
 import type { LLMProvider } from '../../llm/types.js';
 import type { ContactStore } from './contact-store.js';
+import { sanitizeRetrievedContent } from '../../agent/content-sanitizer.js';
 import type {
   ContactEntity,
   CommunicationFrequency,
@@ -273,7 +274,7 @@ Evidence:
 - Email domains: ${evidence.emailDomains.join(', ') || 'unknown'}
 - Total interactions: ${evidence.interactionCount}
 - Meetings/month: ${evidence.meetingsPerMonth}
-- Recent email subjects: ${evidence.emailSamples.join('; ') || 'none'}
+- Recent email subjects: ${evidence.emailSamples.map(s => sanitizeRetrievedContent(s)).join('; ') || 'none'}
 
 Respond with ONLY the relationship type (one word):`;
 

@@ -5,6 +5,7 @@
 
 import type { LLMProvider } from '../llm/types.js';
 import { createEmptyProfile, type StyleProfile } from './style-profile.js';
+import { sanitizeRetrievedContent } from '../agent/content-sanitizer.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -357,8 +358,10 @@ export async function extractStyleFromEmails(
     // Sample up to 10 emails for LLM analysis
     const sampleSize = Math.min(10, emails.length);
     const sampleEmails = emails.slice(0, sampleSize);
+    // SECURITY: Sanitize email fields that may contain adversarial content
+    // (to addresses and body text from reply threads could contain external content)
     const sampleBodies = sampleEmails.map((e, i) =>
-      `--- Email ${i + 1} (to: ${e.to.join(', ')}) ---\n${extractUserText(e.body).substring(0, 500)}`
+      `--- Email ${i + 1} (to: ${e.to.map(t => sanitizeRetrievedContent(t)).join(', ')}) ---\n${sanitizeRetrievedContent(extractUserText(e.body).substring(0, 500))}`
     ).join('\n\n');
 
     try {
