@@ -76,7 +76,7 @@ describe('IntentManager.checkAction()', () => {
 
     expect(result.allowed).toBe(false);
     expect(result.matchedLimits).toHaveLength(1);
-    expect(result.matchedLimits[0].id).toBe('lim-exact');
+    expect(result.matchedLimits[0]!.id).toBe('lim-exact');
     expect(result.hardLimitTriggered).toBeDefined();
     expect(result.hardLimitTriggered!.id).toBe('lim-exact');
   });
@@ -92,7 +92,7 @@ describe('IntentManager.checkAction()', () => {
 
     expect(result.allowed).toBe(false);
     expect(result.matchedLimits).toHaveLength(1);
-    expect(result.matchedLimits[0].id).toBe('lim-wildcard');
+    expect(result.matchedLimits[0]!.id).toBe('lim-wildcard');
   });
 
   it('does not block unrelated scope (scope="email.send", action="calendar.create")', () => {
@@ -124,7 +124,7 @@ describe('IntentManager.checkAction()', () => {
 
     expect(result.allowed).toBe(false);
     expect(result.matchedLimits).toHaveLength(1);
-    expect(result.matchedLimits[0].id).toBe('lim-any');
+    expect(result.matchedLimits[0]!.id).toBe('lim-any');
   });
 
   // ─── Target matching ───────────────────────────────────────────────────
@@ -166,7 +166,7 @@ describe('IntentManager.checkAction()', () => {
 
     expect(result.allowed).toBe(false);
     expect(result.matchedLimits).toHaveLength(1);
-    expect(result.matchedLimits[0].id).toBe('lim-nested');
+    expect(result.matchedLimits[0]!.id).toBe('lim-nested');
   });
 
   it('is case-insensitive for target matching', () => {
@@ -264,7 +264,7 @@ describe('IntentManager.checkAction()', () => {
 
     expect(result.allowed).toBe(false);
     expect(result.matchedLimits).toHaveLength(1);
-    expect(result.matchedLimits[0].parsedRule.action).toBe('always_ask');
+    expect(result.matchedLimits[0]!.parsedRule.action).toBe('always_ask');
   });
 
   // ─── Reasoning string ──────────────────────────────────────────────────
@@ -301,6 +301,6 @@ describe('IntentManager.checkAction()', () => {
 
     expect(result.allowed).toBe(false);
     expect(result.matchedLimits).toHaveLength(1);
-    expect(result.matchedLimits[0].id).toBe('lim-scope-only');
+    expect(result.matchedLimits[0]!.id).toBe('lim-scope-only');
   });
 });

@@ -256,8 +256,8 @@ describe('IntentManager', () => {
 
     const unparsed = manager.getUnparsedLimits();
     expect(unparsed).toHaveLength(2);
-    expect(unparsed[0].parsedRule.confidence).toBe(0);
-    expect(unparsed[1].parsedRule.confidence).toBe(0);
+    expect(unparsed[0]!.parsedRule.confidence).toBe(0);
+    expect(unparsed[1]!.parsedRule.confidence).toBe(0);
   });
 
   // ─── 18. retryParsing ────────────────────────────────────────────────────
@@ -363,7 +363,7 @@ describe('IntentManager', () => {
 
     const morningPending = manager.getPendingObservations('morning_brief');
     expect(morningPending).toHaveLength(1);
-    expect(morningPending[0].description).toBe('Alignment obs');
+    expect(morningPending[0]!.description).toBe('Alignment obs');
 
     // chat channel should still see both (neither surfaced in chat)
     const chatPending = manager.getPendingObservations('chat');
@@ -394,7 +394,7 @@ describe('IntentManager', () => {
 
     const chatPending = manager.getPendingObservations('chat');
     expect(chatPending).toHaveLength(1);
-    expect(chatPending[0].description).toBe('Conflict obs');
+    expect(chatPending[0]!.description).toBe('Conflict obs');
   });
 
   it('dismissObservation marks observation dismissed', () => {
