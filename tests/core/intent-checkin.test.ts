@@ -30,9 +30,9 @@ function createMockLLM(overrides?: Partial<LLMProvider>): LLMProvider {
       toolCalls: undefined,
     } satisfies ChatResponse),
     embed: vi.fn().mockResolvedValue({
-      embedding: [0.1, 0.2, 0.3],
+      embeddings: [[0.1, 0.2, 0.3]],
       model: 'test-model',
-      tokensUsed: 5,
+      durationMs: 10,
     } satisfies EmbedResponse),
     listModels: vi.fn().mockResolvedValue([] as ModelInfo[]),
     getModel: vi.fn().mockResolvedValue(null),
