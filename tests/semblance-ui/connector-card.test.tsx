@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ConnectorCard } from '../../packages/semblance-ui/components/ConnectorCard/ConnectorCard';
-import type { ConnectorCardProps } from '../../packages/semblance-ui/components/ConnectorCard/ConnectorCard';
+import type { ConnectorCardProps } from '../../packages/semblance-ui/components/ConnectorCard/ConnectorCard.types';
 
 function defaultProps(overrides?: Partial<ConnectorCardProps>): ConnectorCardProps {
   return {
