@@ -87,6 +87,20 @@ export interface DocumentContext {
   mimeType: string;
 }
 
+export type AttachmentStatus = 'pending' | 'processing' | 'ready' | 'error';
+
+export interface ChatAttachmentInfo {
+  id: string;
+  fileName: string;
+  filePath: string;
+  mimeType: string;
+  sizeBytes: number;
+  status: AttachmentStatus;
+  error?: string;
+  documentId?: string;
+  addedToKnowledge: boolean;
+}
+
 // ─── Email / Calendar / Inbox ───────────────────────────────────────────────
 
 export interface IndexedEmail {

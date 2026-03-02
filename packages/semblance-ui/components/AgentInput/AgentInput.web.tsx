@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { WireframeSpinner } from '../WireframeSpinner/WireframeSpinner';
-import type { AgentInputProps } from './AgentInput.types';
+import type { AgentInputProps, AttachmentPill } from './AgentInput.types';
 import {
   MIC_PATH,
   MIC_BASE,
@@ -15,6 +15,9 @@ export function AgentInput({
   placeholder,
   thinking = false,
   activeDocument,
+  attachments = [],
+  onAttach,
+  onRemoveAttachment,
   onSend,
   onSubmit,
   autoFocus = false,
@@ -138,23 +141,56 @@ export function AgentInput({
   // Show custom placeholder hint when textarea is empty, not focused, and voice is not active
   const showHint = !value && !isFocused && !isVoiceActive && !thinking;
 
+  // Merge legacy activeDocument into attachments for backward compat display
+  const displayAttachments: AttachmentPill[] = attachments.length > 0
+    ? attachments
+    : activeDocument
+      ? [{ id: '__legacy__', fileName: activeDocument.name, status: 'ready' as const }]
+      : [];
+
+  const handleLegacyDismiss = (id: string) => {
+    if (id === '__legacy__' && activeDocument) {
+      activeDocument.onDismiss();
+    } else {
+      onRemoveAttachment?.(id);
+    }
+  };
+
   return (
     <div className={rootClasses}>
-      {activeDocument && (
-        <div className="agent-input__document-pill">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
-          <span className="agent-input__document-name">{activeDocument.name}</span>
-          <button
-            type="button"
-            className="agent-input__document-dismiss"
-            onClick={activeDocument.onDismiss}
-            aria-label={t('input.dismiss_document')}
-          >
-            &times;
-          </button>
+      {displayAttachments.length > 0 && (
+        <div className="agent-input__attachments" data-testid="attachment-pills">
+          {displayAttachments.map(att => (
+            <div
+              key={att.id}
+              className={[
+                'agent-input__document-pill',
+                att.status === 'processing' ? 'agent-input__document-pill--processing' : '',
+                att.status === 'error' ? 'agent-input__document-pill--error' : '',
+              ].filter(Boolean).join(' ')}
+              data-testid={`attachment-pill-${att.id}`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <span className="agent-input__document-name">{att.fileName}</span>
+              {att.status === 'processing' && (
+                <span className="agent-input__pill-spinner" />
+              )}
+              {att.status === 'error' && att.error && (
+                <span className="agent-input__pill-error" title={att.error}>!</span>
+              )}
+              <button
+                type="button"
+                className="agent-input__document-dismiss"
+                onClick={() => handleLegacyDismiss(att.id)}
+                aria-label={t('input.dismiss_document')}
+              >
+                &times;
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -220,6 +256,20 @@ export function AgentInput({
         )}
 
         <div className="agent-input__actions">
+          {onAttach && (
+            <button
+              type="button"
+              className="agent-input__attach"
+              onClick={onAttach}
+              disabled={thinking}
+              aria-label={t('input.attach_file')}
+              data-testid="attach-button"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </button>
+          )}
           {voiceEnabled && (
             <button
               type="button"

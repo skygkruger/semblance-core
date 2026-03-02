@@ -13,7 +13,7 @@ import {
   type TextInputSubmitEditingEventData,
 } from 'react-native';
 import { WireframeSpinner } from '../WireframeSpinner/WireframeSpinner';
-import type { AgentInputProps } from './AgentInput.types';
+import type { AgentInputProps, AttachmentPill } from './AgentInput.types';
 import { PLACEHOLDER_HINTS } from './AgentInput.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
@@ -21,6 +21,9 @@ export function AgentInput({
   placeholder,
   thinking = false,
   activeDocument,
+  attachments = [],
+  onAttach,
+  onRemoveAttachment,
   onSend,
   onSubmit,
   autoFocus = false,
@@ -131,19 +134,45 @@ export function AgentInput({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.root}
     >
-      {activeDocument && (
-        <View style={styles.documentPill}>
-          <Text style={styles.documentName} numberOfLines={1}>
-            {activeDocument.name}
-          </Text>
-          <Pressable
-            onPress={activeDocument.onDismiss}
-            hitSlop={8}
-            style={styles.documentDismiss}
-            accessibilityLabel={t('input.dismiss_document')}
-          >
-            <Text style={styles.documentDismissText}>x</Text>
-          </Pressable>
+      {/* Attachment pills — multi-file, with legacy fallback */}
+      {(attachments.length > 0 || activeDocument) && (
+        <View style={styles.attachmentsRow}>
+          {attachments.length > 0
+            ? attachments.map(att => (
+                <View
+                  key={att.id}
+                  style={[
+                    styles.documentPill,
+                    att.status === 'error' && styles.documentPillError,
+                  ]}
+                >
+                  <Text style={styles.documentName} numberOfLines={1}>{att.fileName}</Text>
+                  {att.status === 'processing' && <Text style={styles.pillSpinner}>...</Text>}
+                  {att.status === 'error' && <Text style={styles.pillErrorIcon}>!</Text>}
+                  <Pressable
+                    onPress={() => onRemoveAttachment?.(att.id)}
+                    hitSlop={8}
+                    style={styles.documentDismiss}
+                    accessibilityLabel={t('input.dismiss_document')}
+                  >
+                    <Text style={styles.documentDismissText}>x</Text>
+                  </Pressable>
+                </View>
+              ))
+            : activeDocument && (
+                <View style={styles.documentPill}>
+                  <Text style={styles.documentName} numberOfLines={1}>{activeDocument.name}</Text>
+                  <Pressable
+                    onPress={activeDocument.onDismiss}
+                    hitSlop={8}
+                    style={styles.documentDismiss}
+                    accessibilityLabel={t('input.dismiss_document')}
+                  >
+                    <Text style={styles.documentDismissText}>x</Text>
+                  </Pressable>
+                </View>
+              )
+          }
         </View>
       )}
 
@@ -215,6 +244,17 @@ export function AgentInput({
         </View>
 
         <View style={styles.actions}>
+          {onAttach && (
+            <Pressable
+              onPress={onAttach}
+              disabled={thinking}
+              accessibilityLabel={t('input.attach_file')}
+              style={styles.attachButton}
+              hitSlop={8}
+            >
+              <Text style={styles.attachIcon}>+</Text>
+            </Pressable>
+          )}
           {voiceEnabled && (
             <Pressable
               onPress={handleMicPress}
@@ -261,6 +301,12 @@ const styles = StyleSheet.create({
   root: {
     width: '100%',
   },
+  attachmentsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: nativeSpacing.s2,
+    marginBottom: nativeSpacing.s2,
+  },
   documentPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,8 +314,34 @@ const styles = StyleSheet.create({
     borderRadius: nativeRadius.sm,
     paddingHorizontal: nativeSpacing.s3,
     paddingVertical: nativeSpacing.s2,
-    marginBottom: nativeSpacing.s2,
     gap: nativeSpacing.s2,
+    maxWidth: 200,
+  },
+  documentPillError: {
+    borderWidth: 1,
+    borderColor: brandColors.rust,
+  },
+  pillSpinner: {
+    fontFamily: nativeFontFamily.mono,
+    fontSize: nativeFontSize.sm,
+    color: brandColors.amber,
+  },
+  pillErrorIcon: {
+    fontFamily: nativeFontFamily.mono,
+    fontSize: nativeFontSize.sm,
+    color: brandColors.rust,
+  },
+  attachButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: nativeRadius.full,
+  },
+  attachIcon: {
+    fontFamily: nativeFontFamily.mono,
+    fontSize: nativeFontSize.md,
+    color: brandColors.sv2,
   },
   documentName: {
     flex: 1,

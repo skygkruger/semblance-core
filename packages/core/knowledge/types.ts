@@ -28,6 +28,7 @@ export type DocumentSource =
   | 'photos_metadata'
   | 'messaging'
   | 'social'
+  | 'chat_attachment'
   | 'manual';
 
 export interface DocumentChunk {

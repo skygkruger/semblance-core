@@ -1,11 +1,22 @@
 import { useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChatBubble, AgentInput, StatusIndicator } from '@semblance/ui';
+import { ChatBubble, AgentInput, StatusIndicator, DocumentPanel, ArtifactPanel } from '@semblance/ui';
+import type { ArtifactItem } from '@semblance/ui';
+import { parseArtifacts } from '@semblance/core/agent/artifact-parser';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useTauriEvent } from '../hooks/useTauriEvent';
 import { useHardwareTier } from '../hooks/useHardwareTier';
 import { useVoiceInput } from '../hooks/useVoiceInput';
-import { sendMessage, documentPickFile, documentSetContext, documentClearContext } from '../ipc/commands';
+import {
+  sendMessage,
+  documentPickFile,
+  documentSetContext,
+  documentClearContext,
+  documentPickFiles,
+  documentAddFile,
+  documentRemoveFile,
+} from '../ipc/commands';
+import { validateAttachment, mimeFromExtension } from '@semblance/core/agent/attachments';
 import { createMockVoiceAdapter } from '@semblance/core/platform/desktop-voice';
 import type { DocumentContext } from '../state/AppState';
 
@@ -17,6 +28,11 @@ export function ChatScreen() {
   const containerRef = useRef<HTMLDivElement>(null);
   const name = state.userName || 'Semblance';
   const [isDragging, setIsDragging] = useState(false);
+
+  // Right panel slot — only one panel open at a time (documents OR artifact)
+  type PanelSlot = 'none' | 'documents' | 'artifact';
+  const [activePanel, setActivePanel] = useState<PanelSlot>('none');
+  const [selectedArtifact, setSelectedArtifact] = useState<ArtifactItem | null>(null);
 
   // Voice hardware capability gate
   const { voiceCapable } = useHardwareTier();
@@ -48,11 +64,101 @@ export function ChatScreen() {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      const tempId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      dispatch({
+        type: 'ADD_ATTACHMENT',
+        attachment: {
+          id: tempId,
+          fileName: file.name,
+          filePath: file.name, // Tauri resolves from drop event
+          mimeType: file.type || '',
+          sizeBytes: file.size,
+          status: 'processing',
+          addedToKnowledge: false,
+        },
+      });
+
+      try {
+        const result = await documentAddFile(file.name);
+        dispatch({
+          type: 'UPDATE_ATTACHMENT',
+          id: tempId,
+          updates: {
+            id: result.id,
+            mimeType: result.mimeType,
+            sizeBytes: result.sizeBytes,
+            status: result.status,
+            documentId: result.documentId,
+            error: result.error,
+          },
+        });
+      } catch (err) {
+        dispatch({
+          type: 'UPDATE_ATTACHMENT',
+          id: tempId,
+          updates: {
+            status: 'error',
+            error: err instanceof Error ? err.message : String(err),
+          },
+        });
+      }
+    }
+  }, [dispatch]);
+
+  // File picker handler — multi-file
+  const handleAttach = useCallback(async () => {
     try {
-      const result = await documentSetContext(file.name);
-      dispatch({ type: 'SET_DOCUMENT_CONTEXT', context: result });
+      const filePaths = await documentPickFiles();
+      if (!filePaths || filePaths.length === 0) return;
+
+      for (const filePath of filePaths) {
+        const fileName = filePath.split(/[/\\]/).pop() ?? filePath;
+        const tempId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+        // Add pending pill immediately
+        dispatch({
+          type: 'ADD_ATTACHMENT',
+          attachment: {
+            id: tempId,
+            fileName,
+            filePath,
+            mimeType: '',
+            sizeBytes: 0,
+            status: 'processing',
+            addedToKnowledge: false,
+          },
+        });
+
+        try {
+          const result = await documentAddFile(filePath);
+          dispatch({
+            type: 'UPDATE_ATTACHMENT',
+            id: tempId,
+            updates: {
+              id: result.id,
+              mimeType: result.mimeType,
+              sizeBytes: result.sizeBytes,
+              status: result.status,
+              documentId: result.documentId,
+              error: result.error,
+            },
+          });
+        } catch (err) {
+          dispatch({
+            type: 'UPDATE_ATTACHMENT',
+            id: tempId,
+            updates: {
+              status: 'error',
+              error: err instanceof Error ? err.message : String(err),
+            },
+          });
+        }
+      }
     } catch (err) {
       dispatch({
         type: 'ADD_CHAT_MESSAGE',
@@ -66,8 +172,17 @@ export function ChatScreen() {
     }
   }, [dispatch]);
 
-  // File picker handler
-  const handleAttach = useCallback(async () => {
+  // Remove a single attachment
+  const handleRemoveAttachment = useCallback(async (id: string) => {
+    const att = state.chatAttachments.find(a => a.id === id);
+    if (att?.documentId) {
+      try { await documentRemoveFile(att.documentId); } catch { /* ignore */ }
+    }
+    dispatch({ type: 'REMOVE_ATTACHMENT', id });
+  }, [state.chatAttachments, dispatch]);
+
+  // Legacy single-file picker (backward compat)
+  const handleAttachLegacy = useCallback(async () => {
     try {
       const filePath = await documentPickFile();
       if (!filePath) return;
@@ -104,6 +219,38 @@ export function ChatScreen() {
       },
     });
   }, [dispatch]);
+
+  // Panel slot handlers — swap, never stack
+  const openDocumentPanel = useCallback(() => {
+    setActivePanel('documents');
+    setSelectedArtifact(null);
+  }, []);
+
+  const openArtifactPanel = useCallback((artifact: ArtifactItem) => {
+    setSelectedArtifact(artifact);
+    setActivePanel('artifact');
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setActivePanel('none');
+    setSelectedArtifact(null);
+  }, []);
+
+  // Artifact detection: parse last assistant message for artifacts
+  const lastAssistantMsg = state.chatMessages.filter(m => m.role === 'assistant').at(-1);
+  const parsedArtifacts = useMemo(() => {
+    if (!lastAssistantMsg?.content) return [];
+    const { artifacts } = parseArtifacts(lastAssistantMsg.content);
+    return artifacts;
+  }, [lastAssistantMsg?.content]);
+
+  // Auto-open artifact panel when a new artifact is detected
+  useEffect(() => {
+    if (parsedArtifacts.length > 0 && !state.isResponding) {
+      const latest = parsedArtifacts[parsedArtifacts.length - 1]!;
+      openArtifactPanel(latest);
+    }
+  }, [parsedArtifacts, state.isResponding, openArtifactPanel]);
 
   // Listen for streaming tokens
   useTauriEvent<string>('semblance://chat-token', useCallback((token: string) => {
@@ -151,121 +298,183 @@ export function ChatScreen() {
     }
   }, [dispatch]);
 
-  return (
-    <div
-      ref={containerRef}
-      className="flex flex-col h-full"
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      {/* Drag overlay */}
-      {isDragging && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-semblance-primary-subtle/50 dark:bg-semblance-primary-subtle-dark/50 border-2 border-dashed border-semblance-primary rounded-lg pointer-events-none">
-          <p className="text-semblance-primary font-semibold text-lg">{t('screen.chat.drop_overlay')}</p>
-        </div>
-      )}
+  // Build file list for DocumentPanel from chatAttachments
+  const documentPanelFiles = state.chatAttachments
+    .filter(a => a.status === 'ready' || a.status === 'processing')
+    .map(a => ({
+      id: a.id,
+      fileName: a.fileName,
+      mimeType: a.mimeType,
+      sizeBytes: a.sizeBytes,
+      status: a.status as 'ready' | 'processing',
+      addedToKnowledge: a.addedToKnowledge,
+    }));
 
-      {/* Connection status bar */}
-      <div className="flex items-center gap-4 px-6 py-2 border-b border-semblance-border dark:border-semblance-border-dark">
-        <div className="flex items-center gap-2">
-          <StatusIndicator status={state.ollamaStatus === 'connected' ? 'success' : 'attention'} />
-          <span className="text-xs text-semblance-text-tertiary">
-            {state.ollamaStatus === 'connected'
-              ? state.activeModel || t('status.connected')
-              : t('screen.chat.status_not_connected')}
-          </span>
-        </div>
-        {state.indexingStatus.state !== 'idle' && state.indexingStatus.state !== 'complete' && (
+  return (
+    <div className="flex h-full">
+      {/* Main chat column */}
+      <div
+        ref={containerRef}
+        className="flex flex-col flex-1 min-w-0 h-full"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {/* Drag overlay */}
+        {isDragging && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-semblance-primary-subtle/50 dark:bg-semblance-primary-subtle-dark/50 border-2 border-dashed border-semblance-primary rounded-lg pointer-events-none">
+            <p className="text-semblance-primary font-semibold text-lg">{t('screen.chat.drop_overlay')}</p>
+          </div>
+        )}
+
+        {/* Connection status bar */}
+        <div className="flex items-center gap-4 px-6 py-2 border-b border-semblance-border dark:border-semblance-border-dark">
           <div className="flex items-center gap-2">
-            <StatusIndicator status="accent" pulse />
+            <StatusIndicator status={state.ollamaStatus === 'connected' ? 'success' : 'attention'} />
             <span className="text-xs text-semblance-text-tertiary">
-              {t('screen.chat.status_indexing', { scanned: state.indexingStatus.filesScanned, total: state.indexingStatus.filesTotal })}
+              {state.ollamaStatus === 'connected'
+                ? state.activeModel || t('status.connected')
+                : t('screen.chat.status_not_connected')}
             </span>
           </div>
-        )}
-      </div>
-
-      {/* Document context banner */}
-      {state.documentContext && (
-        <div className="flex items-center gap-3 px-6 py-2 bg-semblance-accent-subtle dark:bg-semblance-accent-subtle border-b border-semblance-border dark:border-semblance-border-dark">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-accent flex-shrink-0">
-            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
-          <span className="flex-1 text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark truncate">
-            {state.documentContext.fileName}
-          </span>
-          <button
-            type="button"
-            onClick={handleClearDocument}
-            className="flex-shrink-0 p-1 rounded hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
-            aria-label={t('a11y.clear_document_context')}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-text-tertiary">
-              <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* Message area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
-        {state.chatMessages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <p className="text-lg text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              {t('screen.chat.ask_anything', { name })}
-            </p>
-            <div className="mt-6 space-y-2">
-              {[
-                { key: 'screen.chat.suggestion_topics', label: t('screen.chat.suggestion_topics') },
-                { key: 'screen.chat.suggestion_summarize', label: t('screen.chat.suggestion_summarize') },
-                { key: 'screen.chat.suggestion_work', label: t('screen.chat.suggestion_work') },
-              ].map(
-                (suggestion) => (
-                  <button
-                    key={suggestion.key}
-                    type="button"
-                    onClick={() => handleSend(suggestion.label)}
-                    className="block w-full text-left px-4 py-3 rounded-lg text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark bg-semblance-surface-2 dark:bg-semblance-surface-2-dark hover:bg-semblance-primary-subtle dark:hover:bg-semblance-primary-subtle-dark transition-colors duration-fast"
-                  >
-                    {suggestion.label}
-                  </button>
-                ),
-              )}
+          {state.indexingStatus.state !== 'idle' && state.indexingStatus.state !== 'complete' && (
+            <div className="flex items-center gap-2">
+              <StatusIndicator status="accent" pulse />
+              <span className="text-xs text-semblance-text-tertiary">
+                {t('screen.chat.status_indexing', { scanned: state.indexingStatus.filesScanned, total: state.indexingStatus.filesTotal })}
+              </span>
             </div>
+          )}
+          {/* Document panel toggle */}
+          {state.chatAttachments.length > 0 && (
+            <button
+              type="button"
+              onClick={activePanel === 'documents' ? closePanel : openDocumentPanel}
+              className="ml-auto text-xs text-semblance-text-tertiary hover:text-semblance-text-primary transition-colors"
+              data-testid="toggle-document-panel"
+            >
+              {t('screen.chat.documents_count', { count: state.chatAttachments.length })}
+            </button>
+          )}
+        </div>
+
+        {/* Document context banner */}
+        {state.documentContext && (
+          <div className="flex items-center gap-3 px-6 py-2 bg-semblance-accent-subtle dark:bg-semblance-accent-subtle border-b border-semblance-border dark:border-semblance-border-dark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-accent flex-shrink-0">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <span className="flex-1 text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark truncate">
+              {state.documentContext.fileName}
+            </span>
+            <button
+              type="button"
+              onClick={handleClearDocument}
+              className="flex-shrink-0 p-1 rounded hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
+              aria-label={t('a11y.clear_document_context')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-text-tertiary">
+                <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+              </svg>
+            </button>
           </div>
-        ) : (
-          state.chatMessages.map((msg, i) => (
-            <ChatBubble
-              key={msg.id}
-              role={msg.role}
-              content={msg.content}
-              timestamp={msg.timestamp}
-              streaming={state.isResponding && msg.role === 'assistant' && i === state.chatMessages.length - 1}
-            />
-          ))
         )}
+
+        {/* Message area */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+          {state.chatMessages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <p className="text-lg text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                {t('screen.chat.ask_anything', { name })}
+              </p>
+              <div className="mt-6 space-y-2">
+                {[
+                  { key: 'screen.chat.suggestion_topics', label: t('screen.chat.suggestion_topics') },
+                  { key: 'screen.chat.suggestion_summarize', label: t('screen.chat.suggestion_summarize') },
+                  { key: 'screen.chat.suggestion_work', label: t('screen.chat.suggestion_work') },
+                ].map(
+                  (suggestion) => (
+                    <button
+                      key={suggestion.key}
+                      type="button"
+                      onClick={() => handleSend(suggestion.label)}
+                      className="block w-full text-left px-4 py-3 rounded-lg text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark bg-semblance-surface-2 dark:bg-semblance-surface-2-dark hover:bg-semblance-primary-subtle dark:hover:bg-semblance-primary-subtle-dark transition-colors duration-fast"
+                    >
+                      {suggestion.label}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+          ) : (
+            state.chatMessages.map((msg, i) => (
+              <ChatBubble
+                key={msg.id}
+                role={msg.role}
+                content={msg.content}
+                timestamp={msg.timestamp}
+                streaming={state.isResponding && msg.role === 'assistant' && i === state.chatMessages.length - 1}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="px-6 pb-6">
+          <AgentInput
+            onSend={handleSend}
+            thinking={state.isResponding}
+            activeDocument={state.documentContext ? {
+              name: state.documentContext.fileName,
+              onDismiss: handleClearDocument,
+            } : null}
+            attachments={state.chatAttachments.map(a => ({
+              id: a.id,
+              fileName: a.fileName,
+              status: a.status,
+              error: a.error,
+            }))}
+            onAttach={handleAttach}
+            onRemoveAttachment={handleRemoveAttachment}
+            placeholder={t('screen.chat.placeholder_with_name', { name })}
+            voiceEnabled={voiceCapable && voice.voiceEnabled}
+            voiceState={voice.voiceState}
+            audioLevel={voice.audioLevel}
+            onVoiceStart={voice.onVoiceStart}
+            onVoiceStop={voice.onVoiceStop}
+            onVoiceCancel={voice.onVoiceCancel}
+          />
+        </div>
       </div>
 
-      {/* Input */}
-      <div className="px-6 pb-6">
-        <AgentInput
-          onSend={handleSend}
-          thinking={state.isResponding}
-          activeDocument={state.documentContext ? {
-            name: state.documentContext.fileName,
-            onDismiss: handleClearDocument,
-          } : null}
-          placeholder={t('screen.chat.placeholder_with_name', { name })}
-          voiceEnabled={voiceCapable && voice.voiceEnabled}
-          voiceState={voice.voiceState}
-          audioLevel={voice.audioLevel}
-          onVoiceStart={voice.onVoiceStart}
-          onVoiceStop={voice.onVoiceStop}
-          onVoiceCancel={voice.onVoiceCancel}
-        />
-      </div>
+      {/* Right panel slot — shared between DocumentPanel and ArtifactPanel (swap, never stack) */}
+      <DocumentPanel
+        files={documentPanelFiles}
+        open={activePanel === 'documents'}
+        onClose={closePanel}
+        onRemoveFile={(id) => handleRemoveAttachment(id)}
+        onAddToKnowledge={(id) => {
+          // TODO: Wire addAttachmentToKnowledge IPC in device testing pass
+          dispatch({ type: 'UPDATE_ATTACHMENT', id, updates: { addedToKnowledge: true } });
+        }}
+        onAttach={handleAttach}
+      />
+      <ArtifactPanel
+        artifact={selectedArtifact}
+        open={activePanel === 'artifact'}
+        onClose={closePanel}
+        onDownload={(artifact) => {
+          // TODO: Wire file download via Tauri save dialog in device testing pass
+          const blob = new Blob([artifact.content], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${artifact.title}.${artifact.language ?? 'txt'}`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }}
+      />
     </div>
   );
 }

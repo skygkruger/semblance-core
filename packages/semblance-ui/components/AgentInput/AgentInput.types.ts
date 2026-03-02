@@ -1,9 +1,21 @@
 export type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';
+export type AttachmentStatus = 'pending' | 'processing' | 'ready' | 'error';
+
+export interface AttachmentPill {
+  id: string;
+  fileName: string;
+  status: AttachmentStatus;
+  error?: string;
+}
 
 export interface AgentInputProps {
   placeholder?: string;
   thinking?: boolean;
+  /** @deprecated Use `attachments` instead. Kept for backward compat. */
   activeDocument?: { name: string; onDismiss: () => void } | null;
+  attachments?: AttachmentPill[];
+  onAttach?: () => void;
+  onRemoveAttachment?: (id: string) => void;
   onSend?: (message: string) => void;
   onSubmit?: (message: string) => void;
   autoFocus?: boolean;

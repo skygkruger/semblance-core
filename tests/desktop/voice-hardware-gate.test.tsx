@@ -31,6 +31,7 @@ const mockState = {
   userName: 'TestUser',
   indexingStatus: { state: 'idle', filesScanned: 0, filesTotal: 0 },
   documentContext: null,
+  chatAttachments: [],
 };
 
 vi.mock('@semblance/desktop/state/AppState', () => ({

@@ -36,6 +36,7 @@ export interface AppState {
   isResponding: boolean;
   indexedDirectories: string[];
   documentContext: DocumentContext | null;
+  chatAttachments: ChatAttachmentState[];
   contacts: {
     list: Array<{ id: string; displayName: string; relationshipType: string }>;
     selectedId: string | null;
@@ -125,6 +126,20 @@ export interface DocumentContext {
   mimeType: string;
 }
 
+export type AttachmentStatus = 'pending' | 'processing' | 'ready' | 'error';
+
+export interface ChatAttachmentState {
+  id: string;
+  fileName: string;
+  filePath: string;
+  mimeType: string;
+  sizeBytes: number;
+  status: AttachmentStatus;
+  error?: string;
+  documentId?: string;
+  addedToKnowledge: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -156,6 +171,10 @@ export type AppAction =
   | { type: 'SET_DIRECTORIES'; dirs: string[] }
   | { type: 'SET_DOCUMENT_CONTEXT'; context: DocumentContext }
   | { type: 'CLEAR_DOCUMENT_CONTEXT' }
+  | { type: 'ADD_ATTACHMENT'; attachment: ChatAttachmentState }
+  | { type: 'UPDATE_ATTACHMENT'; id: string; updates: Partial<ChatAttachmentState> }
+  | { type: 'REMOVE_ATTACHMENT'; id: string }
+  | { type: 'CLEAR_ATTACHMENTS' }
   | { type: 'SET_CONTACTS_LIST'; list: AppState['contacts']['list'] }
   | { type: 'SET_CONTACTS_SELECTED'; id: string | null }
   | { type: 'SET_CONTACTS_LOADING'; loading: boolean }
@@ -217,6 +236,7 @@ export const initialState: AppState = {
   isResponding: false,
   indexedDirectories: [],
   documentContext: null,
+  chatAttachments: [],
   contacts: {
     list: [],
     selectedId: null,
@@ -337,6 +357,22 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, documentContext: action.context };
     case 'CLEAR_DOCUMENT_CONTEXT':
       return { ...state, documentContext: null };
+    case 'ADD_ATTACHMENT':
+      return { ...state, chatAttachments: [...state.chatAttachments, action.attachment] };
+    case 'UPDATE_ATTACHMENT':
+      return {
+        ...state,
+        chatAttachments: state.chatAttachments.map(a =>
+          a.id === action.id ? { ...a, ...action.updates } : a,
+        ),
+      };
+    case 'REMOVE_ATTACHMENT':
+      return {
+        ...state,
+        chatAttachments: state.chatAttachments.filter(a => a.id !== action.id),
+      };
+    case 'CLEAR_ATTACHMENTS':
+      return { ...state, chatAttachments: [] };
     case 'SET_CONTACTS_LIST':
       return { ...state, contacts: { ...state.contacts, list: action.list } };
     case 'SET_CONTACTS_SELECTED':

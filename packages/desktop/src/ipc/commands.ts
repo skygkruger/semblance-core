@@ -12,6 +12,7 @@ import type {
   AccountInfo,
   AccountStatus,
   DocumentContext,
+  ChatAttachmentInfo,
   IndexedEmail,
   ProactiveInsight,
   CalendarEvent,
@@ -114,6 +115,22 @@ export function documentSetContext(filePath: string): Promise<DocumentContext> {
 
 export function documentClearContext(): Promise<void> {
   return invoke<void>('document_clear_context');
+}
+
+export function documentAddFile(filePath: string): Promise<ChatAttachmentInfo> {
+  return invoke<ChatAttachmentInfo>('document_add_file', { filePath });
+}
+
+export function documentRemoveFile(documentId: string): Promise<void> {
+  return invoke<void>('document_remove_file', { documentId });
+}
+
+export function documentPickFiles(): Promise<string[]> {
+  return invoke<string[]>('document_pick_files');
+}
+
+export function addAttachmentToKnowledge(documentId: string): Promise<void> {
+  return invoke<void>('add_attachment_to_knowledge', { documentId });
 }
 
 export function selectModel(modelId: string): Promise<void> {

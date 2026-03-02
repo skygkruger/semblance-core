@@ -12,7 +12,13 @@
   width: 100%;
 }
 
-/* ─── Document pill ─── */
+/* ─── Attachment pills row ─── */
+.agent-input__attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .agent-input__document-pill {
   display: inline-flex;
   align-items: center;
@@ -21,7 +27,17 @@
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  max-width: 100%;
+  max-width: 240px;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.agent-input__document-pill--processing {
+  border-color: rgba(201, 168, 92, 0.25);
+}
+
+.agent-input__document-pill--error {
+  border-color: rgba(201, 123, 110, 0.35);
+  background: rgba(201, 123, 110, 0.06);
 }
 
 .agent-input__document-name {
@@ -31,7 +47,24 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 240px;
+  max-width: 180px;
+}
+
+.agent-input__pill-spinner {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid rgba(201, 168, 92, 0.3);
+  border-top-color: #C9A85C;
+  border-radius: 50%;
+  animation: pill-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.agent-input__pill-error {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: #C97B6E;
+  flex-shrink: 0;
 }
 
 .agent-input__document-dismiss {
@@ -49,6 +82,37 @@
 
 .agent-input__document-dismiss:hover {
   color: #EEF1F4;
+}
+
+/* ─── Attach (paperclip) button ─── */
+.agent-input__attach {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: #8593A4;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 180ms, background 180ms;
+  padding: 0;
+}
+
+.agent-input__attach:hover {
+  color: #A8B4C0;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.agent-input__attach:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+@keyframes pill-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ─── Container — rest state ─── */

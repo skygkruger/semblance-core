@@ -370,6 +370,20 @@ Available tools:
 
 Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.
 
+// TODO: Consolidate — import ARTIFACT_SYSTEM_PROMPT from artifact-parser.ts instead of duplicating inline.
+// Currently duplicated here and in artifact-parser.ts. Unify to single source before Sprint 6 ship.
+When generating structured content (code snippets longer than 5 lines, generated documents, data tables, or formatted content the user might want to save), wrap it in artifact tags:
+<artifact type="code" title="Description" language="typescript">
+// code here
+</artifact>
+Supported artifact types: markdown, text, code, html, csv, json.
+
+Do NOT use artifact tags for:
+- Brief inline code references or short one-liners
+- Short answers or explanations
+- Conversational responses
+- Lists or bullet points that are part of a natural reply
+
 ${INJECTION_CANARY}`;
 
 // --- Orchestrator Interface ---
@@ -705,14 +719,17 @@ export class OrchestratorImpl implements Orchestrator {
     // Add document-scoped context (high priority — before general context)
     // SECURITY: All retrieved content is sanitized to prevent prompt injection.
     if (documentChunks.length > 0) {
-      const docName = this.documentContext?.getActiveDocument()?.fileName ?? 'document';
+      const activeDocs = this.documentContext?.getActiveDocuments() ?? [];
+      const docLabel = activeDocs.length === 1
+        ? `'${activeDocs[0]?.fileName ?? 'document'}'`
+        : `${activeDocs.length} attached documents (${activeDocs.map(d => d.fileName).join(', ')})`;
       const docContextStr = documentChunks.map((r, i) =>
         `[${i + 1}] ${sanitizeRetrievedContent(r.chunk.content.slice(0, 800))}`
       ).join('\n\n');
       messages.push({
         role: 'user',
         content: wrapInDataBoundary(
-          `The user is asking about '${docName}'. Relevant passages:\n${docContextStr}`,
+          `The user is asking about ${docLabel}. Relevant passages:\n${docContextStr}`,
           'document context',
         ),
       });
