@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Canvas, Circle, Line, vec, Skia, useFrameCallback } from '@shopify/react-native-skia';
+import type { FrameInfo } from '@shopify/react-native-skia';
 import { useSharedValue } from 'react-native-reanimated';
 import { createSimulation, applyLayout, clampNodePositions } from './graph-physics';
 import { projectGraph } from './graph-renderer.native';
@@ -82,7 +83,7 @@ export function KnowledgeGraph({
   }, [nodes, edges, width, height, layoutMode]);
 
   // Drive animation
-  useFrameCallback((info) => {
+  useFrameCallback((info: FrameInfo) => {
     frameTs.value = info.timestamp ?? 0;
   });
 

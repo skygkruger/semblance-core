@@ -11,8 +11,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-native",
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "moduleSuffixes": [".native", ""]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "index.js"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "../semblance-ui/types/**/*.d.ts", "index.js"],
   "exclude": ["node_modules"]
 }

@@ -32,6 +32,10 @@ export const brandColors = {
   veridianWire: 'rgba(110, 207, 163, 0.32)',
   amber: '#C9A85C',
   rust: '#C97B6E',
+  // Semantic aliases used by native components
+  silver: '#8593A4',
+  text: '#EEF1F4',
+  muted: '#5E6B7C',
 } as const;
 
 // Spacing — numeric values (no 'px' suffix)

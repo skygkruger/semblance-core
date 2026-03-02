@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Canvas, Path, Circle, Skia, useFrameCallback } from '@shopify/react-native-skia';
+import type { FrameInfo } from '@shopify/react-native-skia';
 import { useSharedValue } from 'react-native-reanimated';
 import type { WireframeSpinnerProps } from './WireframeSpinner.types';
 import {
@@ -23,7 +24,7 @@ export function WireframeSpinner({
   // Shared value triggers re-render on each frame
   const frameCount = useSharedValue(0);
 
-  useFrameCallback((info) => {
+  useFrameCallback((info: FrameInfo) => {
     const dt = 0.016 * speed;
     tRef.current += 0.016;
     shapeTimeRef.current += dt;

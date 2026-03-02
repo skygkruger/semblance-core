@@ -9,7 +9,6 @@ import {
   StyleSheet,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/types';
 
 interface ContactDetail {
   id: string;
@@ -31,7 +30,9 @@ interface ContactDetail {
   } | null;
 }
 
-type Props = NativeStackScreenProps<RootStackParamList, 'ContactDetail'>;
+// Route params for ContactDetail — will be added to SettingsStackParamList in Sprint 5
+type ContactDetailParams = { ContactDetail: { contactId: string } };
+type Props = NativeStackScreenProps<ContactDetailParams, 'ContactDetail'>;
 
 function getInitials(name: string): string {
   return name

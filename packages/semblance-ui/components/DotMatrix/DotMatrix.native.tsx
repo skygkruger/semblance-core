@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, LayoutChangeEvent } from 'react-native';
 import { Canvas, Circle, Skia, useFrameCallback, useTouchHandler } from '@shopify/react-native-skia';
+import type { FrameInfo, TouchPoint } from '@shopify/react-native-skia';
 import { useSharedValue } from 'react-native-reanimated';
 import type { DotMatrixProps, Dot } from './DotMatrix.types';
 import { buildGrid, getParams, computeDots } from './DotMatrix.logic';
@@ -31,7 +32,7 @@ export function DotMatrix({ mobile = true, width, height }: DotMatrixProps) {
 
   // Touch handling for cursor interaction
   const touchHandler = useTouchHandler({
-    onActive: (pt) => {
+    onActive: (pt: TouchPoint) => {
       touchRef.current = { x: pt.x, y: pt.y };
     },
     onEnd: () => {
@@ -40,7 +41,7 @@ export function DotMatrix({ mobile = true, width, height }: DotMatrixProps) {
   });
 
   // Drive animation
-  useFrameCallback((info) => {
+  useFrameCallback((info: FrameInfo) => {
     frameTs.value = info.timestamp ?? 0;
   });
 
@@ -62,9 +63,11 @@ export function DotMatrix({ mobile = true, width, height }: DotMatrixProps) {
 
   return (
     <View style={containerStyle} onLayout={onLayout}>
+      {/* Touch handler registered via useTouchHandler — onTouch removed
+          because it is not a valid Canvas prop in current Skia types.
+          Touch events are driven by the Skia internal gesture system. */}
       <Canvas
         style={{ width: layoutSize.w, height: layoutSize.h }}
-        onTouch={touchHandler}
       >
         {results.map((d, i) => (
           <Circle
