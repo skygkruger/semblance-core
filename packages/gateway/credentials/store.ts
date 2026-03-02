@@ -1,11 +1,14 @@
 // Credential Store — Secure local storage for service credentials.
 // Passwords are encrypted at rest using AES-256-GCM.
+// Post-migration: passwords stored in OS keychain, SQLite has sentinel value.
 // This is a Gateway concern — the Core never sees raw credentials.
 
 import type Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
 import type { ServiceCredential, ServiceType, ConnectionTestResult } from './types.js';
 import { encryptPassword, decryptPassword, getEncryptionKey } from './encryption.js';
+import type { KeychainStore } from '@semblance/core';
+import { keychainServiceName, MIGRATED_SENTINEL } from '@semblance/core';
 
 const CREATE_TABLE = `
   CREATE TABLE IF NOT EXISTS service_credentials (
@@ -60,17 +63,19 @@ function rowToCredential(row: CredentialRow): ServiceCredential {
 export class CredentialStore {
   private db: Database.Database;
   private encryptionKey: Buffer;
+  private keychain: KeychainStore | null;
 
-  constructor(db: Database.Database, encryptionKeyPath?: string) {
+  constructor(db: Database.Database, encryptionKeyPath?: string, keychain?: KeychainStore) {
     this.db = db;
     this.db.pragma('journal_mode = WAL');
     this.db.exec(CREATE_TABLE);
     this.db.exec(CREATE_INDEX);
     this.encryptionKey = getEncryptionKey(encryptionKeyPath);
+    this.keychain = keychain ?? null;
   }
 
   /**
-   * Add a new credential. The password is encrypted before storage.
+   * Add a new credential. Password goes to keychain if available, else AES-encrypted SQLite.
    */
   add(input: {
     serviceType: ServiceCredential['serviceType'];
@@ -84,7 +89,17 @@ export class CredentialStore {
   }): ServiceCredential {
     const id = nanoid();
     const createdAt = new Date().toISOString();
-    const encryptedPw = encryptPassword(this.encryptionKey, input.password);
+    const encryptedPw = this.keychain
+      ? MIGRATED_SENTINEL  // Will be stored in keychain asynchronously
+      : encryptPassword(this.encryptionKey, input.password);
+
+    // If keychain available, store password there (fire-and-forget with the sync add)
+    if (this.keychain) {
+      const service = keychainServiceName(id);
+      this.keychain.set(service, 'password', input.password).catch((err) => {
+        console.error(`[CredentialStore] Failed to store password in keychain for ${id}:`, err);
+      });
+    }
 
     this.db.prepare(`
       INSERT INTO service_credentials (id, service_type, protocol, host, port, username, encrypted_password, use_tls, display_name, created_at)
@@ -190,17 +205,48 @@ export class CredentialStore {
   }
 
   /**
-   * Remove a credential.
+   * Remove a credential. Clears keychain entries if available.
    */
   remove(id: string): void {
     this.db.prepare('DELETE FROM service_credentials WHERE id = ?').run(id);
+
+    // Clean up keychain entry (fire-and-forget — SQLite is the source of truth for existence)
+    if (this.keychain) {
+      const service = keychainServiceName(id);
+      this.keychain.delete(service, 'password').catch(() => {
+        // Best-effort — credential row is already gone from SQLite
+      });
+    }
   }
 
   /**
-   * Decrypt the password for a stored credential.
+   * Decrypt the password for a stored credential (synchronous, legacy).
+   * @deprecated Use getPasswordAsync() for keychain-aware retrieval.
    * Used internally by adapters — never expose decrypted passwords to the frontend.
    */
   decryptPassword(credential: ServiceCredential): string {
+    if (credential.encryptedPassword === MIGRATED_SENTINEL) {
+      throw new Error(`Credential ${credential.id} has been migrated to keychain — use getPasswordAsync()`);
+    }
+    return decryptPassword(this.encryptionKey, credential.encryptedPassword);
+  }
+
+  /**
+   * Get the password for a credential. Checks keychain first, falls back to AES decrypt.
+   * This is the preferred method after keychain migration.
+   */
+  async getPasswordAsync(credential: ServiceCredential): Promise<string> {
+    // Try keychain first
+    if (this.keychain) {
+      const service = keychainServiceName(credential.id);
+      const fromKeychain = await this.keychain.get(service, 'password');
+      if (fromKeychain) return fromKeychain;
+    }
+
+    // Fall back to AES decrypt (pre-migration credentials)
+    if (credential.encryptedPassword === MIGRATED_SENTINEL) {
+      throw new Error(`Credential ${credential.id} marked as migrated but not found in keychain`);
+    }
     return decryptPassword(this.encryptionKey, credential.encryptedPassword);
   }
 
