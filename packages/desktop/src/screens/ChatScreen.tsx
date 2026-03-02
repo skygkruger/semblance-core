@@ -1,9 +1,12 @@
-import { useCallback, useRef, useEffect, useState } from 'react';
+import { useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatBubble, AgentInput, StatusIndicator } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useTauriEvent } from '../hooks/useTauriEvent';
+import { useHardwareTier } from '../hooks/useHardwareTier';
+import { useVoiceInput } from '../hooks/useVoiceInput';
 import { sendMessage, documentPickFile, documentSetContext, documentClearContext } from '../ipc/commands';
+import { createMockVoiceAdapter } from '@semblance/core/platform/desktop-voice';
 import type { DocumentContext } from '../state/AppState';
 
 export function ChatScreen() {
@@ -14,6 +17,12 @@ export function ChatScreen() {
   const containerRef = useRef<HTMLDivElement>(null);
   const name = state.userName || 'Semblance';
   const [isDragging, setIsDragging] = useState(false);
+
+  // Voice hardware capability gate
+  const { voiceCapable } = useHardwareTier();
+  // TODO: Replace with real Whisper.cpp adapter in device testing pass
+  const voiceAdapter = useMemo(() => createMockVoiceAdapter({ sttReady: true }), []);
+  const voice = useVoiceInput(voiceAdapter);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -249,6 +258,12 @@ export function ChatScreen() {
             onDismiss: handleClearDocument,
           } : null}
           placeholder={t('screen.chat.placeholder_with_name', { name })}
+          voiceEnabled={voiceCapable && voice.voiceEnabled}
+          voiceState={voice.voiceState}
+          audioLevel={voice.audioLevel}
+          onVoiceStart={voice.onVoiceStart}
+          onVoiceStop={voice.onVoiceStop}
+          onVoiceCancel={voice.onVoiceCancel}
         />
       </div>
     </div>

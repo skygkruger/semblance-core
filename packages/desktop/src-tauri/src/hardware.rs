@@ -22,6 +22,8 @@ pub struct HardwareProfile {
     pub available_ram_mb: u64,
     pub os: String,
     pub gpu: Option<GpuInfo>,
+    /// Whether this device can run Whisper.cpp for local STT (8GB+ RAM, non-constrained)
+    pub voice_capable: bool,
 }
 
 /// Detect the hardware profile of this machine.
@@ -59,6 +61,7 @@ pub fn detect_hardware() -> HardwareProfile {
     let gpu = detect_gpu();
 
     let tier = classify_tier(total_ram_mb, &gpu);
+    let voice_capable = is_voice_capable(total_ram_mb, &tier);
 
     HardwareProfile {
         tier,
@@ -68,6 +71,7 @@ pub fn detect_hardware() -> HardwareProfile {
         available_ram_mb,
         os,
         gpu,
+        voice_capable,
     }
 }
 
@@ -89,6 +93,12 @@ fn classify_tier(total_ram_mb: u64, gpu: &Option<GpuInfo>) -> String {
     } else {
         "constrained".to_string()
     }
+}
+
+/// Whether this desktop device can run Whisper.cpp for local STT.
+/// Requires 8GB+ RAM and non-constrained tier.
+fn is_voice_capable(total_ram_mb: u64, tier: &str) -> bool {
+    total_ram_mb >= 8192 && tier != "constrained"
 }
 
 /// Basic GPU detection. Returns GPU info if a compute-capable GPU is detected.
@@ -166,5 +176,39 @@ mod tests {
         assert!(!profile.cpu_arch.is_empty());
         assert!(["constrained", "standard", "performance", "workstation"]
             .contains(&profile.tier.as_str()));
+    }
+
+    #[test]
+    fn test_voice_capable_standard_8gb() {
+        assert!(is_voice_capable(8192, "standard"));
+    }
+
+    #[test]
+    fn test_voice_capable_performance_16gb() {
+        assert!(is_voice_capable(16384, "performance"));
+    }
+
+    #[test]
+    fn test_voice_capable_workstation() {
+        assert!(is_voice_capable(32768, "workstation"));
+    }
+
+    #[test]
+    fn test_voice_not_capable_under_8gb() {
+        assert!(!is_voice_capable(4096, "standard"));
+        assert!(!is_voice_capable(6144, "standard"));
+    }
+
+    #[test]
+    fn test_voice_not_capable_constrained_even_8gb() {
+        assert!(!is_voice_capable(8192, "constrained"));
+    }
+
+    #[test]
+    fn test_detect_hardware_includes_voice_capable() {
+        let profile = detect_hardware();
+        // voice_capable should be consistent with RAM and tier
+        let expected = is_voice_capable(profile.total_ram_mb, &profile.tier);
+        assert_eq!(profile.voice_capable, expected);
     }
 }

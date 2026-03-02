@@ -20,6 +20,8 @@ export interface HardwareProfile {
   availableRamMb: number;
   os: 'windows' | 'macos' | 'linux' | 'unknown';
   gpu: GpuInfo | null;
+  /** Whether this device has enough resources to run Whisper.cpp for local STT */
+  voiceCapable: boolean;
 }
 
 /**
@@ -44,6 +46,20 @@ export function classifyHardware(totalRamMb: number, gpu: GpuInfo | null): Hardw
     return 'standard';
   }
   return 'constrained';
+}
+
+/**
+ * Determine whether a device can run Whisper.cpp for local speech-to-text.
+ * Desktop requires 8GB+ RAM and non-constrained tier.
+ * Mobile requires 4GB+ RAM.
+ */
+export function isVoiceCapable(
+  totalRamMb: number,
+  tier: HardwareProfileTier,
+  platform: 'desktop' | 'mobile',
+): boolean {
+  if (platform === 'mobile') return totalRamMb >= 4096;
+  return totalRamMb >= 8192 && tier !== 'constrained';
 }
 
 /**

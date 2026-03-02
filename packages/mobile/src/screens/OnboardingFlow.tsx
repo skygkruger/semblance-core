@@ -84,6 +84,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         gpuVramMb: null,
         os: 'Mobile',
         arch: 'arm64',
+        voiceCapable: true,
       });
       setDetecting(false);
     }, 1200);

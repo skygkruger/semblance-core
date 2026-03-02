@@ -11,6 +11,7 @@ export interface HardwareDisplayInfo {
   gpuVramMb: number | null;
   os: string;
   arch: string;
+  voiceCapable: boolean;
 }
 
 export interface ProviderPreset {

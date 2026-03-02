@@ -5,14 +5,16 @@ import { WhisperModelManager } from '../../../packages/core/voice/whisper-model-
 import type { HardwareProfile } from '../../../packages/core/llm/hardware-types';
 
 function makeProfile(totalRamMb: number, os: HardwareProfile['os'] = 'macos'): HardwareProfile {
+  const tier = totalRamMb >= 32768 ? 'workstation' : totalRamMb >= 16384 ? 'performance' : totalRamMb >= 8192 ? 'standard' : 'constrained' as const;
   return {
-    tier: totalRamMb >= 32768 ? 'workstation' : totalRamMb >= 16384 ? 'performance' : totalRamMb >= 8192 ? 'standard' : 'constrained',
+    tier,
     cpuCores: 8,
     cpuArch: 'arm64',
     totalRamMb,
     availableRamMb: totalRamMb * 0.6,
     os,
     gpu: null,
+    voiceCapable: totalRamMb >= 8192 && tier !== 'constrained',
   };
 }
 

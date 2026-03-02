@@ -107,6 +107,7 @@ export function OnboardingFlow() {
           gpuVramMb: null,
           os: t('model.unknown'),
           arch: t('model.unknown'),
+          voiceCapable: true,
         });
       })
       .finally(() => setDetecting(false));

@@ -24,6 +24,7 @@ function mockOnboardingInvoke() {
       gpuVramMb: null,
       os: 'Windows',
       arch: 'x86_64',
+      voiceCapable: true,
     };
     if (cmd === 'set_user_name') return null;
     if (cmd === 'set_autonomy_tier') return null;
