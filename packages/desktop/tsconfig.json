@@ -11,6 +11,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "moduleSuffixes": [".web", ""],
     "noUncheckedIndexedAccess": true,
     "paths": {
       "@semblance/core": ["../core/index.ts"],

@@ -14,6 +14,7 @@ interface DesktopSidebarProps {
   activeId?: string;
   collapsed?: boolean;
   onNavigate?: (id: string) => void;
+  footer?: React.ReactNode;
   className?: string;
 }
 
@@ -22,6 +23,7 @@ export function DesktopSidebar({
   activeId,
   collapsed = false,
   onNavigate,
+  footer,
   className = '',
 }: DesktopSidebarProps) {
   const rootClass = collapsed ? 'desktop-sidebar desktop-sidebar--collapsed' : 'desktop-sidebar';
@@ -49,7 +51,7 @@ export function DesktopSidebar({
       </div>
 
       <div className="desktop-sidebar__footer">
-        <PrivacyBadge status="active" />
+        {footer ?? <PrivacyBadge status="active" />}
       </div>
     </nav>
   );

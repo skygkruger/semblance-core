@@ -1,1 +1,2 @@
-export { Card } from './Card.js';
+export { Card } from './Card';
+export type * from './Card.types';

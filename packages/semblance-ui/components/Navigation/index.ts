@@ -1,2 +1,2 @@
-export { Navigation } from './Navigation.js';
-export type { NavItem } from './Navigation.js';
+export { Navigation } from './Navigation';
+export type * from './Navigation.types';

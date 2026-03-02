@@ -1,0 +1,72 @@
+{
+  "button": {
+    "continue": "Continue",
+    "skip": "Skip",
+    "cancel": "Cancel",
+    "save": "Save",
+    "done": "Done",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "approve": "Approve",
+    "reject": "Reject",
+    "undo": "Undo",
+    "retry": "Retry",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "sync": "Sync",
+    "upgrade": "Upgrade",
+    "begin": "Begin",
+    "start": "Start"
+  },
+  "status": {
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "pending": "Pending",
+    "error": "Error",
+    "loading": "Loading...",
+    "idle": "Idle",
+    "thinking": "Thinking",
+    "acting": "Acting",
+    "syncing": "Syncing...",
+    "complete": "Complete"
+  },
+  "time": {
+    "just_now": "Just now",
+    "minutes_ago": "{{count}}m ago",
+    "hours_ago": "{{count}}h ago",
+    "days_ago": "{{count}}d ago",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "license": {
+    "free": "Free",
+    "founding": "Founding Member",
+    "digital_representative": "Digital Representative",
+    "lifetime": "Lifetime"
+  },
+  "privacy": {
+    "all_local": "All local",
+    "zero_network": "Zero network",
+    "badge_label": "Privacy"
+  },
+  "nav": {
+    "chat": "Chat",
+    "inbox": "Inbox",
+    "brief": "Brief",
+    "knowledge": "Knowledge",
+    "files": "Files",
+    "connections": "Connections",
+    "activity": "Activity",
+    "privacy": "Privacy",
+    "contacts": "Contacts",
+    "digest": "Digest",
+    "network": "Network",
+    "settings": "Settings"
+  },
+  "empty": {
+    "no_data": "No data yet",
+    "no_results": "No results",
+    "get_started": "Get started by connecting a data source."
+  }
+}

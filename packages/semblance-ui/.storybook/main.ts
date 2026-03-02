@@ -18,6 +18,18 @@ const config: StorybookConfig = {
     '@storybook/addon-a11y',
   ],
   staticDirs: ['../public'],
+  async viteFinal(config) {
+    config.resolve = config.resolve || {};
+    // Prefer .web.tsx/.web.ts so bare imports (e.g. './Button') resolve to
+    // the web variant (Button.web.tsx) when both .web.tsx and .native.tsx exist.
+    config.resolve.extensions = [
+      '.web.tsx', '.web.ts',
+      '.tsx', '.ts',
+      '.jsx', '.js',
+      '.json',
+    ];
+    return config;
+  },
 };
 
 export default config;

@@ -1,12 +1,13 @@
 // Navigation Types — Type-safe navigation for the mobile app.
-// Bottom tabs: Inbox, Chat, Capture, Settings.
+// Bottom tabs: Chat, Brief, Knowledge, Privacy, Settings.
 // Stack screens within each tab as needed.
 
 /** Bottom tab navigator param list */
 export type TabParamList = {
-  Inbox: undefined;
   Chat: undefined;
-  Capture: undefined;
+  Brief: undefined;
+  Knowledge: undefined;
+  Privacy: undefined;
   Settings: undefined;
 };
 
@@ -30,26 +31,27 @@ export type RootStackParamList = {
   CloudStorageSettings: undefined;
   KnowledgeGraph: undefined;
   ImportDigitalLife: undefined;
-  // Step 31 — Sovereignty screens
+  // Sovereignty screens
   LivingWill: undefined;
   Witness: { attestationId?: string };
   Inheritance: undefined;
   InheritanceActivation: undefined;
   Network: undefined;
-  // Step 31 — Adversarial screens
+  // Adversarial screens
   AdversarialDashboard: undefined;
-  // Step 31 — Privacy screens
+  // Privacy screens
   PrivacyDashboard: undefined;
   ProofOfPrivacy: undefined;
-  // Step 31 — Security screens
+  // Security screens
   BiometricSetup: undefined;
   Backup: undefined;
 };
 
 /** Tab icon names for each tab */
 export const TAB_ICONS: Record<keyof TabParamList, string> = {
-  Inbox: 'inbox',
   Chat: 'chat',
-  Capture: 'capture',
+  Brief: 'sunrise',
+  Knowledge: 'brain',
+  Privacy: 'shield',
   Settings: 'settings',
 };

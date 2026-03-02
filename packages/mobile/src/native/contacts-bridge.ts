@@ -81,12 +81,12 @@ function mapRNContactToDevice(contact: RNContact): DeviceContact {
  */
 export function createMobileContactsAdapter(): ContactsAdapter {
   // Lazy import to avoid loading native module at type-checking time
-  let Contacts: typeof import('react-native-contacts').default | null = null;
+  let Contacts: typeof import('react-native-contacts') | null = null;
 
   function getContacts() {
     if (!Contacts) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      Contacts = require('react-native-contacts').default;
+      Contacts = require('react-native-contacts') as typeof import('react-native-contacts');
     }
     return Contacts!;
   }

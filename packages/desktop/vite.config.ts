@@ -11,6 +11,7 @@ export default defineConfig({
   },
   envPrefix: ['VITE_', 'TAURI_'],
   resolve: {
+    extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.jsx', '.js'],
     alias: {
       '@semblance/ui': resolve(__dirname, '../semblance-ui'),
     },

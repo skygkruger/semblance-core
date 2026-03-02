@@ -1,0 +1,72 @@
+{
+  "button": {
+    "continue": "[JA] Continue",
+    "skip": "[JA] Skip",
+    "cancel": "[JA] Cancel",
+    "save": "[JA] Save",
+    "done": "[JA] Done",
+    "back": "[JA] Back",
+    "close": "[JA] Close",
+    "confirm": "[JA] Confirm",
+    "approve": "[JA] Approve",
+    "reject": "[JA] Reject",
+    "undo": "[JA] Undo",
+    "retry": "[JA] Retry",
+    "connect": "[JA] Connect",
+    "disconnect": "[JA] Disconnect",
+    "sync": "[JA] Sync",
+    "upgrade": "[JA] Upgrade",
+    "begin": "[JA] Begin",
+    "start": "[JA] Start"
+  },
+  "status": {
+    "connected": "[JA] Connected",
+    "disconnected": "[JA] Disconnected",
+    "pending": "[JA] Pending",
+    "error": "[JA] Error",
+    "loading": "[JA] Loading...",
+    "idle": "[JA] Idle",
+    "thinking": "[JA] Thinking",
+    "acting": "[JA] Acting",
+    "syncing": "[JA] Syncing...",
+    "complete": "[JA] Complete"
+  },
+  "time": {
+    "just_now": "[JA] Just now",
+    "minutes_ago": "[JA] {{count}}m ago",
+    "hours_ago": "[JA] {{count}}h ago",
+    "days_ago": "[JA] {{count}}d ago",
+    "today": "[JA] Today",
+    "yesterday": "[JA] Yesterday"
+  },
+  "license": {
+    "free": "[JA] Free",
+    "founding": "[JA] Founding Member",
+    "digital_representative": "[JA] Digital Representative",
+    "lifetime": "[JA] Lifetime"
+  },
+  "privacy": {
+    "all_local": "[JA] All local",
+    "zero_network": "[JA] Zero network",
+    "badge_label": "[JA] Privacy"
+  },
+  "nav": {
+    "chat": "[JA] Chat",
+    "inbox": "[JA] Inbox",
+    "brief": "[JA] Brief",
+    "knowledge": "[JA] Knowledge",
+    "files": "[JA] Files",
+    "connections": "[JA] Connections",
+    "activity": "[JA] Activity",
+    "privacy": "[JA] Privacy",
+    "contacts": "[JA] Contacts",
+    "digest": "[JA] Digest",
+    "network": "[JA] Network",
+    "settings": "[JA] Settings"
+  },
+  "empty": {
+    "no_data": "[JA] No data yet",
+    "no_results": "[JA] No results",
+    "get_started": "[JA] Get started by connecting a data source."
+  }
+}

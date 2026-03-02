@@ -2,51 +2,75 @@
 //
 // Navigation structure:
 // - Onboarding flow (first launch only)
-// - Main app with bottom tabs: Inbox, Chat, Capture, Settings
+// - Main app with 5 bottom tabs: Chat, Brief, Knowledge, Privacy, Settings
 //
-// On app startup:
-// 1. Initialize platform adapter (setPlatform with mobile adapter)
-// 2. Check if onboarding is complete
-// 3. Show onboarding or main app
+// Wrapped with SafeAreaProvider + NavigationContainer for React Navigation.
 
 import React, { useState } from 'react';
-import { StyleSheet, View, StatusBar } from 'react-native';
+import { StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from './theme/tokens.js';
 import { OnboardingScreen, type OnboardingStep } from './screens/OnboardingScreen.js';
-import { SimpleTabView } from './navigation/TabNavigator.js';
-import type { TabParamList } from './navigation/types.js';
+import { MainTabNavigator } from './navigation/TabNavigator.js';
+import './i18n/config.js';
 
-export function App(): React.JSX.Element {
+type RootStackParams = {
+  Onboarding: undefined;
+  Main: undefined;
+};
+
+const RootStack = createNativeStackNavigator<RootStackParams>();
+
+function RootNavigator() {
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('naming');
-  const [activeTab, setActiveTab] = useState<keyof TabParamList>('Inbox');
 
   if (!onboardingComplete) {
     return (
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={colors.bgDark} />
-        <OnboardingScreen
-          step={onboardingStep}
-          onNameSubmit={() => setOnboardingStep('hardware')}
-          onConsent={() => setOnboardingStep('download-consent')}
-          onSkip={() => setOnboardingStep('knowledge-moment')}
-          onComplete={() => setOnboardingComplete(true)}
-        />
-      </View>
+      <OnboardingScreen
+        step={onboardingStep}
+        onNameSubmit={() => setOnboardingStep('hardware')}
+        onConsent={() => setOnboardingStep('download-consent')}
+        onSkip={() => setOnboardingStep('knowledge-moment')}
+        onComplete={() => setOnboardingComplete(true)}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.bgDark} />
-      <SimpleTabView activeTab={activeTab} />
-    </View>
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Screen name="Main" component={MainTabNavigator} />
+    </RootStack.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bgDark,
+const navTheme = {
+  dark: true,
+  colors: {
+    primary: '#6ECFA3',
+    background: colors.bgDark,
+    card: colors.surface1Dark,
+    text: colors.textPrimaryDark,
+    border: colors.borderDark,
+    notification: '#C97B6E',
   },
-});
+  fonts: {
+    regular: { fontFamily: 'System', fontWeight: '400' as const },
+    medium: { fontFamily: 'System', fontWeight: '500' as const },
+    bold: { fontFamily: 'System', fontWeight: '700' as const },
+    heavy: { fontFamily: 'System', fontWeight: '900' as const },
+  },
+};
+
+export function App(): React.JSX.Element {
+  return (
+    <SafeAreaProvider>
+      <StatusBar barStyle="light-content" backgroundColor={colors.bgDark} />
+      <NavigationContainer theme={navTheme}>
+        <RootNavigator />
+      </NavigationContainer>
+    </SafeAreaProvider>
+  );
+}

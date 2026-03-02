@@ -41,6 +41,14 @@
   --fb: 'DM Sans', system-ui, sans-serif;
   --fm: 'DM Mono', monospace;
 
+  /* CJK font stacks — appended to --fb/--fd/--fm when lang is CJK */
+  --fb-ja: 'DM Sans', 'Noto Sans JP', 'Hiragino Kaku Gothic Pro', system-ui, sans-serif;
+  --fb-zh: 'DM Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --fb-ko: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', system-ui, sans-serif;
+  --fd-ja: 'Fraunces', 'Noto Serif JP', Georgia, serif;
+  --fd-zh: 'Fraunces', 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --fd-ko: 'Fraunces', 'Noto Serif KR', Georgia, serif;
+
   /* Type scale */
   --text-3xl: 52px;
   --text-2xl: 38px;
@@ -138,3 +146,8 @@
   from { background-position: 200% 0; }
   to   { background-position: 0% 0; }
 }
+
+/* ─── CJK language overrides ─── */
+[lang^="ja"] { --fb: var(--fb-ja); --fd: var(--fd-ja); }
+[lang^="zh"] { --fb: var(--fb-zh); --fd: var(--fd-zh); }
+[lang^="ko"] { --fb: var(--fb-ko); --fd: var(--fd-ko); }
