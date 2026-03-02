@@ -7,7 +7,7 @@ import * as fs from 'node:fs';
 import * as fsPromises from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { createHmac, createHash, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import { createHmac, createHash, randomBytes, createCipheriv, createDecipheriv, timingSafeEqual } from 'node:crypto';
 import Database from 'better-sqlite3';
 
 import type {
@@ -123,6 +123,8 @@ const desktopCrypto: CryptoAdapter = {
     ]);
     return decrypted.toString('utf-8');
   },
+
+  timingSafeEqual: (a: Buffer, b: Buffer) => timingSafeEqual(a, b),
 };
 
 // ─── SQLite ─────────────────────────────────────────────────────────────────

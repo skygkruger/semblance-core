@@ -54,11 +54,11 @@ export function verifySignature(
   payload: Record<string, unknown>,
 ): boolean {
   const expected = signRequest(key, id, timestamp, action, payload);
-  // Constant-time comparison to prevent timing attacks
-  if (signature.length !== expected.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < signature.length; i++) {
-    mismatch |= signature.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  return mismatch === 0;
+  // SECURITY: Use platform-provided constant-time comparison (delegates to
+  // OpenSSL's CRYPTO_memcmp on Node.js) instead of hand-rolled JS loop
+  // which V8 JIT may optimize into a timing-variable comparison.
+  const sigBuf = Buffer.from(signature, 'utf-8');
+  const expBuf = Buffer.from(expected, 'utf-8');
+  if (sigBuf.length !== expBuf.length) return false;
+  return getPlatform().crypto.timingSafeEqual(sigBuf, expBuf);
 }
