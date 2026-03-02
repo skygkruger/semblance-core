@@ -18,6 +18,7 @@ function makeProfile(): HardwareProfile {
     availableRamMb: 10000,
     os: 'macos',
     gpu: null,
+    voiceCapable: true,
   };
 }
 

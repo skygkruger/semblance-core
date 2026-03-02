@@ -83,6 +83,7 @@ describe('describeProfile', () => {
       availableRamMb: 24576,
       os: 'windows',
       gpu: { name: 'RTX 4090', vendor: 'nvidia', vramMb: 24576, computeCapable: true },
+      voiceCapable: true,
     };
     const desc = describeProfile(profile);
     expect(desc).toContain('12 CPU cores');
@@ -100,6 +101,7 @@ describe('describeProfile', () => {
       availableRamMb: 4096,
       os: 'macos',
       gpu: null,
+      voiceCapable: true,
     };
     const desc = describeProfile(profile);
     expect(desc).toContain('8 CPU cores');

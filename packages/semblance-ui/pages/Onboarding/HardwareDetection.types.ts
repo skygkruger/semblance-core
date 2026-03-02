@@ -6,6 +6,7 @@ export interface HardwareInfo {
   gpuVramMb: number | null;
   os: string;
   arch: string;
+  voiceCapable: boolean;
 }
 
 export interface HardwareDetectionProps {

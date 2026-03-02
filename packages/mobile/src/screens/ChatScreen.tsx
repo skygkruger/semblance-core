@@ -2,7 +2,7 @@
 // Same chat UX as desktop, adapted for mobile keyboard and touch.
 // Data wired to Core's orchestrator in Commit 8.
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -15,6 +15,9 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../theme/tokens.js';
+import { useHardwareTier } from '../hooks/useHardwareTier';
+import { useVoiceInput } from '../hooks/useVoiceInput';
+import { createMockVoiceAdapter } from '@semblance/core/platform/desktop-voice';
 
 export interface ChatMessage {
   id: string;
@@ -64,6 +67,13 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
   const { t: tAgent } = useTranslation('agent');
   const [input, setInput] = useState('');
   const flatListRef = useRef<FlatList>(null);
+
+  // Voice hardware capability gate
+  const { voiceCapable } = useHardwareTier();
+  // TODO: Replace with real mobile voice adapter in device testing pass
+  const voiceAdapter = useMemo(() => createMockVoiceAdapter({ sttReady: true }), []);
+  const voice = useVoiceInput(voiceAdapter);
+  const showVoice = voiceCapable && voice.voiceEnabled;
 
   const handleSend = useCallback(() => {
     const text = input.trim();
@@ -143,6 +153,19 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
           onSubmitEditing={handleSend}
           blurOnSubmit={false}
         />
+        {showVoice && (
+          <TouchableOpacity
+            style={styles.voiceButton}
+            onPress={voice.voiceState === 'listening' ? voice.onVoiceStop : voice.onVoiceStart}
+            accessibilityRole="button"
+            accessibilityLabel={voice.voiceState === 'listening' ? 'Stop listening' : 'Start voice input'}
+            testID="voice-mic-button"
+          >
+            <Text style={[styles.voiceButtonText, voice.voiceState === 'listening' && styles.voiceButtonActive]}>
+              {voice.voiceState === 'listening' ? '||' : 'M'}
+            </Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
           onPress={handleSend}
@@ -297,6 +320,23 @@ const styles = StyleSheet.create({
     fontSize: typography.size.lg,
     color: colors.textSecondaryDark,
     lineHeight: typography.size.lg * 1.1,
+  },
+  voiceButton: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface2Dark,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  voiceButtonText: {
+    fontFamily: typography.fontMono,
+    fontSize: typography.size.base,
+    color: colors.textSecondaryDark,
+  },
+  voiceButtonActive: {
+    color: colors.primary,
   },
   empty: {
     flex: 1,
