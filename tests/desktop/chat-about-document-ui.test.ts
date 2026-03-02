@@ -48,6 +48,10 @@ describe('AppState document context', () => {
     importHistory: [],
     importWatchPath: '',
     chatAttachments: [],
+    activeConversationId: null,
+    conversations: [],
+    historyPanelOpen: false,
+    conversationSettings: { autoExpiryDays: null },
   };
 
   const mockDoc: DocumentContext = {
