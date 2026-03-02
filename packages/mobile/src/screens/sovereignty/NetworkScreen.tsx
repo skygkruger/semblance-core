@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../../theme/tokens.js';
 
 export interface NetworkPeer {
@@ -44,6 +45,7 @@ export const NetworkScreen: React.FC<NetworkScreenProps> = ({
   onRevokePeer,
   onRefreshPeers,
 }) => {
+  const { t } = useTranslation();
   const [expandedPeerId, setExpandedPeerId] = useState<string | null>(null);
 
   const handleRevoke = (peer: NetworkPeer) => {
@@ -66,7 +68,7 @@ export const NetworkScreen: React.FC<NetworkScreenProps> = ({
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.title}>Semblance Network</Text>
+        <Text style={styles.title}>{t('screen.semblance_network.title')}</Text>
         <TouchableOpacity onPress={onRefreshPeers}>
           <Text style={styles.refreshButton}>[Refresh]</Text>
         </TouchableOpacity>
@@ -86,7 +88,7 @@ export const NetworkScreen: React.FC<NetworkScreenProps> = ({
       {/* Pending Offers */}
       {activeOffers.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pending Offers</Text>
+          <Text style={styles.sectionTitle}>{t('screen.semblance_network.pending_offers')}</Text>
           {activeOffers.map(offer => (
             <View key={offer.id} style={styles.offerCard}>
               <Text style={styles.offerFrom}>{offer.fromPeerName}</Text>
@@ -98,13 +100,13 @@ export const NetworkScreen: React.FC<NetworkScreenProps> = ({
                   style={styles.acceptButton}
                   onPress={() => onAcceptOffer(offer.id)}
                 >
-                  <Text style={styles.acceptButtonText}>Accept</Text>
+                  <Text style={styles.acceptButtonText}>{t('button.accept')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.declineButton}
                   onPress={() => onDeclineOffer(offer.id)}
                 >
-                  <Text style={styles.declineButtonText}>Decline</Text>
+                  <Text style={styles.declineButtonText}>{t('button.decline')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -114,9 +116,9 @@ export const NetworkScreen: React.FC<NetworkScreenProps> = ({
 
       {/* Peers */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Discovered Peers</Text>
+        <Text style={styles.sectionTitle}>{t('screen.semblance_network.discovered_peers')}</Text>
         {peers.length === 0 && (
-          <Text style={styles.emptyText}>No peers found on local network.</Text>
+          <Text style={styles.emptyText}>{t('screen.semblance_network.empty_peers')}</Text>
         )}
         {peers.map(peer => (
           <TouchableOpacity
@@ -144,7 +146,7 @@ export const NetworkScreen: React.FC<NetworkScreenProps> = ({
                   style={styles.revokeButton}
                   onPress={() => handleRevoke(peer)}
                 >
-                  <Text style={styles.revokeButtonText}>Revoke Access</Text>
+                  <Text style={styles.revokeButtonText}>{t('screen.semblance_network.revoke_access')}</Text>
                 </TouchableOpacity>
               </View>
             )}

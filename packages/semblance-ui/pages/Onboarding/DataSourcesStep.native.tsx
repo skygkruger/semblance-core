@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Button } from '../../components/Button/Button';
 import {
@@ -12,22 +13,23 @@ import {
 import type { DataSource, DataSourcesStepProps } from './DataSourcesStep.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
-const SOURCES: DataSource[] = [
-  { id: 'email',    name: 'Email',             description: 'Gmail, Outlook, IMAP',    icon: EnvelopeIcon },
-  { id: 'calendar', name: 'Calendar',          description: 'Google, Apple, Outlook',   icon: CalendarIcon },
-  { id: 'files',    name: 'Files & Documents', description: 'Local folders, iCloud',    icon: FolderIcon },
-  { id: 'contacts', name: 'Contacts',          description: 'Phone, Google, CardDAV',   icon: PersonIcon },
-  { id: 'health',   name: 'Health',            description: 'Apple Health, Google Fit',  icon: HeartIcon },
-  { id: 'slack',    name: 'Slack',             description: 'Workspace messages',       icon: ChatIcon },
-];
-
 export function DataSourcesStep({
   initialConnected = new Set(),
   onContinue,
   onSkip,
 }: DataSourcesStepProps) {
+  const { t } = useTranslation('onboarding');
   const [connected, setConnected] = useState<Set<string>>(new Set(initialConnected));
   const [showNudge, setShowNudge] = useState(false);
+
+  const SOURCES: DataSource[] = [
+    { id: 'email',    name: t('data_sources.sources.email.name'),    description: t('data_sources.sources.email.description'),    icon: EnvelopeIcon },
+    { id: 'calendar', name: t('data_sources.sources.calendar.name'), description: t('data_sources.sources.calendar.description'), icon: CalendarIcon },
+    { id: 'files',    name: t('data_sources.sources.files.name'),    description: t('data_sources.sources.files.description'),    icon: FolderIcon },
+    { id: 'contacts', name: t('data_sources.sources.contacts.name'), description: t('data_sources.sources.contacts.description'), icon: PersonIcon },
+    { id: 'health',   name: t('data_sources.sources.health.name'),   description: t('data_sources.sources.health.description'),   icon: HeartIcon },
+    { id: 'slack',    name: t('data_sources.sources.slack.name'),    description: t('data_sources.sources.slack.description'),    icon: ChatIcon },
+  ];
 
   const toggleConnect = useCallback((id: string) => {
     setConnected(prev => {
@@ -52,10 +54,9 @@ export function DataSourcesStep({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headline}>Connect your world</Text>
+      <Text style={styles.headline}>{t('data_sources.headline')}</Text>
       <Text style={styles.subtext}>
-        Everything stays on this device. Semblance connects to your accounts
-        through the Gateway, fetches your data, and stores it locally.
+        {t('data_sources.subtext')}
       </Text>
 
       <View style={styles.grid}>
@@ -80,12 +81,12 @@ export function DataSourcesStep({
                 <Pressable onPress={() => toggleConnect(source.id)} hitSlop={8}>
                   <View style={styles.cardStatus}>
                     <View style={styles.statusDot} />
-                    <Text style={styles.statusText}>Connected</Text>
+                    <Text style={styles.statusText}>{t('data_sources.connected_status')}</Text>
                   </View>
                 </Pressable>
               ) : (
                 <Button variant="ghost" size="sm" onPress={() => toggleConnect(source.id)}>
-                  Connect
+                  {t('data_sources.connect_button')}
                 </Button>
               )}
             </View>
@@ -94,29 +95,27 @@ export function DataSourcesStep({
       </View>
 
       <Text style={styles.more}>
-        + 42 more sources available in Connections after setup
+        {t('data_sources.more_sources')}
       </Text>
 
       <View style={styles.privacy}>
         <Text style={styles.privacyText}>
-          Your data never leaves this device. Connections are encrypted and
-          revocable at any time.
+          {t('data_sources.privacy_notice')}
         </Text>
       </View>
 
       {showNudge && (
         <Text style={styles.nudge}>
-          Connecting at least one source helps Semblance understand your world.
-          You can always add more later.
+          {t('data_sources.nudge')}
         </Text>
       )}
 
       <View style={styles.actions}>
         <Pressable onPress={onSkip} style={styles.skipBtn} hitSlop={8}>
-          <Text style={styles.skipText}>Skip for now</Text>
+          <Text style={styles.skipText}>{t('data_sources.skip_button')}</Text>
         </Pressable>
         <Button variant="approve" size="md" onPress={handleContinue}>
-          Continue
+          {t('data_sources.continue_button')}
         </Button>
       </View>
     </View>

@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../theme/tokens.js';
 
 export interface ChatMessage {
@@ -42,12 +43,13 @@ interface ChatScreenProps {
 }
 
 function MessageBubble({ message }: { message: ChatMessage }) {
+  const { t } = useTranslation();
   const isUser = message.role === 'user';
 
   return (
     <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
       {message.routedTo && (
-        <Text style={styles.routedIndicator}>Processing on {message.routedTo}...</Text>
+        <Text style={styles.routedIndicator}>{t('screen.chat.processing_on', { device: message.routedTo })}</Text>
       )}
       <Text style={[styles.messageText, isUser && styles.messageTextUser]}>
         {message.content}
@@ -58,6 +60,8 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 }
 
 export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDocument, documentContext, isProcessing = false }: ChatScreenProps) {
+  const { t } = useTranslation();
+  const { t: tAgent } = useTranslation('agent');
   const [input, setInput] = useState('');
   const flatListRef = useRef<FlatList>(null);
 
@@ -85,7 +89,7 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
             onPress={onClearDocument}
             style={styles.documentClearButton}
             accessibilityRole="button"
-            accessibilityLabel="Clear document context"
+            accessibilityLabel={t('a11y.clear_document_context')}
           >
             <Text style={styles.documentClearText}>X</Text>
           </TouchableOpacity>
@@ -102,7 +106,7 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Ask anything</Text>
+            <Text style={styles.emptyTitle}>{t('screen.chat.ask_anything_short')}</Text>
             <Text style={styles.emptyText}>
               Semblance processes your request locally on your device.
             </Text>
@@ -112,7 +116,7 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
 
       {isProcessing && (
         <View style={styles.typingIndicator}>
-          <Text style={styles.typingText}>Thinking...</Text>
+          <Text style={styles.typingText}>{t('screen.chat.thinking_dots')}</Text>
         </View>
       )}
 
@@ -122,7 +126,7 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
             onPress={onAttachDocument}
             style={styles.attachButton}
             accessibilityRole="button"
-            accessibilityLabel="Attach document"
+            accessibilityLabel={tAgent('input.attach_document')}
           >
             <Text style={styles.attachButtonText}>+</Text>
           </TouchableOpacity>
@@ -131,7 +135,7 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
           style={styles.input}
           value={input}
           onChangeText={setInput}
-          placeholder="Awaiting direction"
+          placeholder={tAgent('input.placeholder_default')}
           placeholderTextColor={colors.textTertiary}
           multiline
           maxLength={4000}
@@ -144,9 +148,9 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
           onPress={handleSend}
           disabled={!input.trim() || isProcessing}
           accessibilityRole="button"
-          accessibilityLabel="Send message"
+          accessibilityLabel={tAgent('input.send_message')}
         >
-          <Text style={styles.sendButtonText}>Send</Text>
+          <Text style={styles.sendButtonText}>{t('button.send')}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

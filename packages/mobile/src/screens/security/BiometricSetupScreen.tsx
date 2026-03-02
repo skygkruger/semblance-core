@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../../theme/tokens.js';
 import type { BiometricType, LockTimeout } from '@semblance/core/auth/types';
 
@@ -48,6 +49,7 @@ export const BiometricSetupScreen: React.FC<BiometricSetupScreenProps> = ({
   onToggleSensitiveReconfirm,
   onTestAuth,
 }) => {
+  const { t } = useTranslation();
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null);
 
   const handleToggle = async () => {
@@ -64,7 +66,7 @@ export const BiometricSetupScreen: React.FC<BiometricSetupScreenProps> = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Biometric Security</Text>
+      <Text style={styles.title}>{t('screen.biometric.title')}</Text>
       <Text style={styles.subtitle}>
         Protect your Semblance data with device biometrics.
       </Text>
@@ -72,17 +74,17 @@ export const BiometricSetupScreen: React.FC<BiometricSetupScreenProps> = ({
       {/* Status Card */}
       <View style={styles.card}>
         <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Available</Text>
+          <Text style={styles.statusLabel}>{t('screen.biometric.available')}</Text>
           <Text style={[styles.statusValue, { color: isAvailable ? colors.success : colors.attention }]}>
             {isAvailable ? 'Yes' : 'No'}
           </Text>
         </View>
         <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Type</Text>
+          <Text style={styles.statusLabel}>{t('screen.biometric.type')}</Text>
           <Text style={styles.statusValue}>{BIOMETRIC_LABELS[biometricType]}</Text>
         </View>
         <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Status</Text>
+          <Text style={styles.statusLabel}>{t('screen.biometric.status')}</Text>
           <Text style={[styles.statusValue, { color: isEnabled ? colors.success : colors.textTertiary }]}>
             {isEnabled ? 'Enabled' : 'Disabled'}
           </Text>
@@ -102,7 +104,7 @@ export const BiometricSetupScreen: React.FC<BiometricSetupScreenProps> = ({
       {/* Lock Timeout */}
       {isEnabled && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Lock Timeout</Text>
+          <Text style={styles.cardTitle}>{t('screen.biometric.lock_timeout')}</Text>
           <Text style={styles.cardDescription}>
             How long before the app requires re-authentication.
           </Text>
@@ -129,7 +131,7 @@ export const BiometricSetupScreen: React.FC<BiometricSetupScreenProps> = ({
         >
           <View style={styles.statusRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.statusLabel}>Sensitive Action Reconfirm</Text>
+              <Text style={styles.statusLabel}>{t('screen.biometric.sensitive_reconfirm')}</Text>
               <Text style={styles.cardDescription}>
                 Always require biometric for exports, inheritance, and key changes.
               </Text>
@@ -143,7 +145,7 @@ export const BiometricSetupScreen: React.FC<BiometricSetupScreenProps> = ({
 
       {/* Test Auth */}
       <TouchableOpacity style={styles.testButton} onPress={handleTest}>
-        <Text style={styles.testButtonText}>Test Authentication</Text>
+        <Text style={styles.testButtonText}>{t('screen.biometric.test_auth')}</Text>
       </TouchableOpacity>
 
       {testResult && (

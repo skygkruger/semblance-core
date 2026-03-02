@@ -1,7 +1,10 @@
 import { useRef, useState, useCallback, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ChatInputProps } from './ChatInput.types';
 
-export function ChatInput({ onSend, onAttach, disabled = false, placeholder = 'Awaiting direction', className = '' }: ChatInputProps) {
+export function ChatInput({ onSend, onAttach, disabled = false, placeholder, className = '' }: ChatInputProps) {
+  const { t } = useTranslation('agent');
+  const resolvedPlaceholder = placeholder ?? t('input.placeholder_default');
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -55,7 +58,7 @@ export function ChatInput({ onSend, onAttach, disabled = false, placeholder = 'A
             transition-colors duration-fast
             focus-visible:outline-none focus-visible:shadow-focus
           "
-          aria-label="Attach document"
+          aria-label={t('input.attach_document')}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
@@ -67,7 +70,7 @@ export function ChatInput({ onSend, onAttach, disabled = false, placeholder = 'A
         value={value}
         onChange={(e) => { setValue(e.target.value); handleInput(); }}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         disabled={disabled}
         rows={1}
         className="
@@ -77,7 +80,7 @@ export function ChatInput({ onSend, onAttach, disabled = false, placeholder = 'A
           focus:outline-none
           disabled:opacity-50
         "
-        aria-label="Message input"
+        aria-label={t('input.message_input_label')}
       />
       <button
         type="button"
@@ -91,7 +94,7 @@ export function ChatInput({ onSend, onAttach, disabled = false, placeholder = 'A
           transition-colors duration-fast
           focus-visible:outline-none focus-visible:shadow-focus
         "
-        aria-label="Send message"
+        aria-label={t('input.send_message')}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" />

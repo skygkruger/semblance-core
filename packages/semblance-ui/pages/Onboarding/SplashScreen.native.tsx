@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Button } from '../../components/Button/Button';
@@ -6,6 +7,7 @@ import type { SplashScreenProps } from './SplashScreen.types';
 import { brandColors, nativeSpacing, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) {
+  const { t } = useTranslation('onboarding');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -21,12 +23,10 @@ export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) 
     <View style={styles.container}>
       <LogoMark size={96} />
 
-      <Text style={styles.headline}>This is your Semblance.</Text>
+      <Text style={styles.headline}>{t('splash.headline')}</Text>
 
       <Text style={styles.subtext}>
-        A digital representation that understands your world,
-        acts on your behalf, and is architecturally incapable
-        of betraying your trust.
+        {t('splash.subtext')}
       </Text>
 
       <View style={styles.btnWrap}>
@@ -38,7 +38,7 @@ export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) 
             onBegin?.();
           }}
         >
-          Begin
+          {t('splash.begin_button')}
         </Button>
       </View>
     </View>

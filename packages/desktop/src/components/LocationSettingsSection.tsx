@@ -118,7 +118,7 @@ export function LocationSettingsSection() {
               </label>
               <Input
                 value={settings.defaultCity}
-                onChange={(e) => updateSettings({ defaultCity: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSettings({ defaultCity: e.target.value })}
                 placeholder="e.g., Portland, OR"
               />
             </div>

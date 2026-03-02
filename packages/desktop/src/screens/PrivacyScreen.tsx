@@ -1,23 +1,25 @@
+import { useTranslation } from 'react-i18next';
 import { PrivacyDashboard } from '@semblance/ui';
 import type { NetworkEntry, AuditEntry } from '@semblance/ui';
 import { useAppState } from '../state/AppState';
 
 export function PrivacyScreen() {
+  const { t } = useTranslation();
   const state = useAppState();
   const { privacyStatus, knowledgeStats } = state;
 
   const networkEntries: NetworkEntry[] = [
     {
-      label: 'Total connections',
+      label: t('screen.privacy.total_connections'),
       value: String(privacyStatus.connectionCount),
       isZero: privacyStatus.connectionCount === 0,
     },
     {
-      label: 'Local inference',
-      value: state.ollamaStatus === 'connected' ? 'Active' : 'Disconnected',
+      label: t('screen.privacy.local_inference'),
+      value: state.ollamaStatus === 'connected' ? t('screen.privacy.status_active') : t('screen.privacy.status_disconnected'),
     },
     {
-      label: 'External connections',
+      label: t('screen.privacy.external_connections'),
       value: '0',
       isZero: true,
     },
@@ -26,19 +28,19 @@ export function PrivacyScreen() {
   const auditEntries: AuditEntry[] = [
     {
       status: 'completed',
-      text: `${knowledgeStats.documentCount} documents indexed`,
+      text: t('screen.privacy.documents_indexed', { count: knowledgeStats.documentCount }),
       domain: 'knowledge',
     },
     {
       status: privacyStatus.allLocal ? 'completed' : 'failed',
       text: privacyStatus.allLocal
-        ? 'All data local — no external connections'
-        : 'Anomaly detected — review required',
+        ? t('screen.privacy.all_local')
+        : t('screen.privacy.anomaly_detected'),
       domain: 'network',
     },
     {
       status: 'completed',
-      text: `Index size: ${(knowledgeStats.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB`,
+      text: `${t('screen.privacy.index_size')} ${(knowledgeStats.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB`,
       domain: 'storage',
     },
   ];

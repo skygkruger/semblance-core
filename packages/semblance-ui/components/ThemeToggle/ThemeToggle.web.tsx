@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { ThemeMode, ThemeToggleProps } from './ThemeToggle.types';
 
 const modes: Array<{ id: ThemeMode; label: string }> = [
@@ -7,6 +8,8 @@ const modes: Array<{ id: ThemeMode; label: string }> = [
 ];
 
 export function ThemeToggle({ value, onChange, className = '' }: ThemeToggleProps) {
+  const { t } = useTranslation();
+
   return (
     <div
       className={`
@@ -16,7 +19,7 @@ export function ThemeToggle({ value, onChange, className = '' }: ThemeToggleProp
         ${className}
       `.trim()}
       role="radiogroup"
-      aria-label="Theme selection"
+      aria-label={t('a11y.theme_selection')}
     >
       {modes.map((mode) => {
         const isActive = mode.id === value;

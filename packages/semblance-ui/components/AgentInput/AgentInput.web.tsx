@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { WireframeSpinner } from '../WireframeSpinner/WireframeSpinner';
 import type { AgentInputProps } from './AgentInput.types';
 import {
@@ -6,7 +7,6 @@ import {
   MIC_BASE,
   SPEAKER_PATH,
   ERROR_PATH,
-  VOICE_LABELS,
   PLACEHOLDER_HINTS,
 } from './AgentInput.types';
 import './AgentInput.css';
@@ -26,6 +26,7 @@ export function AgentInput({
   onVoiceStop,
   onVoiceCancel,
 }: AgentInputProps) {
+  const { t } = useTranslation('agent');
   const [value, setValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
@@ -33,7 +34,7 @@ export function AgentInput({
   const fieldRef = useRef<HTMLTextAreaElement>(null);
 
   // Resolve hint text: explicit placeholder prop overrides default hints
-  const hints = placeholder ? [placeholder] : PLACEHOLDER_HINTS;
+  const hints = placeholder ? [placeholder] : [t('input.placeholder_default'), ...PLACEHOLDER_HINTS.slice(1)];
 
   // Hint cycling — only when multiple hints and user is not active
   useEffect(() => {
@@ -150,7 +151,7 @@ export function AgentInput({
             type="button"
             className="agent-input__document-dismiss"
             onClick={activeDocument.onDismiss}
-            aria-label="Dismiss document"
+            aria-label={t('input.dismiss_document')}
           >
             &times;
           </button>
@@ -180,7 +181,7 @@ export function AgentInput({
         {thinking && (
           <div className="agent-input__thinking-overlay" data-testid="thinking-overlay">
             <WireframeSpinner size={50} speed={0.8} />
-            <span className="agent-input__thinking-text">On it.</span>
+            <span className="agent-input__thinking-text">{t('input.thinking_text')}</span>
           </div>
         )}
 
@@ -213,7 +214,7 @@ export function AgentInput({
               <span className="agent-input__voice-status" data-testid="voice-processing" />
             )}
             {voiceState === 'speaking' && (
-              <span className="agent-input__voice-status" data-testid="voice-speaking">Speaking...</span>
+              <span className="agent-input__voice-status" data-testid="voice-speaking">{t('voice.status_speaking')}</span>
             )}
           </div>
         )}
@@ -231,7 +232,7 @@ export function AgentInput({
               ].filter(Boolean).join(' ')}
               onClick={handleMicClick}
               disabled={voiceState === 'processing'}
-              aria-label={VOICE_LABELS[voiceState]}
+              aria-label={t(`voice.${voiceState}`)}
               data-testid="voice-mic-button"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -245,7 +246,7 @@ export function AgentInput({
             className="agent-input__send"
             onClick={handleSend}
             disabled={thinking || !hasValue || (voiceEnabled && voiceState === 'processing')}
-            aria-label="Send"
+            aria-label={t('input.send')}
           >
             ↵
           </button>

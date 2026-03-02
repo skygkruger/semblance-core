@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { BackArrow } from './SettingsIcons';
 import type { SettingsAIEngineProps } from './SettingsAIEngine.types';
@@ -29,24 +30,27 @@ export function SettingsAIEngine({
   onChange,
   onBack,
 }: SettingsAIEngineProps) {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation();
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel="Go back">
+        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel={tc('a11y.go_back')}>
           <BackArrow />
         </Pressable>
-        <Text style={styles.headerTitle}>AI Engine</Text>
+        <Text style={styles.headerTitle}>{t('ai_engine.title')}</Text>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Active Model */}
-        <Text style={styles.sectionHeader}>Active Model</Text>
+        <Text style={styles.sectionHeader}>{t('ai_engine.section_model')}</Text>
         <View style={[styles.card, { marginBottom: nativeSpacing.s4 }]}>
           <View style={styles.cardRow}>
             <Text style={styles.monoLabel}>{modelName}</Text>
             <View style={[styles.badge, isModelRunning ? styles.badgeVeridian : styles.badgeMuted]}>
               <Text style={[styles.badgeText, isModelRunning ? styles.badgeTextVeridian : styles.badgeTextMuted]}>
-                {isModelRunning ? 'Running' : 'Not loaded'}
+                {isModelRunning ? t('ai_engine.badge_running') : t('ai_engine.badge_not_loaded')}
               </Text>
             </View>
           </View>
@@ -54,16 +58,16 @@ export function SettingsAIEngine({
         </View>
 
         {/* Hardware Profile */}
-        <Text style={styles.sectionHeader}>Hardware</Text>
+        <Text style={styles.sectionHeader}>{t('ai_engine.section_hardware')}</Text>
         <View style={styles.rowStatic}>
           <Text style={styles.rowLabel}>{hardwareProfile}</Text>
         </View>
 
         {/* Performance Settings */}
-        <Text style={styles.sectionHeader}>Performance</Text>
+        <Text style={styles.sectionHeader}>{t('ai_engine.section_performance')}</Text>
 
         <View style={styles.segmentContainer}>
-          <Text style={styles.segmentLabel}>Inference threads</Text>
+          <Text style={styles.segmentLabel}>{t('ai_engine.label_inference_threads')}</Text>
           <View style={styles.segment}>
             {threadOptions.map((opt) => {
               const isActive = String(inferenceThreads) === opt;
@@ -75,7 +79,7 @@ export function SettingsAIEngine({
                   accessibilityRole="button"
                 >
                   <Text style={[styles.segmentOptionText, isActive && styles.segmentOptionTextActive]}>
-                    {opt === 'auto' ? 'Auto' : opt}
+                    {opt === 'auto' ? t('ai_engine.thread_option_auto') : opt}
                   </Text>
                 </Pressable>
               );
@@ -84,7 +88,7 @@ export function SettingsAIEngine({
         </View>
 
         <View style={styles.segmentContainer}>
-          <Text style={styles.segmentLabel}>Context window</Text>
+          <Text style={styles.segmentLabel}>{t('ai_engine.label_context_window')}</Text>
           <View style={styles.segment}>
             {contextOptions.map((opt) => {
               const isActive = contextWindow === opt;
@@ -109,22 +113,22 @@ export function SettingsAIEngine({
           onPress={() => onChange('gpuAcceleration', !gpuAcceleration)}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>GPU acceleration</Text>
+          <Text style={styles.rowLabel}>{t('ai_engine.label_gpu_acceleration')}</Text>
           <Toggle on={gpuAcceleration} onToggle={() => onChange('gpuAcceleration', !gpuAcceleration)} />
         </Pressable>
 
         {/* Advanced */}
-        <Text style={styles.sectionHeader}>Advanced</Text>
+        <Text style={styles.sectionHeader}>{t('ai_engine.section_advanced')}</Text>
         <View style={styles.rowStatic}>
-          <Text style={styles.rowLabel}>Custom model path</Text>
-          <Text style={styles.rowValue}>{customModelPath || 'None'}</Text>
+          <Text style={styles.rowLabel}>{t('ai_engine.label_custom_model_path')}</Text>
+          <Text style={styles.rowValue}>{customModelPath || t('ai_engine.value_custom_model_none')}</Text>
         </View>
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           onPress={() => onChange('resetDefaults', true)}
           accessibilityRole="button"
         >
-          <Text style={[styles.rowLabel, { color: brandColors.sv2 }]}>Reset to defaults</Text>
+          <Text style={[styles.rowLabel, { color: brandColors.sv2 }]}>{t('ai_engine.btn_reset_defaults')}</Text>
         </Pressable>
       </ScrollView>
     </View>

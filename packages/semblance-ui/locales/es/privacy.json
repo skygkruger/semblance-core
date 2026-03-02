@@ -1,0 +1,35 @@
+{
+  "badge": {
+    "status_label": "[ES] Privacy status: {{status}}",
+    "active": "[ES] Local Only",
+    "syncing": "[ES] Syncing",
+    "offline": "[ES] Offline"
+  },
+  "dashboard": {
+    "title": "[ES] Privacy Dashboard",
+    "section_guarantees": "[ES] Privacy Guarantees",
+    "verified_label": "[ES] Verified",
+    "section_data_inventory": "[ES] Data Inventory",
+    "section_comparison": "[ES] Comparison Statement",
+    "stat_data_sources": "[ES] Data Sources",
+    "stat_cloud_connections": "[ES] Cloud Connections",
+    "stat_actions_logged": "[ES] Actions Logged",
+    "stat_time_saved": "[ES] Time Saved",
+    "comparison": {
+      "local_data_points": "[ES] Local-only data points",
+      "cloud_competitor_points": "[ES] Cloud competitor data points",
+      "actions_logged": "[ES] Actions logged",
+      "actions_reversible": "[ES] Actions reversible"
+    },
+    "section_network_activity": "[ES] Network Activity",
+    "network_empty": "[ES] No network activity recorded",
+    "section_audit_trail": "[ES] Recent Audit Trail",
+    "audit_trail_size": "[ES] {{count}} entries",
+    "btn_proof_of_privacy": "[ES] Proof of Privacy",
+    "btn_network_monitor": "[ES] Network Monitor",
+    "proof_of_privacy": {
+      "title": "[ES] Proof of Privacy",
+      "verified_text": "[ES] Zero unauthorized network connections verified"
+    }
+  }
+}

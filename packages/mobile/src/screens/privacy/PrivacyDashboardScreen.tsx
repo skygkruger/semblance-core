@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../../theme/tokens.js';
 
 export interface PrivacyGuarantee {
@@ -56,6 +57,8 @@ export const PrivacyDashboardScreen: React.FC<PrivacyDashboardScreenProps> = ({
   onNavigateToProofOfPrivacy,
   onNavigateToNetworkMonitor,
 }) => {
+  const { t } = useTranslation('privacy');
+  const { t: tc } = useTranslation();
   const [expandedSections, setExpandedSections] = useState<Set<SectionId>>(
     new Set(['guarantees']),
   );
@@ -77,7 +80,7 @@ export const PrivacyDashboardScreen: React.FC<PrivacyDashboardScreenProps> = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Privacy Dashboard</Text>
+      <Text style={styles.title}>{t('dashboard.title')}</Text>
       <Text style={styles.subtitle}>
         Complete visibility into what Semblance stores, accesses, and transmits.
       </Text>
@@ -87,7 +90,7 @@ export const PrivacyDashboardScreen: React.FC<PrivacyDashboardScreenProps> = ({
         style={styles.sectionHeader}
         onPress={() => toggleSection('guarantees')}
       >
-        <Text style={styles.sectionTitle}>Privacy Guarantees</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.section_guarantees')}</Text>
         <Text style={styles.chevron}>{expandedSections.has('guarantees') ? '[-]' : '[+]'}</Text>
       </TouchableOpacity>
       {expandedSections.has('guarantees') && (
@@ -111,7 +114,7 @@ export const PrivacyDashboardScreen: React.FC<PrivacyDashboardScreenProps> = ({
         style={styles.sectionHeader}
         onPress={() => toggleSection('inventory')}
       >
-        <Text style={styles.sectionTitle}>Data Inventory</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.section_data_inventory')}</Text>
         <Text style={styles.chevron}>{expandedSections.has('inventory') ? '[-]' : '[+]'}</Text>
       </TouchableOpacity>
       {expandedSections.has('inventory') && (
@@ -131,7 +134,7 @@ export const PrivacyDashboardScreen: React.FC<PrivacyDashboardScreenProps> = ({
         style={styles.sectionHeader}
         onPress={() => toggleSection('network')}
       >
-        <Text style={styles.sectionTitle}>Network Activity</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.section_network_activity')}</Text>
         <Text style={styles.chevron}>{expandedSections.has('network') ? '[-]' : '[+]'}</Text>
       </TouchableOpacity>
       {expandedSections.has('network') && (
@@ -151,7 +154,7 @@ export const PrivacyDashboardScreen: React.FC<PrivacyDashboardScreenProps> = ({
             </View>
           ))}
           <TouchableOpacity onPress={onNavigateToNetworkMonitor}>
-            <Text style={styles.viewAllLink}>View full Network Monitor &gt;</Text>
+            <Text style={styles.viewAllLink}>{tc('screen.privacy_dashboard.view_network_monitor')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -161,7 +164,7 @@ export const PrivacyDashboardScreen: React.FC<PrivacyDashboardScreenProps> = ({
         style={styles.sectionHeader}
         onPress={() => toggleSection('comparison')}
       >
-        <Text style={styles.sectionTitle}>Comparison Statement</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.section_comparison')}</Text>
         <Text style={styles.chevron}>{expandedSections.has('comparison') ? '[-]' : '[+]'}</Text>
       </TouchableOpacity>
       {expandedSections.has('comparison') && (
@@ -169,19 +172,19 @@ export const PrivacyDashboardScreen: React.FC<PrivacyDashboardScreenProps> = ({
           <View style={styles.comparisonGrid}>
             <View style={styles.comparisonItem}>
               <Text style={styles.comparisonValue}>{comparison.localOnlyDataPoints.toLocaleString()}</Text>
-              <Text style={styles.comparisonLabel}>Local-only data points</Text>
+              <Text style={styles.comparisonLabel}>{t('dashboard.comparison.local_data_points')}</Text>
             </View>
             <View style={styles.comparisonItem}>
               <Text style={styles.comparisonValue}>{comparison.cloudCompetitorDataPoints.toLocaleString()}</Text>
-              <Text style={styles.comparisonLabel}>Cloud competitor would send</Text>
+              <Text style={styles.comparisonLabel}>{t('dashboard.comparison.cloud_competitor_points')}</Text>
             </View>
             <View style={styles.comparisonItem}>
               <Text style={styles.comparisonValue}>{comparison.actionsLogged.toLocaleString()}</Text>
-              <Text style={styles.comparisonLabel}>Actions logged</Text>
+              <Text style={styles.comparisonLabel}>{t('dashboard.comparison.actions_logged')}</Text>
             </View>
             <View style={styles.comparisonItem}>
               <Text style={styles.comparisonValue}>{comparison.actionsReversible.toLocaleString()}</Text>
-              <Text style={styles.comparisonLabel}>Actions reversible</Text>
+              <Text style={styles.comparisonLabel}>{t('dashboard.comparison.actions_reversible')}</Text>
             </View>
           </View>
         </View>
@@ -192,7 +195,7 @@ export const PrivacyDashboardScreen: React.FC<PrivacyDashboardScreenProps> = ({
         style={styles.sectionHeader}
         onPress={() => toggleSection('audit')}
       >
-        <Text style={styles.sectionTitle}>Audit Trail</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.section_audit_trail')}</Text>
         <Text style={styles.chevron}>{expandedSections.has('audit') ? '[-]' : '[+]'}</Text>
       </TouchableOpacity>
       {expandedSections.has('audit') && (
@@ -208,7 +211,7 @@ export const PrivacyDashboardScreen: React.FC<PrivacyDashboardScreenProps> = ({
 
       {/* Proof of Privacy Link */}
       <TouchableOpacity style={styles.proofButton} onPress={onNavigateToProofOfPrivacy}>
-        <Text style={styles.proofButtonText}>Generate Proof of Privacy Report</Text>
+        <Text style={styles.proofButtonText}>{tc('screen.privacy_dashboard.generate_proof')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );

@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import type { DirectoryPickerProps } from './DirectoryPicker.types';
 
 export function DirectoryPicker({ directories, onAdd, onRemove, onRescan, className = '' }: DirectoryPickerProps) {
+  const { t } = useTranslation();
   return (
     <div className={className}>
       <ul className="space-y-2" role="list">
@@ -21,8 +23,8 @@ export function DirectoryPicker({ directories, onAdd, onRemove, onRescan, classN
                 {dir.path}
               </p>
               <div className="flex gap-3 text-xs text-semblance-text-tertiary mt-0.5">
-                {dir.fileCount !== undefined && <span>{dir.fileCount} files</span>}
-                {dir.lastIndexed && <span>Last indexed: {dir.lastIndexed}</span>}
+                {dir.fileCount !== undefined && <span>{t('screen.directory.file_count', { count: dir.fileCount })}</span>}
+                {dir.lastIndexed && <span>{t('screen.directory.last_indexed', { time: dir.lastIndexed })}</span>}
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -71,7 +73,7 @@ export function DirectoryPicker({ directories, onAdd, onRemove, onRescan, classN
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M5 12h14" /><path d="M12 5v14" />
         </svg>
-        Add Folder
+        {t('button.add_folder')}
       </button>
     </div>
   );

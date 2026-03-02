@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function FinancialDashboardScreen(props: FinancialDashboardScreenProps) {
+  const { t } = useTranslation();
   const {
     isPremium,
     breakdown,
@@ -96,13 +98,13 @@ export function FinancialDashboardScreen(props: FinancialDashboardScreenProps) {
   if (!isPremium) {
     return (
       <View style={styles.container} testID="financial-dashboard-free">
-        <Text style={styles.title}>Financial Overview</Text>
+        <Text style={styles.title}>{t('screen.financial.title')}</Text>
         <View style={styles.card}>
           <Text style={styles.mutedText}>
             Unlock full financial intelligence with your Digital Representative.
           </Text>
           <TouchableOpacity style={styles.primaryButton} onPress={onActivateDigitalRepresentative}>
-            <Text style={styles.primaryButtonText}>Activate your Digital Representative</Text>
+            <Text style={styles.primaryButtonText}>{t('screen.financial.activate_dr')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -126,11 +128,11 @@ export function FinancialDashboardScreen(props: FinancialDashboardScreenProps) {
       {breakdown && (
         <View style={styles.summaryRow}>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Spending</Text>
+            <Text style={styles.summaryLabel}>{t('screen.financial.spending')}</Text>
             <Text style={styles.summaryValue}>${(breakdown.totalSpending / 100).toFixed(2)}</Text>
           </View>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Income</Text>
+            <Text style={styles.summaryLabel}>{t('screen.financial.income')}</Text>
             <Text style={styles.summaryValue}>${(breakdown.totalIncome / 100).toFixed(2)}</Text>
           </View>
         </View>
@@ -139,7 +141,7 @@ export function FinancialDashboardScreen(props: FinancialDashboardScreenProps) {
       {/* Category Bars */}
       {breakdown && breakdown.categoryBreakdown.length > 0 && (
         <View style={styles.card} testID="category-bars">
-          <Text style={styles.sectionTitle}>By Category</Text>
+          <Text style={styles.sectionTitle}>{t('screen.financial.by_category')}</Text>
           {breakdown.categoryBreakdown.map(cat => (
             <View key={cat.category} style={styles.categoryRow}>
               <View style={styles.categoryLabel}>
@@ -158,7 +160,7 @@ export function FinancialDashboardScreen(props: FinancialDashboardScreenProps) {
       {/* Anomalies */}
       {anomalies.length > 0 && (
         <View testID="anomaly-alerts">
-          <Text style={styles.sectionTitle}>Alerts</Text>
+          <Text style={styles.sectionTitle}>{t('screen.financial.alerts')}</Text>
           {anomalies.map(a => (
             <View key={a.id} style={[styles.anomalyCard, a.severity === 'high' ? styles.anomalyHigh : null]}>
               <View style={{ flex: 1 }}>
@@ -166,7 +168,7 @@ export function FinancialDashboardScreen(props: FinancialDashboardScreenProps) {
                 <Text style={styles.anomalyDesc}>{a.description}</Text>
               </View>
               <TouchableOpacity onPress={() => onDismissAnomaly(a.id)}>
-                <Text style={styles.dismissText}>Dismiss</Text>
+                <Text style={styles.dismissText}>{t('button.dismiss')}</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -176,7 +178,7 @@ export function FinancialDashboardScreen(props: FinancialDashboardScreenProps) {
       {/* Recent Transactions */}
       {recentTransactions.length > 0 && (
         <View testID="recent-transactions">
-          <Text style={styles.sectionTitle}>Recent</Text>
+          <Text style={styles.sectionTitle}>{t('screen.financial.recent')}</Text>
           {recentTransactions.slice(0, 10).map(txn => (
             <View key={txn.id} style={styles.txnRow}>
               <Text style={styles.txnDate}>{txn.date}</Text>

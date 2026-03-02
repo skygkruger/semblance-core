@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { BackArrow } from './SettingsIcons';
 import type { SettingsAccountProps } from './SettingsAccount.types';
@@ -34,6 +35,8 @@ export function SettingsAccount({
   onDeactivateLicense,
   onBack,
 }: SettingsAccountProps) {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [nameValue, setNameValue] = useState(semblanceName);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
@@ -52,10 +55,10 @@ export function SettingsAccount({
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel="Go back">
+        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel={tc('a11y.go_back')}>
           <BackArrow />
         </Pressable>
-        <Text style={styles.headerTitle}>Account</Text>
+        <Text style={styles.headerTitle}>{t('account.title')}</Text>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -67,16 +70,16 @@ export function SettingsAccount({
             config.cardVariant === 'active' && styles.cardActiveBg,
           ]}>
             <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardLabel}>{config.label}</Text>
+              <Text style={styles.cardLabel}>{t(`account.license_configs.${licenseStatus === 'founding-member' ? 'founding_member' : licenseStatus}.label`)}</Text>
               <View style={[styles.badge, { backgroundColor: badgeStyle.bg }]}>
-                <Text style={[styles.badgeText, { color: badgeStyle.text }]}>{config.badge}</Text>
+                <Text style={[styles.badgeText, { color: badgeStyle.text }]}>{t(`account.license_configs.${licenseStatus === 'founding-member' ? 'founding_member' : licenseStatus}.badge`)}</Text>
               </View>
             </View>
-            <Text style={styles.cardDesc}>{config.desc}</Text>
+            <Text style={styles.cardDesc}>{t(`account.license_configs.${licenseStatus === 'founding-member' ? 'founding_member' : licenseStatus}.desc`)}</Text>
             <Text style={styles.cardMeta}>
               {licenseStatus === 'trial' && trialDaysRemaining !== undefined
-                ? `${trialDaysRemaining} days remaining`
-                : `Activated ${licenseActivationDate}`}
+                ? t('account.trial_days_remaining', { n: trialDaysRemaining })
+                : t('account.activated_date', { date: licenseActivationDate })}
             </Text>
             {licenseStatus === 'expired' && (
               <Pressable
@@ -84,28 +87,28 @@ export function SettingsAccount({
                 style={({ pressed }) => [styles.ghostButton, { marginTop: nativeSpacing.s3 }, pressed && styles.ghostButtonPressed]}
                 accessibilityRole="button"
               >
-                <Text style={styles.ghostButtonText}>Renew license</Text>
+                <Text style={styles.ghostButtonText}>{t('account.btn_renew_license')}</Text>
               </Pressable>
             )}
           </View>
         </View>
 
         {/* Digital Representative */}
-        <Text style={styles.sectionHeader}>Digital Representative</Text>
+        <Text style={styles.sectionHeader}>{t('account.section_digital_representative')}</Text>
 
         <View style={styles.rowStatic}>
-          <Text style={styles.rowLabel}>Status</Text>
+          <Text style={styles.rowLabel}>{t('account.dr_status_label')}</Text>
           <View style={styles.statusContainer}>
             <View style={[styles.dot, { backgroundColor: digitalRepresentativeActive ? brandColors.veridian : brandColors.sv2 }]} />
             <Text style={styles.rowValue}>
-              {digitalRepresentativeActive ? 'Active' : 'Not activated'}
+              {digitalRepresentativeActive ? t('account.dr_status_active') : t('account.dr_status_inactive')}
             </Text>
           </View>
         </View>
 
         {digitalRepresentativeActive && digitalRepresentativeActivationDate && (
           <View style={styles.rowStatic}>
-            <Text style={styles.rowLabel}>Activation date</Text>
+            <Text style={styles.rowLabel}>{t('account.dr_activation_date_label')}</Text>
             <Text style={styles.rowValue}>{digitalRepresentativeActivationDate}</Text>
           </View>
         )}
@@ -115,7 +118,7 @@ export function SettingsAccount({
           onPress={onViewDRAgreement}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>View Digital Representative agreement</Text>
+          <Text style={styles.rowLabel}>{t('account.btn_view_dr_agreement')}</Text>
         </Pressable>
 
         {!digitalRepresentativeActive && (
@@ -125,13 +128,13 @@ export function SettingsAccount({
             accessibilityRole="button"
           >
             <Text style={[styles.rowLabel, { color: brandColors.veridian }]}>
-              Activate Digital Representative
+              {t('account.btn_activate_dr')}
             </Text>
           </Pressable>
         )}
 
         {/* Semblance Identity */}
-        <Text style={styles.sectionHeader}>Semblance Identity</Text>
+        <Text style={styles.sectionHeader}>{t('account.section_semblance_identity')}</Text>
 
         {editing ? (
           <View style={styles.inlineEdit}>
@@ -144,10 +147,10 @@ export function SettingsAccount({
               placeholderTextColor={brandColors.sv1}
             />
             <Pressable onPress={handleSaveName} style={styles.inlineEditBtn} accessibilityRole="button">
-              <Text style={styles.inlineEditBtnSave}>Save</Text>
+              <Text style={styles.inlineEditBtnSave}>{t('account.btn_save')}</Text>
             </Pressable>
             <Pressable onPress={() => { setEditing(false); setNameValue(semblanceName); }} style={styles.inlineEditBtn} accessibilityRole="button">
-              <Text style={styles.inlineEditBtnCancel}>Cancel</Text>
+              <Text style={styles.inlineEditBtnCancel}>{t('account.btn_cancel')}</Text>
             </Pressable>
           </View>
         ) : (
@@ -156,20 +159,20 @@ export function SettingsAccount({
             onPress={() => setEditing(true)}
             accessibilityRole="button"
           >
-            <Text style={styles.rowLabel}>Your Semblance&apos;s name</Text>
+            <Text style={styles.rowLabel}>{t('account.label_semblance_name')}</Text>
             <Text style={[styles.rowValue, styles.nameGradient]}>{semblanceName}</Text>
           </Pressable>
         )}
 
         {/* Danger Zone */}
-        <Text style={[styles.sectionHeader, styles.sectionHeaderDanger]}>Danger Zone</Text>
+        <Text style={[styles.sectionHeader, styles.sectionHeaderDanger]}>{t('account.section_danger')}</Text>
 
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           onPress={onSignOut}
           accessibilityRole="button"
         >
-          <Text style={[styles.rowLabel, { color: brandColors.sv2 }]}>Sign out</Text>
+          <Text style={[styles.rowLabel, { color: brandColors.sv2 }]}>{t('account.btn_sign_out')}</Text>
         </Pressable>
 
         <Pressable
@@ -177,13 +180,13 @@ export function SettingsAccount({
           onPress={() => setConfirmDeactivate(true)}
           accessibilityRole="button"
         >
-          <Text style={[styles.rowLabel, styles.dangerLabel]}>Deactivate license</Text>
+          <Text style={[styles.rowLabel, styles.dangerLabel]}>{t('account.btn_deactivate_license')}</Text>
         </Pressable>
 
         {confirmDeactivate && (
           <View style={styles.confirmContainer}>
             <Text style={styles.confirmText}>
-              Are you sure? This will deactivate your license on this device.
+              {t('account.deactivate_confirm_body')}
             </Text>
             <View style={styles.confirmRow}>
               <Pressable
@@ -191,14 +194,14 @@ export function SettingsAccount({
                 style={styles.destructiveButton}
                 accessibilityRole="button"
               >
-                <Text style={styles.destructiveButtonText}>Deactivate</Text>
+                <Text style={styles.destructiveButtonText}>{t('account.btn_deactivate')}</Text>
               </Pressable>
               <Pressable
                 onPress={() => setConfirmDeactivate(false)}
                 style={styles.cancelButton}
                 accessibilityRole="button"
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('account.btn_cancel')}</Text>
               </Pressable>
             </View>
           </View>

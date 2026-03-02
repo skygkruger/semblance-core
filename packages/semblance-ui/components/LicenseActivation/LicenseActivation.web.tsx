@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../Button/Button';
 import { Input } from '../Input/Input';
 import type { LicenseActivationProps } from './LicenseActivation.types';
 import './LicenseActivation.css';
 
 export function LicenseActivation({ onActivate, alreadyActive, className = '' }: LicenseActivationProps) {
+  const { t } = useTranslation();
   const [key, setKey] = useState('');
   const [status, setStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -24,7 +26,7 @@ export function LicenseActivation({ onActivate, alreadyActive, className = '' }:
       setKey('');
     } else {
       setStatus('error');
-      setErrorMessage(result.error ?? 'Activation failed');
+      setErrorMessage(result.error ?? t('license.activation_failed'));
     }
   };
 
@@ -35,7 +37,7 @@ export function LicenseActivation({ onActivate, alreadyActive, className = '' }:
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          <span>License active</span>
+          <span>{t('license.active')}</span>
         </div>
       </div>
     );
@@ -46,14 +48,14 @@ export function LicenseActivation({ onActivate, alreadyActive, className = '' }:
       <form className="license-activation__form" onSubmit={handleSubmit}>
         <Input
           value={key}
-          onChange={(e) => {
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             setKey(e.target.value);
             if (status === 'error') setStatus('idle');
           }}
           placeholder="sem_..."
           disabled={status === 'validating'}
           className="license-activation__input"
-          aria-label="License key"
+          aria-label={t('a11y.license_key')}
         />
         <Button
           variant="solid"
@@ -61,7 +63,7 @@ export function LicenseActivation({ onActivate, alreadyActive, className = '' }:
           type="submit"
           disabled={!key.trim() || status === 'validating'}
         >
-          {status === 'validating' ? 'Activating...' : 'Activate'}
+          {status === 'validating' ? t('license.activating') : t('license.activate')}
         </Button>
       </form>
 
@@ -70,7 +72,7 @@ export function LicenseActivation({ onActivate, alreadyActive, className = '' }:
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          <span>License activated successfully</span>
+          <span>{t('license.activated_success')}</span>
         </div>
       )}
 

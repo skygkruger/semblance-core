@@ -4,6 +4,7 @@
  */
 
 import { View, Text, Pressable, SectionList, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ConnectorCard } from '../ConnectorCard/ConnectorCard';
 import type { ConnectionsScreenProps, ConnectorEntry } from './ConnectionsScreen.types';
 import { SECTION_CONFIG } from './ConnectionsScreen.types';
@@ -14,12 +15,12 @@ interface SectionData {
   data: ConnectorEntry[];
 }
 
-function buildSections(connectors: ConnectorEntry[]): SectionData[] {
+function buildSections(connectors: ConnectorEntry[], t: (key: string) => string): SectionData[] {
   const sections: SectionData[] = [];
-  for (const { key, label } of SECTION_CONFIG) {
+  for (const { key } of SECTION_CONFIG) {
     const items = connectors.filter((c) => c.category === key);
     if (items.length > 0) {
-      sections.push({ title: label, data: items });
+      sections.push({ title: t(`section_headers.${key}`), data: items });
     }
   }
   return sections;
@@ -31,36 +32,36 @@ export function ConnectionsScreen({
   onDisconnect,
   onSync,
 }: ConnectionsScreenProps) {
+  const { t } = useTranslation('connections');
   const hasAny = connectors.length > 0;
   const connectedCount = connectors.filter((c) => c.status === 'connected').length;
 
   if (!hasAny) {
     return (
       <View style={styles.screen}>
-        <Text style={styles.title}>Connections</Text>
+        <Text style={styles.title}>{t('title')}</Text>
         <Text style={styles.subtitle}>
-          Connect your data sources. Everything stays on your device.
+          {t('subtitle_empty')}
         </Text>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyHeading}>Connect your first data source</Text>
+          <Text style={styles.emptyHeading}>{t('empty.heading')}</Text>
           <Text style={styles.emptyBody}>
-            Semblance learns from your email, calendar, files, and more.
-            Everything stays on your device.
+            {t('empty.body')}
           </Text>
           <View style={styles.emptyActions}>
             <Pressable
               style={styles.emptyBtn}
               onPress={() => onConnect('email')}
-              accessibilityLabel="Connect Email"
+              accessibilityLabel={t('empty.btn_email')}
             >
-              <Text style={styles.emptyBtnText}>Connect Email</Text>
+              <Text style={styles.emptyBtnText}>{t('empty.btn_email')}</Text>
             </Pressable>
             <Pressable
               style={styles.emptyBtn}
               onPress={() => onConnect('calendar')}
-              accessibilityLabel="Connect Calendar"
+              accessibilityLabel={t('empty.btn_calendar')}
             >
-              <Text style={styles.emptyBtnText}>Connect Calendar</Text>
+              <Text style={styles.emptyBtnText}>{t('empty.btn_calendar')}</Text>
             </Pressable>
           </View>
         </View>
@@ -68,7 +69,7 @@ export function ConnectionsScreen({
     );
   }
 
-  const sections = buildSections(connectors);
+  const sections = buildSections(connectors, t);
 
   return (
     <SectionList<ConnectorEntry, SectionData>
@@ -80,9 +81,9 @@ export function ConnectionsScreen({
       showsVerticalScrollIndicator={false}
       ListHeaderComponent={
         <View style={styles.headerContainer}>
-          <Text style={styles.title}>Connections</Text>
+          <Text style={styles.title}>{t('title')}</Text>
           <Text style={styles.subtitle}>
-            {connectedCount} of {connectors.length} sources connected. Everything stays on your device.
+            {t('subtitle_count', { connected: connectedCount, total: connectors.length })}
           </Text>
         </View>
       }

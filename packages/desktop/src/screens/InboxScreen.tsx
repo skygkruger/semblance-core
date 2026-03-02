@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@semblance/ui';
 import {
   getInboxItems,
@@ -103,6 +104,7 @@ export function sortEmailsByPriority(emails: IndexedEmail[]): IndexedEmail[] {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function InboxScreen() {
+  const { t } = useTranslation();
   const state = useAppState();
   const name = state.userName || 'Semblance';
 
@@ -204,7 +206,7 @@ export function InboxScreen() {
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
         <h1 className="text-xl font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
-          Inbox
+          {t('screen.inbox.title')}
         </h1>
 
         {/* Pending Action Approvals */}
@@ -214,7 +216,7 @@ export function InboxScreen() {
         {insights.length > 0 && (
           <section className="space-y-3">
             <h2 className="text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark uppercase tracking-wide">
-              Priority
+              {t('screen.inbox.section_priority')}
             </h2>
             <div className="space-y-2">
               {insights.map(insight => (
@@ -233,13 +235,13 @@ export function InboxScreen() {
         {/* Email Section */}
         <section className="space-y-3">
           <h2 className="text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark uppercase tracking-wide">
-            Email
+            {t('screen.inbox.section_email')}
           </h2>
 
           {emails.length === 0 ? (
             <Card>
               <p className="text-center text-semblance-text-secondary dark:text-semblance-text-secondary-dark py-8">
-                No emails yet. Connect an email account in Settings to get started.
+                {t('screen.inbox.empty_email')}
               </p>
             </Card>
           ) : (
@@ -281,13 +283,13 @@ export function InboxScreen() {
         {/* Calendar Today Section */}
         <section className="space-y-3">
           <h2 className="text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark uppercase tracking-wide">
-            Calendar Today
+            {t('screen.inbox.section_calendar')}
           </h2>
 
           {todayEvents.length === 0 ? (
             <Card>
               <p className="text-center text-semblance-text-secondary dark:text-semblance-text-secondary-dark py-4">
-                No events today.
+                {t('screen.inbox.empty_calendar')}
               </p>
             </Card>
           ) : (
@@ -299,7 +301,7 @@ export function InboxScreen() {
                     className="flex items-start gap-3 py-2 border-b last:border-b-0 border-semblance-border dark:border-semblance-border-dark"
                   >
                     <span className="text-sm font-mono text-semblance-text-secondary dark:text-semblance-text-secondary-dark whitespace-nowrap min-w-[70px]">
-                      {event.isAllDay ? 'All day' : formatTime(event.startTime)}
+                      {event.isAllDay ? t('time.all_day') : formatTime(event.startTime)}
                     </span>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
@@ -313,7 +315,7 @@ export function InboxScreen() {
                     </div>
                     {event.status === 'tentative' && (
                       <span className="text-xs px-1.5 py-0.5 rounded bg-semblance-attention/10 text-semblance-attention">
-                        Tentative
+                        {t('status.tentative')}
                       </span>
                     )}
                   </div>
@@ -326,21 +328,21 @@ export function InboxScreen() {
         {/* Actions Taken Section */}
         <section className="space-y-3">
           <h2 className="text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark uppercase tracking-wide">
-            Actions Taken
+            {t('screen.inbox.section_actions')}
           </h2>
           <Card>
             {actionsSummary.todayCount === 0 ? (
               <p className="text-center text-semblance-text-secondary dark:text-semblance-text-secondary-dark py-4">
-                No actions taken today yet.
+                {t('screen.inbox.empty_actions')}
               </p>
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-                    Today: {actionsSummary.todayCount} action{actionsSummary.todayCount !== 1 ? 's' : ''}
+                    {t('screen.inbox.today_actions', { count: actionsSummary.todayCount })}
                   </span>
                   <span className="text-sm text-semblance-success">
-                    {formatTimeSaved(actionsSummary.todayTimeSavedSeconds)} saved
+                    {t('screen.inbox.time_saved', { time: formatTimeSaved(actionsSummary.todayTimeSavedSeconds) })}
                   </span>
                 </div>
                 <ul className="space-y-1">
@@ -370,7 +372,7 @@ export function InboxScreen() {
               onClick={handleUndo}
               className="text-sm font-medium text-semblance-accent hover:underline"
             >
-              Undo
+              {t('button.undo')}
             </button>
           </div>
         )}

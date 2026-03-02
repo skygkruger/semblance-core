@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button/Button';
 import {
   EnvelopeIcon,
@@ -10,15 +11,6 @@ import {
 } from '../../components/ConnectionsScreen/ConnectorIcons';
 import type { DataSource, DataSourcesStepProps } from './DataSourcesStep.types';
 import './DataSourcesStep.css';
-
-const SOURCES: DataSource[] = [
-  { id: 'email',    name: 'Email',             description: 'Gmail, Outlook, IMAP',    icon: EnvelopeIcon },
-  { id: 'calendar', name: 'Calendar',          description: 'Google, Apple, Outlook',   icon: CalendarIcon },
-  { id: 'files',    name: 'Files & Documents', description: 'Local folders, iCloud',    icon: FolderIcon },
-  { id: 'contacts', name: 'Contacts',          description: 'Phone, Google, CardDAV',   icon: PersonIcon },
-  { id: 'health',   name: 'Health',            description: 'Apple Health, Google Fit',  icon: HeartIcon },
-  { id: 'slack',    name: 'Slack',             description: 'Workspace messages',       icon: ChatIcon },
-];
 
 function ShieldIcon() {
   return (
@@ -34,8 +26,18 @@ export function DataSourcesStep({
   onContinue,
   onSkip,
 }: DataSourcesStepProps) {
+  const { t } = useTranslation('onboarding');
   const [connected, setConnected] = useState<Set<string>>(new Set(initialConnected));
   const [showNudge, setShowNudge] = useState(false);
+
+  const SOURCES: DataSource[] = [
+    { id: 'email',    name: t('data_sources.sources.email.name'),    description: t('data_sources.sources.email.description'),    icon: EnvelopeIcon },
+    { id: 'calendar', name: t('data_sources.sources.calendar.name'), description: t('data_sources.sources.calendar.description'), icon: CalendarIcon },
+    { id: 'files',    name: t('data_sources.sources.files.name'),    description: t('data_sources.sources.files.description'),    icon: FolderIcon },
+    { id: 'contacts', name: t('data_sources.sources.contacts.name'), description: t('data_sources.sources.contacts.description'), icon: PersonIcon },
+    { id: 'health',   name: t('data_sources.sources.health.name'),   description: t('data_sources.sources.health.description'),   icon: HeartIcon },
+    { id: 'slack',    name: t('data_sources.sources.slack.name'),    description: t('data_sources.sources.slack.description'),    icon: ChatIcon },
+  ];
 
   const toggleConnect = useCallback((id: string) => {
     setConnected(prev => {
@@ -60,10 +62,9 @@ export function DataSourcesStep({
 
   return (
     <div className="datasources">
-      <h2 className="datasources__headline">Connect your world</h2>
+      <h2 className="datasources__headline">{t('data_sources.headline')}</h2>
       <p className="datasources__subtext">
-        Everything stays on this device. Semblance connects to your accounts
-        through the Gateway, fetches your data, and stores it locally.
+        {t('data_sources.subtext')}
       </p>
 
       <div className="datasources__grid">
@@ -88,11 +89,11 @@ export function DataSourcesStep({
               {isConnected ? (
                 <span className="datasources__card-status">
                   <span className="datasources__card-status-dot" />
-                  Connected
+                  {t('data_sources.connected_status')}
                 </span>
               ) : (
                 <Button variant="ghost" size="sm" onClick={() => toggleConnect(source.id)}>
-                  Connect
+                  {t('data_sources.connect_button')}
                 </Button>
               )}
             </div>
@@ -101,21 +102,19 @@ export function DataSourcesStep({
       </div>
 
       <p className="datasources__more">
-        + 42 more sources available in Connections after setup
+        {t('data_sources.more_sources')}
       </p>
 
       <div className="datasources__privacy">
         <ShieldIcon />
         <span className="datasources__privacy-text">
-          Your data never leaves this device. Connections are encrypted and
-          revocable at any time.
+          {t('data_sources.privacy_notice')}
         </span>
       </div>
 
       {showNudge && (
         <p className="datasources__nudge">
-          Connecting at least one source helps Semblance understand your world.
-          You can always add more later.
+          {t('data_sources.nudge')}
         </p>
       )}
 
@@ -125,10 +124,10 @@ export function DataSourcesStep({
           className="datasources__skip"
           onClick={onSkip}
         >
-          Skip for now
+          {t('data_sources.skip_button')}
         </button>
         <Button variant="approve" size="md" onClick={handleContinue}>
-          Continue
+          {t('data_sources.continue_button')}
         </Button>
       </div>
     </div>

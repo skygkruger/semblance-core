@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, Pressable, Switch, ScrollView, StyleSheet } from 'react-native';
 import type { CredentialFormProps, CredentialFormData } from './CredentialForm.types';
 import { PROVIDERS, PROVIDER_LABELS } from './CredentialForm.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel }: CredentialFormProps) {
+  const { t } = useTranslation();
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -89,7 +91,7 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Provider Selection */}
-      <Text style={styles.label}>Choose a provider</Text>
+      <Text style={styles.label}>{t('screen.credentials.choose_provider')}</Text>
       <View style={styles.providerRow}>
         {PROVIDERS.map(key => (
           <Pressable
@@ -120,14 +122,14 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
 
       {(selectedProvider || showManual) && (
         <View style={styles.fields}>
-          <Text style={styles.fieldLabel}>Display Name</Text>
+          <Text style={styles.fieldLabel}>{t('screen.credentials.label_display_name')}</Text>
           <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="e.g., Work Email" placeholderTextColor={brandColors.sv1} />
 
-          <Text style={styles.fieldLabel}>Email Address</Text>
+          <Text style={styles.fieldLabel}>{t('screen.credentials.label_email')}</Text>
           <TextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="you@example.com" placeholderTextColor={brandColors.sv1} keyboardType="email-address" autoCapitalize="none" />
 
-          <Text style={styles.fieldLabel}>Password</Text>
-          <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="App password or account password" placeholderTextColor={brandColors.sv1} secureTextEntry={!showPassword} />
+          <Text style={styles.fieldLabel}>{t('screen.credentials.label_password')}</Text>
+          <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder={t('placeholder.password')} placeholderTextColor={brandColors.sv1} secureTextEntry={!showPassword} />
           <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
             <Text style={styles.togglePassword}>{showPassword ? 'Hide' : 'Show'} password</Text>
           </Pressable>
@@ -139,7 +141,7 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
               onValueChange={setUseTLS}
               trackColor={{ false: brandColors.slate2, true: brandColors.veridian }}
             />
-            <Text style={styles.tlsLabel}>Use TLS (recommended)</Text>
+            <Text style={styles.tlsLabel}>{t('screen.credentials.use_tls')}</Text>
           </View>
 
           {/* Privacy Badge */}
@@ -171,7 +173,7 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
               <Text style={styles.solidBtnText}>{saving ? 'Saving...' : 'Save'}</Text>
             </Pressable>
             <Pressable style={styles.ghostBtn} onPress={onCancel}>
-              <Text style={styles.ghostBtnText}>Cancel</Text>
+              <Text style={styles.ghostBtnText}>{t('button.cancel')}</Text>
             </Pressable>
           </View>
         </View>

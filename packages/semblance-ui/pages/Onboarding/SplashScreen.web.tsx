@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Button } from '../../components/Button/Button';
 import type { SplashScreenProps } from './SplashScreen.types';
 import './Onboarding.css';
 
 export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) {
+  const { t } = useTranslation('onboarding');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -29,13 +31,11 @@ export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) 
       <LogoMark size={96} />
 
       <h1 className="naming__headline">
-        This is your Semblance.
+        {t('splash.headline')}
       </h1>
 
       <p className="naming__subtext" style={{ maxWidth: 360 }}>
-        A digital representation that understands your world,
-        acts on your behalf, and is architecturally incapable
-        of betraying your trust.
+        {t('splash.subtext')}
       </p>
 
       <div style={{ marginTop: 12 }}>
@@ -47,7 +47,7 @@ export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) 
             onBegin?.();
           }}
         >
-          Begin
+          {t('splash.begin_button')}
         </Button>
       </div>
     </div>

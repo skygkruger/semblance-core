@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import type { ToastItem, ToastVariant, ToastContainerProps } from './Toast.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
@@ -16,6 +17,7 @@ interface ToastEntryProps {
 }
 
 function ToastEntry({ toast, onDismiss }: ToastEntryProps) {
+  const { t } = useTranslation();
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(20)).current;
   const autoDismiss = toast.variant !== 'action';
@@ -53,7 +55,7 @@ function ToastEntry({ toast, onDismiss }: ToastEntryProps) {
         <Pressable
           onPress={handleDismiss}
           style={styles.dismissButton}
-          accessibilityLabel="Dismiss notification"
+          accessibilityLabel={t('a11y.dismiss_notification')}
           accessibilityRole="button"
           hitSlop={8}
         >

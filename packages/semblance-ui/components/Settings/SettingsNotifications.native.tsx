@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { BackArrow } from './SettingsIcons';
 import type { SettingsNotificationsProps } from './SettingsNotifications.types';
@@ -32,30 +33,33 @@ export function SettingsNotifications({
   onChange,
   onBack,
 }: SettingsNotificationsProps) {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation();
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel="Go back">
+        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel={tc('a11y.go_back')}>
           <BackArrow />
         </Pressable>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Morning Brief */}
-        <Text style={styles.sectionHeader}>Morning Brief</Text>
+        <Text style={styles.sectionHeader}>{t('notifications.section_morning_brief')}</Text>
 
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           onPress={() => onChange('morningBriefEnabled', !morningBriefEnabled)}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Morning Brief enabled</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_morning_brief_enabled')}</Text>
           <Toggle on={morningBriefEnabled} onToggle={() => onChange('morningBriefEnabled', !morningBriefEnabled)} />
         </Pressable>
 
         <View style={styles.rowStatic}>
-          <Text style={styles.rowLabel}>Delivery time</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_delivery_time')}</Text>
           <Text style={styles.rowValue}>{morningBriefTime}</Text>
         </View>
 
@@ -64,7 +68,7 @@ export function SettingsNotifications({
           onPress={() => onChange('includeWeather', !includeWeather)}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Include weather</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_include_weather')}</Text>
           <Toggle on={includeWeather} onToggle={() => onChange('includeWeather', !includeWeather)} />
         </Pressable>
 
@@ -73,36 +77,36 @@ export function SettingsNotifications({
           onPress={() => onChange('includeCalendar', !includeCalendar)}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Include calendar preview</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_include_calendar')}</Text>
           <Toggle on={includeCalendar} onToggle={() => onChange('includeCalendar', !includeCalendar)} />
         </Pressable>
 
         {/* Reminders */}
-        <Text style={styles.sectionHeader}>Reminders</Text>
+        <Text style={styles.sectionHeader}>{t('notifications.section_reminders')}</Text>
 
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           onPress={() => onChange('remindersEnabled', !remindersEnabled)}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Reminder notifications</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_reminder_notifications')}</Text>
           <Toggle on={remindersEnabled} onToggle={() => onChange('remindersEnabled', !remindersEnabled)} />
         </Pressable>
 
         <View style={styles.rowStatic}>
-          <Text style={styles.rowLabel}>Default snooze duration</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_default_snooze')}</Text>
           <Text style={styles.rowValue}>{snoozeLabels[defaultSnoozeDuration]}</Text>
         </View>
 
         {/* Autonomous Actions */}
-        <Text style={styles.sectionHeader}>Autonomous Actions</Text>
+        <Text style={styles.sectionHeader}>{t('notifications.section_autonomous_actions')}</Text>
 
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           onPress={() => onChange('notifyOnAction', !notifyOnAction)}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Notify when action taken</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_notify_on_action')}</Text>
           <Toggle on={notifyOnAction} onToggle={() => onChange('notifyOnAction', !notifyOnAction)} />
         </Pressable>
 
@@ -111,24 +115,24 @@ export function SettingsNotifications({
           onPress={() => onChange('notifyOnApproval', !notifyOnApproval)}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Notify when approval needed</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_notify_on_approval')}</Text>
           <Toggle on={notifyOnApproval} onToggle={() => onChange('notifyOnApproval', !notifyOnApproval)} />
         </Pressable>
 
         <View style={styles.rowStatic}>
-          <Text style={styles.rowLabel}>Action digest</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_action_digest')}</Text>
           <Text style={styles.rowValue}>{digestLabels[actionDigest]}</Text>
         </View>
 
         {/* System */}
-        <Text style={styles.sectionHeader}>System</Text>
+        <Text style={styles.sectionHeader}>{t('notifications.section_system')}</Text>
 
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           onPress={() => onChange('badgeCount', !badgeCount)}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Badge count on app icon</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_badge_count')}</Text>
           <Toggle on={badgeCount} onToggle={() => onChange('badgeCount', !badgeCount)} />
         </Pressable>
 
@@ -137,7 +141,7 @@ export function SettingsNotifications({
           onPress={() => onChange('soundEffects', !soundEffects)}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Sound effects</Text>
+          <Text style={styles.rowLabel}>{t('notifications.label_sound_effects')}</Text>
           <Toggle on={soundEffects} onToggle={() => onChange('soundEffects', !soundEffects)} />
         </Pressable>
       </ScrollView>

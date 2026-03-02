@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GraphRenderer } from './graph-renderer';
 import { createSimulation, applyLayout, clampNodePositions } from './graph-physics';
 import { DetailPanel } from './detail-panel';
@@ -17,6 +18,7 @@ export function KnowledgeGraph({
   stats,
   filterConfig,
 }: KnowledgeGraphProps) {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<GraphRenderer | null>(null);
   const simRef = useRef<ReturnType<typeof createSimulation> | null>(null);
@@ -185,7 +187,7 @@ export function KnowledgeGraph({
           <button
             className="kg-filter-icon"
             onClick={() => setFilterSheetOpen(true)}
-            aria-label="Open filters"
+            aria-label={t('a11y.open_filters')}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <line x1="2" y1="4" x2="16" y2="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

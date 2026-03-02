@@ -1,0 +1,38 @@
+{
+  "card": {
+    "default_title": "[PT] Morning Brief",
+    "loading": "[PT] Morning Brief loading..."
+  },
+  "greeting": {
+    "morning": "[PT] Good morning",
+    "afternoon": "[PT] Good afternoon",
+    "evening": "[PT] Good evening",
+    "anonymous": "[PT] {{period}}.",
+    "with_name": "[PT] {{period}}, {{name}}."
+  },
+  "date": {
+    "days": {
+      "sunday": "[PT] Sunday",
+      "monday": "[PT] Monday",
+      "tuesday": "[PT] Tuesday",
+      "wednesday": "[PT] Wednesday",
+      "thursday": "[PT] Thursday",
+      "friday": "[PT] Friday",
+      "saturday": "[PT] Saturday"
+    },
+    "months": {
+      "january": "[PT] January",
+      "february": "[PT] February",
+      "march": "[PT] March",
+      "april": "[PT] April",
+      "may": "[PT] May",
+      "june": "[PT] June",
+      "july": "[PT] July",
+      "august": "[PT] August",
+      "september": "[PT] September",
+      "october": "[PT] October",
+      "november": "[PT] November",
+      "december": "[PT] December"
+    }
+  }
+}

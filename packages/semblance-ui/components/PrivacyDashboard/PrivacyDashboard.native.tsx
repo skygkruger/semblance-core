@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { ActionLogItem } from '../ActionLogItem/ActionLogItem';
 import type { PrivacyDashboardProps } from './PrivacyDashboard.types';
@@ -12,6 +13,8 @@ export function PrivacyDashboard({
   auditEntries = [],
   proofVerified = false,
 }: PrivacyDashboardProps) {
+  const { t } = useTranslation('privacy');
+
   return (
     <ScrollView
       style={styles.screen}
@@ -20,11 +23,11 @@ export function PrivacyDashboard({
     >
       {/* Comparison Statement */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Comparison Statement</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.section_comparison')}</Text>
         <View style={styles.statsGrid}>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{dataSources}</Text>
-            <Text style={styles.statLabel}>Data Sources</Text>
+            <Text style={styles.statLabel}>{t('dashboard.stat_data_sources')}</Text>
           </View>
           <View style={styles.stat}>
             <Text
@@ -35,15 +38,15 @@ export function PrivacyDashboard({
             >
               {cloudConnections}
             </Text>
-            <Text style={styles.statLabel}>Cloud Connections</Text>
+            <Text style={styles.statLabel}>{t('dashboard.stat_cloud_connections')}</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{actionsLogged}</Text>
-            <Text style={styles.statLabel}>Actions Logged</Text>
+            <Text style={styles.statLabel}>{t('dashboard.stat_actions_logged')}</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{timeSavedHours}h</Text>
-            <Text style={styles.statLabel}>Time Saved</Text>
+            <Text style={styles.statLabel}>{t('dashboard.stat_time_saved')}</Text>
           </View>
         </View>
         <View style={styles.divider} />
@@ -52,7 +55,7 @@ export function PrivacyDashboard({
       {/* Network Activity */}
       {networkEntries.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Network Activity</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.section_network_activity')}</Text>
           {networkEntries.map((entry, i) => (
             <View key={i} style={styles.networkRow}>
               <Text style={styles.networkLabel}>{entry.label}</Text>
@@ -72,7 +75,7 @@ export function PrivacyDashboard({
       {/* Audit Trail */}
       {auditEntries.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Audit Trail</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.section_audit_trail')}</Text>
           {auditEntries.map((entry, i) => (
             <ActionLogItem
               key={i}
@@ -88,7 +91,7 @@ export function PrivacyDashboard({
       {/* Proof of Privacy */}
       {proofVerified && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Proof of Privacy</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.proof_of_privacy.title')}</Text>
           <View style={styles.proof}>
             <View style={styles.proofIcon}>
               <Text style={styles.proofIconText}>{'\u26E8'}</Text>

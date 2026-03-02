@@ -1,4 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../Button/Button';
 import type { ApprovalCardProps, RiskLevel } from './ApprovalCard.types';
 import { RISK_COLORS } from './ApprovalCard.types';
@@ -30,6 +31,7 @@ export function ApprovalCard({
   onDismiss,
   className = '',
 }: ApprovalCardProps) {
+  const { t } = useTranslation();
   const [animating, setAnimating] = useState(true);
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export function ApprovalCard({
       {dataOut.length > 0 && (
         <>
           <div className="approval-card__divider" />
-          <p className="approval-card__data-label">Data leaving device</p>
+          <p className="approval-card__data-label">{t('screen.approval.data_leaving')}</p>
           <ul className="approval-card__data-list">
             {dataOut.map((item, i) => (
               <li key={i} className="approval-card__data-item">{item}</li>
@@ -73,10 +75,10 @@ export function ApprovalCard({
       {state === 'pending' && (
         <div className="approval-card__actions">
           <Button variant="approve" size="md" onClick={onApprove}>
-            Approve
+            {t('button.approve')}
           </Button>
           <Button variant="dismiss" size="md" onClick={onDismiss}>
-            Dismiss
+            {t('button.dismiss')}
           </Button>
         </div>
       )}

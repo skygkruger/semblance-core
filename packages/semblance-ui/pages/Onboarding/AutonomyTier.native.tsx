@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import { AutonomySelector } from '../../components/AutonomySelector/AutonomySelector';
 import { Button } from '../../components/Button/Button';
@@ -5,15 +6,14 @@ import type { AutonomyTierProps } from './AutonomyTier.types';
 import { brandColors, nativeSpacing, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function AutonomyTier({ value, onChange, onContinue }: AutonomyTierProps) {
+  const { t } = useTranslation('onboarding');
   return (
     <View style={styles.container}>
       <Text style={styles.headline}>
-        How much should{' '}
-        <Text style={styles.pronoun}>it</Text>
-        {' '}do on its own?
+        {t('autonomy.headline')}
       </Text>
       <Text style={styles.subtext}>
-        You can change this anytime in Settings. Most users start with Partner.
+        {t('autonomy.subtext')}
       </Text>
 
       <View style={styles.selectorWrap}>
@@ -21,7 +21,7 @@ export function AutonomyTier({ value, onChange, onContinue }: AutonomyTierProps)
       </View>
 
       <View style={styles.btnWrap}>
-        <Button variant="approve" onPress={onContinue}>Continue</Button>
+        <Button variant="approve" onPress={onContinue}>{t('autonomy.continue_button')}</Button>
       </View>
     </View>
   );

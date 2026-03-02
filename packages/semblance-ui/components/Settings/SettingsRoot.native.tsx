@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { ChevronRight } from './SettingsIcons';
 import type { SettingsScreen, SettingsRootProps } from './SettingsRoot.types';
@@ -16,19 +17,21 @@ export function SettingsRoot({
   appVersion,
   onNavigate,
 }: SettingsRootProps) {
+  const { t } = useTranslation('settings');
+
   const rows: Array<{ screen: SettingsScreen; label: string; value: string }> = [
-    { screen: 'ai-engine', label: 'AI Engine', value: currentModel },
-    { screen: 'connections', label: 'Connections', value: `${activeConnections} active` },
-    { screen: 'notifications', label: 'Notifications', value: notificationSummary },
-    { screen: 'autonomy', label: 'Autonomy', value: tierLabels[autonomyTier] || autonomyTier },
-    { screen: 'privacy', label: 'Privacy', value: privacyStatus === 'clean' ? 'Audit clean' : 'Review needed' },
-    { screen: 'account', label: 'Account', value: licenseLabels[licenseStatus] || licenseStatus },
+    { screen: 'ai-engine', label: t('root.rows.ai_engine'), value: currentModel },
+    { screen: 'connections', label: t('root.rows.connections'), value: t('root.row_values.connections_active', { n: activeConnections }) },
+    { screen: 'notifications', label: t('root.rows.notifications'), value: notificationSummary },
+    { screen: 'autonomy', label: t('root.rows.autonomy'), value: tierLabels[autonomyTier] || autonomyTier },
+    { screen: 'privacy', label: t('root.rows.privacy'), value: privacyStatus === 'clean' ? t('root.row_values.privacy_clean') : t('root.row_values.privacy_review') },
+    { screen: 'account', label: t('root.rows.account'), value: licenseLabels[licenseStatus] || licenseStatus },
   ];
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitleRoot}>Settings</Text>
+        <Text style={styles.headerTitleRoot}>{t('root.title')}</Text>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>

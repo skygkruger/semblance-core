@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
 import { Button } from '../../components/Button/Button';
@@ -8,18 +9,20 @@ function formatRam(mb: number): string {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
 }
 
-function tierLabel(tier: string): string {
-  if (tier === 'capable') return 'High Performance';
-  if (tier === 'standard') return 'Standard';
-  return 'Constrained';
-}
-
 export function HardwareDetection({ hardwareInfo, detecting, onContinue }: HardwareDetectionProps) {
+  const { t } = useTranslation('onboarding');
+
+  function tierLabel(tier: string): string {
+    if (tier === 'capable') return t('hardware.tier_capable');
+    if (tier === 'standard') return t('hardware.tier_standard');
+    return t('hardware.tier_constrained');
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.headline}>Detecting your hardware...</Text>
+      <Text style={styles.headline}>{t('hardware.headline')}</Text>
       <Text style={styles.subtext}>
-        Semblance will recommend the best model for your machine.
+        {t('hardware.subtext')}
       </Text>
 
       {detecting && (
@@ -31,22 +34,22 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
       {hardwareInfo && !detecting && (
         <View style={styles.card}>
           <View style={styles.row}>
-            <Text style={styles.label}>Tier</Text>
+            <Text style={styles.label}>{t('hardware.tier_label')}</Text>
             <View style={styles.tierBadge}>
               <Text style={styles.tierText}>{tierLabel(hardwareInfo.tier)}</Text>
             </View>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>RAM</Text>
+            <Text style={styles.label}>{t('hardware.ram_label')}</Text>
             <Text style={styles.value}>{formatRam(hardwareInfo.totalRamMb)}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>CPU</Text>
-            <Text style={styles.value}>{hardwareInfo.cpuCores} cores</Text>
+            <Text style={styles.label}>{t('hardware.cpu_label')}</Text>
+            <Text style={styles.value}>{t('hardware.cpu_cores', { count: hardwareInfo.cpuCores })}</Text>
           </View>
           {hardwareInfo.gpuName && (
             <View style={styles.row}>
-              <Text style={styles.label}>GPU</Text>
+              <Text style={styles.label}>{t('hardware.gpu_label')}</Text>
               <Text style={styles.value}>
                 {hardwareInfo.gpuName}
                 {hardwareInfo.gpuVramMb ? ` (${formatRam(hardwareInfo.gpuVramMb)})` : ''}
@@ -54,14 +57,14 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
             </View>
           )}
           <View style={styles.row}>
-            <Text style={styles.label}>OS</Text>
+            <Text style={styles.label}>{t('hardware.os_label')}</Text>
             <Text style={styles.value}>{hardwareInfo.os} ({hardwareInfo.arch})</Text>
           </View>
         </View>
       )}
 
       {hardwareInfo && !detecting && (
-        <Button variant="approve" onPress={onContinue}>Continue</Button>
+        <Button variant="approve" onPress={onContinue}>{t('hardware.continue_button')}</Button>
       )}
     </View>
   );

@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import type { AutonomySelectorProps } from './AutonomySelector.types';
 import { tiers } from './AutonomySelector.types';
 
 export function AutonomySelector({ value, onChange, className = '' }: AutonomySelectorProps) {
+  const { t } = useTranslation('agent');
   return (
-    <div className={`grid gap-3 ${className}`} role="radiogroup" aria-label="Autonomy tier selection">
+    <div className={`grid gap-3 ${className}`} role="radiogroup" aria-label={t('autonomy.selector_label')}>
       {tiers.map((tier) => {
         const isSelected = tier.id === value;
         const isRecommended = tier.id === 'partner';
@@ -38,19 +40,19 @@ export function AutonomySelector({ value, onChange, className = '' }: AutonomySe
                 )}
               </div>
               <span className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
-                {tier.name}
+                {t(`autonomy.${tier.id}.name`)}
               </span>
               {isRecommended && (
                 <span className="text-xs font-medium text-semblance-primary bg-semblance-primary/10 px-2 py-0.5 rounded-full">
-                  Recommended
+                  {t('autonomy.recommended_badge')}
                 </span>
               )}
             </div>
             <p className="mt-2 ml-7 text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              {tier.description}
+              {t(`autonomy.${tier.id}.description`)}
             </p>
             <p className="mt-1 ml-7 text-xs text-semblance-text-tertiary">
-              {tier.detail}
+              {t(`autonomy.${tier.id}.detail`)}
             </p>
           </button>
         );

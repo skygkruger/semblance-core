@@ -1,0 +1,188 @@
+{
+  "root": {
+    "title": "Settings",
+    "rows": {
+      "ai_engine": "AI Engine",
+      "connections": "Connections",
+      "notifications": "Notifications",
+      "autonomy": "Autonomy",
+      "privacy": "Privacy",
+      "account": "Account"
+    },
+    "row_values": {
+      "connections_active": "{{n}} active",
+      "privacy_clean": "Audit clean",
+      "privacy_review": "Review needed"
+    },
+    "tier_labels": {
+      "guardian": "Guardian",
+      "partner": "Partner",
+      "alter_ego": "Alter Ego"
+    }
+  },
+  "ai_engine": {
+    "title": "AI Engine",
+    "section_model": "Active Model",
+    "section_hardware": "Hardware",
+    "section_performance": "Performance",
+    "section_advanced": "Advanced",
+    "badge_running": "Running",
+    "badge_not_loaded": "Not loaded",
+    "label_inference_threads": "Inference threads",
+    "label_context_window": "Context window",
+    "label_gpu_acceleration": "GPU acceleration",
+    "label_custom_model_path": "Custom model path",
+    "value_custom_model_none": "None",
+    "thread_option_auto": "Auto",
+    "btn_reset_defaults": "Reset to defaults",
+    "context_labels": {
+      "4k": "4K",
+      "8k": "8K",
+      "16k": "16K",
+      "32k": "32K"
+    }
+  },
+  "connections": {
+    "title": "Connections",
+    "section_connected": "Connected",
+    "section_not_connected": "Not Connected",
+    "value_not_connected": "Not connected",
+    "value_items_suffix": "{{n}} items",
+    "empty_body": "No data sources configured yet. Connect your email, calendar, and other services to get started.",
+    "btn_manage_all": "Manage all connections"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "section_morning_brief": "Morning Brief",
+    "section_reminders": "Reminders",
+    "section_autonomous_actions": "Autonomous Actions",
+    "section_system": "System",
+    "label_morning_brief_enabled": "Morning Brief enabled",
+    "label_delivery_time": "Delivery time",
+    "label_include_weather": "Include weather",
+    "label_include_calendar": "Include calendar preview",
+    "label_reminder_notifications": "Reminder notifications",
+    "label_default_snooze": "Default snooze duration",
+    "label_notify_on_action": "Notify when action taken",
+    "label_notify_on_approval": "Notify when approval needed",
+    "label_action_digest": "Action digest",
+    "label_badge_count": "Badge count on app icon",
+    "label_sound_effects": "Sound effects",
+    "snooze_labels": {
+      "5m": "5 min",
+      "15m": "15 min",
+      "1h": "1 hour",
+      "1d": "1 day"
+    },
+    "digest_labels": {
+      "immediate": "Immediate",
+      "hourly": "Hourly",
+      "daily": "Daily summary"
+    }
+  },
+  "autonomy": {
+    "title": "Autonomy",
+    "section_domain_overrides": "Domain Overrides",
+    "section_safety": "Safety",
+    "domain_overrides_explanation": "Override the default tier for specific areas. Useful if you want Alter Ego everywhere except Finance.",
+    "label_require_confirmation": "Require confirmation for irreversible actions",
+    "label_action_review_window": "Action review window",
+    "irreversible_actions_explanation": "Irreversible actions include sent emails, deleted files, cancelled subscriptions, and calendar changes affecting others.",
+    "badge_active": "ACTIVE",
+    "tiers": {
+      "guardian": {
+        "name": "Guardian",
+        "desc": "Approve everything before it happens"
+      },
+      "partner": {
+        "name": "Partner",
+        "desc": "Handle routine tasks, ask about important ones"
+      },
+      "alter_ego": {
+        "name": "Alter Ego",
+        "desc": "Act as me for nearly everything"
+      }
+    },
+    "domains": {
+      "email": "Email",
+      "calendar": "Calendar",
+      "files": "Files",
+      "finance": "Finance",
+      "health": "Health",
+      "services": "Services"
+    },
+    "review_window_labels": {
+      "30s": "30 seconds",
+      "1m": "1 minute",
+      "5m": "5 minutes"
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "section_data_sources": "Data Sources",
+    "section_export": "Export & Portability",
+    "section_danger": "Danger Zone",
+    "audit_badge_pass": "PASS",
+    "audit_badge_never_run": "NEVER RUN",
+    "audit_badge_review_needed": "REVIEW NEEDED",
+    "audit_last_run": "Last audit: {{time}}",
+    "audit_never_run": "No audit has been run yet",
+    "btn_run_audit": "Run audit",
+    "data_source_items": "{{n}} items · {{date}}",
+    "btn_remove_source": "Remove",
+    "btn_export_data": "Export all my data",
+    "btn_export_history": "Export action history",
+    "btn_delete_all": "Delete all indexed data",
+    "btn_reset_semblance": "Reset Semblance",
+    "delete_confirm_prompt": "Type \"delete\" to confirm:",
+    "delete_confirm_placeholder": "delete",
+    "btn_confirm": "Confirm",
+    "btn_cancel": "Cancel",
+    "reset_confirm_body": "This will permanently delete all data and reset Semblance to factory state.",
+    "btn_reset_everything": "Reset everything"
+  },
+  "account": {
+    "title": "Account",
+    "section_digital_representative": "Digital Representative",
+    "section_semblance_identity": "Semblance Identity",
+    "section_danger": "Danger Zone",
+    "license_configs": {
+      "founding_member": {
+        "label": "Founding Member",
+        "badge": "FOUNDING MEMBER",
+        "desc": "Lifetime access · all features"
+      },
+      "active": {
+        "label": "Digital Representative",
+        "badge": "ACTIVE",
+        "desc": "All premium features active"
+      },
+      "trial": {
+        "label": "Trial",
+        "badge": "TRIAL",
+        "desc": "Exploring premium features"
+      },
+      "expired": {
+        "label": "Expired",
+        "badge": "EXPIRED",
+        "desc": "License expired — core features still available"
+      }
+    },
+    "trial_days_remaining": "{{n}} days remaining",
+    "activated_date": "Activated {{date}}",
+    "btn_renew_license": "Renew license",
+    "dr_status_label": "Status",
+    "dr_status_active": "Active",
+    "dr_status_inactive": "Not activated",
+    "dr_activation_date_label": "Activation date",
+    "btn_view_dr_agreement": "View Digital Representative agreement",
+    "btn_activate_dr": "Activate Digital Representative",
+    "label_semblance_name": "Your Semblance's name",
+    "btn_save": "Save",
+    "btn_cancel": "Cancel",
+    "btn_sign_out": "Sign out",
+    "btn_deactivate_license": "Deactivate license",
+    "deactivate_confirm_body": "Are you sure? This will deactivate your license on this device.",
+    "btn_deactivate": "Deactivate"
+  }
+}

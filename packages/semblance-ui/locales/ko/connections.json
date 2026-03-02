@@ -1,0 +1,30 @@
+{
+  "title": "[KO] Connections",
+  "subtitle_empty": "[KO] Connect your data sources. Everything stays on your device.",
+  "subtitle_count": "[KO] {{connected}} of {{total}} sources connected. Everything stays on your device.",
+  "section_headers": {
+    "native": "[KO] NATIVE CONNECTIONS",
+    "oauth": "[KO] CONNECTED SERVICES",
+    "manual": "[KO] MANUAL IMPORTS"
+  },
+  "empty": {
+    "heading": "[KO] Connect your first data source",
+    "body": "[KO] Semblance learns from your email, calendar, files, and more. Everything stays on your device.",
+    "btn_email": "[KO] Connect Email",
+    "btn_calendar": "[KO] Connect Calendar"
+  },
+  "card": {
+    "dr_badge": "[KO] DR",
+    "btn_connect": "[KO] Connect",
+    "btn_sync": "[KO] Sync",
+    "btn_disconnect": "[KO] Disconnect",
+    "pending_text": "[KO] Connecting...",
+    "synced_prefix": "[KO] Synced {{time}}"
+  },
+  "status": {
+    "connected": "[KO] Connected",
+    "disconnected": "[KO] Available",
+    "error": "[KO] Error",
+    "pending": "[KO] Connecting..."
+  }
+}

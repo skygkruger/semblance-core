@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChatBubble, AgentInput, StatusIndicator } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useTauriEvent } from '../hooks/useTauriEvent';
@@ -6,6 +7,7 @@ import { sendMessage, documentPickFile, documentSetContext, documentClearContext
 import type { DocumentContext } from '../state/AppState';
 
 export function ChatScreen() {
+  const { t } = useTranslation();
   const state = useAppState();
   const dispatch = useAppDispatch();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -48,7 +50,7 @@ export function ChatScreen() {
         message: {
           id: `system_${Date.now()}`,
           role: 'assistant',
-          content: `Could not attach document: ${err instanceof Error ? err.message : String(err)}`,
+          content: t('screen.chat.error_attach', { error: err instanceof Error ? err.message : String(err) }),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       });
@@ -68,7 +70,7 @@ export function ChatScreen() {
         message: {
           id: `system_${Date.now()}`,
           role: 'assistant',
-          content: `Could not attach document: ${err instanceof Error ? err.message : String(err)}`,
+          content: t('screen.chat.error_attach', { error: err instanceof Error ? err.message : String(err) }),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       });
@@ -88,7 +90,7 @@ export function ChatScreen() {
       message: {
         id: `system_${Date.now()}`,
         role: 'assistant',
-        content: 'Document context cleared.',
+        content: t('screen.chat.document_cleared'),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
     });
@@ -135,7 +137,7 @@ export function ChatScreen() {
       dispatch({ type: 'SET_IS_RESPONDING', value: false });
       dispatch({
         type: 'APPEND_TO_LAST_MESSAGE',
-        content: `Error: Unable to get a response. ${err instanceof Error ? err.message : 'Please check that Ollama is running.'}`,
+        content: t('screen.chat.error_response', { error: err instanceof Error ? err.message : t('screen.chat.error_response_default') }),
       });
     }
   }, [dispatch]);
@@ -151,7 +153,7 @@ export function ChatScreen() {
       {/* Drag overlay */}
       {isDragging && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-semblance-primary-subtle/50 dark:bg-semblance-primary-subtle-dark/50 border-2 border-dashed border-semblance-primary rounded-lg pointer-events-none">
-          <p className="text-semblance-primary font-semibold text-lg">Drop document to chat about it</p>
+          <p className="text-semblance-primary font-semibold text-lg">{t('screen.chat.drop_overlay')}</p>
         </div>
       )}
 
@@ -161,15 +163,15 @@ export function ChatScreen() {
           <StatusIndicator status={state.ollamaStatus === 'connected' ? 'success' : 'attention'} />
           <span className="text-xs text-semblance-text-tertiary">
             {state.ollamaStatus === 'connected'
-              ? state.activeModel || 'Connected'
-              : 'Ollama not connected'}
+              ? state.activeModel || t('status.connected')
+              : t('screen.chat.status_not_connected')}
           </span>
         </div>
         {state.indexingStatus.state !== 'idle' && state.indexingStatus.state !== 'complete' && (
           <div className="flex items-center gap-2">
             <StatusIndicator status="accent" pulse />
             <span className="text-xs text-semblance-text-tertiary">
-              Indexing: {state.indexingStatus.filesScanned}/{state.indexingStatus.filesTotal} files...
+              {t('screen.chat.status_indexing', { scanned: state.indexingStatus.filesScanned, total: state.indexingStatus.filesTotal })}
             </span>
           </div>
         )}
@@ -189,7 +191,7 @@ export function ChatScreen() {
             type="button"
             onClick={handleClearDocument}
             className="flex-shrink-0 p-1 rounded hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
-            aria-label="Clear document context"
+            aria-label={t('a11y.clear_document_context')}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-text-tertiary">
               <path d="M18 6 6 18" /><path d="m6 6 12 12" />
@@ -203,18 +205,22 @@ export function ChatScreen() {
         {state.chatMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <p className="text-lg text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              Ask <span className="ai-name-shimmer font-semibold">{name}</span> anything about your documents.
+              {t('screen.chat.ask_anything', { name })}
             </p>
             <div className="mt-6 space-y-2">
-              {['What topics are in my files?', 'Summarize my recent documents', 'What should I work on today?'].map(
+              {[
+                { key: 'screen.chat.suggestion_topics', label: t('screen.chat.suggestion_topics') },
+                { key: 'screen.chat.suggestion_summarize', label: t('screen.chat.suggestion_summarize') },
+                { key: 'screen.chat.suggestion_work', label: t('screen.chat.suggestion_work') },
+              ].map(
                 (suggestion) => (
                   <button
-                    key={suggestion}
+                    key={suggestion.key}
                     type="button"
-                    onClick={() => handleSend(suggestion)}
+                    onClick={() => handleSend(suggestion.label)}
                     className="block w-full text-left px-4 py-3 rounded-lg text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark bg-semblance-surface-2 dark:bg-semblance-surface-2-dark hover:bg-semblance-primary-subtle dark:hover:bg-semblance-primary-subtle-dark transition-colors duration-fast"
                   >
-                    {suggestion}
+                    {suggestion.label}
                   </button>
                 ),
               )}
@@ -242,7 +248,7 @@ export function ChatScreen() {
             name: state.documentContext.fileName,
             onDismiss: handleClearDocument,
           } : null}
-          placeholder={`Message ${name}...`}
+          placeholder={t('screen.chat.placeholder_with_name', { name })}
         />
       </div>
     </div>

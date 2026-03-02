@@ -1,0 +1,39 @@
+{
+  "input": {
+    "placeholder_default": "[ZH] Awaiting direction",
+    "thinking_text": "[ZH] On it.",
+    "dismiss_document": "[ZH] Dismiss document",
+    "send": "[ZH] Send",
+    "send_message": "[ZH] Send message",
+    "attach_document": "[ZH] Attach document",
+    "message_input_label": "[ZH] Message input"
+  },
+  "voice": {
+    "idle": "[ZH] Start voice input",
+    "listening": "[ZH] Stop listening",
+    "processing": "[ZH] Processing speech",
+    "speaking": "[ZH] Stop speaking",
+    "error": "[ZH] Voice error -- tap to retry",
+    "status_speaking": "[ZH] Speaking...",
+    "status_processing": "[ZH] Processing..."
+  },
+  "autonomy": {
+    "selector_label": "[ZH] Autonomy tier selection",
+    "recommended_badge": "[ZH] Recommended",
+    "guardian": {
+      "name": "[ZH] Guardian",
+      "description": "[ZH] I'll show you everything before I act",
+      "detail": "[ZH] Every action requires your explicit approval. Full control."
+    },
+    "partner": {
+      "name": "[ZH] Partner",
+      "description": "[ZH] I'll handle the routine, check on the important stuff",
+      "detail": "[ZH] Routine tasks run autonomously. Novel or high-stakes actions need approval."
+    },
+    "alter_ego": {
+      "name": "[ZH] Alter Ego",
+      "description": "[ZH] I'll handle everything, interrupt only when it matters",
+      "detail": "[ZH] Most users start with Partner and move here within a few weeks."
+    }
+  }
+}

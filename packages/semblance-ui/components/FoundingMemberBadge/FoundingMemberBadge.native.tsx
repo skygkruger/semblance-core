@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import type { FoundingMemberBadgeProps } from './FoundingMemberBadge.types';
 import { nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
@@ -7,6 +8,8 @@ const CHAMPAGNE_BG = 'rgba(232,213,163,0.12)';
 const CHAMPAGNE_BORDER = 'rgba(232,213,163,0.2)';
 
 export function FoundingMemberBadge({ seat, variant = 'inline' }: FoundingMemberBadgeProps) {
+  const { t } = useTranslation();
+
   if (variant === 'card') {
     return (
       <View style={styles.card}>
@@ -20,7 +23,7 @@ export function FoundingMemberBadge({ seat, variant = 'inline' }: FoundingMember
   return (
     <View style={styles.inline}>
       <View style={styles.inlineDot} />
-      <Text style={styles.inlineText}>Founding Member #{seat}</Text>
+      <Text style={styles.inlineText}>{t('screen.upgrade.active_founding', { seat })}</Text>
     </View>
   );
 }

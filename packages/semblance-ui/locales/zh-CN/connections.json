@@ -1,0 +1,30 @@
+{
+  "title": "[ZH] Connections",
+  "subtitle_empty": "[ZH] Connect your data sources. Everything stays on your device.",
+  "subtitle_count": "[ZH] {{connected}} of {{total}} sources connected. Everything stays on your device.",
+  "section_headers": {
+    "native": "[ZH] NATIVE CONNECTIONS",
+    "oauth": "[ZH] CONNECTED SERVICES",
+    "manual": "[ZH] MANUAL IMPORTS"
+  },
+  "empty": {
+    "heading": "[ZH] Connect your first data source",
+    "body": "[ZH] Semblance learns from your email, calendar, files, and more. Everything stays on your device.",
+    "btn_email": "[ZH] Connect Email",
+    "btn_calendar": "[ZH] Connect Calendar"
+  },
+  "card": {
+    "dr_badge": "[ZH] DR",
+    "btn_connect": "[ZH] Connect",
+    "btn_sync": "[ZH] Sync",
+    "btn_disconnect": "[ZH] Disconnect",
+    "pending_text": "[ZH] Connecting...",
+    "synced_prefix": "[ZH] Synced {{time}}"
+  },
+  "status": {
+    "connected": "[ZH] Connected",
+    "disconnected": "[ZH] Available",
+    "error": "[ZH] Error",
+    "pending": "[ZH] Connecting..."
+  }
+}

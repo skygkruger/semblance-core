@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
 import { Button } from '../../components/Button/Button';
@@ -11,7 +12,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1_000).toFixed(0)} KB`;
 }
 
-function DownloadRow({ download }: { download: ModelDownload }) {
+function DownloadRow({ download, completeLabel }: { download: ModelDownload; completeLabel: string }) {
   const progress = download.totalBytes > 0
     ? (download.downloadedBytes / download.totalBytes) * 100
     : 0;
@@ -22,7 +23,7 @@ function DownloadRow({ download }: { download: ModelDownload }) {
       <View style={dlStyles.header}>
         <Text style={dlStyles.name}>{download.modelName}</Text>
         <Text style={[dlStyles.status, isComplete && dlStyles.statusDone]}>
-          {isComplete ? 'Complete' : `${formatBytes(download.downloadedBytes)} / ${formatBytes(download.totalBytes)}`}
+          {isComplete ? completeLabel : `${formatBytes(download.downloadedBytes)} / ${formatBytes(download.totalBytes)}`}
         </Text>
       </View>
       <ProgressBar
@@ -61,6 +62,7 @@ const dlStyles = StyleSheet.create({
 });
 
 export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete }: InitializeStepProps) {
+  const { t } = useTranslation('onboarding');
   const allComplete = downloads.length > 0 && downloads.every(d => d.status === 'complete');
 
   return (
@@ -68,14 +70,13 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
       {!allComplete && (
         <>
           <WireframeSpinner size={64} />
-          <Text style={styles.headline}>Initializing your Semblance...</Text>
+          <Text style={styles.headline}>{t('initialize.downloading_headline')}</Text>
           <Text style={styles.subtext}>
-            Downloading models and preparing your knowledge graph.
-            This may take a few minutes.
+            {t('initialize.downloading_subtext')}
           </Text>
           <View style={styles.downloads}>
             {downloads.map((dl) => (
-              <DownloadRow key={dl.modelName} download={dl} />
+              <DownloadRow key={dl.modelName} download={dl} completeLabel={t('initialize.download_complete_status')} />
             ))}
           </View>
         </>
@@ -84,16 +85,16 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
       {allComplete && loading && (
         <>
           <WireframeSpinner size={64} />
-          <Text style={styles.headline}>Building your knowledge graph...</Text>
+          <Text style={styles.headline}>{t('initialize.building_headline')}</Text>
           <Text style={styles.subtext}>
-            Cross-referencing your connected data sources.
+            {t('initialize.building_subtext')}
           </Text>
         </>
       )}
 
       {allComplete && !loading && knowledgeMoment && (
         <>
-          <Text style={styles.headline}>Your Semblance already knows something.</Text>
+          <Text style={styles.headline}>{t('initialize.knowledge_moment_headline')}</Text>
           <View style={styles.momentCard}>
             <Text style={styles.momentTitle}>{knowledgeMoment.title}</Text>
             <Text style={styles.momentSummary}>{knowledgeMoment.summary}</Text>
@@ -112,9 +113,9 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
 
       {allComplete && !loading && !knowledgeMoment && (
         <>
-          <Text style={styles.headline}>Ready to go.</Text>
+          <Text style={styles.headline}>{t('initialize.ready_headline')}</Text>
           <Text style={styles.subtext}>
-            Connect more data sources later to unlock deeper insights.
+            {t('initialize.ready_subtext')}
           </Text>
         </>
       )}
@@ -122,7 +123,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
       {allComplete && !loading && (
         <View style={styles.btnWrap}>
           <Button variant="approve" size="lg" onPress={onComplete}>
-            Start Semblance
+            {t('initialize.start_button')}
           </Button>
         </View>
       )}

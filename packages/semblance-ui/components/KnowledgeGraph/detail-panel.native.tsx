@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import type { KnowledgeNode, KnowledgeEdge, NodeType } from './graph-types';
 
@@ -43,6 +44,8 @@ const DOT_COLORS: Record<NodeType, string> = {
 };
 
 export function DetailPanel({ node, edges, allNodes, onClose, onConnectionClick }: DetailPanelProps) {
+  const { t } = useTranslation();
+
   if (!node) return null;
 
   const connections = getConnections(node.id, edges, allNodes);
@@ -72,7 +75,7 @@ export function DetailPanel({ node, edges, allNodes, onClose, onConnectionClick 
           onPress={onClose}
           style={styles.closeButton}
           hitSlop={12}
-          accessibilityLabel="Close panel"
+          accessibilityLabel={t('a11y.close_panel')}
         >
           <Text style={styles.closeX}>x</Text>
         </Pressable>

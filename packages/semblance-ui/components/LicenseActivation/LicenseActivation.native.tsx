@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Button } from '../Button/Button';
 import type { LicenseActivationProps } from './LicenseActivation.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivationProps) {
+  const { t } = useTranslation();
   const [key, setKey] = useState('');
   const [status, setStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -32,7 +34,7 @@ export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivati
       <View style={styles.activeContainer}>
         <View style={styles.statusRow}>
           <Text style={styles.checkMark}>{'\u2713'}</Text>
-          <Text style={styles.activeText}>License active</Text>
+          <Text style={styles.activeText}>{t('license.active')}</Text>
         </View>
       </View>
     );
@@ -53,7 +55,7 @@ export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivati
           editable={status !== 'validating'}
           autoCapitalize="none"
           autoCorrect={false}
-          accessibilityLabel="License key"
+          accessibilityLabel={t('a11y.license_key')}
         />
         <Button
           variant="solid"
@@ -61,14 +63,14 @@ export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivati
           onPress={handleSubmit}
           disabled={!key.trim() || status === 'validating'}
         >
-          {status === 'validating' ? 'Activating...' : 'Activate'}
+          {status === 'validating' ? t('license.activating') : t('button.activate')}
         </Button>
       </View>
 
       {status === 'success' && (
         <View style={styles.statusRow}>
           <Text style={[styles.checkMark, { color: brandColors.veridian }]}>{'\u2713'}</Text>
-          <Text style={styles.successText}>License activated successfully</Text>
+          <Text style={styles.successText}>{t('license.activated_success')}</Text>
         </View>
       )}
 

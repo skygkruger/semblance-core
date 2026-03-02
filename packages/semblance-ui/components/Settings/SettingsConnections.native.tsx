@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { BackArrow, ChevronRight } from './SettingsIcons';
 import type { SettingsConnectionsProps } from './SettingsConnections.types';
@@ -9,22 +10,25 @@ export function SettingsConnections({
   onConnectionTap,
   onBack,
 }: SettingsConnectionsProps) {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation();
+
   const connected = connections.filter((c) => c.isConnected);
   const disconnected = connections.filter((c) => !c.isConnected);
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel="Go back">
+        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel={tc('a11y.go_back')}>
           <BackArrow />
         </Pressable>
-        <Text style={styles.headerTitle}>Connections</Text>
+        <Text style={styles.headerTitle}>{t('connections.title')}</Text>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {connected.length > 0 && (
           <>
-            <Text style={styles.sectionHeader}>Connected</Text>
+            <Text style={styles.sectionHeader}>{t('connections.section_connected')}</Text>
             {connected.map((conn) => (
               <Pressable
                 key={conn.id}
@@ -35,7 +39,7 @@ export function SettingsConnections({
                 <View style={[styles.dot, { backgroundColor: conn.categoryColor }]} />
                 <Text style={styles.rowLabel}>{conn.name}</Text>
                 <Text style={styles.rowValue}>
-                  {conn.entityCount} items{conn.lastSync ? ` \u00B7 ${conn.lastSync}` : ''}
+                  {t('connections.value_items_suffix', { n: conn.entityCount })}{conn.lastSync ? ` \u00B7 ${conn.lastSync}` : ''}
                 </Text>
                 <View style={styles.rowChevron}>
                   <ChevronRight />
@@ -47,12 +51,12 @@ export function SettingsConnections({
 
         {disconnected.length > 0 && (
           <>
-            <Text style={styles.sectionHeader}>Not Connected</Text>
+            <Text style={styles.sectionHeader}>{t('connections.section_not_connected')}</Text>
             {disconnected.map((conn) => (
               <View key={conn.id} style={styles.rowStatic}>
                 <View style={[styles.dot, styles.dotDisconnected]} />
                 <Text style={[styles.rowLabel, { color: brandColors.sv1 }]}>{conn.name}</Text>
-                <Text style={styles.rowValue}>Not connected</Text>
+                <Text style={styles.rowValue}>{t('connections.value_not_connected')}</Text>
               </View>
             ))}
           </>
@@ -60,7 +64,7 @@ export function SettingsConnections({
 
         {connections.length === 0 && (
           <Text style={[styles.explanation, { paddingTop: nativeSpacing.s5 }]}>
-            No data sources configured yet. Connect your email, calendar, and other services to get started.
+            {t('connections.empty_body')}
           </Text>
         )}
 
@@ -70,7 +74,7 @@ export function SettingsConnections({
             style={({ pressed }) => [styles.ghostButton, pressed && styles.ghostButtonPressed]}
             accessibilityRole="button"
           >
-            <Text style={styles.ghostButtonText}>Manage all connections</Text>
+            <Text style={styles.ghostButtonText}>{t('connections.btn_manage_all')}</Text>
           </Pressable>
         </View>
       </ScrollView>

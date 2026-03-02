@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Button } from '../../components/Button/Button';
@@ -6,6 +7,7 @@ import type { NamingYourAIProps } from './NamingYourAI.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProps) {
+  const { t } = useTranslation('onboarding');
   const [aiName, setAiName] = useState(defaultValue);
   const hasValue = aiName.trim().length > 0;
 
@@ -18,14 +20,12 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
         <LogoMark size={80} />
 
         <Text style={styles.headline}>
-          What will you call{' '}
-          <Text style={styles.pronoun}>it</Text>
-          ?
+          {t('naming_ai.headline')}
         </Text>
 
         <TextInput
           style={styles.input}
-          placeholder="Give it a name"
+          placeholder={t('naming_ai.placeholder')}
           placeholderTextColor={brandColors.sv1}
           value={aiName}
           onChangeText={setAiName}
@@ -39,7 +39,7 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
 
         {hasValue && (
           <Text style={styles.subtext}>
-            This is what your AI will be called. You can change it in Settings.
+            {t('naming_ai.subtext')}
           </Text>
         )}
 
@@ -50,7 +50,7 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
             disabled={!hasValue}
             onPress={() => onComplete?.(aiName.trim())}
           >
-            Start Semblance
+            {t('naming_ai.start_button')}
           </Button>
         </View>
       </View>

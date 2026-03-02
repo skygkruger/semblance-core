@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 interface ContactDetail {
@@ -68,6 +69,7 @@ function FrequencyBar({ value, max, label }: { value: number; max: number; label
 }
 
 export function ContactDetailScreen({ route }: Props) {
+  const { t } = useTranslation();
   const { contactId } = route.params;
   const [contact, setContact] = useState<ContactDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,7 @@ export function ContactDetailScreen({ route }: Props) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.mutedText}>Loading...</Text>
+        <Text style={styles.mutedText}>{t('status.loading')}</Text>
       </View>
     );
   }
@@ -88,7 +90,7 @@ export function ContactDetailScreen({ route }: Props) {
   if (!contact) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.mutedText}>Contact not found</Text>
+        <Text style={styles.mutedText}>{t('screen.contacts.not_found')}</Text>
       </View>
     );
   }
@@ -113,24 +115,24 @@ export function ContactDetailScreen({ route }: Props) {
 
       {/* Contact info */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Contact Info</Text>
+        <Text style={styles.sectionTitle}>{t('screen.relationships.section_info')}</Text>
         {contact.emails.map(e => (
-          <InfoRow key={e} label="Email" value={e} />
+          <InfoRow key={e} label={t('screen.relationships.label_email')} value={e} />
         ))}
         {contact.phones.map(p => (
-          <InfoRow key={p} label="Phone" value={p} />
+          <InfoRow key={p} label={t('screen.relationships.label_phone')} value={p} />
         ))}
-        <InfoRow label="Birthday" value={contact.birthday} />
-        <InfoRow label="Organization" value={contact.organization} />
+        <InfoRow label={t('screen.relationships.label_birthday')} value={contact.birthday} />
+        <InfoRow label={t('screen.relationships.label_organization')} value={contact.organization} />
       </View>
 
       {/* Communication */}
       {contact.communicationFrequency && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Communication</Text>
-          <FrequencyBar label="Emails/week" value={contact.communicationFrequency.emailsPerWeek} max={10} />
-          <FrequencyBar label="Meetings/mo" value={contact.communicationFrequency.meetingsPerMonth} max={10} />
-          <InfoRow label="Trend" value={contact.communicationFrequency.trend} />
+          <Text style={styles.sectionTitle}>{t('screen.relationships.section_communication')}</Text>
+          <FrequencyBar label={t('screen.relationships.label_emails_week')} value={contact.communicationFrequency.emailsPerWeek} max={10} />
+          <FrequencyBar label={t('screen.relationships.label_meetings_month')} value={contact.communicationFrequency.meetingsPerMonth} max={10} />
+          <InfoRow label={t('screen.relationships.label_trend')} value={contact.communicationFrequency.trend} />
         </View>
       )}
     </ScrollView>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Button } from '../../components/Button/Button';
 import { Input } from '../../components/Input/Input';
@@ -6,6 +7,7 @@ import type { NamingYourAIProps } from './NamingYourAI.types';
 import './Onboarding.css';
 
 export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProps) {
+  const { t } = useTranslation('onboarding');
   const [aiName, setAiName] = useState(defaultValue);
   const hasValue = aiName.trim().length > 0;
 
@@ -22,16 +24,14 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
       <LogoMark size={80} />
 
       <h1 className="naming__headline">
-        What will you call{' '}
-        <em className="naming__pronoun">it</em>
-        ?
+        {t('naming_ai.headline')}
       </h1>
 
       <div style={{ width: '100%' }}>
         <Input
-          placeholder="Give it a name"
+          placeholder={t('naming_ai.placeholder')}
           value={aiName}
-          onChange={e => setAiName(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAiName(e.target.value)}
         />
       </div>
 
@@ -40,7 +40,7 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
       </div>
 
       <p className={`naming__ai-subtext ${hasValue ? 'naming__ai-subtext--visible' : ''}`}>
-        This is what your AI will be called. You can change it in Settings.
+        {t('naming_ai.subtext')}
       </p>
 
       <div style={{ marginTop: 8 }}>
@@ -50,7 +50,7 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
           disabled={!hasValue}
           onClick={() => onComplete?.(aiName.trim())}
         >
-          Start Semblance
+          {t('naming_ai.start_button')}
         </Button>
       </div>
     </div>

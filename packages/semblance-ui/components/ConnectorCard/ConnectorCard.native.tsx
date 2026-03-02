@@ -1,4 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { ConnectorCardProps } from './ConnectorCard.types';
 import { statusConfig, formatLastSynced } from './ConnectorCard.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
@@ -16,7 +17,8 @@ export function ConnectorCard({
   onDisconnect,
   onSync,
 }: ConnectorCardProps) {
-  const { label: statusLabel, dotColor, textColor } = statusConfig[status];
+  const { t } = useTranslation('connections');
+  const { dotColor, textColor } = statusConfig[status];
   const isConnected = status === 'connected';
   const isPending = status === 'pending';
 
@@ -33,7 +35,7 @@ export function ConnectorCard({
               <Text style={styles.name}>{displayName}</Text>
               {isPremium && (
                 <View style={styles.drBadge}>
-                  <Text style={styles.drBadgeText}>DR</Text>
+                  <Text style={styles.drBadgeText}>{t('card.dr_badge')}</Text>
                 </View>
               )}
             </View>
@@ -48,7 +50,7 @@ export function ConnectorCard({
               onPress={() => onConnect(id)}
               hitSlop={8}
             >
-              <Text style={styles.btnConnectText}>Connect</Text>
+              <Text style={styles.btnConnectText}>{t('card.btn_connect')}</Text>
             </Pressable>
           )}
           {isConnected && (
@@ -58,19 +60,19 @@ export function ConnectorCard({
                 onPress={() => onSync(id)}
                 hitSlop={8}
               >
-                <Text style={styles.btnSyncText}>Sync</Text>
+                <Text style={styles.btnSyncText}>{t('card.btn_sync')}</Text>
               </Pressable>
               <Pressable
                 style={styles.btnDisconnect}
                 onPress={() => onDisconnect(id)}
                 hitSlop={8}
               >
-                <Text style={styles.btnDisconnectText}>Disconnect</Text>
+                <Text style={styles.btnDisconnectText}>{t('card.btn_disconnect')}</Text>
               </Pressable>
             </>
           )}
           {isPending && (
-            <Text style={styles.pendingText}>Connecting...</Text>
+            <Text style={styles.pendingText}>{t('card.pending_text')}</Text>
           )}
         </View>
       </View>
@@ -78,13 +80,13 @@ export function ConnectorCard({
       <View style={styles.statusRow}>
         <View style={styles.statusLeft}>
           <View style={[styles.statusDot, { backgroundColor: dotColor }]} />
-          <Text style={[styles.statusLabel, { color: textColor }]}>{statusLabel}</Text>
+          <Text style={[styles.statusLabel, { color: textColor }]}>{t(`status.${status}`)}</Text>
           {isConnected && userEmail && (
             <Text style={styles.statusEmail}>{userEmail}</Text>
           )}
         </View>
         {isConnected && lastSyncedAt && (
-          <Text style={styles.syncTime}>Synced {formatLastSynced(lastSyncedAt)}</Text>
+          <Text style={styles.syncTime}>{t('card.synced_prefix', { time: formatLastSynced(lastSyncedAt) })}</Text>
         )}
       </View>
     </View>

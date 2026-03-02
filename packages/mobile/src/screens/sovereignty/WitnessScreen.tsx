@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../../theme/tokens.js';
 
 export interface Attestation {
@@ -31,6 +32,7 @@ export const WitnessScreen: React.FC<WitnessScreenProps> = ({
   onShareAttestation,
   onVerifyAttestation,
 }) => {
+  const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [verifyResult, setVerifyResult] = useState<{ valid: boolean; details: string } | null>(null);
 
@@ -74,8 +76,8 @@ export const WitnessScreen: React.FC<WitnessScreenProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Semblance Witness</Text>
-        <Text style={styles.subtitle}>Cryptographic attestations of autonomous actions</Text>
+        <Text style={styles.title}>{t('screen.witness.title')}</Text>
+        <Text style={styles.subtitle}>{t('screen.witness.subtitle')}</Text>
       </View>
 
       <FlatList
@@ -85,7 +87,7 @@ export const WitnessScreen: React.FC<WitnessScreenProps> = ({
         style={styles.list}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No attestations yet</Text>
+            <Text style={styles.emptyText}>{t('screen.witness.empty')}</Text>
             <Text style={styles.emptySubtext}>
               Attestations appear when Semblance takes actions on your behalf.
             </Text>
@@ -102,13 +104,13 @@ export const WitnessScreen: React.FC<WitnessScreenProps> = ({
           <Text style={styles.detailDate}>{formatDate(selected.timestamp)}</Text>
 
           <View style={styles.verifyRow}>
-            <Text style={styles.verifyLabel}>Signature</Text>
+            <Text style={styles.verifyLabel}>{t('screen.witness.signature')}</Text>
             <Text style={[styles.verifyStatus, { color: selected.signatureValid ? colors.success : colors.attention }]}>
               {selected.signatureValid ? 'Valid' : 'Invalid'}
             </Text>
           </View>
           <View style={styles.verifyRow}>
-            <Text style={styles.verifyLabel}>Chain</Text>
+            <Text style={styles.verifyLabel}>{t('screen.witness.chain')}</Text>
             <Text style={[styles.verifyStatus, { color: selected.chainValid ? colors.success : colors.attention }]}>
               {selected.chainValid ? 'Valid' : 'Broken'}
             </Text>
@@ -125,13 +127,13 @@ export const WitnessScreen: React.FC<WitnessScreenProps> = ({
               style={styles.detailButton}
               onPress={() => handleVerify(selected.id)}
             >
-              <Text style={styles.detailButtonText}>Verify</Text>
+              <Text style={styles.detailButtonText}>{t('button.verify')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.detailButton}
               onPress={() => onShareAttestation(selected.id)}
             >
-              <Text style={styles.detailButtonText}>Share</Text>
+              <Text style={styles.detailButtonText}>{t('button.share')}</Text>
             </TouchableOpacity>
           </View>
         </View>

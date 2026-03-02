@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { ActionLogItemProps, ActionStatus } from './ActionLogItem.types';
 import { brandColors, nativeSpacing, nativeFontSize, nativeFontFamily } from '../../tokens/native';
@@ -16,6 +17,8 @@ export function ActionLogItem({
   timestamp,
   onUndo,
 }: ActionLogItemProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       <View style={[styles.dot, { backgroundColor: statusColors[status] }]} />
@@ -30,10 +33,10 @@ export function ActionLogItem({
         <Pressable
           onPress={onUndo}
           style={({ pressed }) => [styles.undoButton, pressed && styles.undoPressed]}
-          accessibilityLabel="Undo action"
+          accessibilityLabel={t('a11y.undo_action')}
           accessibilityRole="button"
         >
-          <Text style={styles.undoText}>Undo</Text>
+          <Text style={styles.undoText}>{t('button.undo')}</Text>
         </Pressable>
       ) : null}
     </View>

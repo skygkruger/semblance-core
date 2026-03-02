@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../../theme/tokens.js';
 
 export interface DarkPatternAlert {
@@ -50,6 +51,7 @@ export const AdversarialDashboardScreen: React.FC<AdversarialDashboardScreenProp
   onReviewSubscription,
   onToggleAutopilot,
 }) => {
+  const { t } = useTranslation();
   const [expandedAlertId, setExpandedAlertId] = useState<string | null>(null);
 
   const severityColor = (severity: DarkPatternAlert['severity']): string => {
@@ -66,16 +68,16 @@ export const AdversarialDashboardScreen: React.FC<AdversarialDashboardScreenProp
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Adversarial Defense</Text>
+      <Text style={styles.title}>{t('screen.adversarial.title')}</Text>
       <Text style={styles.subtitle}>
         Protecting you from dark patterns, manipulation, and value-extracting subscriptions.
       </Text>
 
       {/* Dark Pattern Alerts */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Dark Pattern Alerts</Text>
+        <Text style={styles.sectionTitle}>{t('screen.adversarial.dark_patterns')}</Text>
         {alerts.length === 0 && (
-          <Text style={styles.emptyText}>No dark patterns detected recently.</Text>
+          <Text style={styles.emptyText}>{t('screen.adversarial.empty_patterns')}</Text>
         )}
         {alerts.map(alert => (
           <TouchableOpacity
@@ -99,7 +101,7 @@ export const AdversarialDashboardScreen: React.FC<AdversarialDashboardScreenProp
 
             {expandedAlertId === alert.id && (
               <View style={styles.reframeBox}>
-                <Text style={styles.reframeLabel}>Reframe:</Text>
+                <Text style={styles.reframeLabel}>{t('screen.adversarial.reframe')}</Text>
                 <Text style={styles.reframeText}>{alert.reframe}</Text>
               </View>
             )}
@@ -109,7 +111,7 @@ export const AdversarialDashboardScreen: React.FC<AdversarialDashboardScreenProp
 
       {/* Subscription Value-to-Cost */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Subscription Assessment</Text>
+        <Text style={styles.sectionTitle}>{t('screen.adversarial.subscriptions')}</Text>
         {subscriptions.map(sub => (
           <TouchableOpacity
             key={sub.id}
@@ -121,7 +123,7 @@ export const AdversarialDashboardScreen: React.FC<AdversarialDashboardScreenProp
               <Text style={styles.subCost}>${sub.monthlyCost.toFixed(2)}/mo</Text>
             </View>
             <View style={styles.subMeta}>
-              <Text style={styles.subUsage}>Usage: {Math.round(sub.usageScore * 100)}%</Text>
+              <Text style={styles.subUsage}>{t('screen.adversarial.usage', { percent: Math.round(sub.usageScore * 100) })}</Text>
               <Text style={[styles.subRec, { color: recommendationColor(sub.recommendation) }]}>
                 {sub.recommendation}
               </Text>
@@ -133,27 +135,27 @@ export const AdversarialDashboardScreen: React.FC<AdversarialDashboardScreenProp
 
       {/* Opt-Out Autopilot */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Opt-Out Autopilot</Text>
+        <Text style={styles.sectionTitle}>{t('screen.adversarial.opt_out')}</Text>
         <View style={styles.autopilotCard}>
           <View style={styles.autopilotStats}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{optOutStatus.totalTracked}</Text>
-              <Text style={styles.statLabel}>Tracked</Text>
+              <Text style={styles.statLabel}>{t('screen.adversarial.tracked')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{optOutStatus.pendingOptOuts}</Text>
-              <Text style={styles.statLabel}>Pending</Text>
+              <Text style={styles.statLabel}>{t('screen.adversarial.stat_pending')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{optOutStatus.completedOptOuts}</Text>
-              <Text style={styles.statLabel}>Completed</Text>
+              <Text style={styles.statLabel}>{t('screen.adversarial.stat_completed')}</Text>
             </View>
           </View>
           <TouchableOpacity
             style={styles.autopilotToggle}
             onPress={() => onToggleAutopilot(!optOutStatus.autopilotEnabled)}
           >
-            <Text style={styles.autopilotLabel}>Autopilot</Text>
+            <Text style={styles.autopilotLabel}>{t('screen.adversarial.autopilot')}</Text>
             <Text style={[styles.autopilotValue, { color: optOutStatus.autopilotEnabled ? colors.success : colors.textTertiary }]}>
               {optOutStatus.autopilotEnabled ? 'On' : 'Off'}
             </Text>

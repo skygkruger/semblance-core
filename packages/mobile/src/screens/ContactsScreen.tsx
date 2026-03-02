@@ -11,6 +11,7 @@ import {
   StyleSheet,
   type ListRenderItemInfo,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 interface ContactSummary {
@@ -49,11 +50,12 @@ export function getInitials(name: string): string {
 }
 
 function BirthdaySection({ birthdays, onPress }: { birthdays: BirthdayInfo[]; onPress: (id: string) => void }) {
+  const { t } = useTranslation();
   if (birthdays.length === 0) return null;
 
   return (
     <View style={styles.birthdaySection}>
-      <Text style={styles.sectionTitle}>Upcoming Birthdays</Text>
+      <Text style={styles.sectionTitle}>{t('screen.contacts.upcoming_birthdays')}</Text>
       {birthdays.map(b => (
         <TouchableOpacity key={b.contactId} style={styles.birthdayItem} onPress={() => onPress(b.contactId)}>
           <View style={styles.birthdayDot} />
@@ -68,6 +70,7 @@ function BirthdaySection({ birthdays, onPress }: { birthdays: BirthdayInfo[]; on
 }
 
 export function ContactsScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const [contacts, setContacts] = useState<ContactSummary[]>([]);
   const [birthdays, setBirthdays] = useState<BirthdayInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,7 +104,7 @@ export function ContactsScreen({ navigation }: Props) {
     <View style={styles.container}>
       <TextInput
         style={styles.searchInput}
-        placeholder="Search contacts..."
+        placeholder={t('placeholder.search_contacts')}
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
@@ -114,9 +117,9 @@ export function ContactsScreen({ navigation }: Props) {
         }
         ListEmptyComponent={
           loading ? (
-            <Text style={styles.emptyText}>Loading...</Text>
+            <Text style={styles.emptyText}>{t('status.loading')}</Text>
           ) : (
-            <Text style={styles.emptyText}>No contacts</Text>
+            <Text style={styles.emptyText}>{t('screen.contacts.no_contacts')}</Text>
           )
         }
       />

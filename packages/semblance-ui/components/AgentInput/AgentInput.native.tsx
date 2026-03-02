@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -13,7 +14,7 @@ import {
 } from 'react-native';
 import { WireframeSpinner } from '../WireframeSpinner/WireframeSpinner';
 import type { AgentInputProps } from './AgentInput.types';
-import { VOICE_LABELS, PLACEHOLDER_HINTS } from './AgentInput.types';
+import { PLACEHOLDER_HINTS } from './AgentInput.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
 export function AgentInput({
@@ -30,6 +31,7 @@ export function AgentInput({
   onVoiceStop,
   onVoiceCancel,
 }: AgentInputProps) {
+  const { t } = useTranslation('agent');
   const [value, setValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
@@ -37,7 +39,7 @@ export function AgentInput({
   const [inputHeight, setInputHeight] = useState(44);
   const inputRef = useRef<TextInput>(null);
 
-  const hints = placeholder ? [placeholder] : PLACEHOLDER_HINTS;
+  const hints = placeholder ? [placeholder] : [t('input.placeholder_default'), ...PLACEHOLDER_HINTS.slice(1)];
 
   // Hint cycling -- only when multiple hints and user is not active
   useEffect(() => {
@@ -138,7 +140,7 @@ export function AgentInput({
             onPress={activeDocument.onDismiss}
             hitSlop={8}
             style={styles.documentDismiss}
-            accessibilityLabel="Dismiss document"
+            accessibilityLabel={t('input.dismiss_document')}
           >
             <Text style={styles.documentDismissText}>x</Text>
           </Pressable>
@@ -169,14 +171,14 @@ export function AgentInput({
             placeholderTextColor={brandColors.sv1}
             returnKeyType="send"
             textAlignVertical="top"
-            accessibilityLabel="Message input"
+            accessibilityLabel={t('input.message_input_label')}
           />
 
           {/* Thinking overlay */}
           {thinking && (
-            <View style={styles.thinkingOverlay} accessibilityLabel="Thinking">
+            <View style={styles.thinkingOverlay} accessibilityLabel={t('input.thinking_text')}>
               <WireframeSpinner size={40} speed={0.8} />
-              <Text style={styles.thinkingText}>On it.</Text>
+              <Text style={styles.thinkingText}>{t('input.thinking_text')}</Text>
             </View>
           )}
 
@@ -203,10 +205,10 @@ export function AgentInput({
                 </View>
               )}
               {voiceState === 'processing' && (
-                <Text style={styles.voiceStatus}>Processing...</Text>
+                <Text style={styles.voiceStatus}>{t('voice.status_processing')}</Text>
               )}
               {voiceState === 'speaking' && (
-                <Text style={styles.voiceStatus}>Speaking...</Text>
+                <Text style={styles.voiceStatus}>{t('voice.status_speaking')}</Text>
               )}
             </View>
           )}
@@ -217,7 +219,7 @@ export function AgentInput({
             <Pressable
               onPress={handleMicPress}
               disabled={voiceState === 'processing'}
-              accessibilityLabel={VOICE_LABELS[voiceState]}
+              accessibilityLabel={t(`voice.${voiceState}`)}
               style={[
                 styles.micButton,
                 voiceState === 'listening' && styles.micButtonListening,
@@ -237,7 +239,7 @@ export function AgentInput({
               styles.sendButton,
               (thinking || !hasValue) && styles.sendButtonDisabled,
             ]}
-            accessibilityLabel="Send"
+            accessibilityLabel={t('input.send')}
             hitSlop={8}
           >
             <Text

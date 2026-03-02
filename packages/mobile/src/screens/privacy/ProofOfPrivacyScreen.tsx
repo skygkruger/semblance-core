@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../../theme/tokens.js';
 
 export interface PrivacyReport {
@@ -32,6 +33,7 @@ export const ProofOfPrivacyScreen: React.FC<ProofOfPrivacyScreenProps> = ({
   onGenerate,
   onExportReport,
 }) => {
+  const { t } = useTranslation();
   const handleGenerate = async () => {
     if (!isPremium) {
       Alert.alert('Premium Feature', 'Proof of Privacy reports require Semblance Premium.');
@@ -42,7 +44,7 @@ export const ProofOfPrivacyScreen: React.FC<ProofOfPrivacyScreenProps> = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Proof of Privacy</Text>
+      <Text style={styles.title}>{t('screen.proof_of_privacy.title')}</Text>
       <Text style={styles.subtitle}>
         Verifiable proof that Semblance operates within its privacy guarantees.
       </Text>
@@ -58,14 +60,14 @@ export const ProofOfPrivacyScreen: React.FC<ProofOfPrivacyScreenProps> = ({
       </TouchableOpacity>
 
       {!isPremium && (
-        <Text style={styles.premiumNotice}>Premium required for report generation</Text>
+        <Text style={styles.premiumNotice}>{t('screen.proof_of_privacy.premium_required')}</Text>
       )}
 
       {/* Report History */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Report History</Text>
+        <Text style={styles.sectionTitle}>{t('screen.proof_of_privacy.history')}</Text>
         {reports.length === 0 && (
-          <Text style={styles.emptyText}>No reports generated yet.</Text>
+          <Text style={styles.emptyText}>{t('screen.proof_of_privacy.empty')}</Text>
         )}
         {reports.map(report => (
           <View key={report.id} style={styles.reportCard}>
@@ -80,11 +82,11 @@ export const ProofOfPrivacyScreen: React.FC<ProofOfPrivacyScreenProps> = ({
                 <Text style={styles.reportStatValue}>
                   {report.guaranteesVerified}/{report.guaranteesTotal}
                 </Text>
-                <Text style={styles.reportStatLabel}>Guarantees verified</Text>
+                <Text style={styles.reportStatLabel}>{t('screen.proof_of_privacy.guarantees_verified')}</Text>
               </View>
               <View style={styles.reportStat}>
                 <Text style={styles.reportStatValue}>{report.networkRequestsAudited}</Text>
-                <Text style={styles.reportStatLabel}>Requests audited</Text>
+                <Text style={styles.reportStatLabel}>{t('screen.proof_of_privacy.requests_audited')}</Text>
               </View>
               <View style={styles.reportStat}>
                 <Text style={[
@@ -93,14 +95,14 @@ export const ProofOfPrivacyScreen: React.FC<ProofOfPrivacyScreenProps> = ({
                 ]}>
                   {report.unauthorizedAttempts}
                 </Text>
-                <Text style={styles.reportStatLabel}>Unauthorized</Text>
+                <Text style={styles.reportStatLabel}>{t('screen.proof_of_privacy.unauthorized')}</Text>
               </View>
             </View>
             <TouchableOpacity
               style={styles.exportButton}
               onPress={() => onExportReport(report.id)}
             >
-              <Text style={styles.exportButtonText}>Export</Text>
+              <Text style={styles.exportButtonText}>{t('button.export')}</Text>
             </TouchableOpacity>
           </View>
         ))}

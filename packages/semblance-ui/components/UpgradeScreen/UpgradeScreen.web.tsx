@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '../Button/Button';
 import { LicenseActivation } from '../LicenseActivation/LicenseActivation';
 import type { UpgradeScreenProps } from './UpgradeScreen.types';
@@ -21,6 +22,7 @@ export function UpgradeScreen({
   onManageSubscription,
   onBack,
 }: UpgradeScreenProps) {
+  const { t } = useTranslation();
   const isActive = currentTier !== 'free';
 
   return (
@@ -30,18 +32,18 @@ export function UpgradeScreen({
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
           </svg>
-          Back
+          {t('button.back')}
         </button>
       )}
 
       <div className="upgrade-screen__header">
         <h1 className="upgrade-screen__title">
-          {isActive ? 'Your Plan' : 'Upgrade Semblance'}
+          {isActive ? t('screen.upgrade.title_active') : t('screen.upgrade.title_upgrade')}
         </h1>
         <p className="upgrade-screen__subtitle">
           {isActive
-            ? `You're on the ${currentTier === 'digital-representative' ? 'Digital Representative' : currentTier === 'founding' ? 'Founding Member' : 'Lifetime'} plan.`
-            : 'The paid tier keeps Semblance independent and in your hands.'
+            ? t('screen.upgrade.subtitle_active', { plan: currentTier === 'digital-representative' ? 'Digital Representative' : currentTier === 'founding' ? 'Founding Member' : 'Lifetime' })
+            : t('screen.upgrade.subtitle_upgrade')
           }
         </p>
       </div>
@@ -51,10 +53,10 @@ export function UpgradeScreen({
           {/* Monthly */}
           <div className="upgrade-screen__plan">
             <div className="upgrade-screen__plan-header">
-              <span className="upgrade-screen__plan-label">MONTHLY</span>
+              <span className="upgrade-screen__plan-label">{t('screen.upgrade.plan_monthly')}</span>
               <div className="upgrade-screen__plan-price">
-                <span className="upgrade-screen__price-amount">$18</span>
-                <span className="upgrade-screen__price-period">/mo</span>
+                <span className="upgrade-screen__price-amount">{t('screen.upgrade.price_monthly')}</span>
+                <span className="upgrade-screen__price-period">{t('screen.upgrade.period_monthly')}</span>
               </div>
             </div>
             <ul className="upgrade-screen__feature-list">
@@ -66,22 +68,22 @@ export function UpgradeScreen({
               ))}
             </ul>
             <Button variant="ghost" size="md" onClick={() => onCheckout('monthly')} className="upgrade-screen__cta">
-              Start Monthly
+              {t('screen.upgrade.cta_monthly')}
             </Button>
           </div>
 
           {/* Founding */}
           <div className="upgrade-screen__plan upgrade-screen__plan--recommended">
-            <div className="upgrade-screen__plan-badge">RECOMMENDED</div>
+            <div className="upgrade-screen__plan-badge">{t('screen.upgrade.recommended')}</div>
             <div className="upgrade-screen__plan-header">
-              <span className="upgrade-screen__plan-label">FOUNDING THOUSAND</span>
+              <span className="upgrade-screen__plan-label">{t('screen.upgrade.plan_founding')}</span>
               <div className="upgrade-screen__plan-price">
-                <span className="upgrade-screen__price-amount">$199</span>
-                <span className="upgrade-screen__price-period">lifetime</span>
+                <span className="upgrade-screen__price-amount">{t('screen.upgrade.price_founding')}</span>
+                <span className="upgrade-screen__price-period">{t('screen.upgrade.period_founding')}</span>
               </div>
             </div>
             <p className="upgrade-screen__plan-note">
-              Limited to 500 seats. Permanent recognition. Everything included, forever.
+              {t('screen.upgrade.founding_note')}
             </p>
             <ul className="upgrade-screen__feature-list">
               {FEATURES.map((f) => (
@@ -92,21 +94,21 @@ export function UpgradeScreen({
               ))}
               <li className="upgrade-screen__feature-item upgrade-screen__feature-item--bonus">
                 <CheckIcon />
-                <span>Founding Member badge & seat number</span>
+                <span>{t('upgrade.founding_bonus')}</span>
               </li>
             </ul>
             <Button variant="solid" size="md" onClick={() => onCheckout('founding')} className="upgrade-screen__cta">
-              Become a Founder
+              {t('screen.upgrade.cta_founding')}
             </Button>
           </div>
 
           {/* Lifetime */}
           <div className="upgrade-screen__plan">
             <div className="upgrade-screen__plan-header">
-              <span className="upgrade-screen__plan-label">LIFETIME</span>
+              <span className="upgrade-screen__plan-label">{t('screen.upgrade.plan_lifetime')}</span>
               <div className="upgrade-screen__plan-price">
-                <span className="upgrade-screen__price-amount">$349</span>
-                <span className="upgrade-screen__price-period">one-time</span>
+                <span className="upgrade-screen__price-amount">{t('screen.upgrade.price_lifetime')}</span>
+                <span className="upgrade-screen__price-period">{t('screen.upgrade.period_lifetime')}</span>
               </div>
             </div>
             <ul className="upgrade-screen__feature-list">
@@ -118,7 +120,7 @@ export function UpgradeScreen({
               ))}
             </ul>
             <Button variant="ghost" size="md" onClick={() => onCheckout('lifetime')} className="upgrade-screen__cta">
-              Get Lifetime Access
+              {t('screen.upgrade.cta_lifetime')}
             </Button>
           </div>
         </div>
@@ -126,31 +128,31 @@ export function UpgradeScreen({
 
       {isActive && isFoundingMember && foundingSeat !== null && (
         <div className="upgrade-screen__active-info">
-          <p className="upgrade-screen__active-tier">Founding Member #{foundingSeat}</p>
-          <p className="upgrade-screen__active-note">Lifetime access. All features included.</p>
+          <p className="upgrade-screen__active-tier">{t('screen.upgrade.active_founding', { seat: foundingSeat })}</p>
+          <p className="upgrade-screen__active-note">{t('screen.upgrade.active_note_lifetime')}</p>
         </div>
       )}
 
       {isActive && currentTier === 'digital-representative' && onManageSubscription && (
         <div className="upgrade-screen__active-info">
-          <p className="upgrade-screen__active-tier">Digital Representative</p>
-          <p className="upgrade-screen__active-note">Monthly subscription. All premium features active.</p>
+          <p className="upgrade-screen__active-tier">{t('license.digital_representative')}</p>
+          <p className="upgrade-screen__active-note">{t('screen.upgrade.active_note_dr')}</p>
           <Button variant="ghost" size="sm" onClick={onManageSubscription} className="upgrade-screen__manage-btn">
-            Manage Subscription
+            {t('screen.settings.btn_manage_subscription')}
           </Button>
         </div>
       )}
 
       {isActive && currentTier === 'lifetime' && !isFoundingMember && (
         <div className="upgrade-screen__active-info">
-          <p className="upgrade-screen__active-tier">Lifetime</p>
-          <p className="upgrade-screen__active-note">Lifetime access. All features included.</p>
+          <p className="upgrade-screen__active-tier">{t('license.lifetime')}</p>
+          <p className="upgrade-screen__active-note">{t('screen.upgrade.active_note_lifetime')}</p>
         </div>
       )}
 
       <div className="upgrade-screen__activation">
         <div className="upgrade-screen__activation-divider" />
-        <p className="upgrade-screen__activation-label">Already have a license key?</p>
+        <p className="upgrade-screen__activation-label">{t('screen.upgrade.activation_label')}</p>
         <LicenseActivation onActivate={onActivateKey} />
       </div>
     </div>

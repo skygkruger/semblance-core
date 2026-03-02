@@ -1,0 +1,30 @@
+{
+  "title": "[JA] Connections",
+  "subtitle_empty": "[JA] Connect your data sources. Everything stays on your device.",
+  "subtitle_count": "[JA] {{connected}} of {{total}} sources connected. Everything stays on your device.",
+  "section_headers": {
+    "native": "[JA] NATIVE CONNECTIONS",
+    "oauth": "[JA] CONNECTED SERVICES",
+    "manual": "[JA] MANUAL IMPORTS"
+  },
+  "empty": {
+    "heading": "[JA] Connect your first data source",
+    "body": "[JA] Semblance learns from your email, calendar, files, and more. Everything stays on your device.",
+    "btn_email": "[JA] Connect Email",
+    "btn_calendar": "[JA] Connect Calendar"
+  },
+  "card": {
+    "dr_badge": "[JA] DR",
+    "btn_connect": "[JA] Connect",
+    "btn_sync": "[JA] Sync",
+    "btn_disconnect": "[JA] Disconnect",
+    "pending_text": "[JA] Connecting...",
+    "synced_prefix": "[JA] Synced {{time}}"
+  },
+  "status": {
+    "connected": "[JA] Connected",
+    "disconnected": "[JA] Available",
+    "error": "[JA] Error",
+    "pending": "[JA] Connecting..."
+  }
+}

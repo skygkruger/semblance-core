@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { BriefingCard } from '@semblance/ui';
 import type { BriefingItem } from '@semblance/ui';
 import { colors, typography, spacing } from '../theme/tokens.js';
@@ -19,6 +20,7 @@ export function BriefScreen({
   isFoundingMember = false,
   foundingSeat,
 }: BriefScreenProps) {
+  const { t } = useTranslation();
   const [items, setItems] = useState<BriefingItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +43,7 @@ export function BriefScreen({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Preparing your brief...</Text>
+        <Text style={styles.loadingText}>{t('screen.brief.loading')}</Text>
       </View>
     );
   }

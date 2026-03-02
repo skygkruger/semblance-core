@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import './Settings.css';
 import { BackArrow } from './SettingsIcons';
 import type { SettingsAIEngineProps } from './SettingsAIEngine.types';
@@ -15,25 +16,27 @@ export function SettingsAIEngine({
   onChange,
   onBack,
 }: SettingsAIEngineProps) {
+  const { t } = useTranslation('settings');
+
   return (
     <div className="settings-screen">
       <div className="settings-header">
         <button type="button" className="settings-header__back" onClick={onBack}>
           <BackArrow />
         </button>
-        <h1 className="settings-header__title">AI Engine</h1>
+        <h1 className="settings-header__title">{t('ai_engine.title')}</h1>
       </div>
 
       <div className="settings-content">
         {/* Active Model */}
-        <div className="settings-section-header">Active Model</div>
+        <div className="settings-section-header">{t('ai_engine.section_model')}</div>
         <div className="settings-card" style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, fontWeight: 400, color: '#EEF1F4' }}>
               {modelName}
             </span>
             <span className={isModelRunning ? 'settings-badge settings-badge--veridian' : 'settings-badge settings-badge--muted'}>
-              {isModelRunning ? 'Running' : 'Not loaded'}
+              {isModelRunning ? t('ai_engine.badge_running') : t('ai_engine.badge_not_loaded')}
             </span>
           </div>
           <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 300, color: '#A8B4C0' }}>
@@ -42,16 +45,16 @@ export function SettingsAIEngine({
         </div>
 
         {/* Hardware Profile */}
-        <div className="settings-section-header">Hardware</div>
+        <div className="settings-section-header">{t('ai_engine.section_hardware')}</div>
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">{hardwareProfile}</span>
         </div>
 
         {/* Performance Settings */}
-        <div className="settings-section-header">Performance</div>
+        <div className="settings-section-header">{t('ai_engine.section_performance')}</div>
 
         <div style={{ padding: '12px 20px' }}>
-          <div style={{ fontSize: 13, color: '#A8B4C0', marginBottom: 8 }}>Inference threads</div>
+          <div style={{ fontSize: 13, color: '#A8B4C0', marginBottom: 8 }}>{t('ai_engine.label_inference_threads')}</div>
           <div className="settings-segment">
             {threadOptions.map((opt) => (
               <button
@@ -60,14 +63,14 @@ export function SettingsAIEngine({
                 className={`settings-segment__option ${String(inferenceThreads) === opt ? 'settings-segment__option--active' : ''}`}
                 onClick={() => onChange('inferenceThreads', opt === 'auto' ? 'auto' : Number(opt))}
               >
-                {opt === 'auto' ? 'Auto' : opt}
+                {opt === 'auto' ? t('ai_engine.thread_option_auto') : opt}
               </button>
             ))}
           </div>
         </div>
 
         <div style={{ padding: '12px 20px' }}>
-          <div style={{ fontSize: 13, color: '#A8B4C0', marginBottom: 8 }}>Context window</div>
+          <div style={{ fontSize: 13, color: '#A8B4C0', marginBottom: 8 }}>{t('ai_engine.label_context_window')}</div>
           <div className="settings-segment">
             {contextOptions.map((opt) => (
               <button
@@ -83,7 +86,7 @@ export function SettingsAIEngine({
         </div>
 
         <div className="settings-row" onClick={() => onChange('gpuAcceleration', !gpuAcceleration)}>
-          <span className="settings-row__label">GPU acceleration</span>
+          <span className="settings-row__label">{t('ai_engine.label_gpu_acceleration')}</span>
           <button
             type="button"
             className="settings-toggle"
@@ -95,17 +98,17 @@ export function SettingsAIEngine({
         </div>
 
         {/* Advanced */}
-        <div className="settings-section-header">Advanced</div>
+        <div className="settings-section-header">{t('ai_engine.section_advanced')}</div>
         <div className="settings-row settings-row--static">
-          <span className="settings-row__label">Custom model path</span>
-          <span className="settings-row__value">{customModelPath || 'None'}</span>
+          <span className="settings-row__label">{t('ai_engine.label_custom_model_path')}</span>
+          <span className="settings-row__value">{customModelPath || t('ai_engine.value_custom_model_none')}</span>
         </div>
         <button
           type="button"
           className="settings-row"
           onClick={() => onChange('resetDefaults', true)}
         >
-          <span className="settings-row__label" style={{ color: '#8593A4' }}>Reset to defaults</span>
+          <span className="settings-row__label" style={{ color: '#8593A4' }}>{t('ai_engine.btn_reset_defaults')}</span>
         </button>
       </div>
     </div>

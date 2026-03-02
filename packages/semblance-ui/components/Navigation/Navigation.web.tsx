@@ -1,6 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import type { NavigationProps } from './Navigation.types';
 
 export function Navigation({ items, activeId, onNavigate, collapsed = false, footer, className = '' }: NavigationProps) {
+  const { t } = useTranslation();
+
   return (
     <nav
       className={`
@@ -11,7 +14,7 @@ export function Navigation({ items, activeId, onNavigate, collapsed = false, foo
         ${collapsed ? 'w-16' : 'w-60'}
         ${className}
       `.trim()}
-      aria-label="Main navigation"
+      aria-label={t('a11y.main_navigation')}
     >
       <div className="flex-1 py-4">
         <ul className="space-y-1 px-2" role="list">

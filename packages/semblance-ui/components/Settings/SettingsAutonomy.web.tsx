@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import './Settings.css';
 import { BackArrow, GuardianIcon, PartnerIcon, AlterEgoIcon } from './SettingsIcons';
 import type { Tier, SettingsAutonomyProps } from './SettingsAutonomy.types';
@@ -32,6 +33,7 @@ export function SettingsAutonomy({
   onChange,
   onBack,
 }: SettingsAutonomyProps) {
+  const { t } = useTranslation('settings');
   const isGuardian = currentTier === 'guardian';
 
   return (
@@ -40,7 +42,7 @@ export function SettingsAutonomy({
         <button type="button" className="settings-header__back" onClick={onBack}>
           <BackArrow />
         </button>
-        <h1 className="settings-header__title">Autonomy</h1>
+        <h1 className="settings-header__title">{t('autonomy.title')}</h1>
       </div>
 
       <div className="settings-content">
@@ -58,15 +60,15 @@ export function SettingsAutonomy({
                 <span className="settings-tier-card__icon">{tierIcons[tier.id]}</span>
                 <div className="settings-tier-card__body">
                   <div className="settings-tier-card__header">
-                    <span className="settings-tier-card__name">{tier.name}</span>
+                    <span className="settings-tier-card__name">{t(`autonomy.tiers.${tier.id}.name`)}</span>
                     <span
                       className="settings-badge settings-badge--veridian"
                       style={isActive ? undefined : { visibility: 'hidden' }}
                     >
-                      ACTIVE
+                      {t('autonomy.badge_active')}
                     </span>
                   </div>
-                  <span className="settings-tier-card__desc">{tier.desc}</span>
+                  <span className="settings-tier-card__desc">{t(`autonomy.tiers.${tier.id}.desc`)}</span>
                 </div>
               </button>
             );
@@ -74,9 +76,9 @@ export function SettingsAutonomy({
         </div>
 
         {/* Domain Overrides */}
-        <div className="settings-section-header">Domain Overrides</div>
+        <div className="settings-section-header">{t('autonomy.section_domain_overrides')}</div>
         <p className="settings-explanation" style={{ marginBottom: 12 }}>
-          Override the default tier for specific areas. Useful if you want Alter Ego everywhere except Finance.
+          {t('autonomy.domain_overrides_explanation')}
         </p>
 
         {domains.map((domain) => {
@@ -84,20 +86,20 @@ export function SettingsAutonomy({
           const override = domainOverrides[key] || 'default';
           return (
             <div key={domain} className="settings-row settings-row--static">
-              <span className="settings-row__label">{domain}</span>
+              <span className="settings-row__label">{t(`autonomy.domains.${key}`)}</span>
               <span className="settings-row__value">{tierLabels[override]}</span>
             </div>
           );
         })}
 
         {/* Safety */}
-        <div className="settings-section-header">Safety</div>
+        <div className="settings-section-header">{t('autonomy.section_safety')}</div>
 
         <div
           className="settings-row"
           onClick={isGuardian ? undefined : () => onChange('requireConfirmationForIrreversible', !requireConfirmationForIrreversible)}
         >
-          <span className="settings-row__label">Require confirmation for irreversible actions</span>
+          <span className="settings-row__label">{t('autonomy.label_require_confirmation')}</span>
           <Toggle
             on={requireConfirmationForIrreversible}
             onToggle={() => onChange('requireConfirmationForIrreversible', !requireConfirmationForIrreversible)}
@@ -106,12 +108,12 @@ export function SettingsAutonomy({
         </div>
 
         <div className="settings-row settings-row--static">
-          <span className="settings-row__label">Action review window</span>
+          <span className="settings-row__label">{t('autonomy.label_action_review_window')}</span>
           <span className="settings-row__value">{reviewLabels[actionReviewWindow]}</span>
         </div>
 
         <p className="settings-explanation settings-explanation--small" style={{ paddingTop: 8 }}>
-          Irreversible actions include sent emails, deleted files, cancelled subscriptions, and calendar changes affecting others.
+          {t('autonomy.irreversible_actions_explanation')}
         </p>
       </div>
     </div>

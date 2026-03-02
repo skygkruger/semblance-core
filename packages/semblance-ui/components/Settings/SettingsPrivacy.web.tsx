@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import './Settings.css';
 import { BackArrow, ShieldCheck, ShieldAlert } from './SettingsIcons';
 import type { SettingsPrivacyProps } from './SettingsPrivacy.types';
@@ -15,6 +16,7 @@ export function SettingsPrivacy({
   onResetSemblance,
   onBack,
 }: SettingsPrivacyProps) {
+  const { t } = useTranslation('settings');
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [showReset, setShowReset] = useState(false);
@@ -29,7 +31,7 @@ export function SettingsPrivacy({
         <button type="button" className="settings-header__back" onClick={onBack}>
           <BackArrow />
         </button>
-        <h1 className="settings-header__title">Privacy</h1>
+        <h1 className="settings-header__title">{t('privacy.title')}</h1>
       </div>
 
       <div className="settings-content">
@@ -41,14 +43,14 @@ export function SettingsPrivacy({
               <span
                 className={auditClean ? 'settings-badge settings-badge--veridian' : neverRun ? 'settings-badge settings-badge--muted' : 'settings-badge settings-badge--amber'}
               >
-                {auditClean ? 'PASS' : neverRun ? 'NEVER RUN' : 'REVIEW NEEDED'}
+                {auditClean ? t('privacy.audit_badge_pass') : neverRun ? t('privacy.audit_badge_never_run') : t('privacy.audit_badge_review_needed')}
               </span>
             </div>
             <div style={{ fontSize: 13, color: '#A8B4C0', marginBottom: 12 }}>
-              {lastAuditTime ? `Last audit: ${lastAuditTime}` : 'No audit has been run yet'}
+              {lastAuditTime ? t('privacy.audit_last_run', { time: lastAuditTime }) : t('privacy.audit_never_run')}
             </div>
             <button type="button" className="settings-ghost-button" onClick={onRunAudit}>
-              Run audit
+              {t('privacy.btn_run_audit')}
             </button>
           </div>
         </div>
@@ -56,12 +58,12 @@ export function SettingsPrivacy({
         {/* Data Sources */}
         {dataSources.length > 0 && (
           <>
-            <div className="settings-section-header">Data Sources</div>
+            <div className="settings-section-header">{t('privacy.section_data_sources')}</div>
             {dataSources.map((source) => (
               <div key={source.id} className="settings-row">
                 <span className="settings-row__label">{source.name}</span>
                 <span className="settings-row__value">
-                  {source.entityCount} items · {source.lastIndexed}
+                  {t('privacy.data_source_items', { n: source.entityCount, date: source.lastIndexed })}
                 </span>
                 <button
                   type="button"
@@ -76,7 +78,7 @@ export function SettingsPrivacy({
                   }}
                   onClick={() => onDeleteSourceData(source.id)}
                 >
-                  Remove
+                  {t('privacy.btn_remove_source')}
                 </button>
               </div>
             ))}
@@ -84,29 +86,29 @@ export function SettingsPrivacy({
         )}
 
         {/* Export & Portability */}
-        <div className="settings-section-header">Export & Portability</div>
+        <div className="settings-section-header">{t('privacy.section_export')}</div>
         <button type="button" className="settings-row" onClick={onExportData}>
-          <span className="settings-row__label">Export all my data</span>
+          <span className="settings-row__label">{t('privacy.btn_export_data')}</span>
         </button>
         <button type="button" className="settings-row" onClick={onExportHistory}>
-          <span className="settings-row__label">Export action history</span>
+          <span className="settings-row__label">{t('privacy.btn_export_history')}</span>
         </button>
 
         {/* Danger Zone */}
-        <div className="settings-section-header settings-section-header--danger">Danger Zone</div>
+        <div className="settings-section-header settings-section-header--danger">{t('privacy.section_danger')}</div>
 
         <button
           type="button"
           className="settings-row settings-row--danger"
           onClick={() => setShowDeleteAll(true)}
         >
-          <span className="settings-row__label">Delete all indexed data</span>
+          <span className="settings-row__label">{t('privacy.btn_delete_all')}</span>
         </button>
 
         {showDeleteAll && (
           <div style={{ padding: '12px 20px' }}>
             <p style={{ fontSize: 13, color: '#C97B6E', marginBottom: 8 }}>
-              Type &quot;delete&quot; to confirm:
+              {t('privacy.delete_confirm_prompt')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
@@ -114,7 +116,7 @@ export function SettingsPrivacy({
                 className="settings-inline-edit__input"
                 value={deleteConfirm}
                 onChange={(e) => setDeleteConfirm(e.target.value)}
-                placeholder="delete"
+                placeholder={t('privacy.delete_confirm_placeholder')}
                 style={{ flex: 1 }}
               />
               <button
@@ -129,14 +131,14 @@ export function SettingsPrivacy({
                   }
                 }}
               >
-                Confirm
+                {t('privacy.btn_confirm')}
               </button>
               <button
                 type="button"
                 className="settings-inline-edit__btn settings-inline-edit__btn--cancel"
                 onClick={() => { setShowDeleteAll(false); setDeleteConfirm(''); }}
               >
-                Cancel
+                {t('privacy.btn_cancel')}
               </button>
             </div>
           </div>
@@ -147,13 +149,13 @@ export function SettingsPrivacy({
           className="settings-row settings-row--danger"
           onClick={() => setShowReset(true)}
         >
-          <span className="settings-row__label">Reset Semblance</span>
+          <span className="settings-row__label">{t('privacy.btn_reset_semblance')}</span>
         </button>
 
         {showReset && (
           <div style={{ padding: '12px 20px' }}>
             <p style={{ fontSize: 13, color: '#C97B6E', marginBottom: 8 }}>
-              This will permanently delete all data and reset Semblance to factory state.
+              {t('privacy.reset_confirm_body')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -170,14 +172,14 @@ export function SettingsPrivacy({
                 }}
                 onClick={() => { onResetSemblance(); setShowReset(false); }}
               >
-                Reset everything
+                {t('privacy.btn_reset_everything')}
               </button>
               <button
                 type="button"
                 className="settings-inline-edit__btn settings-inline-edit__btn--cancel"
                 onClick={() => setShowReset(false)}
               >
-                Cancel
+                {t('privacy.btn_cancel')}
               </button>
             </div>
           </div>
