@@ -141,6 +141,14 @@ export type {
   MobileModelDownload,
 } from './llm/mobile-model-manager.js';
 
+// Credential keychain interface
+export type { KeychainStore } from './credentials/keychain.js';
+export {
+  keychainServiceName,
+  keychainOAuthServiceName,
+  MIGRATED_SENTINEL,
+} from './credentials/keychain.js';
+
 // --- SemblanceCore Interface ---
 
 export interface SemblanceCore {
