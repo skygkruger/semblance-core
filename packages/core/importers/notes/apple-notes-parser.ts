@@ -67,7 +67,9 @@ export class AppleNotesParser implements ImportParser {
 
     // Check for directory containing HTML files
     try {
-      const { statSync, readdirSync } = require('node:fs');
+      const { statSync, readdirSync, lstatSync } = require('node:fs');
+      // SECURITY: Check for symlinks before following path
+      if (lstatSync(path).isSymbolicLink()) return false;
       const stat = statSync(path);
       if (stat.isDirectory()) {
         const files = readdirSync(path) as string[];
@@ -82,12 +84,16 @@ export class AppleNotesParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { statSync, readdirSync } = await import('node:fs');
+    const { statSync, readdirSync, lstatSync } = await import('node:fs');
     const { join, basename, extname } = await import('node:path');
 
     // Gather HTML files
     const htmlFiles: string[] = [];
     try {
+      // SECURITY: Check for symlinks before following path
+      if (lstatSync(path).isSymbolicLink()) {
+        return { format: 'apple_notes_html', items: [], errors: [{ message: 'Symlink detected — skipping for security' }], totalFound: 0 };
+      }
       const stat = statSync(path);
       if (stat.isDirectory()) {
         const entries = readdirSync(path);
