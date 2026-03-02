@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Tests for OnboardingFlow — renders real component, tests 7-step sequence.
+// Tests for OnboardingFlow — renders real component, tests 8-step sequence.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -55,13 +55,13 @@ describe('OnboardingFlow', () => {
     expect(screen.getByText(/Semblance/i)).toBeInTheDocument();
   });
 
-  it('defines a 7-step sequence via STEP_ORDER', async () => {
-    // The OnboardingFlow uses STEP_ORDER with 7 steps.
-    // Verify by checking 7 step indicator dots are rendered.
+  it('defines an 8-step sequence via STEP_ORDER (terms added after initialize)', async () => {
+    // The OnboardingFlow uses STEP_ORDER with 8 steps:
+    // splash → hardware → data-sources → autonomy → naming-moment → naming-ai → initialize → terms
     renderOnboarding();
-    // Step indicator dots: 7 small circles at the bottom
+    // Step indicator dots: 8 small circles at the bottom
     const dots = document.querySelectorAll('.w-2.h-2.rounded-full');
-    expect(dots.length).toBe(7);
+    expect(dots.length).toBe(8);
   });
 
   it('first step indicator is active (veridian color)', () => {
