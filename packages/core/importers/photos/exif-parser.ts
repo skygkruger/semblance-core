@@ -257,8 +257,10 @@ export class ExifParser implements ImportParser {
 
   canParse(path: string): boolean {
     try {
-      const { statSync, readdirSync } = require('node:fs');
+      const { statSync, readdirSync, lstatSync } = require('node:fs');
       const { extname } = require('node:path');
+      // SECURITY: Check for symlinks before following path
+      if (lstatSync(path).isSymbolicLink()) return false;
       const stat = statSync(path);
 
       if (stat.isDirectory()) {
@@ -274,13 +276,17 @@ export class ExifParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { statSync } = await import('node:fs');
+    const { statSync, lstatSync } = await import('node:fs');
     const { basename, extname } = await import('node:path');
 
     // Gather image files
     let imageFiles: string[] = [];
 
     try {
+      // SECURITY: Check for symlinks before following path
+      if (lstatSync(path).isSymbolicLink()) {
+        return { format: 'exif_jpeg', items: [], errors: [{ message: 'Symlink detected — skipping for security' }], totalFound: 0 };
+      }
       const stat = statSync(path);
       if (stat.isDirectory()) {
         // Use safe walker with symlink detection

@@ -120,9 +120,11 @@ export class SlackExportParser implements ImportParser {
 
   canParse(path: string): boolean {
     try {
-      const { statSync, existsSync, readdirSync } = require('node:fs') as typeof import('node:fs');
+      const { statSync, existsSync, readdirSync, lstatSync } = require('node:fs') as typeof import('node:fs');
       const { join } = require('node:path') as typeof import('node:path');
 
+      // SECURITY: Check for symlinks before following path
+      if (lstatSync(path).isSymbolicLink()) return false;
       const stat = statSync(path);
       if (!stat.isDirectory()) return false;
 
@@ -134,6 +136,8 @@ export class SlackExportParser implements ImportParser {
       for (const entry of entries) {
         const entryPath = join(path, entry);
         try {
+          // SECURITY: Skip symlinks in directory traversal
+          if (lstatSync(entryPath).isSymbolicLink()) continue;
           const entryStat = statSync(entryPath);
           if (entryStat.isDirectory()) {
             const subFiles = readdirSync(entryPath) as string[];
@@ -159,6 +163,10 @@ export class SlackExportParser implements ImportParser {
 
     // Verify the path is a directory
     try {
+      // SECURITY: Check for symlinks before following path
+      if (lstatSync(path).isSymbolicLink()) {
+        return { format: 'slack_export', items: [], errors: [{ message: 'Symlink detected — skipping for security' }], totalFound: 0 };
+      }
       const stat = statSync(path);
       if (!stat.isDirectory()) {
         return {

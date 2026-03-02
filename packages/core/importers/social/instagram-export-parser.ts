@@ -87,8 +87,10 @@ export class InstagramExportParser implements ImportParser {
 
     // Check directory structure
     try {
-      const { statSync, existsSync } = require('node:fs') as typeof import('node:fs');
+      const { statSync, existsSync, lstatSync } = require('node:fs') as typeof import('node:fs');
       const { join } = require('node:path') as typeof import('node:path');
+      // SECURITY: Check for symlinks before following path
+      if (lstatSync(path).isSymbolicLink()) return false;
       const stat = statSync(path);
 
       if (stat.isDirectory()) {
@@ -109,13 +111,17 @@ export class InstagramExportParser implements ImportParser {
 
   async parse(path: string, options?: ParseOptions): Promise<ImportResult> {
     const errors: ParseError[] = [];
-    const { statSync, existsSync, readdirSync } = await import('node:fs');
+    const { statSync, existsSync, readdirSync, lstatSync } = await import('node:fs');
     const { join } = await import('node:path');
 
     let items: ImportedItem[] = [];
     let totalFound = 0;
 
     try {
+      // SECURITY: Check for symlinks before following path
+      if (lstatSync(path).isSymbolicLink()) {
+        return { format: 'instagram_export', items: [], errors: [{ message: 'Symlink detected — skipping for security' }], totalFound: 0 };
+      }
       const stat = statSync(path);
 
       if (stat.isDirectory()) {
