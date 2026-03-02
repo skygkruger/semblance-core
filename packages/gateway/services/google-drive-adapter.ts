@@ -162,9 +162,13 @@ export class GoogleDriveAdapter implements ServiceAdapter {
     const accessToken = this.tokenManager.getAccessToken('google_drive');
     if (accessToken) {
       // Attempt to revoke the token (best-effort)
+      // SECURITY: Send token in POST body, not URL query string.
+      // Tokens in URLs are logged in server access logs and HTTP Referer headers.
       try {
-        await globalThis.fetch(`https://oauth2.googleapis.com/revoke?token=${accessToken}`, {
+        await globalThis.fetch('https://oauth2.googleapis.com/revoke', {
           method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ token: accessToken }),
         });
       } catch {
         // Revocation is best-effort
