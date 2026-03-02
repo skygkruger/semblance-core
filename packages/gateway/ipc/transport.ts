@@ -111,7 +111,12 @@ export class GatewayTransport {
         // SECURITY: Restrict socket file permissions to owner only (Unix).
         // Prevents other local users from connecting to the Gateway IPC.
         if (platform() !== 'win32') {
-          try { chmodSync(this.socketPath, 0o600); } catch { /* best-effort */ }
+          try {
+            chmodSync(this.socketPath, 0o600);
+          } catch (err) {
+            // SECURITY: Socket permissions are critical — warn loudly if chmod fails
+            console.error(`[Gateway] SECURITY WARNING: Failed to set socket permissions (0o600) on ${this.socketPath}:`, err);
+          }
         }
         resolve();
       });
