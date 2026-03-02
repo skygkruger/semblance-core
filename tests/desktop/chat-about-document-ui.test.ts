@@ -47,6 +47,7 @@ describe('AppState document context', () => {
     connectorStates: {},
     importHistory: [],
     importWatchPath: '',
+    chatAttachments: [],
   };
 
   const mockDoc: DocumentContext = {
