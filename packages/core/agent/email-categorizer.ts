@@ -10,6 +10,7 @@
 
 import type { LLMProvider } from '../llm/types.js';
 import type { EmailIndexer, IndexedEmail } from '../knowledge/email-indexer.js';
+import { sanitizeRetrievedContent } from './content-sanitizer.js';
 
 // ─── Category Taxonomy ─────────────────────────────────────────────────────────
 
@@ -218,15 +219,21 @@ export class EmailCategorizer {
    * Build categorization prompt for a single email.
    */
   private buildPrompt(email: IndexedEmail): string {
+    // SECURITY: Sanitize external email fields to prevent prompt injection
+    const fromName = sanitizeRetrievedContent(email.fromName);
+    const from = sanitizeRetrievedContent(email.from);
+    const subject = sanitizeRetrievedContent(email.subject);
+    const snippet = sanitizeRetrievedContent(email.snippet);
+
     return `Categorize this email. Respond with a JSON object containing "categories" (array of applicable categories) and "priority" (high/normal/low).
 
 Categories: actionable, informational, routine, newsletter, automated, personal, commercial, urgent
 
 Email:
-From: ${email.fromName} <${email.from}>
-Subject: ${email.subject}
+From: ${fromName} <${from}>
+Subject: ${subject}
 Date: ${email.receivedAt}
-Snippet: ${email.snippet}
+Snippet: ${snippet}
 
 Respond ONLY with JSON: {"categories": [...], "priority": "..."}`;
   }
@@ -235,8 +242,9 @@ Respond ONLY with JSON: {"categories": [...], "priority": "..."}`;
    * Build categorization prompt for a batch of emails.
    */
   private buildBatchPrompt(emails: IndexedEmail[]): string {
+    // SECURITY: Sanitize external email fields to prevent prompt injection
     const emailList = emails.map((e, i) =>
-      `Email ${i + 1}:\nFrom: ${e.fromName} <${e.from}>\nSubject: ${e.subject}\nDate: ${e.receivedAt}\nSnippet: ${e.snippet}`
+      `Email ${i + 1}:\nFrom: ${sanitizeRetrievedContent(e.fromName)} <${sanitizeRetrievedContent(e.from)}>\nSubject: ${sanitizeRetrievedContent(e.subject)}\nDate: ${e.receivedAt}\nSnippet: ${sanitizeRetrievedContent(e.snippet)}`
     ).join('\n\n');
 
     return `Categorize each email. For each, provide "categories" (array) and "priority" (high/normal/low).
