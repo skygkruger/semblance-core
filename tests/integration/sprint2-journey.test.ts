@@ -23,24 +23,27 @@ describe('Sprint 2 Complete User Journey', () => {
   // ─── Stage 1: Onboarding ──────────────────────────────────────────────────
 
   describe('1. Onboarding', () => {
-    const onboarding = readSource('packages/desktop/src/screens/OnboardingScreen.tsx');
+    const onboarding = readSource('packages/desktop/src/screens/OnboardingFlow.tsx');
 
-    it('user can name their AI', () => {
-      expect(onboarding).toContain('userName');
-      expect(onboarding).toContain('nameInput');
+    it('user can name their AI via NamingMoment and NamingYourAI steps', () => {
+      expect(onboarding).toContain('NamingMoment');
+      expect(onboarding).toContain('NamingYourAI');
+      expect(onboarding).toContain('setUserName');
     });
 
-    it('connects email (mock IMAP)', () => {
-      expect(onboarding).toContain('email');
-      expect(onboarding).toContain('connect');
+    it('connects data sources via DataSourcesStep', () => {
+      expect(onboarding).toContain('DataSourcesStep');
+      expect(onboarding).toContain("'data-sources'");
     });
 
-    it('connects calendar (mock CalDAV)', () => {
-      expect(onboarding).toContain('calendar');
+    it('detects hardware during onboarding', () => {
+      expect(onboarding).toContain('detectHardware');
+      expect(onboarding).toContain('HardwareDetection');
     });
 
-    it('waits for indexing', () => {
-      expect(onboarding).toContain('indexing');
+    it('initializes model downloads and knowledge moment', () => {
+      expect(onboarding).toContain('startModelDownloads');
+      expect(onboarding).toContain('generateKnowledgeMoment');
     });
   });
 
@@ -91,7 +94,7 @@ describe('Sprint 2 Complete User Journey', () => {
   // ─── Stage 4: Autonomy Selection ──────────────────────────────────────────
 
   describe('4. Autonomy Selection', () => {
-    const onboarding = readSource('packages/desktop/src/screens/OnboardingScreen.tsx');
+    const onboarding = readSource('packages/desktop/src/screens/OnboardingFlow.tsx');
     const autonomy = readSource('packages/core/agent/autonomy.ts');
 
     it('Partner is pre-selected in onboarding', () => {
@@ -115,7 +118,8 @@ describe('Sprint 2 Complete User Journey', () => {
     });
 
     it('shows action log entries', () => {
-      expect(activity).toContain('get_action_log');
+      // Phase 5 migrated raw invoke() to typed IPC wrappers
+      expect(activity).toContain('getActionLog');
     });
 
     it('shows action type for each entry', () => {
@@ -127,8 +131,9 @@ describe('Sprint 2 Complete User Journey', () => {
     });
 
     it('shows actions taken with audit detail', () => {
-      expect(activity).toContain('Payload Hash');
-      expect(activity).toContain('Audit Reference');
+      // Phase 7 i18n: audit labels use translation keys
+      expect(activity).toContain('screen.activity.payload_hash');
+      expect(activity).toContain('screen.activity.audit_reference');
     });
   });
 
@@ -250,7 +255,8 @@ describe('Sprint 2 Complete User Journey', () => {
     });
 
     it('Network Monitor screen accessible via sidebar', () => {
-      expect(appTsx).toContain("case 'network'");
+      // Phase 5 migrated to React Router — routes instead of switch/case
+      expect(appTsx).toContain('path="/network"');
       expect(appTsx).toContain('NetworkMonitorScreen');
       expect(monitorScreen).toContain('NetworkMonitorScreen');
     });

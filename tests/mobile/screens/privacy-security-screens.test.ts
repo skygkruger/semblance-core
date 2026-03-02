@@ -51,7 +51,7 @@ describe('Proof of Privacy Screen', () => {
   it('blocks generation for free tier', () => {
     expect(content).toContain('isPremium');
     expect(content).toContain('Premium Feature');
-    expect(content).toContain('Premium required');
+    expect(content).toContain("t('screen.proof_of_privacy.premium_required')");
     expect(content).toContain('buttonDisabled');
   });
 
@@ -85,7 +85,7 @@ describe('Biometric Setup Screen', () => {
 
     // Must support test auth
     expect(content).toContain('onTestAuth');
-    expect(content).toContain('Test Authentication');
+    expect(content).toContain("t('screen.biometric.test_auth')");
   });
 });
 
@@ -115,7 +115,7 @@ describe('Backup Screen', () => {
 
     // Must show restore file info
     expect(content).toContain('restoreFile');
-    expect(content).toContain('Choose Backup File');
+    expect(content).toContain("t('screen.backup.choose_backup_file')");
 
     // Must have restore result handling
     expect(content).toContain('Restore Complete');

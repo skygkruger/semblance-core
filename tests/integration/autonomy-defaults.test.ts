@@ -26,17 +26,17 @@ describe('Autonomy Defaults', () => {
   // ─── Onboarding UI Defaults ─────────────────────────────────────────────────
 
   describe('Onboarding UI defaults', () => {
-    const onboarding = readFileSync(join(ROOT, 'packages/desktop/src/screens/OnboardingScreen.tsx'), 'utf-8');
+    const onboarding = readFileSync(join(ROOT, 'packages/desktop/src/screens/OnboardingFlow.tsx'), 'utf-8');
 
     it('Partner is pre-selected in onboarding', () => {
       expect(onboarding).toContain("useState<AutonomyTier>('partner')");
     });
 
-    it('all three tiers are presented via AutonomySelector', () => {
-      // AutonomySelector component handles rendering all tier options
-      expect(onboarding).toContain('AutonomySelector');
-      expect(onboarding).toContain('autonomyTier');
-      expect(onboarding).toContain('setAutonomyTier');
+    it('all three tiers are presented via AutonomyTierStep', () => {
+      // AutonomyTierStep component (from semblance-ui) handles rendering all tier options
+      expect(onboarding).toContain('AutonomyTierStep');
+      expect(onboarding).toContain('autonomy');
+      expect(onboarding).toContain('setAutonomy');
     });
   });
 

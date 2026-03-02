@@ -21,7 +21,7 @@ import { join } from 'node:path';
 const ROOT = join(import.meta.dirname, '..', '..');
 const STATE_FILE = join(ROOT, 'packages', 'desktop', 'src', 'state', 'AppState.tsx');
 const CHAT_SCREEN = join(ROOT, 'packages', 'desktop', 'src', 'screens', 'ChatScreen.tsx');
-const ONBOARDING_SCREEN = join(ROOT, 'packages', 'desktop', 'src', 'screens', 'OnboardingScreen.tsx');
+const ONBOARDING_SCREEN = join(ROOT, 'packages', 'desktop', 'src', 'screens', 'OnboardingFlow.tsx');
 const SETTINGS_SCREEN = join(ROOT, 'packages', 'desktop', 'src', 'screens', 'SettingsScreen.tsx');
 const APP_FILE = join(ROOT, 'packages', 'desktop', 'src', 'App.tsx');
 const LIB_RS = join(ROOT, 'packages', 'desktop', 'src-tauri', 'src', 'lib.rs');
@@ -131,8 +131,9 @@ describe('Chat Interface: Streaming Pattern', () => {
     expect(chatContent).toContain('semblance://chat-complete');
   });
 
-  it('invokes send_message Tauri command', () => {
-    expect(chatContent).toContain("invoke('send_message'");
+  it('invokes sendMessage typed IPC command', () => {
+    // Phase 5 migrated raw invoke() to typed IPC wrappers
+    expect(chatContent).toContain('sendMessage');
   });
 
   it('appends streaming tokens to last message', () => {
@@ -145,82 +146,78 @@ describe('Chat Interface: Streaming Pattern', () => {
 
   it('has empty state with suggested questions', () => {
     expect(chatContent).toContain('chatMessages.length === 0');
-    expect(chatContent).toContain('What topics are in my files');
+    // Phase 7 i18n: suggestions use translation keys
+    expect(chatContent).toContain('screen.chat.suggestion_topics');
   });
 });
 
 describe('Onboarding Flow', () => {
   const onboardingContent = readFileSync(ONBOARDING_SCREEN, 'utf-8');
 
-  it('has all 11 steps', () => {
-    expect(onboardingContent).toContain('TOTAL_STEPS = 11');
+  it('has 7-step STEP_ORDER sequence', () => {
+    expect(onboardingContent).toContain('STEP_ORDER');
+    expect(onboardingContent).toContain("'splash'");
+    expect(onboardingContent).toContain("'hardware'");
+    expect(onboardingContent).toContain("'data-sources'");
+    expect(onboardingContent).toContain("'autonomy'");
+    expect(onboardingContent).toContain("'naming-moment'");
+    expect(onboardingContent).toContain("'naming-ai'");
+    expect(onboardingContent).toContain("'initialize'");
   });
 
-  it('has Welcome screen (step 0)', () => {
-    expect(onboardingContent).toContain('This is your Semblance');
+  it('has SplashScreen step', () => {
+    expect(onboardingContent).toContain('SplashScreen');
+    expect(onboardingContent).toContain("step === 'splash'");
   });
 
-  it('has Promise screen (step 1)', () => {
-    expect(onboardingContent).toContain('It will learn who you are');
-    expect(onboardingContent).toContain('It will never share what it knows');
+  it('has HardwareDetection step', () => {
+    expect(onboardingContent).toContain('HardwareDetection');
+    expect(onboardingContent).toContain("step === 'hardware'");
   });
 
-  it('has Naming screen (step 2)', () => {
-    expect(onboardingContent).toContain('What would you like to call');
+  it('has DataSourcesStep (connectors)', () => {
+    expect(onboardingContent).toContain('DataSourcesStep');
+    expect(onboardingContent).toContain("step === 'data-sources'");
   });
 
-  it('has Data Connection screen (step 3)', () => {
-    expect(onboardingContent).toContain('to your world');
+  it('has AutonomyTierStep', () => {
+    expect(onboardingContent).toContain('AutonomyTierStep');
+    expect(onboardingContent).toContain("step === 'autonomy'");
   });
 
-  it('has File Selection screen (step 4)', () => {
-    expect(onboardingContent).toContain('Choose folders');
+  it('has NamingMoment step (user name)', () => {
+    expect(onboardingContent).toContain('NamingMoment');
+    expect(onboardingContent).toContain("step === 'naming-moment'");
   });
 
-  it('has Knowledge Moment screen (step 5)', () => {
-    expect(onboardingContent).toContain('exploring your documents');
+  it('has NamingYourAI step (AI name)', () => {
+    expect(onboardingContent).toContain('NamingYourAI');
+    expect(onboardingContent).toContain("step === 'naming-ai'");
   });
 
-  it('has Autonomy screen (step 6)', () => {
-    expect(onboardingContent).toContain('How much should');
-    expect(onboardingContent).toContain('on its own');
+  it('has InitializeStep (model download + knowledge moment)', () => {
+    expect(onboardingContent).toContain('InitializeStep');
+    expect(onboardingContent).toContain("step === 'initialize'");
   });
 
-  it('has Ready screen (step 7)', () => {
-    expect(onboardingContent).toContain('is ready');
+  it('persists user name via IPC command', () => {
+    expect(onboardingContent).toContain('setUserName');
   });
 
-  it('persists user name via Tauri command', () => {
-    expect(onboardingContent).toContain("invoke('set_user_name'");
+  it('persists onboarding completion via IPC command', () => {
+    expect(onboardingContent).toContain('setOnboardingComplete');
   });
 
-  it('persists onboarding completion via Tauri command', () => {
-    expect(onboardingContent).toContain("invoke('set_onboarding_complete'");
+  it('persists autonomy config via IPC command', () => {
+    expect(onboardingContent).toContain('setAutonomyTier');
   });
 
-  it('persists autonomy config via Tauri command', () => {
-    expect(onboardingContent).toContain("invoke('set_autonomy_tier'");
+  it('imports semblance-ui components', () => {
+    expect(onboardingContent).toContain("from '@semblance/ui'");
   });
 
-  it('auto-advances Welcome after 2s', () => {
-    expect(onboardingContent).toContain('setTimeout(advance, 2000)');
-  });
-
-  it('auto-advances Promise after 3s', () => {
-    expect(onboardingContent).toContain('setTimeout(advance, 3000)');
-  });
-
-  it('uses crossfade transitions', () => {
-    expect(onboardingContent).toContain('opacity-100');
-    expect(onboardingContent).toContain('opacity-0');
-  });
-
-  it('shows name in accent color after confirmation', () => {
-    expect(onboardingContent).toContain('text-semblance-accent');
-  });
-
-  it('uses DM Serif Display for headlines', () => {
-    expect(onboardingContent).toContain('font-display');
+  it('uses useState<OnboardingStep> for step management', () => {
+    expect(onboardingContent).toContain("useState<OnboardingStep>('splash')");
   });
 });
 
@@ -229,12 +226,13 @@ describe('Onboarding: Gating', () => {
 
   it('shows onboarding when not complete', () => {
     expect(appContent).toContain('onboardingComplete');
-    expect(appContent).toContain('OnboardingScreen');
+    expect(appContent).toContain('OnboardingFlow');
   });
 
   it('shows main app layout when onboarding is complete', () => {
-    expect(appContent).toContain('Navigation');
-    expect(appContent).toContain('renderScreen');
+    // Phase 5 migrated to React Router + DesktopSidebar
+    expect(appContent).toContain('DesktopSidebar');
+    expect(appContent).toContain('Routes');
   });
 });
 
@@ -242,7 +240,8 @@ describe('Settings Screen', () => {
   const settingsContent = readFileSync(SETTINGS_SCREEN, 'utf-8');
 
   it('allows editing the Semblance name', () => {
-    expect(settingsContent).toContain('set_user_name');
+    // Phase 5 migrated raw invoke() to typed IPC wrappers
+    expect(settingsContent).toContain('setUserName');
     expect(settingsContent).toContain('editingName');
   });
 
@@ -252,12 +251,14 @@ describe('Settings Screen', () => {
 
   it('provides model selection', () => {
     expect(settingsContent).toContain('availableModels');
-    expect(settingsContent).toContain('select_model');
+    // Phase 5 migrated raw invoke() to typed IPC wrappers
+    expect(settingsContent).toContain('selectModel');
   });
 
   it('includes autonomy configuration', () => {
     expect(settingsContent).toContain('AutonomySelector');
-    expect(settingsContent).toContain('set_autonomy_tier');
+    // Phase 5 migrated raw invoke() to typed IPC wrappers
+    expect(settingsContent).toContain('setAutonomyTier');
   });
 
   it('includes theme toggle', () => {
@@ -265,7 +266,8 @@ describe('Settings Screen', () => {
   });
 
   it('shows version information', () => {
-    expect(settingsContent).toContain('v0.1.0');
+    // Phase 7 i18n: version string uses translation key
+    expect(settingsContent).toContain('screen.settings.about_version');
   });
 });
 
@@ -401,16 +403,17 @@ describe('Navigation and Routing', () => {
 });
 
 describe('User Name Display', () => {
-  it('onboarding renders name in Warm Amber', () => {
+  it('onboarding delegates naming to NamingMoment component', () => {
     const content = readFileSync(ONBOARDING_SCREEN, 'utf-8');
-    expect(content).toContain('text-semblance-accent');
-    expect(content).toContain('{name}');
+    expect(content).toContain('NamingMoment');
+    expect(content).toContain('handleNamingMoment');
   });
 
   it('chat shows user name in empty state', () => {
     const content = readFileSync(CHAT_SCREEN, 'utf-8');
-    expect(content).toContain('{name}');
-    expect(content).toContain('text-semblance-accent');
+    // Phase 7 i18n: name interpolated via t() call
+    expect(content).toContain('screen.chat.ask_anything');
+    expect(content).toContain('userName');
   });
 
   it('settings allows editing name', () => {

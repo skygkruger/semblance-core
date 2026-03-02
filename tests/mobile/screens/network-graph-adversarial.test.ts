@@ -14,7 +14,7 @@ describe('Network Screen', () => {
   it('shows discovered peers', () => {
     expect(content).toContain('NetworkPeer');
     expect(content).toContain('peers');
-    expect(content).toContain('Discovered Peers');
+    expect(content).toContain("t('screen.semblance_network.discovered_peers')");
     expect(content).toContain('peerName');
     expect(content).toContain('peerDevice');
     expect(content).toContain('statusDot');
@@ -105,7 +105,7 @@ describe('Adversarial Dashboard Screen', () => {
 
   it('displays manipulation reframes', () => {
     expect(content).toContain('reframe');
-    expect(content).toContain('Reframe:');
+    expect(content).toContain("t('screen.adversarial.reframe')");
     expect(content).toContain('reframeText');
 
     // Reframes are expandable (tap to see)

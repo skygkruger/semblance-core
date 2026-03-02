@@ -14,7 +14,7 @@ export function AutonomyTier({ value, onChange, onContinue }: AutonomyTierProps)
       gap: 24,
       maxWidth: 480,
       width: '100%',
-      animation: 'dissolve 700ms var(--eo) both',
+      animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
     }}>
       <h2 className="naming__headline">
         {t('autonomy.headline')}

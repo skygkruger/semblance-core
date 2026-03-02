@@ -47,7 +47,7 @@ export { AgentInput } from './components/AgentInput/index.js';
 export { DesktopSidebar } from './components/Nav/DesktopSidebar';
 export type { DesktopSidebarProps } from './components/Nav/DesktopSidebar.types';
 export type { NavItem as SidebarNavItem } from './components/Nav/DesktopSidebar.types';
-export { MobileTabBar } from './components/Nav/MobileTabBar.js';
+export { MobileTabBar } from './components/Nav/MobileTabBar';
 export { KnowledgeGraph } from './components/KnowledgeGraph/index.js';
 export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
 export type { PrivacyDashboardProps, NetworkEntry, AuditEntry } from './components/PrivacyDashboard/index.js';

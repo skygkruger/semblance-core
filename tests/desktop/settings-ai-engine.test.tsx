@@ -4,8 +4,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { SettingsScreen } from '@semblance/desktop/screens/SettingsScreen';
 import { invoke, clearInvokeMocks } from '../helpers/mock-tauri';
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
 describe('Settings AI Engine', () => {
   beforeEach(() => {
@@ -19,58 +24,58 @@ describe('Settings AI Engine', () => {
   });
 
   it('renders AI Engine heading', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('AI Engine')).toBeInTheDocument();
   });
 
   it('renders three runtime mode buttons', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('Built-in')).toBeInTheDocument();
     expect(screen.getByText('Ollama')).toBeInTheDocument();
     expect(screen.getByText('Custom')).toBeInTheDocument();
   });
 
   it('defaults to builtin runtime with status message', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText(/Built-in runtime/)).toBeInTheDocument();
   });
 
   it('switching to Ollama mode shows connection status', async () => {
     const user = userEvent.setup();
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     await user.click(screen.getByText('Ollama'));
     expect(screen.getByText(/Ollama not connected/)).toBeInTheDocument();
   });
 
   it('switching to Custom mode shows coming-soon message', async () => {
     const user = userEvent.setup();
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     await user.click(screen.getByText('Custom'));
     expect(screen.getByText(/Custom runtime configuration coming in a future update/)).toBeInTheDocument();
   });
 
   it('renders Runtime label', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('Runtime')).toBeInTheDocument();
   });
 
   it('renders Settings page heading', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
   it('renders Connected Accounts section', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('Connected Accounts')).toBeInTheDocument();
   });
 
   it('renders Autonomy section', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('Autonomy')).toBeInTheDocument();
   });
 
   it('renders Appearance section', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('Appearance')).toBeInTheDocument();
   });
 });

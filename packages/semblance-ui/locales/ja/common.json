@@ -76,6 +76,7 @@
     "have_key": "[JA] Have a license key?",
     "active": "[JA] License active",
     "activated_success": "[JA] License activated successfully",
+    "activate": "[ja] Activate",
     "activating": "[JA] Activating...",
     "activation_failed": "[JA] Activation failed"
   },

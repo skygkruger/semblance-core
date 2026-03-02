@@ -8,6 +8,7 @@ export default defineConfig({
     setupFiles: ['./tests/setup/dom-setup.ts'],
   },
   resolve: {
+    extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.jsx', '.js', '.json'],
     alias: {
       '@semblance/core': resolve(__dirname, 'packages/core'),
       '@semblance/gateway': resolve(__dirname, 'packages/gateway'),
@@ -19,6 +20,9 @@ export default defineConfig({
       '@semblance/mobile': resolve(__dirname, 'packages/mobile/src'),
       'react-native': resolve(__dirname, 'tests/helpers/mock-react-native.ts'),
       '@react-navigation/native-stack': resolve(__dirname, 'tests/helpers/mock-react-navigation.ts'),
+      'react-i18next': resolve(__dirname, 'packages/desktop/node_modules/react-i18next'),
+      'i18next': resolve(__dirname, 'packages/desktop/node_modules/i18next'),
+      'react-router-dom': resolve(__dirname, 'packages/desktop/node_modules/react-router-dom'),
     },
   },
 });

@@ -76,6 +76,7 @@
     "have_key": "[PT] Have a license key?",
     "active": "[PT] License active",
     "activated_success": "[PT] License activated successfully",
+    "activate": "[pt] Activate",
     "activating": "[PT] Activating...",
     "activation_failed": "[PT] Activation failed"
   },

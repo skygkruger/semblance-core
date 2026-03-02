@@ -18,7 +18,6 @@ const LIB_RS = join(ROOT, 'packages', 'desktop', 'src-tauri', 'src', 'lib.rs');
 const TAURI_CONF = join(ROOT, 'packages', 'desktop', 'src-tauri', 'tauri.conf.json');
 const CARGO_TOML = join(ROOT, 'packages', 'desktop', 'src-tauri', 'Cargo.toml');
 const APP_TSX = join(ROOT, 'packages', 'desktop', 'src', 'App.tsx');
-const ONBOARDING_TSX = join(ROOT, 'packages', 'desktop', 'src', 'screens', 'OnboardingScreen.tsx');
 const APP_STATE_TSX = join(ROOT, 'packages', 'desktop', 'src', 'state', 'AppState.tsx');
 const FOUNDING_TOKEN_TS = join(ROOT, 'packages', 'core', 'premium', 'founding-token.ts');
 const PREMIUM_GATE_TS = join(ROOT, 'packages', 'core', 'premium', 'premium-gate.ts');
@@ -29,7 +28,6 @@ const libContent = readFileSync(LIB_RS, 'utf-8');
 const tauriConf = JSON.parse(readFileSync(TAURI_CONF, 'utf-8'));
 const cargoContent = readFileSync(CARGO_TOML, 'utf-8');
 const appContent = readFileSync(APP_TSX, 'utf-8');
-const onboardingContent = readFileSync(ONBOARDING_TSX, 'utf-8');
 const appStateContent = readFileSync(APP_STATE_TSX, 'utf-8');
 const foundingTokenContent = readFileSync(FOUNDING_TOKEN_TS, 'utf-8');
 const premiumGateContent = readFileSync(PREMIUM_GATE_TS, 'utf-8');
@@ -206,8 +204,9 @@ describe('Phase 4b: App.tsx Deep Link Listener', () => {
     expect(appContent).toContain("from '@tauri-apps/api/event'");
   });
 
-  it('App.tsx imports invoke from tauri core', () => {
-    expect(appContent).toContain("from '@tauri-apps/api/core'");
+  it('App.tsx imports listen from tauri events for deep link handling', () => {
+    // Phase 5 migrated raw invoke() to typed IPC wrappers; App.tsx uses listen for events
+    expect(appContent).toContain("from '@tauri-apps/api/event'");
   });
 
   it('App.tsx hydrates license status on startup', () => {
@@ -225,31 +224,36 @@ describe('Phase 4b: App.tsx Deep Link Listener', () => {
   });
 });
 
-describe('Phase 4c: Onboarding Founding Member Moment', () => {
-  it('OnboardingScreen checks state.license.isFoundingMember', () => {
-    expect(onboardingContent).toContain('state.license.isFoundingMember');
+describe('Phase 4c: Founding Member Integration', () => {
+  // Founding member logic moved from OnboardingScreen (deleted) to LicenseContext and App.tsx.
+  // OnboardingFlow delegates to semblance-ui components and does not contain founding member UI.
+  const licenseContextContent = readFileSync(join(ROOT, 'packages', 'desktop', 'src', 'contexts', 'LicenseContext.tsx'), 'utf-8');
+
+  it('LicenseContext tracks isFoundingMember state', () => {
+    expect(licenseContextContent).toContain('isFoundingMember');
   });
 
-  it('OnboardingScreen shows founding member seat number', () => {
-    expect(onboardingContent).toContain('state.license.foundingSeat');
+  it('LicenseContext tracks foundingSeat state', () => {
+    expect(licenseContextContent).toContain('foundingSeat');
   });
 
-  it('OnboardingScreen displays locked founding member copy', () => {
-    expect(onboardingContent).toContain('You were here before anyone else.');
-    expect(onboardingContent).toContain('Full Digital Representative access, permanently.');
-    expect(onboardingContent).toContain('Every capability Semblance builds, yours from day one.');
-    expect(onboardingContent).toContain('Your support makes the zero-cloud promise possible.');
+  it('LicenseContext dispatches SET_LICENSE on activation', () => {
+    expect(licenseContextContent).toContain("type: 'SET_LICENSE'");
   });
 
-  it('OnboardingScreen has manual founding code input fallback', () => {
-    expect(onboardingContent).toContain('Have a founding member code?');
+  it('App.tsx listens for founding-activate and calls activateFoundingToken', () => {
+    expect(appContent).toContain("listen<{ token: string }>('founding-activate'");
+    expect(appContent).toContain('license.activateFoundingToken');
   });
 
-  it('OnboardingScreen calls activate_founding_token for manual entry', () => {
-    expect(onboardingContent).toContain("invoke<ActivationResult>('activate_founding_token'");
+  it('App.tsx passes isFoundingMember and foundingSeat to UI', () => {
+    expect(appContent).toContain('isFoundingMember={license.isFoundingMember}');
+    expect(appContent).toContain('foundingSeat={license.foundingSeat}');
   });
 
-  it('OnboardingScreen dispatches SET_LICENSE on successful activation', () => {
-    expect(onboardingContent).toContain("type: 'SET_LICENSE'");
+  it('SettingsScreen shows FoundingMemberBadge when applicable', () => {
+    const settingsContent = readFileSync(join(ROOT, 'packages', 'desktop', 'src', 'screens', 'SettingsScreen.tsx'), 'utf-8');
+    expect(settingsContent).toContain('FoundingMemberBadge');
+    expect(settingsContent).toContain('license.isFoundingMember');
   });
 });
