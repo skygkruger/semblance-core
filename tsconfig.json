@@ -14,6 +14,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "noUncheckedIndexedAccess": true,
+    "moduleSuffixes": [".web", ""],
     "paths": {
       "@semblance/core": ["./packages/core/index.ts"],
       "@semblance/core/*": ["./packages/core/*"],
@@ -22,7 +23,10 @@
       "@semblance/ui": ["./packages/semblance-ui/index.ts"],
       "@semblance/ui/*": ["./packages/semblance-ui/*"],
       "@semblance/desktop/*": ["./packages/desktop/src/*"],
-      "@semblance/mobile/*": ["./packages/mobile/src/*"]
+      "@semblance/mobile/*": ["./packages/mobile/src/*"],
+      "react-router-dom": ["./packages/desktop/node_modules/react-router-dom"],
+      "i18next": ["./packages/desktop/node_modules/i18next"],
+      "react-i18next": ["./packages/desktop/node_modules/react-i18next"]
     }
   },
   "exclude": [
@@ -33,6 +37,7 @@
     "packages/mobile",
     "infrastructure",
     "**/*.stories.tsx",
+    "**/*.native.tsx",
     "**/.storybook"
   ]
 }

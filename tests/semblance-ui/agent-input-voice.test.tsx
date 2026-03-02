@@ -15,7 +15,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AgentInput } from '../../packages/semblance-ui/components/AgentInput/AgentInput';
-import type { AgentInputProps } from '../../packages/semblance-ui/components/AgentInput/AgentInput';
+import type { AgentInputProps } from '../../packages/semblance-ui/components/AgentInput/AgentInput.types';
 
 function renderInput(overrides?: Partial<AgentInputProps>) {
   const defaults: AgentInputProps = {
