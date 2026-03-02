@@ -71,7 +71,7 @@ describe('AlterEgoBatchReview', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
 
     // All 3 items should be approved, none rejected
-    const [approvedIds, rejectedIds] = onConfirm.mock.calls[0];
+    const [approvedIds, rejectedIds] = onConfirm.mock.calls[0] as [string[], string[]];
     expect(approvedIds).toHaveLength(3);
     expect(rejectedIds).toHaveLength(0);
     expect(approvedIds).toContain('item-1');
