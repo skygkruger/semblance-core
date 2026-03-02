@@ -27,6 +27,7 @@ function makeProfile(totalRamMb = 16384): HardwareProfile {
     availableRamMb: totalRamMb * 0.6,
     os: 'macos',
     gpu: null,
+    voiceCapable: totalRamMb >= 8192,
   };
 }
 
