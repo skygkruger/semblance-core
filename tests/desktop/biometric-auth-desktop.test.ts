@@ -140,7 +140,7 @@ describe('createDesktopBiometricAuth', () => {
     expect(result.success).toBe(true);
     // Should not have called authenticate plugin
     const authenticateCalls = (invoke as ReturnType<typeof vi.fn>).mock.calls
-      .filter(([cmd]: [string]) => cmd === 'plugin:biometric|authenticate');
+      .filter((args) => args[0] === 'plugin:biometric|authenticate');
     expect(authenticateCalls).toHaveLength(0);
   });
 

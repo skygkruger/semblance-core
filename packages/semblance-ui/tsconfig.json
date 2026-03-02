@@ -15,7 +15,12 @@
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "moduleSuffixes": [".web", ""]
+    "moduleSuffixes": [".web", ""],
+    "baseUrl": ".",
+    "paths": {
+      "@semblance/core": ["../core/index.ts"],
+      "@semblance/core/*": ["../core/*"]
+    }
   },
   "include": ["global.d.ts", "tokens/**/*.ts", "components/**/*.ts", "components/**/*.tsx", "pages/**/*.ts", "pages/**/*.tsx", "hooks/**/*.ts", "stories/**/*.tsx", "index.ts"],
   "exclude": ["node_modules", "dist", "**/*.stories.tsx", "**/*.native.tsx"]
