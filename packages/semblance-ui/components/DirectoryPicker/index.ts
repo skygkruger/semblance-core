@@ -1,2 +1,2 @@
-export { DirectoryPicker } from './DirectoryPicker.js';
-export type { DirectoryEntry } from './DirectoryPicker.js';
+export { DirectoryPicker } from './DirectoryPicker';
+export type { DirectoryEntry, DirectoryPickerProps } from './DirectoryPicker.types';
