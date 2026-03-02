@@ -89,7 +89,7 @@ describe('ConversationIndexer — indexTurn()', () => {
     await indexer.indexTurn(baseTurn);
 
     expect(knowledge.indexDocument).toHaveBeenCalledTimes(1);
-    const call = knowledge.indexDocument.mock.calls[0][0];
+    const call = knowledge.indexDocument.mock.calls[0]![0];
     expect(call.source).toBe('conversation');
     expect(call.sourcePath).toBe('conversation://conv-1/turn-1');
     expect(call.content).toContain('weather in Portland');
@@ -99,7 +99,7 @@ describe('ConversationIndexer — indexTurn()', () => {
     insertConversation('conv-1', null, 'Test');
     await indexer.indexTurn(baseTurn);
 
-    const call = knowledge.indexDocument.mock.calls[0][0];
+    const call = knowledge.indexDocument.mock.calls[0]![0];
     expect(call.metadata.conversationId).toBe('conv-1');
     expect(call.metadata.turnId).toBe('turn-1');
     expect(call.metadata.role).toBe('assistant');
@@ -119,7 +119,7 @@ describe('ConversationIndexer — indexTurn()', () => {
     const longContent = 'x'.repeat(3000);
     await indexer.indexTurn({ ...baseTurn, content: longContent });
 
-    const call = knowledge.indexDocument.mock.calls[0][0];
+    const call = knowledge.indexDocument.mock.calls[0]![0];
     expect(call.content.length).toBe(2000);
   });
 
@@ -139,7 +139,7 @@ describe('ConversationIndexer — indexTurn()', () => {
     insertConversation('conv-1', 'My Custom Title', null);
     await indexer.indexTurn(baseTurn);
 
-    const call = knowledge.indexDocument.mock.calls[0][0];
+    const call = knowledge.indexDocument.mock.calls[0]![0];
     expect(call.title).toContain('My Custom Title');
   });
 
@@ -147,7 +147,7 @@ describe('ConversationIndexer — indexTurn()', () => {
     insertConversation('conv-1', null, 'Auto Generated Title');
     await indexer.indexTurn(baseTurn);
 
-    const call = knowledge.indexDocument.mock.calls[0][0];
+    const call = knowledge.indexDocument.mock.calls[0]![0];
     expect(call.title).toContain('Auto Generated Title');
   });
 });
@@ -186,9 +186,9 @@ describe('ConversationIndexer — searchConversations()', () => {
 
     const results = await indexer.searchConversations('portland', 5);
     expect(results).toHaveLength(1);
-    expect(results[0].conversationTitle).toBe('Portland Notes');
-    expect(results[0].score).toBe(0.95);
-    expect(results[0].turnId).toBe('turn-1');
+    expect(results[0]!.conversationTitle).toBe('Portland Notes');
+    expect(results[0]!.score).toBe(0.95);
+    expect(results[0]!.turnId).toBe('turn-1');
   });
 
   it('respects limit parameter', async () => {

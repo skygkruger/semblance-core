@@ -131,7 +131,7 @@ describe('ConversationManager — list()', () => {
     const list = manager.list();
     expect(list).toHaveLength(3);
     // Most recently updated should be first
-    expect(list[0].autoTitle).toContain('Third');
+    expect(list[0]!.autoTitle).toContain('Third');
   });
 
   it('respects limit option', () => {
@@ -156,7 +156,7 @@ describe('ConversationManager — list()', () => {
     manager.pin(a.id);
     const list = manager.list({ pinnedOnly: true });
     expect(list).toHaveLength(1);
-    expect(list[0].id).toBe(a.id);
+    expect(list[0]!.id).toBe(a.id);
   });
 
   it('search filters by title/autoTitle/preview', () => {
@@ -164,7 +164,7 @@ describe('ConversationManager — list()', () => {
     manager.create('seattle traffic');
     const list = manager.list({ search: 'portland' });
     expect(list).toHaveLength(1);
-    expect(list[0].autoTitle).toContain('portland');
+    expect(list[0]!.autoTitle).toContain('portland');
   });
 
   it('pinned conversations appear first in default list', () => {
@@ -172,8 +172,8 @@ describe('ConversationManager — list()', () => {
     const b = manager.create('Second');
     manager.pin(a.id);
     const list = manager.list();
-    expect(list[0].id).toBe(a.id);
-    expect(list[0].pinned).toBe(true);
+    expect(list[0]!.id).toBe(a.id);
+    expect(list[0]!.pinned).toBe(true);
   });
 });
 
@@ -201,8 +201,8 @@ describe('ConversationManager — get()', () => {
 
     const conv = manager.get(created.id);
     expect(conv!.turns).toHaveLength(1);
-    expect(conv!.turns[0].role).toBe('user');
-    expect(conv!.turns[0].content).toBe('Hello');
+    expect(conv!.turns[0]!.role).toBe('user');
+    expect(conv!.turns[0]!.content).toBe('Hello');
   });
 });
 
@@ -226,8 +226,8 @@ describe('ConversationManager — getTurns()', () => {
 
     const turns = manager.getTurns(conv.id);
     expect(turns).toHaveLength(2);
-    expect(turns[0].content).toBe('First');
-    expect(turns[1].content).toBe('Second');
+    expect(turns[0]!.content).toBe('First');
+    expect(turns[1]!.content).toBe('Second');
   });
 
   it('respects limit and offset', () => {
@@ -239,7 +239,7 @@ describe('ConversationManager — getTurns()', () => {
     }
     const turns = manager.getTurns(conv.id, 2, 1);
     expect(turns).toHaveLength(2);
-    expect(turns[0].content).toBe('Turn 1');
+    expect(turns[0]!.content).toBe('Turn 1');
   });
 });
 
@@ -456,7 +456,7 @@ describe('ConversationManager — clearAll()', () => {
     expect(cleared).toBe(1);
     const remaining = manager.list();
     expect(remaining).toHaveLength(1);
-    expect(remaining[0].id).toBe(pinned.id);
+    expect(remaining[0]!.id).toBe(pinned.id);
   });
 });
 

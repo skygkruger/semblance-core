@@ -48,7 +48,7 @@ describe('AppState — SET_CONVERSATIONS', () => {
     const convs = [mockConversation, { ...mockConversation, id: 'conv-2' }];
     const state = appReducer(baseState, { type: 'SET_CONVERSATIONS', conversations: convs });
     expect(state.conversations).toHaveLength(2);
-    expect(state.conversations[0].id).toBe('conv-1');
+    expect(state.conversations[0]!.id).toBe('conv-1');
   });
 
   it('replaces existing conversations list', () => {
@@ -101,8 +101,8 @@ describe('AppState — REPLACE_CHAT_MESSAGES', () => {
     ];
     const replaced = appReducer(withMessages, { type: 'REPLACE_CHAT_MESSAGES', messages: newMessages });
     expect(replaced.chatMessages).toHaveLength(2);
-    expect(replaced.chatMessages[0].id).toBe('msg-a');
-    expect(replaced.chatMessages[1].id).toBe('msg-b');
+    expect(replaced.chatMessages[0]!.id).toBe('msg-a');
+    expect(replaced.chatMessages[1]!.id).toBe('msg-b');
   });
 
   it('clears messages when given empty array', () => {
