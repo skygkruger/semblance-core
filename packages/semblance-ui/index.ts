@@ -75,11 +75,13 @@ export { FeatureGate } from './components/FeatureGate/index.js';
 export { UpgradeScreen } from './components/UpgradeScreen/index.js';
 export { LicenseActivation } from './components/LicenseActivation/index.js';
 export { FoundingMemberBadge } from './components/FoundingMemberBadge/index.js';
+export { UpgradeEmailCapture } from './components/UpgradeEmailCapture/index.js';
+export type { UpgradeEmailCaptureProps } from './components/UpgradeEmailCapture/index.js';
 
 // Hooks
 export { useFeatureAuth, FeatureAuthContext } from './hooks/useFeatureAuth.js';
 export type { SessionAuthStateProvider, FeatureAuthContextValue } from './hooks/useFeatureAuth.js';
 
 // Onboarding Pages
-export { SplashScreen, HardwareDetection, DataSourcesStep, AutonomyTier as AutonomyTierStep, NamingMoment, NamingYourAI, InitializeStep } from './pages/Onboarding/index.js';
-export type { SplashScreenProps, HardwareDetectionProps, HardwareInfo, DataSourcesStepProps, AutonomyTierProps, NamingMomentProps, NamingYourAIProps, InitializeStepProps, ModelDownload, KnowledgeMomentData } from './pages/Onboarding/index.js';
+export { SplashScreen, HardwareDetection, DataSourcesStep, AutonomyTier as AutonomyTierStep, NamingMoment, NamingYourAI, InitializeStep, TermsAcceptanceStep } from './pages/Onboarding/index.js';
+export type { SplashScreenProps, HardwareDetectionProps, HardwareInfo, DataSourcesStepProps, AutonomyTierProps, NamingMomentProps, NamingYourAIProps, InitializeStepProps, ModelDownload, KnowledgeMomentData, TermsAcceptanceStepProps } from './pages/Onboarding/index.js';

@@ -12,6 +12,7 @@ import {
   NamingMoment,
   NamingYourAI,
   InitializeStep,
+  TermsAcceptanceStep,
 } from '@semblance/ui';
 import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier } from '@semblance/ui';
 
@@ -22,7 +23,8 @@ type OnboardingStep =
   | 'autonomy'
   | 'naming-moment'
   | 'naming-ai'
-  | 'initialize';
+  | 'initialize'
+  | 'terms';
 
 const STEP_ORDER: OnboardingStep[] = [
   'splash',
@@ -32,6 +34,7 @@ const STEP_ORDER: OnboardingStep[] = [
   'naming-moment',
   'naming-ai',
   'initialize',
+  'terms',
 ];
 
 interface OnboardingFlowProps {
@@ -203,8 +206,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           downloads={downloads}
           knowledgeMoment={knowledgeMoment}
           loading={momentLoading}
-          onComplete={handleComplete}
+          onComplete={goNext}
         />
+      )}
+
+      {step === 'terms' && (
+        <TermsAcceptanceStep onAccept={handleComplete} />
       )}
 
       {/* Step indicator dots */}

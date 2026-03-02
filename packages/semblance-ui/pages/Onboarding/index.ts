@@ -12,3 +12,5 @@ export { NamingYourAI } from './NamingYourAI';
 export type { NamingYourAIProps } from './NamingYourAI.types';
 export { InitializeStep } from './InitializeStep';
 export type { InitializeStepProps, ModelDownload, KnowledgeMomentData } from './InitializeStep.types';
+export { TermsAcceptanceStep } from './TermsAcceptanceStep';
+export type { TermsAcceptanceStepProps } from './TermsAcceptanceStep.types';
