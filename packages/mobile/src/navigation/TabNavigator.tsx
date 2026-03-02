@@ -9,6 +9,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFeatureAuth } from '@semblance/ui';
 import { colors, typography, spacing } from '../theme/tokens.js';
 import type {
   TabParamList,
@@ -123,6 +124,26 @@ function KnowledgeTabStack() {
 
 // Wrapper to provide default props for PrivacyDashboardScreen
 function PrivacyDashboardScreenWrapper() {
+  const { requireAuth } = useFeatureAuth();
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    requireAuth('privacy_dashboard').then((result) => {
+      if (!cancelled && result.success) setAuthorized(true);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!authorized) {
+    return (
+      <View style={emptyStateStyles.container}>
+        <ActivityIndicator size="large" color="#6ECFA3" />
+      </View>
+    );
+  }
+
   // TODO: Sprint 5 — wire to real privacy data from Core
   return (
     <PrivacyDashboardScreen
