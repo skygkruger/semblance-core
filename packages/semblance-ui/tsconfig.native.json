@@ -4,8 +4,10 @@
     "jsx": "react-jsx"
   },
   "include": [
+    "types/**/*.d.ts",
     "tokens/**/*.ts",
     "components/**/*.native.tsx",
+    "components/**/*.native.ts",
     "components/**/*.types.ts",
     "components/**/*.logic.ts",
     "pages/**/*.native.tsx",

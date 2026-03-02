@@ -41,6 +41,7 @@ export { LogoMark } from './components/LogoMark/index.js';
 export { DotMatrix } from './components/DotMatrix/index.js';
 export { ApprovalCard } from './components/ApprovalCard/index.js';
 export { BriefingCard } from './components/BriefingCard/index.js';
+export type { BriefingCardProps, BriefingItem, BriefingItemType } from './components/BriefingCard/index.js';
 export { ActionLogItem } from './components/ActionLogItem/index.js';
 export { AgentInput } from './components/AgentInput/index.js';
 export { DesktopSidebar } from './components/Nav/DesktopSidebar';

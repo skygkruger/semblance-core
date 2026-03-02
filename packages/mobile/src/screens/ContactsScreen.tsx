@@ -12,7 +12,6 @@ import {
   type ListRenderItemInfo,
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/types';
 
 interface ContactSummary {
   id: string;
@@ -32,8 +31,11 @@ interface BirthdayInfo {
   isToday: boolean;
 }
 
+// Contact navigation params — will be added to SettingsStackParamList in Sprint 5
+type ContactsParamList = { ContactDetail: { contactId: string } };
+
 interface Props {
-  navigation: NativeStackNavigationProp<RootStackParamList>;
+  navigation: NativeStackNavigationProp<ContactsParamList>;
 }
 
 export function getInitials(name: string): string {

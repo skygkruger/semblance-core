@@ -12,7 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from './theme/tokens.js';
-import { OnboardingScreen, type OnboardingStep } from './screens/OnboardingScreen.js';
+import { OnboardingFlow } from './screens/OnboardingFlow.js';
 import { MainTabNavigator } from './navigation/TabNavigator.js';
 import './i18n/config.js';
 
@@ -25,18 +25,9 @@ const RootStack = createNativeStackNavigator<RootStackParams>();
 
 function RootNavigator() {
   const [onboardingComplete, setOnboardingComplete] = useState(false);
-  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('naming');
 
   if (!onboardingComplete) {
-    return (
-      <OnboardingScreen
-        step={onboardingStep}
-        onNameSubmit={() => setOnboardingStep('hardware')}
-        onConsent={() => setOnboardingStep('download-consent')}
-        onSkip={() => setOnboardingStep('knowledge-moment')}
-        onComplete={() => setOnboardingComplete(true)}
-      />
-    );
+    return <OnboardingFlow onComplete={() => setOnboardingComplete(true)} />;
   }
 
   return (
