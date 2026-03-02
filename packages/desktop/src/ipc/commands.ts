@@ -53,6 +53,9 @@ import type {
   ConversationSearchResult,
   ConversationSettings,
   SendMessageResult,
+  AlterEgoSettingsData,
+  AlterEgoReceiptData,
+  AlterEgoTrustData,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -471,4 +474,34 @@ export function setIntentOnboarding(responses: {
 
 export function startIndexing(directories: string[]): Promise<void> {
   return invoke<void>('start_indexing', { directories });
+}
+
+// ─── Alter Ego Guardrails ──────────────────────────────────────────────────
+
+export function getAlterEgoSettings(): Promise<AlterEgoSettingsData> {
+  return invoke<AlterEgoSettingsData>('alter_ego_get_settings');
+}
+
+export function updateAlterEgoSettings(settings: Partial<AlterEgoSettingsData>): Promise<AlterEgoSettingsData> {
+  return invoke<AlterEgoSettingsData>('alter_ego_update_settings', { settings });
+}
+
+export function getAlterEgoReceipts(weekGroup?: string): Promise<AlterEgoReceiptData[]> {
+  return invoke<AlterEgoReceiptData[]>('alter_ego_get_receipts', { weekGroup: weekGroup ?? null });
+}
+
+export function approveAlterEgoBatch(ids: string[]): Promise<{ approved: number }> {
+  return invoke<{ approved: number }>('alter_ego_approve_batch', { ids });
+}
+
+export function rejectAlterEgoBatch(ids: string[]): Promise<{ rejected: number }> {
+  return invoke<{ rejected: number }>('alter_ego_reject_batch', { ids });
+}
+
+export function sendAlterEgoDraft(actionId: string, email: string, action: string): Promise<{ sent: boolean; trust: AlterEgoTrustData }> {
+  return invoke<{ sent: boolean; trust: AlterEgoTrustData }>('alter_ego_send_draft', { actionId, email, action });
+}
+
+export function undoAlterEgoReceipt(receiptId: string): Promise<{ undone: boolean }> {
+  return invoke<{ undone: boolean }>('alter_ego_undo_receipt', { receiptId });
 }

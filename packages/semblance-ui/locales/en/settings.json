@@ -7,6 +7,7 @@
       "notifications": "Notifications",
       "autonomy": "Autonomy",
       "privacy": "Privacy",
+      "alter_ego": "Alter Ego",
       "account": "Account"
     },
     "row_values": {
@@ -140,6 +141,24 @@
     "btn_cancel": "Cancel",
     "reset_confirm_body": "This will permanently delete all data and reset Semblance to factory state.",
     "btn_reset_everything": "Reset everything"
+  },
+  "alter_ego": {
+    "title": "Alter Ego",
+    "section_financial": "Financial Thresholds",
+    "label_dollar_threshold": "Always confirm financial actions above",
+    "dollar_threshold_explanation": "Actions exceeding this amount will require your explicit approval before Semblance proceeds.",
+    "section_categories": "Confirmation Categories",
+    "categories_explanation": "Disable confirmation for categories you fully trust Semblance to handle without asking.",
+    "categories": {
+      "email": "Email",
+      "message": "Messaging",
+      "calendar": "Calendar",
+      "file": "File Operations",
+      "financial_routine": "Routine Financial",
+      "irreversible": "Irreversible Actions"
+    },
+    "warning_no_confirmation": "You're taking full responsibility for these actions. Semblance will act without asking.",
+    "hardcoded_note": "First-time action types and significant financial actions always require confirmation and cannot be disabled."
   },
   "account": {
     "title": "Account",

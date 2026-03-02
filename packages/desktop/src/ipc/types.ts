@@ -529,3 +529,42 @@ export interface LicenseAutoActivatedPayload {
   tier: string;
   expiresAt?: string;
 }
+
+// ─── Alter Ego Guardrails ──────────────────────────────────────────────────
+
+export interface AlterEgoSettingsData {
+  dollarThreshold: number;
+  confirmationDisabledCategories: string[];
+}
+
+export interface AlterEgoReceiptData {
+  id: string;
+  actionType: string;
+  summary: string;
+  reasoning: string;
+  status: 'executed' | 'undone';
+  undoAvailable: boolean;
+  undoExpiresAt: string | null;
+  weekGroup: string;
+  createdAt: string;
+  executedAt: string;
+}
+
+export interface AlterEgoBatchItemData {
+  id: string;
+  action: string;
+  payload: string;
+  reasoning: string;
+  domain: string;
+  tier: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface AlterEgoTrustData {
+  contactEmail: string;
+  scope: string;
+  successfulSends: number;
+  lastSendAt: string | null;
+  trusted: boolean;
+}

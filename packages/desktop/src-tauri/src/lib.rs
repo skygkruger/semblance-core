@@ -1554,6 +1554,67 @@ async fn set_intent_onboarding(
     })).await
 }
 
+// ─── Alter Ego Guardrails ──────────────────────────────────────────────────
+
+#[tauri::command]
+async fn alter_ego_get_settings(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("alterEgo:getSettings", Value::Null).await
+}
+
+#[tauri::command]
+async fn alter_ego_update_settings(
+    state: tauri::State<'_, AppBridge>,
+    settings: Value,
+) -> Result<Value, String> {
+    state.bridge.call("alterEgo:updateSettings", settings).await
+}
+
+#[tauri::command]
+async fn alter_ego_get_receipts(
+    state: tauri::State<'_, AppBridge>,
+    week_group: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("alterEgo:getReceipts", serde_json::json!({ "weekGroup": week_group })).await
+}
+
+#[tauri::command]
+async fn alter_ego_approve_batch(
+    state: tauri::State<'_, AppBridge>,
+    ids: Vec<String>,
+) -> Result<Value, String> {
+    state.bridge.call("alterEgo:approveBatch", serde_json::json!({ "ids": ids })).await
+}
+
+#[tauri::command]
+async fn alter_ego_reject_batch(
+    state: tauri::State<'_, AppBridge>,
+    ids: Vec<String>,
+) -> Result<Value, String> {
+    state.bridge.call("alterEgo:rejectBatch", serde_json::json!({ "ids": ids })).await
+}
+
+#[tauri::command]
+async fn alter_ego_send_draft(
+    state: tauri::State<'_, AppBridge>,
+    action_id: String,
+    email: String,
+    action: String,
+) -> Result<Value, String> {
+    state.bridge.call("alterEgo:sendDraft", serde_json::json!({
+        "actionId": action_id,
+        "email": email,
+        "action": action,
+    })).await
+}
+
+#[tauri::command]
+async fn alter_ego_undo_receipt(
+    state: tauri::State<'_, AppBridge>,
+    receipt_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("alterEgo:undoReceipt", serde_json::json!({ "receiptId": receipt_id })).await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1790,6 +1851,13 @@ pub fn run() {
             dismiss_observation,
             check_action_intent,
             set_intent_onboarding,
+            alter_ego_get_settings,
+            alter_ego_update_settings,
+            alter_ego_get_receipts,
+            alter_ego_approve_batch,
+            alter_ego_reject_batch,
+            alter_ego_send_draft,
+            alter_ego_undo_receipt,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

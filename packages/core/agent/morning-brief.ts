@@ -17,6 +17,7 @@ import type { WeatherConditions, HourlyForecast } from '../platform/weather-type
 import type { IntentManager } from './intent-manager.js';
 import type { IntentDriftAnalyzerConfig } from './intent-drift-analyzer.js';
 import { IntentDriftAnalyzer } from './intent-drift-analyzer.js';
+import type { AlterEgoStore } from './alter-ego-store.js';
 import { nanoid } from 'nanoid';
 import { sanitizeRetrievedContent, INJECTION_CANARY } from './content-sanitizer.js';
 
@@ -33,7 +34,7 @@ export interface MorningBrief {
 }
 
 export interface BriefSection {
-  type: 'meetings' | 'follow_ups' | 'reminders' | 'weather' | 'financial' | 'insights' | 'intent_alignment';
+  type: 'meetings' | 'follow_ups' | 'reminders' | 'weather' | 'financial' | 'insights' | 'intent_alignment' | 'alter_ego_summary';
   title: string;
   items: BriefItem[];
   priority: number; // lower = higher priority
@@ -83,6 +84,7 @@ export interface MorningBriefDeps {
   proactiveEngine?: ProactiveEngine;
   semanticSearch?: SemanticSearchLike;
   intentManager?: IntentManager;
+  alterEgoStore?: AlterEgoStore;
   llm?: LLMProvider;
   model?: string;
 }
@@ -106,6 +108,7 @@ const CREATE_TABLES = `
 const SECTION_PRIORITIES: Record<BriefSection['type'], number> = {
   meetings: 1,
   reminders: 2,
+  alter_ego_summary: 2.5,
   follow_ups: 3,
   intent_alignment: 4,
   weather: 5,
@@ -126,6 +129,7 @@ export class MorningBriefGenerator {
   private proactiveEngine?: ProactiveEngine;
   private semanticSearch?: SemanticSearchLike;
   private intentManager?: IntentManager;
+  private alterEgoStore?: AlterEgoStore;
   private llm?: LLMProvider;
   private model?: string;
 
@@ -140,6 +144,7 @@ export class MorningBriefGenerator {
     this.proactiveEngine = deps.proactiveEngine;
     this.semanticSearch = deps.semanticSearch;
     this.intentManager = deps.intentManager;
+    this.alterEgoStore = deps.alterEgoStore;
     this.llm = deps.llm;
     this.model = deps.model;
     this.db.exec(CREATE_TABLES);
@@ -168,6 +173,9 @@ export class MorningBriefGenerator {
 
     const remindersSection = this.gatherReminders(date);
     if (remindersSection.items.length > 0) sections.push(remindersSection);
+
+    const alterEgoSection = this.gatherAlterEgoSummary(date);
+    if (alterEgoSection.items.length > 0) sections.push(alterEgoSection);
 
     const weatherSection = await this.gatherWeather();
     if (weatherSection.items.length > 0) sections.push(weatherSection);
@@ -250,6 +258,75 @@ export class MorningBriefGenerator {
   }
 
   // ─── Section Gatherers ──────────────────────────────────────────────────
+
+  /**
+   * Gather Alter Ego summary — Monday only.
+   * Shows last week's receipt count and top action summaries.
+   */
+  gatherAlterEgoSummary(date: Date): BriefSection {
+    const items: BriefItem[] = [];
+
+    // Only include on Mondays
+    if (date.getUTCDay() !== 1 || !this.alterEgoStore) {
+      return { type: 'alter_ego_summary', title: 'Alter Ego Summary', items, priority: SECTION_PRIORITIES.alter_ego_summary };
+    }
+
+    try {
+      // Get last week's ISO week group
+      const lastWeekDate = new Date(date.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const lastWeekGroup = this.alterEgoStore.getWeekGroup(lastWeekDate);
+      const receipts = this.alterEgoStore.getReceipts(lastWeekGroup);
+
+      if (receipts.length === 0) {
+        return { type: 'alter_ego_summary', title: 'Alter Ego Summary', items, priority: SECTION_PRIORITIES.alter_ego_summary };
+      }
+
+      const executedCount = receipts.filter(r => r.status === 'executed').length;
+      const undoneCount = receipts.filter(r => r.status === 'undone').length;
+
+      // Main summary item
+      const summaryParts = [`Last week, your Alter Ego handled ${receipts.length} thing${receipts.length !== 1 ? 's' : ''} on your behalf.`];
+      if (undoneCount > 0) {
+        summaryParts.push(`${undoneCount} ${undoneCount === 1 ? 'was' : 'were'} undone.`);
+      }
+
+      items.push({
+        id: `alter-ego-summary-${lastWeekGroup}`,
+        text: summaryParts.join(' '),
+        actionable: false,
+        source: 'alter_ego',
+      });
+
+      // Top action summaries (up to 3)
+      const topReceipts = receipts.filter(r => r.status === 'executed').slice(0, 3);
+      for (const receipt of topReceipts) {
+        items.push({
+          id: `alter-ego-item-${receipt.id}`,
+          text: receipt.summary,
+          actionable: false,
+          source: 'alter_ego',
+        });
+      }
+
+      // Comfort check
+      items.push({
+        id: `alter-ego-comfort-${lastWeekGroup}`,
+        text: 'Still comfortable with this level of autonomy? You can adjust it anytime in Settings.',
+        actionable: true,
+        suggestedAction: 'Review autonomy settings',
+        source: 'alter_ego',
+      });
+    } catch {
+      // Alter ego store may not have data
+    }
+
+    return {
+      type: 'alter_ego_summary',
+      title: 'Alter Ego Summary',
+      items,
+      priority: SECTION_PRIORITIES.alter_ego_summary,
+    };
+  }
 
   async gatherMeetings(date: Date): Promise<BriefSection> {
     const items: BriefItem[] = [];
@@ -628,6 +705,11 @@ ${INJECTION_CANARY}`;
           break;
         case 'intent_alignment':
           parts.push(`${section.items.length} alignment observation${section.items.length !== 1 ? 's' : ''}`);
+          break;
+        case 'alter_ego_summary':
+          if (section.items.length > 0 && section.items[0]) {
+            parts.push(section.items[0].text);
+          }
           break;
       }
     }

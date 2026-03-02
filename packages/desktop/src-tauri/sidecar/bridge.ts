@@ -78,6 +78,10 @@ import { ConversationIndexer } from '../../../core/agent/conversation-indexer.js
 // Intent layer imports
 import { IntentManager } from '../../../core/agent/intent-manager.js';
 
+// Alter Ego guardrail imports
+import { AlterEgoStore } from '../../../core/agent/alter-ego-store.js';
+import { AlterEgoGuardrails } from '../../../core/agent/alter-ego-guardrails.js';
+
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
 function emit(event: string, data: unknown): void {
@@ -170,6 +174,10 @@ let conversationIndexer: ConversationIndexer | null = null;
 
 // Intent layer state
 let intentManager: IntentManager | null = null;
+
+// Alter Ego guardrail state
+let alterEgoStore: AlterEgoStore | null = null;
+let alterEgoGuardrails: AlterEgoGuardrails | null = null;
 
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
@@ -286,6 +294,29 @@ async function handleInitialize(): Promise<unknown> {
     core.agent.setIntentManager(intentManager);
   }
   console.error('[sidecar] IntentManager initialized');
+
+  // Initialize Alter Ego guardrails
+  alterEgoStore = new AlterEgoStore(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
+  alterEgoGuardrails = new AlterEgoGuardrails(alterEgoStore, contactStore);
+  // Wire into orchestrator
+  if (core.agent.setAlterEgoGuardrails) {
+    core.agent.setAlterEgoGuardrails(alterEgoGuardrails, alterEgoStore);
+  }
+  // Batch expiry cleanup — reject stale pending items on launch + every 15 minutes
+  function cleanupStaleBatchItems(): void {
+    if (!prefsDb) return;
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const stale = prefsDb.prepare(
+      `UPDATE pending_actions SET status = 'rejected'
+       WHERE status = 'pending_approval' AND tier = 'alter_ego' AND created_at < ?`
+    ).run(oneHourAgo);
+    if ((stale as { changes: number }).changes > 0) {
+      console.error(`[AlterEgo] Auto-rejected ${(stale as { changes: number }).changes} stale batch items`);
+    }
+  }
+  cleanupStaleBatchItems();
+  setInterval(cleanupStaleBatchItems, 15 * 60 * 1000);
+  console.error('[sidecar] AlterEgoGuardrails initialized');
 
   // Initialize credential store in Gateway's database
   const gatewayDataDir = join(homedir(), '.semblance', 'gateway');
@@ -2499,6 +2530,108 @@ async function handleRequest(req: Request): Promise<void> {
         if (onb.hardLimit) await intentManager.addHardLimit(onb.hardLimit, 'onboarding');
         if (onb.personalValue) await intentManager.addPersonalValue(onb.personalValue, 'onboarding');
         respond(id, { success: true });
+        break;
+      }
+
+      // ─── Alter Ego Guardrails ──────────────────────────────────────────────
+
+      case 'alterEgo:getSettings':
+        if (!alterEgoStore) throw new Error('AlterEgoStore not initialized');
+        result = alterEgoStore.getSettings();
+        respond(id, result);
+        break;
+
+      case 'alterEgo:updateSettings':
+        if (!alterEgoStore) throw new Error('AlterEgoStore not initialized');
+        alterEgoStore.updateSettings(params as Partial<{ dollarThreshold: number; confirmationDisabledCategories: string[] }>);
+        result = alterEgoStore.getSettings();
+        respond(id, result);
+        break;
+
+      case 'alterEgo:getReceipts':
+        if (!alterEgoStore) throw new Error('AlterEgoStore not initialized');
+        result = alterEgoStore.getReceipts((params as { weekGroup?: string }).weekGroup);
+        respond(id, result);
+        break;
+
+      case 'alterEgo:approveBatch': {
+        if (!alterEgoStore) throw new Error('AlterEgoStore not initialized');
+        if (!prefsDb) throw new Error('Database not initialized');
+        const { ids: approveIds } = params as { ids: string[] };
+        const now = new Date().toISOString();
+        for (const actionId of approveIds) {
+          const row = prefsDb.prepare(
+            'SELECT action FROM pending_actions WHERE id = ? AND status = ?'
+          ).get(actionId, 'pending_approval') as { action: string } | undefined;
+          prefsDb.prepare(
+            "UPDATE pending_actions SET status = 'approved', executed_at = ? WHERE id = ? AND status = 'pending_approval'"
+          ).run(now, actionId);
+          // Acknowledge novel action type after approval
+          if (row) {
+            alterEgoStore.acknowledgeAnomaly(row.action);
+          }
+        }
+        result = { approved: approveIds.length };
+        respond(id, result);
+        break;
+      }
+
+      case 'alterEgo:rejectBatch': {
+        if (!prefsDb) throw new Error('Database not initialized');
+        const { ids: rejectIds } = params as { ids: string[] };
+        const rejectNow = new Date().toISOString();
+        for (const actionId of rejectIds) {
+          prefsDb.prepare(
+            "UPDATE pending_actions SET status = 'rejected', executed_at = ? WHERE id = ? AND status = 'pending_approval'"
+          ).run(rejectNow, actionId);
+        }
+        result = { rejected: rejectIds.length };
+        respond(id, result);
+        break;
+      }
+
+      case 'alterEgo:sendDraft': {
+        if (!alterEgoStore) throw new Error('AlterEgoStore not initialized');
+        if (!prefsDb) throw new Error('Database not initialized');
+        const { actionId: draftId, email: draftEmail, action: draftAction } = params as {
+          actionId: string;
+          email: string;
+          action: string;
+        };
+        const draftNow = new Date().toISOString();
+        prefsDb.prepare(
+          "UPDATE pending_actions SET status = 'approved', executed_at = ? WHERE id = ? AND status = 'pending_approval'"
+        ).run(draftNow, draftId);
+        alterEgoStore.incrementTrust(draftEmail, draftAction);
+        result = { sent: true, trust: alterEgoStore.getTrust(draftEmail, draftAction) };
+        respond(id, result);
+        break;
+      }
+
+      case 'alterEgo:undoReceipt': {
+        if (!alterEgoStore) throw new Error('AlterEgoStore not initialized');
+        if (!prefsDb) throw new Error('Database not initialized');
+        const { receiptId } = params as { receiptId: string };
+        // Check undo window
+        const receipt = alterEgoStore.getReceipts().find(r => r.id === receiptId);
+        if (!receipt) {
+          respondError(id, 'Receipt not found');
+          break;
+        }
+        if (!receipt.undoAvailable || !receipt.undoExpiresAt) {
+          respondError(id, 'Undo not available');
+          break;
+        }
+        if (new Date(receipt.undoExpiresAt) < new Date()) {
+          respondError(id, 'Undo window expired');
+          break;
+        }
+        alterEgoStore.markUndone(receiptId);
+        prefsDb.prepare(
+          "UPDATE pending_actions SET status = 'undone' WHERE id = ?"
+        ).run(receiptId);
+        result = { undone: true };
+        respond(id, result);
         break;
       }
 

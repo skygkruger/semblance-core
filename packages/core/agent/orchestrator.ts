@@ -32,6 +32,9 @@ import type { ExtensionTool, ToolHandler } from '../extensions/types.js';
 import { BoundaryEnforcer, type EscalationBoundary } from './escalation-boundaries.js';
 import { sanitizeRetrievedContent, wrapInDataBoundary, INJECTION_CANARY } from './content-sanitizer.js';
 import type { IntentManager } from './intent-manager.js';
+import type { AlterEgoGuardrails } from './alter-ego-guardrails.js';
+import type { AlterEgoStore } from './alter-ego-store.js';
+import { ACTION_RISK_MAP } from './autonomy.js';
 
 // --- Conversation Storage ---
 
@@ -407,6 +410,7 @@ export interface Orchestrator {
   registerTools(tools: ExtensionTool[]): void;
   /** Set the intent manager for values/limits context (optional) */
   setIntentManager?(manager: IntentManager): void;
+  setAlterEgoGuardrails?(guardrails: AlterEgoGuardrails, store: AlterEgoStore): void;
 }
 
 export interface OrchestratorResponse {
@@ -437,6 +441,8 @@ export class OrchestratorImpl implements Orchestrator {
   private voiceModeActive = false;
   private boundaryEnforcer: BoundaryEnforcer;
   private intentManager: IntentManager | null;
+  private alterEgoGuardrails: AlterEgoGuardrails | null;
+  private alterEgoStore: AlterEgoStore | null;
   // Extension support
   private extensionToolHandlers: Map<string, ToolHandler> = new Map();
   private allTools: ToolDefinition[] = [...BASE_TOOLS];
@@ -457,6 +463,8 @@ export class OrchestratorImpl implements Orchestrator {
     messageDrafter?: MessageDrafter;
     voiceModeActive?: boolean;
     intentManager?: IntentManager;
+    alterEgoGuardrails?: AlterEgoGuardrails;
+    alterEgoStore?: AlterEgoStore;
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -473,6 +481,8 @@ export class OrchestratorImpl implements Orchestrator {
     this.voiceModeActive = config.voiceModeActive ?? false;
     this.boundaryEnforcer = new BoundaryEnforcer(config.db);
     this.intentManager = config.intentManager ?? null;
+    this.alterEgoGuardrails = config.alterEgoGuardrails ?? null;
+    this.alterEgoStore = config.alterEgoStore ?? null;
     this.db.exec(CREATE_TABLES);
   }
 
@@ -700,6 +710,11 @@ export class OrchestratorImpl implements Orchestrator {
 
   setIntentManager(manager: IntentManager): void {
     this.intentManager = manager;
+  }
+
+  setAlterEgoGuardrails(guardrails: AlterEgoGuardrails, store: AlterEgoStore): void {
+    this.alterEgoGuardrails = guardrails;
+    this.alterEgoStore = store;
   }
 
   // ─── In-Chat Check-In (Phase 2d) ───────────────────────────────────────
@@ -1165,6 +1180,47 @@ export class OrchestratorImpl implements Orchestrator {
         createdAt: new Date().toISOString(),
       };
 
+      // ALTER EGO GUARDRAIL EVALUATION
+      // Only runs for alter_ego tier when autonomy would auto_approve.
+      // BoundaryEnforcer already caught high-stakes items above.
+      if (decision === 'auto_approve' && tier === 'alter_ego' && this.alterEgoGuardrails) {
+        const guardrailResult = this.alterEgoGuardrails.evaluateAction({
+          action: actionType,
+          payload: tc.arguments,
+          risk: ACTION_RISK_MAP[actionType],
+        });
+
+        if (guardrailResult.decision === 'BATCH_PENDING') {
+          agentAction.status = 'pending_approval';
+          agentAction.reasoning = guardrailResult.reason;
+          this.db.prepare(
+            `INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?)`
+          ).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload),
+                agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt);
+          actions.push(agentAction);
+          continue;
+        }
+
+        if (guardrailResult.decision === 'DRAFT_FIRST') {
+          agentAction.status = 'pending_approval';
+          agentAction.reasoning = guardrailResult.reason;
+          this.db.prepare(
+            `INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?)`
+          ).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload),
+                agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt);
+          executedResults.push({
+            tool: tc.name,
+            result: { draft: true, actionId: agentAction.id, draftPayload: tc.arguments,
+                      contactEmail: guardrailResult.contactEmail, reason: guardrailResult.reason },
+          });
+          actions.push(agentAction);
+          continue;
+        }
+        // PROCEED: fall through to auto_approve execution below
+      }
+
       if (decision === 'auto_approve') {
         // Execute immediately
         try {
@@ -1173,6 +1229,25 @@ export class OrchestratorImpl implements Orchestrator {
           agentAction.executedAt = new Date().toISOString();
           agentAction.response = response;
           executedResults.push({ tool: tc.name, result: response.data });
+
+          // Log Alter Ego receipt for transparency
+          if (tier === 'alter_ego' && this.alterEgoStore && agentAction.status === 'executed') {
+            const receipt = {
+              id: agentAction.id,
+              actionType: agentAction.action as import('../types/ipc.js').ActionType,
+              summary: this.summarizeAction(agentAction.action, agentAction.payload),
+              reasoning: agentAction.reasoning,
+              status: 'executed' as const,
+              undoAvailable: true,
+              undoExpiresAt: new Date(Date.now() + 30_000).toISOString(),
+              weekGroup: this.alterEgoStore.getWeekGroup(new Date()),
+              createdAt: agentAction.createdAt,
+              executedAt: agentAction.executedAt!,
+            };
+            this.alterEgoStore.logReceipt(receipt);
+            // Acknowledge anomaly so future same-type actions proceed
+            this.alterEgoStore.acknowledgeAnomaly(agentAction.action);
+          }
         } catch {
           agentAction.status = 'failed';
         }
@@ -1196,6 +1271,81 @@ export class OrchestratorImpl implements Orchestrator {
     }
 
     return { actions, executedResults };
+  }
+
+  /**
+   * Generate a human-readable summary for an action receipt.
+   * Deterministic — no LLM. Per-action-type templates.
+   */
+  private summarizeAction(actionType: string, payload: Record<string, unknown>): string {
+    const truncate = (s: string, max: number) =>
+      s.length > max ? s.slice(0, max) + '...' : s;
+
+    const toName = (email: unknown): string => {
+      if (typeof email !== 'string') return 'unknown';
+      const atIdx = email.indexOf('@');
+      return atIdx > 0 ? email.slice(0, atIdx) : email;
+    };
+
+    const firstTo = (p: Record<string, unknown>): string => {
+      const to = p['to'];
+      if (Array.isArray(to) && to.length > 0) return toName(to[0]);
+      if (typeof to === 'string') return toName(to);
+      return 'unknown';
+    };
+
+    const formatDate = (iso: unknown): string => {
+      if (typeof iso !== 'string') return '';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } catch { return ''; }
+    };
+
+    switch (actionType) {
+      case 'email.send':
+        return `Sent email to ${firstTo(payload)}: ${truncate(String(payload['subject'] ?? ''), 50)}`;
+      case 'email.draft':
+        return `Drafted email to ${firstTo(payload)}: ${truncate(String(payload['subject'] ?? ''), 50)}`;
+      case 'email.fetch':
+        return `Fetched emails from ${payload['folder'] ?? 'inbox'}`;
+      case 'email.archive':
+        return `Archived ${Array.isArray(payload['messageIds']) ? payload['messageIds'].length : 1} email(s)`;
+      case 'email.move':
+        return `Moved email(s) to ${payload['toFolder'] ?? 'folder'}`;
+      case 'email.markRead':
+        return `Marked ${Array.isArray(payload['messageIds']) ? payload['messageIds'].length : 1} email(s) as ${payload['read'] ? 'read' : 'unread'}`;
+      case 'calendar.create':
+        return `Created event: ${truncate(String(payload['title'] ?? ''), 50)} on ${formatDate(payload['startTime'])}`;
+      case 'calendar.update':
+        return `Updated event: ${truncate(String(payload['title'] ?? payload['eventId'] ?? ''), 50)}`;
+      case 'calendar.delete':
+        return `Deleted event: ${truncate(String(payload['title'] ?? payload['eventId'] ?? ''), 50)}`;
+      case 'messaging.send':
+        return `Sent message to ${firstTo(payload)}: ${truncate(String(payload['body'] ?? ''), 40)}`;
+      case 'messaging.draft':
+        return `Drafted message for ${payload['recipientName'] ?? 'contact'}`;
+      case 'finance.fetch_transactions':
+        return `Fetched transactions from ${payload['accountId'] ?? 'account'}`;
+      case 'finance.plaid_disconnect':
+        return `Disconnected financial institution`;
+      case 'health.fetch':
+        return `Fetched ${payload['dataType'] ?? 'health'} data`;
+      case 'service.api_call':
+        return `Called ${payload['service'] ?? 'service'}: ${payload['endpoint'] ?? ''}`;
+      case 'web.search':
+        return `Searched web: ${truncate(String(payload['query'] ?? ''), 40)}`;
+      case 'web.fetch':
+        return `Fetched URL: ${truncate(String(payload['url'] ?? ''), 50)}`;
+      case 'reminder.create':
+        return `Created reminder: ${truncate(String(payload['text'] ?? ''), 50)}`;
+      case 'reminder.delete':
+        return `Deleted reminder`;
+      default:
+        // Fallback: action type + first meaningful field value
+        const firstVal = Object.values(payload).find(v => typeof v === 'string' && v.length > 0);
+        return `${actionType}${firstVal ? ': ' + truncate(String(firstVal), 50) : ''}`;
+    }
   }
 
   /**
