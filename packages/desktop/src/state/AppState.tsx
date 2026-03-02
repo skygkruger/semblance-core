@@ -117,6 +117,23 @@ export interface AppState {
     importedAt: string;
   }>;
   importWatchPath: string;
+  activeConversationId: string | null;
+  conversations: ConversationSummaryState[];
+  historyPanelOpen: boolean;
+  conversationSettings: { autoExpiryDays: number | null };
+}
+
+export interface ConversationSummaryState {
+  id: string;
+  title: string | null;
+  autoTitle: string | null;
+  createdAt: string;
+  updatedAt: string;
+  pinned: boolean;
+  pinnedAt: string | null;
+  turnCount: number;
+  lastMessagePreview: string | null;
+  expiresAt: string | null;
 }
 
 export interface DocumentContext {
@@ -191,7 +208,13 @@ export type AppAction =
   | { type: 'SET_CONNECTOR_STATE'; connectorId: string; state: AppState['connectorStates'][string] }
   | { type: 'SET_CONNECTOR_STATES'; states: AppState['connectorStates'] }
   | { type: 'ADD_IMPORT_HISTORY'; entry: AppState['importHistory'][number] }
-  | { type: 'SET_IMPORT_WATCH_PATH'; path: string };
+  | { type: 'SET_IMPORT_WATCH_PATH'; path: string }
+  | { type: 'SET_ACTIVE_CONVERSATION'; id: string | null }
+  | { type: 'SET_CONVERSATIONS'; conversations: ConversationSummaryState[] }
+  | { type: 'TOGGLE_HISTORY_PANEL' }
+  | { type: 'SET_HISTORY_PANEL'; open: boolean }
+  | { type: 'REPLACE_CHAT_MESSAGES'; messages: ChatMessage[] }
+  | { type: 'SET_CONVERSATION_SETTINGS'; settings: AppState['conversationSettings'] };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -300,6 +323,10 @@ export const initialState: AppState = {
   connectorStates: {},
   importHistory: [],
   importWatchPath: '',
+  activeConversationId: null,
+  conversations: [],
+  historyPanelOpen: false,
+  conversationSettings: { autoExpiryDays: null },
 };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
@@ -413,6 +440,18 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, importHistory: [action.entry, ...state.importHistory] };
     case 'SET_IMPORT_WATCH_PATH':
       return { ...state, importWatchPath: action.path };
+    case 'SET_ACTIVE_CONVERSATION':
+      return { ...state, activeConversationId: action.id };
+    case 'SET_CONVERSATIONS':
+      return { ...state, conversations: action.conversations };
+    case 'TOGGLE_HISTORY_PANEL':
+      return { ...state, historyPanelOpen: !state.historyPanelOpen };
+    case 'SET_HISTORY_PANEL':
+      return { ...state, historyPanelOpen: action.open };
+    case 'REPLACE_CHAT_MESSAGES':
+      return { ...state, chatMessages: action.messages };
+    case 'SET_CONVERSATION_SETTINGS':
+      return { ...state, conversationSettings: action.settings };
     default:
       return state;
   }

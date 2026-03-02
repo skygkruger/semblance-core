@@ -1,6 +1,6 @@
 import { useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChatBubble, AgentInput, StatusIndicator, DocumentPanel, ArtifactPanel } from '@semblance/ui';
+import { ChatBubble, AgentInput, StatusIndicator, DocumentPanel, ArtifactPanel, ConversationHistoryPanel } from '@semblance/ui';
 import type { ArtifactItem } from '@semblance/ui';
 import { parseArtifacts } from '@semblance/core/agent/artifact-parser';
 import { useAppState, useAppDispatch } from '../state/AppState';
@@ -15,10 +15,18 @@ import {
   documentPickFiles,
   documentAddFile,
   documentRemoveFile,
+  listConversations,
+  createConversation,
+  switchConversation,
+  deleteConversation,
+  renameConversation,
+  pinConversation,
+  unpinConversation,
+  searchConversations,
 } from '../ipc/commands';
 import { validateAttachment, mimeFromExtension } from '@semblance/core/agent/attachments';
 import { createMockVoiceAdapter } from '@semblance/core/platform/desktop-voice';
-import type { DocumentContext } from '../state/AppState';
+import type { DocumentContext, ChatMessage } from '../state/AppState';
 
 export function ChatScreen() {
   const { t } = useTranslation();
@@ -28,6 +36,8 @@ export function ChatScreen() {
   const containerRef = useRef<HTMLDivElement>(null);
   const name = state.userName || 'Semblance';
   const [isDragging, setIsDragging] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Right panel slot — only one panel open at a time (documents OR artifact)
   type PanelSlot = 'none' | 'documents' | 'artifact';
@@ -39,6 +49,151 @@ export function ChatScreen() {
   // TODO: Replace with real Whisper.cpp adapter in device testing pass
   const voiceAdapter = useMemo(() => createMockVoiceAdapter({ sttReady: true }), []);
   const voice = useVoiceInput(voiceAdapter);
+
+  // ─── Conversation Management ─────────────────────────────────────────────
+
+  // Load conversation list on mount
+  useEffect(() => {
+    listConversations({ limit: 50 }).then((convs) => {
+      dispatch({ type: 'SET_CONVERSATIONS', conversations: convs });
+      // If no active conversation, create one or use the most recent
+      if (!state.activeConversationId && convs.length > 0) {
+        const first = convs[0]!;
+        dispatch({ type: 'SET_ACTIVE_CONVERSATION', id: first.id });
+        // Load turns for the most recent conversation
+        switchConversation(first.id).then((result) => {
+          const messages: ChatMessage[] = result.turns.map(turn => ({
+            id: turn.id,
+            role: turn.role,
+            content: turn.content,
+            timestamp: new Date(turn.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }));
+          dispatch({ type: 'REPLACE_CHAT_MESSAGES', messages });
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refresh conversation list helper
+  const refreshConversationList = useCallback(() => {
+    listConversations({ limit: 50 }).then((convs) => {
+      dispatch({ type: 'SET_CONVERSATIONS', conversations: convs });
+    }).catch(() => {});
+  }, [dispatch]);
+
+  const handleNewConversation = useCallback(async () => {
+    try {
+      const newConv = await createConversation();
+      dispatch({ type: 'SET_ACTIVE_CONVERSATION', id: newConv.id });
+      dispatch({ type: 'REPLACE_CHAT_MESSAGES', messages: [] });
+      dispatch({ type: 'CLEAR_ATTACHMENTS' });
+      dispatch({ type: 'CLEAR_DOCUMENT_CONTEXT' });
+      refreshConversationList();
+    } catch (err) {
+      console.error('Failed to create conversation:', err);
+    }
+  }, [dispatch, refreshConversationList]);
+
+  const handleSwitchConversation = useCallback(async (id: string) => {
+    if (id === state.activeConversationId) return;
+    try {
+      const result = await switchConversation(id);
+      dispatch({ type: 'SET_ACTIVE_CONVERSATION', id: result.conversationId });
+      const messages: ChatMessage[] = result.turns.map(turn => ({
+        id: turn.id,
+        role: turn.role,
+        content: turn.content,
+        timestamp: new Date(turn.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }));
+      dispatch({ type: 'REPLACE_CHAT_MESSAGES', messages });
+      dispatch({ type: 'CLEAR_ATTACHMENTS' });
+      dispatch({ type: 'CLEAR_DOCUMENT_CONTEXT' });
+    } catch (err) {
+      console.error('Failed to switch conversation:', err);
+    }
+  }, [state.activeConversationId, dispatch]);
+
+  const handleDeleteConversation = useCallback(async (id: string) => {
+    try {
+      await deleteConversation(id);
+      if (id === state.activeConversationId) {
+        // Switch to another conversation or create new
+        dispatch({ type: 'SET_ACTIVE_CONVERSATION', id: null });
+        dispatch({ type: 'REPLACE_CHAT_MESSAGES', messages: [] });
+      }
+      refreshConversationList();
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+    }
+  }, [state.activeConversationId, dispatch, refreshConversationList]);
+
+  const handleRenameConversation = useCallback(async (id: string, title: string) => {
+    try {
+      await renameConversation(id, title);
+      refreshConversationList();
+    } catch (err) {
+      console.error('Failed to rename conversation:', err);
+    }
+  }, [refreshConversationList]);
+
+  const handlePinConversation = useCallback(async (id: string) => {
+    try {
+      await pinConversation(id);
+      refreshConversationList();
+    } catch (err) {
+      console.error('Failed to pin conversation:', err);
+    }
+  }, [refreshConversationList]);
+
+  const handleUnpinConversation = useCallback(async (id: string) => {
+    try {
+      await unpinConversation(id);
+      refreshConversationList();
+    } catch (err) {
+      console.error('Failed to unpin conversation:', err);
+    }
+  }, [refreshConversationList]);
+
+  // Debounced search for conversations
+  const handleHistorySearchChange = useCallback((query: string) => {
+    setHistorySearch(query);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(async () => {
+      if (query.trim()) {
+        try {
+          const results = await searchConversations(query, 20);
+          // Map search results to ConversationSummaryState format
+          // Search results may be ConversationSearchResult[] or ConversationSummary[]
+          // We need to refresh the list with filtered results
+          const convs = await listConversations({ search: query, limit: 50 });
+          dispatch({ type: 'SET_CONVERSATIONS', conversations: convs });
+        } catch {
+          // Fallback: keep current list
+        }
+      } else {
+        refreshConversationList();
+      }
+    }, 300);
+  }, [dispatch, refreshConversationList]);
+
+  // Keyboard shortcuts: Cmd/Ctrl+H for history, Cmd/Ctrl+N for new conversation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === 'h') {
+        e.preventDefault();
+        dispatch({ type: 'TOGGLE_HISTORY_PANEL' });
+      }
+      if (mod && e.key === 'n') {
+        e.preventDefault();
+        handleNewConversation();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [dispatch, handleNewConversation]);
+
+  // ─── Existing handlers ───────────────────────────────────────────────────
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -257,10 +412,11 @@ export function ChatScreen() {
     dispatch({ type: 'APPEND_TO_LAST_MESSAGE', content: token });
   }, [dispatch]));
 
-  // Listen for chat completion
+  // Listen for chat completion — refresh conversation list to show updated preview
   useTauriEvent<{ id: string; content: string }>('semblance://chat-complete', useCallback(() => {
     dispatch({ type: 'SET_IS_RESPONDING', value: false });
-  }, [dispatch]));
+    refreshConversationList();
+  }, [dispatch, refreshConversationList]));
 
   const handleSend = useCallback(async (message: string) => {
     // Add user message
@@ -288,7 +444,11 @@ export function ChatScreen() {
     dispatch({ type: 'SET_IS_RESPONDING', value: true });
 
     try {
-      await sendMessage(message);
+      const result = await sendMessage(message, state.activeConversationId ?? undefined);
+      // If we got a new conversation ID back (first message), update state
+      if (result.conversationId && result.conversationId !== state.activeConversationId) {
+        dispatch({ type: 'SET_ACTIVE_CONVERSATION', id: result.conversationId });
+      }
     } catch (err) {
       dispatch({ type: 'SET_IS_RESPONDING', value: false });
       dispatch({
@@ -296,7 +456,7 @@ export function ChatScreen() {
         content: t('screen.chat.error_response', { error: err instanceof Error ? err.message : t('screen.chat.error_response_default') }),
       });
     }
-  }, [dispatch]);
+  }, [dispatch, state.activeConversationId]);
 
   // Build file list for DocumentPanel from chatAttachments
   const documentPanelFiles = state.chatAttachments
@@ -310,8 +470,36 @@ export function ChatScreen() {
       addedToKnowledge: a.addedToKnowledge,
     }));
 
+  // Map ConversationSummaryState to ConversationHistoryItem
+  const historyItems = state.conversations.map(c => ({
+    id: c.id,
+    title: c.title,
+    autoTitle: c.autoTitle,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+    pinned: c.pinned,
+    turnCount: c.turnCount,
+    lastMessagePreview: c.lastMessagePreview,
+  }));
+
   return (
     <div className="flex h-full">
+      {/* Left panel — Conversation History */}
+      <ConversationHistoryPanel
+        items={historyItems}
+        activeId={state.activeConversationId}
+        open={state.historyPanelOpen}
+        searchQuery={historySearch}
+        onSearchChange={handleHistorySearchChange}
+        onSelect={handleSwitchConversation}
+        onNew={handleNewConversation}
+        onPin={handlePinConversation}
+        onUnpin={handleUnpinConversation}
+        onRename={handleRenameConversation}
+        onDelete={handleDeleteConversation}
+        onClose={() => dispatch({ type: 'SET_HISTORY_PANEL', open: false })}
+      />
+
       {/* Main chat column */}
       <div
         ref={containerRef}
@@ -329,6 +517,19 @@ export function ChatScreen() {
 
         {/* Connection status bar */}
         <div className="flex items-center gap-4 px-6 py-2 border-b border-semblance-border dark:border-semblance-border-dark">
+          {/* History toggle button */}
+          <button
+            type="button"
+            onClick={() => dispatch({ type: 'TOGGLE_HISTORY_PANEL' })}
+            className="p-1 rounded hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
+            title="History (Ctrl+H)"
+            data-testid="toggle-history-panel"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-text-tertiary">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
+
           <div className="flex items-center gap-2">
             <StatusIndicator status={state.ollamaStatus === 'connected' ? 'success' : 'attention'} />
             <span className="text-xs text-semblance-text-tertiary">
@@ -350,12 +551,24 @@ export function ChatScreen() {
             <button
               type="button"
               onClick={activePanel === 'documents' ? closePanel : openDocumentPanel}
-              className="ml-auto text-xs text-semblance-text-tertiary hover:text-semblance-text-primary transition-colors"
+              className="text-xs text-semblance-text-tertiary hover:text-semblance-text-primary transition-colors"
               data-testid="toggle-document-panel"
             >
               {t('screen.chat.documents_count', { count: state.chatAttachments.length })}
             </button>
           )}
+          {/* New conversation compose button */}
+          <button
+            type="button"
+            onClick={handleNewConversation}
+            className="ml-auto p-1 rounded hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
+            title="New conversation (Ctrl+N)"
+            data-testid="new-conversation-btn"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-text-tertiary">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
         </div>
 
         {/* Document context banner */}

@@ -406,17 +406,15 @@ struct AppBridge {
 async fn send_message(
     state: tauri::State<'_, AppBridge>,
     message: String,
-) -> Result<String, String> {
-    let result = state
+    conversation_id: Option<String>,
+) -> Result<Value, String> {
+    state
         .bridge
-        .call_fire("send_message", serde_json::json!({"message": message}))
-        .await?;
-
-    // The sidecar returns the response ID as a string
-    result
-        .as_str()
-        .map(|s| s.to_string())
-        .ok_or_else(|| "Invalid response ID from sidecar".to_string())
+        .call_fire("send_message", serde_json::json!({
+            "message": message,
+            "conversation_id": conversation_id,
+        }))
+        .await
 }
 
 /// Check Ollama connection status and list available models.
@@ -1369,6 +1367,104 @@ async fn get_license_status(state: tauri::State<'_, AppBridge>) -> Result<Value,
         .await
 }
 
+// ─── Conversation Management Commands ────────────────────────────────────────
+
+#[tauri::command]
+async fn list_conversations(
+    state: tauri::State<'_, AppBridge>,
+    limit: Option<u32>,
+    offset: Option<u32>,
+    pinned_only: Option<bool>,
+    search: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("list_conversations", serde_json::json!({
+        "limit": limit, "offset": offset, "pinnedOnly": pinned_only, "search": search,
+    })).await
+}
+
+#[tauri::command]
+async fn get_conversation(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+) -> Result<Value, String> {
+    state.bridge.call("get_conversation", serde_json::json!({ "id": id })).await
+}
+
+#[tauri::command]
+async fn create_conversation(
+    state: tauri::State<'_, AppBridge>,
+    first_message: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("create_conversation", serde_json::json!({ "first_message": first_message })).await
+}
+
+#[tauri::command]
+async fn delete_conversation(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+) -> Result<Value, String> {
+    state.bridge.call("delete_conversation", serde_json::json!({ "id": id })).await
+}
+
+#[tauri::command]
+async fn rename_conversation(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+    title: String,
+) -> Result<Value, String> {
+    state.bridge.call("rename_conversation", serde_json::json!({ "id": id, "title": title })).await
+}
+
+#[tauri::command]
+async fn pin_conversation(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+) -> Result<Value, String> {
+    state.bridge.call("pin_conversation", serde_json::json!({ "id": id })).await
+}
+
+#[tauri::command]
+async fn unpin_conversation(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+) -> Result<Value, String> {
+    state.bridge.call("unpin_conversation", serde_json::json!({ "id": id })).await
+}
+
+#[tauri::command]
+async fn switch_conversation(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+    limit: Option<u32>,
+) -> Result<Value, String> {
+    state.bridge.call("switch_conversation", serde_json::json!({ "id": id, "limit": limit })).await
+}
+
+#[tauri::command]
+async fn search_conversations(
+    state: tauri::State<'_, AppBridge>,
+    query: String,
+    limit: Option<u32>,
+) -> Result<Value, String> {
+    state.bridge.call("search_conversations", serde_json::json!({ "query": query, "limit": limit })).await
+}
+
+#[tauri::command]
+async fn clear_all_conversations(
+    state: tauri::State<'_, AppBridge>,
+    preserve_pinned: Option<bool>,
+) -> Result<Value, String> {
+    state.bridge.call("clear_all_conversations", serde_json::json!({ "preserve_pinned": preserve_pinned })).await
+}
+
+#[tauri::command]
+async fn set_conversation_auto_expiry(
+    state: tauri::State<'_, AppBridge>,
+    days: Option<u32>,
+) -> Result<Value, String> {
+    state.bridge.call("set_conversation_auto_expiry", serde_json::json!({ "days": days })).await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1581,6 +1677,18 @@ pub fn run() {
             activate_founding_token,
             activate_license_key,
             get_license_status,
+            // Conversation Management
+            list_conversations,
+            get_conversation,
+            create_conversation,
+            delete_conversation,
+            rename_conversation,
+            pin_conversation,
+            unpin_conversation,
+            switch_conversation,
+            search_conversations,
+            clear_all_conversations,
+            set_conversation_auto_expiry,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

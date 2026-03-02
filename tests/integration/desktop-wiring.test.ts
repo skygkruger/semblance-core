@@ -111,9 +111,9 @@ describe('Sidecar Bridge: Chat Streaming', () => {
     expect(bridgeContent).toContain('storeTurn');
   });
 
-  it('returns response ID immediately for streaming', () => {
-    // send_message should respond with the ID before streaming starts
-    expect(bridgeContent).toContain('respond(id, responseId)');
+  it('returns response ID and conversationId for streaming', () => {
+    // send_message should respond with responseId + conversationId before streaming starts
+    expect(bridgeContent).toContain('respond(id, { responseId, conversationId: convId })');
   });
 });
 

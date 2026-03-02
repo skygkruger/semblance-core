@@ -32,6 +32,10 @@ const mockState = {
   indexingStatus: { state: 'idle', filesScanned: 0, filesTotal: 0 },
   documentContext: null,
   chatAttachments: [],
+  activeConversationId: null,
+  conversations: [],
+  historyPanelOpen: false,
+  conversationSettings: { autoExpiryDays: null },
 };
 
 vi.mock('@semblance/desktop/state/AppState', () => ({
