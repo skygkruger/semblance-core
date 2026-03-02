@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Card, DirectoryPicker, ProgressBar } from '@semblance/ui';
+import { startIndexing } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 
 export function FilesScreen() {
@@ -14,7 +14,7 @@ export function FilesScreen() {
       const selected = await open({ directory: true, multiple: false });
       if (selected && typeof selected === 'string') {
         dispatch({ type: 'ADD_DIRECTORY', path: selected });
-        await invoke('start_indexing', { directories: [...state.indexedDirectories, selected] });
+        await startIndexing([...state.indexedDirectories, selected]);
       }
     } catch {
       // User cancelled or dialog unavailable
@@ -27,7 +27,7 @@ export function FilesScreen() {
 
   const handleRescan = useCallback(async (path: string) => {
     try {
-      await invoke('start_indexing', { directories: [path] });
+      await startIndexing([path]);
     } catch {
       // Handle error
     }

@@ -1,4 +1,14 @@
+export { SplashScreen } from './SplashScreen';
+export type { SplashScreenProps } from './SplashScreen.types';
+export { HardwareDetection } from './HardwareDetection';
+export type { HardwareDetectionProps, HardwareInfo } from './HardwareDetection.types';
 export { DataSourcesStep } from './DataSourcesStep';
 export type { DataSourcesStepProps, DataSource } from './DataSourcesStep.types';
+export { AutonomyTier } from './AutonomyTier';
+export type { AutonomyTierProps } from './AutonomyTier.types';
+export { NamingMoment } from './NamingMoment';
+export type { NamingMomentProps } from './NamingMoment.types';
 export { NamingYourAI } from './NamingYourAI';
 export type { NamingYourAIProps } from './NamingYourAI.types';
+export { InitializeStep } from './InitializeStep';
+export type { InitializeStepProps, ModelDownload, KnowledgeMomentData } from './InitializeStep.types';

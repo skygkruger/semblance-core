@@ -9,8 +9,8 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { ConnectorCard } from '@semblance/ui';
+import { ipcSend } from '../ipc/commands';
 import type { ConnectorCardStatus } from '@semblance/ui';
 import { Card, Button } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
@@ -305,7 +305,7 @@ export function ConnectionsScreen() {
 
   const handleConnect = useCallback(async (connectorId: string) => {
     try {
-      await invoke('ipc_send', {
+      await ipcSend({
         action: 'connector.auth',
         payload: { connectorId },
       });
@@ -316,7 +316,7 @@ export function ConnectionsScreen() {
 
   const handleDisconnect = useCallback(async (connectorId: string) => {
     try {
-      await invoke('ipc_send', {
+      await ipcSend({
         action: 'connector.disconnect',
         payload: { connectorId },
       });
@@ -327,7 +327,7 @@ export function ConnectionsScreen() {
 
   const handleSync = useCallback(async (connectorId: string) => {
     try {
-      await invoke('ipc_send', {
+      await ipcSend({
         action: 'connector.sync',
         payload: { connectorId },
       });
@@ -338,7 +338,7 @@ export function ConnectionsScreen() {
 
   const handleImportFile = useCallback(async (filePath: string) => {
     try {
-      await invoke('ipc_send', {
+      await ipcSend({
         action: 'import.run',
         payload: { sourcePath: filePath, sourceType: 'notes' },
       });

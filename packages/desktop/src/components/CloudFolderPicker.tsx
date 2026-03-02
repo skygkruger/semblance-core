@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@semblance/ui';
-
-interface CloudFolder {
-  id: string;
-  name: string;
-  parentId: string | null;
-}
+import { cloudStorageBrowseFolders } from '../ipc/commands';
+import type { CloudFolder } from '../ipc/types';
 
 interface CloudFolderPickerProps {
   provider: string;
@@ -27,10 +22,7 @@ export function CloudFolderPicker({ provider, isOpen, onClose, onSelect, selecte
   const loadFolders = useCallback(async (parentId: string | null) => {
     setLoading(true);
     try {
-      const result = await invoke<CloudFolder[]>('cloud_storage_browse_folders', {
-        provider,
-        parentFolderId: parentId ?? 'root',
-      });
+      const result = await cloudStorageBrowseFolders(provider, parentId ?? 'root');
       setFolders(result);
     } catch {
       setFolders([]);

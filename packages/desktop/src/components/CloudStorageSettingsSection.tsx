@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Card, Button, StatusIndicator } from '@semblance/ui';
+import { cloudStorageConnect, cloudStorageDisconnect, cloudStorageSyncNow, cloudStorageSetInterval, cloudStorageSetMaxFileSize } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 
 export function CloudStorageSettingsSection() {
@@ -15,9 +15,7 @@ export function CloudStorageSettingsSection() {
   const handleConnect = useCallback(async () => {
     setConnecting(true);
     try {
-      const result = await invoke<{ success: boolean; userEmail?: string; error?: string }>('cloud_storage_connect', {
-        provider: 'google_drive',
-      });
+      const result = await cloudStorageConnect('google_drive');
       if (result.success) {
         dispatch({
           type: 'SET_CLOUD_STORAGE_SETTINGS',
@@ -38,7 +36,7 @@ export function CloudStorageSettingsSection() {
 
   const handleDisconnect = useCallback(async () => {
     try {
-      await invoke('cloud_storage_disconnect', { provider: 'google_drive' });
+      await cloudStorageDisconnect('google_drive');
       dispatch({
         type: 'SET_CLOUD_STORAGE_SETTINGS',
         settings: {
@@ -60,7 +58,7 @@ export function CloudStorageSettingsSection() {
   const handleSyncNow = useCallback(async () => {
     setSyncing(true);
     try {
-      const result = await invoke<{ filesSynced: number; storageUsedBytes: number }>('cloud_storage_sync_now');
+      const result = await cloudStorageSyncNow();
       dispatch({
         type: 'SET_CLOUD_STORAGE_SETTINGS',
         settings: {
@@ -83,7 +81,7 @@ export function CloudStorageSettingsSection() {
       type: 'SET_CLOUD_STORAGE_SETTINGS',
       settings: { ...cloudStorageSettings, syncIntervalMinutes: value },
     });
-    await invoke('cloud_storage_set_interval', { minutes: value }).catch(() => {});
+    await cloudStorageSetInterval(value).catch(() => {});
   }, [cloudStorageSettings, dispatch]);
 
   const handleMaxFileSizeChange = useCallback(async (value: number) => {
@@ -92,7 +90,7 @@ export function CloudStorageSettingsSection() {
       type: 'SET_CLOUD_STORAGE_SETTINGS',
       settings: { ...cloudStorageSettings, maxFileSizeMB: value },
     });
-    await invoke('cloud_storage_set_max_file_size', { mb: value }).catch(() => {});
+    await cloudStorageSetMaxFileSize(value).catch(() => {});
   }, [cloudStorageSettings, dispatch]);
 
   const formatBytes = (bytes: number): string => {

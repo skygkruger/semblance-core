@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Card, Button } from '@semblance/ui';
+import {
+  getNetworkStatistics,
+  getActiveConnections,
+  getNetworkAllowlist,
+  getUnauthorizedAttempts,
+  getConnectionTimeline,
+  getConnectionHistory,
+  generatePrivacyReport,
+} from '../ipc/commands';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -336,19 +344,19 @@ export function NetworkMonitorScreen() {
     setLoading(true);
     try {
       const results = await Promise.allSettled([
-        invoke<NetworkStatistics>('get_network_statistics', { period }),
-        invoke<ActiveConnection[]>('get_active_connections'),
-        invoke<AllowlistEntry[]>('get_network_allowlist'),
-        invoke<UnauthorizedAttempt[]>('get_unauthorized_attempts', { period }),
-        invoke<TimelinePoint[]>('get_connection_timeline', { period, granularity: period === 'today' ? 'hour' : 'day' }),
-        invoke<ConnectionRecord[]>('get_connection_history', { limit: 20 }),
+        getNetworkStatistics(period),
+        getActiveConnections(),
+        getNetworkAllowlist(),
+        getUnauthorizedAttempts(period),
+        getConnectionTimeline(period, period === 'today' ? 'hour' : 'day'),
+        getConnectionHistory(20),
       ]);
-      if (results[0]!.status === 'fulfilled') setStats(results[0]!.value);
-      if (results[1]!.status === 'fulfilled') setConnections(results[1]!.value);
-      if (results[2]!.status === 'fulfilled') setAllowlist(results[2]!.value);
-      if (results[3]!.status === 'fulfilled') setUnauthorized(results[3]!.value);
-      if (results[4]!.status === 'fulfilled') setTimeline(results[4]!.value);
-      if (results[5]!.status === 'fulfilled') setHistory(results[5]!.value);
+      if (results[0]!.status === 'fulfilled') setStats(results[0]!.value as unknown as NetworkStatistics);
+      if (results[1]!.status === 'fulfilled') setConnections(results[1]!.value as unknown as ActiveConnection[]);
+      if (results[2]!.status === 'fulfilled') setAllowlist(results[2]!.value as unknown as AllowlistEntry[]);
+      if (results[3]!.status === 'fulfilled') setUnauthorized(results[3]!.value as unknown as UnauthorizedAttempt[]);
+      if (results[4]!.status === 'fulfilled') setTimeline(results[4]!.value as unknown as TimelinePoint[]);
+      if (results[5]!.status === 'fulfilled') setHistory(results[5]!.value as unknown as ConnectionRecord[]);
     } catch {
       // Sidecar not wired
     } finally {
@@ -371,7 +379,7 @@ export function NetworkMonitorScreen() {
         : period === 'week'
           ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
           : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      await invoke<PrivacyReport>('generate_privacy_report', { startDate, endDate, format: 'json' });
+      await generatePrivacyReport(startDate, endDate);
       setReportGenerated(true);
       setTimeout(() => setReportGenerated(false), 3000);
     } catch {

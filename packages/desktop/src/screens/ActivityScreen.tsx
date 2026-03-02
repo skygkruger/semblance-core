@@ -1,18 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { ActionCard } from '@semblance/ui';
+import { getActionLog } from '../ipc/commands';
+import type { LogEntry } from '../ipc/types';
 import { useAppState } from '../state/AppState';
-
-interface LogEntry {
-  id: string;
-  timestamp: string;
-  action: string;
-  status: 'success' | 'pending' | 'error' | 'rejected';
-  description: string;
-  autonomy_tier: string;
-  payload_hash: string;
-  audit_ref: string;
-}
 
 export function ActivityScreen() {
   const state = useAppState();
@@ -22,7 +12,7 @@ export function ActivityScreen() {
 
   const loadEntries = useCallback(async () => {
     try {
-      const result = await invoke<LogEntry[]>('get_action_log', { limit: 50, offset: 0 });
+      const result = await getActionLog(50, 0);
       setEntries(result);
     } catch {
       // Gateway not yet wired
@@ -80,7 +70,7 @@ export function ActivityScreen() {
               timestamp={entry.timestamp}
               actionType={entry.action}
               description={entry.description}
-              status={entry.status}
+              status={entry.status as 'success' | 'error' | 'pending' | 'rejected'}
               autonomyTier={entry.autonomy_tier}
               detail={
                 <div className="space-y-2 font-mono text-xs">

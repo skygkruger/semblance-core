@@ -1,18 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { getPendingActions, getApprovalCount, getApprovalThreshold, approveAction, rejectAction } from '../ipc/commands';
+import type { PendingAction } from '../ipc/types';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-export interface PendingAction {
-  id: string;
-  action: string;
-  payload: Record<string, unknown>;
-  reasoning: string;
-  domain: string;
-  tier: string;
-  status: string;
-  createdAt: string;
-}
+export type { PendingAction } from '../ipc/types';
 
 interface PendingActionBannerProps {
   /** If provided, filters to only show actions for this screen context */
@@ -68,7 +58,7 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
 
   const loadPending = useCallback(async () => {
     try {
-      const actions = await invoke<PendingAction[]>('get_pending_actions');
+      const actions = await getPendingActions();
       const filtered = filter ? actions.filter(a => a.domain === filter) : actions;
       setPendingActions(filtered);
 
@@ -76,14 +66,8 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
       const counts: Record<string, { count: number; threshold: number }> = {};
       for (const action of filtered) {
         try {
-          const count = await invoke<number>('get_approval_count', {
-            actionType: action.action,
-            payload: action.payload,
-          });
-          const threshold = await invoke<number>('get_approval_threshold', {
-            actionType: action.action,
-            payload: action.payload,
-          });
+          const count = await getApprovalCount(action.action, action.payload);
+          const threshold = await getApprovalThreshold(action.action, action.payload);
           counts[action.id] = { count, threshold };
         } catch {
           counts[action.id] = { count: 0, threshold: 3 };
@@ -103,7 +87,7 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
 
   const handleApprove = async (actionId: string) => {
     try {
-      await invoke('approve_action', { actionId });
+      await approveAction(actionId);
       setPendingActions(prev => prev.filter(a => a.id !== actionId));
     } catch {
       // Error handling
@@ -112,7 +96,7 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
 
   const handleReject = async (actionId: string) => {
     try {
-      await invoke('reject_action', { actionId });
+      await rejectAction(actionId);
       setPendingActions(prev => prev.filter(a => a.id !== actionId));
     } catch {
       // Error handling
