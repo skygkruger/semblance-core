@@ -53,6 +53,7 @@ describe('AppState document context', () => {
     historyPanelOpen: false,
     conversationSettings: { autoExpiryDays: null },
     intentProfile: { primaryGoal: null, hardLimits: [], personalValues: [], lastUpdated: null },
+    alterEgoSettings: { dollarThreshold: 50, confirmationDisabledCategories: [] },
   };
 
   const mockDoc: DocumentContext = {
