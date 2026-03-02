@@ -86,9 +86,9 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
 };
 
 // Actions classified as read (safe), write (moderate), or execute (high-stakes)
-type ActionRisk = 'read' | 'write' | 'execute';
+export type ActionRisk = 'read' | 'write' | 'execute';
 
-const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
+export const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'email.fetch': 'read',
   'email.send': 'execute',
   'email.draft': 'write',

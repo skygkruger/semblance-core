@@ -127,6 +127,10 @@ export interface AppState {
     personalValues: Array<{ id: string; rawText: string; theme: string; active: boolean; source: string; createdAt: string }>;
     lastUpdated: string | null;
   };
+  alterEgoSettings: {
+    dollarThreshold: number;
+    confirmationDisabledCategories: string[];
+  };
 }
 
 export interface ConversationSummaryState {
@@ -227,7 +231,8 @@ export type AppAction =
   | { type: 'TOGGLE_HARD_LIMIT'; id: string; active: boolean }
   | { type: 'REMOVE_HARD_LIMIT'; id: string }
   | { type: 'ADD_PERSONAL_VALUE'; value: AppState['intentProfile']['personalValues'][number] }
-  | { type: 'REMOVE_PERSONAL_VALUE'; id: string };
+  | { type: 'REMOVE_PERSONAL_VALUE'; id: string }
+  | { type: 'SET_ALTER_EGO_SETTINGS'; settings: AppState['alterEgoSettings'] };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -345,6 +350,10 @@ export const initialState: AppState = {
     hardLimits: [],
     personalValues: [],
     lastUpdated: null,
+  },
+  alterEgoSettings: {
+    dollarThreshold: 50,
+    confirmationDisabledCategories: [],
   },
 };
 
@@ -485,6 +494,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, intentProfile: { ...state.intentProfile, personalValues: [...state.intentProfile.personalValues, action.value], lastUpdated: new Date().toISOString() } };
     case 'REMOVE_PERSONAL_VALUE':
       return { ...state, intentProfile: { ...state.intentProfile, personalValues: state.intentProfile.personalValues.filter(v => v.id !== action.id), lastUpdated: new Date().toISOString() } };
+    case 'SET_ALTER_EGO_SETTINGS':
+      return { ...state, alterEgoSettings: action.settings };
     default:
       return state;
   }

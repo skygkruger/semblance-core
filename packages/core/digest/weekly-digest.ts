@@ -10,6 +10,7 @@
 import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type { LLMProvider } from '../llm/types.js';
+import type { AlterEgoStore } from '../agent/alter-ego-store.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,11 @@ export interface WeeklyDigest {
   actionsApproved: number;
   actionsRejected: number;
   autonomyAccuracy: number;
+
+  // Alter Ego metrics
+  alterEgoActionsExecuted: number;
+  alterEgoActionsUndone: number;
+  alterEgoActionsBatched: number;
 
   // AI-generated narrative
   narrative: string;
@@ -105,6 +111,9 @@ const CREATE_DIGEST_TABLE = `
     actions_approved INTEGER NOT NULL DEFAULT 0,
     actions_rejected INTEGER NOT NULL DEFAULT 0,
     autonomy_accuracy REAL NOT NULL DEFAULT 0,
+    alter_ego_actions_executed INTEGER NOT NULL DEFAULT 0,
+    alter_ego_actions_undone INTEGER NOT NULL DEFAULT 0,
+    alter_ego_actions_batched INTEGER NOT NULL DEFAULT 0,
     narrative TEXT NOT NULL DEFAULT '',
     highlights TEXT NOT NULL DEFAULT '[]'
   );
@@ -131,6 +140,7 @@ export class WeeklyDigestGenerator {
   private llm?: LLMProvider;
   private model: string;
   private aiName: string;
+  private alterEgoStore?: AlterEgoStore;
 
   constructor(config: {
     db: DatabaseHandle;
@@ -138,12 +148,14 @@ export class WeeklyDigestGenerator {
     llm?: LLMProvider;
     model?: string;
     aiName?: string;
+    alterEgoStore?: AlterEgoStore;
   }) {
     this.db = config.db;
     this.auditDb = config.auditDb;
     this.llm = config.llm;
     this.model = config.model ?? 'llama3.2:8b';
     this.aiName = config.aiName ?? 'Semblance';
+    this.alterEgoStore = config.alterEgoStore;
     this.db.exec(CREATE_DIGEST_TABLE);
   }
 
@@ -208,6 +220,22 @@ export class WeeklyDigestGenerator {
     const total = autoExecuted + approved + rejected;
     const autonomyAccuracy = total > 0 ? (autoExecuted + approved) / total : 1;
 
+    // 2b. Gather Alter Ego stats
+    let alterEgoExecuted = 0;
+    let alterEgoUndone = 0;
+    let alterEgoBatched = 0;
+
+    if (this.alterEgoStore) {
+      try {
+        const stats = this.alterEgoStore.getWeekStats(weekStart, weekEnd);
+        alterEgoExecuted = stats.executed;
+        alterEgoUndone = stats.undone;
+        alterEgoBatched = stats.batched;
+      } catch {
+        // Alter ego store may not have data
+      }
+    }
+
     // 3. Generate highlights
     const highlights = this.generateHighlights({
       totalTimeSaved,
@@ -256,6 +284,9 @@ export class WeeklyDigestGenerator {
       actionsApproved: approved,
       actionsRejected: rejected,
       autonomyAccuracy: Math.round(autonomyAccuracy * 100) / 100,
+      alterEgoActionsExecuted: alterEgoExecuted,
+      alterEgoActionsUndone: alterEgoUndone,
+      alterEgoActionsBatched: alterEgoBatched,
       narrative,
       highlights,
     };
@@ -421,8 +452,9 @@ Tone: Concise, warm, slightly proud of the work done. Not sycophantic. Focus on 
         subscriptions_analyzed, forgotten_subscriptions, potential_savings,
         follow_up_reminders, deadline_alerts,
         actions_auto_executed, actions_approved, actions_rejected, autonomy_accuracy,
+        alter_ego_actions_executed, alter_ego_actions_undone, alter_ego_actions_batched,
         narrative, highlights
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       digest.id, digest.weekStart, digest.weekEnd, digest.generatedAt,
       digest.totalActions, JSON.stringify(digest.actionsByType),
@@ -432,6 +464,7 @@ Tone: Concise, warm, slightly proud of the work done. Not sycophantic. Focus on 
       digest.subscriptionsAnalyzed, digest.forgottenSubscriptions, digest.potentialSavings,
       digest.followUpReminders, digest.deadlineAlerts,
       digest.actionsAutoExecuted, digest.actionsApproved, digest.actionsRejected, digest.autonomyAccuracy,
+      digest.alterEgoActionsExecuted, digest.alterEgoActionsUndone, digest.alterEgoActionsBatched,
       digest.narrative, JSON.stringify(digest.highlights),
     );
   }
@@ -463,6 +496,9 @@ Tone: Concise, warm, slightly proud of the work done. Not sycophantic. Focus on 
       actionsApproved: row.actions_approved,
       actionsRejected: row.actions_rejected,
       autonomyAccuracy: row.autonomy_accuracy,
+      alterEgoActionsExecuted: row.alter_ego_actions_executed,
+      alterEgoActionsUndone: row.alter_ego_actions_undone,
+      alterEgoActionsBatched: row.alter_ego_actions_batched,
       narrative: row.narrative,
       highlights: JSON.parse(row.highlights) as DigestHighlight[],
     };
@@ -508,6 +544,9 @@ interface DigestRow {
   actions_approved: number;
   actions_rejected: number;
   autonomy_accuracy: number;
+  alter_ego_actions_executed: number;
+  alter_ego_actions_undone: number;
+  alter_ego_actions_batched: number;
   narrative: string;
   highlights: string;
 }

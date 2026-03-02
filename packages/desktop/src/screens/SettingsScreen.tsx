@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Card, Input, Button, StatusIndicator, AutonomySelector, ThemeToggle, CredentialForm, LicenseActivation, FoundingMemberBadge } from '@semblance/ui';
+import { Card, Input, Button, StatusIndicator, AutonomySelector, ThemeToggle, CredentialForm, LicenseActivation, FoundingMemberBadge, SettingsAlterEgo } from '@semblance/ui';
 import {
   getAccountsStatus,
   getProviderPresets,
@@ -16,6 +16,8 @@ import {
   getSearchSettings,
   saveSearchSettings,
   testBraveApiKey,
+  getAlterEgoSettings,
+  updateAlterEgoSettings,
 } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useLicense } from '../contexts/LicenseContext';
@@ -132,7 +134,10 @@ export function SettingsScreen() {
     detectHardware()
       .then((hw) => setHardwareInfo(hw as unknown as HardwareDisplayInfo))
       .catch(() => {});
-  }, [loadAccounts]);
+    getAlterEgoSettings()
+      .then((s) => dispatch({ type: 'SET_ALTER_EGO_SETTINGS', settings: s }))
+      .catch(() => {});
+  }, [loadAccounts, dispatch]);
 
   const handleSaveName = useCallback(async () => {
     if (nameValue.trim()) {
@@ -545,6 +550,20 @@ export function SettingsScreen() {
         </h2>
         <AutonomySelector value={defaultTier} onChange={handleAutonomyChange} />
       </Card>
+
+      {/* Alter Ego Settings — only visible when tier is alter_ego */}
+      {defaultTier === 'alter_ego' && (
+        <SettingsAlterEgo
+          dollarThreshold={state.alterEgoSettings.dollarThreshold}
+          confirmationDisabledCategories={state.alterEgoSettings.confirmationDisabledCategories}
+          onChange={async (field, value) => {
+            const updated = { ...state.alterEgoSettings, [field]: value };
+            dispatch({ type: 'SET_ALTER_EGO_SETTINGS', settings: updated });
+            await updateAlterEgoSettings(updated).catch(() => {});
+          }}
+          onBack={() => {}}
+        />
+      )}
 
       {/* Appearance */}
       <Card>

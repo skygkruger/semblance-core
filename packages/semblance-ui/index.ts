@@ -69,6 +69,14 @@ export type { ConnectorCardProps, ConnectorCardStatus } from './components/Conne
 export { ConnectionsScreen } from './components/ConnectionsScreen/index.js';
 export type { ConnectionsScreenProps, ConnectorEntry, ConnectorCategory } from './components/ConnectionsScreen/index.js';
 
+// Alter Ego Guardrails
+export { AlterEgoReceipt } from './components/AlterEgoReceipt/index.js';
+export type { AlterEgoReceiptProps } from './components/AlterEgoReceipt/index.js';
+export { AlterEgoBatchReview } from './components/AlterEgoBatchReview/index.js';
+export type { AlterEgoBatchReviewProps, BatchItem } from './components/AlterEgoBatchReview/index.js';
+export { AlterEgoDraftReview } from './components/AlterEgoDraftReview/index.js';
+export type { AlterEgoDraftReviewProps } from './components/AlterEgoDraftReview/index.js';
+
 // Settings
 export { SettingsNavigator } from './components/Settings/index.js';
 export { SettingsRoot } from './components/Settings/index.js';
@@ -79,6 +87,8 @@ export { SettingsNotifications } from './components/Settings/index.js';
 export { SettingsAutonomy } from './components/Settings/index.js';
 export { SettingsPrivacy } from './components/Settings/index.js';
 export { SettingsAccount } from './components/Settings/index.js';
+export { SettingsAlterEgo } from './components/Settings/index.js';
+export type { SettingsAlterEgoProps } from './components/Settings/index.js';
 
 // License / Premium
 export { FeatureGate } from './components/FeatureGate/index.js';
