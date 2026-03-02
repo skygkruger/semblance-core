@@ -13,28 +13,16 @@
  */
 
 import { createContext, useContext, useCallback, useMemo, type ReactNode } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import type { AppState } from '../state/AppState';
+import { getLicenseStatus, activateLicenseKey, activateFoundingToken } from '../ipc/commands';
+import type { ActivationResult } from '../ipc/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
 export type LicenseTier = AppState['license']['tier'];
 
-export interface ActivationResult {
-  success: boolean;
-  tier?: string;
-  expiresAt?: string;
-  error?: string;
-}
-
-interface LicenseStatus {
-  tier: LicenseTier;
-  isPremium: boolean;
-  isFoundingMember: boolean;
-  foundingSeat: number | null;
-  licenseKey: string | null;
-}
+export type { ActivationResult } from '../ipc/types';
 
 export interface LicenseContextValue {
   tier: LicenseTier;
@@ -85,7 +73,7 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const status = await invoke<LicenseStatus>('get_license_status');
+      const status = await getLicenseStatus();
       dispatch({
         type: 'SET_LICENSE',
         license: {
@@ -102,7 +90,7 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
 
   const activateKey = useCallback(async (key: string): Promise<ActivationResult> => {
     try {
-      const result = await invoke<ActivationResult>('activate_license_key', { key });
+      const result = await activateLicenseKey(key);
       if (result.success) {
         await refresh();
       }
@@ -114,7 +102,7 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
 
   const activateFoundingToken = useCallback(async (token: string): Promise<ActivationResult> => {
     try {
-      const result = await invoke<ActivationResult>('activate_founding_token', { token });
+      const result = await activateFoundingToken(token);
       if (result.success) {
         await refresh();
       }

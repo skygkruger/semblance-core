@@ -1,7 +1,21 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { invoke } from '@tauri-apps/api/core';
 import { Card, Input, Button, StatusIndicator, AutonomySelector, ThemeToggle, CredentialForm, LicenseActivation, FoundingMemberBadge } from '@semblance/ui';
+import {
+  getAccountsStatus,
+  getProviderPresets,
+  detectHardware,
+  setUserName,
+  setAutonomyTier,
+  addCredential,
+  testCredential,
+  listCredentials,
+  removeCredential,
+  selectModel,
+  getSearchSettings,
+  saveSearchSettings,
+  testBraveApiKey,
+} from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useLicense } from '../contexts/LicenseContext';
 import { HardwareProfileDisplay } from '../components/HardwareProfileDisplay';
@@ -13,26 +27,7 @@ import type { HardwareDisplayInfo } from '../components/HardwareProfileDisplay';
 import type { AutonomyTier } from '@semblance/ui';
 import type { ThemeMode } from '@semblance/ui';
 import type { CredentialFormData } from '@semblance/ui';
-
-interface AccountInfo {
-  id: string;
-  serviceType: string;
-  protocol: string;
-  host: string;
-  port: number;
-  username: string;
-  displayName: string;
-  useTls: boolean;
-  createdAt: string;
-}
-
-interface AccountStatus {
-  serviceType: string;
-  displayName: string;
-  username: string;
-  protocols: string[];
-  connected: boolean;
-}
+import type { AccountInfo, AccountStatus } from '../ipc/types';
 
 function LicenseSection() {
   const license = useLicense();
@@ -119,7 +114,7 @@ export function SettingsScreen() {
 
   const loadAccounts = useCallback(async () => {
     try {
-      const result = await invoke<AccountStatus[]>('get_accounts_status');
+      const result = await getAccountsStatus();
       setAccounts(result);
     } catch {
       // Gateway not ready yet
@@ -128,18 +123,18 @@ export function SettingsScreen() {
 
   useEffect(() => {
     loadAccounts();
-    invoke<Record<string, { name: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; caldavUrl: string | null; notes: string | null }>>('get_provider_presets')
+    getProviderPresets()
       .then(setPresets)
       .catch(() => {});
-    invoke<HardwareDisplayInfo>('detect_hardware')
-      .then(setHardwareInfo)
+    detectHardware()
+      .then((hw) => setHardwareInfo(hw as unknown as HardwareDisplayInfo))
       .catch(() => {});
   }, [loadAccounts]);
 
   const handleSaveName = useCallback(async () => {
     if (nameValue.trim()) {
       dispatch({ type: 'SET_USER_NAME', name: nameValue.trim() });
-      await invoke('set_user_name', { name: nameValue.trim() }).catch(() => {});
+      await setUserName(nameValue.trim()).catch(() => {});
       setEditingName(false);
     }
   }, [nameValue, dispatch]);
@@ -149,7 +144,7 @@ export function SettingsScreen() {
     const domains = ['email', 'calendar', 'files', 'finances', 'health', 'services'];
     for (const domain of domains) {
       dispatch({ type: 'SET_AUTONOMY_TIER', domain, tier });
-      await invoke('set_autonomy_tier', { domain, tier }).catch(() => {});
+      await setAutonomyTier(domain, tier).catch(() => {});
     }
   }, [dispatch]);
 
@@ -159,7 +154,7 @@ export function SettingsScreen() {
 
   const handleAddCredential = useCallback(async (credentials: CredentialFormData[]) => {
     for (const cred of credentials) {
-      await invoke('add_credential', {
+      await addCredential({
         serviceType: cred.serviceType,
         protocol: cred.protocol,
         host: cred.host,
@@ -176,7 +171,7 @@ export function SettingsScreen() {
 
   const handleTestCredential = useCallback(async (cred: CredentialFormData): Promise<{ success: boolean; error?: string }> => {
     try {
-      const result = await invoke<{ success: boolean; error?: string }>('test_credential', {
+      const result = await testCredential({
         serviceType: cred.serviceType,
         protocol: cred.protocol,
         host: cred.host,
@@ -195,10 +190,10 @@ export function SettingsScreen() {
     setRemovingAccountId(`${serviceType}:${username}`);
     try {
       // Get all credentials for this user/type and remove them
-      const allCreds = await invoke<AccountInfo[]>('list_credentials');
+      const allCreds = await listCredentials();
       for (const cred of allCreds) {
         if (cred.username === username && cred.serviceType === serviceType) {
-          await invoke('remove_credential', { id: cred.id });
+          await removeCredential(cred.id);
         }
       }
       await loadAccounts();
@@ -212,11 +207,11 @@ export function SettingsScreen() {
       // Test the API key
       setApiKeyStatus('testing');
       try {
-        const result = await invoke<{ success: boolean; error?: string }>('test_brave_api_key', { apiKey: braveApiKey });
+        const result = await testBraveApiKey(braveApiKey);
         if (result.success) {
           setApiKeyStatus('valid');
           setApiKeySaved(true);
-          await invoke('save_search_settings', {
+          await saveSearchSettings({
             provider: searchProvider,
             braveApiKey,
             searxngUrl: searxngUrl || null,
@@ -229,7 +224,7 @@ export function SettingsScreen() {
         setApiKeyStatus('invalid');
       }
     } else {
-      await invoke('save_search_settings', {
+      await saveSearchSettings({
         provider: searchProvider,
         braveApiKey: braveApiKey || null,
         searxngUrl: searxngUrl || null,
@@ -241,7 +236,7 @@ export function SettingsScreen() {
 
   // Load saved search settings on mount
   useEffect(() => {
-    invoke<{ provider: string; braveApiKeySet: boolean; searxngUrl: string | null; rateLimit: number }>('get_search_settings')
+    getSearchSettings()
       .then((settings) => {
         setSearchProvider(settings.provider as 'brave' | 'searxng');
         if (settings.braveApiKeySet) {
@@ -358,7 +353,7 @@ export function SettingsScreen() {
             onChange={async (e) => {
               const model = e.target.value;
               dispatch({ type: 'SET_ACTIVE_MODEL', model });
-              await invoke('select_model', { modelId: model }).catch(() => {});
+              await selectModel(model).catch(() => {});
             }}
             className="w-full mt-3 px-4 py-3 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus"
           >

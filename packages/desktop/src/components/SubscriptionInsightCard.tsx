@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Card } from '@semblance/ui';
+import { updateSubscriptionStatus } from '../ipc/commands';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -61,7 +61,7 @@ export function SubscriptionInsightCard({ charges, summary, onDismiss }: Subscri
   const handleUpdateStatus = async (chargeId: string, status: string) => {
     setProcessingId(chargeId);
     try {
-      await invoke('update_subscription_status', { chargeId, status });
+      await updateSubscriptionStatus(chargeId, status);
     } catch {
       // Sidecar not wired
     } finally {

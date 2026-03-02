@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Card } from '@semblance/ui';
+import { respondToEscalation } from '../ipc/commands';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ export function EscalationPromptCard({ prompt, onAccepted, onDismissed }: Escala
   const handleAccept = async () => {
     setResponding(true);
     try {
-      await invoke('respond_to_escalation', { promptId: prompt.id, accepted: true });
+      await respondToEscalation(prompt.id, true);
       onAccepted();
     } catch {
       // Sidecar not wired
@@ -50,7 +50,7 @@ export function EscalationPromptCard({ prompt, onAccepted, onDismissed }: Escala
   const handleDismiss = async () => {
     setResponding(true);
     try {
-      await invoke('respond_to_escalation', { promptId: prompt.id, accepted: false });
+      await respondToEscalation(prompt.id, false);
       onDismissed();
     } catch {
       // Sidecar not wired

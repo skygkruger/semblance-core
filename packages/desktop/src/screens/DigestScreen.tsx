@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Card, Button } from '@semblance/ui';
+import { getLatestDigest, listDigests, generateDigest } from '../ipc/commands';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -80,11 +80,11 @@ export function DigestScreen() {
     setLoading(true);
     try {
       const [latest, list] = await Promise.allSettled([
-        invoke<WeeklyDigest>('get_latest_digest'),
-        invoke<DigestSummary[]>('list_digests'),
+        getLatestDigest(),
+        listDigests(),
       ]);
-      if (latest.status === 'fulfilled' && latest.value) setDigest(latest.value);
-      if (list.status === 'fulfilled') setPastDigests(list.value);
+      if (latest.status === 'fulfilled' && latest.value) setDigest(latest.value as unknown as WeeklyDigest);
+      if (list.status === 'fulfilled') setPastDigests(list.value as unknown as DigestSummary[]);
     } catch {
       // Sidecar not wired
     } finally {
@@ -102,8 +102,8 @@ export function DigestScreen() {
       const now = new Date();
       const weekEnd = now.toISOString();
       const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const result = await invoke<WeeklyDigest>('generate_digest', { weekStart, weekEnd });
-      setDigest(result);
+      const result = await generateDigest(weekStart, weekEnd);
+      setDigest(result as unknown as WeeklyDigest);
       loadDigest();
     } catch {
       // Error

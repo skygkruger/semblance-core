@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Card } from '@semblance/ui';
+import {
+  getInboxItems,
+  getProactiveInsights,
+  getTodayEvents,
+  getActionsSummary,
+  archiveEmails,
+  undoAction,
+  sendEmailAction,
+  draftEmailAction,
+  dismissInsight,
+} from '../ipc/commands';
 import { useAppState } from '../state/AppState';
 import { EmailCard } from '../components/EmailCard';
 import { InsightCard } from '../components/InsightCard';
@@ -110,16 +120,16 @@ export function InboxScreen() {
   const loadInboxData = useCallback(async () => {
     try {
       const [emailResult, insightResult, calendarResult, actionsResult] = await Promise.allSettled([
-        invoke<IndexedEmail[]>('get_inbox_items', { limit: 30, offset: 0 }),
-        invoke<ProactiveInsight[]>('get_proactive_insights'),
-        invoke<CalendarEvent[]>('get_today_events'),
-        invoke<ActionsSummary>('get_actions_summary'),
+        getInboxItems(30, 0),
+        getProactiveInsights(),
+        getTodayEvents(),
+        getActionsSummary(),
       ]);
 
-      if (emailResult.status === 'fulfilled') setEmails(emailResult.value);
-      if (insightResult.status === 'fulfilled') setInsights(insightResult.value);
-      if (calendarResult.status === 'fulfilled') setTodayEvents(calendarResult.value);
-      if (actionsResult.status === 'fulfilled') setActionsSummary(actionsResult.value);
+      if (emailResult.status === 'fulfilled') setEmails(emailResult.value as unknown as IndexedEmail[]);
+      if (insightResult.status === 'fulfilled') setInsights(insightResult.value as unknown as ProactiveInsight[]);
+      if (calendarResult.status === 'fulfilled') setTodayEvents(calendarResult.value as unknown as CalendarEvent[]);
+      if (actionsResult.status === 'fulfilled') setActionsSummary(actionsResult.value as unknown as ActionsSummary);
     } catch {
       // Sidecar not yet wired — silent in dev
     }
@@ -134,7 +144,7 @@ export function InboxScreen() {
 
   const handleArchive = async (email: IndexedEmail) => {
     try {
-      const actionId = await invoke<string>('archive_emails', { messageIds: [email.messageId] });
+      const actionId = await archiveEmails([email.messageId]);
       setEmails(prev => prev.filter(e => e.messageId !== email.messageId));
 
       setUndoToast({
@@ -155,7 +165,7 @@ export function InboxScreen() {
   const handleUndo = async () => {
     if (!undoToast) return;
     try {
-      await invoke('undo_action', { actionId: undoToast.actionId });
+      await undoAction(undoToast.actionId);
       setUndoToast(null);
       loadInboxData();
     } catch {
@@ -169,7 +179,7 @@ export function InboxScreen() {
 
   const handleSendReply = async (to: string[], subject: string, body: string, replyToMessageId?: string) => {
     try {
-      await invoke('send_email_action', { to, subject, body, replyToMessageId });
+      await sendEmailAction({ to, subject, body, replyToMessageId });
       setReplyTarget(null);
       loadInboxData();
     } catch {
@@ -179,7 +189,7 @@ export function InboxScreen() {
 
   const handleDismissInsight = async (insightId: string) => {
     try {
-      await invoke('dismiss_insight', { insightId });
+      await dismissInsight(insightId);
       setInsights(prev => prev.filter(i => i.id !== insightId));
     } catch {
       // Sidecar not wired
@@ -259,7 +269,7 @@ export function InboxScreen() {
               onSend={handleSendReply}
               onSaveDraft={async (to, subject, body, replyToMessageId) => {
                 try {
-                  await invoke('draft_email_action', { to, subject, body, replyToMessageId });
+                  await draftEmailAction({ to, subject, body, replyToMessageId });
                   setReplyTarget(null);
                 } catch { /* */ }
               }}

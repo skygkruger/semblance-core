@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Card, Button } from '@semblance/ui';
+import { listContacts, getContactStats, getUpcomingBirthdays, getContact, searchContacts } from '../ipc/commands';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -115,10 +115,8 @@ export function RelationshipsScreen() {
 
   const loadContacts = useCallback(async () => {
     try {
-      const result = await invoke<{ contacts: ContactSummary[] }>('sidecar_request', {
-        request: { method: 'contacts:list', params: { limit: 500, sortBy: sortField } },
-      });
-      setContacts(result.contacts ?? []);
+      const result = await listContacts(500, sortField === 'display_name' ? 'name' : sortField === 'last_contact_date' ? 'lastInteraction' : 'strength');
+      setContacts((result.contacts ?? []) as unknown as ContactSummary[]);
     } catch {
       setContacts([]);
     }
@@ -126,10 +124,8 @@ export function RelationshipsScreen() {
 
   const loadStats = useCallback(async () => {
     try {
-      const result = await invoke<ContactStats>('sidecar_request', {
-        request: { method: 'contacts:getStats', params: {} },
-      });
-      setStats(result);
+      const result = await getContactStats();
+      setStats(result as unknown as ContactStats);
     } catch {
       // ignore
     }
@@ -137,10 +133,8 @@ export function RelationshipsScreen() {
 
   const loadBirthdays = useCallback(async () => {
     try {
-      const result = await invoke<{ birthdays: BirthdayInfo[] }>('sidecar_request', {
-        request: { method: 'contacts:getUpcomingBirthdays', params: {} },
-      });
-      setBirthdays(result.birthdays ?? []);
+      const result = await getUpcomingBirthdays();
+      setBirthdays((result.birthdays ?? []) as unknown as BirthdayInfo[]);
     } catch {
       setBirthdays([]);
     }
@@ -153,10 +147,8 @@ export function RelationshipsScreen() {
 
   const handleSelectContact = useCallback(async (id: string) => {
     try {
-      const result = await invoke<ContactDetail>('sidecar_request', {
-        request: { method: 'contacts:get', params: { id } },
-      });
-      setSelectedContact(result);
+      const result = await getContact(id);
+      setSelectedContact(result as unknown as ContactDetail);
     } catch {
       // ignore
     }
@@ -169,10 +161,8 @@ export function RelationshipsScreen() {
       return;
     }
     try {
-      const result = await invoke<{ contacts: ContactSummary[] }>('sidecar_request', {
-        request: { method: 'contacts:search', params: { query, limit: 100 } },
-      });
-      setContacts(result.contacts ?? []);
+      const result = await searchContacts(query, 100);
+      setContacts((result.contacts ?? []) as unknown as ContactSummary[]);
     } catch {
       // ignore
     }

@@ -1,8 +1,8 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { ChatBubble, ChatInput, StatusIndicator } from '@semblance/ui';
+import { ChatBubble, AgentInput, StatusIndicator } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useTauriEvent } from '../hooks/useTauriEvent';
+import { sendMessage, documentPickFile, documentSetContext, documentClearContext } from '../ipc/commands';
 import type { DocumentContext } from '../state/AppState';
 
 export function ChatScreen() {
@@ -40,7 +40,7 @@ export function ChatScreen() {
     const file = e.dataTransfer.files[0];
     if (!file) return;
     try {
-      const result = await invoke<DocumentContext>('document_set_context', { filePath: file.name });
+      const result = await documentSetContext(file.name);
       dispatch({ type: 'SET_DOCUMENT_CONTEXT', context: result });
     } catch (err) {
       dispatch({
@@ -58,9 +58,9 @@ export function ChatScreen() {
   // File picker handler
   const handleAttach = useCallback(async () => {
     try {
-      const filePath = await invoke<string | null>('document_pick_file');
+      const filePath = await documentPickFile();
       if (!filePath) return;
-      const result = await invoke<DocumentContext>('document_set_context', { filePath });
+      const result = await documentSetContext(filePath);
       dispatch({ type: 'SET_DOCUMENT_CONTEXT', context: result });
     } catch (err) {
       dispatch({
@@ -78,7 +78,7 @@ export function ChatScreen() {
   // Clear document context
   const handleClearDocument = useCallback(async () => {
     try {
-      await invoke('document_clear_context');
+      await documentClearContext();
     } catch {
       // Ignore — clear locally anyway
     }
@@ -130,7 +130,7 @@ export function ChatScreen() {
     dispatch({ type: 'SET_IS_RESPONDING', value: true });
 
     try {
-      await invoke('send_message', { message });
+      await sendMessage(message);
     } catch (err) {
       dispatch({ type: 'SET_IS_RESPONDING', value: false });
       dispatch({
@@ -235,10 +235,13 @@ export function ChatScreen() {
 
       {/* Input */}
       <div className="px-6 pb-6">
-        <ChatInput
+        <AgentInput
           onSend={handleSend}
-          onAttach={handleAttach}
-          disabled={state.isResponding}
+          thinking={state.isResponding}
+          activeDocument={state.documentContext ? {
+            name: state.documentContext.fileName,
+            onDismiss: handleClearDocument,
+          } : null}
           placeholder={`Message ${name}...`}
         />
       </div>

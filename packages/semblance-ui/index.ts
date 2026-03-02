@@ -43,10 +43,13 @@ export { ApprovalCard } from './components/ApprovalCard/index.js';
 export { BriefingCard } from './components/BriefingCard/index.js';
 export { ActionLogItem } from './components/ActionLogItem/index.js';
 export { AgentInput } from './components/AgentInput/index.js';
-export { DesktopSidebar } from './components/Nav/DesktopSidebar.js';
+export { DesktopSidebar } from './components/Nav/DesktopSidebar';
+export type { DesktopSidebarProps } from './components/Nav/DesktopSidebar.types';
+export type { NavItem as SidebarNavItem } from './components/Nav/DesktopSidebar.types';
 export { MobileTabBar } from './components/Nav/MobileTabBar.js';
 export { KnowledgeGraph } from './components/KnowledgeGraph/index.js';
 export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
+export type { PrivacyDashboardProps, NetworkEntry, AuditEntry } from './components/PrivacyDashboard/index.js';
 export { WireframeSpinner } from './components/WireframeSpinner/index.js';
 
 // Connectors
@@ -71,3 +74,7 @@ export { FeatureGate } from './components/FeatureGate/index.js';
 export { UpgradeScreen } from './components/UpgradeScreen/index.js';
 export { LicenseActivation } from './components/LicenseActivation/index.js';
 export { FoundingMemberBadge } from './components/FoundingMemberBadge/index.js';
+
+// Onboarding Pages
+export { SplashScreen, HardwareDetection, DataSourcesStep, AutonomyTier as AutonomyTierStep, NamingMoment, NamingYourAI, InitializeStep } from './pages/Onboarding/index.js';
+export type { SplashScreenProps, HardwareDetectionProps, HardwareInfo, DataSourcesStepProps, AutonomyTierProps, NamingMomentProps, NamingYourAIProps, InitializeStepProps, ModelDownload, KnowledgeMomentData } from './pages/Onboarding/index.js';

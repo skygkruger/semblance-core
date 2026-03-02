@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-
-interface TrustStatus {
-  clean: boolean;
-  unauthorizedCount: number;
-  activeServiceCount: number;
-}
+import { getNetworkTrustStatus } from '../ipc/commands';
+import type { TrustStatus } from '../ipc/types';
 
 /**
  * Persistent Network Status Indicator
@@ -23,7 +18,7 @@ export function NetworkStatusIndicator({ onClick }: { onClick: () => void }) {
 
   const loadStatus = useCallback(async () => {
     try {
-      const result = await invoke<TrustStatus>('get_network_trust_status');
+      const result = await getNetworkTrustStatus();
       setStatus(result);
     } catch {
       // Sidecar not wired yet — default to clean

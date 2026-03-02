@@ -1,17 +1,7 @@
 import { useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Button, Card } from '@semblance/ui';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-interface ImportResult {
-  transactionCount: number;
-  merchantCount: number;
-  dateRange: { start: string; end: string };
-  recurringCount: number;
-  forgottenCount: number;
-  potentialSavings: number;
-}
+import { importStatement } from '../ipc/commands';
+import type { ImportStatementResult } from '../ipc/types';
 
 interface StatementImportDialogProps {
   onClose: () => void;
@@ -24,7 +14,7 @@ type ImportPhase = 'select' | 'parsing' | 'results' | 'error';
 
 export function StatementImportDialog({ onClose, onImportComplete }: StatementImportDialogProps) {
   const [phase, setPhase] = useState<ImportPhase>('select');
-  const [result, setResult] = useState<ImportResult | null>(null);
+  const [result, setResult] = useState<ImportStatementResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSelectFile = async () => {
@@ -41,7 +31,7 @@ export function StatementImportDialog({ onClose, onImportComplete }: StatementIm
 
       setPhase('parsing');
 
-      const importResult = await invoke<ImportResult>('import_statement', { filePath: selected });
+      const importResult = await importStatement(selected);
       setResult(importResult);
       setPhase('results');
     } catch (err) {
