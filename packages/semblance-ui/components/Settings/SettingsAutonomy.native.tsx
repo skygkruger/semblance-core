@@ -1,10 +1,11 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { BackArrow, GuardianIcon, PartnerIcon, AlterEgoIcon } from './SettingsIcons';
 import type { Tier, SettingsAutonomyProps } from './SettingsAutonomy.types';
 import { tiers, tierLabels, domains, reviewLabels } from './SettingsAutonomy.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
+import { useFeatureAuth } from '../../hooks/useFeatureAuth';
 
 const tierIcons: Record<Tier, ReactNode> = {
   guardian: <GuardianIcon />,
@@ -35,7 +36,22 @@ export function SettingsAutonomy({
 }: SettingsAutonomyProps) {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation();
+  const { requireAuth } = useFeatureAuth();
+  const [authPending, setAuthPending] = useState(false);
   const isGuardian = currentTier === 'guardian';
+
+  async function handleTierChange(tier: Tier) {
+    if (tier === 'alter-ego') {
+      setAuthPending(true);
+      try {
+        const result = await requireAuth('alter_ego_activation');
+        if (!result.success) return;
+      } finally {
+        setAuthPending(false);
+      }
+    }
+    onChange('currentTier', tier);
+  }
 
   return (
     <View style={styles.screen}>
@@ -55,7 +71,8 @@ export function SettingsAutonomy({
               <Pressable
                 key={tier.id}
                 style={[styles.tierCard, isActive && styles.tierCardActive]}
-                onPress={() => onChange('currentTier', tier.id)}
+                onPress={() => handleTierChange(tier.id)}
+                disabled={authPending}
                 accessibilityRole="button"
               >
                 <View style={[styles.tierCardIcon, isActive && styles.tierCardIconActive]}>

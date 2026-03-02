@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Button } from '../Button/Button';
 import type { LicenseActivationProps } from './LicenseActivation.types';
+import { useFeatureAuth } from '../../hooks/useFeatureAuth';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivationProps) {
   const { t } = useTranslation();
+  const { requireAuth } = useFeatureAuth();
   const [key, setKey] = useState('');
   const [status, setStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -14,6 +16,10 @@ export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivati
   const handleSubmit = async () => {
     const trimmed = key.trim();
     if (!trimmed) return;
+
+    // Require biometric authentication before activating Digital Representative
+    const authResult = await requireAuth('digital_representative_activation');
+    if (!authResult.success) return;
 
     setStatus('validating');
     setErrorMessage('');

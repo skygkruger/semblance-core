@@ -5,6 +5,7 @@ import { DesktopSidebar, PrivacyBadge, ThemeToggle } from '@semblance/ui';
 import type { NavItem, ThemeMode } from '@semblance/ui';
 import { AppStateProvider, useAppState, useAppDispatch } from './state/AppState';
 import { LicenseProvider, useLicense } from './contexts/LicenseContext';
+import { BiometricGate } from './auth/BiometricGate';
 import { useTheme } from './hooks/useTheme';
 import { OnboardingFlow } from './screens/OnboardingFlow';
 import { ChatScreen } from './screens/ChatScreen';
@@ -267,7 +268,9 @@ export function App() {
   return (
     <AppStateProvider>
       <LicenseProvider>
-        <AppContent />
+        <BiometricGate>
+          <AppContent />
+        </BiometricGate>
       </LicenseProvider>
     </AppStateProvider>
   );

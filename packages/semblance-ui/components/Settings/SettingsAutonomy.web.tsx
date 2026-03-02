@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import './Settings.css';
 import { BackArrow, GuardianIcon, PartnerIcon, AlterEgoIcon } from './SettingsIcons';
 import type { Tier, SettingsAutonomyProps } from './SettingsAutonomy.types';
 import { tiers, tierLabels, domains, reviewLabels } from './SettingsAutonomy.types';
+import { useFeatureAuth } from '../../hooks/useFeatureAuth';
 
 const tierIcons: Record<Tier, ReactNode> = {
   guardian: <GuardianIcon />,
@@ -34,7 +35,22 @@ export function SettingsAutonomy({
   onBack,
 }: SettingsAutonomyProps) {
   const { t } = useTranslation('settings');
+  const { requireAuth } = useFeatureAuth();
+  const [authPending, setAuthPending] = useState(false);
   const isGuardian = currentTier === 'guardian';
+
+  async function handleTierChange(tier: Tier) {
+    if (tier === 'alter-ego') {
+      setAuthPending(true);
+      try {
+        const result = await requireAuth('alter_ego_activation');
+        if (!result.success) return; // user cancelled or failed — revert
+      } finally {
+        setAuthPending(false);
+      }
+    }
+    onChange('currentTier', tier);
+  }
 
   return (
     <div className="settings-screen">
@@ -55,7 +71,8 @@ export function SettingsAutonomy({
                 key={tier.id}
                 type="button"
                 className={`settings-tier-card ${isActive ? 'settings-tier-card--active' : ''}`}
-                onClick={() => onChange('currentTier', tier.id)}
+                onClick={() => handleTierChange(tier.id)}
+                disabled={authPending}
               >
                 <span className="settings-tier-card__icon">{tierIcons[tier.id]}</span>
                 <div className="settings-tier-card__body">

@@ -14,6 +14,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from './theme/tokens.js';
 import { OnboardingFlow } from './screens/OnboardingFlow.js';
 import { MainTabNavigator } from './navigation/TabNavigator.js';
+import { BiometricGate } from './auth/BiometricGate.js';
 import './i18n/config.js';
 
 type RootStackParams = {
@@ -59,9 +60,11 @@ export function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor={colors.bgDark} />
-      <NavigationContainer theme={navTheme}>
-        <RootNavigator />
-      </NavigationContainer>
+      <BiometricGate>
+        <NavigationContainer theme={navTheme}>
+          <RootNavigator />
+        </NavigationContainer>
+      </BiometricGate>
     </SafeAreaProvider>
   );
 }

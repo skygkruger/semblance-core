@@ -1,12 +1,35 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PrivacyDashboard } from '@semblance/ui';
+import { useNavigate } from 'react-router-dom';
+import { PrivacyDashboard, useFeatureAuth } from '@semblance/ui';
 import type { NetworkEntry, AuditEntry } from '@semblance/ui';
 import { useAppState } from '../state/AppState';
 
 export function PrivacyScreen() {
   const { t } = useTranslation();
   const state = useAppState();
+  const navigate = useNavigate();
+  const { requireAuth } = useFeatureAuth();
+  const [authorized, setAuthorized] = useState(false);
   const { privacyStatus, knowledgeStats } = state;
+
+  useEffect(() => {
+    let cancelled = false;
+    requireAuth('privacy_dashboard').then((result) => {
+      if (cancelled) return;
+      if (result.success) {
+        setAuthorized(true);
+      } else {
+        navigate('/chat', { replace: true });
+      }
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!authorized) {
+    return null;
+  }
 
   const networkEntries: NetworkEntry[] = [
     {
