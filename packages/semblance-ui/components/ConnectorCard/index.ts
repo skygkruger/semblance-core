@@ -1,2 +1,2 @@
-export { ConnectorCard } from './ConnectorCard.js';
-export type { ConnectorCardProps, ConnectorCardStatus } from './ConnectorCard.js';
+export { ConnectorCard } from './ConnectorCard';
+export type { ConnectorCardProps, ConnectorCardStatus } from './ConnectorCard.types';

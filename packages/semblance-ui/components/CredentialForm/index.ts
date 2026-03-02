@@ -1,2 +1,2 @@
-export { CredentialForm } from './CredentialForm.js';
-export type { CredentialFormData, ProviderPreset } from './CredentialForm.js';
+export { CredentialForm } from './CredentialForm';
+export type { CredentialFormData, ProviderPreset } from './CredentialForm.types';

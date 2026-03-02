@@ -1,1 +1,2 @@
-export { ActionCard } from './ActionCard.js';
+export { ActionCard } from './ActionCard';
+export type { ActionCardProps } from './ActionCard.types';

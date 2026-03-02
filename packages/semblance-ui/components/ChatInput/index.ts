@@ -1,1 +1,2 @@
-export { ChatInput } from './ChatInput.js';
+export { ChatInput } from './ChatInput';
+export type { ChatInputProps } from './ChatInput.types';

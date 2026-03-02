@@ -1,2 +1,2 @@
 export { ConnectionsScreen } from './ConnectionsScreen';
-export type { ConnectionsScreenProps, ConnectorEntry, ConnectorCategory } from './ConnectionsScreen';
+export type { ConnectionsScreenProps, ConnectorEntry, ConnectorCategory } from './ConnectionsScreen.types';
