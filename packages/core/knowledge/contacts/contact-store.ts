@@ -304,10 +304,21 @@ export class ContactStore {
     sortBy?: 'display_name' | 'last_contact_date' | 'interaction_count';
     sortOrder?: 'ASC' | 'DESC';
   }): ContactEntity[] {
+    // SECURITY: Runtime allowlist for SQL identifiers — never rely solely on TypeScript types
+    const ALLOWED_SORT_COLUMNS = new Set(['display_name', 'last_contact_date', 'interaction_count']);
+    const ALLOWED_SORT_ORDERS = new Set(['ASC', 'DESC']);
+
     const sortBy = options?.sortBy ?? 'display_name';
     const sortOrder = options?.sortOrder ?? 'ASC';
     const limit = options?.limit ?? 100;
     const offset = options?.offset ?? 0;
+
+    if (!ALLOWED_SORT_COLUMNS.has(sortBy)) {
+      throw new Error(`Invalid sort column: ${sortBy}`);
+    }
+    if (!ALLOWED_SORT_ORDERS.has(sortOrder)) {
+      throw new Error(`Invalid sort order: ${sortOrder}`);
+    }
 
     const rows = this.db.prepare(
       `SELECT * FROM contacts ORDER BY ${sortBy} ${sortOrder} LIMIT ? OFFSET ?`
