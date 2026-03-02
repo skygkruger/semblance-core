@@ -45,6 +45,14 @@ import type {
   CloudFolder,
   SearchSettings,
   SaveSearchSettingsParams,
+  ConversationSummary,
+  ConversationTurn,
+  SwitchConversationResult,
+  ConversationDeleteResult,
+  ConversationClearResult,
+  ConversationSearchResult,
+  ConversationSettings,
+  SendMessageResult,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -101,8 +109,8 @@ export function getAccountsStatus(): Promise<AccountStatus[]> {
 
 // ─── Chat / LLM ────────────────────────────────────────────────────────────
 
-export function sendMessage(message: string): Promise<void> {
-  return invoke<void>('send_message', { message });
+export function sendMessage(message: string, conversationId?: string): Promise<SendMessageResult> {
+  return invoke<SendMessageResult>('send_message', { message, conversationId });
 }
 
 export function documentPickFile(): Promise<string | null> {
@@ -347,6 +355,62 @@ export function saveSearchSettings(params: SaveSearchSettingsParams): Promise<vo
 
 export function testBraveApiKey(apiKey: string): Promise<TestCredentialResult> {
   return invoke<TestCredentialResult>('test_brave_api_key', { apiKey });
+}
+
+// ─── Conversation Management ──────────────────────────────────────────────
+
+export function listConversations(opts?: {
+  limit?: number;
+  offset?: number;
+  pinnedOnly?: boolean;
+  search?: string;
+}): Promise<ConversationSummary[]> {
+  return invoke<ConversationSummary[]>('list_conversations', {
+    limit: opts?.limit,
+    offset: opts?.offset,
+    pinnedOnly: opts?.pinnedOnly,
+    search: opts?.search,
+  });
+}
+
+export function getConversation(id: string): Promise<ConversationSummary & { turns: ConversationTurn[] }> {
+  return invoke<ConversationSummary & { turns: ConversationTurn[] }>('get_conversation', { id });
+}
+
+export function createConversation(firstMessage?: string): Promise<ConversationSummary> {
+  return invoke<ConversationSummary>('create_conversation', { firstMessage });
+}
+
+export function deleteConversation(id: string): Promise<ConversationDeleteResult> {
+  return invoke<ConversationDeleteResult>('delete_conversation', { id });
+}
+
+export function renameConversation(id: string, title: string): Promise<ConversationDeleteResult> {
+  return invoke<ConversationDeleteResult>('rename_conversation', { id, title });
+}
+
+export function pinConversation(id: string): Promise<ConversationDeleteResult> {
+  return invoke<ConversationDeleteResult>('pin_conversation', { id });
+}
+
+export function unpinConversation(id: string): Promise<ConversationDeleteResult> {
+  return invoke<ConversationDeleteResult>('unpin_conversation', { id });
+}
+
+export function switchConversation(id: string, limit?: number): Promise<SwitchConversationResult> {
+  return invoke<SwitchConversationResult>('switch_conversation', { id, limit });
+}
+
+export function searchConversations(query: string, limit?: number): Promise<ConversationSearchResult[]> {
+  return invoke<ConversationSearchResult[]>('search_conversations', { query, limit });
+}
+
+export function clearAllConversations(preservePinned?: boolean): Promise<ConversationClearResult> {
+  return invoke<ConversationClearResult>('clear_all_conversations', { preservePinned });
+}
+
+export function setConversationAutoExpiry(days: number | null): Promise<void> {
+  return invoke<void>('set_conversation_auto_expiry', { days });
 }
 
 // ─── Files / Indexing ───────────────────────────────────────────────────────

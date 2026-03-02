@@ -71,6 +71,10 @@ import { ClipboardPatternRecognizer } from '../../../core/agent/clipboard/patter
 import { sanitizeForAuditTrail } from '../../../core/agent/clipboard/clipboard-privacy.js';
 import type { MessagingAdapter } from '../../../core/platform/messaging-types.js';
 
+// Conversation management imports
+import { ConversationManager } from '../../../core/agent/conversation-manager.js';
+import { ConversationIndexer } from '../../../core/agent/conversation-indexer.js';
+
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
 function emit(event: string, data: unknown): void {
@@ -156,6 +160,10 @@ let contactStore: ContactStore | null = null;
 let relationshipAnalyzer: RelationshipAnalyzer | null = null;
 let birthdayTracker: BirthdayTracker | null = null;
 let contactFrequencyMonitor: ContactFrequencyMonitor | null = null;
+
+// Conversation management state
+let conversationManager: ConversationManager | null = null;
+let conversationIndexer: ConversationIndexer | null = null;
 
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
@@ -247,6 +255,16 @@ async function handleInitialize(): Promise<unknown> {
   premiumGate = new PremiumGate(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
   console.error('[sidecar] PremiumGate initialized');
 
+  // Initialize Conversation Manager (idempotent schema migration)
+  conversationManager = new ConversationManager(prefsDb);
+  conversationManager.migrate();
+  const prunedCount = conversationManager.pruneExpired();
+  if (prunedCount > 0) console.error(`[sidecar] Pruned ${prunedCount} expired conversations`);
+
+  // Initialize Conversation Indexer (indexes turns into knowledge graph)
+  conversationIndexer = new ConversationIndexer({ db: prefsDb, knowledge: core.knowledge });
+  console.error('[sidecar] ConversationManager + ConversationIndexer initialized');
+
   // Initialize credential store in Gateway's database
   const gatewayDataDir = join(homedir(), '.semblance', 'gateway');
   if (!existsSync(gatewayDataDir)) mkdirSync(gatewayDataDir, { recursive: true });
@@ -285,7 +303,7 @@ async function handleInitialize(): Promise<unknown> {
 
 async function handleSendMessage(
   id: number | string,
-  params: { message: string },
+  params: { message: string; conversation_id?: string },
 ): Promise<void> {
   if (!core) {
     respondError(id, 'Core not initialized');
@@ -300,8 +318,24 @@ async function handleSendMessage(
   }
 
   const responseId = `msg_${Date.now()}`;
+
+  // Use provided conversation_id or create a new one via ConversationManager
+  let convId: string;
+  if (params.conversation_id) {
+    convId = params.conversation_id;
+    currentConversationId = convId;
+  } else if (currentConversationId) {
+    convId = currentConversationId;
+  } else if (conversationManager) {
+    const conv = conversationManager.create(params.message);
+    convId = conv.id;
+    currentConversationId = convId;
+  } else {
+    convId = ensureConversation();
+  }
+
   // Return response ID immediately so frontend can start showing the streaming bubble
-  respond(id, responseId);
+  respond(id, { responseId, conversationId: convId });
 
   // Streaming happens asynchronously
   try {
@@ -347,9 +381,27 @@ async function handleSendMessage(
     emit('chat-complete', { id: responseId, content: fullResponse, actions: [] });
 
     // Step 6: Persist conversation turns
-    const convId = ensureConversation();
+    const userTurnId = nanoid();
+    const assistantTurnId = nanoid();
     storeTurn(convId, 'user', params.message);
     storeTurn(convId, 'assistant', fullResponse);
+
+    // Step 7: Update conversation metadata via ConversationManager
+    if (conversationManager) {
+      conversationManager.updateAfterTurn(convId, params.message, 'user');
+      conversationManager.updateAfterTurn(convId, fullResponse, 'assistant');
+    }
+
+    // Step 8: Async, non-blocking semantic indexing of assistant response
+    if (conversationIndexer) {
+      conversationIndexer.indexTurn({
+        conversationId: convId,
+        turnId: assistantTurnId,
+        role: 'assistant',
+        content: fullResponse,
+        timestamp: new Date().toISOString(),
+      }).catch(err => console.error('[sidecar] Conversation indexing error:', err));
+    }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     emit('chat-token', `\n\nError: ${errMsg}`);
@@ -1713,7 +1765,7 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'send_message':
         // send_message responds and emits events internally
-        await handleSendMessage(id, params as { message: string });
+        await handleSendMessage(id, params as { message: string; conversation_id?: string });
         break;
 
       case 'get_ollama_status':
@@ -2206,6 +2258,129 @@ async function handleRequest(req: Request): Promise<void> {
         respond(id, result);
         break;
       }
+
+      // ── Conversation Management ──
+
+      case 'list_conversations':
+        if (!conversationManager) { respondError(id, 'ConversationManager not initialized'); break; }
+        result = conversationManager.list(params as { limit?: number; offset?: number; pinnedOnly?: boolean; search?: string });
+        respond(id, result);
+        break;
+
+      case 'get_conversation':
+        if (!conversationManager) { respondError(id, 'ConversationManager not initialized'); break; }
+        result = conversationManager.get((params as { id: string }).id);
+        respond(id, result);
+        break;
+
+      case 'create_conversation': {
+        if (!conversationManager) { respondError(id, 'ConversationManager not initialized'); break; }
+        const newConv = conversationManager.create((params as { first_message?: string }).first_message);
+        currentConversationId = newConv.id;
+        result = newConv;
+        respond(id, result);
+        break;
+      }
+
+      case 'delete_conversation': {
+        const delId = (params as { id: string }).id;
+        if (conversationIndexer) {
+          await conversationIndexer.removeConversation(delId);
+        }
+        if (conversationManager) {
+          conversationManager.delete(delId);
+        }
+        if (currentConversationId === delId) {
+          currentConversationId = null;
+        }
+        result = { success: true };
+        respond(id, result);
+        break;
+      }
+
+      case 'rename_conversation':
+        if (!conversationManager) { respondError(id, 'ConversationManager not initialized'); break; }
+        conversationManager.rename((params as { id: string; title: string }).id, (params as { id: string; title: string }).title);
+        result = { success: true };
+        respond(id, result);
+        break;
+
+      case 'pin_conversation':
+        if (!conversationManager) { respondError(id, 'ConversationManager not initialized'); break; }
+        conversationManager.pin((params as { id: string }).id);
+        result = { success: true };
+        respond(id, result);
+        break;
+
+      case 'unpin_conversation':
+        if (!conversationManager) { respondError(id, 'ConversationManager not initialized'); break; }
+        conversationManager.unpin((params as { id: string }).id);
+        result = { success: true };
+        respond(id, result);
+        break;
+
+      case 'switch_conversation': {
+        if (!conversationManager) { respondError(id, 'ConversationManager not initialized'); break; }
+        const switchId = (params as { id: string; limit?: number }).id;
+        const turnLimit = (params as { id: string; limit?: number }).limit ?? 100;
+        currentConversationId = switchId;
+        const turns = conversationManager.getTurns(switchId, turnLimit);
+        result = { conversationId: switchId, turns };
+        respond(id, result);
+        break;
+      }
+
+      case 'search_conversations': {
+        const searchQuery = (params as { query: string; limit?: number }).query;
+        const searchLimit = (params as { query: string; limit?: number }).limit ?? 10;
+        // Semantic first via ConversationIndexer, fallback to title search
+        let searchResults: unknown[] = [];
+        if (conversationIndexer) {
+          searchResults = await conversationIndexer.searchConversations(searchQuery, searchLimit);
+        }
+        if (searchResults.length === 0 && conversationManager) {
+          searchResults = conversationManager.searchByTitle(searchQuery, searchLimit);
+        }
+        result = searchResults;
+        respond(id, result);
+        break;
+      }
+
+      case 'clear_all_conversations': {
+        const preservePinned = (params as { preserve_pinned?: boolean }).preserve_pinned ?? true;
+        // Remove from vector store first
+        if (conversationManager && conversationIndexer) {
+          const allConvs = conversationManager.list({ limit: 10000 });
+          for (const conv of allConvs) {
+            if (preservePinned && conv.pinned) continue;
+            await conversationIndexer.removeConversation(conv.id);
+          }
+        }
+        const cleared = conversationManager ? conversationManager.clearAll({ preservePinned }) : 0;
+        currentConversationId = null;
+        result = { cleared };
+        respond(id, result);
+        break;
+      }
+
+      case 'set_conversation_auto_expiry': {
+        const expiryDays = (params as { days: number | null }).days;
+        setPref('conversation_auto_expiry_days', expiryDays === null ? 'null' : String(expiryDays));
+        result = { success: true };
+        respond(id, result);
+        break;
+      }
+
+      case 'get_conversation_settings':
+        result = {
+          autoExpiryDays: (() => {
+            const val = getPref('conversation_auto_expiry_days');
+            if (!val || val === 'null') return null;
+            return parseInt(val, 10);
+          })(),
+        };
+        respond(id, result);
+        break;
 
       // ── Shutdown ──
 

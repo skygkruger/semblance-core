@@ -396,6 +396,61 @@ export interface SaveSearchSettingsParams {
   rateLimit: number;
 }
 
+// ─── Conversation Management ────────────────────────────────────────────────
+
+export interface ConversationSummary {
+  id: string;
+  title: string | null;
+  autoTitle: string | null;
+  createdAt: string;
+  updatedAt: string;
+  pinned: boolean;
+  pinnedAt: string | null;
+  turnCount: number;
+  lastMessagePreview: string | null;
+  expiresAt: string | null;
+}
+
+export interface ConversationTurn {
+  id: string;
+  conversationId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export interface SwitchConversationResult {
+  conversationId: string;
+  turns: ConversationTurn[];
+}
+
+export interface ConversationDeleteResult {
+  success: boolean;
+}
+
+export interface ConversationClearResult {
+  cleared: number;
+}
+
+export interface ConversationSearchResult {
+  conversationId: string;
+  conversationTitle: string;
+  turnId: string;
+  role: 'user' | 'assistant';
+  excerpt: string;
+  score: number;
+  timestamp: string;
+}
+
+export interface ConversationSettings {
+  autoExpiryDays: number | null;
+}
+
+export interface SendMessageResult {
+  responseId: string;
+  conversationId: string;
+}
+
 // ─── Event Payloads ─────────────────────────────────────────────────────────
 
 export interface ChatTokenPayload {
