@@ -56,13 +56,13 @@ describe('OnboardingFlow', () => {
     expect(screen.getByText(/Semblance/i)).toBeInTheDocument();
   });
 
-  it('defines an 8-step sequence via STEP_ORDER (terms added after initialize)', async () => {
-    // The OnboardingFlow uses STEP_ORDER with 8 steps:
-    // splash → hardware → data-sources → autonomy → naming-moment → naming-ai → initialize → terms
+  it('defines a 9-step sequence via STEP_ORDER (intent-capture + terms added)', async () => {
+    // The OnboardingFlow uses STEP_ORDER with 9 steps:
+    // splash → hardware → data-sources → autonomy → intent-capture → naming-moment → naming-ai → initialize → terms
     renderOnboarding();
-    // Step indicator dots: 8 small circles at the bottom
+    // Step indicator dots: 9 small circles at the bottom
     const dots = document.querySelectorAll('.w-2.h-2.rounded-full');
-    expect(dots.length).toBe(8);
+    expect(dots.length).toBe(9);
   });
 
   it('first step indicator is active (veridian color)', () => {

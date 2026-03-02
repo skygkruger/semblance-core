@@ -55,10 +55,10 @@ describe('OnboardingFlow — Terms Step Integration', () => {
     mockOnboardingInvoke();
   });
 
-  it('renders 8 step indicator dots (terms is step 8)', () => {
+  it('renders 9 step indicator dots (intent-capture added, terms is step 9)', () => {
     renderOnboarding();
     const dots = document.querySelectorAll('.w-2.h-2.rounded-full');
-    expect(dots.length).toBe(8);
+    expect(dots.length).toBe(9);
   });
 
   it('starts on splash step (first of 8)', () => {

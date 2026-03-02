@@ -75,6 +75,9 @@ import type { MessagingAdapter } from '../../../core/platform/messaging-types.js
 import { ConversationManager } from '../../../core/agent/conversation-manager.js';
 import { ConversationIndexer } from '../../../core/agent/conversation-indexer.js';
 
+// Intent layer imports
+import { IntentManager } from '../../../core/agent/intent-manager.js';
+
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
 function emit(event: string, data: unknown): void {
@@ -164,6 +167,9 @@ let contactFrequencyMonitor: ContactFrequencyMonitor | null = null;
 // Conversation management state
 let conversationManager: ConversationManager | null = null;
 let conversationIndexer: ConversationIndexer | null = null;
+
+// Intent layer state
+let intentManager: IntentManager | null = null;
 
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
@@ -264,6 +270,22 @@ async function handleInitialize(): Promise<unknown> {
   // Initialize Conversation Indexer (indexes turns into knowledge graph)
   conversationIndexer = new ConversationIndexer({ db: prefsDb, knowledge: core.knowledge });
   console.error('[sidecar] ConversationManager + ConversationIndexer initialized');
+
+  // Initialize IntentManager (idempotent schema migration)
+  const modelName = await core.models.getActiveChatModel();
+  intentManager = new IntentManager({
+    db: prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
+    llm: core.llm,
+    model: modelName ?? undefined,
+  });
+  intentManager.retryParsing().catch((err) =>
+    console.error('[sidecar] IntentManager retryParsing error:', err)
+  );
+  // Wire intent manager into orchestrator for system prompt injection + hard limit enforcement
+  if (core.agent.setIntentManager) {
+    core.agent.setIntentManager(intentManager);
+  }
+  console.error('[sidecar] IntentManager initialized');
 
   // Initialize credential store in Gateway's database
   const gatewayDataDir = join(homedir(), '.semblance', 'gateway');
@@ -2390,6 +2412,95 @@ async function handleRequest(req: Request): Promise<void> {
         // Give time for response to flush before exit
         setTimeout(() => process.exit(0), 100);
         break;
+
+      // ── Intent Layer ──
+
+      case 'get_intent':
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        result = intentManager.getIntent();
+        respond(id, result);
+        break;
+
+      case 'set_primary_goal':
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        intentManager.setPrimaryGoal((params as { text: string }).text);
+        respond(id, { success: true });
+        break;
+
+      case 'add_hard_limit':
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        result = await intentManager.addHardLimit(
+          (params as { rawText: string; source: 'onboarding' | 'settings' | 'chat' }).rawText,
+          (params as { rawText: string; source: 'onboarding' | 'settings' | 'chat' }).source,
+        );
+        respond(id, result);
+        break;
+
+      case 'remove_hard_limit':
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        intentManager.removeHardLimit((params as { id: string }).id);
+        respond(id, { success: true });
+        break;
+
+      case 'toggle_hard_limit':
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        intentManager.toggleHardLimit(
+          (params as { id: string; active: boolean }).id,
+          (params as { id: string; active: boolean }).active,
+        );
+        respond(id, { success: true });
+        break;
+
+      case 'add_personal_value':
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        result = await intentManager.addPersonalValue(
+          (params as { rawText: string; source: 'onboarding' | 'settings' | 'chat' }).rawText,
+          (params as { rawText: string; source: 'onboarding' | 'settings' | 'chat' }).source,
+        );
+        respond(id, result);
+        break;
+
+      case 'remove_personal_value':
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        intentManager.removePersonalValue((params as { id: string }).id);
+        respond(id, { success: true });
+        break;
+
+      case 'get_intent_observations':
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        result = intentManager.getPendingObservations(
+          (params as { channel?: 'morning_brief' | 'chat' }).channel,
+        );
+        respond(id, result);
+        break;
+
+      case 'dismiss_observation':
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        intentManager.dismissObservation(
+          (params as { id: string; userResponse?: string }).id,
+          (params as { id: string; userResponse?: string }).userResponse,
+        );
+        respond(id, { success: true });
+        break;
+
+      case 'check_action_intent':
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        result = intentManager.checkAction(
+          (params as { action: import('../../../core/types/ipc.js').ActionType; context: Record<string, unknown> }).action,
+          (params as { action: import('../../../core/types/ipc.js').ActionType; context: Record<string, unknown> }).context,
+        );
+        respond(id, result);
+        break;
+
+      case 'set_intent_onboarding': {
+        if (!intentManager) throw new Error('IntentManager not initialized');
+        const onb = params as { primaryGoal?: string; hardLimit?: string; personalValue?: string };
+        if (onb.primaryGoal) intentManager.setPrimaryGoal(onb.primaryGoal);
+        if (onb.hardLimit) await intentManager.addHardLimit(onb.hardLimit, 'onboarding');
+        if (onb.personalValue) await intentManager.addPersonalValue(onb.personalValue, 'onboarding');
+        respond(id, { success: true });
+        break;
+      }
 
       default:
         respondError(id, `Unknown method: ${method}`);

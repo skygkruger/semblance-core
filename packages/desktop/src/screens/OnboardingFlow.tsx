@@ -12,6 +12,7 @@ import {
   NamingYourAI,
   InitializeStep,
   TermsAcceptanceStep,
+  IntentCapture,
 } from '@semblance/ui';
 import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier } from '@semblance/ui';
 import { useAppDispatch } from '../state/AppState';
@@ -22,6 +23,7 @@ import {
   startModelDownloads,
   generateKnowledgeMoment,
   setOnboardingComplete,
+  setIntentOnboarding,
 } from '../ipc/commands';
 import type { HardwareDisplayInfo, KnowledgeMoment } from '../ipc/types';
 
@@ -30,6 +32,7 @@ type OnboardingStep =
   | 'hardware'
   | 'data-sources'
   | 'autonomy'
+  | 'intent-capture'
   | 'naming-moment'
   | 'naming-ai'
   | 'initialize'
@@ -40,6 +43,7 @@ const STEP_ORDER: OnboardingStep[] = [
   'hardware',
   'data-sources',
   'autonomy',
+  'intent-capture',
   'naming-moment',
   'naming-ai',
   'initialize',
@@ -180,6 +184,16 @@ export function OnboardingFlow() {
     goNext();
   }, [autonomy, dispatch, goNext]);
 
+  // Handle intent capture
+  const handleIntentCapture = useCallback(async (responses: { primaryGoal: string; hardLimit: string; personalValue: string }) => {
+    await setIntentOnboarding({
+      primaryGoal: responses.primaryGoal || undefined,
+      hardLimit: responses.hardLimit || undefined,
+      personalValue: responses.personalValue || undefined,
+    }).catch(() => {});
+    goNext();
+  }, [goNext]);
+
   // Handle final completion
   const handleComplete = useCallback(async () => {
     try {
@@ -220,6 +234,10 @@ export function OnboardingFlow() {
           onChange={setAutonomy}
           onContinue={handleAutonomyContinue}
         />
+      )}
+
+      {step === 'intent-capture' && (
+        <IntentCapture onComplete={handleIntentCapture} onSkip={goNext} />
       )}
 
       {step === 'naming-moment' && (

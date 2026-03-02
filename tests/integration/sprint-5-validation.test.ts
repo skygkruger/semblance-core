@@ -56,8 +56,8 @@ describe('Step 33 — Sprint 5 (Sovereignty + Trust) Validation', () => {
   describe('Morning Brief', () => {
     it('section priorities are ordered: meetings first, insights last', () => {
       expect(MORNING_BRIEF).toContain('meetings: 1');
-      expect(MORNING_BRIEF).toContain('insights: 6');
-      // meetings < insights in priority number
+      expect(MORNING_BRIEF).toContain('insights: 7');
+      // meetings < insights in priority number (intent_alignment is priority 4)
     });
 
     it('template omits empty sections from brief', () => {

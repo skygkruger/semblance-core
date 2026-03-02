@@ -14,6 +14,9 @@ import type { RecurringCharge } from '../finance/recurring-detector.js';
 import type { LLMProvider, GenerateRequest } from '../llm/types.js';
 import type { ContactStore } from '../knowledge/contacts/contact-store.js';
 import type { WeatherConditions, HourlyForecast } from '../platform/weather-types.js';
+import type { IntentManager } from './intent-manager.js';
+import type { IntentDriftAnalyzerConfig } from './intent-drift-analyzer.js';
+import { IntentDriftAnalyzer } from './intent-drift-analyzer.js';
 import { nanoid } from 'nanoid';
 import { sanitizeRetrievedContent, INJECTION_CANARY } from './content-sanitizer.js';
 
@@ -30,7 +33,7 @@ export interface MorningBrief {
 }
 
 export interface BriefSection {
-  type: 'meetings' | 'follow_ups' | 'reminders' | 'weather' | 'financial' | 'insights';
+  type: 'meetings' | 'follow_ups' | 'reminders' | 'weather' | 'financial' | 'insights' | 'intent_alignment';
   title: string;
   items: BriefItem[];
   priority: number; // lower = higher priority
@@ -79,6 +82,7 @@ export interface MorningBriefDeps {
   recurringDetector?: RecurringDetectorLike;
   proactiveEngine?: ProactiveEngine;
   semanticSearch?: SemanticSearchLike;
+  intentManager?: IntentManager;
   llm?: LLMProvider;
   model?: string;
 }
@@ -103,9 +107,10 @@ const SECTION_PRIORITIES: Record<BriefSection['type'], number> = {
   meetings: 1,
   reminders: 2,
   follow_ups: 3,
-  weather: 4,
-  financial: 5,
-  insights: 6,
+  intent_alignment: 4,
+  weather: 5,
+  financial: 6,
+  insights: 7,
 };
 
 // ─── Generator ──────────────────────────────────────────────────────────────
@@ -120,6 +125,7 @@ export class MorningBriefGenerator {
   private recurringDetector?: RecurringDetectorLike;
   private proactiveEngine?: ProactiveEngine;
   private semanticSearch?: SemanticSearchLike;
+  private intentManager?: IntentManager;
   private llm?: LLMProvider;
   private model?: string;
 
@@ -133,6 +139,7 @@ export class MorningBriefGenerator {
     this.recurringDetector = deps.recurringDetector;
     this.proactiveEngine = deps.proactiveEngine;
     this.semanticSearch = deps.semanticSearch;
+    this.intentManager = deps.intentManager;
     this.llm = deps.llm;
     this.model = deps.model;
     this.db.exec(CREATE_TABLES);
@@ -170,6 +177,9 @@ export class MorningBriefGenerator {
 
     const insightsSection = this.gatherInsights();
     if (insightsSection.items.length > 0) sections.push(insightsSection);
+
+    const intentSection = await this.gatherIntentAlignment();
+    if (intentSection.items.length > 0) sections.push(intentSection);
 
     // Sort sections by priority
     sections.sort((a, b) => a.priority - b.priority);
@@ -466,6 +476,71 @@ export class MorningBriefGenerator {
     };
   }
 
+  /**
+   * Gather intent alignment observations.
+   * Max 1 drift item per brief. Marks observation as surfaced.
+   */
+  async gatherIntentAlignment(): Promise<BriefSection> {
+    const items: BriefItem[] = [];
+
+    if (!this.intentManager) {
+      return { type: 'intent_alignment', title: 'Alignment', items, priority: SECTION_PRIORITIES.intent_alignment };
+    }
+
+    try {
+      // First, check for pending drift observations already recorded
+      const pending = this.intentManager.getPendingObservations('morning_brief');
+
+      // If LLM available, also try to generate fresh observations via drift analyzer
+      if (this.llm && this.model && pending.length === 0) {
+        const analyzer = new IntentDriftAnalyzer({
+          db: this.db,
+          intentManager: this.intentManager,
+          llm: this.llm,
+          model: this.model,
+        });
+        const freshObs = await analyzer.analyzeBehaviorPatterns();
+        for (const obs of freshObs) {
+          this.intentManager.recordObservation(obs);
+        }
+        // Re-fetch after recording
+        const updated = this.intentManager.getPendingObservations('morning_brief');
+        pending.push(...updated);
+      }
+
+      // Max 1 drift observation per brief
+      const driftObs = pending.find(o => o.type === 'drift');
+      const obs = driftObs ?? pending[0];
+
+      if (obs) {
+        items.push({
+          id: obs.id,
+          text: obs.description,
+          context: obs.type === 'drift'
+            ? 'Gentle observation — your recent patterns may not match your stated values.'
+            : obs.type === 'conflict'
+              ? 'Potential conflict between your stated values and recent activity.'
+              : 'Your recent activity aligns with your stated goals.',
+          actionable: obs.type === 'drift' || obs.type === 'conflict',
+          suggestedAction: obs.type !== 'alignment' ? 'Review your intent settings' : undefined,
+          source: 'intent_drift',
+        });
+
+        // Mark as surfaced in morning brief
+        this.intentManager.markSurfacedMorningBrief(obs.id);
+      }
+    } catch {
+      // Intent system may not be initialized
+    }
+
+    return {
+      type: 'intent_alignment',
+      title: 'Alignment',
+      items,
+      priority: SECTION_PRIORITIES.intent_alignment,
+    };
+  }
+
   // ─── LLM Synthesis ──────────────────────────────────────────────────────
 
   async synthesizeSummary(sections: BriefSection[]): Promise<string> {
@@ -550,6 +625,9 @@ ${INJECTION_CANARY}`;
           break;
         case 'insights':
           parts.push(`${section.items.length} insight${section.items.length !== 1 ? 's' : ''}`);
+          break;
+        case 'intent_alignment':
+          parts.push(`${section.items.length} alignment observation${section.items.length !== 1 ? 's' : ''}`);
           break;
       }
     }
