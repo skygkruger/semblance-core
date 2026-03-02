@@ -101,6 +101,7 @@ export class IMAPAdapter {
       host: credential.host,
       port: credential.port,
       secure: credential.useTLS,
+      tls: { rejectUnauthorized: true },
       auth: {
         user: credential.username,
         pass: password,
@@ -256,6 +257,7 @@ export class IMAPAdapter {
       host: credential.host,
       port: credential.port,
       secure: credential.useTLS,
+      tls: { rejectUnauthorized: true },
       auth: {
         user: credential.username,
         pass: password,
