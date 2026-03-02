@@ -98,6 +98,9 @@ export interface CryptoAdapter {
 
   /** AES-256-GCM decrypt. keyHex is a 64-char hex string (32 bytes). */
   decrypt(payload: EncryptedPayload, keyHex: string): Promise<string>;
+
+  /** Constant-time comparison of two buffers. Prevents timing side-channel attacks. */
+  timingSafeEqual(a: Buffer, b: Buffer): boolean;
 }
 
 /**

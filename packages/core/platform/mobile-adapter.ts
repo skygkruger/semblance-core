@@ -105,6 +105,7 @@ const stubCrypto: CryptoAdapter = {
   generateEncryptionKey: () => notConfigured('Crypto'),
   encrypt: () => notConfigured('Crypto'),
   decrypt: () => notConfigured('Crypto'),
+  timingSafeEqual: () => notConfigured('Crypto'),
 };
 
 const stubSqlite: SQLiteAdapter = {
