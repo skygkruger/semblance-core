@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   FlatList,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../theme/tokens.js';
 
 export interface CaptureEntry {
@@ -27,6 +28,7 @@ interface CaptureScreenProps {
 }
 
 export function CaptureScreen({ captures = [], onSubmit }: CaptureScreenProps) {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
 
   const handleSubmit = useCallback(() => {
@@ -39,12 +41,12 @@ export function CaptureScreen({ captures = [], onSubmit }: CaptureScreenProps) {
   return (
     <View style={styles.container}>
       <View style={styles.inputSection}>
-        <Text style={styles.label}>Quick Capture</Text>
+        <Text style={styles.label}>{t('screen.capture.title')}</Text>
         <TextInput
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="Capture a thought, note, or reminder..."
+          placeholder={t('placeholder.capture_thought')}
           placeholderTextColor={colors.textTertiary}
           multiline
           autoFocus={false}
@@ -55,14 +57,14 @@ export function CaptureScreen({ captures = [], onSubmit }: CaptureScreenProps) {
           onPress={handleSubmit}
           disabled={!text.trim()}
           accessibilityRole="button"
-          accessibilityLabel="Save capture"
+          accessibilityLabel={t('a11y.save_capture')}
         >
-          <Text style={styles.submitButtonText}>Capture</Text>
+          <Text style={styles.submitButtonText}>{t('button.capture')}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.recentSection}>
-        <Text style={styles.sectionTitle}>Recent</Text>
+        <Text style={styles.sectionTitle}>{t('screen.capture.section_recent')}</Text>
         <FlatList
           data={captures}
           keyExtractor={item => item.id}
@@ -72,7 +74,7 @@ export function CaptureScreen({ captures = [], onSubmit }: CaptureScreenProps) {
               <View style={styles.captureFooter}>
                 <Text style={styles.captureTime}>{item.timestamp}</Text>
                 {item.hasReminder && (
-                  <Text style={styles.reminderBadge}>Reminder</Text>
+                  <Text style={styles.reminderBadge}>{t('screen.capture.reminder_badge')}</Text>
                 )}
                 {item.linkedContext && (
                   <Text style={styles.contextLink}>{item.linkedContext}</Text>
@@ -81,7 +83,7 @@ export function CaptureScreen({ captures = [], onSubmit }: CaptureScreenProps) {
             </View>
           )}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No captures yet. Start typing above.</Text>
+            <Text style={styles.emptyText}>{t('screen.capture.empty')}</Text>
           }
         />
       </View>

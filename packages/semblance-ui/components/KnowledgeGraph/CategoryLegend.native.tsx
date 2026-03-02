@@ -1,4 +1,5 @@
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { KnowledgeNode, CategoryLegendItem } from './graph-types';
 
 interface CategoryLegendProps {
@@ -22,6 +23,7 @@ export function deriveLegendCategories(nodes: KnowledgeNode[]): CategoryLegendIt
 }
 
 export function CategoryLegend({ categories, onCategoryClick, compact }: CategoryLegendProps) {
+  const { t } = useTranslation();
   if (categories.length === 0) return null;
 
   // Compact mode: horizontal dot row at bottom (mobile)
@@ -56,7 +58,7 @@ export function CategoryLegend({ categories, onCategoryClick, compact }: Categor
   // Full card mode (desktop-like, but used on tablet)
   return (
     <View style={styles.cardContainer}>
-      <Text style={styles.cardTitle}>Your Life Data</Text>
+      <Text style={styles.cardTitle}>{t('screen.knowledge_graph.your_life_data')}</Text>
       <ScrollView showsVerticalScrollIndicator={false}>
         {categories.map(cat => {
           const isLocked = cat.nodeCount === 0;

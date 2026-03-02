@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Card, Button } from '@semblance/ui';
 import { listContacts, getContactStats, getUpcomingBirthdays, getContact, searchContacts } from '../ipc/commands';
 
@@ -89,21 +91,22 @@ function FrequencyDots({ count }: { count: number }) {
   );
 }
 
-function formatLastContact(date: string | null): string {
-  if (!date) return 'Never';
+function formatLastContact(date: string | null, t: TFunction): string {
+  if (!date) return t('time.never');
   const d = new Date(date);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-  return `${Math.floor(diffDays / 30)}mo ago`;
+  if (diffDays === 0) return t('time.today');
+  if (diffDays === 1) return t('time.yesterday');
+  if (diffDays < 7) return t('time.days_ago', { count: diffDays });
+  if (diffDays < 30) return t('time.weeks_ago', { count: Math.floor(diffDays / 7) });
+  return t('time.months_ago', { count: Math.floor(diffDays / 30) });
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function RelationshipsScreen() {
+  const { t } = useTranslation();
   const [contacts, setContacts] = useState<ContactSummary[]>([]);
   const [stats, setStats] = useState<ContactStats | null>(null);
   const [birthdays, setBirthdays] = useState<BirthdayInfo[]>([]);
@@ -180,9 +183,9 @@ export function RelationshipsScreen() {
         {stats && (
           <div className="px-4 py-3 border-b border-semblance-border dark:border-semblance-border-dark">
             <div className="flex items-center gap-4 text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              <span>{stats.totalContacts} contacts</span>
-              <span>{Object.values(stats.byRelationshipType).reduce((a, b) => a + b, 0) - (stats.byRelationshipType['unknown'] ?? 0)} active</span>
-              {birthdays.length > 0 && <span>{birthdays.length} birthdays</span>}
+              <span>{t('screen.relationships.contacts_count', { count: stats.totalContacts })}</span>
+              <span>{t('screen.relationships.active_count', { count: Object.values(stats.byRelationshipType).reduce((a, b) => a + b, 0) - (stats.byRelationshipType['unknown'] ?? 0) })}</span>
+              {birthdays.length > 0 && <span>{t('screen.relationships.birthdays_count', { count: birthdays.length })}</span>}
             </div>
           </div>
         )}
@@ -191,7 +194,7 @@ export function RelationshipsScreen() {
         <div className="px-4 py-3 space-y-2 border-b border-semblance-border dark:border-semblance-border-dark">
           <input
             type="text"
-            placeholder="Search contacts..."
+            placeholder={t('placeholder.search_contacts')}
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="w-full px-3 py-1.5 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface dark:bg-semblance-surface-dark text-semblance-text dark:text-semblance-text-dark focus:outline-none focus:ring-1 focus:ring-semblance-primary"
@@ -202,22 +205,22 @@ export function RelationshipsScreen() {
               onChange={(e) => setSortField(e.target.value as SortField)}
               className="text-xs px-2 py-1 rounded border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface dark:bg-semblance-surface-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
             >
-              <option value="display_name">Name</option>
-              <option value="last_contact_date">Last contact</option>
-              <option value="interaction_count">Frequency</option>
+              <option value="display_name">{t('screen.relationships.sort_name')}</option>
+              <option value="last_contact_date">{t('screen.relationships.sort_last_contact')}</option>
+              <option value="interaction_count">{t('screen.relationships.sort_frequency')}</option>
             </select>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as RelationshipFilter)}
               className="text-xs px-2 py-1 rounded border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface dark:bg-semblance-surface-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
             >
-              <option value="all">All types</option>
-              <option value="colleague">Colleague</option>
-              <option value="client">Client</option>
-              <option value="vendor">Vendor</option>
-              <option value="friend">Friend</option>
-              <option value="family">Family</option>
-              <option value="acquaintance">Acquaintance</option>
+              <option value="all">{t('screen.relationships.filter_all')}</option>
+              <option value="colleague">{t('screen.relationships.filter_colleague')}</option>
+              <option value="client">{t('screen.relationships.filter_client')}</option>
+              <option value="vendor">{t('screen.relationships.filter_vendor')}</option>
+              <option value="friend">{t('screen.relationships.filter_friend')}</option>
+              <option value="family">{t('screen.relationships.filter_family')}</option>
+              <option value="acquaintance">{t('screen.relationships.filter_acquaintance')}</option>
             </select>
           </div>
         </div>
@@ -226,11 +229,11 @@ export function RelationshipsScreen() {
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="p-4 text-center text-semblance-text-muted dark:text-semblance-text-muted-dark text-sm">
-              Loading contacts...
+              {t('screen.relationships.loading')}
             </div>
           ) : filteredContacts.length === 0 ? (
             <div className="p-4 text-center text-semblance-text-muted dark:text-semblance-text-muted-dark text-sm">
-              No contacts found
+              {t('screen.relationships.empty')}
             </div>
           ) : (
             filteredContacts.map(contact => (
@@ -262,7 +265,7 @@ export function RelationshipsScreen() {
                         </span>
                       )}
                       <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">
-                        {formatLastContact(contact.lastContactDate)}
+                        {formatLastContact(contact.lastContactDate, t)}
                       </span>
                     </div>
                   </div>
@@ -289,7 +292,7 @@ export function RelationshipsScreen() {
                 </h2>
                 {selectedContact.jobTitle && (
                   <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-                    {selectedContact.jobTitle}{selectedContact.organization ? ` at ${selectedContact.organization}` : ''}
+                    {selectedContact.jobTitle}{selectedContact.organization ? ` ${t('screen.relationships.at_org', { org: selectedContact.organization })}` : ''}
                   </p>
                 )}
                 <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${getRelationshipBadgeColor(selectedContact.relationshipType)}`}>
@@ -301,10 +304,10 @@ export function RelationshipsScreen() {
             {/* Contact info */}
             <Card>
               <div className="p-4 space-y-3">
-                <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">Contact Info</h3>
+                <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">{t('screen.relationships.section_info')}</h3>
                 {selectedContact.emails.length > 0 && (
                   <div>
-                    <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">Email</span>
+                    <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_email')}</span>
                     {selectedContact.emails.map(e => (
                       <p key={e} className="text-sm text-semblance-text dark:text-semblance-text-dark">{e}</p>
                     ))}
@@ -312,7 +315,7 @@ export function RelationshipsScreen() {
                 )}
                 {selectedContact.phones.length > 0 && (
                   <div>
-                    <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">Phone</span>
+                    <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_phone')}</span>
                     {selectedContact.phones.map(p => (
                       <p key={p} className="text-sm text-semblance-text dark:text-semblance-text-dark">{p}</p>
                     ))}
@@ -320,7 +323,7 @@ export function RelationshipsScreen() {
                 )}
                 {selectedContact.birthday && (
                   <div>
-                    <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">Birthday</span>
+                    <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_birthday')}</span>
                     <p className="text-sm text-semblance-text dark:text-semblance-text-dark">{selectedContact.birthday}</p>
                   </div>
                 )}
@@ -331,22 +334,22 @@ export function RelationshipsScreen() {
             {selectedContact.communicationFrequency && (
               <Card>
                 <div className="p-4 space-y-3">
-                  <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">Communication</h3>
+                  <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">{t('screen.relationships.section_communication')}</h3>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">Emails/week</span>
+                      <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_emails_week')}</span>
                       <p className="text-lg font-semibold text-semblance-text dark:text-semblance-text-dark">
                         {selectedContact.communicationFrequency.emailsPerWeek}
                       </p>
                     </div>
                     <div>
-                      <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">Meetings/mo</span>
+                      <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_meetings_month')}</span>
                       <p className="text-lg font-semibold text-semblance-text dark:text-semblance-text-dark">
                         {selectedContact.communicationFrequency.meetingsPerMonth}
                       </p>
                     </div>
                     <div>
-                      <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">Trend</span>
+                      <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_trend')}</span>
                       <p className="text-lg font-semibold text-semblance-text dark:text-semblance-text-dark capitalize">
                         {selectedContact.communicationFrequency.trend}
                       </p>
@@ -358,7 +361,7 @@ export function RelationshipsScreen() {
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-semblance-text-muted dark:text-semblance-text-muted-dark">
-            Select a contact to view details
+            {t('screen.relationships.empty_detail')}
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface CloudStorageSettingsScreenProps {
   onConnect?: (provider: string) => Promise<{ success: boolean; userEmail?: string }>;
@@ -12,6 +13,7 @@ export function CloudStorageSettingsScreen({
   onDisconnect,
   onSyncNow,
 }: CloudStorageSettingsScreenProps) {
+  const { t } = useTranslation();
   const [connected, setConnected] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -64,14 +66,14 @@ export function CloudStorageSettingsScreen({
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.header}>Cloud Storage</Text>
+      <Text style={styles.header}>{t('screen.cloud_storage.title')}</Text>
 
       {/* Google Drive */}
       <View style={styles.providerCard}>
         <View style={styles.providerInfo}>
           <View style={[styles.statusDot, connected ? styles.statusConnected : styles.statusDisconnected]} />
           <View style={styles.providerText}>
-            <Text style={styles.providerName}>Google Drive</Text>
+            <Text style={styles.providerName}>{t('screen.cloud_storage.google_drive')}</Text>
             <Text style={styles.providerStatus}>
               {connected ? `Connected as ${userEmail}` : 'Not connected'}
             </Text>
@@ -79,7 +81,7 @@ export function CloudStorageSettingsScreen({
         </View>
         {connected ? (
           <TouchableOpacity onPress={handleDisconnect} style={styles.button}>
-            <Text style={styles.buttonText}>Disconnect</Text>
+            <Text style={styles.buttonText}>{t('button.disconnect')}</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity onPress={handleConnect} disabled={connecting} style={styles.button}>
@@ -92,13 +94,13 @@ export function CloudStorageSettingsScreen({
         <>
           {/* Storage Usage */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Storage Used</Text>
+            <Text style={styles.sectionLabel}>{t('screen.cloud_storage.storage_used')}</Text>
             <Text style={styles.sectionValue}>{formatBytes(storageUsedBytes)} ({filesSynced} files)</Text>
           </View>
 
           {/* Sync Interval */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Sync Interval</Text>
+            <Text style={styles.sectionLabel}>{t('screen.cloud_storage.sync_interval')}</Text>
             <View style={styles.intervalOptions}>
               {[15, 30, 60].map((min) => (
                 <TouchableOpacity
@@ -128,7 +130,7 @@ export function CloudStorageSettingsScreen({
             <View style={[styles.statusDot, styles.statusDisconnected]} />
             <View style={styles.providerText}>
               <Text style={styles.providerName}>{name}</Text>
-              <Text style={styles.providerStatus}>Coming soon</Text>
+              <Text style={styles.providerStatus}>{t('screen.cloud_storage.coming_soon')}</Text>
             </View>
           </View>
         </View>

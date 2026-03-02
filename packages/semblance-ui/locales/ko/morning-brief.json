@@ -1,0 +1,38 @@
+{
+  "card": {
+    "default_title": "[KO] Morning Brief",
+    "loading": "[KO] Morning Brief loading..."
+  },
+  "greeting": {
+    "morning": "[KO] Good morning",
+    "afternoon": "[KO] Good afternoon",
+    "evening": "[KO] Good evening",
+    "anonymous": "[KO] {{period}}.",
+    "with_name": "[KO] {{period}}, {{name}}."
+  },
+  "date": {
+    "days": {
+      "sunday": "[KO] Sunday",
+      "monday": "[KO] Monday",
+      "tuesday": "[KO] Tuesday",
+      "wednesday": "[KO] Wednesday",
+      "thursday": "[KO] Thursday",
+      "friday": "[KO] Friday",
+      "saturday": "[KO] Saturday"
+    },
+    "months": {
+      "january": "[KO] January",
+      "february": "[KO] February",
+      "march": "[KO] March",
+      "april": "[KO] April",
+      "may": "[KO] May",
+      "june": "[KO] June",
+      "july": "[KO] July",
+      "august": "[KO] August",
+      "september": "[KO] September",
+      "october": "[KO] October",
+      "november": "[KO] November",
+      "december": "[KO] December"
+    }
+  }
+}

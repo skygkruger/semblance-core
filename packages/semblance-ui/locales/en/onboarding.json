@@ -1,0 +1,105 @@
+{
+  "splash": {
+    "headline": "This is your Semblance.",
+    "subtext": "A digital representation that understands your world, acts on your behalf, and is architecturally incapable of betraying your trust.",
+    "begin_button": "Begin"
+  },
+  "hardware": {
+    "headline": "Detecting your hardware...",
+    "subtext": "Semblance will recommend the best model for your machine.",
+    "continue_button": "Continue",
+    "tier_label": "Tier",
+    "ram_label": "RAM",
+    "cpu_label": "CPU",
+    "gpu_label": "GPU",
+    "os_label": "OS",
+    "cpu_cores": "{{count}} cores",
+    "tier_capable": "High Performance",
+    "tier_standard": "Standard",
+    "tier_constrained": "Constrained"
+  },
+  "data_sources": {
+    "headline": "Connect your world",
+    "subtext": "Everything stays on this device. Semblance connects to your accounts through the Gateway, fetches your data, and stores it locally.",
+    "more_sources": "+ 42 more sources available in Connections after setup",
+    "privacy_notice": "Your data never leaves this device. Connections are encrypted and revocable at any time.",
+    "nudge": "Connecting at least one source helps Semblance understand your world. You can always add more later.",
+    "skip_button": "Skip for now",
+    "continue_button": "Continue",
+    "connect_button": "Connect",
+    "connected_status": "Connected",
+    "sources": {
+      "email": {
+        "name": "Email",
+        "description": "Gmail, Outlook, IMAP"
+      },
+      "calendar": {
+        "name": "Calendar",
+        "description": "Google, Apple, Outlook"
+      },
+      "files": {
+        "name": "Files & Documents",
+        "description": "Local folders, iCloud"
+      },
+      "contacts": {
+        "name": "Contacts",
+        "description": "Phone, Google, CardDAV"
+      },
+      "health": {
+        "name": "Health",
+        "description": "Apple Health, Google Fit"
+      },
+      "slack": {
+        "name": "Slack",
+        "description": "Workspace messages"
+      }
+    }
+  },
+  "autonomy": {
+    "headline": "How much should it do on its own?",
+    "subtext": "You can change this anytime in Settings. Most users start with Partner.",
+    "continue_button": "Continue",
+    "selector_label": "Autonomy tier selection",
+    "recommended_badge": "Recommended",
+    "tiers": {
+      "guardian": {
+        "name": "Guardian",
+        "description": "I'll show you everything before I act",
+        "detail": "Every action requires your explicit approval. Full control."
+      },
+      "partner": {
+        "name": "Partner",
+        "description": "I'll handle the routine, check on the important stuff",
+        "detail": "Routine tasks run autonomously. Novel or high-stakes actions need approval."
+      },
+      "alter_ego": {
+        "name": "Alter Ego",
+        "description": "I'll handle everything, interrupt only when it matters",
+        "detail": "Most users start with Partner and move here within a few weeks."
+      }
+    }
+  },
+  "naming_moment": {
+    "headline": "What should it call you?",
+    "placeholder": "Your name or nickname",
+    "confirmation": "Your Semblance will address you as {{name}}. You can change this in Settings.",
+    "continue_button": "Continue"
+  },
+  "naming_ai": {
+    "headline": "What will you call it?",
+    "placeholder": "Give it a name",
+    "subtext": "This is what your AI will be called. You can change it in Settings.",
+    "start_button": "Start Semblance"
+  },
+  "initialize": {
+    "downloading_headline": "Initializing your Semblance...",
+    "downloading_subtext": "Downloading models and preparing your knowledge graph. This may take a few minutes.",
+    "building_headline": "Building your knowledge graph...",
+    "building_subtext": "Cross-referencing your connected data sources.",
+    "knowledge_moment_headline": "Your Semblance already knows something.",
+    "ready_headline": "Ready to go.",
+    "ready_subtext": "Connect more data sources later to unlock deeper insights.",
+    "start_button": "Start Semblance",
+    "download_complete_status": "Complete"
+  }
+}

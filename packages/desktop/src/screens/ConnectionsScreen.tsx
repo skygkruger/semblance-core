@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ConnectorCard } from '@semblance/ui';
 import { ipcSend } from '../ipc/commands';
 import type { ConnectorCardStatus } from '@semblance/ui';
@@ -25,18 +26,6 @@ import {
 } from '@semblance/core/importers/connector-registry';
 
 // ─── Category Display Config ──────────────────────────────────────────────────
-
-const CATEGORY_LABELS: Record<ConnectorCategory, string> = {
-  cloud_storage: 'Cloud Storage',
-  productivity: 'Productivity',
-  developer: 'Developer',
-  reading_research: 'Reading & Research',
-  health_fitness: 'Health & Fitness',
-  social: 'Social',
-  music_entertainment: 'Music & Entertainment',
-  finance: 'Finance',
-  messaging: 'Messaging',
-};
 
 const CATEGORY_ORDER: ConnectorCategory[] = [
   'cloud_storage',
@@ -87,6 +76,7 @@ function ServicesTab({
   onDisconnect: (id: string) => void;
   onSync: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const platform = getCurrentPlatform();
   const license = useLicense();
   const isPremium = license.tier !== 'free';
@@ -107,7 +97,7 @@ function ServicesTab({
       {CATEGORY_ORDER.filter(cat => byCategory.has(cat)).map(category => (
         <div key={category}>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-semblance-text-secondary dark:text-semblance-text-secondary-dark mb-3">
-            {CATEGORY_LABELS[category]}
+            {t(`screen.connections.categories.${category}`)}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {byCategory.get(category)!.map(connector => {
@@ -120,7 +110,7 @@ function ServicesTab({
                   key={connector.id}
                   id={connector.id}
                   displayName={connector.displayName}
-                  description={isLocked ? 'Requires Digital Representative' : connector.description}
+                  description={isLocked ? t('screen.connections.dr_required') : connector.description}
                   status={isLocked ? 'disconnected' : status}
                   isPremium={connector.isPremium}
                   platform={connector.platform}
@@ -146,6 +136,7 @@ function ImportsTab({
   importHistory: ImportHistoryEntry[];
   onImportFile: (filePath: string) => void;
 }) {
+  const { t } = useTranslation();
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -224,10 +215,10 @@ function ImportsTab({
             <line x1="12" x2="12" y1="3" y2="15" />
           </svg>
           <p className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">
-            Drop export files here
+            {t('screen.connections.drop_zone')}
           </p>
           <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-            Supports: JSON, CSV, ZIP, XML, ENEX
+            {t('screen.connections.drop_zone_formats')}
           </p>
         </div>
       </div>
@@ -236,21 +227,21 @@ function ImportsTab({
       <Card>
         <div className="p-4">
           <h3 className="text-sm font-semibold text-semblance-text dark:text-semblance-text-dark mb-2">
-            Supported Export Formats
+            {t('screen.connections.section_formats')}
           </h3>
           <div className="grid grid-cols-2 gap-2 text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-            <div>Google Takeout (ZIP)</div>
-            <div>Facebook/Instagram Export</div>
-            <div>Notion Export (MD/HTML)</div>
-            <div>Evernote ENEX</div>
-            <div>Signal Backup (JSON)</div>
-            <div>Telegram Export (JSON)</div>
-            <div>Discord Chat (JSON)</div>
-            <div>Slack Export (ZIP)</div>
-            <div>YNAB / Mint (CSV)</div>
-            <div>Strava Export (CSV)</div>
-            <div>Goodreads Library (CSV)</div>
-            <div>Apple Health (XML)</div>
+            <div>{t('screen.connections.format_google_takeout')}</div>
+            <div>{t('screen.connections.format_facebook')}</div>
+            <div>{t('screen.connections.format_notion')}</div>
+            <div>{t('screen.connections.format_evernote')}</div>
+            <div>{t('screen.connections.format_signal')}</div>
+            <div>{t('screen.connections.format_telegram')}</div>
+            <div>{t('screen.connections.format_discord')}</div>
+            <div>{t('screen.connections.format_slack')}</div>
+            <div>{t('screen.connections.format_ynab_mint')}</div>
+            <div>{t('screen.connections.format_strava')}</div>
+            <div>{t('screen.connections.format_goodreads')}</div>
+            <div>{t('screen.connections.format_apple_health')}</div>
           </div>
         </div>
       </Card>
@@ -258,11 +249,11 @@ function ImportsTab({
       {/* Import History */}
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-semblance-text-secondary dark:text-semblance-text-secondary-dark mb-3">
-          Import History
+          {t('screen.connections.section_import_history')}
         </h2>
         {importHistory.length === 0 ? (
           <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark py-4 text-center">
-            No imports yet. Drop an export file above to get started.
+            {t('screen.connections.empty_imports')}
           </p>
         ) : (
           <div className="space-y-2">
@@ -281,7 +272,7 @@ function ImportsTab({
                   </span>
                 </div>
                 <div className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-                  {entry.imported} items
+                  {t('screen.connections.items_count', { count: entry.imported })}
                 </div>
               </div>
             ))}
@@ -295,6 +286,7 @@ function ImportsTab({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export function ConnectionsScreen() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabId>('services');
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -353,10 +345,10 @@ export function ConnectionsScreen() {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-xl font-semibold text-semblance-text dark:text-semblance-text-dark">
-            Connections
+            {t('screen.connections.title')}
           </h1>
           <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-1">
-            Connect your digital life. All data stays on your device.
+            {t('screen.connections.subtitle')}
           </p>
         </div>
 
@@ -374,7 +366,7 @@ export function ConnectionsScreen() {
             `.trim()}
             data-testid="tab-services"
           >
-            Services
+            {t('screen.connections.tab_services')}
           </button>
           <button
             type="button"
@@ -388,7 +380,7 @@ export function ConnectionsScreen() {
             `.trim()}
             data-testid="tab-imports"
           >
-            Imports
+            {t('screen.connections.tab_imports')}
           </button>
         </div>
 

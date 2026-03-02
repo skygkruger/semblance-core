@@ -1,0 +1,39 @@
+{
+  "input": {
+    "placeholder_default": "[FR] Awaiting direction",
+    "thinking_text": "[FR] On it.",
+    "dismiss_document": "[FR] Dismiss document",
+    "send": "[FR] Send",
+    "send_message": "[FR] Send message",
+    "attach_document": "[FR] Attach document",
+    "message_input_label": "[FR] Message input"
+  },
+  "voice": {
+    "idle": "[FR] Start voice input",
+    "listening": "[FR] Stop listening",
+    "processing": "[FR] Processing speech",
+    "speaking": "[FR] Stop speaking",
+    "error": "[FR] Voice error -- tap to retry",
+    "status_speaking": "[FR] Speaking...",
+    "status_processing": "[FR] Processing..."
+  },
+  "autonomy": {
+    "selector_label": "[FR] Autonomy tier selection",
+    "recommended_badge": "[FR] Recommended",
+    "guardian": {
+      "name": "[FR] Guardian",
+      "description": "[FR] I'll show you everything before I act",
+      "detail": "[FR] Every action requires your explicit approval. Full control."
+    },
+    "partner": {
+      "name": "[FR] Partner",
+      "description": "[FR] I'll handle the routine, check on the important stuff",
+      "detail": "[FR] Routine tasks run autonomously. Novel or high-stakes actions need approval."
+    },
+    "alter_ego": {
+      "name": "[FR] Alter Ego",
+      "description": "[FR] I'll handle everything, interrupt only when it matters",
+      "detail": "[FR] Most users start with Partner and move here within a few weeks."
+    }
+  }
+}

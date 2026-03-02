@@ -1,0 +1,188 @@
+{
+  "root": {
+    "title": "[ES] Settings",
+    "rows": {
+      "ai_engine": "[ES] AI Engine",
+      "connections": "[ES] Connections",
+      "notifications": "[ES] Notifications",
+      "autonomy": "[ES] Autonomy",
+      "privacy": "[ES] Privacy",
+      "account": "[ES] Account"
+    },
+    "row_values": {
+      "connections_active": "[ES] {{n}} active",
+      "privacy_clean": "[ES] Audit clean",
+      "privacy_review": "[ES] Review needed"
+    },
+    "tier_labels": {
+      "guardian": "[ES] Guardian",
+      "partner": "[ES] Partner",
+      "alter_ego": "[ES] Alter Ego"
+    }
+  },
+  "ai_engine": {
+    "title": "[ES] AI Engine",
+    "section_model": "[ES] Active Model",
+    "section_hardware": "[ES] Hardware",
+    "section_performance": "[ES] Performance",
+    "section_advanced": "[ES] Advanced",
+    "badge_running": "[ES] Running",
+    "badge_not_loaded": "[ES] Not loaded",
+    "label_inference_threads": "[ES] Inference threads",
+    "label_context_window": "[ES] Context window",
+    "label_gpu_acceleration": "[ES] GPU acceleration",
+    "label_custom_model_path": "[ES] Custom model path",
+    "value_custom_model_none": "[ES] None",
+    "thread_option_auto": "[ES] Auto",
+    "btn_reset_defaults": "[ES] Reset to defaults",
+    "context_labels": {
+      "4k": "[ES] 4K",
+      "8k": "[ES] 8K",
+      "16k": "[ES] 16K",
+      "32k": "[ES] 32K"
+    }
+  },
+  "connections": {
+    "title": "[ES] Connections",
+    "section_connected": "[ES] Connected",
+    "section_not_connected": "[ES] Not Connected",
+    "value_not_connected": "[ES] Not connected",
+    "value_items_suffix": "[ES] {{n}} items",
+    "empty_body": "[ES] No data sources configured yet. Connect your email, calendar, and other services to get started.",
+    "btn_manage_all": "[ES] Manage all connections"
+  },
+  "notifications": {
+    "title": "[ES] Notifications",
+    "section_morning_brief": "[ES] Morning Brief",
+    "section_reminders": "[ES] Reminders",
+    "section_autonomous_actions": "[ES] Autonomous Actions",
+    "section_system": "[ES] System",
+    "label_morning_brief_enabled": "[ES] Morning Brief enabled",
+    "label_delivery_time": "[ES] Delivery time",
+    "label_include_weather": "[ES] Include weather",
+    "label_include_calendar": "[ES] Include calendar preview",
+    "label_reminder_notifications": "[ES] Reminder notifications",
+    "label_default_snooze": "[ES] Default snooze duration",
+    "label_notify_on_action": "[ES] Notify when action taken",
+    "label_notify_on_approval": "[ES] Notify when approval needed",
+    "label_action_digest": "[ES] Action digest",
+    "label_badge_count": "[ES] Badge count on app icon",
+    "label_sound_effects": "[ES] Sound effects",
+    "snooze_labels": {
+      "5m": "[ES] 5 min",
+      "15m": "[ES] 15 min",
+      "1h": "[ES] 1 hour",
+      "1d": "[ES] 1 day"
+    },
+    "digest_labels": {
+      "immediate": "[ES] Immediate",
+      "hourly": "[ES] Hourly",
+      "daily": "[ES] Daily summary"
+    }
+  },
+  "autonomy": {
+    "title": "[ES] Autonomy",
+    "section_domain_overrides": "[ES] Domain Overrides",
+    "section_safety": "[ES] Safety",
+    "domain_overrides_explanation": "[ES] Override the default tier for specific areas. Useful if you want Alter Ego everywhere except Finance.",
+    "label_require_confirmation": "[ES] Require confirmation for irreversible actions",
+    "label_action_review_window": "[ES] Action review window",
+    "irreversible_actions_explanation": "[ES] Irreversible actions include sent emails, deleted files, cancelled subscriptions, and calendar changes affecting others.",
+    "badge_active": "[ES] ACTIVE",
+    "tiers": {
+      "guardian": {
+        "name": "[ES] Guardian",
+        "desc": "[ES] Approve everything before it happens"
+      },
+      "partner": {
+        "name": "[ES] Partner",
+        "desc": "[ES] Handle routine tasks, ask about important ones"
+      },
+      "alter_ego": {
+        "name": "[ES] Alter Ego",
+        "desc": "[ES] Act as me for nearly everything"
+      }
+    },
+    "domains": {
+      "email": "[ES] Email",
+      "calendar": "[ES] Calendar",
+      "files": "[ES] Files",
+      "finance": "[ES] Finance",
+      "health": "[ES] Health",
+      "services": "[ES] Services"
+    },
+    "review_window_labels": {
+      "30s": "[ES] 30 seconds",
+      "1m": "[ES] 1 minute",
+      "5m": "[ES] 5 minutes"
+    }
+  },
+  "privacy": {
+    "title": "[ES] Privacy",
+    "section_data_sources": "[ES] Data Sources",
+    "section_export": "[ES] Export & Portability",
+    "section_danger": "[ES] Danger Zone",
+    "audit_badge_pass": "[ES] PASS",
+    "audit_badge_never_run": "[ES] NEVER RUN",
+    "audit_badge_review_needed": "[ES] REVIEW NEEDED",
+    "audit_last_run": "[ES] Last audit: {{time}}",
+    "audit_never_run": "[ES] No audit has been run yet",
+    "btn_run_audit": "[ES] Run audit",
+    "data_source_items": "[ES] {{n}} items · {{date}}",
+    "btn_remove_source": "[ES] Remove",
+    "btn_export_data": "[ES] Export all my data",
+    "btn_export_history": "[ES] Export action history",
+    "btn_delete_all": "[ES] Delete all indexed data",
+    "btn_reset_semblance": "[ES] Reset Semblance",
+    "delete_confirm_prompt": "[ES] Type \"delete\" to confirm:",
+    "delete_confirm_placeholder": "[ES] delete",
+    "btn_confirm": "[ES] Confirm",
+    "btn_cancel": "[ES] Cancel",
+    "reset_confirm_body": "[ES] This will permanently delete all data and reset Semblance to factory state.",
+    "btn_reset_everything": "[ES] Reset everything"
+  },
+  "account": {
+    "title": "[ES] Account",
+    "section_digital_representative": "[ES] Digital Representative",
+    "section_semblance_identity": "[ES] Semblance Identity",
+    "section_danger": "[ES] Danger Zone",
+    "license_configs": {
+      "founding_member": {
+        "label": "[ES] Founding Member",
+        "badge": "[ES] FOUNDING MEMBER",
+        "desc": "[ES] Lifetime access · all features"
+      },
+      "active": {
+        "label": "[ES] Digital Representative",
+        "badge": "[ES] ACTIVE",
+        "desc": "[ES] All premium features active"
+      },
+      "trial": {
+        "label": "[ES] Trial",
+        "badge": "[ES] TRIAL",
+        "desc": "[ES] Exploring premium features"
+      },
+      "expired": {
+        "label": "[ES] Expired",
+        "badge": "[ES] EXPIRED",
+        "desc": "[ES] License expired — core features still available"
+      }
+    },
+    "trial_days_remaining": "[ES] {{n}} days remaining",
+    "activated_date": "[ES] Activated {{date}}",
+    "btn_renew_license": "[ES] Renew license",
+    "dr_status_label": "[ES] Status",
+    "dr_status_active": "[ES] Active",
+    "dr_status_inactive": "[ES] Not activated",
+    "dr_activation_date_label": "[ES] Activation date",
+    "btn_view_dr_agreement": "[ES] View Digital Representative agreement",
+    "btn_activate_dr": "[ES] Activate Digital Representative",
+    "label_semblance_name": "[ES] Your Semblance's name",
+    "btn_save": "[ES] Save",
+    "btn_cancel": "[ES] Cancel",
+    "btn_sign_out": "[ES] Sign out",
+    "btn_deactivate_license": "[ES] Deactivate license",
+    "deactivate_confirm_body": "[ES] Are you sure? This will deactivate your license on this device.",
+    "btn_deactivate": "[ES] Deactivate"
+  }
+}

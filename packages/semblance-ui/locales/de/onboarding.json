@@ -1,0 +1,105 @@
+{
+  "splash": {
+    "headline": "[DE] This is your Semblance.",
+    "subtext": "[DE] A digital representation that understands your world, acts on your behalf, and is architecturally incapable of betraying your trust.",
+    "begin_button": "[DE] Begin"
+  },
+  "hardware": {
+    "headline": "[DE] Detecting your hardware...",
+    "subtext": "[DE] Semblance will recommend the best model for your machine.",
+    "continue_button": "[DE] Continue",
+    "tier_label": "[DE] Tier",
+    "ram_label": "[DE] RAM",
+    "cpu_label": "[DE] CPU",
+    "gpu_label": "[DE] GPU",
+    "os_label": "[DE] OS",
+    "cpu_cores": "[DE] {{count}} cores",
+    "tier_capable": "[DE] High Performance",
+    "tier_standard": "[DE] Standard",
+    "tier_constrained": "[DE] Constrained"
+  },
+  "data_sources": {
+    "headline": "[DE] Connect your world",
+    "subtext": "[DE] Everything stays on this device. Semblance connects to your accounts through the Gateway, fetches your data, and stores it locally.",
+    "more_sources": "[DE] + 42 more sources available in Connections after setup",
+    "privacy_notice": "[DE] Your data never leaves this device. Connections are encrypted and revocable at any time.",
+    "nudge": "[DE] Connecting at least one source helps Semblance understand your world. You can always add more later.",
+    "skip_button": "[DE] Skip for now",
+    "continue_button": "[DE] Continue",
+    "connect_button": "[DE] Connect",
+    "connected_status": "[DE] Connected",
+    "sources": {
+      "email": {
+        "name": "[DE] Email",
+        "description": "[DE] Gmail, Outlook, IMAP"
+      },
+      "calendar": {
+        "name": "[DE] Calendar",
+        "description": "[DE] Google, Apple, Outlook"
+      },
+      "files": {
+        "name": "[DE] Files & Documents",
+        "description": "[DE] Local folders, iCloud"
+      },
+      "contacts": {
+        "name": "[DE] Contacts",
+        "description": "[DE] Phone, Google, CardDAV"
+      },
+      "health": {
+        "name": "[DE] Health",
+        "description": "[DE] Apple Health, Google Fit"
+      },
+      "slack": {
+        "name": "[DE] Slack",
+        "description": "[DE] Workspace messages"
+      }
+    }
+  },
+  "autonomy": {
+    "headline": "[DE] How much should it do on its own?",
+    "subtext": "[DE] You can change this anytime in Settings. Most users start with Partner.",
+    "continue_button": "[DE] Continue",
+    "selector_label": "[DE] Autonomy tier selection",
+    "recommended_badge": "[DE] Recommended",
+    "tiers": {
+      "guardian": {
+        "name": "[DE] Guardian",
+        "description": "[DE] I'll show you everything before I act",
+        "detail": "[DE] Every action requires your explicit approval. Full control."
+      },
+      "partner": {
+        "name": "[DE] Partner",
+        "description": "[DE] I'll handle the routine, check on the important stuff",
+        "detail": "[DE] Routine tasks run autonomously. Novel or high-stakes actions need approval."
+      },
+      "alter_ego": {
+        "name": "[DE] Alter Ego",
+        "description": "[DE] I'll handle everything, interrupt only when it matters",
+        "detail": "[DE] Most users start with Partner and move here within a few weeks."
+      }
+    }
+  },
+  "naming_moment": {
+    "headline": "[DE] What should it call you?",
+    "placeholder": "[DE] Your name or nickname",
+    "confirmation": "[DE] Your Semblance will address you as {{name}}. You can change this in Settings.",
+    "continue_button": "[DE] Continue"
+  },
+  "naming_ai": {
+    "headline": "[DE] What will you call it?",
+    "placeholder": "[DE] Give it a name",
+    "subtext": "[DE] This is what your AI will be called. You can change it in Settings.",
+    "start_button": "[DE] Start Semblance"
+  },
+  "initialize": {
+    "downloading_headline": "[DE] Initializing your Semblance...",
+    "downloading_subtext": "[DE] Downloading models and preparing your knowledge graph. This may take a few minutes.",
+    "building_headline": "[DE] Building your knowledge graph...",
+    "building_subtext": "[DE] Cross-referencing your connected data sources.",
+    "knowledge_moment_headline": "[DE] Your Semblance already knows something.",
+    "ready_headline": "[DE] Ready to go.",
+    "ready_subtext": "[DE] Connect more data sources later to unlock deeper insights.",
+    "start_button": "[DE] Start Semblance",
+    "download_complete_status": "[DE] Complete"
+  }
+}

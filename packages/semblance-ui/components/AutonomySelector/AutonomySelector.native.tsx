@@ -1,14 +1,16 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { AutonomySelectorProps } from './AutonomySelector.types';
 import { tiers } from './AutonomySelector.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
 export function AutonomySelector({ value, onChange }: AutonomySelectorProps) {
+  const { t } = useTranslation('agent');
   return (
     <View
       style={styles.container}
       accessibilityRole="radiogroup"
-      accessibilityLabel="Autonomy tier selection"
+      accessibilityLabel={t('autonomy.selector_label')}
     >
       {tiers.map((tier) => {
         const isSelected = tier.id === value;
@@ -30,15 +32,15 @@ export function AutonomySelector({ value, onChange }: AutonomySelectorProps) {
               <View style={[styles.radio, isSelected && styles.radioSelected]}>
                 {isSelected && <View style={styles.radioDot} />}
               </View>
-              <Text style={styles.name}>{tier.name}</Text>
+              <Text style={styles.name}>{t(`autonomy.${tier.id}.name`)}</Text>
               {isRecommended && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>Recommended</Text>
+                  <Text style={styles.badgeText}>{t('autonomy.recommended_badge')}</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.description}>{tier.description}</Text>
-            <Text style={styles.detail}>{tier.detail}</Text>
+            <Text style={styles.description}>{t(`autonomy.${tier.id}.description`)}</Text>
+            <Text style={styles.detail}>{t(`autonomy.${tier.id}.detail`)}</Text>
           </Pressable>
         );
       })}

@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { WireframeSpinnerProps } from './WireframeSpinner.types';
 import {
   EDGES,
@@ -12,6 +13,7 @@ export function WireframeSpinner({
   size = 48,
   speed = 1.0,
 }: WireframeSpinnerProps) {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
 
@@ -83,7 +85,7 @@ export function WireframeSpinner({
     <canvas
       ref={canvasRef}
       style={{ display: 'block' }}
-      aria-label="Loading"
+      aria-label={t('a11y.loading')}
       role="status"
     />
   );

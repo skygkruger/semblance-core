@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { Button } from '../Button/Button';
 import { LicenseActivation } from '../LicenseActivation/LicenseActivation';
@@ -80,6 +81,7 @@ export function UpgradeScreen({
   onManageSubscription,
   onBack,
 }: UpgradeScreenProps) {
+  const { t } = useTranslation();
   const isActive = currentTier !== 'free';
 
   return (
@@ -93,7 +95,7 @@ export function UpgradeScreen({
           onPress={onBack}
           style={styles.back}
           hitSlop={8}
-          accessibilityLabel="Back"
+          accessibilityLabel={t('button.back')}
         >
           <Text style={styles.backText}>{'\u2190'} Back</Text>
         </Pressable>
@@ -144,7 +146,7 @@ export function UpgradeScreen({
             </Text>
             <FeatureList
               features={FEATURES}
-              bonus="Founding Member badge & seat number"
+              bonus={t('upgrade.founding_bonus')}
             />
             <Button variant="solid" size="md" onPress={() => onCheckout('founding')}>
               Become a Founder
@@ -170,15 +172,15 @@ export function UpgradeScreen({
 
       {isActive && isFoundingMember && foundingSeat !== null && (
         <View style={styles.activeInfo}>
-          <Text style={styles.activeTier}>Founding Member #{foundingSeat}</Text>
-          <Text style={styles.activeNote}>Lifetime access. All features included.</Text>
+          <Text style={styles.activeTier}>{t('screen.upgrade.active_founding', { seat: foundingSeat })}</Text>
+          <Text style={styles.activeNote}>{t('screen.upgrade.active_note_lifetime')}</Text>
         </View>
       )}
 
       {isActive && currentTier === 'digital-representative' && onManageSubscription && (
         <View style={styles.activeInfo}>
-          <Text style={styles.activeTier}>Digital Representative</Text>
-          <Text style={styles.activeNote}>Monthly subscription. All premium features active.</Text>
+          <Text style={styles.activeTier}>{t('license.digital_representative')}</Text>
+          <Text style={styles.activeNote}>{t('screen.upgrade.active_note_dr')}</Text>
           <Button variant="ghost" size="sm" onPress={onManageSubscription}>
             Manage Subscription
           </Button>
@@ -187,14 +189,14 @@ export function UpgradeScreen({
 
       {isActive && currentTier === 'lifetime' && !isFoundingMember && (
         <View style={styles.activeInfo}>
-          <Text style={styles.activeTier}>Lifetime</Text>
-          <Text style={styles.activeNote}>Lifetime access. All features included.</Text>
+          <Text style={styles.activeTier}>{t('license.lifetime')}</Text>
+          <Text style={styles.activeNote}>{t('screen.upgrade.active_note_lifetime')}</Text>
         </View>
       )}
 
       <View style={styles.activation}>
         <View style={styles.activationDivider} />
-        <Text style={styles.activationLabel}>Already have a license key?</Text>
+        <Text style={styles.activationLabel}>{t('screen.upgrade.activation_label')}</Text>
         <LicenseActivation onActivate={onActivateKey} />
       </View>
     </ScrollView>

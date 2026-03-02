@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../../theme/tokens.js';
 
 export interface BackupDestination {
@@ -50,6 +51,7 @@ export const BackupScreen: React.FC<BackupScreenProps> = ({
   onPickRestoreFile,
   onChangeSchedule,
 }) => {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<BackupMode>('idle');
   const [selectedDestination, setSelectedDestination] = useState<string>(
     destinations.find(d => d.isDefault)?.id ?? destinations[0]?.id ?? '',
@@ -117,7 +119,7 @@ export const BackupScreen: React.FC<BackupScreenProps> = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Encrypted Backup</Text>
+      <Text style={styles.title}>{t('screen.backup.title')}</Text>
       <Text style={styles.subtitle}>
         Create encrypted backups of your Semblance data. Protected with Argon2id + AES-256-GCM.
       </Text>
@@ -125,15 +127,15 @@ export const BackupScreen: React.FC<BackupScreenProps> = ({
       {/* Status */}
       <View style={styles.card}>
         <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Last Backup</Text>
+          <Text style={styles.statusLabel}>{t('screen.backup.last_backup')}</Text>
           <Text style={styles.statusValue}>{formatDate(lastBackupAt)}</Text>
         </View>
         <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Schedule</Text>
+          <Text style={styles.statusLabel}>{t('screen.backup.schedule')}</Text>
           <Text style={styles.statusValue}>{schedule}</Text>
         </View>
         <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Destinations</Text>
+          <Text style={styles.statusLabel}>{t('screen.backup.destinations')}</Text>
           <Text style={styles.statusValue}>{destinations.length} available</Text>
         </View>
       </View>
@@ -144,13 +146,13 @@ export const BackupScreen: React.FC<BackupScreenProps> = ({
             style={styles.primaryButton}
             onPress={() => setMode('creating')}
           >
-            <Text style={styles.primaryButtonText}>Create Backup</Text>
+            <Text style={styles.primaryButtonText}>{t('screen.backup.create_backup')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryButton}
             onPress={() => { setMode('restoring'); handlePickRestore(); }}
           >
-            <Text style={styles.secondaryButtonText}>Restore from Backup</Text>
+            <Text style={styles.secondaryButtonText}>{t('screen.backup.restore_from_backup')}</Text>
           </TouchableOpacity>
         </>
       )}
@@ -158,9 +160,9 @@ export const BackupScreen: React.FC<BackupScreenProps> = ({
       {/* Create Backup Flow */}
       {mode === 'creating' && (
         <View style={styles.flowCard}>
-          <Text style={styles.flowTitle}>Create Encrypted Backup</Text>
+          <Text style={styles.flowTitle}>{t('screen.backup.create_title')}</Text>
 
-          <Text style={styles.fieldLabel}>Destination</Text>
+          <Text style={styles.fieldLabel}>{t('screen.backup.destination')}</Text>
           {destinations.map(dest => (
             <TouchableOpacity
               key={dest.id}
@@ -174,24 +176,24 @@ export const BackupScreen: React.FC<BackupScreenProps> = ({
             </TouchableOpacity>
           ))}
 
-          <Text style={styles.fieldLabel}>Passphrase</Text>
+          <Text style={styles.fieldLabel}>{t('screen.backup.passphrase_label')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter passphrase"
+            placeholder={t('placeholder.enter_passphrase')}
             placeholderTextColor={colors.textTertiary}
             value={passphrase}
             onChangeText={setPassphrase}
             secureTextEntry
-            accessibilityLabel="Backup passphrase"
+            accessibilityLabel={t('a11y.backup_passphrase')}
           />
           <TextInput
             style={styles.input}
-            placeholder="Confirm passphrase"
+            placeholder={t('placeholder.confirm_passphrase')}
             placeholderTextColor={colors.textTertiary}
             value={confirmPassphrase}
             onChangeText={setConfirmPassphrase}
             secureTextEntry
-            accessibilityLabel="Confirm backup passphrase"
+            accessibilityLabel={t('a11y.confirm_backup_passphrase')}
           />
 
           <TouchableOpacity
@@ -200,11 +202,11 @@ export const BackupScreen: React.FC<BackupScreenProps> = ({
             disabled={isBackingUp}
           >
             <Text style={styles.primaryButtonText}>
-              {isBackingUp ? 'Creating...' : 'Create Backup'}
+              {isBackingUp ? 'Creating...' : t('screen.backup.create_backup')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelButton} onPress={() => setMode('idle')}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+            <Text style={styles.cancelButtonText}>{t('button.cancel')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -212,23 +214,23 @@ export const BackupScreen: React.FC<BackupScreenProps> = ({
       {/* Restore Flow */}
       {mode === 'restoring' && (
         <View style={styles.flowCard}>
-          <Text style={styles.flowTitle}>Restore from Backup</Text>
+          <Text style={styles.flowTitle}>{t('screen.backup.restore_title')}</Text>
 
           {restoreFile ? (
             <>
               <View style={styles.fileInfo}>
-                <Text style={styles.fileLabel}>File:</Text>
+                <Text style={styles.fileLabel}>{t('screen.backup.file_label')}</Text>
                 <Text style={styles.fileName}>{restoreFile.name}</Text>
               </View>
-              <Text style={styles.fieldLabel}>Passphrase</Text>
+              <Text style={styles.fieldLabel}>{t('screen.backup.passphrase_label')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Backup passphrase"
+                placeholder={t('placeholder.backup_passphrase')}
                 placeholderTextColor={colors.textTertiary}
                 value={restorePassphrase}
                 onChangeText={setRestorePassphrase}
                 secureTextEntry
-                accessibilityLabel="Restore passphrase"
+                accessibilityLabel={t('a11y.restore_passphrase')}
               />
               <TouchableOpacity
                 style={[styles.primaryButton, isRestoring && styles.buttonDisabled]}
@@ -242,18 +244,18 @@ export const BackupScreen: React.FC<BackupScreenProps> = ({
             </>
           ) : (
             <TouchableOpacity style={styles.primaryButton} onPress={handlePickRestore}>
-              <Text style={styles.primaryButtonText}>Choose Backup File</Text>
+              <Text style={styles.primaryButtonText}>{t('screen.backup.choose_backup_file')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.cancelButton} onPress={() => setMode('idle')}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+            <Text style={styles.cancelButtonText}>{t('button.cancel')}</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Schedule */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Schedule</Text>
+        <Text style={styles.cardTitle}>{t('screen.backup.schedule')}</Text>
         {(['daily', 'weekly', 'manual'] as const).map(opt => (
           <TouchableOpacity
             key={opt}
@@ -271,7 +273,7 @@ export const BackupScreen: React.FC<BackupScreenProps> = ({
       {/* History */}
       {history.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Backup History</Text>
+          <Text style={styles.sectionTitle}>{t('screen.backup.history')}</Text>
           {history.map((item, i) => (
             <View key={i} style={styles.historyRow}>
               <Text style={styles.historyDate}>{formatDate(item.createdAt)}</Text>

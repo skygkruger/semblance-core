@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { styles } from './ImportDigitalLifeScreen.styles';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -74,9 +75,11 @@ export function ImportDigitalLifeScreen({
   progress = null,
   onImport,
 }: ImportDigitalLifeScreenProps) {
+  const { t } = useTranslation();
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <Text style={styles.title}>Import Digital Life</Text>
+      <Text style={styles.title}>{t('screen.import_life.title')}</Text>
       <Text style={styles.subtitle}>
         Expand what Semblance knows by importing data from other sources.
       </Text>
@@ -107,7 +110,7 @@ export function ImportDigitalLifeScreen({
         >
           <Text style={styles.sourceName}>{source.name}</Text>
           <Text style={styles.sourceDescription}>{source.description}</Text>
-          <Text style={styles.sourceFormats}>Formats: {source.formats}</Text>
+          <Text style={styles.sourceFormats}>{t('screen.import_life.formats', { formats: source.formats })}</Text>
           <Text style={styles.sourceConsent}>{source.consentText}</Text>
 
           {isPremium ? (
@@ -116,7 +119,7 @@ export function ImportDigitalLifeScreen({
               onPress={() => onImport?.(source.id)}
               disabled={progress?.isActive}
             >
-              <Text style={styles.importButtonText}>Import</Text>
+              <Text style={styles.importButtonText}>{t('button.import')}</Text>
             </TouchableOpacity>
           ) : (
             <Text style={styles.premiumGateText}>

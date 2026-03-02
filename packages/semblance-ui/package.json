@@ -21,6 +21,8 @@
     "@storybook/react-vite": "^8.5.0",
     "@storybook/theming": "^8.6.14",
     "@types/three": "^0.183.1",
+    "i18next": "^23.0.0",
+    "react-i18next": "^14.0.0",
     "storybook": "^8.5.0"
   },
   "dependencies": {
@@ -34,14 +36,18 @@
     "@shopify/react-native-skia": ">=1.0.0",
     "react-native-reanimated": ">=3.0.0",
     "react-native-haptic-feedback": ">=2.0.0",
-    "react-native-svg": ">=15.0.0"
+    "react-native-svg": ">=15.0.0",
+    "react-i18next": ">=14.0.0",
+    "i18next": ">=23.0.0"
   },
   "peerDependenciesMeta": {
     "react-native": { "optional": true },
     "@shopify/react-native-skia": { "optional": true },
     "react-native-reanimated": { "optional": true },
     "react-native-haptic-feedback": { "optional": true },
-    "react-native-svg": { "optional": true }
+    "react-native-svg": { "optional": true },
+    "react-i18next": { "optional": true },
+    "i18next": { "optional": true }
   },
   "react-native": "index.ts"
 }

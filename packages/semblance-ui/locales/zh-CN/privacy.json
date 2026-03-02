@@ -1,0 +1,35 @@
+{
+  "badge": {
+    "status_label": "[ZH] Privacy status: {{status}}",
+    "active": "[ZH] Local Only",
+    "syncing": "[ZH] Syncing",
+    "offline": "[ZH] Offline"
+  },
+  "dashboard": {
+    "title": "[ZH] Privacy Dashboard",
+    "section_guarantees": "[ZH] Privacy Guarantees",
+    "verified_label": "[ZH] Verified",
+    "section_data_inventory": "[ZH] Data Inventory",
+    "section_comparison": "[ZH] Comparison Statement",
+    "stat_data_sources": "[ZH] Data Sources",
+    "stat_cloud_connections": "[ZH] Cloud Connections",
+    "stat_actions_logged": "[ZH] Actions Logged",
+    "stat_time_saved": "[ZH] Time Saved",
+    "comparison": {
+      "local_data_points": "[ZH] Local-only data points",
+      "cloud_competitor_points": "[ZH] Cloud competitor data points",
+      "actions_logged": "[ZH] Actions logged",
+      "actions_reversible": "[ZH] Actions reversible"
+    },
+    "section_network_activity": "[ZH] Network Activity",
+    "network_empty": "[ZH] No network activity recorded",
+    "section_audit_trail": "[ZH] Recent Audit Trail",
+    "audit_trail_size": "[ZH] {{count}} entries",
+    "btn_proof_of_privacy": "[ZH] Proof of Privacy",
+    "btn_network_monitor": "[ZH] Network Monitor",
+    "proof_of_privacy": {
+      "title": "[ZH] Proof of Privacy",
+      "verified_text": "[ZH] Zero unauthorized network connections verified"
+    }
+  }
+}

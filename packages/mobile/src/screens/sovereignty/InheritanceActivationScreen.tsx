@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../../theme/tokens.js';
 
 export interface ActivationResult {
@@ -27,6 +28,7 @@ export const InheritanceActivationScreen: React.FC<InheritanceActivationScreenPr
   onPickFile,
   onActivate,
 }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<ActivationStep>('select-file');
   const [selectedFile, setSelectedFile] = useState<{ uri: string; name: string } | null>(null);
   const [passphrase, setPassphrase] = useState('');
@@ -61,7 +63,7 @@ export const InheritanceActivationScreen: React.FC<InheritanceActivationScreenPr
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Inheritance Activation</Text>
+      <Text style={styles.title}>{t('screen.inheritance_activation.title')}</Text>
       <Text style={styles.subtitle}>
         Activate an inheritance file received from a trusted party.
       </Text>
@@ -69,13 +71,13 @@ export const InheritanceActivationScreen: React.FC<InheritanceActivationScreenPr
       {/* Step 1: Select File */}
       {step === 'select-file' && (
         <View style={styles.stepCard}>
-          <Text style={styles.stepLabel}>Step 1 of 3</Text>
-          <Text style={styles.stepTitle}>Select Inheritance File</Text>
+          <Text style={styles.stepLabel}>{t('screen.inheritance_activation.step_label', { step: 1, total: 3 })}</Text>
+          <Text style={styles.stepTitle}>{t('screen.inheritance_activation.step1_title')}</Text>
           <Text style={styles.stepDescription}>
             Choose a .inheritance file from your device.
           </Text>
           <TouchableOpacity style={styles.primaryButton} onPress={handlePickFile}>
-            <Text style={styles.primaryButtonText}>Choose File</Text>
+            <Text style={styles.primaryButtonText}>{t('button.choose_file')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -83,31 +85,31 @@ export const InheritanceActivationScreen: React.FC<InheritanceActivationScreenPr
       {/* Step 2: Enter Passphrase */}
       {step === 'enter-passphrase' && selectedFile && (
         <View style={styles.stepCard}>
-          <Text style={styles.stepLabel}>Step 2 of 3</Text>
-          <Text style={styles.stepTitle}>Enter Passphrase</Text>
+          <Text style={styles.stepLabel}>{t('screen.inheritance_activation.step_label', { step: 2, total: 3 })}</Text>
+          <Text style={styles.stepTitle}>{t('screen.inheritance_activation.step2_title')}</Text>
           <View style={styles.fileInfo}>
-            <Text style={styles.fileLabel}>File:</Text>
+            <Text style={styles.fileLabel}>{t('screen.inheritance_activation.file_label')}</Text>
             <Text style={styles.fileName}>{selectedFile.name}</Text>
           </View>
           <TextInput
             style={styles.passphraseInput}
-            placeholder="Passphrase provided by the account holder"
+            placeholder={t('placeholder.passphrase_from_holder')}
             placeholderTextColor={colors.textTertiary}
             value={passphrase}
             onChangeText={setPassphrase}
             secureTextEntry
             autoCapitalize="none"
-            accessibilityLabel="Inheritance passphrase"
+            accessibilityLabel={t('a11y.inheritance_passphrase')}
           />
           <TouchableOpacity
             style={[styles.primaryButton, !passphrase && styles.buttonDisabled]}
             onPress={handleActivate}
             disabled={!passphrase}
           >
-            <Text style={styles.primaryButtonText}>Activate</Text>
+            <Text style={styles.primaryButtonText}>{t('button.activate')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.secondaryButton} onPress={handleReset}>
-            <Text style={styles.secondaryButtonText}>Back</Text>
+            <Text style={styles.secondaryButtonText}>{t('button.back')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -115,8 +117,8 @@ export const InheritanceActivationScreen: React.FC<InheritanceActivationScreenPr
       {/* Step 3: Activating */}
       {step === 'activating' && (
         <View style={styles.stepCard}>
-          <Text style={styles.stepLabel}>Step 3 of 3</Text>
-          <Text style={styles.stepTitle}>Activating...</Text>
+          <Text style={styles.stepLabel}>{t('screen.inheritance_activation.step_label', { step: 3, total: 3 })}</Text>
+          <Text style={styles.stepTitle}>{t('screen.inheritance_activation.step3_title')}</Text>
           <Text style={styles.stepDescription}>
             Decrypting and verifying inheritance data. This may take a moment.
           </Text>
@@ -147,7 +149,7 @@ export const InheritanceActivationScreen: React.FC<InheritanceActivationScreenPr
 
           {result.warnings.length > 0 && (
             <View style={styles.warningsBox}>
-              <Text style={styles.warningsTitle}>Warnings:</Text>
+              <Text style={styles.warningsTitle}>{t('screen.inheritance_activation.warnings')}</Text>
               {result.warnings.map((w, i) => (
                 <Text key={i} style={styles.warningText}>{w}</Text>
               ))}
@@ -155,7 +157,7 @@ export const InheritanceActivationScreen: React.FC<InheritanceActivationScreenPr
           )}
 
           <TouchableOpacity style={styles.secondaryButton} onPress={handleReset}>
-            <Text style={styles.secondaryButtonText}>Done</Text>
+            <Text style={styles.secondaryButtonText}>{t('button.done')}</Text>
           </TouchableOpacity>
         </View>
       )}

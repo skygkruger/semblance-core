@@ -10,6 +10,7 @@ import {
   FlatList,
   RefreshControl,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing } from '../theme/tokens.js';
 
 export interface InboxItem {
@@ -68,6 +69,7 @@ function badgeColor(type: InboxItem['type']): { backgroundColor: string } {
 }
 
 export function InboxScreen({ items = [], onRefresh, onItemPress }: InboxScreenProps) {
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = useCallback(async () => {
@@ -96,7 +98,7 @@ export function InboxScreen({ items = [], onRefresh, onItemPress }: InboxScreenP
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>All clear</Text>
+            <Text style={styles.emptyTitle}>{t('screen.inbox.all_clear')}</Text>
             <Text style={styles.emptyText}>
               Your inbox is empty. Semblance will notify you when something needs attention.
             </Text>

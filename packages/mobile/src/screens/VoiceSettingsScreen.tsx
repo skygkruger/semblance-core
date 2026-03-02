@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, Switch, ScrollView, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface VoiceSettings {
   enabled: boolean;
@@ -13,6 +14,7 @@ interface VoiceSettings {
 }
 
 export function VoiceSettingsScreen() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<VoiceSettings>({
     enabled: false,
     whisperModel: null,
@@ -27,12 +29,12 @@ export function VoiceSettingsScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Voice Interaction</Text>
+      <Text style={styles.title}>{t('screen.voice_settings.title')}</Text>
 
       {/* Enable toggle */}
       <View style={styles.row}>
         <View style={styles.labelContainer}>
-          <Text style={styles.label}>Voice Mode</Text>
+          <Text style={styles.label}>{t('screen.voice_settings.voice_mode')}</Text>
           <Text style={styles.description}>
             All audio stays on your device and is never saved to disk.
           </Text>
@@ -40,7 +42,7 @@ export function VoiceSettingsScreen() {
         <Switch
           value={settings.enabled}
           onValueChange={(value) => updateSettings({ enabled: value })}
-          accessibilityLabel="Enable voice mode"
+          accessibilityLabel={t('a11y.enable_voice_mode')}
         />
       </View>
 
@@ -48,7 +50,7 @@ export function VoiceSettingsScreen() {
         <>
           {/* STT model status */}
           <View style={styles.row}>
-            <Text style={styles.label}>Speech Recognition</Text>
+            <Text style={styles.label}>{t('screen.voice_settings.speech_recognition')}</Text>
             <Text style={styles.value}>
               {settings.whisperModel ?? 'Not downloaded'}
             </Text>
@@ -56,7 +58,7 @@ export function VoiceSettingsScreen() {
 
           {/* TTS voice status */}
           <View style={styles.row}>
-            <Text style={styles.label}>Voice</Text>
+            <Text style={styles.label}>{t('screen.voice_settings.voice')}</Text>
             <Text style={styles.value}>
               {settings.piperVoice ?? 'Not downloaded'}
             </Text>
@@ -64,13 +66,13 @@ export function VoiceSettingsScreen() {
 
           {/* Speed */}
           <View style={styles.row}>
-            <Text style={styles.label}>Speech Speed</Text>
+            <Text style={styles.label}>{t('screen.voice_settings.speech_speed')}</Text>
             <Text style={styles.value}>{settings.speed}x</Text>
           </View>
 
           {/* Sensitivity */}
           <View style={styles.row}>
-            <Text style={styles.label}>Silence Sensitivity</Text>
+            <Text style={styles.label}>{t('screen.voice_settings.silence_sensitivity')}</Text>
             <Text style={styles.value}>{settings.silenceSensitivity}</Text>
           </View>
         </>

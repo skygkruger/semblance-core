@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import { FoundingMemberBadge } from '../FoundingMemberBadge/FoundingMemberBadge';
 import type { BriefingCardProps } from './BriefingCard.types';
-import { DOT_COLORS, formatBriefDate, getGreeting } from './BriefingCard.types';
+import { DOT_COLORS } from './BriefingCard.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
 export function BriefingCard({
-  title = 'Morning Brief',
+  title,
   timestamp,
   items,
   userName,
   isFoundingMember = false,
   foundingSeat,
 }: BriefingCardProps) {
+  const { t } = useTranslation('morning-brief');
+  const resolvedTitle = title ?? t('card.default_title');
   const [_animating, setAnimating] = useState(true);
 
   useEffect(() => {
@@ -20,23 +23,37 @@ export function BriefingCard({
     return () => clearTimeout(timer);
   }, []);
 
+  // Compute translated date string
+  const now = new Date();
+  const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+  const MONTH_KEYS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'] as const;
+  const briefDate = `${t(`date.days.${DAY_KEYS[now.getDay()]}`)}, ${t(`date.months.${MONTH_KEYS[now.getMonth()]}`)} ${now.getDate()}`;
+
+  // Compute translated greeting
+  const hour = now.getHours();
+  const greetingPeriodKey = hour >= 17 ? 'evening' : hour >= 12 ? 'afternoon' : 'morning';
+  const period = t(`greeting.${greetingPeriodKey}`);
+  const greeting = userName
+    ? t('greeting.with_name', { period, name: userName })
+    : t('greeting.anonymous', { period });
+
   return (
     <View style={styles.card}>
       {/* Header region */}
       <View style={styles.headerRegion}>
         <View style={styles.dateRow}>
-          <Text style={styles.date}>{formatBriefDate()}</Text>
+          <Text style={styles.date}>{briefDate}</Text>
           {isFoundingMember && foundingSeat != null && (
             <FoundingMemberBadge seat={foundingSeat} variant="inline" />
           )}
         </View>
-        <Text style={styles.greeting}>{getGreeting(userName)}</Text>
+        <Text style={styles.greeting}>{greeting}</Text>
       </View>
 
       <View style={styles.divider} />
 
       <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.title}>{resolvedTitle}</Text>
         {timestamp != null && (
           <Text style={styles.timestamp}>{timestamp}</Text>
         )}

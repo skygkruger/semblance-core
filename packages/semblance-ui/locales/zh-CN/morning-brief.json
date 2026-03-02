@@ -1,0 +1,38 @@
+{
+  "card": {
+    "default_title": "[ZH] Morning Brief",
+    "loading": "[ZH] Morning Brief loading..."
+  },
+  "greeting": {
+    "morning": "[ZH] Good morning",
+    "afternoon": "[ZH] Good afternoon",
+    "evening": "[ZH] Good evening",
+    "anonymous": "[ZH] {{period}}.",
+    "with_name": "[ZH] {{period}}, {{name}}."
+  },
+  "date": {
+    "days": {
+      "sunday": "[ZH] Sunday",
+      "monday": "[ZH] Monday",
+      "tuesday": "[ZH] Tuesday",
+      "wednesday": "[ZH] Wednesday",
+      "thursday": "[ZH] Thursday",
+      "friday": "[ZH] Friday",
+      "saturday": "[ZH] Saturday"
+    },
+    "months": {
+      "january": "[ZH] January",
+      "february": "[ZH] February",
+      "march": "[ZH] March",
+      "april": "[ZH] April",
+      "may": "[ZH] May",
+      "june": "[ZH] June",
+      "july": "[ZH] July",
+      "august": "[ZH] August",
+      "september": "[ZH] September",
+      "october": "[ZH] October",
+      "november": "[ZH] November",
+      "december": "[ZH] December"
+    }
+  }
+}

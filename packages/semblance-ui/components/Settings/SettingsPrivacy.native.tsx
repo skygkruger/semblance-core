@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { BackArrow, ShieldCheck, ShieldAlert } from './SettingsIcons';
 import type { SettingsPrivacyProps } from './SettingsPrivacy.types';
@@ -16,6 +17,8 @@ export function SettingsPrivacy({
   onResetSemblance,
   onBack,
 }: SettingsPrivacyProps) {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation();
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [showReset, setShowReset] = useState(false);
@@ -26,10 +29,10 @@ export function SettingsPrivacy({
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel="Go back">
+        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel={tc('a11y.go_back')}>
           <BackArrow />
         </Pressable>
-        <Text style={styles.headerTitle}>Privacy</Text>
+        <Text style={styles.headerTitle}>{t('privacy.title')}</Text>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -50,19 +53,19 @@ export function SettingsPrivacy({
                   styles.badgeText,
                   auditClean ? styles.badgeTextVeridian : neverRun ? styles.badgeTextMuted : styles.badgeTextAmber,
                 ]}>
-                  {auditClean ? 'PASS' : neverRun ? 'NEVER RUN' : 'REVIEW NEEDED'}
+                  {auditClean ? t('privacy.audit_badge_pass') : neverRun ? t('privacy.audit_badge_never_run') : t('privacy.audit_badge_review_needed')}
                 </Text>
               </View>
             </View>
             <Text style={styles.cardSubtext}>
-              {lastAuditTime ? `Last audit: ${lastAuditTime}` : 'No audit has been run yet'}
+              {lastAuditTime ? t('privacy.audit_last_run', { time: lastAuditTime }) : t('privacy.audit_never_run')}
             </Text>
             <Pressable
               onPress={onRunAudit}
               style={({ pressed }) => [styles.ghostButton, pressed && styles.ghostButtonPressed]}
               accessibilityRole="button"
             >
-              <Text style={styles.ghostButtonText}>Run audit</Text>
+              <Text style={styles.ghostButtonText}>{t('privacy.btn_run_audit')}</Text>
             </Pressable>
           </View>
         </View>
@@ -70,19 +73,19 @@ export function SettingsPrivacy({
         {/* Data Sources */}
         {dataSources.length > 0 && (
           <>
-            <Text style={styles.sectionHeader}>Data Sources</Text>
+            <Text style={styles.sectionHeader}>{t('privacy.section_data_sources')}</Text>
             {dataSources.map((source) => (
               <View key={source.id} style={styles.row}>
                 <Text style={styles.rowLabel}>{source.name}</Text>
                 <Text style={styles.rowValue}>
-                  {source.entityCount} items {'\u00B7'} {source.lastIndexed}
+                  {t('privacy.data_source_items', { n: source.entityCount, date: source.lastIndexed })}
                 </Text>
                 <Pressable
                   onPress={() => onDeleteSourceData(source.id)}
                   style={styles.removeButton}
                   accessibilityRole="button"
                 >
-                  <Text style={styles.removeButtonText}>Remove</Text>
+                  <Text style={styles.removeButtonText}>{t('privacy.btn_remove_source')}</Text>
                 </Pressable>
               </View>
             ))}
@@ -90,42 +93,42 @@ export function SettingsPrivacy({
         )}
 
         {/* Export & Portability */}
-        <Text style={styles.sectionHeader}>Export & Portability</Text>
+        <Text style={styles.sectionHeader}>{t('privacy.section_export')}</Text>
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           onPress={onExportData}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Export all my data</Text>
+          <Text style={styles.rowLabel}>{t('privacy.btn_export_data')}</Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           onPress={onExportHistory}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Export action history</Text>
+          <Text style={styles.rowLabel}>{t('privacy.btn_export_history')}</Text>
         </Pressable>
 
         {/* Danger Zone */}
-        <Text style={[styles.sectionHeader, styles.sectionHeaderDanger]}>Danger Zone</Text>
+        <Text style={[styles.sectionHeader, styles.sectionHeaderDanger]}>{t('privacy.section_danger')}</Text>
 
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           onPress={() => setShowDeleteAll(true)}
           accessibilityRole="button"
         >
-          <Text style={[styles.rowLabel, styles.dangerLabel]}>Delete all indexed data</Text>
+          <Text style={[styles.rowLabel, styles.dangerLabel]}>{t('privacy.btn_delete_all')}</Text>
         </Pressable>
 
         {showDeleteAll && (
           <View style={styles.confirmContainer}>
-            <Text style={styles.confirmText}>Type &quot;delete&quot; to confirm:</Text>
+            <Text style={styles.confirmText}>{t('privacy.delete_confirm_prompt')}</Text>
             <View style={styles.confirmRow}>
               <TextInput
                 style={styles.confirmInput}
                 value={deleteConfirm}
                 onChangeText={setDeleteConfirm}
-                placeholder="delete"
+                placeholder={t('privacy.delete_confirm_placeholder')}
                 placeholderTextColor={brandColors.sv1}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -142,7 +145,7 @@ export function SettingsPrivacy({
                 accessibilityRole="button"
               >
                 <Text style={[styles.confirmButtonText, { color: deleteConfirm === 'delete' ? brandColors.rust : brandColors.sv1 }]}>
-                  Confirm
+                  {t('privacy.btn_confirm')}
                 </Text>
               </Pressable>
               <Pressable
@@ -150,7 +153,7 @@ export function SettingsPrivacy({
                 style={styles.cancelButton}
                 accessibilityRole="button"
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('privacy.btn_cancel')}</Text>
               </Pressable>
             </View>
           </View>
@@ -161,13 +164,13 @@ export function SettingsPrivacy({
           onPress={() => setShowReset(true)}
           accessibilityRole="button"
         >
-          <Text style={[styles.rowLabel, styles.dangerLabel]}>Reset Semblance</Text>
+          <Text style={[styles.rowLabel, styles.dangerLabel]}>{t('privacy.btn_reset_semblance')}</Text>
         </Pressable>
 
         {showReset && (
           <View style={styles.confirmContainer}>
             <Text style={styles.confirmText}>
-              This will permanently delete all data and reset Semblance to factory state.
+              {t('privacy.reset_confirm_body')}
             </Text>
             <View style={styles.confirmRow}>
               <Pressable
@@ -175,14 +178,14 @@ export function SettingsPrivacy({
                 style={styles.destructiveButton}
                 accessibilityRole="button"
               >
-                <Text style={styles.destructiveButtonText}>Reset everything</Text>
+                <Text style={styles.destructiveButtonText}>{t('privacy.btn_reset_everything')}</Text>
               </Pressable>
               <Pressable
                 onPress={() => setShowReset(false)}
                 style={styles.cancelButton}
                 accessibilityRole="button"
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('privacy.btn_cancel')}</Text>
               </Pressable>
             </View>
           </View>

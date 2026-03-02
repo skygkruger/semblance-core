@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import type { ThemeMode, ThemeToggleProps } from './ThemeToggle.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
@@ -9,8 +10,10 @@ const modes: Array<{ id: ThemeMode; label: string }> = [
 ];
 
 export function ThemeToggle({ value, onChange }: ThemeToggleProps) {
+  const { t } = useTranslation();
+
   return (
-    <View style={styles.container} accessibilityRole="radiogroup" accessibilityLabel="Theme selection">
+    <View style={styles.container} accessibilityRole="radiogroup" accessibilityLabel={t('a11y.theme_selection')}>
       {modes.map((mode) => {
         const isActive = mode.id === value;
         return (

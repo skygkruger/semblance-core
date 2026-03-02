@@ -1,0 +1,105 @@
+{
+  "splash": {
+    "headline": "[ZH] This is your Semblance.",
+    "subtext": "[ZH] A digital representation that understands your world, acts on your behalf, and is architecturally incapable of betraying your trust.",
+    "begin_button": "[ZH] Begin"
+  },
+  "hardware": {
+    "headline": "[ZH] Detecting your hardware...",
+    "subtext": "[ZH] Semblance will recommend the best model for your machine.",
+    "continue_button": "[ZH] Continue",
+    "tier_label": "[ZH] Tier",
+    "ram_label": "[ZH] RAM",
+    "cpu_label": "[ZH] CPU",
+    "gpu_label": "[ZH] GPU",
+    "os_label": "[ZH] OS",
+    "cpu_cores": "[ZH] {{count}} cores",
+    "tier_capable": "[ZH] High Performance",
+    "tier_standard": "[ZH] Standard",
+    "tier_constrained": "[ZH] Constrained"
+  },
+  "data_sources": {
+    "headline": "[ZH] Connect your world",
+    "subtext": "[ZH] Everything stays on this device. Semblance connects to your accounts through the Gateway, fetches your data, and stores it locally.",
+    "more_sources": "[ZH] + 42 more sources available in Connections after setup",
+    "privacy_notice": "[ZH] Your data never leaves this device. Connections are encrypted and revocable at any time.",
+    "nudge": "[ZH] Connecting at least one source helps Semblance understand your world. You can always add more later.",
+    "skip_button": "[ZH] Skip for now",
+    "continue_button": "[ZH] Continue",
+    "connect_button": "[ZH] Connect",
+    "connected_status": "[ZH] Connected",
+    "sources": {
+      "email": {
+        "name": "[ZH] Email",
+        "description": "[ZH] Gmail, Outlook, IMAP"
+      },
+      "calendar": {
+        "name": "[ZH] Calendar",
+        "description": "[ZH] Google, Apple, Outlook"
+      },
+      "files": {
+        "name": "[ZH] Files & Documents",
+        "description": "[ZH] Local folders, iCloud"
+      },
+      "contacts": {
+        "name": "[ZH] Contacts",
+        "description": "[ZH] Phone, Google, CardDAV"
+      },
+      "health": {
+        "name": "[ZH] Health",
+        "description": "[ZH] Apple Health, Google Fit"
+      },
+      "slack": {
+        "name": "[ZH] Slack",
+        "description": "[ZH] Workspace messages"
+      }
+    }
+  },
+  "autonomy": {
+    "headline": "[ZH] How much should it do on its own?",
+    "subtext": "[ZH] You can change this anytime in Settings. Most users start with Partner.",
+    "continue_button": "[ZH] Continue",
+    "selector_label": "[ZH] Autonomy tier selection",
+    "recommended_badge": "[ZH] Recommended",
+    "tiers": {
+      "guardian": {
+        "name": "[ZH] Guardian",
+        "description": "[ZH] I'll show you everything before I act",
+        "detail": "[ZH] Every action requires your explicit approval. Full control."
+      },
+      "partner": {
+        "name": "[ZH] Partner",
+        "description": "[ZH] I'll handle the routine, check on the important stuff",
+        "detail": "[ZH] Routine tasks run autonomously. Novel or high-stakes actions need approval."
+      },
+      "alter_ego": {
+        "name": "[ZH] Alter Ego",
+        "description": "[ZH] I'll handle everything, interrupt only when it matters",
+        "detail": "[ZH] Most users start with Partner and move here within a few weeks."
+      }
+    }
+  },
+  "naming_moment": {
+    "headline": "[ZH] What should it call you?",
+    "placeholder": "[ZH] Your name or nickname",
+    "confirmation": "[ZH] Your Semblance will address you as {{name}}. You can change this in Settings.",
+    "continue_button": "[ZH] Continue"
+  },
+  "naming_ai": {
+    "headline": "[ZH] What will you call it?",
+    "placeholder": "[ZH] Give it a name",
+    "subtext": "[ZH] This is what your AI will be called. You can change it in Settings.",
+    "start_button": "[ZH] Start Semblance"
+  },
+  "initialize": {
+    "downloading_headline": "[ZH] Initializing your Semblance...",
+    "downloading_subtext": "[ZH] Downloading models and preparing your knowledge graph. This may take a few minutes.",
+    "building_headline": "[ZH] Building your knowledge graph...",
+    "building_subtext": "[ZH] Cross-referencing your connected data sources.",
+    "knowledge_moment_headline": "[ZH] Your Semblance already knows something.",
+    "ready_headline": "[ZH] Ready to go.",
+    "ready_subtext": "[ZH] Connect more data sources later to unlock deeper insights.",
+    "start_button": "[ZH] Start Semblance",
+    "download_complete_status": "[ZH] Complete"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "card": {
+    "default_title": "[JA] Morning Brief",
+    "loading": "[JA] Morning Brief loading..."
+  },
+  "greeting": {
+    "morning": "[JA] Good morning",
+    "afternoon": "[JA] Good afternoon",
+    "evening": "[JA] Good evening",
+    "anonymous": "[JA] {{period}}.",
+    "with_name": "[JA] {{period}}, {{name}}."
+  },
+  "date": {
+    "days": {
+      "sunday": "[JA] Sunday",
+      "monday": "[JA] Monday",
+      "tuesday": "[JA] Tuesday",
+      "wednesday": "[JA] Wednesday",
+      "thursday": "[JA] Thursday",
+      "friday": "[JA] Friday",
+      "saturday": "[JA] Saturday"
+    },
+    "months": {
+      "january": "[JA] January",
+      "february": "[JA] February",
+      "march": "[JA] March",
+      "april": "[JA] April",
+      "may": "[JA] May",
+      "june": "[JA] June",
+      "july": "[JA] July",
+      "august": "[JA] August",
+      "september": "[JA] September",
+      "october": "[JA] October",
+      "november": "[JA] November",
+      "december": "[JA] December"
+    }
+  }
+}

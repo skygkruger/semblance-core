@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
 import { Button } from '../../components/Button/Button';
 import { WireframeSpinner } from '../../components/WireframeSpinner/WireframeSpinner';
@@ -10,7 +11,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1_000).toFixed(0)} KB`;
 }
 
-function DownloadRow({ download }: { download: ModelDownload }) {
+function DownloadRow({ download, completeLabel }: { download: ModelDownload; completeLabel: string }) {
   const progress = download.totalBytes > 0
     ? (download.downloadedBytes / download.totalBytes) * 100
     : 0;
@@ -28,7 +29,7 @@ function DownloadRow({ download }: { download: ModelDownload }) {
           {download.modelName}
         </span>
         <span style={{ fontFamily: 'var(--fm)', fontSize: 12, color: isComplete ? '#6ECFA3' : '#8593A4' }}>
-          {isComplete ? 'Complete' : `${formatBytes(download.downloadedBytes)} / ${formatBytes(download.totalBytes)}`}
+          {isComplete ? completeLabel : `${formatBytes(download.downloadedBytes)} / ${formatBytes(download.totalBytes)}`}
         </span>
       </div>
       <ProgressBar
@@ -40,6 +41,7 @@ function DownloadRow({ download }: { download: ModelDownload }) {
 }
 
 export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete }: InitializeStepProps) {
+  const { t } = useTranslation('onboarding');
   const allComplete = downloads.length > 0 && downloads.every(d => d.status === 'complete');
 
   return (
@@ -57,14 +59,13 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
           <div style={{ width: 64, height: 64 }}>
             <WireframeSpinner size={64} />
           </div>
-          <h2 className="naming__headline">Initializing your Semblance...</h2>
+          <h2 className="naming__headline">{t('initialize.downloading_headline')}</h2>
           <p className="naming__subtext" style={{ maxWidth: 360 }}>
-            Downloading models and preparing your knowledge graph.
-            This may take a few minutes.
+            {t('initialize.downloading_subtext')}
           </p>
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {downloads.map((dl) => (
-              <DownloadRow key={dl.modelName} download={dl} />
+              <DownloadRow key={dl.modelName} download={dl} completeLabel={t('initialize.download_complete_status')} />
             ))}
           </div>
         </>
@@ -75,16 +76,16 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
           <div style={{ width: 64, height: 64 }}>
             <WireframeSpinner size={64} />
           </div>
-          <h2 className="naming__headline">Building your knowledge graph...</h2>
+          <h2 className="naming__headline">{t('initialize.building_headline')}</h2>
           <p className="naming__subtext" style={{ maxWidth: 360 }}>
-            Cross-referencing your connected data sources.
+            {t('initialize.building_subtext')}
           </p>
         </>
       )}
 
       {allComplete && !loading && knowledgeMoment && (
         <>
-          <h2 className="naming__headline">Your Semblance already knows something.</h2>
+          <h2 className="naming__headline">{t('initialize.knowledge_moment_headline')}</h2>
           <div style={{
             width: '100%',
             padding: 20,
@@ -126,9 +127,9 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
 
       {allComplete && !loading && !knowledgeMoment && (
         <>
-          <h2 className="naming__headline">Ready to go.</h2>
+          <h2 className="naming__headline">{t('initialize.ready_headline')}</h2>
           <p className="naming__subtext" style={{ maxWidth: 360 }}>
-            Connect more data sources later to unlock deeper insights.
+            {t('initialize.ready_subtext')}
           </p>
         </>
       )}
@@ -136,7 +137,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
       {allComplete && !loading && (
         <div style={{ marginTop: 8 }}>
           <Button variant="approve" size="lg" onClick={onComplete}>
-            Start Semblance
+            {t('initialize.start_button')}
           </Button>
         </div>
       )}

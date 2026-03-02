@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Button } from '../../components/Button/Button';
 import { Input } from '../../components/Input/Input';
@@ -6,6 +7,7 @@ import type { NamingMomentProps } from './NamingMoment.types';
 import './Onboarding.css';
 
 export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProps) {
+  const { t } = useTranslation('onboarding');
   const [userName, setUserName] = useState(defaultValue);
   const hasValue = userName.trim().length > 0;
 
@@ -22,21 +24,20 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
       <LogoMark size={64} />
 
       <h1 className="naming__headline">
-        What should <em className="naming__pronoun">it</em> call you?
+        {t('naming_moment.headline')}
       </h1>
 
       <div style={{ width: '100%' }}>
         <Input
-          placeholder="Your name or nickname"
+          placeholder={t('naming_moment.placeholder')}
           value={userName}
-          onChange={e => setUserName(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
         />
       </div>
 
       {hasValue && (
         <p className="naming__subtext" style={{ maxWidth: 300 }}>
-          Your Semblance will address you as {userName.trim()}.
-          You can change this in Settings.
+          {t('naming_moment.confirmation', { name: userName.trim() })}
         </p>
       )}
 
@@ -47,7 +48,7 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
           disabled={!hasValue}
           onClick={() => onComplete?.(userName.trim())}
         >
-          Continue
+          {t('naming_moment.continue_button')}
         </Button>
       </div>
     </div>

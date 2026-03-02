@@ -3,6 +3,7 @@
  * grouped into three sections: Native, Connected Services (OAuth), Manual Imports.
  */
 
+import { useTranslation } from 'react-i18next';
 import { ConnectorCard } from '../ConnectorCard/ConnectorCard';
 import {
   EnvelopeIcon,
@@ -54,22 +55,22 @@ export function ConnectionsScreen({
   onDisconnect,
   onSync,
 }: ConnectionsScreenProps) {
+  const { t } = useTranslation('connections');
   const hasAny = connectors.length > 0;
   const connectedCount = connectors.filter((c) => c.status === 'connected').length;
 
   if (!hasAny) {
     return (
       <div className="connections-screen">
-        <h1 className="connections-screen__title">Connections</h1>
+        <h1 className="connections-screen__title">{t('title')}</h1>
         <p className="connections-screen__subtitle">
-          Connect your data sources. Everything stays on your device.
+          {t('subtitle_empty')}
         </p>
         <div className="connections-empty">
           <LinkIcon size={48} />
-          <h2 className="connections-empty__heading">Connect your first data source</h2>
+          <h2 className="connections-empty__heading">{t('empty.heading')}</h2>
           <p className="connections-empty__body">
-            Semblance learns from your email, calendar, files, and more.
-            Everything stays on your device.
+            {t('empty.body')}
           </p>
           <div className="connections-empty__actions">
             <button
@@ -77,14 +78,14 @@ export function ConnectionsScreen({
               className="connections-empty__btn"
               onClick={() => onConnect('email')}
             >
-              Connect Email
+              {t('empty.btn_email')}
             </button>
             <button
               type="button"
               className="connections-empty__btn"
               onClick={() => onConnect('calendar')}
             >
-              Connect Calendar
+              {t('empty.btn_calendar')}
             </button>
           </div>
         </div>
@@ -94,18 +95,18 @@ export function ConnectionsScreen({
 
   return (
     <div className="connections-screen">
-      <h1 className="connections-screen__title">Connections</h1>
+      <h1 className="connections-screen__title">{t('title')}</h1>
       <p className="connections-screen__subtitle">
-        {connectedCount} of {connectors.length} sources connected. Everything stays on your device.
+        {t('subtitle_count', { connected: connectedCount, total: connectors.length })}
       </p>
 
-      {SECTION_CONFIG.map(({ key, label }) => {
+      {SECTION_CONFIG.map(({ key }) => {
         const sectionConnectors = connectors.filter((c) => c.category === key);
         if (sectionConnectors.length === 0) return null;
 
         return (
           <div key={key} className="connections-section">
-            <h2 className="connections-section__header">{label}</h2>
+            <h2 className="connections-section__header">{t(`section_headers.${key}`)}</h2>
             <div className="connections-section__grid">
               {sectionConnectors.map((connector) => (
                 <ConnectorCard

@@ -8,6 +8,7 @@
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { styles } from './KnowledgeGraphScreen.styles';
 import { GraphFilterSheet } from './GraphFilterSheet';
 import type {
@@ -161,6 +162,7 @@ export const KnowledgeGraphScreen: React.FC<KnowledgeGraphScreenProps> = ({
   onNodeSelect,
   onExport,
 }) => {
+  const { t } = useTranslation();
   const [showStats, setShowStats] = useState(true);
   const [showFilter, setShowFilter] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -219,7 +221,7 @@ export const KnowledgeGraphScreen: React.FC<KnowledgeGraphScreenProps> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Knowledge Graph</Text>
+        <Text style={styles.headerTitle}>{t('screen.knowledge_graph.title')}</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerButton}
@@ -248,11 +250,11 @@ export const KnowledgeGraphScreen: React.FC<KnowledgeGraphScreenProps> = ({
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{graph.stats.totalNodes}</Text>
-              <Text style={styles.statLabel}>Entities</Text>
+              <Text style={styles.statLabel}>{t('screen.knowledge_graph.entities')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{graph.stats.totalEdges}</Text>
-              <Text style={styles.statLabel}>Connections</Text>
+              <Text style={styles.statLabel}>{t('screen.knowledge_graph.connections')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
@@ -267,7 +269,7 @@ export const KnowledgeGraphScreen: React.FC<KnowledgeGraphScreenProps> = ({
             {graph.stats.crossDomainInsights != null && (
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{graph.stats.crossDomainInsights}</Text>
-                <Text style={styles.statLabel}>Insights</Text>
+                <Text style={styles.statLabel}>{t('screen.knowledge_graph.insights')}</Text>
               </View>
             )}
           </View>

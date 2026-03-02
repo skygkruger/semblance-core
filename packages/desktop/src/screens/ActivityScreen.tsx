@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActionCard } from '@semblance/ui';
 import { getActionLog } from '../ipc/commands';
 import type { LogEntry } from '../ipc/types';
 import { useAppState } from '../state/AppState';
 
 export function ActivityScreen() {
+  const { t } = useTranslation();
   const state = useAppState();
   const name = state.userName || 'Semblance';
   const [entries, setEntries] = useState<LogEntry[]>([]);
@@ -30,35 +32,43 @@ export function ActivityScreen() {
   return (
     <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
       <h1 className="text-xl font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
-        Activity
+        {t('screen.activity.title')}
       </h1>
 
       {/* Filter bar */}
       <div className="flex gap-2">
-        {['all', 'success', 'pending', 'error'].map((status) => (
-          <button
-            key={status}
-            type="button"
-            onClick={() => setFilterStatus(status)}
-            className={`
-              px-3 py-1.5 text-sm rounded-md transition-colors duration-fast
-              focus-visible:outline-none focus-visible:shadow-focus
-              ${filterStatus === status
-                ? 'bg-semblance-primary text-white'
-                : 'text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark'
-              }
-            `.trim()}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </button>
-        ))}
+        {(['all', 'success', 'pending', 'error'] as const).map((status) => {
+          const filterLabels: Record<string, string> = {
+            all: t('screen.activity.filter_all'),
+            success: t('screen.activity.filter_success'),
+            pending: t('screen.activity.filter_pending'),
+            error: t('screen.activity.filter_error'),
+          };
+          return (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setFilterStatus(status)}
+              className={`
+                px-3 py-1.5 text-sm rounded-md transition-colors duration-fast
+                focus-visible:outline-none focus-visible:shadow-focus
+                ${filterStatus === status
+                  ? 'bg-semblance-primary text-white'
+                  : 'text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark'
+                }
+              `.trim()}
+            >
+              {filterLabels[status]}
+            </button>
+          );
+        })}
       </div>
 
       {/* Action log */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-            No actions yet. As <span className="ai-name-shimmer font-semibold">{name}</span> works for you, every action will appear here — fully transparent and reviewable.
+            {t('screen.activity.empty', { name })}
           </p>
         </div>
       ) : (
@@ -74,8 +84,8 @@ export function ActivityScreen() {
               autonomyTier={entry.autonomy_tier}
               detail={
                 <div className="space-y-2 font-mono text-xs">
-                  <p>Payload Hash: {entry.payload_hash}</p>
-                  <p>Audit Reference: {entry.audit_ref}</p>
+                  <p>{t('screen.activity.payload_hash', { hash: entry.payload_hash })}</p>
+                  <p>{t('screen.activity.audit_reference', { ref: entry.audit_ref })}</p>
                 </div>
               }
             />

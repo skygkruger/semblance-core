@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../../theme/tokens.js';
 
 export interface TrustedParty {
@@ -38,6 +39,7 @@ export const InheritanceScreen: React.FC<InheritanceScreenProps> = ({
   onTestRun,
   onNavigateToActivation,
 }) => {
+  const { t } = useTranslation();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -66,7 +68,7 @@ export const InheritanceScreen: React.FC<InheritanceScreenProps> = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Inheritance Protocol</Text>
+      <Text style={styles.title}>{t('screen.inheritance.title')}</Text>
       <Text style={styles.subtitle}>
         Pre-authorize actions for trusted parties to execute on your behalf.
       </Text>
@@ -76,7 +78,7 @@ export const InheritanceScreen: React.FC<InheritanceScreenProps> = ({
         style={styles.toggleRow}
         onPress={() => onToggleEnabled(!enabled)}
       >
-        <Text style={styles.toggleLabel}>Inheritance Protocol</Text>
+        <Text style={styles.toggleLabel}>{t('screen.inheritance.toggle_label')}</Text>
         <Text style={[styles.toggleValue, { color: enabled ? colors.success : colors.textTertiary }]}>
           {enabled ? 'Enabled' : 'Disabled'}
         </Text>
@@ -85,7 +87,7 @@ export const InheritanceScreen: React.FC<InheritanceScreenProps> = ({
       {/* Trusted Parties */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Trusted Parties</Text>
+          <Text style={styles.sectionTitle}>{t('screen.inheritance.trusted_parties')}</Text>
           <TouchableOpacity onPress={() => setShowAddForm(!showAddForm)}>
             <Text style={styles.addButton}>{showAddForm ? '[Cancel]' : '[+ Add]'}</Text>
           </TouchableOpacity>
@@ -95,21 +97,21 @@ export const InheritanceScreen: React.FC<InheritanceScreenProps> = ({
           <View style={styles.addForm}>
             <TextInput
               style={styles.input}
-              placeholder="Name"
+              placeholder={t('placeholder.name')}
               placeholderTextColor={colors.textTertiary}
               value={newName}
               onChangeText={setNewName}
-              accessibilityLabel="Trusted party name"
+              accessibilityLabel={t('a11y.trusted_party_name')}
             />
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder={t('placeholder.email')}
               placeholderTextColor={colors.textTertiary}
               value={newEmail}
               onChangeText={setNewEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              accessibilityLabel="Trusted party email"
+              accessibilityLabel={t('a11y.trusted_party_email')}
             />
             <View style={styles.roleRow}>
               {(['full-access', 'limited-access', 'notification-only'] as const).map(role => (
@@ -125,13 +127,13 @@ export const InheritanceScreen: React.FC<InheritanceScreenProps> = ({
               ))}
             </View>
             <TouchableOpacity style={styles.submitButton} onPress={handleAdd}>
-              <Text style={styles.submitButtonText}>Add Trusted Party</Text>
+              <Text style={styles.submitButtonText}>{t('screen.inheritance.add_trusted_party')}</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {trustedParties.length === 0 && !showAddForm && (
-          <Text style={styles.emptyText}>No trusted parties configured.</Text>
+          <Text style={styles.emptyText}>{t('screen.inheritance.empty_trusted')}</Text>
         )}
 
         {trustedParties.map(party => (
@@ -150,10 +152,10 @@ export const InheritanceScreen: React.FC<InheritanceScreenProps> = ({
 
       {/* Actions */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Actions</Text>
+        <Text style={styles.sectionTitle}>{t('screen.inheritance.section_actions')}</Text>
         <TouchableOpacity style={styles.actionButton} onPress={handleTestRun}>
-          <Text style={styles.actionButtonText}>Run Test</Text>
-          <Text style={styles.actionDescription}>Simulate inheritance activation without side effects</Text>
+          <Text style={styles.actionButtonText}>{t('screen.inheritance.run_test')}</Text>
+          <Text style={styles.actionDescription}>{t('screen.inheritance.test_description')}</Text>
         </TouchableOpacity>
 
         {testResult && (
@@ -163,8 +165,8 @@ export const InheritanceScreen: React.FC<InheritanceScreenProps> = ({
         )}
 
         <TouchableOpacity style={styles.actionButton} onPress={onNavigateToActivation}>
-          <Text style={styles.actionButtonText}>Activation</Text>
-          <Text style={styles.actionDescription}>Activate an inheritance file from a trusted party</Text>
+          <Text style={styles.actionButtonText}>{t('screen.inheritance.activation')}</Text>
+          <Text style={styles.actionDescription}>{t('screen.inheritance.activation_description')}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

@@ -1,0 +1,30 @@
+{
+  "title": "Connections",
+  "subtitle_empty": "Connect your data sources. Everything stays on your device.",
+  "subtitle_count": "{{connected}} of {{total}} sources connected. Everything stays on your device.",
+  "section_headers": {
+    "native": "NATIVE CONNECTIONS",
+    "oauth": "CONNECTED SERVICES",
+    "manual": "MANUAL IMPORTS"
+  },
+  "empty": {
+    "heading": "Connect your first data source",
+    "body": "Semblance learns from your email, calendar, files, and more. Everything stays on your device.",
+    "btn_email": "Connect Email",
+    "btn_calendar": "Connect Calendar"
+  },
+  "card": {
+    "dr_badge": "DR",
+    "btn_connect": "Connect",
+    "btn_sync": "Sync",
+    "btn_disconnect": "Disconnect",
+    "pending_text": "Connecting...",
+    "synced_prefix": "Synced {{time}}"
+  },
+  "status": {
+    "connected": "Connected",
+    "disconnected": "Available",
+    "error": "Error",
+    "pending": "Connecting..."
+  }
+}

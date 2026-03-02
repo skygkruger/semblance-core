@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import { Button } from '../Button/Button';
 import type { ApprovalCardProps } from './ApprovalCard.types';
@@ -14,6 +15,7 @@ export function ApprovalCard({
   onApprove,
   onDismiss,
 }: ApprovalCardProps) {
+  const { t } = useTranslation();
   const [_animating, setAnimating] = useState(true);
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function ApprovalCard({
       {dataOut.length > 0 && (
         <>
           <View style={styles.divider} />
-          <Text style={styles.dataLabel}>Data leaving device</Text>
+          <Text style={styles.dataLabel}>{t('screen.approval.data_leaving')}</Text>
           {dataOut.map((item, i) => (
             <View key={i} style={styles.dataRow}>
               <Text style={styles.dataBullet}>{'\u2022'}</Text>
@@ -50,10 +52,10 @@ export function ApprovalCard({
       {state === 'pending' && (
         <View style={styles.actions}>
           <Button variant="approve" size="md" onPress={onApprove}>
-            Approve
+            {t('button.approve')}
           </Button>
           <Button variant="dismiss" size="md" onPress={onDismiss}>
-            Dismiss
+            {t('button.dismiss')}
           </Button>
         </View>
       )}

@@ -11,6 +11,7 @@ import {
   TextInput,
   TouchableOpacity,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, radius, typographyPresets } from '../theme/tokens.js';
 
 export interface LocationSettingsState {
@@ -35,18 +36,20 @@ export function LocationSettingsScreen({
   onSettingsChange,
   onClearHistory,
 }: LocationSettingsScreenProps) {
+  const { t } = useTranslation();
+
   const update = (partial: Partial<LocationSettingsState>) => {
     onSettingsChange({ ...settings, ...partial });
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Location Services</Text>
+      <Text style={styles.title}>{t('screen.location.title')}</Text>
 
       {/* Main toggle */}
       <View style={styles.row}>
         <View style={styles.rowText}>
-          <Text style={styles.label}>Location services</Text>
+          <Text style={styles.label}>{t('screen.location.location_services')}</Text>
           <Text style={styles.description}>
             Uses device location for reminders, commute, and weather. All data stays on device.
           </Text>
@@ -63,7 +66,7 @@ export function LocationSettingsScreen({
           {/* Sub-toggles */}
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={styles.label}>Location reminders</Text>
+              <Text style={styles.label}>{t('screen.location.location_reminders')}</Text>
             </View>
             <Switch
               value={settings.remindersEnabled}
@@ -74,7 +77,7 @@ export function LocationSettingsScreen({
 
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={styles.label}>Commute alerts</Text>
+              <Text style={styles.label}>{t('screen.location.commute_alerts')}</Text>
             </View>
             <Switch
               value={settings.commuteEnabled}
@@ -85,7 +88,7 @@ export function LocationSettingsScreen({
 
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={styles.label}>Weather awareness</Text>
+              <Text style={styles.label}>{t('screen.location.weather_awareness')}</Text>
             </View>
             <Switch
               value={settings.weatherEnabled}
@@ -96,7 +99,7 @@ export function LocationSettingsScreen({
 
           {/* Default city */}
           <View style={styles.inputSection}>
-            <Text style={styles.sectionLabel}>Default City</Text>
+            <Text style={styles.sectionLabel}>{t('screen.location.default_city')}</Text>
             <TextInput
               style={styles.input}
               value={settings.defaultCity}
@@ -108,7 +111,7 @@ export function LocationSettingsScreen({
 
           {/* Retention */}
           <View style={styles.inputSection}>
-            <Text style={styles.sectionLabel}>Location History Retention</Text>
+            <Text style={styles.sectionLabel}>{t('screen.location.history_retention')}</Text>
             <View style={styles.retentionRow}>
               {RETENTION_OPTIONS.map((days) => (
                 <TouchableOpacity
@@ -134,7 +137,7 @@ export function LocationSettingsScreen({
 
           {/* Clear history */}
           <TouchableOpacity style={styles.clearButton} onPress={onClearHistory}>
-            <Text style={styles.clearButtonText}>Clear location history</Text>
+            <Text style={styles.clearButtonText}>{t('screen.location.clear_history')}</Text>
           </TouchableOpacity>
         </View>
       )}

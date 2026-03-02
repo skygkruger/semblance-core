@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { BackArrow, GuardianIcon, PartnerIcon, AlterEgoIcon } from './SettingsIcons';
 import type { Tier, SettingsAutonomyProps } from './SettingsAutonomy.types';
@@ -32,15 +33,17 @@ export function SettingsAutonomy({
   onChange,
   onBack,
 }: SettingsAutonomyProps) {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation();
   const isGuardian = currentTier === 'guardian';
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel="Go back">
+        <Pressable onPress={onBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel={tc('a11y.go_back')}>
           <BackArrow />
         </Pressable>
-        <Text style={styles.headerTitle}>Autonomy</Text>
+        <Text style={styles.headerTitle}>{t('autonomy.title')}</Text>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -60,14 +63,14 @@ export function SettingsAutonomy({
                 </View>
                 <View style={styles.tierCardBody}>
                   <View style={styles.tierCardHeader}>
-                    <Text style={styles.tierCardName}>{tier.name}</Text>
+                    <Text style={styles.tierCardName}>{t(`autonomy.tiers.${tier.id}.name`)}</Text>
                     {isActive && (
                       <View style={styles.badgeVeridian}>
-                        <Text style={styles.badgeTextVeridian}>ACTIVE</Text>
+                        <Text style={styles.badgeTextVeridian}>{t('autonomy.badge_active')}</Text>
                       </View>
                     )}
                   </View>
-                  <Text style={styles.tierCardDesc} numberOfLines={2}>{tier.desc}</Text>
+                  <Text style={styles.tierCardDesc} numberOfLines={2}>{t(`autonomy.tiers.${tier.id}.desc`)}</Text>
                 </View>
               </Pressable>
             );
@@ -75,9 +78,9 @@ export function SettingsAutonomy({
         </View>
 
         {/* Domain Overrides */}
-        <Text style={styles.sectionHeader}>Domain Overrides</Text>
+        <Text style={styles.sectionHeader}>{t('autonomy.section_domain_overrides')}</Text>
         <Text style={[styles.explanation, { marginBottom: nativeSpacing.s3 }]}>
-          Override the default tier for specific areas. Useful if you want Alter Ego everywhere except Finance.
+          {t('autonomy.domain_overrides_explanation')}
         </Text>
 
         {domains.map((domain) => {
@@ -85,21 +88,21 @@ export function SettingsAutonomy({
           const override = domainOverrides[key] || 'default';
           return (
             <View key={domain} style={styles.rowStatic}>
-              <Text style={styles.rowLabel}>{domain}</Text>
+              <Text style={styles.rowLabel}>{t(`autonomy.domains.${key}`)}</Text>
               <Text style={styles.rowValue}>{tierLabels[override]}</Text>
             </View>
           );
         })}
 
         {/* Safety */}
-        <Text style={styles.sectionHeader}>Safety</Text>
+        <Text style={styles.sectionHeader}>{t('autonomy.section_safety')}</Text>
 
         <Pressable
           style={({ pressed }) => [styles.row, pressed && !isGuardian && styles.rowPressed]}
           onPress={isGuardian ? undefined : () => onChange('requireConfirmationForIrreversible', !requireConfirmationForIrreversible)}
           accessibilityRole="button"
         >
-          <Text style={styles.rowLabel}>Require confirmation for irreversible actions</Text>
+          <Text style={styles.rowLabel}>{t('autonomy.label_require_confirmation')}</Text>
           <Toggle
             on={requireConfirmationForIrreversible}
             onToggle={() => onChange('requireConfirmationForIrreversible', !requireConfirmationForIrreversible)}
@@ -108,12 +111,12 @@ export function SettingsAutonomy({
         </Pressable>
 
         <View style={styles.rowStatic}>
-          <Text style={styles.rowLabel}>Action review window</Text>
+          <Text style={styles.rowLabel}>{t('autonomy.label_action_review_window')}</Text>
           <Text style={styles.rowValue}>{reviewLabels[actionReviewWindow]}</Text>
         </View>
 
         <Text style={[styles.explanationSmall, { paddingTop: nativeSpacing.s2 }]}>
-          Irreversible actions include sent emails, deleted files, cancelled subscriptions, and calendar changes affecting others.
+          {t('autonomy.irreversible_actions_explanation')}
         </Text>
       </ScrollView>
     </View>

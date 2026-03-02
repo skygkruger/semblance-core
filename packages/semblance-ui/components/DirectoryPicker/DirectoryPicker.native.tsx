@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import type { DirectoryPickerProps } from './DirectoryPicker.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
 export function DirectoryPicker({ directories, onAdd, onRemove, onRescan }: DirectoryPickerProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       {directories.map((dir) => (
@@ -27,7 +30,7 @@ export function DirectoryPicker({ directories, onAdd, onRemove, onRescan }: Dire
                 <Text style={styles.metaText}>{dir.fileCount} files</Text>
               )}
               {dir.lastIndexed && (
-                <Text style={styles.metaText}>Last indexed: {dir.lastIndexed}</Text>
+                <Text style={styles.metaText}>{t('screen.directory.last_indexed', { time: dir.lastIndexed })}</Text>
               )}
             </View>
           </View>
@@ -68,14 +71,14 @@ export function DirectoryPicker({ directories, onAdd, onRemove, onRescan }: Dire
       <Pressable
         style={styles.addBtn}
         onPress={onAdd}
-        accessibilityLabel="Add folder"
+        accessibilityLabel={t('a11y.add_folder')}
         accessibilityRole="button"
       >
         <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
           <Path d="M5 12h14" stroke={brandColors.veridian} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
           <Path d="M12 5v14" stroke={brandColors.veridian} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
-        <Text style={styles.addBtnText}>Add Folder</Text>
+        <Text style={styles.addBtnText}>{t('button.add_folder')}</Text>
       </Pressable>
     </View>
   );

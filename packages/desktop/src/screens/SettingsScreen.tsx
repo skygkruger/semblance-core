@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Card, Input, Button, StatusIndicator, AutonomySelector, ThemeToggle, CredentialForm, LicenseActivation, FoundingMemberBadge } from '@semblance/ui';
 import {
@@ -30,19 +31,20 @@ import type { CredentialFormData } from '@semblance/ui';
 import type { AccountInfo, AccountStatus } from '../ipc/types';
 
 function LicenseSection() {
+  const { t } = useTranslation();
   const license = useLicense();
   const navigate = useNavigate();
 
   const tierLabel =
-    license.tier === 'digital-representative' ? 'Digital Representative' :
-    license.tier === 'founding' ? 'Founding Member' :
-    license.tier === 'lifetime' ? 'Lifetime' :
-    'Free';
+    license.tier === 'digital-representative' ? t('license.digital_representative') :
+    license.tier === 'founding' ? t('license.founding') :
+    license.tier === 'lifetime' ? t('license.lifetime') :
+    t('license.free');
 
   return (
     <Card>
       <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-        License
+        {t('screen.settings.section_license')}
       </h2>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -51,7 +53,7 @@ function LicenseSection() {
               {tierLabel}
             </p>
             <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              {license.isPremium ? 'All premium features active' : 'Core features only'}
+              {license.isPremium ? t('license.premium_desc') : t('license.free_desc')}
             </p>
           </div>
           {license.isFoundingMember && license.foundingSeat !== null && (
@@ -65,7 +67,7 @@ function LicenseSection() {
             size="sm"
             onClick={() => navigate('/upgrade')}
           >
-            Upgrade
+            {t('button.upgrade')}
           </Button>
         )}
 
@@ -75,13 +77,13 @@ function LicenseSection() {
             size="sm"
             onClick={() => license.manageSubscription()}
           >
-            Manage Subscription
+            {t('screen.settings.btn_manage_subscription')}
           </Button>
         )}
 
         <div>
           <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark mb-2">
-            {license.isPremium ? 'Enter a different license key:' : 'Have a license key?'}
+            {license.isPremium ? t('license.enter_different_key') : t('license.have_key')}
           </p>
           <LicenseActivation
             onActivate={license.activateKey}
@@ -94,6 +96,7 @@ function LicenseSection() {
 }
 
 export function SettingsScreen() {
+  const { t } = useTranslation();
   const state = useAppState();
   const dispatch = useAppDispatch();
   const [editingName, setEditingName] = useState(false);
@@ -254,32 +257,32 @@ export function SettingsScreen() {
   return (
     <div className="max-w-container-sm mx-auto px-6 py-8 space-y-8">
       <h1 className="text-xl font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
-        Settings
+        {t('screen.settings.title')}
       </h1>
 
       {/* Your Semblance */}
       <Card>
         <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-          Your Semblance
+          {t('screen.settings.section_your_semblance')}
         </h2>
         {editingName ? (
           <div className="flex gap-2">
             <Input
               value={nameValue}
-              onChange={(e) => setNameValue(e.target.value)}
-              placeholder="Enter a name"
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNameValue(e.target.value)}
+              placeholder={t('placeholder.enter_name')}
+              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleSaveName()}
             />
-            <Button onClick={handleSaveName} size="sm">Save</Button>
-            <Button variant="ghost" size="sm" onClick={() => setEditingName(false)}>Cancel</Button>
+            <Button onClick={handleSaveName} size="sm">{t('button.save')}</Button>
+            <Button variant="ghost" size="sm" onClick={() => setEditingName(false)}>{t('button.cancel')}</Button>
           </div>
         ) : (
           <div className="flex items-center gap-3">
             <span className="text-lg font-semibold text-semblance-accent">
-              {state.userName || 'Not named yet'}
+              {state.userName || t('screen.settings.not_named_yet')}
             </span>
             <Button variant="ghost" size="sm" onClick={() => { setEditingName(true); setNameValue(state.userName || ''); }}>
-              Edit
+              {t('button.edit')}
             </Button>
           </div>
         )}
@@ -288,13 +291,13 @@ export function SettingsScreen() {
       {/* AI Engine */}
       <Card>
         <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-          AI Engine
+          {t('screen.settings.section_ai_engine')}
         </h2>
 
         {/* Runtime Selection */}
         <div className="mb-4">
           <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
-            Runtime
+            {t('screen.settings.label_runtime')}
           </label>
           <div className="flex gap-2">
             {(['builtin', 'ollama', 'custom'] as const).map((mode) => (
@@ -308,7 +311,7 @@ export function SettingsScreen() {
                     : 'border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:border-semblance-primary/50'
                 }`}
               >
-                {mode === 'builtin' ? 'Built-in' : mode === 'ollama' ? 'Ollama' : 'Custom'}
+                {t(`screen.settings.runtime_${mode}`)}
               </button>
             ))}
           </div>
@@ -320,7 +323,7 @@ export function SettingsScreen() {
             <div className="flex items-center gap-3">
               <StatusIndicator status="success" />
               <span className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-                Built-in runtime — {state.activeModel || 'Models ready'}
+                {t('screen.settings.builtin_status', { model: state.activeModel || t('screen.settings.models_ready') })}
               </span>
             </div>
             {hardwareInfo && (
@@ -334,15 +337,15 @@ export function SettingsScreen() {
             <StatusIndicator status={state.ollamaStatus === 'connected' ? 'success' : 'attention'} />
             <span className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
               {state.ollamaStatus === 'connected'
-                ? `Connected — ${state.activeModel || 'No model selected'}`
-                : 'Ollama not connected. Make sure Ollama is running on this device.'}
+                ? t('screen.settings.ollama_connected', { model: state.activeModel || t('screen.settings.ollama_no_model') })
+                : t('screen.settings.ollama_disconnected')}
             </span>
           </div>
         )}
 
         {runtimeMode === 'custom' && (
           <p className="text-sm text-semblance-text-tertiary">
-            Custom runtime configuration coming in a future update.
+            {t('screen.settings.custom_coming')}
           </p>
         )}
 
@@ -367,13 +370,13 @@ export function SettingsScreen() {
       {/* Web Search */}
       <Card>
         <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-          Web Search
+          {t('screen.settings.section_web_search')}
         </h2>
 
         {/* Search Provider */}
         <div className="mb-4">
           <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
-            Search Provider
+            {t('screen.settings.label_search_provider')}
           </label>
           <div className="flex gap-2">
             {(['brave', 'searxng'] as const).map((provider) => (
@@ -387,7 +390,7 @@ export function SettingsScreen() {
                     : 'border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:border-semblance-primary/50'
                 }`}
               >
-                {provider === 'brave' ? 'Brave Search' : 'SearXNG'}
+                {provider === 'brave' ? t('screen.settings.provider_brave') : t('screen.settings.provider_searxng')}
               </button>
             ))}
           </div>
@@ -397,14 +400,14 @@ export function SettingsScreen() {
         {searchProvider === 'brave' && (
           <div className="mb-4">
             <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
-              Brave Search API Key
+              {t('screen.settings.label_brave_api_key')}
             </label>
             <div className="flex gap-2">
               <Input
                 type="password"
                 value={braveApiKey}
-                onChange={(e) => { setBraveApiKey(e.target.value); setApiKeyStatus('idle'); setApiKeySaved(false); }}
-                placeholder="Enter your Brave Search API key"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setBraveApiKey(e.target.value); setApiKeyStatus('idle'); setApiKeySaved(false); }}
+                placeholder={t('placeholder.brave_api_key')}
               />
               {apiKeyStatus === 'valid' && (
                 <StatusIndicator status="success" />
@@ -414,7 +417,7 @@ export function SettingsScreen() {
               )}
             </div>
             <p className="text-xs text-semblance-text-tertiary mt-1">
-              Get a free API key at search.brave.com/api
+              {t('screen.settings.brave_api_hint')}
             </p>
           </div>
         )}
@@ -423,15 +426,15 @@ export function SettingsScreen() {
         {searchProvider === 'searxng' && (
           <div className="mb-4">
             <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
-              SearXNG Instance URL
+              {t('screen.settings.label_searxng_url')}
             </label>
             <Input
               value={searxngUrl}
-              onChange={(e) => { setSearxngUrl(e.target.value); setApiKeySaved(false); }}
-              placeholder="https://searx.example.com"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearxngUrl(e.target.value); setApiKeySaved(false); }}
+              placeholder={t('placeholder.searxng_url')}
             />
             <p className="text-xs text-semblance-text-tertiary mt-1">
-              URL of your self-hosted SearXNG instance
+              {t('screen.settings.searxng_hint')}
             </p>
           </div>
         )}
@@ -439,12 +442,12 @@ export function SettingsScreen() {
         {/* Rate Limit */}
         <div className="mb-4">
           <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
-            Rate Limit (requests per minute)
+            {t('screen.settings.label_rate_limit')}
           </label>
           <Input
             type="number"
             value={String(searchRateLimit)}
-            onChange={(e) => { setSearchRateLimit(parseInt(e.target.value, 10) || 60); setApiKeySaved(false); }}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearchRateLimit(parseInt(e.target.value, 10) || 60); setApiKeySaved(false); }}
             min={1}
             max={120}
           />
@@ -453,10 +456,10 @@ export function SettingsScreen() {
         {/* Save Button */}
         <div className="flex items-center gap-3">
           <Button size="sm" onClick={handleSaveSearchSettings} disabled={apiKeyStatus === 'testing'}>
-            {apiKeyStatus === 'testing' ? 'Testing...' : 'Save'}
+            {apiKeyStatus === 'testing' ? t('status.testing') : t('button.save')}
           </Button>
           {apiKeySaved && (
-            <span className="text-xs text-semblance-success">Settings saved</span>
+            <span className="text-xs text-semblance-success">{t('screen.settings.settings_saved')}</span>
           )}
         </div>
       </Card>
@@ -464,7 +467,7 @@ export function SettingsScreen() {
       {/* Connected Accounts */}
       <Card>
         <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-          Connected Accounts
+          {t('screen.settings.section_accounts')}
         </h2>
 
         {accounts.length > 0 ? (
@@ -489,19 +492,19 @@ export function SettingsScreen() {
                   onClick={() => handleRemoveAccount(account.username, account.serviceType)}
                   disabled={removingAccountId === `${account.serviceType}:${account.username}`}
                 >
-                  {removingAccountId === `${account.serviceType}:${account.username}` ? 'Removing...' : 'Remove'}
+                  {removingAccountId === `${account.serviceType}:${account.username}` ? t('status.removing') : t('button.remove')}
                 </Button>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-semblance-text-tertiary mb-4">No accounts connected yet.</p>
+          <p className="text-sm text-semblance-text-tertiary mb-4">{t('screen.settings.empty_accounts')}</p>
         )}
 
         {addingAccount ? (
           <div className="border border-semblance-border dark:border-semblance-border-dark rounded-md p-4">
             <h3 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-              Add {addingAccount === 'email' ? 'Email' : 'Calendar'} Account
+              {t('screen.settings.add_account_title', { type: addingAccount === 'email' ? t('screen.settings.account_type_email') : t('screen.settings.account_type_calendar') })}
             </h3>
             <CredentialForm
               serviceType={addingAccount}
@@ -514,10 +517,10 @@ export function SettingsScreen() {
         ) : (
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={() => setAddingAccount('email')}>
-              Add Email
+              {t('screen.settings.btn_add_email')}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setAddingAccount('calendar')}>
-              Add Calendar
+              {t('screen.settings.btn_add_calendar')}
             </Button>
           </div>
         )}
@@ -538,7 +541,7 @@ export function SettingsScreen() {
       {/* Autonomy */}
       <Card>
         <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-          Autonomy
+          {t('screen.settings.section_autonomy')}
         </h2>
         <AutonomySelector value={defaultTier} onChange={handleAutonomyChange} />
       </Card>
@@ -546,7 +549,7 @@ export function SettingsScreen() {
       {/* Appearance */}
       <Card>
         <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-          Appearance
+          {t('screen.settings.section_appearance')}
         </h2>
         <ThemeToggle value={state.theme} onChange={handleThemeChange} />
       </Card>
@@ -557,11 +560,11 @@ export function SettingsScreen() {
       {/* About */}
       <Card>
         <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-          About
+          {t('screen.settings.section_about')}
         </h2>
         <div className="space-y-2 text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-          <p>Semblance v0.1.0 — Sprint 1</p>
-          <p>Open Source — MIT License</p>
+          <p>{t('screen.settings.about_version')}</p>
+          <p>{t('screen.settings.about_license')}</p>
         </div>
       </Card>
     </div>

@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, Switch, ScrollView, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { CategoryNode } from '../../../../packages/core/knowledge/graph-visualization';
 import type { VisualizationCategory } from '../../../../packages/core/knowledge/connector-category-map';
 
@@ -38,12 +39,14 @@ export const GraphFilterSheet: React.FC<GraphFilterSheetProps> = ({
   onToggleCategory,
   onClose,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <View style={sheetStyles.container} testID="graph-filter-sheet">
       <View style={sheetStyles.handle} />
 
       <View style={sheetStyles.header}>
-        <Text style={sheetStyles.title}>Filter Categories</Text>
+        <Text style={sheetStyles.title}>{t('screen.graph_filter.title')}</Text>
         <TouchableOpacity onPress={onClose} testID="filter-close">
           <Text style={sheetStyles.closeText}>[x]</Text>
         </TouchableOpacity>

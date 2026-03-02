@@ -1,0 +1,39 @@
+{
+  "input": {
+    "placeholder_default": "[JA] Awaiting direction",
+    "thinking_text": "[JA] On it.",
+    "dismiss_document": "[JA] Dismiss document",
+    "send": "[JA] Send",
+    "send_message": "[JA] Send message",
+    "attach_document": "[JA] Attach document",
+    "message_input_label": "[JA] Message input"
+  },
+  "voice": {
+    "idle": "[JA] Start voice input",
+    "listening": "[JA] Stop listening",
+    "processing": "[JA] Processing speech",
+    "speaking": "[JA] Stop speaking",
+    "error": "[JA] Voice error -- tap to retry",
+    "status_speaking": "[JA] Speaking...",
+    "status_processing": "[JA] Processing..."
+  },
+  "autonomy": {
+    "selector_label": "[JA] Autonomy tier selection",
+    "recommended_badge": "[JA] Recommended",
+    "guardian": {
+      "name": "[JA] Guardian",
+      "description": "[JA] I'll show you everything before I act",
+      "detail": "[JA] Every action requires your explicit approval. Full control."
+    },
+    "partner": {
+      "name": "[JA] Partner",
+      "description": "[JA] I'll handle the routine, check on the important stuff",
+      "detail": "[JA] Routine tasks run autonomously. Novel or high-stakes actions need approval."
+    },
+    "alter_ego": {
+      "name": "[JA] Alter Ego",
+      "description": "[JA] I'll handle everything, interrupt only when it matters",
+      "detail": "[JA] Most users start with Partner and move here within a few weeks."
+    }
+  }
+}

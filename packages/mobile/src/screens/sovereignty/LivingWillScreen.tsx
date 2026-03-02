@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../../theme/tokens.js';
 
 export interface LivingWillExportStatus {
@@ -31,6 +32,7 @@ export const LivingWillScreen: React.FC<LivingWillScreenProps> = ({
   onToggleAutoExport,
   onConfigureFormat,
 }) => {
+  const { t } = useTranslation();
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
@@ -71,24 +73,24 @@ export const LivingWillScreen: React.FC<LivingWillScreenProps> = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Living Will</Text>
+      <Text style={styles.title}>{t('screen.living_will.title')}</Text>
       <Text style={styles.subtitle}>
         Your encrypted digital twin — a complete, portable export of your Semblance data.
       </Text>
 
       {/* Export Status Card */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Export Status</Text>
+        <Text style={styles.cardTitle}>{t('screen.living_will.export_status')}</Text>
         <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Last Export</Text>
+          <Text style={styles.statusLabel}>{t('screen.living_will.last_export')}</Text>
           <Text style={styles.statusValue}>{formatDate(exportStatus.lastExportAt)}</Text>
         </View>
         <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Size</Text>
+          <Text style={styles.statusLabel}>{t('screen.living_will.size')}</Text>
           <Text style={styles.statusValue}>{formatSize(exportStatus.lastExportSizeBytes)}</Text>
         </View>
         <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Format</Text>
+          <Text style={styles.statusLabel}>{t('screen.living_will.format')}</Text>
           <Text style={styles.statusValue}>{exportStatus.exportFormat}</Text>
         </View>
       </View>
@@ -99,7 +101,7 @@ export const LivingWillScreen: React.FC<LivingWillScreenProps> = ({
         onPress={handleExport}
         disabled={exporting}
         accessibilityRole="button"
-        accessibilityLabel="Export Living Will"
+        accessibilityLabel={t('a11y.export_living_will')}
       >
         <Text style={styles.primaryButtonText}>
           {exporting ? 'Exporting...' : 'Export Now'}
@@ -110,19 +112,19 @@ export const LivingWillScreen: React.FC<LivingWillScreenProps> = ({
         style={styles.secondaryButton}
         onPress={handleImport}
         accessibilityRole="button"
-        accessibilityLabel="Import Living Will"
+        accessibilityLabel={t('a11y.import_living_will')}
       >
-        <Text style={styles.secondaryButtonText}>Import from File</Text>
+        <Text style={styles.secondaryButtonText}>{t('screen.living_will.import_file')}</Text>
       </TouchableOpacity>
 
       {/* Settings */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Settings</Text>
+        <Text style={styles.cardTitle}>{t('screen.living_will.settings_title')}</Text>
         <TouchableOpacity
           style={styles.settingRow}
           onPress={() => onToggleAutoExport(!exportStatus.autoExportEnabled)}
         >
-          <Text style={styles.settingLabel}>Auto-export weekly</Text>
+          <Text style={styles.settingLabel}>{t('screen.living_will.auto_export')}</Text>
           <Text style={styles.settingValue}>
             {exportStatus.autoExportEnabled ? 'On' : 'Off'}
           </Text>
@@ -134,7 +136,7 @@ export const LivingWillScreen: React.FC<LivingWillScreenProps> = ({
             onConfigureFormat(next);
           }}
         >
-          <Text style={styles.settingLabel}>Export Format</Text>
+          <Text style={styles.settingLabel}>{t('screen.living_will.export_format')}</Text>
           <Text style={styles.settingValue}>{exportStatus.exportFormat}</Text>
         </TouchableOpacity>
       </View>

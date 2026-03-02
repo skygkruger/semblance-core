@@ -2,6 +2,7 @@
 // Container that manages step state and IPC, delegates presentation to library pages.
 
 import { useState, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   SplashScreen,
   HardwareDetection,
@@ -60,6 +61,7 @@ function toKnowledgeMomentData(km: KnowledgeMoment): KnowledgeMomentData {
 }
 
 export function OnboardingFlow() {
+  const { t } = useTranslation();
   const [step, setStep] = useState<OnboardingStep>('splash');
   const dispatch = useAppDispatch();
 
@@ -100,8 +102,8 @@ export function OnboardingFlow() {
           cpuCores: 4,
           gpuName: null,
           gpuVramMb: null,
-          os: 'Unknown',
-          arch: 'Unknown',
+          os: t('model.unknown'),
+          arch: t('model.unknown'),
         });
       })
       .finally(() => setDetecting(false));
@@ -113,8 +115,8 @@ export function OnboardingFlow() {
 
     // Initialize download states
     const models: ModelDownload[] = [
-      { modelName: 'Embedding Model', totalBytes: 275_000_000, downloadedBytes: 0, speedBytesPerSec: 0, status: 'pending' },
-      { modelName: 'Reasoning Model', totalBytes: 2_100_000_000, downloadedBytes: 0, speedBytesPerSec: 0, status: 'pending' },
+      { modelName: t('model.embedding'), totalBytes: 275_000_000, downloadedBytes: 0, speedBytesPerSec: 0, status: 'pending' },
+      { modelName: t('model.reasoning'), totalBytes: 2_100_000_000, downloadedBytes: 0, speedBytesPerSec: 0, status: 'pending' },
     ];
     setDownloads(models);
 

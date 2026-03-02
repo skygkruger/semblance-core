@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Button } from '../../components/Button/Button';
@@ -6,6 +7,7 @@ import type { NamingMomentProps } from './NamingMoment.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProps) {
+  const { t } = useTranslation('onboarding');
   const [userName, setUserName] = useState(defaultValue);
   const hasValue = userName.trim().length > 0;
 
@@ -18,14 +20,12 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
         <LogoMark size={64} />
 
         <Text style={styles.headline}>
-          What should{' '}
-          <Text style={styles.pronoun}>it</Text>
-          {' '}call you?
+          {t('naming_moment.headline')}
         </Text>
 
         <TextInput
           style={styles.input}
-          placeholder="Your name or nickname"
+          placeholder={t('naming_moment.placeholder')}
           placeholderTextColor={brandColors.sv1}
           value={userName}
           onChangeText={setUserName}
@@ -35,8 +35,7 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
 
         {hasValue && (
           <Text style={styles.subtext}>
-            Your Semblance will address you as {userName.trim()}.
-            You can change this in Settings.
+            {t('naming_moment.confirmation', { name: userName.trim() })}
           </Text>
         )}
 
@@ -47,7 +46,7 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
             disabled={!hasValue}
             onPress={() => onComplete?.(userName.trim())}
           >
-            Continue
+            {t('naming_moment.continue_button')}
           </Button>
         </View>
       </View>

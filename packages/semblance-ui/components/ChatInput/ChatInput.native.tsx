@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, TextInput, Pressable, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import type { ChatInputProps } from './ChatInput.types';
@@ -12,6 +13,7 @@ export function ChatInput({
   disabled = false,
   placeholder = 'Awaiting direction',
 }: ChatInputProps) {
+  const { t } = useTranslation('agent');
   const [value, setValue] = useState('');
   const [inputHeight, setInputHeight] = useState(0);
   const inputRef = useRef<TextInput>(null);
@@ -41,7 +43,7 @@ export function ChatInput({
           onPress={onAttach}
           disabled={disabled}
           hitSlop={8}
-          accessibilityLabel="Attach document"
+          accessibilityLabel={t('input.attach_document')}
           accessibilityRole="button"
         >
           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
@@ -69,7 +71,7 @@ export function ChatInput({
         multiline
         blurOnSubmit={false}
         textAlignVertical="top"
-        accessibilityLabel="Message input"
+        accessibilityLabel={t('input.message_input_label')}
       />
 
       <Pressable
@@ -77,7 +79,7 @@ export function ChatInput({
         onPress={handleSend}
         disabled={!canSend}
         hitSlop={8}
-        accessibilityLabel="Send message"
+        accessibilityLabel={t('input.send_message')}
         accessibilityRole="button"
       >
         <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">

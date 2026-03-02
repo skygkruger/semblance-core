@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Card, Button } from '@semblance/ui';
 import {
   getNetworkStatistics,
@@ -108,15 +110,15 @@ function formatDate(iso: string): string {
   }
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: TFunction): string {
   const diff = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t('time.just_now');
+  if (minutes < 60) return t('time.minutes_ago', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('time.hours_ago', { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t('time.days_ago', { count: days });
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
@@ -125,6 +127,7 @@ function TrustStatusCard({ unauthorizedAttempts, onGenerateReport }: {
   unauthorizedAttempts: number;
   onGenerateReport: () => void;
 }) {
+  const { t } = useTranslation();
   const isClean = unauthorizedAttempts === 0;
   return (
     <Card className={`p-6 border-l-[3px] ${isClean ? 'border-l-semblance-success' : 'border-l-semblance-attention'}`}>
@@ -132,16 +135,16 @@ function TrustStatusCard({ unauthorizedAttempts, onGenerateReport }: {
         <div className={`w-4 h-4 rounded-full mt-0.5 ${isClean ? 'bg-semblance-success' : 'bg-semblance-attention'}`} />
         <div className="flex-1">
           <h2 className="text-base font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
-            {isClean ? 'Zero unauthorized connections' : `${unauthorizedAttempts} unauthorized attempt(s) blocked`}
+            {isClean ? t('screen.network_monitor.zero_connections') : t('screen.network_monitor.blocked_attempts', { count: unauthorizedAttempts })}
           </h2>
           <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-1">
             {isClean
-              ? 'Your Semblance has contacted only the services you authorized. No data has been sent anywhere else. Ever.'
-              : `${unauthorizedAttempts} connection attempt(s) to unauthorized services were detected and blocked.`
+              ? t('screen.network_monitor.trust_clean_desc')
+              : t('screen.network_monitor.trust_blocked_desc', { count: unauthorizedAttempts })
             }
           </p>
           <Button size="sm" className="mt-3" onClick={onGenerateReport}>
-            Generate Proof of Privacy Report
+            {t('screen.network_monitor.btn_proof_report')}
           </Button>
         </div>
       </div>
@@ -150,14 +153,15 @@ function TrustStatusCard({ unauthorizedAttempts, onGenerateReport }: {
 }
 
 function ActiveConnectionsCard({ connections }: { connections: ActiveConnection[] }) {
+  const { t } = useTranslation();
   if (connections.length === 0) {
     return (
       <Card className="p-4">
         <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
-          Active Connections
+          {t('screen.network_monitor.section_active')}
         </h2>
         <p className="text-sm text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark">
-          No active connections
+          {t('screen.network_monitor.empty_active')}
         </p>
       </Card>
     );
@@ -165,7 +169,7 @@ function ActiveConnectionsCard({ connections }: { connections: ActiveConnection[
   return (
     <Card className="p-4">
       <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
-        Active Connections
+        {t('screen.network_monitor.section_active')}
       </h2>
       <div className="space-y-3">
         {connections.map(conn => (
@@ -182,7 +186,7 @@ function ActiveConnectionsCard({ connections }: { connections: ActiveConnection[
               </div>
             </div>
             <span className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              {timeAgo(conn.lastActivity)}
+              {timeAgo(conn.lastActivity, t)}
             </span>
           </div>
         ))}
@@ -196,11 +200,12 @@ function ActivityChart({ timeline, stats, period }: {
   stats: NetworkStatistics | null;
   period: string;
 }) {
-  const maxConnections = Math.max(1, ...timeline.map(t => t.connections));
+  const { t } = useTranslation();
+  const maxConnections = Math.max(1, ...timeline.map(tp => tp.connections));
   return (
     <Card className="p-4">
       <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
-        {period === 'today' ? "Today's" : period === 'week' ? "This Week's" : "This Month's"} Activity
+        {period === 'today' ? t('screen.network_monitor.activity_today') : period === 'week' ? t('screen.network_monitor.activity_week') : t('screen.network_monitor.activity_month')}
       </h2>
       {timeline.length > 0 ? (
         <div className="flex items-end gap-[2px] h-16 mb-2">
@@ -215,14 +220,13 @@ function ActivityChart({ timeline, stats, period }: {
         </div>
       ) : (
         <p className="text-sm text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark mb-2">
-          No activity data
+          {t('screen.network_monitor.empty_activity')}
         </p>
       )}
       <div className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
         {stats && (
           <>
-            {stats.totalConnections} connection{stats.totalConnections !== 1 ? 's' : ''}
-            {' '}to {stats.uniqueServicesContacted} service{stats.uniqueServicesContacted !== 1 ? 's' : ''}
+            {t('screen.network_monitor.connections_summary', { connections: stats.totalConnections, services: stats.uniqueServicesContacted })}
           </>
         )}
       </div>
@@ -248,11 +252,12 @@ function ActivityChart({ timeline, stats, period }: {
 }
 
 function AuthorizedServicesCard({ services }: { services: AllowlistEntry[] }) {
+  const { t } = useTranslation();
   const activeServices = services.filter(s => s.isActive);
   return (
     <Card className="p-4">
       <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
-        Authorized Services
+        {t('screen.network_monitor.section_services')}
       </h2>
       <div className="space-y-3">
         {activeServices.map((svc, i) => (
@@ -270,10 +275,10 @@ function AuthorizedServicesCard({ services }: { services: AllowlistEntry[] }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-                {svc.connectionCount} connections
+                {t('screen.network_monitor.connections_count', { count: svc.connectionCount })}
               </p>
               <p className="text-xs text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark">
-                Added {svc.addedBy === 'onboarding' ? 'during onboarding' : 'by user'}
+                {svc.addedBy === 'onboarding' ? t('screen.network_monitor.added_during_onboarding') : t('screen.network_monitor.added_by_user')}
               </p>
             </div>
           </div>
@@ -281,12 +286,12 @@ function AuthorizedServicesCard({ services }: { services: AllowlistEntry[] }) {
       </div>
       {activeServices.length > 0 && (
         <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mt-4">
-          That&rsquo;s it. No other services have been contacted.
+          {t('screen.network_monitor.services_footer')}
         </p>
       )}
       {activeServices.length === 0 && (
         <p className="text-sm text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark">
-          No services authorized yet. Connect services during onboarding.
+          {t('screen.network_monitor.empty_services')}
         </p>
       )}
     </Card>
@@ -294,10 +299,11 @@ function AuthorizedServicesCard({ services }: { services: AllowlistEntry[] }) {
 }
 
 function ConnectionLogCard({ history }: { history: ConnectionRecord[] }) {
+  const { t } = useTranslation();
   return (
     <Card className="p-4">
       <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
-        Connection Log
+        {t('screen.network_monitor.section_log')}
       </h2>
       {history.length > 0 ? (
         <div className="space-y-1">
@@ -320,7 +326,7 @@ function ConnectionLogCard({ history }: { history: ConnectionRecord[] }) {
         </div>
       ) : (
         <p className="text-sm text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark">
-          No connections recorded yet.
+          {t('screen.network_monitor.empty_log')}
         </p>
       )}
     </Card>
@@ -330,6 +336,7 @@ function ConnectionLogCard({ history }: { history: ConnectionRecord[] }) {
 // ─── Main Screen ────────────────────────────────────────────────────────────
 
 export function NetworkMonitorScreen() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<NetworkStatistics | null>(null);
   const [connections, setConnections] = useState<ActiveConnection[]>([]);
   const [allowlist, setAllowlist] = useState<AllowlistEntry[]>([]);
@@ -391,7 +398,7 @@ export function NetworkMonitorScreen() {
     return (
       <div className="h-full flex items-center justify-center">
         <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-          Loading network monitor...
+          {t('screen.network_monitor.loading')}
         </p>
       </div>
     );
@@ -402,7 +409,7 @@ export function NetworkMonitorScreen() {
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
-            Network Monitor
+            {t('screen.network_monitor.title')}
           </h1>
           <div className="flex gap-1">
             {(['today', 'week', 'month'] as const).map(p => (
@@ -416,7 +423,7 @@ export function NetworkMonitorScreen() {
                     : 'text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark'
                 }`}
               >
-                {p.charAt(0).toUpperCase() + p.slice(1)}
+                {t(`screen.network_monitor.period_${p}`)}
               </button>
             ))}
           </div>
@@ -430,7 +437,7 @@ export function NetworkMonitorScreen() {
         {reportGenerated && (
           <Card className="p-3 border border-semblance-success/30 bg-semblance-success/5">
             <p className="text-sm text-semblance-success">
-              Privacy report generated successfully.
+              {t('screen.network_monitor.proof_success')}
             </p>
           </Card>
         )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { KnowledgeNode, KnowledgeEdge, NodeType } from './graph-types';
 import './detail-panel.css';
 
@@ -43,6 +44,8 @@ const DOT_COLORS: Record<NodeType, string> = {
 };
 
 export function DetailPanel({ node, edges, allNodes, onClose, onConnectionClick }: DetailPanelProps) {
+  const { t } = useTranslation();
+
   if (!node) {
     return <div className="kg-detail-panel" />;
   }
@@ -73,7 +76,7 @@ export function DetailPanel({ node, edges, allNodes, onClose, onConnectionClick 
             <div className="kg-detail-panel__sublabel">{node.sublabel}</div>
           )}
         </div>
-        <button className="kg-detail-panel__close" onClick={onClose} aria-label="Close panel">
+        <button className="kg-detail-panel__close" onClick={onClose} aria-label={t('a11y.close_panel')}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M3 3L11 11M11 3L3 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
