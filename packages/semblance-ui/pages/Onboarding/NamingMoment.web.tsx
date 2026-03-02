@@ -19,7 +19,7 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
       gap: 24,
       maxWidth: 420,
       width: '100%',
-      animation: 'dissolve 700ms var(--eo) both',
+      animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
     }}>
       <LogoMark size={64} />
 

@@ -76,6 +76,7 @@
     "have_key": "[DE] Have a license key?",
     "active": "[DE] License active",
     "activated_success": "[DE] License activated successfully",
+    "activate": "[de] Activate",
     "activating": "[DE] Activating...",
     "activation_failed": "[DE] Activation failed"
   },

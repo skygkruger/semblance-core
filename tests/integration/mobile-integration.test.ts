@@ -512,7 +512,7 @@ describe('Integration — Step 12 File Audit', () => {
     'packages/mobile/src/screens/ChatScreen.tsx',
     'packages/mobile/src/screens/CaptureScreen.tsx',
     'packages/mobile/src/screens/SettingsScreen.tsx',
-    'packages/mobile/src/screens/OnboardingScreen.tsx',
+    'packages/mobile/src/screens/OnboardingFlow.tsx',
     'packages/mobile/src/gestures/swipe-actions.ts',
     'packages/mobile/src/gestures/haptics.ts',
     'packages/mobile/src/notifications/local-notifications.ts',

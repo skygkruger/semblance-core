@@ -5,7 +5,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '..', '..');
-const ONBOARDING = join(ROOT, 'packages', 'desktop', 'src', 'screens', 'OnboardingScreen.tsx');
+const ONBOARDING = join(ROOT, 'packages', 'desktop', 'src', 'screens', 'OnboardingFlow.tsx');
 const SETTINGS = join(ROOT, 'packages', 'desktop', 'src', 'screens', 'SettingsScreen.tsx');
 const HW_DISPLAY = join(ROOT, 'packages', 'desktop', 'src', 'components', 'HardwareProfileDisplay.tsx');
 const DL_PROGRESS = join(ROOT, 'packages', 'desktop', 'src', 'components', 'ModelDownloadProgress.tsx');
@@ -13,43 +13,51 @@ const DL_PROGRESS = join(ROOT, 'packages', 'desktop', 'src', 'components', 'Mode
 describe('Step 9: Onboarding Flow Updates', () => {
   const content = readFileSync(ONBOARDING, 'utf-8');
 
-  it('has 11 total steps', () => {
-    expect(content).toContain('TOTAL_STEPS = 11');
+  it('has 7-step STEP_ORDER sequence', () => {
+    expect(content).toContain('STEP_ORDER');
+    // Count the 7 steps
+    expect(content).toContain("'splash'");
+    expect(content).toContain("'hardware'");
+    expect(content).toContain("'data-sources'");
+    expect(content).toContain("'autonomy'");
+    expect(content).toContain("'naming-moment'");
+    expect(content).toContain("'naming-ai'");
+    expect(content).toContain("'initialize'");
   });
 
-  it('imports HardwareProfileDisplay', () => {
-    expect(content).toContain('HardwareProfileDisplay');
+  it('imports HardwareDetection from semblance-ui', () => {
+    expect(content).toContain('HardwareDetection');
   });
 
-  it('imports ModelDownloadProgress', () => {
-    expect(content).toContain('ModelDownloadProgress');
+  it('imports InitializeStep for model downloads from semblance-ui', () => {
+    expect(content).toContain('InitializeStep');
   });
 
-  it('has hardware detection step (step 3)', () => {
-    expect(content).toContain('Step 3: Hardware Detection');
-    expect(content).toContain('detect_hardware');
+  it('has hardware detection step with detectHardware IPC call', () => {
+    expect(content).toContain("step === 'hardware'");
+    expect(content).toContain('detectHardware');
   });
 
-  it('has model download consent step (step 4)', () => {
-    expect(content).toContain('Step 4: Model Download Consent');
-    expect(content).toContain('Download Models');
+  it('has initialize step with model downloads', () => {
+    expect(content).toContain("step === 'initialize'");
+    expect(content).toContain('startModelDownloads');
   });
 
-  it('has model download progress step (step 5)', () => {
-    expect(content).toContain('Step 5: Model Download Progress');
-    expect(content).toContain('start_model_downloads');
+  it('has data-sources step for connectors', () => {
+    expect(content).toContain("step === 'data-sources'");
+    expect(content).toContain('DataSourcesStep');
   });
 
-  it('data connection is now step 6', () => {
-    expect(content).toContain('Step 6: Data Connection');
+  it('has autonomy step with AutonomyTierStep', () => {
+    expect(content).toContain("step === 'autonomy'");
+    expect(content).toContain('AutonomyTierStep');
   });
 
-  it('autonomy is now step 9', () => {
-    expect(content).toContain('Step 9: Autonomy');
-  });
-
-  it('ready is now step 10', () => {
-    expect(content).toContain('Step 10: Ready');
+  it('naming steps are separate (user name + AI name)', () => {
+    expect(content).toContain("step === 'naming-moment'");
+    expect(content).toContain("step === 'naming-ai'");
+    expect(content).toContain('NamingMoment');
+    expect(content).toContain('NamingYourAI');
   });
 
   it('no references to Ollama in onboarding', () => {
@@ -57,9 +65,9 @@ describe('Step 9: Onboarding Flow Updates', () => {
     expect(content).not.toContain('Make sure Ollama is running');
   });
 
-  it('shows privacy messaging during model download consent', () => {
-    expect(content).toContain('Nothing leaves your machine');
-    expect(content).toContain('SHA-256');
+  it('generates knowledge moment during initialize step', () => {
+    expect(content).toContain('generateKnowledgeMoment');
+    expect(content).toContain('knowledgeMoment');
   });
 });
 
@@ -88,8 +96,8 @@ describe('Step 9: Settings AI Engine Section', () => {
     expect(content).toContain('HardwareProfileDisplay');
   });
 
-  it('calls detect_hardware on load', () => {
-    expect(content).toContain("invoke<HardwareDisplayInfo>('detect_hardware')");
+  it('calls detectHardware on load', () => {
+    expect(content).toContain('detectHardware');
   });
 
   it('shows compact hardware display in builtin mode', () => {

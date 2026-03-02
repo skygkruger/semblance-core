@@ -152,8 +152,10 @@ describe('Sprint 2 Exit Criteria', () => {
     });
 
     it('Knowledge Moment displays in onboarding flow', () => {
-      const onboarding = readFileSync(join(ROOT, 'packages/desktop/src/screens/OnboardingScreen.tsx'), 'utf-8');
-      expect(onboarding).toContain('KnowledgeMoment');
+      const onboarding = readFileSync(join(ROOT, 'packages/desktop/src/screens/OnboardingFlow.tsx'), 'utf-8');
+      // OnboardingFlow uses InitializeStep which shows knowledge moment data
+      expect(onboarding).toContain('knowledgeMoment');
+      expect(onboarding).toContain('generateKnowledgeMoment');
     });
   });
 
@@ -319,9 +321,9 @@ describe('Sprint 2 Exit Criteria', () => {
 
     it('Persistent status indicator renders on all screens', () => {
       expect(APP_TSX).toContain('NetworkStatusIndicator');
-      // Indicator component polls get_network_trust_status
+      // Indicator component polls getNetworkTrustStatus (wrapper around get_network_trust_status IPC command)
       const indicator = readFileSync(join(ROOT, 'packages/desktop/src/components/NetworkStatusIndicator.tsx'), 'utf-8');
-      expect(indicator).toContain('get_network_trust_status');
+      expect(indicator).toContain('getNetworkTrustStatus');
     });
   });
 });

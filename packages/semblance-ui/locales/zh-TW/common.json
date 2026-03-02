@@ -76,6 +76,7 @@
     "have_key": "[TW] Have a license key?",
     "active": "[TW] License active",
     "activated_success": "[TW] License activated successfully",
+    "activate": "[zh-TW] Activate",
     "activating": "[TW] Activating...",
     "activation_failed": "[TW] Activation failed"
   },

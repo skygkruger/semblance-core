@@ -4,8 +4,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { SettingsScreen } from '@semblance/desktop/screens/SettingsScreen';
 import { invoke, clearInvokeMocks } from '../helpers/mock-tauri';
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
 function mockSettingsInvoke() {
   invoke.mockImplementation(async (cmd: string) => {
@@ -30,37 +35,37 @@ describe('Settings Web Search', () => {
   });
 
   it('renders Web Search heading', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('Web Search')).toBeInTheDocument();
   });
 
   it('renders Search Provider label', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('Search Provider')).toBeInTheDocument();
   });
 
   it('renders Brave Search provider button', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('Brave Search')).toBeInTheDocument();
   });
 
   it('renders SearXNG provider button', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('SearXNG')).toBeInTheDocument();
   });
 
   it('shows Brave Search API Key input by default', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText('Brave Search API Key')).toBeInTheDocument();
   });
 
   it('shows Rate Limit label', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText(/Rate Limit/)).toBeInTheDocument();
   });
 
   it('shows Save button for search settings', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     // There are multiple Save buttons (name + search); at least one should exist
     const saveButtons = screen.getAllByText('Save');
     expect(saveButtons.length).toBeGreaterThanOrEqual(1);
@@ -68,25 +73,25 @@ describe('Settings Web Search', () => {
 
   it('switches to SearXNG and shows URL input', async () => {
     const user = userEvent.setup();
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     await user.click(screen.getByText('SearXNG'));
     expect(screen.getByText('SearXNG Instance URL')).toBeInTheDocument();
   });
 
   it('hides Brave Search API Key when SearXNG selected', async () => {
     const user = userEvent.setup();
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     await user.click(screen.getByText('SearXNG'));
     expect(screen.queryByText('Brave Search API Key')).not.toBeInTheDocument();
   });
 
   it('calls get_search_settings on mount', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(invoke).toHaveBeenCalledWith('get_search_settings');
   });
 
   it('renders requests per minute in rate limit label', () => {
-    render(<SettingsScreen />);
+    renderWithRouter(<SettingsScreen />);
     expect(screen.getByText(/requests per minute/)).toBeInTheDocument();
   });
 });

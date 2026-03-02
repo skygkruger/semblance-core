@@ -17,7 +17,7 @@
     "tier_labels": {
       "guardian": "Guardian",
       "partner": "Partner",
-      "alter_ego": "Alter Ego"
+      "alter-ego": "Alter Ego"
     }
   },
   "ai_engine": {
@@ -98,7 +98,7 @@
         "name": "Partner",
         "desc": "Handle routine tasks, ask about important ones"
       },
-      "alter_ego": {
+      "alter-ego": {
         "name": "Alter Ego",
         "desc": "Act as me for nearly everything"
       }

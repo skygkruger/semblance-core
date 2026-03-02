@@ -25,10 +25,10 @@ function DownloadRow({ download, completeLabel }: { download: ModelDownload; com
       border: '1px solid rgba(107,95,168,0.15)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontFamily: 'var(--fb)', fontSize: 14, color: '#EEF1F4' }}>
+        <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 14, color: '#EEF1F4' }}>
           {download.modelName}
         </span>
-        <span style={{ fontFamily: 'var(--fm)', fontSize: 12, color: isComplete ? '#6ECFA3' : '#8593A4' }}>
+        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: isComplete ? '#6ECFA3' : '#8593A4' }}>
           {isComplete ? completeLabel : `${formatBytes(download.downloadedBytes)} / ${formatBytes(download.totalBytes)}`}
         </span>
       </div>
@@ -52,7 +52,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
       gap: 24,
       maxWidth: 480,
       width: '100%',
-      animation: 'dissolve 700ms var(--eo) both',
+      animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
     }}>
       {!allComplete && (
         <>
@@ -94,13 +94,13 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
             border: '1px solid rgba(110,207,163,0.15)',
           }}>
             <h3 style={{
-              fontFamily: 'var(--fd)', fontSize: 20, color: '#EEF1F4',
+              fontFamily: 'Fraunces, Georgia, serif', fontSize: 20, color: '#EEF1F4',
               margin: '0 0 8px',
             }}>
               {knowledgeMoment.title}
             </h3>
             <p style={{
-              fontFamily: 'var(--fb)', fontSize: 14, color: '#8593A4',
+              fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 14, color: '#8593A4',
               margin: '0 0 12px', lineHeight: 1.5,
             }}>
               {knowledgeMoment.summary}
@@ -111,7 +111,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
                   <span
                     key={conn}
                     style={{
-                      fontFamily: 'var(--fm)', fontSize: 11, color: '#6ECFA3',
+                      fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#6ECFA3',
                       padding: '2px 8px', borderRadius: 6,
                       backgroundColor: 'rgba(110,207,163,0.08)',
                     }}

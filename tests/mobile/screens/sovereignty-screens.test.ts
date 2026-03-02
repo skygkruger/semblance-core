@@ -41,7 +41,7 @@ describe('Living Will Screen', () => {
   it('import navigates through confirmation flow', () => {
     // Must have import action
     expect(content).toContain('onImport');
-    expect(content).toContain('Import from File');
+    expect(content).toContain("t('screen.living_will.import_file')");
 
     // Must be premium-gated
     expect(content).toContain('Premium Feature');
@@ -70,7 +70,7 @@ describe('Witness Screen', () => {
     expect(content).toContain('chainValid');
 
     // Must have empty state
-    expect(content).toContain('No attestations yet');
+    expect(content).toContain("t('screen.witness.empty')");
   });
 });
 
@@ -107,7 +107,7 @@ describe('Inheritance Screen', () => {
 
   it('test run accessible from mobile', () => {
     expect(content).toContain('onTestRun');
-    expect(content).toContain('Run Test');
+    expect(content).toContain("t('screen.inheritance.run_test')");
     expect(content).toContain('testResult');
   });
 
@@ -125,6 +125,6 @@ describe('Inheritance Screen', () => {
 
     // Must allow restart
     expect(activationContent).toContain('handleReset');
-    expect(activationContent).toContain('Done');
+    expect(activationContent).toContain("t('button.done')");
   });
 });

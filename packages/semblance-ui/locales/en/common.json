@@ -76,6 +76,7 @@
     "have_key": "Have a license key?",
     "active": "License active",
     "activated_success": "License activated successfully",
+    "activate": "Activate",
     "activating": "Activating...",
     "activation_failed": "Activation failed"
   },
@@ -288,7 +289,7 @@
       "activity_week": "This Week's Activity",
       "activity_month": "This Month's Activity",
       "empty_activity": "No activity data",
-      "connections_summary": "{{connections}} connection(s) to {{services}} service(s)",
+      "connections_summary": "{{connections}} connections to {{services}} services",
       "period_today": "Today",
       "period_week": "Week",
       "period_month": "Month",

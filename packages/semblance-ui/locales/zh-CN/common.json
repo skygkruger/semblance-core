@@ -76,6 +76,7 @@
     "have_key": "[ZH] Have a license key?",
     "active": "[ZH] License active",
     "activated_success": "[ZH] License activated successfully",
+    "activate": "[zh-CN] Activate",
     "activating": "[ZH] Activating...",
     "activation_failed": "[ZH] Activation failed"
   },

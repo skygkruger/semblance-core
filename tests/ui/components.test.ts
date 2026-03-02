@@ -41,7 +41,10 @@ const COMPONENT_NAMES = [
 ];
 
 function readComponent(name: string): string {
-  return readFileSync(join(COMPONENTS_DIR, name, `${name}.tsx`), 'utf-8');
+  const tsxPath = join(COMPONENTS_DIR, name, `${name}.tsx`);
+  const webTsxPath = join(COMPONENTS_DIR, name, `${name}.web.tsx`);
+  if (existsSync(tsxPath)) return readFileSync(tsxPath, 'utf-8');
+  return readFileSync(webTsxPath, 'utf-8');
 }
 
 describe('Component Exports', () => {
@@ -73,7 +76,9 @@ describe('Component Exports', () => {
 describe('Component File Structure', () => {
   for (const name of COMPONENT_NAMES) {
     it(`${name} has component file and index barrel`, () => {
-      expect(existsSync(join(COMPONENTS_DIR, name, `${name}.tsx`))).toBe(true);
+      const hasTsx = existsSync(join(COMPONENTS_DIR, name, `${name}.tsx`));
+      const hasWebTsx = existsSync(join(COMPONENTS_DIR, name, `${name}.web.tsx`));
+      expect(hasTsx || hasWebTsx).toBe(true);
       expect(existsSync(join(COMPONENTS_DIR, name, 'index.ts'))).toBe(true);
     });
   }

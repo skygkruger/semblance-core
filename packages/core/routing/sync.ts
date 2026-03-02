@@ -258,9 +258,9 @@ export class SyncEngine {
    */
   getChangedSince(since: string | null): SyncItem[] {
     if (!since) {
-      // First sync: return items within MAX_INITIAL_SYNC_AGE
-      const cutoff = new Date(Date.now() - MAX_INITIAL_SYNC_AGE_MS).toISOString();
-      return this.getItems().filter(i => i.updatedAt >= cutoff);
+      // First sync: return ALL local items so the remote device gets full state.
+      // There is no prior sync point, so nothing can be excluded safely.
+      return this.getItems();
     }
     return this.getItems().filter(i => i.updatedAt > since);
   }

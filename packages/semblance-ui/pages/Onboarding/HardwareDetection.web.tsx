@@ -25,7 +25,7 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
       gap: 24,
       maxWidth: 480,
       width: '100%',
-      animation: 'dissolve 700ms var(--eo) both',
+      animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
     }}>
       <h2 className="naming__headline">{t('hardware.headline')}</h2>
       <p className="naming__subtext" style={{ maxWidth: 360 }}>
@@ -49,9 +49,9 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: '#8593A4' }}>{t('hardware.tier_label')}</span>
+              <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 13, color: '#8593A4' }}>{t('hardware.tier_label')}</span>
               <span style={{
-                fontFamily: 'var(--fm)', fontSize: 12, color: '#6ECFA3',
+                fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#6ECFA3',
                 padding: '2px 8px', borderRadius: 6,
                 backgroundColor: 'rgba(110,207,163,0.1)',
               }}>
@@ -59,29 +59,29 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: '#8593A4' }}>{t('hardware.ram_label')}</span>
-              <span style={{ fontFamily: 'var(--fm)', fontSize: 13, color: '#EEF1F4' }}>
+              <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 13, color: '#8593A4' }}>{t('hardware.ram_label')}</span>
+              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, color: '#EEF1F4' }}>
                 {formatRam(hardwareInfo.totalRamMb)}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: '#8593A4' }}>{t('hardware.cpu_label')}</span>
-              <span style={{ fontFamily: 'var(--fm)', fontSize: 13, color: '#EEF1F4' }}>
+              <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 13, color: '#8593A4' }}>{t('hardware.cpu_label')}</span>
+              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, color: '#EEF1F4' }}>
                 {t('hardware.cpu_cores', { count: hardwareInfo.cpuCores })}
               </span>
             </div>
             {hardwareInfo.gpuName && (
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: '#8593A4' }}>{t('hardware.gpu_label')}</span>
-                <span style={{ fontFamily: 'var(--fm)', fontSize: 13, color: '#EEF1F4' }}>
+                <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 13, color: '#8593A4' }}>{t('hardware.gpu_label')}</span>
+                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, color: '#EEF1F4' }}>
                   {hardwareInfo.gpuName}
                   {hardwareInfo.gpuVramMb ? ` (${formatRam(hardwareInfo.gpuVramMb)})` : ''}
                 </span>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: '#8593A4' }}>{t('hardware.os_label')}</span>
-              <span style={{ fontFamily: 'var(--fm)', fontSize: 13, color: '#EEF1F4' }}>
+              <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 13, color: '#8593A4' }}>{t('hardware.os_label')}</span>
+              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, color: '#EEF1F4' }}>
                 {hardwareInfo.os} ({hardwareInfo.arch})
               </span>
             </div>

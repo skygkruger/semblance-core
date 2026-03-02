@@ -76,6 +76,7 @@
     "have_key": "[KO] Have a license key?",
     "active": "[KO] License active",
     "activated_success": "[KO] License activated successfully",
+    "activate": "[ko] Activate",
     "activating": "[KO] Activating...",
     "activation_failed": "[KO] Activation failed"
   },

@@ -17,7 +17,7 @@
     "tier_labels": {
       "guardian": "[ZH] Guardian",
       "partner": "[ZH] Partner",
-      "alter_ego": "[ZH] Alter Ego"
+      "alter-ego": "[ZH] Alter Ego"
     }
   },
   "ai_engine": {
@@ -98,7 +98,7 @@
         "name": "[ZH] Partner",
         "desc": "[ZH] Handle routine tasks, ask about important ones"
       },
-      "alter_ego": {
+      "alter-ego": {
         "name": "[ZH] Alter Ego",
         "desc": "[ZH] Act as me for nearly everything"
       }

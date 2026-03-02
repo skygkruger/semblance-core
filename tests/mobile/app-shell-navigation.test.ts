@@ -19,7 +19,7 @@ describe('Mobile App Shell — File Structure', () => {
     'screens/ChatScreen.tsx',
     'screens/CaptureScreen.tsx',
     'screens/SettingsScreen.tsx',
-    'screens/OnboardingScreen.tsx',
+    'screens/OnboardingFlow.tsx',
     'navigation/types.ts',
     'navigation/TabNavigator.tsx',
   ];
@@ -66,30 +66,30 @@ describe('Mobile App Shell — Design Tokens', () => {
 // ─── Navigation Structure ───────────────────────────────────────────────────
 
 describe('Mobile App Shell — Navigation', () => {
-  it('defines four tabs: Inbox, Chat, Capture, Settings', () => {
+  it('defines five tabs: Chat, Brief, Knowledge, Privacy, Settings', () => {
     const content = fs.readFileSync(path.join(MOBILE_SRC, 'navigation/types.ts'), 'utf-8');
 
-    expect(content).toContain('Inbox');
-    expect(content).toContain('Chat');
-    expect(content).toContain('Capture');
-    expect(content).toContain('Settings');
+    expect(content).toContain('ChatTab');
+    expect(content).toContain('BriefTab');
+    expect(content).toContain('KnowledgeTab');
+    expect(content).toContain('PrivacyTab');
+    expect(content).toContain('SettingsTab');
   });
 
-  it('defines root stack screens including Onboarding', () => {
+  it('defines root stack screens including Onboarding and Main', () => {
     const content = fs.readFileSync(path.join(MOBILE_SRC, 'navigation/types.ts'), 'utf-8');
 
     expect(content).toContain('Onboarding');
     expect(content).toContain('Main');
-    expect(content).toContain('NetworkMonitor');
-    expect(content).toContain('ActionLog');
   });
 
-  it('TabNavigator includes all four screens', () => {
+  it('TabNavigator includes all five tab screens', () => {
     const content = fs.readFileSync(path.join(MOBILE_SRC, 'navigation/TabNavigator.tsx'), 'utf-8');
 
-    expect(content).toContain('InboxScreen');
     expect(content).toContain('ChatScreen');
-    expect(content).toContain('CaptureScreen');
+    expect(content).toContain('BriefScreen');
+    expect(content).toContain('KnowledgeGraphScreen');
+    expect(content).toContain('PrivacyDashboardScreen');
     expect(content).toContain('SettingsScreen');
   });
 
@@ -98,7 +98,7 @@ describe('Mobile App Shell — Navigation', () => {
 
     expect(content).toContain('colors.surface1Dark');
     expect(content).toContain('colors.borderDark');
-    expect(content).toContain('colors.primary');
+    expect(content).toContain('colors.bgDark');
   });
 });
 
@@ -138,16 +138,16 @@ describe('Mobile App Shell — Screen Contracts', () => {
     expect(content).toContain('ScrollView');
   });
 
-  it('OnboardingScreen exports all step types', () => {
-    const content = fs.readFileSync(path.join(MOBILE_SRC, 'screens/OnboardingScreen.tsx'), 'utf-8');
+  it('OnboardingFlow exports all step types', () => {
+    const content = fs.readFileSync(path.join(MOBILE_SRC, 'screens/OnboardingFlow.tsx'), 'utf-8');
 
-    expect(content).toContain('naming');
-    expect(content).toContain('hardware');
-    expect(content).toContain('download-consent');
-    expect(content).toContain('downloading');
-    expect(content).toContain('first-inference');
-    expect(content).toContain('knowledge-moment');
-    expect(content).toContain('complete');
+    expect(content).toContain("'splash'");
+    expect(content).toContain("'hardware'");
+    expect(content).toContain("'data-sources'");
+    expect(content).toContain("'autonomy'");
+    expect(content).toContain("'naming-moment'");
+    expect(content).toContain("'naming-ai'");
+    expect(content).toContain("'initialize'");
   });
 });
 
@@ -157,8 +157,8 @@ describe('Mobile App Shell — Root Component', () => {
   it('App.tsx imports all screens and navigation', () => {
     const content = fs.readFileSync(path.join(MOBILE_SRC, 'App.tsx'), 'utf-8');
 
-    expect(content).toContain('OnboardingScreen');
-    expect(content).toContain('SimpleTabView');
+    expect(content).toContain('OnboardingFlow');
+    expect(content).toContain('MainTabNavigator');
     expect(content).toContain('StatusBar');
   });
 
@@ -175,7 +175,7 @@ describe('Mobile App Shell — Root Component', () => {
       'screens/ChatScreen.tsx',
       'screens/CaptureScreen.tsx',
       'screens/SettingsScreen.tsx',
-      'screens/OnboardingScreen.tsx',
+      'screens/OnboardingFlow.tsx',
     ];
 
     for (const file of screenFiles) {
