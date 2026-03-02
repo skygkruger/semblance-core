@@ -588,6 +588,7 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
 // --- Core protocol schemas ---
 
 // Action Request — what Core sends to Gateway
+// SECURITY: .strict() rejects extra fields that could be read by downstream code
 export const ActionRequest = z.object({
   id: z.string(),
   timestamp: z.string().datetime(),
@@ -595,10 +596,11 @@ export const ActionRequest = z.object({
   payload: z.record(z.unknown()),
   source: z.literal('core'),
   signature: z.string(),
-});
+}).strict();
 export type ActionRequest = z.infer<typeof ActionRequest>;
 
 // Action Response — what Gateway returns to Core
+// SECURITY: .strict() for defense-in-depth on outbound messages
 export const ActionResponse = z.object({
   requestId: z.string(),
   timestamp: z.string().datetime(),
@@ -609,5 +611,5 @@ export const ActionResponse = z.object({
     message: z.string(),
   }).optional(),
   auditRef: z.string(),
-});
+}).strict();
 export type ActionResponse = z.infer<typeof ActionResponse>;
