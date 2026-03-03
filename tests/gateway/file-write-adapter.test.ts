@@ -283,7 +283,7 @@ describe('FileWriteAdapter: execute', () => {
     expect(result.success).toBe(true);
     expect(writeFileSync).toHaveBeenCalledTimes(1);
 
-    const [writtenPath, writtenContent, writtenEncoding] = vi.mocked(writeFileSync).mock.calls[0];
+    const [writtenPath, writtenContent, writtenEncoding] = vi.mocked(writeFileSync).mock.calls[0]!;
     expect(writtenPath).toContain('output.txt');
     expect(writtenContent).toBe('Hello, Semblance!');
     expect(writtenEncoding).toBe('utf-8');

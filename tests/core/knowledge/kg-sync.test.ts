@@ -222,8 +222,8 @@ describe('buildKGDelta', () => {
 
 describe('applyKGDelta', () => {
   let localHashes: Set<string>;
-  let onNewDocument: ReturnType<typeof vi.fn>;
-  let onDelete: ReturnType<typeof vi.fn>;
+  let onNewDocument: (entry: KGSyncEntry) => void;
+  let onDelete: (id: string) => void;
 
   beforeEach(() => {
     localHashes = new Set<string>();
