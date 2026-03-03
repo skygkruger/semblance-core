@@ -37,7 +37,7 @@ function collectFiles(dir: string, extensions: string[]): string[] {
       try {
         const stat = statSync(fullPath);
         if (stat.isDirectory()) {
-          if (['node_modules', 'dist', 'build', '_privacy_test_temp_'].includes(entry)) continue;
+          if (['node_modules', 'dist', 'build'].includes(entry) || entry.startsWith('_privacy_test_temp')) continue;
           files.push(...collectFiles(fullPath, extensions));
         } else if (extensions.some(ext => entry.endsWith(ext))) {
           files.push(fullPath);

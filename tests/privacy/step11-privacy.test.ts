@@ -24,7 +24,7 @@ function collectTsFiles(dir: string): string[] {
       try {
         const stat = statSync(fullPath);
         if (stat.isDirectory()) {
-          if (entry === 'node_modules' || entry === 'dist' || entry === 'build') continue;
+          if (entry === 'node_modules' || entry === 'dist' || entry === 'build' || entry.startsWith('_privacy_test_temp')) continue;
           files.push(...collectTsFiles(fullPath));
         } else if (entry.endsWith('.ts') || entry.endsWith('.tsx')) {
           files.push(fullPath);

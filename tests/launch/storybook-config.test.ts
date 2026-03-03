@@ -21,7 +21,7 @@ function findStoryFiles(dir: string): string[] {
     if (!existsSync(d)) return;
     for (const entry of readdirSync(d, { withFileTypes: true })) {
       const full = join(d, entry.name);
-      if (entry.isDirectory() && entry.name !== 'node_modules') {
+      if (entry.isDirectory() && entry.name !== 'node_modules' && !entry.name.startsWith('_privacy_test_temp')) {
         walk(full);
       } else if (entry.isFile() && entry.name.endsWith('.stories.tsx')) {
         results.push(full);

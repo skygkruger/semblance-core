@@ -29,7 +29,7 @@ function collectFiles(dir: string, extensions: string[]): string[] {
       try {
         const stat = statSync(fullPath);
         if (stat.isDirectory()) {
-          if (entry === 'node_modules' || entry === 'dist') continue;
+          if (entry === 'node_modules' || entry === 'dist' || entry.startsWith('_privacy_test_temp')) continue;
           files.push(...collectFiles(fullPath, extensions));
         } else if (extensions.some(ext => entry.endsWith(ext))) {
           files.push(fullPath);
