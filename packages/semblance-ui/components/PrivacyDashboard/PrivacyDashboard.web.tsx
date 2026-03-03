@@ -11,6 +11,9 @@ export function PrivacyDashboard({
   networkEntries = [],
   auditEntries = [],
   proofVerified = false,
+  chainIntegrity,
+  keySecurity,
+  onExportReceipt,
   className = '',
 }: PrivacyDashboardProps) {
   const { t } = useTranslation('privacy');
@@ -42,6 +45,69 @@ export function PrivacyDashboard({
         </div>
         <div className="privacy-dashboard__divider" />
       </div>
+
+      {/* Chain Integrity */}
+      {chainIntegrity && (
+        <div className="privacy-dashboard__section">
+          <h3 className="privacy-dashboard__section-title">{t('dashboard.section_chain_integrity')}</h3>
+          {chainIntegrity.loading ? (
+            <span className="privacy-dashboard__loading-text">{t('dashboard.chain_integrity.loading')}</span>
+          ) : (
+            <>
+              <div className="privacy-dashboard__status-row">
+                <span className={`privacy-dashboard__status-badge ${chainIntegrity.verified ? 'privacy-dashboard__status-badge--verified' : 'privacy-dashboard__status-badge--warning'}`}>
+                  {chainIntegrity.verified
+                    ? t('dashboard.chain_integrity.verified')
+                    : t('dashboard.chain_integrity.break_detected', { date: chainIntegrity.firstBreak ?? '' })}
+                </span>
+              </div>
+              <div className="privacy-dashboard__chain-stats">
+                <span className="privacy-dashboard__chain-stat">
+                  {t('dashboard.chain_integrity.entries', { count: chainIntegrity.entryCount })}
+                </span>
+                <span className="privacy-dashboard__chain-stat">
+                  {t('dashboard.chain_integrity.days', { count: chainIntegrity.daysVerified })}
+                </span>
+              </div>
+              {onExportReceipt && (
+                <button
+                  type="button"
+                  className="privacy-dashboard__export-btn"
+                  onClick={onExportReceipt}
+                >
+                  {t('dashboard.chain_integrity.export_receipt')}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Key Security */}
+      {keySecurity && (
+        <div className="privacy-dashboard__section">
+          <h3 className="privacy-dashboard__section-title">{t('dashboard.section_key_security')}</h3>
+          {keySecurity.loading ? (
+            <span className="privacy-dashboard__loading-text">{t('dashboard.key_security.loading')}</span>
+          ) : (
+            <>
+              <div className="privacy-dashboard__status-row">
+                <span className={`privacy-dashboard__status-badge ${keySecurity.hardwareBacked ? 'privacy-dashboard__status-badge--verified' : 'privacy-dashboard__status-badge--neutral'}`}>
+                  {keySecurity.hardwareBacked
+                    ? t('dashboard.key_security.hardware_secured', { platform: keySecurity.backend })
+                    : t('dashboard.key_security.software_secured', { platform: keySecurity.backend })}
+                </span>
+              </div>
+              {keySecurity.publicKeyFingerprint && (
+                <div className="privacy-dashboard__key-fingerprint">
+                  <span className="privacy-dashboard__network-label">{t('dashboard.key_security.fingerprint')}</span>
+                  <span className="privacy-dashboard__key-value">{keySecurity.publicKeyFingerprint}</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Network Activity */}
       {networkEntries.length > 0 && (

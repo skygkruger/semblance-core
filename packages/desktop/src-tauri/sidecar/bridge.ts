@@ -85,6 +85,18 @@ import { AlterEgoGuardrails } from '../../../core/agent/alter-ego-guardrails.js'
 // Knowledge curation imports
 import { KnowledgeCurator } from '../../../core/knowledge/knowledge-curator.js';
 
+// Merkle chain imports
+import { MerkleChain } from '../../../core/audit/merkle-chain.js';
+import { generateKeyPair as ed25519GenerateKeyPair } from '../../../core/crypto/ed25519.js';
+
+// Hardware key provider
+import { HardwareKeyProvider } from '../../../core/crypto/hardware-key-provider.js';
+import type { HardwareKeyInfo, HardwareSignResult, HardwareVerifyResult } from '../../../core/crypto/hardware-key-provider.js';
+
+// Sovereignty report
+import { generateSovereigntyReport, verifySovereigntyReport, renderSovereigntyReportPDF } from '../../../core/reporting/sovereignty-report.js';
+import type { SovereigntyReport } from '../../../core/reporting/sovereignty-report.js';
+
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
 function emit(event: string, data: unknown): void {
@@ -184,6 +196,43 @@ let alterEgoGuardrails: AlterEgoGuardrails | null = null;
 
 // Knowledge curation state
 let curator: KnowledgeCurator | null = null;
+
+// Merkle chain state
+let merkleChain: MerkleChain | null = null;
+let merkleDb: Database.default | null = null;
+let cachedChainStatus: { verified: boolean; entryCount: number; daysVerified: number; firstBreak?: string; lastVerifiedAt: string } | null = null;
+
+// Hardware key provider state
+let hwKeyProvider: HardwareKeyProvider | null = null;
+
+function ensureHwKeyProvider(): boolean {
+  if (hwKeyProvider) return true;
+  if (!prefsDb) return false;
+  // Build a SecureStorageAdapter backed by the prefs SQLite DB
+  const storage = {
+    async get(key: string): Promise<string | null> { return getPref(key); },
+    async set(key: string, value: string): Promise<void> { setPref(key, value); },
+    async delete(key: string): Promise<void> { if (prefsDb) prefsDb.prepare('DELETE FROM preferences WHERE key = ?').run(key); },
+  };
+  const platform = process.platform; // 'win32', 'darwin', 'linux'
+  const arch = process.arch;
+  const backend = HardwareKeyProvider.detectBackend(platform, arch);
+  hwKeyProvider = new HardwareKeyProvider({ storage, backend });
+  return true;
+}
+
+function ensureMerkleChain(): boolean {
+  if (merkleChain) return true;
+  if (!dataDir) return false;
+  const gatewayDataDir = join(dataDir, 'gateway');
+  const auditDbPath = join(gatewayDataDir, 'audit.db');
+  if (existsSync(auditDbPath)) {
+    merkleDb = new Database(auditDbPath);
+    merkleChain = new MerkleChain(merkleDb);
+    return true;
+  }
+  return false;
+}
 
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
@@ -2756,6 +2805,126 @@ async function handleRequest(req: Request): Promise<void> {
         }
         result = curator.listCategories();
         respond(id, result);
+        break;
+      }
+
+      // ─── Merkle Chain / Audit Integrity ─────────────────────────────────
+
+      case 'audit_verify_chain': {
+        if (!ensureMerkleChain()) { respond(id, { valid: true, entryCount: 0, daysVerified: 0 }); break; }
+        const chainParams = params as { startDate?: string; endDate?: string };
+        const verifyResult = merkleChain!.verifyAuditChain(chainParams.startDate, chainParams.endDate);
+        cachedChainStatus = {
+          verified: verifyResult.valid,
+          entryCount: verifyResult.entryCount,
+          daysVerified: verifyResult.daysVerified,
+          firstBreak: verifyResult.firstBreak,
+          lastVerifiedAt: new Date().toISOString(),
+        };
+        respond(id, verifyResult);
+        break;
+      }
+
+      case 'audit_generate_receipt': {
+        if (!ensureMerkleChain()) { respondError(id, 'Audit database not initialized'); break; }
+        const receiptParams = params as { date: string };
+        const keyPair = ed25519GenerateKeyPair();
+        const receipt = merkleChain!.generateSignedReceipt(receiptParams.date, keyPair.privateKey, keyPair.publicKey);
+        respond(id, receipt);
+        break;
+      }
+
+      case 'audit_get_chain_status': {
+        if (!cachedChainStatus) {
+          if (ensureMerkleChain()) {
+            const statusResult = merkleChain!.verifyAuditChain();
+            cachedChainStatus = {
+              verified: statusResult.valid,
+              entryCount: statusResult.entryCount,
+              daysVerified: statusResult.daysVerified,
+              firstBreak: statusResult.firstBreak,
+              lastVerifiedAt: new Date().toISOString(),
+            };
+          } else {
+            cachedChainStatus = {
+              verified: true,
+              entryCount: 0,
+              daysVerified: 0,
+              lastVerifiedAt: new Date().toISOString(),
+            };
+          }
+        }
+        respond(id, cachedChainStatus);
+        break;
+      }
+
+      // ─── Hardware-Bound Keys ──────────────────────────────────────────────
+
+      case 'hw_key_get_info': {
+        if (!ensureHwKeyProvider()) { respondError(id, 'Hardware key provider not initialized'); break; }
+        const keyParams = params as { keyId?: string };
+        const info: HardwareKeyInfo = await hwKeyProvider!.getOrCreateKey(keyParams.keyId);
+        respond(id, info);
+        break;
+      }
+
+      case 'hw_key_sign': {
+        if (!ensureHwKeyProvider()) { respondError(id, 'Hardware key provider not initialized'); break; }
+        const signParams = params as { payload: string; keyId?: string };
+        const payloadBuf = Buffer.from(signParams.payload, 'hex');
+        const signResult: HardwareSignResult = await hwKeyProvider!.signPayload(payloadBuf, signParams.keyId);
+        respond(id, signResult);
+        break;
+      }
+
+      case 'hw_key_verify': {
+        if (!ensureHwKeyProvider()) { respondError(id, 'Hardware key provider not initialized'); break; }
+        const verifyParams = params as { payload: string; signatureHex: string; keyId?: string };
+        const verifyBuf = Buffer.from(verifyParams.payload, 'hex');
+        const verifyResult: HardwareVerifyResult = await hwKeyProvider!.verifySignature(verifyBuf, verifyParams.signatureHex, verifyParams.keyId);
+        respond(id, verifyResult);
+        break;
+      }
+
+      case 'hw_key_get_backend': {
+        if (!ensureHwKeyProvider()) { respondError(id, 'Hardware key provider not initialized'); break; }
+        respond(id, { backend: hwKeyProvider!.getBackend(), hardwareBacked: hwKeyProvider!.isHardwareBacked() });
+        break;
+      }
+
+      // ─── Sovereignty Report ────────────────────────────────────────────────
+
+      case 'report_generate_sovereignty': {
+        if (!prefsDb) { respondError(id, 'Core database not initialized'); break; }
+        const reportParams = params as { periodStart: string; periodEnd: string };
+        const signingKeyPair = ed25519GenerateKeyPair();
+        const report: SovereigntyReport = generateSovereigntyReport(
+          { coreDb: prefsDb, auditDb: merkleDb, deviceId: 'desktop', keyPair: signingKeyPair },
+          reportParams.periodStart,
+          reportParams.periodEnd,
+        );
+        // Store the public key so verify can use it later
+        setPref('sovereignty_report_public_key', signingKeyPair.publicKey.toString('hex'));
+        respond(id, report);
+        break;
+      }
+
+      case 'report_render_pdf': {
+        const renderParams = params as { reportJson: string };
+        const reportForPdf = JSON.parse(renderParams.reportJson) as SovereigntyReport;
+        const pdfBytes = await renderSovereigntyReportPDF(reportForPdf);
+        const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
+        respond(id, { pdfBase64 });
+        break;
+      }
+
+      case 'report_verify_sovereignty': {
+        const verifyReportParams = params as { reportJson: string };
+        const pubKeyHex = getPref('sovereignty_report_public_key');
+        if (!pubKeyHex) { respond(id, { valid: false }); break; }
+        const reportObj = JSON.parse(verifyReportParams.reportJson) as SovereigntyReport;
+        const valid = verifySovereigntyReport(reportObj, Buffer.from(pubKeyHex, 'hex'));
+        respond(id, { valid });
         break;
       }
 

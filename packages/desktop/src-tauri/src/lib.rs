@@ -1725,6 +1725,116 @@ async fn list_knowledge_categories(
     state.bridge.call("knowledge:listCategories", Value::Null).await
 }
 
+// ─── Merkle Chain / Audit Integrity ─────────────────────────────────────────
+
+#[tauri::command]
+async fn audit_verify_chain(
+    state: tauri::State<'_, AppBridge>,
+    start_date: Option<String>,
+    end_date: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("audit_verify_chain", serde_json::json!({
+        "startDate": start_date,
+        "endDate": end_date,
+    })).await
+}
+
+#[tauri::command]
+async fn audit_generate_receipt(
+    state: tauri::State<'_, AppBridge>,
+    date: String,
+) -> Result<Value, String> {
+    state.bridge.call("audit_generate_receipt", serde_json::json!({
+        "date": date,
+    })).await
+}
+
+#[tauri::command]
+async fn audit_get_chain_status(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("audit_get_chain_status", Value::Null).await
+}
+
+// ─── Hardware-Bound Key Commands ──────────────────────────────────────────
+
+#[tauri::command]
+async fn hw_key_get_info(
+    state: tauri::State<'_, AppBridge>,
+    key_id: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("hw_key_get_info", serde_json::json!({
+        "keyId": key_id,
+    })).await
+}
+
+#[tauri::command]
+async fn hw_key_sign(
+    state: tauri::State<'_, AppBridge>,
+    payload: String,
+    key_id: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("hw_key_sign", serde_json::json!({
+        "payload": payload,
+        "keyId": key_id,
+    })).await
+}
+
+#[tauri::command]
+async fn hw_key_verify(
+    state: tauri::State<'_, AppBridge>,
+    payload: String,
+    signature_hex: String,
+    key_id: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("hw_key_verify", serde_json::json!({
+        "payload": payload,
+        "signatureHex": signature_hex,
+        "keyId": key_id,
+    })).await
+}
+
+#[tauri::command]
+async fn hw_key_get_backend(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("hw_key_get_backend", Value::Null).await
+}
+
+// ─── Sovereignty Report Commands ──────────────────────────────────────────
+
+#[tauri::command]
+async fn report_generate_sovereignty(
+    state: tauri::State<'_, AppBridge>,
+    period_start: String,
+    period_end: String,
+) -> Result<Value, String> {
+    state.bridge.call("report_generate_sovereignty", serde_json::json!({
+        "periodStart": period_start,
+        "periodEnd": period_end,
+    })).await
+}
+
+#[tauri::command]
+async fn report_render_pdf(
+    state: tauri::State<'_, AppBridge>,
+    report_json: String,
+) -> Result<Value, String> {
+    state.bridge.call("report_render_pdf", serde_json::json!({
+        "reportJson": report_json,
+    })).await
+}
+
+#[tauri::command]
+async fn report_verify_sovereignty(
+    state: tauri::State<'_, AppBridge>,
+    report_json: String,
+) -> Result<Value, String> {
+    state.bridge.call("report_verify_sovereignty", serde_json::json!({
+        "reportJson": report_json,
+    })).await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1983,6 +2093,19 @@ pub fn run() {
             reindex_knowledge_item,
             suggest_knowledge_categories,
             list_knowledge_categories,
+            // Merkle Chain / Audit Integrity
+            audit_verify_chain,
+            audit_generate_receipt,
+            audit_get_chain_status,
+            // Hardware-Bound Keys
+            hw_key_get_info,
+            hw_key_sign,
+            hw_key_verify,
+            hw_key_get_backend,
+            // Sovereignty Report
+            report_generate_sovereignty,
+            report_render_pdf,
+            report_verify_sovereignty,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

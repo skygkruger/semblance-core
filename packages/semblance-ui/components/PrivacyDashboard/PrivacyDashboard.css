@@ -84,6 +84,90 @@
   color: var(--v);
 }
 
+/* Chain Integrity + Key Security */
+.privacy-dashboard__loading-text {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv1);
+  font-style: italic;
+}
+
+.privacy-dashboard__status-row {
+  display: flex;
+  align-items: center;
+}
+
+.privacy-dashboard__status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  border-radius: var(--r-sm);
+  letter-spacing: 0.04em;
+}
+
+.privacy-dashboard__status-badge--verified {
+  background: rgba(110, 207, 163, 0.08);
+  color: var(--v);
+  border: 1px solid rgba(110, 207, 163, 0.15);
+}
+
+.privacy-dashboard__status-badge--warning {
+  background: rgba(201, 168, 92, 0.08);
+  color: var(--amber);
+  border: 1px solid rgba(201, 168, 92, 0.15);
+}
+
+.privacy-dashboard__status-badge--neutral {
+  background: rgba(133, 147, 164, 0.08);
+  color: var(--silver);
+  border: 1px solid rgba(133, 147, 164, 0.15);
+}
+
+.privacy-dashboard__chain-stats {
+  display: flex;
+  gap: var(--sp-4);
+}
+
+.privacy-dashboard__chain-stat {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+}
+
+.privacy-dashboard__export-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--v);
+  background: transparent;
+  border: 1px solid var(--v-wire);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+
+.privacy-dashboard__export-btn:hover {
+  background: rgba(110, 207, 163, 0.06);
+}
+
+.privacy-dashboard__key-fingerprint {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.privacy-dashboard__key-value {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  word-break: break-all;
+}
+
 /* Proof badge */
 .privacy-dashboard__proof {
   display: inline-flex;

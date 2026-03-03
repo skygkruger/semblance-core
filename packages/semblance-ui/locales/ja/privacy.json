@@ -21,6 +21,22 @@
       "actions_logged": "[JA] Actions logged",
       "actions_reversible": "[JA] Actions reversible"
     },
+    "section_chain_integrity": "チェーン整合性",
+    "chain_integrity": {
+      "loading": "チェーン整合性を確認中…",
+      "verified": "チェーン検証済み",
+      "break_detected": "{{date}} でチェーン破断を検出",
+      "entries": "{{count}} エントリ",
+      "days": "{{count}} 日間検証済み",
+      "export_receipt": "レシートをエクスポート"
+    },
+    "section_key_security": "鍵セキュリティ",
+    "key_security": {
+      "loading": "鍵セキュリティを確認中…",
+      "hardware_secured": "ハードウェア保護 ({{platform}})",
+      "software_secured": "ソフトウェア保護 ({{platform}})",
+      "fingerprint": "公開鍵フィンガープリント"
+    },
     "section_network_activity": "[JA] Network Activity",
     "network_empty": "[JA] No network activity recorded",
     "section_audit_trail": "[JA] Recent Audit Trail",

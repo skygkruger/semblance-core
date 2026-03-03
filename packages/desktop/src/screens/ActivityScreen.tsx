@@ -201,6 +201,29 @@ export function ActivityScreen() {
                   <div className="space-y-2 font-mono text-xs">
                     <p>{t('screen.activity.payload_hash', { hash: entry.payload_hash })}</p>
                     <p>{t('screen.activity.audit_reference', { ref: entry.audit_ref })}</p>
+                    {entry.reasoningContext && (
+                      <div className="mt-3 pt-3 border-t border-semblance-border dark:border-semblance-border-dark space-y-2">
+                        <p className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark font-medium">
+                          {t('screen.activity.reasoning_based_on')}
+                        </p>
+                        <p className="text-semblance-text-tertiary italic">
+                          &ldquo;{entry.reasoningContext.query}&rdquo;
+                        </p>
+                        {entry.reasoningContext.chunks.map((chunk) => (
+                          <div
+                            key={chunk.chunkId}
+                            className="flex items-start gap-2 py-1"
+                          >
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-semblance-surface-2 dark:bg-semblance-surface-2-dark text-semblance-text-tertiary text-[10px] uppercase tracking-wider shrink-0">
+                              {chunk.source}
+                            </span>
+                            <span className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                              {chunk.title}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 }
               />

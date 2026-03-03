@@ -21,6 +21,22 @@
       "actions_logged": "[KO] Actions logged",
       "actions_reversible": "[KO] Actions reversible"
     },
+    "section_chain_integrity": "체인 무결성",
+    "chain_integrity": {
+      "loading": "체인 무결성 확인 중…",
+      "verified": "체인 검증됨",
+      "break_detected": "{{date}}에서 체인 중단 감지",
+      "entries": "{{count}}개 항목",
+      "days": "{{count}}일 검증됨",
+      "export_receipt": "영수증 내보내기"
+    },
+    "section_key_security": "키 보안",
+    "key_security": {
+      "loading": "키 보안 확인 중…",
+      "hardware_secured": "하드웨어 보안 ({{platform}})",
+      "software_secured": "소프트웨어 보안 ({{platform}})",
+      "fingerprint": "공개키 지문"
+    },
     "section_network_activity": "[KO] Network Activity",
     "network_empty": "[KO] No network activity recorded",
     "section_audit_trail": "[KO] Recent Audit Trail",

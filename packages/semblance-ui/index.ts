@@ -50,7 +50,7 @@ export type { NavItem as SidebarNavItem } from './components/Nav/DesktopSidebar.
 export { MobileTabBar } from './components/Nav/MobileTabBar';
 export { KnowledgeGraph } from './components/KnowledgeGraph/index.js';
 export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
-export type { PrivacyDashboardProps, NetworkEntry, AuditEntry } from './components/PrivacyDashboard/index.js';
+export type { PrivacyDashboardProps, NetworkEntry, AuditEntry, ChainIntegrityData, KeySecurityData } from './components/PrivacyDashboard/index.js';
 export { WireframeSpinner } from './components/WireframeSpinner/index.js';
 export { LanguageSelect } from './components/LanguageSelect/index.js';
 export type { LanguageSelectProps } from './components/LanguageSelect/index.js';
@@ -91,6 +91,10 @@ export { SettingsPrivacy } from './components/Settings/index.js';
 export { SettingsAccount } from './components/Settings/index.js';
 export { SettingsAlterEgo } from './components/Settings/index.js';
 export type { SettingsAlterEgoProps } from './components/Settings/index.js';
+
+// Sovereignty Report
+export { SovereigntyReportCard } from './components/SovereigntyReportCard/index.js';
+export type { SovereigntyReportCardProps } from './components/SovereigntyReportCard/index.js';
 
 // License / Premium
 export { FeatureGate } from './components/FeatureGate/index.js';
