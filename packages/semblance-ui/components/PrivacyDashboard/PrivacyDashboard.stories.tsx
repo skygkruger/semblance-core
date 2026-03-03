@@ -29,6 +29,16 @@ export const Default: Story = {
     cloudConnections: 0,
     actionsLogged: 847,
     timeSavedHours: 23,
+    chainIntegrity: {
+      verified: true,
+      entryCount: 847,
+      daysVerified: 23,
+    },
+    keySecurity: {
+      hardwareBacked: true,
+      backend: 'Secure Enclave',
+      publicKeyFingerprint: 'a1b2c3d4e5f60718',
+    },
     networkEntries: [
       { label: 'Outbound connections today', value: '0', isZero: true },
       { label: 'Gateway requests (authorized)', value: '34' },
@@ -40,6 +50,7 @@ export const Default: Story = {
       { status: 'pending', text: 'Cancel Figma subscription', domain: 'Finance', timestamp: '08:45' },
     ],
     proofVerified: true,
+    onExportReceipt: () => console.log('Export receipt clicked'),
   },
 };
 
@@ -49,6 +60,16 @@ export const PostAudit: Story = {
     cloudConnections: 0,
     actionsLogged: 2341,
     timeSavedHours: 67,
+    chainIntegrity: {
+      verified: true,
+      entryCount: 2341,
+      daysVerified: 67,
+    },
+    keySecurity: {
+      hardwareBacked: false,
+      backend: 'software',
+      publicKeyFingerprint: 'f1e2d3c4b5a69078',
+    },
     networkEntries: [
       { label: 'Outbound connections (30 days)', value: '0', isZero: true },
       { label: 'Gateway requests (30 days)', value: '1,247' },

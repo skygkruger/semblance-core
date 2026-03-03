@@ -20,6 +20,8 @@ import type {
   ConversationTurn,
   AutonomyConfig,
   AutonomyDomain,
+  ReasoningContext,
+  ReasoningChunkRef,
 } from './types.js';
 import type { ActionType, ActionResponse } from '../types/ipc.js';
 import { ApprovalPatternTracker, type ApprovalPattern } from './approval-patterns.js';
@@ -72,7 +74,8 @@ const CREATE_TABLES = `
     status TEXT NOT NULL DEFAULT 'pending_approval',
     created_at TEXT NOT NULL,
     executed_at TEXT,
-    response_json TEXT
+    response_json TEXT,
+    reasoning_context TEXT
   );
 `;
 
@@ -543,6 +546,12 @@ export class OrchestratorImpl implements Orchestrator {
     this.alterEgoGuardrails = config.alterEgoGuardrails ?? null;
     this.alterEgoStore = config.alterEgoStore ?? null;
     this.db.exec(CREATE_TABLES);
+    // Migration: add reasoning_context column to existing pending_actions tables
+    try {
+      this.db.exec('ALTER TABLE pending_actions ADD COLUMN reasoning_context TEXT');
+    } catch {
+      // Column already exists — ignore
+    }
   }
 
   async processMessage(message: string, conversationId?: string): Promise<OrchestratorResponse> {
@@ -577,7 +586,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.lastStyleScore = null;
 
     if (response.toolCalls && response.toolCalls.length > 0) {
-      const toolResults = await this.processToolCalls(response.toolCalls, context);
+      const toolResults = await this.processToolCalls(response.toolCalls, context, message);
       actions.push(...toolResults.actions);
 
       // If any tools were executed, send results back to LLM for final response
@@ -976,15 +985,38 @@ export class OrchestratorImpl implements Orchestrator {
     return messages;
   }
 
+  /**
+   * Build a compact ReasoningContext from the search results used in this turn.
+   */
+  private buildReasoningContext(
+    query: string,
+    context: SearchResult[],
+  ): ReasoningContext {
+    const chunks: ReasoningChunkRef[] = context.map(sr => ({
+      chunkId: sr.chunk.id,
+      documentId: sr.document.id,
+      title: sr.document.title,
+      source: sr.document.source,
+      score: sr.score,
+    }));
+    return {
+      query,
+      chunks,
+      retrievedAt: new Date().toISOString(),
+    };
+  }
+
   private async processToolCalls(
     toolCalls: ToolCall[],
     context: SearchResult[],
+    userMessage: string,
   ): Promise<{
     actions: AgentAction[];
     executedResults: Array<{ tool: string; result: unknown }>;
   }> {
     const actions: AgentAction[] = [];
     const executedResults: Array<{ tool: string; result: unknown }> = [];
+    const reasoningCtx = context.length > 0 ? this.buildReasoningContext(userMessage, context) : undefined;
 
     for (const tc of toolCalls) {
       // HARD LIMIT ENFORCEMENT — runs before ALL other checks (boundary, autonomy, extension)
@@ -1003,6 +1035,7 @@ export class OrchestratorImpl implements Orchestrator {
               tier: this.autonomy.getDomainTier(this.autonomy.getDomainForAction(actionType)),
               status: 'rejected',
               createdAt: new Date().toISOString(),
+              reasoningContext: reasoningCtx,
             });
             executedResults.push({
               tool: tc.name,
@@ -1040,12 +1073,14 @@ export class OrchestratorImpl implements Orchestrator {
               tier: extTier,
               status: 'pending_approval',
               createdAt: new Date().toISOString(),
+              reasoningContext: reasoningCtx,
             };
             this.db.prepare(`
-              INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?)
+              INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
+              VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)
             `).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload),
-              agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt);
+              agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt,
+              reasoningCtx ? JSON.stringify(reasoningCtx) : null);
             actions.push(agentAction);
             continue;
           }
@@ -1066,12 +1101,14 @@ export class OrchestratorImpl implements Orchestrator {
             tier: extTier,
             status: 'pending_approval',
             createdAt: new Date().toISOString(),
+            reasoningContext: reasoningCtx,
           };
           this.db.prepare(`
-            INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?)
+            INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)
           `).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload),
-            agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt);
+            agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt,
+            reasoningCtx ? JSON.stringify(reasoningCtx) : null);
           actions.push(agentAction);
           continue;
         }
@@ -1275,6 +1312,7 @@ export class OrchestratorImpl implements Orchestrator {
         tier,
         status: 'pending_approval',
         createdAt: new Date().toISOString(),
+        reasoningContext: reasoningCtx,
       };
 
       // ALTER EGO GUARDRAIL EVALUATION
@@ -1291,10 +1329,11 @@ export class OrchestratorImpl implements Orchestrator {
           agentAction.status = 'pending_approval';
           agentAction.reasoning = guardrailResult.reason;
           this.db.prepare(
-            `INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?)`
+            `INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
+             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)`
           ).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload),
-                agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt);
+                agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt,
+                reasoningCtx ? JSON.stringify(reasoningCtx) : null);
           actions.push(agentAction);
           continue;
         }
@@ -1303,10 +1342,11 @@ export class OrchestratorImpl implements Orchestrator {
           agentAction.status = 'pending_approval';
           agentAction.reasoning = guardrailResult.reason;
           this.db.prepare(
-            `INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?)`
+            `INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
+             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)`
           ).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload),
-                agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt);
+                agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt,
+                reasoningCtx ? JSON.stringify(reasoningCtx) : null);
           executedResults.push({
             tool: tc.name,
             result: { draft: true, actionId: agentAction.id, draftPayload: tc.arguments,
@@ -1351,8 +1391,8 @@ export class OrchestratorImpl implements Orchestrator {
       } else {
         // Queue for approval
         this.db.prepare(`
-          INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?)
+          INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
+          VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)
         `).run(
           agentAction.id,
           agentAction.action,
@@ -1361,6 +1401,7 @@ export class OrchestratorImpl implements Orchestrator {
           agentAction.domain,
           agentAction.tier,
           agentAction.createdAt,
+          reasoningCtx ? JSON.stringify(reasoningCtx) : null,
         );
       }
 

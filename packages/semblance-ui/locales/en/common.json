@@ -208,7 +208,8 @@
       "filter_error": "Error",
       "empty": "No actions yet. As {{name}} works for you, every action will appear here — fully transparent and reviewable.",
       "payload_hash": "Payload Hash: {{hash}}",
-      "audit_reference": "Audit Reference: {{ref}}"
+      "audit_reference": "Audit Reference: {{ref}}",
+      "reasoning_based_on": "This action was based on:"
     },
     "digest": {
       "title": "Weekly Digest",

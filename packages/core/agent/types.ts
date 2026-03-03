@@ -29,6 +29,29 @@ export type AutonomyDomain =
   | 'network'
   | 'system';
 
+/**
+ * Compact reference to a knowledge chunk that informed a decision.
+ * Stored in audit trail metadata for full reasoning traceability.
+ */
+export interface ReasoningChunkRef {
+  chunkId: string;
+  documentId: string;
+  title: string;
+  source: string;             // e.g. 'email', 'calendar', 'local_file'
+  score: number;              // Similarity score from vector search
+}
+
+/**
+ * Full reasoning context attached to each orchestrator decision.
+ * Captures which knowledge informed the action and the query that
+ * retrieved it.
+ */
+export interface ReasoningContext {
+  query: string;              // The user message / search query
+  chunks: ReasoningChunkRef[];
+  retrievedAt: string;        // ISO timestamp of knowledge retrieval
+}
+
 export interface AgentAction {
   id: string;
   action: ActionType;
@@ -40,6 +63,7 @@ export interface AgentAction {
   createdAt: string;
   executedAt?: string;
   response?: ActionResponse;
+  reasoningContext?: ReasoningContext;  // Knowledge chunks that informed this decision
 }
 
 export interface ConversationTurn {

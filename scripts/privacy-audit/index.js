@@ -20,6 +20,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync as execSyncImport } from 'node:child_process';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT_DIR = join(__dirname, '..', '..');
@@ -98,6 +99,104 @@ const PATTERN_NAMES_RUST = [
   'Rust hyper extern crate',
 ];
 
+// ─── Dynamic Code Execution Patterns ───────────────────────────────────────────
+// These detect code that could bypass static import analysis.
+const DYNAMIC_EXEC_PATTERNS = [
+  /\beval\s*\(/,
+  /\bnew\s+Function\s*\(/,
+  /\bFunction\s*\(\s*['"]/,
+];
+
+const DYNAMIC_EXEC_NAMES = [
+  'eval() call — dynamic code execution bypasses static analysis',
+  'new Function() constructor — dynamic code execution bypasses static analysis',
+  'Function() constructor — dynamic code execution bypasses static analysis',
+];
+
+// Dynamic import() with non-literal argument — e.g., import(variable) or import(expr)
+// Literal string imports like import('./known-module') are acceptable.
+// Must not match method names (e.g., `async import(`) or comments.
+const DYNAMIC_IMPORT_PATTERN = /(?<!\.)(?<!\w)\bimport\s*\(\s*(?!['"`])/;
+const DYNAMIC_IMPORT_NAME = 'import() with non-literal argument — could load arbitrary modules at runtime';
+
+// Approved exception for dynamic import: the extension loader uses dynamic import()
+// with a variable to load @semblance/dr when installed. This is the ONLY approved
+// non-literal import() in packages/core/.
+const DYNAMIC_IMPORT_ALLOWED_FILES = [
+  'extensions/loader.ts',
+];
+
+// String concatenation patterns that assemble forbidden library names.
+// Reuses the forbidden library list from BANNED_JS_PATTERNS.
+const FORBIDDEN_LIBS = [
+  'axios', 'got', 'node-fetch', 'undici', 'superagent',
+  'socket.io', 'ws', 'http', 'https', 'net', 'dgram', 'dns', 'tls',
+];
+
+/**
+ * Check if a line contains string concatenation or template literal that assembles
+ * a forbidden library name (e.g., "ax" + "ios", `${"node" + "-fetch"}`).
+ */
+function detectConcatenatedForbiddenImport(line) {
+  // Only scan lines that have concatenation or template literal interpolation
+  if (!line.includes('+') && !line.includes('${')) return null;
+
+  // For each forbidden lib, check if the line could assemble it via concatenation
+  for (const lib of FORBIDDEN_LIBS) {
+    if (lib.length < 3) continue; // Skip very short names to avoid false positives
+    // Check all possible split points
+    for (let splitAt = 1; splitAt < lib.length; splitAt++) {
+      const left = lib.substring(0, splitAt);
+      const right = lib.substring(splitAt);
+      // Pattern: "left" + "right" (with optional whitespace)
+      const concatPattern = new RegExp(
+        `['"\`]${escapeRegex(left)}['"\`]\\s*\\+\\s*['"\`]${escapeRegex(right)}['"\`]`
+      );
+      if (concatPattern.test(line)) {
+        return lib;
+      }
+    }
+  }
+  return null;
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Check if a file is a test file (excluded from dynamic code execution checks).
+ */
+function isTestFile(filePath) {
+  const normalized = filePath.replace(/\\/g, '/');
+  return normalized.includes('.test.') || normalized.includes('.spec.');
+}
+
+/**
+ * Check if a file is allowed to use dynamic import().
+ */
+function isDynamicImportAllowedFile(filePath) {
+  const relPath = relative(CORE_DIR, filePath).replace(/\\/g, '/');
+  return DYNAMIC_IMPORT_ALLOWED_FILES.includes(relPath);
+}
+
+/**
+ * Check if a line is a comment (single-line // or block comment continuation).
+ */
+function isCommentLine(line) {
+  const trimmed = line.trim();
+  return trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*');
+}
+
+/**
+ * Check if a line is a method/function declaration using 'import' as a name.
+ * e.g., `async import(data: string)` is a method, not a dynamic import.
+ */
+function isMethodDeclaration(line) {
+  const trimmed = line.trim();
+  return /\basync\s+import\s*\(/.test(trimmed) || /^\s*import\s*\(/.test(trimmed) && /\)\s*[:{\s]/.test(trimmed);
+}
+
 function collectFiles(dir, extensions) {
   const files = [];
   try {
@@ -161,6 +260,102 @@ function scanFile(filePath, patterns, patternNames, skipIndices = []) {
   return violations;
 }
 
+// ─── Transitive Dependency Scanning ────────────────────────────────────────
+// Scans packages/core/ dependency tree for forbidden networking packages.
+// All transitive dependencies under 'ollama' are exempt (ollama is approved for localhost comms).
+
+const FORBIDDEN_TRANSITIVE_PACKAGES = [
+  'axios', 'node-fetch', 'got', 'request', 'superagent', 'undici',
+  'http2-wrapper', 'follow-redirects', 'needle', 'bent', 'ky', 'phin',
+  'cross-fetch', 'isomorphic-fetch', 'native-fetch',
+  'make-fetch-happen', 'minipass-fetch', 'agentkeepalive',
+  'http-proxy-agent', 'https-proxy-agent', 'socks-proxy-agent',
+  'proxy-agent', 'pac-proxy-agent', 'global-agent',
+  'ws', 'socket.io', 'socket.io-client', 'sockjs', 'faye-websocket',
+  'engine.io', 'primus',
+  '@grpc/grpc-js', 'grpc', 'mqtt', 'amqplib', 'kafkajs', 'zeromq', 'nats',
+  'ioredis', 'redis', 'tedious', 'pg', 'mysql2',
+  '@sentry/node', '@amplitude/node', 'posthog-node', 'mixpanel',
+  'analytics-node', '@segment/analytics-node', 'newrelic', 'dd-trace',
+];
+
+// Packages whose transitive trees are exempt (approved exceptions).
+const TRANSITIVE_EXEMPT_PACKAGES = ['ollama'];
+
+/**
+ * Flatten a pnpm dependency tree object, collecting all package names and their chains.
+ * Returns array of { name, chain } where chain is the dependency path.
+ */
+function flattenDeps(deps, chain = [], exemptRoots = new Set()) {
+  const results = [];
+  if (!deps || typeof deps !== 'object') return results;
+
+  for (const [name, info] of Object.entries(deps)) {
+    const currentChain = [...chain, name];
+    const isExempt = exemptRoots.has(name) || chain.some(p => exemptRoots.has(p));
+    results.push({ name, chain: currentChain, exempt: isExempt });
+
+    if (info && typeof info === 'object' && info.dependencies) {
+      const newExempt = TRANSITIVE_EXEMPT_PACKAGES.includes(name)
+        ? new Set([...exemptRoots, name])
+        : exemptRoots;
+      results.push(...flattenDeps(info.dependencies, currentChain, newExempt));
+    }
+  }
+  return results;
+}
+
+/**
+ * Check if a package name matches any forbidden transitive package.
+ * Uses exact match and prefix match for scoped packages.
+ */
+function isForbiddenPackage(pkgName) {
+  return FORBIDDEN_TRANSITIVE_PACKAGES.some(forbidden => {
+    if (forbidden.startsWith('@')) {
+      // Scoped package: match exactly or with version suffix
+      return pkgName === forbidden || pkgName.startsWith(forbidden + '/');
+    }
+    return pkgName === forbidden;
+  });
+}
+
+/**
+ * Run transitive dependency scan for packages/core/.
+ * Returns array of violations.
+ */
+function scanTransitiveDeps() {
+  const violations = [];
+  try {
+    const output = execSyncImport('pnpm list --depth 10 --json --filter @semblance/core', {
+      cwd: ROOT_DIR,
+      encoding: 'utf-8',
+      timeout: 30000,
+    });
+
+    const parsed = JSON.parse(output);
+    if (!Array.isArray(parsed) || parsed.length === 0) return violations;
+
+    const deps = parsed[0].dependencies || {};
+    const exemptRoots = new Set(TRANSITIVE_EXEMPT_PACKAGES);
+    const allDeps = flattenDeps(deps, [], exemptRoots);
+
+    for (const dep of allDeps) {
+      if (dep.exempt) continue;
+      if (isForbiddenPackage(dep.name)) {
+        violations.push({
+          file: 'packages/core/package.json',
+          line: 0,
+          content: `${dep.name} (via: ${dep.chain.join(' → ')})`,
+          violation: `Forbidden networking package in transitive dependencies: ${dep.name}`,
+        });
+      }
+    }
+  } catch (err) {
+    console.log(`  (Transitive dependency scan skipped: ${err.message})`);
+  }
+  return violations;
+}
+
 function run() {
   console.log('========================================');
   console.log('  SEMBLANCE PRIVACY AUDIT');
@@ -191,9 +386,65 @@ function run() {
     console.log(`  (Ollama localhost exception applied to ${ollamaExceptionsApplied} file(s) in packages/core/llm/)`);
   }
 
+  // ─── Dynamic Code Execution Scan ──────────────────────────────────────────
+  // Detects eval(), Function(), dynamic import(), and string concatenation bypass
+  // patterns in packages/core/. Test files and comment lines are excluded.
+  console.log('\nScanning for dynamic code execution patterns...');
+  let dynamicViolations = 0;
+  for (const file of jsFiles) {
+    if (isTestFile(file)) continue;
+
+    const content = readFileSync(file, 'utf-8');
+    const lines = content.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (isCommentLine(line)) continue;
+
+      // eval(), new Function(), Function()
+      for (let p = 0; p < DYNAMIC_EXEC_PATTERNS.length; p++) {
+        if (DYNAMIC_EXEC_PATTERNS[p].test(line)) {
+          allViolations.push({
+            file,
+            line: i + 1,
+            content: line.trim(),
+            violation: DYNAMIC_EXEC_NAMES[p],
+          });
+          dynamicViolations++;
+        }
+      }
+
+      // Dynamic import() with non-literal argument
+      if (!isDynamicImportAllowedFile(file) && !isMethodDeclaration(line)) {
+        if (DYNAMIC_IMPORT_PATTERN.test(line)) {
+          allViolations.push({
+            file,
+            line: i + 1,
+            content: line.trim(),
+            violation: DYNAMIC_IMPORT_NAME,
+          });
+          dynamicViolations++;
+        }
+      }
+
+      // String concatenation assembling forbidden library names
+      const assembledLib = detectConcatenatedForbiddenImport(line);
+      if (assembledLib) {
+        allViolations.push({
+          file,
+          line: i + 1,
+          content: line.trim(),
+          violation: `String concatenation assembles forbidden library name: "${assembledLib}"`,
+        });
+        dynamicViolations++;
+      }
+    }
+  }
+  console.log(`  Dynamic code execution patterns checked: ${dynamicViolations} violation(s) found`);
+
   // Scan Rust files
   const rsFiles = collectFiles(CORE_DIR, ['.rs']);
-  console.log(`Scanning ${rsFiles.length} Rust file(s)...`);
+  console.log(`\nScanning ${rsFiles.length} Rust file(s)...`);
   for (const file of rsFiles) {
     const violations = scanFile(file, BANNED_RUST_PATTERNS, PATTERN_NAMES_RUST);
     allViolations.push(...violations);
@@ -344,6 +595,20 @@ function run() {
     console.log(`  Dependencies checked: ${Object.keys(allDeps).length} packages (OK)`);
   } catch {
     console.log('  (desktop package.json not found — skipping dependency check)');
+  }
+
+  // ─── Transitive Dependency Scan ──────────────────────────────────────────
+  console.log('\n========================================');
+  console.log('  TRANSITIVE DEPENDENCY SCAN');
+  console.log('  Checking packages/core/ dependency tree');
+  console.log('========================================\n');
+
+  const transitiveViolations = scanTransitiveDeps();
+  allViolations.push(...transitiveViolations);
+  if (transitiveViolations.length === 0) {
+    console.log('  No forbidden networking packages in dependency tree (OK)');
+  } else {
+    console.log(`  ${transitiveViolations.length} forbidden package(s) found in dependency tree`);
   }
 
   console.log('');

@@ -13,3 +13,5 @@ export {
 } from './database-encryption.js';
 export type { LegacyFormatReport, MigrationStatus, MigrationItemStatus } from './migration.js';
 export { detectLegacyFormats, getMigrationStatus } from './migration.js';
+export type { HardwareKeyBackend, HardwareKeyInfo, HardwareSignResult, HardwareVerifyResult } from './hardware-key-provider.js';
+export { HardwareKeyProvider } from './hardware-key-provider.js';

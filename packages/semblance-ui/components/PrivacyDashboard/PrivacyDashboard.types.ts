@@ -11,6 +11,21 @@ export interface AuditEntry {
   timestamp?: string;
 }
 
+export interface ChainIntegrityData {
+  verified: boolean;
+  entryCount: number;
+  daysVerified: number;
+  firstBreak?: string;
+  loading?: boolean;
+}
+
+export interface KeySecurityData {
+  hardwareBacked: boolean;
+  backend: string;
+  publicKeyFingerprint?: string;
+  loading?: boolean;
+}
+
 export interface PrivacyDashboardProps {
   dataSources?: number;
   cloudConnections?: number;
@@ -19,5 +34,8 @@ export interface PrivacyDashboardProps {
   networkEntries?: NetworkEntry[];
   auditEntries?: AuditEntry[];
   proofVerified?: boolean;
+  chainIntegrity?: ChainIntegrityData;
+  keySecurity?: KeySecurityData;
+  onExportReceipt?: () => void;
   className?: string;
 }

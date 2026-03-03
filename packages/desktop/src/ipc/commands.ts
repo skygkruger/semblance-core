@@ -62,6 +62,15 @@ import type {
   KnowledgeCurationResult,
   KnowledgeCategorySuggestion,
   KnowledgeCategoryInfo,
+  ChainVerificationResult,
+  SignedDailyReceipt,
+  ChainStatus,
+  HardwareKeyInfo,
+  HardwareKeyBackend,
+  HardwareSignResult,
+  HardwareVerifyResult,
+  SovereigntyReportData,
+  SovereigntyReportVerifyResult,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -575,4 +584,53 @@ export function suggestKnowledgeCategories(chunkId: string): Promise<KnowledgeCa
 
 export function listKnowledgeCategories(): Promise<KnowledgeCategoryInfo[]> {
   return invoke<KnowledgeCategoryInfo[]>('list_knowledge_categories');
+}
+
+// ─── Merkle Chain / Audit Integrity ─────────────────────────────────────────
+
+export function verifyAuditChain(
+  startDate?: string,
+  endDate?: string,
+): Promise<ChainVerificationResult> {
+  return invoke<ChainVerificationResult>('audit_verify_chain', { startDate, endDate });
+}
+
+export function generateAuditReceipt(date: string): Promise<SignedDailyReceipt> {
+  return invoke<SignedDailyReceipt>('audit_generate_receipt', { date });
+}
+
+export function getAuditChainStatus(): Promise<ChainStatus> {
+  return invoke<ChainStatus>('audit_get_chain_status');
+}
+
+// ─── Hardware-Bound Keys ─────────────────────────────────────────────────
+
+export function getHardwareKeyInfo(keyId?: string): Promise<HardwareKeyInfo> {
+  return invoke<HardwareKeyInfo>('hw_key_get_info', { keyId: keyId ?? null });
+}
+
+export function hardwareKeySign(payload: string, keyId?: string): Promise<HardwareSignResult> {
+  return invoke<HardwareSignResult>('hw_key_sign', { payload, keyId: keyId ?? null });
+}
+
+export function hardwareKeyVerify(payload: string, signatureHex: string, keyId?: string): Promise<HardwareVerifyResult> {
+  return invoke<HardwareVerifyResult>('hw_key_verify', { payload, signatureHex, keyId: keyId ?? null });
+}
+
+export function getHardwareKeyBackend(): Promise<{ backend: HardwareKeyBackend }> {
+  return invoke<{ backend: HardwareKeyBackend }>('hw_key_get_backend');
+}
+
+// ─── Sovereignty Report ─────────────────────────────────────────────────────
+
+export function generateSovereigntyReport(periodStart: string, periodEnd: string): Promise<SovereigntyReportData> {
+  return invoke<SovereigntyReportData>('report_generate_sovereignty', { periodStart, periodEnd });
+}
+
+export function verifySovereigntyReport(reportJson: string): Promise<SovereigntyReportVerifyResult> {
+  return invoke<SovereigntyReportVerifyResult>('report_verify_sovereignty', { reportJson });
+}
+
+export function renderSovereigntyReportPDF(reportJson: string): Promise<{ pdfBase64: string }> {
+  return invoke<{ pdfBase64: string }>('report_render_pdf', { reportJson });
 }

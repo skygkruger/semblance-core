@@ -21,6 +21,22 @@
       "actions_logged": "[TW] Actions logged",
       "actions_reversible": "[TW] Actions reversible"
     },
+    "section_chain_integrity": "鏈完整性",
+    "chain_integrity": {
+      "loading": "正在驗證鏈完整性…",
+      "verified": "鏈已驗證",
+      "break_detected": "在 {{date}} 偵測到鏈斷裂",
+      "entries": "{{count}} 個條目",
+      "days": "{{count}} 天已驗證",
+      "export_receipt": "匯出收據"
+    },
+    "section_key_security": "金鑰安全",
+    "key_security": {
+      "loading": "正在檢查金鑰安全…",
+      "hardware_secured": "硬體保護 ({{platform}})",
+      "software_secured": "軟體保護 ({{platform}})",
+      "fingerprint": "公鑰指紋"
+    },
     "section_network_activity": "[TW] Network Activity",
     "network_empty": "[TW] No network activity recorded",
     "section_audit_trail": "[TW] Recent Audit Trail",

@@ -168,6 +168,21 @@ export interface LogEntry {
   autonomy_tier: string;
   payload_hash: string;
   audit_ref: string;
+  reasoningContext?: ReasoningContext;
+}
+
+export interface ReasoningChunkRef {
+  chunkId: string;
+  documentId: string;
+  title: string;
+  source: string;
+  score: number;
+}
+
+export interface ReasoningContext {
+  query: string;
+  chunks: ReasoningChunkRef[];
+  retrievedAt: string;
 }
 
 export interface PendingAction {
@@ -179,6 +194,7 @@ export interface PendingAction {
   tier: string;
   status: string;
   createdAt: string;
+  reasoningContext?: ReasoningContext;
 }
 
 // ─── Digest ─────────────────────────────────────────────────────────────────
@@ -625,4 +641,105 @@ export interface TriggerSyncResult {
   devicesFound: number;
   itemsSynced: number;
   error?: string;
+}
+
+// ─── Merkle Chain / Audit Integrity ─────────────────────────────────────────
+
+export interface ChainVerificationResult {
+  valid: boolean;
+  firstBreak?: string;
+  entryCount: number;
+  daysVerified: number;
+}
+
+export interface SignedDailyReceipt {
+  date: string;
+  merkleRoot: string;
+  chainedHash: string;
+  entryCount: number;
+  signature: string;
+  publicKeyFingerprint: string;
+  timestamp: string;
+}
+
+export interface ChainStatus {
+  verified: boolean;
+  entryCount: number;
+  daysVerified: number;
+  firstBreak?: string;
+  lastVerifiedAt: string;
+}
+
+// ─── Hardware-Bound Keys ───────────────────────────────────────────────────
+
+export type HardwareKeyBackend =
+  | 'secure-enclave'
+  | 'tpm'
+  | 'android-keystore'
+  | 'libsecret'
+  | 'software'
+  | 'stub';
+
+export interface HardwareKeyInfo {
+  keyId: string;
+  backend: HardwareKeyBackend;
+  publicKeyHex: string;
+  createdAt: string;
+  hardwareBacked: boolean;
+}
+
+export interface HardwareSignResult {
+  signatureHex: string;
+  keyId: string;
+  backend: HardwareKeyBackend;
+}
+
+export interface HardwareVerifyResult {
+  valid: boolean;
+  keyId: string;
+}
+
+// ─── Sovereignty Report ───────────────────────────────────────────────────
+
+export interface SovereigntyReportData {
+  version: '1.0';
+  generatedAt: string;
+  periodStart: string;
+  periodEnd: string;
+  deviceId: string;
+  knowledgeSummary: Record<string, number>;
+  autonomousActions: {
+    byDomain: Record<string, number>;
+    byTier: Record<string, number>;
+    totalTimeSavedSeconds: number;
+  };
+  hardLimitsEnforced: number;
+  networkActivity: {
+    connectionsByService: Record<string, number>;
+    aiCoreConnections: 0;
+    veridianConnections: 0;
+    analyticsConnections: 0;
+  };
+  adversarialDefense: {
+    darkPatternsDetected: number;
+    manipulativeEmailsNeutralized: number;
+    optOutActionsTaken: number;
+  };
+  auditChainStatus: {
+    verified: boolean;
+    totalEntries: number;
+    daysCovered: number;
+    breaks: string[];
+  };
+  signature: {
+    algorithm: 'Ed25519';
+    signatureHex: string;
+    publicKeyFingerprint: string;
+    verificationInstructions: string;
+  };
+  comparisonStatement: string;
+}
+
+export interface SovereigntyReportVerifyResult {
+  valid: boolean;
 }

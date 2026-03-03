@@ -21,6 +21,22 @@
       "actions_logged": "[ZH] Actions logged",
       "actions_reversible": "[ZH] Actions reversible"
     },
+    "section_chain_integrity": "链完整性",
+    "chain_integrity": {
+      "loading": "正在验证链完整性…",
+      "verified": "链已验证",
+      "break_detected": "在 {{date}} 检测到链断裂",
+      "entries": "{{count}} 个条目",
+      "days": "{{count}} 天已验证",
+      "export_receipt": "导出收据"
+    },
+    "section_key_security": "密钥安全",
+    "key_security": {
+      "loading": "正在检查密钥安全…",
+      "hardware_secured": "硬件保护 ({{platform}})",
+      "software_secured": "软件保护 ({{platform}})",
+      "fingerprint": "公钥指纹"
+    },
     "section_network_activity": "[ZH] Network Activity",
     "network_empty": "[ZH] No network activity recorded",
     "section_audit_trail": "[ZH] Recent Audit Trail",

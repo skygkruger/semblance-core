@@ -21,6 +21,22 @@
       "actions_logged": "[ES] Actions logged",
       "actions_reversible": "[ES] Actions reversible"
     },
+    "section_chain_integrity": "Integridad de cadena",
+    "chain_integrity": {
+      "loading": "Verificando integridad de cadena…",
+      "verified": "Cadena verificada",
+      "break_detected": "Ruptura de cadena detectada en {{date}}",
+      "entries": "{{count}} entradas",
+      "days": "{{count}} días verificados",
+      "export_receipt": "Exportar recibo"
+    },
+    "section_key_security": "Seguridad de clave",
+    "key_security": {
+      "loading": "Verificando seguridad de clave…",
+      "hardware_secured": "Protegida por hardware ({{platform}})",
+      "software_secured": "Protegida por software ({{platform}})",
+      "fingerprint": "Huella de clave pública"
+    },
     "section_network_activity": "[ES] Network Activity",
     "network_empty": "[ES] No network activity recorded",
     "section_audit_trail": "[ES] Recent Audit Trail",

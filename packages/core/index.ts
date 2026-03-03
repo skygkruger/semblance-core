@@ -62,6 +62,8 @@ export type {
   AutonomyDomain,
   AgentAction,
   ConversationTurn,
+  ReasoningContext,
+  ReasoningChunkRef,
 } from './agent/types.js';
 
 export type { Orchestrator, OrchestratorResponse } from './agent/orchestrator.js';
@@ -140,6 +142,30 @@ export type {
   MobileModelEntry,
   MobileModelDownload,
 } from './llm/mobile-model-manager.js';
+
+// Re-export Merkle chain integrity
+export {
+  MerkleChain,
+  buildMerkleRoot,
+  canonicalJSON,
+} from './audit/merkle-chain.js';
+export type {
+  DailyMerkleRoot,
+  ChainVerificationResult,
+  SignedDailyReceipt,
+} from './audit/merkle-chain.js';
+
+// Re-export sovereignty report
+export {
+  generateSovereigntyReport,
+  verifySovereigntyReport,
+  buildSignablePayload,
+  renderSovereigntyReportPDF,
+} from './reporting/sovereignty-report.js';
+export type {
+  SovereigntyReport,
+  SovereigntyReportDeps,
+} from './reporting/sovereignty-report.js';
 
 // Credential keychain interface
 export type { KeychainStore } from './credentials/keychain.js';
