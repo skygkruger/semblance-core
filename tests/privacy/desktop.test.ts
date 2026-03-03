@@ -209,7 +209,9 @@ describe('Desktop Privacy: fetch() Allowlist Enforcement', () => {
   const srcFiles = collectFiles(DESKTOP_SRC, ['.ts', '.tsx']);
   // Only LicenseContext.tsx is allowed to call fetch() — for user-initiated Stripe portal
   // and license worker communication. All other files must use Tauri invoke().
-  const FETCH_ALLOWLIST = new Set(['contexts/LicenseContext.tsx']);
+  // sound/desktop-sound-engine.ts uses fetch() to decode bundled WAV assets
+  // from Vite/Tauri asset protocol URLs — local only, never network.
+  const FETCH_ALLOWLIST = new Set(['contexts/LicenseContext.tsx', 'sound/desktop-sound-engine.ts']);
 
   it('only allowlisted files contain fetch() calls', () => {
     const violators: string[] = [];

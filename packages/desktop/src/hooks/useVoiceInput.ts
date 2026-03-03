@@ -21,7 +21,10 @@ export interface UseVoiceInputReturn {
   lastTranscription: string | null;
 }
 
-export function useVoiceInput(adapter: VoiceAdapter): UseVoiceInputReturn {
+export function useVoiceInput(
+  adapter: VoiceAdapter,
+  onSoundPlay?: (id: string) => void,
+): UseVoiceInputReturn {
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceInputState>('idle');
   const [audioLevel, setAudioLevel] = useState(0);
@@ -88,12 +91,13 @@ export function useVoiceInput(adapter: VoiceAdapter): UseVoiceInputReturn {
       const session = await adapter.startCapture();
       sessionRef.current = session;
       setVoiceState('listening');
+      onSoundPlay?.('voice_start');
       // audioLevel stays at 0 until real adapter provides audio callback
       setAudioLevel(0);
     } catch {
       setErrorWithRecovery();
     }
-  }, [voiceEnabled, adapter, setErrorWithRecovery]);
+  }, [voiceEnabled, adapter, setErrorWithRecovery, onSoundPlay]);
 
   const onVoiceStop = useCallback(async () => {
     const session = sessionRef.current;
@@ -110,6 +114,7 @@ export function useVoiceInput(adapter: VoiceAdapter): UseVoiceInputReturn {
       if (mountedRef.current) {
         setLastTranscription(result.text);
         setVoiceState('idle');
+        onSoundPlay?.('voice_stop');
       }
     } catch {
       sessionRef.current = null;
@@ -117,7 +122,7 @@ export function useVoiceInput(adapter: VoiceAdapter): UseVoiceInputReturn {
         setErrorWithRecovery();
       }
     }
-  }, [adapter, setErrorWithRecovery]);
+  }, [adapter, setErrorWithRecovery, onSoundPlay]);
 
   const onVoiceCancel = useCallback(async () => {
     const session = sessionRef.current;

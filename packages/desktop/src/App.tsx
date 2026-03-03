@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { listen } from '@tauri-apps/api/event';
 import { DesktopSidebar, PrivacyBadge, ThemeToggle } from '@semblance/ui';
 import type { NavItem, ThemeMode } from '@semblance/ui';
 import { AppStateProvider, useAppState, useAppDispatch } from './state/AppState';
 import { LicenseProvider, useLicense } from './contexts/LicenseContext';
+import { SoundEngineProvider, useSound } from './sound/SoundEngineContext';
+import { useTauriEvent } from './hooks/useTauriEvent';
 import { BiometricGate } from './auth/BiometricGate';
 import { useTheme } from './hooks/useTheme';
 import { OnboardingFlow } from './screens/OnboardingFlow';
@@ -152,6 +154,17 @@ function AppContent() {
   const location = useLocation();
   const { theme, setTheme } = useTheme();
   const license = useLicense();
+  const { play } = useSound();
+
+  // Sound: Morning brief ready
+  useTauriEvent('semblance://morning-brief-ready', useCallback(() => {
+    play('morning_brief_ready');
+  }, [play]));
+
+  // Sound: Proactive notification
+  useTauriEvent('semblance://proactive-notification', useCallback(() => {
+    play('notification');
+  }, [play]));
 
   // Derive active screen from URL path
   const activeId = location.pathname.slice(1) || 'chat';
@@ -279,9 +292,11 @@ export function App() {
   return (
     <AppStateProvider>
       <LicenseProvider>
-        <BiometricGate>
-          <AppContent />
-        </BiometricGate>
+        <SoundEngineProvider>
+          <BiometricGate>
+            <AppContent />
+          </BiometricGate>
+        </SoundEngineProvider>
       </LicenseProvider>
     </AppStateProvider>
   );

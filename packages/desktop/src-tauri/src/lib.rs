@@ -1615,6 +1615,21 @@ async fn alter_ego_undo_receipt(
     state.bridge.call("alterEgo:undoReceipt", serde_json::json!({ "receiptId": receipt_id })).await
 }
 
+// ─── Sound Settings ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+async fn get_sound_settings(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("sound:getSettings", Value::Null).await
+}
+
+#[tauri::command]
+async fn save_sound_settings(
+    state: tauri::State<'_, AppBridge>,
+    settings: Value,
+) -> Result<Value, String> {
+    state.bridge.call("sound:saveSettings", settings).await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1858,6 +1873,9 @@ pub fn run() {
             alter_ego_reject_batch,
             alter_ego_send_draft,
             alter_ego_undo_receipt,
+            // Sound Settings
+            get_sound_settings,
+            save_sound_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

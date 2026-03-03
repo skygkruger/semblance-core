@@ -234,6 +234,7 @@ function run() {
   const DESKTOP_FETCH_PATTERN = /\bfetch\s*\(/;
   const DESKTOP_FETCH_ALLOWLIST = new Set([
     'contexts/LicenseContext.tsx', // User-initiated Stripe portal + license worker calls
+    'sound/desktop-sound-engine.ts', // Decodes bundled WAV assets from Vite/Tauri asset protocol (local only)
   ]);
 
   const desktopFiles = collectFiles(DESKTOP_SRC_DIR, ['.ts', '.tsx', '.js', '.jsx']);

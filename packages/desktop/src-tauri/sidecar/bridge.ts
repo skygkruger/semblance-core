@@ -2635,6 +2635,24 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      // ─── Sound Settings ────────────────────────────────────────────────
+      case 'sound:getSettings': {
+        const raw = getPref('sound_settings');
+        result = raw
+          ? JSON.parse(raw)
+          : { enabled: true, categoryVolumes: { actions: 1.0, system: 1.0, voice: 1.0 } };
+        respond(id, result);
+        break;
+      }
+
+      case 'sound:saveSettings': {
+        const settings = params as { enabled: boolean; categoryVolumes: Record<string, number> };
+        setPref('sound_settings', JSON.stringify(settings));
+        result = settings;
+        respond(id, result);
+        break;
+      }
+
       default:
         respondError(id, `Unknown method: ${method}`);
     }
