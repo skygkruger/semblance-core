@@ -1,4 +1,4 @@
-// Tests for Knowledge Graph Delta Sync — document metadata export/import for cross-device sync.
+// Tests for Knowledge Graph Delta Sync — document content + chunk export/import for cross-device sync.
 // Tests documentToSyncEntry, buildKGDelta, applyKGDelta, and KG_SYNC_MAX_BYTES.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -9,7 +9,7 @@ import {
   KG_SYNC_MAX_BYTES,
 } from '@semblance/core/knowledge/kg-sync.js';
 import type { KGSyncEntry, KGSyncDelta } from '@semblance/core/knowledge/kg-sync.js';
-import type { Document } from '@semblance/core/knowledge/types.js';
+import type { Document, DocumentChunk } from '@semblance/core/knowledge/types.js';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -31,19 +31,53 @@ function createDoc(overrides?: Partial<Document>): Document {
 
 // ─── documentToSyncEntry ────────────────────────────────────────────────────
 
+function createChunks(docId: string, count: number): DocumentChunk[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${docId}-chunk-${i}`,
+    documentId: docId,
+    content: `Chunk ${i} text content for ${docId}`,
+    chunkIndex: i,
+    metadata: {},
+  }));
+}
+
 describe('documentToSyncEntry', () => {
-  it('strips the content field', () => {
-    const doc = createDoc({ content: 'This should be stripped out entirely' });
+  it('includes full document content', () => {
+    const doc = createDoc({ content: 'This should be included in the sync payload' });
     const entry = documentToSyncEntry(doc);
 
-    expect(entry).not.toHaveProperty('content');
+    expect(entry.content).toBe('This should be included in the sync payload');
   });
 
-  it('preserves all metadata fields', () => {
+  it('includes chunk text but strips embedding vectors', () => {
+    const doc = createDoc({ id: 'doc-with-chunks' });
+    const chunks: DocumentChunk[] = [
+      { id: 'c1', documentId: 'doc-with-chunks', content: 'First chunk', chunkIndex: 0, embedding: [0.1, 0.2, 0.3], metadata: {} },
+      { id: 'c2', documentId: 'doc-with-chunks', content: 'Second chunk', chunkIndex: 1, embedding: [0.4, 0.5, 0.6], metadata: {} },
+    ];
+    const entry = documentToSyncEntry(doc, chunks);
+
+    expect(entry.chunks).toHaveLength(2);
+    expect(entry.chunks[0]!.content).toBe('First chunk');
+    expect(entry.chunks[1]!.content).toBe('Second chunk');
+    // Embeddings must NOT be included
+    expect(entry.chunks[0]).not.toHaveProperty('embedding');
+    expect(entry.chunks[1]).not.toHaveProperty('embedding');
+  });
+
+  it('defaults to empty chunks when none provided', () => {
+    const doc = createDoc();
+    const entry = documentToSyncEntry(doc);
+
+    expect(entry.chunks).toEqual([]);
+  });
+
+  it('preserves all document fields', () => {
     const doc = createDoc({
       id: 'doc-42',
       source: 'calendar',
       title: 'Meeting Notes',
+      content: 'Full meeting transcript here',
       contentHash: 'hash-xyz',
       mimeType: 'text/markdown',
       createdAt: '2026-02-15T10:00:00Z',
@@ -56,6 +90,7 @@ describe('documentToSyncEntry', () => {
     expect(entry.id).toBe('doc-42');
     expect(entry.source).toBe('calendar');
     expect(entry.title).toBe('Meeting Notes');
+    expect(entry.content).toBe('Full meeting transcript here');
     expect(entry.contentHash).toBe('hash-xyz');
     expect(entry.mimeType).toBe('text/markdown');
     expect(entry.createdAt).toBe('2026-02-15T10:00:00Z');
@@ -246,12 +281,14 @@ describe('applyKGDelta', () => {
       id: 'doc-1',
       source: 'email',
       title: 'Test Doc',
+      content: 'Test document content',
       contentHash: 'hash-abc',
       mimeType: 'text/plain',
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
       indexedAt: '2026-01-01T00:00:00Z',
       metadata: {},
+      chunks: [],
       ...overrides,
     };
   }

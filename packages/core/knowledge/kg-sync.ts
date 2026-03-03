@@ -1,31 +1,35 @@
-// Knowledge Graph Delta Sync — Export/import document metadata for cross-device sync.
+// Knowledge Graph Delta Sync — Export/import documents with content for cross-device sync.
 //
-// Only metadata is synced (title, source, contentHash, mimeType, timestamps).
-// Embeddings and vector data are NOT synced — each device builds its own.
-// The receiving device uses the metadata to decide whether to re-index content
-// that exists locally (e.g., shared email, shared file paths).
+// Syncs full document content + chunk text so the receiving device can build
+// its own local embeddings and search index. Embeddings and vector data are
+// NOT synced — each device rebuilds them from content for its local model.
 //
 // Payload cap: 10 MB. If the delta exceeds this, it is truncated oldest-first.
 
-import type { Document, DocumentSource } from './types.js';
+import type { Document, DocumentChunk, DocumentSource } from './types.js';
 
 /** Maximum sync payload size in bytes (10 MB) */
 export const KG_SYNC_MAX_BYTES = 10 * 1024 * 1024;
 
 /**
- * A single document's sync-safe metadata (no content, no embeddings).
+ * A single document's sync payload (full content, no embeddings).
+ * Content is included so the receiving device can build its own embeddings.
+ * Embeddings are excluded — each device generates them for its local model.
  */
 export interface KGSyncEntry {
   id: string;
   source: DocumentSource;
   sourcePath?: string;
   title: string;
+  content: string;
   contentHash: string;
   mimeType: string;
   createdAt: string;
   updatedAt: string;
   indexedAt: string;
   metadata: Record<string, unknown>;
+  /** Pre-split chunks (text only, no embeddings). Receiving device re-embeds. */
+  chunks: Array<{ id: string; content: string; chunkIndex: number; metadata: Record<string, unknown> }>;
 }
 
 /**
@@ -46,7 +50,7 @@ export interface KGSyncDelta {
  * Result of importing a knowledge graph delta.
  */
 export interface KGSyncImportResult {
-  /** New documents accepted (metadata stored, pending local re-index) */
+  /** New documents accepted (content stored, pending local embedding) */
   newDocuments: number;
   /** Documents skipped because they already exist locally (same contentHash) */
   duplicates: number;
@@ -55,20 +59,29 @@ export interface KGSyncImportResult {
 }
 
 /**
- * Extract sync-safe metadata from a Document.
+ * Build a sync entry from a Document and its chunks.
+ * Includes full text content so the receiving device can re-embed.
+ * Strips embedding vectors — each device generates its own.
  */
-export function documentToSyncEntry(doc: Document): KGSyncEntry {
+export function documentToSyncEntry(doc: Document, chunks: DocumentChunk[] = []): KGSyncEntry {
   return {
     id: doc.id,
     source: doc.source,
     sourcePath: doc.sourcePath,
     title: doc.title,
+    content: doc.content,
     contentHash: doc.contentHash,
     mimeType: doc.mimeType,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
     indexedAt: doc.indexedAt,
     metadata: doc.metadata,
+    chunks: chunks.map(c => ({
+      id: c.id,
+      content: c.content,
+      chunkIndex: c.chunkIndex,
+      metadata: c.metadata,
+    })),
   };
 }
 
