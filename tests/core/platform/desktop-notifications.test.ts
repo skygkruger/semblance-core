@@ -23,8 +23,8 @@ let notifications: ReturnType<typeof createDesktopAdapter>['notifications'];
 
 function capturedLines(): string[] {
   return writeSpy.mock.calls
-    .map((call) => String(call[0]))
-    .filter((line) => line.trim().length > 0);
+    .map((call: unknown[]) => String(call[0]))
+    .filter((line: string) => line.trim().length > 0);
 }
 
 function parsedEvents(): Array<{ event: string; data: Record<string, unknown> }> {
@@ -53,7 +53,7 @@ describe('Desktop notifications: scheduleLocal', () => {
 
     expect(writeSpy).toHaveBeenCalledTimes(1);
     const events = parsedEvents();
-    expect(events[0].event).toBe('schedule-notification');
+    expect(events[0]!.event).toBe('schedule-notification');
   });
 
   it('includes all notification fields in the event data', async () => {
@@ -66,7 +66,7 @@ describe('Desktop notifications: scheduleLocal', () => {
     });
 
     const events = parsedEvents();
-    const data = events[0].data as Record<string, unknown>;
+    const data = events[0]!.data as Record<string, unknown>;
     expect(data).toHaveProperty('id', 'notif-2');
     expect(data).toHaveProperty('title', 'Reminder');
     expect(data).toHaveProperty('body', 'Do the thing');
@@ -85,7 +85,7 @@ describe('Desktop notifications: scheduleLocal', () => {
     });
 
     const events = parsedEvents();
-    const data = events[0].data as Record<string, unknown>;
+    const data = events[0]!.data as Record<string, unknown>;
     expect(data.fireDate).toBe('2026-06-15T10:00:00.000Z');
   });
 
@@ -98,8 +98,8 @@ describe('Desktop notifications: scheduleLocal', () => {
     });
 
     const events = parsedEvents();
-    expect(events[0].event).toBe('schedule-notification');
-    const data = events[0].data as Record<string, unknown>;
+    expect(events[0]!.event).toBe('schedule-notification');
+    const data = events[0]!.data as Record<string, unknown>;
     expect(data.id).toBe('notif-no-data');
     // data field should be present (as undefined serialized or omitted by JSON.stringify)
   });
@@ -114,7 +114,7 @@ describe('Desktop notifications: scheduleLocal', () => {
     });
 
     const events = parsedEvents();
-    const data = events[0].data as Record<string, unknown>;
+    const data = events[0]!.data as Record<string, unknown>;
     const payload = data.data as Record<string, unknown>;
     expect(payload.key).toBe('value');
     expect(payload.another).toBe('field');
@@ -129,8 +129,8 @@ describe('Desktop notifications: cancel', () => {
 
     expect(writeSpy).toHaveBeenCalledTimes(1);
     const events = parsedEvents();
-    expect(events[0].event).toBe('cancel-notification');
-    expect((events[0].data as Record<string, unknown>).id).toBe('notif-to-cancel');
+    expect(events[0]!.event).toBe('cancel-notification');
+    expect((events[0]!.data as Record<string, unknown>).id).toBe('notif-to-cancel');
   });
 });
 
@@ -142,7 +142,7 @@ describe('Desktop notifications: cancelAll', () => {
 
     expect(writeSpy).toHaveBeenCalledTimes(1);
     const events = parsedEvents();
-    expect(events[0].event).toBe('cancel-all-notifications');
+    expect(events[0]!.event).toBe('cancel-all-notifications');
   });
 });
 
@@ -157,7 +157,7 @@ describe('Desktop notifications: NDJSON format', () => {
       fireDate: new Date('2026-07-01T12:00:00Z'),
     });
 
-    const raw = String(writeSpy.mock.calls[0][0]);
+    const raw = String(writeSpy.mock.calls[0]![0]);
     // Must end with exactly one newline
     expect(raw.endsWith('\n')).toBe(true);
     // Content before the newline must not contain newlines
@@ -176,9 +176,9 @@ describe('Desktop notifications: NDJSON format', () => {
     await notifications.cancelAll();
 
     const events = parsedEvents();
-    expect(events[0].event).toBe('schedule-notification');
-    expect(events[1].event).toBe('cancel-notification');
-    expect(events[2].event).toBe('cancel-all-notifications');
+    expect(events[0]!.event).toBe('schedule-notification');
+    expect(events[1]!.event).toBe('cancel-notification');
+    expect(events[2]!.event).toBe('cancel-all-notifications');
   });
 
   it('multiple notifications produce separate lines', async () => {
@@ -198,8 +198,8 @@ describe('Desktop notifications: NDJSON format', () => {
     expect(writeSpy).toHaveBeenCalledTimes(2);
     const events = parsedEvents();
     expect(events).toHaveLength(2);
-    expect((events[0].data as Record<string, unknown>).id).toBe('first');
-    expect((events[1].data as Record<string, unknown>).id).toBe('second');
+    expect((events[0]!.data as Record<string, unknown>).id).toBe('first');
+    expect((events[1]!.data as Record<string, unknown>).id).toBe('second');
   });
 
   it('each line is valid JSON', async () => {

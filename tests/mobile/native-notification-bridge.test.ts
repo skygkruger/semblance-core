@@ -188,7 +188,7 @@ describe('NativeNotificationProvider: schedule', () => {
     expect(mockNotifee.createTriggerNotification).toHaveBeenCalledTimes(1);
     expect(mockNotifee.displayNotification).not.toHaveBeenCalled();
 
-    const [notifArg, triggerArg] = mockNotifee.createTriggerNotification.mock.calls[0];
+    const [notifArg, triggerArg] = mockNotifee.createTriggerNotification.mock.calls[0]!;
     expect(triggerArg.type).toBe(0); // TriggerType.TIMESTAMP
     expect(triggerArg.timestamp).toBe(futureDate.getTime());
   });
@@ -203,7 +203,7 @@ describe('NativeNotificationProvider: schedule', () => {
 
     await provider.schedule(notif);
 
-    const displayed = mockNotifee.displayNotification.mock.calls[0][0];
+    const displayed = mockNotifee.displayNotification.mock.calls[0]![0];
     expect(displayed.id).toBe('unique-42');
     expect(displayed.title).toBe('Meeting Soon');
     expect(displayed.body).toBe('Your 3pm meeting starts in 15 minutes');
@@ -217,7 +217,7 @@ describe('NativeNotificationProvider: schedule', () => {
 
     await provider.schedule(notif);
 
-    const displayed = mockNotifee.displayNotification.mock.calls[0][0];
+    const displayed = mockNotifee.displayNotification.mock.calls[0]![0];
     expect(displayed.data).toEqual({ taskId: 'abc-123', priority: 'high' });
   });
 
@@ -230,7 +230,7 @@ describe('NativeNotificationProvider: schedule', () => {
 
     await provider.schedule(notif);
 
-    const displayed = mockNotifee.displayNotification.mock.calls[0][0];
+    const displayed = mockNotifee.displayNotification.mock.calls[0]![0];
     expect(displayed.data).toBeUndefined();
   });
 
@@ -266,7 +266,7 @@ describe('NativeNotificationProvider: schedule', () => {
     const notif = makeNotification({ fireDate: new Date(Date.now() - 5000) });
     await provider.schedule(notif);
 
-    const displayed = mockNotifee.displayNotification.mock.calls[0][0];
+    const displayed = mockNotifee.displayNotification.mock.calls[0]![0];
     expect(displayed.android).toBeDefined();
     expect(displayed.android.channelId).toBe('reminder');
     expect(displayed.android.pressAction).toEqual({ id: 'default' });
@@ -322,12 +322,12 @@ describe('NativeNotificationProvider: getScheduled', () => {
     const scheduled = await provider.getScheduled();
 
     expect(scheduled).toHaveLength(2);
-    expect(scheduled[0].id).toBe('sched-1');
-    expect(scheduled[0].title).toBe('Scheduled One');
-    expect(scheduled[0].body).toBe('First scheduled');
-    expect(scheduled[0].data).toEqual({ key: 'val' });
-    expect(scheduled[1].id).toBe('sched-2');
-    expect(scheduled[1].title).toBe('Scheduled Two');
+    expect(scheduled[0]!.id).toBe('sched-1');
+    expect(scheduled[0]!.title).toBe('Scheduled One');
+    expect(scheduled[0]!.body).toBe('First scheduled');
+    expect(scheduled[0]!.data).toEqual({ key: 'val' });
+    expect(scheduled[1]!.id).toBe('sched-2');
+    expect(scheduled[1]!.title).toBe('Scheduled Two');
   });
 
   it('returns empty array when no notifications are scheduled', async () => {
@@ -352,8 +352,8 @@ describe('NativeNotificationProvider: getScheduled', () => {
 
     expect(scheduled).toHaveLength(1);
     // Should default to empty strings for missing fields
-    expect(scheduled[0].id).toBe('');
-    expect(scheduled[0].title).toBe('');
-    expect(scheduled[0].body).toBe('');
+    expect(scheduled[0]!.id).toBe('');
+    expect(scheduled[0]!.title).toBe('');
+    expect(scheduled[0]!.body).toBe('');
   });
 });
