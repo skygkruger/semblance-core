@@ -11,6 +11,7 @@ export interface ArtifactItem {
 export interface ArtifactPanelProps {
   artifact: ArtifactItem | null;
   open: boolean;
+  generating?: boolean;
   onClose: () => void;
   onDownload?: (artifact: ArtifactItem) => void;
 }
