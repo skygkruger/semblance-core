@@ -89,7 +89,7 @@
     "headline": "[PT] What will you call it?",
     "placeholder": "[PT] Give it a name",
     "subtext": "[PT] This is what your AI will be called. You can change it in Settings.",
-    "start_button": "[PT] Start Semblance"
+    "start_button": "[PT] Run Semblance"
   },
   "initialize": {
     "downloading_headline": "[PT] Initializing your Semblance...",
@@ -99,7 +99,8 @@
     "knowledge_moment_headline": "[PT] Your Semblance already knows something.",
     "ready_headline": "[PT] Ready to go.",
     "ready_subtext": "[PT] Connect more data sources later to unlock deeper insights.",
-    "start_button": "[PT] Start Semblance",
-    "download_complete_status": "[PT] Complete"
+    "start_button": "[PT] Run Semblance",
+    "download_complete_status": "[PT] Complete",
+    "knowledge_moment_suffix": " already knows something about you"
   }
 }

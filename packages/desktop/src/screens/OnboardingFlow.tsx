@@ -78,6 +78,9 @@ export function OnboardingFlow() {
   const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
   const [detecting, setDetecting] = useState(false);
 
+  // AI name state
+  const [aiName, setAiName] = useState('Semblance');
+
   // Autonomy state
   const [autonomy, setAutonomy] = useState<AutonomyTier>('partner');
 
@@ -250,7 +253,7 @@ export function OnboardingFlow() {
       )}
 
       {step === 'naming-ai' && (
-        <NamingYourAI onComplete={() => goNext()} />
+        <NamingYourAI onComplete={(name) => { setAiName(name); goNext(); }} />
       )}
 
       {step === 'initialize' && (
@@ -259,6 +262,7 @@ export function OnboardingFlow() {
           knowledgeMoment={knowledgeMoment}
           loading={momentLoading}
           onComplete={goNext}
+          aiName={aiName}
         />
       )}
 

@@ -24,7 +24,7 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
       <LogoMark size={80} />
 
       <h1 className="naming__headline">
-        {t('naming_ai.headline')}
+        What will you call <span className="naming__pronoun">it</span>?
       </h1>
 
       <div style={{ width: '100%' }}>

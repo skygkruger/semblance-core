@@ -2,14 +2,23 @@
 
 .license-activation__form {
   display: flex;
-  gap: var(--sp-2);
-  align-items: flex-start;
+  gap: var(--sp-3);
+  align-items: center;
 }
 
 .license-activation__input {
   flex: 1;
+  min-width: 0;
+}
+
+.license-activation__input .input {
   font-family: var(--fm);
   font-size: var(--text-sm);
+  padding: 10px 16px;
+}
+
+.license-activation__form .btn {
+  flex-shrink: 0;
 }
 
 /* ─── Status Messages ─── */

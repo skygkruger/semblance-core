@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
 import { Button } from '../../components/Button/Button';
-import { WireframeSpinner } from '../../components/WireframeSpinner/WireframeSpinner';
+import { SkeletonCard } from '../../components/SkeletonCard/SkeletonCard';
 import type { InitializeStepProps, ModelDownload } from './InitializeStep.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
@@ -61,7 +61,7 @@ const dlStyles = StyleSheet.create({
   },
 });
 
-export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete }: InitializeStepProps) {
+export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete, aiName }: InitializeStepProps) {
   const { t } = useTranslation('onboarding');
   const allComplete = downloads.length > 0 && downloads.every(d => d.status === 'complete');
 
@@ -69,11 +69,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
     <View style={styles.container}>
       {!allComplete && (
         <>
-          <WireframeSpinner size={64} />
-          <Text style={styles.headline}>{t('initialize.downloading_headline')}</Text>
-          <Text style={styles.subtext}>
-            {t('initialize.downloading_subtext')}
-          </Text>
+          <SkeletonCard variant="generic" message="Initializing" height={220} />
           <View style={styles.downloads}>
             {downloads.map((dl) => (
               <DownloadRow key={dl.modelName} download={dl} completeLabel={t('initialize.download_complete_status')} />
@@ -83,18 +79,15 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
       )}
 
       {allComplete && loading && (
-        <>
-          <WireframeSpinner size={64} />
-          <Text style={styles.headline}>{t('initialize.building_headline')}</Text>
-          <Text style={styles.subtext}>
-            {t('initialize.building_subtext')}
-          </Text>
-        </>
+        <SkeletonCard variant="indexing" height={220} />
       )}
 
       {allComplete && !loading && knowledgeMoment && (
         <>
-          <Text style={styles.headline}>{t('initialize.knowledge_moment_headline')}</Text>
+          <Text style={styles.headline}>
+            <Text style={styles.aiNameShimmer}>{aiName || 'Semblance'}</Text>
+            {t('initialize.knowledge_moment_suffix')}
+          </Text>
           <View style={styles.momentCard}>
             <Text style={styles.momentTitle}>{knowledgeMoment.title}</Text>
             <Text style={styles.momentSummary}>{knowledgeMoment.summary}</Text>
@@ -145,6 +138,10 @@ const styles = StyleSheet.create({
     color: brandColors.white,
     textAlign: 'center',
   },
+  aiNameShimmer: {
+    fontFamily: nativeFontFamily.displayItalic,
+    color: brandColors.sv2,
+  },
   subtext: {
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
@@ -158,9 +155,7 @@ const styles = StyleSheet.create({
     gap: nativeSpacing.s3,
   },
   momentCard: {
-    backgroundColor: brandColors.s1,
-    borderWidth: 1,
-    borderColor: 'rgba(110,207,163,0.15)',
+    ...opalSurface,
     borderRadius: nativeRadius.lg,
     padding: nativeSpacing.s5,
     width: '100%',
@@ -168,14 +163,17 @@ const styles = StyleSheet.create({
   },
   momentTitle: {
     fontFamily: nativeFontFamily.display,
-    fontSize: nativeFontSize.lg,
-    color: brandColors.white,
+    fontWeight: '300',
+    fontSize: nativeFontSize.xl,
+    color: brandColors.wDim,
+    lineHeight: 32,
   },
   momentSummary: {
     fontFamily: nativeFontFamily.ui,
+    fontWeight: '300',
     fontSize: nativeFontSize.base,
-    color: brandColors.sv2,
-    lineHeight: 22,
+    color: brandColors.sv3,
+    lineHeight: 24,
   },
   tags: {
     flexDirection: 'row',

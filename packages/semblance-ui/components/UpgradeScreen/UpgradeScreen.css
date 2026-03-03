@@ -118,6 +118,67 @@
   margin-bottom: var(--sp-2);
 }
 
+/* Founding plan — opal shimmer effects matching FoundingMemberBadge */
+
+.upgrade-screen__plan--recommended .upgrade-screen__plan-label {
+  letter-spacing: 0.12em;
+  background: linear-gradient(
+    105deg,
+    #6b5fa8 0%,
+    #9aa8b8 18%,
+    #d8dde8 36%,
+    #9aa8b8 54%,
+    #6b5fa8 72%,
+    #9aa8b8 90%,
+    #6b5fa8 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: founding-opal-shimmer 16s linear infinite;
+}
+
+/* Price amount — same opal shimmer as badge seat number */
+.upgrade-screen__plan--recommended .upgrade-screen__price-amount {
+  background: linear-gradient(
+    105deg,
+    #6b5fa8 0%,
+    #9aa8b8 18%,
+    #d8dde8 36%,
+    #9aa8b8 54%,
+    #6b5fa8 72%,
+    #9aa8b8 90%,
+    #6b5fa8 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: founding-opal-shimmer 16s linear infinite;
+}
+
+/* Breathing glow overlay behind founding plan */
+.upgrade-screen__plan--recommended::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at center, rgba(107, 95, 168, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  animation: founding-glow-breathe 6s ease-in-out infinite;
+}
+
+@keyframes founding-opal-shimmer {
+  from { background-position: 300% center; }
+  to   { background-position: -150% center; }
+}
+
+@keyframes founding-glow-breathe {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
 .upgrade-screen__plan-price {
   display: flex;
   align-items: baseline;
@@ -187,17 +248,52 @@
   text-align: center;
   padding: var(--sp-6);
   background: linear-gradient(135deg, var(--s2), var(--s1));
-  border: 1px solid var(--v-wire);
+  border: 1px solid rgba(107, 95, 168, 0.32);
   border-radius: var(--r-lg);
   margin-bottom: var(--sp-8);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Breathing glow behind active founding member info */
+.upgrade-screen__active-info::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at center, rgba(107, 95, 168, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  animation: founding-glow-breathe 6s ease-in-out infinite;
+}
+
+.upgrade-screen__active-info > * {
+  position: relative;
+  z-index: 1;
 }
 
 .upgrade-screen__active-tier {
-  font-family: var(--fd);
-  font-weight: 300;
+  font-family: var(--fm);
+  font-weight: 400;
   font-size: var(--text-xl);
-  color: var(--v);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   margin: 0 0 var(--sp-2) 0;
+  /* Opal shimmer text — matching FoundingMemberBadge */
+  background: linear-gradient(
+    105deg,
+    #6b5fa8 0%,
+    #9aa8b8 18%,
+    #d8dde8 36%,
+    #9aa8b8 54%,
+    #6b5fa8 72%,
+    #9aa8b8 90%,
+    #6b5fa8 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: founding-opal-shimmer 16s linear infinite;
 }
 
 .upgrade-screen__active-note {

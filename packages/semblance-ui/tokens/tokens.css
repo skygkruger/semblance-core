@@ -147,6 +147,16 @@
   to   { background-position: 0% 0; }
 }
 
+@property --opal-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes opal-border-sweep {
+  to { --opal-angle: 360deg; }
+}
+
 /* ─── CJK language overrides ─── */
 [lang^="ja"] { --fb: var(--fb-ja); --fd: var(--fd-ja); }
 [lang^="zh"] { --fb: var(--fb-zh); --fd: var(--fd-zh); }
