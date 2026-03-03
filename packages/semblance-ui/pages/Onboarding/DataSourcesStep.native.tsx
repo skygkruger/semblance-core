@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { Button } from '../../components/Button/Button';
 import {
   EnvelopeIcon,
@@ -12,6 +12,23 @@ import {
 } from '../../components/ConnectionsScreen/ConnectorIcons';
 import type { DataSource, DataSourcesStepProps } from './DataSourcesStep.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+
+function PulsingDot() {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.35, duration: 1000, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [opacity]);
+
+  return <Animated.View style={[styles.statusDot, { opacity }]} />;
+}
 
 export function DataSourcesStep({
   initialConnected = new Set(),
@@ -80,7 +97,7 @@ export function DataSourcesStep({
               {isConnected ? (
                 <Pressable onPress={() => toggleConnect(source.id)} hitSlop={8}>
                   <View style={styles.cardStatus}>
-                    <View style={styles.statusDot} />
+                    <PulsingDot />
                     <Text style={styles.statusText}>{t('data_sources.connected_status')}</Text>
                   </View>
                 </Pressable>

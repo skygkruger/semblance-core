@@ -4,7 +4,7 @@ import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } fro
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Button } from '../../components/Button/Button';
 import type { NamingYourAIProps } from './NamingYourAI.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
 export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProps) {
   const { t } = useTranslation('onboarding');
@@ -20,7 +20,7 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
         <LogoMark size={80} />
 
         <Text style={styles.headline}>
-          {t('naming_ai.headline')}
+          What will you call <Text style={styles.pronoun}>it</Text>?
         </Text>
 
         <TextInput
@@ -83,17 +83,16 @@ const styles = StyleSheet.create({
     color: brandColors.veridian,
   },
   input: {
+    ...opalSurface,
     width: '100%',
-    height: 48,
-    borderWidth: 1,
-    borderColor: brandColors.b2,
-    borderRadius: nativeRadius.md,
+    borderRadius: nativeRadius.lg,
     paddingHorizontal: nativeSpacing.s4,
+    paddingVertical: 14,
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.base,
     color: brandColors.white,
-    backgroundColor: brandColors.s1,
     textAlign: 'center',
+    minHeight: 48,
   },
   preview: {
     opacity: 0.3,
@@ -102,10 +101,11 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   previewText: {
-    fontFamily: nativeFontFamily.display,
+    fontFamily: nativeFontFamily.displayItalic,
     fontSize: nativeFontSize['2xl'],
-    color: brandColors.white,
+    color: brandColors.sv2,
     textAlign: 'center',
+    letterSpacing: 1.5,
   },
   subtext: {
     fontFamily: nativeFontFamily.ui,

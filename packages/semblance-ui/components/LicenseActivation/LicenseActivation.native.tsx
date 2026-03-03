@@ -4,7 +4,7 @@ import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Button } from '../Button/Button';
 import type { LicenseActivationProps } from './LicenseActivation.types';
 import { useFeatureAuth } from '../../hooks/useFeatureAuth';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
 export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivationProps) {
   const { t } = useTranslation();
@@ -103,16 +103,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   input: {
+    ...opalSurface,
     flex: 1,
     height: 40,
-    borderWidth: 1,
-    borderColor: brandColors.b2,
     borderRadius: nativeRadius.md,
     paddingHorizontal: nativeSpacing.s3,
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.sm,
     color: brandColors.white,
-    backgroundColor: brandColors.s1,
   },
   statusRow: {
     flexDirection: 'row',

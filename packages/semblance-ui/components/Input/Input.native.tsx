@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, TextInput, Text, StyleSheet } from 'react-native';
 import type { InputProps } from './Input.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
 export function Input({
   value,
@@ -53,19 +53,17 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   input: {
-    backgroundColor: brandColors.s1,
-    borderWidth: 1,
-    borderColor: brandColors.s3,
-    borderRadius: nativeRadius.md,
+    ...opalSurface,
+    borderRadius: nativeRadius.lg,
     paddingHorizontal: nativeSpacing.s4,
-    paddingVertical: nativeSpacing.s3,
+    paddingVertical: 14,
     fontSize: nativeFontSize.base,
     fontFamily: nativeFontFamily.ui,
     color: brandColors.text,
-    minHeight: 44,
+    minHeight: 48,
   },
   inputFocused: {
-    borderColor: brandColors.veridian,
+    borderColor: 'rgba(110, 207, 163, 0.4)',
   },
   inputError: {
     borderColor: brandColors.rust,

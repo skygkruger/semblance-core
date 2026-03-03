@@ -48,6 +48,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
   const [detecting, setDetecting] = useState(false);
 
+  // AI name state
+  const [aiName, setAiName] = useState('Semblance');
+
   // Autonomy state
   const [autonomy, setAutonomy] = useState<AutonomyTier>('partner');
 
@@ -149,7 +152,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   }, [goNext]);
 
   // Handle AI naming
-  const handleNamingAI = useCallback((_aiName: string) => {
+  const handleNamingAI = useCallback((name: string) => {
+    setAiName(name);
     // TODO: Sprint 2 — persist AI name to Core
     goNext();
   }, [goNext]);
@@ -208,6 +212,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           knowledgeMoment={knowledgeMoment}
           loading={momentLoading}
           onComplete={goNext}
+          aiName={aiName}
         />
       )}
 

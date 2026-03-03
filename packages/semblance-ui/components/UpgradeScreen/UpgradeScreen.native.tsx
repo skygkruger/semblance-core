@@ -135,9 +135,9 @@ export function UpgradeScreen({
               <Text style={styles.badgeText}>RECOMMENDED</Text>
             </View>
             <View style={styles.planHeader}>
-              <Text style={styles.planLabel}>FOUNDING THOUSAND</Text>
+              <Text style={styles.planLabelFounding}>{t('screen.upgrade.plan_founding')}</Text>
               <View style={styles.priceRow}>
-                <Text style={styles.priceAmount}>$199</Text>
+                <Text style={[styles.priceAmount, { color: '#d8dde8' }]}>$199</Text>
                 <Text style={styles.pricePeriod}>lifetime</Text>
               </View>
             </View>
@@ -248,12 +248,12 @@ const styles = StyleSheet.create({
     gap: nativeSpacing.s4,
   },
   planRecommended: {
-    borderColor: brandColors.veridian,
+    borderColor: 'rgba(107, 95, 168, 0.32)',
     borderWidth: 1,
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(110, 207, 163, 0.12)',
+    backgroundColor: 'rgba(107, 95, 168, 0.12)',
     paddingHorizontal: nativeSpacing.s2,
     paddingVertical: 2,
     borderRadius: nativeRadius.sm,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
-    color: brandColors.veridian,
+    color: '#9aa8b8',
     letterSpacing: 0.5,
   },
   planHeader: {
@@ -272,6 +272,12 @@ const styles = StyleSheet.create({
     fontSize: nativeFontSize.xs,
     color: brandColors.sv2,
     letterSpacing: 1,
+  },
+  planLabelFounding: {
+    fontFamily: nativeFontFamily.mono,
+    fontSize: nativeFontSize.xs,
+    color: '#9aa8b8',
+    letterSpacing: 1.5,
   },
   priceRow: {
     flexDirection: 'row',
@@ -295,15 +301,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   activeInfo: {
-    ...opalSurface,
+    backgroundColor: brandColors.s2,
+    borderWidth: 1,
+    borderColor: 'rgba(107, 95, 168, 0.32)',
     borderRadius: nativeRadius.lg,
     padding: nativeSpacing.s4,
     gap: nativeSpacing.s2,
   },
   activeTier: {
-    fontFamily: nativeFontFamily.uiMedium,
+    fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.md,
-    color: brandColors.veridian,
+    color: '#9aa8b8',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   activeNote: {
     fontFamily: nativeFontFamily.ui,

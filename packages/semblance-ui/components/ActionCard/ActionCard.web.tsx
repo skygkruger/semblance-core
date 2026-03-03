@@ -3,6 +3,10 @@ import type { ActionCardProps } from './ActionCard.types';
 import { statusLabel } from './ActionCard.types';
 import './ActionCard.css';
 
+function formatTierLabel(tier: string): string {
+  return tier.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function ActionCard({
   timestamp,
   actionType,
@@ -32,7 +36,7 @@ export function ActionCard({
           <div className="action-card__meta">
             <span className="action-card__meta-item">{statusLabel[status]}</span>
             <span className="action-card__meta-separator">&middot;</span>
-            <span className="action-card__meta-item">{autonomyTier}</span>
+            <span className="action-card__meta-item">{formatTierLabel(autonomyTier)}</span>
           </div>
         </div>
         <svg

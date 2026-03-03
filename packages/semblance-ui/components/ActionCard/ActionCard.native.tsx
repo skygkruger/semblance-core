@@ -4,6 +4,10 @@ import type { ActionCardProps } from './ActionCard.types';
 import { statusLabel } from './ActionCard.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
 
+function formatTierLabel(tier: string): string {
+  return tier.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 const STATUS_DOT_COLORS: Record<ActionCardProps['status'], string> = {
   success: brandColors.veridian,
   pending: brandColors.amber,
@@ -39,7 +43,7 @@ export function ActionCard({
           <View style={styles.meta}>
             <Text style={styles.metaItem}>{statusLabel[status]}</Text>
             <Text style={styles.metaSep}>{'\u00B7'}</Text>
-            <Text style={styles.metaItem}>{autonomyTier}</Text>
+            <Text style={styles.metaItem}>{formatTierLabel(autonomyTier)}</Text>
           </View>
         </View>
         <Text style={[styles.chevron, expanded && styles.chevronExpanded]}>
@@ -84,9 +88,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   type: {
-    fontFamily: nativeFontFamily.uiMedium,
+    fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
-    color: brandColors.white,
+    color: brandColors.wDim,
   },
   timestamp: {
     fontFamily: nativeFontFamily.mono,

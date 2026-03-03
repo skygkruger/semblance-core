@@ -123,6 +123,12 @@
   height: 6px;
   border-radius: 50%;
   background: #6ECFA3;
+  animation: datasource-pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes datasource-pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px #6ECFA3; }
+  50%      { opacity: 0.35; box-shadow: 0 0 2px #6ECFA3; }
 }
 
 /* ─── More sources disclosure ─── */

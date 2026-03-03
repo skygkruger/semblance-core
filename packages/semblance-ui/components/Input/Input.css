@@ -1,37 +1,72 @@
-.input-wrapper {
+.input-outer {
   width: 100%;
 }
 
-.input {
+.input-wrapper {
   width: 100%;
-  padding: 10px 16px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#121518, #121518) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: border-color 220ms ease-out, box-shadow 220ms ease-out;
+}
+
+.input-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg,
+    transparent 0%, transparent 15%,
+    rgba(107,95,168,0.04) 32%, rgba(154,168,184,0.06) 44%,
+    rgba(216,221,232,0.08) 52%, rgba(154,168,184,0.04) 66%,
+    transparent 85%, transparent 100%);
+  background-size: 200% 100%;
+  animation: opal-sweep 8s linear infinite;
+  animation-delay: -4s;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+.input-wrapper:focus-within {
+  border-color: rgba(110, 207, 163, 0.4);
+  box-shadow: 0 0 0 2px rgba(110, 207, 163, 0.08), 0 0 16px rgba(110, 207, 163, 0.04);
+}
+
+.input {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 14px 16px;
   font-family: var(--fb);
   font-size: var(--text-base);
   font-weight: 300;
   color: var(--w-dim);
-  background: var(--s1);
-  border: 1px solid var(--b1);
-  border-radius: var(--r-md);
+  background: none;
+  border: none;
+  border-radius: 16px;
   outline: none;
-  transition: border-color var(--duration-base) var(--eo),
-              box-shadow var(--duration-base) var(--eo);
+  box-sizing: border-box;
 }
 
 .input::placeholder {
   color: var(--sv1);
 }
 
-/* Veridian Moment #4 — Focus ring */
-.input:focus {
-  border-color: var(--v-glow-lg);
-  box-shadow: 0 0 0 3px var(--v-glow);
-}
-
 /* Error state */
-.input--error {
+.input-wrapper--error {
   border-color: var(--rust);
 }
-.input--error:focus {
+.input-wrapper--error:focus-within {
   border-color: var(--rust);
   box-shadow: 0 0 0 3px rgba(201, 123, 110, 0.15);
 }
@@ -45,7 +80,12 @@
   letter-spacing: 0.08em;
 }
 
-.input:disabled {
+/* Disabled state */
+.input-wrapper--disabled {
   opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.input:disabled {
   cursor: not-allowed;
 }

@@ -17,4 +17,5 @@ export interface InitializeStepProps {
   knowledgeMoment: KnowledgeMomentData | null;
   loading: boolean;
   onComplete?: () => void;
+  aiName?: string;
 }
