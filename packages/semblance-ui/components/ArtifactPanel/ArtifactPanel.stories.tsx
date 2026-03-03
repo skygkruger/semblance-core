@@ -1,17 +1,20 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ArtifactPanel } from './ArtifactPanel';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const meta: Meta<typeof ArtifactPanel> = {
   title: 'Chat/ArtifactPanel',
   component: ArtifactPanel,
   parameters: {
     layout: 'fullscreen',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
   },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', height: '100vh', display: 'flex', justifyContent: 'flex-end' }}>
-        <Story />
+      <div style={{ position: 'relative', height: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', justifyContent: 'flex-end', padding: 12 }}>
+          <Story />
+        </div>
       </div>
     ),
   ],
@@ -78,6 +81,15 @@ export const JSONArtifact: Story = {
         ],
       }, null, 2),
     },
+    onClose: () => {},
+  },
+};
+
+export const Generating: Story = {
+  args: {
+    open: true,
+    generating: true,
+    artifact: null,
     onClose: () => {},
   },
 };
