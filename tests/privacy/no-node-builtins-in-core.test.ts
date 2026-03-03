@@ -81,7 +81,7 @@ function collectTsFiles(dir: string, baseDir: string): string[] {
       const fullPath = join(dir, entry);
       try {
         const stat = statSync(fullPath);
-        if (stat.isDirectory() && entry !== 'node_modules' && entry !== 'dist') {
+        if (stat.isDirectory() && entry !== 'node_modules' && entry !== 'dist' && !entry.startsWith('_privacy_test_temp')) {
           files.push(...collectTsFiles(fullPath, baseDir));
         } else if (stat.isFile() && entry.endsWith('.ts') && !entry.endsWith('.d.ts') && !entry.endsWith('.test.ts')) {
           files.push(fullPath);

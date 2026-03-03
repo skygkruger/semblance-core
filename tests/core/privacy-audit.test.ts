@@ -8,6 +8,9 @@ import { join } from 'node:path';
 const ROOT = join(import.meta.dirname, '..', '..');
 const CORE_DIR = join(ROOT, 'packages', 'core');
 
+// Unique temp dir per process to avoid parallel test collisions
+const TEMP_SUFFIX = `_privacy_test_temp_${process.pid}_${Date.now()}`;
+
 describe('Privacy Audit', () => {
   it('passes with the current codebase (ollama in llm/ is allowed)', () => {
     const result = execSync('node scripts/privacy-audit/index.js', {
@@ -30,7 +33,7 @@ describe('Privacy Audit', () => {
   });
 
   it('blocks ollama import outside packages/core/llm/', () => {
-    const testDir = join(CORE_DIR, '_privacy_test_temp_');
+    const testDir = join(CORE_DIR, TEMP_SUFFIX);
     const testFile = join(testDir, 'bad-import.ts');
 
     try {
@@ -61,7 +64,7 @@ describe('Privacy Audit', () => {
   });
 
   it('blocks fetch() in packages/core/', () => {
-    const testDir = join(CORE_DIR, '_privacy_test_temp_');
+    const testDir = join(CORE_DIR, TEMP_SUFFIX);
     const testFile = join(testDir, 'bad-fetch.ts');
 
     try {
@@ -91,7 +94,7 @@ describe('Privacy Audit', () => {
   });
 
   it('blocks http import in packages/core/', () => {
-    const testDir = join(CORE_DIR, '_privacy_test_temp_');
+    const testDir = join(CORE_DIR, TEMP_SUFFIX);
     const testFile = join(testDir, 'bad-http.ts');
 
     try {

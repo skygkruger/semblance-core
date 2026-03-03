@@ -422,6 +422,7 @@ describe('Integration — Mobile Privacy Audit', () => {
       for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
+          if (entry.name.startsWith('_privacy_test_temp')) continue;
           violations.push(...scanDir(fullPath));
         } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts')) {
           const content = fs.readFileSync(fullPath, 'utf-8');

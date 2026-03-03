@@ -81,7 +81,7 @@ describe('Root Cause 1: PlatformAdapter replaces all Node.js builtins', () => {
         const full = path.join(dir, entry);
         try {
           const stat = fs.statSync(full);
-          if (stat.isDirectory() && entry !== 'node_modules' && entry !== 'dist') {
+          if (stat.isDirectory() && entry !== 'node_modules' && entry !== 'dist' && !entry.startsWith('_privacy_test_temp')) {
             files.push(...collectTsFiles(full));
           } else if (stat.isFile() && entry.endsWith('.ts') && !entry.endsWith('.d.ts') && !entry.endsWith('.test.ts')) {
             files.push(full);
@@ -431,7 +431,7 @@ describe('Privacy: no unauthorized network access in mobile code', () => {
         const full = path.join(dir, entry);
         try {
           const stat = fs.statSync(full);
-          if (stat.isDirectory() && entry !== 'node_modules' && entry !== 'dist') {
+          if (stat.isDirectory() && entry !== 'node_modules' && entry !== 'dist' && !entry.startsWith('_privacy_test_temp')) {
             files.push(...scanDir(full));
           } else if (stat.isFile() && entry.endsWith('.ts') && !entry.endsWith('.d.ts') && !entry.endsWith('.test.ts')) {
             files.push(full);
