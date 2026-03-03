@@ -19,6 +19,7 @@ function createMockKnowledge(): KnowledgeGraph {
     getStats: vi.fn().mockResolvedValue({ totalDocuments: 5, totalChunks: 50, sources: {} }),
     deleteDocument: vi.fn(),
     semanticSearch: { search: vi.fn().mockResolvedValue([]) } as any,
+    createCurator: vi.fn(),
   };
 }
 

@@ -1,6 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import type { KnowledgeNode, KnowledgeEdge, NodeType } from './graph-types';
+import { DrillDownList } from './DrillDownList.native';
+import type { DrillDownItem, DrillDownListProps } from './DrillDownList.native';
+
+export type { DrillDownItem };
 
 interface DetailPanelProps {
   node: KnowledgeNode | null;
@@ -8,6 +12,8 @@ interface DetailPanelProps {
   allNodes: KnowledgeNode[];
   onClose: () => void;
   onConnectionClick?: (nodeId: string) => void;
+  /** Drill-down props — provided when the selected node is a category */
+  drillDown?: Omit<DrillDownListProps, 'category' | 'categoryLabel' | 'categoryColor'>;
 }
 
 function getConnections(
@@ -43,7 +49,7 @@ const DOT_COLORS: Record<NodeType, string> = {
   category: '#6ECFA3',
 };
 
-export function DetailPanel({ node, edges, allNodes, onClose, onConnectionClick }: DetailPanelProps) {
+export function DetailPanel({ node, edges, allNodes, onClose, onConnectionClick, drillDown }: DetailPanelProps) {
   const { t } = useTranslation();
 
   if (!node) return null;
@@ -102,6 +108,15 @@ export function DetailPanel({ node, edges, allNodes, onClose, onConnectionClick 
           </ScrollView>
         </>
       ) : null}
+
+      {node.type === 'category' && drillDown ? (
+        <DrillDownList
+          category={node.metadata?.category ?? node.label}
+          categoryLabel={node.label}
+          categoryColor={node.metadata?.color ?? DOT_COLORS.category}
+          {...drillDown}
+        />
+      ) : null}
     </View>
   );
 }
@@ -121,7 +136,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.09)',
     paddingHorizontal: 20,
     paddingBottom: 24,
-    maxHeight: 320,
+    maxHeight: 480,
   },
   handle: {
     width: 32,

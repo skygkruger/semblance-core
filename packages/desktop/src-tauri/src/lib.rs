@@ -1648,6 +1648,83 @@ async fn set_language_preference(
         .await
 }
 
+// ─── Knowledge Curation Commands ───────────────────────────────────────────
+
+#[tauri::command]
+async fn list_knowledge_by_category(
+    state: tauri::State<'_, AppBridge>,
+    category: String,
+    limit: u32,
+    offset: u32,
+    search_query: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge:listByCategory", serde_json::json!({
+        "category": category,
+        "limit": limit,
+        "offset": offset,
+        "searchQuery": search_query,
+    })).await
+}
+
+#[tauri::command]
+async fn remove_knowledge_item(
+    state: tauri::State<'_, AppBridge>,
+    chunk_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge:remove", serde_json::json!({
+        "chunkId": chunk_id,
+    })).await
+}
+
+#[tauri::command]
+async fn delete_knowledge_item(
+    state: tauri::State<'_, AppBridge>,
+    chunk_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge:delete", serde_json::json!({
+        "chunkId": chunk_id,
+    })).await
+}
+
+#[tauri::command]
+async fn recategorize_knowledge_item(
+    state: tauri::State<'_, AppBridge>,
+    chunk_id: String,
+    new_category: String,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge:recategorize", serde_json::json!({
+        "chunkId": chunk_id,
+        "newCategory": new_category,
+    })).await
+}
+
+#[tauri::command]
+async fn reindex_knowledge_item(
+    state: tauri::State<'_, AppBridge>,
+    chunk_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge:reindex", serde_json::json!({
+        "chunkId": chunk_id,
+    })).await
+}
+
+#[tauri::command]
+async fn suggest_knowledge_categories(
+    state: tauri::State<'_, AppBridge>,
+    chunk_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge:suggestCategories", serde_json::json!({
+        "chunkId": chunk_id,
+    })).await
+}
+
+#[tauri::command]
+async fn list_knowledge_categories(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge:listCategories", Value::Null).await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1898,6 +1975,14 @@ pub fn run() {
             // Language Preference
             get_language_preference,
             set_language_preference,
+            // Knowledge Curation
+            list_knowledge_by_category,
+            remove_knowledge_item,
+            delete_knowledge_item,
+            recategorize_knowledge_item,
+            reindex_knowledge_item,
+            suggest_knowledge_categories,
+            list_knowledge_categories,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

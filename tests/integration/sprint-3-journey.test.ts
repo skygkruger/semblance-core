@@ -73,6 +73,7 @@ function createMockKnowledgeGraph(): KnowledgeGraph & { _docs: Map<string, strin
     async getStats() { return { totalDocuments: 0, totalChunks: 0, sources: {} }; },
     async deleteDocument() {},
     semanticSearch: { search: vi.fn().mockResolvedValue([]) } as any,
+    createCurator: vi.fn(),
   };
 }
 

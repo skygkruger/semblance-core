@@ -7,11 +7,13 @@ import type {
   DocumentSource,
   SearchResult,
 } from './types.js';
+import type { DatabaseHandle } from '../platform/types.js';
 import { DocumentStore } from './document-store.js';
 import { VectorStore } from './vector-store.js';
 import { Indexer } from './indexer.js';
 import { SemanticSearch } from './search.js';
 import { EmbeddingPipeline } from './embedding-pipeline.js';
+import { KnowledgeCurator } from './knowledge-curator.js';
 import { scanDirectory, readFileContent } from './file-scanner.js';
 
 export type {
@@ -40,6 +42,8 @@ export { chunkText } from './chunker.js';
 export type { ChunkerConfig, Chunk } from './chunker.js';
 export { buildKGDelta, applyKGDelta, documentToSyncEntry, KG_SYNC_MAX_BYTES } from './kg-sync.js';
 export type { KGSyncEntry, KGSyncDelta, KGSyncImportResult } from './kg-sync.js';
+export { KnowledgeCurator } from './knowledge-curator.js';
+export type { ChunkItem, CurationResult, CategorySuggestion } from './knowledge-curator.js';
 
 export interface KnowledgeGraph {
   /** Index a document into the knowledge graph */
@@ -87,6 +91,13 @@ export interface KnowledgeGraph {
 
   /** Access the underlying SemanticSearch instance (used by extensions) */
   readonly semanticSearch: SemanticSearch;
+
+  /** Create a KnowledgeCurator for drill-down and curation operations */
+  createCurator(config: {
+    db: DatabaseHandle;
+    llm: LLMProvider;
+    activeModel?: string;
+  }): KnowledgeCurator;
 }
 
 class KnowledgeGraphImpl implements KnowledgeGraph {
@@ -192,6 +203,21 @@ class KnowledgeGraphImpl implements KnowledgeGraph {
   async deleteDocument(id: string): Promise<void> {
     await this.vectorStore.deleteByDocumentId(id);
     this.documentStore.deleteDocument(id);
+  }
+
+  createCurator(config: {
+    db: DatabaseHandle;
+    llm: LLMProvider;
+    activeModel?: string;
+  }): KnowledgeCurator {
+    return new KnowledgeCurator({
+      documentStore: this.documentStore,
+      vectorStore: this.vectorStore,
+      indexer: this.indexer,
+      db: config.db,
+      llm: config.llm,
+      activeModel: config.activeModel,
+    });
   }
 }
 

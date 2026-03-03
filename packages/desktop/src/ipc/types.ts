@@ -577,6 +577,47 @@ export interface AlterEgoTrustData {
   trusted: boolean;
 }
 
+// ─── Knowledge Curation ─────────────────────────────────────────────────────
+
+export interface KnowledgeChunkItem {
+  chunkId: string;
+  title: string;
+  preview: string;
+  fullContent: string;
+  source: string;
+  category: string;
+  filePath?: string;
+  indexedAt: string;
+  fileSize?: number;
+  mimeType?: string;
+}
+
+export interface KnowledgeCurationResult {
+  success: boolean;
+  chunkId: string;
+  operation: 'remove' | 'delete' | 'recategorize' | 'reindex';
+  detail?: string;
+}
+
+export interface KnowledgeCategorySuggestion {
+  category: string;
+  reason: string;
+  confidence: number;
+  isExisting: boolean;
+}
+
+export interface KnowledgeCategoryInfo {
+  category: string;
+  displayName: string;
+  count: number;
+  color: string;
+}
+
+export interface KnowledgeChunkListResult {
+  items: KnowledgeChunkItem[];
+  total: number;
+}
+
 // ─── Sync ───────────────────────────────────────────────────────────────────
 
 export interface TriggerSyncResult {
