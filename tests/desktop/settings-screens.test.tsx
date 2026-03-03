@@ -267,7 +267,7 @@ describe('SettingsAutonomy', () => {
     render(<SettingsAutonomy {...defaultProps} />);
     expect(screen.getByText('Approve everything before it happens')).toBeInTheDocument();
     expect(screen.getByText('Handle routine tasks, ask about important ones')).toBeInTheDocument();
-    expect(screen.getByText('Act as me for nearly everything')).toBeInTheDocument();
+    expect(screen.getByText('Acts as you across your digital life. Confirms before irreversible actions, high-stakes decisions, and anything above your financial threshold. Everything else: handled.')).toBeInTheDocument();
   });
 
   it('shows domain override section', () => {

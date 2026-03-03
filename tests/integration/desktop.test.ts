@@ -217,7 +217,7 @@ describe('Onboarding Flow', () => {
   });
 
   it('uses useState<OnboardingStep> for step management', () => {
-    expect(onboardingContent).toContain("useState<OnboardingStep>('splash')");
+    expect(onboardingContent).toContain("useState<OnboardingStep>('language-select')");
   });
 });
 

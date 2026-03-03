@@ -192,7 +192,7 @@ export const AutonomyTier: Story = {
         {[
           { name: 'Guardian', desc: 'Shows everything, asks before acting. You approve every action.', recommended: false },
           { name: 'Partner', desc: 'Handles routine tasks autonomously. Asks for anything new or high-stakes.', recommended: true },
-          { name: 'Alter Ego', desc: 'Acts as you for nearly everything. Only interrupts for genuinely critical decisions.', recommended: false },
+          { name: 'Alter Ego', desc: 'Acts as you across your digital life. Confirms before irreversible actions, high-stakes decisions, and anything above your financial threshold. Everything else: handled.', recommended: false },
         ].map((tier, i) => (
           <div key={i} style={{
             width: '100%',

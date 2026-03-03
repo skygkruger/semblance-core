@@ -12,7 +12,7 @@ export interface SettingsAutonomyProps {
 export const tiers: Array<{ id: Tier; name: string; desc: string }> = [
   { id: 'guardian', name: 'Guardian', desc: 'Approve everything before it happens' },
   { id: 'partner', name: 'Partner', desc: 'Handle routine tasks, ask about important ones' },
-  { id: 'alter-ego', name: 'Alter Ego', desc: 'Act as me for nearly everything' },
+  { id: 'alter-ego', name: 'Alter Ego', desc: 'Acts as you across your digital life. Confirms before irreversible actions, high-stakes decisions, and anything above your financial threshold. Everything else: handled.' },
 ];
 
 export const tierLabels: Record<string, string> = {

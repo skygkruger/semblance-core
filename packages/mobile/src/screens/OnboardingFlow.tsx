@@ -1,4 +1,4 @@
-// OnboardingFlow — 7-step onboarding using semblance-ui native components.
+// OnboardingFlow — 10-step onboarding using semblance-ui native components.
 // Container manages step state + mobile data layer integration.
 // Mirrors desktop OnboardingFlow pattern adapted for React Native.
 
@@ -13,10 +13,13 @@ import {
   NamingYourAI,
   InitializeStep,
   TermsAcceptanceStep,
+  LanguageSelect,
 } from '@semblance/ui';
 import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier } from '@semblance/ui';
+import { detectOSLocale } from '../../../core/i18n/supported-languages';
 
 type OnboardingStep =
+  | 'language-select'
   | 'splash'
   | 'hardware'
   | 'data-sources'
@@ -27,6 +30,7 @@ type OnboardingStep =
   | 'terms';
 
 const STEP_ORDER: OnboardingStep[] = [
+  'language-select',
   'splash',
   'hardware',
   'data-sources',
@@ -42,7 +46,7 @@ interface OnboardingFlowProps {
 }
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
-  const [step, setStep] = useState<OnboardingStep>('splash');
+  const [step, setStep] = useState<OnboardingStep>('language-select');
 
   // Hardware detection state
   const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
@@ -70,6 +74,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       if (nextStep) setStep(nextStep);
     }
   }, [currentIndex]);
+
+  // Handle language selection
+  const handleLanguageConfirm = useCallback((code: string) => {
+    // TODO: Sprint 2 — persist language preference to Core via unified-bridge
+    goNext();
+  }, [goNext]);
 
   // Detect hardware on mobile device when entering hardware step
   useEffect(() => {
@@ -171,6 +181,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   return (
     <View style={styles.container}>
+      {step === 'language-select' && (
+        <LanguageSelect
+          detectedCode={detectOSLocale()}
+          onConfirm={handleLanguageConfirm}
+        />
+      )}
+
       {step === 'splash' && (
         <SplashScreen onBegin={goNext} />
       )}

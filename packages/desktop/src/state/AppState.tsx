@@ -135,6 +135,7 @@ export interface AppState {
     enabled: boolean;
     categoryVolumes: Record<'actions' | 'system' | 'voice', number>;
   };
+  language: string;
 }
 
 export interface ConversationSummaryState {
@@ -237,7 +238,8 @@ export type AppAction =
   | { type: 'ADD_PERSONAL_VALUE'; value: AppState['intentProfile']['personalValues'][number] }
   | { type: 'REMOVE_PERSONAL_VALUE'; id: string }
   | { type: 'SET_ALTER_EGO_SETTINGS'; settings: AppState['alterEgoSettings'] }
-  | { type: 'SET_SOUND_SETTINGS'; settings: AppState['soundSettings'] };
+  | { type: 'SET_SOUND_SETTINGS'; settings: AppState['soundSettings'] }
+  | { type: 'SET_LANGUAGE'; code: string };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -364,6 +366,7 @@ export const initialState: AppState = {
     enabled: true,
     categoryVolumes: { actions: 1.0, system: 1.0, voice: 1.0 },
   },
+  language: 'en',
 };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
@@ -507,6 +510,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, alterEgoSettings: action.settings };
     case 'SET_SOUND_SETTINGS':
       return { ...state, soundSettings: action.settings };
+    case 'SET_LANGUAGE':
+      return { ...state, language: action.code };
     default:
       return state;
   }

@@ -50,19 +50,19 @@ describe('OnboardingFlow', () => {
     mockOnboardingInvoke();
   });
 
-  it('renders the splash step by default', () => {
+  it('renders the language-select step by default', () => {
     renderOnboarding();
-    // SplashScreen is the first step — component should render the Semblance brand
-    expect(screen.getByText(/Semblance/i)).toBeInTheDocument();
+    // LanguageSelect is the first step — component should render language selection heading
+    expect(screen.getByText(/Choose your language/i)).toBeInTheDocument();
   });
 
-  it('defines a 9-step sequence via STEP_ORDER (intent-capture + terms added)', async () => {
-    // The OnboardingFlow uses STEP_ORDER with 9 steps:
-    // splash → hardware → data-sources → autonomy → intent-capture → naming-moment → naming-ai → initialize → terms
+  it('defines a 10-step sequence via STEP_ORDER (language-select + intent-capture + terms added)', async () => {
+    // The OnboardingFlow uses STEP_ORDER with 10 steps:
+    // language-select → splash → hardware → data-sources → autonomy → intent-capture → naming-moment → naming-ai → initialize → terms
     renderOnboarding();
-    // Step indicator dots: 9 small circles at the bottom
+    // Step indicator dots: 10 small circles at the bottom
     const dots = document.querySelectorAll('.w-2.h-2.rounded-full');
-    expect(dots.length).toBe(9);
+    expect(dots.length).toBe(10);
   });
 
   it('first step indicator is active (veridian color)', () => {

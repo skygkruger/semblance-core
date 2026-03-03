@@ -29,7 +29,7 @@ export const tiers: TierOption[] = [
   {
     id: 'alter_ego',
     name: 'Alter Ego',
-    description: "I'll handle everything, interrupt only when it matters",
+    description: "Acts as you across your digital life. Confirms before irreversible actions, high-stakes decisions, and anything above your financial threshold. Everything else: handled.",
     detail: 'Most users start with Partner and move here within a few weeks.',
   },
 ];

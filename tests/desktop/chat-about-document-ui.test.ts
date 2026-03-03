@@ -55,6 +55,7 @@ describe('AppState document context', () => {
     intentProfile: { primaryGoal: null, hardLimits: [], personalValues: [], lastUpdated: null },
     alterEgoSettings: { dollarThreshold: 50, confirmationDisabledCategories: [] },
     soundSettings: { enabled: true, categoryVolumes: { actions: 0.7, system: 0.5, voice: 0.8 } },
+    language: 'en',
   };
 
   const mockDoc: DocumentContext = {
