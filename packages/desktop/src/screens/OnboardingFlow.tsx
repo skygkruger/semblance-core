@@ -16,6 +16,7 @@ import {
 } from '@semblance/ui';
 import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier } from '@semblance/ui';
 import { useAppDispatch } from '../state/AppState';
+import { useSound } from '../sound/SoundEngineContext';
 import {
   detectHardware,
   setUserName,
@@ -71,6 +72,7 @@ export function OnboardingFlow() {
   const { t } = useTranslation();
   const [step, setStep] = useState<OnboardingStep>('splash');
   const dispatch = useAppDispatch();
+  const { play } = useSound();
 
   // Hardware detection state
   const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
@@ -139,7 +141,10 @@ export function OnboardingFlow() {
     generateKnowledgeMoment()
       .then((result) => setKnowledgeMoment(toKnowledgeMomentData(result)))
       .catch(() => {})
-      .finally(() => setMomentLoading(false));
+      .finally(() => {
+        setMomentLoading(false);
+        play('initialize');
+      });
 
     // Simulate download progress until backend sends real events
     // TODO: Sprint 2 — replace with Tauri event listener for download_progress events

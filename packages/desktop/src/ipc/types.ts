@@ -506,6 +506,13 @@ export interface IntentCheckResultData {
   reasoning: string;
 }
 
+// ─── Sound Settings ─────────────────────────────────────────────────────────
+
+export interface SoundSettings {
+  enabled: boolean;
+  categoryVolumes: Record<'actions' | 'system' | 'voice', number>;
+}
+
 // ─── Event Payloads ─────────────────────────────────────────────────────────
 
 export interface ChatTokenPayload {

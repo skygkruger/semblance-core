@@ -131,6 +131,10 @@ export interface AppState {
     dollarThreshold: number;
     confirmationDisabledCategories: string[];
   };
+  soundSettings: {
+    enabled: boolean;
+    categoryVolumes: Record<'actions' | 'system' | 'voice', number>;
+  };
 }
 
 export interface ConversationSummaryState {
@@ -232,7 +236,8 @@ export type AppAction =
   | { type: 'REMOVE_HARD_LIMIT'; id: string }
   | { type: 'ADD_PERSONAL_VALUE'; value: AppState['intentProfile']['personalValues'][number] }
   | { type: 'REMOVE_PERSONAL_VALUE'; id: string }
-  | { type: 'SET_ALTER_EGO_SETTINGS'; settings: AppState['alterEgoSettings'] };
+  | { type: 'SET_ALTER_EGO_SETTINGS'; settings: AppState['alterEgoSettings'] }
+  | { type: 'SET_SOUND_SETTINGS'; settings: AppState['soundSettings'] };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
 
@@ -354,6 +359,10 @@ export const initialState: AppState = {
   alterEgoSettings: {
     dollarThreshold: 50,
     confirmationDisabledCategories: [],
+  },
+  soundSettings: {
+    enabled: true,
+    categoryVolumes: { actions: 1.0, system: 1.0, voice: 1.0 },
   },
 };
 
@@ -496,6 +505,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, intentProfile: { ...state.intentProfile, personalValues: state.intentProfile.personalValues.filter(v => v.id !== action.id), lastUpdated: new Date().toISOString() } };
     case 'SET_ALTER_EGO_SETTINGS':
       return { ...state, alterEgoSettings: action.settings };
+    case 'SET_SOUND_SETTINGS':
+      return { ...state, soundSettings: action.settings };
     default:
       return state;
   }

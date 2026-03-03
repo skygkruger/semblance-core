@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActionCard } from '@semblance/ui';
-import { getActionLog, getAlterEgoReceipts } from '../ipc/commands';
-import type { LogEntry, AlterEgoReceiptData } from '../ipc/types';
+import { ActionCard, AlterEgoBatchReview } from '@semblance/ui';
+import { getActionLog, getAlterEgoReceipts, approveAlterEgoBatch, rejectAlterEgoBatch, getPendingActions } from '../ipc/commands';
+import type { LogEntry, AlterEgoReceiptData, PendingAction } from '../ipc/types';
 import { useAppState } from '../state/AppState';
+import { useSound } from '../sound/SoundEngineContext';
 
 export function ActivityScreen() {
   const { t } = useTranslation();
   const state = useAppState();
   const name = state.userName || 'Semblance';
+  const { play } = useSound();
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [alterEgoReceipts, setAlterEgoReceipts] = useState<AlterEgoReceiptData[]>([]);
+  const [pendingBatchItems, setPendingBatchItems] = useState<PendingAction[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const loadEntries = useCallback(async () => {
@@ -31,10 +34,33 @@ export function ActivityScreen() {
     }
   }, []);
 
+  const loadPendingBatch = useCallback(async () => {
+    try {
+      const result = await getPendingActions();
+      setPendingBatchItems(result.filter(a => a.status === 'pending_approval'));
+    } catch {
+      // Not yet wired
+    }
+  }, []);
+
+  const handleBatchConfirm = useCallback(async (approvedIds: string[], rejectedIds: string[]) => {
+    if (approvedIds.length > 0) {
+      play('action_approved');
+      await approveAlterEgoBatch(approvedIds).catch(() => {});
+    }
+    if (rejectedIds.length > 0) {
+      play('action_rejected');
+      await rejectAlterEgoBatch(rejectedIds).catch(() => {});
+    }
+    loadPendingBatch();
+    loadAlterEgoReceipts();
+  }, [play, loadPendingBatch, loadAlterEgoReceipts]);
+
   useEffect(() => {
     loadEntries();
     loadAlterEgoReceipts();
-  }, [loadEntries, loadAlterEgoReceipts]);
+    loadPendingBatch();
+  }, [loadEntries, loadAlterEgoReceipts, loadPendingBatch]);
 
   const filtered = filterStatus === 'all'
     ? entries
@@ -87,6 +113,21 @@ export function ActivityScreen() {
           );
         })}
       </div>
+
+      {/* Alter Ego batch review — pending actions */}
+      {pendingBatchItems.length > 0 && (
+        <AlterEgoBatchReview
+          items={pendingBatchItems.map(a => ({
+            id: a.id,
+            actionType: a.action,
+            summary: a.reasoning,
+            reasoning: a.reasoning,
+            category: a.domain,
+            createdAt: a.createdAt,
+          }))}
+          onConfirm={handleBatchConfirm}
+        />
+      )}
 
       {/* Alter Ego receipt view */}
       {filterStatus === 'alter_ego' ? (

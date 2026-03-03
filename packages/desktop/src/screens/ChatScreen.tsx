@@ -7,6 +7,7 @@ import { useAppState, useAppDispatch } from '../state/AppState';
 import { useTauriEvent } from '../hooks/useTauriEvent';
 import { useHardwareTier } from '../hooks/useHardwareTier';
 import { useVoiceInput } from '../hooks/useVoiceInput';
+import { useSound } from '../sound/SoundEngineContext';
 import {
   sendMessage,
   documentPickFile,
@@ -44,11 +45,14 @@ export function ChatScreen() {
   const [activePanel, setActivePanel] = useState<PanelSlot>('none');
   const [selectedArtifact, setSelectedArtifact] = useState<ArtifactItem | null>(null);
 
+  // Sound effects
+  const { play } = useSound();
+
   // Voice hardware capability gate
   const { voiceCapable } = useHardwareTier();
   // TODO: Replace with real Whisper.cpp adapter in device testing pass
   const voiceAdapter = useMemo(() => createMockVoiceAdapter({ sttReady: true }), []);
-  const voice = useVoiceInput(voiceAdapter);
+  const voice = useVoiceInput(voiceAdapter, play as (id: string) => void);
 
   // ─── Conversation Management ─────────────────────────────────────────────
 
@@ -418,6 +422,16 @@ export function ChatScreen() {
     refreshConversationList();
   }, [dispatch, refreshConversationList]));
 
+  // Sound: Alter Ego batch ready
+  useTauriEvent('semblance://alter-ego-batch-ready', useCallback(() => {
+    play('alter_ego_batched');
+  }, [play]));
+
+  // Sound: Hard limit triggered
+  useTauriEvent('semblance://hard-limit-triggered', useCallback(() => {
+    play('hard_limit_triggered');
+  }, [play]));
+
   const handleSend = useCallback(async (message: string) => {
     // Add user message
     dispatch({
@@ -442,6 +456,7 @@ export function ChatScreen() {
     });
 
     dispatch({ type: 'SET_IS_RESPONDING', value: true });
+    play('message_sent');
 
     try {
       const result = await sendMessage(message, state.activeConversationId ?? undefined);

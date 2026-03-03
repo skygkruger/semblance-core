@@ -20,6 +20,7 @@
     "react-native-quick-crypto": "^0.7.0",
     "@react-native-community/netinfo": "^11.3.0",
     "react-native-haptic-feedback": "^2.2.0",
+    "react-native-sound": "^0.11.2",
     "@notifee/react-native": "^9.0.0",
     "react-native-gesture-handler": "^2.20.0",
     "react-native-tcp-socket": "^6.2.0",

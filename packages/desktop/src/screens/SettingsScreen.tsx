@@ -26,6 +26,7 @@ import { ClipboardSettingsSection } from '../components/ClipboardSettingsSection
 import { LocationSettingsSection } from '../components/LocationSettingsSection';
 import { VoiceSettingsSection } from '../components/VoiceSettingsSection';
 import { CloudStorageSettingsSection } from '../components/CloudStorageSettingsSection';
+import { SoundSettingsSection } from '../components/SoundSettingsSection';
 import type { HardwareDisplayInfo } from '../components/HardwareProfileDisplay';
 import type { AutonomyTier } from '@semblance/ui';
 import type { ThemeMode } from '@semblance/ui';
@@ -539,6 +540,9 @@ export function SettingsScreen() {
 
       {/* Voice Interaction */}
       <VoiceSettingsSection />
+
+      {/* Sound Effects */}
+      <SoundSettingsSection />
 
       {/* Cloud Storage */}
       <CloudStorageSettingsSection />

@@ -56,6 +56,7 @@ import type {
   AlterEgoSettingsData,
   AlterEgoReceiptData,
   AlterEgoTrustData,
+  SoundSettings,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -504,4 +505,14 @@ export function sendAlterEgoDraft(actionId: string, email: string, action: strin
 
 export function undoAlterEgoReceipt(receiptId: string): Promise<{ undone: boolean }> {
   return invoke<{ undone: boolean }>('alter_ego_undo_receipt', { receiptId });
+}
+
+// ─── Sound Settings ─────────────────────────────────────────────────────────
+
+export function getSoundSettings(): Promise<SoundSettings> {
+  return invoke<SoundSettings>('get_sound_settings');
+}
+
+export function saveSoundSettings(settings: SoundSettings): Promise<void> {
+  return invoke<void>('save_sound_settings', { settings });
 }
