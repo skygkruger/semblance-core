@@ -1,0 +1,51 @@
+import { useState } from 'react';
+import type { Meta, StoryObj } from '@storybook/react';
+import { AutonomySelector } from './AutonomySelector';
+import type { AutonomyTier } from './AutonomySelector.types';
+
+const meta: Meta<typeof AutonomySelector> = {
+  title: 'Components/AutonomySelector',
+  component: AutonomySelector,
+  parameters: {
+    layout: 'centered',
+    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
+  },
+  decorators: [
+    (Story) => (
+      <div style={{ background: '#0B0E11', padding: 40, width: '100%', maxWidth: 440 }}>
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export default meta;
+type Story = StoryObj<typeof AutonomySelector>;
+
+export const Guardian: Story = {
+  args: {
+    value: 'guardian',
+    onChange: () => {},
+  },
+};
+
+export const Partner: Story = {
+  args: {
+    value: 'partner',
+    onChange: () => {},
+  },
+};
+
+export const AlterEgo: Story = {
+  args: {
+    value: 'alter_ego',
+    onChange: () => {},
+  },
+};
+
+export const Interactive: Story = {
+  render: function InteractiveStory() {
+    const [value, setValue] = useState<AutonomyTier>('partner');
+    return <AutonomySelector value={value} onChange={setValue} />;
+  },
+};
