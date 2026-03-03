@@ -166,6 +166,16 @@ function AppContent() {
     play('notification');
   }, [play]));
 
+  // OS Notifications: Forward sidecar notification events to Tauri notification plugin
+  useTauriEvent<{ id: string; title: string; body: string }>('semblance://schedule-notification', useCallback((payload) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    import('@tauri-apps/plugin-notification' as string).then((mod: any) => {
+      mod.sendNotification({ title: payload.title, body: payload.body });
+    }).catch(() => {
+      // Notification plugin not available — graceful degradation
+    });
+  }, []));
+
   // Derive active screen from URL path
   const activeId = location.pathname.slice(1) || 'chat';
 

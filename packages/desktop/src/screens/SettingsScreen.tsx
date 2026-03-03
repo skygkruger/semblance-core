@@ -18,6 +18,7 @@ import {
   testBraveApiKey,
   getAlterEgoSettings,
   updateAlterEgoSettings,
+  triggerSync,
 } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useLicense } from '../contexts/LicenseContext';
@@ -117,6 +118,8 @@ export function SettingsScreen() {
   const [searchRateLimit, setSearchRateLimit] = useState(60);
   const [apiKeyStatus, setApiKeyStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
   const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'no_peer' | 'error'>('idle');
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -256,6 +259,25 @@ export function SettingsScreen() {
         if (settings.rateLimit) setSearchRateLimit(settings.rateLimit);
       })
       .catch(() => {});
+  }, []);
+
+  const handleTriggerSync = useCallback(async () => {
+    setSyncStatus('syncing');
+    try {
+      const result = await triggerSync();
+      if (result.status === 'no_peer_found') {
+        setSyncStatus('no_peer');
+      } else if (result.status === 'error') {
+        setSyncStatus('error');
+      } else {
+        setSyncStatus('success');
+        setLastSynced(new Date().toISOString());
+      }
+    } catch {
+      setSyncStatus('error');
+    }
+    // Reset status after 3 seconds
+    setTimeout(() => setSyncStatus('idle'), 3000);
   }, []);
 
   const defaultTier = (state.autonomyConfig['email'] || 'partner') as AutonomyTier;
@@ -546,6 +568,47 @@ export function SettingsScreen() {
 
       {/* Cloud Storage */}
       <CloudStorageSettingsSection />
+
+      {/* Devices & Sync */}
+      <Card>
+        <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+          Devices & Sync
+        </h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">
+                Connected Devices
+              </p>
+              <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                No devices on network
+              </p>
+            </div>
+            <button
+              onClick={handleTriggerSync}
+              disabled={syncStatus === 'syncing'}
+              className="px-4 py-2 text-sm rounded-md bg-semblance-surface-2 dark:bg-semblance-surface-2-dark text-semblance-text-primary dark:text-semblance-text-primary-dark border border-semblance-border dark:border-semblance-border-dark hover:border-semblance-veridian disabled:opacity-50 transition-colors"
+            >
+              {syncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
+            </button>
+          </div>
+          {syncStatus === 'success' && (
+            <p className="text-xs text-semblance-veridian">Synced successfully</p>
+          )}
+          {syncStatus === 'no_peer' && (
+            <p className="text-xs text-semblance-amber">No devices found on this network</p>
+          )}
+          {syncStatus === 'error' && (
+            <p className="text-xs text-semblance-rust">Sync failed — check that both devices are on the same network</p>
+          )}
+          <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+            {lastSynced ? `Last synced: ${new Date(lastSynced).toLocaleString()}` : 'Last synced: Never'}
+          </p>
+          <p className="text-xs text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark">
+            Sync includes: preferences, action trail, style profile, knowledge graph
+          </p>
+        </div>
+      </Card>
 
       {/* Autonomy */}
       <Card>

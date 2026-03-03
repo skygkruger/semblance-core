@@ -57,6 +57,7 @@ import type {
   AlterEgoReceiptData,
   AlterEgoTrustData,
   SoundSettings,
+  TriggerSyncResult,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -515,4 +516,10 @@ export function getSoundSettings(): Promise<SoundSettings> {
 
 export function saveSoundSettings(settings: SoundSettings): Promise<void> {
   return invoke<void>('save_sound_settings', { settings });
+}
+
+// ─── Sync ───────────────────────────────────────────────────────────────────
+
+export function triggerSync(): Promise<TriggerSyncResult> {
+  return sidecarRequest<TriggerSyncResult>({ method: 'sync:trigger', params: {} });
 }

@@ -83,6 +83,7 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'model.download': 'system',
   'model.download_cancel': 'system',
   'model.verify': 'system',
+  'file.write': 'system',
 };
 
 // Actions classified as read (safe), write (moderate), or execute (high-stakes)
@@ -153,6 +154,7 @@ export const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'model.download': 'execute',
   'model.download_cancel': 'write',
   'model.verify': 'read',
+  'file.write': 'write',
 };
 
 export type AutonomyDecision = 'auto_approve' | 'requires_approval' | 'blocked';

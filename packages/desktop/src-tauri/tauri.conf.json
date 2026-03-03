@@ -85,6 +85,8 @@
       "desktop": {
         "schemes": ["semblance"]
       }
-    }
+    },
+    "notification": {}
+
   }
 }

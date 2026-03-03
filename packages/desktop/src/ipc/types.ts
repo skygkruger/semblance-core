@@ -348,7 +348,8 @@ export type SidecarRequest =
   | { method: 'contacts:getStats'; params: Record<string, never> }
   | { method: 'contacts:getUpcomingBirthdays'; params: Record<string, never> }
   | { method: 'contacts:get'; params: { id: string } }
-  | { method: 'contacts:search'; params: { query: string; limit: number } };
+  | { method: 'contacts:search'; params: { query: string; limit: number } }
+  | { method: 'sync:trigger'; params: Record<string, never> };
 
 // ─── Finance / Subscriptions ────────────────────────────────────────────────
 
@@ -574,4 +575,13 @@ export interface AlterEgoTrustData {
   successfulSends: number;
   lastSendAt: string | null;
   trusted: boolean;
+}
+
+// ─── Sync ───────────────────────────────────────────────────────────────────
+
+export interface TriggerSyncResult {
+  status: 'success' | 'no_peer_found' | 'error';
+  devicesFound: number;
+  itemsSynced: number;
+  error?: string;
 }

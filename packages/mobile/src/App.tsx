@@ -6,7 +6,7 @@
 //
 // Wrapped with SafeAreaProvider + NavigationContainer for React Navigation.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -15,7 +15,16 @@ import { colors } from './theme/tokens.js';
 import { OnboardingFlow } from './screens/OnboardingFlow.js';
 import { MainTabNavigator } from './navigation/TabNavigator.js';
 import { BiometricGate } from './auth/BiometricGate.js';
+import { NativeNotificationProvider } from './notifications/native-notification-provider.js';
+import { NotificationScheduler } from './notifications/local-notifications.js';
 import './i18n/config.js';
+
+// Initialize notification infrastructure on module load
+const notificationProvider = new NativeNotificationProvider();
+const notificationScheduler = new NotificationScheduler(notificationProvider);
+
+// Export for use by other modules that need to schedule notifications
+export { notificationScheduler, notificationProvider };
 
 type RootStackParams = {
   Onboarding: undefined;
@@ -26,6 +35,15 @@ const RootStack = createNativeStackNavigator<RootStackParams>();
 
 function RootNavigator() {
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+
+  // Request notification permission after onboarding completes
+  useEffect(() => {
+    if (onboardingComplete) {
+      notificationProvider.requestPermission().catch(() => {
+        // Permission denied — notifications will silently fail
+      });
+    }
+  }, [onboardingComplete]);
 
   if (!onboardingComplete) {
     return <OnboardingFlow onComplete={() => setOnboardingComplete(true)} />;

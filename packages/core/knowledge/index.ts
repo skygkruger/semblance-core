@@ -38,6 +38,8 @@ export { scanDirectory, readFileContent } from './file-scanner.js';
 export type { ScannedFile, FileContent } from './file-scanner.js';
 export { chunkText } from './chunker.js';
 export type { ChunkerConfig, Chunk } from './chunker.js';
+export { buildKGDelta, applyKGDelta, documentToSyncEntry, KG_SYNC_MAX_BYTES } from './kg-sync.js';
+export type { KGSyncEntry, KGSyncDelta, KGSyncImportResult } from './kg-sync.js';
 
 export interface KnowledgeGraph {
   /** Index a document into the knowledge graph */

@@ -84,6 +84,7 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'network.sendAcceptance': 30,  // Accepting sharing offer from peer
   'network.sendRevocation': 15,  // Revoking sharing with peer
   'network.syncContext': 60,     // Syncing context with peer (saves manual sharing)
+  'file.write': 30,              // Writing file to disk (saves manual save)
 };
 
 /**

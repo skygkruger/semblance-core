@@ -69,6 +69,7 @@ export const ActionType = z.enum([
   'network.sendAcceptance',
   'network.sendRevocation',
   'network.syncContext',
+  'file.write',
 ]);
 export type ActionType = z.infer<typeof ActionType>;
 
@@ -494,6 +495,16 @@ export const ImportStatusPayload = z.object({
 });
 export type ImportStatusPayload = z.infer<typeof ImportStatusPayload>;
 
+// --- File payload schemas ---
+
+export const FileWritePayload = z.object({
+  filename: z.string().min(1),
+  content: z.string(),
+  directory: z.string().optional().default('downloads'),
+  overwrite: z.boolean().optional().default(false),
+});
+export type FileWritePayload = z.infer<typeof FileWritePayload>;
+
 // --- Network payload schemas (Step 28) ---
 
 export const NetworkStartDiscoveryPayload = z.object({
@@ -583,6 +594,7 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'network.sendAcceptance': NetworkSendPayload.strict(),
   'network.sendRevocation': NetworkSendPayload.strict(),
   'network.syncContext': NetworkSendPayload.strict(),
+  'file.write': FileWritePayload.strict(),
 };
 
 // --- Core protocol schemas ---

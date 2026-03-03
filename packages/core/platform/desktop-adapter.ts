@@ -170,16 +170,32 @@ const desktopHardware: HardwareAdapter = {
 // ─── Notifications ──────────────────────────────────────────────────────────
 
 const desktopNotifications: NotificationAdapter = {
-  async scheduleLocal(_notification) {
-    // Desktop notifications handled by Tauri's notification API.
-    // This is a stub — actual implementation lives in packages/desktop/.
-    console.warn('[DesktopAdapter] Notifications should be handled by Tauri frontend.');
+  async scheduleLocal(notification) {
+    // Desktop notifications are dispatched via NDJSON stdout events.
+    // The Tauri sidecar bridge reads these and forwards as Tauri events,
+    // which the frontend handles using the tauri-plugin-notification API.
+    process.stdout.write(JSON.stringify({
+      event: 'schedule-notification',
+      data: {
+        id: notification.id,
+        title: notification.title,
+        body: notification.body,
+        fireDate: notification.fireDate.toISOString(),
+        data: notification.data,
+      },
+    }) + '\n');
   },
-  async cancel(_id) {
-    // Stub
+  async cancel(id) {
+    process.stdout.write(JSON.stringify({
+      event: 'cancel-notification',
+      data: { id },
+    }) + '\n');
   },
   async cancelAll() {
-    // Stub
+    process.stdout.write(JSON.stringify({
+      event: 'cancel-all-notifications',
+      data: {},
+    }) + '\n');
   },
 };
 

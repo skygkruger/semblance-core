@@ -116,9 +116,10 @@ const DEFAULT_SECTIONS: SettingsSection[] = [
     ],
   },
   {
-    title: 'Devices',
+    title: 'Devices & Sync',
     items: [
       { id: 'paired-devices', label: 'Paired Devices', type: 'navigate' },
+      { id: 'sync-now', label: 'Sync Now', type: 'navigate', description: 'Sync with devices on this network' },
       { id: 'task-routing', label: 'Task Routing', type: 'navigate', description: 'Configure inference routing' },
     ],
   },
