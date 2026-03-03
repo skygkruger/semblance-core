@@ -11,6 +11,8 @@ import type {
   GenerateRequest,
 } from '../llm/types.js';
 import type { KnowledgeGraph, SearchResult } from '../knowledge/index.js';
+import type { KnowledgeCurator } from '../knowledge/knowledge-curator.js';
+import type { VisualizationCategory } from '../knowledge/connector-category-map.js';
 import type { IPCClient } from './ipc-client.js';
 import { AutonomyManager, type AutonomyDecision } from './autonomy.js';
 import type {
@@ -339,6 +341,30 @@ const BASE_TOOLS: ToolDefinition[] = [
       required: ['filename', 'content'],
     },
   },
+  {
+    name: 'knowledge_remove',
+    description: 'Remove a document chunk from the knowledge graph. The source file remains on disk — only the graph index entry and embedding are deleted. Use when the user wants to declutter their knowledge graph or remove irrelevant items.',
+    parameters: {
+      type: 'object',
+      properties: {
+        chunkId: { type: 'string', description: 'The document chunk ID to remove from the graph' },
+        reason: { type: 'string', description: 'Why the item is being removed (logged to audit trail)' },
+      },
+      required: ['chunkId'],
+    },
+  },
+  {
+    name: 'knowledge_recategorize',
+    description: 'Change the visualization category of a knowledge item. Use when the user wants to reorganize their knowledge graph, e.g. move a document from "work" to "reading" category.',
+    parameters: {
+      type: 'object',
+      properties: {
+        chunkId: { type: 'string', description: 'The document chunk ID to recategorize' },
+        newCategory: { type: 'string', description: 'Target visualization category (e.g., "health", "finance", "social", "work", "reading", "music", "cloud", "browser", "people", "knowledge")' },
+      },
+      required: ['chunkId', 'newCategory'],
+    },
+  },
 ];
 
 // Map tool names to ActionTypes
@@ -367,6 +393,8 @@ const BASE_LOCAL_TOOLS = new Set([
   'categorize_email',
   'detect_calendar_conflicts',
   'search_cloud_files',
+  'knowledge_remove',
+  'knowledge_recategorize',
 ]);
 
 // --- System Prompt ---
@@ -400,6 +428,8 @@ Available tools:
 - get_weather: Get current weather and forecast
 - search_cloud_files: Search cloud-synced files (Google Drive, Dropbox) indexed locally
 - save_file: Save content to a file on the user's filesystem (documents, exports, reports)
+- knowledge_remove: Remove an item from the knowledge graph (keeps file on disk)
+- knowledge_recategorize: Change the category of a knowledge graph item
 
 Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.
 
@@ -471,6 +501,7 @@ export class OrchestratorImpl implements Orchestrator {
   private intentManager: IntentManager | null;
   private alterEgoGuardrails: AlterEgoGuardrails | null;
   private alterEgoStore: AlterEgoStore | null;
+  private knowledgeCurator: KnowledgeCurator | null = null;
   // Extension support
   private extensionToolHandlers: Map<string, ToolHandler> = new Map();
   private allTools: ToolDefinition[] = [...BASE_TOOLS];
@@ -1138,6 +1169,44 @@ export class OrchestratorImpl implements Orchestrator {
             score: r.score,
             metadata: r.document.metadata,
           })),
+        });
+        continue;
+      }
+
+      // --- Knowledge curation tools (local, no IPC) ---
+
+      if (tc.name === 'knowledge_remove') {
+        const chunkId = tc.arguments['chunkId'] as string;
+        if (!this.knowledgeCurator) {
+          this.knowledgeCurator = this.knowledge.createCurator({ db: this.db, llm: this.llm });
+        }
+        const result = await this.knowledgeCurator.removeFromGraph(chunkId);
+        executedResults.push({
+          tool: 'knowledge_remove',
+          result: {
+            success: result.success,
+            chunkId: result.chunkId,
+            detail: result.detail,
+          },
+        });
+        continue;
+      }
+
+      if (tc.name === 'knowledge_recategorize') {
+        const chunkId = tc.arguments['chunkId'] as string;
+        const newCategory = tc.arguments['newCategory'] as VisualizationCategory;
+        if (!this.knowledgeCurator) {
+          this.knowledgeCurator = this.knowledge.createCurator({ db: this.db, llm: this.llm });
+        }
+        const result = await this.knowledgeCurator.recategorize(chunkId, newCategory);
+        executedResults.push({
+          tool: 'knowledge_recategorize',
+          result: {
+            success: result.success,
+            chunkId: result.chunkId,
+            newCategory,
+            detail: result.detail,
+          },
         });
         continue;
       }

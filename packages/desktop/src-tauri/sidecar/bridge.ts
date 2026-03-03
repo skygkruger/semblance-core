@@ -82,6 +82,9 @@ import { IntentManager } from '../../../core/agent/intent-manager.js';
 import { AlterEgoStore } from '../../../core/agent/alter-ego-store.js';
 import { AlterEgoGuardrails } from '../../../core/agent/alter-ego-guardrails.js';
 
+// Knowledge curation imports
+import { KnowledgeCurator } from '../../../core/knowledge/knowledge-curator.js';
+
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
 function emit(event: string, data: unknown): void {
@@ -178,6 +181,9 @@ let intentManager: IntentManager | null = null;
 // Alter Ego guardrail state
 let alterEgoStore: AlterEgoStore | null = null;
 let alterEgoGuardrails: AlterEgoGuardrails | null = null;
+
+// Knowledge curation state
+let curator: KnowledgeCurator | null = null;
 
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
@@ -2664,6 +2670,91 @@ async function handleRequest(req: Request): Promise<void> {
         const { code } = params as { code: string };
         setPref('language', code);
         result = { code };
+        respond(id, result);
+        break;
+      }
+
+      // ─── Knowledge Curation ──────────────────────────────────────────
+
+      case 'knowledge:listByCategory': {
+        if (!core) { respond(id, { items: [], total: 0 }); break; }
+        if (!curator) {
+          curator = core.knowledge.createCurator({
+            db: prefsDb!,
+            llm: core.llm,
+          });
+        }
+        const listParams = params as { category: string; limit?: number; offset?: number; searchQuery?: string };
+        result = await curator.listChunksByCategory(listParams.category as any, {
+          limit: listParams.limit,
+          offset: listParams.offset,
+          searchQuery: listParams.searchQuery,
+        });
+        respond(id, result);
+        break;
+      }
+
+      case 'knowledge:remove': {
+        if (!core) { respond(id, { success: false, chunkId: '', operation: 'remove', detail: 'Core not initialized' }); break; }
+        if (!curator) {
+          curator = core.knowledge.createCurator({ db: prefsDb!, llm: core.llm });
+        }
+        const removeParams = params as { chunkId: string };
+        result = await curator.removeFromGraph(removeParams.chunkId);
+        respond(id, result);
+        break;
+      }
+
+      case 'knowledge:delete': {
+        if (!core) { respond(id, { success: false, chunkId: '', operation: 'delete', detail: 'Core not initialized' }); break; }
+        if (!curator) {
+          curator = core.knowledge.createCurator({ db: prefsDb!, llm: core.llm });
+        }
+        const deleteParams = params as { chunkId: string };
+        result = await curator.deleteFromDisk(deleteParams.chunkId);
+        respond(id, result);
+        break;
+      }
+
+      case 'knowledge:recategorize': {
+        if (!core) { respond(id, { success: false, chunkId: '', operation: 'recategorize', detail: 'Core not initialized' }); break; }
+        if (!curator) {
+          curator = core.knowledge.createCurator({ db: prefsDb!, llm: core.llm });
+        }
+        const recatParams = params as { chunkId: string; newCategory: string };
+        result = await curator.recategorize(recatParams.chunkId, recatParams.newCategory as any);
+        respond(id, result);
+        break;
+      }
+
+      case 'knowledge:reindex': {
+        if (!core) { respond(id, { success: false, chunkId: '', operation: 'reindex', detail: 'Core not initialized' }); break; }
+        if (!curator) {
+          curator = core.knowledge.createCurator({ db: prefsDb!, llm: core.llm });
+        }
+        const reindexParams = params as { chunkId: string };
+        result = await curator.reindex(reindexParams.chunkId);
+        respond(id, result);
+        break;
+      }
+
+      case 'knowledge:suggestCategories': {
+        if (!core) { respond(id, []); break; }
+        if (!curator) {
+          curator = core.knowledge.createCurator({ db: prefsDb!, llm: core.llm });
+        }
+        const suggestParams = params as { chunkId: string };
+        result = await curator.suggestCategories(suggestParams.chunkId);
+        respond(id, result);
+        break;
+      }
+
+      case 'knowledge:listCategories': {
+        if (!core) { respond(id, []); break; }
+        if (!curator) {
+          curator = core.knowledge.createCurator({ db: prefsDb!, llm: core.llm });
+        }
+        result = curator.listCategories();
         respond(id, result);
         break;
       }

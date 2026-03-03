@@ -36,6 +36,7 @@ function createMockKnowledge(searchResults?: SearchResult[]): KnowledgeGraph {
     getStats: vi.fn(),
     deleteDocument: vi.fn(),
     semanticSearch: { search: vi.fn().mockResolvedValue([]) } as any,
+    createCurator: vi.fn(),
   };
 }
 

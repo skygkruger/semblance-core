@@ -58,6 +58,10 @@ import type {
   AlterEgoTrustData,
   SoundSettings,
   TriggerSyncResult,
+  KnowledgeChunkListResult,
+  KnowledgeCurationResult,
+  KnowledgeCategorySuggestion,
+  KnowledgeCategoryInfo,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -530,4 +534,45 @@ export function saveSoundSettings(settings: SoundSettings): Promise<void> {
 
 export function triggerSync(): Promise<TriggerSyncResult> {
   return sidecarRequest<TriggerSyncResult>({ method: 'sync:trigger', params: {} });
+}
+
+// ─── Knowledge Curation ─────────────────────────────────────────────────────
+
+export function listKnowledgeByCategory(
+  category: string,
+  options?: { limit?: number; offset?: number; searchQuery?: string },
+): Promise<KnowledgeChunkListResult> {
+  return invoke<KnowledgeChunkListResult>('list_knowledge_by_category', {
+    category,
+    limit: options?.limit ?? 50,
+    offset: options?.offset ?? 0,
+    searchQuery: options?.searchQuery,
+  });
+}
+
+export function removeKnowledgeItem(chunkId: string): Promise<KnowledgeCurationResult> {
+  return invoke<KnowledgeCurationResult>('remove_knowledge_item', { chunkId });
+}
+
+export function deleteKnowledgeItem(chunkId: string): Promise<KnowledgeCurationResult> {
+  return invoke<KnowledgeCurationResult>('delete_knowledge_item', { chunkId });
+}
+
+export function recategorizeKnowledgeItem(
+  chunkId: string,
+  newCategory: string,
+): Promise<KnowledgeCurationResult> {
+  return invoke<KnowledgeCurationResult>('recategorize_knowledge_item', { chunkId, newCategory });
+}
+
+export function reindexKnowledgeItem(chunkId: string): Promise<KnowledgeCurationResult> {
+  return invoke<KnowledgeCurationResult>('reindex_knowledge_item', { chunkId });
+}
+
+export function suggestKnowledgeCategories(chunkId: string): Promise<KnowledgeCategorySuggestion[]> {
+  return invoke<KnowledgeCategorySuggestion[]>('suggest_knowledge_categories', { chunkId });
+}
+
+export function listKnowledgeCategories(): Promise<KnowledgeCategoryInfo[]> {
+  return invoke<KnowledgeCategoryInfo[]>('list_knowledge_categories');
 }
