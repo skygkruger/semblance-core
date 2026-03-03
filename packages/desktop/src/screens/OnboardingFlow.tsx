@@ -1,4 +1,4 @@
-// OnboardingFlow — 7-step onboarding sequence using semblance-ui components.
+// OnboardingFlow — 10-step onboarding sequence using semblance-ui components.
 // Container that manages step state and IPC, delegates presentation to library pages.
 
 import { useState, useCallback, useEffect } from 'react';
@@ -13,8 +13,10 @@ import {
   InitializeStep,
   TermsAcceptanceStep,
   IntentCapture,
+  LanguageSelect,
 } from '@semblance/ui';
 import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier } from '@semblance/ui';
+import { detectOSLocale } from '@semblance/core/i18n/supported-languages';
 import { useAppDispatch } from '../state/AppState';
 import { useSound } from '../sound/SoundEngineContext';
 import {
@@ -25,10 +27,12 @@ import {
   generateKnowledgeMoment,
   setOnboardingComplete,
   setIntentOnboarding,
+  setLanguagePreference,
 } from '../ipc/commands';
 import type { HardwareDisplayInfo, KnowledgeMoment } from '../ipc/types';
 
 type OnboardingStep =
+  | 'language-select'
   | 'splash'
   | 'hardware'
   | 'data-sources'
@@ -40,6 +44,7 @@ type OnboardingStep =
   | 'terms';
 
 const STEP_ORDER: OnboardingStep[] = [
+  'language-select',
   'splash',
   'hardware',
   'data-sources',
@@ -69,8 +74,8 @@ function toKnowledgeMomentData(km: KnowledgeMoment): KnowledgeMomentData {
 }
 
 export function OnboardingFlow() {
-  const { t } = useTranslation();
-  const [step, setStep] = useState<OnboardingStep>('splash');
+  const { t, i18n } = useTranslation();
+  const [step, setStep] = useState<OnboardingStep>('language-select');
   const dispatch = useAppDispatch();
   const { play } = useSound();
 
@@ -100,6 +105,14 @@ export function OnboardingFlow() {
       if (nextStep) setStep(nextStep);
     }
   }, [currentIndex]);
+
+  // Handle language selection
+  const handleLanguageConfirm = useCallback(async (code: string) => {
+    dispatch({ type: 'SET_LANGUAGE', code });
+    await setLanguagePreference(code).catch(() => {});
+    await i18n.changeLanguage(code);
+    goNext();
+  }, [dispatch, goNext, i18n]);
 
   // Detect hardware when entering hardware step
   useEffect(() => {
@@ -217,6 +230,13 @@ export function OnboardingFlow() {
       className="h-screen flex flex-col items-center justify-center"
       style={{ backgroundColor: '#0B0E11', color: '#EEF1F4' }}
     >
+      {step === 'language-select' && (
+        <LanguageSelect
+          detectedCode={detectOSLocale()}
+          onConfirm={handleLanguageConfirm}
+        />
+      )}
+
       {step === 'splash' && (
         <SplashScreen onBegin={goNext} />
       )}

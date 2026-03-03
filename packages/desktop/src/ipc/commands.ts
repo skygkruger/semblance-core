@@ -90,6 +90,14 @@ export function setOnboardingComplete(): Promise<void> {
   return invoke<void>('set_onboarding_complete');
 }
 
+export function getLanguagePreference(): Promise<string | null> {
+  return invoke<string | null>('get_language_preference');
+}
+
+export function setLanguagePreference(code: string): Promise<void> {
+  return invoke<void>('set_language_preference', { code });
+}
+
 // ─── Credentials / Accounts ─────────────────────────────────────────────────
 
 export function addCredential(params: AddCredentialParams): Promise<void> {

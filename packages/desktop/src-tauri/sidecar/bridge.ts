@@ -2653,6 +2653,21 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      // ─── Language Preference ──────────────────────────────────────────
+      case 'language:get': {
+        result = getPref('language');
+        respond(id, result);
+        break;
+      }
+
+      case 'language:set': {
+        const { code } = params as { code: string };
+        setPref('language', code);
+        result = { code };
+        respond(id, result);
+        break;
+      }
+
       default:
         respondError(id, `Unknown method: ${method}`);
     }

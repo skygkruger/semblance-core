@@ -52,6 +52,8 @@ export { KnowledgeGraph } from './components/KnowledgeGraph/index.js';
 export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
 export type { PrivacyDashboardProps, NetworkEntry, AuditEntry } from './components/PrivacyDashboard/index.js';
 export { WireframeSpinner } from './components/WireframeSpinner/index.js';
+export { LanguageSelect } from './components/LanguageSelect/index.js';
+export type { LanguageSelectProps } from './components/LanguageSelect/index.js';
 
 // Document / Artifact Panels
 export { DocumentPanel } from './components/DocumentPanel/index.js';

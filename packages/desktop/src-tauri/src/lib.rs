@@ -1630,6 +1630,24 @@ async fn save_sound_settings(
     state.bridge.call("sound:saveSettings", settings).await
 }
 
+// ─── Language Preference ──────────────────────────────────────────────────
+
+#[tauri::command]
+async fn get_language_preference(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("language:get", Value::Null).await
+}
+
+#[tauri::command]
+async fn set_language_preference(
+    state: tauri::State<'_, AppBridge>,
+    code: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call("language:set", serde_json::json!({ "code": code }))
+        .await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1877,6 +1895,9 @@ pub fn run() {
             // Sound Settings
             get_sound_settings,
             save_sound_settings,
+            // Language Preference
+            get_language_preference,
+            set_language_preference,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
