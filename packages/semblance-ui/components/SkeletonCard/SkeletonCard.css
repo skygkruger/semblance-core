@@ -4,8 +4,15 @@
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#121518, #121518) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -15,7 +22,6 @@
   min-height: 180px;
   width: 100%;
   box-sizing: border-box;
-  animation: skeleton-breathe 3s ease-in-out infinite;
 }
 
 /* Opal shimmer layer */
@@ -50,12 +56,6 @@
 .skeleton-card > * {
   position: relative;
   z-index: 1;
-}
-
-/* Subtle border pulse — the card is alive */
-@keyframes skeleton-breathe {
-  0%, 100% { border-color: rgba(255, 255, 255, 0.06); }
-  50% { border-color: rgba(110, 207, 163, 0.12); }
 }
 
 .skeleton-card__status {

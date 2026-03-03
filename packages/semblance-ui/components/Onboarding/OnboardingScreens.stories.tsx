@@ -83,14 +83,7 @@ export const HardwareDetection: Story = {
         maxWidth: 480,
         animation: 'dissolve 700ms var(--eo) both',
       }}>
-        <h2 style={{
-          fontFamily: 'var(--fd)',
-          fontWeight: 300,
-          fontSize: 'var(--text-2xl)',
-          color: 'var(--white)',
-          textAlign: 'center',
-          margin: 0,
-        }}>
+        <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
           Checking your hardware
         </h2>
         <div style={{
@@ -179,14 +172,7 @@ export const AutonomyTier: Story = {
         maxWidth: 560,
         animation: 'dissolve 700ms var(--eo) both',
       }}>
-        <h2 style={{
-          fontFamily: 'var(--fd)',
-          fontWeight: 300,
-          fontSize: 'var(--text-2xl)',
-          color: 'var(--white)',
-          textAlign: 'center',
-          margin: 0,
-        }}>
+        <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
           How much should Semblance do on its own?
         </h2>
         {[
@@ -249,9 +235,9 @@ const NamingMomentScreen = ({ defaultValue = '' }: { defaultValue?: string }) =>
         animation: 'dissolve 700ms var(--eo) both',
       }}>
         <LogoMark size={80} />
-        <h1 className="naming__headline">
+        <h1 className="onboarding-shimmer-headline" style={{ fontSize: 'clamp(28px, 5vw, 48px)', lineHeight: 1.25, marginBottom: 16 }}>
           What should it call{' '}
-          <em className="naming__pronoun">you</em>
+          <em style={{ fontStyle: 'italic' }}>you</em>
           ?
         </h1>
         <p className="naming__subtext">

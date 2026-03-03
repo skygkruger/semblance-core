@@ -30,14 +30,24 @@ export function WireframeSpinner({
     canvas.style.height = `${size}px`;
     ctx.scale(dpr, dpr);
 
-    let t = 0;
+    let totalTime = 0;
     let shapeTime = 0;
+    let prevTs = -1;
     const queue = createShapeQueue();
 
-    const draw = () => {
+    // The original code advanced by 0.016 per frame. The intended look was
+    // tuned at 300 Hz (0.016 * 300 = 4.8 units/sec). Use real elapsed time
+    // scaled to match that rate so the animation looks identical on any
+    // refresh rate.
+    const TIME_SCALE = 3.36;
+
+    const draw = (ts: number) => {
+      const realDt = prevTs < 0 ? 1 / 60 : Math.min((ts - prevTs) / 1000, 0.1);
+      prevTs = ts;
+      const dt = realDt * TIME_SCALE * speed;
+
       ctx.clearRect(0, 0, size, size);
 
-      const dt = 0.016 * speed;
       shapeTime += dt;
 
       while (shapeTime >= SHAPE_DURATION) {
@@ -45,7 +55,7 @@ export function WireframeSpinner({
         advanceQueue(queue);
       }
 
-      const frame = computeFrame(queue, shapeTime, t, speed, size);
+      const frame = computeFrame(queue, shapeTime, totalTime, speed, size);
 
       // Draw edges with opal shimmer
       ctx.lineWidth = 0.8;
@@ -73,7 +83,7 @@ export function WireframeSpinner({
         ctx.fill();
       }
 
-      t += 0.016;
+      totalTime += realDt * TIME_SCALE;
       rafRef.current = requestAnimationFrame(draw);
     };
 
