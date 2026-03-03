@@ -313,6 +313,32 @@ const BASE_TOOLS: ToolDefinition[] = [
       required: ['query'],
     },
   },
+  {
+    name: 'save_file',
+    description: 'Save content to a file on the user\'s filesystem. Use for documents, exports, generated reports, code files, and any content the user wants to keep. Always confirm the filename and location with the user before saving unless they have explicitly specified both.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filename: {
+          type: 'string',
+          description: 'Filename including extension (e.g. "report.md", "script.py", "notes.txt")',
+        },
+        content: {
+          type: 'string',
+          description: 'Full content to write to the file',
+        },
+        directory: {
+          type: 'string',
+          description: 'Target directory. Use "downloads" for user Downloads folder, "documents" for Documents, or an absolute path. Default: "downloads".',
+        },
+        overwrite: {
+          type: 'boolean',
+          description: 'Whether to overwrite if file exists. Default: false — append a timestamp suffix if file exists.',
+        },
+      },
+      required: ['filename', 'content'],
+    },
+  },
 ];
 
 // Map tool names to ActionTypes
@@ -331,6 +357,7 @@ const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'dismiss_reminder': 'reminder.update',
   'send_text': 'messaging.send',
   'get_weather': 'location.weather_query',
+  'save_file': 'file.write',
 };
 
 // Tools that are handled locally (no IPC needed)
@@ -372,6 +399,7 @@ Available tools:
 - send_text: Send a text message to a contact
 - get_weather: Get current weather and forecast
 - search_cloud_files: Search cloud-synced files (Google Drive, Dropbox) indexed locally
+- save_file: Save content to a file on the user's filesystem (documents, exports, reports)
 
 Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.
 

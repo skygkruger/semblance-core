@@ -24,7 +24,8 @@ export type SyncItemType =
   | 'style_profile'
   | 'reminder'
   | 'capture'
-  | 'device_capability';
+  | 'device_capability'
+  | 'knowledge_graph';
 
 export interface SyncItem {
   id: string;
@@ -144,8 +145,8 @@ export function resolveConflict(
     }
   }
 
-  // Action trail and captures: always merge (no real conflict)
-  if (local.type === 'action_trail' || local.type === 'capture') {
+  // Action trail, captures, and knowledge graph: always merge (no real conflict)
+  if (local.type === 'action_trail' || local.type === 'capture' || local.type === 'knowledge_graph') {
     return {
       itemId: local.id,
       type: local.type,
@@ -437,4 +438,48 @@ export class SyncEngine {
   isDeviceReachable(deviceId: string): boolean {
     return this.transport?.isDeviceReachable(deviceId) ?? false;
   }
+
+  /**
+   * Trigger an on-demand sync with all reachable paired devices.
+   * Used by the "Sync Now" button in Settings.
+   * Returns aggregated result across all devices.
+   */
+  async triggerSync(
+    pairedDevices: Array<{ deviceId: string; deviceName: string; deviceType: 'desktop' | 'mobile' }>,
+  ): Promise<TriggerSyncResult> {
+    if (!this.transport || !this.crypto) {
+      return { status: 'error', devicesFound: 0, itemsSynced: 0, error: 'Sync not configured' };
+    }
+
+    const reachable = pairedDevices.filter(d => this.transport!.isDeviceReachable(d.deviceId));
+    if (reachable.length === 0) {
+      return { status: 'no_peer_found', devicesFound: 0, itemsSynced: 0 };
+    }
+
+    let totalSynced = 0;
+    let lastError: string | null = null;
+
+    for (const device of reachable) {
+      const result = await this.syncWithDevice(device.deviceId, device.deviceName, device.deviceType);
+      if (result) {
+        totalSynced += result.accepted;
+      } else {
+        lastError = `Sync failed with ${device.deviceName}`;
+      }
+    }
+
+    return {
+      status: lastError && totalSynced === 0 ? 'error' : 'success',
+      devicesFound: reachable.length,
+      itemsSynced: totalSynced,
+      error: lastError ?? undefined,
+    };
+  }
+}
+
+export interface TriggerSyncResult {
+  status: 'success' | 'no_peer_found' | 'error';
+  devicesFound: number;
+  itemsSynced: number;
+  error?: string;
 }

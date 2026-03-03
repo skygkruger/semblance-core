@@ -23,6 +23,7 @@ import { WebFetchAdapter } from './services/web-fetch-adapter.js';
 import { ReminderStore } from '@semblance/core/knowledge/reminder-store.js';
 import { OAuthTokenManager } from './services/oauth-token-manager.js';
 import { GoogleDriveAdapter } from './services/google-drive-adapter.js';
+import { FileWriteAdapter } from './services/file-write-adapter.js';
 import type { ExtensionGatewayAdapter, GatewayExtensionContext } from '@semblance/core/extensions/types.js';
 
 export interface GatewayConfig {
@@ -171,6 +172,10 @@ export class Gateway {
         addedBy: 'system',
       });
     }
+
+    // --- File Write: local filesystem save ---
+    const fileWriteAdapter = new FileWriteAdapter();
+    this.serviceRegistry.register('file.write', fileWriteAdapter);
 
     // Pre-seed the anomaly detector with existing allowlisted domains
     for (const service of this.allowlist.listServices()) {
