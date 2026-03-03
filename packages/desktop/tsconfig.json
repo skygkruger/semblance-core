@@ -21,5 +21,6 @@
     },
     "baseUrl": "."
   },
-  "include": ["src", "../semblance-ui/**/*.d.ts"]
+  "include": ["src", "../semblance-ui/**/*.d.ts"],
+  "exclude": ["src/**/*.stories.tsx"]
 }

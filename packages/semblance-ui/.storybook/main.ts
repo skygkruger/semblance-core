@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { StorybookConfig } from '@storybook/react-vite';
 
 const config: StorybookConfig = {
@@ -5,6 +6,7 @@ const config: StorybookConfig = {
     '../components/**/*.stories.tsx',
     '../stories/**/*.stories.tsx',
     '../pages/**/*.stories.tsx',
+    '../../desktop/src/components/**/*.stories.tsx',
   ],
   framework: {
     name: '@storybook/react-vite',
@@ -28,6 +30,43 @@ const config: StorybookConfig = {
       '.jsx', '.js',
       '.json',
     ];
+
+    // Mock desktop platform-specific modules for Storybook rendering.
+    // Desktop components import from Tauri IPC, React context, and core
+    // modules that are unavailable in the Storybook web environment.
+    const mocksDir = path.resolve(__dirname, '__mocks__');
+
+    config.plugins = config.plugins || [];
+    config.plugins.push({
+      name: 'desktop-storybook-mocks',
+      enforce: 'pre' as const,
+      resolveId(source: string, importer: string | undefined) {
+        if (!importer) return null;
+        const normalized = importer.replace(/\\/g, '/');
+        const isDesktop = normalized.includes('/desktop/src/');
+
+        if (isDesktop) {
+          switch (source) {
+            case '../ipc/commands':
+              return path.resolve(mocksDir, 'desktop-ipc-commands.ts');
+            case '../state/AppState':
+              return path.resolve(mocksDir, 'desktop-app-state.ts');
+            case '../sound/SoundEngineContext':
+              return path.resolve(mocksDir, 'desktop-sound-context.ts');
+          }
+          if (source.endsWith('core/knowledge/connector-category-map')) {
+            return path.resolve(mocksDir, 'core-connector-category-map.ts');
+          }
+        }
+
+        if (source === '@semblance/core/sound/sound-types') {
+          return path.resolve(mocksDir, 'core-sound-types.ts');
+        }
+
+        return null;
+      },
+    });
+
     return config;
   },
 };
