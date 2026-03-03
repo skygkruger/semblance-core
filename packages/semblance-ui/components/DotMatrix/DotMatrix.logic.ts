@@ -32,7 +32,7 @@ export function getParams(mobile: boolean): DotRenderParams {
   return {
     mobile,
     spacing: mobile ? 40 : 28,
-    dotBaseRadius: 0.7,
+    dotBaseRadius: 0.85,
     dotMaxRadius: 2.0,
     influenceRadius: mobile ? 85 : 125,
     wavePeriod: 16000,
@@ -100,12 +100,12 @@ export function computeDots(
       const waveInf1 = Math.max(0, 1 - Math.abs(proj - waveFront1) / waveWidth);
       const waveInf2 = Math.max(0, 1 - Math.abs(proj - waveFront2) / waveWidth);
       const wl = Math.max(waveInf1, waveInf2) ** 3;
-      const waveLift = wl * 0.30;
+      const waveLift = wl * 0.38;
 
       const sr = Math.round(85 + 140 * wl);
       const sg = Math.round(95 + 135 * wl);
       const sb = Math.round(108 + 125 * wl);
-      const alpha = 0.08 + 0.04 * breath + waveLift;
+      const alpha = 0.13 + 0.07 * breath + waveLift;
 
       results.push({ x: d.x, y: d.y, radius: dotBaseRadius, r: sr, g: sg, b: sb, alpha, hasCore: false, coreRadius: 0, coreAlpha: 0 });
     }
