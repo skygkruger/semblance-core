@@ -1,17 +1,20 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ChatBubble } from './ChatBubble';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const meta: Meta<typeof ChatBubble> = {
   title: 'Chat/ChatBubble',
   component: ChatBubble,
   parameters: {
-    layout: 'centered',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
+    layout: 'fullscreen',
   },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', padding: 40, width: '100%', maxWidth: 600 }}>
-        <Story />
+      <div style={{ position: 'relative', width: '100%', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, padding: 40, maxWidth: 600, margin: '0 auto' }}>
+          <Story />
+        </div>
       </div>
     ),
   ],
