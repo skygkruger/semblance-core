@@ -1,8 +1,6 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { LanguageSelect } from './LanguageSelect';
-import { fn } from '@storybook/test';
-
 // ─── Wrapper — dark background + centering ───────────────────────────────────
 
 const CenterWrap = ({ children }: { children: React.ReactNode }) => (
@@ -26,7 +24,7 @@ const meta: Meta<typeof LanguageSelect> = {
   component: LanguageSelect,
   parameters: { layout: 'fullscreen' },
   args: {
-    onConfirm: fn(),
+    onConfirm: () => {},
   },
 };
 

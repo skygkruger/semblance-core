@@ -1,0 +1,102 @@
+/* ─── AutonomySelector — tier radio cards ─── */
+
+.autonomy-selector {
+  display: grid;
+  gap: 12px;
+}
+
+.autonomy-selector__card {
+  position: relative;
+  text-align: left;
+  padding: 20px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: border-color 150ms ease-out, background 150ms ease-out;
+  font-family: var(--fb);
+  color: inherit;
+}
+
+.autonomy-selector__card:hover {
+  border-color: rgba(110, 207, 163, 0.25);
+}
+
+.autonomy-selector__card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(110, 207, 163, 0.2);
+}
+
+/* Selected state */
+.autonomy-selector__card--selected {
+  border-color: #6ECFA3;
+  background: rgba(110, 207, 163, 0.06);
+}
+
+/* Recommended subtle highlight */
+.autonomy-selector__card--recommended {
+  background: rgba(110, 207, 163, 0.03);
+}
+
+/* Header row: radio + name + badge */
+.autonomy-selector__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Radio circle */
+.autonomy-selector__radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #8593A4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.autonomy-selector__card--selected .autonomy-selector__radio {
+  border-color: #6ECFA3;
+}
+
+.autonomy-selector__radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6ECFA3;
+}
+
+/* Tier name */
+.autonomy-selector__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #E8E3E3;
+}
+
+/* Recommended badge */
+.autonomy-selector__badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6ECFA3;
+  background: rgba(110, 207, 163, 0.1);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* Description */
+.autonomy-selector__desc {
+  margin: 8px 0 0 28px;
+  font-size: 13px;
+  color: #8593A4;
+  line-height: 1.45;
+}
+
+/* Detail */
+.autonomy-selector__detail {
+  margin: 4px 0 0 28px;
+  font-size: 11px;
+  color: rgba(133, 147, 164, 0.6);
+  line-height: 1.45;
+}

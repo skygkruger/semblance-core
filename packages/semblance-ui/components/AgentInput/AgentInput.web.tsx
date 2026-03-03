@@ -216,7 +216,7 @@ export function AgentInput({
         {/* Thinking overlay — wireframe spinner + text */}
         {thinking && (
           <div className="agent-input__thinking-overlay" data-testid="thinking-overlay">
-            <WireframeSpinner size={50} speed={0.8} />
+            <WireframeSpinner size={60} speed={0.8} />
             <span className="agent-input__thinking-text">{t('input.thinking_text')}</span>
           </div>
         )}

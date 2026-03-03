@@ -1,7 +1,6 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { IntentCapture } from './IntentCapture';
-import { fn } from '@storybook/test';
 import './Onboarding.css';
 
 // ─── Wrapper — dark background + centering ───────────────────────────────────
@@ -27,8 +26,8 @@ const meta: Meta<typeof IntentCapture> = {
   component: IntentCapture,
   parameters: { layout: 'fullscreen' },
   args: {
-    onComplete: fn(),
-    onSkip: fn(),
+    onComplete: () => {},
+    onSkip: () => {},
   },
 };
 

@@ -306,7 +306,7 @@ export function SettingsScreen() {
           </div>
         ) : (
           <div className="flex items-center gap-3">
-            <span className="text-lg font-semibold text-semblance-accent">
+            <span className="text-lg font-semibold ai-name-shimmer">
               {state.userName || t('screen.settings.not_named_yet')}
             </span>
             <Button variant="ghost" size="sm" onClick={() => { setEditingName(true); setNameValue(state.userName || ''); }}>

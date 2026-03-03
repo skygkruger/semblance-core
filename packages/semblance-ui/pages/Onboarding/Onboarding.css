@@ -1,34 +1,63 @@
 /* ─── Onboarding shared styles ─── */
 
-.naming__headline {
-  font-family: var(--fd);
-  font-size: clamp(28px, 5vw, 48px);
-  font-weight: 400;
-  color: #EEF1F4;
+/* Shimmer headline — steel-blue / silver / sage gradient text */
+.onboarding-shimmer-headline {
+  font-family: var(--fm);
+  font-weight: 200;
+  letter-spacing: 0.04em;
   text-align: center;
-  line-height: 1.25;
-  margin: 0 0 16px;
-}
-
-/* Gradient pronouns — metallic shimmer (steel-blue / sage tones) */
-.naming__pronoun {
-  font-style: italic;
+  margin: 0;
   background: linear-gradient(
     105deg,
-    #5a6472 0%,
-    #7a8898 15%,
-    #8a9890 28%,
-    #c0cbc4 38%,
-    #8f9ba8 50%,
-    #6b7a72 62%,
-    #7a8898 78%,
-    #5a6472 100%
+    #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%,
+    #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%,
+    #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%
   );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer 16s linear infinite;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
+}
+
+.naming__headline {
+  font-family: var(--fm);
+  font-weight: 200;
+  font-size: clamp(28px, 5vw, 48px);
+  letter-spacing: 0.04em;
+  text-align: center;
+  line-height: 1.25;
+  margin: 0 0 16px;
+  background: linear-gradient(
+    105deg,
+    #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%,
+    #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%,
+    #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
+}
+
+/* Gradient pronouns — opal shimmer */
+.naming__pronoun {
+  font-style: italic;
+  background: linear-gradient(
+    105deg,
+    #625882 0%, #9a94b8 12%, #b8c0cc 24%,
+    #d8dde8 38%, #e4e8ee 50%, #d8dde8 62%,
+    #b8c0cc 76%, #9a94b8 88%, #625882 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
   display: inline;
 }
 
@@ -53,20 +82,16 @@
   min-height: 48px;
   background: linear-gradient(
     105deg,
-    #5a6472 0%,
-    #7a8898 15%,
-    #8a9890 28%,
-    #c0cbc4 38%,
-    #8f9ba8 50%,
-    #6b7a72 62%,
-    #7a8898 78%,
-    #5a6472 100%
+    #625882 0%, #9a94b8 12%, #b8c0cc 24%,
+    #d8dde8 38%, #e4e8ee 50%, #d8dde8 62%,
+    #b8c0cc 76%, #9a94b8 88%, #625882 100%
   );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer 16s linear infinite;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
   opacity: 0;
   transform: translateY(6px);
   transition: opacity 350ms ease, transform 350ms ease;

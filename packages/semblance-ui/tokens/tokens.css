@@ -110,20 +110,16 @@
   font-style: italic;
   background: linear-gradient(
     105deg,
-    #5a6472 0%,
-    #7a8898 15%,
-    #8a9890 28%,
-    #c0cbc4 38%,
-    #8f9ba8 50%,
-    #6b7a72 62%,
-    #7a8898 78%,
-    #5a6472 100%
+    #625882 0%, #9a94b8 12%, #b8c0cc 24%,
+    #d8dde8 38%, #e4e8ee 50%, #d8dde8 62%,
+    #b8c0cc 76%, #9a94b8 88%, #625882 100%
   );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer 16s linear infinite;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
   display: inline;
 }
 

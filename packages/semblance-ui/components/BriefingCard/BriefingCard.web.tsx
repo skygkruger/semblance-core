@@ -34,8 +34,10 @@ export function BriefingCard({
   const hour = now.getHours();
   const greetingPeriodKey = hour >= 17 ? 'evening' : hour >= 12 ? 'afternoon' : 'morning';
   const period = t(`greeting.${greetingPeriodKey}`);
-  const greeting = userName
-    ? t('greeting.with_name', { period, name: userName })
+  const greetingPrefix = `${period},`;
+  const hasName = Boolean(userName);
+  const greeting = hasName
+    ? null  // rendered as JSX with shimmer span
     : t('greeting.anonymous', { period });
 
   return (
@@ -51,7 +53,9 @@ export function BriefingCard({
             <FoundingMemberBadge seat={foundingSeat} variant="inline" />
           )}
         </div>
-        <h2 className="briefing-card__greeting">{greeting}</h2>
+        <h2 className="briefing-card__greeting">
+          {hasName ? <>{greetingPrefix} <span className="ai-name-shimmer">{userName}</span>.</> : greeting}
+        </h2>
       </div>
 
       <div className="briefing-card__divider" />
