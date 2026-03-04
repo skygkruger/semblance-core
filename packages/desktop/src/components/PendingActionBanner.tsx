@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getPendingActions, getApprovalCount, getApprovalThreshold, approveAction, rejectAction } from '../ipc/commands';
 import type { PendingAction } from '../ipc/types';
+import './PendingActionBanner.css';
 
 export type { PendingAction } from '../ipc/types';
 
 interface PendingActionBannerProps {
-  /** If provided, filters to only show actions for this screen context */
   filter?: string;
 }
 
@@ -31,9 +31,8 @@ export function describeAction(action: PendingAction): string {
       const title = (payload['title'] as string) ?? 'Untitled event';
       return `Create event: "${title}"`;
     }
-    case 'calendar.delete': {
-      return `Delete calendar event`;
-    }
+    case 'calendar.delete':
+      return 'Delete calendar event';
     default:
       return `${action.action} action`;
   }
@@ -42,9 +41,7 @@ export function describeAction(action: PendingAction): string {
 export function getPreviewContent(action: PendingAction): string | null {
   if (action.action === 'email.send' || action.action === 'email.draft') {
     const body = action.payload['body'] as string | undefined;
-    if (body) {
-      return body.length > 200 ? body.slice(0, 200) + '...' : body;
-    }
+    if (body) return body.length > 200 ? body.slice(0, 200) + '...' : body;
   }
   return null;
 }
@@ -62,7 +59,6 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
       const filtered = filter ? actions.filter(a => a.domain === filter) : actions;
       setPendingActions(filtered);
 
-      // Load approval counts for each action
       const counts: Record<string, { count: number; threshold: number }> = {};
       for (const action of filtered) {
         try {
@@ -81,7 +77,7 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
 
   useEffect(() => {
     loadPending();
-    const interval = setInterval(loadPending, 5000); // Poll every 5s
+    const interval = setInterval(loadPending, 5000);
     return () => clearInterval(interval);
   }, [loadPending]);
 
@@ -106,100 +102,53 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
   if (pendingActions.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="pending-actions">
       {pendingActions.map(action => {
         const preview = getPreviewContent(action);
         const counts = approvalCounts[action.id];
         const isExpanded = expandedId === action.id;
 
         return (
-          <div
-            key={action.id}
-            className="
-              bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark
-              border border-semblance-border dark:border-semblance-border-dark
-              border-l-[3px] border-l-semblance-primary
-              rounded-lg p-4 space-y-2
-            "
-          >
-            {/* Header */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-                  {describeAction(action)}
-                </p>
-                <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-0.5">
-                  {action.reasoning}
-                </p>
+          <div key={action.id} className="pending-action">
+            <div className="pending-action__header">
+              <div>
+                <p className="pending-action__desc">{describeAction(action)}</p>
+                <p className="pending-action__reasoning">{action.reasoning}</p>
               </div>
             </div>
 
-            {/* Preview content */}
             {preview && (
               <button
                 type="button"
                 onClick={() => setExpandedId(isExpanded ? null : action.id)}
-                className="w-full text-left"
+                className="pending-action__preview"
               >
-                <div className={`
-                  text-xs font-mono p-2 rounded
-                  bg-semblance-surface-1 dark:bg-semblance-surface-1-dark
-                  text-semblance-text-primary dark:text-semblance-text-primary-dark
-                  ${!isExpanded ? 'line-clamp-2' : ''}
-                `}>
+                <div className={`pending-action__preview-text${!isExpanded ? ' pending-action__preview-text--clamped' : ''}`}>
                   {preview}
                 </div>
               </button>
             )}
 
-            {/* Action buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleApprove(action.id)}
-                className="
-                  px-3 py-1.5 text-sm font-medium rounded-md
-                  bg-semblance-primary text-white
-                  hover:opacity-90 transition-opacity duration-fast
-                "
-              >
+            <div className="pending-action__actions">
+              <button type="button" onClick={() => handleApprove(action.id)} className="pending-action__approve-btn">
                 {action.action === 'email.send' ? 'Approve & Send' : 'Approve'}
               </button>
-              <button
-                type="button"
-                onClick={() => {/* TODO: open edit mode */}}
-                className="
-                  px-3 py-1.5 text-sm rounded-md
-                  text-semblance-text-secondary dark:text-semblance-text-secondary-dark
-                  hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark
-                  transition-colors duration-fast
-                "
-              >
+              <button type="button" onClick={() => {/* TODO: open edit mode */}} className="pending-action__edit-btn">
                 Edit
               </button>
-              <button
-                type="button"
-                onClick={() => handleReject(action.id)}
-                className="
-                  px-3 py-1.5 text-sm rounded-md
-                  text-semblance-text-secondary dark:text-semblance-text-secondary-dark
-                  hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark
-                  transition-colors duration-fast
-                "
-              >
+              <button type="button" onClick={() => handleReject(action.id)} className="pending-action__reject-btn">
                 Reject
               </button>
             </div>
 
-            {/* Approval pattern indicator */}
             {counts && (
-              <p className="text-[11px] text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+              <p className="pending-action__approval-hint">
                 Similar actions approved: {counts.count} time{counts.count !== 1 ? 's' : ''}
                 {counts.count < counts.threshold && (
                   <span> — after {counts.threshold} approvals, this becomes automatic</span>
                 )}
                 {counts.count >= counts.threshold && (
-                  <span className="text-semblance-success"> — this action type is now routine</span>
+                  <span className="pending-action__approval-success"> — this action type is now routine</span>
                 )}
               </p>
             )}
@@ -207,11 +156,8 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
         );
       })}
 
-      {/* Stacking indicator */}
       {pendingActions.length > 1 && (
-        <p className="text-xs text-center text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-          {pendingActions.length} pending actions
-        </p>
+        <p className="pending-actions__count">{pendingActions.length} pending actions</p>
       )}
     </div>
   );

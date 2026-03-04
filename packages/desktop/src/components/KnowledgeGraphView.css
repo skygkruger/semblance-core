@@ -1,0 +1,150 @@
+/* ─── KnowledgeGraphView ─── */
+
+.kg-view {
+  position: relative;
+  background: var(--bg);
+}
+
+.kg-view__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-4);
+  border-bottom: 1px solid var(--b1);
+}
+
+.kg-view__title {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--w-dim);
+}
+
+.kg-view__controls {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.kg-view__control-btn {
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--b1);
+  color: var(--w-dim);
+  font-family: var(--fm);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--eo);
+}
+
+.kg-view__control-btn:hover {
+  border-color: var(--v);
+}
+
+.kg-view__body {
+  display: flex;
+  flex: 1;
+}
+
+/* Stats Overlay */
+.kg-view__stats {
+  position: absolute;
+  top: var(--sp-4);
+  right: var(--sp-4);
+  padding: 12px 16px;
+  background: rgba(11, 14, 17, 0.9);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-sm);
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--w-dim);
+  min-width: 220;
+}
+
+.kg-view__stats-title {
+  font-weight: 600;
+  margin-bottom: var(--sp-2);
+}
+
+.kg-view__stats-row {
+  margin-top: 4px;
+  color: var(--sv3);
+}
+
+/* Node Detail Panel */
+.kg-view__detail {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 300px;
+  background: rgba(11, 14, 17, 0.95);
+  border-left: 1px solid var(--b1);
+  padding: var(--sp-4);
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--w-dim);
+  overflow-y: auto;
+}
+
+.kg-view__detail-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--sp-4);
+}
+
+.kg-view__detail-name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.kg-view__detail-close {
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--w-dim);
+  font-size: var(--text-sm);
+}
+
+.kg-view__detail-meta {
+  margin-bottom: var(--sp-2);
+  color: var(--sv1);
+}
+
+.kg-view__detail-section {
+  font-weight: 600;
+  margin-bottom: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.kg-view__detail-conn {
+  margin-bottom: 4px;
+  padding-left: var(--sp-2);
+}
+
+.kg-view__detail-conn-label {
+  color: var(--sv1);
+}
+
+.kg-view__detail-activity {
+  margin-bottom: 4px;
+  padding-left: var(--sp-2);
+  color: var(--sv1);
+}
+
+/* Time Slider */
+.kg-view__time-slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: var(--sp-2) var(--sp-4);
+  background: rgba(11, 14, 17, 0.7);
+  border-top: 1px solid var(--b1);
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--sv1);
+}
+
+.kg-view__time-slider input[type="range"] {
+  flex: 1;
+  accent-color: #6ECFA3;
+}

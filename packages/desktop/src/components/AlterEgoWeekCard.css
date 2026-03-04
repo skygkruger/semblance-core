@@ -1,0 +1,144 @@
+/* ─── AlterEgoWeekCard ─── */
+
+.alter-ego-week {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+}
+
+.alter-ego-week__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-3);
+}
+
+.alter-ego-week__title {
+  font-family: var(--fm);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  background: linear-gradient(
+    105deg,
+    #625882 0%, #9a94b8 12%, #b8c0cc 24%,
+    #d8dde8 38%, #e4e8ee 50%, #d8dde8 62%,
+    #b8c0cc 76%, #9a94b8 88%, #625882 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
+}
+
+.alter-ego-week__day-count {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  background: linear-gradient(
+    105deg,
+    #625882 0%, #9a94b8 12%, #b8c0cc 24%,
+    #d8dde8 38%, #e4e8ee 50%, #d8dde8 62%,
+    #b8c0cc 76%, #9a94b8 88%, #625882 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
+}
+
+.alter-ego-week__dots {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.alter-ego-week__dot {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--b1);
+}
+
+.alter-ego-week__dot--completed {
+  border-color: var(--v);
+  background: var(--v);
+}
+
+.alter-ego-week__dot--current {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--opal-purple-mid), var(--opal-white)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.8), rgba(119,110,162,0.9),
+      rgba(154,168,184,1), rgba(216,221,232,1),
+      rgba(154,168,184,1), rgba(119,110,162,0.9),
+      rgba(97,88,128,0.8)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  box-shadow: 0 0 6px rgba(154,168,184,0.4), 0 0 12px rgba(107,95,168,0.2);
+}
+
+.alter-ego-week__daily-card {
+  position: relative;
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  overflow: hidden;
+}
+
+.alter-ego-week__daily-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg,
+    transparent 0%, transparent 15%,
+    rgba(107,95,168,0.04) 32%, rgba(154,168,184,0.06) 44%,
+    rgba(216,221,232,0.08) 52%, rgba(154,168,184,0.04) 66%,
+    transparent 85%, transparent 100%);
+  background-size: 200% 100%;
+  animation: opal-sweep 8s linear infinite;
+  animation-delay: -4s;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.alter-ego-week__theme {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--w-dim);
+  margin-bottom: var(--sp-1);
+}
+
+.alter-ego-week__desc {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+}
+
+.alter-ego-week__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.alter-ego-week__skip-confirm {
+  display: flex;
+  gap: var(--sp-2);
+}

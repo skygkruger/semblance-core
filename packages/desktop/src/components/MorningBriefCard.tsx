@@ -1,6 +1,8 @@
-// MorningBriefCard — Warm Amber header, collapsible sections, dismiss button.
+// MorningBriefCard — Warm Amber accent, collapsible sections, dismiss button.
 
 import { useState } from 'react';
+import { Card } from '@semblance/ui';
+import './MorningBriefCard.css';
 
 export interface MorningBriefData {
   id: string;
@@ -35,26 +37,20 @@ export function MorningBriefCard({ brief, onDismiss }: MorningBriefCardProps) {
     : `${Math.round(brief.estimatedReadTimeSeconds / 60)}m read`;
 
   return (
-    <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-4 mb-4">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-              Morning Brief
-            </span>
-            <span className="text-xs text-semblance-text-tertiary">
-              {readTimeLabel}
-            </span>
+    <Card className="morning-brief">
+      <div className="morning-brief__header">
+        <div>
+          <div className="morning-brief__label-row">
+            <span className="morning-brief__label">Morning Brief</span>
+            <span className="morning-brief__read-time">{readTimeLabel}</span>
           </div>
-          <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-            {brief.summary}
-          </p>
+          <p className="morning-brief__summary">{brief.summary}</p>
         </div>
-        <div className="flex items-center gap-2 ml-3">
+        <div className="morning-brief__controls">
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="text-xs text-semblance-text-tertiary hover:text-semblance-text-secondary transition-colors"
+            className="morning-brief__toggle-btn"
             aria-label={expanded ? 'Collapse brief' : 'Expand brief'}
           >
             {expanded ? 'Less' : 'More'}
@@ -62,7 +58,7 @@ export function MorningBriefCard({ brief, onDismiss }: MorningBriefCardProps) {
           <button
             type="button"
             onClick={() => onDismiss(brief.id)}
-            className="text-semblance-text-tertiary hover:text-semblance-text-secondary transition-colors"
+            className="morning-brief__dismiss-btn"
             aria-label="Dismiss morning brief"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -73,20 +69,16 @@ export function MorningBriefCard({ brief, onDismiss }: MorningBriefCardProps) {
       </div>
 
       {expanded && brief.sections.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800 space-y-3">
+        <div className="morning-brief__sections">
           {brief.sections.map(section => (
             <div key={section.type}>
-              <h4 className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-1">
-                {section.title}
-              </h4>
-              <ul className="space-y-1">
+              <h4 className="morning-brief__section-title">{section.title}</h4>
+              <ul className="morning-brief__items">
                 {section.items.map(item => (
-                  <li key={item.id} className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                  <li key={item.id} className="morning-brief__item">
                     {item.text}
                     {item.context && (
-                      <span className="text-xs text-semblance-text-tertiary ml-2">
-                        ({item.context})
-                      </span>
+                      <span className="morning-brief__item-context">({item.context})</span>
                     )}
                   </li>
                 ))}
@@ -95,6 +87,6 @@ export function MorningBriefCard({ brief, onDismiss }: MorningBriefCardProps) {
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

@@ -1,0 +1,90 @@
+/* ─── Toggle — opal-bordered switch ─── */
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.toggle-label {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  font-weight: 400;
+  color: var(--w-dim);
+}
+
+.toggle-description {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 300;
+  color: var(--sv1);
+  margin-top: 2px;
+}
+
+.toggle-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+  border-radius: var(--r-full);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#1A1E22, #1A1E22) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  cursor: pointer;
+  transition: background var(--duration-base) var(--eo),
+              box-shadow var(--duration-base) var(--eo);
+  overflow: hidden;
+}
+
+.toggle-track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg,
+    transparent 0%, transparent 15%,
+    rgba(107,95,168,0.04) 32%, rgba(154,168,184,0.06) 44%,
+    rgba(216,221,232,0.08) 52%, rgba(154,168,184,0.04) 66%,
+    transparent 85%, transparent 100%);
+  background-size: 200% 100%;
+  animation: opal-sweep 8s linear infinite;
+  animation-delay: -4s;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.toggle-track--on {
+  background:
+    linear-gradient(rgba(110,207,163,0.15), rgba(110,207,163,0.08)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(110,207,163,0.3), rgba(110,207,163,0.5),
+      rgba(110,207,163,0.6), rgba(110,207,163,0.7),
+      rgba(110,207,163,0.6), rgba(110,207,163,0.5),
+      rgba(110,207,163,0.3)) border-box;
+  box-shadow: 0 0 12px var(--v-glow);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--sv2);
+  transition: transform var(--duration-base) var(--eo),
+              background var(--duration-base) var(--eo);
+  z-index: 1;
+}
+
+.toggle-track--on .toggle-thumb {
+  transform: translateX(20px);
+  background: var(--v);
+}

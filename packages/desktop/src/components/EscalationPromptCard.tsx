@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card } from '@semblance/ui';
 import { respondToEscalation } from '../ipc/commands';
+import './EscalationPromptCard.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -59,61 +60,37 @@ export function EscalationPromptCard({ prompt, onAccepted, onDismissed }: Escala
     }
   };
 
-  const tierLabel = prompt.type === 'guardian_to_partner'
-    ? 'Partner'
-    : 'Alter Ego';
+  const tierLabel = prompt.type === 'guardian_to_partner' ? 'Partner' : 'Alter Ego';
 
   return (
-    <Card className="p-4 border-l-[3px] border-l-semblance-accent bg-semblance-accent-subtle dark:bg-semblance-accent-subtle-dark">
-      {/* Header */}
-      <div className="mb-3">
-        <h3 className="text-sm font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
-          Trust Upgrade Available
-        </h3>
-        <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-1">
-          {prompt.message}
-        </p>
+    <Card className="escalation-card">
+      <div className="escalation-card__header">
+        <h3 className="escalation-card__title">Trust Upgrade Available</h3>
+        <p className="escalation-card__message">{prompt.message}</p>
       </div>
 
-      {/* What changes preview */}
       {prompt.previewActions.length > 0 && (
-        <div className="mb-3 space-y-2">
-          <p className="text-xs font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-            What changes:
-          </p>
+        <div className="escalation-card__previews">
+          <p className="escalation-card__previews-label">What changes:</p>
           {prompt.previewActions.map((action, i) => (
-            <div
-              key={i}
-              className="p-2.5 rounded-md bg-semblance-surface-1 dark:bg-semblance-surface-1-dark border border-semblance-border/50 dark:border-semblance-border-dark/50"
-            >
-              <p className="text-xs font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-                {action.description}
-              </p>
-              <p className="text-[11px] text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-0.5">
-                Currently: {action.currentBehavior}
-              </p>
-              <p className="text-[11px] text-semblance-text-primary dark:text-semblance-text-primary-dark">
-                New: {action.newBehavior}
-              </p>
-              <p className="text-[11px] text-semblance-success mt-0.5">
-                Time saved: {action.estimatedTimeSaved}
-              </p>
+            <div key={i} className="escalation-card__preview-item">
+              <p className="escalation-card__preview-desc">{action.description}</p>
+              <p className="escalation-card__preview-current">Currently: {action.currentBehavior}</p>
+              <p className="escalation-card__preview-new">New: {action.newBehavior}</p>
+              <p className="escalation-card__preview-time">Time saved: {action.estimatedTimeSaved}</p>
             </div>
           ))}
         </div>
       )}
 
-      <p className="text-[11px] text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark mb-3">
-        You can always change this in Settings.
-      </p>
+      <p className="escalation-card__note">You can always change this in Settings.</p>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-2">
+      <div className="escalation-card__actions">
         <button
           type="button"
           onClick={handleAccept}
           disabled={responding}
-          className="px-3 py-1.5 text-sm font-medium rounded-md bg-semblance-primary text-white hover:opacity-90 transition-opacity duration-fast disabled:opacity-50"
+          className="escalation-card__accept-btn"
         >
           Yes, upgrade to {tierLabel}
         </button>
@@ -121,7 +98,7 @@ export function EscalationPromptCard({ prompt, onAccepted, onDismissed }: Escala
           type="button"
           onClick={handleDismiss}
           disabled={responding}
-          className="px-3 py-1.5 text-sm rounded-md text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors duration-fast disabled:opacity-50"
+          className="escalation-card__dismiss-btn"
         >
           Not yet
         </button>

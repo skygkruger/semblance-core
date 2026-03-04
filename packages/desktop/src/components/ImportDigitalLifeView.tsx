@@ -5,8 +5,8 @@
  * and import history. Non-premium users see "Available with Digital Representative".
  */
 
-import { useState, useCallback } from 'react';
 import { Card, Button } from '@semblance/ui';
+import './ImportDigitalLifeView.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -90,10 +90,10 @@ export function ImportDigitalLifeView({
   onImport,
 }: ImportDigitalLifeViewProps) {
   return (
-    <div className="space-y-6 p-4">
+    <div className="import-life">
       <div>
-        <h2 className="text-lg font-semibold text-semblance-primary">Import Digital Life</h2>
-        <p className="text-sm text-semblance-secondary mt-1">
+        <h2 className="import-life__title">Import Digital Life</h2>
+        <p className="import-life__subtitle">
           Expand what Semblance knows by importing data from other sources.
           Everything stays on your device.
         </p>
@@ -101,17 +101,17 @@ export function ImportDigitalLifeView({
 
       {/* Progress bar */}
       {progress?.isActive && (
-        <Card className="p-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-semblance-primary font-medium">{progress.phase}</span>
-              <span className="text-semblance-secondary">
+        <Card>
+          <div className="import-life__progress">
+            <div className="import-life__progress-header">
+              <span className="import-life__progress-phase">{progress.phase}</span>
+              <span className="import-life__progress-count">
                 {progress.itemsProcessed} / {progress.totalItems} items
               </span>
             </div>
-            <div className="w-full h-2 bg-semblance-surface-2 rounded-full overflow-hidden">
+            <div className="import-life__progress-bar">
               <div
-                className="h-full bg-semblance-accent rounded-full transition-all"
+                className="import-life__progress-fill"
                 style={{
                   width: `${progress.totalItems > 0 ? (progress.itemsProcessed / progress.totalItems) * 100 : 0}%`,
                 }}
@@ -122,17 +122,17 @@ export function ImportDigitalLifeView({
       )}
 
       {/* Import source cards */}
-      <div className="grid gap-4">
+      <div className="import-life__sources">
         {importSources.map(source => (
-          <Card key={source.id} className={`p-4 ${!isPremium ? 'opacity-60' : ''}`}>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="font-medium text-semblance-primary">{source.name}</h3>
-                <p className="text-sm text-semblance-secondary mt-1">{source.description}</p>
-                <p className="text-xs text-semblance-muted mt-1">Formats: {source.formats}</p>
-                <p className="text-xs text-semblance-secondary mt-2 italic">{source.consentText}</p>
+          <Card key={source.id}>
+            <div className={`import-life__source${!isPremium ? ' import-life__source--locked' : ''}`}>
+              <div style={{ flex: 1 }}>
+                <h3 className="import-life__source-name">{source.name}</h3>
+                <p className="import-life__source-desc">{source.description}</p>
+                <p className="import-life__source-formats">Formats: {source.formats}</p>
+                <p className="import-life__source-consent">{source.consentText}</p>
               </div>
-              <div className="ml-4">
+              <div className="import-life__source-side">
                 {isPremium ? (
                   <Button
                     variant="ghost"
@@ -143,7 +143,7 @@ export function ImportDigitalLifeView({
                     Import
                   </Button>
                 ) : (
-                  <span className="text-xs text-semblance-muted whitespace-nowrap">
+                  <span className="import-life__locked-label">
                     Available with Digital Representative
                   </span>
                 )}
@@ -156,15 +156,12 @@ export function ImportDigitalLifeView({
       {/* Import history */}
       {importHistory.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-semblance-primary mb-2">Import History</h3>
-          <div className="space-y-2">
+          <h3 className="import-life__history-title">Import History</h3>
+          <div className="import-life__history-list">
             {importHistory.map(entry => (
-              <div
-                key={entry.id}
-                className="flex justify-between items-center text-sm px-3 py-2 bg-semblance-surface-2 rounded"
-              >
-                <span className="text-semblance-primary">{entry.sourceType}</span>
-                <span className="text-semblance-secondary">
+              <div key={entry.id} className="import-life__history-row">
+                <span className="import-life__history-source">{entry.sourceType}</span>
+                <span className="import-life__history-meta">
                   {entry.itemCount} items · {new Date(entry.importedAt).toLocaleDateString()}
                 </span>
               </div>

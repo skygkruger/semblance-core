@@ -1,7 +1,7 @@
 // Reminder Card — Universal Inbox integration for due reminders.
-// Shows reminder text, due time, and snooze/dismiss buttons.
 
 import { Card } from '@semblance/ui';
+import './ReminderCard.css';
 
 interface ReminderCardData {
   id: string;
@@ -36,36 +36,27 @@ const RECURRENCE_LABELS: Record<string, string> = {
 
 export function ReminderCard({ reminder, onSnooze, onDismiss }: ReminderCardProps) {
   return (
-    <Card className="p-3 border-l-[3px] border-l-semblance-accent" data-testid="reminder-card">
-      <div className="flex items-start gap-3">
-        {/* Bell icon */}
-        <div className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold flex-shrink-0 bg-semblance-accent/10 text-semblance-accent">
-          R
-        </div>
+    <Card className="reminder-card" data-testid="reminder-card">
+      <div className="reminder-card__body">
+        <div className="reminder-card__icon">R</div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-            {reminder.text}
-          </p>
+        <div className="reminder-card__content">
+          <p className="reminder-card__text">{reminder.text}</p>
 
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              {formatDueTime(reminder.dueAt)}
-            </span>
+          <div className="reminder-card__meta">
+            <span className="reminder-card__due">{formatDueTime(reminder.dueAt)}</span>
             {reminder.recurrence !== 'none' && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-semblance-surface-2 dark:bg-semblance-surface-2-dark text-semblance-text-muted dark:text-semblance-text-muted-dark">
+              <span className="reminder-card__recurrence">
                 {RECURRENCE_LABELS[reminder.recurrence] ?? reminder.recurrence}
               </span>
             )}
           </div>
 
-          {/* Action row */}
-          <div className="flex gap-1.5 mt-2 flex-wrap">
+          <div className="reminder-card__actions">
             <button
               type="button"
               onClick={() => onSnooze(reminder.id, '15min')}
-              className="text-xs px-2 py-1 rounded text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors duration-fast"
+              className="reminder-card__action-btn"
               data-testid="snooze-15min"
             >
               15m
@@ -73,7 +64,7 @@ export function ReminderCard({ reminder, onSnooze, onDismiss }: ReminderCardProp
             <button
               type="button"
               onClick={() => onSnooze(reminder.id, '1hr')}
-              className="text-xs px-2 py-1 rounded text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors duration-fast"
+              className="reminder-card__action-btn"
               data-testid="snooze-1hr"
             >
               1h
@@ -81,7 +72,7 @@ export function ReminderCard({ reminder, onSnooze, onDismiss }: ReminderCardProp
             <button
               type="button"
               onClick={() => onSnooze(reminder.id, 'tomorrow')}
-              className="text-xs px-2 py-1 rounded text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors duration-fast"
+              className="reminder-card__action-btn"
               data-testid="snooze-tomorrow"
             >
               Tomorrow
@@ -89,7 +80,7 @@ export function ReminderCard({ reminder, onSnooze, onDismiss }: ReminderCardProp
             <button
               type="button"
               onClick={() => onDismiss(reminder.id)}
-              className="text-xs px-2 py-1 rounded text-semblance-attention hover:bg-semblance-attention/10 transition-colors duration-fast"
+              className="reminder-card__action-btn reminder-card__action-btn--dismiss"
               data-testid="dismiss-reminder"
             >
               Dismiss

@@ -1,0 +1,16 @@
+/* ─── VoiceWaveform ─── */
+
+.voice-waveform {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+}
+
+.voice-waveform__bar {
+  width: 4px;
+  border-radius: var(--r-full);
+  background: var(--v);
+  transition: height 100ms var(--eo);
+  min-height: 4px;
+}

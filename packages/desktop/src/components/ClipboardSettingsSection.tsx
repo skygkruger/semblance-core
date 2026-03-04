@@ -1,8 +1,9 @@
 // ClipboardSettingsSection — Settings section for clipboard monitoring.
 // Toggle: "Clipboard monitoring" (default OFF), description text, last 5 actions.
 
-import { Card, Button } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
+import { Toggle } from './Toggle';
+import './SettingsSection.css';
 
 export function ClipboardSettingsSection() {
   const state = useAppState();
@@ -19,53 +20,25 @@ export function ClipboardSettingsSection() {
   };
 
   return (
-    <Card>
-      <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-        Clipboard Intelligence
-      </h2>
+    <div>
+      <h2 className="settings-section__title">Clipboard Intelligence</h2>
 
-      <div className="space-y-4">
-        {/* Toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-              Clipboard monitoring
-            </p>
-            <p className="text-xs text-semblance-text-tertiary mt-1">
-              When enabled, Semblance watches your clipboard for actionable content like tracking numbers,
-              flight codes, and URLs. All processing happens locally on your device.
-            </p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={monitoringEnabled}
-            onClick={handleToggle}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              monitoringEnabled
-                ? 'bg-semblance-primary'
-                : 'bg-semblance-border dark:bg-semblance-border-dark'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
-                monitoringEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
+      <div className="settings-section__group">
+        <Toggle
+          checked={monitoringEnabled}
+          onChange={handleToggle}
+          label="Clipboard monitoring"
+          description="When enabled, Semblance watches your clipboard for actionable content like tracking numbers, flight codes, and URLs. All processing happens locally on your device."
+        />
 
-        {/* Recent Actions */}
         {recentActions.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2">
-              Recent clipboard actions
-            </p>
-            <div className="space-y-1">
+            <span className="settings-section__label">Recent clipboard actions</span>
+            <div className="settings-section__list">
               {recentActions.slice(0, 5).map((action, i) => (
-                <div key={i} className="flex items-center justify-between text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                <div key={i} className="settings-section__list-item">
                   <span>{action.patternType}: {action.action}</span>
-                  <span className="text-semblance-text-tertiary">
+                  <span className="settings-section__list-time">
                     {new Date(action.timestamp).toLocaleTimeString()}
                   </span>
                 </div>
@@ -74,6 +47,6 @@ export function ClipboardSettingsSection() {
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

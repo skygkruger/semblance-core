@@ -2,6 +2,7 @@
 // Minimal design following DESIGN_SYSTEM.md. Single text field with submit.
 
 import { useState, useCallback, useRef } from 'react';
+import './QuickCaptureInput.css';
 
 export interface CaptureResultFeedback {
   hasReminder: boolean;
@@ -57,7 +58,6 @@ export function QuickCaptureInput({
       const message = formatFeedback(result);
       setFeedback({ type: 'success', message });
       setText('');
-      // Clear feedback after 3 seconds
       setTimeout(() => setFeedback({ type: 'idle' }), 3000);
     } catch {
       setFeedback({ type: 'error', message: 'Capture failed. Try again.' });
@@ -76,8 +76,8 @@ export function QuickCaptureInput({
   );
 
   return (
-    <div className="w-full" data-testid="quick-capture">
-      <div className="flex items-center gap-2">
+    <div className="quick-capture" data-testid="quick-capture">
+      <div className="quick-capture__row">
         <input
           ref={inputRef}
           type="text"
@@ -86,34 +86,27 @@ export function QuickCaptureInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled || feedback.type === 'submitting'}
-          className="flex-1 px-4 py-3 rounded-lg bg-semblance-surface-1 dark:bg-semblance-surface-1-dark border border-semblance-border dark:border-semblance-border-dark text-semblance-text-primary dark:text-semblance-text-primary-dark placeholder:text-semblance-text-muted dark:placeholder:text-semblance-text-muted-dark focus:outline-none focus:ring-2 focus:ring-semblance-primary focus:border-semblance-primary text-base transition-colors duration-fast"
+          className="quick-capture__input"
           data-testid="quick-capture-input"
         />
         <button
           type="button"
           onClick={handleSubmit}
           disabled={!text.trim() || disabled || feedback.type === 'submitting'}
-          className="px-4 py-3 rounded-lg bg-semblance-primary text-white font-medium text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity duration-fast"
+          className="quick-capture__submit"
           data-testid="quick-capture-submit"
         >
           {feedback.type === 'submitting' ? 'Saving...' : 'Capture'}
         </button>
       </div>
 
-      {/* Feedback line */}
       {feedback.type === 'success' && (
-        <p
-          className="mt-2 text-xs text-semblance-success transition-opacity duration-normal"
-          data-testid="quick-capture-feedback"
-        >
+        <p className="quick-capture__feedback quick-capture__feedback--success" data-testid="quick-capture-feedback">
           {feedback.message}
         </p>
       )}
       {feedback.type === 'error' && (
-        <p
-          className="mt-2 text-xs text-semblance-attention transition-opacity duration-normal"
-          data-testid="quick-capture-error"
-        >
+        <p className="quick-capture__feedback quick-capture__feedback--error" data-testid="quick-capture-error">
           {feedback.message}
         </p>
       )}

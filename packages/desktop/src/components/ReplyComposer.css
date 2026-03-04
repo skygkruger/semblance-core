@@ -1,0 +1,115 @@
+/* ─── ReplyComposer ─── */
+
+.reply-composer {
+  border-left: 3px solid var(--v);
+}
+
+.reply-composer__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+}
+
+.reply-composer__field {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.reply-composer__field-label {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+}
+
+.reply-composer__field-value {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--w-dim);
+}
+
+.reply-composer__textarea {
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--w-dim);
+  background:
+    linear-gradient(#121518, #121518) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  outline: none;
+  resize: vertical;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: border-color var(--duration-fast) var(--eo), box-shadow var(--duration-fast) var(--eo);
+  margin-bottom: var(--sp-3);
+}
+
+.reply-composer__textarea::placeholder {
+  color: var(--sv1);
+}
+
+.reply-composer__textarea:focus {
+  border-color: rgba(110, 207, 163, 0.4);
+  box-shadow: 0 0 0 2px rgba(110, 207, 163, 0.08), 0 0 16px rgba(110, 207, 163, 0.04);
+}
+
+.reply-composer__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.reply-composer__send-btn {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--r-md);
+  border: none;
+  background: var(--v);
+  color: var(--white);
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--eo);
+}
+
+.reply-composer__send-btn:hover {
+  opacity: 0.9;
+}
+
+.reply-composer__send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reply-composer__ghost-btn {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--r-md);
+  border: none;
+  background: none;
+  color: var(--sv3);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--eo);
+}
+
+.reply-composer__ghost-btn:hover {
+  background: var(--s2);
+}
+
+.reply-composer__ghost-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reply-composer__ghost-btn--end {
+  margin-left: auto;
+}

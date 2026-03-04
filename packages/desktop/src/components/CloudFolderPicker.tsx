@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@semblance/ui';
 import { cloudStorageBrowseFolders } from '../ipc/commands';
 import type { CloudFolder } from '../ipc/types';
+import './CloudFolderPicker.css';
 
 interface CloudFolderPickerProps {
   provider: string;
@@ -72,20 +73,18 @@ export function CloudFolderPicker({ provider, isOpen, onClose, onSelect, selecte
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-semblance-surface dark:bg-semblance-surface-dark rounded-lg shadow-lg w-full max-w-md max-h-[70vh] flex flex-col">
-        <div className="p-4 border-b border-semblance-border dark:border-semblance-border-dark">
-          <h3 className="text-sm font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
-            Select Folders to Sync
-          </h3>
-          <div className="flex gap-1 mt-2 text-xs text-semblance-text-tertiary overflow-x-auto">
+    <div className="folder-picker__overlay">
+      <div className="folder-picker__panel">
+        <div className="folder-picker__header">
+          <h3 className="folder-picker__title">Select Folders to Sync</h3>
+          <div className="folder-picker__breadcrumbs">
             {breadcrumbs.map((crumb, i) => (
               <span key={crumb.id ?? 'root'}>
-                {i > 0 && <span className="mx-1">/</span>}
+                {i > 0 && <span className="folder-picker__breadcrumb-sep">/</span>}
                 <button
                   type="button"
                   onClick={() => handleBreadcrumbClick(i)}
-                  className="hover:text-semblance-primary"
+                  className="folder-picker__breadcrumb-btn"
                 >
                   {crumb.name}
                 </button>
@@ -94,28 +93,25 @@ export function CloudFolderPicker({ provider, isOpen, onClose, onSelect, selecte
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="folder-picker__body">
           {loading ? (
-            <p className="text-xs text-semblance-text-tertiary p-4 text-center">Loading folders...</p>
+            <p className="folder-picker__empty">Loading folders...</p>
           ) : folders.length === 0 ? (
-            <p className="text-xs text-semblance-text-tertiary p-4 text-center">No folders found</p>
+            <p className="folder-picker__empty">No folders found</p>
           ) : (
-            <div className="space-y-1">
+            <div className="folder-picker__list">
               {folders.map(folder => (
-                <div
-                  key={folder.id}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-semblance-surface-1 dark:hover:bg-semblance-surface-1-dark"
-                >
+                <div key={folder.id} className="folder-picker__row">
                   <input
                     type="checkbox"
                     checked={selected.has(folder.id)}
                     onChange={() => toggleSelect(folder.id)}
-                    className="rounded border-semblance-border"
+                    className="folder-picker__checkbox"
                   />
                   <button
                     type="button"
                     onClick={() => handleNavigate(folder)}
-                    className="flex-1 text-left text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark hover:text-semblance-primary truncate"
+                    className="folder-picker__folder-btn"
                   >
                     {folder.name}
                   </button>
@@ -125,17 +121,17 @@ export function CloudFolderPicker({ provider, isOpen, onClose, onSelect, selecte
           )}
         </div>
 
-        <div className="p-4 border-t border-semblance-border dark:border-semblance-border-dark">
-          <label className="flex items-center gap-2 mb-3 text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+        <div className="folder-picker__footer">
+          <label className="folder-picker__subfolder-label">
             <input
               type="checkbox"
               checked={includeSubfolders}
               onChange={(e) => setIncludeSubfolders(e.target.checked)}
-              className="rounded border-semblance-border"
+              className="folder-picker__checkbox"
             />
             Include subfolders
           </label>
-          <div className="flex gap-2 justify-end">
+          <div className="folder-picker__footer-actions">
             <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
             <Button size="sm" onClick={handleConfirm} disabled={selected.size === 0}>
               Add {selected.size > 0 ? `(${selected.size})` : ''}

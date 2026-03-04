@@ -1,0 +1,144 @@
+/* ─── EmailCard ─── */
+
+.email-card__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.email-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.email-card__dot--high {
+  background: var(--amber);
+}
+
+.email-card__dot--normal {
+  background: var(--v);
+}
+
+.email-card__dot--low {
+  background: var(--sv3);
+}
+
+.email-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.email-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.email-card__sender {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--w-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-card__sender--unread {
+  font-weight: 600;
+}
+
+.email-card__time {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.email-card__subject {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--w-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-card__subject--unread {
+  font-weight: 500;
+}
+
+.email-card__snippet {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.email-card__badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.email-card__badge {
+  font-family: var(--fm);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--r-sm);
+  background: var(--s2);
+  color: var(--sv3);
+}
+
+.email-card__action-taken {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding-left: 20px;
+  margin-top: var(--sp-2);
+}
+
+.email-card__action-label {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  padding: 1px 8px;
+  border-radius: var(--r-sm);
+  background: rgba(110, 207, 163, 0.1);
+  color: var(--v);
+}
+
+.email-card__actions {
+  display: flex;
+  gap: var(--sp-2);
+  padding-left: 20px;
+  margin-top: var(--sp-2);
+}
+
+.email-card__action-btn {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  background: none;
+  border: none;
+  color: var(--sv3);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--eo);
+}
+
+.email-card__action-btn:hover {
+  background: var(--s2);
+}
+
+.email-card__action-btn--end {
+  margin-left: auto;
+}

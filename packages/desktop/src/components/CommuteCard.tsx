@@ -1,6 +1,7 @@
 // CommuteCard — Displays commute departure times with travel info and weather at destination.
 
 import { Card } from '@semblance/ui';
+import './CommuteCard.css';
 
 export interface CommuteCardProps {
   commutes: Array<{
@@ -20,30 +21,22 @@ export function CommuteCard({ commutes }: CommuteCardProps) {
 
   return (
     <Card>
-      <h3 className="text-sm font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
-        Commute
-      </h3>
+      <h3 className="commute-card__title">Commute</h3>
 
-      <div className="space-y-3">
+      <div className="commute-card__list">
         {commutes.map((commute, i) => (
-          <div key={i} className="p-3 rounded-md bg-semblance-surface-1 dark:bg-semblance-surface-1-dark">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-                {commute.eventTitle}
-              </span>
-              <span className="text-xs text-semblance-text-tertiary">
-                ~{commute.travelMinutes} min
-              </span>
+          <div key={i} className="commute-card__item">
+            <div className="commute-card__item-header">
+              <span className="commute-card__event-name">{commute.eventTitle}</span>
+              <span className="commute-card__duration">~{commute.travelMinutes} min</span>
             </div>
-            <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              {commute.destination}
-            </p>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs font-medium text-semblance-accent">
+            <p className="commute-card__destination">{commute.destination}</p>
+            <div className="commute-card__footer">
+              <span className="commute-card__departure">
                 Leave by {new Date(commute.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
               {commute.weather && (
-                <span className="text-xs text-semblance-text-tertiary">
+                <span className="commute-card__weather">
                   {commute.weather.temperature}&deg;C {commute.weather.conditionDescription}
                 </span>
               )}
