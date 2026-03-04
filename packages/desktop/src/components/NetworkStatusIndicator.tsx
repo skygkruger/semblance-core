@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getNetworkTrustStatus } from '../ipc/commands';
 import type { TrustStatus } from '../ipc/types';
+import './NetworkStatusIndicator.css';
 
 /**
  * Persistent Network Status Indicator
@@ -35,10 +36,10 @@ export function NetworkStatusIndicator({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs transition-colors hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark focus-visible:outline-none focus-visible:shadow-focus"
+      className="network-status"
     >
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${status.clean ? 'bg-semblance-success' : 'bg-semblance-attention'}`} />
-      <span className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark truncate">
+      <span className={`network-status__dot ${status.clean ? 'network-status__dot--clean' : 'network-status__dot--alert'}`} />
+      <span className="network-status__text">
         {status.clean
           ? `0 unauthorized${status.activeServiceCount > 0 ? ` \u00B7 ${status.activeServiceCount} service${status.activeServiceCount !== 1 ? 's' : ''}` : ''}`
           : `${status.unauthorizedCount} blocked`

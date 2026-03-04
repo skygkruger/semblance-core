@@ -1,10 +1,11 @@
 // VoiceSettingsSection — Settings section for voice interaction.
 // Toggle: voice (default OFF), model selection, voice selection,
 // speed slider, download button, storage indicator.
-// Pattern: LocationSettingsSection.tsx.
 
-import { Card, Button } from '@semblance/ui';
+import { Button } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
+import { Toggle } from './Toggle';
+import './SettingsSection.css';
 
 const SPEED_OPTIONS = [
   { value: 0.5, label: '0.5x' },
@@ -20,45 +21,6 @@ const SENSITIVITY_OPTIONS = [
   { value: 'medium' as const, label: 'Medium' },
   { value: 'high' as const, label: 'High' },
 ];
-
-function Toggle({ checked, onChange, label, description }: {
-  checked: boolean;
-  onChange: () => void;
-  label: string;
-  description?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-          {label}
-        </p>
-        {description && (
-          <p className="text-xs text-semblance-text-tertiary mt-1">
-            {description}
-          </p>
-        )}
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={onChange}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-          checked
-            ? 'bg-semblance-primary'
-            : 'bg-semblance-border dark:bg-semblance-border-dark'
-        }`}
-      >
-        <span
-          className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
-            checked ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </button>
-    </div>
-  );
-}
 
 export function VoiceSettingsSection() {
   const state = useAppState();
@@ -80,13 +42,10 @@ export function VoiceSettingsSection() {
   };
 
   return (
-    <Card>
-      <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-        Voice Interaction
-      </h2>
+    <div>
+      <h2 className="settings-section__title">Voice Interaction</h2>
 
-      <div className="space-y-4">
-        {/* Main toggle */}
+      <div className="settings-section__group">
         <Toggle
           checked={settings.enabled}
           onChange={() => updateSettings({ enabled: !settings.enabled })}
@@ -94,16 +53,13 @@ export function VoiceSettingsSection() {
           description="When enabled, Semblance can listen and speak using local Whisper.cpp (STT) and Piper (TTS). All audio stays on your device and is never saved to disk."
         />
 
-        {/* Settings (only visible when enabled) */}
         {settings.enabled && (
-          <div className="pl-4 space-y-4 border-l-2 border-semblance-border dark:border-semblance-border-dark">
+          <div className="settings-section__subgroup">
             {/* STT Model */}
             <div>
-              <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
-                Speech Recognition Model
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+              <span className="settings-section__label">Speech Recognition Model</span>
+              <div className="settings-section__row">
+                <span className="settings-section__value">
                   {settings.whisperModel ?? 'Not downloaded'}
                 </span>
                 {!settings.whisperModel && (
@@ -116,11 +72,9 @@ export function VoiceSettingsSection() {
 
             {/* TTS Voice */}
             <div>
-              <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
-                Voice
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+              <span className="settings-section__label">Voice</span>
+              <div className="settings-section__row">
+                <span className="settings-section__value">
                   {settings.piperVoice ?? 'Not downloaded'}
                 </span>
                 {!settings.piperVoice && (
@@ -133,13 +87,11 @@ export function VoiceSettingsSection() {
 
             {/* Speed */}
             <div>
-              <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
-                Speech Speed
-              </label>
+              <span className="settings-section__label">Speech Speed</span>
               <select
                 value={settings.speed}
                 onChange={(e) => updateSettings({ speed: parseFloat(e.target.value) })}
-                className="w-full px-4 py-2 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus"
+                className="settings-section__select"
               >
                 {SPEED_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -149,32 +101,28 @@ export function VoiceSettingsSection() {
 
             {/* Silence Sensitivity */}
             <div>
-              <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
-                Silence Sensitivity
-              </label>
-              <div className="flex gap-2">
+              <span className="settings-section__label">Silence Sensitivity</span>
+              <div className="settings-section__option-btns">
                 {SENSITIVITY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => updateSettings({ silenceSensitivity: opt.value })}
-                    className={`px-4 py-2 text-sm rounded-md border transition-colors duration-fast ${
-                      settings.silenceSensitivity === opt.value
-                        ? 'border-semblance-primary bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark text-semblance-primary font-medium'
-                        : 'border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:border-semblance-primary/50'
+                    className={`settings-section__option-btn${
+                      settings.silenceSensitivity === opt.value ? ' settings-section__option-btn--active' : ''
                     }`}
                   >
                     {opt.label}
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-semblance-text-tertiary mt-1">
+              <p className="settings-section__hint">
                 Higher sensitivity detects silence sooner. Lower sensitivity waits longer before ending recording.
               </p>
             </div>
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

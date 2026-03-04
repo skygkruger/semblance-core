@@ -1,0 +1,162 @@
+/* ─── AlterEgoActivationCard ─── */
+
+.alter-ego-activate {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+}
+
+.alter-ego-activate__header {
+  margin-bottom: var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--b1);
+}
+
+.alter-ego-activate__title {
+  font-family: var(--fm);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  background: linear-gradient(
+    105deg,
+    #625882 0%, #9a94b8 12%, #b8c0cc 24%,
+    #d8dde8 38%, #e4e8ee 50%, #d8dde8 62%,
+    #b8c0cc 76%, #9a94b8 88%, #625882 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
+}
+
+.alter-ego-activate__subtitle {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+  margin-top: var(--sp-1);
+}
+
+.alter-ego-activate__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.alter-ego-activate__stat {
+  padding: var(--sp-3);
+  border: 1px solid var(--b1);
+  text-align: center;
+}
+
+.alter-ego-activate__stat-value {
+  font-family: var(--fd);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--v);
+}
+
+.alter-ego-activate__stat-label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+}
+
+.alter-ego-activate__tabs {
+  display: flex;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--b1);
+}
+
+.alter-ego-activate__tab {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--sv1);
+}
+
+.alter-ego-activate__tab--active {
+  color: var(--opal-white);
+  text-decoration: underline;
+}
+
+.alter-ego-activate__domain {
+  padding: var(--sp-3);
+  border: 1px solid var(--b1);
+  margin-bottom: var(--sp-2);
+}
+
+.alter-ego-activate__domain-name {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--w-dim);
+  margin-bottom: var(--sp-1);
+}
+
+.alter-ego-activate__domain-tier {
+  font-family: var(--fm);
+  color: var(--sv1);
+}
+
+.alter-ego-activate__domain-desc {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--v);
+}
+
+.alter-ego-activate__customize-hint {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+  margin-bottom: var(--sp-2);
+}
+
+.alter-ego-activate__checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border: 1px solid var(--b1);
+  cursor: pointer;
+  margin-bottom: var(--sp-1);
+}
+
+.alter-ego-activate__checkbox-label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--w-dim);
+}
+
+.alter-ego-activate__checkbox-tier {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+  margin-left: auto;
+}
+
+.alter-ego-activate__safeguard {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--v);
+  margin-bottom: var(--sp-1);
+}
+
+.alter-ego-activate__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+

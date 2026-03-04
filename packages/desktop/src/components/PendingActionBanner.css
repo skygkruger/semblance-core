@@ -1,0 +1,123 @@
+/* ─── PendingActionBanner ─── */
+
+.pending-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.pending-action {
+  border-left: 3px solid var(--v);
+  border-radius: var(--r-lg);
+  background: var(--s1);
+  border-right: 1px solid var(--b1);
+  border-top: 1px solid var(--b1);
+  border-bottom: 1px solid var(--b1);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.pending-action__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.pending-action__desc {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--w-dim);
+}
+
+.pending-action__reasoning {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  margin-top: 2px;
+}
+
+.pending-action__preview {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.pending-action__preview-text {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  padding: var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--s1);
+  color: var(--w-dim);
+}
+
+.pending-action__preview-text--clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pending-action__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pending-action__approve-btn {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--r-md);
+  border: none;
+  background: var(--v);
+  color: var(--white);
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--eo);
+}
+
+.pending-action__approve-btn:hover {
+  opacity: 0.9;
+}
+
+.pending-action__edit-btn,
+.pending-action__reject-btn {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  padding: 6px 12px;
+  border-radius: var(--r-md);
+  border: none;
+  background: none;
+  color: var(--sv3);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--eo);
+}
+
+.pending-action__edit-btn:hover,
+.pending-action__reject-btn:hover {
+  background: var(--s2);
+}
+
+.pending-action__approval-hint {
+  font-family: var(--fb);
+  font-size: 11px;
+  color: var(--sv3);
+}
+
+.pending-action__approval-success {
+  color: var(--v);
+}
+
+.pending-actions__count {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  text-align: center;
+}

@@ -1,0 +1,107 @@
+/* ─── FilterPanel ─── */
+
+.filter-panel {
+  width: 240px;
+  background: var(--bg);
+  border-right: 1px solid var(--b2);
+  padding: var(--sp-4);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-panel__title {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--w-dim);
+  margin-bottom: var(--sp-3);
+}
+
+.filter-panel__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 6px var(--sp-2);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--eo);
+}
+
+.filter-panel__row--disabled {
+  opacity: 0.4;
+}
+
+.filter-panel__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-full);
+  flex-shrink: 0;
+}
+
+.filter-panel__label {
+  flex: 1;
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+}
+
+.filter-panel__count {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--sv1);
+  margin-right: var(--sp-2);
+}
+
+.filter-panel__toggle {
+  width: 28px;
+  height: 16px;
+  border-radius: var(--r-full);
+  position: relative;
+  transition: background-color var(--duration-fast) var(--eo);
+  flex-shrink: 0;
+}
+
+.filter-panel__toggle--on {
+  background: var(--v);
+}
+
+.filter-panel__toggle--off {
+  background: var(--s2);
+}
+
+.filter-panel__toggle-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--r-full);
+  background: var(--w-dim);
+  position: absolute;
+  top: 2px;
+  transition: left var(--duration-fast) var(--eo);
+}
+
+.filter-panel__toggle--on .filter-panel__toggle-thumb {
+  left: 14px;
+}
+
+.filter-panel__toggle--off .filter-panel__toggle-thumb {
+  left: 2px;
+}
+
+.filter-panel__reset {
+  margin-top: var(--sp-3);
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--b2);
+  border-radius: var(--r-sm);
+  color: var(--sv3);
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--eo);
+}
+
+.filter-panel__reset:hover {
+  border-color: var(--v);
+}

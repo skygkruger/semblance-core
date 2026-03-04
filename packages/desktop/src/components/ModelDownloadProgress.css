@@ -1,0 +1,70 @@
+/* ─── ModelDownloadProgress ─── */
+
+.model-download {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  width: 100%;
+}
+
+.model-download__item {
+  text-align: left;
+}
+
+.model-download__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-1);
+}
+
+.model-download__name {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--w-dim);
+}
+
+.model-download__percent {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+}
+
+.model-download__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+  margin-top: var(--sp-1);
+}
+
+.model-download__complete {
+  color: var(--v);
+}
+
+.model-download__error-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.model-download__error-text {
+  color: var(--rust);
+}
+
+.model-download__retry {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--v);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.model-download__retry:hover {
+  text-decoration: underline;
+}

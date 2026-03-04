@@ -1,0 +1,80 @@
+/* ─── HardwareProfileDisplay ─── */
+
+.hw-profile__compact {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.hw-profile__compact-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--v);
+}
+
+.hw-profile__compact-text {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+}
+
+.hw-profile__full {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.hw-profile__header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.hw-profile__icon {
+  width: 32px;
+  height: 32px;
+  color: var(--v);
+}
+
+.hw-profile__tier-name {
+  font-family: var(--fb);
+  font-weight: 600;
+  color: var(--w-dim);
+}
+
+.hw-profile__tier-desc {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+}
+
+.hw-profile__specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+.hw-profile__spec {
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--s1);
+}
+
+.hw-profile__spec--wide {
+  grid-column: span 2;
+}
+
+.hw-profile__spec-label {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+}
+
+.hw-profile__spec-value {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--w-dim);
+}

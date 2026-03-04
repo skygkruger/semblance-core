@@ -4,6 +4,7 @@
  */
 
 import { ProgressBar } from '@semblance/ui';
+import './ModelDownloadProgress.css';
 
 export interface ModelDownloadState {
   modelName: string;
@@ -50,7 +51,7 @@ export function ModelDownloadProgress({
   if (downloads.length === 0) return null;
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="model-download">
       {downloads.map((dl) => {
         const percent = dl.totalBytes > 0
           ? Math.round((dl.downloadedBytes / dl.totalBytes) * 100)
@@ -58,12 +59,10 @@ export function ModelDownloadProgress({
         const remaining = dl.totalBytes - dl.downloadedBytes;
 
         return (
-          <div key={dl.modelName} className="text-left">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-                {dl.modelName}
-              </span>
-              <span className="text-xs text-semblance-text-tertiary">
+          <div key={dl.modelName} className="model-download__item">
+            <div className="model-download__header">
+              <span className="model-download__name">{dl.modelName}</span>
+              <span className="model-download__percent">
                 {dl.status === 'downloading' ? `${percent}%` : STATUS_LABELS[dl.status]}
               </span>
             </div>
@@ -72,10 +71,9 @@ export function ModelDownloadProgress({
               value={percent}
               max={100}
               indeterminate={dl.status === 'verifying' || dl.status === 'pending'}
-              className="mb-1"
             />
 
-            <div className="flex items-center justify-between text-xs text-semblance-text-tertiary">
+            <div className="model-download__meta">
               {dl.status === 'downloading' && (
                 <>
                   <span>
@@ -86,16 +84,16 @@ export function ModelDownloadProgress({
                 </>
               )}
               {dl.status === 'complete' && (
-                <span className="text-semblance-success">{formatBytes(dl.totalBytes)}</span>
+                <span className="model-download__complete">{formatBytes(dl.totalBytes)}</span>
               )}
               {dl.status === 'error' && (
-                <div className="flex items-center gap-2">
-                  <span className="text-semblance-error">{dl.error || 'Unknown error'}</span>
+                <div className="model-download__error-row">
+                  <span className="model-download__error-text">{dl.error || 'Unknown error'}</span>
                   {onRetry && (
                     <button
                       type="button"
                       onClick={() => onRetry(dl.modelName)}
-                      className="text-semblance-primary hover:underline"
+                      className="model-download__retry"
                     >
                       Retry
                     </button>

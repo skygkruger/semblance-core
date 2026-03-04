@@ -1,0 +1,47 @@
+/* ─── NetworkStatusIndicator ─── */
+
+.network-status {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--eo);
+}
+
+.network-status:hover {
+  background: var(--s2);
+}
+
+.network-status:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(110, 207, 163, 0.3);
+}
+
+.network-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  flex-shrink: 0;
+}
+
+.network-status__dot--clean {
+  background: var(--v);
+}
+
+.network-status__dot--alert {
+  background: var(--amber);
+}
+
+.network-status__text {
+  color: var(--sv3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

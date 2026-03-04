@@ -1,12 +1,12 @@
 /**
  * KnowledgeGraphView — Main view for the Visual Knowledge Graph.
  *
- * Header with stats/export buttons. ForceGraph in center. Time slider below.
- * Node detail panel (shown on node click).
+ * Wraps the semblance-ui KnowledgeGraph with desktop-specific chrome:
+ * header bar, filter panel, time slider, stats overlay, node detail panel.
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { ForceGraph } from './d3/ForceGraph';
+import { KnowledgeGraph } from '@semblance/ui';
 import { FilterPanel } from './FilterPanel';
 import type {
   VisualizationGraph,
@@ -18,7 +18,9 @@ import type {
   CategoryEdge,
 } from '../../../core/knowledge/graph-visualization';
 import type { VisualizationCategory } from '../../../core/knowledge/connector-category-map';
-import { getAllCategories, CATEGORY_META } from '../../../core/knowledge/connector-category-map';
+import { getAllCategories } from '../../../core/knowledge/connector-category-map';
+import type { KnowledgeNode, KnowledgeEdge } from '@semblance/ui';
+import './KnowledgeGraphView.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +54,6 @@ export const StatsOverlay: React.FC<StatsOverlayProps> = ({ stats, visible }) =>
     ? Math.round((stats.activeSources / stats.totalSources) * 100)
     : null;
 
-  // Build a simple bar indicator
   const barLength = 12;
   const filledBars = activeSourcesPct != null
     ? Math.round((activeSourcesPct / 100) * barLength)
@@ -62,39 +63,22 @@ export const StatsOverlay: React.FC<StatsOverlayProps> = ({ stats, visible }) =>
     : null;
 
   return (
-    <div
-      data-testid="stats-overlay"
-      style={{
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        padding: '12px 16px',
-        background: 'rgba(26, 26, 46, 0.9)',
-        border: '1px solid #3a3a5e',
-        borderRadius: 4,
-        color: '#E2E4E9',
-        fontFamily: 'JetBrains Mono, Fira Code, monospace',
-        fontSize: 12,
-        minWidth: 220,
-      }}
-    >
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>Your Knowledge Graph</div>
+    <div data-testid="stats-overlay" className="kg-view__stats">
+      <div className="kg-view__stats-title">Your Knowledge Graph</div>
       <div>{stats.totalNodes.toLocaleString()} entities | {stats.totalEdges.toLocaleString()} connections</div>
       {stats.activeSources != null && stats.totalSources != null && (
-        <div style={{ marginTop: 4 }}>
+        <div className="kg-view__stats-row">
           Active sources: {stats.activeSources} of {stats.totalSources}  {bar} {activeSourcesPct}%
         </div>
       )}
       {stats.mostConnectedNode && (
-        <div style={{ marginTop: 4 }}>
-          Most connected: {stats.mostConnectedNode.label}
-        </div>
+        <div className="kg-view__stats-row">Most connected: {stats.mostConnectedNode.label}</div>
       )}
       {stats.fastestGrowingCategory && (
-        <div>Fastest growing: {stats.fastestGrowingCategory}</div>
+        <div className="kg-view__stats-row">Fastest growing: {stats.fastestGrowingCategory}</div>
       )}
       {stats.crossDomainInsights != null && (
-        <div>Cross-domain insights: {stats.crossDomainInsights.toLocaleString()}</div>
+        <div className="kg-view__stats-row">Cross-domain insights: {stats.crossDomainInsights.toLocaleString()}</div>
       )}
     </div>
   );
@@ -107,43 +91,25 @@ interface NodeDetailPanelProps {
 
 export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({ context, onClose }) => {
   return (
-    <div
-      data-testid="node-detail-panel"
-      style={{
-        position: 'absolute',
-        right: 0,
-        top: 0,
-        bottom: 0,
-        width: 300,
-        background: 'rgba(26, 26, 46, 0.95)',
-        borderLeft: '1px solid #3a3a5e',
-        padding: 16,
-        color: '#E2E4E9',
-        fontFamily: 'JetBrains Mono, Fira Code, monospace',
-        fontSize: 12,
-        overflowY: 'auto',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <span style={{ fontWeight: 600, fontSize: 14 }}>{context.node.label}</span>
-        <button onClick={onClose} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#E2E4E9' }}>x</button>
+    <div data-testid="node-detail-panel" className="kg-view__detail">
+      <div className="kg-view__detail-header">
+        <span className="kg-view__detail-name">{context.node.label}</span>
+        <button onClick={onClose} className="kg-view__detail-close">x</button>
       </div>
-      <div style={{ marginBottom: 8, color: '#6e6a86' }}>Type: {context.node.type}</div>
-      <div style={{ marginBottom: 8, color: '#6e6a86' }}>Domain: {context.node.domain}</div>
-      <div style={{ marginBottom: 12 }}>Connections: {context.connections.length}</div>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>Connected To:</div>
+      <div className="kg-view__detail-meta">Type: {context.node.type}</div>
+      <div className="kg-view__detail-meta">Domain: {context.node.domain}</div>
+      <div>Connections: {context.connections.length}</div>
+      <div className="kg-view__detail-section">Connected To:</div>
       {context.connections.slice(0, 15).map(conn => (
-        <div key={conn.node.id} style={{ marginBottom: 4, paddingLeft: 8 }}>
-          {conn.node.label} <span style={{ color: '#6e6a86' }}>({conn.edge.label})</span>
+        <div key={conn.node.id} className="kg-view__detail-conn">
+          {conn.node.label} <span className="kg-view__detail-conn-label">({conn.edge.label})</span>
         </div>
       ))}
       {context.recentActivity.length > 0 && (
         <>
-          <div style={{ fontWeight: 600, marginTop: 12, marginBottom: 8 }}>Activity:</div>
+          <div className="kg-view__detail-section">Activity:</div>
           {context.recentActivity.map((act, i) => (
-            <div key={i} style={{ marginBottom: 4, paddingLeft: 8, color: '#6e6a86' }}>
-              {act}
-            </div>
+            <div key={i} className="kg-view__detail-activity">{act}</div>
           ))}
         </>
       )}
@@ -181,51 +147,34 @@ export const TimeSlider: React.FC<TimeSliderProps> = ({ nodes, range, onChange }
   }, [minDate, maxDate, range, onChange]);
 
   return (
-    <div
-      data-testid="time-slider"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '8px 16px',
-        background: 'rgba(26, 26, 46, 0.7)',
-        borderTop: '1px solid #3a3a5e',
-        fontFamily: 'JetBrains Mono, Fira Code, monospace',
-        fontSize: 11,
-        color: '#6e6a86',
-      }}
-    >
+    <div data-testid="time-slider" className="kg-view__time-slider">
       <span>Time range:</span>
-      <input
-        type="range"
-        min={0}
-        max={100}
-        defaultValue={0}
-        onChange={handleMinChange}
-        style={{ flex: 1 }}
-        data-testid="time-slider-min"
-      />
-      <input
-        type="range"
-        min={0}
-        max={100}
-        defaultValue={100}
-        onChange={handleMaxChange}
-        style={{ flex: 1 }}
-        data-testid="time-slider-max"
-      />
+      <input type="range" min={0} max={100} defaultValue={0} onChange={handleMinChange} data-testid="time-slider-min" />
+      <input type="range" min={0} max={100} defaultValue={100} onChange={handleMaxChange} data-testid="time-slider-max" />
     </div>
   );
 };
 
 // ─── Display Graph Builder ──────────────────────────────────────────────────
 
-/**
- * Build the display-ready graph by collapsing/expanding categories.
- * - Collapsed category → single synthetic node (type='category')
- * - Expanded category → entity nodes from that category
- * - Disabled category → removed entirely
- */
+function toKnowledgeNode(n: VisualizationNode): KnowledgeNode {
+  return {
+    id: n.id,
+    type: n.type === 'person' ? 'person'
+      : n.type === 'event' ? 'calendar'
+      : n.type === 'document' ? 'file'
+      : n.type === 'category' ? 'category'
+      : 'topic',
+    label: n.label,
+    weight: n.size,
+    metadata: n.metadata,
+  };
+}
+
+function toKnowledgeEdge(e: VisualizationEdge): KnowledgeEdge {
+  return { source: e.sourceId, target: e.targetId, weight: e.weight };
+}
+
 export function buildDisplayGraph(
   categoryGraph: VisualizationGraphV2 | null,
   fallbackGraph: VisualizationGraph,
@@ -239,12 +188,10 @@ export function buildDisplayGraph(
   const nodes: VisualizationNode[] = [];
   const nodeIdSet = new Set<string>();
 
-  // Process each category node
   for (const catNode of categoryGraph.categoryNodes) {
     if (!enabled.has(catNode.category)) continue;
 
     if (expanded.has(catNode.category)) {
-      // Expanded: inject entity nodes
       for (const nodeId of catNode.nodeIds) {
         const entityNode = categoryGraph.nodes.find(n => n.id === nodeId);
         if (entityNode) {
@@ -253,7 +200,6 @@ export function buildDisplayGraph(
         }
       }
     } else {
-      // Collapsed: synthetic category node
       const syntheticNode: VisualizationNode = {
         id: catNode.id,
         label: catNode.label,
@@ -273,12 +219,10 @@ export function buildDisplayGraph(
     }
   }
 
-  // Build edges
   const edges: VisualizationEdge[] = [];
   const edgeKeys = new Set<string>();
 
-  // Build category-to-nodeIds lookup for collapsed categories
-  const collapsedCatNodeMap = new Map<string, string>(); // entity nodeId → cat node id
+  const collapsedCatNodeMap = new Map<string, string>();
   for (const catNode of categoryGraph.categoryNodes) {
     if (!enabled.has(catNode.category) || expanded.has(catNode.category)) continue;
     for (const nid of catNode.nodeIds) {
@@ -287,22 +231,13 @@ export function buildDisplayGraph(
   }
 
   for (const edge of categoryGraph.edges) {
-    // Resolve source/target to display graph node IDs
     let srcId = edge.sourceId;
     let tgtId = edge.targetId;
 
-    // If source node is in a collapsed category, redirect to category node
-    if (collapsedCatNodeMap.has(srcId)) {
-      srcId = collapsedCatNodeMap.get(srcId)!;
-    }
-    if (collapsedCatNodeMap.has(tgtId)) {
-      tgtId = collapsedCatNodeMap.get(tgtId)!;
-    }
+    if (collapsedCatNodeMap.has(srcId)) srcId = collapsedCatNodeMap.get(srcId)!;
+    if (collapsedCatNodeMap.has(tgtId)) tgtId = collapsedCatNodeMap.get(tgtId)!;
 
-    // Both endpoints must be in the display graph
     if (!nodeIdSet.has(srcId) || !nodeIdSet.has(tgtId)) continue;
-
-    // Skip self-loops (same collapsed category)
     if (srcId === tgtId) continue;
 
     const key = [srcId, tgtId].sort().join('::');
@@ -318,7 +253,6 @@ export function buildDisplayGraph(
     });
   }
 
-  // Add category-level edges for collapsed↔collapsed pairs
   for (const catEdge of categoryGraph.categoryEdges) {
     if (!nodeIdSet.has(catEdge.sourceCategoryId) || !nodeIdSet.has(catEdge.targetCategoryId)) continue;
 
@@ -345,7 +279,6 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   categoryGraph,
   onExport,
   onNodeSelect,
-  onNavigateToConnections,
   nodeContext,
   width = 1200,
   height = 800,
@@ -353,7 +286,6 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   const [showStats, setShowStats] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<[string, string]>(['', '']);
   const [enabledCategories, setEnabledCategories] = useState<Set<VisualizationCategory>>(
     () => new Set(getAllCategories()),
@@ -365,11 +297,8 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   const handleToggleCategory = useCallback((category: VisualizationCategory) => {
     setEnabledCategories(prev => {
       const next = new Set(prev);
-      if (next.has(category)) {
-        next.delete(category);
-      } else {
-        next.add(category);
-      }
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
       return next;
     });
   }, []);
@@ -378,20 +307,6 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
     setEnabledCategories(new Set(getAllCategories()));
   }, []);
 
-  const handleCategoryClick = useCallback((categoryId: string) => {
-    const cat = categoryId.replace('cat_', '') as VisualizationCategory;
-    setExpandedCategories(prev => {
-      const next = new Set(prev);
-      if (next.has(cat)) {
-        next.delete(cat);
-      } else {
-        next.add(cat);
-      }
-      return next;
-    });
-  }, []);
-
-  // Build display graph — handles category collapse/expand/filter
   const displayGraph = useMemo(() => {
     return buildDisplayGraph(
       categoryGraph ?? null,
@@ -401,7 +316,6 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
     );
   }, [categoryGraph, graph, enabledCategories, expandedCategories]);
 
-  // Filter nodes by time range
   const filteredNodes = useMemo(() => {
     if (!timeRange[0] && !timeRange[1]) return displayGraph.nodes;
     return displayGraph.nodes.filter(n => {
@@ -426,84 +340,33 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
     onNodeSelect?.(nodeId);
   }, [onNodeSelect]);
 
-  const handleNodeHover = useCallback((nodeId: string | null) => {
-    setHoveredNodeId(nodeId);
-  }, []);
-
   const graphWidth = showFilter ? width - 240 : width;
 
+  // Convert to semblance-ui KnowledgeGraph format
+  const kgNodes = useMemo(() => filteredNodes.map(toKnowledgeNode), [filteredNodes]);
+  const kgEdges = useMemo(() => filteredEdges.map(toKnowledgeEdge), [filteredEdges]);
+
   return (
-    <div
-      data-testid="knowledge-graph-view"
-      style={{ position: 'relative', width, height: height + 48, background: '#1a1a2e' }}
-    >
+    <div data-testid="knowledge-graph-view" className="kg-view" style={{ width, height: height + 48 }}>
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '8px 16px',
-          borderBottom: '1px solid #3a3a5e',
-          fontFamily: 'JetBrains Mono, Fira Code, monospace',
-          fontSize: 13,
-          color: '#E2E4E9',
-        }}
-      >
-        <span style={{ fontWeight: 600 }}>Knowledge Graph</span>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => setShowFilter(prev => !prev)}
-            style={{
-              padding: '4px 12px',
-              background: 'transparent',
-              border: '1px solid #3a3a5e',
-              color: '#E2E4E9',
-              fontFamily: 'inherit',
-              fontSize: 11,
-              cursor: 'pointer',
-            }}
-            data-testid="filter-toggle"
-          >
+      <div className="kg-view__header">
+        <span className="kg-view__title">Knowledge Graph</span>
+        <div className="kg-view__controls">
+          <button onClick={() => setShowFilter(prev => !prev)} className="kg-view__control-btn" data-testid="filter-toggle">
             [Filter]
           </button>
-          <button
-            onClick={() => setShowStats(prev => !prev)}
-            style={{
-              padding: '4px 12px',
-              background: 'transparent',
-              border: '1px solid #3a3a5e',
-              color: '#E2E4E9',
-              fontFamily: 'inherit',
-              fontSize: 11,
-              cursor: 'pointer',
-            }}
-            data-testid="stats-toggle"
-          >
+          <button onClick={() => setShowStats(prev => !prev)} className="kg-view__control-btn" data-testid="stats-toggle">
             [Stats]
           </button>
           {onExport && (
-            <button
-              onClick={onExport}
-              style={{
-                padding: '4px 12px',
-                background: 'transparent',
-                border: '1px solid #3a3a5e',
-                color: '#E2E4E9',
-                fontFamily: 'inherit',
-                fontSize: 11,
-                cursor: 'pointer',
-              }}
-              data-testid="export-button"
-            >
+            <button onClick={onExport} className="kg-view__control-btn" data-testid="export-button">
               [Export]
             </button>
           )}
         </div>
       </div>
 
-      <div style={{ display: 'flex', flex: 1 }}>
-        {/* Filter Panel */}
+      <div className="kg-view__body">
         {showFilter && categoryGraph && (
           <FilterPanel
             categories={categoryGraph.categoryNodes}
@@ -513,38 +376,22 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
           />
         )}
 
-        {/* Graph */}
         <div style={{ flex: 1 }}>
-          <ForceGraph
-            nodes={filteredNodes}
-            edges={filteredEdges}
-            clusters={graph.clusters}
+          <KnowledgeGraph
+            nodes={kgNodes}
+            edges={kgEdges}
             width={graphWidth}
             height={height - 80}
-            onNodeClick={handleNodeClick}
-            onNodeHover={handleNodeHover}
-            onCategoryClick={handleCategoryClick}
-            onNavigateToConnections={onNavigateToConnections}
+            onNodeSelect={(node) => node && handleNodeClick(node.id)}
           />
         </div>
       </div>
 
-      {/* Time Slider */}
-      <TimeSlider
-        nodes={graph.nodes}
-        range={timeRange}
-        onChange={setTimeRange}
-      />
-
-      {/* Stats Overlay */}
+      <TimeSlider nodes={graph.nodes} range={timeRange} onChange={setTimeRange} />
       <StatsOverlay stats={categoryGraph?.stats ?? graph.stats} visible={showStats} />
 
-      {/* Node Detail Panel */}
       {nodeContext && selectedNodeId && (
-        <NodeDetailPanel
-          context={nodeContext}
-          onClose={() => setSelectedNodeId(null)}
-        />
+        <NodeDetailPanel context={nodeContext} onClose={() => setSelectedNodeId(null)} />
       )}
     </div>
   );

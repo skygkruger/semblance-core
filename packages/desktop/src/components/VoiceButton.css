@@ -1,0 +1,74 @@
+/* ─── VoiceButton ─── */
+
+.voice-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-full);
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--eo);
+  outline: none;
+  background: var(--s2);
+  color: var(--sv3);
+}
+
+.voice-btn:hover {
+  background: var(--s1);
+}
+
+.voice-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(110, 207, 163, 0.4);
+}
+
+.voice-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voice-btn--active {
+  background: var(--rust);
+  color: var(--white);
+  transform: scale(1.1);
+}
+
+.voice-btn--error {
+  background: rgba(201, 123, 110, 0.2);
+  color: var(--rust);
+}
+
+/* Pulse ring for listening */
+.voice-btn__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-full);
+  background: rgba(201, 123, 110, 0.3);
+  animation: voice-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes voice-ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Processing spinner */
+.voice-btn__spinner {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-full);
+  border: 2px solid var(--v);
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+.voice-btn__icon {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  z-index: 1;
+}

@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Card, Button, StatusIndicator } from '@semblance/ui';
+import { Button, StatusIndicator } from '@semblance/ui';
 import { cloudStorageConnect, cloudStorageDisconnect, cloudStorageSyncNow, cloudStorageSetInterval, cloudStorageSetMaxFileSize } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
+import './SettingsSection.css';
 
 export function CloudStorageSettingsSection() {
   const state = useAppState();
@@ -106,20 +107,16 @@ export function CloudStorageSettingsSection() {
   );
 
   return (
-    <Card>
-      <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
-        Cloud Storage
-      </h2>
+    <div>
+      <h2 className="settings-section__title">Cloud Storage</h2>
 
       {/* Provider Cards */}
-      <div className="space-y-3 mb-4">
-        <div className="flex items-center gap-3 p-3 rounded-md bg-semblance-surface-1 dark:bg-semblance-surface-1-dark">
+      <div className="settings-section__group" style={{ marginBottom: 'var(--sp-4)' }}>
+        <div className={`settings-section__provider-row${cloudStorageSettings.connected ? '' : ''}`}>
           <StatusIndicator status={cloudStorageSettings.connected ? 'success' : 'muted'} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-              Google Drive
-            </p>
-            <p className="text-xs text-semblance-text-tertiary">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p className="settings-section__provider-name">Google Drive</p>
+            <p className="settings-section__provider-status">
               {cloudStorageSettings.connected
                 ? `Connected as ${cloudStorageSettings.userEmail}`
                 : 'Not connected'}
@@ -136,15 +133,12 @@ export function CloudStorageSettingsSection() {
           )}
         </div>
 
-        {/* Coming soon providers */}
         {(['Dropbox', 'OneDrive'] as const).map((name) => (
-          <div key={name} className="flex items-center gap-3 p-3 rounded-md bg-semblance-surface-1 dark:bg-semblance-surface-1-dark opacity-50">
+          <div key={name} className="settings-section__provider-row settings-section__provider-row--disabled">
             <StatusIndicator status="muted" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-                {name}
-              </p>
-              <p className="text-xs text-semblance-text-tertiary">Coming soon</p>
+            <div style={{ flex: 1 }}>
+              <p className="settings-section__provider-name">{name}</p>
+              <p className="settings-section__provider-status">Coming soon</p>
             </div>
           </div>
         ))}
@@ -152,18 +146,18 @@ export function CloudStorageSettingsSection() {
 
       {/* Storage Usage Bar */}
       {cloudStorageSettings.connected && (
-        <div className="mb-4">
-          <div className="flex justify-between text-xs text-semblance-text-tertiary mb-1">
+        <div style={{ marginBottom: 'var(--sp-4)' }}>
+          <div className="settings-section__usage-labels">
             <span>{formatBytes(cloudStorageSettings.storageUsedBytes)} used</span>
             <span>{cloudStorageSettings.storageBudgetGB} GB budget</span>
           </div>
-          <div className="w-full h-2 bg-semblance-surface-2 dark:bg-semblance-surface-2-dark rounded-full overflow-hidden">
+          <div className="settings-section__usage-bar">
             <div
-              className="h-full bg-semblance-primary rounded-full transition-all duration-medium"
+              className="settings-section__usage-fill"
               style={{ width: `${usagePercent}%` }}
             />
           </div>
-          <p className="text-xs text-semblance-text-tertiary mt-1">
+          <p className="settings-section__usage-meta">
             {cloudStorageSettings.filesSynced} files synced
             {cloudStorageSettings.lastSyncedAt && (
               <> &middot; Last sync: {new Date(cloudStorageSettings.lastSyncedAt).toLocaleString()}</>
@@ -174,15 +168,14 @@ export function CloudStorageSettingsSection() {
 
       {/* Sync Controls */}
       {cloudStorageSettings.connected && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider">
-              Sync Interval
-            </label>
+        <div className="settings-section__group">
+          <div className="settings-section__row">
+            <span className="settings-section__label" style={{ marginBottom: 0 }}>Sync Interval</span>
             <select
               value={syncInterval}
               onChange={(e) => handleSyncIntervalChange(parseInt(e.target.value, 10))}
-              className="px-3 py-1.5 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark"
+              className="settings-section__select"
+              style={{ width: 'auto' }}
             >
               <option value={15}>Every 15 minutes</option>
               <option value={30}>Every 30 minutes</option>
@@ -191,14 +184,13 @@ export function CloudStorageSettingsSection() {
             </select>
           </div>
 
-          <div className="flex items-center gap-3">
-            <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider">
-              Max File Size
-            </label>
+          <div className="settings-section__row">
+            <span className="settings-section__label" style={{ marginBottom: 0 }}>Max File Size</span>
             <select
               value={maxFileSize}
               onChange={(e) => handleMaxFileSizeChange(parseInt(e.target.value, 10))}
-              className="px-3 py-1.5 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark"
+              className="settings-section__select"
+              style={{ width: 'auto' }}
             >
               <option value={10}>10 MB</option>
               <option value={25}>25 MB</option>
@@ -212,6 +204,6 @@ export function CloudStorageSettingsSection() {
           </Button>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

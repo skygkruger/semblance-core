@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import './UpdateChecker.css';
 
 interface UpdateState {
   status: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error' | 'dismissed';
@@ -122,25 +123,17 @@ export function UpdateChecker() {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-4 py-2 bg-semblance-primary/10 dark:bg-semblance-primary/15 border-b border-semblance-primary/20 backdrop-blur-sm">
-      <div className="flex items-center gap-3 text-sm">
+    <div className="update-banner">
+      <div className="update-banner__inner">
         {state.status === 'available' && (
           <>
-            <span className="text-semblance-text-primary dark:text-semblance-text-primary-dark">
+            <span className="update-banner__text">
               Semblance {state.version} available
             </span>
-            <button
-              type="button"
-              onClick={handleUpdate}
-              className="px-3 py-1 text-xs font-medium rounded-md bg-semblance-primary text-white hover:bg-semblance-primary/90 transition-colors"
-            >
+            <button type="button" onClick={handleUpdate} className="update-banner__primary-btn">
               Update
             </button>
-            <button
-              type="button"
-              onClick={handleDismiss}
-              className="px-2 py-1 text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:text-semblance-text-primary dark:hover:text-semblance-text-primary-dark transition-colors"
-            >
+            <button type="button" onClick={handleDismiss} className="update-banner__ghost-btn">
               Dismiss
             </button>
           </>
@@ -148,38 +141,24 @@ export function UpdateChecker() {
 
         {state.status === 'downloading' && (
           <>
-            <span className="text-semblance-text-primary dark:text-semblance-text-primary-dark">
-              Downloading update...
-            </span>
-            <div className="w-32 h-1.5 bg-semblance-surface-2 dark:bg-semblance-surface-2-dark rounded-full overflow-hidden">
+            <span className="update-banner__text">Downloading update...</span>
+            <div className="update-banner__progress-track">
               <div
-                className="h-full bg-semblance-primary rounded-full transition-all duration-300"
+                className="update-banner__progress-fill"
                 style={{ width: `${state.progress ?? 0}%` }}
               />
             </div>
-            <span className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              {state.progress ?? 0}%
-            </span>
+            <span className="update-banner__percent">{state.progress ?? 0}%</span>
           </>
         )}
 
         {state.status === 'ready' && (
           <>
-            <span className="text-semblance-text-primary dark:text-semblance-text-primary-dark">
-              Update ready. Restart to apply.
-            </span>
-            <button
-              type="button"
-              onClick={handleRelaunch}
-              className="px-3 py-1 text-xs font-medium rounded-md bg-semblance-primary text-white hover:bg-semblance-primary/90 transition-colors"
-            >
+            <span className="update-banner__text">Update ready. Restart to apply.</span>
+            <button type="button" onClick={handleRelaunch} className="update-banner__primary-btn">
               Restart Now
             </button>
-            <button
-              type="button"
-              onClick={handleDismiss}
-              className="px-2 py-1 text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:text-semblance-text-primary dark:hover:text-semblance-text-primary-dark transition-colors"
-            >
+            <button type="button" onClick={handleDismiss} className="update-banner__ghost-btn">
               Later
             </button>
           </>
@@ -187,12 +166,8 @@ export function UpdateChecker() {
 
         {state.status === 'error' && (
           <>
-            <span className="text-red-400">Update failed: {state.error}</span>
-            <button
-              type="button"
-              onClick={handleDismiss}
-              className="px-2 py-1 text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:text-semblance-text-primary dark:hover:text-semblance-text-primary-dark transition-colors"
-            >
+            <span className="update-banner__error">Update failed: {state.error}</span>
+            <button type="button" onClick={handleDismiss} className="update-banner__ghost-btn">
               Dismiss
             </button>
           </>

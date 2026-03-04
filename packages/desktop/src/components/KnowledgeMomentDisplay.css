@@ -1,0 +1,131 @@
+/* ─── KnowledgeMomentDisplay ─── */
+
+.km-display {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
+.km-display__sources {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-6);
+}
+
+.km-display__source {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.km-display__source-icon {
+  width: 20px;
+  height: 20px;
+  transition: opacity 800ms ease-out;
+}
+
+.km-display__source-icon--inactive {
+  opacity: 0.3;
+  color: var(--sv1);
+}
+
+.km-display__source-icon--active {
+  opacity: 1;
+  color: var(--v);
+}
+
+.km-display__source-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--sv1);
+}
+
+.km-display__card {
+  padding: var(--sp-4);
+  border-radius: var(--r-lg);
+  background: rgba(22, 27, 34, 0.5);
+  border: 1px solid var(--b1);
+}
+
+.km-display__card-title {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--w-dim);
+}
+
+.km-display__card-meta {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+  margin-top: var(--sp-1);
+}
+
+.km-display__email-count {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--w-dim);
+}
+
+.km-display__email-name {
+  font-weight: 500;
+}
+
+.km-display__email-latest {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+  margin-top: var(--sp-1);
+}
+
+.km-display__unanswered {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--amber);
+  margin-top: var(--sp-1);
+}
+
+.km-display__docs-label {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+  margin-bottom: var(--sp-2);
+}
+
+.km-display__doc-name {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--w-dim);
+}
+
+.km-display__message {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--sv3);
+  text-align: center;
+}
+
+.km-display__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+/* Reveal animation stages */
+.km-display__reveal {
+  transition: opacity 800ms ease-out, transform 800ms ease-out;
+}
+
+.km-display__reveal--hidden {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.km-display__reveal--visible {
+  opacity: 1;
+  transform: translateY(0);
+}

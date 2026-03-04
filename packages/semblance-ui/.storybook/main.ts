@@ -22,6 +22,12 @@ const config: StorybookConfig = {
   staticDirs: ['../public'],
   async viteFinal(config) {
     config.resolve = config.resolve || {};
+    // Resolve @semblance/ui to source so desktop stories work without a build step.
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@semblance/ui': path.resolve(__dirname, '../index.ts'),
+    };
+
     // Prefer .web.tsx/.web.ts so bare imports (e.g. './Button') resolve to
     // the web variant (Button.web.tsx) when both .web.tsx and .native.tsx exist.
     config.resolve.extensions = [

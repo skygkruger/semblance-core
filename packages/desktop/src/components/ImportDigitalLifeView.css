@@ -1,0 +1,152 @@
+/* ─── ImportDigitalLifeView ─── */
+
+.import-life {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  padding: var(--sp-4);
+}
+
+.import-life__title {
+  font-family: var(--fd);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--v);
+}
+
+.import-life__subtitle {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+  margin-top: var(--sp-1);
+}
+
+/* Progress */
+.import-life__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.import-life__progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+}
+
+.import-life__progress-phase {
+  font-weight: 500;
+  color: var(--v);
+}
+
+.import-life__progress-count {
+  color: var(--sv3);
+}
+
+.import-life__progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--s2);
+  overflow: hidden;
+}
+
+.import-life__progress-fill {
+  height: 100%;
+  border-radius: var(--r-full);
+  background: var(--v);
+  transition: width var(--duration-base) var(--eo);
+}
+
+/* Source cards */
+.import-life__sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.import-life__source {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.import-life__source--locked {
+  opacity: 0.6;
+}
+
+.import-life__source-name {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--w-dim);
+}
+
+.import-life__source-desc {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+  margin-top: var(--sp-1);
+}
+
+.import-life__source-formats {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+  margin-top: var(--sp-1);
+}
+
+.import-life__source-consent {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  font-style: italic;
+  margin-top: var(--sp-2);
+}
+
+.import-life__source-side {
+  margin-left: var(--sp-4);
+  flex-shrink: 0;
+}
+
+.import-life__locked-label {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+  white-space: nowrap;
+}
+
+/* Import history */
+.import-life__history-title {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--w-dim);
+  margin-bottom: var(--sp-2);
+}
+
+.import-life__history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.import-life__history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--s2);
+  border-radius: var(--r-md);
+}
+
+.import-life__history-source {
+  color: var(--w-dim);
+}
+
+.import-life__history-meta {
+  color: var(--sv3);
+}
