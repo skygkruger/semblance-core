@@ -15,7 +15,8 @@ import {
 import { WireframeSpinner } from '../WireframeSpinner/WireframeSpinner';
 import type { AgentInputProps, AttachmentPill } from './AgentInput.types';
 import { PLACEHOLDER_HINTS } from './AgentInput.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function AgentInput({
   placeholder,
@@ -176,7 +177,8 @@ export function AgentInput({
         </View>
       )}
 
-      <View style={styles.container}>
+      <OpalBorderView borderRadius={nativeRadius.xl}>
+        <View style={styles.container}>
         {/* Text input -- always rendered, hidden when thinking or voice active */}
         <View style={styles.fieldWrapper}>
           <TextInput
@@ -277,6 +279,7 @@ export function AgentInput({
             disabled={thinking || !hasValue || (voiceEnabled && voiceState === 'processing')}
             style={[
               styles.sendButton,
+              hasValue && !thinking && styles.sendButtonActive,
               (thinking || !hasValue) && styles.sendButtonDisabled,
             ]}
             accessibilityLabel={t('input.send')}
@@ -285,6 +288,7 @@ export function AgentInput({
             <Text
               style={[
                 styles.sendIcon,
+                hasValue && !thinking && styles.sendIconActive,
                 (thinking || !hasValue) && styles.sendIconDisabled,
               ]}
             >
@@ -292,7 +296,8 @@ export function AgentInput({
             </Text>
           </Pressable>
         </View>
-      </View>
+        </View>
+      </OpalBorderView>
     </KeyboardAvoidingView>
   );
 }
@@ -332,11 +337,13 @@ const styles = StyleSheet.create({
     color: brandColors.rust,
   },
   attachButton: {
-    width: 44,
-    height: 44,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: nativeRadius.full,
+    borderRadius: 6,
+    minWidth: 44,
+    minHeight: 44,
   },
   attachIcon: {
     fontFamily: nativeFontFamily.mono,
@@ -363,14 +370,12 @@ const styles = StyleSheet.create({
     color: brandColors.sv2,
   },
   container: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingLeft: nativeSpacing.s4,
-    paddingRight: nativeSpacing.s2,
-    paddingVertical: nativeSpacing.s2,
-    gap: nativeSpacing.s2,
+    alignItems: 'center',
+    paddingHorizontal: nativeSpacing.s4,
+    paddingVertical: 14,
+    gap: nativeSpacing.s3,
+    minHeight: 56,
   },
   fieldWrapper: {
     flex: 1,
@@ -381,9 +386,10 @@ const styles = StyleSheet.create({
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.base,
     color: brandColors.white,
-    paddingVertical: nativeSpacing.s2,
-    minHeight: 44,
-    maxHeight: 120,
+    paddingVertical: 0,
+    minHeight: 24,
+    maxHeight: 200,
+    lineHeight: 22,
   },
   fieldHidden: {
     opacity: 0,
@@ -406,7 +412,7 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.base,
+    fontSize: 14,
     color: brandColors.sv1,
   },
   voiceOverlay: {
@@ -434,7 +440,7 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: nativeSpacing.s1,
+    gap: nativeSpacing.s2,
   },
   micButton: {
     width: 44,
@@ -455,22 +461,32 @@ const styles = StyleSheet.create({
     color: brandColors.sv2,
   },
   sendButton: {
-    width: 44,
-    height: 44,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: nativeRadius.full,
-    backgroundColor: brandColors.veridian,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: brandColors.sv2,
+    minWidth: 44,
+    minHeight: 44,
+  },
+  sendButtonActive: {
+    borderColor: brandColors.veridian,
+    backgroundColor: 'rgba(110, 207, 163, 0.06)',
   },
   sendButtonDisabled: {
-    backgroundColor: brandColors.s3,
+    opacity: 0.3,
   },
   sendIcon: {
     fontFamily: nativeFontFamily.mono,
-    fontSize: nativeFontSize.md,
-    color: brandColors.base,
+    fontSize: 14,
+    color: brandColors.sv2,
+  },
+  sendIconActive: {
+    color: brandColors.veridian,
   },
   sendIconDisabled: {
-    color: brandColors.sv1,
+    color: brandColors.sv2,
   },
 });

@@ -3,7 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
 import { Button } from '../../components/Button/Button';
 import type { HardwareDetectionProps } from './HardwareDetection.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../../components/OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 function formatRam(mb: number): string {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
@@ -32,6 +33,7 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
       )}
 
       {hardwareInfo && !detecting && (
+        <OpalBorderView borderRadius={nativeRadius.lg}>
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.label}>{t('hardware.tier_label')}</Text>
@@ -61,6 +63,7 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
             <Text style={styles.value}>{hardwareInfo.os} ({hardwareInfo.arch})</Text>
           </View>
         </View>
+        </OpalBorderView>
       )}
 
       {hardwareInfo && !detecting && (
@@ -79,13 +82,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: nativeSpacing.s5,
   },
   headline: {
-    fontFamily: nativeFontFamily.display,
+    fontFamily: nativeFontFamily.mono,
+    fontWeight: '200',
     fontSize: nativeFontSize.xl,
     color: brandColors.white,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   subtext: {
     fontFamily: nativeFontFamily.ui,
+    fontWeight: '300',
     fontSize: nativeFontSize.sm,
     color: brandColors.sv2,
     textAlign: 'center',
@@ -97,8 +103,6 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   card: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
     padding: nativeSpacing.s5,
     width: '100%',
     maxWidth: 400,

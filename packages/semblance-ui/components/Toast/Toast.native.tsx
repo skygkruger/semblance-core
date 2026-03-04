@@ -2,13 +2,13 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import type { ToastItem, ToastVariant, ToastContainerProps } from './Toast.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 const variantBorders: Record<ToastVariant, string> = {
   info: brandColors.s3,
   success: 'rgba(110,207,163,0.3)',
   attention: 'rgba(201,168,92,0.3)',
-  action: 'rgba(110,207,163,0.3)',
+  action: 'rgba(110,207,163,0.25)',
 };
 
 interface ToastEntryProps {
@@ -89,9 +89,11 @@ const styles = StyleSheet.create({
     gap: nativeSpacing.s2,
   },
   toast: {
-    ...opalSurface,
+    backgroundColor: '#121518',
+    borderWidth: 1,
     borderRadius: nativeRadius.lg,
-    padding: nativeSpacing.s4,
+    paddingHorizontal: nativeSpacing.s4,
+    paddingVertical: 14,
   },
   toastContent: {
     flexDirection: 'row',
@@ -105,7 +107,7 @@ const styles = StyleSheet.create({
     color: brandColors.text,
   },
   dismissButton: {
-    padding: nativeSpacing.s1,
+    padding: 2,
   },
   dismissText: {
     fontSize: nativeFontSize.xs,

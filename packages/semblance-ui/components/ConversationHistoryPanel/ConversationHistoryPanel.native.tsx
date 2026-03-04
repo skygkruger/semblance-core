@@ -215,8 +215,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: brandColors.s2,
     borderRadius: nativeRadius.sm,
-    paddingHorizontal: nativeSpacing.s3,
-    paddingVertical: nativeSpacing.s2,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   body: {
     flex: 1,
@@ -227,6 +227,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: nativeFontFamily.uiMedium,
+    fontWeight: '600',
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
-    color: brandColors.sv3,
+    color: brandColors.wDim,
   },
   rowTitleActive: {
     color: brandColors.white,

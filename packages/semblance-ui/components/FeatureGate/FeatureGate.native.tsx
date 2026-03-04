@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Button } from '../Button/Button';
 import type { FeatureGateProps } from './FeatureGate.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
+
+const VERIDIAN_WIRE_BORDER = Array(7).fill(brandColors.veridianWire) as string[];
 
 function DefaultFallback({ onLearnMore }: { onLearnMore?: () => void }) {
   const [dismissed, setDismissed] = useState(false);
@@ -10,7 +13,8 @@ function DefaultFallback({ onLearnMore }: { onLearnMore?: () => void }) {
   if (dismissed) return null;
 
   return (
-    <View style={styles.locked}>
+    <OpalBorderView borderRadius={nativeRadius.lg} borderColors={VERIDIAN_WIRE_BORDER}>
+      <View style={styles.locked}>
       <View style={styles.lockedHeader}>
         <Text style={styles.lockIcon}>{'\uD83D\uDD12'}</Text>
         <Text style={styles.lockedLabel}>DIGITAL REPRESENTATIVE</Text>
@@ -34,7 +38,8 @@ function DefaultFallback({ onLearnMore }: { onLearnMore?: () => void }) {
           Not right now
         </Button>
       </View>
-    </View>
+      </View>
+    </OpalBorderView>
   );
 }
 
@@ -53,34 +58,36 @@ export function FeatureGate({
 
 const styles = StyleSheet.create({
   locked: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
-    padding: nativeSpacing.s5,
+    padding: nativeSpacing.s6,
     gap: nativeSpacing.s3,
   },
   lockedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: nativeSpacing.s2,
+    gap: nativeSpacing.s3,
   },
   lockIcon: {
     fontSize: 16,
+    color: brandColors.veridian,
   },
   lockedLabel: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
-    color: brandColors.amber,
-    letterSpacing: 1,
+    color: brandColors.veridian,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
   },
   lockedDivider: {
     height: 1,
-    backgroundColor: brandColors.b2,
+    backgroundColor: brandColors.veridian,
+    maxWidth: 72,
+    marginVertical: nativeSpacing.s4,
   },
   lockedBody: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.sm,
+    fontSize: nativeFontSize.base,
     color: brandColors.sv3,
-    lineHeight: 20,
+    lineHeight: 24,
   },
   lockedActions: {
     flexDirection: 'row',

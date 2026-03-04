@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     padding: 8,
     paddingHorizontal: 12,
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.sm,
+    fontSize: 12,
     color: brandColors.wDim,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   suggestionName: {
     fontFamily: nativeFontFamily.ui,
     fontSize: 13,
-    color: brandColors.wDim,
+    color: '#C8CAD0',
   },
   suggestionReason: {
     fontFamily: nativeFontFamily.ui,
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
   categoryName: {
     fontFamily: nativeFontFamily.ui,
     fontSize: 13,
-    color: brandColors.wDim,
+    color: '#C8CAD0',
     flex: 1,
   },
   categoryCount: {

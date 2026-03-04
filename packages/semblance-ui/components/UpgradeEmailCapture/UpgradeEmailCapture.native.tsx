@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
   },
   notice: {
     fontFamily: nativeFontFamily.ui,
+    fontWeight: '300',
     fontSize: nativeFontSize.sm,
     color: brandColors.sv3,
     lineHeight: 20,
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: 12,
+    fontSize: nativeFontSize.xs,
     color: brandColors.rust,
     marginTop: -nativeSpacing.s2,
   },

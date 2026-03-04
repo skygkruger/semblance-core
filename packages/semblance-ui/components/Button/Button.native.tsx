@@ -3,18 +3,18 @@ import type { ButtonProps, ButtonVariant, ButtonSize } from './Button.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 const variantStyles: Record<ButtonVariant, { bg: string; text: string; border: string }> = {
-  ghost: { bg: 'transparent', text: brandColors.silver, border: 'transparent' },
-  solid: { bg: brandColors.veridian, text: brandColors.void, border: brandColors.veridian },
-  subtle: { bg: 'rgba(110,207,163,0.1)', text: brandColors.veridian, border: 'transparent' },
-  approve: { bg: brandColors.veridian, text: brandColors.void, border: brandColors.veridian },
-  dismiss: { bg: 'transparent', text: brandColors.silver, border: brandColors.s3 },
-  destructive: { bg: 'rgba(201,123,110,0.1)', text: brandColors.rust, border: 'rgba(201,123,110,0.3)' },
+  ghost: { bg: 'transparent', text: brandColors.sv2, border: 'rgba(255,255,255,0.12)' },
+  solid: { bg: 'rgba(255,255,255,0.08)', text: '#FFFFFF', border: 'rgba(255,255,255,0.09)' },
+  subtle: { bg: 'transparent', text: brandColors.sv1, border: 'transparent' },
+  approve: { bg: 'transparent', text: brandColors.veridian, border: brandColors.veridianWire },
+  dismiss: { bg: 'transparent', text: '#8593A4', border: '#8593A4' },
+  destructive: { bg: 'transparent', text: brandColors.sv2, border: brandColors.b1 },
 };
 
 const sizeStyles: Record<ButtonSize, { paddingH: number; paddingV: number; fontSize: number; minHeight: number }> = {
-  sm: { paddingH: nativeSpacing.s3, paddingV: nativeSpacing.s1, fontSize: nativeFontSize.sm, minHeight: 32 },
-  md: { paddingH: nativeSpacing.s4, paddingV: nativeSpacing.s2, fontSize: nativeFontSize.base, minHeight: 44 },
-  lg: { paddingH: nativeSpacing.s6, paddingV: nativeSpacing.s3, fontSize: nativeFontSize.md, minHeight: 52 },
+  sm: { paddingH: 12, paddingV: 6, fontSize: nativeFontSize.sm, minHeight: 32 },
+  md: { paddingH: 20, paddingV: 10, fontSize: nativeFontSize.base, minHeight: 44 },
+  lg: { paddingH: 28, paddingV: 14, fontSize: nativeFontSize.md, minHeight: 52 },
 };
 
 export function Button({
@@ -41,7 +41,7 @@ export function Button({
           paddingHorizontal: ss.paddingH,
           paddingVertical: ss.paddingV,
           minHeight: ss.minHeight,
-          opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
+          opacity: disabled ? 0.35 : pressed ? 0.7 : 1,
         },
       ]}
       accessibilityRole="button"
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   label: {
-    fontFamily: nativeFontFamily.uiMedium,
+    fontFamily: nativeFontFamily.ui,
     textAlign: 'center',
   },
 });

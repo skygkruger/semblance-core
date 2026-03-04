@@ -4,7 +4,8 @@ import { Button } from '../Button/Button';
 import { LicenseActivation } from '../LicenseActivation/LicenseActivation';
 import type { UpgradeScreenProps } from './UpgradeScreen.types';
 import { FEATURES } from './UpgradeScreen.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 function CheckMark() {
   return (
@@ -115,58 +116,75 @@ export function UpgradeScreen({
       {!isActive && (
         <View style={styles.plans}>
           {/* Monthly */}
-          <View style={styles.plan}>
-            <View style={styles.planHeader}>
-              <Text style={styles.planLabel}>MONTHLY</Text>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceAmount}>$18</Text>
-                <Text style={styles.pricePeriod}>/mo</Text>
+          <OpalBorderView borderRadius={nativeRadius.lg}>
+            <View style={styles.plan}>
+              <View style={styles.planHeader}>
+                <Text style={styles.planLabel}>MONTHLY</Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceAmount}>$18</Text>
+                  <Text style={styles.pricePeriod}>/mo</Text>
+                </View>
               </View>
+              <FeatureList features={FEATURES} />
+              <Button variant="ghost" size="md" onPress={() => onCheckout('monthly')}>
+                Start Monthly
+              </Button>
             </View>
-            <FeatureList features={FEATURES} />
-            <Button variant="ghost" size="md" onPress={() => onCheckout('monthly')}>
-              Start Monthly
-            </Button>
-          </View>
+          </OpalBorderView>
 
           {/* Founding -- recommended */}
-          <View style={[styles.plan, styles.planRecommended]}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>RECOMMENDED</Text>
-            </View>
-            <View style={styles.planHeader}>
-              <Text style={styles.planLabelFounding}>{t('screen.upgrade.plan_founding')}</Text>
-              <View style={styles.priceRow}>
-                <Text style={[styles.priceAmount, { color: '#d8dde8' }]}>$199</Text>
-                <Text style={styles.pricePeriod}>lifetime</Text>
+          <OpalBorderView
+            borderRadius={nativeRadius.lg}
+            borderColors={[
+              'rgba(107,95,168,0.35)',
+              'rgba(119,110,162,0.50)',
+              'rgba(154,168,184,0.60)',
+              'rgba(216,221,232,0.65)',
+              'rgba(154,168,184,0.60)',
+              'rgba(119,110,162,0.50)',
+              'rgba(107,95,168,0.35)',
+            ]}
+          >
+            <View style={styles.plan}>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>RECOMMENDED</Text>
               </View>
+              <View style={styles.planHeader}>
+                <Text style={styles.planLabelFounding}>{t('screen.upgrade.plan_founding')}</Text>
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceAmount, { color: '#d8dde8' }]}>$199</Text>
+                  <Text style={styles.pricePeriod}>lifetime</Text>
+                </View>
+              </View>
+              <Text style={styles.planNote}>
+                Limited to 500 seats. Permanent recognition. Everything included, forever.
+              </Text>
+              <FeatureList
+                features={FEATURES}
+                bonus={t('upgrade.founding_bonus')}
+              />
+              <Button variant="solid" size="md" onPress={() => onCheckout('founding')}>
+                Become a Founder
+              </Button>
             </View>
-            <Text style={styles.planNote}>
-              Limited to 500 seats. Permanent recognition. Everything included, forever.
-            </Text>
-            <FeatureList
-              features={FEATURES}
-              bonus={t('upgrade.founding_bonus')}
-            />
-            <Button variant="solid" size="md" onPress={() => onCheckout('founding')}>
-              Become a Founder
-            </Button>
-          </View>
+          </OpalBorderView>
 
           {/* Lifetime */}
-          <View style={styles.plan}>
-            <View style={styles.planHeader}>
-              <Text style={styles.planLabel}>LIFETIME</Text>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceAmount}>$349</Text>
-                <Text style={styles.pricePeriod}>one-time</Text>
+          <OpalBorderView borderRadius={nativeRadius.lg}>
+            <View style={styles.plan}>
+              <View style={styles.planHeader}>
+                <Text style={styles.planLabel}>LIFETIME</Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceAmount}>$349</Text>
+                  <Text style={styles.pricePeriod}>one-time</Text>
+                </View>
               </View>
+              <FeatureList features={FEATURES} />
+              <Button variant="ghost" size="md" onPress={() => onCheckout('lifetime')}>
+                Get Lifetime Access
+              </Button>
             </View>
-            <FeatureList features={FEATURES} />
-            <Button variant="ghost" size="md" onPress={() => onCheckout('lifetime')}>
-              Get Lifetime Access
-            </Button>
-          </View>
+          </OpalBorderView>
         </View>
       )}
 
@@ -209,7 +227,8 @@ const styles = StyleSheet.create({
     backgroundColor: brandColors.base,
   },
   content: {
-    padding: nativeSpacing.s4,
+    paddingHorizontal: nativeSpacing.s6,
+    paddingTop: nativeSpacing.s8,
     paddingBottom: nativeSpacing.s12,
     gap: nativeSpacing.s6,
   },
@@ -221,7 +240,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.base,
+    fontSize: nativeFontSize.sm,
     color: brandColors.sv2,
   },
   header: {
@@ -229,27 +248,22 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: nativeFontFamily.display,
-    fontSize: nativeFontSize.xl,
+    fontWeight: '300',
+    fontSize: nativeFontSize['2xl'],
     color: brandColors.white,
   },
   subtitle: {
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.base,
-    color: brandColors.sv2,
-    lineHeight: 22,
+    color: brandColors.sv3,
+    lineHeight: 24,
   },
   plans: {
-    gap: nativeSpacing.s4,
+    gap: nativeSpacing.s5,
   },
   plan: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
-    padding: nativeSpacing.s4,
+    padding: nativeSpacing.s6,
     gap: nativeSpacing.s4,
-  },
-  planRecommended: {
-    borderColor: 'rgba(107, 95, 168, 0.32)',
-    borderWidth: 1,
   },
   badge: {
     alignSelf: 'flex-start',
@@ -271,13 +285,13 @@ const styles = StyleSheet.create({
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
     color: brandColors.sv2,
-    letterSpacing: 1,
+    letterSpacing: 1.1,
   },
   planLabelFounding: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
     color: '#9aa8b8',
-    letterSpacing: 1.5,
+    letterSpacing: 1.32,
   },
   priceRow: {
     flexDirection: 'row',
@@ -286,6 +300,7 @@ const styles = StyleSheet.create({
   },
   priceAmount: {
     fontFamily: nativeFontFamily.display,
+    fontWeight: '300',
     fontSize: nativeFontSize.xl,
     color: brandColors.white,
   },
@@ -297,7 +312,7 @@ const styles = StyleSheet.create({
   planNote: {
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
-    color: brandColors.sv2,
+    color: brandColors.sv3,
     lineHeight: 20,
   },
   activeInfo: {
@@ -305,15 +320,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(107, 95, 168, 0.32)',
     borderRadius: nativeRadius.lg,
-    padding: nativeSpacing.s4,
+    padding: nativeSpacing.s6,
     gap: nativeSpacing.s2,
   },
   activeTier: {
     fontFamily: nativeFontFamily.mono,
-    fontSize: nativeFontSize.md,
+    fontSize: nativeFontSize.xl,
     color: '#9aa8b8',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 2.24,
   },
   activeNote: {
     fontFamily: nativeFontFamily.ui,
@@ -328,8 +343,8 @@ const styles = StyleSheet.create({
     backgroundColor: brandColors.b2,
   },
   activationLabel: {
-    fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.sm,
+    fontFamily: nativeFontFamily.mono,
+    fontSize: nativeFontSize.xs,
     color: brandColors.sv2,
   },
 });

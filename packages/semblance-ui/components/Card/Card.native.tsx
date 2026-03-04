@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet } from 'react-native';
 import type { CardProps } from './Card.types';
-import { brandColors, nativeSpacing, nativeRadius, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius } from '../../tokens/native';
 
 export function Card({
   children,
@@ -10,49 +11,33 @@ export function Card({
   onClick,
 }: CardProps) {
   const handlePress = onPress ?? onClick;
-
-  if (handlePress || hoverable) {
-    return (
-      <Pressable
-        onPress={handlePress}
-        style={({ pressed }) => [
-          styles.base,
-          variant === 'elevated' && styles.elevated,
-          variant === 'briefing' && styles.briefing,
-          pressed && styles.pressed,
-        ]}
-        accessibilityRole="button"
-      >
-        {children}
-      </Pressable>
-    );
-  }
+  const isElevated = variant === 'elevated';
+  const isBriefing = variant === 'briefing';
 
   return (
     <Pressable
-      style={[
-        styles.base,
-        variant === 'elevated' && styles.elevated,
-        variant === 'briefing' && styles.briefing,
+      onPress={handlePress}
+      style={({ pressed }) => [
+        (handlePress || hoverable) && pressed && styles.pressed,
       ]}
-      accessibilityRole="none"
+      accessibilityRole={handlePress ? 'button' : 'none'}
+      disabled={!handlePress && !hoverable}
     >
-      {children}
+      <OpalBorderView
+        style={styles.base}
+        borderRadius={nativeRadius.lg}
+        backgroundColor={isElevated ? brandColors.s2 : undefined}
+        shimmerOverlay={!isBriefing}
+      >
+        {children}
+      </OpalBorderView>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
-    padding: nativeSpacing.s4,
-  },
-  elevated: {
-    backgroundColor: brandColors.s2,
-  },
-  briefing: {
-    borderColor: 'rgba(110,207,163,0.15)',
+    padding: nativeSpacing.s6,
   },
   pressed: {
     opacity: 0.85,

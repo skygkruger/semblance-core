@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { ActionCardProps } from './ActionCard.types';
 import { statusLabel } from './ActionCard.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 function formatTierLabel(tier: string): string {
   return tier.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -10,7 +11,7 @@ function formatTierLabel(tier: string): string {
 
 const STATUS_DOT_COLORS: Record<ActionCardProps['status'], string> = {
   success: brandColors.veridian,
-  pending: brandColors.amber,
+  pending: brandColors.veridian,
   error: brandColors.rust,
   rejected: brandColors.sv1,
 };
@@ -26,7 +27,10 @@ export function ActionCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <View style={styles.container}>
+    <OpalBorderView
+      borderRadius={nativeRadius.lg}
+      style={styles.containerOuter}
+    >
       <Pressable
         style={styles.toggle}
         onPress={() => setExpanded(!expanded)}
@@ -55,20 +59,18 @@ export function ActionCard({
           {detail}
         </View>
       )}
-    </View>
+    </OpalBorderView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
-    overflow: 'hidden',
+  containerOuter: {
+    // OpalBorderView handles border/bg/shimmer
   },
   toggle: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: nativeSpacing.s4,
+    padding: nativeSpacing.s5,
     gap: nativeSpacing.s3,
     minHeight: 44,
   },
@@ -88,32 +90,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   type: {
-    fontFamily: nativeFontFamily.ui,
+    fontFamily: nativeFontFamily.uiMedium,
     fontSize: nativeFontSize.sm,
     color: brandColors.wDim,
   },
   timestamp: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
-    color: brandColors.sv2,
+    color: brandColors.sv1,
   },
   description: {
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
+    fontWeight: '300',
     color: brandColors.sv3,
-    lineHeight: 18,
+    lineHeight: 19.5,
   },
   meta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: nativeSpacing.s2,
-    marginTop: nativeSpacing.s1,
+    marginTop: nativeSpacing.s2,
   },
   metaItem: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
     color: brandColors.sv1,
-    textTransform: 'uppercase',
   },
   metaSep: {
     fontSize: nativeFontSize.xs,
@@ -121,7 +123,7 @@ const styles = StyleSheet.create({
   },
   chevron: {
     fontSize: 12,
-    color: brandColors.sv2,
+    color: brandColors.sv1,
     marginTop: 4,
     transform: [{ rotate: '90deg' }],
   },
@@ -129,6 +131,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '180deg' }],
   },
   detail: {
+    paddingTop: nativeSpacing.s4,
     paddingHorizontal: nativeSpacing.s4,
     paddingBottom: nativeSpacing.s4,
     borderTopWidth: 1,

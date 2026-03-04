@@ -143,12 +143,12 @@ const styles = StyleSheet.create({
   codeText: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.sm,
-    lineHeight: 20,
-    color: brandColors.sv3,
+    lineHeight: 20.8,
+    color: brandColors.wDim,
   },
   plainText: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.base,
+    fontSize: 14,
     lineHeight: 22,
     color: brandColors.sv3,
   },

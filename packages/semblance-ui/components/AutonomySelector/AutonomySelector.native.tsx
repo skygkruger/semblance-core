@@ -2,7 +2,10 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { AutonomySelectorProps } from './AutonomySelector.types';
 import { tiers } from './AutonomySelector.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView, OPAL_BORDER_COLORS } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
+
+const VERIDIAN_BORDER_COLORS = Array(7).fill('rgba(110,207,163,0.6)') as string[];
 
 export function AutonomySelector({ value, onChange }: AutonomySelectorProps) {
   const { t } = useTranslation('agent');
@@ -19,15 +22,17 @@ export function AutonomySelector({ value, onChange }: AutonomySelectorProps) {
         return (
           <Pressable
             key={tier.id}
-            style={[
-              styles.option,
-              isSelected && styles.optionSelected,
-              isRecommended && !isSelected && styles.optionRecommended,
-            ]}
             onPress={() => onChange(tier.id)}
             accessibilityRole="radio"
             accessibilityState={{ checked: isSelected }}
           >
+          <OpalBorderView
+            borderRadius={nativeRadius.lg}
+            borderWidth={2}
+            borderColors={isSelected ? VERIDIAN_BORDER_COLORS : OPAL_BORDER_COLORS}
+            backgroundColor={isSelected ? 'rgba(110,207,163,0.06)' : isRecommended ? 'rgba(110,207,163,0.03)' : '#111518'}
+          >
+          <View style={styles.option}>
             <View style={styles.header}>
               <View style={[styles.radio, isSelected && styles.radioSelected]}>
                 {isSelected && <View style={styles.radioDot} />}
@@ -41,6 +46,8 @@ export function AutonomySelector({ value, onChange }: AutonomySelectorProps) {
             </View>
             <Text style={styles.description}>{t(`autonomy.${tier.id}.description`)}</Text>
             <Text style={styles.detail}>{t(`autonomy.${tier.id}.detail`)}</Text>
+          </View>
+          </OpalBorderView>
           </Pressable>
         );
       })}
@@ -53,24 +60,14 @@ const styles = StyleSheet.create({
     gap: nativeSpacing.s3,
   },
   option: {
-    ...opalSurface,
-    borderWidth: 2,
-    borderColor: brandColors.b2,
-    borderRadius: nativeRadius.lg,
-    padding: nativeSpacing.s5,
+    paddingVertical: nativeSpacing.s5,
+    paddingHorizontal: nativeSpacing.s6,
     minHeight: 44,
-  },
-  optionSelected: {
-    borderColor: brandColors.veridian,
-    backgroundColor: 'rgba(110, 207, 163, 0.06)',
-  },
-  optionRecommended: {
-    backgroundColor: 'rgba(110, 207, 163, 0.03)',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: nativeSpacing.s3,
+    gap: 8,
   },
   radio: {
     width: 16,
@@ -91,20 +88,21 @@ const styles = StyleSheet.create({
     backgroundColor: brandColors.veridian,
   },
   name: {
-    fontFamily: nativeFontFamily.uiMedium,
-    fontSize: nativeFontSize.md,
+    fontFamily: nativeFontFamily.ui,
+    fontSize: 16,
     color: brandColors.white,
   },
   badge: {
     backgroundColor: 'rgba(110, 207, 163, 0.10)',
     paddingHorizontal: nativeSpacing.s2,
     paddingVertical: 2,
-    borderRadius: nativeRadius.full,
+    borderRadius: nativeRadius.sm,
   },
   badgeText: {
-    fontFamily: nativeFontFamily.uiMedium,
-    fontSize: nativeFontSize.xs,
+    fontFamily: nativeFontFamily.mono,
+    fontSize: 10,
     color: brandColors.veridian,
+    textTransform: 'uppercase',
   },
   description: {
     fontFamily: nativeFontFamily.ui,

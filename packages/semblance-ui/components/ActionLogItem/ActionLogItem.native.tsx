@@ -7,7 +7,7 @@ const statusColors: Record<ActionStatus, string> = {
   completed: brandColors.veridian,
   pending: brandColors.amber,
   failed: brandColors.rust,
-  undone: brandColors.silver,
+  undone: brandColors.sv1,
 };
 
 export function ActionLogItem({
@@ -22,13 +22,9 @@ export function ActionLogItem({
   return (
     <View style={styles.container}>
       <View style={[styles.dot, { backgroundColor: statusColors[status] }]} />
-      <View style={styles.content}>
-        <Text style={styles.text} numberOfLines={2}>{text}</Text>
-        <View style={styles.meta}>
-          {domain ? <Text style={styles.domain}>{domain}</Text> : null}
-          {timestamp ? <Text style={styles.time}>{timestamp}</Text> : null}
-        </View>
-      </View>
+      <Text style={styles.text} numberOfLines={1}>{text}</Text>
+      {domain ? <Text style={styles.domain}>{domain}</Text> : null}
+      {timestamp ? <Text style={styles.time}>{timestamp}</Text> : null}
       {onUndo && status === 'completed' ? (
         <Pressable
           onPress={onUndo}
@@ -46,50 +42,52 @@ export function ActionLogItem({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingVertical: nativeSpacing.s3,
     paddingHorizontal: nativeSpacing.s4,
     gap: nativeSpacing.s3,
+    borderRadius: nativeRadius.md,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 6,
-  },
-  content: {
-    flex: 1,
+    width: 6,
+    height: 6,
+    borderRadius: nativeRadius.full,
   },
   text: {
+    flex: 1,
     fontSize: nativeFontSize.base,
     fontFamily: nativeFontFamily.ui,
-    color: brandColors.text,
-  },
-  meta: {
-    flexDirection: 'row',
-    gap: nativeSpacing.s2,
-    marginTop: nativeSpacing.s1,
+    color: brandColors.sv3,
   },
   domain: {
     fontSize: nativeFontSize.xs,
-    fontFamily: nativeFontFamily.ui,
-    color: brandColors.silver,
+    fontFamily: nativeFontFamily.mono,
+    color: brandColors.sv1,
+    textTransform: 'uppercase',
+    letterSpacing: 0.88,
+    backgroundColor: brandColors.s2,
+    paddingHorizontal: nativeSpacing.s2,
+    paddingVertical: 2,
+    borderRadius: nativeRadius.sm,
+    overflow: 'hidden',
   },
   time: {
     fontSize: nativeFontSize.xs,
-    fontFamily: nativeFontFamily.ui,
-    color: brandColors.muted,
+    fontFamily: nativeFontFamily.mono,
+    color: brandColors.slate3,
   },
   undoButton: {
-    paddingHorizontal: nativeSpacing.s3,
-    paddingVertical: nativeSpacing.s1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   undoPressed: {
     opacity: 0.6,
   },
   undoText: {
-    fontSize: nativeFontSize.sm,
-    fontFamily: nativeFontFamily.uiMedium,
-    color: brandColors.veridian,
+    fontSize: nativeFontSize.xs,
+    fontFamily: nativeFontFamily.mono,
+    color: brandColors.sv1,
+    textTransform: 'uppercase',
+    letterSpacing: 0.88,
   },
 });

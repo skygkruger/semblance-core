@@ -32,6 +32,8 @@ export const brandColors = {
   veridianWire: 'rgba(110, 207, 163, 0.32)',
   amber: '#C9A85C',
   rust: '#C97B6E',
+  // Shimmer — static midpoint of the onboarding shimmer gradient (web animates this)
+  shimmerText: '#b8cdd8',
   // Semantic aliases used by native components
   silver: '#8593A4',
   text: '#EEF1F4',
@@ -57,7 +59,7 @@ export const nativeSpacing = {
 
 // Border radius — numeric values
 export const nativeRadius = {
-  sm: 6,
+  sm: 4,
   md: 8,
   lg: 12,
   xl: 16,

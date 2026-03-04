@@ -4,7 +4,8 @@ import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Button } from '../Button/Button';
 import type { LicenseActivationProps } from './LicenseActivation.types';
 import { useFeatureAuth } from '../../hooks/useFeatureAuth';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivationProps) {
   const { t } = useTranslation();
@@ -49,9 +50,10 @@ export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivati
   return (
     <View style={styles.container}>
       <View style={styles.form}>
-        <TextInput
-          style={styles.input}
-          value={key}
+        <OpalBorderView borderRadius={nativeRadius.md} style={styles.inputWrap}>
+          <TextInput
+            style={styles.input}
+            value={key}
           onChangeText={(text) => {
             setKey(text);
             if (status === 'error') setStatus('idle');
@@ -61,8 +63,9 @@ export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivati
           editable={status !== 'validating'}
           autoCapitalize="none"
           autoCorrect={false}
-          accessibilityLabel={t('a11y.license_key')}
-        />
+            accessibilityLabel={t('a11y.license_key')}
+          />
+        </OpalBorderView>
         <Button
           variant="solid"
           size="sm"
@@ -102,11 +105,11 @@ const styles = StyleSheet.create({
     gap: nativeSpacing.s2,
     alignItems: 'center',
   },
-  input: {
-    ...opalSurface,
+  inputWrap: {
     flex: 1,
+  },
+  input: {
     height: 40,
-    borderRadius: nativeRadius.md,
     paddingHorizontal: nativeSpacing.s3,
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.sm,

@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontFamily: nativeFontFamily.ui,
     fontSize: 13,
-    color: brandColors.wDim,
+    color: '#C8CAD0',
   },
   spinner: {
     marginLeft: 'auto',

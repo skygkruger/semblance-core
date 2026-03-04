@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { View, TextInput, Pressable, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import type { ChatInputProps } from './ChatInput.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 const MAX_HEIGHT = 6 * 24; // ~6 lines
 
@@ -36,7 +37,11 @@ export function ChatInput({
   const canSend = !disabled && value.trim().length > 0;
 
   return (
-    <View style={[styles.container, disabled && styles.containerDisabled]}>
+    <OpalBorderView
+      borderRadius={nativeRadius.xl}
+      style={disabled ? styles.containerDisabled : undefined}
+    >
+      <View style={styles.container}>
       {onAttach && (
         <Pressable
           style={styles.attachBtn}
@@ -75,72 +80,83 @@ export function ChatInput({
       />
 
       <Pressable
-        style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]}
+        style={[styles.sendBtn, canSend && styles.sendBtnActive, !canSend && styles.sendBtnDisabled]}
         onPress={handleSend}
         disabled={!canSend}
         hitSlop={8}
         accessibilityLabel={t('input.send_message')}
         accessibilityRole="button"
       >
-        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
           <Path
             d="m22 2-7 20-4-9-9-4Z"
-            stroke="#FFFFFF"
+            stroke={canSend ? brandColors.veridian : brandColors.sv2}
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
           <Path
             d="M22 2 11 13"
-            stroke="#FFFFFF"
+            stroke={canSend ? brandColors.veridian : brandColors.sv2}
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         </Svg>
       </Pressable>
-    </View>
+      </View>
+    </OpalBorderView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    ...opalSurface,
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: nativeSpacing.s2,
-    padding: nativeSpacing.s3,
-    borderRadius: nativeRadius.lg,
+    alignItems: 'center',
+    gap: nativeSpacing.s3,
+    paddingHorizontal: nativeSpacing.s4,
+    paddingVertical: 14,
+    minHeight: 56,
   },
   containerDisabled: {
     opacity: 0.5,
   },
   attachBtn: {
-    width: 44,
-    height: 44,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: nativeRadius.full,
+    borderRadius: 6,
+    minWidth: 44,
+    minHeight: 44,
   },
   input: {
     flex: 1,
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.base,
     color: brandColors.white,
-    paddingVertical: nativeSpacing.s2,
+    paddingVertical: 0,
     paddingHorizontal: 0,
-    minHeight: 44,
+    minHeight: 24,
     maxHeight: MAX_HEIGHT,
+    lineHeight: 22,
   },
   sendBtn: {
-    width: 44,
-    height: 44,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: nativeRadius.full,
-    backgroundColor: brandColors.veridian,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: brandColors.sv2,
+    minWidth: 44,
+    minHeight: 44,
+  },
+  sendBtnActive: {
+    borderColor: brandColors.veridian,
+    backgroundColor: 'rgba(110, 207, 163, 0.06)',
   },
   sendBtnDisabled: {
-    opacity: 0.5,
+    opacity: 0.3,
   },
 });

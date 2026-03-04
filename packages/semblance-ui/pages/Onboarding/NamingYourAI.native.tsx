@@ -4,7 +4,9 @@ import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } fro
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Button } from '../../components/Button/Button';
 import type { NamingYourAIProps } from './NamingYourAI.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../../components/OpalBorderView/OpalBorderView.native';
+import { ShimmerText } from '../../components/ShimmerText/ShimmerText.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProps) {
   const { t } = useTranslation('onboarding');
@@ -19,19 +21,29 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
       <View style={styles.inner}>
         <LogoMark size={80} />
 
-        <Text style={styles.headline}>
-          What will you call <Text style={styles.pronoun}>it</Text>?
-        </Text>
+        <View style={styles.headlineRow}>
+          <Text style={styles.headline}>What will you call </Text>
+          <ShimmerText
+            fontSize={nativeFontSize.xl}
+            fontFamily={nativeFontFamily.displayItalic}
+            gradient="opal"
+          >
+            it
+          </ShimmerText>
+          <Text style={styles.headline}>?</Text>
+        </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder={t('naming_ai.placeholder')}
-          placeholderTextColor={brandColors.sv1}
-          value={aiName}
-          onChangeText={setAiName}
-          autoCapitalize="words"
-          autoCorrect={false}
-        />
+        <OpalBorderView borderRadius={nativeRadius.xl} style={styles.inputWrap}>
+          <TextInput
+            style={styles.input}
+            placeholder={t('naming_ai.placeholder')}
+            placeholderTextColor={brandColors.sv1}
+            value={aiName}
+            onChangeText={setAiName}
+            autoCapitalize="words"
+            autoCorrect={false}
+          />
+        </OpalBorderView>
 
         <View style={[styles.preview, hasValue && styles.previewVisible]}>
           <Text style={styles.previewText}>{aiName || '\u00A0'}</Text>
@@ -72,20 +84,24 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
   },
+  headlineRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'baseline',
+  },
   headline: {
-    fontFamily: nativeFontFamily.display,
+    fontFamily: nativeFontFamily.mono,
+    fontWeight: '200',
     fontSize: nativeFontSize.xl,
     color: brandColors.white,
-    textAlign: 'center',
+    letterSpacing: 0.5,
+    lineHeight: 35,
   },
-  pronoun: {
-    fontFamily: nativeFontFamily.displayItalic,
-    color: brandColors.veridian,
+  inputWrap: {
+    width: '100%',
   },
   input: {
-    ...opalSurface,
-    width: '100%',
-    borderRadius: nativeRadius.lg,
     paddingHorizontal: nativeSpacing.s4,
     paddingVertical: 14,
     fontFamily: nativeFontFamily.ui,
@@ -101,11 +117,11 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   previewText: {
-    fontFamily: nativeFontFamily.displayItalic,
-    fontSize: nativeFontSize['2xl'],
+    fontFamily: nativeFontFamily.mono,
+    fontSize: 36,
     color: brandColors.sv2,
     textAlign: 'center',
-    letterSpacing: 1.5,
+    letterSpacing: 2.16,
   },
   subtext: {
     fontFamily: nativeFontFamily.ui,

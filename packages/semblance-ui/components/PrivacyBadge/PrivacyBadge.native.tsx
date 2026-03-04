@@ -1,12 +1,12 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { PrivacyBadgeProps, PrivacyStatus } from './PrivacyBadge.types';
-import { brandColors, nativeSpacing, nativeFontSize, nativeFontFamily } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 const statusColors: Record<PrivacyStatus, string> = {
   active: brandColors.veridian,
   syncing: brandColors.amber,
-  offline: brandColors.silver,
+  offline: brandColors.sv1,
 };
 
 export function PrivacyBadge({ status = 'active' }: PrivacyBadgeProps) {
@@ -29,6 +29,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: nativeSpacing.s2,
+    paddingHorizontal: nativeSpacing.s3,
+    paddingVertical: nativeSpacing.s2,
+    backgroundColor: brandColors.s1,
+    borderWidth: 1,
+    borderColor: brandColors.b1,
+    borderRadius: nativeRadius.md,
   },
   dot: {
     width: 6,
@@ -37,9 +43,9 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: nativeFontSize.xs,
-    fontFamily: nativeFontFamily.ui,
+    fontFamily: nativeFontFamily.mono,
     color: brandColors.silver,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.1,
   },
 });
