@@ -99,7 +99,7 @@ export function SettingsAlterEgo({
                 color: '#e8e8e8',
                 fontSize: 14,
                 padding: '6px 8px',
-                fontFamily: "'DM Mono', monospace",
+                fontFamily: 'var(--fm)',
                 textAlign: 'right',
               }}
             />

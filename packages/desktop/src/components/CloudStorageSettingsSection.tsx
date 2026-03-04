@@ -150,14 +150,14 @@ export function CloudStorageSettingsSection({ settingsOverride }: CloudStorageSe
         <>
           <div className="settings-section-header">Storage</div>
           <div style={{ padding: '0 20px 16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--fm)', fontSize: 11, color: '#5E6B7C', marginBottom: 4 }}>
               <span>{formatBytes(cs.storageUsedBytes)} used</span>
               <span>{cs.storageBudgetGB} GB budget</span>
             </div>
             <div style={{ width: '100%', height: 8, borderRadius: 9999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
               <div style={{ height: '100%', borderRadius: 9999, background: '#6ECFA3', width: `${usagePercent}%`, transition: 'width 220ms ease-out' }} />
             </div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', marginTop: 4 }}>
+            <div style={{ fontFamily: 'var(--fm)', fontSize: 11, color: '#5E6B7C', marginTop: 4 }}>
               {cs.filesSynced} files synced
               {cs.lastSyncedAt && <> &middot; Last sync: {new Date(cs.lastSyncedAt).toLocaleString()}</>}
             </div>

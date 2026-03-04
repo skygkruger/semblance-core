@@ -60,7 +60,7 @@
 }
 
 .connector-card__name {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 14px;
   font-weight: 500;
   color: #C8D4E0;
@@ -72,7 +72,7 @@
 
 .connector-card__dr-badge {
   flex-shrink: 0;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   font-weight: 400;
   padding: 1px 6px;
@@ -83,7 +83,7 @@
 }
 
 .connector-card__description {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 13px;
   font-weight: 300;
   color: #5E6B7C;
@@ -104,7 +104,7 @@
 }
 
 .connector-card__btn {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 13px;
   font-weight: 400;
   padding: 6px 12px;
@@ -146,7 +146,7 @@
 }
 
 .connector-card__pending-text {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #C9A85C;
   letter-spacing: 0.04em;
@@ -169,7 +169,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   letter-spacing: 0.02em;
 }
@@ -182,14 +182,14 @@
 }
 
 .connector-card__status-email {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #5E6B7C;
   margin-left: 4px;
 }
 
 .connector-card__status-sync {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #5E6B7C;
 }

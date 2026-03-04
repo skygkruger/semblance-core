@@ -125,10 +125,10 @@ export function IntentScreen() {
       maxWidth: 640,
       margin: '0 auto',
       color: '#EEF1F4',
-      fontFamily: "'DM Sans', sans-serif",
+      fontFamily: 'var(--fb)',
     }}>
       <h1 style={{
-        fontFamily: "'Fraunces', serif",
+        fontFamily: 'var(--fd)',
         fontSize: 28,
         fontWeight: 400,
         marginBottom: 32,
@@ -255,7 +255,7 @@ export function IntentScreen() {
                   backgroundColor: '#6ECFA315',
                   padding: '2px 8px',
                   borderRadius: 9999,
-                  fontFamily: "'DM Mono', monospace",
+                  fontFamily: 'var(--fm)',
                 }}>
                   {value.theme}
                 </span>
@@ -298,7 +298,7 @@ export function IntentScreen() {
               }}>
                 <span style={{
                   fontSize: 10,
-                  fontFamily: "'DM Mono', monospace",
+                  fontFamily: 'var(--fm)',
                   padding: '2px 6px',
                   borderRadius: 4,
                   backgroundColor: obs.type === 'drift' ? '#C9A85C20' : obs.type === 'conflict' ? '#C97B6E20' : '#6ECFA320',
@@ -333,11 +333,12 @@ export function IntentScreen() {
 // ─── Shared Styles ──────────────────────────────────────────────────────────
 
 const sectionHeading: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 600,
-  color: '#8593A4',
+  fontFamily: 'var(--fm)',
+  fontSize: 11,
+  fontWeight: 400,
+  color: '#5E6B7C',
   textTransform: 'uppercase',
-  letterSpacing: '0.05em',
+  letterSpacing: '0.08em',
   marginBottom: 12,
 };
 
@@ -350,7 +351,7 @@ const inputStyle: React.CSSProperties = {
   backgroundColor: '#141820',
   color: '#EEF1F4',
   fontSize: 13,
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: 'var(--fb)',
   outline: 'none',
 };
 
@@ -363,7 +364,7 @@ const btnPrimary: React.CSSProperties = {
   color: '#0B0E11',
   fontSize: 13,
   fontWeight: 600,
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: 'var(--fb)',
   cursor: 'pointer',
 };
 
@@ -372,7 +373,7 @@ const btnGhost: React.CSSProperties = {
   border: 'none',
   color: '#8593A4',
   fontSize: 13,
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: 'var(--fb)',
   cursor: 'pointer',
   padding: '4px 8px',
 };

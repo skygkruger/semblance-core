@@ -56,7 +56,7 @@
 .folder-picker__folder-btn {
   flex: 1;
   text-align: left;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 15px;
   font-weight: 400;
   color: #EEF1F4;
@@ -78,7 +78,7 @@
   display: flex;
   gap: 4px;
   padding: 12px 20px 8px;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #5E6B7C;
   overflow-x: auto;
@@ -111,7 +111,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 13px;
   font-weight: 300;
   color: #A8B4C0;

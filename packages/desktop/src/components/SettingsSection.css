@@ -3,7 +3,7 @@
 
 /* Title — matches .settings-header__title */
 .settings-section__title {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 16px;
   font-weight: 400;
   color: #EEF1F4;
@@ -27,7 +27,7 @@
 
 /* Section label — matches .settings-section-header */
 .settings-section__label {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   font-weight: 400;
   color: #5E6B7C;
@@ -41,7 +41,7 @@
 .settings-section__select {
   width: 100%;
   padding: 6px 12px;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 15px;
   color: #EEF1F4;
   background: rgba(255, 255, 255, 0.06);
@@ -57,7 +57,7 @@
 
 /* Hint — matches .settings-explanation--small */
 .settings-section__hint {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 12px;
   font-weight: 300;
   color: #5E6B7C;
@@ -76,7 +76,7 @@
 
 /* Value — matches .settings-row__value */
 .settings-section__value {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 13px;
   color: #A8B4C0;
 }
@@ -103,7 +103,7 @@
 
 /* Provider name — matches .settings-row__label */
 .settings-section__provider-name {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 15px;
   font-weight: 400;
   color: #EEF1F4;
@@ -111,7 +111,7 @@
 
 /* Provider status — matches .settings-row__value */
 .settings-section__provider-status {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 13px;
   color: #A8B4C0;
 }
@@ -136,14 +136,14 @@
 .settings-section__usage-labels {
   display: flex;
   justify-content: space-between;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #5E6B7C;
   margin-bottom: 4px;
 }
 
 .settings-section__usage-meta {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #5E6B7C;
   margin-top: 4px;
@@ -166,7 +166,7 @@
 }
 
 .settings-section__slider-value {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #5E6B7C;
   width: 32px;
@@ -207,7 +207,7 @@
 
 .settings-section__option-btn {
   flex: 1;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 13px;
   padding: 6px 12px;
   border-radius: 6px;
@@ -251,7 +251,7 @@
 /* List label — matches .settings-row__label */
 .settings-section__list-item span:first-child {
   flex: 1;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 15px;
   font-weight: 400;
   color: #EEF1F4;
@@ -262,7 +262,7 @@
 
 /* List time — matches .settings-row__value */
 .settings-section__list-time {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 13px;
   color: #A8B4C0;
   flex-shrink: 0;

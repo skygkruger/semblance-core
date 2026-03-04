@@ -88,7 +88,7 @@ export function BiometricGate({ children }: BiometricGateProps) {
           height: '100vh',
           backgroundColor: '#0B0E11',
           color: '#8593A4',
-          fontFamily: "'DM Sans', system-ui, sans-serif",
+          fontFamily: 'var(--fb)',
         }}
       >
         <p>Verifying identity...</p>
@@ -107,7 +107,7 @@ export function BiometricGate({ children }: BiometricGateProps) {
           height: '100vh',
           backgroundColor: '#0B0E11',
           color: '#E8E3E3',
-          fontFamily: "'DM Sans', system-ui, sans-serif",
+          fontFamily: 'var(--fb)',
           gap: '16px',
         }}
       >
@@ -133,7 +133,7 @@ export function BiometricGate({ children }: BiometricGateProps) {
             fontSize: '14px',
             fontWeight: 600,
             cursor: state === 'error' ? 'not-allowed' : 'pointer',
-            fontFamily: "'DM Sans', system-ui, sans-serif",
+            fontFamily: 'var(--fb)',
           }}
         >
           {state === 'error' ? 'Locked out' : 'Try again'}

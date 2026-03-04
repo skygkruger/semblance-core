@@ -72,7 +72,7 @@ export function SettingsPrivacy({
                     border: 'none',
                     color: '#C97B6E',
                     fontSize: 12,
-                    fontFamily: "'DM Mono', monospace",
+                    fontFamily: 'var(--fm)',
                     cursor: 'pointer',
                     padding: '4px 8px',
                   }}

@@ -39,7 +39,7 @@ const AllIcons = () => (
         <div style={{ color: '#8593A4' }}>
           <Icon size={24} />
         </div>
-        <span style={{ fontSize: 10, color: '#525A64', fontFamily: "'DM Mono', monospace" }}>{label}</span>
+        <span style={{ fontSize: 10, color: '#525A64', fontFamily: 'var(--fm)' }}>{label}</span>
       </div>
     ))}
   </div>

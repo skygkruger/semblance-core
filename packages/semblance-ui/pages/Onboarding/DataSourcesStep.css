@@ -33,7 +33,7 @@
 }
 
 .datasources__subtext {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-weight: 300;
   font-size: 15px;
   color: #8593A4;
@@ -103,7 +103,7 @@
 }
 
 .datasources__card-name {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 14px;
   font-weight: 500;
   color: #C8D4E0;
@@ -111,7 +111,7 @@
 }
 
 .datasources__card-desc {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 12px;
   font-weight: 300;
   color: #5E6B7C;
@@ -120,7 +120,7 @@
 
 .datasources__card-status {
   flex-shrink: 0;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   letter-spacing: 0.04em;
   color: #6ECFA3;
@@ -146,7 +146,7 @@
 /* ─── More sources disclosure ─── */
 
 .datasources__more {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 13px;
   font-weight: 300;
   color: #5E6B7C;
@@ -176,7 +176,7 @@
 }
 
 .datasources__privacy-text {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 12px;
   font-weight: 300;
   color: #8593A4;
@@ -195,7 +195,7 @@
 }
 
 .datasources__skip {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 13px;
   font-weight: 400;
   color: #5E6B7C;
@@ -213,7 +213,7 @@
 /* ─── Inline nudge (shown when 0 connected + continue) ─── */
 
 .datasources__nudge {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 13px;
   font-weight: 300;
   color: #C9A85C;

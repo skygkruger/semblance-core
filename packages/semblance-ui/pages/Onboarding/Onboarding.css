@@ -182,7 +182,7 @@
 
 /* Card text — matched to BriefingCard typography */
 .knowledge-moment-card__title {
-  font-family: var(--fd);
+  font-family: var(--fb);
   font-weight: 300;
   font-size: var(--text-xl);
   color: var(--w-dim);
