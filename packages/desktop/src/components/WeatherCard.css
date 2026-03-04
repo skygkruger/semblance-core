@@ -1,9 +1,13 @@
 /* ─── WeatherCard ─── */
+/* Font specs match ActionCard exactly:
+   title  → var(--fb), var(--text-sm), weight 500, var(--w-dim)
+   meta   → var(--fm), var(--text-xs), var(--sv1)
+   body   → var(--fb), var(--text-sm), weight 300, var(--sv3)  */
 
 .weather-card__title {
   font-family: var(--fb);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--w-dim);
   margin: 0 0 var(--sp-3) 0;
 }
@@ -15,30 +19,31 @@
 .weather-card__temp-row {
   display: flex;
   align-items: baseline;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
 }
 
 .weather-card__temp {
-  font-family: var(--fd);
+  font-family: var(--fm);
   font-size: var(--text-xl);
-  font-weight: 300;
-  color: var(--white);
+  font-weight: 400;
+  color: var(--w-dim);
 }
 
 .weather-card__condition {
   font-family: var(--fb);
   font-size: var(--text-sm);
+  font-weight: 300;
   color: var(--sv3);
 }
 
 .weather-card__details {
   display: flex;
   gap: var(--sp-4);
-  margin-top: var(--sp-1);
+  margin-top: var(--sp-2);
 }
 
 .weather-card__detail {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--sv1);
 }
@@ -54,37 +59,64 @@
 }
 
 .weather-card__forecasts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
 }
 
 .weather-card__forecast-row {
+  display: contents;
+}
+
+/* Every cell stretches to full row height so border-bottom aligns across all columns.
+   No column-gap — padding-left on non-first cells creates spacing so borders are continuous. */
+.weather-card__forecast-row > span {
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--b1);
+  align-self: stretch;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-size: var(--text-xs);
+}
+
+.weather-card__forecast-row > span:first-child {
+  padding-left: 0;
+}
+
+.weather-card__forecast-row:last-child > span {
+  border-bottom: none;
 }
 
 .weather-card__event-name {
-  color: var(--sv3);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--w-dim);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
   min-width: 0;
 }
 
 .weather-card__event-time {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
   color: var(--sv1);
-}
-
-.weather-card__forecast-temp {
-  color: var(--w-dim);
+  white-space: nowrap;
   text-align: right;
 }
 
+.weather-card__forecast-temp {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 300;
+  color: var(--sv3);
+  white-space: nowrap;
+  text-align: left;
+}
+
 .weather-card__rain {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
   color: var(--amber);
-  margin-left: var(--sp-2);
+  white-space: nowrap;
+  text-align: right;
 }

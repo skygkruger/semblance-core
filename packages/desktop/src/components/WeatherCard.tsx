@@ -61,11 +61,9 @@ export function WeatherCard({ currentConditions, eventForecasts }: WeatherCardPr
                 <span className="weather-card__forecast-temp">
                   {forecast.temperature}&deg;C {forecast.conditionDescription}
                 </span>
-                {forecast.precipitationChance > 30 && (
-                  <span className="weather-card__rain">
-                    {forecast.precipitationChance}% rain
-                  </span>
-                )}
+                <span className="weather-card__rain">
+                  {forecast.precipitationChance > 30 ? `${forecast.precipitationChance}% rain` : ''}
+                </span>
               </div>
             ))}
           </div>
