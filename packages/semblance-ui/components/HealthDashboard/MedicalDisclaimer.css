@@ -1,0 +1,16 @@
+/* MedicalDisclaimer — Always visible, never dismissable */
+
+.medical-disclaimer {
+  background: var(--s2);
+  border-top: 1px solid var(--b1);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+}
+
+.medical-disclaimer__text {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv1);
+  line-height: 1.6;
+  margin: 0;
+}

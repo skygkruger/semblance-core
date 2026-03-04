@@ -1,0 +1,48 @@
+/* HorizontalBarChart — Category spending bars */
+
+.h-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.h-bar-chart__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.h-bar-chart__label {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  min-width: 80px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.h-bar-chart__track {
+  flex: 1;
+  height: 6px;
+  background: var(--b1);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.h-bar-chart__bar {
+  height: 6px;
+  border-radius: var(--r-full);
+  transition: width var(--duration-base) var(--eo);
+  min-width: 2px;
+}
+
+.h-bar-chart__value {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--w-dim);
+  min-width: 56px;
+  text-align: right;
+  flex-shrink: 0;
+}

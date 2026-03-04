@@ -1,0 +1,68 @@
+/* InsightCard — Health pattern insight */
+
+.insight-card {
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.insight-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.insight-card__title {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--w-dim);
+  margin: 0;
+  font-weight: 500;
+}
+
+.insight-card__confidence {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  padding: 2px var(--sp-2);
+  background: var(--s2);
+  border-radius: var(--r-full);
+  flex-shrink: 0;
+}
+
+.insight-card__description {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.insight-card__sources {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--sv1);
+}
+
+.insight-card__dismiss {
+  padding: var(--sp-1) var(--sp-3);
+  background: transparent;
+  border: 1px solid var(--b2);
+  border-radius: var(--r-sm);
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  cursor: pointer;
+  align-self: flex-end;
+  transition: all var(--duration-fast) var(--eo);
+}
+
+.insight-card__dismiss:hover {
+  border-color: var(--sv2);
+  color: var(--w-dim);
+}

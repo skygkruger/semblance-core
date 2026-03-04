@@ -1,0 +1,69 @@
+/* HealthDashboard — BEM, tokens only */
+
+.health-dash {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  padding: var(--sp-6);
+  max-width: 720px;
+}
+
+.health-dash__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.health-dash__title {
+  font-family: var(--fd);
+  font-size: var(--text-lg);
+  color: var(--white);
+  margin: 0;
+  font-weight: 400;
+}
+
+.health-dash__subtitle {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: var(--sp-1) 0 0;
+}
+
+.health-dash__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.health-dash__section-title {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+/* ─── Loading ─── */
+.health-dash__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.health-dash__skeleton-bar {
+  height: 16px;
+  background: var(--s2);
+  border-radius: var(--r-sm);
+  animation: health-pulse 1.5s ease-in-out infinite;
+}
+
+.health-dash__skeleton-bar--wide { width: 80%; }
+.health-dash__skeleton-bar--medium { width: 60%; }
+.health-dash__skeleton-bar--tall { height: 120px; }
+
+@keyframes health-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}

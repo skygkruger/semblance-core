@@ -1,0 +1,30 @@
+/* PeriodSelector — 7d/30d/90d/custom toggle */
+
+.period-selector {
+  display: flex;
+  gap: var(--sp-1);
+  padding: 2px;
+  background: var(--s1);
+  border-radius: var(--r-md);
+}
+
+.period-selector__btn {
+  padding: var(--sp-1) var(--sp-3);
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--eo);
+}
+
+.period-selector__btn:hover {
+  color: var(--w-dim);
+}
+
+.period-selector__btn--active {
+  background: var(--s3);
+  color: var(--v);
+}

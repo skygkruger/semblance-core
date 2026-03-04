@@ -378,6 +378,105 @@ export interface ImportStatementResult {
   potentialSavings: number;
 }
 
+export type FinancialPeriod = '7d' | '30d' | '90d' | 'custom';
+
+export interface FinancialOverview {
+  totalSpending: number;
+  previousPeriodSpending: number | null;
+  transactionCount: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
+export interface CategoryBreakdown {
+  category: string;
+  total: number;
+  percentage: number;
+  transactionCount: number;
+  trend: 'up' | 'down' | 'stable';
+}
+
+export interface SpendingAnomaly {
+  id: string;
+  type: 'unusual_amount' | 'new_merchant' | 'frequency_change' | 'duplicate';
+  severity: 'low' | 'medium' | 'high';
+  title: string;
+  description: string;
+  amount: number;
+  merchantName: string;
+  detectedAt: string;
+}
+
+export interface RecurringCharge {
+  id: string;
+  merchantName: string;
+  amount: number;
+  frequency: 'weekly' | 'monthly' | 'quarterly' | 'annual';
+  confidence: number;
+  lastChargeDate: string;
+  chargeCount: number;
+  estimatedAnnualCost: number;
+  status: 'active' | 'forgotten' | 'cancelled' | 'user_confirmed';
+}
+
+export interface SubscriptionSummary {
+  totalMonthly: number;
+  totalAnnual: number;
+  activeCount: number;
+  forgottenCount: number;
+  potentialSavings: number;
+}
+
+export interface FinancialDashboardData {
+  overview: FinancialOverview;
+  categories: CategoryBreakdown[];
+  anomalies: SpendingAnomaly[];
+  subscriptions: { charges: RecurringCharge[]; summary: SubscriptionSummary };
+}
+
+// ─── Health ────────────────────────────────────────────────────────────────
+
+export interface HealthEntry {
+  id: string;
+  date: string;
+  timestamp: string;
+  mood: number | null;
+  energy: number | null;
+  waterGlasses: number | null;
+  symptoms: string[];
+  medications: string[];
+  notes: string | null;
+}
+
+export interface HealthTrendPoint {
+  date: string;
+  mood: number | null;
+  energy: number | null;
+  waterGlasses: number | null;
+  sleepHours: number | null;
+  steps: number | null;
+  heartRateAvg: number | null;
+}
+
+export interface HealthInsight {
+  id: string;
+  type: 'correlation' | 'trend' | 'streak';
+  title: string;
+  description: string;
+  confidence: number;
+  dataSources: string[];
+  detectedAt: string;
+}
+
+export interface HealthDashboardData {
+  todayEntry: HealthEntry | null;
+  trends: HealthTrendPoint[];
+  insights: HealthInsight[];
+  symptomsHistory: string[];
+  medicationsHistory: string[];
+  hasHealthKit: boolean;
+}
+
 // ─── Cloud Storage ──────────────────────────────────────────────────────────
 
 export interface CloudConnectResult {
