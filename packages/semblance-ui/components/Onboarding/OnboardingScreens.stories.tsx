@@ -53,14 +53,7 @@ export const SplashScreen: Story = {
       }}>
         <LogoMark size={200} />
         <Wordmark size="hero" />
-        <p style={{
-          fontFamily: 'var(--fd)',
-          fontWeight: 300,
-          fontSize: 'var(--text-lg)',
-          color: 'var(--sv2)',
-          textAlign: 'center',
-          maxWidth: 440,
-        }}>
+        <p className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-sm)', whiteSpace: 'nowrap' }}>
           Your intelligence. Your device. Your rules.
         </p>
         <div style={{ marginTop: 32 }}>
