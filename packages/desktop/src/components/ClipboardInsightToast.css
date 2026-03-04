@@ -10,10 +10,17 @@
   gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
   border-radius: var(--r-lg);
-  background: var(--s2);
-  border: 1px solid var(--b1);
-  max-width: 380px;
+  max-width: 420px;
   animation: toast-slide-in 220ms var(--eo);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--s2), var(--s2)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite, toast-slide-in 220ms var(--eo);
 }
 
 @keyframes toast-slide-in {
@@ -32,35 +39,4 @@
   font-size: var(--text-sm);
   color: var(--w-dim);
   flex: 1;
-}
-
-.clipboard-toast__action {
-  font-family: var(--fb);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  padding: 6px 12px;
-  border-radius: var(--r-md);
-  border: none;
-  background: var(--v);
-  color: var(--white);
-  cursor: pointer;
-  transition: opacity var(--duration-fast) var(--eo);
-  white-space: nowrap;
-}
-
-.clipboard-toast__action:hover {
-  opacity: 0.9;
-}
-
-.clipboard-toast__dismiss {
-  font-family: var(--fb);
-  color: var(--sv1);
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: color var(--duration-fast) var(--eo);
-}
-
-.clipboard-toast__dismiss:hover {
-  color: var(--sv3);
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button } from '@semblance/ui';
+import { Button, SkeletonCard } from '@semblance/ui';
 import { cloudStorageBrowseFolders } from '../ipc/commands';
 import type { CloudFolder } from '../ipc/types';
+import '@semblance/ui/components/Settings/Settings.css';
 import './CloudFolderPicker.css';
 
 interface CloudFolderPickerProps {
@@ -10,6 +11,14 @@ interface CloudFolderPickerProps {
   onClose: () => void;
   onSelect: (folders: Array<{ folderId: string; folderName: string }>) => void;
   selectedFolderIds?: string[];
+}
+
+function BackArrow() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
 }
 
 export function CloudFolderPicker({ provider, isOpen, onClose, onSelect, selectedFolderIds = [] }: CloudFolderPickerProps) {
@@ -74,30 +83,34 @@ export function CloudFolderPicker({ provider, isOpen, onClose, onSelect, selecte
 
   return (
     <div className="folder-picker__overlay">
-      <div className="folder-picker__panel">
-        <div className="folder-picker__header">
-          <h3 className="folder-picker__title">Select Folders to Sync</h3>
-          <div className="folder-picker__breadcrumbs">
-            {breadcrumbs.map((crumb, i) => (
-              <span key={crumb.id ?? 'root'}>
-                {i > 0 && <span className="folder-picker__breadcrumb-sep">/</span>}
-                <button
-                  type="button"
-                  onClick={() => handleBreadcrumbClick(i)}
-                  className="folder-picker__breadcrumb-btn"
-                >
-                  {crumb.name}
-                </button>
-              </span>
-            ))}
-          </div>
+      <div className="settings-screen folder-picker__panel">
+        <div className="settings-header">
+          <button type="button" className="settings-header__back" onClick={onClose}>
+            <BackArrow />
+          </button>
+          <h1 className="settings-header__title">Select Folders</h1>
+        </div>
+
+        <div className="folder-picker__breadcrumbs">
+          {breadcrumbs.map((crumb, i) => (
+            <span key={crumb.id ?? 'root'}>
+              {i > 0 && <span className="folder-picker__breadcrumb-sep">/</span>}
+              <button
+                type="button"
+                onClick={() => handleBreadcrumbClick(i)}
+                className="folder-picker__breadcrumb-btn"
+              >
+                {crumb.name}
+              </button>
+            </span>
+          ))}
         </div>
 
         <div className="folder-picker__body">
           {loading ? (
-            <p className="folder-picker__empty">Loading folders...</p>
+            <SkeletonCard variant="generic" message="Loading folders" height={140} />
           ) : folders.length === 0 ? (
-            <p className="folder-picker__empty">No folders found</p>
+            <SkeletonCard variant="generic" message="No folders found" showSpinner={false} height={140} />
           ) : (
             <div className="folder-picker__list">
               {folders.map(folder => (
@@ -132,8 +145,8 @@ export function CloudFolderPicker({ provider, isOpen, onClose, onSelect, selecte
             Include subfolders
           </label>
           <div className="folder-picker__footer-actions">
-            <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-            <Button size="sm" onClick={handleConfirm} disabled={selected.size === 0}>
+            <Button variant="dismiss" size="sm" onClick={onClose}>Cancel</Button>
+            <Button variant="approve" size="sm" onClick={handleConfirm} disabled={selected.size === 0}>
               Add {selected.size > 0 ? `(${selected.size})` : ''}
             </Button>
           </div>

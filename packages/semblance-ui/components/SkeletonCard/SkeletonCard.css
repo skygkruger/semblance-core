@@ -58,6 +58,11 @@
   z-index: 1;
 }
 
+.skeleton-card__children {
+  width: 100%;
+  text-align: left;
+}
+
 .skeleton-card__status {
   font-family: var(--fb);
   font-size: 14px;

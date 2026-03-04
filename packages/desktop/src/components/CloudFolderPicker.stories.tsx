@@ -3,27 +3,25 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { DotMatrix } from '@semblance/ui';
 import { CloudFolderPicker } from './CloudFolderPicker';
 
-const VoidDecorator = (Story: React.ComponentType) => (
-  <div style={{ position: 'relative', minHeight: '100vh', background: '#0B0E11', padding: 0 }}>
-    <DotMatrix />
-    <div style={{ position: 'relative', zIndex: 1 }}>
-      <Story />
-    </div>
-  </div>
-);
-
 const meta: Meta<typeof CloudFolderPicker> = {
   title: 'Desktop/Settings/CloudFolderPicker',
   component: CloudFolderPicker,
   parameters: { layout: 'fullscreen' },
-  decorators: [VoidDecorator],
+  decorators: [
+    (Story) => (
+      <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, width: '100%', minHeight: '100vh' }}>
+          <Story />
+        </div>
+      </div>
+    ),
+  ],
 };
 
 export default meta;
 type Story = StoryObj<typeof CloudFolderPicker>;
 
-// Uses mocked cloudStorageBrowseFolders from the Vite plugin.
-// Default mock returns [] — shows "No folders found" state.
 export const EmptyFolders: Story = {
   args: {
     provider: 'google_drive',

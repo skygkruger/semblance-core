@@ -1,150 +1,174 @@
-/* ─── SettingsSection — Shared styles for all settings sections ─── */
+/* ─── SettingsSection — Shared styles for desktop settings sections ─── */
+/* Matches Settings.css from semblance-ui exactly.                       */
 
+/* Title — matches .settings-header__title */
 .settings-section__title {
-  font-family: var(--fb);
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--w-dim);
-  margin-bottom: var(--sp-4);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #EEF1F4;
+  margin-bottom: 16px;
 }
 
+/* Groups */
 .settings-section__group {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: 16px;
 }
 
 .settings-section__subgroup {
-  padding-left: var(--sp-4);
-  border-left: 2px solid var(--b1);
+  padding-left: 20px;
+  border-left: 2px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  gap: 12px;
 }
 
+/* Section label — matches .settings-section-header */
 .settings-section__label {
-  font-family: var(--fm);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  color: var(--sv1);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  color: #5E6B7C;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: var(--sp-2);
+  margin-bottom: 8px;
   display: block;
 }
 
+/* Select — matches .settings-inline-edit__input pattern */
 .settings-section__select {
   width: 100%;
-  padding: var(--sp-2) var(--sp-4);
-  font-family: var(--fb);
-  font-size: var(--text-sm);
-  color: var(--w-dim);
-  background: var(--s1);
-  border: 1px solid var(--b1);
-  border-radius: var(--r-md);
+  padding: 6px 12px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 15px;
+  color: #EEF1F4;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
   outline: none;
+  transition: border-color 180ms;
 }
 
 .settings-section__select:focus {
-  border-color: rgba(110, 207, 163, 0.4);
+  border-color: rgba(110, 207, 163, 0.5);
 }
 
+/* Hint — matches .settings-explanation--small */
 .settings-section__hint {
-  font-family: var(--fb);
-  font-size: var(--text-xs);
-  color: var(--sv1);
-  margin-top: var(--sp-1);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #5E6B7C;
+  margin-top: 4px;
 }
 
+/* Row — matches .settings-row */
 .settings-section__row {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  min-height: 52px;
+  padding: 0 20px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Value — matches .settings-row__value */
 .settings-section__value {
-  font-family: var(--fb);
-  font-size: var(--text-sm);
-  color: var(--sv3);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: #A8B4C0;
 }
 
+/* Provider row — matches .settings-card */
 .settings-section__provider-row {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3);
-  border-radius: var(--r-md);
-  background: var(--s1);
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #171B1F;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transition: border-color 180ms;
+}
+
+.settings-section__provider-row:hover {
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 .settings-section__provider-row--disabled {
   opacity: 0.5;
 }
 
+/* Provider name — matches .settings-row__label */
 .settings-section__provider-name {
-  font-family: var(--fb);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--w-dim);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: #EEF1F4;
 }
 
+/* Provider status — matches .settings-row__value */
 .settings-section__provider-status {
-  font-family: var(--fb);
-  font-size: var(--text-xs);
-  color: var(--sv1);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: #A8B4C0;
 }
 
+/* Usage bar */
 .settings-section__usage-bar {
   width: 100%;
   height: 8px;
-  border-radius: var(--r-full);
-  background: var(--s2);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
 
 .settings-section__usage-fill {
   height: 100%;
-  border-radius: var(--r-full);
-  background: var(--v);
-  transition: width var(--duration-base) var(--eo);
+  border-radius: 9999px;
+  background: #6ECFA3;
+  transition: width 220ms ease-out;
 }
 
+/* Usage labels — matches .settings-explanation--small */
 .settings-section__usage-labels {
   display: flex;
   justify-content: space-between;
-  font-family: var(--fb);
-  font-size: var(--text-xs);
-  color: var(--sv1);
-  margin-bottom: var(--sp-1);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #5E6B7C;
+  margin-bottom: 4px;
 }
 
 .settings-section__usage-meta {
-  font-family: var(--fb);
-  font-size: var(--text-xs);
-  color: var(--sv1);
-  margin-top: var(--sp-1);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #5E6B7C;
+  margin-top: 4px;
 }
 
 /* Slider */
 .settings-section__slider-row {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  gap: 12px;
 }
 
 .settings-section__slider {
   flex: 1;
   height: 6px;
-  border-radius: var(--r-full);
+  border-radius: 9999px;
   appearance: none;
-  background: var(--b1);
+  background: rgba(255, 255, 255, 0.06);
   accent-color: #6ECFA3;
 }
 
 .settings-section__slider-value {
-  font-family: var(--fm);
-  font-size: var(--text-xs);
-  color: var(--sv1);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #5E6B7C;
   width: 32px;
   text-align: right;
 }
@@ -152,71 +176,94 @@
 /* Action row */
 .settings-section__action-row {
   display: flex;
-  items: center;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-2);
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 /* Preview button */
 .settings-section__preview-btn {
   padding: 4px;
-  border-radius: var(--r-sm);
+  border-radius: 4px;
   background: none;
   border: none;
-  color: var(--sv3);
+  color: #A8B4C0;
   cursor: pointer;
-  transition: color var(--duration-fast) var(--eo);
+  transition: color 180ms;
 }
 
 .settings-section__preview-btn:hover {
-  color: var(--v);
+  color: #6ECFA3;
 }
 
-/* Sensitivity buttons */
+/* Sensitivity / option buttons — matches .settings-segment__option */
 .settings-section__option-btns {
   display: flex;
-  gap: var(--sp-2);
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 2px;
 }
 
 .settings-section__option-btn {
-  font-family: var(--fb);
-  font-size: var(--text-sm);
-  padding: var(--sp-2) var(--sp-4);
-  border-radius: var(--r-md);
-  border: 1px solid var(--b1);
+  flex: 1;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
   background: none;
-  color: var(--sv3);
+  color: #A8B4C0;
   cursor: pointer;
-  transition: border-color var(--duration-fast) var(--eo);
+  transition: background 180ms, color 180ms;
+  text-align: center;
 }
 
 .settings-section__option-btn--active {
-  border-color: var(--v);
-  color: var(--v);
-  font-weight: 500;
-  background: rgba(110, 207, 163, 0.05);
+  background: rgba(255, 255, 255, 0.1);
+  color: #EEF1F4;
 }
 
-.settings-section__option-btn:hover {
-  border-color: rgba(110, 207, 163, 0.5);
+.settings-section__option-btn:hover:not(.settings-section__option-btn--active) {
+  background: rgba(255, 255, 255, 0.04);
 }
 
-/* Recent actions list */
+/* Recent actions list — matches .settings-row pattern */
 .settings-section__list {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-1);
 }
 
 .settings-section__list-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-family: var(--fb);
-  font-size: var(--text-xs);
-  color: var(--sv3);
+  min-height: 44px;
+  padding: 0 4px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.settings-section__list-item:last-child {
+  border-bottom: none;
+}
+
+/* List label — matches .settings-row__label */
+.settings-section__list-item span:first-child {
+  flex: 1;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: #EEF1F4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* List time — matches .settings-row__value */
 .settings-section__list-time {
-  color: var(--sv1);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: #A8B4C0;
+  flex-shrink: 0;
 }

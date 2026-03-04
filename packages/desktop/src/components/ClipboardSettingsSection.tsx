@@ -1,52 +1,95 @@
 // ClipboardSettingsSection — Settings section for clipboard monitoring.
-// Toggle: "Clipboard monitoring" (default OFF), description text, last 5 actions.
+// Uses Settings.css classes from semblance-ui for visual parity.
 
+import { SkeletonCard } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
-import { Toggle } from './Toggle';
-import './SettingsSection.css';
+import '@semblance/ui/components/Settings/Settings.css';
 
-export function ClipboardSettingsSection() {
+interface ClipboardAction {
+  patternType: string;
+  action: string;
+  timestamp: string;
+}
+
+export interface ClipboardSettingsSectionProps {
+  monitoringEnabled?: boolean;
+  recentActions?: ClipboardAction[];
+  onToggle?: () => void;
+}
+
+export function ClipboardSettingsSection({
+  monitoringEnabled: enabledProp,
+  recentActions: actionsProp,
+  onToggle,
+}: ClipboardSettingsSectionProps = {}) {
   const state = useAppState();
   const dispatch = useAppDispatch();
 
-  const monitoringEnabled = state.clipboardSettings?.monitoringEnabled ?? false;
-  const recentActions = state.clipboardSettings?.recentActions ?? [];
+  const monitoringEnabled = enabledProp ?? state.clipboardSettings?.monitoringEnabled ?? false;
+  const recentActions = actionsProp ?? state.clipboardSettings?.recentActions ?? [];
 
-  const handleToggle = () => {
+  const handleToggle = onToggle ?? (() => {
     dispatch({
       type: 'SET_CLIPBOARD_MONITORING',
       enabled: !monitoringEnabled,
     });
-  };
+  });
 
   return (
-    <div>
-      <h2 className="settings-section__title">Clipboard Intelligence</h2>
+    <div className="settings-content">
+      <div className="settings-section-header">Clipboard Intelligence</div>
 
-      <div className="settings-section__group">
-        <Toggle
-          checked={monitoringEnabled}
-          onChange={handleToggle}
-          label="Clipboard monitoring"
-          description="When enabled, Semblance watches your clipboard for actionable content like tracking numbers, flight codes, and URLs. All processing happens locally on your device."
-        />
-
-        {recentActions.length > 0 && (
-          <div>
-            <span className="settings-section__label">Recent clipboard actions</span>
-            <div className="settings-section__list">
-              {recentActions.slice(0, 5).map((action, i) => (
-                <div key={i} className="settings-section__list-item">
-                  <span>{action.patternType}: {action.action}</span>
-                  <span className="settings-section__list-time">
-                    {new Date(action.timestamp).toLocaleTimeString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      <div className="settings-row" onClick={handleToggle}>
+        <span className="settings-row__label">Clipboard monitoring</span>
+        <button
+          type="button"
+          className="settings-toggle"
+          data-on={String(monitoringEnabled)}
+          onClick={(e) => { e.stopPropagation(); handleToggle(); }}
+        >
+          <span className="settings-toggle__thumb" />
+        </button>
       </div>
+
+      <p className="settings-explanation">
+        When enabled, Semblance watches your clipboard for actionable content like tracking numbers, flight codes, and URLs. All processing happens locally on your device.
+      </p>
+
+      {!monitoringEnabled && (
+        <div style={{ padding: '16px 16px 0' }}>
+          <SkeletonCard
+            variant="generic"
+            message="Enable to detect actionable clipboard content"
+            showSpinner={false}
+            height={120}
+          />
+        </div>
+      )}
+
+      {monitoringEnabled && recentActions.length === 0 && (
+        <div style={{ padding: '16px 16px 0' }}>
+          <SkeletonCard
+            variant="generic"
+            message="Watching clipboard"
+            subMessage="Actions will appear here as patterns are detected"
+            height={120}
+          />
+        </div>
+      )}
+
+      {monitoringEnabled && recentActions.length > 0 && (
+        <>
+          <div className="settings-section-header">Recent clipboard actions</div>
+          {recentActions.slice(0, 5).map((action, i) => (
+            <div key={i} className="settings-row settings-row--static">
+              <span className="settings-row__label">{action.patternType}: {action.action}</span>
+              <span className="settings-row__value">
+                {new Date(action.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }
