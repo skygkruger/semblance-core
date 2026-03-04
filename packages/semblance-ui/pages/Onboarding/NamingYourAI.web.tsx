@@ -21,7 +21,7 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
       width: '100%',
       animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
     }}>
-      <LogoMark size={80} />
+      <LogoMark size={120} />
 
       <h1 className="naming__headline">
         What will you call <span className="naming__pronoun">it</span>?

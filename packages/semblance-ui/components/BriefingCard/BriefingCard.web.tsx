@@ -54,7 +54,7 @@ export function BriefingCard({
           )}
         </div>
         <h2 className="briefing-card__greeting">
-          {hasName ? <>{greetingPrefix} <span className="ai-name-shimmer">{userName}</span>.</> : greeting}
+          {hasName ? <>{greetingPrefix} {userName}.</> : greeting}
         </h2>
       </div>
 

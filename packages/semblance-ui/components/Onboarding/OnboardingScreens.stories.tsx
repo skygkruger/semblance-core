@@ -56,7 +56,6 @@ export const SplashScreen: Story = {
         <p style={{
           fontFamily: 'var(--fd)',
           fontWeight: 300,
-          fontStyle: 'italic',
           fontSize: 'var(--text-lg)',
           color: 'var(--sv2)',
           textAlign: 'center',
@@ -234,11 +233,9 @@ const NamingMomentScreen = ({ defaultValue = '' }: { defaultValue?: string }) =>
         width: '100%',
         animation: 'dissolve 700ms var(--eo) both',
       }}>
-        <LogoMark size={80} />
+        <LogoMark size={120} />
         <h1 className="onboarding-shimmer-headline" style={{ fontSize: 'clamp(28px, 5vw, 48px)', lineHeight: 1.25, marginBottom: 16 }}>
-          What should it call{' '}
-          <em style={{ fontStyle: 'italic' }}>you</em>
-          ?
+          What should it call you?
         </h1>
         <p className="naming__subtext">
           Stored only on your device. Never transmitted.

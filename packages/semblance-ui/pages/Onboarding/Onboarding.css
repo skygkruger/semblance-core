@@ -45,7 +45,6 @@
 
 /* Gradient pronouns — opal shimmer */
 .naming__pronoun {
-  font-style: italic;
   background: linear-gradient(
     105deg,
     #625882 0%, #9a94b8 12%, #b8c0cc 24%,
@@ -73,10 +72,9 @@
 
 /* ─── AI name shimmer preview ─── */
 .naming__ai-preview {
-  font-family: var(--fd);
+  font-family: var(--fm);
   font-size: 36px;
   font-weight: 400;
-  font-style: italic;
   letter-spacing: 0.06em;
   text-align: center;
   min-height: 48px;
