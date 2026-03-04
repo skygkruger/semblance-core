@@ -76,7 +76,7 @@ export function QuickCaptureInput({
   );
 
   return (
-    <div className="quick-capture" data-testid="quick-capture">
+    <div className={`quick-capture${text.trim() ? ' quick-capture--active' : ''}`} data-testid="quick-capture">
       <div className="quick-capture__row">
         <input
           ref={inputRef}

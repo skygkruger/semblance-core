@@ -518,7 +518,7 @@
   transition: border-color 180ms;
 }
 
-.settings-inline-edit__input:focus {
+.settings-inline-edit__input:focus:not(:placeholder-shown) {
   border-color: rgba(110, 207, 163, 0.5);
 }
 

@@ -37,7 +37,7 @@
   z-index: 0;
 }
 
-.input-wrapper:focus-within {
+.input-wrapper:focus-within:has(input:not(:placeholder-shown)) {
   border-color: rgba(110, 207, 163, 0.4);
   box-shadow: 0 0 0 2px rgba(110, 207, 163, 0.08), 0 0 16px rgba(110, 207, 163, 0.04);
 }
@@ -66,7 +66,7 @@
 .input-wrapper--error {
   border-color: var(--rust);
 }
-.input-wrapper--error:focus-within {
+.input-wrapper--error:focus-within:has(input:not(:placeholder-shown)) {
   border-color: var(--rust);
   box-shadow: 0 0 0 3px rgba(201, 123, 110, 0.15);
 }

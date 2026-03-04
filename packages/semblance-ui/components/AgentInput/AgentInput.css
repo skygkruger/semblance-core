@@ -161,13 +161,13 @@
 }
 
 /* ─── Focus state — Veridian moment, toned down ─── */
-.agent-input__container:focus-within {
+.agent-input__container:focus-within:has(textarea:not(:placeholder-shown)) {
   border-color: rgba(110, 207, 163, 0.4);
   box-shadow: 0 0 0 2px rgba(110, 207, 163, 0.08), 0 0 16px rgba(110, 207, 163, 0.04);
 }
 
-/* Faint Veridian radial bleed on focus — illuminates from within */
-.agent-input__container:focus-within::after {
+/* Faint Veridian radial bleed — illuminates from within when text present */
+.agent-input__container:focus-within:has(textarea:not(:placeholder-shown))::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -193,8 +193,12 @@
   font-size: 15px;
   line-height: 1.5;
   color: #EEF1F4;
+  caret-color: #8593A4;
+  transition: opacity 180ms ease, caret-color 220ms ease-out;
+}
+
+.agent-input__field:not(:placeholder-shown) {
   caret-color: #6ECFA3;
-  transition: opacity 180ms ease;
 }
 
 .agent-input__field::placeholder {

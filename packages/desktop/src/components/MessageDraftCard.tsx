@@ -95,7 +95,7 @@ export function MessageDraftCard({
       {editing ? (
         <div>
           <textarea
-            className="msg-draft__textarea"
+            className={`msg-draft__textarea${editBody.trim() ? ' msg-draft__textarea--has-text' : ''}`}
             value={editBody}
             onChange={(e) => setEditBody(e.target.value)}
             rows={3}

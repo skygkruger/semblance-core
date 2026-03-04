@@ -48,7 +48,7 @@
   margin-top: var(--sp-2);
 }
 
-.msg-draft__textarea:focus {
+.msg-draft__textarea--has-text {
   border-color: rgba(110, 207, 163, 0.4);
 }
 
