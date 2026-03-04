@@ -22,8 +22,10 @@ export function ReplyComposer({ email, draftBody, onSend, onSaveDraft, onCancel 
   const subject = email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`;
   const to = [email.from];
 
+  const hasText = body.trim().length > 0;
+
   return (
-    <Card className="reply-composer">
+    <Card className={`reply-composer${hasText ? ' reply-composer--active' : ''}`}>
       <div className="reply-composer__header">
         <div className="reply-composer__field">
           <span className="reply-composer__field-label">To:</span>
@@ -48,7 +50,7 @@ export function ReplyComposer({ email, draftBody, onSend, onSaveDraft, onCancel 
           type="button"
           onClick={() => onSend(to, subject, body, email.messageId)}
           disabled={body.trim().length === 0}
-          className="reply-composer__send-btn"
+          className={`reply-composer__send-btn${hasText ? ' reply-composer__send-btn--active' : ''}`}
         >
           Send
         </button>
@@ -56,7 +58,7 @@ export function ReplyComposer({ email, draftBody, onSend, onSaveDraft, onCancel 
           type="button"
           onClick={() => onSaveDraft(to, subject, body, email.messageId)}
           disabled={body.trim().length === 0}
-          className="reply-composer__ghost-btn"
+          className="reply-composer__ghost-btn reply-composer__ghost-btn--save"
         >
           Save Draft
         </button>
