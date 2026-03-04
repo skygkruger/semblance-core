@@ -8,10 +8,22 @@
 }
 
 .import-life__title {
-  font-family: var(--fd);
+  font-family: var(--fm);
   font-size: var(--text-lg);
-  font-weight: 600;
-  color: var(--v);
+  font-weight: 200;
+  letter-spacing: 0.04em;
+  background: linear-gradient(
+    105deg,
+    #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%,
+    #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%,
+    #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
 }
 
 .import-life__subtitle {
