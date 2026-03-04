@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Navigation } from './Navigation';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 function ChatIcon() {
   return (
@@ -59,14 +60,14 @@ const navItems = [
 const meta: Meta<typeof Navigation> = {
   title: 'Components/Navigation',
   component: Navigation,
-  parameters: {
-    layout: 'fullscreen',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-  },
+  parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', height: '100vh', display: 'flex' }}>
-        <Story />
+      <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex' }}>
+          <Story />
+        </div>
       </div>
     ),
   ],

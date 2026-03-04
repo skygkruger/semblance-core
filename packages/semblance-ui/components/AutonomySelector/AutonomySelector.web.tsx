@@ -25,9 +25,6 @@ export function AutonomySelector({ value, onChange, className = '' }: AutonomySe
             ].filter(Boolean).join(' ')}
           >
             <div className="autonomy-selector__header">
-              <div className="autonomy-selector__radio">
-                {isSelected && <div className="autonomy-selector__radio-dot" />}
-              </div>
               <span className="autonomy-selector__name">
                 {t(`autonomy.${tier.id}.name`)}
               </span>
@@ -39,9 +36,6 @@ export function AutonomySelector({ value, onChange, className = '' }: AutonomySe
             </div>
             <p className="autonomy-selector__desc">
               {t(`autonomy.${tier.id}.description`)}
-            </p>
-            <p className="autonomy-selector__detail">
-              {t(`autonomy.${tier.id}.detail`)}
             </p>
           </button>
         );

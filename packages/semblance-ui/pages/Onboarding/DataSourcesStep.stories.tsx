@@ -1,20 +1,36 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { DotMatrix } from '../../components/DotMatrix/DotMatrix';
 import { DataSourcesStep } from './DataSourcesStep';
+
+const PageWrapper = ({ children }: { children: React.ReactNode }) => (
+  <div style={{
+    position: 'relative',
+    width: '100vw',
+    height: '100vh',
+    background: '#0B0E11',
+    overflow: 'hidden',
+  }}>
+    <DotMatrix />
+    <div style={{
+      position: 'relative',
+      zIndex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      padding: 40,
+    }}>
+      {children}
+    </div>
+  </div>
+);
 
 const meta: Meta<typeof DataSourcesStep> = {
   title: 'Onboarding/DataSourcesStep',
   component: DataSourcesStep,
-  parameters: {
-    layout: 'fullscreen',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-  },
-  decorators: [
-    (Story) => (
-      <div style={{ background: '#0B0E11', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-        <Story />
-      </div>
-    ),
-  ],
+  parameters: { layout: 'fullscreen' },
+  decorators: [(Story) => <PageWrapper><Story /></PageWrapper>],
 };
 
 export default meta;
@@ -53,9 +69,11 @@ export const Mobile: Story = {
   },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, maxWidth: 390 }}>
-        <Story />
-      </div>
+      <PageWrapper>
+        <div style={{ maxWidth: 390, padding: 16 }}>
+          <Story />
+        </div>
+      </PageWrapper>
     ),
   ],
 };

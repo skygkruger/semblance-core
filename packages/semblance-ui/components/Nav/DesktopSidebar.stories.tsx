@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { DesktopSidebar } from './DesktopSidebar';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const icon = (d: string) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -23,19 +24,12 @@ export default {
   },
   decorators: [
     (Story: any) => (
-      <div style={{
-        display: 'flex',
-        height: '100vh',
-        width: '100vw',
-        background: '#0B0E11',
-      }}>
-        <Story />
-        {/* Fake content area so sidebar has context */}
-        <div style={{
-          flex: 1,
-          background: 'rgba(255,255,255,0.01)',
-          borderLeft: '1px solid rgba(255,255,255,0.04)',
-        }} />
+      <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', height: '100%' }}>
+          <Story />
+          <div style={{ flex: 1, background: 'rgba(255,255,255,0.01)', borderLeft: '1px solid rgba(255,255,255,0.04)' }} />
+        </div>
       </div>
     ),
   ],

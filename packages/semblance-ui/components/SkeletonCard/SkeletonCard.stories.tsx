@@ -1,17 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { SkeletonCard } from './SkeletonCard';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const DarkDecorator = (Story: React.ComponentType) => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    background: '#0B0E11',
-    padding: 40,
-  }}>
-    <div style={{ width: 480 }}>
-      <Story />
+  <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+    <DotMatrix />
+    <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 40 }}>
+      <div style={{ width: 480 }}>
+        <Story />
+      </div>
     </div>
   </div>
 );

@@ -428,17 +428,16 @@
   border-color: rgba(110, 207, 163, 0.5);
 }
 
-/* Tier card (Autonomy) */
+/* Tier card (Autonomy) — matches AutonomySelector card style */
 .settings-tier-card {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 16px;
+  padding: 20px 24px;
   margin: 0 16px 8px;
   width: calc(100% - 32px);
-  min-height: 82px;
-  background: #171B1F;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   cursor: pointer;
   text-align: left;
@@ -447,13 +446,13 @@
 }
 
 .settings-tier-card:hover {
-  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(110, 207, 163, 0.25);
 }
 
 .settings-tier-card--active {
-  background: #111518;
   border-color: rgba(110, 207, 163, 0.4);
-  box-shadow: 0 0 16px rgba(110, 207, 163, 0.12);
+  background: rgba(110, 207, 163, 0.06);
+  box-shadow: 0 0 12px rgba(110, 207, 163, 0.08);
 }
 
 .settings-tier-card__icon {

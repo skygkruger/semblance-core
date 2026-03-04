@@ -1,18 +1,21 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ConnectorCard } from './ConnectorCard';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 import { EnvelopeIcon, CalendarIcon, HeartIcon, DollarIcon } from '../ConnectionsScreen/ConnectorIcons';
 
 const meta: Meta<typeof ConnectorCard> = {
   title: 'Components/ConnectorCard',
   component: ConnectorCard,
-  parameters: {
-    layout: 'centered',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-  },
+  parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', padding: 40, width: '100%', maxWidth: 480 }}>
-        <Story />
+      <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 40 }}>
+          <div style={{ width: '100%', maxWidth: 480 }}>
+            <Story />
+          </div>
+        </div>
       </div>
     ),
   ],

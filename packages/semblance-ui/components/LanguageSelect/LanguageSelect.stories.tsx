@@ -1,19 +1,25 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { LanguageSelect } from './LanguageSelect';
-// ─── Wrapper — dark background + centering ───────────────────────────────────
+import { DotMatrix } from '../DotMatrix/DotMatrix';
+
+// ─── Wrapper — dark background + centering + DotMatrix ───────────────────────
 
 const CenterWrap = ({ children }: { children: React.ReactNode }) => (
-  <div style={{
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '80vh',
-    backgroundColor: '#0B0E11',
-    padding: 32,
-  }}>
-    {children}
+  <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+    <DotMatrix />
+    <div style={{
+      position: 'relative',
+      zIndex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      padding: 32,
+    }}>
+      {children}
+    </div>
   </div>
 );
 

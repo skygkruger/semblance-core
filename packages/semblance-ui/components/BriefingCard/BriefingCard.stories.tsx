@@ -1,18 +1,19 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { BriefingCard } from './BriefingCard';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const meta: Meta<typeof BriefingCard> = {
   title: 'Screens/MorningBrief',
   component: BriefingCard,
-  parameters: {
-    layout: 'fullscreen',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-  },
+  parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', minHeight: '100vh', width: '100%', padding: 40, boxSizing: 'border-box' as const }}>
-        <div style={{ maxWidth: 560, margin: '0 auto' }}>
-          <Story />
+      <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, padding: 40, boxSizing: 'border-box' as const }}>
+          <div style={{ maxWidth: 560, margin: '0 auto' }}>
+            <Story />
+          </div>
         </div>
       </div>
     ),
@@ -69,8 +70,13 @@ export const Mobile: Story = {
   },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', minHeight: '100vh', width: '100%', maxWidth: 390, padding: 16, boxSizing: 'border-box' as const }}>
-        <Story />
+      <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, padding: 16, boxSizing: 'border-box' as const }}>
+          <div style={{ maxWidth: 390 }}>
+            <Story />
+          </div>
+        </div>
       </div>
     ),
   ],

@@ -1,13 +1,21 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { SettingsNotifications } from './SettingsNotifications';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const meta: Meta<typeof SettingsNotifications> = {
   title: 'Settings/SettingsNotifications',
   component: SettingsNotifications,
-  parameters: {
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-    layout: 'fullscreen',
-  },
+  parameters: { layout: 'fullscreen' },
+  decorators: [
+    (Story) => (
+      <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, width: '100%', minHeight: '100vh' }}>
+          <Story />
+        </div>
+      </div>
+    ),
+  ],
 };
 
 export default meta;

@@ -1,22 +1,35 @@
-import { useTranslation } from 'react-i18next';
 import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
 import { Button } from '../../components/Button/Button';
 import type { HardwareDetectionProps } from './HardwareDetection.types';
 import './Onboarding.css';
 
 function formatRam(mb: number): string {
-  return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
+  return mb >= 1024 ? `${(mb / 1024).toFixed(0)} GB` : `${mb} MB`;
+}
+
+interface HardwareRow {
+  label: string;
+  value: string;
+  ok: boolean;
+}
+
+function buildRows(info: NonNullable<HardwareDetectionProps['hardwareInfo']>): HardwareRow[] {
+  const rows: HardwareRow[] = [
+    { label: 'CPU', value: `${info.cpuCores} cores`, ok: info.cpuCores >= 4 },
+    { label: 'RAM', value: formatRam(info.totalRamMb), ok: info.totalRamMb >= 8192 },
+  ];
+  if (info.gpuName) {
+    rows.push({
+      label: 'GPU',
+      value: info.gpuVramMb ? `${info.gpuName} (${formatRam(info.gpuVramMb)})` : info.gpuName,
+      ok: true,
+    });
+  }
+  rows.push({ label: 'OS', value: `${info.os} (${info.arch})`, ok: true });
+  return rows;
 }
 
 export function HardwareDetection({ hardwareInfo, detecting, onContinue }: HardwareDetectionProps) {
-  const { t } = useTranslation('onboarding');
-
-  function tierLabel(tier: string): string {
-    if (tier === 'capable') return t('hardware.tier_capable');
-    if (tier === 'standard') return t('hardware.tier_standard');
-    return t('hardware.tier_constrained');
-  }
-
   return (
     <div style={{
       display: 'flex',
@@ -24,13 +37,11 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
       alignItems: 'center',
       gap: 24,
       maxWidth: 480,
-      width: '100%',
-      animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
+      animation: 'dissolve 700ms var(--eo) both',
     }}>
-      <h2 className="naming__headline">{t('hardware.headline')}</h2>
-      <p className="naming__subtext" style={{ maxWidth: 360 }}>
-        {t('hardware.subtext')}
-      </p>
+      <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
+        Checking your hardware
+      </h2>
 
       {detecting && (
         <div style={{ width: '100%', maxWidth: 320 }}>
@@ -40,57 +51,38 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
 
       {hardwareInfo && !detecting && (
         <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
           width: '100%',
-          maxWidth: 400,
-          padding: 20,
-          borderRadius: 12,
-          backgroundColor: '#111518',
-          border: '1px solid rgba(107,95,168,0.15)',
+          marginTop: 16,
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 13, color: '#8593A4' }}>{t('hardware.tier_label')}</span>
-              <span style={{
-                fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#6ECFA3',
-                padding: '2px 8px', borderRadius: 6,
-                backgroundColor: 'rgba(110,207,163,0.1)',
-              }}>
-                {tierLabel(hardwareInfo.tier)}
+          {buildRows(hardwareInfo).map((item, i) => (
+            <div key={i} style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              background: 'var(--s1)',
+              borderRadius: 'var(--r-md)',
+              border: '1px solid var(--b1)',
+              animation: 'dissolve 700ms var(--eo) both',
+              animationDelay: `${i * 80}ms`,
+            }}>
+              <span style={{ fontFamily: 'var(--fm)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--sv1)' }}>
+                {item.label}
+              </span>
+              <span style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-sm)', color: item.ok ? 'var(--v)' : 'var(--rust)' }}>
+                {item.value}
               </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 13, color: '#8593A4' }}>{t('hardware.ram_label')}</span>
-              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, color: '#EEF1F4' }}>
-                {formatRam(hardwareInfo.totalRamMb)}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 13, color: '#8593A4' }}>{t('hardware.cpu_label')}</span>
-              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, color: '#EEF1F4' }}>
-                {t('hardware.cpu_cores', { count: hardwareInfo.cpuCores })}
-              </span>
-            </div>
-            {hardwareInfo.gpuName && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 13, color: '#8593A4' }}>{t('hardware.gpu_label')}</span>
-                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, color: '#EEF1F4' }}>
-                  {hardwareInfo.gpuName}
-                  {hardwareInfo.gpuVramMb ? ` (${formatRam(hardwareInfo.gpuVramMb)})` : ''}
-                </span>
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 13, color: '#8593A4' }}>{t('hardware.os_label')}</span>
-              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, color: '#EEF1F4' }}>
-                {hardwareInfo.os} ({hardwareInfo.arch})
-              </span>
-            </div>
-          </div>
+          ))}
         </div>
       )}
 
       {hardwareInfo && !detecting && (
-        <Button variant="approve" onClick={onContinue}>{t('hardware.continue_button')}</Button>
+        <div style={{ marginTop: 16 }}>
+          <Button variant="approve" size="md" onClick={onContinue}>Continue</Button>
+        </div>
       )}
     </div>
   );

@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button/Button';
 import type { TermsAcceptanceStepProps } from './TermsAcceptanceStep.types';
+import './Onboarding.css';
 
 export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcceptanceStepProps) {
   const { t } = useTranslation();
@@ -24,15 +25,7 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
         gap: '24px',
       }}
     >
-      <h2
-        style={{
-          fontSize: '28px',
-          fontWeight: 600,
-          color: '#EEF1F4',
-          fontFamily: "'Fraunces', serif",
-          margin: 0,
-        }}
-      >
+      <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
         {t('onboarding.terms.title', { defaultValue: 'One last thing' })}
       </h2>
 

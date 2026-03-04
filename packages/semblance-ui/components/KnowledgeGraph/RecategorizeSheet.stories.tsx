@@ -4,15 +4,15 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { RecategorizeSheet } from './RecategorizeSheet.web';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 import type { CategorySuggestion, CategoryInfo } from './RecategorizeSheet.types';
 
 const DarkDecorator = (Story: React.ComponentType) => (
-  <div style={{
-    width: '100vw',
-    height: '100vh',
-    background: '#0B0E11',
-  }}>
-    <Story />
+  <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+    <DotMatrix />
+    <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
+      <Story />
+    </div>
   </div>
 );
 

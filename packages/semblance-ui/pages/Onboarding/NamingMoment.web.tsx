@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Button } from '../../components/Button/Button';
 import { Input } from '../../components/Input/Input';
+import { PrivacyBadge } from '../../components/PrivacyBadge/PrivacyBadge';
 import type { NamingMomentProps } from './NamingMoment.types';
 import './Onboarding.css';
 
 export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProps) {
-  const { t } = useTranslation('onboarding');
   const [userName, setUserName] = useState(defaultValue);
   const hasValue = userName.trim().length > 0;
 
@@ -19,27 +18,26 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
       gap: 24,
       maxWidth: 420,
       width: '100%',
-      animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
+      animation: 'dissolve 700ms var(--eo) both',
     }}>
       <LogoMark size={120} />
 
-      <h1 className="naming__headline">
-        {t('naming_moment.headline')}
+      <h1 className="onboarding-shimmer-headline" style={{ fontSize: 'clamp(28px, 5vw, 48px)', lineHeight: 1.25, marginBottom: 16 }}>
+        What should it call you?
       </h1>
+      <p className="naming__subtext">
+        Stored only on your device. Never transmitted.
+      </p>
 
       <div style={{ width: '100%' }}>
         <Input
-          placeholder={t('naming_moment.placeholder')}
+          placeholder="Your name"
           value={userName}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
         />
       </div>
 
-      {hasValue && (
-        <p className="naming__subtext" style={{ maxWidth: 300 }}>
-          {t('naming_moment.confirmation', { name: userName.trim() })}
-        </p>
-      )}
+      <PrivacyBadge status="active" />
 
       <div style={{ marginTop: 8 }}>
         <Button
@@ -48,7 +46,7 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
           disabled={!hasValue}
           onClick={() => onComplete?.(userName.trim())}
         >
-          {t('naming_moment.continue_button')}
+          Continue
         </Button>
       </div>
     </div>
