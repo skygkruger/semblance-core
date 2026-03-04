@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { KnowledgeGraph } from './KnowledgeGraph';
 import { DotMatrix } from '../DotMatrix/DotMatrix';
@@ -88,15 +88,42 @@ const sampleDrillItems: DrillDownItem[] = [
   { chunkId: 'c6', title: 'Gym Membership Receipt', preview: 'Monthly payment confirmation for Equinox membership — auto-renewed...', source: 'financial', category: 'health', indexedAt: '2026-02-20T08:00:00Z' },
 ];
 
-const sampleDrillDown: DrillDownConfig = {
-  items: sampleDrillItems,
-  total: 18,
-  loading: false,
-  hasMore: true,
-  onSearch: (query: string) => console.log('[DrillDown] search:', query),
-  onLoadMore: () => console.log('[DrillDown] load more'),
-  onItemClick: (item: DrillDownItem) => console.log('[DrillDown] item click:', item.title),
-};
+// Extra items revealed by "Load more"
+const extraDrillItems: DrillDownItem[] = [
+  { chunkId: 'c7', title: 'Vendor Invoice #4821', preview: 'Payment due for IT infrastructure services rendered in February...', source: 'email', category: 'finance', indexedAt: '2026-02-19T13:20:00Z' },
+  { chunkId: 'c8', title: 'Office Lease Amendment', preview: 'Proposed changes to Section 4.2 regarding subletting rights...', source: 'local_file', category: 'work', indexedAt: '2026-02-18T10:30:00Z', mimeType: 'application/pdf' },
+  { chunkId: 'c9', title: 'Weekly Metrics Dashboard', preview: 'KPI summary: revenue up 12%, churn stable at 2.1%, NPS improved...', source: 'local_file', category: 'work', indexedAt: '2026-02-17T09:00:00Z', mimeType: 'text/html' },
+  { chunkId: 'c10', title: 'Travel Itinerary — Portland', preview: 'Flight PDX→SFO Mar 3, hotel confirmation at The Nines downtown...', source: 'email', category: 'work', indexedAt: '2026-02-15T14:45:00Z' },
+  { chunkId: 'c11', title: 'Book Notes: Deep Work', preview: 'Chapter summaries and highlighted passages on focused productivity...', source: 'note', category: 'reading', indexedAt: '2026-02-14T20:00:00Z' },
+  { chunkId: 'c12', title: 'Annual Physical Results', preview: 'Lab results from Dr. Patel — cholesterol, CBC, metabolic panel...', source: 'local_file', category: 'health', indexedAt: '2026-02-12T11:15:00Z', mimeType: 'application/pdf' },
+];
+
+function useDrillDown(): DrillDownConfig {
+  const [items, setItems] = useState<DrillDownItem[]>(sampleDrillItems);
+  const [hasMore, setHasMore] = useState(true);
+  const allItems = useMemo(() => [...sampleDrillItems, ...extraDrillItems], []);
+
+  const onLoadMore = useCallback(() => {
+    setItems(allItems);
+    setHasMore(false);
+  }, [allItems]);
+
+  const onSearch = useCallback((query: string) => {
+    if (!query.trim()) {
+      setItems(prev => prev.length > sampleDrillItems.length ? allItems : sampleDrillItems);
+      return;
+    }
+    const q = query.toLowerCase();
+    setItems(allItems.filter(i => i.title.toLowerCase().includes(q) || i.preview.toLowerCase().includes(q)));
+    setHasMore(false);
+  }, [allItems]);
+
+  const onItemClick = useCallback((item: DrillDownItem) => {
+    console.log('[DrillDown] item click:', item.title);
+  }, []);
+
+  return { items, total: allItems.length, loading: false, hasMore, onSearch, onLoadMore, onItemClick };
+}
 
 export const SmallGraph: Story = {
   render: () => (
@@ -151,17 +178,22 @@ const categoryGraphEdges: KnowledgeEdge[] = [
   { source: 'lisa-cg', target: 'james-cg', weight: 1 },
 ];
 
-export const CategoryGraph: Story = {
-  render: () => (
+const CategoryGraphInner = () => {
+  const drillDownState = useDrillDown();
+  return (
     <KnowledgeGraph
       nodes={categoryGraphNodes}
       edges={categoryGraphEdges}
       width={window.innerWidth}
       height={window.innerHeight}
       layoutMode="radial"
-      drillDown={sampleDrillDown}
+      drillDown={drillDownState}
     />
-  ),
+  );
+};
+
+export const CategoryGraph: Story = {
+  render: () => <CategoryGraphInner />,
 };
 
 // ─── Mobile ───
@@ -235,23 +267,29 @@ const categoryEdges: KnowledgeEdge[] = [
   { source: 'cat_cloud', target: 'cat_knowledge', weight: 4 },
 ];
 
-export const CategoryView: Story = {
-  render: () => (
+const CategoryViewInner = () => {
+  const drillDownState = useDrillDown();
+  return (
     <KnowledgeGraph
       nodes={categoryNodes}
       edges={categoryEdges}
       width={window.innerWidth}
       height={window.innerHeight}
       layoutMode="radial"
-      drillDown={sampleDrillDown}
+      drillDown={drillDownState}
     />
-  ),
+  );
+};
+
+export const CategoryView: Story = {
+  render: () => <CategoryViewInner />,
 };
 
 // ─── Mobile Category View ───
 
-export const MobileCategoryView: Story = {
-  render: () => (
+const MobileCategoryViewInner = () => {
+  const drillDownState = useDrillDown();
+  return (
     <KnowledgeGraph
       nodes={categoryNodes}
       edges={categoryEdges}
@@ -259,9 +297,13 @@ export const MobileCategoryView: Story = {
       height={844}
       layoutMode="radial"
       stats={{ entities: 2847, insights: 847 }}
-      drillDown={sampleDrillDown}
+      drillDown={drillDownState}
     />
-  ),
+  );
+};
+
+export const MobileCategoryView: Story = {
+  render: () => <MobileCategoryViewInner />,
   parameters: { viewport: { defaultViewport: 'mobile1' } },
 };
 
@@ -300,16 +342,23 @@ export const MixedCategoryEntity: Story = {
       { source: 'cat_social', target: 'cat_music', weight: 2 },
     ];
     return (
-      <KnowledgeGraph
-        nodes={nodes}
-        edges={edges}
-        width={window.innerWidth}
-        height={window.innerHeight}
-        layoutMode="star"
-        drillDown={sampleDrillDown}
-      />
+      <MixedCategoryEntityInner nodes={nodes} edges={edges} />
     );
   },
+};
+
+const MixedCategoryEntityInner = ({ nodes, edges }: { nodes: KnowledgeNode[]; edges: KnowledgeEdge[] }) => {
+  const drillDownState = useDrillDown();
+  return (
+    <KnowledgeGraph
+      nodes={nodes}
+      edges={edges}
+      width={window.innerWidth}
+      height={window.innerHeight}
+      layoutMode="star"
+      drillDown={drillDownState}
+    />
+  );
 };
 
 // ─── Locked categories — 4 locked + 2 unlocked ───
@@ -496,22 +545,29 @@ export const FilterPanelView: Story = {
           onToggleCategory={toggle}
           onResetFilters={reset}
         />
-        <div style={{ flex: 1 }}>
-          <KnowledgeGraph
-            nodes={filteredNodes}
-            edges={filteredEdges}
-            width={window.innerWidth - 240}
-            height={window.innerHeight}
-            layoutMode="radial"
-            drillDown={sampleDrillDown}
-          />
-        </div>
+        <FilterPanelGraphInner nodes={filteredNodes} edges={filteredEdges} />
       </div>
     );
   },
 };
 
 // ─── Stats overlay view — Three.js graph with mock stats overlay ───
+
+const FilterPanelGraphInner = ({ nodes, edges }: { nodes: KnowledgeNode[]; edges: KnowledgeEdge[] }) => {
+  const drillDownState = useDrillDown();
+  return (
+    <div style={{ flex: 1 }}>
+      <KnowledgeGraph
+        nodes={nodes}
+        edges={edges}
+        width={window.innerWidth - 240}
+        height={window.innerHeight}
+        layoutMode="radial"
+        drillDown={drillDownState}
+      />
+    </div>
+  );
+};
 
 const STATS_TOKEN = {
   base: '#0B0E11',
