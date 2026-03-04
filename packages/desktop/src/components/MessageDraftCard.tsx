@@ -1,5 +1,5 @@
 // MessageDraftCard — Chat card for SMS drafts.
-// Guardian: click to send. Partner: 5s countdown + Cancel. Alter Ego: confirmation after send.
+// Guardian: click to send. Partner: 10s countdown + Cancel. Alter Ego: auto-sends with brief cancel window.
 
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Button } from '@semblance/ui';
@@ -15,6 +15,8 @@ interface MessageDraftCardProps {
   onCancel: () => void;
 }
 
+const ALTER_EGO_DELAY = 5;
+
 export function MessageDraftCard({
   recipientName,
   maskedPhone,
@@ -25,11 +27,14 @@ export function MessageDraftCard({
   onCancel,
 }: MessageDraftCardProps) {
   const [countdown, setCountdown] = useState<number | null>(
-    autonomyTier === 'partner' ? 5 : null
+    autonomyTier === 'partner' ? 10
+      : autonomyTier === 'alter_ego' ? ALTER_EGO_DELAY
+      : null
   );
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(body);
   const [sent, setSent] = useState(false);
+  const [interrupted, setInterrupted] = useState(false);
 
   useEffect(() => {
     if (countdown === null || countdown <= 0) return;
@@ -56,15 +61,23 @@ export function MessageDraftCard({
     onCancel();
   }, [onCancel]);
 
+  const handleAlterEgoCancel = useCallback(() => {
+    setCountdown(null);
+    setInterrupted(true);
+  }, []);
+
   const handleSaveEdit = useCallback(() => {
     onEdit(editBody);
     setEditing(false);
+    setInterrupted(false);
     if (autonomyTier === 'partner') {
-      setCountdown(5);
+      setCountdown(10);
+    } else if (autonomyTier === 'alter_ego') {
+      setCountdown(ALTER_EGO_DELAY);
     }
   }, [editBody, onEdit, autonomyTier]);
 
-  if (sent && autonomyTier === 'alter_ego') {
+  if (sent) {
     return (
       <Card>
         <p className="msg-draft__sent">Message sent to {recipientName}</p>
@@ -89,7 +102,7 @@ export function MessageDraftCard({
           />
           <div className="msg-draft__edit-actions">
             <Button size="sm" onClick={handleSaveEdit}>Save</Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setInterrupted(false); }}>Cancel</Button>
           </div>
         </div>
       ) : (
@@ -98,24 +111,40 @@ export function MessageDraftCard({
 
       {!editing && !sent && (
         <div className="msg-draft__actions">
+          {/* Guardian: manual send + edit + cancel */}
           {autonomyTier === 'guardian' && (
-            <Button size="sm" onClick={handleSend}>Send</Button>
+            <>
+              <Button size="sm" onClick={handleSend}>Send</Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Edit</Button>
+              <Button size="sm" variant="ghost" onClick={handleCancel}>Cancel</Button>
+            </>
           )}
 
+          {/* Partner: countdown with cancel, then edit + cancel after countdown ends */}
           {autonomyTier === 'partner' && countdown !== null && (
             <Button size="sm" onClick={handleCancel} variant="ghost">
               Cancel ({countdown}s)
             </Button>
           )}
-
-          {autonomyTier === 'alter_ego' && (
-            <span className="msg-draft__sending">Sending...</span>
-          )}
-
-          {!sent && (
+          {autonomyTier === 'partner' && countdown === null && (
             <>
               <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Edit</Button>
               <Button size="sm" variant="ghost" onClick={handleCancel}>Cancel</Button>
+            </>
+          )}
+
+          {/* Alter Ego: sending + cancel only. If cancelled, prompt + edit */}
+          {autonomyTier === 'alter_ego' && !interrupted && countdown !== null && (
+            <>
+              <span className="msg-draft__sending">Sending...</span>
+              <Button size="sm" variant="ghost" onClick={handleAlterEgoCancel}>Cancel</Button>
+            </>
+          )}
+          {autonomyTier === 'alter_ego' && interrupted && (
+            <>
+              <span className="msg-draft__prompt">Is there anything you would like to change?</span>
+              <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Edit</Button>
+              <Button size="sm" variant="ghost" onClick={handleCancel}>Dismiss</Button>
             </>
           )}
         </div>
