@@ -25,6 +25,17 @@ interface PeopleNodeParts {
   light: THREE.PointLight;
 }
 
+type ShapeProfileFn = (
+  index: number, total: number, catCount: number,
+) => { x: number; y: number; z: number };
+
+interface SortedNodeEntry {
+  id: string;
+  isCategory: boolean;
+  categoryIndex: number;
+  entityIndex: number;
+}
+
 export interface GraphRendererOptions {
   canvas: HTMLCanvasElement;
   width: number;
@@ -142,6 +153,194 @@ function getEdgeNodeColor(node: KnowledgeNode): string {
   return getNodeColorHex(node.type);
 }
 
+// ─── Shape-profile morphing helpers ───
+
+function smoothstep(t: number): number {
+  const c = Math.max(0, Math.min(1, t));
+  return c * c * (3 - 2 * c);
+}
+
+function lcg(s: number): number {
+  return (s * 16807) % 2147483647;
+}
+
+const PHI_GOLD = (1 + Math.sqrt(5)) / 2;
+
+// 8 base shape profiles — all 3D, never flat
+
+function profileHelix(index: number, total: number, _catCount: number): { x: number; y: number; z: number } {
+  const t = total <= 1 ? 0.5 : index / (total - 1);
+  const revolutions = 2;
+  const angle = t * revolutions * Math.PI * 2;
+  const r = 0.6;
+  return { x: Math.cos(angle) * r, y: Math.sin(angle) * r, z: (t - 0.5) * 1.6 };
+}
+
+function profileSphere(index: number, total: number, catCount: number): { x: number; y: number; z: number } {
+  // Fibonacci sphere — categories near poles, entities at equator
+  const isCategory = index < catCount;
+  let fi: number;
+  if (isCategory) {
+    // Map categories to polar regions
+    fi = total <= 1 ? 0.5 : (index * 0.3) / Math.max(catCount, 1);
+  } else {
+    // Entities fill the equatorial band
+    const ei = index - catCount;
+    const entityTotal = total - catCount;
+    fi = entityTotal <= 1 ? 0.5 : 0.15 + (ei / (entityTotal - 1)) * 0.7;
+  }
+  const theta = Math.acos(1 - 2 * fi);
+  const phi = index * Math.PI * 2 * PHI_GOLD;
+  const r = 0.8;
+  return { x: Math.sin(theta) * Math.cos(phi) * r, y: Math.sin(theta) * Math.sin(phi) * r, z: Math.cos(theta) * r };
+}
+
+function profileDna(index: number, total: number, catCount: number): { x: number; y: number; z: number } {
+  const isCategory = index < catCount;
+  const t = total <= 1 ? 0.5 : index / (total - 1);
+  const revolutions = 1.5;
+  const angle = t * revolutions * Math.PI * 2;
+  const strandOffset = isCategory ? 0 : Math.PI; // Two strands offset by pi
+  const r = 0.5;
+  return {
+    x: Math.cos(angle + strandOffset) * r,
+    y: Math.sin(angle + strandOffset) * r,
+    z: (t - 0.5) * 1.8,
+  };
+}
+
+function profileOrbital(index: number, total: number, catCount: number): { x: number; y: number; z: number } {
+  const isCategory = index < catCount;
+  if (isCategory) {
+    // Inner ring tilted 30 degrees
+    const t = catCount <= 1 ? 0 : index / catCount;
+    const angle = t * Math.PI * 2;
+    const r = 0.35;
+    const tilt = 30 * (Math.PI / 180);
+    return {
+      x: Math.cos(angle) * r,
+      y: Math.sin(angle) * r * Math.cos(tilt),
+      z: Math.sin(angle) * r * Math.sin(tilt) + 0.1,
+    };
+  }
+  // Outer ring tilted -20 degrees
+  const ei = index - catCount;
+  const entityTotal = total - catCount;
+  const t = entityTotal <= 1 ? 0 : ei / entityTotal;
+  const angle = t * Math.PI * 2;
+  const r = 0.8;
+  const tilt = -20 * (Math.PI / 180);
+  return {
+    x: Math.cos(angle) * r,
+    y: Math.sin(angle) * r * Math.cos(tilt),
+    z: Math.sin(angle) * r * Math.sin(tilt) - 0.05,
+  };
+}
+
+function profileShell(index: number, total: number, _catCount: number): { x: number; y: number; z: number } {
+  const t = total <= 1 ? 0.5 : index / (total - 1);
+  const revolutions = 2.5;
+  const angle = t * revolutions * Math.PI * 2;
+  // Logarithmic spiral: radius grows while Z rises
+  const r = 0.15 + t * 0.7;
+  return { x: Math.cos(angle) * r, y: Math.sin(angle) * r, z: (t - 0.3) * 1.2 };
+}
+
+function profileCube(index: number, total: number, _catCount: number): { x: number; y: number; z: number } {
+  // Distribute nodes across cube edges/faces
+  const s = 0.7; // half-size
+  if (total <= 8) {
+    // Place on cube vertices
+    const bits = index % 8;
+    return {
+      x: (bits & 1 ? s : -s),
+      y: (bits & 2 ? s : -s),
+      z: (bits & 4 ? s : -s),
+    };
+  }
+  // Spread across faces: cycle through 6 faces, distribute within each
+  const face = index % 6;
+  const faceIdx = Math.floor(index / 6);
+  const perFace = Math.max(1, Math.ceil(total / 6));
+  const u = perFace <= 1 ? 0 : ((faceIdx % perFace) / (perFace - 1)) * 2 - 1;
+  const v = perFace <= 1 ? 0 : (Math.floor(faceIdx / Math.max(perFace, 1)) % 3 / 2) * 2 - 1;
+  const su = u * s * 0.8, sv = v * s * 0.8;
+  switch (face) {
+    case 0: return { x: s, y: su, z: sv };
+    case 1: return { x: -s, y: su, z: sv };
+    case 2: return { x: su, y: s, z: sv };
+    case 3: return { x: su, y: -s, z: sv };
+    case 4: return { x: su, y: sv, z: s };
+    default: return { x: su, y: sv, z: -s };
+  }
+}
+
+function profileCluster(index: number, total: number, catCount: number): { x: number; y: number; z: number } {
+  if (catCount === 0) {
+    // No categories — scatter around origin using golden-angle sphere
+    const t = total <= 1 ? 0.5 : index / (total - 1);
+    const theta = Math.acos(1 - 2 * t);
+    const phi = index * Math.PI * 2 * PHI_GOLD;
+    const r = 0.7;
+    return { x: Math.sin(theta) * Math.cos(phi) * r, y: Math.sin(theta) * Math.sin(phi) * r, z: Math.cos(theta) * r };
+  }
+  const isCategory = index < catCount;
+  if (isCategory) {
+    // Categories spaced on a ring
+    const angle = (index / catCount) * Math.PI * 2;
+    const r = 0.4;
+    return { x: Math.cos(angle) * r, y: Math.sin(angle) * r, z: 0 };
+  }
+  // Entities orbit their nearest category
+  const ei = index - catCount;
+  const catIdx = ei % catCount;
+  const catAngle = (catIdx / catCount) * Math.PI * 2;
+  const catR = 0.4;
+  const cx = Math.cos(catAngle) * catR;
+  const cy = Math.sin(catAngle) * catR;
+  // Golden-angle scatter around the category in 3D
+  const orbitIdx = Math.floor(ei / catCount);
+  const orbitAngle = orbitIdx * PHI_GOLD * Math.PI * 2;
+  const orbitR = 0.15 + (orbitIdx * 0.05) % 0.25;
+  const zSpread = ((orbitIdx % 5) - 2) * 0.12;
+  return {
+    x: cx + Math.cos(orbitAngle) * orbitR,
+    y: cy + Math.sin(orbitAngle) * orbitR,
+    z: zSpread,
+  };
+}
+
+function profileTorus(index: number, total: number, _catCount: number): { x: number; y: number; z: number } {
+  const majorR = 0.7;
+  const minorR = 0.3;
+  const t = total <= 1 ? 0 : index / total;
+  // Distribute along torus using golden angle for even spacing
+  const majorAngle = t * Math.PI * 2;
+  const minorAngle = index * PHI_GOLD * Math.PI * 2;
+  return {
+    x: (majorR + minorR * Math.cos(minorAngle)) * Math.cos(majorAngle),
+    y: (majorR + minorR * Math.cos(minorAngle)) * Math.sin(majorAngle),
+    z: minorR * Math.sin(minorAngle),
+  };
+}
+
+interface BaseProfile {
+  name: string;
+  fn: ShapeProfileFn;
+  minNodes: number;
+}
+
+const BASE_PROFILES: BaseProfile[] = [
+  { name: 'helix', fn: profileHelix, minNodes: 3 },
+  { name: 'sphere', fn: profileSphere, minNodes: 3 },
+  { name: 'dna', fn: profileDna, minNodes: 4 },
+  { name: 'orbital', fn: profileOrbital, minNodes: 3 },
+  { name: 'shell', fn: profileShell, minNodes: 3 },
+  { name: 'cube', fn: profileCube, minNodes: 4 },
+  { name: 'cluster', fn: profileCluster, minNodes: 3 },
+  { name: 'torus', fn: profileTorus, minNodes: 5 },
+];
+
 // ─── GraphRenderer class ───
 
 export class GraphRenderer {
@@ -200,6 +399,23 @@ export class GraphRenderer {
     startTime: number;
   } | null = null;
   private static readonly SNAP_DURATION = 400;
+
+  // Structural morph: frozen d3-force origins for non-accumulating drift
+  private originPositions: Map<string, { x: number; y: number; z: number }> = new Map();
+
+  // Shape-profile morphing
+  private morphTargetsA: Map<string, { x: number; y: number; z: number }> = new Map();
+  private morphTargetsB: Map<string, { x: number; y: number; z: number }> = new Map();
+  private morphSortedNodes: SortedNodeEntry[] = [];
+  private morphQueue: { name: string; profile: ShapeProfileFn }[] = [];
+  private morphQueueIdx = 0;
+  private morphTransitionStart = 0;
+  private morphSeed = 1;
+  private layoutRadius = 100;
+
+  private static readonly MORPH_HOLD = 2;       // brief settle before next blend
+  private static readonly MORPH_TRANSITION = 28;  // slow continuous blend
+  private static readonly MORPH_DURATION = 30;    // total per shape
 
   // Data
   private edges: KnowledgeEdge[] = [];
@@ -273,6 +489,12 @@ export class GraphRenderer {
   // ─── Public API ───
 
   setData(nodes: KnowledgeNode[], edges: KnowledgeEdge[]): void {
+    this.originPositions.clear();
+    this.morphTargetsA.clear();
+    this.morphTargetsB.clear();
+    this.morphQueue = [];
+    this.morphQueueIdx = 0;
+    this.layoutRadius = 100;
     this.edges = edges;
     this.buildNeighborMap(edges);
     this.createNodeMeshes(nodes);
@@ -285,6 +507,23 @@ export class GraphRenderer {
       if (mesh && node.x != null && node.y != null) {
         mesh.group.position.set(node.x, node.y, node.z ?? node.fz ?? 0);
       }
+    }
+    // Capture frozen d3-force origins for structural morph (once after simulation settles)
+    if (this.originPositions.size === 0) {
+      for (const node of nodes) {
+        if (node.x != null && node.y != null) {
+          this.originPositions.set(node.id, {
+            x: node.x,
+            y: node.y,
+            z: node.z ?? node.fz ?? 0,
+          });
+        }
+      }
+    }
+    // Initialize shape-profile morph once origins are captured
+    if (this.originPositions.size > 0 && this.morphTargetsA.size === 0) {
+      this.computeLayoutRadius();
+      this.initMorphState();
     }
     this.updateEdgePositions();
     this.autoFitCamera();
@@ -1149,6 +1388,268 @@ export class GraphRenderer {
     this.camera.lookAt(this.cameraTarget);
   }
 
+  // ─── Shape-profile morphing ───
+
+  private computeSortedNodes(): void {
+    this.morphSortedNodes = [];
+    let catIdx = 0;
+    let entIdx = 0;
+    // Categories first (insertion order), then entities
+    this.nodeMeshes.forEach((nm) => {
+      if (nm.node.type === 'category') {
+        this.morphSortedNodes.push({
+          id: nm.node.id,
+          isCategory: true,
+          categoryIndex: catIdx++,
+          entityIndex: -1,
+        });
+      }
+    });
+    this.nodeMeshes.forEach((nm) => {
+      if (nm.node.type !== 'category') {
+        this.morphSortedNodes.push({
+          id: nm.node.id,
+          isCategory: false,
+          categoryIndex: -1,
+          entityIndex: entIdx++,
+        });
+      }
+    });
+  }
+
+  private computeLayoutRadius(): void {
+    let cx = 0, cy = 0, cz = 0;
+    let count = 0;
+    this.originPositions.forEach((p) => { cx += p.x; cy += p.y; cz += p.z; count++; });
+    if (count === 0) { this.layoutRadius = 100; return; }
+    cx /= count; cy /= count; cz /= count;
+    let maxDist = 0;
+    this.originPositions.forEach((p) => {
+      const dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
+      maxDist = Math.max(maxDist, Math.sqrt(dx * dx + dy * dy + dz * dz));
+    });
+    this.layoutRadius = Math.max(maxDist, 50);
+  }
+
+  private createOriginalProfile(): ShapeProfileFn {
+    const origins = this.originPositions;
+    const sorted = this.morphSortedNodes;
+    const radius = this.layoutRadius;
+    // Pre-compute centroid for normalization
+    let cx = 0, cy = 0, cz = 0, count = 0;
+    origins.forEach((p) => { cx += p.x; cy += p.y; cz += p.z; count++; });
+    if (count > 0) { cx /= count; cy /= count; cz /= count; }
+
+    return (index: number, _total: number, _catCount: number) => {
+      const entry = sorted[index];
+      if (!entry) return { x: 0, y: 0, z: 0 };
+      const p = origins.get(entry.id);
+      if (!p) return { x: 0, y: 0, z: 0 };
+      return {
+        x: (p.x - cx) / (radius || 1),
+        y: (p.y - cy) / (radius || 1),
+        z: (p.z - cz) / (radius || 1),
+      };
+    };
+  }
+
+  private computeProfileTargets(
+    profile: ShapeProfileFn,
+    sorted: SortedNodeEntry[],
+    total: number,
+    catCount: number,
+  ): Map<string, { x: number; y: number; z: number }> {
+    const targets = new Map<string, { x: number; y: number; z: number }>();
+    // Compute centroid of originPositions for centering
+    let cx = 0, cy = 0, cz = 0, count = 0;
+    this.originPositions.forEach((p) => { cx += p.x; cy += p.y; cz += p.z; count++; });
+    if (count > 0) { cx /= count; cy /= count; cz /= count; }
+
+    for (let i = 0; i < sorted.length; i++) {
+      const entry = sorted[i]!;
+      const p = profile(i, total, catCount);
+      targets.set(entry.id, {
+        x: p.x * this.layoutRadius + cx,
+        y: p.y * this.layoutRadius + cy,
+        z: p.z * this.layoutRadius + cz,
+      });
+    }
+    return targets;
+  }
+
+  private refillMorphQueue(available: BaseProfile[]): void {
+    // Fisher-Yates shuffle with LCG
+    const shuffled = available.slice();
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      this.morphSeed = lcg(this.morphSeed);
+      const j = this.morphSeed % (i + 1);
+      [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+    }
+    // Add shuffled base profiles
+    for (const bp of shuffled) {
+      this.morphQueue.push({ name: bp.name, profile: bp.fn });
+    }
+    // Inject 1-2 hybrids
+    const hybridCount = 1 + (this.morphSeed % 2);
+    for (let h = 0; h < hybridCount && available.length >= 2; h++) {
+      this.morphSeed = lcg(this.morphSeed);
+      const idxA = this.morphSeed % available.length;
+      this.morphSeed = lcg(this.morphSeed);
+      let idxB = this.morphSeed % available.length;
+      if (idxB === idxA) idxB = (idxB + 1) % available.length;
+      const pA = available[idxA]!;
+      const pB = available[idxB]!;
+      this.morphSeed = lcg(this.morphSeed);
+      const mix = 0.2 + (this.morphSeed % 600) / 1000; // [0.2, 0.8]
+      const hybridFn: ShapeProfileFn = (index, total, catCount) => {
+        const a = pA.fn(index, total, catCount);
+        const b = pB.fn(index, total, catCount);
+        // Per-node wobble seeded on index
+        const wobble = (Math.sin(index * 2.399963) * 0.08);
+        const m = Math.max(0, Math.min(1, mix + wobble));
+        return {
+          x: a.x + (b.x - a.x) * m,
+          y: a.y + (b.y - a.y) * m,
+          z: a.z + (b.z - a.z) * m,
+        };
+      };
+      // Insert hybrid at random position in queue
+      this.morphSeed = lcg(this.morphSeed);
+      const insertPos = this.morphQueueIdx + 1 + (this.morphSeed % Math.max(1, this.morphQueue.length - this.morphQueueIdx));
+      this.morphQueue.splice(insertPos, 0, { name: `${pA.name}+${pB.name}`, profile: hybridFn });
+    }
+  }
+
+  private initMorphState(): void {
+    this.computeSortedNodes();
+    const total = this.morphSortedNodes.length;
+    if (total === 0) return;
+
+    const catCount = this.morphSortedNodes.filter(n => n.isCategory).length;
+    const available = BASE_PROFILES.filter(bp => bp.minNodes <= total);
+
+    // Start with original shape as A
+    const originalProfile = this.createOriginalProfile();
+    this.morphTargetsA = this.computeProfileTargets(originalProfile, this.morphSortedNodes, total, catCount);
+
+    // Build queue and compute first B target
+    this.morphSeed = lcg(this.morphSeed);
+    this.morphQueue = [];
+    this.morphQueueIdx = 0;
+    // Add "original" profile at a random position in the first batch
+    this.refillMorphQueue(available);
+    // Also inject the original into the queue
+    this.morphSeed = lcg(this.morphSeed);
+    const origInsert = this.morphSeed % Math.max(1, this.morphQueue.length);
+    this.morphQueue.splice(origInsert, 0, { name: 'original', profile: originalProfile });
+
+    if (this.morphQueue.length > 0) {
+      const nextEntry = this.morphQueue[this.morphQueueIdx]!;
+      this.morphTargetsB = this.computeProfileTargets(nextEntry.profile, this.morphSortedNodes, total, catCount);
+      this.morphQueueIdx++;
+    }
+
+    this.morphTransitionStart = performance.now();
+  }
+
+  private advanceMorphShape(): void {
+    // Promote B → A
+    this.morphTargetsA = this.morphTargetsB;
+    const total = this.morphSortedNodes.length;
+    const catCount = this.morphSortedNodes.filter(n => n.isCategory).length;
+    const available = BASE_PROFILES.filter(bp => bp.minNodes <= total);
+
+    // Refill queue if needed
+    if (this.morphQueueIdx >= this.morphQueue.length) {
+      // GC consumed entries
+      this.morphQueue = this.morphQueue.slice(this.morphQueueIdx);
+      this.morphQueueIdx = 0;
+      this.refillMorphQueue(available);
+      // Re-inject original
+      const originalProfile = this.createOriginalProfile();
+      this.morphSeed = lcg(this.morphSeed);
+      const origInsert = this.morphSeed % Math.max(1, this.morphQueue.length);
+      this.morphQueue.splice(origInsert, 0, { name: 'original', profile: originalProfile });
+    }
+
+    if (this.morphQueueIdx < this.morphQueue.length) {
+      const nextEntry = this.morphQueue[this.morphQueueIdx]!;
+      this.morphTargetsB = this.computeProfileTargets(nextEntry.profile, this.morphSortedNodes, total, catCount);
+      this.morphQueueIdx++;
+    }
+
+    this.morphTransitionStart = performance.now();
+  }
+
+  private applyStructuralMorph(_time: number): void {
+    if (this.morphTargetsA.size === 0) return;
+
+    const elapsed = (performance.now() - this.morphTransitionStart) / 1000;
+    if (elapsed >= GraphRenderer.MORPH_DURATION) {
+      this.advanceMorphShape();
+      // Re-enter with fresh timing
+      this.applyStructuralMorph(_time);
+      return;
+    }
+
+    // Compute blend: 0 during hold period, smoothstep during transition
+    let blend = 0;
+    if (elapsed > GraphRenderer.MORPH_HOLD) {
+      const transitionElapsed = elapsed - GraphRenderer.MORPH_HOLD;
+      blend = smoothstep(transitionElapsed / GraphRenderer.MORPH_TRANSITION);
+    }
+
+    this.nodeMeshes.forEach((nm) => {
+      // Skip fully pinned nodes
+      if (nm.node.fx != null && nm.node.fy != null) return;
+
+      const a = this.morphTargetsA.get(nm.node.id);
+      const b = this.morphTargetsB.get(nm.node.id);
+      if (!a || !b) return;
+
+      // Lerp A → B
+      nm.node.x = a.x + (b.x - a.x) * blend;
+      nm.node.y = a.y + (b.y - a.y) * blend;
+      nm.node.z = a.z + (b.z - a.z) * blend;
+    });
+  }
+
+  private enforceMinDistance(): void {
+    const MIN_DIST = 100;     // minimum separation (units)
+    const PUSH_STRENGTH = 0.4; // soft push per frame
+    const nodeArr = Array.from(this.nodeMeshes.values());
+
+    for (let i = 0; i < nodeArr.length; i++) {
+      const a = nodeArr[i]!;
+      if (a.node.fx != null && a.node.fy != null) continue;
+
+      for (let j = i + 1; j < nodeArr.length; j++) {
+        const b = nodeArr[j]!;
+        const ax = a.node.x ?? 0, ay = a.node.y ?? 0, az = a.node.z ?? 0;
+        const bx = b.node.x ?? 0, by = b.node.y ?? 0, bz = b.node.z ?? 0;
+        const dx = bx - ax, dy = by - ay, dz = bz - az;
+        const distSq = dx * dx + dy * dy + dz * dz;
+
+        if (distSq < MIN_DIST * MIN_DIST && distSq > 0) {
+          const dist = Math.sqrt(distSq);
+          const push = (MIN_DIST - dist) * PUSH_STRENGTH;
+          const nx = dx / dist, ny = dy / dist, nz = dz / dist;
+
+          if (a.node.fx == null) {
+            a.node.x = (a.node.x ?? 0) - nx * push;
+            a.node.y = (a.node.y ?? 0) - ny * push;
+            a.node.z = (a.node.z ?? 0) - nz * push;
+          }
+          if (b.node.fx == null) {
+            b.node.x = (b.node.x ?? 0) + nx * push;
+            b.node.y = (b.node.y ?? 0) + ny * push;
+            b.node.z = (b.node.z ?? 0) + nz * push;
+          }
+        }
+      }
+    }
+  }
+
   // ─── Render loop ───
 
   private startRenderLoop(): void {
@@ -1209,6 +1710,10 @@ export class GraphRenderer {
         if (nm.wireframe) nm.wireframe.rotation.y += 0.002;
       });
 
+      // Structural morph: slow layout evolution (~250s cycle)
+      this.applyStructuralMorph(time);
+      this.enforceMinDistance();
+
       // Micro-drift: layered sinusoidal offset from data position (non-accumulating)
       // Two frequencies blended for organic, lissajous-like motion
       const driftTime = time * 0.4;
@@ -1229,6 +1734,17 @@ export class GraphRenderer {
         nm.group.position.set(baseX + dx, baseY + dy, baseZ + dz);
         driftIndex++;
       });
+
+      // Track selected node — camera follows it through morph + drift
+      if (this.selectedId) {
+        const tracked = this.nodeMeshes.get(this.selectedId);
+        if (tracked) {
+          this.targetCameraTarget.copy(tracked.group.position);
+        }
+      }
+
+      // Sync edges to final positions (follows both structural morph + micro-drift)
+      this.updateEdgePositions();
 
       this.renderer.render(this.scene, this.camera);
 
