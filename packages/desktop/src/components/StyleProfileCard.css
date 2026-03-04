@@ -6,48 +6,57 @@
   gap: var(--sp-3);
 }
 
+/* Stack title and status vertically to prevent collision */
 .style-profile__header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--sp-1);
 }
 
+/* Mirrors .action-card__type */
 .style-profile__title {
   font-family: var(--fb);
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--w-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* Mirrors .action-card__meta-item */
 .style-profile__status {
   font-family: var(--fm);
   font-size: var(--text-xs);
-  padding: 1px 8px;
-  border-radius: var(--r-full);
+  color: var(--sv1);
 }
 
 .style-profile__status--active {
-  background: rgba(110, 207, 163, 0.1);
   color: var(--v);
 }
 
 .style-profile__status--learning {
-  background: rgba(201, 168, 92, 0.1);
   color: var(--amber);
 }
 
+/* Mirrors .action-card__description */
 .style-profile__empty-text {
   font-family: var(--fb);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
+  font-weight: 300;
   color: var(--sv3);
+  line-height: 1.5;
   margin-top: var(--sp-2);
 }
 
+/* Mirrors .action-card__meta-item */
 .style-profile__section-label {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   font-weight: 500;
-  color: var(--sv3);
+  color: var(--sv1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .style-profile__tags {
@@ -70,16 +79,21 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  margin-top: var(--sp-1);
 }
 
+/* Mirrors .action-card__description */
 .style-profile__trait {
   font-family: var(--fb);
-  font-size: var(--text-xs);
-  color: var(--w-dim);
+  font-size: var(--text-sm);
+  font-weight: 300;
+  color: var(--sv3);
+  line-height: 1.5;
 }
 
+/* Mirrors .action-card__timestamp */
 .style-profile__meta {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--sv1);
 }
@@ -91,7 +105,7 @@
 }
 
 .style-profile__action-btn {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   padding: 4px 12px;
   border-radius: var(--r-sm);
@@ -107,7 +121,7 @@
 }
 
 .style-profile__reset-btn {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   padding: 4px 12px;
   border-radius: var(--r-sm);
@@ -128,13 +142,13 @@
 }
 
 .style-profile__reset-text {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--amber);
 }
 
 .style-profile__confirm-btn {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   padding: 2px 8px;
   border-radius: var(--r-sm);
@@ -150,7 +164,7 @@
 }
 
 .style-profile__cancel-btn {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   padding: 2px 8px;
   border-radius: var(--r-sm);

@@ -53,9 +53,7 @@ export function StyleProfileCard({ profile, onReanalyze, onReset }: StyleProfile
           <h3 className="style-profile__title">Writing Style</h3>
           <span
             data-testid="style-profile-status"
-            className={`style-profile__status ${
-              profile.isActive ? 'style-profile__status--active' : 'style-profile__status--learning'
-            }`}
+            className={`style-profile__status ${profile.isActive ? 'style-profile__status--active' : 'style-profile__status--learning'}`}
           >
             {profile.isActive
               ? 'Style profile active'
