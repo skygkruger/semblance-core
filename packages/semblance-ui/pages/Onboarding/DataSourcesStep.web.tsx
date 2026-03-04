@@ -67,49 +67,51 @@ export function DataSourcesStep({
         {t('data_sources.subtext')}
       </p>
 
-      <div className="datasources__grid">
-        {SOURCES.map((source, i) => {
-          const isConnected = connected.has(source.id);
-          const Icon = source.icon;
-          return (
-            <div
-              key={source.id}
-              className={`datasources__card${isConnected ? ' datasources__card--connected' : ''}`}
-              style={{ animationDelay: `${i * 60}ms` }}
-            >
-              <div className="datasources__card-info">
-                <div className="datasources__card-icon">
-                  <Icon size={16} />
+      <div className="onboarding-content-frame">
+        <div className="datasources__grid">
+          {SOURCES.map((source, i) => {
+            const isConnected = connected.has(source.id);
+            const Icon = source.icon;
+            return (
+              <div
+                key={source.id}
+                className={`datasources__card${isConnected ? ' datasources__card--connected' : ''}`}
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                <div className="datasources__card-info">
+                  <div className="datasources__card-icon">
+                    <Icon size={16} />
+                  </div>
+                  <div className="datasources__card-text">
+                    <p className="datasources__card-name">{source.name}</p>
+                    <p className="datasources__card-desc">{source.description}</p>
+                  </div>
                 </div>
-                <div className="datasources__card-text">
-                  <p className="datasources__card-name">{source.name}</p>
-                  <p className="datasources__card-desc">{source.description}</p>
-                </div>
+                {isConnected ? (
+                  <span className="datasources__card-status">
+                    <span className="datasources__card-status-dot" />
+                    {t('data_sources.connected_status')}
+                  </span>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={() => toggleConnect(source.id)}>
+                    {t('data_sources.connect_button')}
+                  </Button>
+                )}
               </div>
-              {isConnected ? (
-                <span className="datasources__card-status">
-                  <span className="datasources__card-status-dot" />
-                  {t('data_sources.connected_status')}
-                </span>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={() => toggleConnect(source.id)}>
-                  {t('data_sources.connect_button')}
-                </Button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      <p className="datasources__more">
-        {t('data_sources.more_sources')}
-      </p>
+        <p className="datasources__more">
+          {t('data_sources.more_sources')}
+        </p>
 
-      <div className="datasources__privacy">
-        <ShieldIcon />
-        <span className="datasources__privacy-text">
-          {t('data_sources.privacy_notice')}
-        </span>
+        <div className="datasources__privacy">
+          <ShieldIcon />
+          <span className="datasources__privacy-text">
+            {t('data_sources.privacy_notice')}
+          </span>
+        </div>
       </div>
 
       {showNudge && (

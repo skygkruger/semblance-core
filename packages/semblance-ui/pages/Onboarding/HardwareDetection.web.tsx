@@ -50,28 +50,19 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
       )}
 
       {hardwareInfo && !detecting && (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
-          width: '100%',
-          marginTop: 16,
-        }}>
+        <div className="onboarding-content-frame" style={{ width: '100%', marginTop: 16 }}>
           {buildRows(hardwareInfo).map((item, i) => (
-            <div key={i} style={{
+            <div key={i} className="onboarding-content-frame__item" style={{
               display: 'flex',
               justifyContent: 'space-between',
               padding: '12px 16px',
-              background: 'var(--s1)',
-              borderRadius: 'var(--r-md)',
-              border: '1px solid var(--b1)',
               animation: 'dissolve 700ms var(--eo) both',
               animationDelay: `${i * 80}ms`,
             }}>
               <span style={{ fontFamily: 'var(--fm)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--sv1)' }}>
                 {item.label}
               </span>
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-sm)', color: item.ok ? 'var(--v)' : 'var(--rust)' }}>
+              <span style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-sm)', color: item.ok ? '#6ECFA3' : '#C97B6E' }}>
                 {item.value}
               </span>
             </div>

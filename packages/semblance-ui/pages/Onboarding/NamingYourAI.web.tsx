@@ -27,21 +27,23 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
         What will you call <span className="naming__pronoun">it</span>?
       </h1>
 
-      <div style={{ width: '100%' }}>
-        <Input
-          placeholder={t('naming_ai.placeholder')}
-          value={aiName}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAiName(e.target.value)}
-        />
-      </div>
+      <div className="onboarding-content-frame" style={{ width: '100%' }}>
+        <div style={{ width: '100%' }}>
+          <Input
+            placeholder={t('naming_ai.placeholder')}
+            value={aiName}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAiName(e.target.value)}
+          />
+        </div>
 
-      <div className={`naming__ai-preview ${hasValue ? 'naming__ai-preview--visible' : ''}`}>
-        {aiName || '\u00A0'}
-      </div>
+        <div className={`naming__ai-preview ${hasValue ? 'naming__ai-preview--visible' : ''}`}>
+          {aiName || '\u00A0'}
+        </div>
 
-      <p className={`naming__ai-subtext ${hasValue ? 'naming__ai-subtext--visible' : ''}`}>
-        {t('naming_ai.subtext')}
-      </p>
+        <p className={`naming__ai-subtext ${hasValue ? 'naming__ai-subtext--visible' : ''}`}>
+          {t('naming_ai.subtext')}
+        </p>
+      </div>
 
       <div style={{ marginTop: 8 }}>
         <Button
