@@ -50,13 +50,25 @@ export function HardwareProfileDisplay({
 
   if (compact) {
     return (
-      <div className="hw-profile__compact">
-        <div className="hw-profile__compact-dot" />
-        <span className="hw-profile__compact-text">
-          {tierLabel} — {formatRam(hardware.totalRamMb)}
-          {hardware.gpuName ? ` + ${hardware.gpuName}` : ''}
-        </span>
-      </div>
+      <Card>
+        <div className="hw-profile__compact">
+          <svg className="hw-profile__compact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="4" width="16" height="16" rx="2" />
+            <rect x="9" y="9" width="6" height="6" />
+            <path d="M15 2v2" /><path d="M15 20v2" />
+            <path d="M2 15h2" /><path d="M2 9h2" />
+            <path d="M20 15h2" /><path d="M20 9h2" />
+            <path d="M9 2v2" /><path d="M9 20v2" />
+          </svg>
+          <div className="hw-profile__compact-body">
+            <p className="hw-profile__compact-tier">{tierLabel} Profile</p>
+            <p className="hw-profile__compact-specs">
+              {formatRam(hardware.totalRamMb)} &middot; {hardware.cpuCores} cores
+              {hardware.gpuName ? ` · ${hardware.gpuName}` : ''}
+            </p>
+          </div>
+        </div>
+      </Card>
     );
   }
 
