@@ -55,18 +55,20 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
       animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
     }}>
       {!allComplete && (
-        <>
+        <div className="onboarding-content-frame" style={{ width: '100%' }}>
           <SkeletonCard variant="generic" message="Initializing" height={220} />
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {downloads.map((dl) => (
               <DownloadRow key={dl.modelName} download={dl} completeLabel={t('initialize.download_complete_status')} />
             ))}
           </div>
-        </>
+        </div>
       )}
 
       {allComplete && loading && (
-        <SkeletonCard variant="indexing" height={220} />
+        <div className="onboarding-content-frame" style={{ width: '100%' }}>
+          <SkeletonCard variant="indexing" height={220} />
+        </div>
       )}
 
       {allComplete && !loading && knowledgeMoment && (
@@ -75,22 +77,24 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
             <span className="ai-name-shimmer">{aiName || 'Semblance'}</span>
             {t('initialize.knowledge_moment_suffix')}
           </h2>
-          <div className="knowledge-moment-card opal-surface">
-            <h3 className="knowledge-moment-card__title">
-              {knowledgeMoment.title}
-            </h3>
-            <p className="knowledge-moment-card__summary">
-              {knowledgeMoment.summary}
-            </p>
-            {knowledgeMoment.connections.length > 0 && (
-              <div className="knowledge-moment-card__tags">
-                {knowledgeMoment.connections.map((conn) => (
-                  <span key={conn} className="knowledge-moment-card__tag">
-                    {conn}
-                  </span>
-                ))}
-              </div>
-            )}
+          <div className="onboarding-content-frame" style={{ width: '100%' }}>
+            <div className="knowledge-moment-card opal-surface">
+              <h3 className="knowledge-moment-card__title">
+                {knowledgeMoment.title}
+              </h3>
+              <p className="knowledge-moment-card__summary">
+                {knowledgeMoment.summary}
+              </p>
+              {knowledgeMoment.connections.length > 0 && (
+                <div className="knowledge-moment-card__tags">
+                  {knowledgeMoment.connections.map((conn) => (
+                    <span key={conn} className="knowledge-moment-card__tag">
+                      {conn}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}

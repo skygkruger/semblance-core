@@ -131,19 +131,21 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
         {config.headline}
       </h1>
 
-      <p className="naming__subtext" style={{ maxWidth: 380 }}>
-        {config.subtext}
-      </p>
+      <div className="onboarding-content-frame" style={{ width: '100%' }}>
+        <p className="naming__subtext" style={{ maxWidth: 380, margin: 0 }}>
+          {config.subtext}
+        </p>
 
-      <div style={{ width: '100%' }}>
-        <Input
-          placeholder={config.placeholder}
-          value={currentValue}
-          onChange={handleChange}
-          onKeyDown={(e: React.KeyboardEvent) => {
-            if (e.key === 'Enter' && hasValue) handleContinue();
-          }}
-        />
+        <div style={{ width: '100%' }}>
+          <Input
+            placeholder={config.placeholder}
+            value={currentValue}
+            onChange={handleChange}
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' && hasValue) handleContinue();
+            }}
+          />
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>

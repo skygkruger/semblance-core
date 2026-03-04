@@ -25,19 +25,21 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
       <h1 className="onboarding-shimmer-headline" style={{ fontSize: 'clamp(28px, 5vw, 48px)', lineHeight: 1.25, marginBottom: 16 }}>
         What should it call you?
       </h1>
-      <p className="naming__subtext">
-        Stored only on your device. Never transmitted.
-      </p>
+      <div className="onboarding-content-frame" style={{ width: '100%' }}>
+        <p className="naming__subtext" style={{ margin: 0 }}>
+          Stored only on your device. Never transmitted.
+        </p>
 
-      <div style={{ width: '100%' }}>
-        <Input
-          placeholder="Your name"
-          value={userName}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
-        />
+        <div style={{ width: '100%' }}>
+          <Input
+            placeholder="Your name"
+            value={userName}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
+          />
+        </div>
+
+        <PrivacyBadge status="active" />
       </div>
-
-      <PrivacyBadge status="active" />
 
       <div style={{ marginTop: 8 }}>
         <Button

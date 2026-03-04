@@ -118,6 +118,58 @@
   transform: translateY(0);
 }
 
+/* ─── Onboarding content frame — subtle opal border to bridge card language ─── */
+.onboarding-content-frame {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#0B0E11, #0B0E11) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.2), rgba(119,110,162,0.28),
+      rgba(154,168,184,0.35), rgba(216,221,232,0.38),
+      rgba(154,168,184,0.35), rgba(119,110,162,0.28),
+      rgba(97,88,128,0.2)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.onboarding-content-frame__item {
+  width: 100%;
+  padding: 20px 24px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--r-md);
+  border: 1px solid var(--b1);
+  cursor: pointer;
+  transition: border-color 180ms ease-out, background 180ms ease-out;
+}
+
+.onboarding-content-frame__item:hover {
+  border-color: rgba(110, 207, 163, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.onboarding-content-frame__item--selected {
+  border-color: rgba(110, 207, 163, 0.4);
+  background: rgba(110, 207, 163, 0.06);
+}
+
+/* Scrollable variant — hidden scrollbar */
+.onboarding-content-frame__scrollable {
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.onboarding-content-frame__scrollable::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
 /* ─── Knowledge Moment card — same treatment as BriefingCard ─── */
 .knowledge-moment-card {
   background: linear-gradient(135deg, var(--s2), var(--s1));
