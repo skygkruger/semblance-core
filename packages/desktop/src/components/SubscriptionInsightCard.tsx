@@ -71,7 +71,7 @@ export function SubscriptionInsightCard({ charges, summary, onDismiss }: Subscri
   };
 
   return (
-    <Card className="sub-insight">
+    <Card className={`sub-insight ${forgottenCharges.length > 0 ? 'sub-insight--forgotten' : 'sub-insight--active'}`}>
       <div className="sub-insight__header">
         <div>
           <h3 className="sub-insight__title">Subscription Analysis</h3>
