@@ -1,0 +1,110 @@
+/* ─── DirectoryPicker ─── */
+.dir-picker__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dir-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  transition: background 180ms;
+}
+
+.dir-picker__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dir-picker__icon {
+  flex-shrink: 0;
+  color: #6ECFA3;
+}
+
+.dir-picker__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dir-picker__path {
+  font-family: var(--fm);
+  font-size: 13px;
+  color: #EEF1F4;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dir-picker__meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.dir-picker__meta-item {
+  font-family: var(--fb);
+  font-size: 11px;
+  color: #5E6B7C;
+}
+
+.dir-picker__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dir-picker__btn {
+  background: none;
+  border: none;
+  color: #8593A4;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 180ms, background 180ms;
+}
+
+.dir-picker__btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dir-picker__btn--rescan:hover {
+  color: #6ECFA3;
+}
+
+.dir-picker__btn--remove:hover {
+  color: #C97B6E;
+}
+
+.dir-picker__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px dashed rgba(110, 207, 163, 0.25);
+  border-radius: 8px;
+  background: none;
+  color: #6ECFA3;
+  font-family: var(--fb);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 180ms, border-color 180ms;
+}
+
+.dir-picker__add:hover {
+  background: rgba(110, 207, 163, 0.04);
+  border-color: rgba(110, 207, 163, 0.4);
+}

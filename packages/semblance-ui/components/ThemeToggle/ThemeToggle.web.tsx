@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { ThemeMode, ThemeToggleProps } from './ThemeToggle.types';
+import './ThemeToggle.css';
 
 const modes: Array<{ id: ThemeMode; label: string }> = [
   { id: 'light', label: 'Light' },
@@ -12,12 +13,7 @@ export function ThemeToggle({ value, onChange, className = '' }: ThemeToggleProp
 
   return (
     <div
-      className={`
-        inline-flex p-1
-        bg-semblance-surface-2 dark:bg-semblance-surface-2-dark
-        rounded-md
-        ${className}
-      `.trim()}
+      className={`theme-toggle ${className}`}
       role="radiogroup"
       aria-label={t('a11y.theme_selection')}
     >
@@ -30,15 +26,7 @@ export function ThemeToggle({ value, onChange, className = '' }: ThemeToggleProp
             role="radio"
             aria-checked={isActive}
             onClick={() => onChange(mode.id)}
-            className={`
-              px-3 py-1.5 text-sm font-medium rounded-md
-              transition-all duration-fast
-              focus-visible:outline-none focus-visible:shadow-focus
-              ${isActive
-                ? 'bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark shadow-sm'
-                : 'text-semblance-text-tertiary hover:text-semblance-text-secondary dark:hover:text-semblance-text-secondary-dark'
-              }
-            `.trim()}
+            className={`theme-toggle__option ${isActive ? 'theme-toggle__option--active' : ''}`}
           >
             {mode.label}
           </button>
@@ -47,4 +35,3 @@ export function ThemeToggle({ value, onChange, className = '' }: ThemeToggleProp
     </div>
   );
 }
-

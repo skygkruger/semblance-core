@@ -6,11 +6,10 @@ const meta: Meta<typeof DocumentPanel> = {
   component: DocumentPanel,
   parameters: {
     layout: 'fullscreen',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
   },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', height: '100vh', display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ height: '100vh', display: 'flex', justifyContent: 'flex-end', padding: 12 }}>
         <Story />
       </div>
     ),
