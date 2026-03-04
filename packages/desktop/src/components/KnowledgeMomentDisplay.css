@@ -3,7 +3,13 @@
 .km-display {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-6);
+  gap: var(--sp-5);
+  border-left: 3px solid transparent;
+  transition: border-color 800ms ease-out;
+}
+
+.km-display--border-active {
+  border-left-color: var(--v);
 }
 
 .km-display__sources {
@@ -38,74 +44,94 @@
 
 .km-display__source-label {
   font-family: var(--fm);
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--sv1);
 }
 
 .km-display__card {
   padding: var(--sp-4);
-  border-radius: var(--r-lg);
-  background: rgba(22, 27, 34, 0.5);
+  border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--b1);
 }
 
+/* Mirrors .action-card__type */
 .km-display__card-title {
   font-family: var(--fb);
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--w-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* Mirrors .action-card__meta-item */
 .km-display__card-meta {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--sv1);
-  margin-top: var(--sp-1);
+  margin-top: var(--sp-2);
 }
 
+/* Mirrors .action-card__description */
 .km-display__email-count {
   font-family: var(--fb);
   font-size: var(--text-sm);
-  color: var(--w-dim);
+  font-weight: 300;
+  color: var(--sv3);
+  line-height: 1.5;
 }
 
 .km-display__email-name {
   font-weight: 500;
+  color: var(--w-dim);
 }
 
+/* Mirrors .action-card__meta-item */
 .km-display__email-latest {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--sv1);
-  margin-top: var(--sp-1);
+  margin-top: var(--sp-2);
 }
 
+/* Mirrors .action-card__meta-item with amber accent */
 .km-display__unanswered {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--amber);
   margin-top: var(--sp-1);
 }
 
+/* Mirrors .action-card__meta-item */
 .km-display__docs-label {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--sv1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   margin-bottom: var(--sp-2);
 }
 
+/* Mirrors .action-card__description */
 .km-display__doc-name {
   font-family: var(--fb);
   font-size: var(--text-sm);
-  color: var(--w-dim);
+  font-weight: 300;
+  color: var(--sv3);
+  line-height: 1.5;
 }
 
+/* Mirrors .action-card__description (italic variant) */
 .km-display__message {
   font-family: var(--fb);
   font-size: var(--text-sm);
   font-style: italic;
+  font-weight: 300;
   color: var(--sv3);
   text-align: center;
+  line-height: 1.5;
 }
 
 .km-display__actions {

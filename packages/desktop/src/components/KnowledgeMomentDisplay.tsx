@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@semblance/ui';
+import { Button, Card } from '@semblance/ui';
 import './KnowledgeMomentDisplay.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -93,9 +93,10 @@ export function KnowledgeMomentDisplay({
   const hasEmail = moment.emailContext !== null;
   const hasCalendar = moment.upcomingMeeting !== null;
   const hasDocs = moment.relatedDocuments.length > 0;
+  const borderActive = !isOnboarding || revealStage >= 1;
 
   return (
-    <div className="km-display">
+    <Card className={`km-display${borderActive ? ' km-display--border-active' : ''}`}>
       {/* Source indicators */}
       <div className={`km-display__sources ${revealCls(0)}`}>
         <div className="km-display__source">
@@ -174,6 +175,6 @@ export function KnowledgeMomentDisplay({
         )}
         <Button variant="ghost" onClick={onContinue}>Continue</Button>
       </div>
-    </div>
+    </Card>
   );
 }
