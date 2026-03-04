@@ -380,6 +380,8 @@
       "your_life_data": "[TW] Your Life Data"
     },
     "credentials": {
+      "title_email": "電子郵件設定",
+      "title_calendar": "日曆設定",
       "choose_provider": "[TW] Choose a provider",
       "other": "[TW] Other",
       "label_display_name": "[TW] Display Name",

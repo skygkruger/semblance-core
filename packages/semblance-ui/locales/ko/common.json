@@ -380,6 +380,8 @@
       "your_life_data": "[KO] Your Life Data"
     },
     "credentials": {
+      "title_email": "이메일 설정",
+      "title_calendar": "캘린더 설정",
       "choose_provider": "[KO] Choose a provider",
       "other": "[KO] Other",
       "label_display_name": "[KO] Display Name",

@@ -380,6 +380,8 @@
       "your_life_data": "[ZH] Your Life Data"
     },
     "credentials": {
+      "title_email": "邮箱设置",
+      "title_calendar": "日历设置",
       "choose_provider": "[ZH] Choose a provider",
       "other": "[ZH] Other",
       "label_display_name": "[ZH] Display Name",
