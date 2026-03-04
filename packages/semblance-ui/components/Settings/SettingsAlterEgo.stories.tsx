@@ -1,17 +1,18 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { SettingsAlterEgo } from './SettingsAlterEgo';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const meta: Meta<typeof SettingsAlterEgo> = {
   title: 'Settings/AlterEgo',
   component: SettingsAlterEgo,
-  parameters: {
-    layout: 'fullscreen',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-  },
+  parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', minHeight: '100vh', width: '100%', maxWidth: 600, margin: '0 auto' }}>
-        <Story />
+      <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 600, margin: '0 auto', minHeight: '100vh' }}>
+          <Story />
+        </div>
       </div>
     ),
   ],
@@ -59,8 +60,11 @@ export const Mobile: Story = {
   },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', minHeight: '100vh', width: '100%', maxWidth: 390 }}>
-        <Story />
+      <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 390, minHeight: '100vh' }}>
+          <Story />
+        </div>
       </div>
     ),
   ],

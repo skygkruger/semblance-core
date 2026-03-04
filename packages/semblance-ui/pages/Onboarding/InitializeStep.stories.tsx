@@ -1,10 +1,11 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
+import { DotMatrix } from '../../components/DotMatrix/DotMatrix';
 import { InitializeStep } from './InitializeStep';
 import type { ModelDownload, KnowledgeMomentData } from './InitializeStep.types';
 import './Onboarding.css';
 
-// ─── Fixtures ────────────────────────────────────────────────────────────────
+// --- Fixtures ----------------------------------------------------------------
 
 const DOWNLOADS_IN_PROGRESS: ModelDownload[] = [
   {
@@ -46,21 +47,33 @@ const KNOWLEDGE_MOMENT: KnowledgeMomentData = {
   connections: ['Google Calendar', 'Email', 'Contacts'],
 };
 
-// ─── Wrapper — centering only, i18n handled globally by preview.ts ───────────
+// --- PageWrapper with DotMatrix background -----------------------------------
 
-const CenterWrap = ({ children }: { children: React.ReactNode }) => (
+const PageWrapper = ({ children }: { children: React.ReactNode }) => (
   <div style={{
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '80vh',
+    position: 'relative',
+    width: '100vw',
+    height: '100vh',
+    background: '#0B0E11',
+    overflow: 'hidden',
   }}>
-    {children}
+    <DotMatrix />
+    <div style={{
+      position: 'relative',
+      zIndex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      padding: 40,
+    }}>
+      {children}
+    </div>
   </div>
 );
 
-// ─── Meta ────────────────────────────────────────────────────────────────────
+// --- Meta --------------------------------------------------------------------
 
 const meta: Meta<typeof InitializeStep> = {
   title: 'Pages/Onboarding/InitializeStep',
@@ -71,40 +84,40 @@ const meta: Meta<typeof InitializeStep> = {
 export default meta;
 type Story = StoryObj<typeof InitializeStep>;
 
-// ─── Stories ─────────────────────────────────────────────────────────────────
+// --- Stories -----------------------------------------------------------------
 
 /** Model downloads in progress — SkeletonCard + progress bars visible. */
 export const Downloading: Story = {
   render: () => (
-    <CenterWrap>
+    <PageWrapper>
       <InitializeStep
         downloads={DOWNLOADS_IN_PROGRESS}
         knowledgeMoment={null}
         loading={false}
         aiName="Nova"
       />
-    </CenterWrap>
+    </PageWrapper>
   ),
 };
 
 /** Downloads complete, knowledge graph building — SkeletonCard indexing variant. */
 export const BuildingKnowledge: Story = {
   render: () => (
-    <CenterWrap>
+    <PageWrapper>
       <InitializeStep
         downloads={DOWNLOADS_COMPLETE}
         knowledgeMoment={null}
         loading={true}
         aiName="Nova"
       />
-    </CenterWrap>
+    </PageWrapper>
   ),
 };
 
 /** Knowledge Moment card revealed — opal-bordered card with AI name shimmer. */
 export const KnowledgeMomentReady: Story = {
   render: () => (
-    <CenterWrap>
+    <PageWrapper>
       <InitializeStep
         downloads={DOWNLOADS_COMPLETE}
         knowledgeMoment={KNOWLEDGE_MOMENT}
@@ -112,14 +125,14 @@ export const KnowledgeMomentReady: Story = {
         onComplete={() => console.log('[Story] onComplete fired')}
         aiName="Nova"
       />
-    </CenterWrap>
+    </PageWrapper>
   ),
 };
 
 /** Ready without a knowledge moment — fallback text + Start button. */
 export const ReadyNoMoment: Story = {
   render: () => (
-    <CenterWrap>
+    <PageWrapper>
       <InitializeStep
         downloads={DOWNLOADS_COMPLETE}
         knowledgeMoment={null}
@@ -127,6 +140,6 @@ export const ReadyNoMoment: Story = {
         onComplete={() => console.log('[Story] onComplete fired')}
         aiName="Nova"
       />
-    </CenterWrap>
+    </PageWrapper>
   ),
 };

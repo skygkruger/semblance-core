@@ -1,17 +1,18 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { CategoryLegend } from './CategoryLegend';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const meta: Meta<typeof CategoryLegend> = {
   title: 'KnowledgeGraph/CategoryLegend',
   component: CategoryLegend,
-  parameters: {
-    layout: 'fullscreen',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-  },
+  parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', minHeight: 400, position: 'relative', width: '100%' }}>
-        <Story />
+      <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
+          <Story />
+        </div>
       </div>
     ),
   ],

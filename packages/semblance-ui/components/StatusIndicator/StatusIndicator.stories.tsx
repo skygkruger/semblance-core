@@ -1,16 +1,21 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { StatusIndicator } from './StatusIndicator';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const meta: Meta<typeof StatusIndicator> = {
   title: 'Components/StatusIndicator',
   component: StatusIndicator,
-  parameters: {
-    backgrounds: {
-      default: 'void',
-      values: [{ name: 'void', value: '#0B0E11' }],
-    },
-    layout: 'centered',
-  },
+  parameters: { layout: 'fullscreen' },
+  decorators: [
+    (Story) => (
+      <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+          <Story />
+        </div>
+      </div>
+    ),
+  ],
   argTypes: {
     status: {
       control: 'select',

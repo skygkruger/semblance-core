@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { CredentialForm } from './CredentialForm';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const emailPresets: Record<string, { name: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; notes?: string }> = {
   gmail: { name: 'Gmail', imapHost: 'imap.gmail.com', imapPort: 993, smtpHost: 'smtp.gmail.com', smtpPort: 587, notes: 'Gmail requires an app-specific password. Enable 2-Step Verification, then generate one at myaccount.google.com.' },
@@ -16,14 +17,16 @@ const calendarPresets: Record<string, { name: string; imapHost: string; imapPort
 const meta: Meta<typeof CredentialForm> = {
   title: 'Components/CredentialForm',
   component: CredentialForm,
-  parameters: {
-    layout: 'centered',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-  },
+  parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', padding: 40, width: '100%', maxWidth: 520 }}>
-        <Story />
+      <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 40 }}>
+          <div style={{ width: '100%', maxWidth: 520 }}>
+            <Story />
+          </div>
+        </div>
       </div>
     ),
   ],

@@ -4,16 +4,15 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { DrillDownList } from './DrillDownList.web';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 import type { DrillDownItem } from './DrillDownList.web';
 
 const DarkDecorator = (Story: React.ComponentType) => (
-  <div style={{
-    width: 360,
-    padding: 16,
-    background: '#0B0E11',
-    minHeight: '100vh',
-  }}>
-    <Story />
+  <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+    <DotMatrix />
+    <div style={{ position: 'relative', zIndex: 1, width: 360, padding: 16, minHeight: '100vh' }}>
+      <Story />
+    </div>
   </div>
 );
 

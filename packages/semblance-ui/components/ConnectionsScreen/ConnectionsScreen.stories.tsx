@@ -1,18 +1,19 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ConnectionsScreen } from './ConnectionsScreen';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 import type { ConnectorEntry } from './ConnectionsScreen';
 
 const meta: Meta<typeof ConnectionsScreen> = {
   title: 'Screens/ConnectionsScreen',
   component: ConnectionsScreen,
-  parameters: {
-    layout: 'fullscreen',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-  },
+  parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', minHeight: '100vh', width: '100%' }}>
-        <Story />
+      <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, width: '100%', minHeight: '100vh' }}>
+          <Story />
+        </div>
       </div>
     ),
   ],

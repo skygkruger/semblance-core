@@ -1,12 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { LogoMark } from '../../components/LogoMark/LogoMark';
+import { Wordmark } from '../../components/Wordmark/Wordmark';
 import { Button } from '../../components/Button/Button';
 import type { SplashScreenProps } from './SplashScreen.types';
 import './Onboarding.css';
 
 export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) {
-  const { t } = useTranslation('onboarding');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -23,22 +22,15 @@ export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) 
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: 32,
-      maxWidth: 480,
-      width: '100%',
-      animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
+      gap: 24,
+      animation: 'dissolve 700ms var(--eo) both',
     }}>
-      <LogoMark size={96} />
-
-      <h1 className="naming__headline">
-        {t('splash.headline')}
-      </h1>
-
-      <p className="naming__subtext" style={{ maxWidth: 360 }}>
-        {t('splash.subtext')}
+      <LogoMark size={200} />
+      <Wordmark size="hero" />
+      <p className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-sm)', whiteSpace: 'nowrap' }}>
+        Your intelligence. Your device. Your rules.
       </p>
-
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 32 }}>
         <Button
           variant="approve"
           size="lg"
@@ -47,7 +39,7 @@ export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) 
             onBegin?.();
           }}
         >
-          {t('splash.begin_button')}
+          Begin Setup
         </Button>
       </div>
     </div>
