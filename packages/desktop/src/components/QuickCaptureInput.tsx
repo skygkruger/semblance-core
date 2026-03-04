@@ -93,7 +93,7 @@ export function QuickCaptureInput({
           type="button"
           onClick={handleSubmit}
           disabled={!text.trim() || disabled || feedback.type === 'submitting'}
-          className="quick-capture__submit"
+          className={`quick-capture__submit${text.trim() ? ' quick-capture__submit--active' : ''}`}
           data-testid="quick-capture-submit"
         >
           {feedback.type === 'submitting' ? 'Saving...' : 'Capture'}
