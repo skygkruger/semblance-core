@@ -3,10 +3,11 @@ import './ProgressBar.css';
 
 export function ProgressBar({ value = 0, max = 100, indeterminate = false, className = '' }: ProgressBarProps) {
   const percentage = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  const isComplete = !indeterminate && percentage >= 100;
 
   return (
     <div
-      className={`progress-bar ${className}`}
+      className={`progress-bar ${isComplete ? 'progress-bar--complete' : ''} ${className}`}
       role="progressbar"
       aria-valuenow={indeterminate ? undefined : value}
       aria-valuemin={0}
