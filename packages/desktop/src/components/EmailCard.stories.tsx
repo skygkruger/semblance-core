@@ -12,11 +12,22 @@ const VoidDecorator = (Story: React.ComponentType) => (
   </div>
 );
 
+const noop = () => {
+  // eslint-disable-next-line no-console
+  console.log('[EmailCard] action fired');
+};
+
 const meta: Meta<typeof EmailCard> = {
   title: 'Desktop/Inbox/EmailCard',
   component: EmailCard,
   parameters: { layout: 'centered' },
   decorators: [VoidDecorator],
+  args: {
+    onReply: noop,
+    onArchive: noop,
+    onSnooze: noop,
+    onExpand: noop,
+  },
 };
 
 export default meta;
@@ -40,10 +51,6 @@ export const UnreadHighPriority: Story = {
     aiCategory: ['finance', 'approval'],
     aiPriority: 'high',
     actionTaken: null,
-    onReply: () => {},
-    onArchive: () => {},
-    onSnooze: () => {},
-    onExpand: () => {},
   },
 };
 
@@ -65,10 +72,6 @@ export const ReadNormalPriority: Story = {
     aiCategory: ['newsletter'],
     aiPriority: 'low',
     actionTaken: null,
-    onReply: () => {},
-    onArchive: () => {},
-    onSnooze: () => {},
-    onExpand: () => {},
   },
 };
 
@@ -95,9 +98,5 @@ export const WithActionTaken: Story = {
       undoAvailable: true,
       description: 'Archived — informational reply',
     },
-    onReply: () => {},
-    onArchive: () => {},
-    onSnooze: () => {},
-    onExpand: () => {},
   },
 };

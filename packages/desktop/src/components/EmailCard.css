@@ -110,10 +110,12 @@
 .email-card__action-label {
   font-family: var(--fb);
   font-size: var(--text-xs);
-  padding: 1px 8px;
+  padding: 4px 10px;
   border-radius: var(--r-sm);
   background: rgba(110, 207, 163, 0.1);
   color: var(--v);
+  display: flex;
+  align-items: center;
 }
 
 .email-card__actions {

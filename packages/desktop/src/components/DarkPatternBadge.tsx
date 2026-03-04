@@ -1,5 +1,6 @@
 /**
- * Dark Pattern Badge — Shield icon + reframe for flagged manipulative content.
+ * Dark Pattern Badge — Alert card for flagged manipulative content.
+ * Card + font treatment matches ActionCard exactly.
  */
 
 import { useState } from 'react';
@@ -25,13 +26,21 @@ interface DarkPatternBadgeProps {
   onDismiss?: (contentId: string) => void;
 }
 
+function formatCategory(raw: string): string {
+  return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function DarkPatternBadge({ flag, onDismiss }: DarkPatternBadgeProps) {
   const [expanded, setExpanded] = useState(false);
 
+  const topCategory = flag.patterns[0]
+    ? formatCategory(flag.patterns[0].category)
+    : 'Dark Pattern';
+
   return (
-    <div className="dark-pattern">
+    <div className="dark-pattern opal-surface">
       <div className="dark-pattern__header">
         <span
           className="dark-pattern__shield"
@@ -40,32 +49,48 @@ export function DarkPatternBadge({ flag, onDismiss }: DarkPatternBadgeProps) {
         >
           [!]
         </span>
-        <span className="dark-pattern__reframe">{flag.reframe}</span>
-        <button
-          className="dark-pattern__toggle"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? 'Hide' : 'Why flagged?'}
-        </button>
-        {onDismiss && (
+
+        <div className="dark-pattern__body">
+          <span className="dark-pattern__title">{topCategory} Detected</span>
+          <p className="dark-pattern__reframe">{flag.reframe}</p>
+          <div className="dark-pattern__meta">
+            <span className="dark-pattern__confidence-label">
+              {Math.round(flag.confidence * 100)}% confidence
+            </span>
+          </div>
+        </div>
+
+        <div className="dark-pattern__actions">
           <button
-            className="dark-pattern__dismiss"
-            onClick={() => onDismiss(flag.contentId)}
-            aria-label="dismiss flag"
+            type="button"
+            className="dark-pattern__toggle"
+            onClick={() => setExpanded(!expanded)}
           >
-            x
+            {expanded ? 'Hide' : 'Details'}
           </button>
-        )}
+          {onDismiss && (
+            <button
+              type="button"
+              className="dark-pattern__dismiss"
+              onClick={() => onDismiss(flag.contentId)}
+              aria-label="dismiss flag"
+            >
+              x
+            </button>
+          )}
+        </div>
       </div>
 
       {expanded && flag.patterns.length > 0 && (
         <div className="dark-pattern__details">
           {flag.patterns.map((pattern, idx) => (
             <div key={idx} className="dark-pattern__pattern">
-              <span className="dark-pattern__category">{pattern.category}:</span>
+              <span className="dark-pattern__category">
+                {formatCategory(pattern.category)}:
+              </span>
               <span>&ldquo;{pattern.evidence}&rdquo;</span>
               <span className="dark-pattern__confidence">
-                ({Math.round(pattern.confidence * 100)}%)
+                {Math.round(pattern.confidence * 100)}%
               </span>
             </div>
           ))}

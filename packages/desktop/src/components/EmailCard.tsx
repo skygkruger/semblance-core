@@ -90,20 +90,18 @@ export function EmailCard({
         </div>
       </div>
 
-      {actionTaken && (
-        <div className="email-card__action-taken">
+      <div className="email-card__actions">
+        {actionTaken ? (
           <span className="email-card__action-label">{actionTaken.description}</span>
-        </div>
-      )}
-
-      {!actionTaken && (
-        <div className="email-card__actions">
-          <button type="button" onClick={onReply} className="email-card__action-btn">Reply</button>
-          <button type="button" onClick={onArchive} className="email-card__action-btn">Archive</button>
-          <button type="button" onClick={onSnooze} className="email-card__action-btn">Snooze</button>
-          <button type="button" onClick={onExpand} className="email-card__action-btn email-card__action-btn--end">View</button>
-        </div>
-      )}
+        ) : (
+          <>
+            <button type="button" onClick={onReply} className="email-card__action-btn">Reply</button>
+            <button type="button" onClick={onArchive} className="email-card__action-btn">Archive</button>
+            <button type="button" onClick={onSnooze} className="email-card__action-btn">Snooze</button>
+          </>
+        )}
+        <button type="button" onClick={onExpand} className="email-card__action-btn email-card__action-btn--end">View</button>
+      </div>
     </Card>
   );
 }
