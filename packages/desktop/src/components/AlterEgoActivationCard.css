@@ -166,6 +166,7 @@
 
 .alter-ego-activate__domain-tier {
   font-family: var(--fm);
+  font-weight: 400;
   color: var(--sv1);
 }
 

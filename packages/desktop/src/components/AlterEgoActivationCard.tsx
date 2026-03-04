@@ -86,7 +86,7 @@ export function AlterEgoActivationCard({
           {prompt.differences.map(diff => (
             <div key={diff.domain} className="alter-ego-activate__domain">
               <h4 className="alter-ego-activate__domain-name">
-                {diff.domain} <span className="alter-ego-activate__domain-tier">({diff.currentTier})</span>
+                {diff.domain} <span className="alter-ego-activate__domain-tier">[{diff.currentTier}]</span>
               </h4>
               <p className="alter-ego-activate__domain-desc">{diff.description}</p>
             </div>
