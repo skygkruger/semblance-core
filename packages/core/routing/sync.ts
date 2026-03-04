@@ -25,7 +25,8 @@ export type SyncItemType =
   | 'reminder'
   | 'capture'
   | 'device_capability'
-  | 'knowledge_graph';
+  | 'knowledge_graph'
+  | 'license';
 
 export interface SyncItem {
   id: string;
@@ -164,6 +165,28 @@ export function resolveConflict(
       resolution: 'remote_wins',
       reason: 'Device capabilities describe the remote device',
       winner: 'remote',
+    };
+  }
+
+  // License: last-write-wins by timestamp
+  if (local.type === 'license') {
+    const localTime = new Date(local.updatedAt).getTime();
+    const remoteTime = new Date(remote.updatedAt).getTime();
+    if (remoteTime > localTime) {
+      return {
+        itemId: local.id,
+        type: local.type,
+        resolution: 'remote_wins',
+        reason: 'Remote license has more recent activation',
+        winner: 'remote',
+      };
+    }
+    return {
+      itemId: local.id,
+      type: local.type,
+      resolution: 'local_wins',
+      reason: 'Local license has more recent or equal activation',
+      winner: 'local',
     };
   }
 

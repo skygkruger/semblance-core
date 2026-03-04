@@ -40,6 +40,10 @@ import type {
   ContactStats,
   BirthdayInfo,
   ImportStatementResult,
+  FinancialPeriod,
+  FinancialDashboardData,
+  HealthDashboardData,
+  HealthEntry,
   CloudConnectResult,
   CloudSyncResult,
   CloudFolder,
@@ -341,6 +345,24 @@ export function importStatement(filePath: string): Promise<ImportStatementResult
 
 export function updateSubscriptionStatus(chargeId: string, status: string): Promise<void> {
   return invoke<void>('update_subscription_status', { chargeId, status });
+}
+
+export function getFinancialDashboard(period: FinancialPeriod, customStart?: string, customEnd?: string): Promise<FinancialDashboardData> {
+  return invoke<FinancialDashboardData>('get_financial_dashboard', { period, customStart, customEnd });
+}
+
+export function dismissAnomaly(anomalyId: string): Promise<void> {
+  return invoke<void>('dismiss_anomaly', { anomalyId });
+}
+
+// ─── Health ────────────────────────────────────────────────────────────────
+
+export function getHealthDashboard(trendDays: number): Promise<HealthDashboardData> {
+  return invoke<HealthDashboardData>('get_health_dashboard', { trendDays });
+}
+
+export function saveHealthEntry(entry: Partial<HealthEntry> & { date: string }): Promise<HealthEntry> {
+  return invoke<HealthEntry>('save_health_entry', { entry });
 }
 
 // ─── Cloud Storage ──────────────────────────────────────────────────────────

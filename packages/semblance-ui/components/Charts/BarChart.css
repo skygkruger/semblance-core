@@ -1,0 +1,31 @@
+/* BarChart — Vertical bar chart (steps, sleep, etc.) */
+
+.bar-chart {
+  position: relative;
+  width: 100%;
+}
+
+.bar-chart__svg {
+  width: 100%;
+  display: block;
+}
+
+.bar-chart__bar {
+  transition: height var(--duration-base) var(--eo);
+}
+
+.bar-chart__label {
+  font-family: var(--fm);
+  font-size: 9px;
+  fill: var(--sv1);
+  text-anchor: middle;
+}
+
+.bar-chart__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv1);
+}

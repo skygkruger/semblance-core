@@ -23,6 +23,8 @@ import { ConnectionsScreen } from './screens/ConnectionsScreen';
 import { MorningBriefScreen } from './screens/MorningBriefScreen';
 import { KnowledgeGraphScreen } from './screens/KnowledgeGraphScreen';
 import { IntentScreen } from './screens/IntentScreen';
+import { FinancialDashboardScreen } from './screens/FinancialDashboardScreen';
+import { HealthDashboardScreen } from './screens/HealthDashboardScreen';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
 import { UpgradeScreen as UpgradeScreenComponent } from '@semblance/ui';
@@ -131,6 +133,21 @@ function CompassIcon() {
     </svg>
   );
 }
+function DollarIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  );
+}
+function HeartIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    </svg>
+  );
+}
 
 const navItems: NavItem[] = [
   { id: 'chat', label: 'Chat', icon: <ChatIcon /> },
@@ -143,6 +160,8 @@ const navItems: NavItem[] = [
   { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
   { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
   { id: 'relationships', label: 'Contacts', icon: <ContactsIcon /> },
+  { id: 'finance', label: 'Finance', icon: <DollarIcon /> },
+  { id: 'health', label: 'Health', icon: <HeartIcon /> },
   { id: 'digest', label: 'Digest', icon: <DigestIcon /> },
   { id: 'network', label: 'Network', icon: <NetworkIcon /> },
 ];
@@ -274,6 +293,8 @@ function AppContent() {
           <Route path="/privacy" element={<PrivacyScreen />} />
           <Route path="/relationships" element={<RelationshipsScreen />} />
           <Route path="/digest" element={<DigestScreen />} />
+          <Route path="/finance" element={<FinancialDashboardScreen />} />
+          <Route path="/health" element={<HealthDashboardScreen />} />
           <Route path="/network" element={<NetworkMonitorScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
           <Route

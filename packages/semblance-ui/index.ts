@@ -99,6 +99,18 @@ export type { SettingsAlterEgoProps } from './components/Settings/index.js';
 export { SovereigntyReportCard } from './components/SovereigntyReportCard/index.js';
 export type { SovereigntyReportCardProps } from './components/SovereigntyReportCard/index.js';
 
+// Charts
+export { HorizontalBarChart, TrendLineChart, BarChart, PeriodSelector } from './components/Charts/index.js';
+export type { HorizontalBarChartProps, TrendLineChartProps, BarChartProps, PeriodSelectorProps, PeriodOption } from './components/Charts/index.js';
+
+// Financial Dashboard
+export { FinancialDashboard } from './components/FinancialDashboard/index.js';
+export type { FinancialDashboardProps } from './components/FinancialDashboard/index.js';
+
+// Health Dashboard
+export { HealthDashboard } from './components/HealthDashboard/index.js';
+export type { HealthDashboardProps } from './components/HealthDashboard/index.js';
+
 // License / Premium
 export { FeatureGate } from './components/FeatureGate/index.js';
 export { UpgradeScreen } from './components/UpgradeScreen/index.js';

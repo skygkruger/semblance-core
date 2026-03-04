@@ -1,29 +1,8 @@
 import { useState } from 'react';
 import { Card } from '@semblance/ui';
 import { updateSubscriptionStatus } from '../ipc/commands';
+import type { RecurringCharge, SubscriptionSummary } from '../ipc/types';
 import './SubscriptionInsightCard.css';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-interface RecurringCharge {
-  id: string;
-  merchantName: string;
-  amount: number;
-  frequency: 'weekly' | 'monthly' | 'quarterly' | 'annual';
-  confidence: number;
-  lastChargeDate: string;
-  chargeCount: number;
-  estimatedAnnualCost: number;
-  status: 'active' | 'forgotten' | 'cancelled' | 'user_confirmed';
-}
-
-interface SubscriptionSummary {
-  totalMonthly: number;
-  totalAnnual: number;
-  activeCount: number;
-  forgottenCount: number;
-  potentialSavings: number;
-}
 
 interface SubscriptionInsightCardProps {
   charges: RecurringCharge[];
