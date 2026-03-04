@@ -38,6 +38,7 @@ export function MorningBriefCard({ brief, onDismiss }: MorningBriefCardProps) {
 
   return (
     <Card className="morning-brief">
+      <div className="morning-brief__opal-accent" aria-hidden="true" />
       <div className="morning-brief__header">
         <div>
           <div className="morning-brief__label-row">

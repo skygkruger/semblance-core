@@ -97,6 +97,7 @@ export function KnowledgeMomentDisplay({
 
   return (
     <Card className={`km-display${borderActive ? ' km-display--border-active' : ''}`}>
+      <div className="km-display__opal-accent" aria-hidden="true" />
       {/* Source indicators */}
       <div className={`km-display__sources ${revealCls(0)}`}>
         <div className="km-display__source">
