@@ -12,13 +12,9 @@
   border-radius: inherit;
   background: linear-gradient(
     180deg,
-    rgba(97,88,128,0.4),
-    rgba(119,110,162,0.6),
-    rgba(154,168,184,0.7),
-    rgba(216,221,232,0.85),
-    rgba(154,168,184,0.7),
-    rgba(119,110,162,0.6),
-    rgba(97,88,128,0.4)
+    #4a6278 0%, #6888a8 14%, #7a9ab8 28%, #c8dde8 42%,
+    #7ab89a 50%, #5a9e78 58%,
+    #c8dde8 72%, #7a9ab8 86%, #4a6278 100%
   );
   background-size: 100% 200%;
   animation: opal-accent-sweep 4s linear infinite;
@@ -50,23 +46,17 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   background: linear-gradient(
-    90deg,
-    rgba(119,110,162,0.9),
-    rgba(154,168,184,1),
-    rgba(216,221,232,1),
-    rgba(154,168,184,1),
-    rgba(119,110,162,0.9)
+    105deg,
+    #4a6278 0%, #6888a8 10%, #7a9ab8 20%, #c8dde8 30%,
+    #7ab89a 42%, #5a9e78 50%, #7ab89a 58%,
+    #c8dde8 70%, #7a9ab8 80%, #6888a8 90%, #4a6278 100%
   );
-  background-size: 200% 100%;
+  background-size: 300% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: opal-text-sweep 4s linear infinite;
-}
-
-@keyframes opal-text-sweep {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
 }
 
 /* Mirrors .action-card__timestamp */
