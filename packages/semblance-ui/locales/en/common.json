@@ -382,6 +382,8 @@
       "your_life_data": "Your Life Data"
     },
     "credentials": {
+      "title_email": "Email Setup",
+      "title_calendar": "Calendar Setup",
       "choose_provider": "Choose a provider",
       "other": "Other",
       "label_display_name": "Display Name",

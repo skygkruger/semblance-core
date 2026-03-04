@@ -380,6 +380,8 @@
       "your_life_data": "[FR] Your Life Data"
     },
     "credentials": {
+      "title_email": "Configuration email",
+      "title_calendar": "Configuration calendrier",
       "choose_provider": "[FR] Choose a provider",
       "other": "[FR] Other",
       "label_display_name": "[FR] Display Name",

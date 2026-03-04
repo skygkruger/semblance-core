@@ -380,6 +380,8 @@
       "your_life_data": "[PT] Your Life Data"
     },
     "credentials": {
+      "title_email": "Configurar e-mail",
+      "title_calendar": "Configurar calendário",
       "choose_provider": "[PT] Choose a provider",
       "other": "[PT] Other",
       "label_display_name": "[PT] Display Name",

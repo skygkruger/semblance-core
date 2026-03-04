@@ -380,6 +380,8 @@
       "your_life_data": "[JA] Your Life Data"
     },
     "credentials": {
+      "title_email": "メール設定",
+      "title_calendar": "カレンダー設定",
       "choose_provider": "[JA] Choose a provider",
       "other": "[JA] Other",
       "label_display_name": "[JA] Display Name",

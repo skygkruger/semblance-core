@@ -10,7 +10,7 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CredentialFormProps, CredentialFormData } from './CredentialForm.types';
-import { PROVIDERS, PROVIDER_LABELS } from './CredentialForm.types';
+import './CredentialForm.css';
 
 export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel }: CredentialFormProps) {
   const { t } = useTranslation();
@@ -31,8 +31,11 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const providerKeys = presets ? Object.keys(presets) : [];
+
   const selectProvider = useCallback((key: string) => {
     setSelectedProvider(key);
+    setShowManual(false);
     const preset = presets?.[key];
     if (preset) {
       setImapHost(preset.imapHost);
@@ -49,8 +52,8 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
         }
       }
       setDisplayName(preset.name);
-      setShowManual(false);
     }
+    setTestResult(null);
   }, [presets]);
 
   const isFormValid = username.trim() && password.trim() && displayName.trim();
@@ -71,7 +74,7 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
     } finally {
       setTesting(false);
     }
-  }, [serviceType, imapHost, imapPort, smtpHost, smtpPort, caldavHost, caldavPort, username, password, useTLS, displayName, onTest]);
+  }, [serviceType, imapHost, imapPort, caldavHost, caldavPort, username, password, useTLS, displayName, onTest]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -96,37 +99,36 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
   }, [serviceType, imapHost, imapPort, smtpHost, smtpPort, caldavHost, caldavPort, username, password, useTLS, displayName, onSave]);
 
   const providerNote = selectedProvider && presets?.[selectedProvider]?.notes;
+  const showFields = selectedProvider || showManual;
+
+  const title = serviceType === 'email'
+    ? t('screen.credentials.title_email')
+    : t('screen.credentials.title_calendar');
 
   return (
-    <div className="space-y-6">
+    <div className="credential-form">
+      <h2 className="credential-form__title">{title}</h2>
+
       {/* Provider Selection */}
       <div>
-        <label className="block text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark mb-3">
+        <p className="credential-form__section-label">
           {t('screen.credentials.choose_provider')}
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {PROVIDERS.map(key => (
+        </p>
+        <div className="credential-form__providers">
+          {providerKeys.map(key => (
             <button
               key={key}
               type="button"
               onClick={() => selectProvider(key)}
-              className={`px-4 py-2 text-sm rounded-md border transition-colors duration-fast ${
-                selectedProvider === key
-                  ? 'border-semblance-primary bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark text-semblance-primary font-medium'
-                  : 'border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:border-semblance-primary/50'
-              }`}
+              className={`credential-form__chip${selectedProvider === key ? ' credential-form__chip--active' : ''}`}
             >
-              {PROVIDER_LABELS[key] ?? key}
+              {presets?.[key]?.name ?? key}
             </button>
           ))}
           <button
             type="button"
-            onClick={() => { setSelectedProvider(null); setShowManual(true); }}
-            className={`px-4 py-2 text-sm rounded-md border transition-colors duration-fast ${
-              showManual && !selectedProvider
-                ? 'border-semblance-primary bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark text-semblance-primary font-medium'
-                : 'border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:border-semblance-primary/50'
-            }`}
+            onClick={() => { setSelectedProvider(null); setShowManual(true); setTestResult(null); }}
+            className={`credential-form__chip${showManual && !selectedProvider ? ' credential-form__chip--active' : ''}`}
           >
             {t('screen.credentials.other')}
           </button>
@@ -135,56 +137,56 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
 
       {/* Provider Note */}
       {providerNote && (
-        <div className="px-4 py-3 rounded-md bg-semblance-accent-subtle dark:bg-semblance-accent-subtle/10 text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-          {providerNote}
-        </div>
+        <div className="credential-form__note">{providerNote}</div>
       )}
 
       {/* Credential Fields */}
-      {(selectedProvider || showManual) && (
-        <div className="space-y-4">
+      {showFields && (
+        <div className="credential-form__fields">
           {/* Display Name */}
-          <div>
-            <label className="block text-xs font-medium text-semblance-text-tertiary mb-1.5">{t('screen.credentials.label_display_name')}</label>
+          <div className="credential-form__field">
+            <label className="credential-form__field-label">{t('screen.credentials.label_display_name')}</label>
             <input
               type="text"
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
               placeholder={t('placeholder.display_name')}
-              className="w-full px-4 py-3 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus"
+              className="credential-form__input"
             />
           </div>
 
           {/* Email / Username */}
-          <div>
-            <label className="block text-xs font-medium text-semblance-text-tertiary mb-1.5">{t('screen.credentials.label_email')}</label>
+          <div className="credential-form__field">
+            <label className="credential-form__field-label">{t('screen.credentials.label_email')}</label>
             <input
               type="email"
               value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder={t('placeholder.email_address')}
-              className="w-full px-4 py-3 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus"
+              className="credential-form__input"
+              autoComplete="email"
             />
           </div>
 
           {/* Password */}
-          <div>
-            <label className="block text-xs font-medium text-semblance-text-tertiary mb-1.5">{t('screen.credentials.label_password')}</label>
-            <div className="relative">
+          <div className="credential-form__field">
+            <label className="credential-form__field-label">{t('screen.credentials.label_password')}</label>
+            <div className="credential-form__password-wrapper">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder={t('placeholder.password')}
-                className="w-full px-4 py-3 pr-12 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus"
+                className="credential-form__input"
+                style={{ paddingRight: 48 }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-semblance-muted hover:text-semblance-text-secondary transition-colors"
+                className="credential-form__password-toggle"
                 aria-label={showPassword ? t('screen.credentials.hide_password') : t('screen.credentials.show_password')}
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   {showPassword ? (
                     <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></>
                   ) : (
@@ -195,80 +197,80 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
             </div>
           </div>
 
-          {/* Manual Server Configuration */}
+          {/* Manual Server Configuration — Email */}
           {showManual && !selectedProvider && serviceType === 'email' && (
-            <div className="space-y-4 pt-2">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium text-semblance-text-tertiary mb-1.5">{t('screen.credentials.label_imap')}</label>
-                  <input type="text" value={imapHost} onChange={e => setImapHost(e.target.value)} placeholder="imap.example.com" className="w-full px-3 py-2 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus" />
+            <>
+              <div className="credential-form__server-grid">
+                <div className="credential-form__field">
+                  <label className="credential-form__field-label">{t('screen.credentials.label_imap')}</label>
+                  <input type="text" value={imapHost} onChange={e => setImapHost(e.target.value)} placeholder="imap.example.com" className="credential-form__input" />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-semblance-text-tertiary mb-1.5">{t('screen.credentials.label_port')}</label>
-                  <input type="number" value={imapPort} onChange={e => setImapPort(parseInt(e.target.value) || 993)} className="w-full px-3 py-2 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium text-semblance-text-tertiary mb-1.5">{t('screen.credentials.label_smtp')}</label>
-                  <input type="text" value={smtpHost} onChange={e => setSmtpHost(e.target.value)} placeholder="smtp.example.com" className="w-full px-3 py-2 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-semblance-text-tertiary mb-1.5">{t('screen.credentials.label_port')}</label>
-                  <input type="number" value={smtpPort} onChange={e => setSmtpPort(parseInt(e.target.value) || 587)} className="w-full px-3 py-2 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus" />
+                <div className="credential-form__field">
+                  <label className="credential-form__field-label">{t('screen.credentials.label_port')}</label>
+                  <input type="number" value={imapPort} onChange={e => setImapPort(parseInt(e.target.value) || 993)} className="credential-form__input" />
                 </div>
               </div>
-            </div>
+              <div className="credential-form__server-grid">
+                <div className="credential-form__field">
+                  <label className="credential-form__field-label">{t('screen.credentials.label_smtp')}</label>
+                  <input type="text" value={smtpHost} onChange={e => setSmtpHost(e.target.value)} placeholder="smtp.example.com" className="credential-form__input" />
+                </div>
+                <div className="credential-form__field">
+                  <label className="credential-form__field-label">{t('screen.credentials.label_port')}</label>
+                  <input type="number" value={smtpPort} onChange={e => setSmtpPort(parseInt(e.target.value) || 587)} className="credential-form__input" />
+                </div>
+              </div>
+            </>
           )}
 
+          {/* Manual Server Configuration — Calendar */}
           {showManual && !selectedProvider && serviceType === 'calendar' && (
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <label className="block text-xs font-medium text-semblance-text-tertiary mb-1.5">{t('screen.credentials.label_caldav')}</label>
-                <input type="text" value={caldavHost} onChange={e => setCaldavHost(e.target.value)} placeholder="caldav.example.com" className="w-full px-3 py-2 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus" />
+            <div className="credential-form__server-grid">
+              <div className="credential-form__field">
+                <label className="credential-form__field-label">{t('screen.credentials.label_caldav')}</label>
+                <input type="text" value={caldavHost} onChange={e => setCaldavHost(e.target.value)} placeholder="caldav.example.com" className="credential-form__input" />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-semblance-text-tertiary mb-1.5">{t('screen.credentials.label_port')}</label>
-                <input type="number" value={caldavPort} onChange={e => setCaldavPort(parseInt(e.target.value) || 443)} className="w-full px-3 py-2 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus" />
+              <div className="credential-form__field">
+                <label className="credential-form__field-label">{t('screen.credentials.label_port')}</label>
+                <input type="number" value={caldavPort} onChange={e => setCaldavPort(parseInt(e.target.value) || 443)} className="credential-form__input" />
               </div>
             </div>
           )}
 
           {/* TLS Toggle */}
-          <label className="flex items-center gap-2 text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+          <label className="credential-form__tls-row">
             <input
               type="checkbox"
               checked={useTLS}
               onChange={e => setUseTLS(e.target.checked)}
-              className="w-4 h-4 rounded border-semblance-border accent-semblance-primary"
+              className="credential-form__tls-checkbox"
             />
-            {t('screen.credentials.use_tls')}
+            <span className="credential-form__tls-label">{t('screen.credentials.use_tls')}</span>
           </label>
 
           {/* Privacy Badge */}
-          <div className="flex items-center gap-2 text-xs text-semblance-success">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+          <div className="credential-form__privacy">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
             {t('screen.credentials.privacy_notice')}
           </div>
 
           {/* Test Result */}
           {testResult && (
-            <div className={`px-4 py-3 rounded-md text-sm ${
-              testResult.success
-                ? 'bg-semblance-success-subtle dark:bg-semblance-success/10 text-semblance-success'
-                : 'bg-semblance-attention-subtle dark:bg-semblance-attention/10 text-semblance-attention'
-            }`}>
+            <div className={`credential-form__result ${testResult.success ? 'credential-form__result--success' : 'credential-form__result--error'}`}>
               {testResult.success ? t('screen.credentials.test_success') : t('screen.credentials.test_fail', { error: testResult.error })}
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="credential-form__actions">
             <button
               type="button"
               onClick={handleTest}
               disabled={!isFormValid || testing}
-              className="px-5 py-2.5 text-sm font-medium rounded-md border border-semblance-primary text-semblance-primary hover:bg-semblance-primary-subtle dark:hover:bg-semblance-primary-subtle-dark transition-colors duration-fast disabled:opacity-50 disabled:pointer-events-none"
+              className="credential-form__btn-test"
             >
               {testing ? t('status.testing') : t('screen.credentials.btn_test')}
             </button>
@@ -277,7 +279,7 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
               type="button"
               onClick={handleSave}
               disabled={!testResult?.success || saving}
-              className="px-5 py-2.5 text-sm font-medium rounded-full bg-semblance-primary text-white hover:bg-semblance-primary-hover transition-colors duration-fast disabled:opacity-50 disabled:pointer-events-none"
+              className="credential-form__btn-save"
             >
               {saving ? t('screen.credentials.saving') : t('button.save')}
             </button>
@@ -285,7 +287,7 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
             <button
               type="button"
               onClick={onCancel}
-              className="px-5 py-2.5 text-sm text-semblance-text-tertiary hover:text-semblance-text-secondary transition-colors duration-fast"
+              className="credential-form__btn-cancel"
             >
               {t('button.cancel')}
             </button>
