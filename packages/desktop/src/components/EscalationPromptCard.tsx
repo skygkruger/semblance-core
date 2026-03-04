@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card } from '@semblance/ui';
+import { Card, Button } from '@semblance/ui';
 import { respondToEscalation } from '../ipc/commands';
 import './EscalationPromptCard.css';
 
@@ -86,22 +86,12 @@ export function EscalationPromptCard({ prompt, onAccepted, onDismissed }: Escala
       <p className="escalation-card__note">You can always change this in Settings.</p>
 
       <div className="escalation-card__actions">
-        <button
-          type="button"
-          onClick={handleAccept}
-          disabled={responding}
-          className="escalation-card__accept-btn"
-        >
+        <Button variant="approve" size="sm" onClick={handleAccept} disabled={responding}>
           Yes, upgrade to {tierLabel}
-        </button>
-        <button
-          type="button"
-          onClick={handleDismiss}
-          disabled={responding}
-          className="escalation-card__dismiss-btn"
-        >
+        </Button>
+        <Button variant="dismiss" size="sm" onClick={handleDismiss} disabled={responding}>
           Not yet
-        </button>
+        </Button>
       </div>
     </Card>
   );
