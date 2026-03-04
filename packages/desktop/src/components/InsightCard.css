@@ -91,6 +91,7 @@
   display: flex;
   gap: var(--sp-2);
   margin-top: var(--sp-2);
+  margin-left: -10px;
 }
 
 .insight-card__action-btn {
@@ -98,22 +99,21 @@
   font-size: var(--text-xs);
   padding: 4px 10px;
   border-radius: var(--r-sm);
+  background: none;
   border: none;
   cursor: pointer;
-  transition: opacity var(--duration-fast) var(--eo);
+  transition: background var(--duration-fast) var(--eo);
 }
 
 .insight-card__action-btn--primary {
-  background: var(--v);
-  color: var(--white);
+  color: var(--v);
 }
 
 .insight-card__action-btn--primary:hover {
-  opacity: 0.9;
+  background: rgba(110, 207, 163, 0.1);
 }
 
 .insight-card__action-btn--ghost {
-  background: none;
   color: var(--sv3);
 }
 
