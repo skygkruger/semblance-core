@@ -66,7 +66,7 @@ export const Default: Story = {
 // ─── Category graph ───
 
 const categoryNodes: KnowledgeNode[] = [
-  { id: 'cat_people', type: 'category', label: 'People', sublabel: '24 entities', weight: 50, metadata: { category: 'people', color: '#4A7FBA', nodeCount: 24 } },
+  { id: 'cat_people', type: 'category', label: 'People', sublabel: '24 entities', weight: 50, metadata: { category: 'people', color: '#F5E6C8', nodeCount: 24 } },
   { id: 'cat_work', type: 'category', label: 'Work & Productivity', sublabel: '18 entities', weight: 40, metadata: { category: 'work', color: '#4A7FBA', nodeCount: 18 } },
   { id: 'cat_knowledge', type: 'category', label: 'Documents & Notes', sublabel: '15 entities', weight: 35, metadata: { category: 'knowledge', color: '#8B93A7', nodeCount: 15 } },
   { id: 'cat_health', type: 'category', label: 'Health & Fitness', sublabel: '12 entities', weight: 30, metadata: { category: 'health', color: '#3DB87A', nodeCount: 12 } },
@@ -126,6 +126,7 @@ export const WithStats: Story = {
       height={window.innerHeight}
       layoutMode="radial"
       stats={{ entities: 2847, insights: 847 }}
+      drillDown={sampleDrillDown}
     />
   ),
 };

@@ -18,7 +18,7 @@ import type {
 import type { VisualizationCategory } from '../../../../core/knowledge/connector-category-map';
 
 const NODE_COLORS: Record<VisualizationEntityType, string> = {
-  person: '#4A7FBA',
+  person: '#F5E6C8',
   topic: '#E8A838',
   document: '#8B93A7',
   event: '#3DB87A',
