@@ -174,18 +174,7 @@
   position: relative;
   font-family: var(--fb);
   font-size: var(--text-xs);
-  background: linear-gradient(
-    105deg,
-    #625882 0%, #9a94b8 12%, #b8c0cc 24%,
-    #d8dde8 38%, #e4e8ee 50%, #d8dde8 62%,
-    #b8c0cc 76%, #9a94b8 88%, #625882 100%
-  );
-  background-size: 300% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: shimmer 19s linear infinite;
-  animation-delay: -6s;
+  color: var(--sv3);
 }
 
 .alter-ego-activate__customize-hint {
@@ -214,6 +203,10 @@
   animation: opal-border-sweep 8s linear infinite;
 }
 
+.alter-ego-activate__checkbox-row input[type="checkbox"] {
+  accent-color: #6ECFA3;
+}
+
 .alter-ego-activate__checkbox-label {
   font-family: var(--fm);
   font-size: var(--text-xs);
@@ -224,24 +217,17 @@
   font-family: var(--fm);
   font-size: var(--text-xs);
   margin-left: auto;
-  background: linear-gradient(
-    105deg,
-    #625882 0%, #9a94b8 12%, #b8c0cc 24%,
-    #d8dde8 38%, #e4e8ee 50%, #d8dde8 62%,
-    #b8c0cc 76%, #9a94b8 88%, #625882 100%
-  );
-  background-size: 300% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: shimmer 19s linear infinite;
-  animation-delay: -6s;
+  color: var(--sv3);
 }
 
 .alter-ego-activate__safeguard {
   font-family: var(--fm);
   font-size: var(--text-xs);
+  color: var(--sv3);
   margin-bottom: var(--sp-1);
+}
+
+.alter-ego-activate__safeguard-icon {
   background: linear-gradient(
     105deg,
     #625882 0%, #9a94b8 12%, #b8c0cc 24%,

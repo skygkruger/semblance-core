@@ -116,7 +116,7 @@ export function AlterEgoActivationCard({
       {view === 'safeguards' && (
         <div>
           {prompt.safeguards.map((safeguard, i) => (
-            <p key={i} className="alter-ego-activate__safeguard">[/] {safeguard}</p>
+            <p key={i} className="alter-ego-activate__safeguard"><span className="alter-ego-activate__safeguard-icon">[/]</span> {safeguard}</p>
           ))}
         </div>
       )}

@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { KnowledgeGraph } from './KnowledgeGraph';
 import { DotMatrix } from '../DotMatrix/DotMatrix';
-import type { KnowledgeNode, KnowledgeEdge } from './graph-types';
+import type { KnowledgeNode, KnowledgeEdge, DrillDownConfig } from './graph-types';
+import type { DrillDownItem } from './DrillDownList.web';
 
 // ─── Local types for stories (avoids cross-package imports) ───
 
@@ -76,6 +77,27 @@ const smallEdges: KnowledgeEdge[] = [
   { source: 'meeting2', target: 'topic-portland', weight: 2 },
 ];
 
+// ─── Sample drill-down data for category stories ───
+
+const sampleDrillItems: DrillDownItem[] = [
+  { chunkId: 'c1', title: 'Q3 Strategy Review Notes', preview: 'Meeting notes from the quarterly strategy review covering Portland expansion...', source: 'local_file', category: 'work', indexedAt: '2026-02-28T14:30:00Z', mimeType: 'text/markdown' },
+  { chunkId: 'c2', title: 'Portland Contract v3.pdf', preview: 'Third revision of the Portland office lease agreement with amended terms...', source: 'local_file', category: 'work', indexedAt: '2026-02-27T09:15:00Z', mimeType: 'application/pdf' },
+  { chunkId: 'c3', title: 'Budget Forecast 2026', preview: 'Annual budget projections including headcount growth and infrastructure costs...', source: 'local_file', category: 'finance', indexedAt: '2026-02-25T11:00:00Z', mimeType: 'application/vnd.ms-excel' },
+  { chunkId: 'c4', title: 'Team Standup — Feb 24', preview: 'Daily standup notes: Sarah on Portland timeline, Marcus on Q3 deliverables...', source: 'calendar', category: 'work', indexedAt: '2026-02-24T10:00:00Z' },
+  { chunkId: 'c5', title: 'Health Insurance Renewal', preview: 'Annual renewal documents for company health insurance plan comparison...', source: 'email', category: 'health', indexedAt: '2026-02-22T16:45:00Z' },
+  { chunkId: 'c6', title: 'Gym Membership Receipt', preview: 'Monthly payment confirmation for Equinox membership — auto-renewed...', source: 'financial', category: 'health', indexedAt: '2026-02-20T08:00:00Z' },
+];
+
+const sampleDrillDown: DrillDownConfig = {
+  items: sampleDrillItems,
+  total: 18,
+  loading: false,
+  hasMore: true,
+  onSearch: (query: string) => console.log('[DrillDown] search:', query),
+  onLoadMore: () => console.log('[DrillDown] load more'),
+  onItemClick: (item: DrillDownItem) => console.log('[DrillDown] item click:', item.title),
+};
+
 export const SmallGraph: Story = {
   render: () => (
     <KnowledgeGraph
@@ -137,6 +159,7 @@ export const CategoryGraph: Story = {
       width={window.innerWidth}
       height={window.innerHeight}
       layoutMode="radial"
+      drillDown={sampleDrillDown}
     />
   ),
 };
@@ -220,6 +243,7 @@ export const CategoryView: Story = {
       width={window.innerWidth}
       height={window.innerHeight}
       layoutMode="radial"
+      drillDown={sampleDrillDown}
     />
   ),
 };
@@ -235,6 +259,7 @@ export const MobileCategoryView: Story = {
       height={844}
       layoutMode="radial"
       stats={{ entities: 2847, insights: 847 }}
+      drillDown={sampleDrillDown}
     />
   ),
   parameters: { viewport: { defaultViewport: 'mobile1' } },
@@ -281,6 +306,7 @@ export const MixedCategoryEntity: Story = {
         width={window.innerWidth}
         height={window.innerHeight}
         layoutMode="star"
+        drillDown={sampleDrillDown}
       />
     );
   },
@@ -477,6 +503,7 @@ export const FilterPanelView: Story = {
             width={window.innerWidth - 240}
             height={window.innerHeight}
             layoutMode="radial"
+            drillDown={sampleDrillDown}
           />
         </div>
       </div>

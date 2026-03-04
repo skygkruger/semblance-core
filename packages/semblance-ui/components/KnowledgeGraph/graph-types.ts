@@ -40,6 +40,16 @@ export interface CategoryLegendItem {
   category?: string;
 }
 
+export interface DrillDownConfig {
+  items: import('./DrillDownList.web').DrillDownItem[];
+  total: number;
+  loading: boolean;
+  onSearch: (query: string) => void;
+  onLoadMore: () => void;
+  onItemClick: (item: import('./DrillDownList.web').DrillDownItem) => void;
+  hasMore: boolean;
+}
+
 export interface KnowledgeGraphProps {
   nodes: KnowledgeNode[];
   edges: KnowledgeEdge[];
@@ -56,4 +66,6 @@ export interface KnowledgeGraphProps {
     onReset: () => void;
   };
   isMobile?: boolean;
+  /** Drill-down data for category nodes — passed to detail panel */
+  drillDown?: DrillDownConfig;
 }

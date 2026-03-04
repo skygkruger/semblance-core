@@ -4,6 +4,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { WireframeSpinner } from '../WireframeSpinner/WireframeSpinner.web';
 import './drill-down-list.css';
 
 export interface DrillDownItem {
@@ -134,7 +135,7 @@ export function DrillDownList({
 
         {loading && (
           <div className="kg-drilldown__loading">
-            <span className="kg-drilldown__spinner" />
+            <WireframeSpinner size={100} />
           </div>
         )}
 

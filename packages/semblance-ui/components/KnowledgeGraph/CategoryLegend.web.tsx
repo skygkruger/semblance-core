@@ -1,4 +1,5 @@
 import type { KnowledgeNode } from './graph-types';
+import './CategoryLegend.css';
 
 interface CategoryLegendItem {
   id: string;
@@ -101,23 +102,24 @@ export function CategoryLegend({ categories, leftOffset, onCategoryClick, compac
 
   // Desktop mode: full card with labels
   return (
-    <div style={{
-      position: 'absolute',
-      top: 16,
-      left: (leftOffset ?? 0) + 16,
-      width: 180,
-      background: '#111518',
-      border: '1px solid rgba(255, 255, 255, 0.09)',
-      borderRadius: 8,
-      padding: '16px 20px',
-      zIndex: 10,
-      pointerEvents: 'auto',
-    }}>
+    <div
+      className="category-legend"
+      style={{
+        position: 'absolute',
+        top: 16,
+        left: (leftOffset ?? 0) + 16,
+        width: 180,
+        borderRadius: 8,
+        padding: '16px 20px',
+        zIndex: 10,
+        pointerEvents: 'auto',
+      }}
+    >
       <div style={{
         fontFamily: "'DM Mono', monospace",
         fontSize: 10,
         color: '#525A64',
-        textTransform: 'uppercase',
+        textTransform: 'uppercase' as const,
         letterSpacing: '0.10em',
         marginBottom: 12,
       }}>

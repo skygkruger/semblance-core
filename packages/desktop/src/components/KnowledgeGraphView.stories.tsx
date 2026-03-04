@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { KnowledgeGraph, DotMatrix } from '@semblance/ui';
-import type { KnowledgeNode, KnowledgeEdge } from '@semblance/ui';
+import type { KnowledgeNode, KnowledgeEdge, DrillDownConfig, DrillDownItem } from '@semblance/ui';
 
 const VoidDecorator = (Story: React.ComponentType) => (
   <div style={{ position: 'relative', minHeight: '100vh', background: '#0B0E11', padding: 0 }}>
@@ -83,6 +83,27 @@ const categoryEdges: KnowledgeEdge[] = [
   { source: 'cat_finance', target: 'cat_work', weight: 4 },
 ];
 
+// ─── Sample drill-down items for category stories ───
+
+const sampleDrillDownItems: DrillDownItem[] = [
+  { chunkId: 'c1', title: 'Q3 Strategy Review Notes', preview: 'Meeting notes from the quarterly strategy review covering Portland expansion...', source: 'local_file', category: 'work', indexedAt: '2026-02-28T14:30:00Z', mimeType: 'text/markdown' },
+  { chunkId: 'c2', title: 'Portland Contract v3.pdf', preview: 'Third revision of the Portland office lease agreement with amended terms...', source: 'local_file', category: 'work', indexedAt: '2026-02-27T09:15:00Z', mimeType: 'application/pdf' },
+  { chunkId: 'c3', title: 'Budget Forecast 2026', preview: 'Annual budget projections including headcount growth and infrastructure costs...', source: 'local_file', category: 'finance', indexedAt: '2026-02-25T11:00:00Z', mimeType: 'application/vnd.ms-excel' },
+  { chunkId: 'c4', title: 'Team Standup — Feb 24', preview: 'Daily standup notes: Sarah on Portland timeline, Marcus on Q3 deliverables...', source: 'calendar', category: 'work', indexedAt: '2026-02-24T10:00:00Z' },
+  { chunkId: 'c5', title: 'Health Insurance Renewal', preview: 'Annual renewal documents for company health insurance plan comparison...', source: 'email', category: 'health', indexedAt: '2026-02-22T16:45:00Z' },
+  { chunkId: 'c6', title: 'Gym Membership Receipt', preview: 'Monthly payment confirmation for Equinox membership — auto-renewed...', source: 'financial', category: 'health', indexedAt: '2026-02-20T08:00:00Z' },
+];
+
+const sampleDrillDown: DrillDownConfig = {
+  items: sampleDrillDownItems,
+  total: 18,
+  loading: false,
+  hasMore: true,
+  onSearch: (query: string) => console.log('[DrillDown] search:', query),
+  onLoadMore: () => console.log('[DrillDown] load more'),
+  onItemClick: (item: DrillDownItem) => console.log('[DrillDown] item click:', item.title),
+};
+
 export const CategoryView: Story = {
   render: () => (
     <KnowledgeGraph
@@ -91,6 +112,7 @@ export const CategoryView: Story = {
       width={window.innerWidth}
       height={window.innerHeight}
       layoutMode="radial"
+      drillDown={sampleDrillDown}
     />
   ),
 };
