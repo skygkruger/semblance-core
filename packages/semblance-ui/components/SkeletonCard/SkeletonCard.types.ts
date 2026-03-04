@@ -16,4 +16,5 @@ export interface SkeletonCardProps {
   subMessage?: string;
   showSpinner?: boolean;
   height?: number | string;
+  children?: React.ReactNode;
 }

@@ -2,6 +2,7 @@
 // Auto-dismisses after 8s.
 
 import { useEffect, useState } from 'react';
+import { Button } from '@semblance/ui';
 import './ClipboardInsightToast.css';
 
 interface ClipboardInsightToastProps {
@@ -34,21 +35,12 @@ export function ClipboardInsightToast({
   return (
     <div role="status" className="clipboard-toast">
       <p className="clipboard-toast__text">{patternDescription}</p>
-      <button
-        type="button"
-        onClick={() => { onAction(); setVisible(false); }}
-        className="clipboard-toast__action"
-      >
+      <Button variant="approve" size="sm" onClick={() => { onAction(); setVisible(false); }}>
         {actionLabel}
-      </button>
-      <button
-        type="button"
-        onClick={() => { setVisible(false); onDismiss(); }}
-        className="clipboard-toast__dismiss"
-        aria-label="Dismiss"
-      >
-        x
-      </button>
+      </Button>
+      <Button variant="dismiss" size="sm" onClick={() => { setVisible(false); onDismiss(); }} aria-label="Dismiss">
+        Dismiss
+      </Button>
     </div>
   );
 }

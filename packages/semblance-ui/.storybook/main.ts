@@ -22,11 +22,7 @@ const config: StorybookConfig = {
   staticDirs: ['../public'],
   async viteFinal(config) {
     config.resolve = config.resolve || {};
-    // Resolve @semblance/ui to source so desktop stories work without a build step.
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@semblance/ui': path.resolve(__dirname, '../index.ts'),
-    };
+    const uiRoot = path.resolve(__dirname, '..');
 
     // Prefer .web.tsx/.web.ts so bare imports (e.g. './Button') resolve to
     // the web variant (Button.web.tsx) when both .web.tsx and .native.tsx exist.
@@ -37,9 +33,9 @@ const config: StorybookConfig = {
       '.json',
     ];
 
-    // Mock desktop platform-specific modules for Storybook rendering.
-    // Desktop components import from Tauri IPC, React context, and core
-    // modules that are unavailable in the Storybook web environment.
+    // Resolve @semblance/ui imports and mock desktop platform-specific modules.
+    // All resolution is handled in a single resolveId hook to avoid alias
+    // ordering issues (config.resolve.alias can be object or array).
     const mocksDir = path.resolve(__dirname, '__mocks__');
 
     config.plugins = config.plugins || [];
@@ -47,6 +43,16 @@ const config: StorybookConfig = {
       name: 'desktop-storybook-mocks',
       enforce: 'pre' as const,
       resolveId(source: string, importer: string | undefined) {
+        // Resolve @semblance/ui deep path imports (e.g. components/Settings/Settings.css)
+        if (source.startsWith('@semblance/ui/components/')) {
+          const subpath = source.slice('@semblance/ui/components/'.length);
+          return path.resolve(uiRoot, 'components', ...subpath.split('/'));
+        }
+        // Resolve @semblance/ui barrel import
+        if (source === '@semblance/ui') {
+          return path.resolve(uiRoot, 'index.ts');
+        }
+
         if (!importer) return null;
         const normalized = importer.replace(/\\/g, '/');
         const isDesktop = normalized.includes('/desktop/src/');

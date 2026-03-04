@@ -53,6 +53,8 @@ export type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps, CategoryLegendI
 export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
 export type { PrivacyDashboardProps, NetworkEntry, AuditEntry, ChainIntegrityData, KeySecurityData } from './components/PrivacyDashboard/index.js';
 export { WireframeSpinner } from './components/WireframeSpinner/index.js';
+export { SkeletonCard } from './components/SkeletonCard/index.js';
+export type { SkeletonCardProps } from './components/SkeletonCard/index.js';
 export { LanguageSelect } from './components/LanguageSelect/index.js';
 export type { LanguageSelectProps } from './components/LanguageSelect/index.js';
 

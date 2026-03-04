@@ -10,6 +10,7 @@ export function SkeletonCard({
   subMessage,
   showSpinner = true,
   height = 180,
+  children,
 }: SkeletonCardProps) {
   const defaults = DEFAULT_MESSAGES[variant] ?? DEFAULT_MESSAGES.generic!;
   const displayMessage = message ?? defaults.message;
@@ -22,6 +23,7 @@ export function SkeletonCard({
       {displaySub && (
         <Text style={styles.sub}>{displaySub}</Text>
       )}
+      {children}
     </View>
   );
 }

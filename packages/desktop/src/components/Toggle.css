@@ -86,5 +86,18 @@
 
 .toggle-track--on .toggle-thumb {
   transform: translateX(20px);
-  background: var(--v);
+  background: conic-gradient(
+    from var(--opal-angle),
+    #d8dde8,
+    #9aa8b8,
+    #6e737c,
+    #4a4e56,
+    #2a2d32,
+    #4a4e56,
+    #6e737c,
+    #9aa8b8,
+    #d8dde8
+  );
+  animation: opal-border-sweep 8s linear infinite;
+  box-shadow: 0 0 4px rgba(154,168,184,0.3);
 }

@@ -1,26 +1,25 @@
 // VoiceSettingsSection — Settings section for voice interaction.
-// Toggle: voice (default OFF), model selection, voice selection,
-// speed slider, download button, storage indicator.
+// Uses Settings.css classes from semblance-ui for visual parity.
 
-import { Button } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
-import { Toggle } from './Toggle';
-import './SettingsSection.css';
+import '@semblance/ui/components/Settings/Settings.css';
 
-const SPEED_OPTIONS = [
-  { value: 0.5, label: '0.5x' },
-  { value: 0.75, label: '0.75x' },
-  { value: 1.0, label: '1.0x' },
-  { value: 1.25, label: '1.25x' },
-  { value: 1.5, label: '1.5x' },
-  { value: 2.0, label: '2.0x' },
-];
+const SPEED_OPTIONS = ['0.5x', '0.75x', '1.0x', '1.25x', '1.5x', '2.0x'];
+const SPEED_VALUES = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
 const SENSITIVITY_OPTIONS = [
   { value: 'low' as const, label: 'Low' },
   { value: 'medium' as const, label: 'Medium' },
   { value: 'high' as const, label: 'High' },
 ];
+
+function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" className="settings-toggle" data-on={String(on)} onClick={onToggle}>
+      <span className="settings-toggle__thumb" />
+    </button>
+  );
+}
 
 export function VoiceSettingsSection() {
   const state = useAppState();
@@ -42,87 +41,84 @@ export function VoiceSettingsSection() {
   };
 
   return (
-    <div>
-      <h2 className="settings-section__title">Voice Interaction</h2>
+    <div className="settings-content">
+      <div className="settings-section-header">Voice Interaction</div>
 
-      <div className="settings-section__group">
-        <Toggle
-          checked={settings.enabled}
-          onChange={() => updateSettings({ enabled: !settings.enabled })}
-          label="Voice mode"
-          description="When enabled, Semblance can listen and speak using local Whisper.cpp (STT) and Piper (TTS). All audio stays on your device and is never saved to disk."
-        />
+      <div className="settings-row" onClick={() => updateSettings({ enabled: !settings.enabled })}>
+        <span className="settings-row__label">Voice mode</span>
+        <Toggle on={settings.enabled} onToggle={() => updateSettings({ enabled: !settings.enabled })} />
+      </div>
 
-        {settings.enabled && (
-          <div className="settings-section__subgroup">
-            {/* STT Model */}
-            <div>
-              <span className="settings-section__label">Speech Recognition Model</span>
-              <div className="settings-section__row">
-                <span className="settings-section__value">
-                  {settings.whisperModel ?? 'Not downloaded'}
-                </span>
-                {!settings.whisperModel && (
-                  <Button variant="ghost" size="sm" onClick={() => {}}>
-                    Download
-                  </Button>
-                )}
-              </div>
-            </div>
+      <p className="settings-explanation">
+        When enabled, Semblance can listen and speak using local Whisper.cpp (STT) and Piper (TTS). All audio stays on your device and is never saved to disk.
+      </p>
 
-            {/* TTS Voice */}
-            <div>
-              <span className="settings-section__label">Voice</span>
-              <div className="settings-section__row">
-                <span className="settings-section__value">
-                  {settings.piperVoice ?? 'Not downloaded'}
-                </span>
-                {!settings.piperVoice && (
-                  <Button variant="ghost" size="sm" onClick={() => {}}>
-                    Download
-                  </Button>
-                )}
-              </div>
-            </div>
+      {settings.enabled && (
+        <>
+          <div className="settings-section-header">Models</div>
 
-            {/* Speed */}
-            <div>
-              <span className="settings-section__label">Speech Speed</span>
-              <select
-                value={settings.speed}
-                onChange={(e) => updateSettings({ speed: parseFloat(e.target.value) })}
-                className="settings-section__select"
-              >
-                {SPEED_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
+          <div className="settings-row settings-row--static">
+            <span className="settings-row__label">Speech Recognition</span>
+            <span className="settings-row__value">
+              {settings.whisperModel ?? 'Not downloaded'}
+            </span>
+            {!settings.whisperModel && (
+              <button type="button" className="settings-ghost-button" style={{ fontSize: 13, padding: '4px 12px' }} onClick={() => {}}>
+                Download
+              </button>
+            )}
+          </div>
 
-            {/* Silence Sensitivity */}
-            <div>
-              <span className="settings-section__label">Silence Sensitivity</span>
-              <div className="settings-section__option-btns">
-                {SENSITIVITY_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => updateSettings({ silenceSensitivity: opt.value })}
-                    className={`settings-section__option-btn${
-                      settings.silenceSensitivity === opt.value ? ' settings-section__option-btn--active' : ''
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              <p className="settings-section__hint">
-                Higher sensitivity detects silence sooner. Lower sensitivity waits longer before ending recording.
-              </p>
+          <div className="settings-row settings-row--static">
+            <span className="settings-row__label">Voice</span>
+            <span className="settings-row__value">
+              {settings.piperVoice ?? 'Not downloaded'}
+            </span>
+            {!settings.piperVoice && (
+              <button type="button" className="settings-ghost-button" style={{ fontSize: 13, padding: '4px 12px' }} onClick={() => {}}>
+                Download
+              </button>
+            )}
+          </div>
+
+          <div className="settings-section-header">Performance</div>
+
+          <div style={{ padding: '12px 20px' }}>
+            <div style={{ fontSize: 13, color: '#A8B4C0', marginBottom: 8 }}>Speech Speed</div>
+            <div className="settings-segment">
+              {SPEED_OPTIONS.map((label, i) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`settings-segment__option ${settings.speed === SPEED_VALUES[i] ? 'settings-segment__option--active' : ''}`}
+                  onClick={() => updateSettings({ speed: SPEED_VALUES[i] })}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
-        )}
-      </div>
+
+          <div style={{ padding: '12px 20px' }}>
+            <div style={{ fontSize: 13, color: '#A8B4C0', marginBottom: 8 }}>Silence Sensitivity</div>
+            <div className="settings-segment">
+              {SENSITIVITY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`settings-segment__option ${settings.silenceSensitivity === opt.value ? 'settings-segment__option--active' : ''}`}
+                  onClick={() => updateSettings({ silenceSensitivity: opt.value })}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="settings-explanation--small" style={{ padding: '8px 0 0', fontSize: 12, color: '#5E6B7C' }}>
+              Higher sensitivity detects silence sooner. Lower sensitivity waits longer before ending recording.
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

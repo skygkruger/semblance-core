@@ -2,26 +2,39 @@ import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { DotMatrix } from '@semblance/ui';
 import { VoiceSettingsSection } from './VoiceSettingsSection';
+import '@semblance/ui/components/Settings/Settings.css';
 
-const VoidDecorator = (Story: React.ComponentType) => (
-  <div style={{ position: 'relative', minHeight: '100vh', background: '#0B0E11', padding: 32 }}>
-    <DotMatrix />
-    <div style={{ position: 'relative', zIndex: 1 }}>
-      <Story />
-    </div>
-  </div>
-);
+function BackArrow() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
 
 const meta: Meta<typeof VoiceSettingsSection> = {
   title: 'Desktop/Settings/VoiceSettingsSection',
   component: VoiceSettingsSection,
-  parameters: { layout: 'centered' },
-  decorators: [VoidDecorator],
+  parameters: { layout: 'fullscreen' },
+  decorators: [
+    (Story) => (
+      <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, width: '100%', minHeight: '100vh' }}>
+          <div className="settings-screen">
+            <div className="settings-header">
+              <button type="button" className="settings-header__back"><BackArrow /></button>
+              <h1 className="settings-header__title">Voice</h1>
+            </div>
+            <Story />
+          </div>
+        </div>
+      </div>
+    ),
+  ],
 };
 
 export default meta;
 type Story = StoryObj<typeof VoiceSettingsSection>;
 
-// Uses mocked useAppState/useAppDispatch from the Vite plugin.
-// Default mock state has voice disabled — this renders the toggle-off state.
 export const Default: Story = {};
