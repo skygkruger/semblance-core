@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '../Button/Button';
 import type { AlterEgoReceiptProps } from './AlterEgoReceipt.types';
+import './AlterEgoReceipt.css';
 
 export function AlterEgoReceipt({
   id,
@@ -62,124 +64,43 @@ export function AlterEgoReceipt({
   const canUndo = undoExpiresAt !== null && !undoExpired && secondsRemaining !== null && secondsRemaining > 0;
 
   return (
-    <div
-      style={{
-        background: '#1a1e26',
-        borderLeft: '3px solid #6ECFA3',
-        borderRadius: 6,
-        padding: 16,
-        maxWidth: 400,
-        fontFamily: "'DM Sans', sans-serif",
-      }}
-      role="alert"
-      aria-live="polite"
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: 12,
-        }}
-      >
-        <div style={{ flex: 1 }}>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 14,
-              fontWeight: 500,
-              color: '#e8e8e8',
-              lineHeight: '20px',
-            }}
-          >
-            {summary}
-          </p>
-          <p
-            style={{
-              margin: '6px 0 0 0',
-              fontSize: 12,
-              color: '#8593A4',
-              lineHeight: '18px',
-            }}
-          >
-            {reasoning}
-          </p>
+    <div className="receipt opal-surface" role="alert" aria-live="polite">
+      <div className="receipt__row">
+        <span className="receipt__dot" />
+        <div className="receipt__content">
+          <p className="receipt__summary">{summary}</p>
+          <p className="receipt__reasoning">{reasoning}</p>
         </div>
-
         {!canUndo && (
           <button
             type="button"
             onClick={() => onDismiss(id)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#8593A4',
-              cursor: 'pointer',
-              padding: 4,
-              fontSize: 16,
-              lineHeight: 1,
-              flexShrink: 0,
-            }}
-            aria-label={t('a11y.dismiss')}
+            className="receipt__dismiss"
+            aria-label={t('a11y.dismiss', { defaultValue: 'Dismiss' })}
           >
-            ×
+            &times;
           </button>
         )}
       </div>
 
       {undoExpiresAt !== null && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginTop: 12,
-            paddingTop: 12,
-            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-          }}
-        >
-          <button
-            type="button"
+        <div className="receipt__undo-panel">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={canUndo ? () => onUndo(id) : undefined}
             disabled={!canUndo}
-            style={{
-              background: canUndo ? 'rgba(110, 207, 163, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid',
-              borderColor: canUndo ? 'rgba(110, 207, 163, 0.3)' : 'rgba(255, 255, 255, 0.06)',
-              borderRadius: 4,
-              color: canUndo ? '#6ECFA3' : '#555',
-              fontSize: 13,
-              fontWeight: 500,
-              padding: '6px 14px',
-              cursor: canUndo ? 'pointer' : 'not-allowed',
-              fontFamily: "'DM Sans', sans-serif",
-              transition: 'opacity 0.15s ease',
-            }}
           >
-            {t('button.undo')}
-          </button>
+            {t('button.undo', { defaultValue: 'Undo' })}
+          </Button>
 
           {canUndo && secondsRemaining !== null && (
-            <span
-              style={{
-                fontSize: 12,
-                color: '#8593A4',
-                fontFamily: "'DM Mono', monospace",
-              }}
-            >
-              {secondsRemaining}s
-            </span>
+            <span className="receipt__timer">{secondsRemaining}s</span>
           )}
 
           {undoExpired && (
-            <span
-              style={{
-                fontSize: 12,
-                color: '#8593A4',
-                fontStyle: 'italic',
-              }}
-            >
-              {t('alter_ego.undo_expired')}
+            <span className="receipt__expired">
+              {t('alter_ego.undo_expired', { defaultValue: 'Undo expired' })}
             </span>
           )}
         </div>

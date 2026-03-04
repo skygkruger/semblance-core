@@ -76,19 +76,19 @@
 }
 
 .kg-stats-pill__text {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #A8B4C0;
 }
 
 .kg-stats-pill__separator {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #525A64;
 }
 
 .kg-stats-pill__insights {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #6ECFA3;
 }

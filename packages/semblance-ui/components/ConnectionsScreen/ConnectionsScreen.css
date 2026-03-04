@@ -13,7 +13,7 @@
 }
 
 .connections-screen__title {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--fd);
   font-weight: 300;
   font-size: 28px;
   color: #E8EDF2;
@@ -21,7 +21,7 @@
 }
 
 .connections-screen__subtitle {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-weight: 300;
   font-size: 15px;
   color: #5E6B7C;
@@ -35,7 +35,7 @@
 }
 
 .connections-section__header {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -71,7 +71,7 @@
 }
 
 .connections-empty__heading {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--fd);
   font-weight: 300;
   font-size: 21px;
   color: #CDD4DB;
@@ -79,7 +79,7 @@
 }
 
 .connections-empty__body {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-weight: 300;
   font-size: 15px;
   color: #5E6B7C;
@@ -94,7 +94,7 @@
 }
 
 .connections-empty__btn {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 14px;
   font-weight: 400;
   padding: 10px 20px;

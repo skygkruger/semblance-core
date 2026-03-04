@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { AlterEgoReceipt } from './AlterEgoReceipt';
+import type { AlterEgoReceiptProps } from './AlterEgoReceipt.types';
 import { DotMatrix } from '../DotMatrix/DotMatrix';
 
 const meta: Meta<typeof AlterEgoReceipt> = {
@@ -23,15 +25,23 @@ const meta: Meta<typeof AlterEgoReceipt> = {
 export default meta;
 type Story = StoryObj<typeof AlterEgoReceipt>;
 
+/** Wrapper that computes a fresh undoExpiresAt on mount so the countdown always works */
+function FreshUndoReceipt({ undoSeconds, ...props }: Omit<AlterEgoReceiptProps, 'undoExpiresAt'> & { undoSeconds: number }) {
+  const [expiresAt] = useState(() => new Date(Date.now() + undoSeconds * 1000).toISOString());
+  return <AlterEgoReceipt {...props} undoExpiresAt={expiresAt} />;
+}
+
 export const WithUndoWindow: Story = {
-  args: {
-    id: 'receipt-001',
-    summary: 'Cancelled Figma subscription ($15/mo)',
-    reasoning: 'Unused for 47 days. Annual savings: $180.',
-    undoExpiresAt: new Date(Date.now() + 30000).toISOString(),
-    onUndo: () => {},
-    onDismiss: () => {},
-  },
+  render: () => (
+    <FreshUndoReceipt
+      id="receipt-001"
+      summary="Cancelled Figma subscription ($15/mo)"
+      reasoning="Unused for 47 days. Annual savings: $180."
+      undoSeconds={5}
+      onUndo={() => {}}
+      onDismiss={() => {}}
+    />
+  ),
 };
 
 export const UndoExpired: Story = {
@@ -57,12 +67,14 @@ export const NoUndoAvailable: Story = {
 };
 
 export const FinancialAction: Story = {
-  args: {
-    id: 'receipt-004',
-    summary: 'Transferred $2,400 to savings account',
-    reasoning: 'Checking balance exceeded typical monthly need based on 6 months of data.',
-    undoExpiresAt: new Date(Date.now() + 120000).toISOString(),
-    onUndo: () => {},
-    onDismiss: () => {},
-  },
+  render: () => (
+    <FreshUndoReceipt
+      id="receipt-004"
+      summary="Transferred $2,400 to savings account"
+      reasoning="Checking balance exceeded typical monthly need based on 6 months of data."
+      undoSeconds={10}
+      onUndo={() => {}}
+      onDismiss={() => {}}
+    />
+  ),
 };

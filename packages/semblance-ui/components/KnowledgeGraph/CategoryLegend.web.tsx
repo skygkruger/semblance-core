@@ -116,7 +116,7 @@ export function CategoryLegend({ categories, leftOffset, onCategoryClick, compac
       }}
     >
       <div style={{
-        fontFamily: "'DM Mono', monospace",
+        fontFamily: 'var(--fm)',
         fontSize: 10,
         color: '#525A64',
         textTransform: 'uppercase' as const,
@@ -165,7 +165,7 @@ export function CategoryLegend({ categories, leftOffset, onCategoryClick, compac
               data-legend-label
               style={{
                 flex: 1,
-                fontFamily: "'DM Sans', system-ui, sans-serif",
+                fontFamily: 'var(--fb)',
                 fontWeight: 300,
                 fontSize: 12,
                 color: '#A8B4C0',
@@ -178,7 +178,7 @@ export function CategoryLegend({ categories, leftOffset, onCategoryClick, compac
               {cat.label}
             </div>
             <div style={{
-              fontFamily: "'DM Mono', monospace",
+              fontFamily: 'var(--fm)',
               fontSize: 11,
               color: '#5E6B7C',
               textAlign: 'right',

@@ -171,7 +171,7 @@ export function KnowledgeGraph({
                 <div className="kg-bottom-sheet__handle" />
                 <div className="kg-bottom-sheet__content">
                   <div style={{
-                    fontFamily: "'DM Mono', monospace",
+                    fontFamily: 'var(--fm)',
                     fontSize: 12,
                     color: '#A8B4C0',
                     lineHeight: 2,
@@ -218,7 +218,7 @@ export function KnowledgeGraph({
                 <div className="kg-bottom-sheet__handle" />
                 <div className="kg-bottom-sheet__content">
                   <div style={{
-                    fontFamily: "'DM Sans', system-ui, sans-serif",
+                    fontFamily: 'var(--fb)',
                     fontSize: 13,
                     fontWeight: 600,
                     color: '#EEF1F4',
@@ -250,7 +250,7 @@ export function KnowledgeGraph({
                         }} />
                         <div style={{
                           flex: 1,
-                          fontFamily: "'DM Sans', system-ui, sans-serif",
+                          fontFamily: 'var(--fb)',
                           fontSize: 13,
                           color: '#A8B4C0',
                         }}>
@@ -267,7 +267,7 @@ export function KnowledgeGraph({
                       border: '1px solid rgba(255, 255, 255, 0.09)',
                       borderRadius: 4,
                       color: '#A8B4C0',
-                      fontFamily: "'DM Sans', system-ui, sans-serif",
+                      fontFamily: 'var(--fb)',
                       fontSize: 12,
                       cursor: 'pointer',
                     }}

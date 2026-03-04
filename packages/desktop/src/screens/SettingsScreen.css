@@ -1,0 +1,169 @@
+/* SettingsScreen — desktop settings page layout */
+
+.settings-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.settings-page__title {
+  font-family: var(--fd);
+  font-size: 28px;
+  font-weight: 400;
+  color: #EEF1F4;
+  margin: 0;
+}
+
+.settings-page__section-title {
+  font-family: var(--fb);
+  font-size: 16px;
+  font-weight: 500;
+  color: #EEF1F4;
+  margin: 0 0 16px;
+}
+
+.settings-page__label {
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 400;
+  color: #5E6B7C;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* Vertical stacks */
+.settings-page__vstack { display: flex; flex-direction: column; gap: 16px; }
+.settings-page__vstack--sm { display: flex; flex-direction: column; gap: 12px; }
+.settings-page__vstack--xs { display: flex; flex-direction: column; gap: 8px; }
+
+/* Horizontal rows */
+.settings-page__hstack { display: flex; align-items: center; gap: 12px; }
+.settings-page__hstack--sm { display: flex; align-items: center; gap: 8px; }
+.settings-page__hstack--between { display: flex; align-items: center; justify-content: space-between; }
+
+/* Text styles */
+.settings-page__text { font-family: var(--fb); font-size: 14px; font-weight: 400; color: #EEF1F4; margin: 0; }
+.settings-page__text--medium { font-weight: 500; }
+.settings-page__text--lg { font-size: 18px; font-weight: 600; }
+.settings-page__text--sm { font-size: 14px; }
+.settings-page__text--secondary { color: #8593A4; font-size: 12px; font-weight: 300; }
+.settings-page__text--tertiary { color: #5E6B7C; font-size: 12px; font-weight: 300; }
+.settings-page__text--hint { color: #5E6B7C; font-size: 12px; margin-top: 4px; }
+.settings-page__text--success { font-family: var(--fm); font-size: 12px; color: #6ECFA3; }
+.settings-page__text--amber { font-family: var(--fm); font-size: 12px; color: #C9A85C; }
+.settings-page__text--rust { font-family: var(--fm); font-size: 12px; color: #C97B6E; }
+.settings-page__text--truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Option button (runtime / provider toggle) */
+.settings-page__option-btn {
+  padding: 8px 16px;
+  font-family: var(--fm);
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: none;
+  color: #8593A4;
+  cursor: pointer;
+  transition: border-color 180ms, background 180ms, color 180ms;
+}
+
+.settings-page__option-btn--active {
+  border-color: rgba(110, 207, 163, 0.4);
+  background: rgba(110, 207, 163, 0.06);
+  color: #6ECFA3;
+  font-weight: 500;
+}
+
+.settings-page__option-btn:hover:not(.settings-page__option-btn--active) {
+  border-color: rgba(110, 207, 163, 0.2);
+}
+
+/* Account row */
+.settings-page__account-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.settings-page__account-info { flex: 1; min-width: 0; }
+
+.settings-page__account-name {
+  font-family: var(--fb);
+  font-size: 14px;
+  font-weight: 500;
+  color: #EEF1F4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.settings-page__account-meta {
+  font-family: var(--fm);
+  font-size: 12px;
+  color: #5E6B7C;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* Form section (add account) */
+.settings-page__form-section {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.settings-page__form-title {
+  font-family: var(--fb);
+  font-size: 14px;
+  font-weight: 500;
+  color: #EEF1F4;
+  margin: 0 0 16px;
+}
+
+/* Select dropdown */
+.settings-page__select {
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px 16px;
+  font-family: var(--fb);
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  color: #EEF1F4;
+  outline: none;
+}
+
+.settings-page__select:focus {
+  border-color: rgba(110, 207, 163, 0.5);
+}
+
+/* Sync button */
+.settings-page__sync-btn {
+  padding: 8px 16px;
+  font-family: var(--fm);
+  font-size: 13px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #EEF1F4;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: border-color 180ms;
+}
+
+.settings-page__sync-btn:hover { border-color: rgba(110, 207, 163, 0.3); }
+.settings-page__sync-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Spacing helpers */
+.settings-page__mb-4 { margin-bottom: 16px; }

@@ -402,7 +402,7 @@ export const LockedCategories: Story = {
         textAlign: 'center',
       }}>
         <div style={{
-          fontFamily: "'DM Sans', system-ui, sans-serif",
+          fontFamily: 'var(--fb)',
           fontSize: 13,
           color: '#A8B4C0',
           lineHeight: 1.5,
@@ -450,8 +450,8 @@ const FP_TOKEN = {
   white: '#EEF1F4',
   v: '#6ECFA3',
   s2: '#171B1F',
-  fontBody: "'DM Sans', system-ui, sans-serif",
-  fontMono: "'DM Mono', monospace",
+  fontBody: 'var(--fb)',
+  fontMono: 'var(--fm)',
 } as const;
 
 const InlineFilterPanel: React.FC<{
@@ -575,8 +575,8 @@ const STATS_TOKEN = {
   white: '#EEF1F4',
   sv3: '#A8B4C0',
   v: '#6ECFA3',
-  fontBody: "'DM Sans', system-ui, sans-serif",
-  fontMono: "'DM Mono', monospace",
+  fontBody: 'var(--fb)',
+  fontMono: 'var(--fm)',
 } as const;
 
 export const StatsOverlayView: Story = {

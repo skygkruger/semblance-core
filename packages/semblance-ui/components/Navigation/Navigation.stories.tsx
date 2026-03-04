@@ -119,7 +119,7 @@ export const WithFooter: Story = {
     onNavigate: () => {},
     collapsed: false,
     footer: (
-      <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 11, color: '#525A64', fontFamily: "'DM Mono', monospace" }}>
+      <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 11, color: '#525A64', fontFamily: 'var(--fm)' }}>
         v1.0.0
       </div>
     ),

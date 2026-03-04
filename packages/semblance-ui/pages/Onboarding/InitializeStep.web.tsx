@@ -25,10 +25,10 @@ function DownloadRow({ download, completeLabel }: { download: ModelDownload; com
       border: '1px solid rgba(107,95,168,0.15)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontFamily: 'DM Sans, system-ui, sans-serif', fontSize: 14, color: '#EEF1F4' }}>
+        <span style={{ fontFamily: 'var(--fb)', fontSize: 14, color: '#EEF1F4' }}>
           {download.modelName}
         </span>
-        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: isComplete ? '#6ECFA3' : '#8593A4' }}>
+        <span style={{ fontFamily: 'var(--fm)', fontSize: 12, color: isComplete ? '#6ECFA3' : '#8593A4' }}>
           {isComplete ? completeLabel : `${formatBytes(download.downloadedBytes)} / ${formatBytes(download.totalBytes)}`}
         </span>
       </div>

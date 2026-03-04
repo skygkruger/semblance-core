@@ -3,6 +3,7 @@ import { Wordmark } from '../Wordmark/Wordmark';
 import { Button } from '../Button/Button';
 import type { LanguageSelectProps } from './LanguageSelect.types';
 import { SUPPORTED_LANGUAGES, findLanguage } from '../../../core/i18n/supported-languages';
+import '../../pages/Onboarding/Onboarding.css';
 
 const CONTINUE_LABELS: Record<string, string> = {
   en: 'Continue',
@@ -37,24 +38,13 @@ export function LanguageSelect({ detectedCode, onConfirm }: LanguageSelectProps)
     }}>
       <Wordmark size="hero" />
 
-      <h2 style={{
-        fontFamily: 'var(--fd)',
-        fontWeight: 300,
-        fontSize: 'var(--text-xl)',
-        color: 'var(--white)',
-        textAlign: 'center',
-        margin: 0,
-      }}>
-        {'Choose your language'}
+      <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-xl)' }}>
+        Choose your language
       </h2>
 
-      <div style={{
+      <div className="onboarding-content-frame onboarding-content-frame__scrollable" style={{
         width: '100%',
         maxHeight: 400,
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
       }}>
         {SUPPORTED_LANGUAGES.map((lang) => {
           const isSelected = lang.code === selected;
@@ -63,19 +53,15 @@ export function LanguageSelect({ detectedCode, onConfirm }: LanguageSelectProps)
               key={lang.code}
               type="button"
               onClick={() => setSelected(lang.code)}
+              className={`onboarding-content-frame__item ${isSelected ? 'onboarding-content-frame__item--selected' : ''}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
                 width: '100%',
                 padding: '14px 16px',
-                background: isSelected ? '#111518' : 'transparent',
-                border: 'none',
-                borderLeft: isSelected ? '3px solid #6ECFA3' : '3px solid transparent',
-                borderRadius: 8,
-                cursor: 'pointer',
-                transition: 'background-color 150ms ease, border-color 150ms ease',
                 textAlign: 'left',
+                font: 'inherit',
               }}
             >
               <span style={{

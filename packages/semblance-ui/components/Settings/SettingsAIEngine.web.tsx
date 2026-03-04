@@ -32,14 +32,14 @@ export function SettingsAIEngine({
         <div className="settings-section-header">{t('ai_engine.section_model')}</div>
         <div className="settings-card" style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, fontWeight: 400, color: '#EEF1F4' }}>
+            <span style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 400, color: '#EEF1F4' }}>
               {modelName}
             </span>
             <span className={isModelRunning ? 'settings-badge settings-badge--veridian' : 'settings-badge settings-badge--muted'}>
               {isModelRunning ? t('ai_engine.badge_running') : t('ai_engine.badge_not_loaded')}
             </span>
           </div>
-          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 300, color: '#A8B4C0' }}>
+          <span style={{ fontFamily: 'var(--fm)', fontSize: 12, fontWeight: 300, color: '#A8B4C0' }}>
             {modelSize}
           </span>
         </div>

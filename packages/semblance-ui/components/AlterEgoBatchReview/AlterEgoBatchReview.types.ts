@@ -1,10 +1,10 @@
 export interface BatchItem {
   id: string;
-  actionType: string;
+  actionType?: string;
   summary: string;
   reasoning: string;
   category: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface AlterEgoBatchReviewProps {

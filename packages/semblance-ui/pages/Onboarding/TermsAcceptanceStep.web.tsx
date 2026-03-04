@@ -35,7 +35,7 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
             fontSize: '15px',
             lineHeight: '1.6',
             color: '#8593A4',
-            fontFamily: "'DM Sans', system-ui, sans-serif",
+            fontFamily: 'var(--fb)',
             margin: 0,
           }}
         >
@@ -52,7 +52,7 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
             fontSize: '13px',
             lineHeight: '1.7',
             color: '#8593A4',
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: 'var(--fm)',
           }}
         >
           <p style={{ margin: '0 0 12px' }}>
@@ -101,7 +101,7 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
             cursor: 'pointer',
             fontSize: '14px',
             color: '#EEF1F4',
-            fontFamily: "'DM Sans', system-ui, sans-serif",
+            fontFamily: 'var(--fb)',
           }}
         >
           <input
@@ -136,7 +136,7 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
         style={{
           fontSize: '11px',
           color: '#4A5568',
-          fontFamily: "'DM Mono', monospace",
+          fontFamily: 'var(--fm)',
           margin: 0,
           textAlign: 'center',
         }}

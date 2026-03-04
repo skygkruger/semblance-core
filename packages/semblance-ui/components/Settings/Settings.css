@@ -16,7 +16,7 @@
   max-width: 480px;
   margin: 0 auto;
   color: #EEF1F4;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-weight: 300;
   overflow-x: hidden;
   border: 1px solid transparent;
@@ -100,7 +100,7 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-weight: 400;
   font-size: 16px;
   color: #EEF1F4;
@@ -111,7 +111,7 @@
 .settings-header__title--root {
   position: static;
   transform: none;
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--fd);
   font-weight: 300;
   font-size: 21px;
   padding-left: 4px;
@@ -138,7 +138,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #5E6B7C;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
 }
 
 /* Section rows */
@@ -184,7 +184,7 @@
 .settings-row__value {
   font-size: 13px;
   color: #A8B4C0;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   margin-right: 8px;
 }
 
@@ -294,7 +294,7 @@
   flex: 1;
   padding: 6px 12px;
   font-size: 13px;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   color: #A8B4C0;
   background: none;
   border: none;
@@ -331,14 +331,14 @@
 .settings-footer {
   padding: 24px 0 32px;
   text-align: center;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 11px;
   color: #5E6B7C;
 }
 
 /* Badge */
 .settings-badge {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--fm);
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -414,7 +414,7 @@
   background: none;
   border: 1px solid rgba(110, 207, 163, 0.3);
   color: #6ECFA3;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   font-size: 14px;
   font-weight: 400;
   padding: 8px 16px;
@@ -512,7 +512,7 @@
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 15px;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--fb);
   color: #EEF1F4;
   outline: none;
   transition: border-color 180ms;

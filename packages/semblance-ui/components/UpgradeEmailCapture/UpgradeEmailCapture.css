@@ -1,0 +1,48 @@
+/* ─── UpgradeEmailCapture — ActionCard surface + opal border ─── */
+
+.upgrade-capture__notice {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 300;
+  color: var(--sv3);
+  line-height: 1.5;
+  margin: 0 0 var(--sp-4) 0;
+}
+
+.upgrade-capture__form {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+.upgrade-capture__input-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.upgrade-capture__error {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--rust);
+  margin: var(--sp-1) 0 0 0;
+}
+
+/* ═══ Veridian activation — input + button turn green together when text entered ═══ */
+
+.upgrade-capture__form:has(input:not(:placeholder-shown)) .input-wrapper {
+  background:
+    linear-gradient(#121518, #121518) padding-box,
+    linear-gradient(rgba(110, 207, 163, 0.4), rgba(110, 207, 163, 0.4)) border-box;
+  animation: none;
+  box-shadow: 0 0 0 2px rgba(110, 207, 163, 0.08), 0 0 16px rgba(110, 207, 163, 0.04);
+}
+
+.upgrade-capture__form:has(input:not(:placeholder-shown)) .input-wrapper::before {
+  animation: none;
+  background: none;
+}
+
+.upgrade-capture__form:has(input:not(:placeholder-shown)) .btn {
+  border-color: var(--v-wire);
+  color: var(--v);
+}

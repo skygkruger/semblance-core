@@ -33,6 +33,7 @@ import type { AutonomyTier } from '@semblance/ui';
 import type { ThemeMode } from '@semblance/ui';
 import type { CredentialFormData } from '@semblance/ui';
 import type { AccountInfo, AccountStatus } from '../ipc/types';
+import './SettingsScreen.css';
 
 function LicenseSection() {
   const { t } = useTranslation();
@@ -47,16 +48,16 @@ function LicenseSection() {
 
   return (
     <Card>
-      <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+      <h2 className="settings-page__section-title">
         {t('screen.settings.section_license')}
       </h2>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="settings-page__vstack">
+        <div className="settings-page__hstack--between">
           <div>
-            <p className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark font-medium">
+            <p className="settings-page__text settings-page__text--medium">
               {tierLabel}
             </p>
-            <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+            <p className="settings-page__text settings-page__text--secondary">
               {license.isPremium ? t('license.premium_desc') : t('license.free_desc')}
             </p>
           </div>
@@ -86,7 +87,7 @@ function LicenseSection() {
         )}
 
         <div>
-          <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark mb-2">
+          <p className="settings-page__text settings-page__text--secondary" style={{ marginBottom: 8 }}>
             {license.isPremium ? t('license.enter_different_key') : t('license.have_key')}
           </p>
           <LicenseActivation
@@ -283,18 +284,18 @@ export function SettingsScreen() {
   const defaultTier = (state.autonomyConfig['email'] || 'partner') as AutonomyTier;
 
   return (
-    <div className="max-w-container-sm mx-auto px-6 py-8 space-y-8">
-      <h1 className="text-xl font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
+    <div className="settings-page">
+      <h1 className="settings-page__title">
         {t('screen.settings.title')}
       </h1>
 
       {/* Your Semblance */}
       <Card>
-        <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+        <h2 className="settings-page__section-title">
           {t('screen.settings.section_your_semblance')}
         </h2>
         {editingName ? (
-          <div className="flex gap-2">
+          <div className="settings-page__hstack--sm">
             <Input
               value={nameValue}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNameValue(e.target.value)}
@@ -305,8 +306,8 @@ export function SettingsScreen() {
             <Button variant="ghost" size="sm" onClick={() => setEditingName(false)}>{t('button.cancel')}</Button>
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-semibold ai-name-shimmer">
+          <div className="settings-page__hstack">
+            <span className="settings-page__text settings-page__text--lg ai-name-shimmer">
               {state.userName || t('screen.settings.not_named_yet')}
             </span>
             <Button variant="ghost" size="sm" onClick={() => { setEditingName(true); setNameValue(state.userName || ''); }}>
@@ -318,26 +319,22 @@ export function SettingsScreen() {
 
       {/* AI Engine */}
       <Card>
-        <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+        <h2 className="settings-page__section-title">
           {t('screen.settings.section_ai_engine')}
         </h2>
 
         {/* Runtime Selection */}
-        <div className="mb-4">
-          <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
+        <div className="settings-page__mb-4">
+          <label className="settings-page__label">
             {t('screen.settings.label_runtime')}
           </label>
-          <div className="flex gap-2">
+          <div className="settings-page__hstack--sm">
             {(['builtin', 'ollama', 'custom'] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
                 onClick={() => setRuntimeMode(mode)}
-                className={`px-4 py-2 text-sm rounded-md border transition-colors duration-fast ${
-                  runtimeMode === mode
-                    ? 'border-semblance-primary bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark text-semblance-primary font-medium'
-                    : 'border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:border-semblance-primary/50'
-                }`}
+                className={`settings-page__option-btn${runtimeMode === mode ? ' settings-page__option-btn--active' : ''}`}
               >
                 {t(`screen.settings.runtime_${mode}`)}
               </button>
@@ -347,10 +344,10 @@ export function SettingsScreen() {
 
         {/* Runtime Status */}
         {runtimeMode === 'builtin' && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
+          <div className="settings-page__vstack--sm">
+            <div className="settings-page__hstack">
               <StatusIndicator status="success" />
-              <span className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+              <span className="settings-page__text settings-page__text--secondary settings-page__text--sm">
                 {t('screen.settings.builtin_status', { model: state.activeModel || t('screen.settings.models_ready') })}
               </span>
             </div>
@@ -361,9 +358,9 @@ export function SettingsScreen() {
         )}
 
         {runtimeMode === 'ollama' && (
-          <div className="flex items-center gap-3">
+          <div className="settings-page__hstack">
             <StatusIndicator status={state.ollamaStatus === 'connected' ? 'success' : 'attention'} />
-            <span className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+            <span className="settings-page__text settings-page__text--secondary settings-page__text--sm">
               {state.ollamaStatus === 'connected'
                 ? t('screen.settings.ollama_connected', { model: state.activeModel || t('screen.settings.ollama_no_model') })
                 : t('screen.settings.ollama_disconnected')}
@@ -372,7 +369,7 @@ export function SettingsScreen() {
         )}
 
         {runtimeMode === 'custom' && (
-          <p className="text-sm text-semblance-text-tertiary">
+          <p className="settings-page__text settings-page__text--tertiary settings-page__text--sm">
             {t('screen.settings.custom_coming')}
           </p>
         )}
@@ -386,7 +383,7 @@ export function SettingsScreen() {
               dispatch({ type: 'SET_ACTIVE_MODEL', model });
               await selectModel(model).catch(() => {});
             }}
-            className="w-full mt-3 px-4 py-3 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface-1 dark:bg-semblance-surface-1-dark text-semblance-text-primary dark:text-semblance-text-primary-dark focus:outline-none focus:shadow-focus"
+            className="settings-page__select"
           >
             {state.availableModels.map((model) => (
               <option key={model} value={model}>{model}</option>
@@ -397,26 +394,22 @@ export function SettingsScreen() {
 
       {/* Web Search */}
       <Card>
-        <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+        <h2 className="settings-page__section-title">
           {t('screen.settings.section_web_search')}
         </h2>
 
         {/* Search Provider */}
-        <div className="mb-4">
-          <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
+        <div className="settings-page__mb-4">
+          <label className="settings-page__label">
             {t('screen.settings.label_search_provider')}
           </label>
-          <div className="flex gap-2">
+          <div className="settings-page__hstack--sm">
             {(['brave', 'searxng'] as const).map((provider) => (
               <button
                 key={provider}
                 type="button"
                 onClick={() => { setSearchProvider(provider); setApiKeySaved(false); }}
-                className={`px-4 py-2 text-sm rounded-md border transition-colors duration-fast ${
-                  searchProvider === provider
-                    ? 'border-semblance-primary bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark text-semblance-primary font-medium'
-                    : 'border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:border-semblance-primary/50'
-                }`}
+                className={`settings-page__option-btn${searchProvider === provider ? ' settings-page__option-btn--active' : ''}`}
               >
                 {provider === 'brave' ? t('screen.settings.provider_brave') : t('screen.settings.provider_searxng')}
               </button>
@@ -426,11 +419,11 @@ export function SettingsScreen() {
 
         {/* Brave API Key */}
         {searchProvider === 'brave' && (
-          <div className="mb-4">
-            <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
+          <div className="settings-page__mb-4">
+            <label className="settings-page__label">
               {t('screen.settings.label_brave_api_key')}
             </label>
-            <div className="flex gap-2">
+            <div className="settings-page__hstack--sm">
               <Input
                 type="password"
                 value={braveApiKey}
@@ -444,7 +437,7 @@ export function SettingsScreen() {
                 <StatusIndicator status="attention" />
               )}
             </div>
-            <p className="text-xs text-semblance-text-tertiary mt-1">
+            <p className="settings-page__text settings-page__text--hint">
               {t('screen.settings.brave_api_hint')}
             </p>
           </div>
@@ -452,8 +445,8 @@ export function SettingsScreen() {
 
         {/* SearXNG URL */}
         {searchProvider === 'searxng' && (
-          <div className="mb-4">
-            <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
+          <div className="settings-page__mb-4">
+            <label className="settings-page__label">
               {t('screen.settings.label_searxng_url')}
             </label>
             <Input
@@ -461,15 +454,15 @@ export function SettingsScreen() {
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearxngUrl(e.target.value); setApiKeySaved(false); }}
               placeholder={t('placeholder.searxng_url')}
             />
-            <p className="text-xs text-semblance-text-tertiary mt-1">
+            <p className="settings-page__text settings-page__text--hint">
               {t('screen.settings.searxng_hint')}
             </p>
           </div>
         )}
 
         {/* Rate Limit */}
-        <div className="mb-4">
-          <label className="text-xs font-medium text-semblance-text-tertiary uppercase tracking-wider mb-2 block">
+        <div className="settings-page__mb-4">
+          <label className="settings-page__label">
             {t('screen.settings.label_rate_limit')}
           </label>
           <Input
@@ -482,35 +475,35 @@ export function SettingsScreen() {
         </div>
 
         {/* Save Button */}
-        <div className="flex items-center gap-3">
+        <div className="settings-page__hstack">
           <Button size="sm" onClick={handleSaveSearchSettings} disabled={apiKeyStatus === 'testing'}>
             {apiKeyStatus === 'testing' ? t('status.testing') : t('button.save')}
           </Button>
           {apiKeySaved && (
-            <span className="text-xs text-semblance-success">{t('screen.settings.settings_saved')}</span>
+            <span className="settings-page__text settings-page__text--success">{t('screen.settings.settings_saved')}</span>
           )}
         </div>
       </Card>
 
       {/* Connected Accounts */}
       <Card>
-        <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+        <h2 className="settings-page__section-title">
           {t('screen.settings.section_accounts')}
         </h2>
 
         {accounts.length > 0 ? (
-          <div className="space-y-3 mb-4">
+          <div className="settings-page__vstack--sm settings-page__mb-4">
             {accounts.map((account) => (
               <div
                 key={`${account.serviceType}:${account.username}`}
-                className="flex items-center gap-3 p-3 rounded-md bg-semblance-surface-1 dark:bg-semblance-surface-1-dark"
+                className="settings-page__account-row"
               >
                 <StatusIndicator status={account.connected ? 'success' : 'attention'} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark truncate">
+                <div className="settings-page__account-info">
+                  <p className="settings-page__account-name">
                     {account.displayName}
                   </p>
-                  <p className="text-xs text-semblance-text-tertiary truncate">
+                  <p className="settings-page__account-meta">
                     {account.username} — {account.serviceType} ({account.protocols.join(', ')})
                   </p>
                 </div>
@@ -526,12 +519,12 @@ export function SettingsScreen() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-semblance-text-tertiary mb-4">{t('screen.settings.empty_accounts')}</p>
+          <p className="settings-page__text settings-page__text--tertiary settings-page__text--sm settings-page__mb-4">{t('screen.settings.empty_accounts')}</p>
         )}
 
         {addingAccount ? (
-          <div className="border border-semblance-border dark:border-semblance-border-dark rounded-md p-4">
-            <h3 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+          <div className="settings-page__form-section">
+            <h3 className="settings-page__form-title">
               {t('screen.settings.add_account_title', { type: addingAccount === 'email' ? t('screen.settings.account_type_email') : t('screen.settings.account_type_calendar') })}
             </h3>
             <CredentialForm
@@ -543,7 +536,7 @@ export function SettingsScreen() {
             />
           </div>
         ) : (
-          <div className="flex gap-2">
+          <div className="settings-page__hstack--sm">
             <Button variant="ghost" size="sm" onClick={() => setAddingAccount('email')}>
               {t('screen.settings.btn_add_email')}
             </Button>
@@ -571,40 +564,40 @@ export function SettingsScreen() {
 
       {/* Devices & Sync */}
       <Card>
-        <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+        <h2 className="settings-page__section-title">
           Devices & Sync
         </h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="settings-page__vstack">
+          <div className="settings-page__hstack--between">
             <div>
-              <p className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">
+              <p className="settings-page__text settings-page__text--sm">
                 Connected Devices
               </p>
-              <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+              <p className="settings-page__text settings-page__text--secondary">
                 No devices on network
               </p>
             </div>
             <button
               onClick={handleTriggerSync}
               disabled={syncStatus === 'syncing'}
-              className="px-4 py-2 text-sm rounded-md bg-semblance-surface-2 dark:bg-semblance-surface-2-dark text-semblance-text-primary dark:text-semblance-text-primary-dark border border-semblance-border dark:border-semblance-border-dark hover:border-semblance-veridian disabled:opacity-50 transition-colors"
+              className="settings-page__sync-btn"
             >
               {syncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
             </button>
           </div>
           {syncStatus === 'success' && (
-            <p className="text-xs text-semblance-veridian">Synced successfully</p>
+            <p className="settings-page__text settings-page__text--success">Synced successfully</p>
           )}
           {syncStatus === 'no_peer' && (
-            <p className="text-xs text-semblance-amber">No devices found on this network</p>
+            <p className="settings-page__text settings-page__text--amber">No devices found on this network</p>
           )}
           {syncStatus === 'error' && (
-            <p className="text-xs text-semblance-rust">Sync failed — check that both devices are on the same network</p>
+            <p className="settings-page__text settings-page__text--rust">Sync failed — check that both devices are on the same network</p>
           )}
-          <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+          <p className="settings-page__text settings-page__text--secondary">
             {lastSynced ? `Last synced: ${new Date(lastSynced).toLocaleString()}` : 'Last synced: Never'}
           </p>
-          <p className="text-xs text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark">
+          <p className="settings-page__text settings-page__text--tertiary">
             Sync includes: preferences, action trail, style profile, knowledge graph
           </p>
         </div>
@@ -612,7 +605,7 @@ export function SettingsScreen() {
 
       {/* Autonomy */}
       <Card>
-        <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+        <h2 className="settings-page__section-title">
           {t('screen.settings.section_autonomy')}
         </h2>
         <AutonomySelector value={defaultTier} onChange={handleAutonomyChange} />
@@ -634,7 +627,7 @@ export function SettingsScreen() {
 
       {/* Appearance */}
       <Card>
-        <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+        <h2 className="settings-page__section-title">
           {t('screen.settings.section_appearance')}
         </h2>
         <ThemeToggle value={state.theme} onChange={handleThemeChange} />
@@ -645,10 +638,10 @@ export function SettingsScreen() {
 
       {/* About */}
       <Card>
-        <h2 className="text-md font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+        <h2 className="settings-page__section-title">
           {t('screen.settings.section_about')}
         </h2>
-        <div className="space-y-2 text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+        <div className="settings-page__vstack--xs settings-page__text settings-page__text--secondary settings-page__text--sm">
           <p>{t('screen.settings.about_version')}</p>
           <p>{t('screen.settings.about_license')}</p>
         </div>
