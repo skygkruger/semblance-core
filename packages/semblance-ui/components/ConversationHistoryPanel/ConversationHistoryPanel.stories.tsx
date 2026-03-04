@@ -20,11 +20,10 @@ const meta: Meta<typeof ConversationHistoryPanel> = {
   component: ConversationHistoryPanel,
   parameters: {
     layout: 'fullscreen',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
   },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', height: '100vh', display: 'flex' }}>
+      <div style={{ height: '100vh', display: 'flex', padding: 12 }}>
         <Story />
       </div>
     ),

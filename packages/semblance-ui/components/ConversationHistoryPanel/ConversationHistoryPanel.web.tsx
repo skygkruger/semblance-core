@@ -199,7 +199,7 @@ export function ConversationHistoryPanel({
   if (!open) return null;
 
   return (
-    <aside className="conv-panel" data-testid="conversation-history-panel">
+    <aside className="conv-panel opal-surface" data-testid="conversation-history-panel">
       <div className="conv-panel__header">
         <h3 className="conv-panel__title">{'History'}</h3>
         <div className="conv-panel__header-actions">
