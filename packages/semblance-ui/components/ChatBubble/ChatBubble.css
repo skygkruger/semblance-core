@@ -29,15 +29,15 @@
   animation: opal-border-sweep 8s linear infinite;
 }
 
-/* User variant — subtle Veridian tint */
+/* User variant — subtle Veridian tint, dialed down */
 .chat-bubble--user .chat-bubble__card {
   background:
-    linear-gradient(rgba(110,207,163,0.06), rgba(110,207,163,0.03)) padding-box,
+    linear-gradient(rgba(110,207,163,0.03), rgba(110,207,163,0.015)) padding-box,
     conic-gradient(from var(--opal-angle),
-      rgba(97,88,128,0.28), rgba(119,110,162,0.36),
-      rgba(154,168,184,0.44), rgba(216,221,232,0.50),
-      rgba(154,168,184,0.44), rgba(119,110,162,0.36),
-      rgba(97,88,128,0.28)) border-box;
+      rgba(97,88,128,0.18), rgba(119,110,162,0.24),
+      rgba(154,168,184,0.30), rgba(216,221,232,0.34),
+      rgba(154,168,184,0.30), rgba(119,110,162,0.24),
+      rgba(97,88,128,0.18)) border-box;
 }
 
 /* Dimmed shimmer on user bubbles */
