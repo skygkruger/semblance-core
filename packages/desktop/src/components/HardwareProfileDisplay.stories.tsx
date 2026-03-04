@@ -64,6 +64,20 @@ export const StandardNoGpu: Story = {
   },
 };
 
+export const ConstrainedFull: Story = {
+  args: {
+    hardware: {
+      tier: 'constrained',
+      totalRamMb: 8192,
+      cpuCores: 4,
+      gpuName: null,
+      gpuVramMb: null,
+      os: 'Windows 10',
+      arch: 'x86_64',
+    },
+  },
+};
+
 export const ConstrainedCompact: Story = {
   args: {
     hardware: {
