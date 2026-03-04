@@ -4,13 +4,9 @@ import { ChatInput } from './ChatInput';
 const meta: Meta<typeof ChatInput> = {
   title: 'Chat/ChatInput',
   component: ChatInput,
-  parameters: {
-    layout: 'centered',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-  },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', padding: 40, width: '100%', maxWidth: 600 }}>
+      <div style={{ width: '100%', maxWidth: 600 }}>
         <Story />
       </div>
     ),
@@ -56,11 +52,4 @@ export const Mobile: Story = {
   parameters: {
     viewport: { defaultViewport: 'mobile1' },
   },
-  decorators: [
-    (Story) => (
-      <div style={{ background: '#0B0E11', padding: 16, width: '100%', maxWidth: 390 }}>
-        <Story />
-      </div>
-    ),
-  ],
 };

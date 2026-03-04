@@ -1,0 +1,174 @@
+/* ─── ChatInput — matches AgentInput opal treatment ─── */
+.chat-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+/* ─── Container — opal border + shimmer ─── */
+.chat-input__container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 14px 16px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background:
+    linear-gradient(#121518, #121518) padding-box,
+    conic-gradient(
+      from var(--opal-angle),
+      rgba(97, 88, 128, 0.35),
+      rgba(119, 110, 162, 0.45),
+      rgba(154, 168, 184, 0.55),
+      rgba(216, 221, 232, 0.6),
+      rgba(154, 168, 184, 0.55),
+      rgba(119, 110, 162, 0.45),
+      rgba(97, 88, 128, 0.35)
+    ) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: border-color 220ms ease-out, box-shadow 220ms ease-out;
+  overflow: hidden;
+}
+
+/* Opal shimmer overlay */
+.chat-input__container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 15%,
+    rgba(107, 95, 168, 0.04) 32%,
+    rgba(154, 168, 184, 0.06) 44%,
+    rgba(216, 221, 232, 0.08) 52%,
+    rgba(154, 168, 184, 0.04) 66%,
+    transparent 85%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: opal-sweep 8s linear infinite;
+  animation-delay: -4s;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* ─── Focus state — Veridian glow ─── */
+.chat-input__container:focus-within {
+  border-color: rgba(110, 207, 163, 0.4);
+  box-shadow: 0 0 0 2px rgba(110, 207, 163, 0.08), 0 0 16px rgba(110, 207, 163, 0.04);
+}
+
+.chat-input__container:focus-within::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, rgba(110, 207, 163, 0.035) 0%, transparent 70%);
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* ─── Textarea ─── */
+.chat-input__field {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  min-height: 24px;
+  max-height: 144px;
+  font-family: var(--fb);
+  font-size: 15px;
+  line-height: 1.5;
+  color: #EEF1F4;
+  caret-color: #6ECFA3;
+}
+
+.chat-input__field::placeholder {
+  color: #5E6B7C;
+}
+
+/* ─── Attach button ─── */
+.chat-input__attach {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: #8593A4;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 180ms, background 180ms;
+  padding: 0;
+}
+
+.chat-input__attach:hover {
+  color: #A8B4C0;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chat-input__attach:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ─── Send button — bordered square with return symbol ─── */
+.chat-input__send {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #8593A4;
+  border-radius: 6px;
+  background: none;
+  color: #8593A4;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 180ms ease-out, border-color 180ms ease-out, background 180ms ease-out;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.chat-input--has-value .chat-input__send {
+  color: #6ECFA3;
+  border-color: #6ECFA3;
+  background: rgba(110, 207, 163, 0.06);
+}
+
+.chat-input__send:hover {
+  background: rgba(110, 207, 163, 0.08);
+  border-color: #6ECFA3;
+  color: #6ECFA3;
+}
+
+.chat-input__send:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ─── Actions group ─── */
+.chat-input__actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
