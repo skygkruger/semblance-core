@@ -4,13 +4,9 @@ import { DirectoryPicker } from './DirectoryPicker';
 const meta: Meta<typeof DirectoryPicker> = {
   title: 'Primitives/DirectoryPicker',
   component: DirectoryPicker,
-  parameters: {
-    layout: 'centered',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
-  },
   decorators: [
     (Story) => (
-      <div style={{ background: '#0B0E11', padding: 40, width: '100%', maxWidth: 500 }}>
+      <div style={{ width: '100%', maxWidth: 500 }}>
         <Story />
       </div>
     ),

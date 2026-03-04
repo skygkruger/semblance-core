@@ -1,18 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ToastItem, ToastVariant, ToastContainerProps } from './Toast.types';
+import type { ToastItem, ToastContainerProps } from './Toast.types';
+import './Toast.css';
 
 interface ToastEntryProps {
   toast: ToastItem;
   onDismiss: (id: string) => void;
 }
-
-const variantClasses: Record<ToastVariant, string> = {
-  info: 'border-semblance-border dark:border-semblance-border-dark',
-  success: 'border-semblance-success/30',
-  attention: 'border-semblance-attention/30',
-  action: 'border-semblance-primary/30',
-};
 
 function ToastEntry({ toast, onDismiss }: ToastEntryProps) {
   const { t } = useTranslation();
@@ -30,25 +24,20 @@ function ToastEntry({ toast, onDismiss }: ToastEntryProps) {
     return () => clearTimeout(timer);
   }, [autoDismiss, handleDismiss]);
 
+  const classes = [
+    'toast',
+    `toast--${toast.variant}`,
+    exiting ? 'toast--exiting' : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <div
-      className={`
-        max-w-[400px] w-full p-4
-        bg-semblance-surface-1 dark:bg-semblance-surface-1-dark
-        border rounded-lg shadow-lg
-        ${variantClasses[toast.variant]}
-        ${exiting ? 'animate-toast-exit' : 'animate-toast-enter'}
-      `.trim()}
-      role="alert"
-    >
-      <div className="flex items-start gap-3">
-        <p className="flex-1 text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">
-          {toast.message}
-        </p>
+    <div className={classes} role="alert">
+      <div className="toast__body">
+        <p className="toast__message">{toast.message}</p>
         <button
           type="button"
+          className="toast__dismiss"
           onClick={handleDismiss}
-          className="text-semblance-muted hover:text-semblance-text-secondary transition-colors duration-fast p-0.5"
           aria-label={t('a11y.dismiss_notification')}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -56,7 +45,7 @@ function ToastEntry({ toast, onDismiss }: ToastEntryProps) {
           </svg>
         </button>
       </div>
-      {toast.action && <div className="mt-3">{toast.action}</div>}
+      {toast.action && <div className="toast__actions">{toast.action}</div>}
     </div>
   );
 }
@@ -68,7 +57,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 flex flex-col gap-2"
+      className="toast-container"
       aria-live="polite"
       aria-label={t('a11y.notifications')}
     >
@@ -78,4 +67,3 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
     </div>
   );
 }
-

@@ -6,15 +6,7 @@ const meta: Meta<typeof ToastContainer> = {
   component: ToastContainer,
   parameters: {
     layout: 'fullscreen',
-    backgrounds: { default: 'void', values: [{ name: 'void', value: '#0B0E11' }] },
   },
-  decorators: [
-    (Story) => (
-      <div style={{ background: '#0B0E11', minHeight: '100vh', position: 'relative' }}>
-        <Story />
-      </div>
-    ),
-  ],
 };
 
 export default meta;
@@ -56,8 +48,8 @@ export const ActionToast: Story = {
         variant: 'action',
         action: (
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ background: 'rgba(110, 207, 163, 0.12)', border: '1px solid rgba(110, 207, 163, 0.3)', borderRadius: 4, color: '#6ECFA3', fontSize: 12, padding: '4px 12px', cursor: 'pointer' }}>Review</button>
-            <button style={{ background: 'none', border: '1px solid rgba(133, 147, 164, 0.25)', borderRadius: 4, color: '#8593A4', fontSize: 12, padding: '4px 12px', cursor: 'pointer' }}>Dismiss</button>
+            <button style={{ background: 'rgba(110, 207, 163, 0.12)', border: '1px solid rgba(110, 207, 163, 0.3)', borderRadius: 4, color: '#6ECFA3', fontSize: 12, padding: '4px 12px', cursor: 'pointer', fontFamily: 'var(--fb)' }}>Review</button>
+            <button style={{ background: 'none', border: '1px solid rgba(133, 147, 164, 0.25)', borderRadius: 4, color: '#8593A4', fontSize: 12, padding: '4px 12px', cursor: 'pointer', fontFamily: 'var(--fb)' }}>Dismiss</button>
           </div>
         ),
       },
