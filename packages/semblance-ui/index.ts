@@ -49,7 +49,7 @@ export type { DesktopSidebarProps } from './components/Nav/DesktopSidebar.types'
 export type { NavItem as SidebarNavItem } from './components/Nav/DesktopSidebar.types';
 export { MobileTabBar } from './components/Nav/MobileTabBar';
 export { KnowledgeGraph } from './components/KnowledgeGraph/index.js';
-export type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps, CategoryLegendItem } from './components/KnowledgeGraph/index.js';
+export type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps, CategoryLegendItem, DrillDownConfig, DrillDownItem } from './components/KnowledgeGraph/index.js';
 export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
 export type { PrivacyDashboardProps, NetworkEntry, AuditEntry, ChainIntegrityData, KeySecurityData } from './components/PrivacyDashboard/index.js';
 export { WireframeSpinner } from './components/WireframeSpinner/index.js';

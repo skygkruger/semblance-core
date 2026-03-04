@@ -1,7 +1,67 @@
-/* ─── KnowledgeGraph Drill-Down List ─── */
+/* ─── KnowledgeGraph Drill-Down List — SkeletonCard-style opal border ─── */
 
 .kg-drilldown {
+  position: relative;
   margin-top: 16px;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  box-sizing: border-box;
+  background:
+    linear-gradient(#111518, #111518) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: background 300ms ease;
+}
+
+/* Veridian border when search has text */
+.kg-drilldown:has(.kg-drilldown__search:not(:placeholder-shown)) {
+  background:
+    linear-gradient(#111518, #111518) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(110, 207, 163, 0.2), rgba(110, 207, 163, 0.35),
+      rgba(110, 207, 163, 0.45), rgba(110, 207, 163, 0.5),
+      rgba(110, 207, 163, 0.45), rgba(110, 207, 163, 0.35),
+      rgba(110, 207, 163, 0.2)) border-box;
+}
+
+/* Opal shimmer layer */
+.kg-drilldown::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent                    0%,
+    transparent                   15%,
+    rgba(74,  63, 107, 0.0)       20%,
+    rgba(107, 95, 168, 0.06)      32%,
+    rgba(154, 168, 184, 0.08)     44%,
+    rgba(216, 221, 232, 0.11)     52%,
+    rgba(216, 221, 232, 0.08)     58%,
+    rgba(154, 168, 184, 0.06)     66%,
+    rgba(107, 95, 168, 0.03)      76%,
+    transparent                   85%,
+    transparent                  100%
+  );
+  background-size: 200% 100%;
+  animation: opal-sweep 8s linear infinite;
+  animation-delay: -4s;
+  mix-blend-mode: screen;
+}
+
+/* Children above shimmer */
+.kg-drilldown > * {
+  position: relative;
+  z-index: 1;
 }
 
 .kg-drilldown__header {
@@ -43,22 +103,25 @@
 .kg-drilldown__search {
   width: 100%;
   padding: 8px 12px;
+  box-sizing: border-box;
   font-family: var(--fb, 'DM Sans', sans-serif);
   font-size: 12px;
   color: #C8CAD0;
+  caret-color: #8593A4;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
   outline: none;
-  transition: border-color 150ms ease;
+  transition: border-color 150ms ease, caret-color 150ms ease;
 }
 
 .kg-drilldown__search::placeholder {
   color: #525A64;
 }
 
-.kg-drilldown__search:focus:not(:placeholder-shown) {
+.kg-drilldown__search:not(:placeholder-shown) {
   border-color: rgba(110, 207, 163, 0.3);
+  caret-color: #6ECFA3;
 }
 
 /* ─── Item List ─── */
@@ -74,7 +137,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 10px 8px;
-  margin: 0 -8px;
+  margin: 0;
   border: none;
   border-radius: 4px;
   background: none;
@@ -82,7 +145,9 @@
   cursor: pointer;
   transition: background-color 150ms ease;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  width: calc(100% + 16px);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .kg-drilldown__item:last-of-type {
@@ -97,6 +162,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .kg-drilldown__item-icon {
@@ -114,6 +181,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 
 .kg-drilldown__item:hover .kg-drilldown__item-title {
@@ -144,20 +213,7 @@
 .kg-drilldown__loading {
   display: flex;
   justify-content: center;
-  padding: 16px 0;
-}
-
-.kg-drilldown__spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(110, 207, 163, 0.2);
-  border-top-color: #6ECFA3;
-  border-radius: 50%;
-  animation: kg-spin 800ms linear infinite;
-}
-
-@keyframes kg-spin {
-  to { transform: rotate(360deg); }
+  padding: 40px 0;
 }
 
 .kg-drilldown__empty {
@@ -172,18 +228,21 @@
   display: block;
   width: 100%;
   padding: 10px;
-  margin-top: 4px;
+  margin-top: 12px;
+  box-sizing: border-box;
   font-family: var(--fb, 'DM Sans', sans-serif);
   font-size: 12px;
-  color: #6ECFA3;
+  color: #8593A4;
   background: none;
-  border: 1px solid rgba(110, 207, 163, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease;
+  text-align: center;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 .kg-drilldown__load-more:hover {
-  background-color: rgba(110, 207, 163, 0.06);
-  border-color: rgba(110, 207, 163, 0.3);
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #C8CAD0;
 }

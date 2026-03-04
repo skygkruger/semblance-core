@@ -25,6 +25,7 @@
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 0;
   background: linear-gradient(
     135deg,
     rgba(110, 207, 163, 0.04) 0%,
@@ -33,6 +34,12 @@
   );
   opacity: 0.15;
   pointer-events: none;
+}
+
+/* All direct children above shimmer layer */
+.kg-detail-panel > * {
+  position: relative;
+  z-index: 1;
 }
 
 .kg-detail-panel--open {

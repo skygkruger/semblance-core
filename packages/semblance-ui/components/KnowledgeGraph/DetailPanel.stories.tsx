@@ -79,15 +79,16 @@ export const CategoryNode: Story = {
     onConnectionClick: () => {},
     drillDown: {
       items: [
-        { id: 'di1', label: 'Design review from Jordan', sublabel: 'Mar 1, 2026', category: 'email' },
-        { id: 'di2', label: 'Weekly digest — Feb 24', sublabel: 'Feb 24, 2026', category: 'email' },
-        { id: 'di3', label: 'Invoice from Figma', sublabel: 'Feb 20, 2026', category: 'email' },
+        { chunkId: 'di1', title: 'Design review from Jordan', preview: 'Feedback on the latest mockups for the dashboard redesign...', source: 'email', category: 'email', indexedAt: '2026-03-01T10:00:00Z' },
+        { chunkId: 'di2', title: 'Weekly digest — Feb 24', preview: 'Summary of team activity for the week of February 24th...', source: 'email', category: 'email', indexedAt: '2026-02-24T08:00:00Z' },
+        { chunkId: 'di3', title: 'Invoice from Figma', preview: 'Monthly billing statement for Figma Professional plan...', source: 'email', category: 'email', indexedAt: '2026-02-20T12:00:00Z' },
       ],
+      total: 234,
       loading: false,
       hasMore: true,
+      onSearch: () => {},
       onLoadMore: () => {},
       onItemClick: () => {},
-      onRecategorize: () => {},
     },
   },
 };

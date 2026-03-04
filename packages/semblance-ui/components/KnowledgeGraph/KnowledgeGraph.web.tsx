@@ -17,6 +17,7 @@ export function KnowledgeGraph({
   onNodeSelect,
   stats,
   filterConfig,
+  drillDown,
 }: KnowledgeGraphProps) {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,7 +49,13 @@ export function KnowledgeGraph({
 
   const handleConnectionClick = useCallback((nodeId: string) => {
     rendererRef.current?.focusNode(nodeId);
-  }, []);
+    // Also update the detail panel to show the clicked node
+    const target = nodes.find(n => n.id === nodeId) ?? null;
+    if (target) {
+      setSelectedNode(target);
+      onNodeSelect?.(target);
+    }
+  }, [nodes, onNodeSelect]);
 
   // Initialize renderer + simulation
   useEffect(() => {
@@ -281,10 +288,11 @@ export function KnowledgeGraph({
         allNodes={nodes}
         onClose={handlePanelClose}
         onConnectionClick={handleConnectionClick}
+        drillDown={drillDown}
       />
     </div>
   );
 }
 
-export type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps, NodeType, LayoutMode } from './graph-types';
+export type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps, NodeType, LayoutMode, DrillDownConfig } from './graph-types';
 export type { CategoryLegendItem } from './graph-types';
