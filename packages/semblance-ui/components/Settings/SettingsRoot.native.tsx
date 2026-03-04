@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: nativeSpacing.s4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderBottomColor: 'rgba(107, 95, 168, 0.15)',
   },
   headerTitleRoot: {
     fontFamily: nativeFontFamily.display,

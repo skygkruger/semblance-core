@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import type { DirectoryPickerProps } from './DirectoryPicker.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function DirectoryPicker({ directories, onAdd, onRemove, onRescan }: DirectoryPickerProps) {
   const { t } = useTranslation();
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   path: {
-    fontFamily: nativeFontFamily.uiMedium,
+    fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.sm,
     color: brandColors.white,
   },
@@ -135,12 +135,12 @@ const styles = StyleSheet.create({
     marginTop: nativeSpacing.s1,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: 'rgba(110, 207, 163, 0.30)',
+    borderColor: 'rgba(110, 207, 163, 0.25)',
     borderRadius: nativeRadius.md,
     minHeight: 44,
   },
   addBtnText: {
-    fontFamily: nativeFontFamily.uiMedium,
+    fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
     color: brandColors.veridian,
   },

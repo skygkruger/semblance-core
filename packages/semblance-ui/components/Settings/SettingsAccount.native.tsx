@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: nativeSpacing.s4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderBottomColor: 'rgba(107, 95, 168, 0.15)',
   },
   headerBack: {
     width: 44,
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: nativeSpacing.s5,
     fontSize: nativeFontSize.xs,
     fontWeight: '400',
-    letterSpacing: 0.8,
+    letterSpacing: 0.88,
     textTransform: 'uppercase',
     color: brandColors.sv1,
     fontFamily: nativeFontFamily.mono,

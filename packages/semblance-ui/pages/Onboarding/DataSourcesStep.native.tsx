@@ -11,7 +11,8 @@ import {
   ChatIcon,
 } from '../../components/ConnectionsScreen/ConnectorIcons';
 import type { DataSource, DataSourcesStepProps } from './DataSourcesStep.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../../components/OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 function PulsingDot() {
   const opacity = useRef(new Animated.Value(1)).current;
@@ -81,10 +82,12 @@ export function DataSourcesStep({
           const isConnected = connected.has(source.id);
           const Icon = source.icon;
           return (
-            <View
+            <OpalBorderView
               key={source.id}
-              style={[styles.card, isConnected && styles.cardConnected]}
+              borderRadius={10}
+              style={isConnected ? styles.cardConnected : undefined}
             >
+            <View style={styles.card}>
               <View style={styles.cardInfo}>
                 <View style={styles.cardIcon}>
                   <Icon size={16} />
@@ -107,6 +110,7 @@ export function DataSourcesStep({
                 </Button>
               )}
             </View>
+            </OpalBorderView>
           );
         })}
       </View>
@@ -146,28 +150,31 @@ const styles = StyleSheet.create({
     gap: nativeSpacing.s4,
   },
   headline: {
-    fontFamily: nativeFontFamily.display,
+    fontFamily: nativeFontFamily.mono,
+    fontWeight: '200',
     fontSize: nativeFontSize.xl,
     color: brandColors.white,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   subtext: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.sm,
+    fontWeight: '300',
+    fontSize: nativeFontSize.base,
     color: brandColors.sv2,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 24,
   },
   grid: {
-    gap: nativeSpacing.s3,
+    gap: 10,
   },
   card: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: nativeSpacing.s4,
+    paddingHorizontal: nativeSpacing.s4,
+    paddingVertical: nativeSpacing.s3,
+    gap: nativeSpacing.s3,
     minHeight: 56,
   },
   cardConnected: {
@@ -194,12 +201,13 @@ const styles = StyleSheet.create({
   },
   cardName: {
     fontFamily: nativeFontFamily.uiMedium,
-    fontSize: nativeFontSize.base,
-    color: brandColors.white,
+    fontSize: 14,
+    color: '#C8D4E0',
   },
   cardDesc: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.xs,
+    fontWeight: '300',
+    fontSize: 12,
     color: brandColors.sv1,
   },
   cardStatus: {
@@ -228,15 +236,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: nativeSpacing.s2,
-    backgroundColor: 'rgba(110, 207, 163, 0.06)',
+    backgroundColor: 'rgba(110, 207, 163, 0.04)',
     borderRadius: nativeRadius.md,
-    padding: nativeSpacing.s3,
+    paddingHorizontal: nativeSpacing.s4,
+    paddingVertical: 10,
   },
   privacyText: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.xs,
-    color: brandColors.veridian,
-    lineHeight: 16,
+    fontWeight: '300',
+    fontSize: 12,
+    color: brandColors.sv2,
+    lineHeight: 18,
     flex: 1,
   },
   nudge: {

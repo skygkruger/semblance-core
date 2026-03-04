@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import type { AlterEgoReceiptProps } from './AlterEgoReceipt.types';
-import { brandColors, nativeSpacing, nativeFontSize, nativeFontFamily } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function AlterEgoReceipt({ summary }: AlterEgoReceiptProps) {
   return (
@@ -15,11 +15,12 @@ const styles = StyleSheet.create({
     backgroundColor: brandColors.s1,
     borderLeftWidth: 3,
     borderLeftColor: brandColors.veridian,
-    borderRadius: 6,
+    borderRadius: nativeRadius.lg,
     padding: nativeSpacing.s4,
   },
   summary: {
     fontFamily: nativeFontFamily.ui,
+    fontWeight: '500',
     fontSize: nativeFontSize.sm,
     color: brandColors.white,
     lineHeight: 20,

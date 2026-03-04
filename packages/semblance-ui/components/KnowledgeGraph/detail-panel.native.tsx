@@ -169,16 +169,16 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'DMSans-Medium',
-    fontSize: 15,
+    fontSize: 17,
     color: '#EEF1F4',
     flex: 1,
   },
   type: {
     fontFamily: 'DMMono-Regular',
     fontSize: 11,
-    color: '#525A64',
+    color: '#8593A4',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1.0,
     marginTop: 4,
     marginLeft: 16,
   },
@@ -205,9 +205,9 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: 'DMMono-Regular',
     fontSize: 10,
-    color: '#525A64',
+    color: 'rgba(133, 147, 164, 0.7)',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
     marginBottom: 8,
   },
   connectionsList: {
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'DMSans-Regular',
     fontSize: 13,
-    color: '#A8B4C0',
+    color: '#C8CAD0',
   },
   connWeight: {
     fontFamily: 'DMMono-Regular',

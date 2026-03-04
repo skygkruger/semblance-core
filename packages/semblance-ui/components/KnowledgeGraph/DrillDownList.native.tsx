@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     padding: 8,
     paddingHorizontal: 12,
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.sm,
+    fontSize: 12,
     color: brandColors.sv2,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
-    color: brandColors.sv2,
+    color: '#C8CAD0',
     flex: 1,
   },
   itemPreview: {
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 4,
     borderWidth: 1,
-    borderColor: 'rgba(110, 207, 163, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: nativeRadius.sm,
     alignItems: 'center',
   },

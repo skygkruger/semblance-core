@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import { FoundingMemberBadge } from '../FoundingMemberBadge/FoundingMemberBadge';
+import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
+import { ShimmerText } from '../ShimmerText/ShimmerText.native';
 import type { BriefingCardProps } from './BriefingCard.types';
 import { DOT_COLORS } from './BriefingCard.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function BriefingCard({
   title,
@@ -38,7 +40,10 @@ export function BriefingCard({
     : t('greeting.anonymous', { period });
 
   return (
-    <View style={styles.card}>
+    <OpalBorderView
+      style={styles.card}
+      borderRadius={nativeRadius.lg}
+    >
       {/* Header region */}
       <View style={styles.headerRegion}>
         <View style={styles.dateRow}>
@@ -47,7 +52,14 @@ export function BriefingCard({
             <FoundingMemberBadge seat={foundingSeat} variant="inline" />
           )}
         </View>
-        <Text style={styles.greeting}>{greeting}</Text>
+        <ShimmerText
+          fontSize={nativeFontSize.xl}
+          fontFamily={nativeFontFamily.display}
+          gradient="shimmer"
+          style={styles.greetingContainer}
+        >
+          {greeting}
+        </ShimmerText>
       </View>
 
       <View style={styles.divider} />
@@ -72,18 +84,17 @@ export function BriefingCard({
           </View>
         ))}
       </View>
-    </View>
+    </OpalBorderView>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
-    padding: nativeSpacing.s4,
     gap: nativeSpacing.s3,
   },
   headerRegion: {
+    padding: nativeSpacing.s6,
+    paddingBottom: 0,
     gap: nativeSpacing.s1,
   },
   dateRow: {
@@ -93,57 +104,64 @@ const styles = StyleSheet.create({
   },
   date: {
     fontFamily: nativeFontFamily.mono,
-    fontSize: nativeFontSize.xs,
+    fontSize: 12,
     color: brandColors.sv2,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.7,
   },
-  greeting: {
-    fontFamily: nativeFontFamily.display,
-    fontSize: nativeFontSize.lg,
-    color: brandColors.white,
-    marginTop: nativeSpacing.s1,
+  greetingContainer: {
+    marginTop: nativeSpacing.s2,
+    marginBottom: nativeSpacing.s5,
   },
   divider: {
     height: 1,
-    backgroundColor: brandColors.b2,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginHorizontal: nativeSpacing.s6,
+    marginBottom: nativeSpacing.s6,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'baseline',
+    paddingHorizontal: nativeSpacing.s6,
   },
   title: {
-    fontFamily: nativeFontFamily.uiMedium,
-    fontSize: nativeFontSize.sm,
-    color: brandColors.sv3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontFamily: nativeFontFamily.display,
+    fontWeight: '300',
+    fontSize: nativeFontSize.xl,
+    color: brandColors.wDim,
   },
   timestamp: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
-    color: brandColors.sv1,
+    color: brandColors.slate3,
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
   },
   items: {
+    marginTop: nativeSpacing.s5,
+    paddingHorizontal: nativeSpacing.s6,
+    paddingBottom: nativeSpacing.s6,
     gap: nativeSpacing.s3,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: nativeSpacing.s3,
+    gap: 10,
+    paddingVertical: 4,
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     marginTop: 6,
   },
   itemText: {
     flex: 1,
     fontFamily: nativeFontFamily.ui,
+    fontWeight: '300',
     fontSize: nativeFontSize.base,
-    color: brandColors.wDim,
-    lineHeight: 22,
+    color: brandColors.sv3,
+    lineHeight: 24,
   },
 });

@@ -1,6 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { MobileTabBarProps } from './MobileTabBar.types';
-import { brandColors, nativeSpacing, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeFontFamily } from '../../tokens/native';
 
 export function MobileTabBar({
   items,
@@ -39,11 +39,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     height: 56,
-    backgroundColor: opalSurface.backgroundColor,
+    backgroundColor: 'rgba(11,14,17,0.92)',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: opalSurface.borderWidth,
-    borderColor: opalSurface.borderColor,
+    borderTopColor: 'rgba(255,255,255,0.06)',
     paddingBottom: 0, // Safe area handled by parent
   },
   item: {

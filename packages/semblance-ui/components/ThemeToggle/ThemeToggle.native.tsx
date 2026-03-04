@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: nativeFontSize.sm,
     fontFamily: nativeFontFamily.uiMedium,
-    color: brandColors.silver,
+    color: brandColors.sv1,
   },
   labelActive: {
     color: brandColors.text,

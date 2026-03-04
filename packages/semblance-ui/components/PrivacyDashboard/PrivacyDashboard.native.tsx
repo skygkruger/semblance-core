@@ -2,7 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { ActionLogItem } from '../ActionLogItem/ActionLogItem';
 import type { PrivacyDashboardProps } from './PrivacyDashboard.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function PrivacyDashboard({
   dataSources = 0,
@@ -28,29 +29,37 @@ export function PrivacyDashboard({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('dashboard.section_comparison')}</Text>
         <View style={styles.statsGrid}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{dataSources}</Text>
-            <Text style={styles.statLabel}>{t('dashboard.stat_data_sources')}</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text
-              style={[
-                styles.statValue,
-                cloudConnections === 0 && styles.statValueVeridian,
-              ]}
-            >
-              {cloudConnections}
-            </Text>
-            <Text style={styles.statLabel}>{t('dashboard.stat_cloud_connections')}</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{actionsLogged}</Text>
-            <Text style={styles.statLabel}>{t('dashboard.stat_actions_logged')}</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{timeSavedHours}h</Text>
-            <Text style={styles.statLabel}>{t('dashboard.stat_time_saved')}</Text>
-          </View>
+          <OpalBorderView borderRadius={nativeRadius.md} style={styles.statWrap}>
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{dataSources}</Text>
+              <Text style={styles.statLabel}>{t('dashboard.stat_data_sources')}</Text>
+            </View>
+          </OpalBorderView>
+          <OpalBorderView borderRadius={nativeRadius.md} style={styles.statWrap}>
+            <View style={styles.stat}>
+              <Text
+                style={[
+                  styles.statValue,
+                  cloudConnections === 0 && styles.statValueVeridian,
+                ]}
+              >
+                {cloudConnections}
+              </Text>
+              <Text style={styles.statLabel}>{t('dashboard.stat_cloud_connections')}</Text>
+            </View>
+          </OpalBorderView>
+          <OpalBorderView borderRadius={nativeRadius.md} style={styles.statWrap}>
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{actionsLogged}</Text>
+              <Text style={styles.statLabel}>{t('dashboard.stat_actions_logged')}</Text>
+            </View>
+          </OpalBorderView>
+          <OpalBorderView borderRadius={nativeRadius.md} style={styles.statWrap}>
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{timeSavedHours}h</Text>
+              <Text style={styles.statLabel}>{t('dashboard.stat_time_saved')}</Text>
+            </View>
+          </OpalBorderView>
         </View>
         <View style={styles.divider} />
       </View>
@@ -166,14 +175,16 @@ export function PrivacyDashboard({
       {proofVerified && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('dashboard.proof_of_privacy.title')}</Text>
-          <View style={styles.proof}>
-            <View style={styles.proofIcon}>
-              <Text style={styles.proofIconText}>{'\u26E8'}</Text>
+          <OpalBorderView borderRadius={nativeRadius.md}>
+            <View style={styles.proof}>
+              <View style={styles.proofIcon}>
+                <Text style={styles.proofIconText}>{'\u26E8'}</Text>
+              </View>
+              <Text style={styles.proofText}>
+                Zero unauthorized network connections verified
+              </Text>
             </View>
-            <Text style={styles.proofText}>
-              Zero unauthorized network connections verified
-            </Text>
-          </View>
+          </OpalBorderView>
         </View>
       )}
     </ScrollView>
@@ -188,49 +199,52 @@ const styles = StyleSheet.create({
   content: {
     padding: nativeSpacing.s4,
     paddingBottom: nativeSpacing.s12,
-    gap: nativeSpacing.s6,
+    gap: nativeSpacing.s8,
   },
   section: {
-    gap: nativeSpacing.s3,
+    gap: nativeSpacing.s4,
   },
   sectionTitle: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
-    color: brandColors.sv2,
+    color: brandColors.slate3,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.4,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: nativeSpacing.s4,
   },
-  stat: {
-    ...opalSurface,
-    borderRadius: nativeRadius.md,
-    padding: nativeSpacing.s4,
+  statWrap: {
     minWidth: 140,
     flex: 1,
+  },
+  stat: {
+    padding: nativeSpacing.s4,
     alignItems: 'center',
     gap: nativeSpacing.s1,
   },
   statValue: {
     fontFamily: nativeFontFamily.display,
-    fontSize: nativeFontSize.xl,
+    fontWeight: '300',
+    fontSize: nativeFontSize['2xl'],
     color: brandColors.white,
   },
   statValueVeridian: {
     color: brandColors.veridian,
   },
   statLabel: {
-    fontFamily: nativeFontFamily.ui,
+    fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
-    color: brandColors.sv2,
+    color: brandColors.sv1,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   divider: {
     height: 1,
-    backgroundColor: brandColors.b2,
-    marginTop: nativeSpacing.s2,
+    backgroundColor: brandColors.veridian,
+    maxWidth: 72,
   },
   loadingText: {
     fontFamily: nativeFontFamily.ui,
@@ -286,7 +300,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: nativeSpacing.s3,
     paddingVertical: nativeSpacing.s2,
     borderWidth: 1,
-    borderColor: 'rgba(110, 207, 163, 0.15)',
+    borderColor: brandColors.veridianWire,
     borderRadius: nativeRadius.sm,
   },
   exportBtnText: {
@@ -312,20 +326,18 @@ const styles = StyleSheet.create({
   },
   networkLabel: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.sm,
+    fontSize: nativeFontSize.base,
     color: brandColors.sv3,
   },
   networkValue: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.sm,
-    color: brandColors.white,
+    color: brandColors.sv2,
   },
   networkValueZero: {
     color: brandColors.veridian,
   },
   proof: {
-    ...opalSurface,
-    borderRadius: nativeRadius.md,
     padding: nativeSpacing.s4,
     flexDirection: 'row',
     alignItems: 'center',
@@ -345,6 +357,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
-    color: brandColors.veridian,
+    color: brandColors.sv3,
   },
 });

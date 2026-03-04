@@ -122,11 +122,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: nativeSpacing.s4,
     paddingVertical: nativeSpacing.s3,
     borderBottomWidth: 1,
-    borderBottomColor: brandColors.s2,
+    borderBottomColor: 'rgba(107, 95, 168, 0.15)',
   },
   title: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.base,
+    fontSize: nativeFontSize.sm,
     fontWeight: '500',
     color: brandColors.white,
   },
@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
   },
   fileName: {
     fontFamily: nativeFontFamily.mono,
-    fontSize: nativeFontSize.sm,
-    color: brandColors.sv3,
+    fontSize: 12,
+    color: brandColors.wDim,
   },
   fileMeta: {
     fontFamily: nativeFontFamily.ui,

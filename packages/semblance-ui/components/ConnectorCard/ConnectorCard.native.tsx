@@ -2,7 +2,8 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { ConnectorCardProps } from './ConnectorCard.types';
 import { statusConfig, formatLastSynced } from './ConnectorCard.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function ConnectorCard({
   id,
@@ -23,86 +24,91 @@ export function ConnectorCard({
   const isPending = status === 'pending';
 
   return (
-    <View
+    <OpalBorderView
       style={[styles.container, isConnected && styles.containerConnected]}
-      accessibilityLabel={`${displayName} connector`}
+      borderRadius={nativeRadius.lg}
+      backgroundColor="rgba(255,255,255,0.03)"
+      shimmerOverlay={false}
     >
-      <View style={styles.top}>
-        <View style={styles.info}>
-          {icon && <View style={styles.icon}>{icon}</View>}
-          <View style={styles.text}>
-            <View style={styles.nameRow}>
-              <Text style={styles.name}>{displayName}</Text>
-              {isPremium && (
-                <View style={styles.drBadge}>
-                  <Text style={styles.drBadgeText}>{t('card.dr_badge')}</Text>
-                </View>
-              )}
+      <View style={styles.inner}>
+        <View style={styles.top}>
+          <View style={styles.info}>
+            {icon && <View style={styles.icon}>{icon}</View>}
+            <View style={styles.text}>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{displayName}</Text>
+                {isPremium && (
+                  <View style={styles.drBadge}>
+                    <Text style={styles.drBadgeText}>{t('card.dr_badge')}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.description}>{description}</Text>
             </View>
-            <Text style={styles.description}>{description}</Text>
+          </View>
+
+          <View style={styles.actions}>
+            {!isConnected && !isPending && (
+              <Pressable
+                style={styles.btnConnect}
+                onPress={() => onConnect(id)}
+                hitSlop={8}
+              >
+                <Text style={styles.btnConnectText}>{t('card.btn_connect')}</Text>
+              </Pressable>
+            )}
+            {isConnected && (
+              <>
+                <Pressable
+                  style={styles.btnSync}
+                  onPress={() => onSync(id)}
+                  hitSlop={8}
+                >
+                  <Text style={styles.btnSyncText}>{t('card.btn_sync')}</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.btnDisconnect}
+                  onPress={() => onDisconnect(id)}
+                  hitSlop={8}
+                >
+                  <Text style={styles.btnDisconnectText}>{t('card.btn_disconnect')}</Text>
+                </Pressable>
+              </>
+            )}
+            {isPending && (
+              <Text style={styles.pendingText}>{t('card.pending_text')}</Text>
+            )}
           </View>
         </View>
 
-        <View style={styles.actions}>
-          {!isConnected && !isPending && (
-            <Pressable
-              style={styles.btnConnect}
-              onPress={() => onConnect(id)}
-              hitSlop={8}
-            >
-              <Text style={styles.btnConnectText}>{t('card.btn_connect')}</Text>
-            </Pressable>
-          )}
-          {isConnected && (
-            <>
-              <Pressable
-                style={styles.btnSync}
-                onPress={() => onSync(id)}
-                hitSlop={8}
-              >
-                <Text style={styles.btnSyncText}>{t('card.btn_sync')}</Text>
-              </Pressable>
-              <Pressable
-                style={styles.btnDisconnect}
-                onPress={() => onDisconnect(id)}
-                hitSlop={8}
-              >
-                <Text style={styles.btnDisconnectText}>{t('card.btn_disconnect')}</Text>
-              </Pressable>
-            </>
-          )}
-          {isPending && (
-            <Text style={styles.pendingText}>{t('card.pending_text')}</Text>
+        <View style={styles.statusRow}>
+          <View style={styles.statusLeft}>
+            <View style={[styles.statusDot, { backgroundColor: dotColor }]} />
+            <Text style={[styles.statusLabel, { color: textColor }]}>{t(`status.${status}`)}</Text>
+            {isConnected && userEmail && (
+              <Text style={styles.statusEmail}>{userEmail}</Text>
+            )}
+          </View>
+          {isConnected && lastSyncedAt && (
+            <Text style={styles.syncTime}>{t('card.synced_prefix', { time: formatLastSynced(lastSyncedAt) })}</Text>
           )}
         </View>
       </View>
-
-      <View style={styles.statusRow}>
-        <View style={styles.statusLeft}>
-          <View style={[styles.statusDot, { backgroundColor: dotColor }]} />
-          <Text style={[styles.statusLabel, { color: textColor }]}>{t(`status.${status}`)}</Text>
-          {isConnected && userEmail && (
-            <Text style={styles.statusEmail}>{userEmail}</Text>
-          )}
-        </View>
-        {isConnected && lastSyncedAt && (
-          <Text style={styles.syncTime}>{t('card.synced_prefix', { time: formatLastSynced(lastSyncedAt) })}</Text>
-        )}
-      </View>
-    </View>
+    </OpalBorderView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
-    padding: nativeSpacing.s4,
-    gap: nativeSpacing.s3,
+    // OpalBorderView handles border/background
   },
   containerConnected: {
-    borderLeftWidth: 3,
+    borderLeftWidth: 2,
     borderLeftColor: brandColors.veridian,
+  },
+  inner: {
+    padding: nativeSpacing.s4,
+    gap: nativeSpacing.s3,
   },
   top: {
     flexDirection: 'row',
@@ -133,42 +139,43 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: nativeFontFamily.uiMedium,
-    fontSize: nativeFontSize.base,
-    color: brandColors.white,
+    fontSize: 14,
+    color: '#C8D4E0',
   },
   drBadge: {
-    backgroundColor: 'rgba(110, 207, 163, 0.12)',
+    backgroundColor: 'rgba(201,168,92,0.13)',
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: nativeRadius.sm,
   },
   drBadgeText: {
     fontFamily: nativeFontFamily.mono,
-    fontSize: 9,
-    color: brandColors.veridian,
-    letterSpacing: 0.5,
+    fontSize: nativeFontSize.xs,
+    color: '#C9A85C',
+    letterSpacing: 0.44,
   },
   description: {
     fontFamily: nativeFontFamily.ui,
+    fontWeight: '300',
     fontSize: nativeFontSize.sm,
-    color: brandColors.sv2,
+    color: brandColors.sv1,
   },
   actions: {
     flexDirection: 'row',
-    gap: nativeSpacing.s2,
+    gap: 6,
     alignItems: 'center',
   },
   btnConnect: {
     paddingHorizontal: nativeSpacing.s3,
-    paddingVertical: nativeSpacing.s2,
+    paddingVertical: 6,
     borderRadius: nativeRadius.sm,
     borderWidth: 1,
-    borderColor: brandColors.veridian,
+    borderColor: brandColors.veridianWire,
     minHeight: 44,
     justifyContent: 'center',
   },
   btnConnectText: {
-    fontFamily: nativeFontFamily.uiMedium,
+    fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
     color: brandColors.veridian,
   },
@@ -176,44 +183,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: nativeSpacing.s3,
     paddingVertical: nativeSpacing.s2,
     borderRadius: nativeRadius.sm,
-    borderWidth: 1,
-    borderColor: brandColors.b3,
+    backgroundColor: 'rgba(133,147,164,0.1)',
     minHeight: 44,
     justifyContent: 'center',
   },
   btnSyncText: {
-    fontFamily: nativeFontFamily.uiMedium,
+    fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
-    color: brandColors.sv3,
+    color: brandColors.silver,
   },
   btnDisconnect: {
-    paddingHorizontal: nativeSpacing.s3,
-    paddingVertical: nativeSpacing.s2,
+    paddingHorizontal: nativeSpacing.s2,
+    paddingVertical: nativeSpacing.s1,
     minHeight: 44,
     justifyContent: 'center',
   },
   btnDisconnectText: {
     fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.sm,
+    fontSize: nativeFontSize.xs,
     color: brandColors.sv1,
   },
   pendingText: {
-    fontFamily: nativeFontFamily.ui,
-    fontSize: nativeFontSize.sm,
+    fontFamily: nativeFontFamily.mono,
+    fontSize: nativeFontSize.xs,
     color: brandColors.amber,
+    letterSpacing: 0.44,
   },
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
     borderTopWidth: 1,
-    borderTopColor: brandColors.b1,
-    paddingTop: nativeSpacing.s3,
+    borderTopColor: 'rgba(255,255,255,0.04)',
+    marginTop: 12,
+    paddingTop: 8,
   },
   statusLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: nativeSpacing.s2,
+    gap: 6,
   },
   statusDot: {
     width: 6,
@@ -223,6 +233,7 @@ const styles = StyleSheet.create({
   statusLabel: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
+    letterSpacing: 0.22,
   },
   statusEmail: {
     fontFamily: nativeFontFamily.mono,

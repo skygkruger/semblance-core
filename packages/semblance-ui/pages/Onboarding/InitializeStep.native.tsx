@@ -4,7 +4,8 @@ import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
 import { Button } from '../../components/Button/Button';
 import { SkeletonCard } from '../../components/SkeletonCard/SkeletonCard';
 import type { InitializeStepProps, ModelDownload } from './InitializeStep.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView } from '../../components/OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
@@ -19,7 +20,8 @@ function DownloadRow({ download, completeLabel }: { download: ModelDownload; com
   const isComplete = download.status === 'complete';
 
   return (
-    <View style={dlStyles.card}>
+    <OpalBorderView borderRadius={nativeRadius.md}>
+      <View style={dlStyles.card}>
       <View style={dlStyles.header}>
         <Text style={dlStyles.name}>{download.modelName}</Text>
         <Text style={[dlStyles.status, isComplete && dlStyles.statusDone]}>
@@ -30,14 +32,13 @@ function DownloadRow({ download, completeLabel }: { download: ModelDownload; com
         value={isComplete ? 100 : progress}
         indeterminate={download.status === 'pending'}
       />
-    </View>
+      </View>
+    </OpalBorderView>
   );
 }
 
 const dlStyles = StyleSheet.create({
   card: {
-    ...opalSurface,
-    borderRadius: nativeRadius.md,
     padding: nativeSpacing.s4,
     gap: nativeSpacing.s2,
   },
@@ -88,6 +89,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
             <Text style={styles.aiNameShimmer}>{aiName || 'Semblance'}</Text>
             {t('initialize.knowledge_moment_suffix')}
           </Text>
+          <OpalBorderView borderRadius={nativeRadius.lg}>
           <View style={styles.momentCard}>
             <Text style={styles.momentTitle}>{knowledgeMoment.title}</Text>
             <Text style={styles.momentSummary}>{knowledgeMoment.summary}</Text>
@@ -101,6 +103,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
               </View>
             )}
           </View>
+          </OpalBorderView>
         </>
       )}
 
@@ -155,8 +158,6 @@ const styles = StyleSheet.create({
     gap: nativeSpacing.s3,
   },
   momentCard: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
     padding: nativeSpacing.s5,
     width: '100%',
     gap: nativeSpacing.s2,

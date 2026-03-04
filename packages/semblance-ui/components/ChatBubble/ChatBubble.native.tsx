@@ -1,21 +1,43 @@
 import { View, Text, StyleSheet } from 'react-native';
 import type { ChatBubbleProps } from './ChatBubble.types';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, opalSurface } from '../../tokens/native';
+import { OpalBorderView, USER_BORDER_COLORS } from '../OpalBorderView/OpalBorderView.native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function ChatBubble({ role, content, timestamp, streaming = false }: ChatBubbleProps) {
   const isUser = role === 'user';
 
+  const bubbleContent = (
+    <>
+      <Text style={styles.content}>
+        {content}
+        {streaming ? '\u2588' : ''}
+      </Text>
+      {timestamp ? (
+        <Text style={styles.timestamp}>{timestamp}</Text>
+      ) : null}
+    </>
+  );
+
   return (
     <View style={[styles.row, isUser && styles.rowUser]}>
-      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
-        <Text style={styles.content}>
-          {content}
-          {streaming ? '\u2588' : ''}
-        </Text>
-        {timestamp ? (
-          <Text style={styles.timestamp}>{timestamp}</Text>
-        ) : null}
-      </View>
+      {isUser ? (
+        <OpalBorderView
+          style={styles.bubble}
+          borderRadius={nativeRadius.lg}
+          backgroundColor="rgba(110,207,163,0.03)"
+          borderColors={USER_BORDER_COLORS}
+          shimmerOpacity={0.35}
+        >
+          {bubbleContent}
+        </OpalBorderView>
+      ) : (
+        <OpalBorderView
+          style={styles.bubble}
+          borderRadius={nativeRadius.lg}
+        >
+          {bubbleContent}
+        </OpalBorderView>
+      )}
     </View>
   );
 }
@@ -33,25 +55,17 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
     paddingHorizontal: nativeSpacing.s4,
     paddingVertical: nativeSpacing.s3,
-    borderRadius: nativeRadius.lg,
-  },
-  bubbleUser: {
-    backgroundColor: 'rgba(110,207,163,0.12)',
-  },
-  bubbleAssistant: {
-    ...opalSurface,
-    borderRadius: nativeRadius.lg,
   },
   content: {
     fontSize: nativeFontSize.base,
     fontFamily: nativeFontFamily.ui,
     color: brandColors.text,
-    lineHeight: 22,
+    lineHeight: 22.5,
   },
   timestamp: {
     fontSize: nativeFontSize.xs,
-    fontFamily: nativeFontFamily.ui,
-    color: brandColors.silver,
+    fontFamily: nativeFontFamily.mono,
+    color: brandColors.sv2,
     marginTop: nativeSpacing.s2,
   },
 });
