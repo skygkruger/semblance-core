@@ -8,14 +8,62 @@
 }
 
 .model-download__item {
+  position: relative;
+  overflow: hidden;
   text-align: left;
+  padding: var(--sp-5);
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#121518, #121518) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+}
+
+/* Opal shimmer layer */
+.model-download__item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent                    0%,
+    transparent                   15%,
+    rgba(74,  63, 107, 0.0)       20%,
+    rgba(107, 95, 168, 0.06)      32%,
+    rgba(154, 168, 184, 0.08)     44%,
+    rgba(216, 221, 232, 0.11)     52%,
+    rgba(216, 221, 232, 0.08)     58%,
+    rgba(154, 168, 184, 0.06)     66%,
+    rgba(107, 95, 168, 0.03)      76%,
+    transparent                   85%,
+    transparent                  100%
+  );
+  background-size: 200% 100%;
+  animation: opal-sweep 8s linear infinite;
+  animation-delay: -4s;
+  mix-blend-mode: screen;
+}
+
+/* Content above shimmer */
+.model-download__item > * {
+  position: relative;
+  z-index: 1;
 }
 
 .model-download__header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  margin-bottom: var(--sp-1);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
 }
 
 .model-download__name {
@@ -23,25 +71,32 @@
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--w-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .model-download__percent {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--sv1);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .model-download__meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--sv1);
-  margin-top: var(--sp-1);
+  margin-top: var(--sp-2);
 }
 
 .model-download__complete {
+  font-family: var(--fm);
   color: var(--v);
 }
 
@@ -52,6 +107,7 @@
 }
 
 .model-download__error-text {
+  font-family: var(--fm);
   color: var(--rust);
 }
 
