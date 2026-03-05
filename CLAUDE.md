@@ -17,7 +17,7 @@
 
 **Before doing ANY work, read this document:**
 
-1. **`docs/DESIGN_BIBLE.md`** — Canonical design bible. Defines colors, typography (DM Sans / Fraunces / DM Mono / Josefin Sans), spacing, opal texture system, opal border system, shimmer effects, golden standard component patterns, severity colors, motion, responsive breakpoints, the reactive dot matrix background, CSS architecture conventions, and native tokens. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now.
+1. **Design Bible** (located in the private `semblence-representative` repo at `docs/DESIGN_BIBLE.md`, path: `C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\DESIGN_BIBLE.md`) — Canonical design bible. Defines colors, typography (DM Sans / Fraunces / DM Mono / Josefin Sans), spacing, opal texture system, opal border system, shimmer effects, golden standard component patterns, severity colors, motion, responsive breakpoints, the reactive dot matrix background, CSS architecture conventions, and native tokens. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now. This file is in the private repo intentionally — do NOT copy it into the public semblance-core repo.
 
 This instruction survives compaction.
 
@@ -137,7 +137,7 @@ No cloud sync. No cloud backup. No remote storage of any kind. If the device is 
 | Structured Storage | SQLite | Relational data, action logs, audit trail |
 | Embedding | all-MiniLM-L6-v2 / nomic-embed-text | Local only. No cloud embedding APIs. |
 | Agent Framework | Custom orchestration with function-calling | Typed action requests, approval flows |
-| UI Framework | React + Tailwind CSS + Radix UI + semblance-ui | See DESIGN_BIBLE.md |
+| UI Framework | React + Tailwind CSS + Radix UI + semblance-ui | See Design Bible (private repo) |
 | Shared Logic | TypeScript (strict mode) | Business logic shared desktop/mobile |
 | Performance Core | Rust | Embedding, search, crypto, IPC |
 
@@ -211,7 +211,7 @@ Add dependencies conservatively. Every dependency is attack surface. Before addi
 /
 ├── CLAUDE.md                        # This file — read first, always
 ├── docs/
-│   ├── DESIGN_BIBLE.md                  # Canonical design bible — MANDATORY READ before any UI work
+│   ├── (DESIGN_BIBLE.md lives in private semblence-representative repo)
 │   ├── ARCHITECTURE.md              # System architecture deep-dive
 │   ├── PRIVACY.md                   # Privacy architecture and audit methodology
 │   └── decisions/                   # Orbital Director architecture decisions
@@ -389,7 +389,7 @@ If desktop is unavailable, mobile always runs locally with the best available mo
 
 ## Design System
 
-**Read `/docs/DESIGN_BIBLE.md` before creating or modifying ANY UI component.**
+**Read the Design Bible before creating or modifying ANY UI component.** (Located in private repo: `semblence-representative/docs/DESIGN_BIBLE.md`)
 
 The design bible is the sole canonical visual reference. It covers brand philosophy, colors, typography, spacing, opal texture/border systems, shimmer effects, golden standard component patterns, severity colors, motion, responsive breakpoints, the reactive dot matrix, and CSS architecture conventions.
 Colors: Background #0B0E11, Veridian #6ECFA3, Caution #B09A8A, Critical #B07A8A, Silver #8593A4.
