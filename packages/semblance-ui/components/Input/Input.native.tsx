@@ -5,7 +5,7 @@ import { OpalBorderView, OPAL_BORDER_COLORS } from '../OpalBorderView/OpalBorder
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 const FOCUSED_BORDER_COLORS = Array(7).fill('rgba(110,207,163,0.4)') as string[];
-const ERROR_BORDER_COLORS = Array(7).fill(brandColors.rust) as string[];
+const ERROR_BORDER_COLORS = Array(7).fill(brandColors.critical) as string[];
 
 export function Input({
   value,
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   errorMessage: {
-    color: brandColors.rust,
+    color: brandColors.critical,
     fontSize: nativeFontSize.xs,
     fontFamily: nativeFontFamily.mono,
     textTransform: 'uppercase',

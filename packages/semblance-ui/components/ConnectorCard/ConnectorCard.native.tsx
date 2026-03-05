@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     color: '#C8D4E0',
   },
   drBadge: {
-    backgroundColor: 'rgba(201,168,92,0.13)',
+    backgroundColor: 'rgba(176,154,138,0.13)',
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: nativeRadius.sm,
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   drBadgeText: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
-    color: '#C9A85C',
+    color: '#B09A8A',
     letterSpacing: 0.44,
   },
   description: {
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   pendingText: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
-    color: brandColors.amber,
+    color: brandColors.caution,
     letterSpacing: 0.44,
   },
   statusRow: {

@@ -1,5 +1,7 @@
-// Design tokens: Typography
-// Source of truth: docs/DESIGN_SYSTEM.md
+// DEPRECATED — pre-v3 typography tokens. Do NOT use these values.
+// Runtime source of truth: tokens.css (CSS custom properties)
+// Specification: docs/DESIGN_BIBLE.md
+// Correct typefaces: DM Sans (--fb), Fraunces (--fd), DM Mono (--fm), Josefin Sans (wordmark)
 
 export const fontFamily = {
   ui: 'Inter, system-ui, -apple-system, sans-serif',

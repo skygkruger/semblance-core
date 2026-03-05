@@ -86,9 +86,9 @@
 }
 
 .reminder-card__action-btn--dismiss {
-  color: var(--amber);
+  color: var(--caution);
 }
 
 .reminder-card__action-btn--dismiss:hover {
-  background: rgba(201, 168, 92, 0.1);
+  background: rgba(176, 154, 138, 0.1);
 }

@@ -110,7 +110,7 @@ export function FinancialDashboard({
 
           {forgottenCharges.length > 0 && (
             <div className="fin-dash__section">
-              <h4 className="fin-dash__section-title" style={{ color: '#C97B6E' }}>
+              <h4 className="fin-dash__section-title" style={{ color: '#B07A8A' }}>
                 Potentially Forgotten ({forgottenCharges.length})
               </h4>
               {forgottenCharges.map((charge) => (

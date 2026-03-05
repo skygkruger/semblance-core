@@ -29,8 +29,8 @@ const licenseConfigs: Record<string, { label: string; badge: string; badgeClass:
   expired: {
     label: 'Expired',
     badge: 'EXPIRED',
-    badgeClass: 'settings-badge settings-badge--rust',
-    cardClass: 'settings-card settings-card--rust',
+    badgeClass: 'settings-badge settings-badge--critical',
+    cardClass: 'settings-card settings-card--critical',
     desc: 'License expired — core features still available',
   },
 };
@@ -182,14 +182,14 @@ export function SettingsAccount({
 
         {confirmDeactivate && (
           <div style={{ padding: '12px 20px' }}>
-            <p style={{ fontSize: 13, color: '#C97B6E', marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: '#B07A8A', marginBottom: 8 }}>
               {t('account.deactivate_confirm_body')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
                 style={{
-                  background: '#C97B6E',
+                  background: '#B07A8A',
                   border: 'none',
                   color: '#0B0E11',
                   fontSize: 13,

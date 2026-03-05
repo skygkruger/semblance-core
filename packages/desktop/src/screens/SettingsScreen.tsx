@@ -589,10 +589,10 @@ export function SettingsScreen() {
             <p className="settings-page__text settings-page__text--success">Synced successfully</p>
           )}
           {syncStatus === 'no_peer' && (
-            <p className="settings-page__text settings-page__text--amber">No devices found on this network</p>
+            <p className="settings-page__text settings-page__text--caution">No devices found on this network</p>
           )}
           {syncStatus === 'error' && (
-            <p className="settings-page__text settings-page__text--rust">Sync failed — check that both devices are on the same network</p>
+            <p className="settings-page__text settings-page__text--critical">Sync failed — check that both devices are on the same network</p>
           )}
           <p className="settings-page__text settings-page__text--secondary">
             {lastSynced ? `Last synced: ${new Date(lastSynced).toLocaleString()}` : 'Last synced: Never'}

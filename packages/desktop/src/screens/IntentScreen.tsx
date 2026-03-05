@@ -210,7 +210,7 @@ export function IntentScreen() {
               <button
                 type="button"
                 onClick={() => handleRemoveLimit(limit.id)}
-                style={{ ...btnGhost, color: '#C97B6E', fontSize: 12 }}
+                style={{ ...btnGhost, color: '#B07A8A', fontSize: 12 }}
               >
                 {t('button.remove')}
               </button>
@@ -263,7 +263,7 @@ export function IntentScreen() {
               <button
                 type="button"
                 onClick={() => handleRemoveValue(value.id)}
-                style={{ ...btnGhost, color: '#C97B6E', fontSize: 12 }}
+                style={{ ...btnGhost, color: '#B07A8A', fontSize: 12 }}
               >
                 {t('button.remove')}
               </button>
@@ -301,8 +301,8 @@ export function IntentScreen() {
                   fontFamily: 'var(--fm)',
                   padding: '2px 6px',
                   borderRadius: 4,
-                  backgroundColor: obs.type === 'drift' ? '#C9A85C20' : obs.type === 'conflict' ? '#C97B6E20' : '#6ECFA320',
-                  color: obs.type === 'drift' ? '#C9A85C' : obs.type === 'conflict' ? '#C97B6E' : '#6ECFA3',
+                  backgroundColor: obs.type === 'drift' ? '#B09A8A20' : obs.type === 'conflict' ? '#B07A8A20' : '#6ECFA320',
+                  color: obs.type === 'drift' ? '#B09A8A' : obs.type === 'conflict' ? '#B07A8A' : '#6ECFA3',
                   flexShrink: 0,
                   marginTop: 2,
                 }}>

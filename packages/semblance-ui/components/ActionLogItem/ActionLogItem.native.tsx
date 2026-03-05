@@ -5,8 +5,8 @@ import { brandColors, nativeSpacing, nativeFontSize, nativeFontFamily } from '..
 
 const statusColors: Record<ActionStatus, string> = {
   completed: brandColors.veridian,
-  pending: brandColors.amber,
-  failed: brandColors.rust,
+  pending: brandColors.caution,
+  failed: brandColors.critical,
   undone: brandColors.sv1,
 };
 

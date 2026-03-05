@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     borderColor: brandColors.s2,
   },
   fileError: {
-    borderColor: brandColors.rust,
+    borderColor: brandColors.critical,
   },
   fileInfo: {
     flex: 1,

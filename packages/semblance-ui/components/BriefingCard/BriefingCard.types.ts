@@ -17,7 +17,7 @@ export interface BriefingCardProps {
 
 export const DOT_COLORS: Record<BriefingItemType, string> = {
   action:  '#6ECFA3',
-  pending: '#C9A85C',
+  pending: '#B09A8A',
   insight: '#8593A4',
 };
 

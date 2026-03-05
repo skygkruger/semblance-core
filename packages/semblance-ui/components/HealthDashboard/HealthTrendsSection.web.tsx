@@ -79,12 +79,12 @@ export function HealthTrendsSection({ trends, hasHealthKit }: HealthTrendsSectio
     activeTab === 'mood' || activeTab === 'energy' ? [1, 5] : undefined;
 
   const metricColor: Record<MetricTab, string> = {
-    mood: '#C9A85C',
+    mood: '#B09A8A',
     energy: '#6ECFA3',
     water: '#8593A4',
-    sleep: '#C9A85C',
+    sleep: '#B09A8A',
     steps: '#6ECFA3',
-    heartRate: '#C97B6E',
+    heartRate: '#B07A8A',
   };
 
   return (

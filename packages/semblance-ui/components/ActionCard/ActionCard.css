@@ -42,7 +42,7 @@
 
 .action-card__dot--success { background: #6ECFA3; }
 .action-card__dot--pending { background: var(--v); }
-.action-card__dot--error { background: var(--rust); }
+.action-card__dot--error { background: var(--critical); }
 .action-card__dot--rejected { background: var(--sv1); }
 
 /* ─── Content area ─── */

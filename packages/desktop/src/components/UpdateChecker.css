@@ -81,5 +81,5 @@
 }
 
 .update-banner__error {
-  color: var(--rust);
+  color: var(--critical);
 }

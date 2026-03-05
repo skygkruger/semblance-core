@@ -23,11 +23,11 @@ type Story = StoryObj<typeof SettingsConnections>;
 
 const allConnections = [
   { id: 'email', name: 'Email (IMAP)', category: 'communication', categoryColor: '#6ECFA3', isConnected: true, lastSync: '2m ago', entityCount: 4821 },
-  { id: 'calendar', name: 'Calendar (CalDAV)', category: 'scheduling', categoryColor: '#C9A85C', isConnected: true, lastSync: '5m ago', entityCount: 342 },
+  { id: 'calendar', name: 'Calendar (CalDAV)', category: 'scheduling', categoryColor: '#B09A8A', isConnected: true, lastSync: '5m ago', entityCount: 342 },
   { id: 'contacts', name: 'Contacts', category: 'people', categoryColor: '#8593A4', isConnected: true, lastSync: '1h ago', entityCount: 1203 },
   { id: 'files', name: 'Local Files', category: 'documents', categoryColor: '#A8B4C0', isConnected: true, lastSync: '15m ago', entityCount: 892 },
   { id: 'notes', name: 'Notes (Obsidian)', category: 'documents', categoryColor: '#A8B4C0', isConnected: false, lastSync: null, entityCount: 0 },
-  { id: 'health', name: 'Apple Health', category: 'health', categoryColor: '#C97B6E', isConnected: false, lastSync: null, entityCount: 0 },
+  { id: 'health', name: 'Apple Health', category: 'health', categoryColor: '#B07A8A', isConnected: false, lastSync: null, entityCount: 0 },
 ];
 
 export const MixedConnections: Story = {

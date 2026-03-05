@@ -12,7 +12,7 @@ function formatTierLabel(tier: string): string {
 const STATUS_DOT_COLORS: Record<ActionCardProps['status'], string> = {
   success: brandColors.veridian,
   pending: brandColors.veridian,
-  error: brandColors.rust,
+  error: brandColors.critical,
   rejected: brandColors.sv1,
 };
 

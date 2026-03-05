@@ -99,12 +99,12 @@ const styles = StyleSheet.create({
     backgroundColor: brandColors.s1,
   },
   inputError: {
-    borderColor: brandColors.rust,
+    borderColor: brandColors.critical,
   },
   errorText: {
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.xs,
-    color: brandColors.rust,
+    color: brandColors.critical,
     marginTop: -nativeSpacing.s2,
   },
 });

@@ -20,8 +20,8 @@ export const Default: StoryObj<typeof HorizontalBarChart> = {
   args: {
     data: [
       { label: 'Food & Dining', value: 842.50, percentage: 35, color: '#6ECFA3' },
-      { label: 'Shopping', value: 623.00, percentage: 26, color: '#C9A85C' },
-      { label: 'Transportation', value: 412.30, percentage: 17, color: '#C97B6E' },
+      { label: 'Shopping', value: 623.00, percentage: 26, color: '#B09A8A' },
+      { label: 'Transportation', value: 412.30, percentage: 17, color: '#B07A8A' },
       { label: 'Entertainment', value: 289.99, percentage: 12, color: '#8593A4' },
       { label: 'Subscriptions', value: 145.00, percentage: 6, color: '#A8B4C0' },
       { label: 'Other', value: 96.10, percentage: 4, color: '#5E6B7C' },
@@ -72,7 +72,7 @@ export const MoodTrend: StoryObj<typeof TrendLineChart> = {
       { date: '2026-02-07', value: 4 },
     ],
     yDomain: [1, 5],
-    color: '#C9A85C',
+    color: '#B09A8A',
   },
 };
 
@@ -126,7 +126,7 @@ export const BarSleep: StoryObj<typeof BarChart> = {
       { label: 'Sat', value: 9.1 },
       { label: 'Sun', value: 8.3 },
     ],
-    color: '#C9A85C',
+    color: '#B09A8A',
   },
 };
 

@@ -17,7 +17,7 @@
 
 **Before doing ANY work, read this document:**
 
-1. **`docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md`** — Canonical brand and design system reference. Defines colors, typography (DM Sans / Fraunces / DM Mono), spacing, logo (Mirrored S), component patterns, motion, responsive breakpoints, the living dot field background, and the biometric approval briefing card. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now.
+1. **`docs/DESIGN_BIBLE.md`** — Canonical design bible. Defines colors, typography (DM Sans / Fraunces / DM Mono / Josefin Sans), spacing, opal texture system, opal border system, shimmer effects, golden standard component patterns, severity colors, motion, responsive breakpoints, the reactive dot matrix background, CSS architecture conventions, and native tokens. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now.
 
 This instruction survives compaction.
 
@@ -137,7 +137,7 @@ No cloud sync. No cloud backup. No remote storage of any kind. If the device is 
 | Structured Storage | SQLite | Relational data, action logs, audit trail |
 | Embedding | all-MiniLM-L6-v2 / nomic-embed-text | Local only. No cloud embedding APIs. |
 | Agent Framework | Custom orchestration with function-calling | Typed action requests, approval flows |
-| UI Framework | React + Tailwind CSS + Radix UI + semblance-ui | See SEMBLANCE_BRAND_DESIGN_SYSTEM.md |
+| UI Framework | React + Tailwind CSS + Radix UI + semblance-ui | See DESIGN_BIBLE.md |
 | Shared Logic | TypeScript (strict mode) | Business logic shared desktop/mobile |
 | Performance Core | Rust | Embedding, search, crypto, IPC |
 
@@ -211,7 +211,7 @@ Add dependencies conservatively. Every dependency is attack surface. Before addi
 /
 ├── CLAUDE.md                        # This file — read first, always
 ├── docs/
-│   ├── SEMBLANCE_BRAND_DESIGN_SYSTEM.md  # Canonical brand + design reference — MANDATORY READ before any UI work
+│   ├── DESIGN_BIBLE.md                  # Canonical design bible — MANDATORY READ before any UI work
 │   ├── ARCHITECTURE.md              # System architecture deep-dive
 │   ├── PRIVACY.md                   # Privacy architecture and audit methodology
 │   └── decisions/                   # Orbital Director architecture decisions
@@ -389,13 +389,13 @@ If desktop is unavailable, mobile always runs locally with the best available mo
 
 ## Design System
 
-**Read `/docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md` before creating or modifying ANY UI component.**
+**Read `/docs/DESIGN_BIBLE.md` before creating or modifying ANY UI component.**
 
-The brand and design system is the canonical visual reference. It defines brand philosophy, colors, typography (DM Sans (UI), Fraunces (brand moments), DM Mono (data/code/monospace)), spacing (4px base unit), the Mirrored S logo, component patterns, motion, responsive breakpoints, the living dot field background, and the biometric approval briefing card.
-Design system: Trellis. Colors: Background #0B0E11, Veridian #6ECFA3, Amber #C9A85C, Rust #C97B6E, Silver #8593A4.
+The design bible is the sole canonical visual reference. It covers brand philosophy, colors, typography, spacing, opal texture/border systems, shimmer effects, golden standard component patterns, severity colors, motion, responsive breakpoints, the reactive dot matrix, and CSS architecture conventions.
+Colors: Background #0B0E11, Veridian #6ECFA3, Caution #B09A8A, Critical #B07A8A, Silver #8593A4.
 Never use var() in React inline styles — hex values only.
 
-Key principles (details in SEMBLANCE_BRAND_DESIGN_SYSTEM.md):
+Key principles (details in DESIGN_BIBLE.md):
 - Agency on your behalf — "I've got this. You don't need to worry."
 - Warm darkness with luminous accent — deep backgrounds, Veridian teal life signal
 - Understated intelligence — anticipatory, "already done," never showy
@@ -508,7 +508,7 @@ Orbital Directors (Human + Claude in conversation)
 
 Claude Code (this terminal)
     → Executes implementation based on Orbital Director decisions
-    → References this CLAUDE.md and SEMBLANCE_BRAND_DESIGN_SYSTEM.md
+    → References this CLAUDE.md and DESIGN_BIBLE.md
     → Escalates when outside guardrails
 
 Gemini (Antigravity)

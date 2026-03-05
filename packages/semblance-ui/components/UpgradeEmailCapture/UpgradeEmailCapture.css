@@ -23,7 +23,7 @@
 .upgrade-capture__error {
   font-family: var(--fb);
   font-size: var(--text-xs);
-  color: var(--rust);
+  color: var(--critical);
   margin: var(--sp-1) 0 0 0;
 }
 

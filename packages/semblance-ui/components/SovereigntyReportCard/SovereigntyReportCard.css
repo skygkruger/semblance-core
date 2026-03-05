@@ -185,7 +185,7 @@
 }
 
 .sovereignty-report__status-value--broken {
-  color: var(--amber);
+  color: var(--caution);
 }
 
 .sovereignty-report__fingerprint {

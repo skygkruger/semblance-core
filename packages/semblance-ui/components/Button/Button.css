@@ -116,7 +116,7 @@
   border-color: var(--b1);
 }
 .btn--destructive:hover {
-  color: var(--rust);
-  border-color: var(--rust);
-  background: rgba(201, 123, 110, 0.06);
+  color: var(--critical);
+  border-color: var(--critical);
+  background: rgba(176, 122, 138, 0.06);
 }

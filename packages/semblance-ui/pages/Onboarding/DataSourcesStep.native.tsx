@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   nudge: {
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
-    color: brandColors.amber,
+    color: brandColors.caution,
     textAlign: 'center',
   },
   actions: {

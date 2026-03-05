@@ -7,12 +7,12 @@ interface CategoryBreakdownSectionProps {
 
 const CATEGORY_COLORS: Record<string, string> = {
   'Housing': '#6ECFA3',
-  'Transportation': '#C9A85C',
-  'Food & Dining': '#C97B6E',
+  'Transportation': '#B09A8A',
+  'Food & Dining': '#B07A8A',
   'Shopping': '#8593A4',
   'Entertainment': '#A8B4C0',
   'Health': '#6ECFA3',
-  'Personal': '#C9A85C',
+  'Personal': '#B09A8A',
   'Financial': '#5E6B7C',
   'Subscriptions': '#CDD4DB',
   'Income': '#6ECFA3',

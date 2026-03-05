@@ -117,7 +117,7 @@ export function LocationSettingsSection() {
             <button
               type="button"
               className="settings-ghost-button"
-              style={{ color: '#C97B6E', borderColor: 'rgba(201,123,110,0.3)' }}
+              style={{ color: '#B07A8A', borderColor: 'rgba(176,122,138,0.3)' }}
               onClick={() => dispatch({ type: 'CLEAR_LOCATION_HISTORY' })}
             >
               Clear location history

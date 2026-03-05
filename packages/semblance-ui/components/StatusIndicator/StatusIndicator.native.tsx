@@ -5,8 +5,8 @@ import { brandColors } from '../../tokens/native';
 
 const statusColors: Record<IndicatorStatus, string> = {
   success: brandColors.veridian,
-  accent: brandColors.amber,
-  attention: brandColors.rust,
+  accent: brandColors.caution,
+  attention: brandColors.critical,
   muted: brandColors.sv2,
 };
 

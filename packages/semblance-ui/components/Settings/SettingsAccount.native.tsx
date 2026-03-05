@@ -10,14 +10,14 @@ const badgeColors: Record<string, { text: string; bg: string }> = {
   opal: { text: '#9AA8B8', bg: 'rgba(154, 168, 184, 0.1)' },
   veridian: { text: '#6ECFA3', bg: 'rgba(110, 207, 163, 0.1)' },
   muted: { text: '#8593A4', bg: 'rgba(133, 147, 164, 0.1)' },
-  rust: { text: '#C97B6E', bg: 'rgba(201, 123, 110, 0.1)' },
+  critical: { text: '#B07A8A', bg: 'rgba(176, 122, 138, 0.1)' },
 };
 
 const cardBorderColors: Record<string, string> = {
   opal: 'rgba(154, 168, 184, 0.4)',
   active: 'rgba(110, 207, 163, 0.4)',
   default: 'rgba(255, 255, 255, 0.09)',
-  rust: 'rgba(201, 123, 110, 0.4)',
+  critical: 'rgba(176, 122, 138, 0.4)',
 };
 
 export function SettingsAccount({
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     fontFamily: nativeFontFamily.mono,
   },
   sectionHeaderDanger: {
-    color: brandColors.rust,
+    color: brandColors.critical,
   },
   card: {
     marginHorizontal: nativeSpacing.s4,
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   dangerLabel: {
-    color: brandColors.rust,
+    color: brandColors.critical,
   },
   nameGradient: {
     // React Native cannot do CSS text gradients; use veridian color as a fallback
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   },
   confirmText: {
     fontSize: nativeFontSize.sm,
-    color: brandColors.rust,
+    color: brandColors.critical,
     marginBottom: nativeSpacing.s2,
   },
   confirmRow: {
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   destructiveButton: {
-    backgroundColor: brandColors.rust,
+    backgroundColor: brandColors.critical,
     borderRadius: nativeRadius.sm,
     paddingVertical: nativeSpacing.s2,
     paddingHorizontal: nativeSpacing.s4,

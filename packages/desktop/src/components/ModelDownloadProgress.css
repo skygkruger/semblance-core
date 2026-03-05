@@ -108,7 +108,7 @@
 
 .model-download__error-text {
   font-family: var(--fm);
-  color: var(--rust);
+  color: var(--critical);
 }
 
 .model-download__retry {

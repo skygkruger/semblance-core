@@ -42,7 +42,7 @@ function getConnections(
 
 const DOT_COLORS: Record<NodeType, string> = {
   person: '#6ECFA3',
-  calendar: '#C9A85C',
+  calendar: '#B09A8A',
   file: '#C8CAD0',
   email: '#8593A4',
   topic: '#4A5568',

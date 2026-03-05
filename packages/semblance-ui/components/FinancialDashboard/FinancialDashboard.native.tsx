@@ -11,8 +11,8 @@ function formatCurrency(amount: number): string {
 
 const CATEGORY_COLORS: Record<string, string> = {
   'Housing': brandColors.veridian,
-  'Transportation': brandColors.amber,
-  'Food & Dining': brandColors.rust,
+  'Transportation': brandColors.caution,
+  'Food & Dining': brandColors.critical,
   'Shopping': brandColors.silver2,
   'Entertainment': brandColors.silver3,
   'Other': brandColors.silver1,

@@ -55,8 +55,8 @@
 .settings-page__text--tertiary { color: #5E6B7C; font-size: 12px; font-weight: 300; }
 .settings-page__text--hint { color: #5E6B7C; font-size: 12px; margin-top: 4px; }
 .settings-page__text--success { font-family: var(--fm); font-size: 12px; color: #6ECFA3; }
-.settings-page__text--amber { font-family: var(--fm); font-size: 12px; color: #C9A85C; }
-.settings-page__text--rust { font-family: var(--fm); font-size: 12px; color: #C97B6E; }
+.settings-page__text--caution { font-family: var(--fm); font-size: 12px; color: #B09A8A; }
+.settings-page__text--critical { font-family: var(--fm); font-size: 12px; color: #B07A8A; }
 .settings-page__text--truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Option button (runtime / provider toggle) */

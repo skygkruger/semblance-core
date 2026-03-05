@@ -116,7 +116,7 @@
 .weather-card__rain {
   font-family: var(--fm);
   font-size: var(--text-xs);
-  color: var(--amber);
+  color: var(--caution);
   white-space: nowrap;
   text-align: right;
 }

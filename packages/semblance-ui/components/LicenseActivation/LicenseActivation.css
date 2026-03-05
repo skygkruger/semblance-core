@@ -38,7 +38,7 @@
 }
 
 .license-activation__status--error {
-  color: var(--rust);
+  color: var(--critical);
 }
 
 .license-activation--active {

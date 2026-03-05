@@ -104,7 +104,7 @@ export const HardwareDetection: Story = {
               <span style={{ fontFamily: 'var(--fm)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--sv1)' }}>
                 {item.label}
               </span>
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-sm)', color: item.ok ? 'var(--v)' : 'var(--rust)' }}>
+              <span style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-sm)', color: item.ok ? 'var(--v)' : 'var(--critical)' }}>
                 {item.value}
               </span>
             </div>

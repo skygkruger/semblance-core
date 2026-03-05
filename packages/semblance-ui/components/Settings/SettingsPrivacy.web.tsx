@@ -23,7 +23,7 @@ export function SettingsPrivacy({
 
   const auditClean = auditStatus === 'clean';
   const neverRun = auditStatus === 'never-run';
-  const cardBorderClass = auditClean ? 'settings-card--active' : neverRun ? '' : 'settings-card--amber';
+  const cardBorderClass = auditClean ? 'settings-card--active' : neverRun ? '' : 'settings-card--caution';
 
   return (
     <div className="settings-screen">
@@ -39,9 +39,9 @@ export function SettingsPrivacy({
         <div style={{ padding: '16px 0 0' }}>
           <div className={`settings-card ${cardBorderClass}`}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <span style={{ color: auditClean ? '#6ECFA3' : '#C9A85C' }}>{auditClean ? <ShieldCheck /> : <ShieldAlert />}</span>
+              <span style={{ color: auditClean ? '#6ECFA3' : '#B09A8A' }}>{auditClean ? <ShieldCheck /> : <ShieldAlert />}</span>
               <span
-                className={auditClean ? 'settings-badge settings-badge--veridian' : neverRun ? 'settings-badge settings-badge--muted' : 'settings-badge settings-badge--amber'}
+                className={auditClean ? 'settings-badge settings-badge--veridian' : neverRun ? 'settings-badge settings-badge--muted' : 'settings-badge settings-badge--caution'}
               >
                 {auditClean ? t('privacy.audit_badge_pass') : neverRun ? t('privacy.audit_badge_never_run') : t('privacy.audit_badge_review_needed')}
               </span>
@@ -70,7 +70,7 @@ export function SettingsPrivacy({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#C97B6E',
+                    color: '#B07A8A',
                     fontSize: 12,
                     fontFamily: 'var(--fm)',
                     cursor: 'pointer',
@@ -107,7 +107,7 @@ export function SettingsPrivacy({
 
         {showDeleteAll && (
           <div style={{ padding: '12px 20px' }}>
-            <p style={{ fontSize: 13, color: '#C97B6E', marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: '#B07A8A', marginBottom: 8 }}>
               {t('privacy.delete_confirm_prompt')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -122,7 +122,7 @@ export function SettingsPrivacy({
               <button
                 type="button"
                 className="settings-inline-edit__btn settings-inline-edit__btn--save"
-                style={{ color: deleteConfirm === 'delete' ? '#C97B6E' : '#5E6B7C' }}
+                style={{ color: deleteConfirm === 'delete' ? '#B07A8A' : '#5E6B7C' }}
                 onClick={() => {
                   if (deleteConfirm === 'delete') {
                     onDeleteAllData();
@@ -154,14 +154,14 @@ export function SettingsPrivacy({
 
         {showReset && (
           <div style={{ padding: '12px 20px' }}>
-            <p style={{ fontSize: 13, color: '#C97B6E', marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: '#B07A8A', marginBottom: 8 }}>
               {t('privacy.reset_confirm_body')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
                 style={{
-                  background: '#C97B6E',
+                  background: '#B07A8A',
                   border: 'none',
                   color: '#0B0E11',
                   fontSize: 13,

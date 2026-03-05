@@ -12,11 +12,11 @@
 }
 
 .status-indicator--accent {
-  background-color: var(--amber);
+  background-color: var(--caution);
 }
 
 .status-indicator--attention {
-  background-color: var(--rust);
+  background-color: var(--critical);
 }
 
 .status-indicator--muted {

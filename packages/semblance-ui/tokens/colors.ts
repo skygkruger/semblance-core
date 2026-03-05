@@ -1,5 +1,7 @@
-// Design tokens: Colors
-// Source of truth: docs/DESIGN_SYSTEM.md
+// DEPRECATED — pre-v3 color tokens. Do NOT use these values.
+// Runtime source of truth: tokens.css (CSS custom properties)
+// Specification: docs/DESIGN_BIBLE.md
+// These exports are consumed by native.ts re-export only. Do not add new consumers.
 
 export const colors = {
   // Primary Palette
