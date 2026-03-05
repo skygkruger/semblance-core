@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { TrendLineChart } from '../Charts/TrendLineChart.web';
-import { BarChart } from '../Charts/BarChart.web';
+import { HealthSpectrograph } from './HealthSpectrograph.web';
 import type { HealthTrendPoint } from './HealthDashboard.types';
+import type { MetricKey, ActiveMetric, SpectroPoint } from './spectrograph-renderer';
 import './HealthTrendsSection.css';
 
 interface HealthTrendsSectionProps {
@@ -9,15 +9,14 @@ interface HealthTrendsSectionProps {
   hasHealthKit: boolean;
 }
 
-type MetricTab = 'mood' | 'energy' | 'water' | 'sleep' | 'steps' | 'heartRate';
-
 interface TabDef {
-  id: MetricTab;
+  id: ActiveMetric;
   label: string;
   requiresHealthKit: boolean;
 }
 
 const ALL_TABS: TabDef[] = [
+  { id: 'all', label: 'All', requiresHealthKit: false },
   { id: 'mood', label: 'Mood', requiresHealthKit: false },
   { id: 'energy', label: 'Energy', requiresHealthKit: false },
   { id: 'water', label: 'Water', requiresHealthKit: false },
@@ -26,7 +25,7 @@ const ALL_TABS: TabDef[] = [
   { id: 'heartRate', label: 'Heart Rate', requiresHealthKit: true },
 ];
 
-function extractValues(trends: HealthTrendPoint[], key: MetricTab): number[] {
+function extractValues(trends: HealthTrendPoint[], key: MetricKey): number[] {
   return trends
     .map((t) => {
       switch (key) {
@@ -52,40 +51,29 @@ function computeStats(values: number[]): { avg: string; min: string; max: string
 }
 
 export function HealthTrendsSection({ trends, hasHealthKit }: HealthTrendsSectionProps) {
-  const [activeTab, setActiveTab] = useState<MetricTab>('mood');
+  const [activeTab, setActiveTab] = useState<ActiveMetric>('all');
 
   const visibleTabs = ALL_TABS.filter((t) => !t.requiresHealthKit || hasHealthKit);
+  const visibleMetrics: MetricKey[] = useMemo(
+    () => visibleTabs.filter((t) => t.id !== 'all').map((t) => t.id as MetricKey),
+    [visibleTabs],
+  );
 
-  const chartData = useMemo(() => {
-    return trends.map((t) => {
-      let value: number | null = null;
-      switch (activeTab) {
-        case 'mood': value = t.mood; break;
-        case 'energy': value = t.energy; break;
-        case 'water': value = t.waterGlasses; break;
-        case 'sleep': value = t.sleepHours; break;
-        case 'steps': value = t.steps; break;
-        case 'heartRate': value = t.heartRateAvg; break;
-      }
-      return { date: t.date, value, label: t.date.slice(-2) };
-    });
-  }, [trends, activeTab]);
+  const spectroData: SpectroPoint[] = useMemo(() => {
+    return trends.map((t) => ({
+      date: t.date,
+      mood: t.mood,
+      energy: t.energy,
+      waterGlasses: t.waterGlasses,
+      sleepHours: t.sleepHours,
+      steps: t.steps,
+      heartRateAvg: t.heartRateAvg,
+    }));
+  }, [trends]);
 
-  const values = extractValues(trends, activeTab);
-  const stats = computeStats(values);
-
-  const isBarMetric = activeTab === 'steps' || activeTab === 'water';
-  const yDomain: [number, number] | undefined =
-    activeTab === 'mood' || activeTab === 'energy' ? [1, 5] : undefined;
-
-  const metricColor: Record<MetricTab, string> = {
-    mood: '#B09A8A',
-    energy: '#6ECFA3',
-    water: '#8593A4',
-    sleep: '#B09A8A',
-    steps: '#6ECFA3',
-    heartRate: '#B07A8A',
-  };
+  const isMetricTab = activeTab !== 'all';
+  const values = isMetricTab ? extractValues(trends, activeTab) : [];
+  const stats = isMetricTab ? computeStats(values) : null;
 
   return (
     <div className="health-trends">
@@ -105,19 +93,11 @@ export function HealthTrendsSection({ trends, hasHealthKit }: HealthTrendsSectio
       </div>
 
       <div className="health-trends__chart">
-        {isBarMetric ? (
-          <BarChart
-            data={chartData.map((d) => ({ label: d.label, value: d.value }))}
-            color={metricColor[activeTab]}
-          />
-        ) : (
-          <TrendLineChart
-            data={chartData}
-            color={metricColor[activeTab]}
-            showArea
-            yDomain={yDomain}
-          />
-        )}
+        <HealthSpectrograph
+          data={spectroData}
+          activeMetric={activeTab}
+          visibleMetrics={visibleMetrics}
+        />
       </div>
 
       {stats && (

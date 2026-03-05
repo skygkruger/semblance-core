@@ -50,15 +50,15 @@
       rgba(138,126,116,0.5)) border-box;
 }
 
-/* Health — celadon/moss/verdigris */
+/* Health — jade patina: dark jade → warm sage → silver-celadon */
 .surface-void[data-identity="health"] {
   background:
     linear-gradient(135deg, var(--s1), var(--base)) padding-box,
     conic-gradient(from var(--opal-angle),
-      rgba(90,122,100,0.5), rgba(110,148,116,0.6),
-      rgba(130,168,136,0.7), rgba(168,200,168,0.8),
-      rgba(142,184,152,0.7), rgba(114,160,124,0.6),
-      rgba(90,122,100,0.5)) border-box;
+      rgba(74,120,114,0.45), rgba(94,142,120,0.55),
+      rgba(126,160,124,0.65), rgba(184,202,180,0.8),
+      rgba(150,184,156,0.7), rgba(108,148,128,0.55),
+      rgba(74,120,114,0.45)) border-box;
 }
 
 /* Privacy — pure silver/mirror (zero hue) */

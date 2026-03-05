@@ -1,0 +1,16 @@
+/* HealthSpectrograph — 3D layered trend visualization */
+
+.health-spectrograph {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.health-spectrograph__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}

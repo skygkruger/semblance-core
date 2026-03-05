@@ -38,7 +38,6 @@ export function HealthDashboard({
 
   return (
     <div className="health-dash surface-void" data-identity="health">
-      <div className="surface-void__left-bar" />
       <div className="health-dash__header">
         <div>
           <h2 className="health-dash__title">Health Tracking</h2>
