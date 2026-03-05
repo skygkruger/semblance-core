@@ -124,7 +124,7 @@ export function FinancialDashboardScreen() {
       <FeatureGate
         feature="financial-dashboard"
         isPremium={license.isPremium}
-        onLearnMore={() => license.openCheckout()}
+        onLearnMore={() => license.openCheckout('monthly')}
       >
         <FinancialDashboard
           overview={data?.overview ?? null}

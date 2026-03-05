@@ -24,7 +24,7 @@ describe('CloudFolderPicker', () => {
         onSelect={() => {}}
       />,
     );
-    expect(await screen.findByText('Select Folders to Sync')).toBeInTheDocument();
+    expect(await screen.findByText('Select Folders')).toBeInTheDocument();
   });
 
   it('does not render when closed', () => {

@@ -179,7 +179,8 @@
   font-weight: 500;
 }
 
-.sovereignty-report__status-value--verified {
+.sovereignty-report__status-value--verified,
+.sovereignty-report__chain-badge--verified {
   color: var(--v);
 }
 

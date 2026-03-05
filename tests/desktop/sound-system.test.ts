@@ -255,7 +255,8 @@ describe('Settings UI', () => {
   });
 
   it('contains global toggle element', () => {
-    expect(settingsSrc).toContain('role="switch"');
+    // BEM migration: toggle uses settings-toggle class + data-on attribute instead of role="switch"
+    expect(settingsSrc).toContain('settings-toggle');
     expect(settingsSrc).toContain('Sound effects');
   });
 

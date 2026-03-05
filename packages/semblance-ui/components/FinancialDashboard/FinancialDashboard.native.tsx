@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { brandColors, nativeSpacing } from '../../tokens/native';
 import { HorizontalBarChart } from '../Charts/HorizontalBarChart.native';
 import { PeriodSelector } from '../Charts/PeriodSelector.native';
@@ -34,10 +35,12 @@ export function FinancialDashboard({
   onImportStatement,
   loading,
 }: FinancialDashboardProps) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Financial Overview</Text>
+        <Text style={styles.title}>{t('financialDashboard.title')}</Text>
         <View style={styles.skeleton} />
         <View style={[styles.skeleton, { width: '60%' }]} />
       </View>
@@ -47,12 +50,12 @@ export function FinancialDashboard({
   if (!overview && categories.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>No Financial Data Yet</Text>
+        <Text style={styles.emptyTitle}>{t('financialDashboard.emptyTitle')}</Text>
         <Text style={styles.emptyText}>
-          Import a bank or credit card statement to get started.
+          {t('financialDashboard.emptyText')}
         </Text>
         <TouchableOpacity style={styles.importBtn} onPress={onImportStatement}>
-          <Text style={styles.importBtnText}>Import Statement</Text>
+          <Text style={styles.importBtnText}>{t('financialDashboard.importStatement')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -68,31 +71,31 @@ export function FinancialDashboard({
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.title}>Financial Overview</Text>
+        <Text style={styles.title}>{t('financialDashboard.title')}</Text>
         <PeriodSelector selected={selectedPeriod} onSelect={onPeriodChange} />
       </View>
 
       {overview && (
         <View style={styles.overviewCard}>
-          <Text style={styles.total} accessibilityLabel={`Total spending: ${formatCurrency(overview.totalSpending)}`}>
+          <Text style={styles.total} accessibilityLabel={t('financialDashboard.totalSpendingLabel', { amount: formatCurrency(overview.totalSpending) })}>
             {formatCurrency(overview.totalSpending)}
           </Text>
           <Text style={styles.meta}>
-            {overview.transactionCount} transactions
+            {overview.transactionCount} {t('financialDashboard.transactions')}
           </Text>
         </View>
       )}
 
       {chartData.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Spending by Category</Text>
+          <Text style={styles.sectionTitle}>{t('financialDashboard.spendingByCategory')}</Text>
           <HorizontalBarChart data={chartData} formatValue={formatCurrency} />
         </View>
       )}
 
       {anomalies.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Anomalies ({anomalies.length})</Text>
+          <Text style={styles.sectionTitle}>{t('financialDashboard.anomalies', { count: anomalies.length })}</Text>
           {anomalies.map((a) => (
             <View key={a.id} style={styles.anomalyCard}>
               <View style={styles.anomalyHeader}>
@@ -101,7 +104,7 @@ export function FinancialDashboard({
               </View>
               <Text style={styles.anomalyDesc}>{a.description}</Text>
               <TouchableOpacity onPress={() => onDismissAnomaly(a.id)}>
-                <Text style={styles.dismissText}>Dismiss</Text>
+                <Text style={styles.dismissText}>{t('common.dismiss')}</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -124,10 +127,10 @@ export function FinancialDashboard({
                 <Text style={styles.anomalyAmount}>{formatCurrency(charge.amount)}/mo</Text>
                 <View style={styles.chargeActions}>
                   <TouchableOpacity onPress={() => onCancelSubscription(charge.id)}>
-                    <Text style={styles.dismissText}>Cancel</Text>
+                    <Text style={styles.dismissText}>{t('common.cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => onKeepSubscription(charge.id)}>
-                    <Text style={styles.dismissText}>Keep</Text>
+                    <Text style={styles.dismissText}>{t('common.keep')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -136,7 +139,7 @@ export function FinancialDashboard({
       )}
 
       <TouchableOpacity style={styles.importBtn} onPress={onImportStatement}>
-        <Text style={styles.importBtnText}>Import Statement</Text>
+        <Text style={styles.importBtnText}>{t('financialDashboard.importStatement')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );

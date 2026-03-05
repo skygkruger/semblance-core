@@ -34,7 +34,7 @@ export function AlterEgoDraftReview({
         )}
       </div>
 
-      <div className="draft-review__body">{body}</div>
+      <div className="draft-review__body" style={{ whiteSpace: 'pre-wrap' }}>{body}</div>
 
       <div className="draft-review__actions">
         <button

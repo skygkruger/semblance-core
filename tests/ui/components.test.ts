@@ -122,16 +122,17 @@ describe('TypeScript Quality — No `any` Types', () => {
 });
 
 describe('Dark Mode Support', () => {
-  // v3 components (Button, Input, Card, PrivacyBadge) use CSS files with
-  // CSS custom properties — dark mode is the default, no `dark:` prefix needed.
-  // v1/v2 components still use Tailwind `dark:` classes.
+  // Navigation still uses Tailwind `dark:` classes.
   const TAILWIND_COMPONENTS_REQUIRING_DARK_MODE = [
-    'Navigation', 'ChatBubble', 'ChatInput', 'AutonomySelector',
-    'ThemeToggle', 'Toast', 'DirectoryPicker',
+    'Navigation',
   ];
 
-  // v3 components use co-located CSS files with CSS custom properties
-  const CSS_COMPONENTS = ['Button', 'Input', 'Card', 'PrivacyBadge', 'ActionCard'];
+  // Components using co-located CSS files with CSS custom properties for theming
+  const CSS_COMPONENTS = [
+    'Button', 'Input', 'Card', 'PrivacyBadge', 'ActionCard',
+    'ChatBubble', 'ChatInput', 'AutonomySelector',
+    'ThemeToggle', 'Toast', 'DirectoryPicker',
+  ];
 
   for (const name of TAILWIND_COMPONENTS_REQUIRING_DARK_MODE) {
     it(`${name} includes dark: mode classes`, () => {
@@ -150,14 +151,16 @@ describe('Dark Mode Support', () => {
 });
 
 describe('Focus-Visible Styling', () => {
-  // v1/v2 components have focus-visible in Tailwind classes within the .tsx
+  // Navigation still uses Tailwind focus-visible classes in .tsx
   const TAILWIND_INTERACTIVE = [
-    'ChatInput', 'Navigation',
-    'AutonomySelector', 'ThemeToggle', 'DirectoryPicker',
+    'Navigation',
   ];
 
-  // v3 components have focus-visible in co-located CSS files
-  const CSS_INTERACTIVE = ['Button', 'Input', 'ActionCard'];
+  // Components with focus-visible in co-located CSS files
+  const CSS_INTERACTIVE = [
+    'Button', 'Input', 'ActionCard',
+    'ChatInput', 'AutonomySelector', 'ThemeToggle', 'DirectoryPicker',
+  ];
 
   for (const name of TAILWIND_INTERACTIVE) {
     it(`${name} has focus-visible styling`, () => {

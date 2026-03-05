@@ -15,7 +15,7 @@ describe('CloudStorageSettingsSection', () => {
 
   it('renders Cloud Storage heading', () => {
     render(<CloudStorageSettingsSection />);
-    expect(screen.getByText('Cloud Storage')).toBeInTheDocument();
+    expect(screen.getByText('Providers')).toBeInTheDocument();
   });
 
   it('shows provider names', () => {

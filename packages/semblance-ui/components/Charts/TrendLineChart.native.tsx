@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { brandColors, nativeSpacing } from '../../tokens/native';
 import type { TrendLineChartProps } from './Charts.types';
@@ -21,12 +22,13 @@ export function TrendLineChart({
   showArea = false,
   yDomain,
 }: TrendLineChartProps) {
+  const { t } = useTranslation();
   const validPoints = data.filter((d): d is { date: string; value: number } => d.value !== null);
 
   if (validPoints.length < 2) {
     return (
       <View style={[styles.empty, { height }]}>
-        <Text style={styles.emptyText}>Not enough data to chart</Text>
+        <Text style={styles.emptyText}>{t('charts.notEnoughData')}</Text>
       </View>
     );
   }
