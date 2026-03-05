@@ -128,12 +128,12 @@
   /* Health — Celadon / Moss / Verdigris
      Aged copper patina, celadon pottery, moss on stone.
      Warm yellow-green — NOT Veridian's cool blue-green. */
-  --id-health-1: #5a7a64;
-  --id-health-2: #6e9474;
-  --id-health-3: #82a888;
-  --id-health-4: #a8c8a8;
-  --id-health-5: #8eb898;
-  --id-health-6: #72a07c;
+  --id-health-1: #4a7872;
+  --id-health-2: #5e8e78;
+  --id-health-3: #7ea07c;
+  --id-health-4: #b8cab4;
+  --id-health-5: #96b89c;
+  --id-health-6: #6c9480;
   --id-health-tint: rgba(110, 168, 144, 0.04);
 
   /* Privacy — Pure Silver / Mirror

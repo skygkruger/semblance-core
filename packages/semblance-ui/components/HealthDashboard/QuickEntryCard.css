@@ -59,11 +59,18 @@
   color: var(--w-dim);
 }
 
+/* Scale dot active states — Jade Patina gradient: 1 (dark jade) → 5 (silver-celadon) */
 .quick-entry__scale-dot--active {
-  border-color: var(--v);
-  color: var(--v);
-  box-shadow: 0 0 8px rgba(110, 207, 163, 0.3);
+  border-color: var(--scale-color);
+  color: var(--scale-color);
+  box-shadow: 0 0 8px var(--scale-glow);
 }
+
+.quick-entry__scale-dot--v1 { --scale-color: #4a7872; --scale-glow: rgba(74, 120, 114, 0.35); }
+.quick-entry__scale-dot--v2 { --scale-color: #5e8e78; --scale-glow: rgba(94, 142, 120, 0.35); }
+.quick-entry__scale-dot--v3 { --scale-color: #7ea07c; --scale-glow: rgba(126, 160, 124, 0.35); }
+.quick-entry__scale-dot--v4 { --scale-color: #96b89c; --scale-glow: rgba(150, 184, 156, 0.35); }
+.quick-entry__scale-dot--v5 { --scale-color: #b8cab4; --scale-glow: rgba(184, 202, 180, 0.4); }
 
 /* ─── Water counter ─── */
 .quick-entry__water {
@@ -88,8 +95,8 @@
 }
 
 .quick-entry__water-btn:hover {
-  border-color: var(--v);
-  color: var(--v);
+  border-color: var(--id-health-4);
+  color: var(--id-health-4);
 }
 
 .quick-entry__water-count {
@@ -164,7 +171,38 @@
 }
 
 .quick-entry__med-checkbox {
-  accent-color: var(--v);
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--b3);
+  border-radius: var(--r-sm);
+  background: var(--s2);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: all var(--duration-fast) var(--eo);
+}
+
+.quick-entry__med-checkbox:hover {
+  border-color: var(--sv2);
+}
+
+.quick-entry__med-checkbox:checked {
+  background: var(--id-health-3);
+  border-color: var(--id-health-4);
+}
+
+.quick-entry__med-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--base);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .quick-entry__med-label {
@@ -173,26 +211,7 @@
   color: var(--sv3);
 }
 
-/* ─── Save button ─── */
+/* ─── Save button — uses btn btn--opal btn--sm ─── */
 .quick-entry__save {
-  padding: var(--sp-2) var(--sp-5);
-  background: var(--v);
-  color: var(--base);
-  border: none;
-  border-radius: var(--r-md);
-  font-family: var(--fb);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity var(--duration-fast) var(--eo);
   align-self: flex-end;
-}
-
-.quick-entry__save:hover {
-  opacity: 0.85;
-}
-
-.quick-entry__save:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }

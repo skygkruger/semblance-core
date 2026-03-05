@@ -30,12 +30,12 @@
 }
 
 .health-trends__tab--active {
-  color: var(--v);
-  border-bottom-color: var(--v);
+  color: var(--id-health-4);
+  border-bottom-color: var(--id-health-4);
 }
 
 .health-trends__chart {
-  min-height: 120px;
+  min-height: 260px;
 }
 
 .health-trends__stats {

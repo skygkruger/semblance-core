@@ -74,7 +74,7 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
             <button
               key={n}
               type="button"
-              className={`quick-entry__scale-dot ${mood === n ? 'quick-entry__scale-dot--active' : ''}`}
+              className={`quick-entry__scale-dot ${mood === n ? `quick-entry__scale-dot--active quick-entry__scale-dot--v${n}` : ''}`}
               onClick={() => setMood(n)}
               aria-label={`Mood ${n}`}
               aria-pressed={mood === n}
@@ -92,7 +92,7 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
             <button
               key={n}
               type="button"
-              className={`quick-entry__scale-dot ${energy === n ? 'quick-entry__scale-dot--active' : ''}`}
+              className={`quick-entry__scale-dot ${energy === n ? `quick-entry__scale-dot--active quick-entry__scale-dot--v${n}` : ''}`}
               onClick={() => setEnergy(n)}
               aria-label={`Energy ${n}`}
               aria-pressed={energy === n}
@@ -181,11 +181,11 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
 
       <button
         type="button"
-        className="quick-entry__save"
+        className="btn btn--opal btn--sm quick-entry__save"
         onClick={handleSave}
         disabled={!hasData || saving}
       >
-        {saving ? 'Saving...' : todayEntry ? 'Update' : 'Save'}
+        <span className="btn__text">{saving ? 'Saving...' : todayEntry ? 'Update' : 'Save'}</span>
       </button>
     </div>
   );
