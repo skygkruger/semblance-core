@@ -1,6 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { MobileTabBarProps } from './MobileTabBar.types';
-import { brandColors, nativeSpacing, nativeFontFamily } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeFontFamily, nativeSurfaces, nativeSurfaceIdentity } from '../../tokens/native';
 
 export function MobileTabBar({
   items,
@@ -14,7 +14,7 @@ export function MobileTabBar({
         return (
           <Pressable
             key={item.id}
-            style={styles.item}
+            style={[styles.item, isActive && styles.itemActive]}
             onPress={() => onNavigate?.(item.id)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
@@ -38,10 +38,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    height: 56,
-    backgroundColor: 'rgba(11,14,17,0.92)',
+    ...nativeSurfaces.void,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
+    borderColor: nativeSurfaceIdentity.sovereignty.borderColor,
+    borderBottomWidth: 0,
+    borderRadius: 0,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    paddingVertical: nativeSpacing.s2,
+    paddingHorizontal: nativeSpacing.s3,
     paddingBottom: 0, // Safe area handled by parent
   },
   item: {
@@ -49,17 +54,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-    paddingVertical: nativeSpacing.s1,
-    paddingHorizontal: nativeSpacing.s2,
+    paddingVertical: nativeSpacing.s2,
+    paddingHorizontal: nativeSpacing.s3,
     minHeight: 44,
     minWidth: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(152,160,168,0.35)',
+    backgroundColor: '#111518',
   },
-  iconInactive: {
-    // tintColor handled by icon component
+  itemActive: {
+    borderColor: 'rgba(110,207,163,0.35)',
+    backgroundColor: 'rgba(110,207,163,0.10)',
   },
-  iconActive: {
-    // tintColor handled by icon component
-  },
+  iconInactive: {},
+  iconActive: {},
   label: {
     fontFamily: nativeFontFamily.ui,
     fontSize: 10,

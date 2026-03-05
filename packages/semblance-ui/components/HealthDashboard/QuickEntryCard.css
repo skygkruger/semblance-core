@@ -189,8 +189,9 @@
 }
 
 .quick-entry__med-checkbox:checked {
-  background: var(--id-health-3);
-  border-color: var(--id-health-4);
+  background: rgba(126, 160, 124, 0.10);
+  border-color: rgba(184, 202, 180, 0.4);
+  box-shadow: 0 0 6px rgba(126, 160, 124, 0.12), inset 0 0 4px rgba(126, 160, 124, 0.06);
 }
 
 .quick-entry__med-checkbox:checked::after {
@@ -200,7 +201,7 @@
   top: 1px;
   width: 5px;
   height: 9px;
-  border: solid var(--base);
+  border: solid var(--sv3);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }

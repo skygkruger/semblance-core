@@ -61,8 +61,6 @@ export function FinancialDashboard({
 
   return (
     <div className="fin-dash surface-void" data-identity="financial">
-      <div className="surface-void__left-bar" />
-
       {/* Header — centered, shimmer title */}
       <div className="fin-dash__header">
         <h2 className="fin-dash__title">Financial Overview</h2>

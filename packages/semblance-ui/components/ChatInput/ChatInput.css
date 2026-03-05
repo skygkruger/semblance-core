@@ -102,7 +102,7 @@
   color: #5E6B7C;
 }
 
-/* ─── Attach button ─── */
+/* ─── Attach button — matches send button weight ─── */
 .chat-input__attach {
   position: relative;
   z-index: 1;
@@ -111,18 +111,19 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: none;
+  border: 1px solid #8593A4;
   border-radius: 6px;
   background: none;
   color: #8593A4;
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 180ms, background 180ms;
+  transition: color 180ms ease-out, border-color 180ms ease-out, background 180ms ease-out;
   padding: 0;
 }
 
 .chat-input__attach:hover {
   color: #A8B4C0;
+  border-color: #A8B4C0;
   background: rgba(255, 255, 255, 0.06);
 }
 

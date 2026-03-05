@@ -1,0 +1,132 @@
+/* Navigation — Sidebar nav on surface-void + opal-wireframe */
+
+.nav-sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-4) var(--sp-2);
+  transition: width var(--duration-base) var(--eo);
+  width: 240px;
+  border-radius: var(--r-lg);
+  border-left: 1px solid transparent; /* restore left border (surface-void removes it) */
+  overflow: visible; /* override surface-void overflow:hidden so bottom radius renders */
+  position: relative;
+}
+
+.nav-sidebar--collapsed {
+  width: 56px;
+  align-items: center;
+}
+
+/* Subtle identity tint gradient — fades from top */
+.nav-sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--id-sovereignty-tint) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Item list */
+.nav-sidebar__list {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Nav item — dark void card with opal conic border, Veridian hover */
+.nav-sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--sv2);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  min-height: 40px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(104,112,120,0.35),
+      rgba(128,136,144,0.45),
+      rgba(152,160,168,0.55),
+      rgba(184,192,200,0.6),
+      rgba(152,160,168,0.55),
+      rgba(128,136,144,0.45),
+      rgba(104,112,120,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: all var(--duration-slow) var(--eo);
+}
+
+.nav-sidebar--collapsed .nav-sidebar__item {
+  justify-content: center;
+  padding: var(--sp-2);
+}
+
+/* Hover — Veridian focus ring */
+.nav-sidebar__item:hover {
+  color: var(--w-dim);
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    linear-gradient(var(--v-wire), var(--v-wire)) border-box;
+  box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
+  animation: none;
+}
+
+.nav-sidebar__item:hover .nav-sidebar__icon {
+  color: var(--v);
+}
+
+/* Active state — solid Veridian ring */
+.nav-sidebar__item--active {
+  color: #FFFFFF;
+  background:
+    var(--v-dim) padding-box,
+    linear-gradient(var(--v-wire), var(--v-wire)) border-box;
+  box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
+  animation: none;
+}
+
+.nav-sidebar__item--active .nav-sidebar__icon {
+  color: var(--v);
+}
+
+/* Icon container */
+.nav-sidebar__icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Label */
+.nav-sidebar__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Footer slot */
+.nav-sidebar__footer {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  padding-top: var(--sp-3);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+}

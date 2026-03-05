@@ -134,7 +134,7 @@ function ConversationRow({
         ) : (
           <>
             <p className="conv-row__title">
-              {item.pinned && <span className="conv-row__pin" data-testid={`conv-pin-badge-${item.id}`}>*</span>}
+              {item.pinned && <span className="conv-row__pin" data-testid={`conv-pin-badge-${item.id}`} />}
               {displayTitle}
             </p>
             {item.lastMessagePreview && (
@@ -199,7 +199,7 @@ export function ConversationHistoryPanel({
   if (!open) return null;
 
   return (
-    <aside className="conv-panel opal-surface" data-testid="conversation-history-panel">
+    <aside className="conv-panel surface-void opal-wireframe" data-identity="sovereignty" data-testid="conversation-history-panel">
       <div className="conv-panel__header">
         <h3 className="conv-panel__title">{'History'}</h3>
         <div className="conv-panel__header-actions">

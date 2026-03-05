@@ -1,47 +1,109 @@
+/* MobileTabBar — surface-void + opal-wireframe, matches Navigation */
+
 .mobile-tab-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 56px;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding: var(--sp-2) var(--sp-3);
+  padding-bottom: calc(var(--sp-2) + env(safe-area-inset-bottom, 0px));
   display: flex;
   align-items: center;
   justify-content: space-around;
-  background: rgba(11,14,17,0.92);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  border-left: 1px solid transparent; /* restore left border */
+  overflow: visible;
+  position: relative;
   z-index: 100;
 }
 
+/* Subtle sovereignty tint gradient — fades from top */
+.mobile-tab-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--id-sovereignty-tint) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Tab item — dark void card with opal conic border, Veridian hover */
 .mobile-tab-bar__item {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: var(--sp-1) var(--sp-2);
-  border: none;
-  background: none;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
   cursor: pointer;
   color: var(--sv1);
-  transition: color var(--duration-fast) var(--eo);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(104,112,120,0.35),
+      rgba(128,136,144,0.45),
+      rgba(152,160,168,0.55),
+      rgba(184,192,200,0.6),
+      rgba(152,160,168,0.55),
+      rgba(128,136,144,0.45),
+      rgba(104,112,120,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: all var(--duration-slow) var(--eo);
 }
 
-.mobile-tab-bar__item--active {
+/* Hover — Veridian focus ring */
+.mobile-tab-bar__item:hover {
+  color: var(--w-dim);
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    linear-gradient(var(--v-wire), var(--v-wire)) border-box;
+  box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
+  animation: none;
+}
+
+.mobile-tab-bar__item:hover .mobile-tab-bar__icon {
   color: var(--v);
 }
 
-/* Story mode — override fixed positioning for Storybook rendering */
-.mobile-tab-bar--story-mode {
-  position: relative !important;
-  bottom: auto !important;
+/* Active state — solid Veridian ring */
+.mobile-tab-bar__item--active {
+  color: #FFFFFF;
+  background:
+    var(--v-dim) padding-box,
+    linear-gradient(var(--v-wire), var(--v-wire)) border-box;
+  box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
+  animation: none;
 }
 
+.mobile-tab-bar__item--active .mobile-tab-bar__icon {
+  color: var(--v);
+}
+
+/* Icon container */
+.mobile-tab-bar__icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Label */
 .mobile-tab-bar__label {
   font-family: var(--fb);
   font-size: 10px;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+/* Story mode — override fixed positioning for Storybook rendering */
+.mobile-tab-bar--story-mode {
+  position: relative !important;
+  bottom: auto !important;
 }

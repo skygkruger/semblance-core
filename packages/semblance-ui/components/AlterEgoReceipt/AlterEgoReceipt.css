@@ -2,12 +2,22 @@
 
 .receipt {
   padding: var(--sp-5);
+  background: linear-gradient(
+    160deg,
+    #282E36 0%,
+    #181C21 50%,
+    #0E1114 100%
+  );
   transition: box-shadow var(--duration-base) var(--eo),
               border-color var(--duration-base) var(--eo);
 }
 
 .receipt:hover {
-  border-color: var(--b3);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 0 15px rgba(255, 255, 255, 0.06),
+    0 0 35px rgba(255, 255, 255, 0.04),
+    0 0 60px rgba(110, 207, 163, 0.05);
 }
 
 /* ─── Content row (dot + text + dismiss) ─── */

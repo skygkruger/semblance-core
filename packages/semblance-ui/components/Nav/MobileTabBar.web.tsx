@@ -8,7 +8,7 @@ export function MobileTabBar({
   className = '',
 }: MobileTabBarProps) {
   return (
-    <nav className={`mobile-tab-bar opal-surface ${className}`.trim()}>
+    <nav className={`mobile-tab-bar surface-void opal-wireframe ${className}`.trim()} data-identity="sovereignty">
       {items.map(item => (
         <button
           key={item.id}
@@ -16,7 +16,7 @@ export function MobileTabBar({
           className={`mobile-tab-bar__item ${activeId === item.id ? 'mobile-tab-bar__item--active' : ''}`}
           onClick={() => onNavigate?.(item.id)}
         >
-          {item.icon}
+          <span className="mobile-tab-bar__icon">{item.icon}</span>
           <span className="mobile-tab-bar__label">{item.label}</span>
         </button>
       ))}

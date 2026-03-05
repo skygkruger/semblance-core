@@ -1,32 +1,45 @@
-/* ─── Conversation History Panel — 280px left drawer, opal wireframe card ─── */
-.conv-panel {
+/* ─── Conversation History Panel — surface-void + opal-wireframe, purple opal borders ─── */
+.conv-panel.surface-void {
   position: relative;
   width: 280px;
-  height: 100%;
   display: flex;
   flex-direction: column;
+  padding: var(--sp-4) var(--sp-2);
+  border-radius: var(--r-lg);
   border: 1px solid transparent;
+  border-left: 1px solid transparent;
+  overflow: visible;
+  flex-shrink: 0;
+  /* Override sovereignty identity — keep purple opal border */
   background:
-    linear-gradient(#121518, #121518) padding-box,
+    linear-gradient(180deg, #1E2227 0%, #141719 40%, #0B0E11 100%) padding-box,
     conic-gradient(from var(--opal-angle),
       rgba(97,88,128,0.35), rgba(119,110,162,0.45),
       rgba(154,168,184,0.55), rgba(216,221,232,0.6),
       rgba(154,168,184,0.55), rgba(119,110,162,0.45),
       rgba(97,88,128,0.35)) border-box;
-  border-radius: 12px;
   animation: opal-border-sweep 8s linear infinite;
-  flex-shrink: 0;
-  overflow: hidden;
 }
 
-/* Wireframe + opal sweep layers provided by .opal-surface (opal.css).
-   Children z-index handled by .opal-surface > * { z-index: 2 }. */
+/* Subtle sovereignty tint gradient — fades from top */
+.conv-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(107, 95, 168, 0.04) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
 
+/* ─── Header ─── */
 .conv-panel__header {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 12px 8px;
+  padding: 0 var(--sp-2) var(--sp-3);
 }
 
 .conv-panel__title {
@@ -64,9 +77,11 @@
   color: #6ECFA3;
 }
 
-/* ─── Search — opal input treatment ─── */
+/* ─── Search — purple opal input ─── */
 .conv-panel__search {
-  padding: 0 12px 8px;
+  position: relative;
+  z-index: 1;
+  padding: 0 var(--sp-2) var(--sp-3);
 }
 
 .conv-panel__search-input {
@@ -91,10 +106,9 @@
   border-radius: var(--r-xl);
   outline: none;
   animation: opal-border-sweep 8s linear infinite;
-  transition: border-color 220ms ease-out, box-shadow 220ms ease-out;
+  transition: border-color 220ms ease-out, box-shadow 220ms ease-out, caret-color 220ms ease-out;
   caret-color: #8593A4;
   box-sizing: border-box;
-  transition: border-color 220ms ease-out, box-shadow 220ms ease-out, caret-color 220ms ease-out;
 }
 
 .conv-panel__search-input:not(:placeholder-shown) {
@@ -112,9 +126,14 @@
 
 /* ─── Body / List ─── */
 .conv-panel__body {
+  position: relative;
+  z-index: 1;
   flex: 1;
   overflow-y: auto;
-  padding: 0 8px 8px;
+  padding: 0 var(--sp-2) var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
 }
 
 /* ─── Scrollbar ─── */
@@ -143,30 +162,55 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #5E6B7C;
-  padding: 12px 4px 4px;
+  padding: var(--sp-3) 4px var(--sp-1);
   margin: 0;
 }
 
-/* ─── Conversation Row ─── */
+/* ─── Conversation Row — dark void card with purple opal conic border ─── */
 .conv-row {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 8px;
-  border-radius: 6px;
+  padding: var(--sp-2) var(--sp-2);
+  border-radius: var(--r-md);
   cursor: pointer;
-  border-left: 3px solid transparent;
-  transition: background 180ms;
   position: relative;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.25),
+      rgba(119,110,162,0.35),
+      rgba(154,168,184,0.40),
+      rgba(216,221,232,0.45),
+      rgba(154,168,184,0.40),
+      rgba(119,110,162,0.35),
+      rgba(97,88,128,0.25)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: all var(--duration-slow) var(--eo);
 }
 
+/* Hover — Veridian focus ring */
 .conv-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--w-dim);
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    linear-gradient(var(--v-wire), var(--v-wire)) border-box;
+  box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
+  animation: none;
 }
 
+/* Active state — opal purple backlight */
 .conv-row--active {
-  border-left-color: #6ECFA3;
-  background: rgba(110, 207, 163, 0.06);
+  color: #FFFFFF;
+  background:
+    rgba(107, 95, 168, 0.10) padding-box,
+    linear-gradient(rgba(119, 110, 162, 0.4), rgba(119, 110, 162, 0.4)) border-box;
+  box-shadow:
+    0 0 15px rgba(107, 95, 168, 0.08),
+    0 0 35px rgba(107, 95, 168, 0.05),
+    0 0 60px rgba(119, 110, 162, 0.04);
+  animation: none;
 }
 
 .conv-row__content {
@@ -177,7 +221,7 @@
 .conv-row__title {
   font-family: var(--fb);
   font-size: 13px;
-  color: #C8CAD0;
+  color: var(--sv3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -189,10 +233,19 @@
   color: #EEF1F4;
 }
 
+.conv-row:hover .conv-row__title {
+  color: var(--w-dim);
+}
+
 .conv-row__preview {
   font-family: var(--fb);
   font-size: 11px;
   color: #5E6B7C;
+}
+
+/* Align preview with title when pin dot is present (6px dot + 4px margin) */
+.conv-row:has(.conv-row__pin) .conv-row__preview {
+  padding-left: 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -208,9 +261,20 @@
 }
 
 .conv-row__pin {
-  font-size: 10px;
-  color: #B09A8A;
-  margin-right: 2px;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9B8FBE;
+  flex-shrink: 0;
+  margin-right: 4px;
+  vertical-align: middle;
+  animation: pin-pulse 3s ease-in-out infinite;
+}
+
+@keyframes pin-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 /* ─── Hover actions ─── */
@@ -245,7 +309,7 @@
 }
 
 .conv-row__action--pin:hover {
-  color: #B09A8A;
+  color: #d8dde8;
 }
 
 .conv-row__action--delete:hover {
