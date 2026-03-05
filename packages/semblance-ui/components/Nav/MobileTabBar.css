@@ -5,15 +5,14 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: var(--sp-2) var(--sp-3);
+  padding: var(--sp-2);
   padding-bottom: calc(var(--sp-2) + env(safe-area-inset-bottom, 0px));
   display: flex;
-  align-items: center;
-  justify-content: space-around;
+  align-items: stretch;
+  gap: var(--sp-1);
   border-radius: var(--r-lg) var(--r-lg) 0 0;
   border-left: 1px solid transparent; /* restore left border */
   overflow: visible;
-  position: relative;
   z-index: 100;
 }
 
@@ -32,11 +31,14 @@
 .mobile-tab-bar__item {
   position: relative;
   z-index: 1;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  padding: var(--sp-2) var(--sp-3);
+  padding: var(--sp-1) var(--sp-1);
   border-radius: var(--r-md);
   cursor: pointer;
   color: var(--sv1);
@@ -72,9 +74,9 @@
 /* Active state — solid Veridian ring */
 .mobile-tab-bar__item--active {
   color: #FFFFFF;
-  background:
-    var(--v-dim) padding-box,
-    linear-gradient(var(--v-wire), var(--v-wire)) border-box;
+  border-radius: var(--r-md);
+  border: 1px solid rgba(110, 207, 163, 0.45);
+  background: rgba(110, 207, 163, 0.08);
   box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
   animation: none;
 }
@@ -96,10 +98,14 @@
 /* Label */
 .mobile-tab-bar__label {
   font-family: var(--fb);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* Story mode — override fixed positioning for Storybook rendering */

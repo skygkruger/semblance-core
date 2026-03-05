@@ -1,13 +1,28 @@
 /* InsightCard — Health pattern insight */
 
 .insight-card {
-  background: var(--s1);
-  border: 1px solid var(--b1);
+  background:
+    linear-gradient(160deg, #1E2227 0%, #161A1E 50%, #0E1114 100%) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(126,160,124,0.15), rgba(150,184,156,0.22),
+      rgba(184,202,180,0.28), rgba(200,218,196,0.30),
+      rgba(184,202,180,0.28), rgba(150,184,156,0.22),
+      rgba(126,160,124,0.15)) border-box;
+  border: 1px solid transparent;
   border-radius: var(--r-lg);
   padding: var(--sp-4);
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+  animation: opal-border-sweep 8s linear infinite;
+  transition: box-shadow var(--duration-fast) var(--eo);
+}
+
+.insight-card:hover {
+  box-shadow:
+    0 0 15px rgba(126, 160, 124, 0.06),
+    0 0 35px rgba(126, 160, 124, 0.04),
+    0 0 60px rgba(126, 160, 124, 0.03);
 }
 
 .insight-card__header {
@@ -28,9 +43,10 @@
 .insight-card__confidence {
   font-family: var(--fm);
   font-size: var(--text-xs);
-  color: var(--sv2);
+  color: var(--sv3);
   padding: 2px var(--sp-2);
-  background: var(--s2);
+  background: rgba(126, 160, 124, 0.06);
+  border: 1px solid rgba(126, 160, 124, 0.12);
   border-radius: var(--r-full);
   flex-shrink: 0;
 }
@@ -54,15 +70,16 @@
   background: transparent;
   border: 1px solid var(--b2);
   border-radius: var(--r-sm);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--sv2);
   cursor: pointer;
   align-self: flex-end;
-  transition: all var(--duration-fast) var(--eo);
+  transition: color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out;
 }
 
 .insight-card__dismiss:hover {
-  border-color: var(--sv2);
-  color: var(--w-dim);
+  color: var(--v);
+  border-color: var(--v-wire);
+  box-shadow: 0 0 8px var(--v-glow);
 }

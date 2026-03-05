@@ -1,13 +1,20 @@
 /* QuickEntryCard — Daily health check-in */
 
 .quick-entry {
-  background: var(--s1);
-  border: 1px solid var(--b1);
+  background:
+    linear-gradient(160deg, #1E2227 0%, #161A1E 50%, #0E1114 100%) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(126,160,124,0.15), rgba(150,184,156,0.22),
+      rgba(184,202,180,0.28), rgba(200,218,196,0.30),
+      rgba(184,202,180,0.28), rgba(150,184,156,0.22),
+      rgba(126,160,124,0.15)) border-box;
+  border: 1px solid transparent;
   border-radius: var(--r-lg);
   padding: var(--sp-5);
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
+  animation: opal-border-sweep 8s linear infinite;
 }
 
 .quick-entry__title {
@@ -113,6 +120,11 @@
   color: var(--sv1);
 }
 
+/* ─── Symptom wrapper (for dropdown positioning) ─── */
+.quick-entry__symptom-wrap {
+  position: relative;
+}
+
 /* ─── Tags (symptoms) ─── */
 .quick-entry__tags {
   display: flex;
@@ -210,6 +222,47 @@
   font-family: var(--fb);
   font-size: var(--text-xs);
   color: var(--sv3);
+}
+
+/* ─── Symptom dropdown ─── */
+.quick-entry__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin-top: var(--sp-1);
+  padding: var(--sp-1) 0;
+  background: #161A1E;
+  border: 1px solid rgba(126, 160, 124, 0.18);
+  border-radius: var(--r-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 12px rgba(126, 160, 124, 0.04);
+  max-height: 160px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.quick-entry__dropdown::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-entry__dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-2) var(--sp-3);
+  background: transparent;
+  border: none;
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  cursor: pointer;
+  transition: background 100ms ease-out, color 100ms ease-out;
+}
+
+.quick-entry__dropdown-item:hover {
+  background: rgba(126, 160, 124, 0.08);
+  color: var(--w-dim);
 }
 
 /* ─── Save button — uses btn btn--opal btn--sm ─── */

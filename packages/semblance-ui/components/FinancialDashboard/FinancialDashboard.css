@@ -11,8 +11,21 @@
   position: relative;
 }
 
+/* Light-top / dark-bottom directional fill */
+.fin-dash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 20%, transparent 50%, rgba(0,0,0,0.3) 100%);
+  z-index: 0;
+  pointer-events: none;
+}
+
 /* ─── Header — centered, pewter gradient tint ─── */
 .fin-dash__header {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -61,12 +74,16 @@
 
 /* ─── Divider ─── */
 .fin-dash__divider {
+  position: relative;
+  z-index: 1;
   height: 1px;
   background: rgba(255, 255, 255, 0.06);
 }
 
 /* ─── Sections ─── */
 .fin-dash__section {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
@@ -103,7 +120,19 @@
   font-family: var(--fd);
   font-weight: 300;
   font-size: var(--text-2xl);
-  color: var(--white);
+  /* Pewter/rose-gold shimmer on stat values */
+  background: linear-gradient(
+    105deg,
+    var(--id-financial-3) 0%, var(--id-financial-4) 25%,
+    var(--id-financial-5) 50%, var(--id-financial-4) 75%,
+    var(--id-financial-3) 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -3s;
 }
 
 .fin-dash__stat-label {
@@ -157,7 +186,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--sp-1) 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(180deg, #161A1E 0%, #111518 100%) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(138,126,116,0.15), rgba(168,150,138,0.22),
+      rgba(184,168,158,0.28), rgba(212,196,184,0.30),
+      rgba(184,168,158,0.28), rgba(168,150,138,0.22),
+      rgba(138,126,116,0.15)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: all var(--duration-fast) var(--eo);
+}
+
+.fin-dash__row:hover {
+  background:
+    linear-gradient(180deg, #161A1E 0%, #111518 100%) padding-box,
+    linear-gradient(rgba(176,154,138,0.35), rgba(176,154,138,0.35)) border-box;
+  box-shadow: 0 0 12px rgba(176, 154, 138, 0.06), 0 0 30px rgba(176, 154, 138, 0.04);
 }
 
 .fin-dash__row-label {
@@ -182,6 +229,16 @@
 }
 
 /* Forgotten charge — elevated urgency */
+.fin-dash__row--forgotten {
+  background:
+    linear-gradient(180deg, rgba(176,122,138,0.06) 0%, #111518 100%) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(176,122,138,0.15), rgba(176,122,138,0.25),
+      rgba(176,122,138,0.35), rgba(176,122,138,0.40),
+      rgba(176,122,138,0.35), rgba(176,122,138,0.25),
+      rgba(176,122,138,0.15)) border-box;
+}
+
 .fin-dash__row--forgotten .fin-dash__row-label {
   color: var(--w-dim);
 }
@@ -192,6 +249,8 @@
 
 /* ─── Summary row ─── */
 .fin-dash__summary {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: var(--sp-3);
@@ -203,29 +262,43 @@
   color: var(--white);
 }
 
-/* ─── Savings — opal content frame with pewter conic border ─── */
+/* ─── Savings — elevated callout with Veridian accent ─── */
 .fin-dash__savings {
   position: relative;
   box-sizing: border-box;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  background:
-    linear-gradient(#0B0E11, #0B0E11) padding-box,
-    conic-gradient(from var(--opal-angle),
-      rgba(138,126,116,0.2), rgba(168,150,138,0.28),
-      rgba(184,168,158,0.35), rgba(212,196,184,0.38),
-      rgba(184,168,158,0.35), rgba(168,150,138,0.28),
-      rgba(138,126,116,0.2)) border-box;
-  animation: opal-border-sweep 8s linear infinite;
-  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-lg);
+  border: 1px solid rgba(110, 207, 163, 0.25);
+  background: linear-gradient(160deg, rgba(110, 207, 163, 0.06) 0%, rgba(110, 207, 163, 0.02) 40%, #0E1114 100%);
+  padding: var(--sp-4) var(--sp-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  box-shadow: 0 0 20px rgba(110, 207, 163, 0.04), inset 0 0 30px rgba(110, 207, 163, 0.02);
+  margin-top: var(--sp-2);
+}
+
+.fin-dash__savings-label {
   font-family: var(--fm);
   font-size: var(--text-xs);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sv2);
+}
+
+.fin-dash__savings-amount {
+  font-family: var(--fd);
+  font-size: var(--text-lg);
+  font-weight: 300;
   color: var(--v);
+  text-shadow: 0 0 12px rgba(110, 207, 163, 0.2);
 }
 
 /* ─── Anomalies list ─── */
 .fin-dash__anomalies {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
@@ -243,16 +316,19 @@
   border: 1px solid var(--b2);
   border-radius: var(--r-sm);
   cursor: pointer;
-  transition: color 150ms ease-out, border-color 150ms ease-out;
+  transition: color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out;
 }
 
 .fin-dash__ghost-btn:hover {
   color: var(--v);
   border-color: var(--v-wire);
+  box-shadow: 0 0 8px var(--v-glow);
 }
 
 /* ─── Import area ─── */
 .fin-dash__import {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -268,6 +344,8 @@
 
 /* ─── Empty State ─── */
 .fin-dash__empty {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -280,8 +358,18 @@
   font-family: var(--fd);
   font-size: var(--text-md);
   font-weight: 300;
-  color: var(--w-dim);
   margin: 0;
+  background: linear-gradient(
+    105deg,
+    var(--id-financial-2) 0%, var(--id-financial-3) 20%,
+    var(--id-financial-4) 50%, var(--id-financial-3) 80%,
+    var(--id-financial-2) 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
 }
 
 .fin-dash__empty-text {
@@ -294,6 +382,8 @@
 
 /* ─── Loading ─── */
 .fin-dash__loading {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -306,16 +396,21 @@
 
 /* ─── Loading skeleton ─── */
 .fin-dash__skeleton {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
 }
 
 .fin-dash__skeleton-bar {
+  position: relative;
+  z-index: 1;
   height: 16px;
-  background: var(--s2);
+  background: linear-gradient(90deg, var(--s2) 0%, rgba(176,154,138,0.08) 50%, var(--s2) 100%);
+  background-size: 200% 100%;
   border-radius: var(--r-sm);
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: shimmer 2s ease-in-out infinite;
 }
 
 .fin-dash__skeleton-bar--wide { width: 80%; }

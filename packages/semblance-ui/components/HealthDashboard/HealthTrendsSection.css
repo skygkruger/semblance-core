@@ -4,12 +4,23 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
+  background:
+    linear-gradient(160deg, #1E2227 0%, #161A1E 50%, #0E1114 100%) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(126,160,124,0.12), rgba(150,184,156,0.18),
+      rgba(184,202,180,0.25), rgba(200,218,196,0.28),
+      rgba(184,202,180,0.25), rgba(150,184,156,0.18),
+      rgba(126,160,124,0.12)) border-box;
+  border: 1px solid transparent;
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+  animation: opal-border-sweep 8s linear infinite;
 }
 
 .health-trends__tabs {
   display: flex;
   gap: var(--sp-1);
-  border-bottom: 1px solid var(--b1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding-bottom: var(--sp-1);
 }
 
@@ -58,7 +69,20 @@
 }
 
 .health-trends__stat-value {
-  font-family: var(--fm);
+  font-family: var(--fd);
   font-size: var(--text-sm);
-  color: var(--w-dim);
+  font-weight: 300;
+  /* Jade Patina shimmer on stat values */
+  background: linear-gradient(
+    105deg,
+    var(--id-health-2) 0%, var(--id-health-3) 25%,
+    var(--id-health-4) 50%, var(--id-health-3) 75%,
+    var(--id-health-2) 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -3s;
 }

@@ -83,7 +83,8 @@ function project(x: number, y: number, z: number, cam: Camera): ProjectedPoint {
 
 function depthFog(depth: number, maxDepth: number): number {
   const t = Math.max(0, Math.min(1, (depth + maxDepth) / (maxDepth * 2)));
-  return 0.5 + 0.5 * (1 - t);
+  // Stronger falloff for more dramatic depth separation
+  return 0.4 + 0.6 * Math.pow(1 - t, 1.3);
 }
 
 // ─── Smoothing ──────────────────────────────────────────────────────────────
@@ -116,6 +117,8 @@ export interface SpectroState {
   activeMetric: ActiveMetric;
   layerOpacity: Record<MetricKey, number>;
   time: number; // monotonic time in ms for ambient drift
+  /** Smoothed label Y positions — lerped across frames to prevent jitter. */
+  labelY?: Record<string, number>;
 }
 
 export interface SpectroOptions {
@@ -172,10 +175,11 @@ export function renderSpectrograph(
   const visibleLayers = LAYER_ORDER.filter((l) => opts.visibleMetrics.includes(l.key));
   const maxZ = (visibleLayers.length / 2) * layerSpacing;
 
-  // ─── Background vignette ───────────────────────────────────────────
+  // ─── Background vignette — jade-tinted center ─────────────────────
   const vg = ctx.createRadialGradient(cam.cx, cam.cy, 0, cam.cx, cam.cy, Math.max(width, height) * 0.7);
-  vg.addColorStop(0, 'rgba(11, 14, 17, 0)');
-  vg.addColorStop(1, 'rgba(6, 8, 9, 0.4)');
+  vg.addColorStop(0, 'rgba(126, 160, 124, 0.015)');
+  vg.addColorStop(0.3, 'rgba(11, 14, 17, 0)');
+  vg.addColorStop(1, 'rgba(4, 6, 7, 0.5)');
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, width, height);
 
@@ -258,13 +262,18 @@ export function renderSpectrograph(
     ctx.closePath();
 
     const fillAlpha = isActive ? opacity * 0.55 : opacity * 0.32;
-    const topAlpha = isActive ? opacity * 0.75 : opacity * 0.5;
+    const topAlpha = isActive ? opacity * 0.85 : opacity * 0.5;
     const midY = Math.min(...projectedTop.map((p) => p.sy));
     const botY = Math.max(...projectedBase.map((p) => p.sy));
     const grad = ctx.createLinearGradient(0, midY, 0, botY);
-    grad.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, ${topAlpha})`);
-    grad.addColorStop(0.7, `rgba(${color.r}, ${color.g}, ${color.b}, ${fillAlpha * 0.5})`);
-    grad.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, ${fillAlpha * 0.15})`);
+    // Brighter top edge for volumetric highlight
+    const highlightR = Math.min(255, color.r + 40);
+    const highlightG = Math.min(255, color.g + 40);
+    const highlightB = Math.min(255, color.b + 40);
+    grad.addColorStop(0, `rgba(${highlightR}, ${highlightG}, ${highlightB}, ${topAlpha})`);
+    grad.addColorStop(0.15, `rgba(${color.r}, ${color.g}, ${color.b}, ${topAlpha * 0.7})`);
+    grad.addColorStop(0.5, `rgba(${color.r}, ${color.g}, ${color.b}, ${fillAlpha * 0.4})`);
+    grad.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, ${fillAlpha * 0.08})`);
     ctx.fillStyle = grad;
     ctx.fill();
 
@@ -307,18 +316,67 @@ export function renderSpectrograph(
     ctx.lineWidth = 0.5;
     ctx.stroke();
 
-    // ─── Active glow ───────────────────────────────────────────────
+    // ─── Active glow — multi-pass bloom ────────────────────────────
     if (isActive && opacity > 0.5) {
+      // Outer bloom pass (wide, soft)
       ctx.save();
-      ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.5)`;
-      ctx.shadowBlur = 16;
+      ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.4)`;
+      ctx.shadowBlur = 28;
       ctx.beginPath();
       ctx.moveTo(projectedTop[0]!.sx, projectedTop[0]!.sy);
       for (let i = 1; i < projectedTop.length; i++) ctx.lineTo(projectedTop[i]!.sx, projectedTop[i]!.sy);
-      ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${lineAlpha * 0.4})`;
-      ctx.lineWidth = 4;
+      ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${lineAlpha * 0.2})`;
+      ctx.lineWidth = 8;
       ctx.stroke();
       ctx.restore();
+
+      // Inner bloom pass (tight, bright)
+      ctx.save();
+      ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.6)`;
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(projectedTop[0]!.sx, projectedTop[0]!.sy);
+      for (let i = 1; i < projectedTop.length; i++) ctx.lineTo(projectedTop[i]!.sx, projectedTop[i]!.sy);
+      ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${lineAlpha * 0.45})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+
+      // Atmospheric underglow — radial beneath the ribbon
+      const glowCy = (midY + botY) / 2;
+      const ribbonGlow = ctx.createRadialGradient(cam.cx, glowCy, 0, cam.cx, glowCy, chartW * 0.35);
+      ribbonGlow.addColorStop(0, `rgba(${baseColor.r}, ${baseColor.g}, ${baseColor.b}, 0.04)`);
+      ribbonGlow.addColorStop(1, `rgba(${baseColor.r}, ${baseColor.g}, ${baseColor.b}, 0)`);
+      ctx.fillStyle = ribbonGlow;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    // ─── Peak markers on active layer ────────────────────────────────
+    if (isActive && opacity > 0.5 && data.length > 3) {
+      for (let di = 1; di < data.length - 1; di++) {
+        const prev = rawValues[di - 1] ?? null;
+        const curr = rawValues[di] ?? null;
+        const next = rawValues[di + 1] ?? null;
+        if (curr === null || prev === null || next === null) continue;
+        if (curr > prev && curr > next) {
+          const norm = Math.max(0, Math.min(1, (curr - normMin) / normSpan));
+          const x3d = ((di / (data.length - 1)) - 0.5) * chartW;
+          const y3d = baselineY + norm * ribbonHeight + driftY;
+          const pt = project(x3d, y3d, zBase, cam);
+
+          // Glow ring
+          ctx.beginPath();
+          ctx.arc(pt.sx, pt.sy, 4, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.25)`;
+          ctx.fill();
+
+          // Core dot
+          ctx.beginPath();
+          ctx.arc(pt.sx, pt.sy, 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.7)`;
+          ctx.fill();
+        }
+      }
     }
 
     // ─── Hover hit-test (data points only appear on hover) ────────
@@ -342,11 +400,18 @@ export function renderSpectrograph(
       }
     }
 
-    // ─── Collect label position ────────────────────────────────────
+    // ─── Collect label position (smoothed) ─────────────────────────
     if (opacity > 0.12) {
       const lastTop = projectedTop[projectedTop.length - 1]!;
       const labelAlpha = isActive ? 0.95 : Math.min(opacity * 2, 0.5);
-      labelPositions.push({ y: lastTop.sy, label: layer.label, color, alpha: labelAlpha, active: isActive });
+
+      // Smooth label Y to prevent jitter from ambient drift
+      if (!state.labelY) state.labelY = {};
+      const prevY = state.labelY[layer.key];
+      const smoothedY = prevY !== undefined ? lerp(prevY, lastTop.sy, 0.06) : lastTop.sy;
+      state.labelY[layer.key] = smoothedY;
+
+      labelPositions.push({ y: smoothedY, label: layer.label, color, alpha: labelAlpha, active: isActive });
     }
   }
 
@@ -373,7 +438,8 @@ function drawTooltip(
   _canvasH: number,
 ): void {
   const { color } = hit;
-  const valueText = hit.unit ? `${hit.value}${hit.unit}` : `${hit.value.toLocaleString()}`;
+  const needsSpace = hit.unit && !hit.unit.startsWith('/');
+  const valueText = hit.unit ? `${hit.value}${needsSpace ? ' ' : ''}${hit.unit}` : `${hit.value.toLocaleString()}`;
   const dateText = hit.date;
 
   ctx.font = '600 11px "DM Mono", monospace';
@@ -502,9 +568,9 @@ function drawFloorGrid(
     const p1 = project(x, 0, zMin, cam);
     const p2 = project(x, 0, zMax, cam);
     const grad = ctx.createLinearGradient(p1.sx, p1.sy, p2.sx, p2.sy);
-    grad.addColorStop(0, 'rgba(133, 147, 164, 0.02)');
-    grad.addColorStop(0.5, 'rgba(133, 147, 164, 0.07)');
-    grad.addColorStop(1, 'rgba(133, 147, 164, 0.03)');
+    grad.addColorStop(0, 'rgba(126, 160, 140, 0.02)');
+    grad.addColorStop(0.5, 'rgba(133, 147, 164, 0.08)');
+    grad.addColorStop(1, 'rgba(126, 160, 140, 0.03)');
     ctx.strokeStyle = grad;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
@@ -513,13 +579,17 @@ function drawFloorGrid(
     ctx.stroke();
   }
 
-  const depthLines = 5;
+  const depthLines = 6;
   for (let i = 0; i <= depthLines; i++) {
     const z = zMin + (i / depthLines) * (zMax - zMin);
     const p1 = project(-chartW / 2, 0, z, cam);
     const p2 = project(chartW / 2, 0, z, cam);
-    const alpha = 0.03 + 0.04 * (1 - i / depthLines);
-    ctx.strokeStyle = `rgba(133, 147, 164, ${alpha})`;
+    const alpha = 0.03 + 0.05 * (1 - i / depthLines);
+    const grad = ctx.createLinearGradient(p1.sx, p1.sy, p2.sx, p2.sy);
+    grad.addColorStop(0, `rgba(126, 160, 140, ${alpha * 0.3})`);
+    grad.addColorStop(0.5, `rgba(133, 147, 164, ${alpha})`);
+    grad.addColorStop(1, `rgba(126, 160, 140, ${alpha * 0.3})`);
+    ctx.strokeStyle = grad;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.moveTo(p1.sx, p1.sy);

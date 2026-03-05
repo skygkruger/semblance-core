@@ -1,8 +1,10 @@
 /* MedicalDisclaimer — Always visible, never dismissable */
 
 .medical-disclaimer {
-  background: var(--s2);
-  border-top: 1px solid var(--b1);
+  position: relative;
+  z-index: 1;
+  background: rgba(23, 27, 31, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
   padding: var(--sp-3) var(--sp-4);
   border-radius: 0 0 var(--r-lg) var(--r-lg);
 }

@@ -1,13 +1,29 @@
 /* AnomalyCard — Per-anomaly alert card */
 
 .anomaly-card {
-  background: var(--s1);
-  border: 1px solid var(--b1);
+  position: relative;
+  background:
+    linear-gradient(160deg, #1E2227 0%, #161A1E 50%, #0E1114 100%) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(138,126,116,0.2), rgba(168,150,138,0.28),
+      rgba(184,168,158,0.35), rgba(212,196,184,0.38),
+      rgba(184,168,158,0.35), rgba(168,150,138,0.28),
+      rgba(138,126,116,0.2)) border-box;
+  border: 1px solid transparent;
   border-radius: var(--r-lg);
   padding: var(--sp-4);
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+  animation: opal-border-sweep 8s linear infinite;
+  transition: box-shadow var(--duration-fast) var(--eo);
+}
+
+.anomaly-card:hover {
+  box-shadow:
+    0 0 15px rgba(176, 154, 138, 0.06),
+    0 0 35px rgba(176, 154, 138, 0.04),
+    0 0 60px rgba(176, 154, 138, 0.03);
 }
 
 .anomaly-card--high {
@@ -70,14 +86,15 @@
   background: transparent;
   border: 1px solid var(--b2);
   border-radius: var(--r-sm);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-xs);
   color: var(--sv2);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--eo);
+  transition: color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out;
 }
 
 .anomaly-card__dismiss:hover {
-  border-color: var(--sv2);
-  color: var(--w-dim);
+  color: var(--v);
+  border-color: var(--v-wire);
+  box-shadow: 0 0 8px var(--v-glow);
 }

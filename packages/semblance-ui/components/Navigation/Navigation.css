@@ -93,9 +93,9 @@
 /* Active state — solid Veridian ring */
 .nav-sidebar__item--active {
   color: #FFFFFF;
-  background:
-    var(--v-dim) padding-box,
-    linear-gradient(var(--v-wire), var(--v-wire)) border-box;
+  border-radius: var(--r-md);
+  border: 1px solid rgba(110, 207, 163, 0.45);
+  background: rgba(110, 207, 163, 0.08);
   box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
   animation: none;
 }
