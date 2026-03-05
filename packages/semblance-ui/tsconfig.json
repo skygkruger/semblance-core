@@ -23,5 +23,5 @@
     }
   },
   "include": ["global.d.ts", "tokens/**/*.ts", "components/**/*.ts", "components/**/*.tsx", "pages/**/*.ts", "pages/**/*.tsx", "hooks/**/*.ts", "stories/**/*.tsx", "index.ts"],
-  "exclude": ["node_modules", "dist", "**/*.stories.tsx", "**/*.native.tsx"]
+  "exclude": ["node_modules", "dist", "**/*.stories.tsx", "**/*.native.tsx", "**/*.test.tsx", "**/*.test.ts", "**/__tests__/**"]
 }

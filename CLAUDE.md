@@ -15,15 +15,11 @@
 
 ## MANDATORY CONTEXT — READ ON EVERY SESSION START AND AFTER EVERY COMPACTION
 
-**Before doing ANY work, read ALL THREE of these documents:**
+**Before doing ANY work, read this document:**
 
-1. **`docs/decisions/SEMBLANCE_SPRINT_RESTRUCTURE.md`** — Canonical sprint plan (Revision 3). Defines Steps 1–13 and Sprint 3 exit criteria. Remains canonical for Steps 1–13 and the free/premium boundary. If you have not read it in this session, stop and read it now.
+1. **`docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md`** — Canonical brand and design system reference. Defines colors, typography (DM Sans / Fraunces / DM Mono), spacing, logo (Mirrored S), component patterns, motion, responsive breakpoints, the living dot field background, and the biometric approval briefing card. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now.
 
-2. **`docs/decisions/SEMBLANCE_BUILD_MAP_ELEVATION.md`** — Build Map Elevation (Revision 4). Adds and restructures Steps 14–33 across Sprints 4–6. Incorporates 9 pre-launch feature elevations: Proactive Morning Brief, Alter Ego Week, Comparison Statement, Visual Knowledge Graph, Import Everything Moment, Living Will, Semblance Witness, Inheritance Protocol, and Adversarial Self-Defense. Adds new Sprint 5 ("Becomes Permanent — Sovereignty + Trust") and renumbers Sprint 6 ("Becomes Undeniable — Hardening + Launch"). **This document supersedes Revision 3 for all steps beyond Step 13.** If you have not read it in this session, stop and read it now.
-
-3. **`docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md`** — Canonical brand and design system reference. Defines colors, typography (DM Sans / Fraunces / DM Mono), spacing, logo (Mirrored S), component patterns, motion, responsive breakpoints, the living dot field background, and the biometric approval briefing card. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now.
-
-All three instructions survive compaction.
+This instruction survives compaction.
 
 **Current position:** Step 32 COMPLETE. Step 33 (Final Validation + Ship) is NEXT. Sprint 6 focus: Hardening + Launch. Total build is 33 steps across 6 sprints.
 

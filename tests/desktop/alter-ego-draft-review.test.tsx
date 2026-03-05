@@ -6,8 +6,10 @@ import { AlterEgoDraftReview } from '../../packages/semblance-ui/components/Alte
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: Record<string, unknown>) => {
-      if (opts) return `${key}:${JSON.stringify(opts)}`;
-      return key;
+      if (!opts) return key;
+      const { defaultValue, ...rest } = opts;
+      if (Object.keys(rest).length === 0) return key;
+      return `${key}:${JSON.stringify(rest)}`;
     },
   }),
 }));

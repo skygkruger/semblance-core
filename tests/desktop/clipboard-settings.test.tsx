@@ -25,8 +25,10 @@ describe('ClipboardSettingsSection', () => {
 
   it('renders a toggleable switch element', () => {
     render(<ClipboardSettingsSection />);
-    const toggle = screen.getByRole('switch');
-    expect(toggle).toBeInTheDocument();
-    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    // BEM migration: toggle uses settings-toggle class + data-on attribute instead of role="switch"
+    const toggle = screen.getByText('', { selector: '.settings-toggle' }) ?? document.querySelector('.settings-toggle');
+    const toggleEl = document.querySelector('.settings-toggle');
+    expect(toggleEl).toBeInTheDocument();
+    expect(toggleEl).toHaveAttribute('data-on', 'false');
   });
 });

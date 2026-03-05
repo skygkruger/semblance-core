@@ -44,7 +44,7 @@ describe('ForceGraph', () => {
   it('node colors mapped correctly by entity type', () => {
     const types: VisualizationEntityType[] = ['person', 'topic', 'document', 'event', 'email_thread', 'reminder', 'location'];
 
-    expect(getNodeColor('person')).toBe('#4A7FBA');
+    expect(getNodeColor('person')).toBe('#F5E6C8');
     expect(getNodeColor('topic')).toBe('#E8A838');
     expect(getNodeColor('document')).toBe('#8B93A7');
     expect(getNodeColor('event')).toBe('#3DB87A');

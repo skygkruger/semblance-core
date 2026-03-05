@@ -419,6 +419,7 @@ describe('User Name Display', () => {
   it('settings allows editing name', () => {
     const content = readFileSync(SETTINGS_SCREEN, 'utf-8');
     expect(content).toContain('userName');
-    expect(content).toContain('text-semblance-accent');
+    // BEM migration: uses ai-name-shimmer BEM class instead of Tailwind text-semblance-accent
+    expect(content).toContain('ai-name-shimmer');
   });
 });

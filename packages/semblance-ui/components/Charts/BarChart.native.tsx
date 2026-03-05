@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import { brandColors, nativeSpacing } from '../../tokens/native';
 import type { BarChartProps } from './Charts.types';
@@ -8,12 +9,13 @@ const DEFAULT_HEIGHT = 120;
 const PADDING = { top: 8, right: 4, bottom: 20, left: 4 };
 
 export function BarChart({ data, color = DEFAULT_COLOR, height = DEFAULT_HEIGHT }: BarChartProps) {
+  const { t } = useTranslation();
   const validData = data.filter((d): d is { label: string; value: number } => d.value !== null);
 
   if (validData.length === 0) {
     return (
       <View style={[styles.empty, { height }]}>
-        <Text style={styles.emptyText}>No data available</Text>
+        <Text style={styles.emptyText}>{t('charts.noData')}</Text>
       </View>
     );
   }

@@ -50,12 +50,13 @@ describe('StyleMatchIndicator component', () => {
 
   it('uses correct colors: green for 80+, amber for 60-79, coral for <60', () => {
     const content = fs.readFileSync(INDICATOR_PATH, 'utf-8');
-    // Green for high score (success color)
-    expect(content).toContain('bg-semblance-success');
-    // Amber for medium (accent color)
-    expect(content).toContain('bg-semblance-accent');
-    // Red for low (attention color)
-    expect(content).toContain('bg-semblance-attention');
+    // BEM migration: uses BEM modifier classes instead of Tailwind utility classes
+    // Green for high score
+    expect(content).toContain('style-match__dot--high');
+    // Amber for medium
+    expect(content).toContain('style-match__dot--medium');
+    // Low score
+    expect(content).toContain('style-match__dot--low');
   });
 
   it('renders expandable breakdown', () => {
@@ -134,9 +135,10 @@ describe('StyleProfileCard component', () => {
 
   it('follows design system colors and borders', () => {
     const content = fs.readFileSync(PROFILE_CARD_PATH, 'utf-8');
-    expect(content).toContain('border-semblance-border');
-    expect(content).toContain('bg-semblance-surface-1');
-    expect(content).toContain('text-semblance-text-primary');
-    expect(content).toContain('text-semblance-text-secondary');
+    // BEM migration: uses BEM CSS classes instead of Tailwind utility classes
+    expect(content).toContain('style-profile__title');
+    expect(content).toContain('style-profile__status');
+    expect(content).toContain('style-profile__section-label');
+    expect(content).toContain('style-profile__trait');
   });
 });

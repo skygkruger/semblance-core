@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { brandColors, nativeSpacing } from '../../tokens/native';
 import { QuickEntryCard } from './QuickEntryCard.native';
 import type { HealthDashboardProps } from './HealthDashboard.types';
@@ -14,10 +15,12 @@ export function HealthDashboard({
   onDismissInsight,
   loading,
 }: HealthDashboardProps) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Health Tracking</Text>
+        <Text style={styles.title}>{t('healthDashboard.title')}</Text>
         <View style={styles.skeleton} />
       </View>
     );
@@ -25,8 +28,8 @@ export function HealthDashboard({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Health Tracking</Text>
-      <Text style={styles.subtitle}>Your wellness patterns, privately tracked</Text>
+      <Text style={styles.title}>{t('healthDashboard.title')}</Text>
+      <Text style={styles.subtitle}>{t('healthDashboard.subtitle')}</Text>
 
       <QuickEntryCard
         todayEntry={todayEntry}
@@ -37,7 +40,7 @@ export function HealthDashboard({
 
       {insights.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Patterns ({insights.length})</Text>
+          <Text style={styles.sectionTitle}>{t('healthDashboard.patterns', { count: insights.length })}</Text>
           {insights.map((insight) => (
             <View key={insight.id} style={styles.insightCard}>
               <View style={styles.insightHeader}>

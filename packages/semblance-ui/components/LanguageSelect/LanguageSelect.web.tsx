@@ -68,7 +68,7 @@ export function LanguageSelect({ detectedCode, onConfirm }: LanguageSelectProps)
                 fontFamily: lang.fontStack ?? 'var(--fb)',
                 fontSize: 'var(--text-md)',
                 fontWeight: isSelected ? 400 : 300,
-                color: isSelected ? '#EEF1F4' : '#8593A4',
+                color: isSelected ? '#6ECFA3' : '#8593A4',
                 transition: 'color 150ms ease',
               }}>
                 {lang.nativeName}

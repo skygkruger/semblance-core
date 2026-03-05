@@ -67,7 +67,7 @@ export function HealthDashboardScreen() {
       <FeatureGate
         feature="health-tracking"
         isPremium={license.isPremium}
-        onLearnMore={() => license.openCheckout()}
+        onLearnMore={() => license.openCheckout('monthly')}
       >
         <HealthDashboard
           todayEntry={data?.todayEntry ?? null}

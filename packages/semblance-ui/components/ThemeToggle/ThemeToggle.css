@@ -24,6 +24,11 @@
   color: #8593A4;
 }
 
+.theme-toggle__option:focus-visible {
+  outline: 2px solid #6ECFA3;
+  outline-offset: 2px;
+}
+
 .theme-toggle__option--active {
   background: rgba(255, 255, 255, 0.08);
   color: #EEF1F4;

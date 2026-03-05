@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { brandColors, nativeSpacing } from '../../tokens/native';
 import type { HealthEntry } from './HealthDashboard.types';
 
@@ -17,6 +18,7 @@ function todayISO(): string {
 }
 
 export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory, onSave }: QuickEntryCardProps) {
+  const { t } = useTranslation();
   const [mood, setMood] = useState<number | null>(todayEntry?.mood ?? null);
   const [energy, setEnergy] = useState<number | null>(todayEntry?.energy ?? null);
   const [water, setWater] = useState<number>(todayEntry?.waterGlasses ?? 0);
@@ -62,7 +64,7 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
       </Text>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Mood</Text>
+        <Text style={styles.label}>{t('healthDashboard.mood')}</Text>
         <View style={styles.scale}>
           {SCALE_POINTS.map((n) => (
             <TouchableOpacity
@@ -80,7 +82,7 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Energy</Text>
+        <Text style={styles.label}>{t('healthDashboard.energy')}</Text>
         <View style={styles.scale}>
           {SCALE_POINTS.map((n) => (
             <TouchableOpacity
@@ -96,7 +98,7 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Water</Text>
+        <Text style={styles.label}>{t('healthDashboard.water')}</Text>
         <View style={styles.waterRow}>
           <TouchableOpacity style={styles.waterBtn} onPress={() => setWater((w) => Math.max(0, w - 1))}>
             <Text style={styles.waterBtnText}>-</Text>
@@ -110,7 +112,7 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Symptoms</Text>
+        <Text style={styles.label}>{t('healthDashboard.symptoms')}</Text>
         <View style={styles.tags}>
           {symptoms.map((s) => (
             <View key={s} style={styles.tag}>
@@ -132,7 +134,7 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Medications</Text>
+        <Text style={styles.label}>{t('healthDashboard.medications')}</Text>
         {medicationsHistory.map((med) => (
           <TouchableOpacity key={med} style={styles.medRow} onPress={() => toggleMedication(med)}>
             <View style={[styles.checkbox, medications.includes(med) && styles.checkboxActive]} />

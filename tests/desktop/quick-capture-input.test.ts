@@ -48,9 +48,9 @@ describe('QuickCaptureInput component', () => {
 
   it('follows design system styling', () => {
     const content = fs.readFileSync(COMPONENT_PATH, 'utf-8');
-    // Should use semblance design tokens
-    expect(content).toContain('bg-semblance-surface-1');
-    expect(content).toContain('border-semblance-border');
-    expect(content).toContain('bg-semblance-primary');
+    // BEM migration: uses BEM CSS classes + CSS custom properties instead of Tailwind
+    expect(content).toContain('quick-capture__input');
+    expect(content).toContain('quick-capture__submit');
+    expect(content).toContain('quick-capture__feedback');
   });
 });

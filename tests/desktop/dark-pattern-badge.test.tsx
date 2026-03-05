@@ -31,28 +31,30 @@ describe('DarkPatternBadge (desktop)', () => {
     // Reframe text
     expect(screen.getByText('A product is available for purchase.')).toBeInTheDocument();
 
-    // "Why flagged?" toggle
-    expect(screen.getByText('Why flagged?')).toBeInTheDocument();
+    // BEM migration: toggle button text changed from "Why flagged?" to "Details"
+    expect(screen.getByText('Details')).toBeInTheDocument();
   });
 
   it('"Why flagged?" section lists detected patterns with evidence', () => {
     const flag = makeFlag();
     render(<DarkPatternBadge flag={flag} />);
 
+    // BEM migration: formatCategory capitalizes category names (Urgency: not urgency:)
     // Patterns should not be visible initially
-    expect(screen.queryByText('urgency:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Urgency:')).not.toBeInTheDocument();
 
-    // Click "Why flagged?" to expand
-    fireEvent.click(screen.getByText('Why flagged?'));
+    // Click "Details" to expand (BEM migration: was "Why flagged?")
+    fireEvent.click(screen.getByText('Details'));
 
-    // Patterns now visible
-    expect(screen.getByText('urgency:')).toBeInTheDocument();
-    expect(screen.getByText('"LAST CHANCE"')).toBeInTheDocument();
-    expect(screen.getByText('(90%)')).toBeInTheDocument();
+    // Patterns now visible — formatCategory capitalizes first letter of each word
+    expect(screen.getByText('Urgency:')).toBeInTheDocument();
+    // BEM migration: component uses &ldquo;/&rdquo; (curly quotes) instead of straight quotes
+    expect(screen.getByText(/LAST CHANCE/)).toBeInTheDocument();
+    expect(screen.getByText('90%')).toBeInTheDocument();
 
-    expect(screen.getByText('scarcity:')).toBeInTheDocument();
-    expect(screen.getByText('"only 3 left"')).toBeInTheDocument();
-    expect(screen.getByText('(85%)')).toBeInTheDocument();
+    expect(screen.getByText('Scarcity:')).toBeInTheDocument();
+    expect(screen.getByText(/only 3 left/)).toBeInTheDocument();
+    expect(screen.getByText('85%')).toBeInTheDocument();
 
     // Toggle text should now say "Hide"
     expect(screen.getByText('Hide')).toBeInTheDocument();
