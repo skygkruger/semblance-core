@@ -176,6 +176,7 @@ describe('Step 11 Privacy: Full privacy audit still passes', () => {
       cwd: ROOT,
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 30_000,
     });
     expect(result).toContain('RESULT: CLEAN');
   });

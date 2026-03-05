@@ -28,7 +28,7 @@ export function PrivacyDashboard({
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Privacy Dashboard</Text>
+        <Text style={styles.headerTitle}>{t('dashboard.title')}</Text>
         <Text style={styles.headerSubtitle}>ZERO KNOWLEDGE VERIFIED</Text>
       </View>
 

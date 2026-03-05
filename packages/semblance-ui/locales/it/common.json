@@ -514,7 +514,8 @@
       "income": "[IT] Income",
       "by_category": "[IT] By Category",
       "alerts": "[IT] Alerts",
-      "recent": "[IT] Recent"
+      "recent": "[IT] Recent",
+      "import_prompt": "[IT] Import another statement to expand your financial picture"
     },
     "import_life": {
       "title": "[IT] Import Digital Life",

@@ -90,6 +90,12 @@
   color: var(--v);
 }
 
+/* Focus-visible — keyboard accessibility */
+.nav-sidebar__item:focus-visible {
+  outline: 2px solid var(--v);
+  outline-offset: 2px;
+}
+
 /* Active state — solid Veridian ring */
 .nav-sidebar__item--active {
   color: #FFFFFF;

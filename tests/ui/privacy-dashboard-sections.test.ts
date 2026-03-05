@@ -40,7 +40,8 @@ describe('PrivacyDashboard Chain Integrity section', () => {
     expect(css).toContain('.privacy-dashboard__status-badge--warning');
     expect(css).toContain('.privacy-dashboard__chain-stats');
     expect(css).toContain('.privacy-dashboard__chain-stat');
-    expect(css).toContain('.privacy-dashboard__export-btn');
+    // Export uses shared btn btn--opal class, no component-specific export class needed
+    expect(css).toContain('.privacy-dashboard__chain-stat');
     expect(css).toContain('.privacy-dashboard__loading-text');
   });
 

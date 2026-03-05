@@ -122,16 +122,15 @@ describe('TypeScript Quality — No `any` Types', () => {
 });
 
 describe('Dark Mode Support', () => {
-  // Navigation still uses Tailwind `dark:` classes.
-  const TAILWIND_COMPONENTS_REQUIRING_DARK_MODE = [
-    'Navigation',
+  // No remaining Tailwind dark: components — all migrated to BEM CSS
+  const TAILWIND_COMPONENTS_REQUIRING_DARK_MODE: string[] = [
   ];
 
   // Components using co-located CSS files with CSS custom properties for theming
   const CSS_COMPONENTS = [
     'Button', 'Input', 'Card', 'PrivacyBadge', 'ActionCard',
     'ChatBubble', 'ChatInput', 'AutonomySelector',
-    'ThemeToggle', 'Toast', 'DirectoryPicker',
+    'ThemeToggle', 'Toast', 'DirectoryPicker', 'Navigation',
   ];
 
   for (const name of TAILWIND_COMPONENTS_REQUIRING_DARK_MODE) {
@@ -151,15 +150,14 @@ describe('Dark Mode Support', () => {
 });
 
 describe('Focus-Visible Styling', () => {
-  // Navigation still uses Tailwind focus-visible classes in .tsx
-  const TAILWIND_INTERACTIVE = [
-    'Navigation',
+  // No remaining Tailwind focus-visible components — all migrated to BEM CSS
+  const TAILWIND_INTERACTIVE: string[] = [
   ];
 
   // Components with focus-visible in co-located CSS files
   const CSS_INTERACTIVE = [
     'Button', 'Input', 'ActionCard',
-    'ChatInput', 'AutonomySelector', 'ThemeToggle', 'DirectoryPicker',
+    'ChatInput', 'AutonomySelector', 'ThemeToggle', 'DirectoryPicker', 'Navigation',
   ];
 
   for (const name of TAILWIND_INTERACTIVE) {
