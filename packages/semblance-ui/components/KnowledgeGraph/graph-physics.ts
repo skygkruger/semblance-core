@@ -74,8 +74,8 @@ export function getNodeRadius(node: KnowledgeNode): number {
 
 export function getNodeColor(type: KnowledgeNode['type']): number {
   switch (type) {
-    case 'person': return 0x6ECFA3;
-    case 'calendar': return 0xC9A85C;
+    case 'person': return 0xF5E6C8;
+    case 'calendar': return 0xA89878;
     case 'file': return 0xC8CAD0;
     case 'email': return 0x8593A4;
     case 'topic': return 0x4A5568;

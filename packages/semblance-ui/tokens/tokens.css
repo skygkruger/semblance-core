@@ -98,6 +98,54 @@
   --opal-peak-opacity: 0.09;
   --opal-angle:       105deg;
   --opal-speed:       16s;
+
+  /* ─── Dashboard Identity Gradients ───
+     Each dashboard shares opal-surface architecture but has a unique
+     color identity expressed through left bar, header tint, button text,
+     and conic border accent. These are material metaphors — different
+     precious metals under the same moody lighting. */
+
+  /* Sovereignty + Morning Brief — Blue-Steel / Silver / Sage
+     Diplomatic seals, engraved bonds. Cool steel with sage inflection. */
+  --id-sovereignty-1: #63778a;
+  --id-sovereignty-2: #7a94b0;
+  --id-sovereignty-3: #8aa4b8;
+  --id-sovereignty-4: #b8cdd8;
+  --id-sovereignty-5: #8fa8a0;
+  --id-sovereignty-6: #7a9e8e;
+  --id-sovereignty-tint: rgba(110, 207, 163, 0.04);
+
+  /* Financial — Pewter / Rose-Gold / Warm Silver
+     Tarnished silver coins, rose-gold watch cases. Warm metallics. */
+  --id-financial-1: #8a7e74;
+  --id-financial-2: #a8968a;
+  --id-financial-3: #b8a89e;
+  --id-financial-4: #d4c4b8;
+  --id-financial-5: #c8b8a8;
+  --id-financial-6: #b0a090;
+  --id-financial-tint: rgba(176, 154, 138, 0.04);
+
+  /* Health — Celadon / Moss / Verdigris
+     Aged copper patina, celadon pottery, moss on stone.
+     Warm yellow-green — NOT Veridian's cool blue-green. */
+  --id-health-1: #5a7a64;
+  --id-health-2: #6e9474;
+  --id-health-3: #82a888;
+  --id-health-4: #a8c8a8;
+  --id-health-5: #8eb898;
+  --id-health-6: #72a07c;
+  --id-health-tint: rgba(110, 168, 144, 0.04);
+
+  /* Privacy — Pure Silver / Mirror
+     Liquid mercury, polished chrome. Zero hue tint.
+     Privacy = absence. The quiet fortress. */
+  --id-privacy-1: #687078;
+  --id-privacy-2: #808890;
+  --id-privacy-3: #98a0a8;
+  --id-privacy-4: #b8c0c8;
+  --id-privacy-5: #98a0a8;
+  --id-privacy-6: #808890;
+  --id-privacy-tint: rgba(160, 165, 175, 0.03);
 }
 
 @keyframes shimmer {

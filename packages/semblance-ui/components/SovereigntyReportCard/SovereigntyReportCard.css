@@ -1,4 +1,4 @@
-/* ─── SovereigntyReportCard — opal-surface card with opal-sweep conic border ─── */
+/* ─── SovereigntyReportCard — uses surface-void + data-identity="sovereignty" ─── */
 
 .sovereignty-report {
   max-width: 100%;
@@ -9,60 +9,6 @@
   gap: var(--sp-6);
   overflow: hidden;
   position: relative;
-  border-radius: var(--r-lg);
-  border: 1px solid transparent;
-  border-left: none;
-
-  /* Opal-sweep conic border (rotating) — sits under opal-surface layers */
-  background:
-    linear-gradient(135deg, var(--s2), var(--s1)) padding-box,
-    conic-gradient(from var(--opal-angle),
-      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
-      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
-      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
-      rgba(97,88,128,0.35)) border-box;
-  animation: opal-border-sweep 8s linear infinite;
-}
-
-/* ─── Opal sweep left bar (real element — preserves opal-surface ::after wireframe) ─── */
-.sovereignty-report__left-bar {
-  position: absolute !important;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: linear-gradient(to bottom,
-    rgba(97,88,128,0.55),
-    rgba(119,110,162,0.65),
-    rgba(154,168,184,0.75),
-    rgba(216,221,232,0.85),
-    rgba(154,168,184,0.75),
-    rgba(119,110,162,0.65),
-    rgba(97,88,128,0.55));
-  background-size: 100% 200%;
-  animation: sovereignty-bar-sweep 8s ease-in-out infinite;
-  border-radius: var(--r-sm) 0 0 var(--r-sm);
-  z-index: 3 !important;
-}
-
-@keyframes sovereignty-bar-sweep {
-  0% { background-position: 0% 0%; }
-  50% { background-position: 0% 100%; }
-  100% { background-position: 0% 0%; }
-}
-
-/* ═══ Veridian activation — Export hover/active turns left bar green ═══ */
-.sovereignty-report:has(.sovereignty-report__export-btn:hover) .sovereignty-report__left-bar,
-.sovereignty-report:has(.sovereignty-report__export-btn:active) .sovereignty-report__left-bar {
-  background: linear-gradient(to bottom,
-    rgba(110, 207, 163, 0.55),
-    rgba(110, 207, 163, 0.65),
-    rgba(110, 207, 163, 0.75),
-    rgba(110, 207, 163, 0.85),
-    rgba(110, 207, 163, 0.75),
-    rgba(110, 207, 163, 0.65),
-    rgba(110, 207, 163, 0.55));
-  background-size: 100% 200%;
 }
 
 /* ─── Header region (veridian gradient tint, centered, symmetric padding) ─── */
@@ -205,10 +151,10 @@
   background:
     linear-gradient(#0B0E11, #0B0E11) padding-box,
     conic-gradient(from var(--opal-angle),
-      rgba(97,88,128,0.2), rgba(119,110,162,0.28),
-      rgba(154,168,184,0.35), rgba(216,221,232,0.38),
-      rgba(154,168,184,0.35), rgba(119,110,162,0.28),
-      rgba(97,88,128,0.2)) border-box;
+      rgba(99,119,138,0.3), rgba(122,148,176,0.4),
+      rgba(138,164,184,0.5), rgba(184,205,216,0.55),
+      rgba(143,168,160,0.5), rgba(122,158,142,0.4),
+      rgba(99,119,138,0.3)) border-box;
   animation: opal-border-sweep 8s linear infinite;
   padding: var(--sp-5);
 }
@@ -222,104 +168,10 @@
   margin: 0;
 }
 
-/* ─── Export button — opal-sweep border + animated opal-sweep text, veridian on hover ─── */
+/* ─── Export wrap ─── */
 .sovereignty-report__export-wrap {
   align-self: center;
   margin-top: var(--sp-2);
-}
-
-.sovereignty-report__export-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--fb);
-  font-weight: 400;
-  font-size: var(--text-base);
-  padding: 10px 20px;
-  border-radius: var(--r-md);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid transparent;
-
-  /* Opal-sweep conic border */
-  background:
-    linear-gradient(var(--s1), var(--s1)) padding-box,
-    conic-gradient(from var(--opal-angle),
-      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
-      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
-      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
-      rgba(97,88,128,0.35)) border-box;
-  animation: opal-border-sweep 8s linear infinite;
-
-  color: inherit;
-  transition: all var(--duration-slow) var(--eo);
-}
-
-/* Text span — opal-sweep gradient text with animated sweep */
-.sovereignty-report__export-text {
-  color: transparent;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-image: linear-gradient(
-    105deg,
-    rgba(97,88,128,0.9),
-    rgba(119,110,162,1),
-    rgba(154,168,184,1),
-    rgba(216,221,232,1),
-    rgba(154,168,184,1),
-    rgba(119,110,162,1),
-    rgba(97,88,128,0.9)
-  );
-  background-size: 200% auto;
-  animation: opal-text-sweep 8s linear infinite;
-}
-
-@keyframes opal-text-sweep {
-  0% { background-position: 100% center; }
-  100% { background-position: -100% center; }
-}
-
-/* Metallic shimmer sweep on button body */
-.sovereignty-report__export-btn::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 0%,
-    rgba(200, 210, 220, 0.07) 40%,
-    rgba(240, 245, 250, 0.13) 50%,
-    rgba(200, 210, 220, 0.07) 60%,
-    transparent 100%
-  );
-  background-size: 250% auto;
-  background-position: 200% center;
-  transition: background-position 2.2s var(--eo);
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.sovereignty-report__export-btn:hover::after {
-  background-position: -50% center;
-}
-
-/* Veridian activation on hover/active */
-.sovereignty-report__export-btn:hover,
-.sovereignty-report__export-btn:active {
-  background:
-    var(--v-dim) padding-box,
-    linear-gradient(var(--v-wire), var(--v-wire)) border-box;
-  box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
-  animation: none;
-}
-
-.sovereignty-report__export-btn:hover .sovereignty-report__export-text,
-.sovereignty-report__export-btn:active .sovereignty-report__export-text {
-  -webkit-text-fill-color: var(--v);
-  background-image: none;
-  animation: none;
 }
 
 /* ─── Loading state ─── */

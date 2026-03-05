@@ -155,12 +155,12 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
           </Button>
         )}
         <Button
-          variant="approve"
+          variant="opal"
           size="lg"
           disabled={!hasValue && !config.skippable}
           onClick={hasValue ? handleContinue : handleSkip}
         >
-          {hasValue ? 'Continue' : 'Skip for now'}
+          <span className="btn__text">{hasValue ? 'Continue' : 'Skip for now'}</span>
         </Button>
       </div>
 

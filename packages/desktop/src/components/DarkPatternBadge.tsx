@@ -40,7 +40,7 @@ export function DarkPatternBadge({ flag, onDismiss }: DarkPatternBadgeProps) {
     : 'Dark Pattern';
 
   return (
-    <div className="dark-pattern opal-surface">
+    <div className="dark-pattern surface-opal opal-surface">
       <div className="dark-pattern__header">
         <span
           className="dark-pattern__shield"

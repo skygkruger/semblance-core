@@ -41,7 +41,7 @@ export function ApprovalCard({
   }, []);
 
   const stateClass = `approval-card--${state}`;
-  const opalClass = 'opal-surface';
+  const opalClass = 'surface-opal opal-surface';
 
   return (
     <div
@@ -74,8 +74,8 @@ export function ApprovalCard({
 
       {state === 'pending' && (
         <div className="approval-card__actions">
-          <Button variant="approve" size="md" onClick={onApprove}>
-            {t('button.approve')}
+          <Button variant="opal" size="md" onClick={onApprove}>
+            <span className="btn__text">{t('button.approve')}</span>
           </Button>
           <Button variant="dismiss" size="md" onClick={onDismiss}>
             {t('button.dismiss')}

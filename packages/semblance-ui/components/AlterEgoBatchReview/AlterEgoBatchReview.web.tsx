@@ -63,7 +63,7 @@ export function AlterEgoBatchReview({ items, onConfirm }: AlterEgoBatchReviewPro
       aria-modal="true"
       aria-label={t('alter_ego.batch_review_title', { defaultValue: 'Review Pending Actions' })}
     >
-      <div className="batch-review opal-surface">
+      <div className="batch-review surface-slate">
         {/* Header region with veridian gradient tint */}
         <div className="batch-review__header-region">
           <p className="batch-review__subtitle">
@@ -128,8 +128,8 @@ export function AlterEgoBatchReview({ items, onConfirm }: AlterEgoBatchReviewPro
           <span className="batch-review__tally">
             {approvedCount} {t('alter_ego.approved', { defaultValue: 'approved' })} / {rejectedCount} {t('alter_ego.rejected', { defaultValue: 'rejected' })}
           </span>
-          <Button variant="approve" size="md" onClick={handleConfirm}>
-            {t('button.confirm', { defaultValue: 'Confirm' })}
+          <Button variant="opal" size="md" onClick={handleConfirm}>
+            <span className="btn__text">{t('button.confirm', { defaultValue: 'Confirm' })}</span>
           </Button>
         </div>
       </div>

@@ -23,7 +23,7 @@ type Story = StoryObj<typeof CategoryLegend>;
 
 const sampleCategories = [
   { id: 'cat-email', label: 'Email', color: '#8593A4', nodeCount: 234, category: 'email' },
-  { id: 'cat-calendar', label: 'Calendar', color: '#B09A8A', nodeCount: 89, category: 'calendar' },
+  { id: 'cat-calendar', label: 'Calendar', color: '#B0A090', nodeCount: 89, category: 'calendar' },
   { id: 'cat-files', label: 'Files', color: '#C8CAD0', nodeCount: 156, category: 'files' },
   { id: 'cat-people', label: 'People', color: '#F5E6C8', nodeCount: 47, category: 'people' },
   { id: 'cat-health', label: 'Health', color: '#6ECFA3', nodeCount: 32, category: 'health' },

@@ -59,7 +59,7 @@ export function AutonomyTier({ value, onChange, onContinue }: AutonomyTierProps)
         ))}
       </div>
       <div style={{ marginTop: 8 }}>
-        <Button variant="approve" onClick={onContinue}>Continue</Button>
+        <Button variant="opal" onClick={onContinue}><span className="btn__text">Continue</span></Button>
       </div>
     </div>
   );

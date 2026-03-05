@@ -2,10 +2,18 @@ import { Pressable, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import type { ButtonProps, ButtonVariant, ButtonSize } from './Button.types';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
-const variantStyles: Record<ButtonVariant, { bg: string; text: string; border: string }> = {
+const variantStyles: Record<ButtonVariant, { bg: string; text: string; border: string; pressedBg?: string; pressedText?: string; pressedBorder?: string }> = {
   ghost: { bg: 'transparent', text: brandColors.sv2, border: 'rgba(255,255,255,0.12)' },
   solid: { bg: 'rgba(255,255,255,0.08)', text: '#FFFFFF', border: 'rgba(255,255,255,0.09)' },
   subtle: { bg: 'transparent', text: brandColors.sv1, border: 'transparent' },
+  opal: {
+    bg: brandColors.s1,
+    text: '#98a0a8',
+    border: 'rgba(152,160,168,0.5)',
+    pressedBg: brandColors.veridianDim,
+    pressedText: brandColors.veridian,
+    pressedBorder: brandColors.veridianWire,
+  },
   approve: { bg: 'transparent', text: brandColors.veridian, border: brandColors.veridianWire },
   dismiss: { bg: 'transparent', text: '#8593A4', border: '#8593A4' },
   destructive: { bg: 'transparent', text: brandColors.sv2, border: brandColors.b1 },
@@ -36,19 +44,19 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         {
-          backgroundColor: vs.bg,
-          borderColor: vs.border,
+          backgroundColor: pressed && vs.pressedBg ? vs.pressedBg : vs.bg,
+          borderColor: pressed && vs.pressedBorder ? vs.pressedBorder : vs.border,
           paddingHorizontal: ss.paddingH,
           paddingVertical: ss.paddingV,
           minHeight: ss.minHeight,
-          opacity: disabled ? 0.35 : pressed ? 0.7 : 1,
+          opacity: disabled ? 0.35 : pressed && !vs.pressedBg ? 0.7 : 1,
         },
       ]}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
     >
-      {typeof children === 'string' ? (
-        <Text style={[styles.label, { color: vs.text, fontSize: ss.fontSize }]}>
+      {({ pressed }) => typeof children === 'string' ? (
+        <Text style={[styles.label, { color: pressed && vs.pressedText ? vs.pressedText : vs.text, fontSize: ss.fontSize }]}>
           {children}
         </Text>
       ) : (

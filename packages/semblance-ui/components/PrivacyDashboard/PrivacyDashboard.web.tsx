@@ -19,7 +19,15 @@ export function PrivacyDashboard({
   const { t } = useTranslation('privacy');
 
   return (
-    <div className={`privacy-dashboard ${className}`.trim()}>
+    <div className={`privacy-dashboard surface-void opal-wireframe ${className}`.trim()} data-identity="privacy">
+      {/* Header */}
+      <div className="privacy-dashboard__header">
+        <h2 className="privacy-dashboard__title">{t('dashboard.title', { defaultValue: 'Privacy Dashboard' })}</h2>
+        <span className="privacy-dashboard__subtitle">{t('dashboard.subtitle', { defaultValue: 'Zero knowledge verified' })}</span>
+      </div>
+
+      <div className="privacy-dashboard__divider" />
+
       {/* Comparison Statement */}
       <div className="privacy-dashboard__section">
         <h3 className="privacy-dashboard__section-title">{t('dashboard.section_comparison')}</h3>
@@ -72,10 +80,10 @@ export function PrivacyDashboard({
               {onExportReceipt && (
                 <button
                   type="button"
-                  className="privacy-dashboard__export-btn"
+                  className="btn btn--opal btn--sm"
                   onClick={onExportReceipt}
                 >
-                  {t('dashboard.chain_integrity.export_receipt')}
+                  <span className="btn__text">{t('dashboard.chain_integrity.export_receipt')}</span>
                 </button>
               )}
             </>

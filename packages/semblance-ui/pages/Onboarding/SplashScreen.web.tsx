@@ -32,14 +32,14 @@ export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) 
       </p>
       <div style={{ marginTop: 32 }}>
         <Button
-          variant="approve"
+          variant="opal"
           size="lg"
           onClick={() => {
             if (timerRef.current) clearTimeout(timerRef.current);
             onBegin?.();
           }}
         >
-          Begin Setup
+          <span className="btn__text">Begin Setup</span>
         </Button>
       </div>
     </div>

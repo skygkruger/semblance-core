@@ -37,10 +37,10 @@ const suggestions: CategorySuggestion[] = [
 const allCategories: CategoryInfo[] = [
   { category: 'work', count: 18, color: '#4A7FBA' },
   { category: 'knowledge', count: 15, color: '#8B93A7' },
-  { category: 'health', count: 12, color: '#3DB87A' },
+  { category: 'health', count: 12, color: '#6E9474' },
   { category: 'people', count: 24, color: '#F5E6C8' },
   { category: 'social', count: 10, color: '#8B5CF6' },
-  { category: 'finance', count: 8, color: '#B09A8A' },
+  { category: 'finance', count: 8, color: '#B0A090' },
   { category: 'reading', count: 7, color: '#B07A8A' },
   { category: 'music', count: 4, color: '#EC4899' },
   { category: 'cloud', count: 6, color: '#8B93A7' },

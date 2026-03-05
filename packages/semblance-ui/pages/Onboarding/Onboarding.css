@@ -170,11 +170,8 @@
   display: none; /* Chrome/Safari */
 }
 
-/* ─── Knowledge Moment card — same treatment as BriefingCard ─── */
+/* ─── Knowledge Moment card — uses surface-opal via class ─── */
 .knowledge-moment-card {
-  background: linear-gradient(135deg, var(--s2), var(--s1));
-  border: 1px solid var(--b2);
-  border-radius: var(--r-lg);
   width: 100%;
   padding: var(--sp-6);
   box-sizing: border-box;

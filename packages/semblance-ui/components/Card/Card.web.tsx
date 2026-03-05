@@ -10,9 +10,10 @@ interface WebCardProps extends HTMLAttributes<HTMLDivElement> {
 
 export const Card = forwardRef<HTMLDivElement, WebCardProps>(
   ({ children, variant = 'default', hoverable = false, className = '', ...props }, ref) => {
+    const surfaceClass = variant === 'briefing' ? 'surface-opal opal-surface' : 'surface-slate';
     const classes = [
       'card',
-      'opal-surface',
+      surfaceClass,
       variant !== 'default' ? `card--${variant}` : '',
       hoverable ? 'card--hoverable' : '',
       className,

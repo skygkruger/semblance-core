@@ -3,6 +3,7 @@
 
 // CSS Tokens
 import './tokens/opal.css';
+import './tokens/surfaces.css';
 
 // Design Tokens
 export { colors, colorTokens } from './tokens/colors.js';

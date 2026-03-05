@@ -42,7 +42,8 @@ export function BriefingCard({
 
   return (
     <div
-      className={`briefing-card opal-surface ${className}`.trim()}
+      className={`briefing-card surface-void opal-wireframe ${className}`.trim()}
+      data-identity="sovereignty"
       data-animating={animating ? 'true' : undefined}
     >
       {/* Header region with gradient */}

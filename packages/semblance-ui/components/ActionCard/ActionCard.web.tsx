@@ -19,7 +19,7 @@ export function ActionCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={`action-card opal-surface ${className}`.trim()}>
+    <div className={`action-card surface-slate ${className}`.trim()}>
       <button
         type="button"
         className="action-card__toggle"

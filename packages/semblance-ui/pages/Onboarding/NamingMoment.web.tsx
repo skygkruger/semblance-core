@@ -43,12 +43,12 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
 
       <div style={{ marginTop: 8 }}>
         <Button
-          variant="approve"
+          variant="opal"
           size="lg"
           disabled={!hasValue}
           onClick={() => onComplete?.(userName.trim())}
         >
-          Continue
+          <span className="btn__text">Continue</span>
         </Button>
       </div>
     </div>

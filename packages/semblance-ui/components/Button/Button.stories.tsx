@@ -8,7 +8,7 @@ const meta: Meta<typeof Button> = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['ghost', 'solid', 'subtle', 'approve', 'dismiss', 'destructive'],
+      options: ['ghost', 'solid', 'subtle', 'opal', 'dismiss', 'destructive'],
     },
     size: {
       control: 'select',
@@ -33,8 +33,8 @@ export const Subtle: Story = {
   args: { variant: 'subtle', children: 'Subtle Button' },
 };
 
-export const Approve: Story = {
-  args: { variant: 'approve', children: 'Approve Action' },
+export const Opal: Story = {
+  args: { variant: 'opal', children: <span className="btn__text">Approve Action</span> },
 };
 
 export const Dismiss: Story = {
@@ -58,7 +58,7 @@ export const AllVariants: Story = {
           <Button variant="ghost" size={size}>Ghost</Button>
           <Button variant="solid" size={size}>Solid</Button>
           <Button variant="subtle" size={size}>Subtle</Button>
-          <Button variant="approve" size={size}>Approve</Button>
+          <Button variant="opal" size={size}><span className="btn__text">Approve</span></Button>
           <Button variant="dismiss" size={size}>Dismiss</Button>
           <Button variant="destructive" size={size}>Delete</Button>
         </div>
@@ -73,7 +73,7 @@ export const AllDisabled: Story = {
       <Button variant="ghost" disabled>Ghost</Button>
       <Button variant="solid" disabled>Solid</Button>
       <Button variant="subtle" disabled>Subtle</Button>
-      <Button variant="approve" disabled>Approve</Button>
+      <Button variant="opal" disabled><span className="btn__text">Approve</span></Button>
       <Button variant="dismiss" disabled>Dismiss</Button>
       <Button variant="destructive" disabled>Delete</Button>
     </div>

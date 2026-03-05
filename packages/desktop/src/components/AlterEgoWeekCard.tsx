@@ -72,11 +72,11 @@ export function AlterEgoWeekCard({
 
       <div className="alter-ego-week__actions">
         <Button
-          variant="approve"
+          variant="opal"
           size="sm"
           onClick={() => onComplete(progress.currentDay)}
         >
-          Complete Day {progress.currentDay}
+          <span className="btn__text">Complete Day {progress.currentDay}</span>
         </Button>
 
         {!confirming ? (

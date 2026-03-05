@@ -31,31 +31,25 @@ export function FinancialDashboard({
 }: FinancialDashboardProps) {
   if (loading) {
     return (
-      <div className="fin-dash">
-        <div className="fin-dash__header">
-          <h2 className="fin-dash__title">Financial Overview</h2>
-        </div>
-        <div className="fin-dash__skeleton">
-          <div className="fin-dash__skeleton-bar fin-dash__skeleton-bar--wide" />
-          <div className="fin-dash__skeleton-bar fin-dash__skeleton-bar--tall" />
-          <div className="fin-dash__skeleton-bar fin-dash__skeleton-bar--medium" />
-          <div className="fin-dash__skeleton-bar fin-dash__skeleton-bar--narrow" />
-        </div>
+      <div className="fin-dash surface-void" data-identity="financial">
+
+        <div className="fin-dash__loading">Generating financial overview...</div>
       </div>
     );
   }
 
   if (!overview && categories.length === 0) {
     return (
-      <div className="fin-dash">
+      <div className="fin-dash surface-void" data-identity="financial">
+
         <div className="fin-dash__empty">
           <h2 className="fin-dash__empty-title">No Financial Data Yet</h2>
           <p className="fin-dash__empty-text">
             Import a bank or credit card statement to get started. Semblance will detect
             recurring charges, categorize spending, and flag anomalies — all locally on your device.
           </p>
-          <button type="button" className="fin-dash__import-btn" onClick={onImportStatement}>
-            Import Statement
+          <button type="button" className="btn btn--opal btn--sm fin-dash__import-btn" onClick={onImportStatement}>
+            <span className="btn__text">Import Statement</span>
           </button>
         </div>
       </div>
@@ -66,14 +60,19 @@ export function FinancialDashboard({
   const activeCharges = subscriptions.charges.filter((c) => c.status !== 'forgotten' && c.status !== 'cancelled');
 
   return (
-    <div className="fin-dash">
+    <div className="fin-dash surface-void" data-identity="financial">
+      <div className="surface-void__left-bar" />
+
+      {/* Header — centered, shimmer title */}
       <div className="fin-dash__header">
-        <div>
-          <h2 className="fin-dash__title">Financial Overview</h2>
-          <p className="fin-dash__subtitle">Your spending patterns, locally analyzed</p>
+        <h2 className="fin-dash__title">Financial Overview</h2>
+        <span className="fin-dash__subtitle">Your spending patterns, locally analyzed</span>
+        <div className="fin-dash__period-wrap">
+          <PeriodSelector selected={selectedPeriod} onSelect={onPeriodChange} />
         </div>
-        <PeriodSelector selected={selectedPeriod} onSelect={onPeriodChange} />
       </div>
+
+      <div className="fin-dash__divider" />
 
       {overview && <SpendingOverviewSection overview={overview} />}
 
@@ -97,86 +96,70 @@ export function FinancialDashboard({
           <h3 className="fin-dash__section-title">
             Subscriptions ({subscriptions.summary.activeCount} active)
           </h3>
-          <div className="fin-dash__overview">
-            <div className="fin-dash__overview-row">
-              <span className="fin-dash__daily-avg">
-                {formatCurrency(subscriptions.summary.totalMonthly)}/mo
-              </span>
-              <span className="fin-dash__meta">
-                &middot; {formatCurrency(subscriptions.summary.totalAnnual)}/yr
-              </span>
-            </div>
+
+          <div className="fin-dash__row">
+            <span className="fin-dash__row-label">Monthly total</span>
+            <span className="fin-dash__row-value">{formatCurrency(subscriptions.summary.totalMonthly)}/mo</span>
+          </div>
+          <div className="fin-dash__row">
+            <span className="fin-dash__row-label">Annual total</span>
+            <span className="fin-dash__row-value">{formatCurrency(subscriptions.summary.totalAnnual)}/yr</span>
           </div>
 
           {forgottenCharges.length > 0 && (
             <div className="fin-dash__section">
-              <h4 className="fin-dash__section-title" style={{ color: '#B07A8A' }}>
+              <h4 className="fin-dash__section-title fin-dash__section-title--critical">
                 Potentially Forgotten ({forgottenCharges.length})
               </h4>
               {forgottenCharges.map((charge) => (
-                <div key={charge.id} className="anomaly-card anomaly-card--medium">
-                  <div className="anomaly-card__header">
-                    <h4 className="anomaly-card__title">{charge.merchantName}</h4>
-                    <span className="anomaly-card__amount">
-                      {formatCurrency(charge.amount)}{FREQ_LABELS[charge.frequency] ?? '/mo'}
-                    </span>
-                  </div>
-                  <p className="anomaly-card__description">
-                    Last charged {charge.lastChargeDate} &middot; {formatCurrency(charge.estimatedAnnualCost)}/yr
-                  </p>
-                  <div className="anomaly-card__footer">
-                    <span className="anomaly-card__merchant">
-                      Confidence: {Math.round(charge.confidence * 100)}%
-                    </span>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        type="button"
-                        className="anomaly-card__dismiss"
-                        onClick={() => onCancelSubscription(charge.id)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className="anomaly-card__dismiss"
-                        onClick={() => onKeepSubscription(charge.id)}
-                      >
-                        Keep
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeCharges.length > 0 && (
-            <div className="fin-dash__section">
-              {activeCharges.map((charge) => (
-                <div key={charge.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontFamily: 'var(--fb)', fontSize: '13px', color: '#CDD4DB' }}>
-                    {charge.merchantName}
-                  </span>
-                  <span style={{ fontFamily: 'var(--fm)', fontSize: '13px', color: '#A8B4C0' }}>
+                <div key={charge.id} className="fin-dash__row fin-dash__row--forgotten">
+                  <span className="fin-dash__row-label">{charge.merchantName}</span>
+                  <span className="fin-dash__row-value">
                     {formatCurrency(charge.amount)}{FREQ_LABELS[charge.frequency] ?? '/mo'}
                   </span>
+                  <div className="fin-dash__row-actions">
+                    <button
+                      type="button"
+                      className="fin-dash__ghost-btn"
+                      onClick={() => onCancelSubscription(charge.id)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="fin-dash__ghost-btn"
+                      onClick={() => onKeepSubscription(charge.id)}
+                    >
+                      Keep
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
+          {activeCharges.map((charge) => (
+            <div key={charge.id} className="fin-dash__row">
+              <span className="fin-dash__row-label">{charge.merchantName}</span>
+              <span className="fin-dash__row-value">
+                {formatCurrency(charge.amount)}{FREQ_LABELS[charge.frequency] ?? '/mo'}
+              </span>
+            </div>
+          ))}
+
           {subscriptions.summary.potentialSavings > 0 && (
-            <p style={{ fontFamily: 'var(--fm)', fontSize: '13px', color: '#6ECFA3', margin: 0 }}>
+            <div className="fin-dash__savings">
               Potential savings: {formatCurrency(subscriptions.summary.potentialSavings)}/yr
-            </p>
+            </div>
           )}
         </div>
       )}
 
+      {/* Import — opal-sweep button */}
       <div className="fin-dash__import">
         <p className="fin-dash__import-text">Import another statement to expand your financial picture</p>
-        <button type="button" className="fin-dash__import-btn" onClick={onImportStatement}>
-          Import Statement
+        <button type="button" className="btn btn--opal btn--sm fin-dash__import-btn" onClick={onImportStatement}>
+          <span className="btn__text">Import Statement</span>
         </button>
       </div>
     </div>

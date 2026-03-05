@@ -41,8 +41,8 @@ function getConnections(
 }
 
 const DOT_COLORS: Record<NodeType, string> = {
-  person: '#6ECFA3',
-  calendar: '#B09A8A',
+  person: '#F5E6C8',
+  calendar: '#A89878',
   file: '#C8CAD0',
   email: '#8593A4',
   topic: '#4A5568',

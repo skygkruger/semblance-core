@@ -57,7 +57,7 @@ export const SplashScreen: Story = {
           Your intelligence. Your device. Your rules.
         </p>
         <div style={{ marginTop: 32 }}>
-          <Button variant="approve" size="lg">Begin Setup</Button>
+          <Button variant="opal" size="lg">Begin Setup</Button>
         </div>
       </div>
     </PageWrapper>
@@ -111,7 +111,7 @@ export const HardwareDetection: Story = {
           ))}
         </div>
         <div style={{ marginTop: 16 }}>
-          <Button variant="approve" size="md">Continue</Button>
+          <Button variant="opal" size="md">Continue</Button>
         </div>
       </div>
     </PageWrapper>
@@ -242,7 +242,7 @@ const NamingMomentScreen = ({ defaultValue = '' }: { defaultValue?: string }) =>
         </div>
         <PrivacyBadge status="active" />
         <div style={{ marginTop: 8 }}>
-          <Button variant="approve" size="lg" disabled={!hasValue}>Continue</Button>
+          <Button variant="opal" size="lg" disabled={!hasValue}>Continue</Button>
         </div>
       </div>
     </PageWrapper>

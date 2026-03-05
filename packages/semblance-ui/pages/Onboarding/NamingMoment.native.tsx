@@ -41,7 +41,7 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
 
         <View style={styles.btnWrap}>
           <Button
-            variant="approve"
+            variant="opal"
             size="lg"
             disabled={!hasValue}
             onPress={() => onComplete?.(userName.trim())}

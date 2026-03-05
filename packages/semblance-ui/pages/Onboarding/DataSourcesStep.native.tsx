@@ -135,7 +135,7 @@ export function DataSourcesStep({
         <Pressable onPress={onSkip} style={styles.skipBtn} hitSlop={8}>
           <Text style={styles.skipText}>{t('data_sources.skip_button')}</Text>
         </Pressable>
-        <Button variant="approve" size="md" onPress={handleContinue}>
+        <Button variant="opal" size="md" onPress={handleContinue}>
           {t('data_sources.continue_button')}
         </Button>
       </View>

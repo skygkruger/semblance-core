@@ -128,8 +128,8 @@ export function DataSourcesStep({
         >
           {t('data_sources.skip_button')}
         </button>
-        <Button variant="approve" size="md" onClick={handleContinue}>
-          {t('data_sources.continue_button')}
+        <Button variant="opal" size="md" onClick={handleContinue}>
+          <span className="btn__text">{t('data_sources.continue_button')}</span>
         </Button>
       </div>
     </div>

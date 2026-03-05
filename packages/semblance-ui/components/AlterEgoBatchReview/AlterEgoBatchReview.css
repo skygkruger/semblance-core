@@ -11,9 +11,6 @@
 }
 
 .batch-review {
-  background: linear-gradient(135deg, var(--s2), var(--s1));
-  border: 1px solid var(--b2);
-  border-radius: var(--r-lg);
   max-width: 520px;
   width: 90vw;
   max-height: 80vh;
@@ -190,7 +187,7 @@
   color: var(--sv1);
 }
 
-/* Confirm button uses Button component with variant="approve" */
+/* Confirm button uses Button component with variant="opal" */
 
 /* ─── Narrow panel (container query) ─── */
 @container (max-width: 420px) {

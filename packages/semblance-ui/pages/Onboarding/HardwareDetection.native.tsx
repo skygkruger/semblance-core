@@ -67,7 +67,7 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
       )}
 
       {hardwareInfo && !detecting && (
-        <Button variant="approve" onPress={onContinue}>{t('hardware.continue_button')}</Button>
+        <Button variant="opal" onPress={onContinue}>{t('hardware.continue_button')}</Button>
       )}
     </View>
   );

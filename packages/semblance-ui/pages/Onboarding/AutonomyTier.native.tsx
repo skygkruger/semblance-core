@@ -21,7 +21,7 @@ export function AutonomyTier({ value, onChange, onContinue }: AutonomyTierProps)
       </View>
 
       <View style={styles.btnWrap}>
-        <Button variant="approve" onPress={onContinue}>{t('autonomy.continue_button')}</Button>
+        <Button variant="opal" onPress={onContinue}>{t('autonomy.continue_button')}</Button>
       </View>
     </View>
   );

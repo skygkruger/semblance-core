@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type ButtonVariant = 'ghost' | 'solid' | 'subtle' | 'approve' | 'dismiss' | 'destructive';
+export type ButtonVariant = 'ghost' | 'solid' | 'subtle' | 'opal' | 'approve' | 'dismiss' | 'destructive';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps {

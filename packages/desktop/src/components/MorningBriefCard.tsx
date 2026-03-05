@@ -1,7 +1,6 @@
 // MorningBriefCard — Warm Amber accent, collapsible sections, dismiss button.
 
 import { useState } from 'react';
-import { Card } from '@semblance/ui';
 import './MorningBriefCard.css';
 
 export interface MorningBriefData {
@@ -37,8 +36,7 @@ export function MorningBriefCard({ brief, onDismiss }: MorningBriefCardProps) {
     : `${Math.round(brief.estimatedReadTimeSeconds / 60)}m read`;
 
   return (
-    <Card className="morning-brief">
-      <div className="morning-brief__opal-accent" aria-hidden="true" />
+    <div className="morning-brief surface-void opal-wireframe" data-identity="sovereignty">
       <div className="morning-brief__header">
         <div>
           <div className="morning-brief__label-row">
@@ -88,6 +86,6 @@ export function MorningBriefCard({ brief, onDismiss }: MorningBriefCardProps) {
           ))}
         </div>
       )}
-    </Card>
+    </div>
   );
 }

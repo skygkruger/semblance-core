@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { brandColors, nativeSpacing } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeSurfaces, nativeSurfaceIdentity, nativeFontFamily, nativeFontSize } from '../../tokens/native';
 import { QuickEntryCard } from './QuickEntryCard.native';
 import type { HealthDashboardProps } from './HealthDashboard.types';
 
@@ -65,39 +65,39 @@ export function HealthDashboard({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: nativeSpacing.sp5, gap: nativeSpacing.sp5 },
-  title: { fontFamily: 'Fraunces-Regular', fontSize: 21, color: brandColors.white },
-  subtitle: { fontFamily: 'DMSans-Regular', fontSize: 13, color: brandColors.silver2 },
-  section: { gap: nativeSpacing.sp3 },
+  container: { flex: 1, backgroundColor: '#0B0E11' },
+  content: { padding: nativeSpacing.s5, gap: nativeSpacing.s5, borderWidth: 1, borderColor: nativeSurfaceIdentity.health.borderColor, borderRadius: 12 },
+  title: { fontFamily: nativeFontFamily.display, fontSize: 21, fontWeight: '300', color: brandColors.white },
+  subtitle: { fontFamily: nativeFontFamily.ui, fontSize: nativeFontSize.sm, color: brandColors.sv2 },
+  section: { gap: nativeSpacing.s3 },
   sectionTitle: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 13,
-    color: brandColors.silver3,
+    fontFamily: nativeFontFamily.ui,
+    fontSize: nativeFontSize.sm,
+    color: brandColors.sv3,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   insightCard: {
-    backgroundColor: brandColors.surface1,
+    backgroundColor: brandColors.s1,
     borderRadius: 12,
-    padding: nativeSpacing.sp4,
-    gap: nativeSpacing.sp2,
+    padding: nativeSpacing.s4,
+    gap: nativeSpacing.s2,
   },
   insightHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  insightTitle: { fontFamily: 'DMSans-Medium', fontSize: 13, color: brandColors.whiteDim },
-  insightConf: { fontFamily: 'DMMono-Regular', fontSize: 11, color: brandColors.silver2 },
-  insightDesc: { fontFamily: 'DMSans-Regular', fontSize: 11, color: brandColors.silver2 },
+  insightTitle: { fontFamily: nativeFontFamily.uiMedium, fontSize: nativeFontSize.sm, color: brandColors.wDim },
+  insightConf: { fontFamily: nativeFontFamily.mono, fontSize: nativeFontSize.xs, color: brandColors.sv2 },
+  insightDesc: { fontFamily: nativeFontFamily.ui, fontSize: nativeFontSize.xs, color: brandColors.sv2 },
   disclaimer: {
-    backgroundColor: brandColors.surface2,
+    backgroundColor: brandColors.s2,
     borderTopWidth: 1,
-    borderTopColor: brandColors.border1,
-    padding: nativeSpacing.sp3,
+    borderTopColor: brandColors.b1,
+    padding: nativeSpacing.s3,
     borderRadius: 12,
   },
-  disclaimerText: { fontFamily: 'DMMono-Regular', fontSize: 11, color: brandColors.silver1, lineHeight: 18 },
+  disclaimerText: { fontFamily: nativeFontFamily.mono, fontSize: nativeFontSize.xs, color: brandColors.sv1, lineHeight: 18 },
   skeleton: {
     height: 16,
-    backgroundColor: brandColors.surface2,
+    backgroundColor: brandColors.s2,
     borderRadius: 4,
     width: '80%',
   },

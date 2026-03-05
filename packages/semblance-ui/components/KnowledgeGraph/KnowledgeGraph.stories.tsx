@@ -143,7 +143,7 @@ const categoryGraphNodes: KnowledgeNode[] = [
   { id: 'cat_people', type: 'category', label: 'People', sublabel: '24 entities', weight: 50, metadata: { category: 'people', color: '#F5E6C8', nodeCount: 24, expanded: true } },
   { id: 'cat_work', type: 'category', label: 'Work & Productivity', sublabel: '18 entities', weight: 40, metadata: { category: 'work', color: '#4A7FBA', nodeCount: 18 } },
   { id: 'cat_knowledge', type: 'category', label: 'Documents & Notes', sublabel: '15 entities', weight: 35, metadata: { category: 'knowledge', color: '#8B93A7', nodeCount: 15 } },
-  { id: 'cat_health', type: 'category', label: 'Health & Fitness', sublabel: '12 entities', weight: 30, metadata: { category: 'health', color: '#3DB87A', nodeCount: 12 } },
+  { id: 'cat_health', type: 'category', label: 'Health & Fitness', sublabel: '12 entities', weight: 30, metadata: { category: 'health', color: '#6E9474', nodeCount: 12 } },
   { id: 'cat_social', type: 'category', label: 'Social & Messaging', sublabel: '10 entities', weight: 28, metadata: { category: 'social', color: '#8B5CF6', nodeCount: 10 } },
   { id: 'cat_reading', type: 'category', label: 'Reading & Research', sublabel: '7 entities', weight: 20, metadata: { category: 'reading', color: '#B07A8A', nodeCount: 7 } },
   // 5 expanded person nodes with activityScores
@@ -243,8 +243,8 @@ const categoryNodes: KnowledgeNode[] = [
   { id: 'cat_people', type: 'category', label: 'People', sublabel: '24 entities', weight: 50, metadata: { category: 'people', color: '#F5E6C8', nodeCount: 24 } },
   { id: 'cat_work', type: 'category', label: 'Work & Productivity', sublabel: '18 entities', weight: 40, metadata: { category: 'work', color: '#4A7FBA', nodeCount: 18 } },
   { id: 'cat_knowledge', type: 'category', label: 'Documents & Notes', sublabel: '15 entities', weight: 35, metadata: { category: 'knowledge', color: '#8B93A7', nodeCount: 15 } },
-  { id: 'cat_health', type: 'category', label: 'Health & Fitness', sublabel: '12 entities', weight: 30, metadata: { category: 'health', color: '#3DB87A', nodeCount: 12 } },
-  { id: 'cat_finance', type: 'category', label: 'Finance', sublabel: '8 entities', weight: 25, metadata: { category: 'finance', color: '#B09A8A', nodeCount: 8 } },
+  { id: 'cat_health', type: 'category', label: 'Health & Fitness', sublabel: '12 entities', weight: 30, metadata: { category: 'health', color: '#6E9474', nodeCount: 12 } },
+  { id: 'cat_finance', type: 'category', label: 'Finance', sublabel: '8 entities', weight: 25, metadata: { category: 'finance', color: '#B0A090', nodeCount: 8 } },
   { id: 'cat_social', type: 'category', label: 'Social & Messaging', sublabel: '10 entities', weight: 28, metadata: { category: 'social', color: '#8B5CF6', nodeCount: 10 } },
   { id: 'cat_reading', type: 'category', label: 'Reading & Research', sublabel: '7 entities', weight: 20, metadata: { category: 'reading', color: '#B07A8A', nodeCount: 7 } },
   { id: 'cat_music', type: 'category', label: 'Music & Entertainment', sublabel: '4 entities', weight: 15, metadata: { category: 'music', color: '#EC4899', nodeCount: 4 } },
@@ -368,7 +368,7 @@ const lockedCategoryNodes: KnowledgeNode[] = [
   { id: 'cat_music', type: 'category', label: 'Music & Entertainment', sublabel: '0 entities', weight: 10, metadata: { category: 'music', color: '#EC4899', nodeCount: 0 } },
   { id: 'cat_cloud', type: 'category', label: 'Cloud Storage', sublabel: '0 entities', weight: 10, metadata: { category: 'cloud', color: '#8B93A7', nodeCount: 0 } },
   { id: 'cat_browser', type: 'category', label: 'Browsing', sublabel: '0 entities', weight: 10, metadata: { category: 'browser', color: '#6ECFA3', nodeCount: 0 } },
-  { id: 'cat_finance', type: 'category', label: 'Finance', sublabel: '0 entities', weight: 10, metadata: { category: 'finance', color: '#B09A8A', nodeCount: 0 } },
+  { id: 'cat_finance', type: 'category', label: 'Finance', sublabel: '0 entities', weight: 10, metadata: { category: 'finance', color: '#B0A090', nodeCount: 0 } },
   // Unlocked (with data)
   { id: 'cat_people', type: 'category', label: 'People', sublabel: '24 entities', weight: 50, metadata: { category: 'people', color: '#F5E6C8', nodeCount: 24 } },
   { id: 'cat_work', type: 'category', label: 'Work & Productivity', sublabel: '18 entities', weight: 40, metadata: { category: 'work', color: '#4A7FBA', nodeCount: 18 } },
@@ -420,14 +420,14 @@ const filterPanelCategories: StoryCategoryNode[] = [
   { id: 'cat_people', category: 'people', label: 'People', color: '#F5E6C8', icon: '[P]', nodeCount: 24, totalSize: 120, nodeIds: [] },
   { id: 'cat_work', category: 'work', label: 'Work & Productivity', color: '#4A7FBA', icon: '[>]', nodeCount: 18, totalSize: 90, nodeIds: [] },
   { id: 'cat_knowledge', category: 'knowledge', label: 'Documents & Notes', color: '#8B93A7', icon: '[D]', nodeCount: 15, totalSize: 75, nodeIds: [] },
-  { id: 'cat_health', category: 'health', label: 'Health & Fitness', color: '#3DB87A', icon: '[+]', nodeCount: 12, totalSize: 60, nodeIds: [] },
+  { id: 'cat_health', category: 'health', label: 'Health & Fitness', color: '#6E9474', icon: '[+]', nodeCount: 12, totalSize: 60, nodeIds: [] },
 ];
 
 const filterPanelNodes: KnowledgeNode[] = [
   { id: 'cat_people', type: 'category', label: 'People', sublabel: '24 entities', weight: 50, metadata: { category: 'people', color: '#F5E6C8', nodeCount: 24 } },
   { id: 'cat_work', type: 'category', label: 'Work & Productivity', sublabel: '18 entities', weight: 40, metadata: { category: 'work', color: '#4A7FBA', nodeCount: 18 } },
   { id: 'cat_knowledge', type: 'category', label: 'Documents & Notes', sublabel: '15 entities', weight: 35, metadata: { category: 'knowledge', color: '#8B93A7', nodeCount: 15 } },
-  { id: 'cat_health', type: 'category', label: 'Health & Fitness', sublabel: '12 entities', weight: 30, metadata: { category: 'health', color: '#3DB87A', nodeCount: 12 } },
+  { id: 'cat_health', type: 'category', label: 'Health & Fitness', sublabel: '12 entities', weight: 30, metadata: { category: 'health', color: '#6E9474', nodeCount: 12 } },
 ];
 
 const filterPanelEdges: KnowledgeEdge[] = [

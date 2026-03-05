@@ -195,12 +195,12 @@ describe('FinancialDashboard — data rendering', () => {
 
   it('renders transaction count', () => {
     render(<FinancialDashboard {...makeProps()} />);
-    expect(screen.getByText(/87 transactions/)).toBeInTheDocument();
+    expect(screen.getByText('87')).toBeInTheDocument();
   });
 
   it('shows daily average', () => {
     render(<FinancialDashboard {...makeProps()} />);
-    expect(screen.getByText(/Daily average:/)).toBeInTheDocument();
+    expect(screen.getByText(/Daily Average/)).toBeInTheDocument();
   });
 
   it('anomaly cards render merchant name and amount', () => {
@@ -240,12 +240,12 @@ describe('FinancialDashboard — data rendering', () => {
     expect(screen.getByRole('button', { name: 'Import Statement' })).toBeInTheDocument();
   });
 
-  it('amounts use DM Mono font class on the total element', () => {
+  it('amounts use stat-value class on the total element', () => {
     render(<FinancialDashboard {...makeProps()} />);
-    // .fin-dash__total has font-family: var(--fm) which is DM Mono
-    const totalEl = document.querySelector('.fin-dash__total');
-    expect(totalEl).not.toBeNull();
-    expect(totalEl!.textContent).toContain('$4237.89');
+    const statValues = document.querySelectorAll('.fin-dash__stat-value');
+    expect(statValues.length).toBeGreaterThan(0);
+    const texts = Array.from(statValues).map((el) => el.textContent);
+    expect(texts).toContain('$4237.89');
   });
 
   it('shows potential savings when subscriptions have forgotten charges', () => {
@@ -261,7 +261,8 @@ describe('FinancialDashboard — data rendering', () => {
 
   it('renders period dates in meta', () => {
     render(<FinancialDashboard {...makeProps()} />);
-    expect(screen.getByText(/2026-02-01 to 2026-03-01/)).toBeInTheDocument();
+    expect(screen.getByText(/2026-02-01/)).toBeInTheDocument();
+    expect(screen.getByText(/2026-03-01/)).toBeInTheDocument();
   });
 });
 
@@ -317,14 +318,13 @@ describe('FinancialDashboard — premium gating', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders loading skeleton when loading=true', () => {
+  it('renders loading state when loading=true', () => {
     render(
       <FinancialDashboard
         {...makeProps({ loading: true })}
       />,
     );
-    const skeleton = document.querySelector('.fin-dash__skeleton');
-    expect(skeleton).not.toBeNull();
+    expect(screen.getByText(/Generating financial overview/)).toBeInTheDocument();
   });
 });
 
@@ -521,16 +521,15 @@ describe('FinancialDashboard — accessibility', () => {
     expect(group).toBeInTheDocument();
   });
 
-  it('skeleton state renders the skeleton container element', () => {
+  it('loading state renders loading text', () => {
     render(<FinancialDashboard {...makeProps({ loading: true })} />);
-    const skeletonBars = document.querySelectorAll('.fin-dash__skeleton-bar');
-    expect(skeletonBars.length).toBeGreaterThan(0);
+    expect(screen.getByText(/Generating financial overview/)).toBeInTheDocument();
   });
 
   it('loading state does not show the main financial content', () => {
     render(<FinancialDashboard {...makeProps({ loading: true })} />);
     expect(screen.queryByText('$4237.89')).not.toBeInTheDocument();
-    expect(screen.queryByText(/87 transactions/)).not.toBeInTheDocument();
-    expect(document.querySelector('.fin-dash__overview')).toBeNull();
+    expect(screen.queryByText('87')).not.toBeInTheDocument();
+    expect(document.querySelector('.fin-dash__stats')).toBeNull();
   });
 });
