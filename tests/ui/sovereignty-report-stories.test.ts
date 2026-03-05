@@ -54,7 +54,7 @@ describe('SovereigntyReportCard component files exist', () => {
     expect(css).toContain('.sovereignty-report__title');
     expect(css).toContain('.sovereignty-report__section-title');
     expect(css).toContain('.sovereignty-report__chain-badge--verified');
-    expect(css).toContain('.sovereignty-report__export-btn');
+    expect(css).toContain('.sovereignty-report__export-wrap');
   });
 
   it('index.ts exports component and types', () => {

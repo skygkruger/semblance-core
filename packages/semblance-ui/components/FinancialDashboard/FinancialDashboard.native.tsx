@@ -233,7 +233,7 @@ export function FinancialDashboard({
 
       {/* Import */}
       <View style={styles.importArea}>
-        <Text style={styles.importText}>Import another statement to expand your financial picture</Text>
+        <Text style={styles.importText}>{t('dashboard.financial.import_prompt')}</Text>
         <Button variant="opal" size="sm" onPress={onImportStatement}>{t('financialDashboard.importStatement')}</Button>
       </View>
     </ScrollView>

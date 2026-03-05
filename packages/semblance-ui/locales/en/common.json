@@ -516,7 +516,8 @@
       "income": "Income",
       "by_category": "By Category",
       "alerts": "Alerts",
-      "recent": "Recent"
+      "recent": "Recent",
+      "import_prompt": "Import another statement to expand your financial picture"
     },
     "import_life": {
       "title": "Import Digital Life",

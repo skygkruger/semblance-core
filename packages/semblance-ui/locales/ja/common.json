@@ -514,7 +514,8 @@
       "income": "[JA] Income",
       "by_category": "[JA] By Category",
       "alerts": "[JA] Alerts",
-      "recent": "[JA] Recent"
+      "recent": "[JA] Recent",
+      "import_prompt": "[JA] Import another statement to expand your financial picture"
     },
     "import_life": {
       "title": "[JA] Import Digital Life",

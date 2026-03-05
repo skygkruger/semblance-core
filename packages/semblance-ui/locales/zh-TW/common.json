@@ -514,7 +514,8 @@
       "income": "[TW] Income",
       "by_category": "[TW] By Category",
       "alerts": "[TW] Alerts",
-      "recent": "[TW] Recent"
+      "recent": "[TW] Recent",
+      "import_prompt": "[TW] Import another statement to expand your financial picture"
     },
     "import_life": {
       "title": "[TW] Import Digital Life",

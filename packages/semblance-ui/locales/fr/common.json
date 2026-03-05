@@ -514,7 +514,8 @@
       "income": "[FR] Income",
       "by_category": "[FR] By Category",
       "alerts": "[FR] Alerts",
-      "recent": "[FR] Recent"
+      "recent": "[FR] Recent",
+      "import_prompt": "[FR] Import another statement to expand your financial picture"
     },
     "import_life": {
       "title": "[FR] Import Digital Life",

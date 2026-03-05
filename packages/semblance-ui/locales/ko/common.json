@@ -514,7 +514,8 @@
       "income": "[KO] Income",
       "by_category": "[KO] By Category",
       "alerts": "[KO] Alerts",
-      "recent": "[KO] Recent"
+      "recent": "[KO] Recent",
+      "import_prompt": "[KO] Import another statement to expand your financial picture"
     },
     "import_life": {
       "title": "[KO] Import Digital Life",

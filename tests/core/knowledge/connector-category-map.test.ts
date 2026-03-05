@@ -117,10 +117,10 @@ describe('Connector Category Map', () => {
   });
 
   it('CATEGORY_META colors align with design tokens for finance, reading, browser', () => {
-    // finance → --amber (#C9A85C)
-    expect(CATEGORY_META.finance.color).toBe('#C9A85C');
-    // reading → --rust (#C97B6E)
-    expect(CATEGORY_META.reading.color).toBe('#C97B6E');
+    // finance → --caution (#B09A8A)
+    expect(CATEGORY_META.finance.color).toBe('#B09A8A');
+    // reading → --critical (#B07A8A)
+    expect(CATEGORY_META.reading.color).toBe('#B07A8A');
     // browser → --v (Veridian #6ECFA3)
     expect(CATEGORY_META.browser.color).toBe('#6ECFA3');
     // cloud stays --sv2 (#8B93A7)

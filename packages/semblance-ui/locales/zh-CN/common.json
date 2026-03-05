@@ -514,7 +514,8 @@
       "income": "[ZH] Income",
       "by_category": "[ZH] By Category",
       "alerts": "[ZH] Alerts",
-      "recent": "[ZH] Recent"
+      "recent": "[ZH] Recent",
+      "import_prompt": "[ZH] Import another statement to expand your financial picture"
     },
     "import_life": {
       "title": "[ZH] Import Digital Life",

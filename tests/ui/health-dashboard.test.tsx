@@ -188,10 +188,10 @@ describe('HealthDashboard — quick entry', () => {
 // ─── Trends ────────────────────────────────────────────────────────────────────
 
 describe('HealthDashboard — trends', () => {
-  it('renders mood chart by default', () => {
+  it('renders All tab selected by default', () => {
     render(<HealthDashboard {...makeProps()} />);
-    const moodTab = screen.getByRole('tab', { name: 'Mood' });
-    expect(moodTab).toHaveAttribute('aria-selected', 'true');
+    const allTab = screen.getByRole('tab', { name: 'All' });
+    expect(allTab).toHaveAttribute('aria-selected', 'true');
   });
 
   it('renders energy tab and switches chart', () => {
@@ -215,8 +215,11 @@ describe('HealthDashboard — trends', () => {
     expect(screen.getByRole('tab', { name: 'Heart Rate' })).toBeInTheDocument();
   });
 
-  it('displays average, min, and max stats', () => {
+  it('displays average, min, and max stats when a metric tab is selected', () => {
     render(<HealthDashboard {...makeProps()} />);
+    // Stats only show for specific metric tabs, not 'All'
+    const moodTab = screen.getByRole('tab', { name: 'Mood' });
+    fireEvent.click(moodTab);
     expect(screen.getByText('Avg')).toBeInTheDocument();
     expect(screen.getByText('Min')).toBeInTheDocument();
     expect(screen.getByText('Max')).toBeInTheDocument();
@@ -242,16 +245,19 @@ describe('HealthDashboard — trends', () => {
     expect(screen.getByRole('tab', { name: 'Water' })).toBeInTheDocument();
   });
 
-  it('tab count is 3 without HealthKit, 6 with', () => {
+  it('tab count is 4 without HealthKit, 7 with', () => {
     const { unmount } = render(<HealthDashboard {...makeProps({ hasHealthKit: false })} />);
-    expect(screen.getAllByRole('tab').length).toBe(3);
+    expect(screen.getAllByRole('tab').length).toBe(4);
     unmount();
     render(<HealthDashboard {...makeProps({ hasHealthKit: true })} />);
-    expect(screen.getAllByRole('tab').length).toBe(6);
+    expect(screen.getAllByRole('tab').length).toBe(7);
   });
 
-  it('stats values render in stat elements', () => {
+  it('stats values render in stat elements when metric tab is selected', () => {
     render(<HealthDashboard {...makeProps()} />);
+    // Click a specific metric tab — stats don't render in 'All' mode
+    const moodTab = screen.getByRole('tab', { name: 'Mood' });
+    fireEvent.click(moodTab);
     const statValues = document.querySelectorAll('.health-trends__stat-value');
     expect(statValues.length).toBe(3);
     // Should be numeric
