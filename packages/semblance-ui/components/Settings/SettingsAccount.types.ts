@@ -17,8 +17,8 @@ export interface SettingsAccountProps {
 export interface LicenseConfig {
   label: string;
   badge: string;
-  badgeVariant: 'opal' | 'veridian' | 'muted' | 'rust';
-  cardVariant: 'opal' | 'active' | 'default' | 'rust';
+  badgeVariant: 'opal' | 'veridian' | 'muted' | 'critical';
+  cardVariant: 'opal' | 'active' | 'default' | 'critical';
   desc: string;
 }
 
@@ -47,8 +47,8 @@ export const licenseConfigs: Record<string, LicenseConfig> = {
   expired: {
     label: 'Expired',
     badge: 'EXPIRED',
-    badgeVariant: 'rust',
-    cardVariant: 'rust',
+    badgeVariant: 'critical',
+    cardVariant: 'critical',
     desc: 'License expired \u2014 core features still available',
   },
 };

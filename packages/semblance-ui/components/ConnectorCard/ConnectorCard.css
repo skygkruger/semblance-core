@@ -77,8 +77,8 @@
   font-weight: 400;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(201, 168, 92, 0.13);
-  color: #C9A85C;
+  background: rgba(176, 154, 138, 0.13);
+  color: #B09A8A;
   letter-spacing: 0.04em;
 }
 
@@ -142,13 +142,13 @@
 }
 
 .connector-card__btn--disconnect:hover {
-  color: #C97B6E;
+  color: #B07A8A;
 }
 
 .connector-card__pending-text {
   font-family: var(--fm);
   font-size: 11px;
-  color: #C9A85C;
+  color: #B09A8A;
   letter-spacing: 0.04em;
 }
 

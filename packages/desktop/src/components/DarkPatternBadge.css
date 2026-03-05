@@ -30,7 +30,7 @@
   font-family: var(--fm);
   font-size: var(--text-sm);
   font-weight: 700;
-  color: var(--rust);
+  color: var(--critical);
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -133,7 +133,7 @@
 
 .dark-pattern__category {
   font-weight: 500;
-  color: var(--rust);
+  color: var(--critical);
   white-space: nowrap;
 }
 

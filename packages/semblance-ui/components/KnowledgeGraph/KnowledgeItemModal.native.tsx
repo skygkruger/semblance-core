@@ -172,14 +172,14 @@ export function KnowledgeItemModal({
               </Pressable>
 
               <Pressable style={styles.action} onPress={handleRemove} accessibilityRole="button">
-                <Text style={[styles.actionIcon, { color: brandColors.amber }]}>[x]</Text>
+                <Text style={[styles.actionIcon, { color: brandColors.caution }]}>[x]</Text>
                 <Text style={styles.actionLabel}>{t('knowledge_graph.remove_from_graph', 'Remove from graph')}</Text>
               </Pressable>
 
               {!showDeleteConfirm ? (
                 <Pressable style={styles.action} onPress={handleDeleteClick} accessibilityRole="button">
-                  <Text style={[styles.actionIcon, { color: brandColors.rust }]}>[!]</Text>
-                  <Text style={[styles.actionLabel, { color: brandColors.rust }]}>{t('knowledge_graph.delete_from_disk', 'Delete from disk')}</Text>
+                  <Text style={[styles.actionIcon, { color: brandColors.critical }]}>[!]</Text>
+                  <Text style={[styles.actionLabel, { color: brandColors.critical }]}>{t('knowledge_graph.delete_from_disk', 'Delete from disk')}</Text>
                 </Pressable>
               ) : (
                 <View style={styles.confirmBox}>
@@ -354,16 +354,16 @@ const styles = StyleSheet.create({
   },
   confirmBox: {
     padding: 12,
-    backgroundColor: 'rgba(201, 123, 110, 0.06)',
+    backgroundColor: 'rgba(176, 122, 138, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(201, 123, 110, 0.15)',
+    borderColor: 'rgba(176, 122, 138, 0.15)',
     borderRadius: 8,
     gap: 8,
   },
   confirmText: {
     fontFamily: nativeFontFamily.ui,
     fontSize: 12,
-    color: brandColors.rust,
+    color: brandColors.critical,
     lineHeight: 17,
   },
   confirmButtons: {
@@ -388,12 +388,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
-    backgroundColor: 'rgba(201, 123, 110, 0.15)',
+    backgroundColor: 'rgba(176, 122, 138, 0.15)',
     alignItems: 'center',
   },
   confirmBtnDeleteText: {
     fontFamily: nativeFontFamily.ui,
     fontSize: 12,
-    color: brandColors.rust,
+    color: brandColors.critical,
   },
 });

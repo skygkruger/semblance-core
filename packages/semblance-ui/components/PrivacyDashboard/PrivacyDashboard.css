@@ -115,9 +115,9 @@
 }
 
 .privacy-dashboard__status-badge--warning {
-  background: rgba(201, 168, 92, 0.08);
-  color: var(--amber);
-  border: 1px solid rgba(201, 168, 92, 0.15);
+  background: rgba(176, 154, 138, 0.08);
+  color: var(--caution);
+  border: 1px solid rgba(176, 154, 138, 0.15);
 }
 
 .privacy-dashboard__status-badge--neutral {

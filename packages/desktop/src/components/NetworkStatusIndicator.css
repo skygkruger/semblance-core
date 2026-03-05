@@ -36,7 +36,7 @@
 }
 
 .network-status__dot--alert {
-  background: var(--amber);
+  background: var(--caution);
 }
 
 .network-status__text {

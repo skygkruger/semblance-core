@@ -17,7 +17,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--amber);
+  background: var(--caution);
   animation: pulse 2s ease-in-out infinite;
   flex-shrink: 0;
 }
@@ -48,11 +48,11 @@
 }
 
 .style-match__dot--medium {
-  background: var(--amber);
+  background: var(--caution);
 }
 
 .style-match__dot--low {
-  background: var(--amber);
+  background: var(--caution);
 }
 
 .style-match__label {

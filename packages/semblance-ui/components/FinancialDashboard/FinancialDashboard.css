@@ -67,7 +67,7 @@
 }
 
 .fin-dash__trend--up {
-  color: var(--rust);
+  color: var(--critical);
 }
 
 .fin-dash__trend--stable {

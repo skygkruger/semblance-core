@@ -264,8 +264,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(110, 207, 163, 0.15)',
   },
   statusBadgeWarning: {
-    backgroundColor: 'rgba(201, 168, 92, 0.08)',
-    borderColor: 'rgba(201, 168, 92, 0.15)',
+    backgroundColor: 'rgba(176, 154, 138, 0.08)',
+    borderColor: 'rgba(176, 154, 138, 0.15)',
   },
   statusBadgeNeutral: {
     backgroundColor: 'rgba(133, 147, 164, 0.08)',
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     color: brandColors.veridian,
   },
   statusBadgeTextWarning: {
-    color: brandColors.amber,
+    color: brandColors.caution,
   },
   statusBadgeTextNeutral: {
     color: brandColors.silver,

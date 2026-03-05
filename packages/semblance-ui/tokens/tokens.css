@@ -1,5 +1,5 @@
 /* Semblance Design System v3 — CSS Custom Properties
-   Canonical source: docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md (locked Feb 25, 2026)
+   Canonical source: docs/DESIGN_BIBLE.md
    This file is imported by Storybook preview and app entry points. */
 
 :root {
@@ -32,9 +32,9 @@
   --v-glow-lg: rgba(110, 207, 163, 0.28);
   --v-wire: rgba(110, 207, 163, 0.32);
 
-  /* Status */
-  --amber: #C9A85C;
-  --rust: #C97B6E;
+  /* Severity */
+  --caution: #B09A8A;
+  --critical: #B07A8A;
 
   /* Typography */
   --fd: 'Fraunces', Georgia, serif;

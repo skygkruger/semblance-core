@@ -118,7 +118,7 @@
 }
 
 .doc-panel__file--error {
-  border-color: rgba(201, 123, 110, 0.3);
+  border-color: rgba(176, 122, 138, 0.3);
 }
 
 .doc-panel__file-info {
@@ -173,7 +173,7 @@
 }
 
 .doc-panel__action--remove:hover {
-  color: #C97B6E;
+  color: #B07A8A;
 }
 
 .doc-panel__knowledge-badge {

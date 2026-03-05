@@ -64,18 +64,18 @@
 
 /* Error state */
 .input-wrapper--error {
-  border-color: var(--rust);
+  border-color: var(--critical);
 }
 .input-wrapper--error:focus-within:has(input:not(:placeholder-shown)) {
-  border-color: var(--rust);
-  box-shadow: 0 0 0 3px rgba(201, 123, 110, 0.15);
+  border-color: var(--critical);
+  box-shadow: 0 0 0 3px rgba(176, 122, 138, 0.15);
 }
 
 .input__error-message {
   margin-top: var(--sp-1);
   font-family: var(--fm);
   font-size: var(--text-xs);
-  color: var(--rust);
+  color: var(--critical);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }

@@ -87,13 +87,13 @@
 }
 
 .approval-card__risk--medium {
-  color: var(--amber);
-  background: rgba(201, 168, 92, 0.1);
+  color: var(--caution);
+  background: rgba(176, 154, 138, 0.1);
 }
 
 .approval-card__risk--high {
-  color: var(--rust);
-  background: rgba(201, 123, 110, 0.1);
+  color: var(--critical);
+  background: rgba(176, 122, 138, 0.1);
 }
 
 /* ─── Context ─── */
@@ -171,46 +171,46 @@
 
 /* MEDIUM — amber bleeds through divider, data label, data items, border */
 .approval-card[data-risk="medium"] {
-  border-color: rgba(201, 168, 92, 0.12);
+  border-color: rgba(176, 154, 138, 0.12);
 }
 
 .approval-card[data-risk="medium"] .approval-card__divider {
-  background: linear-gradient(90deg, var(--amber), transparent);
+  background: linear-gradient(90deg, var(--caution), transparent);
 }
 
 .approval-card[data-risk="medium"] .approval-card__data-label {
-  color: var(--amber);
+  color: var(--caution);
 }
 
 .approval-card[data-risk="medium"] .approval-card__data-item {
-  color: var(--amber);
+  color: var(--caution);
 }
 
 .approval-card[data-risk="medium"]:hover {
-  border-color: rgba(201, 168, 92, 0.25);
-  box-shadow: 0 0 24px rgba(201, 168, 92, 0.12);
+  border-color: rgba(176, 154, 138, 0.25);
+  box-shadow: 0 0 24px rgba(176, 154, 138, 0.12);
 }
 
 /* HIGH — rust bleeds through divider, data label, data items, border */
 .approval-card[data-risk="high"] {
-  border-color: rgba(201, 123, 110, 0.15);
+  border-color: rgba(176, 122, 138, 0.15);
 }
 
 .approval-card[data-risk="high"] .approval-card__divider {
-  background: linear-gradient(90deg, var(--rust), transparent);
+  background: linear-gradient(90deg, var(--critical), transparent);
 }
 
 .approval-card[data-risk="high"] .approval-card__data-label {
-  color: var(--rust);
+  color: var(--critical);
 }
 
 .approval-card[data-risk="high"] .approval-card__data-item {
-  color: var(--rust);
+  color: var(--critical);
 }
 
 .approval-card[data-risk="high"]:hover {
-  border-color: rgba(201, 123, 110, 0.30);
-  box-shadow: 0 0 24px rgba(201, 123, 110, 0.12);
+  border-color: rgba(176, 122, 138, 0.30);
+  box-shadow: 0 0 24px rgba(176, 122, 138, 0.12);
 }
 
 /* ═══ Dismiss Button Hover — color-coded by risk, identical intensity to Approve ═══ */
@@ -218,12 +218,12 @@
 
 /* Medium: grey resting, amber hover — matches approve glow structure */
 .approval-card[data-risk="medium"] .btn--dismiss:hover {
-  background: rgba(201, 168, 92, 0.10);
-  box-shadow: 0 0 12px rgba(201, 168, 92, 0.18), inset 0 0 8px rgba(201, 168, 92, 0.08);
+  background: rgba(176, 154, 138, 0.10);
+  box-shadow: 0 0 12px rgba(176, 154, 138, 0.18), inset 0 0 8px rgba(176, 154, 138, 0.08);
 }
 
 /* High: grey resting, rust hover — matches approve glow structure */
 .approval-card[data-risk="high"] .btn--dismiss:hover {
-  background: rgba(201, 123, 110, 0.10);
-  box-shadow: 0 0 12px rgba(201, 123, 110, 0.18), inset 0 0 8px rgba(201, 123, 110, 0.08);
+  background: rgba(176, 122, 138, 0.10);
+  box-shadow: 0 0 12px rgba(176, 122, 138, 0.18), inset 0 0 8px rgba(176, 122, 138, 0.08);
 }

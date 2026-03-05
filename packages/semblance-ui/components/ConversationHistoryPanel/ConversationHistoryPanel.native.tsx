@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     paddingTop: 2,
   },
   pinBadge: {
-    color: brandColors.amber,
+    color: brandColors.caution,
   },
   empty: {
     alignItems: 'center',

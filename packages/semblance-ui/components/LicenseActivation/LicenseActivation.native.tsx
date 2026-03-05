@@ -85,7 +85,7 @@ export function LicenseActivation({ onActivate, alreadyActive }: LicenseActivati
 
       {status === 'error' && (
         <View style={styles.statusRow}>
-          <Text style={[styles.checkMark, { color: brandColors.rust }]}>{'\u2717'}</Text>
+          <Text style={[styles.checkMark, { color: brandColors.critical }]}>{'\u2717'}</Text>
           <Text style={styles.errorText}>{errorMessage}</Text>
         </View>
       )}
@@ -137,6 +137,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.sm,
-    color: brandColors.rust,
+    color: brandColors.critical,
   },
 });

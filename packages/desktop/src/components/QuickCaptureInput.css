@@ -110,7 +110,7 @@
 }
 
 .quick-capture__feedback--error {
-  color: var(--amber);
+  color: var(--caution);
 }
 
 @keyframes opal-text-sweep {

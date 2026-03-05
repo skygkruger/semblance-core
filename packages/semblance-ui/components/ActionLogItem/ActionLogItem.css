@@ -24,11 +24,11 @@
 }
 
 .action-log-item__dot--pending {
-  background: var(--amber);
+  background: var(--caution);
 }
 
 .action-log-item__dot--failed {
-  background: var(--rust);
+  background: var(--critical);
 }
 
 .action-log-item__dot--undone {
@@ -83,6 +83,6 @@
 }
 
 .action-log-item__undo:hover {
-  color: var(--rust);
-  background: rgba(201, 123, 110, 0.06);
+  color: var(--critical);
+  background: rgba(176, 122, 138, 0.06);
 }

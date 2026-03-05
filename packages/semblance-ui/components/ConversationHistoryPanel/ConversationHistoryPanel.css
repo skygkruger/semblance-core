@@ -209,7 +209,7 @@
 
 .conv-row__pin {
   font-size: 10px;
-  color: #C9A85C;
+  color: #B09A8A;
   margin-right: 2px;
 }
 
@@ -245,11 +245,11 @@
 }
 
 .conv-row__action--pin:hover {
-  color: #C9A85C;
+  color: #B09A8A;
 }
 
 .conv-row__action--delete:hover {
-  color: #C97B6E;
+  color: #B07A8A;
 }
 
 /* ─── Delete confirm ─── */
@@ -259,7 +259,7 @@
   gap: 4px;
   font-family: var(--fb);
   font-size: 11px;
-  color: #C97B6E;
+  color: #B07A8A;
 }
 
 .conv-row__confirm-btn {
@@ -273,12 +273,12 @@
 }
 
 .conv-row__confirm-yes {
-  color: #C97B6E;
-  border-color: #C97B6E;
+  color: #B07A8A;
+  border-color: #B07A8A;
 }
 
 .conv-row__confirm-yes:hover {
-  background: rgba(201, 123, 110, 0.15);
+  background: rgba(176, 122, 138, 0.15);
 }
 
 .conv-row__confirm-no {

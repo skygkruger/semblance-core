@@ -324,17 +324,17 @@ const styles = StyleSheet.create({
   },
   documentPillError: {
     borderWidth: 1,
-    borderColor: brandColors.rust,
+    borderColor: brandColors.critical,
   },
   pillSpinner: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.sm,
-    color: brandColors.amber,
+    color: brandColors.caution,
   },
   pillErrorIcon: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.sm,
-    color: brandColors.rust,
+    color: brandColors.critical,
   },
   attachButton: {
     width: 28,
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(110, 207, 163, 0.15)',
   },
   micButtonError: {
-    backgroundColor: 'rgba(201, 123, 110, 0.15)',
+    backgroundColor: 'rgba(176, 122, 138, 0.15)',
   },
   micIcon: {
     fontFamily: nativeFontFamily.mono,

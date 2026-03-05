@@ -15,7 +15,7 @@
 }
 
 .email-card__dot--high {
-  background: var(--amber);
+  background: var(--caution);
 }
 
 .email-card__dot--normal {

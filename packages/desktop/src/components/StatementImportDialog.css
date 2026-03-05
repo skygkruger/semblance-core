@@ -135,12 +135,12 @@
 }
 
 .statement-import__stat--attention {
-  background: rgba(201, 168, 92, 0.1);
+  background: rgba(176, 154, 138, 0.1);
 }
 
 .statement-import__stat--attention .statement-import__stat-value,
 .statement-import__stat--attention .statement-import__stat-label {
-  color: var(--amber);
+  color: var(--caution);
 }
 
 .statement-import__savings {
@@ -176,7 +176,7 @@
   font-family: var(--fb);
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--rust);
+  color: var(--critical);
   text-align: center;
   margin-bottom: var(--sp-2);
 }

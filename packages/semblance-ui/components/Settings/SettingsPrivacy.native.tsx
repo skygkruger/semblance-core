@@ -44,7 +44,7 @@ export function SettingsPrivacy({
             !auditClean && !neverRun && styles.cardAmber,
           ]}>
             <View style={styles.cardStatusRow}>
-              {auditClean ? <ShieldCheck color="#6ECFA3" /> : <ShieldAlert color="#C9A85C" />}
+              {auditClean ? <ShieldCheck color="#6ECFA3" /> : <ShieldAlert color="#B09A8A" />}
               <View style={[
                 styles.badge,
                 auditClean ? styles.badgeVeridian : neverRun ? styles.badgeMuted : styles.badgeAmber,
@@ -144,7 +144,7 @@ export function SettingsPrivacy({
                 style={styles.confirmButton}
                 accessibilityRole="button"
               >
-                <Text style={[styles.confirmButtonText, { color: deleteConfirm === 'delete' ? brandColors.rust : brandColors.sv1 }]}>
+                <Text style={[styles.confirmButtonText, { color: deleteConfirm === 'delete' ? brandColors.critical : brandColors.sv1 }]}>
                   {t('privacy.btn_confirm')}
                 </Text>
               </Pressable>
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     fontFamily: nativeFontFamily.mono,
   },
   sectionHeaderDanger: {
-    color: brandColors.rust,
+    color: brandColors.critical,
   },
   card: {
     marginHorizontal: nativeSpacing.s4,
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     backgroundColor: brandColors.s1,
   },
   cardAmber: {
-    borderColor: 'rgba(201, 168, 92, 0.4)',
+    borderColor: 'rgba(176, 154, 138, 0.4)',
   },
   cardStatusRow: {
     flexDirection: 'row',
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(110, 207, 163, 0.1)',
   },
   badgeAmber: {
-    backgroundColor: 'rgba(201, 168, 92, 0.1)',
+    backgroundColor: 'rgba(176, 154, 138, 0.1)',
   },
   badgeMuted: {
     backgroundColor: 'rgba(133, 147, 164, 0.1)',
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     color: brandColors.veridian,
   },
   badgeTextAmber: {
-    color: brandColors.amber,
+    color: brandColors.caution,
   },
   badgeTextMuted: {
     color: brandColors.sv2,
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     marginRight: nativeSpacing.s2,
   },
   dangerLabel: {
-    color: brandColors.rust,
+    color: brandColors.critical,
   },
   removeButton: {
     paddingHorizontal: nativeSpacing.s2,
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   removeButtonText: {
-    color: brandColors.rust,
+    color: brandColors.critical,
     fontSize: 12,
     fontFamily: nativeFontFamily.mono,
   },
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   confirmText: {
     fontSize: nativeFontSize.sm,
-    color: brandColors.rust,
+    color: brandColors.critical,
     marginBottom: nativeSpacing.s2,
   },
   confirmRow: {
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     fontSize: nativeFontSize.sm,
   },
   destructiveButton: {
-    backgroundColor: brandColors.rust,
+    backgroundColor: brandColors.critical,
     borderRadius: nativeRadius.sm,
     paddingVertical: nativeSpacing.s2,
     paddingHorizontal: nativeSpacing.s4,

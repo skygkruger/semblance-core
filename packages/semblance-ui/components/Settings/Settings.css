@@ -217,11 +217,11 @@
 
 /* Danger zone rows */
 .settings-row--danger .settings-row__label {
-  color: #C97B6E;
+  color: #B07A8A;
 }
 
 .settings-section-header--danger {
-  color: #C97B6E;
+  color: #B07A8A;
 }
 
 /* Toggle switch */
@@ -273,12 +273,12 @@
   background: #111518;
 }
 
-.settings-card--amber {
-  border-color: rgba(201, 168, 92, 0.4);
+.settings-card--caution {
+  border-color: rgba(176, 154, 138, 0.4);
 }
 
-.settings-card--rust {
-  border-color: rgba(201, 123, 110, 0.4);
+.settings-card--critical {
+  border-color: rgba(176, 122, 138, 0.4);
 }
 
 /* Segmented control */
@@ -351,14 +351,14 @@
   background: rgba(110, 207, 163, 0.1);
 }
 
-.settings-badge--amber {
-  color: #C9A85C;
-  background: rgba(201, 168, 92, 0.1);
+.settings-badge--caution {
+  color: #B09A8A;
+  background: rgba(176, 154, 138, 0.1);
 }
 
-.settings-badge--rust {
-  color: #C97B6E;
-  background: rgba(201, 123, 110, 0.1);
+.settings-badge--critical {
+  color: #B07A8A;
+  background: rgba(176, 122, 138, 0.1);
 }
 
 .settings-badge--muted {

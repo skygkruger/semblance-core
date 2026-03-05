@@ -11,11 +11,11 @@
 }
 
 .anomaly-card--high {
-  border-left: 3px solid var(--rust);
+  border-left: 3px solid var(--critical);
 }
 
 .anomaly-card--medium {
-  border-left: 3px solid var(--amber);
+  border-left: 3px solid var(--caution);
 }
 
 .anomaly-card--low {

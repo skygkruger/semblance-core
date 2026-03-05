@@ -111,7 +111,7 @@ export const CATEGORY_META: Record<VisualizationCategory, CategoryMeta> = {
   finance: {
     id: 'finance',
     displayName: 'Finance',
-    color: '#C9A85C',
+    color: '#B09A8A',
     icon: '[$]',
   },
   social: {
@@ -129,7 +129,7 @@ export const CATEGORY_META: Record<VisualizationCategory, CategoryMeta> = {
   reading: {
     id: 'reading',
     displayName: 'Reading & Research',
-    color: '#C97B6E',
+    color: '#B07A8A',
     icon: '[R]',
   },
   music: {

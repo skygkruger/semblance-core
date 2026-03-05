@@ -30,14 +30,14 @@
 }
 
 .voice-btn--active {
-  background: var(--rust);
+  background: var(--critical);
   color: var(--white);
   transform: scale(1.1);
 }
 
 .voice-btn--error {
-  background: rgba(201, 123, 110, 0.2);
-  color: var(--rust);
+  background: rgba(176, 122, 138, 0.2);
+  color: var(--critical);
 }
 
 /* Pulse ring for listening */
@@ -45,7 +45,7 @@
   position: absolute;
   inset: 0;
   border-radius: var(--r-full);
-  background: rgba(201, 123, 110, 0.3);
+  background: rgba(176, 122, 138, 0.3);
   animation: voice-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 

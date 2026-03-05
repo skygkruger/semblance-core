@@ -1,6 +1,6 @@
 // Native design tokens for React Native StyleSheet.create()
 // Re-exports existing token values as numeric/string primitives (no CSS units).
-// Source of truth: tokens.css + docs/SEMBLANCE_BRAND_DESIGN_SYSTEM.md
+// Source of truth: tokens.css + docs/DESIGN_BIBLE.md
 
 // Colors — re-exported directly, already hex strings
 export { colors, colorTokens } from './colors.js';
@@ -30,8 +30,8 @@ export const brandColors = {
   veridianGlowMd: 'rgba(110, 207, 163, 0.18)',
   veridianGlowLg: 'rgba(110, 207, 163, 0.28)',
   veridianWire: 'rgba(110, 207, 163, 0.32)',
-  amber: '#C9A85C',
-  rust: '#C97B6E',
+  caution: '#B09A8A',
+  critical: '#B07A8A',
   // Shimmer — static midpoint of the onboarding shimmer gradient (web animates this)
   shimmerText: '#b8cdd8',
   // Semantic aliases used by native components

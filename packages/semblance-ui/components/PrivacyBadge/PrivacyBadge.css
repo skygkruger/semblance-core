@@ -22,7 +22,7 @@
 }
 
 .privacy-badge__dot--syncing {
-  background: var(--amber);
+  background: var(--caution);
   animation: pulse 1s ease-in-out infinite;
 }
 

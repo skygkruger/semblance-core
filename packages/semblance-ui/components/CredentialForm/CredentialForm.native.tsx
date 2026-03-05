@@ -234,7 +234,7 @@ export function CredentialForm({ serviceType, presets, onSave, onTest, onCancel 
           {/* Test Result */}
           {testResult && (
             <View style={[styles.resultBox, testResult.success ? styles.resultSuccess : styles.resultError]}>
-              <Text style={[styles.resultText, { color: testResult.success ? brandColors.veridian : brandColors.rust }]}>
+              <Text style={[styles.resultText, { color: testResult.success ? brandColors.veridian : brandColors.critical }]}>
                 {testResult.success ? t('screen.credentials.test_success') : t('screen.credentials.test_fail', { error: testResult.error })}
               </Text>
             </View>
@@ -318,9 +318,9 @@ const styles = StyleSheet.create({
     fontFamily: nativeFontFamily.uiMedium,
   },
   noteBox: {
-    backgroundColor: 'rgba(201, 168, 92, 0.08)',
+    backgroundColor: 'rgba(176, 154, 138, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(201, 168, 92, 0.12)',
+    borderColor: 'rgba(176, 154, 138, 0.12)',
     borderRadius: nativeRadius.md,
     padding: nativeSpacing.s3,
   },
@@ -400,8 +400,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(110, 207, 163, 0.12)',
   },
   resultError: {
-    backgroundColor: 'rgba(201, 123, 110, 0.08)',
-    borderColor: 'rgba(201, 123, 110, 0.12)',
+    backgroundColor: 'rgba(176, 122, 138, 0.08)',
+    borderColor: 'rgba(176, 122, 138, 0.12)',
   },
   resultText: {
     fontFamily: nativeFontFamily.ui,

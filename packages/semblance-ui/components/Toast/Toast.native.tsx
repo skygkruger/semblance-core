@@ -7,7 +7,7 @@ import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFam
 const variantBorders: Record<ToastVariant, string> = {
   info: brandColors.s3,
   success: 'rgba(110,207,163,0.3)',
-  attention: 'rgba(201,168,92,0.3)',
+  attention: 'rgba(176,154,138,0.3)',
   action: 'rgba(110,207,163,0.25)',
 };
 

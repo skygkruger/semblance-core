@@ -5,7 +5,7 @@ import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFam
 
 const statusColors: Record<PrivacyStatus, string> = {
   active: brandColors.veridian,
-  syncing: brandColors.amber,
+  syncing: brandColors.caution,
   offline: brandColors.sv1,
 };
 

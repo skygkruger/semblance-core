@@ -172,7 +172,7 @@ export function buildSignablePayload(report: SovereigntyReport): string {
 const C = {
   bg:      rgb(11 / 255, 14 / 255, 17 / 255),         // #0B0E11
   veridian: rgb(110 / 255, 207 / 255, 163 / 255),      // #6ECFA3
-  amber:   rgb(201 / 255, 168 / 255, 92 / 255),        // #C9A85C
+  caution: rgb(176 / 255, 154 / 255, 138 / 255),       // #B09A8A
   silver:  rgb(133 / 255, 147 / 255, 164 / 255),       // #8593A4
   white:   rgb(232 / 255, 227 / 255, 227 / 255),       // #E8E3E3
   muted:   rgb(110 / 255, 106 / 255, 134 / 255),       // #6E6A86
@@ -244,7 +244,7 @@ export async function renderSovereigntyReportPDF(
   function drawKeyValue(key: string, value: string) {
     ensureSpace(16);
     page.drawText(key, { x: MARGIN, y, size: 9, font: helvetica, color: C.silver });
-    page.drawText(value, { x: MARGIN + 240, y, size: 9, font: courier, color: C.amber });
+    page.drawText(value, { x: MARGIN + 240, y, size: 9, font: courier, color: C.caution });
     y -= 14;
   }
 
@@ -339,7 +339,7 @@ export async function renderSovereigntyReportPDF(
   // ─── Audit Chain Status ───────────────────────────────────────────────
 
   drawSectionHeader('Audit Chain Status');
-  const chainColor = report.auditChainStatus.verified ? C.veridian : C.amber;
+  const chainColor = report.auditChainStatus.verified ? C.veridian : C.caution;
   drawText(
     report.auditChainStatus.verified ? 'Chain Verified' : 'Chain Break Detected',
     { font: helveticaBold, size: 10, color: chainColor },
@@ -347,7 +347,7 @@ export async function renderSovereigntyReportPDF(
   drawKeyValue('Total entries', String(report.auditChainStatus.totalEntries));
   drawKeyValue('Days covered', String(report.auditChainStatus.daysCovered));
   if (report.auditChainStatus.breaks.length > 0) {
-    drawText(`Breaks: ${report.auditChainStatus.breaks.join(', ')}`, { font: courier, size: 8, color: C.amber });
+    drawText(`Breaks: ${report.auditChainStatus.breaks.join(', ')}`, { font: courier, size: 8, color: C.caution });
   }
   drawDivider();
 
