@@ -13,11 +13,8 @@ permissions:
 
 jobs:
   build-android:
-    name: Build & Upload to Play Store
+    name: Build Android Release
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/mobile
 
     steps:
       - uses: actions/checkout@v4
@@ -43,34 +40,51 @@ jobs:
       - name: Install NDK
         run: sdkmanager "ndk;27.1.12297006"
 
-      - run: pnpm install --frozen-lockfile
-        working-directory: .
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       # Decode signing keystore
       - name: Decode Keystore
         env:
           ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
         run: |
-          echo "$ANDROID_KEYSTORE" | base64 --decode > android/app/release.keystore
-          cat > android/keystore.properties << EOF
-          storeFile=release.keystore
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          EOF
+          echo "$ANDROID_KEYSTORE" | base64 --decode > packages/mobile/android/app/release.keystore
+          printf 'storeFile=release.keystore\n' > packages/mobile/android/keystore.properties
+          printf 'storePassword=%s\n' '${{ secrets.ANDROID_KEYSTORE_PASSWORD }}' >> packages/mobile/android/keystore.properties
+          printf 'keyAlias=%s\n' '${{ secrets.ANDROID_KEY_ALIAS }}' >> packages/mobile/android/keystore.properties
+          printf 'keyPassword=%s\n' '${{ secrets.ANDROID_KEY_PASSWORD }}' >> packages/mobile/android/keystore.properties
 
       # Update version
       - name: Set Version
         run: |
-          sed -i "s/versionName \".*\"/versionName \"${{ inputs.version }}\"/" android/app/build.gradle
-          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \".*\"/versionName \"${{ inputs.version }}\"/" packages/mobile/android/app/build.gradle
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" packages/mobile/android/app/build.gradle
 
       # Build release AAB (Android App Bundle)
       - name: Build Release AAB
-        run: cd android && ./gradlew bundleRelease
+        run: cd packages/mobile/android && ./gradlew bundleRelease
 
-      # Upload to Play Store internal track
+      # Build release APK for sideloading
+      - name: Build Release APK
+        run: cd packages/mobile/android && ./gradlew assembleRelease
+
+      # Upload AAB as artifact
+      - name: Upload Release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: semblance-release-aab-${{ inputs.version }}
+          path: packages/mobile/android/app/build/outputs/bundle/release/app-release.aab
+
+      # Upload APK as artifact for sideloading
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: semblance-release-apk-${{ inputs.version }}
+          path: packages/mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk
+
+      # Upload to Play Store internal track (disabled — not uploading yet)
       - name: Upload to Play Store
+        if: false
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
@@ -83,5 +97,5 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          rm -f android/app/release.keystore
-          rm -f android/keystore.properties
+          rm -f packages/mobile/android/app/release.keystore
+          rm -f packages/mobile/android/keystore.properties
