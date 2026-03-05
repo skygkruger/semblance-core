@@ -260,7 +260,7 @@ function ImportsTab({
             {importHistory.map(entry => (
               <div
                 key={entry.id}
-                className="opal-surface rounded-lg p-3 flex items-center justify-between text-sm"
+                className="surface-slate rounded-lg p-3 flex items-center justify-between text-sm"
                 data-testid={`import-history-${entry.id}`}
               >
                 <div>

@@ -78,7 +78,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
             {t('initialize.knowledge_moment_suffix')}
           </h2>
           <div className="onboarding-content-frame" style={{ width: '100%' }}>
-            <div className="knowledge-moment-card opal-surface">
+            <div className="knowledge-moment-card surface-opal opal-surface">
               <h3 className="knowledge-moment-card__title">
                 {knowledgeMoment.title}
               </h3>
@@ -110,8 +110,8 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
 
       {allComplete && !loading && (
         <div style={{ marginTop: 8 }}>
-          <Button variant="approve" size="lg" onClick={onComplete}>
-            {t('initialize.start_button')}
+          <Button variant="opal" size="lg" onClick={onComplete}>
+            <span className="btn__text">{t('initialize.start_button')}</span>
           </Button>
         </div>
       )}

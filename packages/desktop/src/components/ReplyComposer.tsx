@@ -25,7 +25,7 @@ export function ReplyComposer({ email, draftBody, onSend, onSaveDraft, onCancel 
   const hasText = body.trim().length > 0;
 
   return (
-    <Card className={`reply-composer${hasText ? ' reply-composer--active' : ''}`}>
+    <Card className={`reply-composer surface-compose${hasText ? ' reply-composer--active surface-compose--active' : ''}`}>
       <div className="reply-composer__header">
         <div className="reply-composer__field">
           <span className="reply-composer__field-label">To:</span>
@@ -42,7 +42,7 @@ export function ReplyComposer({ email, draftBody, onSend, onSaveDraft, onCancel 
         onChange={(e) => setBody(e.target.value)}
         placeholder="Type your reply..."
         rows={6}
-        className="reply-composer__textarea"
+        className="reply-composer__textarea surface-compose__textarea"
       />
 
       <div className="reply-composer__actions">
@@ -50,9 +50,9 @@ export function ReplyComposer({ email, draftBody, onSend, onSaveDraft, onCancel 
           type="button"
           onClick={() => onSend(to, subject, body, email.messageId)}
           disabled={body.trim().length === 0}
-          className={`reply-composer__send-btn${hasText ? ' reply-composer__send-btn--active' : ''}`}
+          className={`btn btn--opal btn--sm reply-composer__send-btn${hasText ? ' reply-composer__send-btn--active' : ''}`}
         >
-          Send
+          <span className="btn__text">Send</span>
         </button>
         <button
           type="button"

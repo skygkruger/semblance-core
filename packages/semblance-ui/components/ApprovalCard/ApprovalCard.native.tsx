@@ -67,7 +67,7 @@ export function ApprovalCard({
 
           {state === 'pending' && (
             <View style={styles.actions}>
-              <Button variant="approve" size="md" onPress={onApprove}>
+              <Button variant="opal" size="md" onPress={onApprove}>
                 {t('button.approve')}
               </Button>
               <Button variant="dismiss" size="md" onPress={onDismiss}>

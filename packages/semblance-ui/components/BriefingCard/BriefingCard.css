@@ -1,10 +1,8 @@
 .briefing-card {
-  background: linear-gradient(135deg, var(--s2), var(--s1));
-  border: 1px solid var(--b2);
-  border-radius: var(--r-lg);
   max-width: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  border-left: 1px solid transparent;
 }
 
 /* Arrival animation via data attribute */
@@ -70,9 +68,9 @@
   line-height: 1.2;
   background: linear-gradient(
     105deg,
-    #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%,
-    #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%,
-    #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%
+    var(--id-privacy-1) 0%, var(--id-privacy-2) 15%, var(--id-privacy-3) 30%,
+    var(--id-privacy-4) 50%,
+    var(--id-privacy-3) 70%, var(--id-privacy-2) 85%, var(--id-privacy-1) 100%
   );
   background-size: 300% auto;
   -webkit-background-clip: text;
@@ -103,8 +101,19 @@
   font-family: var(--fd);
   font-weight: 300;
   font-size: var(--text-xl);
-  color: var(--w-dim);
   margin: 0;
+  background: linear-gradient(
+    105deg,
+    #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%,
+    #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%,
+    #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
 }
 
 .briefing-card__timestamp {

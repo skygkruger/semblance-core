@@ -16,7 +16,7 @@ export function AlterEgoDraftReview({
   const { t } = useTranslation();
 
   return (
-    <Card className="draft-review">
+    <Card className="draft-review surface-compose">
       <div className="draft-review__header">
         <div className="draft-review__field">
           <span className="draft-review__field-label">
@@ -34,15 +34,15 @@ export function AlterEgoDraftReview({
         )}
       </div>
 
-      <div className="draft-review__body" style={{ whiteSpace: 'pre-wrap' }}>{body}</div>
+      <div className="draft-review__body surface-compose__textarea" style={{ whiteSpace: 'pre-wrap' }}>{body}</div>
 
       <div className="draft-review__actions">
         <button
           type="button"
           onClick={() => onSend(actionId)}
-          className="draft-review__send-btn"
+          className="btn btn--opal btn--sm draft-review__send-btn"
         >
-          {t('button.send', { defaultValue: 'Send' })}
+          <span className="btn__text">{t('button.send', { defaultValue: 'Send' })}</span>
         </button>
         <span className="draft-review__trust">
           {t('alter_ego.trust_indicator', {

@@ -26,7 +26,7 @@ export function SovereigntyReportCard({
 
   if (loading) {
     return (
-      <div className={`sovereignty-report opal-surface ${className}`.trim()}>
+      <div className={`sovereignty-report surface-void opal-wireframe ${className}`.trim()} data-identity="sovereignty">
         <div className="sovereignty-report__loading">
           {t('sovereignty.loading', { defaultValue: 'Generating sovereignty report...' })}
         </div>
@@ -42,9 +42,8 @@ export function SovereigntyReportCard({
   const timeSavedFormatted = hours > 0 ? `${hours}h ${mins}m` : `${timeSavedMinutes}m`;
 
   return (
-    <div className={`sovereignty-report opal-surface ${className}`.trim()}>
-      {/* Left bar — real element so opal-surface ::after wireframe is preserved */}
-      <div className="sovereignty-report__left-bar" />
+    <div className={`sovereignty-report surface-void opal-wireframe ${className}`.trim()} data-identity="sovereignty">
+
 
       {/* Header — centered */}
       <div className="sovereignty-report__header">
@@ -211,10 +210,10 @@ export function SovereigntyReportCard({
         <div className="sovereignty-report__export-wrap">
           <button
             type="button"
-            className="sovereignty-report__export-btn"
+            className="btn btn--opal btn--md"
             onClick={onExportPDF}
           >
-            <span className="sovereignty-report__export-text">
+            <span className="btn__text">
               {t('sovereignty.export_pdf', { defaultValue: 'Export PDF' })}
             </span>
           </button>

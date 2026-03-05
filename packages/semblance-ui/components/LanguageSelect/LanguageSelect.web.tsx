@@ -78,8 +78,8 @@ export function LanguageSelect({ detectedCode, onConfirm }: LanguageSelectProps)
         })}
       </div>
 
-      <Button variant="approve" size="lg" onClick={handleConfirm}>
-        {CONTINUE_LABELS[selected] ?? 'Continue'}
+      <Button variant="opal" size="lg" onClick={handleConfirm}>
+        <span className="btn__text">{CONTINUE_LABELS[selected] ?? 'Continue'}</span>
       </Button>
     </div>
   );

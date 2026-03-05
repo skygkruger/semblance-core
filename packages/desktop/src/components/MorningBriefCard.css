@@ -1,28 +1,8 @@
 /* ─── MorningBriefCard ─── */
 
-/* Animated opal accent strip on left edge */
-.morning-brief__opal-accent {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  z-index: 3;
-  pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(
-    180deg,
-    #4a6278 0%, #6888a8 14%, #7a9ab8 28%, #c8dde8 42%,
-    #7ab89a 50%, #5a9e78 58%,
-    #c8dde8 72%, #7a9ab8 86%, #4a6278 100%
-  );
-  background-size: 100% 200%;
-  animation: opal-accent-sweep 4s linear infinite;
-}
-
-@keyframes opal-accent-sweep {
-  0%   { background-position: 0 0; }
-  100% { background-position: 0 -200%; }
+.morning-brief {
+  padding: var(--sp-6);
+  border-left: 1px solid transparent;
 }
 
 .morning-brief__header {
@@ -47,9 +27,9 @@
   letter-spacing: 0.08em;
   background: linear-gradient(
     105deg,
-    #4a6278 0%, #6888a8 10%, #7a9ab8 20%, #c8dde8 30%,
-    #7ab89a 42%, #5a9e78 50%, #7ab89a 58%,
-    #c8dde8 70%, #7a9ab8 80%, #6888a8 90%, #4a6278 100%
+    #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%,
+    #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%,
+    #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%
   );
   background-size: 300% auto;
   -webkit-background-clip: text;

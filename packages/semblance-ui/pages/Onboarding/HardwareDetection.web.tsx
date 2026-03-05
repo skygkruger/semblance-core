@@ -72,7 +72,7 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
 
       {hardwareInfo && !detecting && (
         <div style={{ marginTop: 16 }}>
-          <Button variant="approve" size="md" onClick={onContinue}>Continue</Button>
+          <Button variant="opal" size="md" onClick={onContinue}><span className="btn__text">Continue</span></Button>
         </div>
       )}
     </div>

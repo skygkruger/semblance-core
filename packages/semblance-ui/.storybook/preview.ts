@@ -5,6 +5,7 @@ import { initReactI18next } from 'react-i18next';
 import '../tokens/tokens.css';
 import '../tokens/fonts.css';
 import '../tokens/opal.css';
+import '../tokens/surfaces.css';
 import { DotMatrix } from '../components/DotMatrix/DotMatrix';
 import common from '../locales/en/common.json';
 import onboarding from '../locales/en/onboarding.json';

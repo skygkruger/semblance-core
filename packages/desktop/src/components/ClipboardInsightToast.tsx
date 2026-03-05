@@ -35,8 +35,8 @@ export function ClipboardInsightToast({
   return (
     <div role="status" className="clipboard-toast">
       <p className="clipboard-toast__text">{patternDescription}</p>
-      <Button variant="approve" size="sm" onClick={() => { onAction(); setVisible(false); }}>
-        {actionLabel}
+      <Button variant="opal" size="sm" onClick={() => { onAction(); setVisible(false); }}>
+        <span className="btn__text">{actionLabel}</span>
       </Button>
       <Button variant="dismiss" size="sm" onClick={() => { setVisible(false); onDismiss(); }} aria-label="Dismiss">
         Dismiss

@@ -20,7 +20,8 @@ export function HealthDashboard({
 }: HealthDashboardProps) {
   if (loading) {
     return (
-      <div className="health-dash">
+      <div className="health-dash surface-void" data-identity="health">
+
         <div className="health-dash__header">
           <h2 className="health-dash__title">Health Tracking</h2>
         </div>
@@ -36,7 +37,8 @@ export function HealthDashboard({
   const sortedInsights = [...insights].sort((a, b) => b.confidence - a.confidence);
 
   return (
-    <div className="health-dash">
+    <div className="health-dash surface-void" data-identity="health">
+      <div className="surface-void__left-bar" />
       <div className="health-dash__header">
         <div>
           <h2 className="health-dash__title">Health Tracking</h2>

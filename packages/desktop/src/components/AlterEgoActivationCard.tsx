@@ -123,7 +123,7 @@ export function AlterEgoActivationCard({
 
       <div className="alter-ego-activate__actions">
         <Button
-          variant="approve"
+          variant="opal"
           size="md"
           onClick={() => {
             if (view === 'customize' && selectedDomains.size > 0) {
@@ -133,7 +133,7 @@ export function AlterEgoActivationCard({
             }
           }}
         >
-          Activate Alter Ego
+          <span className="btn__text">Activate Alter Ego</span>
         </Button>
         <Button variant="dismiss" size="md" onClick={onDecline}>
           Not Yet

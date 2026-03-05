@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
 import { FinancialDashboard } from './FinancialDashboard.web';
+import { DotMatrix } from '../DotMatrix/DotMatrix';
 import type {
   FinancialDashboardProps,
   FinancialPeriod,
@@ -9,10 +10,16 @@ import type {
 const meta: Meta<typeof FinancialDashboard> = {
   title: 'Components/FinancialDashboard',
   component: FinancialDashboard,
+  parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div style={{ maxWidth: 720, padding: 24, background: '#0B0E11' }}>
-        <Story />
+      <div style={{ position: 'relative', width: '100vw', minHeight: '100vh', background: '#0B0E11', overflow: 'hidden' }}>
+        <DotMatrix />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center', padding: 24, minHeight: '100vh' }}>
+          <div style={{ maxWidth: 720, width: '100%' }}>
+            <Story />
+          </div>
+        </div>
       </div>
     ),
   ],

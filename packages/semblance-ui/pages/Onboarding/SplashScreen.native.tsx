@@ -31,7 +31,7 @@ export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) 
 
       <View style={styles.btnWrap}>
         <Button
-          variant="approve"
+          variant="opal"
           size="lg"
           onPress={() => {
             if (timerRef.current) clearTimeout(timerRef.current);

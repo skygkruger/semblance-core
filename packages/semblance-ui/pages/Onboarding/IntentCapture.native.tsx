@@ -134,7 +134,7 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
             </Button>
           )}
           <Button
-            variant="approve"
+            variant="opal"
             size="lg"
             disabled={!hasValue && !config.skippable}
             onPress={hasValue ? handleContinue : handleSkip}

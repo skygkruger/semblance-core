@@ -40,6 +40,26 @@ export const brandColors = {
   muted: '#5E6B7C',
 } as const;
 
+// Dashboard identity gradient ramps — used by health, financial, privacy dashboards
+export const dashboardIdentity = {
+  sovereignty: {
+    stops: ['#63778a', '#7a94b0', '#8aa4b8', '#b8cdd8', '#8fa8a0', '#7a9e8e'],
+    tint: 'rgba(110, 207, 163, 0.04)',
+  },
+  financial: {
+    stops: ['#8a7e74', '#a8968a', '#b8a89e', '#d4c4b8', '#c8b8a8', '#b0a090'],
+    tint: 'rgba(176, 154, 138, 0.04)',
+  },
+  health: {
+    stops: ['#5a7a64', '#6e9474', '#82a888', '#a8c8a8', '#8eb898', '#72a07c'],
+    tint: 'rgba(110, 168, 144, 0.04)',
+  },
+  privacy: {
+    stops: ['#687078', '#808890', '#98a0a8', '#b8c0c8', '#98a0a8', '#808890'],
+    tint: 'rgba(160, 165, 175, 0.03)',
+  },
+} as const;
+
 // Spacing — numeric values (no 'px' suffix)
 export const nativeSpacing = {
   s0: 0,
@@ -96,11 +116,66 @@ export const nativeFontWeight = {
   bold: '700' as const,
 };
 
-// Opal surface — simplified style for React Native View
+// Opal surface — simplified style for React Native View (legacy, use nativeSurfaces)
 export const opalSurface = {
   backgroundColor: '#111518',
   borderWidth: 1,
   borderColor: 'rgba(107,95,168,0.15)',
+} as const;
+
+// Surface system — 4 canonical card surfaces for React Native
+export const nativeSurfaces = {
+  /** Dashboards — dark gradient fill, identity-colored border */
+  void: {
+    backgroundColor: '#0B0E11',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  /** Reports, attestations — opal-bordered trust documents */
+  opal: {
+    backgroundColor: '#121518',
+    borderWidth: 1,
+    borderColor: 'rgba(107,95,168,0.15)',
+    borderRadius: 12,
+  },
+  /** Notifications, actions — transient cards */
+  slate: {
+    backgroundColor: '#171B1F',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.09)',
+    borderRadius: 12,
+  },
+  /** Drafting, replies — compose surfaces (wrapper, no bg) */
+  compose: {
+    borderLeftWidth: 0,
+  },
+} as const;
+
+// Surface void border colors per identity — used for borderColor on native
+export const nativeSurfaceIdentity = {
+  sovereignty: { borderColor: 'rgba(138,164,184,0.5)' },
+  financial: { borderColor: 'rgba(184,168,158,0.5)' },
+  health: { borderColor: 'rgba(130,168,136,0.5)' },
+  privacy: { borderColor: 'rgba(152,160,168,0.5)' },
+} as const;
+
+// Left bar colors per identity — used for the 3px left bar on native
+export const nativeLeftBarColors = {
+  sovereignty: ['#63778a', '#7a94b0', '#8aa4b8', '#b8cdd8', '#8fa8a0', '#7a9e8e', '#63778a'],
+  financial: ['#8a7e74', '#a8968a', '#b8a89e', '#d4c4b8', '#c8b8a8', '#b0a090', '#8a7e74'],
+  health: ['#5a7a64', '#6e9474', '#82a888', '#a8c8a8', '#8eb898', '#72a07c', '#5a7a64'],
+  privacy: ['#687078', '#808890', '#98a0a8', '#b8c0c8', '#98a0a8', '#808890', '#687078'],
+  veridian: ['rgba(110,207,163,0.55)', 'rgba(110,207,163,0.65)', 'rgba(110,207,163,0.75)', 'rgba(110,207,163,0.85)', 'rgba(110,207,163,0.75)', 'rgba(110,207,163,0.65)', 'rgba(110,207,163,0.55)'],
+  opal: ['rgba(97,88,128,0.55)', 'rgba(119,110,162,0.65)', 'rgba(154,168,184,0.75)', 'rgba(216,221,232,0.85)', 'rgba(154,168,184,0.75)', 'rgba(119,110,162,0.65)', 'rgba(97,88,128,0.55)'],
+} as const;
+
+// Button opal variant colors per identity — border + text for native
+export const nativeBtnOpal = {
+  default: { border: 'rgba(152,160,168,0.5)', text: '#98a0a8' },
+  sovereignty: { border: 'rgba(138,164,184,0.5)', text: '#8aa4b8' },
+  financial: { border: 'rgba(184,168,158,0.5)', text: '#b8a89e' },
+  health: { border: 'rgba(130,168,136,0.5)', text: '#82a888' },
+  privacy: { border: 'rgba(152,160,168,0.5)', text: '#98a0a8' },
 } as const;
 
 // Motion — numeric durations in ms for Reanimated

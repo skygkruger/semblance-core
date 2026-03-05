@@ -64,7 +64,7 @@ export function AlterEgoReceipt({
   const canUndo = undoExpiresAt !== null && !undoExpired && secondsRemaining !== null && secondsRemaining > 0;
 
   return (
-    <div className="receipt opal-surface" role="alert" aria-live="polite">
+    <div className="receipt surface-slate" role="alert" aria-live="polite">
       <div className="receipt__row">
         <span className="receipt__dot" />
         <div className="receipt__content">

@@ -1,0 +1,287 @@
+/* Surface System — 4 canonical card surface treatments.
+   Each surface defines fill, border, and texture.
+   Identity colors plug in via --id-*-N custom properties.
+   Import after tokens.css and opal.css. */
+
+/* ─── Surface: Void ───
+   Dark gradient fill + conic gradient border with identity colors.
+   Used by: Dashboards (data-dense, always-on panels).
+   Apply identity via data-identity="sovereignty|financial|health|privacy" */
+
+.surface-void {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  border: 1px solid transparent;
+  border-left: none;
+  animation: opal-border-sweep 8s linear infinite;
+}
+
+/* Default void fill + neutral silver conic border */
+.surface-void {
+  background:
+    linear-gradient(135deg, var(--s1), var(--base)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(104,112,120,0.5), rgba(128,136,144,0.6),
+      rgba(152,160,168,0.7), rgba(184,192,200,0.8),
+      rgba(152,160,168,0.7), rgba(128,136,144,0.6),
+      rgba(104,112,120,0.5)) border-box;
+}
+
+/* Sovereignty — blue-steel/silver/sage */
+.surface-void[data-identity="sovereignty"] {
+  background:
+    linear-gradient(135deg, var(--s1), var(--base)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(99,119,138,0.5), rgba(122,148,176,0.6),
+      rgba(138,164,184,0.7), rgba(184,205,216,0.8),
+      rgba(143,168,160,0.7), rgba(122,158,142,0.6),
+      rgba(99,119,138,0.5)) border-box;
+}
+
+/* Financial — pewter/rose-gold */
+.surface-void[data-identity="financial"] {
+  background:
+    linear-gradient(135deg, var(--s1), var(--base)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(138,126,116,0.5), rgba(168,150,138,0.6),
+      rgba(184,168,158,0.7), rgba(212,196,184,0.8),
+      rgba(200,184,168,0.7), rgba(176,160,144,0.6),
+      rgba(138,126,116,0.5)) border-box;
+}
+
+/* Health — celadon/moss/verdigris */
+.surface-void[data-identity="health"] {
+  background:
+    linear-gradient(135deg, var(--s1), var(--base)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(90,122,100,0.5), rgba(110,148,116,0.6),
+      rgba(130,168,136,0.7), rgba(168,200,168,0.8),
+      rgba(142,184,152,0.7), rgba(114,160,124,0.6),
+      rgba(90,122,100,0.5)) border-box;
+}
+
+/* Privacy — pure silver/mirror (zero hue) */
+.surface-void[data-identity="privacy"] {
+  background:
+    linear-gradient(135deg, var(--s1), var(--base)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(104,112,120,0.5), rgba(128,136,144,0.6),
+      rgba(152,160,168,0.7), rgba(184,192,200,0.8),
+      rgba(152,160,168,0.7), rgba(128,136,144,0.6),
+      rgba(104,112,120,0.5)) border-box;
+}
+
+/* ─── Left bar element ───
+   Place <div class="surface-void__left-bar" /> as first child.
+   Identity colors applied automatically via parent data-identity. */
+
+.surface-void__left-bar {
+  position: absolute !important;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-size: 100% 200%;
+  animation: surface-bar-sweep 8s ease-in-out infinite;
+  border-radius: var(--r-sm) 0 0 var(--r-sm);
+  z-index: 3 !important;
+}
+
+@keyframes surface-bar-sweep {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* Default left bar — silver */
+.surface-void__left-bar {
+  background-image: linear-gradient(to bottom,
+    var(--id-privacy-1), var(--id-privacy-2), var(--id-privacy-3),
+    var(--id-privacy-4),
+    var(--id-privacy-3), var(--id-privacy-2), var(--id-privacy-1));
+}
+
+.surface-void[data-identity="sovereignty"] > .surface-void__left-bar {
+  background-image: linear-gradient(to bottom,
+    var(--id-sovereignty-1), var(--id-sovereignty-2), var(--id-sovereignty-3),
+    var(--id-sovereignty-4), var(--id-sovereignty-5), var(--id-sovereignty-6),
+    var(--id-sovereignty-1));
+}
+
+.surface-void[data-identity="financial"] > .surface-void__left-bar {
+  background-image: linear-gradient(to bottom,
+    var(--id-financial-1), var(--id-financial-2), var(--id-financial-3),
+    var(--id-financial-4), var(--id-financial-5), var(--id-financial-6),
+    var(--id-financial-1));
+}
+
+.surface-void[data-identity="health"] > .surface-void__left-bar {
+  background-image: linear-gradient(to bottom,
+    var(--id-health-1), var(--id-health-2), var(--id-health-3),
+    var(--id-health-4), var(--id-health-5), var(--id-health-6),
+    var(--id-health-1));
+}
+
+.surface-void[data-identity="privacy"] > .surface-void__left-bar {
+  background-image: linear-gradient(to bottom,
+    var(--id-privacy-1), var(--id-privacy-2), var(--id-privacy-3),
+    var(--id-privacy-4),
+    var(--id-privacy-3), var(--id-privacy-2), var(--id-privacy-1));
+}
+
+/* Veridian activation — left bar turns green when .btn--opal inside is hovered */
+.surface-void:has(.btn--opal:hover) > .surface-void__left-bar,
+.surface-void:has(.btn--opal:active) > .surface-void__left-bar {
+  background-image: linear-gradient(to bottom,
+    rgba(110, 207, 163, 0.55),
+    rgba(110, 207, 163, 0.65),
+    rgba(110, 207, 163, 0.75),
+    rgba(110, 207, 163, 0.85),
+    rgba(110, 207, 163, 0.75),
+    rgba(110, 207, 163, 0.65),
+    rgba(110, 207, 163, 0.55));
+  background-size: 100% 200%;
+}
+
+
+/* ═══════════════════════════════════════════════════
+   Surface: Opal
+   ═══════════════════════════════════════════════════
+   Inherits .opal-surface (Voronoi wireframe + opal sweep).
+   Adds conic gradient border.
+   Used by: Reports, attestations, artifacts — ceremonial trust documents. */
+
+.surface-opal {
+  border-radius: var(--r-lg);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#121518, #121518) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+}
+
+
+/* ═══════════════════════════════════════════════════
+   Surface: Slate
+   ═══════════════════════════════════════════════════
+   Simple gradient fill + solid border.
+   Used by: Notifications, actions, reviews — transient cards. */
+
+.surface-slate {
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--s2), var(--s1));
+  border: 1px solid var(--b2);
+}
+
+.surface-slate--hoverable {
+  transition: background var(--duration-base) var(--eo),
+              border-color var(--duration-base) var(--eo);
+}
+
+.surface-slate--hoverable:hover {
+  background: var(--s2);
+  border-color: var(--b3);
+}
+
+
+/* ═══════════════════════════════════════════════════
+   Surface: Compose
+   ═══════════════════════════════════════════════════
+   Opal left bar + opal-bordered textarea.
+   Left bar becomes solid Veridian when active (has content).
+   Used by: ReplyComposer, AlterEgoDraftReview, secondary text input. */
+
+.surface-compose {
+  position: relative;
+  border-left: none;
+}
+
+.surface-compose::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom,
+    rgba(97,88,128,0.55),
+    rgba(119,110,162,0.65),
+    rgba(154,168,184,0.75),
+    rgba(216,221,232,0.85),
+    rgba(154,168,184,0.75),
+    rgba(119,110,162,0.65),
+    rgba(97,88,128,0.55));
+  background-size: 100% 200%;
+  animation: compose-bar-sweep 8s ease-in-out infinite;
+  transition: background 300ms ease-out;
+  border-radius: var(--r-sm) 0 0 var(--r-sm);
+}
+
+@keyframes compose-bar-sweep {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* Active state — left bar locks to Veridian */
+.surface-compose--active::after {
+  background: var(--v);
+  animation: none;
+}
+
+/* Veridian activation — left bar turns green when .btn--opal inside is hovered */
+.surface-compose:has(.btn--opal:hover)::after,
+.surface-compose:has(.btn--opal:active)::after {
+  background: linear-gradient(to bottom,
+    rgba(110, 207, 163, 0.55),
+    rgba(110, 207, 163, 0.65),
+    rgba(110, 207, 163, 0.75),
+    rgba(110, 207, 163, 0.85),
+    rgba(110, 207, 163, 0.75),
+    rgba(110, 207, 163, 0.65),
+    rgba(110, 207, 163, 0.55));
+  background-size: 100% 200%;
+}
+
+/* Compose textarea — opal-bordered text area */
+.surface-compose__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--w-dim);
+  background:
+    linear-gradient(#121518, #121518) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
+      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
+      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
+      rgba(97,88,128,0.35)) border-box;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  outline: none;
+  resize: vertical;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: border-color var(--duration-fast) var(--eo), box-shadow var(--duration-fast) var(--eo);
+  scrollbar-width: none;
+}
+
+.surface-compose__textarea::-webkit-scrollbar {
+  display: none;
+}
+
+.surface-compose__textarea::placeholder {
+  color: var(--sv1);
+}
+
+/* Active textarea — Veridian border + glow */
+.surface-compose--active .surface-compose__textarea {
+  border-color: rgba(110, 207, 163, 0.4);
+  box-shadow: 0 0 0 2px rgba(110, 207, 163, 0.08), 0 0 16px rgba(110, 207, 163, 0.04);
+}

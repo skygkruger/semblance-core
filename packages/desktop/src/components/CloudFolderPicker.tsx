@@ -146,8 +146,8 @@ export function CloudFolderPicker({ provider, isOpen, onClose, onSelect, selecte
           </label>
           <div className="folder-picker__footer-actions">
             <Button variant="dismiss" size="sm" onClick={onClose}>Cancel</Button>
-            <Button variant="approve" size="sm" onClick={handleConfirm} disabled={selected.size === 0}>
-              Add {selected.size > 0 ? `(${selected.size})` : ''}
+            <Button variant="opal" size="sm" onClick={handleConfirm} disabled={selected.size === 0}>
+              <span className="btn__text">Add {selected.size > 0 ? `(${selected.size})` : ''}</span>
             </Button>
           </div>
         </div>

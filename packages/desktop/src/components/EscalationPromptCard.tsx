@@ -86,8 +86,8 @@ export function EscalationPromptCard({ prompt, onAccepted, onDismissed }: Escala
       <p className="escalation-card__note">You can always change this in Settings.</p>
 
       <div className="escalation-card__actions">
-        <Button variant="approve" size="sm" onClick={handleAccept} disabled={responding}>
-          Yes, upgrade to {tierLabel}
+        <Button variant="opal" size="sm" onClick={handleAccept} disabled={responding}>
+          <span className="btn__text">Yes, upgrade to {tierLabel}</span>
         </Button>
         <Button variant="dismiss" size="sm" onClick={handleDismiss} disabled={responding}>
           Not yet

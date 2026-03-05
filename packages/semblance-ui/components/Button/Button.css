@@ -85,7 +85,150 @@
   color: var(--sv3);
 }
 
-/* Approve — Veridian Moment #1 */
+/* Opal — Primary action button. Conic gradient border + gradient text + metallic shimmer.
+   Veridian activation on hover. Takes identity colors from nearest surface-void parent,
+   or defaults to silver/opal ramp. Replaces old btn--approve. */
+.btn--opal {
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    conic-gradient(from var(--opal-angle),
+      var(--btn-opal-c1, rgba(104,112,120,0.5)),
+      var(--btn-opal-c2, rgba(128,136,144,0.6)),
+      var(--btn-opal-c3, rgba(152,160,168,0.7)),
+      var(--btn-opal-c4, rgba(184,192,200,0.8)),
+      var(--btn-opal-c3, rgba(152,160,168,0.7)),
+      var(--btn-opal-c2, rgba(128,136,144,0.6)),
+      var(--btn-opal-c1, rgba(104,112,120,0.5))) border-box;
+  color: inherit;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: all var(--duration-slow) var(--eo);
+}
+
+/* Opal gradient text — inner span gets swept gradient text */
+.btn--opal .btn__text {
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(
+    105deg,
+    var(--btn-opal-t1, #687078),
+    var(--btn-opal-t2, #808890),
+    var(--btn-opal-t3, #98a0a8),
+    var(--btn-opal-t4, #b8c0c8),
+    var(--btn-opal-t3, #98a0a8),
+    var(--btn-opal-t2, #808890),
+    var(--btn-opal-t1, #687078)
+  );
+  background-size: 200% auto;
+  animation: btn-opal-text-sweep 8s linear infinite;
+}
+
+@keyframes btn-opal-text-sweep {
+  0% { background-position: 100% center; }
+  100% { background-position: -100% center; }
+}
+
+/* Metallic shimmer sweep */
+.btn--opal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    var(--btn-opal-shimmer, rgba(184, 192, 200, 0.07)) 40%,
+    var(--btn-opal-shimmer-peak, rgba(184, 192, 200, 0.13)) 50%,
+    var(--btn-opal-shimmer, rgba(184, 192, 200, 0.07)) 60%,
+    transparent 100%
+  );
+  background-size: 250% auto;
+  background-position: 200% center;
+  transition: background-position 2.2s var(--eo);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.btn--opal:hover::after {
+  background-position: -50% center;
+}
+
+/* Veridian activation on hover */
+.btn--opal:hover,
+.btn--opal:active {
+  background:
+    var(--v-dim) padding-box,
+    linear-gradient(var(--v-wire), var(--v-wire)) border-box;
+  box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
+  animation: none;
+}
+
+.btn--opal:hover .btn__text,
+.btn--opal:active .btn__text {
+  -webkit-text-fill-color: var(--v);
+  background-image: none;
+  animation: none;
+}
+
+/* ─── Opal identity overrides via data-identity on ancestor ─── */
+
+/* Sovereignty — blue-steel/sage */
+[data-identity="sovereignty"] .btn--opal {
+  --btn-opal-c1: rgba(99,119,138,0.5);
+  --btn-opal-c2: rgba(122,148,176,0.6);
+  --btn-opal-c3: rgba(138,164,184,0.7);
+  --btn-opal-c4: rgba(184,205,216,0.8);
+  --btn-opal-t1: #63778a;
+  --btn-opal-t2: #7a94b0;
+  --btn-opal-t3: #8aa4b8;
+  --btn-opal-t4: #b8cdd8;
+  --btn-opal-shimmer: rgba(184, 205, 216, 0.07);
+  --btn-opal-shimmer-peak: rgba(184, 205, 216, 0.13);
+}
+
+/* Financial — pewter/rose-gold */
+[data-identity="financial"] .btn--opal {
+  --btn-opal-c1: rgba(138,126,116,0.5);
+  --btn-opal-c2: rgba(168,150,138,0.6);
+  --btn-opal-c3: rgba(184,168,158,0.7);
+  --btn-opal-c4: rgba(212,196,184,0.8);
+  --btn-opal-t1: #8a7e74;
+  --btn-opal-t2: #a8968a;
+  --btn-opal-t3: #b8a89e;
+  --btn-opal-t4: #d4c4b8;
+  --btn-opal-shimmer: rgba(212, 196, 184, 0.07);
+  --btn-opal-shimmer-peak: rgba(212, 196, 184, 0.13);
+}
+
+/* Health — celadon/moss */
+[data-identity="health"] .btn--opal {
+  --btn-opal-c1: rgba(90,122,100,0.5);
+  --btn-opal-c2: rgba(110,148,116,0.6);
+  --btn-opal-c3: rgba(130,168,136,0.7);
+  --btn-opal-c4: rgba(168,200,168,0.8);
+  --btn-opal-t1: #5a7a64;
+  --btn-opal-t2: #6e9474;
+  --btn-opal-t3: #82a888;
+  --btn-opal-t4: #a8c8a8;
+  --btn-opal-shimmer: rgba(168, 200, 168, 0.07);
+  --btn-opal-shimmer-peak: rgba(168, 200, 168, 0.13);
+}
+
+/* Privacy — pure silver (default, explicit) */
+[data-identity="privacy"] .btn--opal {
+  --btn-opal-c1: rgba(104,112,120,0.5);
+  --btn-opal-c2: rgba(128,136,144,0.6);
+  --btn-opal-c3: rgba(152,160,168,0.7);
+  --btn-opal-c4: rgba(184,192,200,0.8);
+  --btn-opal-t1: #687078;
+  --btn-opal-t2: #808890;
+  --btn-opal-t3: #98a0a8;
+  --btn-opal-t4: #b8c0c8;
+  --btn-opal-shimmer: rgba(184, 192, 200, 0.07);
+  --btn-opal-shimmer-peak: rgba(184, 192, 200, 0.13);
+}
+
+/* Backward compat — .btn--approve maps to opal with default veridian wire */
 .btn--approve {
   background: transparent;
   color: var(--v);

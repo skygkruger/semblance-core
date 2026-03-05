@@ -47,12 +47,12 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
 
       <div style={{ marginTop: 8 }}>
         <Button
-          variant="approve"
+          variant="opal"
           size="lg"
           disabled={!hasValue}
           onClick={() => onComplete?.(aiName.trim())}
         >
-          {t('naming_ai.start_button')}
+          <span className="btn__text">{t('naming_ai.start_button')}</span>
         </Button>
       </div>
     </div>

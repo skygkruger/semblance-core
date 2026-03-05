@@ -1,7 +1,4 @@
 .action-card {
-  background: linear-gradient(135deg, var(--s2), var(--s1));
-  border: 1px solid var(--b2);
-  border-radius: var(--r-lg);
   padding: var(--sp-5);
   transition: box-shadow var(--duration-base) var(--eo),
               border-color var(--duration-base) var(--eo);

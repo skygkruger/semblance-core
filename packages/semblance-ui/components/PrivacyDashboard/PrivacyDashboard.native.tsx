@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { ActionLogItem } from '../ActionLogItem/ActionLogItem';
+import { Button } from '../Button/Button.native';
 import type { PrivacyDashboardProps } from './PrivacyDashboard.types';
 import { OpalBorderView } from '../OpalBorderView/OpalBorderView.native';
-import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
+import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily, nativeSurfaces, nativeSurfaceIdentity } from '../../tokens/native';
 
 export function PrivacyDashboard({
   dataSources = 0,
@@ -25,6 +26,12 @@ export function PrivacyDashboard({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Privacy Dashboard</Text>
+        <Text style={styles.headerSubtitle}>ZERO KNOWLEDGE VERIFIED</Text>
+      </View>
+
       {/* Comparison Statement */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('dashboard.section_comparison')}</Text>
@@ -94,9 +101,7 @@ export function PrivacyDashboard({
                 </Text>
               </View>
               {onExportReceipt && (
-                <Pressable style={styles.exportBtn} onPress={onExportReceipt}>
-                  <Text style={styles.exportBtnText}>{t('dashboard.chain_integrity.export_receipt')}</Text>
-                </Pressable>
+                <Button variant="opal" size="sm" onPress={onExportReceipt}>{t('dashboard.chain_integrity.export_receipt')}</Button>
               )}
             </>
           )}
@@ -194,12 +199,15 @@ export function PrivacyDashboard({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: brandColors.base,
+    backgroundColor: nativeSurfaces.void.backgroundColor,
   },
   content: {
     padding: nativeSpacing.s4,
     paddingBottom: nativeSpacing.s12,
     gap: nativeSpacing.s8,
+    borderWidth: nativeSurfaces.void.borderWidth,
+    borderColor: nativeSurfaceIdentity.privacy.borderColor,
+    borderRadius: nativeSurfaces.void.borderRadius,
   },
   section: {
     gap: nativeSpacing.s4,
@@ -295,18 +303,20 @@ const styles = StyleSheet.create({
     fontSize: nativeFontSize.xs,
     color: brandColors.sv2,
   },
-  exportBtn: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: nativeSpacing.s3,
-    paddingVertical: nativeSpacing.s2,
-    borderWidth: 1,
-    borderColor: brandColors.veridianWire,
-    borderRadius: nativeRadius.sm,
+  header: {
+    gap: nativeSpacing.s1,
   },
-  exportBtnText: {
+  headerTitle: {
+    fontFamily: nativeFontFamily.display,
+    fontSize: nativeFontSize.lg,
+    color: brandColors.white,
+  },
+  headerSubtitle: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
-    color: brandColors.veridian,
+    color: brandColors.sv1,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
   },
   keyFingerprint: {
     gap: nativeSpacing.s1,

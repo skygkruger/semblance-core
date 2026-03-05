@@ -118,7 +118,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
 
       {allComplete && !loading && (
         <View style={styles.btnWrap}>
-          <Button variant="approve" size="lg" onPress={onComplete}>
+          <Button variant="opal" size="lg" onPress={onComplete}>
             {t('initialize.start_button')}
           </Button>
         </View>
