@@ -12,10 +12,10 @@ export function DesktopSidebar({
   footer,
   className = '',
 }: DesktopSidebarProps) {
-  const rootClass = collapsed ? 'desktop-sidebar desktop-sidebar--collapsed' : 'desktop-sidebar';
+  const rootClass = `desktop-sidebar surface-void opal-wireframe ${collapsed ? 'desktop-sidebar--collapsed' : ''} ${className}`.trim();
 
   return (
-    <nav className={`${rootClass} opal-surface ${className}`.trim()}>
+    <nav className={rootClass} data-identity="sovereignty">
       <div className="desktop-sidebar__brand">
         <LogoMark size={collapsed ? 40 : 64} />
         {!collapsed && <Wordmark size="nav" className="desktop-sidebar__wordmark" />}
@@ -30,7 +30,7 @@ export function DesktopSidebar({
             onClick={() => onNavigate?.(item.id)}
             title={collapsed ? item.label : undefined}
           >
-            {item.icon}
+            <span className="desktop-sidebar__icon">{item.icon}</span>
             {!collapsed && <span className="desktop-sidebar__item-label">{item.label}</span>}
           </button>
         ))}

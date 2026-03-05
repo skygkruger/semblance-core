@@ -77,25 +77,26 @@
   color: #EEF1F4;
 }
 
-/* ─── Attach (paperclip) button ─── */
+/* ─── Attach (paperclip) button — matches send button weight ─── */
 .agent-input__attach {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: none;
+  border: 1px solid #8593A4;
   border-radius: 6px;
   background: none;
   color: #8593A4;
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 180ms, background 180ms;
+  transition: color 180ms ease-out, border-color 180ms ease-out, background 180ms ease-out;
   padding: 0;
 }
 
 .agent-input__attach:hover {
   color: #A8B4C0;
+  border-color: #A8B4C0;
   background: rgba(255, 255, 255, 0.06);
 }
 
