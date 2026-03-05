@@ -1,4 +1,4 @@
-import { useState, useCallback, type KeyboardEvent } from 'react';
+import { useState, useCallback, useRef, useEffect, type KeyboardEvent } from 'react';
 import type { HealthEntry } from './HealthDashboard.types';
 import './QuickEntryCard.css';
 
@@ -22,7 +22,9 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
   const [symptoms, setSymptoms] = useState<string[]>(todayEntry?.symptoms ?? []);
   const [medications, setMedications] = useState<string[]>(todayEntry?.medications ?? []);
   const [symptomInput, setSymptomInput] = useState('');
+  const [symptomDropdownOpen, setSymptomDropdownOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const symptomWrapRef = useRef<HTMLDivElement>(null);
 
   const hasData = mood !== null || energy !== null || water > 0 || symptoms.length > 0 || medications.length > 0;
 
@@ -60,6 +62,30 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
       prev.includes(med) ? prev.filter((m) => m !== med) : [...prev, med],
     );
   }, []);
+
+  const addSymptom = useCallback((s: string) => {
+    const trimmed = s.trim();
+    if (trimmed && !symptoms.includes(trimmed)) {
+      setSymptoms((prev) => [...prev, trimmed]);
+    }
+    setSymptomInput('');
+    setSymptomDropdownOpen(false);
+  }, [symptoms]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (symptomWrapRef.current && !symptomWrapRef.current.contains(e.target as Node)) {
+        setSymptomDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredSuggestions = symptomsHistory.filter(
+    (s) => !symptoms.includes(s) && (!symptomInput || s.toLowerCase().includes(symptomInput.toLowerCase())),
+  );
 
   return (
     <div className="quick-entry">
@@ -129,35 +155,45 @@ export function QuickEntryCard({ todayEntry, symptomsHistory, medicationsHistory
 
       <div className="quick-entry__row">
         <span className="quick-entry__label">Symptoms</span>
-        <div className="quick-entry__tags">
-          {symptoms.map((s) => (
-            <span key={s} className="quick-entry__tag">
-              {s}
-              <button
-                type="button"
-                className="quick-entry__tag-remove"
-                onClick={() => removeSymptom(s)}
-                aria-label={`Remove ${s}`}
-              >
-                &times;
-              </button>
-            </span>
-          ))}
-          <input
-            type="text"
-            className="quick-entry__tag-input"
-            placeholder="Add symptom..."
-            value={symptomInput}
-            onChange={(e) => setSymptomInput(e.target.value)}
-            onKeyDown={handleSymptomKeyDown}
-            list="symptom-suggestions"
-          />
-          {symptomsHistory.length > 0 && (
-            <datalist id="symptom-suggestions">
-              {symptomsHistory.filter((s) => !symptoms.includes(s)).map((s) => (
-                <option key={s} value={s} />
+        <div className="quick-entry__symptom-wrap" ref={symptomWrapRef}>
+          <div className="quick-entry__tags">
+            {symptoms.map((s) => (
+              <span key={s} className="quick-entry__tag">
+                {s}
+                <button
+                  type="button"
+                  className="quick-entry__tag-remove"
+                  onClick={() => removeSymptom(s)}
+                  aria-label={`Remove ${s}`}
+                >
+                  &times;
+                </button>
+              </span>
+            ))}
+            <input
+              type="text"
+              className="quick-entry__tag-input"
+              placeholder="Add symptom..."
+              value={symptomInput}
+              onChange={(e) => { setSymptomInput(e.target.value); setSymptomDropdownOpen(true); }}
+              onKeyDown={handleSymptomKeyDown}
+              onFocus={() => setSymptomDropdownOpen(true)}
+            />
+          </div>
+          {symptomDropdownOpen && filteredSuggestions.length > 0 && (
+            <div className="quick-entry__dropdown" role="listbox">
+              {filteredSuggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="quick-entry__dropdown-item"
+                  role="option"
+                  onClick={() => addSymptom(s)}
+                >
+                  {s}
+                </button>
               ))}
-            </datalist>
+            </div>
           )}
         </div>
       </div>

@@ -6,17 +6,18 @@ interface CategoryBreakdownSectionProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'Housing': '#6ECFA3',
-  'Transportation': '#B09A8A',
-  'Food & Dining': '#B07A8A',
-  'Shopping': '#8593A4',
-  'Entertainment': '#A8B4C0',
-  'Health': '#6ECFA3',
-  'Personal': '#B09A8A',
-  'Financial': '#5E6B7C',
-  'Subscriptions': '#CDD4DB',
-  'Income': '#6ECFA3',
-  'Other': '#5E6B7C',
+  'Housing': '#C9B06B',       // Antique gold
+  'Transportation': '#B8A089', // Warm bronze
+  'Food & Dining': '#D4A87C',  // Copper
+  'Shopping': '#C2A0B0',       // Rose gold
+  'Entertainment': '#A8B4C0',  // Platinum
+  'Health & Fitness': '#8ABAB0', // Patina silver-teal
+  'Health': '#8ABAB0',         // Patina silver-teal
+  'Personal': '#B09A8A',       // Pewter rose
+  'Financial': '#9AA08A',      // Aged brass
+  'Subscriptions': '#CDD4DB',  // Bright silver
+  'Income': '#D4C896',         // Champagne gold
+  'Other': '#8C8A80',          // Gunmetal
 };
 
 function getCategoryColor(category: string): string {

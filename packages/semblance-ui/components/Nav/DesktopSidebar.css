@@ -111,9 +111,9 @@
 /* Active state — solid Veridian ring */
 .desktop-sidebar__item--active {
   color: #FFFFFF;
-  background:
-    var(--v-dim) padding-box,
-    linear-gradient(var(--v-wire), var(--v-wire)) border-box;
+  border-radius: var(--r-md);
+  border: 1px solid rgba(110, 207, 163, 0.45);
+  background: rgba(110, 207, 163, 0.08);
   box-shadow: 0 0 12px var(--v-glow-md), inset 0 0 8px var(--v-glow);
   animation: none;
 }
@@ -147,6 +147,8 @@
   padding-top: var(--sp-3);
   border-top: 1px solid rgba(255, 255, 255, 0.04);
   flex-shrink: 0;
+  display: flex;
+  justify-content: center;
 }
 
 /* Collapsed: hide privacy badge label */

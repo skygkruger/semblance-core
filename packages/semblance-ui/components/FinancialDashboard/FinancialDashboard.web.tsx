@@ -31,7 +31,7 @@ export function FinancialDashboard({
 }: FinancialDashboardProps) {
   if (loading) {
     return (
-      <div className="fin-dash surface-void" data-identity="financial">
+      <div className="fin-dash surface-void opal-wireframe" data-identity="financial">
 
         <div className="fin-dash__loading">Generating financial overview...</div>
       </div>
@@ -40,7 +40,7 @@ export function FinancialDashboard({
 
   if (!overview && categories.length === 0) {
     return (
-      <div className="fin-dash surface-void" data-identity="financial">
+      <div className="fin-dash surface-void opal-wireframe" data-identity="financial">
 
         <div className="fin-dash__empty">
           <h2 className="fin-dash__empty-title">No Financial Data Yet</h2>
@@ -60,7 +60,7 @@ export function FinancialDashboard({
   const activeCharges = subscriptions.charges.filter((c) => c.status !== 'forgotten' && c.status !== 'cancelled');
 
   return (
-    <div className="fin-dash surface-void" data-identity="financial">
+    <div className="fin-dash surface-void opal-wireframe" data-identity="financial">
       {/* Header — centered, shimmer title */}
       <div className="fin-dash__header">
         <h2 className="fin-dash__title">Financial Overview</h2>
@@ -147,7 +147,8 @@ export function FinancialDashboard({
 
           {subscriptions.summary.potentialSavings > 0 && (
             <div className="fin-dash__savings">
-              Potential savings: {formatCurrency(subscriptions.summary.potentialSavings)}/yr
+              <span className="fin-dash__savings-label">Potential savings:</span>{' '}
+              <span className="fin-dash__savings-amount">{formatCurrency(subscriptions.summary.potentialSavings)}/yr</span>
             </div>
           )}
         </div>

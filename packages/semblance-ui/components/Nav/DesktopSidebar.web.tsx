@@ -17,7 +17,7 @@ export function DesktopSidebar({
   return (
     <nav className={rootClass} data-identity="sovereignty">
       <div className="desktop-sidebar__brand">
-        <LogoMark size={collapsed ? 40 : 64} />
+        <LogoMark size={collapsed ? 40 : 80} />
         {!collapsed && <Wordmark size="nav" className="desktop-sidebar__wordmark" />}
       </div>
 
