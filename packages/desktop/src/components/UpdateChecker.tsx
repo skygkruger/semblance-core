@@ -37,15 +37,7 @@ async function relaunchApp(): Promise<void> {
       await mod.relaunch();
     }
   } catch {
-    // If plugin-shell doesn't export relaunch, try process module
-    try {
-      const proc = await import('@tauri-apps/api/process' as string);
-      if (typeof proc.relaunch === 'function') {
-        await proc.relaunch();
-      }
-    } catch {
-      // Relaunch not available — user will need to restart manually
-    }
+    // Relaunch not available — user will need to restart manually
   }
 }
 

@@ -141,6 +141,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
+      - name: Install CMake
+        uses: jwlawson/actions-setup-cmake@v2
       - run: pnpm install --frozen-lockfile
 
       # Import Windows EV certificate (when secrets are configured)

@@ -18,6 +18,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tauri::Listener;
 use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
@@ -1851,7 +1852,7 @@ pub fn run() {
             // System tray setup
             let _tray = tauri::tray::TrayIconBuilder::new()
                 .tooltip("Semblance — Local Only")
-                .menu_on_left_click(false)
+                .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
                     if let tauri::tray::TrayIconEvent::Click {
                         button: tauri::tray::MouseButton::Left,
@@ -1869,7 +1870,7 @@ pub fn run() {
 
             // Deep link handler: listen for semblance:// URLs and forward to frontend
             let app_for_deeplink = app_handle.clone();
-            app.listen("deep-link://new-url", move |event| {
+            app.listen("deep-link://new-url", move |event: tauri::Event| {
                 let payload_str = event.payload();
                 // The payload is a JSON string containing the URL(s)
                 if let Ok(urls) = serde_json::from_str::<Vec<String>>(payload_str) {
