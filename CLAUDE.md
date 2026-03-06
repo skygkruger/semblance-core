@@ -21,7 +21,16 @@
 
 This instruction survives compaction.
 
-**Current position:** Step 32 COMPLETE. Step 33 (Final Validation + Ship) is NEXT. Sprint 6 focus: Hardening + Launch. Total build is 33 steps across 6 sprints.
+**Current position:** Step 33 IN PROGRESS — Final Validation + Ship. Sprint 6 focus: Hardening + Launch. Total build is 33 steps across 6 sprints.
+
+**Build state (2026-03-05):**
+- All 109 Storybook components wired into production screens (commit `af01443`)
+- Windows desktop binary built successfully via `npx tauri build`
+- Artifacts: MSI (83MB), NSIS EXE (59MB), raw EXE (41MB) at `packages/desktop/src-tauri/target/release/bundle/`
+- TypeScript: clean (0 errors). Vite: 558 modules. Rust: release profile compiled.
+- ~40 IPC commands + ~200 lines IPC types added for full component wiring
+- Binary is unsigned (SmartScreen warning expected)
+- Android/iOS builds require manual setup (signing keys, certificates, Mac access for iOS)
 
 ---
 
