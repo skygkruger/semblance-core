@@ -28,6 +28,12 @@ export function BiometricGate({ children }: BiometricGateProps) {
   const [state, setState] = useState<'checking' | 'locked' | 'unlocked' | 'error'>('checking');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // useMemo must be called unconditionally (React Rules of Hooks)
+  const featureAuthValue = useMemo(() => ({
+    biometricAuth,
+    sessionAuth,
+  }), []);
+
   const attemptUnlock = useCallback(async () => {
     setState('checking');
     setErrorMsg(null);
@@ -141,12 +147,6 @@ export function BiometricGate({ children }: BiometricGateProps) {
       </div>
     );
   }
-
-  // Provide biometric auth + session state to all children via context
-  const featureAuthValue = useMemo(() => ({
-    biometricAuth,
-    sessionAuth,
-  }), []);
 
   return (
     <FeatureAuthContext.Provider value={featureAuthValue}>

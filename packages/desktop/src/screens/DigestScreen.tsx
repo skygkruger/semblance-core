@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Button } from '@semblance/ui';
-import { getLatestDigest, listDigests, generateDigest } from '../ipc/commands';
+import { getLatestDigest, listDigests, generateDigest, getDailyDigest, dismissDailyDigest } from '../ipc/commands';
+import { DailyDigestCard } from '../components/DailyDigestCard';
+import type { DailyDigestResult } from '../ipc/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +79,7 @@ export function DigestScreen() {
   const [digest, setDigest] = useState<WeeklyDigest | null>(null);
   const [pastDigests, setPastDigests] = useState<DigestSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dailyDigest, setDailyDigest] = useState<DailyDigestResult | null>(null);
 
   const loadDigest = useCallback(async () => {
     setLoading(true);
@@ -96,6 +99,7 @@ export function DigestScreen() {
 
   useEffect(() => {
     loadDigest();
+    getDailyDigest().then(setDailyDigest).catch(() => {});
   }, [loadDigest]);
 
   const handleGenerate = async () => {
@@ -157,6 +161,17 @@ export function DigestScreen() {
         <h1 className="text-xl font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
           {t('screen.digest.title')} · {formatDateRange(digest.weekStart, digest.weekEnd)}
         </h1>
+
+        {/* Daily Digest */}
+        {dailyDigest && (
+          <DailyDigestCard
+            digest={dailyDigest}
+            onDismiss={async (id) => {
+              await dismissDailyDigest(id).catch(() => {});
+              setDailyDigest(null);
+            }}
+          />
+        )}
 
         {/* Narrative */}
         {digest.narrative && (

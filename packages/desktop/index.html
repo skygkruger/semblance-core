@@ -8,6 +8,20 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      window.addEventListener('error', function(e) {
+        document.getElementById('root').innerHTML =
+          '<pre style="color:red;padding:20px;font-size:14px;white-space:pre-wrap;">FATAL: ' +
+          e.message + '\n\nFile: ' + e.filename + ':' + e.lineno + ':' + e.colno +
+          '\n\nStack: ' + (e.error && e.error.stack || 'N/A') + '</pre>';
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        document.getElementById('root').innerHTML =
+          '<pre style="color:red;padding:20px;font-size:14px;white-space:pre-wrap;">FATAL (Promise): ' +
+          (e.reason && e.reason.message || e.reason || 'Unknown') +
+          '\n\nStack: ' + (e.reason && e.reason.stack || 'N/A') + '</pre>';
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

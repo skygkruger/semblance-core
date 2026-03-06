@@ -1,7 +1,8 @@
 // @semblance/ui — Shared component library entry point
 // Re-exports all design tokens and components.
 
-// CSS Tokens
+// CSS Tokens — ALL token CSS must be imported here for production builds
+import './tokens/tokens.css';
 import './tokens/opal.css';
 import './tokens/surfaces.css';
 

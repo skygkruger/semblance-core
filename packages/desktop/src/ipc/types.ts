@@ -842,3 +842,290 @@ export interface SovereigntyReportData {
 export interface SovereigntyReportVerifyResult {
   valid: boolean;
 }
+
+// ─── Morning Brief Types ────────────────────────────────────────────────────
+
+export interface MorningBriefItem {
+  id: string;
+  text: string;
+  context?: string;
+  actionable: boolean;
+  suggestedAction?: string;
+}
+
+export interface MorningBriefSection {
+  type: string;
+  title: string;
+  items: MorningBriefItem[];
+}
+
+export interface MorningBriefResult {
+  id: string;
+  summary: string;
+  sections: MorningBriefSection[];
+  readTimeMinutes: number;
+  estimatedReadTimeSeconds: number;
+  generatedAt: string;
+}
+
+export interface WeatherConditions {
+  temperature: number;
+  feelsLike: number;
+  conditionDescription: string;
+  humidity: number;
+  windSpeedKmh: number;
+  precipitationChance: number;
+}
+
+export interface EventForecast {
+  eventTitle: string;
+  eventTime: string;
+  temperature: number;
+  conditionDescription: string;
+  precipitationChance: number;
+}
+
+export interface WeatherResult {
+  currentConditions: WeatherConditions | null;
+  eventForecasts: EventForecast[];
+}
+
+export interface CommuteEntry {
+  eventTitle: string;
+  destination: string;
+  departureTime: string;
+  travelMinutes: number;
+  weather: { temperature: number; conditionDescription: string } | null;
+}
+
+export interface CommuteResult {
+  commutes: CommuteEntry[];
+}
+
+export interface KnowledgeMomentResult {
+  tier: 1 | 2 | 3 | 4 | 5;
+  upcomingMeeting: {
+    title: string;
+    startTime: string;
+    attendees: string[];
+  } | null;
+  emailContext: {
+    attendeeName: string;
+    recentEmailCount: number;
+    lastEmailSubject: string;
+    lastEmailDate: string;
+    hasUnansweredEmail: boolean;
+    unansweredSubject: string | null;
+  } | null;
+  relatedDocuments: Array<{
+    fileName: string;
+    filePath: string;
+    relevanceReason: string;
+  }>;
+  message: string;
+  suggestedAction: {
+    type: 'draft_reply' | 'create_reminder' | 'prepare_meeting';
+    description: string;
+  } | null;
+}
+
+export interface AlterEgoDifference {
+  domain: string;
+  currentTier: string;
+  description: string;
+  examples: string[];
+}
+
+export interface AlterEgoActivationResult {
+  totalActions: number;
+  successRate: number;
+  domainsCovered: string[];
+  estimatedTimeSavedSeconds: number;
+  differences: AlterEgoDifference[];
+  safeguards: string[];
+}
+
+export interface DailyDigestResult {
+  id: string;
+  summary: string;
+  totalActions: number;
+  timeSavedFormatted: string;
+  emailsHandled: number;
+  meetingsPrepped: number;
+  remindersCreated: number;
+  webSearches: number;
+  dismissed: boolean;
+}
+
+// ─── Knowledge Graph Types ──────────────────────────────────────────────────
+
+export interface VisualizationNode {
+  id: string;
+  label: string;
+  type: string;
+  size: number;
+  createdAt: string;
+  domain: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface VisualizationEdge {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  weight: number;
+  label?: string;
+}
+
+export interface VisualizationGraph {
+  nodes: VisualizationNode[];
+  edges: VisualizationEdge[];
+}
+
+export interface NodeContext {
+  node: VisualizationNode;
+  recentActivity: Array<{ action: string; timestamp: string; detail: string }>;
+  connections: Array<{ id: string; label: string; relationship: string }>;
+  recentMentions: Array<{ source: string; text: string; date: string }>;
+}
+
+// ─── Escalation Types ───────────────────────────────────────────────────────
+
+export interface EscalationPreviewAction {
+  description: string;
+  currentBehavior: string;
+  newBehavior: string;
+  estimatedTimeSaved: string;
+}
+
+export interface EscalationPromptData {
+  id: string;
+  type: 'guardian_to_partner' | 'partner_to_alterego';
+  domain: string;
+  actionType: string;
+  consecutiveApprovals: number;
+  message: string;
+  previewActions: EscalationPreviewAction[];
+  createdAt: string;
+  expiresAt: string;
+  status: 'pending' | 'accepted' | 'dismissed' | 'expired';
+}
+
+// ─── Clipboard Insight Types ────────────────────────────────────────────────
+
+export interface ClipboardInsightData {
+  patternDescription: string;
+  actionLabel: string;
+  actionId: string;
+}
+
+// ─── Reminder Types ─────────────────────────────────────────────────────────
+
+export interface ReminderData {
+  id: string;
+  text: string;
+  dueAt: string;
+  recurrence: 'none' | 'daily' | 'weekly' | 'monthly';
+  source: string;
+}
+
+// ─── Style Types ────────────────────────────────────────────────────────────
+
+export interface StylePattern {
+  text: string;
+  frequency: number;
+}
+
+export interface StyleProfileResult {
+  id: string;
+  score: number | null;
+  isActive: boolean;
+  emailsAnalyzed: number;
+  greetingPatterns: StylePattern[];
+  signoffPatterns: StylePattern[];
+  formalityScore: number;
+  directnessScore: number;
+  warmthScore: number;
+  usesContractions: boolean;
+  contractionRate: number;
+  usesEmoji: boolean;
+  emojiFrequency: number;
+  usesExclamation: boolean;
+  exclamationRate: number;
+}
+
+// ─── Dark Pattern Types ─────────────────────────────────────────────────────
+
+export interface DarkPatternResult {
+  contentId: string;
+  confidence: number;
+  patterns: Array<{ category: string; evidence: string; confidence: number }>;
+  reframe: string;
+}
+
+// ─── Quick Capture Types ────────────────────────────────────────────────────
+
+export interface CaptureResult {
+  hasReminder: boolean;
+  reminderDueAt: string | null;
+  linkedContextCount: number;
+}
+
+// ─── Voice Model Types ──────────────────────────────────────────────────────
+
+export interface VoiceModelStatus {
+  whisperDownloaded: boolean;
+  piperDownloaded: boolean;
+  whisperSizeMb: number;
+  piperSizeMb: number;
+}
+
+// ─── Import Digital Life Types ──────────────────────────────────────────────
+
+export interface ImportProgressData {
+  sourceId: string;
+  phase: 'scanning' | 'importing' | 'indexing' | 'complete' | 'error';
+  itemsProcessed: number;
+  totalItems: number;
+  errorMessage?: string;
+}
+
+export interface ImportHistoryData {
+  id: string;
+  sourceType: string;
+  format: string;
+  importedAt: string;
+  itemCount: number;
+  status: string;
+}
+
+// ─── Model Download Types ───────────────────────────────────────────────────
+
+// ─── Alter Ego Week Types ───────────────────────────────────────────────────
+
+export interface AlterEgoWeekDayData {
+  day: number;
+  theme: string;
+  domain: string;
+  type: string;
+  description: string;
+}
+
+export interface AlterEgoWeekProgressData {
+  isActive: boolean;
+  currentDay: number;
+  completedDays: number[];
+  totalDays: number;
+  currentDayConfig: AlterEgoWeekDayData | null;
+}
+
+// ─── Model Download Types ───────────────────────────────────────────────────
+
+export interface ModelDownloadState {
+  modelName: string;
+  totalBytes: number;
+  downloadedBytes: number;
+  speedBytesPerSec: number;
+  status: 'pending' | 'downloading' | 'complete' | 'error';
+  error?: string;
+}

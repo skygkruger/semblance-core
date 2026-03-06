@@ -13,8 +13,11 @@ import {
   removePersonalValue,
   getIntentObservations,
   dismissObservation,
+  getEscalationPrompts,
+  respondToEscalation,
 } from '../ipc/commands';
-import type { IntentObservationData } from '../ipc/types';
+import type { IntentObservationData, EscalationPromptData } from '../ipc/types';
+import { EscalationPromptCard } from '../components/EscalationPromptCard';
 
 export function IntentScreen() {
   const { t } = useTranslation();
@@ -25,6 +28,7 @@ export function IntentScreen() {
   const [newLimit, setNewLimit] = useState('');
   const [newValue, setNewValue] = useState('');
   const [observations, setObservations] = useState<IntentObservationData[]>([]);
+  const [escalationPrompts, setEscalationPrompts] = useState<EscalationPromptData[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Load intent on mount
@@ -57,6 +61,7 @@ export function IntentScreen() {
         }
       }).catch(() => {}),
       getIntentObservations().then(setObservations).catch(() => {}),
+      getEscalationPrompts().then(setEscalationPrompts).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, [dispatch]);
 
@@ -282,6 +287,28 @@ export function IntentScreen() {
           <button type="button" onClick={handleAddValue} disabled={!newValue.trim()} style={btnPrimary}>{t('button.create')}</button>
         </div>
       </section>
+
+      {/* Escalation Prompts */}
+      {escalationPrompts.length > 0 && (
+        <section style={{ marginBottom: 32 }}>
+          <h2 style={sectionHeading}>{t('screen.intent.section_escalation', 'Autonomy Escalation')}</h2>
+          {escalationPrompts.map(prompt => (
+            <div key={prompt.id} style={{ marginBottom: 12 }}>
+              <EscalationPromptCard
+                prompt={prompt}
+                onAccepted={async () => {
+                  await respondToEscalation(prompt.id, true).catch(() => {});
+                  setEscalationPrompts(prev => prev.filter(p => p.id !== prompt.id));
+                }}
+                onDismissed={async () => {
+                  await respondToEscalation(prompt.id, false).catch(() => {});
+                  setEscalationPrompts(prev => prev.filter(p => p.id !== prompt.id));
+                }}
+              />
+            </div>
+          ))}
+        </section>
+      )}
 
       {/* Recent Alignment Observations */}
       {observations.length > 0 && (

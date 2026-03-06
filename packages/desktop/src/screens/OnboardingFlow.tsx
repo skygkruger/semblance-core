@@ -14,6 +14,7 @@ import {
   TermsAcceptanceStep,
   IntentCapture,
   LanguageSelect,
+  DotMatrix,
 } from '@semblance/ui';
 import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier } from '@semblance/ui';
 import { detectOSLocale } from '@semblance/core/i18n/supported-languages';
@@ -230,6 +231,7 @@ export function OnboardingFlow() {
       className="h-screen flex flex-col items-center justify-center"
       style={{ backgroundColor: '#0B0E11', color: '#EEF1F4' }}
     >
+      <DotMatrix />
       {step === 'language-select' && (
         <LanguageSelect
           detectedCode={detectOSLocale()}

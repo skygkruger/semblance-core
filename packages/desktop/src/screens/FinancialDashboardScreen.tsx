@@ -10,6 +10,8 @@ import {
   importStatement,
 } from '../ipc/commands';
 import type { FinancialDashboardData } from '../ipc/types';
+import { StatementImportDialog } from '../components/StatementImportDialog';
+import { SubscriptionInsightCard } from '../components/SubscriptionInsightCard';
 
 export function FinancialDashboardScreen() {
   const license = useLicense();
@@ -104,6 +106,8 @@ export function FinancialDashboardScreen() {
     }
   }, [period]);
 
+  const [showImportDialog, setShowImportDialog] = useState(false);
+
   if (!authed) {
     return (
       <div style={{
@@ -136,9 +140,32 @@ export function FinancialDashboardScreen() {
           onDismissAnomaly={handleDismissAnomaly}
           onCancelSubscription={handleCancelSubscription}
           onKeepSubscription={handleKeepSubscription}
-          onImportStatement={handleImportStatement}
+          onImportStatement={() => setShowImportDialog(true)}
           loading={loading}
         />
+
+        {/* Subscription Insights — shown below main dashboard */}
+        {data?.subscriptions && data.subscriptions.summary.forgottenCount > 0 && (
+          <div style={{ padding: '0 24px 24px' }}>
+            <SubscriptionInsightCard
+              charges={data.subscriptions.charges}
+              summary={data.subscriptions.summary}
+              onDismiss={() => {}}
+            />
+          </div>
+        )}
+
+        {/* Statement Import Dialog */}
+        {showImportDialog && (
+          <StatementImportDialog
+            onClose={() => setShowImportDialog(false)}
+            onImportComplete={async () => {
+              setShowImportDialog(false);
+              const updated = await getFinancialDashboard(period);
+              setData(updated);
+            }}
+          />
+        )}
       </FeatureGate>
     </div>
   );

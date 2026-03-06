@@ -36,18 +36,19 @@
   --caution: #B09A8A;
   --critical: #B07A8A;
 
-  /* Typography */
-  --fd: 'Fraunces', Georgia, serif;
-  --fb: 'DM Sans', system-ui, sans-serif;
+  /* Typography — Variable names for fontsource, standard names for Google Fonts CDN */
+  --fd: 'Fraunces Variable', 'Fraunces', Georgia, serif;
+  --fb: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
   --fm: 'DM Mono', monospace;
+  --fj: 'Josefin Sans Variable', 'Josefin Sans', system-ui, sans-serif;
 
   /* CJK font stacks — appended to --fb/--fd/--fm when lang is CJK */
-  --fb-ja: 'DM Sans', 'Noto Sans JP', 'Hiragino Kaku Gothic Pro', system-ui, sans-serif;
-  --fb-zh: 'DM Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  --fb-ko: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', system-ui, sans-serif;
-  --fd-ja: 'Fraunces', 'Noto Serif JP', Georgia, serif;
-  --fd-zh: 'Fraunces', 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  --fd-ko: 'Fraunces', 'Noto Serif KR', Georgia, serif;
+  --fb-ja: 'DM Sans Variable', 'DM Sans', 'Noto Sans JP', 'Hiragino Kaku Gothic Pro', system-ui, sans-serif;
+  --fb-zh: 'DM Sans Variable', 'DM Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --fb-ko: 'DM Sans Variable', 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', system-ui, sans-serif;
+  --fd-ja: 'Fraunces Variable', 'Fraunces', 'Noto Serif JP', Georgia, serif;
+  --fd-zh: 'Fraunces Variable', 'Fraunces', 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --fd-ko: 'Fraunces Variable', 'Fraunces', 'Noto Serif KR', Georgia, serif;
 
   /* Type scale */
   --text-3xl: 52px;

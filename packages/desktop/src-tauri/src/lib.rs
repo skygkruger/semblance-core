@@ -147,33 +147,52 @@ impl SidecarBridge {
     /// Spawn the sidecar process and start reading its stdout.
     /// Events from the sidecar are forwarded as Tauri events to the frontend.
     async fn spawn(project_root: PathBuf, app_handle: tauri::AppHandle, runtime: native_runtime::SharedNativeRuntime) -> Result<Self, String> {
-        // Find tsx binary for running TypeScript sidecar
-        #[cfg(windows)]
-        let tsx_path = project_root.join("node_modules").join(".bin").join("tsx.cmd");
-        #[cfg(not(windows))]
-        let tsx_path = project_root.join("node_modules").join(".bin").join("tsx");
+        // Production: use bundled bridge.cjs with system node
+        // Development: use tsx to run bridge.ts from source
+        // Use the exe's parent directory — resources are placed alongside the exe
+        let exe_dir = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+            .unwrap_or_else(|| project_root.clone());
+        let bundled_bridge = exe_dir.join("sidecar").join("bridge.cjs");
+        eprintln!("[tauri] Looking for bundled bridge at: {:?} exists={}", bundled_bridge, bundled_bridge.exists());
 
-        let sidecar_script = project_root
-            .join("packages")
-            .join("desktop")
-            .join("src-tauri")
-            .join("sidecar")
-            .join("bridge.ts");
+        let (node_path, script_path, working_dir) = if bundled_bridge.exists() {
+            // Production mode: bundled bridge.cjs, use system node
+            let node = which_node().ok_or("Node.js not found. Install Node.js 20+ to run Semblance.")?;
+            eprintln!("[tauri] Production mode: node={:?} script={:?}", node, bundled_bridge);
+            (node, bundled_bridge, exe_dir.join("sidecar"))
+        } else {
+            // Development mode: tsx from node_modules
+            #[cfg(windows)]
+            let tsx_path = project_root.join("node_modules").join(".bin").join("tsx.cmd");
+            #[cfg(not(windows))]
+            let tsx_path = project_root.join("node_modules").join(".bin").join("tsx");
 
-        if !tsx_path.exists() {
-            return Err(format!(
-                "tsx not found at {:?}. Run `pnpm add -Dw tsx` in the project root.",
-                tsx_path
-            ));
-        }
+            let sidecar_script = project_root
+                .join("packages")
+                .join("desktop")
+                .join("src-tauri")
+                .join("sidecar")
+                .join("bridge.ts");
 
-        if !sidecar_script.exists() {
-            return Err(format!("Sidecar script not found at {:?}", sidecar_script));
-        }
+            if !tsx_path.exists() {
+                return Err(format!(
+                    "tsx not found at {:?}. Run `pnpm add -Dw tsx` in the project root.",
+                    tsx_path
+                ));
+            }
 
-        let mut child = Command::new(&tsx_path)
-            .arg(&sidecar_script)
-            .current_dir(&project_root)
+            if !sidecar_script.exists() {
+                return Err(format!("Sidecar script not found at {:?}", sidecar_script));
+            }
+
+            (tsx_path, sidecar_script, project_root.clone())
+        };
+
+        let mut child = Command::new(&node_path)
+            .arg(&script_path)
+            .current_dir(&working_dir)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
@@ -1849,6 +1868,20 @@ pub fn run() {
         .setup(|app| {
             let app_handle = app.handle().clone();
 
+            // Enable devtools in release builds for debugging
+            #[cfg(debug_assertions)]
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    window.open_devtools();
+                }
+            }
+            // Also open devtools in release if SEMBLANCE_DEBUG env is set
+            if std::env::var("SEMBLANCE_DEBUG").is_ok() {
+                if let Some(window) = app.get_webview_window("main") {
+                    window.open_devtools();
+                }
+            }
+
             // System tray setup
             let _tray = tauri::tray::TrayIconBuilder::new()
                 .tooltip("Semblance — Local Only")
@@ -2110,6 +2143,31 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Find Node.js binary on the system PATH.
+fn which_node() -> Option<PathBuf> {
+    #[cfg(windows)]
+    let candidates = ["node.exe"];
+    #[cfg(not(windows))]
+    let candidates = ["node"];
+
+    if let Ok(path_var) = std::env::var("PATH") {
+        #[cfg(windows)]
+        let separator = ';';
+        #[cfg(not(windows))]
+        let separator = ':';
+
+        for dir in path_var.split(separator) {
+            for name in &candidates {
+                let full = PathBuf::from(dir).join(name);
+                if full.exists() {
+                    return Some(full);
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Walk up directory tree to find the project root (contains package.json with "workspaces").

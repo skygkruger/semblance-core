@@ -656,3 +656,165 @@ export function verifySovereigntyReport(reportJson: string): Promise<Sovereignty
 export function renderSovereigntyReportPDF(reportJson: string): Promise<{ pdfBase64: string }> {
   return invoke<{ pdfBase64: string }>('report_render_pdf', { reportJson });
 }
+
+// ─── Morning Brief ──────────────────────────────────────────────────────────
+
+export function getMorningBrief(): Promise<import('./types.js').MorningBriefResult> {
+  return invoke<import('./types.js').MorningBriefResult>('brief_get_morning');
+}
+
+export function dismissMorningBrief(id: string): Promise<void> {
+  return invoke<void>('brief_dismiss', { id });
+}
+
+export function getWeather(): Promise<import('./types.js').WeatherResult> {
+  return invoke<import('./types.js').WeatherResult>('weather_get_current');
+}
+
+export function getCommutes(): Promise<import('./types.js').CommuteResult> {
+  return invoke<import('./types.js').CommuteResult>('commute_get_today');
+}
+
+export function getKnowledgeMoment(): Promise<import('./types.js').KnowledgeMomentResult> {
+  return invoke<import('./types.js').KnowledgeMomentResult>('knowledge_get_moment');
+}
+
+export function getAlterEgoActivationPrompt(): Promise<import('./types.js').AlterEgoActivationResult | null> {
+  return invoke<import('./types.js').AlterEgoActivationResult | null>('alter_ego_get_activation_prompt');
+}
+
+export function getDailyDigest(): Promise<import('./types.js').DailyDigestResult | null> {
+  return invoke<import('./types.js').DailyDigestResult | null>('digest_get_daily');
+}
+
+export function dismissDailyDigest(id: string): Promise<void> {
+  return invoke<void>('digest_dismiss_daily', { id });
+}
+
+// ─── Knowledge Graph ────────────────────────────────────────────────────────
+
+export function getKnowledgeGraphData(): Promise<import('./types.js').VisualizationGraph> {
+  return invoke<import('./types.js').VisualizationGraph>('knowledge_get_graph');
+}
+
+export function getKnowledgeNodeContext(nodeId: string): Promise<import('./types.js').NodeContext> {
+  return invoke<import('./types.js').NodeContext>('knowledge_get_node_context', { nodeId });
+}
+
+export function exportKnowledgeGraph(): Promise<void> {
+  return invoke<void>('knowledge_export_graph');
+}
+
+// ─── Escalation ─────────────────────────────────────────────────────────────
+
+export function getEscalationPrompts(): Promise<import('./types.js').EscalationPromptData[]> {
+  return invoke<import('./types.js').EscalationPromptData[]>('escalation_get_prompts');
+}
+
+// ─── Clipboard Insights ─────────────────────────────────────────────────────
+
+export function getClipboardInsights(): Promise<import('./types.js').ClipboardInsightData[]> {
+  return invoke<import('./types.js').ClipboardInsightData[]>('clipboard_get_insights');
+}
+
+export function executeClipboardAction(actionId: string): Promise<void> {
+  return invoke<void>('clipboard_execute_action', { actionId });
+}
+
+export function dismissClipboardInsight(actionId: string): Promise<void> {
+  return invoke<void>('clipboard_dismiss_insight', { actionId });
+}
+
+// ─── Reminders ──────────────────────────────────────────────────────────────
+
+export function getReminders(): Promise<import('./types.js').ReminderData[]> {
+  return invoke<import('./types.js').ReminderData[]>('reminder_list');
+}
+
+export function snoozeReminder(id: string, duration: string): Promise<void> {
+  return invoke<void>('reminder_snooze', { id, duration });
+}
+
+export function dismissReminder(id: string): Promise<void> {
+  return invoke<void>('reminder_dismiss', { id });
+}
+
+// ─── Quick Capture ──────────────────────────────────────────────────────────
+
+export function quickCapture(text: string): Promise<import('./types.js').CaptureResult> {
+  return invoke<import('./types.js').CaptureResult>('quick_capture', { text });
+}
+
+// ─── Style Profile ──────────────────────────────────────────────────────────
+
+export function getStyleProfile(): Promise<import('./types.js').StyleProfileResult | null> {
+  return invoke<import('./types.js').StyleProfileResult | null>('style_get_profile');
+}
+
+export function reanalyzeStyle(): Promise<void> {
+  return invoke<void>('style_reanalyze');
+}
+
+export function resetStyleProfile(): Promise<void> {
+  return invoke<void>('style_reset');
+}
+
+// ─── Dark Pattern Detection ─────────────────────────────────────────────────
+
+export function getDarkPatternFlags(): Promise<import('./types.js').DarkPatternResult[]> {
+  return invoke<import('./types.js').DarkPatternResult[]>('dark_pattern_get_flags');
+}
+
+export function dismissDarkPatternFlag(contentId: string): Promise<void> {
+  return invoke<void>('dark_pattern_dismiss', { contentId });
+}
+
+// ─── Voice Models ───────────────────────────────────────────────────────────
+
+export function getVoiceModelStatus(): Promise<import('./types.js').VoiceModelStatus> {
+  return invoke<import('./types.js').VoiceModelStatus>('voice_get_model_status');
+}
+
+export function downloadVoiceModel(model: 'whisper' | 'piper'): Promise<void> {
+  return invoke<void>('voice_download_model', { model });
+}
+
+// ─── Import Digital Life ────────────────────────────────────────────────────
+
+export function getImportHistory(): Promise<import('./types.js').ImportHistoryData[]> {
+  return invoke<import('./types.js').ImportHistoryData[]>('import_get_history');
+}
+
+export function startImport(sourceId: string): Promise<void> {
+  return invoke<void>('import_start', { sourceId });
+}
+
+// ─── Model Downloads (Settings) ─────────────────────────────────────────────
+
+export function getModelDownloadStatus(): Promise<import('./types.js').ModelDownloadState[]> {
+  return invoke<import('./types.js').ModelDownloadState[]>('model_get_download_status');
+}
+
+export function retryModelDownload(modelName: string): Promise<void> {
+  return invoke<void>('model_retry_download', { modelName });
+}
+
+// ─── Alter Ego Week ─────────────────────────────────────────────────────────
+
+export function getAlterEgoWeekProgress(): Promise<import('./types.js').AlterEgoWeekProgressData | null> {
+  return invoke<import('./types.js').AlterEgoWeekProgressData | null>('alter_ego_get_week_progress');
+}
+
+export function completeAlterEgoDay(day: number): Promise<void> {
+  return invoke<void>('alter_ego_complete_day', { day });
+}
+
+export function skipAlterEgoDay(): Promise<void> {
+  return invoke<void>('alter_ego_skip_day');
+}
+
+// ─── Upgrade Email Capture ──────────────────────────────────────────────────
+
+export function submitUpgradeEmail(email: string): Promise<void> {
+  return invoke<void>('upgrade_submit_email', { email });
+}

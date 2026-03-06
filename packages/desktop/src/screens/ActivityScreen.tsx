@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActionCard, AlterEgoBatchReview } from '@semblance/ui';
-import { getActionLog, getAlterEgoReceipts, approveAlterEgoBatch, rejectAlterEgoBatch, getPendingActions } from '../ipc/commands';
-import type { LogEntry, AlterEgoReceiptData, PendingAction } from '../ipc/types';
+import { ActionCard, AlterEgoBatchReview, ActionLogItem, AlterEgoReceipt, AlterEgoDraftReview } from '@semblance/ui';
+import { getActionLog, getAlterEgoReceipts, approveAlterEgoBatch, rejectAlterEgoBatch, getPendingActions, getEscalationPrompts, respondToEscalation, undoAlterEgoReceipt, getAlterEgoWeekProgress, completeAlterEgoDay, skipAlterEgoDay } from '../ipc/commands';
+import type { LogEntry, AlterEgoReceiptData, PendingAction, EscalationPromptData, AlterEgoWeekProgressData } from '../ipc/types';
+import { EscalationPromptCard } from '../components/EscalationPromptCard';
+import { AlterEgoWeekCard } from '../components/AlterEgoWeekCard';
 import { useAppState } from '../state/AppState';
 import { useSound } from '../sound/SoundEngineContext';
 
@@ -15,6 +17,8 @@ export function ActivityScreen() {
   const [alterEgoReceipts, setAlterEgoReceipts] = useState<AlterEgoReceiptData[]>([]);
   const [pendingBatchItems, setPendingBatchItems] = useState<PendingAction[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [escalationPrompts, setEscalationPrompts] = useState<EscalationPromptData[]>([]);
+  const [weekProgress, setWeekProgress] = useState<AlterEgoWeekProgressData | null>(null);
 
   const loadEntries = useCallback(async () => {
     try {
@@ -56,11 +60,38 @@ export function ActivityScreen() {
     loadAlterEgoReceipts();
   }, [play, loadPendingBatch, loadAlterEgoReceipts]);
 
+  const loadEscalations = useCallback(async () => {
+    try {
+      const result = await getEscalationPrompts();
+      setEscalationPrompts(result);
+    } catch {
+      // Not yet wired
+    }
+  }, []);
+
+  const handleEscalationAccept = useCallback(async (promptId: string) => {
+    await respondToEscalation(promptId, true).catch(() => {});
+    setEscalationPrompts(prev => prev.filter(p => p.id !== promptId));
+    play('action_approved');
+  }, [play]);
+
+  const handleEscalationDismiss = useCallback(async (promptId: string) => {
+    await respondToEscalation(promptId, false).catch(() => {});
+    setEscalationPrompts(prev => prev.filter(p => p.id !== promptId));
+  }, []);
+
+  const handleUndoReceipt = useCallback(async (receiptId: string) => {
+    await undoAlterEgoReceipt(receiptId).catch(() => {});
+    loadAlterEgoReceipts();
+  }, [loadAlterEgoReceipts]);
+
   useEffect(() => {
     loadEntries();
     loadAlterEgoReceipts();
     loadPendingBatch();
-  }, [loadEntries, loadAlterEgoReceipts, loadPendingBatch]);
+    loadEscalations();
+    getAlterEgoWeekProgress().then(setWeekProgress).catch(() => {});
+  }, [loadEntries, loadAlterEgoReceipts, loadPendingBatch, loadEscalations]);
 
   const filtered = filterStatus === 'all'
     ? entries
@@ -114,6 +145,34 @@ export function ActivityScreen() {
         })}
       </div>
 
+      {/* Alter Ego Week Progress */}
+      {weekProgress?.isActive && (
+        <AlterEgoWeekCard
+          progress={weekProgress}
+          currentDayConfig={weekProgress.currentDayConfig}
+          onComplete={async (day) => {
+            await completeAlterEgoDay(day).catch(() => {});
+            const updated = await getAlterEgoWeekProgress().catch(() => null);
+            setWeekProgress(updated);
+          }}
+          onSkip={async () => {
+            await skipAlterEgoDay().catch(() => {});
+            const updated = await getAlterEgoWeekProgress().catch(() => null);
+            setWeekProgress(updated);
+          }}
+        />
+      )}
+
+      {/* Escalation Prompts */}
+      {escalationPrompts.map(prompt => (
+        <EscalationPromptCard
+          key={prompt.id}
+          prompt={prompt}
+          onAccepted={() => handleEscalationAccept(prompt.id)}
+          onDismissed={() => handleEscalationDismiss(prompt.id)}
+        />
+      ))}
+
       {/* Alter Ego batch review — pending actions */}
       {pendingBatchItems.length > 0 && (
         <AlterEgoBatchReview
@@ -146,33 +205,15 @@ export function ActivityScreen() {
                   <span className="ml-2 text-xs font-normal">({receiptsByWeek[week]!.length} actions)</span>
                 </h2>
                 {receiptsByWeek[week]!.map((receipt) => (
-                  <div
+                  <AlterEgoReceipt
                     key={receipt.id}
-                    className="p-4 rounded-md bg-semblance-surface-1 dark:bg-semblance-surface-1-dark border border-semblance-border dark:border-semblance-border-dark"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
-                          {receipt.summary}
-                        </p>
-                        <p className="text-xs text-semblance-text-tertiary mt-1">
-                          {receipt.reasoning}
-                        </p>
-                        <p className="text-xs text-semblance-text-tertiary mt-1">
-                          {new Date(receipt.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        receipt.status === 'undone'
-                          ? 'bg-semblance-warning-subtle text-semblance-warning'
-                          : 'bg-semblance-success-subtle text-semblance-success'
-                      }`}>
-                        {receipt.status === 'undone'
-                          ? t('screen.alter_ego.receipt_undone')
-                          : t('screen.alter_ego.receipt_executed')}
-                      </span>
-                    </div>
-                  </div>
+                    id={receipt.id}
+                    summary={receipt.summary}
+                    reasoning={receipt.reasoning}
+                    undoExpiresAt={receipt.undoExpiresAt ?? null}
+                    onUndo={handleUndoReceipt}
+                    onDismiss={() => {}}
+                  />
                 ))}
               </div>
             ))}

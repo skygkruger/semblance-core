@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card } from '@semblance/ui';
+import { Card, ApprovalCard } from '@semblance/ui';
 import {
   getInboxItems,
   getProactiveInsights,
@@ -11,12 +11,30 @@ import {
   sendEmailAction,
   draftEmailAction,
   dismissInsight,
+  getPendingActions,
+  approveAction,
+  rejectAction,
+  getReminders,
+  snoozeReminder,
+  dismissReminder,
+  getDarkPatternFlags,
+  dismissDarkPatternFlag,
+  quickCapture,
+  getClipboardInsights,
+  executeClipboardAction,
+  dismissClipboardInsight,
 } from '../ipc/commands';
+import type { PendingAction, ReminderData, DarkPatternResult, ClipboardInsightData } from '../ipc/types';
 import { useAppState } from '../state/AppState';
 import { EmailCard } from '../components/EmailCard';
 import { InsightCard } from '../components/InsightCard';
 import { ReplyComposer } from '../components/ReplyComposer';
 import { PendingActionBanner } from '../components/PendingActionBanner';
+import { ReminderCard } from '../components/ReminderCard';
+import { MessageDraftCard } from '../components/MessageDraftCard';
+import { DarkPatternBadge } from '../components/DarkPatternBadge';
+import { QuickCaptureInput } from '../components/QuickCaptureInput';
+import { ClipboardInsightToast } from '../components/ClipboardInsightToast';
 
 // ─── Types (mirror core types for the desktop boundary) ─────────────────────
 
@@ -118,6 +136,10 @@ export function InboxScreen() {
   });
   const [replyTarget, setReplyTarget] = useState<IndexedEmail | null>(null);
   const [undoToast, setUndoToast] = useState<{ id: string; message: string; actionId: string } | null>(null);
+  const [pendingApprovals, setPendingApprovals] = useState<PendingAction[]>([]);
+  const [reminders, setReminders] = useState<ReminderData[]>([]);
+  const [darkPatternFlags, setDarkPatternFlags] = useState<DarkPatternResult[]>([]);
+  const [clipboardInsight, setClipboardInsight] = useState<ClipboardInsightData | null>(null);
 
   const loadInboxData = useCallback(async () => {
     try {
@@ -137,12 +159,30 @@ export function InboxScreen() {
     }
   }, []);
 
+  const loadExtras = useCallback(async () => {
+    try {
+      const [approvals, rems, flags, clips] = await Promise.allSettled([
+        getPendingActions(),
+        getReminders(),
+        getDarkPatternFlags(),
+        getClipboardInsights(),
+      ]);
+      if (approvals.status === 'fulfilled') setPendingApprovals(approvals.value.filter(a => a.status === 'pending_approval'));
+      if (rems.status === 'fulfilled') setReminders(rems.value);
+      if (flags.status === 'fulfilled') setDarkPatternFlags(flags.value);
+      if (clips.status === 'fulfilled' && clips.value.length > 0) setClipboardInsight(clips.value[0]!);
+    } catch {
+      // Not yet wired
+    }
+  }, []);
+
   useEffect(() => {
     loadInboxData();
+    loadExtras();
     // Refresh every 60 seconds
     const interval = setInterval(loadInboxData, 60_000);
     return () => clearInterval(interval);
-  }, [loadInboxData]);
+  }, [loadInboxData, loadExtras]);
 
   const handleArchive = async (email: IndexedEmail) => {
     try {
@@ -209,8 +249,72 @@ export function InboxScreen() {
           {t('screen.inbox.title')}
         </h1>
 
+        {/* Quick Capture */}
+        <QuickCaptureInput
+          onCapture={async (text) => {
+            const result = await quickCapture(text);
+            return result;
+          }}
+        />
+
         {/* Pending Action Approvals */}
         <PendingActionBanner />
+
+        {/* Approval Cards */}
+        {pendingApprovals.map(action => (
+          <ApprovalCard
+            key={action.id}
+            action={action.action}
+            context={action.reasoning}
+            onApprove={async () => {
+              await approveAction(action.id).catch(() => {});
+              setPendingApprovals(prev => prev.filter(a => a.id !== action.id));
+            }}
+            onDismiss={async () => {
+              await rejectAction(action.id).catch(() => {});
+              setPendingApprovals(prev => prev.filter(a => a.id !== action.id));
+            }}
+          />
+        ))}
+
+        {/* Reminders */}
+        {reminders.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark uppercase tracking-wide">
+              {t('screen.inbox.section_reminders', 'Reminders')}
+            </h2>
+            {reminders.map(reminder => (
+              <ReminderCard
+                key={reminder.id}
+                reminder={reminder}
+                onSnooze={(id, dur) => {
+                  snoozeReminder(id, dur).catch(() => {});
+                  setReminders(prev => prev.filter(r => r.id !== id));
+                }}
+                onDismiss={(id) => {
+                  dismissReminder(id).catch(() => {});
+                  setReminders(prev => prev.filter(r => r.id !== id));
+                }}
+              />
+            ))}
+          </section>
+        )}
+
+        {/* Dark Pattern Flags */}
+        {darkPatternFlags.length > 0 && (
+          <section className="space-y-2">
+            {darkPatternFlags.map(flag => (
+              <DarkPatternBadge
+                key={flag.contentId}
+                flag={flag}
+                onDismiss={(contentId) => {
+                  dismissDarkPatternFlag(contentId).catch(() => {});
+                  setDarkPatternFlags(prev => prev.filter(f => f.contentId !== contentId));
+                }}
+              />
+            ))}
+          </section>
+        )}
 
         {/* Priority / Proactive Section */}
         {insights.length > 0 && (
@@ -360,6 +464,22 @@ export function InboxScreen() {
             )}
           </Card>
         </section>
+
+        {/* Clipboard Insight Toast */}
+        {clipboardInsight && (
+          <ClipboardInsightToast
+            patternDescription={clipboardInsight.patternDescription}
+            actionLabel={clipboardInsight.actionLabel}
+            onAction={() => {
+              executeClipboardAction(clipboardInsight.actionId).catch(() => {});
+              setClipboardInsight(null);
+            }}
+            onDismiss={() => {
+              dismissClipboardInsight(clipboardInsight.actionId).catch(() => {});
+              setClipboardInsight(null);
+            }}
+          />
+        )}
 
         {/* Undo Toast */}
         {undoToast && (
