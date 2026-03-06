@@ -71,6 +71,9 @@ describe('Root Cause 1: PlatformAdapter replaces all Node.js builtins', () => {
     'premium/license-keys.ts',
     // LanceDB wrapper (only @lancedb/lancedb import)
     'platform/desktop-vector-store.ts',
+    // Sovereignty Report PDF renderer uses node:fs/promises + node:path + node:url to load
+    // bundled TTF font files. PDF generation is desktop-only; mobile shows JSON report.
+    'reporting/sovereignty-report.ts',
   ]);
 
   function collectTsFiles(dir: string): string[] {
