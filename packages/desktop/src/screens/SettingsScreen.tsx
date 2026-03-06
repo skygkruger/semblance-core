@@ -19,6 +19,15 @@ import {
   getAlterEgoSettings,
   updateAlterEgoSettings,
   triggerSync,
+  getStyleProfile,
+  reanalyzeStyle,
+  resetStyleProfile,
+  getVoiceModelStatus,
+  downloadVoiceModel,
+  getImportHistory,
+  startImport,
+  getModelDownloadStatus,
+  retryModelDownload,
 } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useLicense } from '../contexts/LicenseContext';
@@ -28,11 +37,16 @@ import { LocationSettingsSection } from '../components/LocationSettingsSection';
 import { VoiceSettingsSection } from '../components/VoiceSettingsSection';
 import { CloudStorageSettingsSection } from '../components/CloudStorageSettingsSection';
 import { SoundSettingsSection } from '../components/SoundSettingsSection';
+import { StyleMatchIndicator } from '../components/StyleMatchIndicator';
+import { StyleProfileCard } from '../components/StyleProfileCard';
+import { VoiceOnboardingCard } from '../components/VoiceOnboardingCard';
+import { ModelDownloadProgress } from '../components/ModelDownloadProgress';
+import { ImportDigitalLifeView } from '../components/ImportDigitalLifeView';
 import type { HardwareDisplayInfo } from '../components/HardwareProfileDisplay';
 import type { AutonomyTier } from '@semblance/ui';
 import type { ThemeMode } from '@semblance/ui';
 import type { CredentialFormData } from '@semblance/ui';
-import type { AccountInfo, AccountStatus } from '../ipc/types';
+import type { AccountInfo, AccountStatus, StyleProfileResult, VoiceModelStatus, ImportHistoryData, ModelDownloadState } from '../ipc/types';
 import './SettingsScreen.css';
 
 function LicenseSection() {
@@ -104,6 +118,7 @@ export function SettingsScreen() {
   const { t } = useTranslation();
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const license = useLicense();
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(state.userName || '');
   const [accounts, setAccounts] = useState<AccountStatus[]>([]);
@@ -121,6 +136,11 @@ export function SettingsScreen() {
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'no_peer' | 'error'>('idle');
   const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const [styleProfile, setStyleProfile] = useState<StyleProfileResult | null>(null);
+  const [voiceModels, setVoiceModels] = useState<VoiceModelStatus | null>(null);
+  const [voiceDownloading, setVoiceDownloading] = useState(false);
+  const [importHistory, setImportHistory] = useState<ImportHistoryData[]>([]);
+  const [modelDownloads, setModelDownloads] = useState<ModelDownloadState[]>([]);
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -141,6 +161,18 @@ export function SettingsScreen() {
       .catch(() => {});
     getAlterEgoSettings()
       .then((s) => dispatch({ type: 'SET_ALTER_EGO_SETTINGS', settings: s }))
+      .catch(() => {});
+    getStyleProfile()
+      .then(setStyleProfile)
+      .catch(() => {});
+    getVoiceModelStatus()
+      .then(setVoiceModels)
+      .catch(() => {});
+    getImportHistory()
+      .then(setImportHistory)
+      .catch(() => {});
+    getModelDownloadStatus()
+      .then(setModelDownloads)
       .catch(() => {});
   }, [loadAccounts, dispatch]);
 
@@ -624,6 +656,92 @@ export function SettingsScreen() {
           onBack={() => {}}
         />
       )}
+
+      {/* Style Profile */}
+      <Card>
+        <h2 className="settings-page__section-title">
+          Writing Style
+        </h2>
+        <div className="settings-page__vstack">
+          <StyleMatchIndicator
+            score={styleProfile?.score ?? null}
+            emailsAnalyzed={styleProfile?.emailsAnalyzed}
+            activationThreshold={20}
+          />
+          {styleProfile && (
+            <StyleProfileCard
+              profile={styleProfile}
+              onReanalyze={async () => {
+                await reanalyzeStyle().catch(() => {});
+                const updated = await getStyleProfile().catch(() => null);
+                if (updated) setStyleProfile(updated);
+              }}
+              onReset={async () => {
+                await resetStyleProfile().catch(() => {});
+                setStyleProfile(null);
+              }}
+            />
+          )}
+        </div>
+      </Card>
+
+      {/* Voice Models */}
+      {voiceModels && !(voiceModels.whisperDownloaded && voiceModels.piperDownloaded) && (
+        <VoiceOnboardingCard
+          whisperDownloaded={voiceModels.whisperDownloaded}
+          piperDownloaded={voiceModels.piperDownloaded}
+          whisperSizeMb={voiceModels.whisperSizeMb}
+          piperSizeMb={voiceModels.piperSizeMb}
+          onDownloadWhisper={async () => {
+            setVoiceDownloading(true);
+            await downloadVoiceModel('whisper').catch(() => {});
+            const updated = await getVoiceModelStatus().catch(() => null);
+            if (updated) setVoiceModels(updated);
+            setVoiceDownloading(false);
+          }}
+          onDownloadPiper={async () => {
+            setVoiceDownloading(true);
+            await downloadVoiceModel('piper').catch(() => {});
+            const updated = await getVoiceModelStatus().catch(() => null);
+            if (updated) setVoiceModels(updated);
+            setVoiceDownloading(false);
+          }}
+          downloading={voiceDownloading}
+        />
+      )}
+
+      {/* Model Downloads */}
+      {modelDownloads.length > 0 && (
+        <Card>
+          <h2 className="settings-page__section-title">
+            Model Downloads
+          </h2>
+          <ModelDownloadProgress
+            downloads={modelDownloads}
+            onRetry={async (modelName) => {
+              await retryModelDownload(modelName).catch(() => {});
+              const updated = await getModelDownloadStatus().catch(() => []);
+              setModelDownloads(updated);
+            }}
+          />
+        </Card>
+      )}
+
+      {/* Import Digital Life */}
+      <Card>
+        <h2 className="settings-page__section-title">
+          Import Digital Life
+        </h2>
+        <ImportDigitalLifeView
+          isPremium={license.isPremium}
+          importHistory={importHistory}
+          onImport={async (sourceId) => {
+            await startImport(sourceId).catch(() => {});
+            const updated = await getImportHistory().catch(() => []);
+            setImportHistory(updated);
+          }}
+        />
+      </Card>
 
       {/* Appearance */}
       <Card>

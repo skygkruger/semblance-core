@@ -2,6 +2,10 @@ import { useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatBubble, AgentInput, StatusIndicator, DocumentPanel, ArtifactPanel, ConversationHistoryPanel } from '@semblance/ui';
 import type { ArtifactItem } from '@semblance/ui';
+import { VoiceButton } from '../components/VoiceButton';
+import { VoiceWaveform } from '../components/VoiceWaveform';
+import { WebFetchSummary } from '../components/WebFetchSummary';
+import { WebSearchResult } from '../components/WebSearchResult';
 import { parseArtifacts } from '@semblance/core/agent/artifact-parser';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useTauriEvent } from '../hooks/useTauriEvent';
@@ -44,6 +48,12 @@ export function ChatScreen() {
   type PanelSlot = 'none' | 'documents' | 'artifact';
   const [activePanel, setActivePanel] = useState<PanelSlot>('none');
   const [selectedArtifact, setSelectedArtifact] = useState<ArtifactItem | null>(null);
+
+  // Web search/fetch results attached to the current response
+  const [webSearchResults, setWebSearchResults] = useState<Array<{ title: string; url: string; snippet: string; age?: string }>>([]);
+  const [webSearchQuery, setWebSearchQuery] = useState('');
+  const [webSearchProvider, setWebSearchProvider] = useState<'brave' | 'searxng'>('brave');
+  const [webFetchResult, setWebFetchResult] = useState<{ url: string; title: string; content: string; bytesFetched: number; contentType: string } | null>(null);
 
   // Sound effects
   const { play } = useSound();
@@ -432,6 +442,24 @@ export function ChatScreen() {
     play('hard_limit_triggered');
   }, [play]));
 
+  // Web search results from sidecar
+  useTauriEvent<{ query: string; provider: string; results: Array<{ title: string; url: string; snippet: string; age?: string }> }>(
+    'semblance://web-search-results',
+    useCallback((payload) => {
+      setWebSearchQuery(payload.query);
+      setWebSearchProvider(payload.provider as 'brave' | 'searxng');
+      setWebSearchResults(payload.results);
+    }, []),
+  );
+
+  // Web fetch result from sidecar
+  useTauriEvent<{ url: string; title: string; content: string; bytesFetched: number; contentType: string }>(
+    'semblance://web-fetch-result',
+    useCallback((payload) => {
+      setWebFetchResult(payload);
+    }, []),
+  );
+
   const handleSend = useCallback(async (message: string) => {
     // Add user message
     dispatch({
@@ -636,20 +664,55 @@ export function ChatScreen() {
               </div>
             </div>
           ) : (
-            state.chatMessages.map((msg, i) => (
-              <ChatBubble
-                key={msg.id}
-                role={msg.role}
-                content={msg.content}
-                timestamp={msg.timestamp}
-                streaming={state.isResponding && msg.role === 'assistant' && i === state.chatMessages.length - 1}
-              />
-            ))
+            <>
+              {state.chatMessages.map((msg, i) => (
+                <ChatBubble
+                  key={msg.id}
+                  role={msg.role}
+                  content={msg.content}
+                  timestamp={msg.timestamp}
+                  streaming={state.isResponding && msg.role === 'assistant' && i === state.chatMessages.length - 1}
+                />
+              ))}
+              {/* Web search results — shown inline after relevant assistant messages */}
+              {webSearchResults.length > 0 && (
+                <WebSearchResult
+                  results={webSearchResults}
+                  query={webSearchQuery}
+                  provider={webSearchProvider}
+                />
+              )}
+              {/* Web fetch summary — shown inline after fetch operations */}
+              {webFetchResult && (
+                <WebFetchSummary
+                  url={webFetchResult.url}
+                  title={webFetchResult.title}
+                  content={webFetchResult.content}
+                  bytesFetched={webFetchResult.bytesFetched}
+                  contentType={webFetchResult.contentType}
+                />
+              )}
+            </>
           )}
         </div>
 
+        {/* Voice waveform — shown when recording */}
+        {voiceCapable && voice.voiceState === 'listening' && (
+          <div className="px-6 py-2 flex items-center gap-3">
+            <VoiceWaveform level={voice.audioLevel} active={true} />
+          </div>
+        )}
+
         {/* Input */}
-        <div className="px-6 pb-6">
+        <div className="px-6 pb-6 flex items-end gap-2">
+          {voiceCapable && (
+            <VoiceButton
+              state={voice.voiceState}
+              onClick={voice.voiceState === 'listening' ? voice.onVoiceStop : voice.onVoiceStart}
+              disabled={state.isResponding}
+            />
+          )}
+          <div className="flex-1">
           <AgentInput
             onSend={handleSend}
             thinking={state.isResponding}
@@ -673,6 +736,7 @@ export function ChatScreen() {
             onVoiceStop={voice.onVoiceStop}
             onVoiceCancel={voice.onVoiceCancel}
           />
+          </div>
         </div>
       </div>
 

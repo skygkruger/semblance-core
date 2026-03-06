@@ -25,6 +25,8 @@ import { mkdirSync, existsSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
 import { createSemblanceCore, type SemblanceCore, type ChatMessage } from '../../../core/index.js';
+import { getPlatform } from '../../../core/platform/index.js';
+import { createDesktopVectorStore } from '../../../core/platform/desktop-adapter.js';
 import { scanDirectory, readFileContent } from '../../../core/knowledge/file-scanner.js';
 import {
   Gateway,
@@ -309,6 +311,12 @@ async function handleInitialize(): Promise<unknown> {
   gateway = new Gateway();
   await gateway.start();
   console.error('[sidecar] Gateway started');
+
+  // Configure the desktop platform's vector store (LanceDB) before Core init
+  const platform = getPlatform();
+  if (!platform.vectorStore) {
+    platform.vectorStore = createDesktopVectorStore(join(dataDir, 'knowledge'));
+  }
 
   // Initialize Core (boots SQLite, LanceDB, connects to Ollama)
   core = createSemblanceCore({ dataDir });

@@ -1,19 +1,41 @@
 // i18n configuration for desktop app.
-// Loads locale JSON files via dynamic import (resourcesToBackend).
+// Loads locale JSON files via eager glob import — resources are added
+// synchronously so translations are available on first render.
 // Falls back to English. Detects language from navigator.language.
 
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import resourcesToBackend from 'i18next-resources-to-backend';
 
 const NAMESPACES = ['common', 'onboarding', 'morning-brief', 'connections', 'settings', 'privacy', 'agent'] as const;
 
+// Vite glob import — resolves all locale JSON at build time.
+// The relative path must be used (not @semblance/ui alias) for Vite glob to work.
+const localeModules = import.meta.glob(
+  '../../../semblance-ui/locales/**/*.json',
+  { eager: true }
+) as Record<string, { default?: Record<string, unknown> } | Record<string, unknown>>;
+
+// Build the resources object synchronously from glob results.
+// This avoids the async timing issue with resourcesToBackend.
+const resources: Record<string, Record<string, Record<string, unknown>>> = {};
+
+for (const [path, mod] of Object.entries(localeModules)) {
+  // path format: ../../../semblance-ui/locales/{lang}/{namespace}.json
+  const match = path.match(/locales\/([^/]+)\/([^/]+)\.json$/);
+  if (match) {
+    const lang = match[1]!;
+    const ns = match[2]!;
+    if (!resources[lang]) resources[lang] = {};
+    // Vite eager JSON: module is { default: { ... } } or the object itself
+    const data = (mod as { default?: Record<string, unknown> }).default ?? mod;
+    resources[lang]![ns] = data as Record<string, unknown>;
+  }
+}
+
 i18n
   .use(initReactI18next)
-  .use(resourcesToBackend((language: string, namespace: string) =>
-    import(`@semblance/ui/locales/${language}/${namespace}.json`)
-  ))
   .init({
+    resources,
     lng: navigator.language.split('-')[0] || 'en',
     fallbackLng: 'en',
     ns: [...NAMESPACES],

@@ -41,7 +41,7 @@
   }
 
   html {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'DM Sans Variable', 'DM Sans', system-ui, -apple-system, sans-serif;
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -50,8 +50,10 @@
   body {
     margin: 0;
     padding: 0;
-    background-color: var(--color-bg);
-    color: var(--color-text-primary);
+    font-family: var(--fb);
+    font-weight: 300;
+    background-color: var(--base);
+    color: var(--w-dim);
     min-height: 100vh;
   }
 
@@ -93,30 +95,4 @@
   }
 }
 
-/* ─── AI name shimmer — metallic text gradient for all AI name instances ─── */
-
-@keyframes shimmer {
-  from { background-position: 300% center; }
-  to   { background-position: -150% center; }
-}
-
-.ai-name-shimmer {
-  font-style: italic;
-  background: linear-gradient(
-    105deg,
-    #5a6472 0%,
-    #7a8898 15%,
-    #8a9890 28%,
-    #c0cbc4 38%,
-    #8f9ba8 50%,
-    #6b7a72 62%,
-    #7a8898 78%,
-    #5a6472 100%
-  );
-  background-size: 300% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: shimmer 16s linear infinite;
-  display: inline;
-}
+/* ai-name-shimmer is defined in tokens.css — no duplicate needed here */

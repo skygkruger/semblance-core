@@ -1,8 +1,8 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { listen } from '@tauri-apps/api/event';
-import { DesktopSidebar, PrivacyBadge, ThemeToggle } from '@semblance/ui';
-import type { NavItem, ThemeMode } from '@semblance/ui';
+import { DesktopSidebar, PrivacyBadge, ThemeToggle, DotMatrix, ToastContainer } from '@semblance/ui';
+import type { NavItem, ThemeMode, ToastItem } from '@semblance/ui';
 import { AppStateProvider, useAppState, useAppDispatch } from './state/AppState';
 import { LicenseProvider, useLicense } from './contexts/LicenseContext';
 import { SoundEngineProvider, useSound } from './sound/SoundEngineContext';
@@ -27,7 +27,8 @@ import { FinancialDashboardScreen } from './screens/FinancialDashboardScreen';
 import { HealthDashboardScreen } from './screens/HealthDashboardScreen';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
-import { UpgradeScreen as UpgradeScreenComponent } from '@semblance/ui';
+import { UpgradeScreen as UpgradeScreenComponent, UpgradeEmailCapture } from '@semblance/ui';
+import { submitUpgradeEmail } from './ipc/commands';
 
 // Lucide-style inline SVG icons (20x20, stroke-based)
 function ChatIcon() {
@@ -174,6 +175,11 @@ function AppContent() {
   const { theme, setTheme } = useTheme();
   const license = useLicense();
   const { play } = useSound();
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
 
   // Sound: Morning brief ready
   useTauriEvent('semblance://morning-brief-ready', useCallback(() => {
@@ -184,6 +190,18 @@ function AppContent() {
   useTauriEvent('semblance://proactive-notification', useCallback(() => {
     play('notification');
   }, [play]));
+
+  // Toast notifications from sidecar
+  useTauriEvent<{ id: string; message: string; variant: 'info' | 'success' | 'attention' | 'action' }>(
+    'semblance://toast',
+    useCallback((payload) => {
+      setToasts(prev => [...prev, { id: payload.id, message: payload.message, variant: payload.variant }]);
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== payload.id));
+      }, 5000);
+    }, []),
+  );
 
   // OS Notifications: Forward sidecar notification events to Tauri notification plugin
   useTauriEvent<{ id: string; title: string; body: string }>('semblance://schedule-notification', useCallback((payload) => {
@@ -244,6 +262,7 @@ function AppContent() {
 
   return (
     <div className="flex h-screen bg-semblance-bg-light dark:bg-semblance-bg-dark">
+      <DotMatrix />
       <UpdateChecker />
       <DesktopSidebar
         items={navItems}
@@ -300,21 +319,33 @@ function AppContent() {
           <Route
             path="/upgrade"
             element={
-              <UpgradeScreenComponent
-                currentTier={license.tier}
-                isFoundingMember={license.isFoundingMember}
-                foundingSeat={license.foundingSeat}
-                onCheckout={license.openCheckout}
-                onActivateKey={license.activateKey}
-                onManageSubscription={license.manageSubscription}
-                onBack={() => navigate('/settings')}
-              />
+              <div>
+                <UpgradeScreenComponent
+                  currentTier={license.tier}
+                  isFoundingMember={license.isFoundingMember}
+                  foundingSeat={license.foundingSeat}
+                  onCheckout={license.openCheckout}
+                  onActivateKey={license.activateKey}
+                  onManageSubscription={license.manageSubscription}
+                  onBack={() => navigate('/settings')}
+                />
+                {!license.isPremium && (
+                  <div style={{ maxWidth: 480, margin: '24px auto', padding: '0 24px' }}>
+                    <UpgradeEmailCapture
+                      onSubmit={async (email) => {
+                        await submitUpgradeEmail(email).catch(() => {});
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
             }
           />
           <Route path="/" element={<Navigate to="/chat" replace />} />
           <Route path="*" element={<Navigate to="/chat" replace />} />
         </Routes>
       </main>
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

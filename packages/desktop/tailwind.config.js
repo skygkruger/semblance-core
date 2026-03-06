@@ -39,9 +39,9 @@ export default {
         },
       },
       fontFamily: {
-        ui: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'Consolas', 'monospace'],
-        display: ['DM Serif Display', 'Fraunces', 'Georgia', 'serif'],
+        ui: ['DM Sans Variable', 'DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['DM Mono', 'ui-monospace', 'Consolas', 'monospace'],
+        display: ['Fraunces Variable', 'Fraunces', 'Georgia', 'serif'],
       },
       fontSize: {
         xs: ['0.6875rem', { lineHeight: '1.45' }],
