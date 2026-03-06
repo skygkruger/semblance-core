@@ -1,6 +1,6 @@
 // File Scanner — Discovers and reads local files for indexing.
 // Supported: .txt, .md, .pdf, .docx, .csv, .json, .rtf (documents)
-//            .xlsx, .xls (spreadsheets — metadata only, binary format)
+//            .xlsx, .xls (spreadsheets — parsed via SheetJS to CSV text)
 //            .ts, .js, .py, .rs, .go, .java, etc. (code files — plain text)
 //            .png, .jpg, .webp, etc. (images — metadata only, no text extraction)
 // PDF: pdf-parse (lightweight, no native deps)
@@ -143,13 +143,22 @@ export async function readFileContent(filePath: string): Promise<FileContent> {
       return { path: filePath, title: name, content, mimeType: 'text/plain' };
     }
 
-    // Spreadsheets — metadata only (xlsx parsing requires SheetJS, a large dependency)
     case '.xlsx':
     case '.xls': {
+      const buffer = await p.fs.readFileBuffer(filePath);
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+      const sheets: string[] = [];
+      for (const sheetName of workbook.SheetNames) {
+        const sheet = workbook.Sheets[sheetName];
+        if (!sheet) continue;
+        const csv = XLSX.utils.sheet_to_csv(sheet);
+        sheets.push(`--- Sheet: ${sheetName} ---\n${csv}`);
+      }
       return {
         path: filePath,
         title: name,
-        content: `[Spreadsheet: ${name}${ext}] — Binary format, not text-extractable without SheetJS. File indexed for reference.`,
+        content: sheets.join('\n\n') || `[Empty spreadsheet: ${name}${ext}]`,
         mimeType: ext === '.xlsx'
           ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           : 'application/vnd.ms-excel',

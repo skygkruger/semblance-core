@@ -9,10 +9,15 @@
  * CRITICAL: No networking imports. Pure computation + database queries.
  */
 
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import type { PDFPage, PDFFont } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import type { DatabaseHandle } from '../platform/types.js';
 import { canonicalJSON } from '../audit/merkle-chain.js';
+import { getPlatform } from '../platform/index.js';
 import { sign, verify, generateKeyPair } from '../crypto/ed25519.js';
 import type { Ed25519KeyPair } from '../crypto/types.js';
 
@@ -178,21 +183,41 @@ const C = {
   muted:   rgb(110 / 255, 106 / 255, 134 / 255),       // #6E6A86
 };
 
-// Custom font embedding requires .ttf bytes bundled as assets.
-// Using Helvetica/Courier — visually consistent with the report's utilitarian purpose.
+// Font paths relative to this file — bundled as assets in the repo.
+// Uses Node.js fs directly (not platform abstraction) because this runs in the
+// Node.js sidecar process and must also work in vitest.
+const __moduleDir = dirname(fileURLToPath(import.meta.url));
+const FONT_DIR = join(__moduleDir, 'fonts');
+
+async function loadFontBytes(filename: string): Promise<Uint8Array> {
+  const fontPath = join(FONT_DIR, filename);
+  const buffer = await readFile(fontPath);
+  return new Uint8Array(buffer);
+}
 
 /**
  * Render a SovereigntyReport as a styled PDF.
- * Uses pdf-lib with Trellis design system colors.
+ * Uses pdf-lib with Semblance design system fonts and colors.
+ * Fonts: DM Sans (body), DM Sans Bold (headers), Fraunces Light (title), DM Mono (data).
  * Returns the PDF as a Uint8Array.
  */
 export async function renderSovereigntyReportPDF(
   report: SovereigntyReport,
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
-  const helvetica = await pdf.embedFont(StandardFonts.Helvetica);
-  const helveticaBold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const courier = await pdf.embedFont(StandardFonts.Courier);
+  pdf.registerFontkit(fontkit);
+
+  // Embed Semblance design system fonts
+  const [dmSansBytes, dmSansBoldBytes, frauncesBytes, dmMonoBytes] = await Promise.all([
+    loadFontBytes('DMSans-Regular.ttf'),
+    loadFontBytes('DMSans-Bold.ttf'),
+    loadFontBytes('Fraunces-Light.ttf'),
+    loadFontBytes('DMMono-Regular.ttf'),
+  ]);
+  const dmSans = await pdf.embedFont(dmSansBytes);
+  const dmSansBold = await pdf.embedFont(dmSansBoldBytes);
+  const fraunces = await pdf.embedFont(frauncesBytes);
+  const dmMono = await pdf.embedFont(dmMonoBytes);
 
   const PAGE_W = 612; // US Letter
   const PAGE_H = 792;
@@ -237,14 +262,14 @@ export async function renderSovereigntyReportPDF(
     // Veridian accent line
     page.drawRectangle({ x: MARGIN, y: y + 2, width: 40, height: 2, color: C.veridian });
     y -= 6;
-    drawText(title.toUpperCase(), { font: helveticaBold, size: 9, color: C.veridian });
+    drawText(title.toUpperCase(), { font: dmSansBold, size: 9, color: C.veridian });
     y -= 4;
   }
 
   function drawKeyValue(key: string, value: string) {
     ensureSpace(16);
-    page.drawText(key, { x: MARGIN, y, size: 9, font: helvetica, color: C.silver });
-    page.drawText(value, { x: MARGIN + 240, y, size: 9, font: courier, color: C.caution });
+    page.drawText(key, { x: MARGIN, y, size: 9, font: dmSans, color: C.silver });
+    page.drawText(value, { x: MARGIN + 240, y, size: 9, font: dmMono, color: C.caution });
     y -= 14;
   }
 
@@ -257,12 +282,12 @@ export async function renderSovereigntyReportPDF(
 
   // ─── Title Block ──────────────────────────────────────────────────────
 
-  drawText('SOVEREIGNTY REPORT', { font: helveticaBold, size: 22, color: C.white });
+  drawText('SOVEREIGNTY REPORT', { font: fraunces, size: 22, color: C.white });
   y -= 4;
   const periodLabel = `${report.periodStart.slice(0, 10)}  —  ${report.periodEnd.slice(0, 10)}`;
-  drawText(periodLabel, { font: helvetica, size: 10, color: C.silver });
-  drawText(`Generated: ${report.generatedAt.slice(0, 19).replace('T', ' ')}`, { font: helvetica, size: 8, color: C.muted });
-  drawText(`Device: ${report.deviceId}`, { font: courier, size: 8, color: C.muted });
+  drawText(periodLabel, { font: dmSans, size: 10, color: C.silver });
+  drawText(`Generated: ${report.generatedAt.slice(0, 19).replace('T', ' ')}`, { font: dmSans, size: 8, color: C.muted });
+  drawText(`Device: ${report.deviceId}`, { font: dmMono, size: 8, color: C.muted });
   drawDivider();
 
   // ─── Knowledge Summary ────────────────────────────────────────────────
@@ -270,7 +295,7 @@ export async function renderSovereigntyReportPDF(
   drawSectionHeader('Knowledge Summary');
   const knowledgeEntries = Object.entries(report.knowledgeSummary);
   if (knowledgeEntries.length === 0) {
-    drawText('No indexed items in this period.', { font: helvetica, size: 9, color: C.muted });
+    drawText('No indexed items in this period.', { font: dmSans, size: 9, color: C.muted });
   } else {
     for (const [source, count] of knowledgeEntries) {
       drawKeyValue(source.charAt(0).toUpperCase() + source.slice(1), String(count));
@@ -285,14 +310,14 @@ export async function renderSovereigntyReportPDF(
   drawSectionHeader('Autonomous Actions');
   const domainEntries = Object.entries(report.autonomousActions.byDomain);
   if (domainEntries.length > 0) {
-    drawText('By Domain:', { font: helvetica, size: 8, color: C.muted });
+    drawText('By Domain:', { font: dmSans, size: 8, color: C.muted });
     for (const [domain, count] of domainEntries) {
       drawKeyValue(`  ${domain}`, String(count));
     }
   }
   const tierEntries = Object.entries(report.autonomousActions.byTier);
   if (tierEntries.length > 0) {
-    drawText('By Autonomy Tier:', { font: helvetica, size: 8, color: C.muted });
+    drawText('By Autonomy Tier:', { font: dmSans, size: 8, color: C.muted });
     for (const [tier, count] of tierEntries) {
       drawKeyValue(`  ${tier.replace(/_/g, ' ')}`, String(count));
     }
@@ -308,7 +333,7 @@ export async function renderSovereigntyReportPDF(
   drawSectionHeader('Hard Limits Enforced');
   drawText(
     `Your AI declined to execute ${report.hardLimitsEnforced} action(s) that violated your hard limits.`,
-    { font: helvetica, size: 9, color: C.silver },
+    { font: dmSans, size: 9, color: C.silver },
   );
   drawDivider();
 
@@ -321,7 +346,7 @@ export async function renderSovereigntyReportPDF(
       drawKeyValue(svc.charAt(0).toUpperCase() + svc.slice(1), String(count));
     }
   } else {
-    drawText('No gateway connections in this period.', { font: helvetica, size: 9, color: C.muted });
+    drawText('No gateway connections in this period.', { font: dmSans, size: 9, color: C.muted });
   }
   drawKeyValue('AI Core connections', '0');
   drawKeyValue('Veridian connections', '0');
@@ -342,12 +367,12 @@ export async function renderSovereigntyReportPDF(
   const chainColor = report.auditChainStatus.verified ? C.veridian : C.caution;
   drawText(
     report.auditChainStatus.verified ? 'Chain Verified' : 'Chain Break Detected',
-    { font: helveticaBold, size: 10, color: chainColor },
+    { font: dmSansBold, size: 10, color: chainColor },
   );
   drawKeyValue('Total entries', String(report.auditChainStatus.totalEntries));
   drawKeyValue('Days covered', String(report.auditChainStatus.daysCovered));
   if (report.auditChainStatus.breaks.length > 0) {
-    drawText(`Breaks: ${report.auditChainStatus.breaks.join(', ')}`, { font: courier, size: 8, color: C.caution });
+    drawText(`Breaks: ${report.auditChainStatus.breaks.join(', ')}`, { font: dmMono, size: 8, color: C.caution });
   }
   drawDivider();
 
@@ -357,11 +382,11 @@ export async function renderSovereigntyReportPDF(
   drawKeyValue('Algorithm', report.signature.algorithm);
   drawKeyValue('Public Key Fingerprint', report.signature.publicKeyFingerprint);
   y -= 2;
-  drawText('Signature:', { font: helvetica, size: 8, color: C.muted });
+  drawText('Signature:', { font: dmSans, size: 8, color: C.muted });
   // Break signature into 64-char lines
   const sig = report.signature.signatureHex;
   for (let i = 0; i < sig.length; i += 64) {
-    drawText(sig.slice(i, i + 64), { font: courier, size: 7, color: C.silver });
+    drawText(sig.slice(i, i + 64), { font: dmMono, size: 7, color: C.silver });
   }
   drawDivider();
 
@@ -370,7 +395,7 @@ export async function renderSovereigntyReportPDF(
   drawSectionHeader('Comparison Statement');
   // Wrap long text manually — pdf-lib's maxWidth handles this
   drawText(report.comparisonStatement, {
-    font: helvetica,
+    font: dmSans,
     size: 9,
     color: C.white,
     maxWidth: CONTENT_W,

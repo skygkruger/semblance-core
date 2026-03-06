@@ -698,7 +698,7 @@ export function ChatScreen() {
         </div>
 
         {/* Voice waveform — shown when recording */}
-        {voiceCapable && voice.voiceState === 'listening' && (
+        {voiceCapable && voice.voiceEnabled && voice.voiceState === 'listening' && (
           <div className="px-6 py-2 flex items-center gap-3">
             <VoiceWaveform level={voice.audioLevel} active={true} />
           </div>
@@ -706,7 +706,7 @@ export function ChatScreen() {
 
         {/* Input */}
         <div className="px-6 pb-6 flex items-end gap-2">
-          {voiceCapable && (
+          {voiceCapable && voice.voiceEnabled && (
             <VoiceButton
               state={voice.voiceState}
               onClick={voice.voiceState === 'listening' ? voice.onVoiceStop : voice.onVoiceStart}
