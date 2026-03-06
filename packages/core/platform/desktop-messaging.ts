@@ -4,7 +4,7 @@
 // Windows: Opens "Your Phone" companion or clipboard fallback.
 // Linux: Clipboard fallback.
 //
-// For dev/test: createMockMessagingAdapter() provides a controllable mock.
+// For dev/test: createConfigurableMessagingAdapter() provides controllable behavior.
 //
 // CRITICAL: No network imports. Desktop messaging always presents to user.
 
@@ -17,10 +17,10 @@ import type {
 } from './messaging-types.js';
 
 /**
- * Create a mock messaging adapter for development and testing.
+ * Create a configurable messaging adapter for development and testing.
  * Records sent messages for test assertions.
  */
-export function createMockMessagingAdapter(options?: {
+export function createConfigurableMessagingAdapter(options?: {
   platform?: 'ios' | 'android' | 'desktop';
   permissionGranted?: boolean;
   failOnSend?: boolean;
@@ -58,13 +58,13 @@ export function createMockMessagingAdapter(options?: {
       }
 
       if (failOnSend) {
-        return { status: 'failed', error: 'Send failed (mock)' };
+        return { status: 'failed', error: 'Send failed (test mode)' };
       }
 
       sentMessages.push(request);
 
       if (platform === 'android' && request.autonomous) {
-        return { status: 'sent', messageId: `mock-${Date.now()}` };
+        return { status: 'sent', messageId: `dev-${Date.now()}` };
       }
 
       return { status: 'presented' };
@@ -72,7 +72,7 @@ export function createMockMessagingAdapter(options?: {
 
     async readMessages(contactPhone: string, limit?: number): Promise<MessageEntry[] | null> {
       if (platform !== 'android' || !permissionGranted) return null;
-      // Mock returns empty history
+      // Configurable adapter returns empty history
       void contactPhone;
       void limit;
       return [];

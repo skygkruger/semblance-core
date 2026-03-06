@@ -1,18 +1,18 @@
 // ClipboardAdapter Tests — Verify clipboard read/write/change detection.
 
 import { describe, it, expect, vi } from 'vitest';
-import { createMockClipboardAdapter } from '../../../packages/core/platform/desktop-clipboard';
+import { createConfigurableClipboardAdapter } from '../../../packages/core/platform/desktop-clipboard';
 
 describe('ClipboardAdapter', () => {
   it('readClipboard returns current text', async () => {
-    const adapter = createMockClipboardAdapter({ initialText: 'hello world' });
+    const adapter = createConfigurableClipboardAdapter({ initialText: 'hello world' });
     const content = await adapter.readClipboard();
     expect(content.text).toBe('hello world');
     expect(content.hasText).toBe(true);
   });
 
   it('onClipboardChanged fires when content changes', async () => {
-    const adapter = createMockClipboardAdapter();
+    const adapter = createConfigurableClipboardAdapter();
     const callback = vi.fn();
 
     adapter.onClipboardChanged(callback);
@@ -24,7 +24,7 @@ describe('ClipboardAdapter', () => {
   });
 
   it('unsubscribe stops callbacks', () => {
-    const adapter = createMockClipboardAdapter();
+    const adapter = createConfigurableClipboardAdapter();
     const callback = vi.fn();
 
     const unsubscribe = adapter.onClipboardChanged(callback);
@@ -37,7 +37,7 @@ describe('ClipboardAdapter', () => {
   });
 
   it('permission denied → hasPermission false, readClipboard returns null text', async () => {
-    const adapter = createMockClipboardAdapter({ permissionGranted: false });
+    const adapter = createConfigurableClipboardAdapter({ permissionGranted: false });
     expect(await adapter.hasPermission()).toBe(false);
     const content = await adapter.readClipboard();
     expect(content.text).toBeNull();
@@ -45,14 +45,14 @@ describe('ClipboardAdapter', () => {
   });
 
   it('writeClipboard sets content (verified via readClipboard)', async () => {
-    const adapter = createMockClipboardAdapter();
+    const adapter = createConfigurableClipboardAdapter();
     await adapter.writeClipboard('written text');
     const content = await adapter.readClipboard();
     expect(content.text).toBe('written text');
   });
 
   it('multiple listeners fire independently', () => {
-    const adapter = createMockClipboardAdapter();
+    const adapter = createConfigurableClipboardAdapter();
     const callback1 = vi.fn();
     const callback2 = vi.fn();
 

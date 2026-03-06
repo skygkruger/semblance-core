@@ -1,5 +1,5 @@
 // Service Adapter Interface — Contract for all service adapters.
-// Real adapters arrive in Sprint 2. The interface is defined now.
+// Adapters are registered at Gateway startup via connector-registration.ts.
 
 import type { ActionType } from '@semblance/core';
 

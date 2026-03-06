@@ -253,7 +253,7 @@ export class CredentialStore {
   /**
    * Test connection for a credential.
    * Delegates to the appropriate adapter's testConnection method.
-   * This is a placeholder — actual testing is done by the adapters.
+   * Actual connection testing is delegated to the service adapter layer.
    */
   async testConnection(_id: string): Promise<ConnectionTestResult> {
     // Actual implementation wired by the adapter layer

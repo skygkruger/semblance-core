@@ -40,7 +40,7 @@ interface SemblanceMLXNativeModule {
 
 /**
  * MLXBridgeAdapter — Wraps the iOS SemblanceMLX native module into MobileInferenceBridge.
- * Only instantiate on iOS. On other platforms, use MockMLXBridge or the Android bridge.
+ * Only instantiate on iOS. On other platforms, use TestMLXBridge or the Android bridge.
  */
 export class MLXBridgeAdapter implements MobileInferenceBridge {
   private nativeModule: SemblanceMLXNativeModule;

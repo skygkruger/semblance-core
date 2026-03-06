@@ -93,7 +93,7 @@ export function getTotalModelSize(dataDir?: string): number {
  */
 export function getAvailableDiskSpace(dataDir?: string): number {
   // Node.js doesn't have a built-in way to check disk space.
-  // This will be implemented platform-specifically in Sprint 4.
-  // For now, return -1 (unknown).
+  // Platform-specific disk space check not yet implemented.
+  // Returns -1 (unknown).
   return -1;
 }

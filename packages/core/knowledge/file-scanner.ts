@@ -1,6 +1,6 @@
 // File Scanner — Discovers and reads local files for indexing.
 // Supported: .txt, .md, .pdf, .docx, .csv, .json, .rtf (documents)
-//            .xlsx, .xls (spreadsheets — placeholder, structured extraction TBD)
+//            .xlsx, .xls (spreadsheets — metadata only, binary format)
 //            .ts, .js, .py, .rs, .go, .java, etc. (code files — plain text)
 //            .png, .jpg, .webp, etc. (images — metadata only, no text extraction)
 // PDF: pdf-parse (lightweight, no native deps)
@@ -143,21 +143,20 @@ export async function readFileContent(filePath: string): Promise<FileContent> {
       return { path: filePath, title: name, content, mimeType: 'text/plain' };
     }
 
-    // Spreadsheets — read as text representation
-    // TODO: Sprint 4 — add xlsx parsing via SheetJS or similar for structured extraction
+    // Spreadsheets — metadata only (xlsx parsing requires SheetJS, a large dependency)
     case '.xlsx':
     case '.xls': {
       return {
         path: filePath,
         title: name,
-        content: `[Spreadsheet: ${name}${ext}] — Structured extraction pending. File attached for reference.`,
+        content: `[Spreadsheet: ${name}${ext}] — Binary format, not text-extractable without SheetJS. File indexed for reference.`,
         mimeType: ext === '.xlsx'
           ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           : 'application/vnd.ms-excel',
       };
     }
 
-    // Images — no text extraction, metadata placeholder
+    // Images — no text extraction, metadata only
     case '.png': case '.jpg': case '.jpeg':
     case '.webp': case '.gif': case '.bmp': case '.svg': {
       const imageMime: Record<string, string> = {

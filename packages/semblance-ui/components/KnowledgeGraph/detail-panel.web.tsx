@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { KnowledgeNode, KnowledgeEdge, NodeType } from './graph-types';
-import { DrillDownList } from './DrillDownList.web';
-import type { DrillDownItem, DrillDownListProps } from './DrillDownList.web';
+import { DrillDownList } from './DrillDownList';
+import type { DrillDownItem, DrillDownListProps } from './DrillDownList.types';
 import './detail-panel.css';
 
 export type { DrillDownItem };

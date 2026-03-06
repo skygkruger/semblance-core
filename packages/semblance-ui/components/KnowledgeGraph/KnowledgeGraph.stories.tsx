@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { KnowledgeGraph } from './KnowledgeGraph';
 import { DotMatrix } from '../DotMatrix/DotMatrix';
 import type { KnowledgeNode, KnowledgeEdge, DrillDownConfig } from './graph-types';
-import type { DrillDownItem } from './DrillDownList.web';
+import type { DrillDownItem } from './DrillDownList.types';
 
 // ─── Local types for stories (avoids cross-package imports) ───
 

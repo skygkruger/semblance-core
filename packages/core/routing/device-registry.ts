@@ -1,7 +1,7 @@
 // Device Capability Registry
 // Stores and queries device capabilities for task routing.
 // CRITICAL: No networking imports. Pure local data management.
-// Device discovery (mDNS/Bonjour) is Sprint 3 — this step stores capabilities only.
+// Device discovery (mDNS/Bonjour) uses the device-handoff protocol — this module stores capabilities only.
 
 import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';

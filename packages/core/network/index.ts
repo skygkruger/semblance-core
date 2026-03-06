@@ -1,5 +1,5 @@
 // Semblance Network — Local consensual sharing between instances.
-// Step 28, Sprint 5.
+// Step 28 — Local consensual sharing protocol.
 // CRITICAL: No networking imports in this barrel. All files are network-free.
 
 export type {

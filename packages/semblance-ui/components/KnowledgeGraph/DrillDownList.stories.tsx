@@ -3,9 +3,9 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { DrillDownList } from './DrillDownList.web';
+import { DrillDownList } from './DrillDownList';
 import { DotMatrix } from '../DotMatrix/DotMatrix';
-import type { DrillDownItem } from './DrillDownList.web';
+import type { DrillDownItem } from './DrillDownList.types';
 
 const DarkDecorator = (Story: React.ComponentType) => (
   <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#0B0E11', overflow: 'hidden' }}>

@@ -56,7 +56,7 @@ describe('Gateway Extension Adapters', () => {
 
     // Verify the adapter was registered
     const registry = gw.getServiceRegistry();
-    expect(registry.hasRealAdapter('finance.plaid_link')).toBe(true);
+    expect(registry.hasAdapter('finance.plaid_link')).toBe(true);
 
     await gw.stop();
   });

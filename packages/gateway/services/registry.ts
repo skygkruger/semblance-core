@@ -1,16 +1,16 @@
 // Service Registry — Maps action types to their service adapters.
-// Real adapters plug in here in Sprint 2.
+// Adapters are registered at Gateway startup via connector-registration.ts.
 
 import type { ActionType } from '@semblance/core';
 import type { ServiceAdapter } from './types.js';
-import { StubAdapter } from './stub-adapter.js';
+import { FallbackAdapter } from './fallback-adapter.js';
 
 export class ServiceRegistry {
   private adapters: Map<string, ServiceAdapter> = new Map();
   private defaultAdapter: ServiceAdapter;
 
   constructor() {
-    this.defaultAdapter = new StubAdapter();
+    this.defaultAdapter = new FallbackAdapter();
   }
 
   /**
@@ -21,16 +21,16 @@ export class ServiceRegistry {
   }
 
   /**
-   * Get the adapter for an action type. Falls back to stub adapter.
+   * Get the adapter for an action type. Falls back to error response for unregistered actions.
    */
   getAdapter(action: ActionType): ServiceAdapter {
     return this.adapters.get(action) ?? this.defaultAdapter;
   }
 
   /**
-   * Check if a real (non-stub) adapter is registered for an action.
+   * Check if a dedicated adapter is registered for an action.
    */
-  hasRealAdapter(action: ActionType): boolean {
+  hasAdapter(action: ActionType): boolean {
     return this.adapters.has(action);
   }
 }

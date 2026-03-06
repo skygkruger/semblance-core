@@ -111,7 +111,7 @@ describe('HardwareKeyProvider signing', () => {
 
   beforeEach(() => {
     const storage = createMemoryStorage();
-    provider = new HardwareKeyProvider({ storage, backend: 'stub' });
+    provider = new HardwareKeyProvider({ storage, backend: 'memory-only' });
   });
 
   it('signs a payload and returns valid signature', async () => {
@@ -119,7 +119,7 @@ describe('HardwareKeyProvider signing', () => {
     const result: HardwareSignResult = await provider.signPayload(payload);
     expect(result.signatureHex).toMatch(/^[0-9a-f]+$/);
     expect(result.keyId).toBe('device-identity');
-    expect(result.backend).toBe('stub');
+    expect(result.backend).toBe('memory-only');
   });
 
   it('verifies a valid signature', async () => {
@@ -209,7 +209,7 @@ describe('HardwareKeyProvider management', () => {
   it('isHardwareBacked returns false for stub', () => {
     const stubProvider = new HardwareKeyProvider({
       storage: createMemoryStorage(),
-      backend: 'stub',
+      backend: 'memory-only',
     });
     expect(stubProvider.isHardwareBacked()).toBe(false);
   });
@@ -271,7 +271,7 @@ describe('IPC type alignment', () => {
 
   it('HardwareKeyBackend type covers all variants', () => {
     const validBackends: HardwareKeyBackend[] = [
-      'secure-enclave', 'tpm', 'android-keystore', 'libsecret', 'software', 'stub',
+      'secure-enclave', 'tpm', 'android-keystore', 'libsecret', 'software', 'memory-only',
     ];
     expect(validBackends).toHaveLength(6);
     // Each should be detectable or manually constructible

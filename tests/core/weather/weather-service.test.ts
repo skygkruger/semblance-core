@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { WeatherService } from '../../../packages/core/weather/weather-service';
 import { LocationStore } from '../../../packages/core/location/location-store';
-import { createMockWeatherAdapter } from '../../../packages/core/platform/desktop-weather';
+import { createConfigurableWeatherAdapter } from '../../../packages/core/platform/desktop-weather';
 import type { PlatformAdapter, DatabaseHandle } from '../../../packages/core/platform/types';
 import type { IPCClient } from '../../../packages/core/agent/ipc-client';
 import type { WeatherConditions, WeatherForecast } from '../../../packages/core/platform/weather-types';
@@ -62,7 +62,7 @@ describe('WeatherService', () => {
     };
     const platform: PlatformAdapter = {
       name: 'mobile-ios',
-      weather: createMockWeatherAdapter({ conditions: mockConditions, forecast }),
+      weather: createConfigurableWeatherAdapter({ conditions: mockConditions, forecast }),
       fs: {} as PlatformAdapter['fs'],
       path: {} as PlatformAdapter['path'],
       crypto: {} as PlatformAdapter['crypto'],
@@ -141,7 +141,7 @@ describe('WeatherService', () => {
     };
     const platform: PlatformAdapter = {
       name: 'mobile-ios',
-      weather: createMockWeatherAdapter({ forecast }),
+      weather: createConfigurableWeatherAdapter({ forecast }),
       fs: {} as PlatformAdapter['fs'],
       path: {} as PlatformAdapter['path'],
       crypto: {} as PlatformAdapter['crypto'],

@@ -18,7 +18,7 @@ export type HardwareKeyBackend =
   | 'android-keystore'  // Android — Android Keystore
   | 'libsecret'         // Linux — libsecret (GNOME Keyring / KDE Wallet)
   | 'software'          // Fallback — software-only key storage
-  | 'stub';             // Test / pre-device-testing — stubs for CI
+  | 'memory-only';      // Test / CI — in-memory keys, not persisted
 
 export interface HardwareKeyInfo {
   keyId: string;
@@ -240,6 +240,6 @@ export class HardwareKeyProvider {
    * Whether the current backend uses hardware-backed secure storage.
    */
   isHardwareBacked(): boolean {
-    return this.backend !== 'software' && this.backend !== 'stub';
+    return this.backend !== 'software' && this.backend !== 'memory-only';
   }
 }

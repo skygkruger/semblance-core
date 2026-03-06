@@ -6,7 +6,7 @@ import { TranscriptionPipeline } from '../../../packages/core/voice/transcriptio
 import { SpeechSynthesisPipeline } from '../../../packages/core/voice/speech-synthesis-pipeline';
 import { WhisperModelManager } from '../../../packages/core/voice/whisper-model-manager';
 import { PiperModelManager } from '../../../packages/core/voice/piper-model-manager';
-import { createMockVoiceAdapter } from '../../../packages/core/platform/desktop-voice';
+import { createConfigurableVoiceAdapter } from '../../../packages/core/platform/desktop-voice';
 import type { HardwareProfile } from '../../../packages/core/llm/hardware-types';
 
 function makeProfile(): HardwareProfile {
@@ -23,7 +23,7 @@ function makeProfile(): HardwareProfile {
 }
 
 function createManager() {
-  const adapter = createMockVoiceAdapter({
+  const adapter = createConfigurableVoiceAdapter({
     transcriptionResult: { text: 'Test input', confidence: 0.9, durationMs: 100 },
   });
   const whisperMgr = new WhisperModelManager(makeProfile());

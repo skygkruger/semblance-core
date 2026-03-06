@@ -1,19 +1,19 @@
 // Voice Adapter Tests — Verify mock adapter behavior and interface contract.
 
 import { describe, it, expect } from 'vitest';
-import { createMockVoiceAdapter } from '../../../packages/core/platform/desktop-voice';
+import { createConfigurableVoiceAdapter } from '../../../packages/core/platform/desktop-voice';
 
 describe('VoiceAdapter', () => {
   it('hasMicrophonePermission returns configured value', async () => {
-    const granted = createMockVoiceAdapter({ micPermission: true });
-    const denied = createMockVoiceAdapter({ micPermission: false });
+    const granted = createConfigurableVoiceAdapter({ micPermission: true });
+    const denied = createConfigurableVoiceAdapter({ micPermission: false });
 
     expect(await granted.hasMicrophonePermission()).toBe(true);
     expect(await denied.hasMicrophonePermission()).toBe(false);
   });
 
   it('requestMicrophonePermission grants access', async () => {
-    const adapter = createMockVoiceAdapter({ micPermission: false });
+    const adapter = createConfigurableVoiceAdapter({ micPermission: false });
     expect(await adapter.hasMicrophonePermission()).toBe(false);
 
     const result = await adapter.requestMicrophonePermission();
@@ -22,7 +22,7 @@ describe('VoiceAdapter', () => {
   });
 
   it('startCapture returns AudioSession with stop()', async () => {
-    const adapter = createMockVoiceAdapter();
+    const adapter = createConfigurableVoiceAdapter();
     const session = await adapter.startCapture();
 
     expect(session.isRecording()).toBe(true);
@@ -36,7 +36,7 @@ describe('VoiceAdapter', () => {
   });
 
   it('cancel() discards audio without returning data', async () => {
-    const adapter = createMockVoiceAdapter();
+    const adapter = createConfigurableVoiceAdapter();
     const session = await adapter.startCapture();
 
     expect(session.isRecording()).toBe(true);
@@ -45,7 +45,7 @@ describe('VoiceAdapter', () => {
   });
 
   it('transcribe() returns TranscriptionResult with text and confidence', async () => {
-    const adapter = createMockVoiceAdapter({
+    const adapter = createConfigurableVoiceAdapter({
       transcriptionResult: {
         text: 'Test transcription',
         confidence: 0.92,
@@ -69,7 +69,7 @@ describe('VoiceAdapter', () => {
   });
 
   it('synthesize() returns AudioData', async () => {
-    const adapter = createMockVoiceAdapter();
+    const adapter = createConfigurableVoiceAdapter();
     const audio = await adapter.synthesize('Hello, world!');
 
     expect(audio.pcmData).toBeInstanceOf(Float32Array);
@@ -79,13 +79,13 @@ describe('VoiceAdapter', () => {
   });
 
   it('startCapture throws when permission denied', async () => {
-    const adapter = createMockVoiceAdapter({ micPermission: false });
+    const adapter = createConfigurableVoiceAdapter({ micPermission: false });
 
     await expect(adapter.startCapture()).rejects.toThrow('Microphone permission not granted');
   });
 
   it('releaseModels completes and getAvailableVoices returns VoiceInfo[]', async () => {
-    const adapter = createMockVoiceAdapter();
+    const adapter = createConfigurableVoiceAdapter();
 
     await expect(adapter.releaseModels()).resolves.toBeUndefined();
 

@@ -20,8 +20,8 @@ export interface TaskDescription {
 
 /**
  * AUTONOMOUS DECISION: Pre-defined profiles for known task types.
- * Reasoning: Sprint 2 has a fixed set of action types. Profiles can be
- *   extended as new action types are added in Sprint 3+.
+ * Reasoning: Pre-defined profiles for the current set of action types. Profiles
+ *   are extended as new action types are added.
  * Escalation check: No architectural changes — pure data mapping.
  */
 const TASK_PROFILES: Record<string, Partial<TaskRequirements>> = {

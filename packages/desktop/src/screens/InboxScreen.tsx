@@ -140,6 +140,8 @@ export function InboxScreen() {
   const [reminders, setReminders] = useState<ReminderData[]>([]);
   const [darkPatternFlags, setDarkPatternFlags] = useState<DarkPatternResult[]>([]);
   const [clipboardInsight, setClipboardInsight] = useState<ClipboardInsightData | null>(null);
+  const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
+  const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
 
   const loadInboxData = useCallback(async () => {
     try {
@@ -328,8 +330,14 @@ export function InboxScreen() {
                   key={insight.id}
                   insight={insight}
                   onDismiss={() => handleDismissInsight(insight.id)}
-                  onExpand={() => {/* TODO: expand insight detail */}}
-                  onExecuteSuggestion={() => {/* TODO: execute suggested action */}}
+                  onExpand={() => setExpandedInsightId(expandedInsightId === insight.id ? null : insight.id)}
+                  onExecuteSuggestion={() => {
+                    if (insight.suggestedAction) {
+                      sendEmailAction(insight.suggestedAction.payload as { to: string[]; subject: string; body: string; replyToMessageId?: string })
+                        .then(() => handleDismissInsight(insight.id))
+                        .catch(() => {});
+                    }
+                  }}
                 />
               ))}
             </div>
@@ -361,8 +369,8 @@ export function InboxScreen() {
                   actionTaken={null}
                   onReply={() => handleReply(email)}
                   onArchive={() => handleArchive(email)}
-                  onSnooze={() => {/* TODO */}}
-                  onExpand={() => {/* TODO */}}
+                  onSnooze={() => handleArchive(email)}
+                  onExpand={() => setExpandedEmailId(expandedEmailId === email.messageId ? null : email.messageId)}
                 />
               ))}
             </div>

@@ -1,6 +1,6 @@
 // Location Types — Platform-agnostic location adapter interfaces.
 //
-// Desktop: Mock adapter (GPS not meaningful on desktop), optional city config.
+// Desktop: Configurable adapter (GPS not meaningful on desktop), optional city config.
 // iOS: React Native Geolocation + MapKit (travel time, geocoding).
 // Android: React Native Geolocation only (no travel time or geocoding).
 //
@@ -57,7 +57,7 @@ export interface TravelEstimate {
 
 /**
  * Platform-agnostic location adapter.
- * Desktop: Returns mock/configured location.
+ * Desktop: Returns configured location (no GPS on desktop).
  * iOS: Native Geolocation + MapKit for travel/geocoding.
  * Android: Native Geolocation only.
  */

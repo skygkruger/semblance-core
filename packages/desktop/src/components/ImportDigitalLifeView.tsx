@@ -154,7 +154,7 @@ export function ImportDigitalLifeView({
       </div>
 
       {/* Import history */}
-      {importHistory.length > 0 && (
+      {importHistory && importHistory.length > 0 && (
         <div>
           <h3 className="import-life__history-title">Import History</h3>
           <div className="import-life__history-list">

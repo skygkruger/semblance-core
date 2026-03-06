@@ -4,13 +4,13 @@
 
 import { describe, it, expect } from 'vitest';
 import { LocationPermissionManager } from '../../../packages/core/location/location-permission';
-import { createMockLocationAdapter } from '../../../packages/core/platform/desktop-location';
+import { createConfigurableLocationAdapter } from '../../../packages/core/platform/desktop-location';
 import type { PlatformAdapter } from '../../../packages/core/platform/types';
 
 function createTestPlatform(permission: 'authorized' | 'denied' | 'undetermined' = 'undetermined'): PlatformAdapter {
   return {
     name: 'desktop',
-    location: createMockLocationAdapter({ permission }),
+    location: createConfigurableLocationAdapter({ permission }),
     // Minimal stubs for other required fields
     fs: {} as PlatformAdapter['fs'],
     path: {} as PlatformAdapter['path'],

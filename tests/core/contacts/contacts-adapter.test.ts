@@ -2,7 +2,7 @@
 // Uses the mock adapter for deterministic testing.
 
 import { describe, it, expect, vi } from 'vitest';
-import { createMockContactsAdapter } from '../../../packages/core/platform/desktop-contacts.js';
+import { createConfigurableContactsAdapter } from '../../../packages/core/platform/desktop-contacts.js';
 import type { DeviceContact } from '../../../packages/core/platform/types.js';
 
 const SAMPLE_CONTACTS: DeviceContact[] = [
@@ -46,7 +46,7 @@ const SAMPLE_CONTACTS: DeviceContact[] = [
 
 describe('ContactsAdapter (mock)', () => {
   it('returns contacts when permission is granted', async () => {
-    const adapter = createMockContactsAdapter({
+    const adapter = createConfigurableContactsAdapter({
       contacts: SAMPLE_CONTACTS,
       permission: 'authorized',
     });
@@ -58,7 +58,7 @@ describe('ContactsAdapter (mock)', () => {
   });
 
   it('returns empty when permission is denied', async () => {
-    const adapter = createMockContactsAdapter({
+    const adapter = createConfigurableContactsAdapter({
       contacts: SAMPLE_CONTACTS,
       permission: 'denied',
     });
@@ -68,12 +68,12 @@ describe('ContactsAdapter (mock)', () => {
   });
 
   it('checkPermission returns current status', async () => {
-    const adapter = createMockContactsAdapter({ permission: 'undetermined' });
+    const adapter = createConfigurableContactsAdapter({ permission: 'undetermined' });
     expect(await adapter.checkPermission()).toBe('undetermined');
   });
 
   it('requestPermission transitions from undetermined to authorized', async () => {
-    const adapter = createMockContactsAdapter({ permission: 'undetermined' });
+    const adapter = createConfigurableContactsAdapter({ permission: 'undetermined' });
 
     expect(await adapter.checkPermission()).toBe('undetermined');
     const result = await adapter.requestPermission();
@@ -82,14 +82,14 @@ describe('ContactsAdapter (mock)', () => {
   });
 
   it('requestPermission stays denied if already denied', async () => {
-    const adapter = createMockContactsAdapter({ permission: 'denied' });
+    const adapter = createConfigurableContactsAdapter({ permission: 'denied' });
 
     const result = await adapter.requestPermission();
     expect(result).toBe('denied');
   });
 
   it('populates DeviceContact fields correctly', async () => {
-    const adapter = createMockContactsAdapter({
+    const adapter = createConfigurableContactsAdapter({
       contacts: SAMPLE_CONTACTS,
       permission: 'authorized',
     });
@@ -107,7 +107,7 @@ describe('ContactsAdapter (mock)', () => {
   });
 
   it('onContactsChanged fires listener and unsubscribe works', () => {
-    const adapter = createMockContactsAdapter({ contacts: SAMPLE_CONTACTS });
+    const adapter = createConfigurableContactsAdapter({ contacts: SAMPLE_CONTACTS });
 
     // The mock adapter stores listeners but doesn't auto-fire.
     // We verify the subscribe/unsubscribe contract.
@@ -120,7 +120,7 @@ describe('ContactsAdapter (mock)', () => {
   });
 
   it('returns empty array when no contacts provided', async () => {
-    const adapter = createMockContactsAdapter({ permission: 'authorized' });
+    const adapter = createConfigurableContactsAdapter({ permission: 'authorized' });
 
     const contacts = await adapter.getAllContacts();
     expect(contacts).toEqual([]);

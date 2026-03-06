@@ -4,13 +4,13 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { GeocodingService } from '../../../packages/core/location/geocoding-service';
-import { createMockLocationAdapter } from '../../../packages/core/platform/desktop-location';
+import { createConfigurableLocationAdapter } from '../../../packages/core/platform/desktop-location';
 import type { PlatformAdapter } from '../../../packages/core/platform/types';
 import type { IPCClient } from '../../../packages/core/agent/ipc-client';
 import type { GeocodedPlace } from '../../../packages/core/platform/location-types';
 
 function createTestPlatform(geocodeResult?: GeocodedPlace | null): PlatformAdapter {
-  const locationAdapter = createMockLocationAdapter();
+  const locationAdapter = createConfigurableLocationAdapter();
   if (geocodeResult !== undefined) {
     locationAdapter.geocode = vi.fn().mockResolvedValue(geocodeResult);
   }

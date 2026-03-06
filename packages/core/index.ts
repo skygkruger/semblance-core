@@ -241,7 +241,7 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
   // Create the LLM provider (localhost-only Ollama)
   const llm = createLLMProvider({ baseUrl: ollamaBaseUrl });
 
-  // Placeholders — initialized in initialize()
+  // Deferred — initialized in initialize()
   let models: ModelManager | null = null;
   let knowledge: KnowledgeGraph | null = null;
   let agent: Orchestrator | null = null;

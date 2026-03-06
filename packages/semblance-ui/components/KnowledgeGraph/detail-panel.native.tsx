@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import type { KnowledgeNode, KnowledgeEdge, NodeType } from './graph-types';
-import { DrillDownList } from './DrillDownList.native';
-import type { DrillDownItem, DrillDownListProps } from './DrillDownList.native';
+import { DrillDownList } from './DrillDownList';
+import type { DrillDownItem, DrillDownListProps } from './DrillDownList.types';
 
 export type { DrillDownItem };
 

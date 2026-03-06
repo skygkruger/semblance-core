@@ -92,7 +92,7 @@ export class AuditTrail {
     this.db.exec(CREATE_TABLE);
     this.db.exec(CREATE_INDEXES);
 
-    // Migration: add estimated_time_saved_seconds if upgrading from Sprint 1 schema
+    // Migration: add estimated_time_saved_seconds if upgrading from earlier schema
     try {
       this.db.exec(MIGRATE_TIME_SAVED);
     } catch {

@@ -41,7 +41,7 @@ interface SemblanceLlamaNativeModule {
 /**
  * LlamaCppBridgeAdapter — Wraps the Android SemblanceLlama native module
  * into MobileInferenceBridge.
- * Only instantiate on Android. On other platforms, use MockLlamaCppBridge or the iOS bridge.
+ * Only instantiate on Android. On other platforms, use TestLlamaCppBridge or the iOS bridge.
  */
 export class LlamaCppBridgeAdapter implements MobileInferenceBridge {
   private nativeModule: SemblanceLlamaNativeModule;

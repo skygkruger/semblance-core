@@ -48,6 +48,25 @@ vi.mock('../../packages/desktop/src/hooks/useTauriEvent', () => ({
   useTauriEvent: vi.fn(),
 }));
 
+// Mock voice adapter — createDesktopVoiceAdapter returns not-ready in production;
+// for testing, return a configurable adapter with STT ready.
+vi.mock('@semblance/core/platform/desktop-voice', () => ({
+  createDesktopVoiceAdapter: () => ({
+    hasMicrophonePermission: async () => true,
+    requestMicrophonePermission: async () => true,
+    isSTTReady: async () => true,
+    isTTSReady: async () => true,
+    startCapture: async () => new Uint8Array(0),
+    transcribe: async () => 'test transcription',
+    synthesize: async () => new Uint8Array(0),
+    playAudio: async () => {},
+    stopPlayback: async () => {},
+    getAvailableVoices: async () => [],
+    releaseModels: async () => {},
+  }),
+  createConfigurableVoiceAdapter: vi.fn(),
+}));
+
 function mockHardware(voiceCapable: boolean, tier = 'standard', totalRamMb = 16384) {
   invoke.mockImplementation(async (cmd: string) => {
     if (cmd === 'detect_hardware') return {

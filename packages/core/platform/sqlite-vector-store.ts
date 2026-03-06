@@ -116,10 +116,10 @@ export class SQLiteVectorStore implements VectorStoreAdapter {
     }>;
 
     if (filter?.sourceTypes && filter.sourceTypes.length > 0) {
-      const placeholders = filter.sourceTypes.map(() => '?').join(',');
+      const paramSlots = filter.sourceTypes.map(() => '?').join(',');
       rows = this.db.prepare(
         `SELECT id, document_id, content, chunk_index, vector, metadata, source_type, source_id
-         FROM vector_chunks WHERE source_type IN (${placeholders})`
+         FROM vector_chunks WHERE source_type IN (${paramSlots})`
       ).all(...filter.sourceTypes) as typeof rows;
     } else {
       rows = this.db.prepare(

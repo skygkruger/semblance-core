@@ -1,7 +1,7 @@
 /**
  * iOS MLX Bridge Tests — Verify the adapter layer with mock native module.
  *
- * These tests run on desktop using MockMLXBridge to verify:
+ * These tests run on desktop using TestMLXBridge to verify:
  * - The bridge interface contract is fulfilled
  * - Generated text is non-placeholder (acid test)
  * - Model lifecycle works correctly
@@ -12,14 +12,14 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MockMLXBridge } from '../../packages/core/llm/mobile-bridge-mock.js';
+import { TestMLXBridge } from '../../packages/core/llm/mobile-bridge-mock.js';
 import type { MobileInferenceBridge } from '../../packages/core/llm/mobile-bridge-types.js';
 
-describe('iOS MLX Bridge (via MockMLXBridge)', () => {
+describe('iOS MLX Bridge (via TestMLXBridge)', () => {
   let bridge: MobileInferenceBridge;
 
   beforeEach(() => {
-    bridge = new MockMLXBridge();
+    bridge = new TestMLXBridge();
   });
 
   // ACID TEST: generated text must NOT be placeholder

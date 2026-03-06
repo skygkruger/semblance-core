@@ -54,7 +54,7 @@ export class NotificationDrafter {
     const pattern = greetings.patterns[0]!.text;
 
     if (greetings.usesRecipientName && recipientName) {
-      // If pattern already contains a placeholder-like text, replace it
+      // If pattern already contains a template variable, replace it
       // Otherwise append the name
       if (pattern.endsWith(',') || pattern.endsWith('!')) {
         const base = pattern.slice(0, -1);

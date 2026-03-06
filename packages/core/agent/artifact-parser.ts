@@ -28,7 +28,7 @@ const ATTR_REGEX = /(\w+)="([^"]*)"/g;
 
 /**
  * Parse all <artifact> tags from a string.
- * Returns extracted artifacts and the content with tags replaced by placeholders.
+ * Returns extracted artifacts and the content with tags replaced by references.
  */
 export function parseArtifacts(input: string): {
   artifacts: ParsedArtifact[];

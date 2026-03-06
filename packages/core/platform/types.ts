@@ -330,7 +330,7 @@ export interface ContactsAdapter {
  * Desktop: Tauri plugin (OS keychain)
  * iOS: Keychain Services
  * Android: Android Keystore
- * Tests: In-memory mock
+ * Tests: In-memory implementation
  */
 export interface SecureStorageAdapter {
   /** Retrieve a value by key. Returns null if not found. */

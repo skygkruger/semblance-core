@@ -68,16 +68,17 @@ export function registerAllConnectors(tokenManager: OAuthTokenManager): Connecto
   router.registerAdapter('pocket', new PocketAdapter(tokenManager));
   router.registerAdapter('instapaper', new InstapaperAdapter(tokenManager));
   router.registerAdapter('todoist', new TodoistAdapter(tokenManager));
-  router.registerAdapter('lastfm', new LastFmAdapter(
-    tokenManager,
-    process.env['LASTFM_API_KEY'] ?? 'PLACEHOLDER_API_KEY',
-    process.env['LASTFM_API_SECRET'] ?? 'PLACEHOLDER_API_SECRET',
-  ));
-  router.registerAdapter('letterboxd', new LetterboxdAdapter(
-    tokenManager,
-    process.env['LETTERBOXD_API_KEY'] ?? 'PLACEHOLDER_API_KEY',
-    process.env['LETTERBOXD_API_SECRET'] ?? 'PLACEHOLDER_API_SECRET',
-  ));
+  const lastfmKey = process.env['LASTFM_API_KEY'];
+  const lastfmSecret = process.env['LASTFM_API_SECRET'];
+  if (lastfmKey && lastfmSecret) {
+    router.registerAdapter('lastfm', new LastFmAdapter(tokenManager, lastfmKey, lastfmSecret));
+  }
+
+  const letterboxdKey = process.env['LETTERBOXD_API_KEY'];
+  const letterboxdSecret = process.env['LETTERBOXD_API_SECRET'];
+  if (letterboxdKey && letterboxdSecret) {
+    router.registerAdapter('letterboxd', new LetterboxdAdapter(tokenManager, letterboxdKey, letterboxdSecret));
+  }
   router.registerAdapter('mendeley', new MendeleyAdapter(tokenManager));
   router.registerAdapter('harvest', new HarvestAdapter(tokenManager));
   router.registerAdapter('slack-oauth', new SlackAdapter(tokenManager));

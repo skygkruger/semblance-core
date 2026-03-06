@@ -3,7 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { TranscriptionPipeline } from '../../../packages/core/voice/transcription-pipeline';
 import { WhisperModelManager } from '../../../packages/core/voice/whisper-model-manager';
-import { createMockVoiceAdapter } from '../../../packages/core/platform/desktop-voice';
+import { createConfigurableVoiceAdapter } from '../../../packages/core/platform/desktop-voice';
 import type { HardwareProfile } from '../../../packages/core/llm/hardware-types';
 import type { AudioData } from '../../../packages/core/platform/voice-types';
 
@@ -32,7 +32,7 @@ function makeAudio(sampleRate = 16000, channels: 1 | 2 = 1): AudioData {
 
 describe('TranscriptionPipeline', () => {
   it('valid audio produces TranscriptionResult with text', async () => {
-    const adapter = createMockVoiceAdapter({
+    const adapter = createConfigurableVoiceAdapter({
       transcriptionResult: { text: 'Hello world', confidence: 0.9, durationMs: 100 },
     });
     const modelMgr = new WhisperModelManager(makeProfile());
@@ -44,7 +44,7 @@ describe('TranscriptionPipeline', () => {
   });
 
   it('model not loaded auto-loads before transcription', async () => {
-    const adapter = createMockVoiceAdapter({
+    const adapter = createConfigurableVoiceAdapter({
       transcriptionResult: { text: 'Auto loaded', confidence: 0.85, durationMs: 120 },
     });
     const modelMgr = new WhisperModelManager(makeProfile());
@@ -57,7 +57,7 @@ describe('TranscriptionPipeline', () => {
   });
 
   it('empty audio throws validation error', () => {
-    const adapter = createMockVoiceAdapter();
+    const adapter = createConfigurableVoiceAdapter();
     const modelMgr = new WhisperModelManager(makeProfile());
     const pipeline = new TranscriptionPipeline(adapter, modelMgr);
 
@@ -72,7 +72,7 @@ describe('TranscriptionPipeline', () => {
   });
 
   it('audio buffer is released after transcription (reference dropped)', async () => {
-    const adapter = createMockVoiceAdapter({
+    const adapter = createConfigurableVoiceAdapter({
       transcriptionResult: { text: 'Released', confidence: 0.95, durationMs: 50 },
     });
     const modelMgr = new WhisperModelManager(makeProfile());

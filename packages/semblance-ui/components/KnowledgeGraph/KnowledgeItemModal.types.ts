@@ -1,7 +1,7 @@
 // Knowledge Item Modal — Displays full item detail with curation actions.
 // Actions: Remove from graph, Delete from disk, Recategorize, Reindex, Open in chat.
 
-import type { DrillDownItem } from './DrillDownList.web';
+import type { DrillDownItem } from './DrillDownList.types';
 
 export interface KnowledgeItemModalProps {
   /** The item to display, or null if modal is closed */

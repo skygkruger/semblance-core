@@ -3,11 +3,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SpeechSynthesisPipeline } from '../../../packages/core/voice/speech-synthesis-pipeline';
 import { PiperModelManager } from '../../../packages/core/voice/piper-model-manager';
-import { createMockVoiceAdapter } from '../../../packages/core/platform/desktop-voice';
+import { createConfigurableVoiceAdapter } from '../../../packages/core/platform/desktop-voice';
 
 describe('SpeechSynthesisPipeline', () => {
   it('speak() calls synthesize and playAudio', async () => {
-    const adapter = createMockVoiceAdapter();
+    const adapter = createConfigurableVoiceAdapter();
     const synthesizeSpy = vi.spyOn(adapter, 'synthesize');
     const playSpy = vi.spyOn(adapter, 'playAudio');
     const mgr = new PiperModelManager();
@@ -21,7 +21,7 @@ describe('SpeechSynthesisPipeline', () => {
   });
 
   it('stop() interrupts, SpeakResult.completed = false', async () => {
-    const adapter = createMockVoiceAdapter();
+    const adapter = createConfigurableVoiceAdapter();
     // Make playAudio slow so we can stop mid-speech
     vi.spyOn(adapter, 'playAudio').mockImplementation(async () => {
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -38,7 +38,7 @@ describe('SpeechSynthesisPipeline', () => {
   });
 
   it('isSpeaking() reflects current state', async () => {
-    const adapter = createMockVoiceAdapter();
+    const adapter = createConfigurableVoiceAdapter();
     const mgr = new PiperModelManager();
     const pipeline = new SpeechSynthesisPipeline(adapter, mgr);
 

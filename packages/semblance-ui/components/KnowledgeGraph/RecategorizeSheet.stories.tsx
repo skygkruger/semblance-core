@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { RecategorizeSheet } from './RecategorizeSheet.web';
+import { RecategorizeSheet } from './RecategorizeSheet';
 import { DotMatrix } from '../DotMatrix/DotMatrix';
 import type { CategorySuggestion, CategoryInfo } from './RecategorizeSheet.types';
 

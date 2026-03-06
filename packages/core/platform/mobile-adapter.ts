@@ -1,9 +1,9 @@
-// Mobile Platform Adapter — Stub implementation for React Native.
+// Mobile Platform Adapter — Default implementation for React Native.
 //
 // On mobile, the actual adapter implementations are injected at app startup
 // from the React Native layer. This file provides:
 // 1. A factory to create the mobile adapter with injected implementations.
-// 2. Default stubs that throw clear errors if a subsystem is used before injection.
+// 2. Default fallbacks that throw clear errors if a subsystem is used before injection.
 //
 // Usage in React Native:
 //   import { createMobileAdapter } from '@semblance/core/platform/mobile-adapter';
@@ -74,7 +74,7 @@ export const mobilePath: PathAdapter = {
   sep: '/',
 };
 
-// ─── Stub Adapters (throw on use) ───────────────────────────────────────────
+// ─── Fallback Adapters (throw on use — must inject real implementations) ────
 
 function notConfigured(subsystem: string): never {
   throw new Error(
@@ -83,7 +83,7 @@ function notConfigured(subsystem: string): never {
   );
 }
 
-const stubFs: FileSystemAdapter = {
+const fallbackFs: FileSystemAdapter = {
   existsSync: () => notConfigured('FileSystem'),
   mkdirSync: () => notConfigured('FileSystem'),
   readFileSync: () => notConfigured('FileSystem'),
@@ -98,7 +98,7 @@ const stubFs: FileSystemAdapter = {
   stat: () => notConfigured('FileSystem'),
 };
 
-const stubCrypto: CryptoAdapter = {
+const fallbackCrypto: CryptoAdapter = {
   sha256: () => notConfigured('Crypto'),
   hmacSha256: () => notConfigured('Crypto'),
   randomBytes: () => notConfigured('Crypto'),
@@ -108,11 +108,11 @@ const stubCrypto: CryptoAdapter = {
   timingSafeEqual: () => notConfigured('Crypto'),
 };
 
-const stubSqlite: SQLiteAdapter = {
+const fallbackSqlite: SQLiteAdapter = {
   openDatabase: () => notConfigured('SQLite'),
 };
 
-const stubHardware: HardwareAdapter = {
+const fallbackHardware: HardwareAdapter = {
   homedir: () => notConfigured('Hardware'),
   platform: () => notConfigured('Hardware'),
   totalmem: () => notConfigured('Hardware'),
@@ -120,7 +120,7 @@ const stubHardware: HardwareAdapter = {
   cpus: () => notConfigured('Hardware'),
 };
 
-const stubNotifications: NotificationAdapter = {
+const fallbackNotifications: NotificationAdapter = {
   scheduleLocal: () => notConfigured('Notifications'),
   cancel: () => notConfigured('Notifications'),
   cancelAll: () => notConfigured('Notifications'),
@@ -155,12 +155,12 @@ export interface MobileAdapterConfig {
 export function createMobileAdapter(config: MobileAdapterConfig): PlatformAdapter {
   return {
     name: config.name,
-    fs: config.fs ?? stubFs,
+    fs: config.fs ?? fallbackFs,
     path: config.path ?? mobilePath,
-    crypto: config.crypto ?? stubCrypto,
-    sqlite: config.sqlite ?? stubSqlite,
-    hardware: config.hardware ?? stubHardware,
-    notifications: config.notifications ?? stubNotifications,
+    crypto: config.crypto ?? fallbackCrypto,
+    sqlite: config.sqlite ?? fallbackSqlite,
+    hardware: config.hardware ?? fallbackHardware,
+    notifications: config.notifications ?? fallbackNotifications,
     vectorStore: config.vectorStore,
   };
 }
