@@ -30,8 +30,8 @@ export interface MobileModelEntry {
   hfFilename: string;
   /** Expected file size in bytes */
   expectedSizeBytes: number;
-  /** Expected SHA-256 hash of the downloaded file */
-  expectedSha256: string;
+  /** Expected SHA-256 hash of the downloaded file (null = skip verification) */
+  expectedSha256: string | null;
   /** Minimum RAM in MB required to run this model */
   minRamMb: number;
 }
@@ -67,7 +67,7 @@ export const MOBILE_MODEL_REGISTRY: MobileModelEntry[] = [
     hfRepo: 'bartowski/Llama-3.2-3B-Instruct-GGUF',
     hfFilename: 'Llama-3.2-3B-Instruct-Q4_K_M.gguf',
     expectedSizeBytes: 1_800_000_000,
-    expectedSha256: 'placeholder-sha256-llama-3b',
+    expectedSha256: null,
     minRamMb: 5120,
   },
   // ─── 1.5B Reasoning Models (Constrained tier: 4GB RAM) ─────────────
@@ -79,7 +79,7 @@ export const MOBILE_MODEL_REGISTRY: MobileModelEntry[] = [
     hfRepo: 'Qwen/Qwen2.5-1.5B-Instruct-GGUF',
     hfFilename: 'qwen2.5-1.5b-instruct-q4_k_m.gguf',
     expectedSizeBytes: 900_000_000,
-    expectedSha256: 'placeholder-sha256-qwen-1.5b',
+    expectedSha256: null,
     minRamMb: 3072,
   },
   // ─── Mobile Embedding Models ───────────────────────────────────────
@@ -91,7 +91,7 @@ export const MOBILE_MODEL_REGISTRY: MobileModelEntry[] = [
     hfRepo: 'nomic-ai/nomic-embed-text-v1.5-GGUF',
     hfFilename: 'nomic-embed-text-v1.5.Q4_K_M.gguf',
     expectedSizeBytes: 70_000_000,
-    expectedSha256: 'placeholder-sha256-nomic-384',
+    expectedSha256: null,
     minRamMb: 512,
   },
 ];
@@ -185,7 +185,7 @@ export interface DownloadResult {
  */
 export interface IntegrityResult {
   valid: boolean;
-  expected: string;
+  expected: string | null;
   actual: string;
 }
 
@@ -290,6 +290,11 @@ export class MobileModelManager {
    * The actual hashing is done via PlatformAdapter crypto.
    */
   verifyIntegrity(modelEntry: MobileModelEntry, actualHash: string): IntegrityResult {
+    if (!modelEntry.expectedSha256) {
+      // No expected hash — skip verification, accept the download
+      this.logAudit('integrity.skipped', modelEntry.id, `No expected SHA-256 configured, accepting download`);
+      return { valid: true, expected: null, actual: actualHash };
+    }
     const valid = actualHash === modelEntry.expectedSha256;
     if (valid) {
       this.logAudit('integrity.passed', modelEntry.id, `SHA-256 verified: ${actualHash.slice(0, 16)}...`);

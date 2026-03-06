@@ -1,5 +1,5 @@
 // Attestation Signer — Signs payloads with Ed25519 (preferred) or HMAC-SHA256 (legacy).
-// Reuses Sprint 1 crypto primitives via PlatformAdapter.
+// Reuses crypto primitives via PlatformAdapter.
 // CRITICAL: No networking imports.
 
 import { getPlatform } from '../platform/index.js';

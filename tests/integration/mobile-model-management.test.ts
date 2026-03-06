@@ -66,27 +66,40 @@ describe('Mobile Model Management', () => {
   // ─── SHA-256 Integrity ──────────────────────────────────────────────────
 
   describe('SHA-256 integrity verification', () => {
+    // Create a test model with a known hash for integrity tests
+    const modelWithHash: MobileModelEntry = {
+      ...testModel,
+      expectedSha256: 'abc123def456abc123def456abc123def456abc123def456abc123def456abcd',
+    };
+
     it('passes when hash matches', () => {
-      const result = manager.verifyIntegrity(testModel, testModel.expectedSha256);
+      const result = manager.verifyIntegrity(modelWithHash, modelWithHash.expectedSha256!);
       expect(result.valid).toBe(true);
-      expect(result.expected).toBe(testModel.expectedSha256);
-      expect(result.actual).toBe(testModel.expectedSha256);
+      expect(result.expected).toBe(modelWithHash.expectedSha256);
+      expect(result.actual).toBe(modelWithHash.expectedSha256);
     });
 
     it('fails when hash does not match', () => {
-      const result = manager.verifyIntegrity(testModel, 'wrong-hash-value');
+      const result = manager.verifyIntegrity(modelWithHash, 'wrong-hash-value');
       expect(result.valid).toBe(false);
-      expect(result.expected).toBe(testModel.expectedSha256);
+      expect(result.expected).toBe(modelWithHash.expectedSha256);
       expect(result.actual).toBe('wrong-hash-value');
     });
 
+    it('skips verification when expectedSha256 is null', () => {
+      const nullHashModel: MobileModelEntry = { ...testModel, expectedSha256: null };
+      const result = manager.verifyIntegrity(nullHashModel, 'any-hash');
+      expect(result.valid).toBe(true);
+      expect(result.expected).toBeNull();
+    });
+
     it('logs integrity result to audit log', () => {
-      manager.verifyIntegrity(testModel, testModel.expectedSha256);
+      manager.verifyIntegrity(modelWithHash, modelWithHash.expectedSha256!);
       const log = manager.getAuditLog();
       expect(log.length).toBe(1);
       expect(log[0]!.action).toBe('integrity.passed');
 
-      manager.verifyIntegrity(testModel, 'bad-hash');
+      manager.verifyIntegrity(modelWithHash, 'bad-hash');
       const log2 = manager.getAuditLog();
       expect(log2.length).toBe(2);
       expect(log2[1]!.action).toBe('integrity.failed');

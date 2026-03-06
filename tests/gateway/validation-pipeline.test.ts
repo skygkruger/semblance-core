@@ -66,6 +66,13 @@ describe('Validation Pipeline', () => {
       maxPayloadBytes: 1_000_000,
     });
     serviceRegistry = new ServiceRegistry();
+    // Register a test adapter so default FallbackAdapter doesn't return errors
+    serviceRegistry.register('email.send', {
+      async execute() { return { success: true, data: { sent: true } }; },
+    });
+    serviceRegistry.register('service.api_call', {
+      async execute() { return { success: true, data: { ok: true } }; },
+    });
 
     deps = {
       signingKey,

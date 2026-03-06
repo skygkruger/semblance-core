@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../theme/tokens.js';
 import { useHardwareTier } from '../hooks/useHardwareTier';
 import { useVoiceInput } from '../hooks/useVoiceInput';
-import { createMockVoiceAdapter } from '@semblance/core/platform/desktop-voice';
+import { createConfigurableVoiceAdapter } from '@semblance/core/platform/desktop-voice';
 
 export interface ChatMessage {
   id: string;
@@ -71,7 +71,7 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
   // Voice hardware capability gate
   const { voiceCapable } = useHardwareTier();
   // TODO: Replace with real mobile voice adapter in device testing pass
-  const voiceAdapter = useMemo(() => createMockVoiceAdapter({ sttReady: true }), []);
+  const voiceAdapter = useMemo(() => createConfigurableVoiceAdapter({ sttReady: true }), []);
   const voice = useVoiceInput(voiceAdapter);
   const showVoice = voiceCapable && voice.voiceEnabled;
 

@@ -613,6 +613,48 @@ Refer to `SEMBLANCE_BUILD_MAP_REVISION_2.md` for full sprint details including a
 
 ---
 
+## Future Feature: Desktop Voice (Push-to-Talk STT/TTS)
+
+**Status:** Architecture complete, native integration not wired. Voice button correctly hidden on desktop via `isSTTReady() → false` gate.
+
+**Current state:** `createDesktopVoiceAdapter()` in `packages/core/platform/desktop-voice.ts` returns an honest not-ready adapter. The `useVoiceInput` hook, `AgentInput` mic button, and `ChatScreen` voice wiring are all in place — they will activate automatically once `isSTTReady()` returns `true`.
+
+**What's needed to make voice operational:**
+
+1. **Whisper.cpp for STT** — Add `whisper-rs` crate to `packages/desktop/src-tauri/Cargo.toml`. This wraps whisper.cpp and compiles from source during `cargo build`. Requires CMake + MSVC (already available). Increases compile time (~5-10 min first build) and binary size (~15-30MB).
+
+2. **Audio capture** — Add `cpal` crate for cross-platform microphone input. Records PCM audio, feeds to whisper. Write Rust functions for `start_capture()` / `stop_capture()` that buffer audio in memory.
+
+3. **TTS** — Add `tts` crate (wraps Windows SAPI / macOS AVSpeechSynthesizer / Linux speech-dispatcher). Simpler than bundling Piper as a sidecar, uses platform-native voices. Alternatively, bundle Piper for higher-quality voices.
+
+4. **Tauri commands** — Expose as IPC commands in `src-tauri/src/`:
+   - `start_capture` — begin mic recording
+   - `stop_capture` — stop and return PCM buffer
+   - `transcribe` — feed audio to whisper, return text
+   - `synthesize` — feed text to TTS, return audio
+   - `play_audio` — play synthesized audio through speakers
+   - `is_stt_ready` — check if whisper model exists on disk
+   - `get_available_voices` — list TTS voices
+
+5. **Whisper model management** — Whisper-tiny (~75MB) or whisper-base (~140MB) model must be downloaded on first use. Implement download-and-cache flow through the Gateway (respects allowlist). Store in app data directory. `is_stt_ready` checks for model presence.
+
+6. **Rewrite TypeScript adapter** — `createDesktopVoiceAdapter()` dynamically imports `@tauri-apps/api/core` and calls the Tauri commands above (same pattern as `createDesktopClipboardAdapter()` with clipboard plugin).
+
+7. **Microphone permissions** — Configure Tauri's audio-capture permission in `capabilities/`. `hasMicrophonePermission()` / `requestMicrophonePermission()` call OS permission APIs through Tauri.
+
+**Key files to modify:**
+- `packages/desktop/src-tauri/Cargo.toml` — add whisper-rs, cpal, tts
+- `packages/desktop/src-tauri/src/` — new voice module with Tauri commands
+- `packages/desktop/src-tauri/capabilities/` — audio-capture permission
+- `packages/core/platform/desktop-voice.ts` — rewrite adapter to call Tauri commands
+- `packages/desktop/src-tauri/tauri.conf.json` — permission declarations
+
+**Cannot be verified from terminal** — requires runtime testing with real microphone and speakers. The implementation can compile-pass and type-check, but functional verification requires a human speaking into the mic.
+
+**Sovereignty note:** All voice processing is local. Whisper runs on-device. TTS runs on-device. No audio data leaves the machine. This is consistent with Rule 1 (Zero Network in AI Core).
+
+---
+
 ## Remember
 
 The entire foundation of Semblance is trust. Every line of code either builds trust or erodes it. There is no neutral ground. When in doubt between convenience and security, choose security. When in doubt between speed and correctness, choose correctness. When in doubt between assumption and escalation, escalate.

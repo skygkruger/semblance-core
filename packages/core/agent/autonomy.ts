@@ -207,7 +207,7 @@ export class AutonomyManager {
 
       case 'alter_ego':
         // Alter Ego: Auto for almost everything. High-stakes execute = approval.
-        // Full pattern learning is Sprint 4. For now, behaves like Partner
+        // Pattern learning not yet implemented. Behaves like Partner
         // with fewer approval requirements.
         if (risk === 'execute' && (action === 'email.send')) {
           // Even Alter Ego confirms sending emails (can be changed by learned patterns in S4)

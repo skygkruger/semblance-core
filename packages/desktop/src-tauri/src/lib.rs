@@ -1855,6 +1855,501 @@ async fn report_verify_sovereignty(
     })).await
 }
 
+// ─── Document / File Picker Commands ────────────────────────────────────────
+
+#[tauri::command]
+async fn document_pick_file(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let file = app.dialog().file().blocking_pick_file();
+    Ok(file.map(|f| f.to_string()))
+}
+
+#[tauri::command]
+async fn document_pick_files(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let files = app.dialog().file().blocking_pick_files();
+    Ok(files.unwrap_or_default().iter().map(|f| f.to_string()).collect())
+}
+
+#[tauri::command]
+async fn document_set_context(
+    state: tauri::State<'_, AppBridge>,
+    file_path: String,
+) -> Result<Value, String> {
+    state.bridge.call("document_set_context", serde_json::json!({ "filePath": file_path })).await
+}
+
+#[tauri::command]
+async fn document_clear_context(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("document_clear_context", Value::Null).await
+}
+
+#[tauri::command]
+async fn document_add_file(
+    state: tauri::State<'_, AppBridge>,
+    file_path: String,
+) -> Result<Value, String> {
+    state.bridge.call("document_add_file", serde_json::json!({ "filePath": file_path })).await
+}
+
+#[tauri::command]
+async fn document_remove_file(
+    state: tauri::State<'_, AppBridge>,
+    document_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("document_remove_file", serde_json::json!({ "documentId": document_id })).await
+}
+
+#[tauri::command]
+async fn add_attachment_to_knowledge(
+    state: tauri::State<'_, AppBridge>,
+    document_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("add_attachment_to_knowledge", serde_json::json!({ "documentId": document_id })).await
+}
+
+// ─── Morning Brief Commands ──────────────────────────────────────────────
+
+#[tauri::command]
+async fn brief_get_morning(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("brief_get_morning", Value::Null).await
+}
+
+#[tauri::command]
+async fn brief_dismiss(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+) -> Result<Value, String> {
+    state.bridge.call("brief_dismiss", serde_json::json!({ "id": id })).await
+}
+
+#[tauri::command]
+async fn weather_get_current(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("weather_get_current", Value::Null).await
+}
+
+#[tauri::command]
+async fn commute_get_today(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("commute_get_today", Value::Null).await
+}
+
+#[tauri::command]
+async fn knowledge_get_moment(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge_get_moment", Value::Null).await
+}
+
+#[tauri::command]
+async fn alter_ego_get_activation_prompt(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("alter_ego_get_activation_prompt", Value::Null).await
+}
+
+#[tauri::command]
+async fn digest_get_daily(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("digest_get_daily", Value::Null).await
+}
+
+#[tauri::command]
+async fn digest_dismiss_daily(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+) -> Result<Value, String> {
+    state.bridge.call("digest_dismiss_daily", serde_json::json!({ "id": id })).await
+}
+
+// ─── Knowledge Graph Commands ────────────────────────────────────────────
+
+#[tauri::command]
+async fn knowledge_get_graph(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge_get_graph", Value::Null).await
+}
+
+#[tauri::command]
+async fn knowledge_get_node_context(
+    state: tauri::State<'_, AppBridge>,
+    node_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge_get_node_context", serde_json::json!({ "nodeId": node_id })).await
+}
+
+#[tauri::command]
+async fn knowledge_export_graph(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("knowledge_export_graph", Value::Null).await
+}
+
+// ─── Escalation Commands ─────────────────────────────────────────────────
+
+#[tauri::command]
+async fn escalation_get_prompts(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("escalation_get_prompts", Value::Null).await
+}
+
+// ─── Clipboard Insight Commands ──────────────────────────────────────────
+
+#[tauri::command]
+async fn clipboard_get_insights(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("clipboard_get_insights", Value::Null).await
+}
+
+#[tauri::command]
+async fn clipboard_execute_action(
+    state: tauri::State<'_, AppBridge>,
+    action_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("clipboard_execute_action", serde_json::json!({ "actionId": action_id })).await
+}
+
+#[tauri::command]
+async fn clipboard_dismiss_insight(
+    state: tauri::State<'_, AppBridge>,
+    action_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("clipboard_dismiss_insight", serde_json::json!({ "actionId": action_id })).await
+}
+
+// ─── Reminder Commands ───────────────────────────────────────────────────
+
+#[tauri::command]
+async fn reminder_list(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("reminder_list", Value::Null).await
+}
+
+#[tauri::command]
+async fn reminder_snooze(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+    duration: String,
+) -> Result<Value, String> {
+    state.bridge.call("reminder_snooze", serde_json::json!({ "id": id, "duration": duration })).await
+}
+
+#[tauri::command]
+async fn reminder_dismiss(
+    state: tauri::State<'_, AppBridge>,
+    id: String,
+) -> Result<Value, String> {
+    state.bridge.call("reminder_dismiss", serde_json::json!({ "id": id })).await
+}
+
+// ─── Quick Capture Command ───────────────────────────────────────────────
+
+#[tauri::command]
+async fn quick_capture(
+    state: tauri::State<'_, AppBridge>,
+    text: String,
+) -> Result<Value, String> {
+    state.bridge.call("quick_capture", serde_json::json!({ "text": text })).await
+}
+
+// ─── Style Profile Commands ──────────────────────────────────────────────
+
+#[tauri::command]
+async fn style_get_profile(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("style_get_profile", Value::Null).await
+}
+
+#[tauri::command]
+async fn style_reanalyze(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("style_reanalyze", Value::Null).await
+}
+
+#[tauri::command]
+async fn style_reset(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("style_reset", Value::Null).await
+}
+
+// ─── Dark Pattern Detection Commands ─────────────────────────────────────
+
+#[tauri::command]
+async fn dark_pattern_get_flags(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("dark_pattern_get_flags", Value::Null).await
+}
+
+#[tauri::command]
+async fn dark_pattern_dismiss(
+    state: tauri::State<'_, AppBridge>,
+    content_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("dark_pattern_dismiss", serde_json::json!({ "contentId": content_id })).await
+}
+
+// ─── Voice Model Commands ────────────────────────────────────────────────
+
+#[tauri::command]
+async fn voice_get_model_status(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("voice_get_model_status", Value::Null).await
+}
+
+#[tauri::command]
+async fn voice_download_model(
+    state: tauri::State<'_, AppBridge>,
+    model: String,
+) -> Result<Value, String> {
+    state.bridge.call("voice_download_model", serde_json::json!({ "model": model })).await
+}
+
+// ─── Import Digital Life Commands ────────────────────────────────────────
+
+#[tauri::command]
+async fn import_get_history(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("import_get_history", Value::Null).await
+}
+
+#[tauri::command]
+async fn import_start(
+    state: tauri::State<'_, AppBridge>,
+    source_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("import_start", serde_json::json!({ "sourceId": source_id })).await
+}
+
+// ─── Model Download Commands ─────────────────────────────────────────────
+
+#[tauri::command]
+async fn start_model_downloads(
+    state: tauri::State<'_, AppBridge>,
+    tier: String,
+) -> Result<Value, String> {
+    state.bridge.call("start_model_downloads", serde_json::json!({ "tier": tier })).await
+}
+
+#[tauri::command]
+async fn model_get_download_status(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("model_get_download_status", Value::Null).await
+}
+
+#[tauri::command]
+async fn model_retry_download(
+    state: tauri::State<'_, AppBridge>,
+    model_name: String,
+) -> Result<Value, String> {
+    state.bridge.call("model_retry_download", serde_json::json!({ "modelName": model_name })).await
+}
+
+// ─── Alter Ego Week Commands ─────────────────────────────────────────────
+
+#[tauri::command]
+async fn alter_ego_get_week_progress(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("alter_ego_get_week_progress", Value::Null).await
+}
+
+#[tauri::command]
+async fn alter_ego_complete_day(
+    state: tauri::State<'_, AppBridge>,
+    day: u32,
+) -> Result<Value, String> {
+    state.bridge.call("alter_ego_complete_day", serde_json::json!({ "day": day })).await
+}
+
+#[tauri::command]
+async fn alter_ego_skip_day(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("alter_ego_skip_day", Value::Null).await
+}
+
+// ─── Financial Dashboard Commands ────────────────────────────────────────
+
+#[tauri::command]
+async fn get_financial_dashboard(
+    state: tauri::State<'_, AppBridge>,
+    period: String,
+    custom_start: Option<String>,
+    custom_end: Option<String>,
+) -> Result<Value, String> {
+    state.bridge.call("get_financial_dashboard", serde_json::json!({
+        "period": period,
+        "customStart": custom_start,
+        "customEnd": custom_end,
+    })).await
+}
+
+#[tauri::command]
+async fn dismiss_anomaly(
+    state: tauri::State<'_, AppBridge>,
+    anomaly_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("dismiss_anomaly", serde_json::json!({ "anomalyId": anomaly_id })).await
+}
+
+// ─── Health Dashboard Commands ───────────────────────────────────────────
+
+#[tauri::command]
+async fn get_health_dashboard(
+    state: tauri::State<'_, AppBridge>,
+    trend_days: u32,
+) -> Result<Value, String> {
+    state.bridge.call("get_health_dashboard", serde_json::json!({ "trendDays": trend_days })).await
+}
+
+#[tauri::command]
+async fn save_health_entry(
+    state: tauri::State<'_, AppBridge>,
+    entry: Value,
+) -> Result<Value, String> {
+    state.bridge.call("save_health_entry", serde_json::json!({ "entry": entry })).await
+}
+
+// ─── Cloud Storage Commands ──────────────────────────────────────────────
+
+#[tauri::command]
+async fn cloud_storage_connect(
+    state: tauri::State<'_, AppBridge>,
+    provider: String,
+) -> Result<Value, String> {
+    state.bridge.call("cloud_storage_connect", serde_json::json!({ "provider": provider })).await
+}
+
+#[tauri::command]
+async fn cloud_storage_disconnect(
+    state: tauri::State<'_, AppBridge>,
+    provider: String,
+) -> Result<Value, String> {
+    state.bridge.call("cloud_storage_disconnect", serde_json::json!({ "provider": provider })).await
+}
+
+#[tauri::command]
+async fn cloud_storage_sync_now(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("cloud_storage_sync_now", Value::Null).await
+}
+
+#[tauri::command]
+async fn cloud_storage_set_interval(
+    state: tauri::State<'_, AppBridge>,
+    minutes: u32,
+) -> Result<Value, String> {
+    state.bridge.call("cloud_storage_set_interval", serde_json::json!({ "minutes": minutes })).await
+}
+
+#[tauri::command]
+async fn cloud_storage_set_max_file_size(
+    state: tauri::State<'_, AppBridge>,
+    mb: u32,
+) -> Result<Value, String> {
+    state.bridge.call("cloud_storage_set_max_file_size", serde_json::json!({ "mb": mb })).await
+}
+
+#[tauri::command]
+async fn cloud_storage_browse_folders(
+    state: tauri::State<'_, AppBridge>,
+    provider: String,
+    parent_folder_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("cloud_storage_browse_folders", serde_json::json!({
+        "provider": provider,
+        "parentFolderId": parent_folder_id,
+    })).await
+}
+
+// ─── Search Settings Commands ────────────────────────────────────────────
+
+#[tauri::command]
+async fn get_search_settings(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("get_search_settings", Value::Null).await
+}
+
+#[tauri::command]
+async fn save_search_settings(
+    state: tauri::State<'_, AppBridge>,
+    enabled: Option<bool>,
+    provider: Option<String>,
+    api_key: Option<String>,
+    safe_search: Option<bool>,
+    max_results: Option<u32>,
+) -> Result<Value, String> {
+    state.bridge.call("save_search_settings", serde_json::json!({
+        "enabled": enabled,
+        "provider": provider,
+        "apiKey": api_key,
+        "safeSearch": safe_search,
+        "maxResults": max_results,
+    })).await
+}
+
+#[tauri::command]
+async fn test_brave_api_key(
+    state: tauri::State<'_, AppBridge>,
+    api_key: String,
+) -> Result<Value, String> {
+    state.bridge.call("test_brave_api_key", serde_json::json!({ "apiKey": api_key })).await
+}
+
+// ─── Sidecar / IPC Bridge Commands ──────────────────────────────────────
+
+#[tauri::command]
+async fn sidecar_request(
+    state: tauri::State<'_, AppBridge>,
+    request: Value,
+) -> Result<Value, String> {
+    let method = request.get("method").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    let params = request.get("params").cloned().unwrap_or(Value::Null);
+    state.bridge.call(&method, params).await
+}
+
+#[tauri::command]
+async fn ipc_send(
+    state: tauri::State<'_, AppBridge>,
+    action: Option<String>,
+    method: Option<String>,
+    params: Option<Value>,
+) -> Result<Value, String> {
+    let method_str = method.or(action).unwrap_or_else(|| "unknown".to_string());
+    state.bridge.call(&method_str, params.unwrap_or(Value::Null)).await
+}
+
+// ─── Upgrade Email Capture ───────────────────────────────────────────────
+
+#[tauri::command]
+async fn upgrade_submit_email(
+    state: tauri::State<'_, AppBridge>,
+    email: String,
+) -> Result<Value, String> {
+    state.bridge.call("upgrade_submit_email", serde_json::json!({ "email": email })).await
+}
+
 // ─── Application Entry Point ───────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -2140,6 +2635,82 @@ pub fn run() {
             report_generate_sovereignty,
             report_render_pdf,
             report_verify_sovereignty,
+            // Document / File Picker
+            document_pick_file,
+            document_pick_files,
+            document_set_context,
+            document_clear_context,
+            document_add_file,
+            document_remove_file,
+            add_attachment_to_knowledge,
+            // Morning Brief
+            brief_get_morning,
+            brief_dismiss,
+            weather_get_current,
+            commute_get_today,
+            knowledge_get_moment,
+            alter_ego_get_activation_prompt,
+            digest_get_daily,
+            digest_dismiss_daily,
+            // Knowledge Graph
+            knowledge_get_graph,
+            knowledge_get_node_context,
+            knowledge_export_graph,
+            // Escalation
+            escalation_get_prompts,
+            // Clipboard Insights
+            clipboard_get_insights,
+            clipboard_execute_action,
+            clipboard_dismiss_insight,
+            // Reminders
+            reminder_list,
+            reminder_snooze,
+            reminder_dismiss,
+            // Quick Capture
+            quick_capture,
+            // Style Profile
+            style_get_profile,
+            style_reanalyze,
+            style_reset,
+            // Dark Pattern Detection
+            dark_pattern_get_flags,
+            dark_pattern_dismiss,
+            // Voice Models
+            voice_get_model_status,
+            voice_download_model,
+            // Import Digital Life
+            import_get_history,
+            import_start,
+            // Model Downloads
+            start_model_downloads,
+            model_get_download_status,
+            model_retry_download,
+            // Alter Ego Week
+            alter_ego_get_week_progress,
+            alter_ego_complete_day,
+            alter_ego_skip_day,
+            // Financial Dashboard
+            get_financial_dashboard,
+            dismiss_anomaly,
+            // Health Dashboard
+            get_health_dashboard,
+            save_health_entry,
+            // Cloud Storage
+            cloud_storage_connect,
+            cloud_storage_disconnect,
+            cloud_storage_sync_now,
+            cloud_storage_set_interval,
+            cloud_storage_set_max_file_size,
+            cloud_storage_browse_folders,
+            // Search Settings
+            get_search_settings,
+            save_search_settings,
+            test_brave_api_key,
+            // Sidecar / IPC Bridge
+            sidecar_request,
+            ipc_send,
+            // Upgrade Email
+            upgrade_submit_email,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

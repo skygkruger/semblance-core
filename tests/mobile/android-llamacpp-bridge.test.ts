@@ -1,9 +1,9 @@
 // Tests for Commit 4: Android llama.cpp Bridge interface.
-// Uses MockLlamaCppBridge since we can't run actual Android native modules in tests.
+// Uses TestLlamaCppBridge since we can't run actual Android native modules in tests.
 // Verifies the bridge interface contract and adapter behavior.
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MockLlamaCppBridge } from '@semblance/core/llm/mobile-bridge-mock.js';
+import { TestLlamaCppBridge } from '@semblance/core/llm/mobile-bridge-mock.js';
 import { MobileProvider } from '@semblance/core/llm/mobile-provider.js';
 import { MOBILE_MODEL_DEFAULTS } from '@semblance/core/llm/mobile-bridge-types.js';
 import type { MobileInferenceBridge } from '@semblance/core/llm/mobile-bridge-types.js';
@@ -81,7 +81,7 @@ describe('Android llama.cpp Bridge — Mock Interface Compliance', () => {
   let bridge: MobileInferenceBridge;
 
   beforeEach(async () => {
-    bridge = new MockLlamaCppBridge();
+    bridge = new TestLlamaCppBridge();
     await bridge.loadModel('/data/app/models/llama-3b.gguf', MOBILE_MODEL_DEFAULTS.capable);
   });
 

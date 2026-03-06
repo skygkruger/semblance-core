@@ -1,9 +1,9 @@
 // Tests for Commit 3: iOS MLX Bridge interface.
-// Uses the MockMLXBridge since we can't run actual iOS native modules in tests.
+// Uses the TestMLXBridge since we can't run actual iOS native modules in tests.
 // Verifies the bridge interface contract and adapter behavior.
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MockMLXBridge } from '@semblance/core/llm/mobile-bridge-mock.js';
+import { TestMLXBridge } from '@semblance/core/llm/mobile-bridge-mock.js';
 import { MobileProvider } from '@semblance/core/llm/mobile-provider.js';
 import { MOBILE_MODEL_DEFAULTS } from '@semblance/core/llm/mobile-bridge-types.js';
 import type { MobileInferenceBridge } from '@semblance/core/llm/mobile-bridge-types.js';
@@ -80,7 +80,7 @@ describe('iOS MLX Bridge — Mock Interface Compliance', () => {
   let bridge: MobileInferenceBridge;
 
   beforeEach(async () => {
-    bridge = new MockMLXBridge();
+    bridge = new TestMLXBridge();
     await bridge.loadModel('/device/models/llama-3b.gguf', MOBILE_MODEL_DEFAULTS.capable);
   });
 

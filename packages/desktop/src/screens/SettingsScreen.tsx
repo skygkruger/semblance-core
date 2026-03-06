@@ -169,10 +169,10 @@ export function SettingsScreen() {
       .then(setVoiceModels)
       .catch(() => {});
     getImportHistory()
-      .then(setImportHistory)
+      .then((d) => setImportHistory(d ?? []))
       .catch(() => {});
     getModelDownloadStatus()
-      .then(setModelDownloads)
+      .then((d) => setModelDownloads(d ?? []))
       .catch(() => {});
   }, [loadAccounts, dispatch]);
 
@@ -711,7 +711,7 @@ export function SettingsScreen() {
       )}
 
       {/* Model Downloads */}
-      {modelDownloads.length > 0 && (
+      {modelDownloads && modelDownloads.length > 0 && (
         <Card>
           <h2 className="settings-page__section-title">
             Model Downloads
@@ -721,7 +721,7 @@ export function SettingsScreen() {
             onRetry={async (modelName) => {
               await retryModelDownload(modelName).catch(() => {});
               const updated = await getModelDownloadStatus().catch(() => []);
-              setModelDownloads(updated);
+              setModelDownloads(updated ?? []);
             }}
           />
         </Card>

@@ -3,13 +3,13 @@
  * Desktop useVoiceInput Hook Tests
  *
  * Tests the desktop hook that bridges VoiceAdapter to AgentInput voice props.
- * Uses createMockVoiceAdapter for deterministic behavior.
+ * Uses createConfigurableVoiceAdapter for deterministic behavior.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useVoiceInput } from '../../packages/desktop/src/hooks/useVoiceInput';
-import { createMockVoiceAdapter } from '../../packages/core/platform/desktop-voice';
+import { createConfigurableVoiceAdapter } from '../../packages/core/platform/desktop-voice';
 import type { VoiceAdapter } from '../../packages/core/platform/voice-types';
 
 describe('useVoiceInput (desktop)', () => {
@@ -22,7 +22,7 @@ describe('useVoiceInput (desktop)', () => {
   });
 
   it('voiceEnabled=false when adapter STT not ready', async () => {
-    const adapter = createMockVoiceAdapter({ sttReady: false });
+    const adapter = createConfigurableVoiceAdapter({ sttReady: false });
     const { result } = renderHook(() => useVoiceInput(adapter));
 
     // isSTTReady is async, flush the promise
@@ -35,7 +35,7 @@ describe('useVoiceInput (desktop)', () => {
   });
 
   it('voiceEnabled=true when adapter STT is ready', async () => {
-    const adapter = createMockVoiceAdapter({ sttReady: true });
+    const adapter = createConfigurableVoiceAdapter({ sttReady: true });
     const { result } = renderHook(() => useVoiceInput(adapter));
 
     await act(async () => {
@@ -46,7 +46,7 @@ describe('useVoiceInput (desktop)', () => {
   });
 
   it('onVoiceStart transitions to listening', async () => {
-    const adapter = createMockVoiceAdapter({ sttReady: true, micPermission: true });
+    const adapter = createConfigurableVoiceAdapter({ sttReady: true, micPermission: true });
     const { result } = renderHook(() => useVoiceInput(adapter));
 
     await act(async () => {
@@ -61,7 +61,7 @@ describe('useVoiceInput (desktop)', () => {
   });
 
   it('onVoiceStop transitions through processing to idle with transcription', async () => {
-    const adapter = createMockVoiceAdapter({
+    const adapter = createConfigurableVoiceAdapter({
       sttReady: true,
       micPermission: true,
       transcriptionResult: {
@@ -92,7 +92,7 @@ describe('useVoiceInput (desktop)', () => {
   });
 
   it('onVoiceCancel returns to idle', async () => {
-    const adapter = createMockVoiceAdapter({ sttReady: true, micPermission: true });
+    const adapter = createConfigurableVoiceAdapter({ sttReady: true, micPermission: true });
     const { result } = renderHook(() => useVoiceInput(adapter));
 
     await act(async () => {
@@ -116,7 +116,7 @@ describe('useVoiceInput (desktop)', () => {
   it('error state auto-recovers to idle after timeout', async () => {
     // Create adapter that throws on startCapture
     const failingAdapter: VoiceAdapter = {
-      ...createMockVoiceAdapter({ sttReady: true, micPermission: true }),
+      ...createConfigurableVoiceAdapter({ sttReady: true, micPermission: true }),
       async startCapture() {
         throw new Error('Mic hardware failure');
       },
@@ -141,7 +141,7 @@ describe('useVoiceInput (desktop)', () => {
   });
 
   it('onVoiceStart does nothing when voiceEnabled=false', async () => {
-    const adapter = createMockVoiceAdapter({ sttReady: false });
+    const adapter = createConfigurableVoiceAdapter({ sttReady: false });
     const startCaptureSpy = vi.spyOn(adapter, 'startCapture');
     const { result } = renderHook(() => useVoiceInput(adapter));
 

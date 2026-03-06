@@ -5,7 +5,7 @@ import Database from 'better-sqlite3';
 import type { DatabaseHandle } from '../../../packages/core/platform/types.js';
 import { ContactStore } from '../../../packages/core/knowledge/contacts/contact-store.js';
 import { ContactIngestionPipeline } from '../../../packages/core/knowledge/contacts/contact-ingestion.js';
-import { createMockContactsAdapter } from '../../../packages/core/platform/desktop-contacts.js';
+import { createConfigurableContactsAdapter } from '../../../packages/core/platform/desktop-contacts.js';
 import type { DeviceContact } from '../../../packages/core/platform/types.js';
 
 let db: Database.Database;
@@ -146,7 +146,7 @@ describe('ContactStore', () => {
       },
     ];
 
-    const adapter = createMockContactsAdapter({
+    const adapter = createConfigurableContactsAdapter({
       contacts: sampleContacts,
       permission: 'authorized',
     });

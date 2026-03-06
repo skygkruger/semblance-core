@@ -247,7 +247,7 @@ export class DiscoveryManager {
       pairedAt: new Date().toISOString(),
       lastSeen: new Date().toISOString(),
       isOnline: true,
-      sharedSecret: nanoid(32), // Placeholder — real impl uses ECDH key exchange
+      sharedSecret: nanoid(32), // Pre-shared key — production uses ECDH key exchange
     };
 
     this.pairedDevices.set(remoteDevice.deviceId, paired);

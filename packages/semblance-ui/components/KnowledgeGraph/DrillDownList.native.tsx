@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
-import type { DrillDownItem, DrillDownListProps } from './DrillDownList.web';
+import type { DrillDownItem, DrillDownListProps } from './DrillDownList.types';
 
 export type { DrillDownItem, DrillDownListProps };
 

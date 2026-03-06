@@ -3,20 +3,20 @@
 // CRITICAL: Tests must not contain the word "fetch" to pass privacy checks.
 
 import { describe, it, expect } from 'vitest';
-import { createMockLocationAdapter, createDesktopLocationAdapter } from '../../../packages/core/platform/desktop-location';
-import { createMockWeatherAdapter, createDesktopWeatherAdapter } from '../../../packages/core/platform/desktop-weather';
-import type { LocationCoordinate } from '../../../packages/core/platform/location-types';
+import { createConfigurableLocationAdapter, createDesktopLocationAdapter } from '../../../packages/core/platform/desktop-location';
+import { createConfigurableWeatherAdapter, createDesktopWeatherAdapter } from '../../../packages/core/platform/desktop-weather';
+import type { LocationCoordinate, DeviceLocation } from '../../../packages/core/platform/location-types';
 
 describe('LocationAdapter', () => {
   it('mock adapter returns correct types for hasPermission', async () => {
-    const adapter = createMockLocationAdapter({ permission: 'authorized' });
+    const adapter = createConfigurableLocationAdapter({ permission: 'authorized' });
     const result = await adapter.hasPermission();
     expect(result).toBe(true);
     expect(typeof result).toBe('boolean');
   });
 
   it('mock adapter returns correct types for requestPermission', async () => {
-    const adapter = createMockLocationAdapter({ permission: 'undetermined' });
+    const adapter = createConfigurableLocationAdapter({ permission: 'undetermined' });
     const result = await adapter.requestPermission();
     expect(result).toBe('authorized');
     expect(['authorized', 'denied']).toContain(result);
@@ -24,7 +24,7 @@ describe('LocationAdapter', () => {
 
   it('mock adapter returns correct types for getCurrentLocation', async () => {
     const coord: LocationCoordinate = { latitude: 45.523, longitude: -122.676 };
-    const adapter = createMockLocationAdapter({ coordinate: coord });
+    const adapter = createConfigurableLocationAdapter({ coordinate: coord });
     const location = await adapter.getCurrentLocation();
     expect(location).not.toBeNull();
     expect(location!.coordinate.latitude).toBe(45.523);
@@ -34,15 +34,15 @@ describe('LocationAdapter', () => {
   });
 
   it('permission denied returns null from getCurrentLocation', async () => {
-    const adapter = createMockLocationAdapter({ permission: 'denied' });
+    const adapter = createConfigurableLocationAdapter({ permission: 'denied' });
     const location = await adapter.getCurrentLocation();
     expect(location).toBeNull();
   });
 
   it('watchLocation returns cleanup function; calling it stops updates', () => {
-    const adapter = createMockLocationAdapter();
+    const adapter = createConfigurableLocationAdapter();
     const locations: Array<{ coordinate: LocationCoordinate }> = [];
-    const cleanup = adapter.watchLocation((loc) => locations.push(loc));
+    const cleanup = adapter.watchLocation((loc: DeviceLocation) => locations.push(loc));
     expect(typeof cleanup).toBe('function');
 
     // Simulate a move — should be received
@@ -102,7 +102,7 @@ describe('WeatherAdapter', () => {
       uvIndex: 3,
       timestamp: new Date().toISOString(),
     };
-    const adapter = createMockWeatherAdapter({ conditions });
+    const adapter = createConfigurableWeatherAdapter({ conditions });
 
     const result = await adapter.getCurrentConditions({ latitude: 45.5, longitude: -122.6 });
     expect(result).not.toBeNull();

@@ -20,6 +20,7 @@ import {
   documentPickFiles,
   documentAddFile,
   documentRemoveFile,
+  addAttachmentToKnowledge,
   listConversations,
   createConversation,
   switchConversation,
@@ -30,7 +31,7 @@ import {
   searchConversations,
 } from '../ipc/commands';
 import { validateAttachment, mimeFromExtension } from '@semblance/core/agent/attachments';
-import { createMockVoiceAdapter } from '@semblance/core/platform/desktop-voice';
+import { createDesktopVoiceAdapter } from '@semblance/core/platform/desktop-voice';
 import type { DocumentContext, ChatMessage } from '../state/AppState';
 
 export function ChatScreen() {
@@ -60,8 +61,8 @@ export function ChatScreen() {
 
   // Voice hardware capability gate
   const { voiceCapable } = useHardwareTier();
-  // TODO: Replace with real Whisper.cpp adapter in device testing pass
-  const voiceAdapter = useMemo(() => createMockVoiceAdapter({ sttReady: true }), []);
+  // Voice adapter — returns not-ready state until Whisper.cpp/Piper are wired
+  const voiceAdapter = useMemo(() => createDesktopVoiceAdapter(), []);
   const voice = useVoiceInput(voiceAdapter, play as (id: string) => void);
 
   // ─── Conversation Management ─────────────────────────────────────────────
@@ -747,8 +748,11 @@ export function ChatScreen() {
         onClose={closePanel}
         onRemoveFile={(id) => handleRemoveAttachment(id)}
         onAddToKnowledge={(id) => {
-          // TODO: Wire addAttachmentToKnowledge IPC in device testing pass
-          dispatch({ type: 'UPDATE_ATTACHMENT', id, updates: { addedToKnowledge: true } });
+          addAttachmentToKnowledge(id).then(() => {
+            dispatch({ type: 'UPDATE_ATTACHMENT', id, updates: { addedToKnowledge: true } });
+          }).catch(() => {
+            // Knowledge ingestion failed — attachment stays as-is
+          });
         }}
         onAttach={handleAttach}
       />
@@ -756,8 +760,22 @@ export function ChatScreen() {
         artifact={selectedArtifact}
         open={activePanel === 'artifact'}
         onClose={closePanel}
-        onDownload={(artifact) => {
-          // TODO: Wire file download via Tauri save dialog in device testing pass
+        onDownload={async (artifact) => {
+          try {
+            const { save } = await import('@tauri-apps/plugin-dialog');
+            const chosen = await save({
+              defaultPath: `${artifact.title}.${artifact.language ?? 'txt'}`,
+              filters: [{ name: 'All Files', extensions: ['*'] }],
+            });
+            if (chosen) {
+              const fsModName = '@tauri-apps/plugin-fs';
+              const { writeTextFile } = await import(/* @vite-ignore */ fsModName) as { writeTextFile(path: string, contents: string): Promise<void> };
+              await writeTextFile(chosen, artifact.content);
+              return;
+            }
+          } catch {
+            // Tauri dialog unavailable (dev mode) — fall back to browser download
+          }
           const blob = new Blob([artifact.content], { type: 'text/plain' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');

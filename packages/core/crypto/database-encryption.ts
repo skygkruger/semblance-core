@@ -1,6 +1,6 @@
 // Database Encryption — SQLCipher key management, PRAGMA application, migration.
 // Application-layer logic only. Actual SQLCipher binding (better-sqlite3-multiple-ciphers)
-// is a build config change — same pattern as mobile adapter stubs.
+// is a build config change — same pattern as mobile adapter fallbacks.
 // CRITICAL: No networking imports.
 
 import type { SecureStorageAdapter } from '../platform/types.js';

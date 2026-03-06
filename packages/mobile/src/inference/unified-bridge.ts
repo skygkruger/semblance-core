@@ -4,7 +4,7 @@
 // This is the entry point for mobile inference. Call createMobileInferenceBridge()
 // with the platform string, and it returns the appropriate native bridge adapter.
 //
-// On non-RN environments (testing), import MockMLXBridge / MockLlamaCppBridge directly.
+// On non-RN environments (testing), import TestMLXBridge / TestLlamaCppBridge directly.
 
 import type { MobileInferenceBridge, MobilePlatform } from '@semblance/core/llm/mobile-bridge-types.js';
 

@@ -52,6 +52,8 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
   const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);
   const [approvalCounts, setApprovalCounts] = useState<Record<string, { count: number; threshold: number }>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editPayload, setEditPayload] = useState<Record<string, unknown>>({});
 
   const loadPending = useCallback(async () => {
     try {
@@ -129,12 +131,48 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
               </button>
             )}
 
+            {editingId === action.id && (
+              <div className="pending-action__edit-form">
+                {(action.action === 'email.send' || action.action === 'email.draft') && (
+                  <>
+                    <input
+                      className="pending-action__edit-input"
+                      value={String(editPayload['subject'] ?? '')}
+                      onChange={(e) => setEditPayload(prev => ({ ...prev, subject: e.target.value }))}
+                      aria-label="Subject"
+                    />
+                    <textarea
+                      className="pending-action__edit-textarea"
+                      value={String(editPayload['body'] ?? '')}
+                      onChange={(e) => setEditPayload(prev => ({ ...prev, body: e.target.value }))}
+                      rows={4}
+                      aria-label="Body"
+                    />
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="pending-action__actions">
-              <button type="button" onClick={() => handleApprove(action.id)} className="pending-action__approve-btn">
+              <button type="button" onClick={() => {
+                if (editingId === action.id) {
+                  // Apply edits to payload before approving
+                  action.payload = { ...action.payload, ...editPayload };
+                  setEditingId(null);
+                }
+                handleApprove(action.id);
+              }} className="pending-action__approve-btn">
                 {action.action === 'email.send' ? 'Approve & Send' : 'Approve'}
               </button>
-              <button type="button" onClick={() => {/* TODO: open edit mode */}} className="pending-action__edit-btn">
-                Edit
+              <button type="button" onClick={() => {
+                if (editingId === action.id) {
+                  setEditingId(null);
+                } else {
+                  setEditingId(action.id);
+                  setEditPayload({ ...action.payload });
+                }
+              }} className="pending-action__edit-btn">
+                {editingId === action.id ? 'Cancel Edit' : 'Edit'}
               </button>
               <button type="button" onClick={() => handleReject(action.id)} className="pending-action__reject-btn">
                 Reject

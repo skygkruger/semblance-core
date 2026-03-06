@@ -87,8 +87,17 @@ export class GoogleDriveAdapter implements ServiceAdapter {
     authUrl.searchParams.set('access_type', 'offline');
     authUrl.searchParams.set('prompt', 'consent');
 
-    // TODO: Sprint 4 — Open authUrl in the user's browser via Tauri shell plugin
-    // For now, return the auth URL for the frontend to open
+    // Open the auth URL in the user's default browser
+    try {
+      const { exec } = await import('node:child_process');
+      const url = authUrl.toString();
+      const platform = process.platform;
+      if (platform === 'win32') exec(`start "" "${url}"`);
+      else if (platform === 'darwin') exec(`open "${url}"`);
+      else exec(`xdg-open "${url}"`);
+    } catch {
+      // Browser open failed — user will need to open the URL manually
+    }
 
     try {
       const { code } = await callbackServer.waitForCallback();

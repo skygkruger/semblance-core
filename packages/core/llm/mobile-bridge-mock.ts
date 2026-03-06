@@ -1,6 +1,6 @@
-// Mock implementations of MobileInferenceBridge for testing.
-// MockMLXBridge simulates iOS MLX inference.
-// MockLlamaCppBridge simulates Android llama.cpp inference.
+// Test implementations of MobileInferenceBridge.
+// TestMLXBridge emulates iOS MLX inference.
+// TestLlamaCppBridge emulates Android llama.cpp inference.
 // Both return deterministic responses for predictable tests.
 // CRITICAL: No network imports. No platform imports.
 
@@ -13,10 +13,10 @@ import type {
 } from './mobile-bridge-types.js';
 
 /**
- * MockMLXBridge — Simulates iOS MLX native module for testing.
+ * TestMLXBridge — Emulates iOS MLX native module for testing.
  * Returns deterministic responses. Model loading is instant.
  */
-export class MockMLXBridge implements MobileInferenceBridge {
+export class TestMLXBridge implements MobileInferenceBridge {
   private loaded: boolean = false;
   private modelPath: string | null = null;
   private options: MobileModelOptions | null = null;
@@ -28,7 +28,7 @@ export class MockMLXBridge implements MobileInferenceBridge {
   }
 
   async *generate(prompt: string, options: MobileGenerateOptions): AsyncIterable<string> {
-    if (!this.loaded) throw new Error('[MockMLXBridge] No model loaded');
+    if (!this.loaded) throw new Error('[TestMLXBridge] No model loaded');
 
     const response = `[MLX] Response to: ${prompt.slice(0, 50)}`;
     const tokens = response.split(' ');
@@ -38,7 +38,7 @@ export class MockMLXBridge implements MobileInferenceBridge {
   }
 
   async embed(text: string): Promise<number[]> {
-    if (!this.loaded) throw new Error('[MockMLXBridge] No model loaded');
+    if (!this.loaded) throw new Error('[TestMLXBridge] No model loaded');
     // Return a deterministic 384-dim embedding based on text length
     const dim = 384;
     const embedding: number[] = [];
@@ -71,10 +71,10 @@ export class MockMLXBridge implements MobileInferenceBridge {
 }
 
 /**
- * MockLlamaCppBridge — Simulates Android llama.cpp native module for testing.
+ * TestLlamaCppBridge — Emulates Android llama.cpp native module for testing.
  * Returns deterministic responses. Model loading is instant.
  */
-export class MockLlamaCppBridge implements MobileInferenceBridge {
+export class TestLlamaCppBridge implements MobileInferenceBridge {
   private loaded: boolean = false;
   private modelPath: string | null = null;
   private options: MobileModelOptions | null = null;
@@ -86,7 +86,7 @@ export class MockLlamaCppBridge implements MobileInferenceBridge {
   }
 
   async *generate(prompt: string, options: MobileGenerateOptions): AsyncIterable<string> {
-    if (!this.loaded) throw new Error('[MockLlamaCppBridge] No model loaded');
+    if (!this.loaded) throw new Error('[TestLlamaCppBridge] No model loaded');
 
     const response = `[LlamaCpp] Response to: ${prompt.slice(0, 50)}`;
     const tokens = response.split(' ');
@@ -96,7 +96,7 @@ export class MockLlamaCppBridge implements MobileInferenceBridge {
   }
 
   async embed(text: string): Promise<number[]> {
-    if (!this.loaded) throw new Error('[MockLlamaCppBridge] No model loaded');
+    if (!this.loaded) throw new Error('[TestLlamaCppBridge] No model loaded');
     const dim = 384;
     const embedding: number[] = [];
     for (let i = 0; i < dim; i++) {

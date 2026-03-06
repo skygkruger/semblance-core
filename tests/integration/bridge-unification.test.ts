@@ -2,7 +2,7 @@
  * Bridge Unification + InferenceRouter Wiring Tests
  *
  * Verifies:
- * - Platform selection: iOS → MockMLXBridge, Android → MockLlamaCppBridge
+ * - Platform selection: iOS → TestMLXBridge, Android → TestLlamaCppBridge
  * - InferenceRouter accepts mobile bridge, routes correctly
  * - MobileProvider wraps bridge into LLMProvider interface
  * - Tier classification on mobile
@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MockMLXBridge, MockLlamaCppBridge } from '../../packages/core/llm/mobile-bridge-mock.js';
+import { TestMLXBridge, TestLlamaCppBridge } from '../../packages/core/llm/mobile-bridge-mock.js';
 import { MobileProvider } from '../../packages/core/llm/mobile-provider.js';
 import { InferenceRouter } from '../../packages/core/llm/inference-router.js';
 import { classifyMobileDevice, describeMobileProfile } from '../../packages/core/llm/mobile-bridge-types.js';
@@ -22,13 +22,13 @@ describe('Bridge Unification + InferenceRouter Wiring', () => {
   // ─── Platform Selection ─────────────────────────────────────────────────
 
   describe('platform selection', () => {
-    it('MockMLXBridge reports ios platform', () => {
-      const bridge = new MockMLXBridge();
+    it('TestMLXBridge reports ios platform', () => {
+      const bridge = new TestMLXBridge();
       expect(bridge.getPlatform()).toBe('ios');
     });
 
-    it('MockLlamaCppBridge reports android platform', () => {
-      const bridge = new MockLlamaCppBridge();
+    it('TestLlamaCppBridge reports android platform', () => {
+      const bridge = new TestLlamaCppBridge();
       expect(bridge.getPlatform()).toBe('android');
     });
   });
@@ -40,7 +40,7 @@ describe('Bridge Unification + InferenceRouter Wiring', () => {
     let provider: MobileProvider;
 
     beforeEach(async () => {
-      bridge = new MockMLXBridge();
+      bridge = new TestMLXBridge();
       provider = new MobileProvider({ bridge, modelName: 'llama-3.2-3b' });
       await bridge.loadModel('/models/test.gguf', {
         contextLength: 2048,
@@ -54,7 +54,7 @@ describe('Bridge Unification + InferenceRouter Wiring', () => {
     });
 
     it('isAvailable returns false when model not loaded', async () => {
-      const emptyBridge = new MockMLXBridge();
+      const emptyBridge = new TestMLXBridge();
       const emptyProvider = new MobileProvider({ bridge: emptyBridge });
       expect(await emptyProvider.isAvailable()).toBe(false);
     });
@@ -98,12 +98,12 @@ describe('Bridge Unification + InferenceRouter Wiring', () => {
   // ─── InferenceRouter with Mobile Provider ───────────────────────────────
 
   describe('InferenceRouter with mobile provider', () => {
-    let mlxBridge: MockMLXBridge;
+    let mlxBridge: TestMLXBridge;
     let mobileProvider: MobileProvider;
     let router: InferenceRouter;
 
     beforeEach(async () => {
-      mlxBridge = new MockMLXBridge();
+      mlxBridge = new TestMLXBridge();
       await mlxBridge.loadModel('/models/test.gguf', {
         contextLength: 2048,
         batchSize: 32,
@@ -183,7 +183,7 @@ describe('Bridge Unification + InferenceRouter Wiring', () => {
 
   describe('fallback when model not loaded', () => {
     it('MobileProvider.isAvailable returns false with unloaded bridge', async () => {
-      const bridge = new MockLlamaCppBridge();
+      const bridge = new TestLlamaCppBridge();
       const provider = new MobileProvider({ bridge });
       expect(await provider.isAvailable()).toBe(false);
     });
@@ -276,8 +276,8 @@ describe('Bridge Unification + InferenceRouter Wiring', () => {
   // ─── Mock Bridge Acid Tests ─────────────────────────────────────────────
 
   describe('mock bridges return non-placeholder text', () => {
-    it('MockMLXBridge generate returns non-placeholder', async () => {
-      const bridge = new MockMLXBridge();
+    it('TestMLXBridge generate returns non-placeholder', async () => {
+      const bridge = new TestMLXBridge();
       await bridge.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
 
       let text = '';
@@ -290,8 +290,8 @@ describe('Bridge Unification + InferenceRouter Wiring', () => {
       expect(text.toLowerCase()).not.toContain('not implemented');
     });
 
-    it('MockLlamaCppBridge generate returns non-placeholder', async () => {
-      const bridge = new MockLlamaCppBridge();
+    it('TestLlamaCppBridge generate returns non-placeholder', async () => {
+      const bridge = new TestLlamaCppBridge();
       await bridge.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
 
       let text = '';
@@ -305,8 +305,8 @@ describe('Bridge Unification + InferenceRouter Wiring', () => {
     });
 
     it('MLX and LlamaCpp bridges produce different outputs', async () => {
-      const mlx = new MockMLXBridge();
-      const llama = new MockLlamaCppBridge();
+      const mlx = new TestMLXBridge();
+      const llama = new TestLlamaCppBridge();
       await mlx.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
       await llama.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
 

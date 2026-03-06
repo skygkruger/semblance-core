@@ -1,8 +1,8 @@
 // Desktop Location Adapter — Platform-specific location integration.
 //
 // Desktop doesn't have meaningful GPS, so:
-// - Dev/test: createMockLocationAdapter() provides configurable location + simulateMove
-// - Production: createDesktopLocationAdapter() delegates to mock with default coords
+// - Dev/test: createConfigurableLocationAdapter() provides configurable location + simulateMove
+// - Production: createDesktopLocationAdapter() returns a configured adapter with default coords
 //
 // Travel time estimation is NOT available on desktop (returns null).
 // Geocoding is NOT available on desktop (returns null).
@@ -14,10 +14,10 @@ import type {
 } from './location-types.js';
 
 /**
- * Create a mock location adapter for development and testing.
+ * Create a configurable location adapter for development and testing.
  * Accepts configurable coordinates, permission state, and simulateMove().
  */
-export function createMockLocationAdapter(options?: {
+export function createConfigurableLocationAdapter(options?: {
   coordinate?: LocationCoordinate;
   permission?: 'authorized' | 'denied' | 'undetermined';
   accuracyMeters?: number;
@@ -76,13 +76,13 @@ export function createMockLocationAdapter(options?: {
 
 /**
  * Create the desktop location adapter.
- * Desktop doesn't have meaningful GPS — delegates to mock adapter.
+ * Desktop doesn't have meaningful GPS — uses a configurable adapter.
  * Travel time estimation returns null on desktop.
  */
 export function createDesktopLocationAdapter(platform: string): LocationAdapter {
-  // No native location API on desktop platforms
-  // TODO(Sprint 4): Wire up @tauri-apps/plugin-geolocation when available
-  const mock = createMockLocationAdapter({
+  // Desktop has no native GPS. Location is set manually via Settings > Location.
+  // The stored city/coordinates are injected at the app init layer.
+  const mock = createConfigurableLocationAdapter({
     coordinate: { latitude: 0, longitude: 0 },
     permission: 'undetermined',
   });

@@ -3,7 +3,7 @@
 // and InferenceRouter platform-aware routing.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MockMLXBridge, MockLlamaCppBridge } from '@semblance/core/llm/mobile-bridge-mock.js';
+import { TestMLXBridge, TestLlamaCppBridge } from '@semblance/core/llm/mobile-bridge-mock.js';
 import { MobileProvider } from '@semblance/core/llm/mobile-provider.js';
 import { InferenceRouter } from '@semblance/core/llm/inference-router.js';
 import {
@@ -40,13 +40,13 @@ function makeMockDesktopProvider(): LLMProvider {
   };
 }
 
-// ─── MockMLXBridge Tests ────────────────────────────────────────────────────
+// ─── TestMLXBridge Tests ────────────────────────────────────────────────────
 
-describe('MockMLXBridge (iOS)', () => {
-  let bridge: MockMLXBridge;
+describe('TestMLXBridge (iOS)', () => {
+  let bridge: TestMLXBridge;
 
   beforeEach(() => {
-    bridge = new MockMLXBridge();
+    bridge = new TestMLXBridge();
   });
 
   it('reports platform as ios', () => {
@@ -108,13 +108,13 @@ describe('MockMLXBridge (iOS)', () => {
   });
 });
 
-// ─── MockLlamaCppBridge Tests ───────────────────────────────────────────────
+// ─── TestLlamaCppBridge Tests ───────────────────────────────────────────────
 
-describe('MockLlamaCppBridge (Android)', () => {
-  let bridge: MockLlamaCppBridge;
+describe('TestLlamaCppBridge (Android)', () => {
+  let bridge: TestLlamaCppBridge;
 
   beforeEach(() => {
-    bridge = new MockLlamaCppBridge();
+    bridge = new TestLlamaCppBridge();
   });
 
   it('reports platform as android', () => {
@@ -133,7 +133,7 @@ describe('MockLlamaCppBridge (Android)', () => {
   });
 
   it('embedding differs from MLX (cosine vs sine)', async () => {
-    const mlx = new MockMLXBridge();
+    const mlx = new TestMLXBridge();
     await mlx.loadModel('/path/to/model.gguf', MOBILE_MODEL_DEFAULTS.capable);
     await bridge.loadModel('/path/to/model.gguf', MOBILE_MODEL_DEFAULTS.capable);
 
@@ -150,11 +150,11 @@ describe('MockLlamaCppBridge (Android)', () => {
 // ─── MobileProvider Tests ───────────────────────────────────────────────────
 
 describe('MobileProvider', () => {
-  let bridge: MockMLXBridge;
+  let bridge: TestMLXBridge;
   let provider: MobileProvider;
 
   beforeEach(async () => {
-    bridge = new MockMLXBridge();
+    bridge = new TestMLXBridge();
     await bridge.loadModel('/path/to/model.gguf', MOBILE_MODEL_DEFAULTS.capable);
     provider = new MobileProvider({ bridge });
   });
@@ -296,7 +296,7 @@ describe('InferenceRouter with mobile support', () => {
   });
 
   it('uses mobile provider when on mobile platform', async () => {
-    const bridge = new MockMLXBridge();
+    const bridge = new TestMLXBridge();
     await bridge.loadModel('/model.gguf', MOBILE_MODEL_DEFAULTS.capable);
     const mobileProvider = new MobileProvider({ bridge });
 
@@ -365,7 +365,7 @@ describe('InferenceRouter with mobile support', () => {
     expect(result.text).toBe('Desktop response');
 
     // Now set mobile provider
-    const bridge = new MockLlamaCppBridge();
+    const bridge = new TestLlamaCppBridge();
     await bridge.loadModel('/model.gguf', MOBILE_MODEL_DEFAULTS.capable);
     const mobileProvider = new MobileProvider({ bridge });
 
@@ -388,7 +388,7 @@ describe('InferenceRouter with mobile support', () => {
   });
 
   it('isMobileReady returns true when mobile provider is loaded', async () => {
-    const bridge = new MockMLXBridge();
+    const bridge = new TestMLXBridge();
     await bridge.loadModel('/model.gguf', MOBILE_MODEL_DEFAULTS.capable);
     const mobileProvider = new MobileProvider({ bridge });
 
@@ -405,7 +405,7 @@ describe('InferenceRouter with mobile support', () => {
   });
 
   it('routedChat uses mobile provider on mobile', async () => {
-    const bridge = new MockMLXBridge();
+    const bridge = new TestMLXBridge();
     await bridge.loadModel('/model.gguf', MOBILE_MODEL_DEFAULTS.capable);
     const mobileProvider = new MobileProvider({ bridge });
 

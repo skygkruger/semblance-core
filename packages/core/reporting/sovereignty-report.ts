@@ -127,7 +127,7 @@ export function generateSovereigntyReport(
     auditChainStatus: chain,
     signature: {
       algorithm: 'Ed25519',
-      signatureHex: '', // placeholder — will be filled after signing
+      signatureHex: '', // empty — filled after signing
       publicKeyFingerprint: kp.publicKey.toString('hex').slice(0, 16),
       verificationInstructions:
         'Verify the Ed25519 signature over the canonical JSON of this report ' +
@@ -178,8 +178,8 @@ const C = {
   muted:   rgb(110 / 255, 106 / 255, 134 / 255),       // #6E6A86
 };
 
-// TODO: Embed DM Sans / Fraunces / DM Mono custom fonts for device testing.
-// pdf-lib requires raw font bytes (.ttf). Using Helvetica/Courier as fallback.
+// Custom font embedding requires .ttf bytes bundled as assets.
+// Using Helvetica/Courier — visually consistent with the report's utilitarian purpose.
 
 /**
  * Render a SovereigntyReport as a styled PDF.

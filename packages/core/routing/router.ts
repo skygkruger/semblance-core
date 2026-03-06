@@ -1,7 +1,7 @@
 // Task Router — Routing Decision Engine
 // Matches tasks to the best available device based on requirements and capabilities.
 // CRITICAL: No networking imports. Pure logic — routing decisions only.
-// Actual task delegation (sending tasks between devices) is Sprint 3.
+// Actual task delegation (sending tasks between devices) uses the device-handoff protocol.
 
 import { DeviceRegistry } from './device-registry.js';
 import type { DeviceCapabilities, TaskRequirements } from './device-registry.js';

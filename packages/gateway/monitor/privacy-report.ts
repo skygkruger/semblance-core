@@ -1,7 +1,6 @@
 // Privacy Report Generator
 // Produces a human-readable summary of network activity over a user-selected period.
-// Sprint 2 scope: structured export with summary — not yet cryptographically signed.
-// Cryptographic signing is Sprint 4 (requires full Privacy Dashboard infrastructure).
+// Structured export with summary. Cryptographic signing requires Privacy Dashboard infrastructure.
 
 import type Database from 'better-sqlite3';
 import { sha256 } from '@semblance/core';

@@ -18,6 +18,7 @@ import {
 } from '@semblance/ui';
 import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier } from '@semblance/ui';
 import { detectOSLocale } from '@semblance/core/i18n/supported-languages';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { useAppDispatch } from '../state/AppState';
 import { useSound } from '../sound/SoundEngineContext';
 import {
@@ -163,30 +164,43 @@ export function OnboardingFlow() {
         play('initialize');
       });
 
-    // Simulate download progress until backend sends real events
-    // TODO: Sprint 2 — replace with Tauri event listener for download_progress events
-    const progressInterval = setInterval(() => {
+    // Listen for real download progress events from the sidecar
+    let unlisten: UnlistenFn | undefined;
+    listen<{
+      modelId: string;
+      modelName: string;
+      totalBytes: number;
+      downloadedBytes: number;
+      speedBytesPerSec: number;
+      status: 'pending' | 'downloading' | 'complete' | 'error';
+      error?: string;
+    }>('model-download-progress', (event) => {
+      const p = event.payload;
       setDownloads(prev => {
-        const allDone = prev.every(d => d.status === 'complete');
-        if (allDone) {
-          clearInterval(progressInterval);
-          return prev;
+        const idx = prev.findIndex(d => d.modelName === p.modelName);
+        if (idx === -1) {
+          return [...prev, {
+            modelName: p.modelName,
+            totalBytes: p.totalBytes,
+            downloadedBytes: p.downloadedBytes,
+            speedBytesPerSec: p.speedBytesPerSec,
+            status: p.status,
+          }];
         }
-        return prev.map(d => {
-          if (d.status === 'complete') return d;
-          const increment = d.totalBytes * 0.15;
-          const next = Math.min(d.downloadedBytes + increment, d.totalBytes);
-          return {
-            ...d,
-            downloadedBytes: next,
-            speedBytesPerSec: increment,
-            status: next >= d.totalBytes ? 'complete' as const : 'downloading' as const,
-          };
-        });
+        const existing = prev[idx]!;
+        const updated = [...prev];
+        updated[idx] = {
+          modelName: existing.modelName,
+          totalBytes: p.totalBytes,
+          downloadedBytes: p.downloadedBytes,
+          speedBytesPerSec: p.speedBytesPerSec,
+          status: p.status,
+        };
+        return updated;
       });
-    }, 800);
+    }).then((fn) => { unlisten = fn; });
 
-    return () => clearInterval(progressInterval);
+    return () => { unlisten?.(); };
   }, [step, hardwareInfo]);
 
   // Handle naming moment (user's name)

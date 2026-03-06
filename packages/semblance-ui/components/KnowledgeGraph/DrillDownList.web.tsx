@@ -4,31 +4,11 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { WireframeSpinner } from '../WireframeSpinner/WireframeSpinner.web';
+import { WireframeSpinner } from '../WireframeSpinner';
 import './drill-down-list.css';
+import type { DrillDownItem, DrillDownListProps } from './DrillDownList.types';
 
-export interface DrillDownItem {
-  chunkId: string;
-  title: string;
-  preview: string;
-  source: string;
-  category: string;
-  indexedAt: string;
-  mimeType?: string;
-}
-
-export interface DrillDownListProps {
-  category: string;
-  categoryLabel: string;
-  categoryColor: string;
-  items: DrillDownItem[];
-  total: number;
-  loading: boolean;
-  onSearch: (query: string) => void;
-  onLoadMore: () => void;
-  onItemClick: (item: DrillDownItem) => void;
-  hasMore: boolean;
-}
+export type { DrillDownItem, DrillDownListProps };
 
 function formatDate(iso: string): string {
   try {

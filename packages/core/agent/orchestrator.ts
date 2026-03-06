@@ -15,6 +15,7 @@ import type { KnowledgeCurator } from '../knowledge/knowledge-curator.js';
 import type { VisualizationCategory } from '../knowledge/connector-category-map.js';
 import type { IPCClient } from './ipc-client.js';
 import { AutonomyManager, type AutonomyDecision } from './autonomy.js';
+import { ARTIFACT_SYSTEM_PROMPT } from './artifact-parser.js';
 import type {
   AgentAction,
   ConversationTurn,
@@ -436,19 +437,7 @@ Available tools:
 
 Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.
 
-// TODO: Consolidate — import ARTIFACT_SYSTEM_PROMPT from artifact-parser.ts instead of duplicating inline.
-// Currently duplicated here and in artifact-parser.ts. Unify to single source before Sprint 6 ship.
-When generating structured content (code snippets longer than 5 lines, generated documents, data tables, or formatted content the user might want to save), wrap it in artifact tags:
-<artifact type="code" title="Description" language="typescript">
-// code here
-</artifact>
-Supported artifact types: markdown, text, code, html, csv, json.
-
-Do NOT use artifact tags for:
-- Brief inline code references or short one-liners
-- Short answers or explanations
-- Conversational responses
-- Lists or bullet points that are part of a natural reply
+${ARTIFACT_SYSTEM_PROMPT}
 
 ${INJECTION_CANARY}`;
 

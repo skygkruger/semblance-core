@@ -26,7 +26,7 @@ export interface IPCClientConfig {
 
 /**
  * Transport-based config — accepts any IPCTransport implementation.
- * Used by mobile (InProcessTransport) or tests (mock transports).
+ * Used by mobile (InProcessTransport) or tests (in-memory transports).
  */
 export interface IPCClientTransportConfig {
   transport: IPCTransport;

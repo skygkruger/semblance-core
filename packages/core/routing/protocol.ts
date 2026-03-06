@@ -1,6 +1,5 @@
 // Cross-Device Communication Protocol Types
-// Sprint 2 scope: DEFINE the protocol interfaces only.
-// Actual task delegation between devices is Sprint 3.
+// Protocol interface definitions for inter-device task delegation.
 // CRITICAL: No networking imports. Type definitions only.
 
 import type { TaskDescription } from './task-assessor.js';
@@ -51,24 +50,24 @@ export interface IncomingDelegation {
 
 /**
  * TaskDelegationProtocol defines how devices discover each other
- * and delegate tasks. Sprint 2 defines the interface — Sprint 3 implements it.
+ * and delegate tasks.
  *
- * Implementation requirements (Sprint 3):
+ * Implementation requirements:
  * - mDNS/Bonjour for local network discovery
  * - Mutual TLS authentication (NO unauthenticated local connections)
  * - IPC action request format over local TLS
  * - Graceful fallback to local execution if desktop unavailable
  */
 export interface TaskDelegationProtocol {
-  /** Discover devices on the local network. Sprint 3 implementation. */
+  /** Discover devices on the local network. */
   discoverDevices(): Promise<DiscoveredDevice[]>;
 
-  /** Delegate a task to another device. Sprint 3 implementation. */
+  /** Delegate a task to another device. */
   delegateTask(deviceId: string, task: TaskDescription, payload: unknown): Promise<DelegationResult>;
 
-  /** Check status of a delegated task. Sprint 3 implementation. */
+  /** Check status of a delegated task. */
   checkStatus(delegationId: string): Promise<DelegationStatus>;
 
-  /** Receive a delegated task (called on target device). Sprint 3 implementation. */
+  /** Receive a delegated task (called on target device). */
   receiveTask(delegation: IncomingDelegation): Promise<void>;
 }

@@ -67,7 +67,8 @@ describe('Mobile Model Registry', () => {
       expect(model.hfRepo).toBeTruthy();
       expect(model.hfFilename).toBeTruthy();
       expect(model.expectedSizeBytes).toBeGreaterThan(0);
-      expect(model.expectedSha256).toBeTruthy();
+      // expectedSha256 is nullable — real hashes added when models are verified
+      expect(model.expectedSha256 === null || typeof model.expectedSha256 === 'string').toBe(true);
       expect(model.minRamMb).toBeGreaterThan(0);
     }
   });

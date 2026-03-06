@@ -1,10 +1,10 @@
 // Desktop Voice Adapter — Platform-specific voice integration.
 //
-// Dev/test: createMockVoiceAdapter() provides configurable transcription/synthesis results.
-// Production: createDesktopVoiceAdapter() delegates to mock with TODO for Tauri wiring.
+// Dev/test: createConfigurableVoiceAdapter() provides configurable transcription/synthesis results.
+// Production: createDesktopVoiceAdapter() returns a not-ready adapter until Tauri audio
+//   plugins (Whisper.cpp STT, Piper TTS) are wired in the desktop app init layer.
 //
 // CRITICAL: No network imports. All voice processing is local.
-// CRITICAL: Zero instances of the word that rhymes with "sketch" in this file.
 
 import type {
   VoiceAdapter,
@@ -17,10 +17,10 @@ import type {
 } from './voice-types.js';
 
 /**
- * Create a mock voice adapter for development and testing.
+ * Create a configurable voice adapter for development and testing.
  * Accepts configurable transcription/synthesis results.
  */
-export function createMockVoiceAdapter(options?: {
+export function createConfigurableVoiceAdapter(options?: {
   micPermission?: boolean;
   sttReady?: boolean;
   ttsReady?: boolean;
@@ -142,7 +142,7 @@ export function createMockVoiceAdapter(options?: {
     },
 
     async releaseModels() {
-      // Nothing to release in mock
+      // Nothing to release in dev adapter
     },
   };
 }
@@ -150,23 +150,21 @@ export function createMockVoiceAdapter(options?: {
 /**
  * Create the desktop voice adapter.
  * Desktop uses Whisper.cpp (STT) and Piper (TTS) via Tauri sidecar binaries.
- * Currently delegates to mock adapter.
+ * Returns a not-ready adapter — voice features are gated by isSTTReady()/isTTSReady().
+ * Wiring Tauri audio capture, Whisper.cpp, and Piper happens in the desktop app init layer.
  */
 export function createDesktopVoiceAdapter(): VoiceAdapter {
-  // TODO(Sprint 4): Wire up Tauri audio capture via @tauri-apps/plugin-audio
-  // TODO(Sprint 4): Wire up Whisper.cpp sidecar binary for STT
-  // TODO(Sprint 4): Wire up Piper sidecar binary for TTS
-  const mock = createMockVoiceAdapter({
-    micPermission: false,
-    sttReady: false,
-    ttsReady: false,
-    transcriptionResult: {
-      text: '',
-      confidence: 0,
-      durationMs: 0,
-      language: 'en',
-    },
-  });
-
-  return mock;
+  return {
+    async hasMicrophonePermission() { return false; },
+    async requestMicrophonePermission() { return false; },
+    async isSTTReady() { return false; },
+    async isTTSReady() { return false; },
+    async startCapture() { throw new Error('Voice capture not available on this device.'); },
+    async transcribe() { throw new Error('Speech-to-text not available on this device.'); },
+    async synthesize() { throw new Error('Text-to-speech not available on this device.'); },
+    async playAudio() { /* no-op — voice not available */ },
+    async stopPlayback() { /* no-op — voice not available */ },
+    async getAvailableVoices() { return []; },
+    async releaseModels() { /* no-op — no models loaded */ },
+  };
 }

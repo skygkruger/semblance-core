@@ -2,7 +2,7 @@
 // memory budget, and barrel import verification.
 
 import { describe, it, expect } from 'vitest';
-import { createMockVoiceAdapter } from '../../packages/core/platform/desktop-voice';
+import { createConfigurableVoiceAdapter } from '../../packages/core/platform/desktop-voice';
 import {
   WhisperModelManager,
   PiperModelManager,
@@ -33,7 +33,7 @@ function makeProfile(totalRamMb = 16384): HardwareProfile {
 
 describe('Voice E2E Integration', () => {
   it('full voice conversation loop: activate → transcribe → speak → deactivate', async () => {
-    const adapter = createMockVoiceAdapter({
+    const adapter = createConfigurableVoiceAdapter({
       transcriptionResult: {
         text: 'What time is my next meeting?',
         confidence: 0.92,
@@ -71,7 +71,7 @@ describe('Voice E2E Integration', () => {
   });
 
   it('voice routes to weather tool: transcription "What\'s the weather?" → recognized', async () => {
-    const adapter = createMockVoiceAdapter({
+    const adapter = createConfigurableVoiceAdapter({
       transcriptionResult: {
         text: "What's the weather like today?",
         confidence: 0.95,
@@ -94,7 +94,7 @@ describe('Voice E2E Integration', () => {
   });
 
   it('voice creates location reminder: transcription → reminder with location trigger', async () => {
-    const adapter = createMockVoiceAdapter({
+    const adapter = createConfigurableVoiceAdapter({
       transcriptionResult: {
         text: 'Remind me to buy milk when I get to the grocery store.',
         confidence: 0.88,

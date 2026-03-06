@@ -41,12 +41,12 @@ export interface CategoryLegendItem {
 }
 
 export interface DrillDownConfig {
-  items: import('./DrillDownList.web').DrillDownItem[];
+  items: import('./DrillDownList.types').DrillDownItem[];
   total: number;
   loading: boolean;
   onSearch: (query: string) => void;
   onLoadMore: () => void;
-  onItemClick: (item: import('./DrillDownList.web').DrillDownItem) => void;
+  onItemClick: (item: import('./DrillDownList.types').DrillDownItem) => void;
   hasMore: boolean;
 }
 

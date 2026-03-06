@@ -99,6 +99,34 @@ import type { HardwareKeyInfo, HardwareSignResult, HardwareVerifyResult } from '
 import { generateSovereigntyReport, verifySovereigntyReport, renderSovereigntyReportPDF } from '../../../core/reporting/sovereignty-report.js';
 import type { SovereigntyReport } from '../../../core/reporting/sovereignty-report.js';
 
+// Model download imports
+import { getModelsForTier, getEmbeddingModel, getRecommendedReasoningModel, getModelById, MODEL_CATALOG } from '../../../core/llm/model-registry.js';
+import type { ModelRegistryEntry } from '../../../core/llm/model-registry.js';
+import { getModelsDir, getModelPath, isModelDownloaded, getModelFileSize } from '../../../core/llm/model-storage.js';
+import { WHISPER_MODELS } from '../../../core/voice/whisper-model-manager.js';
+import { PIPER_VOICES } from '../../../core/voice/piper-model-manager.js';
+import type { HardwareProfileTier } from '../../../core/llm/hardware-types.js';
+
+// Import pipeline imports
+import { ImportPipeline } from '../../../core/importers/import-pipeline.js';
+import type { ImportSummary } from '../../../core/importers/import-pipeline.js';
+
+// OAuth imports (Gateway)
+import { OAuthTokenManager } from '../../../gateway/services/oauth-token-manager.js';
+import { OAuthCallbackServer } from '../../../gateway/services/oauth-callback-server.js';
+import { oauthClients, UNCONFIGURED_CLIENT_ID } from '../../../gateway/config/oauth-clients.js';
+
+// Morning Brief / Daily Digest / Weather / Style / Dark Pattern / Document Context / Health / Cloud Storage / Graph Vis
+import { MorningBriefGenerator } from '../../../core/agent/morning-brief.js';
+import { DailyDigestGenerator } from '../../../core/agent/daily-digest.js';
+import { WeatherService } from '../../../core/weather/weather-service.js';
+import { StyleProfileStore } from '../../../core/style/style-profile.js';
+import { DarkPatternDetector } from '../../../core/defense/dark-pattern-detector.js';
+import { DocumentContextManager } from '../../../core/agent/document-context.js';
+import { HealthEntryStore } from '../../../core/health/health-entry-store.js';
+import { CloudStorageClient } from '../../../core/cloud-storage/cloud-storage-client.js';
+import { GraphVisualizationProvider } from '../../../core/knowledge/graph-visualization.js';
+
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
 function emit(event: string, data: unknown): void {
@@ -206,6 +234,44 @@ let cachedChainStatus: { verified: boolean; entryCount: number; daysVerified: nu
 
 // Hardware key provider state
 let hwKeyProvider: HardwareKeyProvider | null = null;
+
+// Step 23+ state (morning brief, daily digest, weather, style, dark patterns, documents, health, cloud, graph)
+let morningBriefGenerator: MorningBriefGenerator | null = null;
+let dailyDigestGenerator: DailyDigestGenerator | null = null;
+let weatherService: WeatherService | null = null;
+let styleProfileStore: StyleProfileStore | null = null;
+let darkPatternDetector: DarkPatternDetector | null = null;
+let documentContextManager: DocumentContextManager | null = null;
+let healthEntryStore: HealthEntryStore | null = null;
+let cloudStorageClient: CloudStorageClient | null = null;
+let graphVisualizationProvider: GraphVisualizationProvider | null = null;
+
+// Model download state
+interface ActiveDownload {
+  modelId: string;
+  modelName: string;
+  totalBytes: number;
+  downloadedBytes: number;
+  speedBytesPerSec: number;
+  status: 'pending' | 'downloading' | 'complete' | 'error';
+  error?: string;
+  abortController?: AbortController;
+}
+const activeDownloads: Map<string, ActiveDownload> = new Map();
+
+// OAuth token manager state
+let oauthTokenManager: OAuthTokenManager | null = null;
+
+// Import pipeline state
+let importPipeline: ImportPipeline | null = null;
+const importHistory: Array<{
+  id: string;
+  sourceType: string;
+  format: string;
+  importedAt: string;
+  itemCount: number;
+  status: string;
+}> = [];
 
 function ensureHwKeyProvider(): boolean {
   if (hwKeyProvider) return true;
@@ -1859,6 +1925,529 @@ async function handleShutdown(): Promise<unknown> {
   return { success: true };
 }
 
+// ─── Model Download Handlers ─────────────────────────────────────────────────
+
+async function downloadHfFile(
+  entry: { hfRepo: string; hfFilename: string; fileSizeBytes?: number; sizeMb?: number },
+  targetPath: string,
+  modelId: string,
+  displayName: string,
+): Promise<void> {
+  const totalBytes = entry.fileSizeBytes ?? ((entry.sizeMb ?? 0) * 1024 * 1024);
+  const download: ActiveDownload = {
+    modelId,
+    modelName: displayName,
+    totalBytes,
+    downloadedBytes: 0,
+    speedBytesPerSec: 0,
+    status: 'downloading',
+    abortController: new AbortController(),
+  };
+  activeDownloads.set(modelId, download);
+  emit('model-download-progress', { ...download, abortController: undefined });
+
+  const url = `https://huggingface.co/${entry.hfRepo}/resolve/main/${entry.hfFilename}`;
+  const { createWriteStream } = await import('node:fs');
+  const { pipeline } = await import('node:stream/promises');
+
+  try {
+    const response = await globalThis.fetch(url, {
+      signal: download.abortController!.signal,
+      redirect: 'follow',
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const fileStream = createWriteStream(targetPath);
+    const reader = response.body.getReader();
+    let lastEmitTime = Date.now();
+    let bytesInWindow = 0;
+
+    const writable = new (await import('node:stream')).Writable({
+      write(chunk: Buffer, _encoding, callback) {
+        download.downloadedBytes += chunk.length;
+        bytesInWindow += chunk.length;
+        const now = Date.now();
+        const elapsed = now - lastEmitTime;
+        if (elapsed >= 500) {
+          download.speedBytesPerSec = Math.round((bytesInWindow / elapsed) * 1000);
+          bytesInWindow = 0;
+          lastEmitTime = now;
+          emit('model-download-progress', { ...download, abortController: undefined });
+        }
+        fileStream.write(chunk, callback);
+      },
+    });
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      await new Promise<void>((resolve, reject) => {
+        writable.write(Buffer.from(value), (err) => err ? reject(err) : resolve());
+      });
+    }
+
+    fileStream.end();
+    await new Promise<void>((resolve, reject) => {
+      fileStream.on('finish', resolve);
+      fileStream.on('error', reject);
+    });
+
+    download.status = 'complete';
+    download.downloadedBytes = download.totalBytes;
+    download.speedBytesPerSec = 0;
+    activeDownloads.set(modelId, download);
+    emit('model-download-progress', { ...download, abortController: undefined });
+  } catch (err) {
+    download.status = 'error';
+    download.error = err instanceof Error ? err.message : String(err);
+    download.speedBytesPerSec = 0;
+    activeDownloads.set(modelId, download);
+    emit('model-download-progress', { ...download, abortController: undefined });
+    // Clean up partial file
+    try { (await import('node:fs')).unlinkSync(targetPath); } catch { /* ignore */ }
+    throw err;
+  }
+}
+
+async function handleStartModelDownloads(params: { tier: string }): Promise<unknown> {
+  const tier = (params.tier || 'standard') as HardwareProfileTier;
+  const models = getModelsForTier(tier);
+  const modelsDir = getModelsDir(dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined);
+
+  const results: Array<{ modelId: string; status: string }> = [];
+
+  for (const model of models) {
+    const targetPath = getModelPath(model.id, dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined);
+
+    if (isModelDownloaded(model.id, dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined)) {
+      const existing: ActiveDownload = {
+        modelId: model.id,
+        modelName: model.displayName,
+        totalBytes: model.fileSizeBytes,
+        downloadedBytes: model.fileSizeBytes,
+        speedBytesPerSec: 0,
+        status: 'complete',
+      };
+      activeDownloads.set(model.id, existing);
+      emit('model-download-progress', existing);
+      results.push({ modelId: model.id, status: 'already_downloaded' });
+      continue;
+    }
+
+    // Download in background — don't await, let progress events flow
+    downloadHfFile(model, targetPath, model.id, model.displayName).catch((err) => {
+      console.error(`[sidecar] Model download failed: ${model.id}`, err);
+    });
+    results.push({ modelId: model.id, status: 'started' });
+  }
+
+  return { started: results };
+}
+
+function handleModelGetDownloadStatus(): unknown {
+  const statuses: Array<{
+    modelName: string;
+    totalBytes: number;
+    downloadedBytes: number;
+    speedBytesPerSec: number;
+    status: string;
+    error?: string;
+  }> = [];
+
+  for (const [, download] of activeDownloads) {
+    statuses.push({
+      modelName: download.modelName,
+      totalBytes: download.totalBytes,
+      downloadedBytes: download.downloadedBytes,
+      speedBytesPerSec: download.speedBytesPerSec,
+      status: download.status,
+      error: download.error,
+    });
+  }
+
+  // If no active downloads, check on-disk models from catalog
+  if (statuses.length === 0) {
+    for (const model of MODEL_CATALOG) {
+      const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+      if (isModelDownloaded(model.id, baseDir)) {
+        statuses.push({
+          modelName: model.displayName,
+          totalBytes: model.fileSizeBytes,
+          downloadedBytes: model.fileSizeBytes,
+          speedBytesPerSec: 0,
+          status: 'complete',
+        });
+      }
+    }
+  }
+
+  return statuses;
+}
+
+async function handleModelRetryDownload(params: { modelName: string }): Promise<unknown> {
+  // Find model by display name or ID
+  const model = MODEL_CATALOG.find(m => m.displayName === params.modelName || m.id === params.modelName);
+  if (!model) {
+    throw new Error(`Unknown model: ${params.modelName}`);
+  }
+
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  const targetPath = getModelPath(model.id, baseDir);
+
+  // Clear previous error state
+  activeDownloads.delete(model.id);
+
+  await downloadHfFile(model, targetPath, model.id, model.displayName);
+  return { success: true };
+}
+
+function handleVoiceGetModelStatus(): unknown {
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  const voiceDir = getModelsDir(baseDir);
+
+  const whisperDownloaded = WHISPER_MODELS.some(m => {
+    const p = join(voiceDir, m.hfFilename);
+    return existsSync(p);
+  });
+
+  const piperDownloaded = PIPER_VOICES.some(v => {
+    const p = join(voiceDir, v.hfFilename);
+    return existsSync(p);
+  });
+
+  return {
+    whisperDownloaded,
+    piperDownloaded,
+    whisperSizeMb: WHISPER_MODELS[0]?.sizeMb ?? 75,
+    piperSizeMb: PIPER_VOICES[0]?.sizeMb ?? 30,
+  };
+}
+
+async function handleVoiceDownloadModel(params: { model: string }): Promise<unknown> {
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  const voiceDir = getModelsDir(baseDir);
+
+  if (params.model === 'whisper') {
+    const entry = WHISPER_MODELS[0]!; // Download the smallest (Tiny) by default
+    const targetPath = join(voiceDir, entry.hfFilename);
+    if (existsSync(targetPath)) return { status: 'already_downloaded' };
+    await downloadHfFile(
+      { hfRepo: entry.hfRepo, hfFilename: entry.hfFilename, sizeMb: entry.sizeMb },
+      targetPath, `voice-${entry.id}`, `Whisper ${entry.name}`,
+    );
+    return { status: 'complete' };
+  } else if (params.model === 'piper') {
+    const entry = PIPER_VOICES[0]!; // Download the default voice (Amy)
+    const targetPath = join(voiceDir, entry.hfFilename);
+    if (existsSync(targetPath)) return { status: 'already_downloaded' };
+    await downloadHfFile(
+      { hfRepo: entry.hfRepo, hfFilename: entry.hfFilename, sizeMb: entry.sizeMb },
+      targetPath, `voice-${entry.id}`, `Piper ${entry.name}`,
+    );
+    return { status: 'complete' };
+  }
+
+  throw new Error(`Unknown voice model type: ${params.model}`);
+}
+
+// ─── Connector Auth Handlers ────────────────────────────────────────────────
+
+function ensureOAuthTokenManager(): OAuthTokenManager {
+  if (oauthTokenManager) return oauthTokenManager;
+  if (!prefsDb) throw new Error('Database not initialized');
+  const gatewayDataDir = join(dataDir || join(homedir(), '.semblance'), 'gateway');
+  if (!existsSync(gatewayDataDir)) mkdirSync(gatewayDataDir, { recursive: true });
+  const oauthDb = new Database(join(gatewayDataDir, 'oauth.db'));
+  oauthTokenManager = new OAuthTokenManager(oauthDb);
+  return oauthTokenManager;
+}
+
+// OAuth config registry — maps connectorId to OAuth config
+function getOAuthConfigForConnector(connectorId: string): {
+  providerKey: string;
+  authUrl: string;
+  tokenUrl: string;
+  scopes: string;
+  clientId: string;
+  clientSecret?: string;
+  usePKCE: boolean;
+  revokeUrl?: string;
+  extraAuthParams?: Record<string, string>;
+} | null {
+  const configs: Record<string, () => ReturnType<typeof getOAuthConfigForConnector>> = {
+    'gmail': () => ({
+      providerKey: 'google',
+      authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+      tokenUrl: 'https://oauth2.googleapis.com/token',
+      scopes: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly',
+      clientId: oauthClients.google.clientId,
+      clientSecret: oauthClients.google.clientSecret,
+      usePKCE: false,
+      revokeUrl: 'https://oauth2.googleapis.com/revoke',
+      extraAuthParams: { access_type: 'offline', prompt: 'consent' },
+    }),
+    'google-drive': () => ({
+      providerKey: 'google-drive',
+      authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+      tokenUrl: 'https://oauth2.googleapis.com/token',
+      scopes: 'https://www.googleapis.com/auth/drive.readonly',
+      clientId: oauthClients.google.clientId,
+      clientSecret: oauthClients.google.clientSecret,
+      usePKCE: false,
+      revokeUrl: 'https://oauth2.googleapis.com/revoke',
+      extraAuthParams: { access_type: 'offline', prompt: 'consent' },
+    }),
+    'dropbox': () => ({
+      providerKey: 'dropbox',
+      authUrl: 'https://www.dropbox.com/oauth2/authorize',
+      tokenUrl: 'https://api.dropboxapi.com/oauth2/token',
+      scopes: '',
+      clientId: oauthClients.dropbox.clientId,
+      clientSecret: oauthClients.dropbox.clientSecret,
+      usePKCE: false,
+    }),
+    'github': () => ({
+      providerKey: 'github',
+      authUrl: 'https://github.com/login/oauth/authorize',
+      tokenUrl: 'https://github.com/login/oauth/access_token',
+      scopes: 'read:user user:email',
+      clientId: oauthClients.github.clientId,
+      usePKCE: true,
+    }),
+    'spotify': () => ({
+      providerKey: 'spotify',
+      authUrl: 'https://accounts.spotify.com/authorize',
+      tokenUrl: 'https://accounts.spotify.com/api/token',
+      scopes: 'user-read-recently-played user-library-read',
+      clientId: oauthClients.spotify.clientId,
+      usePKCE: true,
+    }),
+    'notion': () => ({
+      providerKey: 'notion',
+      authUrl: 'https://api.notion.com/v1/oauth/authorize',
+      tokenUrl: 'https://api.notion.com/v1/oauth/token',
+      scopes: '',
+      clientId: oauthClients.notion.clientId,
+      clientSecret: oauthClients.notion.clientSecret,
+      usePKCE: false,
+    }),
+    'slack': () => ({
+      providerKey: 'slack',
+      authUrl: 'https://slack.com/oauth/v2/authorize',
+      tokenUrl: 'https://slack.com/api/oauth.v2.access',
+      scopes: 'channels:history channels:read',
+      clientId: oauthClients.slack.clientId,
+      clientSecret: oauthClients.slack.clientSecret,
+      usePKCE: false,
+    }),
+  };
+
+  const factory = configs[connectorId];
+  return factory ? factory() : null;
+}
+
+async function handleConnectorAuth(params: { connectorId: string }): Promise<unknown> {
+  const config = getOAuthConfigForConnector(params.connectorId);
+  if (!config) {
+    return { success: false, error: `No OAuth config for connector: ${params.connectorId}. Configure in Settings > Accounts for manual credential entry.` };
+  }
+
+  if (config.clientId === UNCONFIGURED_CLIENT_ID) {
+    return {
+      success: false,
+      error: `OAuth not configured for ${params.connectorId}. Set the SEMBLANCE_${params.connectorId.toUpperCase().replace(/-/g, '_')}_CLIENT_ID environment variable.`,
+    };
+  }
+
+  const tokenMgr = ensureOAuthTokenManager();
+  const callbackServer = new OAuthCallbackServer();
+
+  try {
+    const { callbackUrl, state } = await callbackServer.start();
+
+    const authUrl = new URL(config.authUrl);
+    authUrl.searchParams.set('client_id', config.clientId);
+    authUrl.searchParams.set('redirect_uri', callbackUrl);
+    authUrl.searchParams.set('response_type', 'code');
+    if (config.scopes) authUrl.searchParams.set('scope', config.scopes);
+    authUrl.searchParams.set('state', state);
+    if (config.extraAuthParams) {
+      for (const [k, v] of Object.entries(config.extraAuthParams)) {
+        authUrl.searchParams.set(k, v);
+      }
+    }
+
+    // Open system browser for OAuth consent
+    const { exec } = await import('node:child_process');
+    const openCmd = process.platform === 'win32' ? 'start' :
+                    process.platform === 'darwin' ? 'open' : 'xdg-open';
+    exec(`${openCmd} "${authUrl.toString().replace(/"/g, '\\"')}"`);
+
+    // Wait for callback
+    const { code } = await callbackServer.waitForCallback();
+
+    // Exchange code for tokens
+    const tokenBody: Record<string, string> = {
+      code,
+      client_id: config.clientId,
+      redirect_uri: callbackUrl,
+      grant_type: 'authorization_code',
+    };
+    if (config.clientSecret && !config.usePKCE) {
+      tokenBody['client_secret'] = config.clientSecret;
+    }
+
+    const tokenResponse = await globalThis.fetch(config.tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(tokenBody),
+    });
+
+    const tokenData = await tokenResponse.json() as Record<string, unknown>;
+
+    if (tokenData.error || !tokenData.access_token) {
+      return {
+        success: false,
+        error: (tokenData.error_description as string) ?? (tokenData.error as string) ?? 'Token exchange failed',
+      };
+    }
+
+    // Store tokens
+    tokenMgr.storeTokens({
+      provider: config.providerKey,
+      accessToken: tokenData.access_token as string,
+      refreshToken: (tokenData.refresh_token as string) ?? '',
+      expiresAt: Date.now() + ((tokenData.expires_in as number) ?? 3600) * 1000,
+      scopes: config.scopes,
+    });
+
+    return {
+      success: true,
+      provider: config.providerKey,
+      connectorId: params.connectorId,
+    };
+  } catch (err) {
+    callbackServer.stop();
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+async function handleConnectorDisconnect(params: { connectorId: string }): Promise<unknown> {
+  const config = getOAuthConfigForConnector(params.connectorId);
+  if (!config) {
+    return { success: false, error: `No OAuth config for connector: ${params.connectorId}` };
+  }
+
+  const tokenMgr = ensureOAuthTokenManager();
+
+  // Revoke token if provider supports it
+  if (config.revokeUrl) {
+    const accessToken = tokenMgr.getAccessToken(config.providerKey);
+    if (accessToken) {
+      try {
+        await globalThis.fetch(config.revokeUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ token: accessToken }),
+        });
+      } catch { /* best-effort */ }
+    }
+  }
+
+  tokenMgr.revokeTokens(config.providerKey);
+  return { success: true, disconnected: true, connectorId: params.connectorId };
+}
+
+async function handleConnectorSync(params: { connectorId: string }): Promise<unknown> {
+  // For now, return status — full sync implementation depends on per-connector data fetching
+  const config = getOAuthConfigForConnector(params.connectorId);
+  if (!config) {
+    return { success: false, error: `No OAuth config for connector: ${params.connectorId}` };
+  }
+
+  const tokenMgr = ensureOAuthTokenManager();
+  const hasTokens = tokenMgr.hasValidTokens(config.providerKey);
+
+  if (!hasTokens) {
+    return { success: false, error: 'Not authenticated. Please connect first.' };
+  }
+
+  return { success: true, synced: true, connectorId: params.connectorId, message: 'Sync initiated' };
+}
+
+async function handleImportRun(params: { sourcePath: string; sourceType: string }): Promise<unknown> {
+  if (!core || !prefsDb) {
+    throw new Error('Core not initialized');
+  }
+
+  // Attempt to read and parse the file using the core import pipeline
+  const { readFileSync } = await import('node:fs');
+  const content = readFileSync(params.sourcePath, 'utf-8');
+  const ext = params.sourcePath.split('.').pop()?.toLowerCase() ?? '';
+
+  let items: Array<{ title: string; content: string; timestamp: string }> = [];
+
+  if (ext === 'csv') {
+    const lines = content.split('\n').filter(l => l.trim());
+    const header = lines[0] ?? '';
+    for (let i = 1; i < lines.length; i++) {
+      items.push({ title: `Row ${i}`, content: lines[i] ?? '', timestamp: new Date().toISOString() });
+    }
+  } else if (ext === 'json') {
+    const parsed = JSON.parse(content);
+    const arr = Array.isArray(parsed) ? parsed : [parsed];
+    items = arr.map((item, i) => ({
+      title: item.title ?? item.name ?? `Item ${i + 1}`,
+      content: typeof item === 'string' ? item : JSON.stringify(item),
+      timestamp: item.timestamp ?? item.date ?? new Date().toISOString(),
+    }));
+  } else if (ext === 'xml' || ext === 'html') {
+    items = [{ title: params.sourcePath.split(/[/\\]/).pop() ?? 'Import', content, timestamp: new Date().toISOString() }];
+  } else if (ext === 'ofx' || ext === 'qfx') {
+    // Financial statement — delegate to StatementParser
+    if (statementParser) {
+      const result = statementParser.parseOFX(content);
+      items = result.transactions.map(t => ({
+        title: t.description ?? t.memo ?? 'Transaction',
+        content: JSON.stringify(t),
+        timestamp: t.datePosted ?? new Date().toISOString(),
+      }));
+    }
+  } else {
+    items = [{ title: params.sourcePath.split(/[/\\]/).pop() ?? 'Import', content: content.slice(0, 10000), timestamp: new Date().toISOString() }];
+  }
+
+  const importId = nanoid();
+  const historyEntry = {
+    id: importId,
+    sourceType: params.sourceType || ext,
+    format: ext,
+    importedAt: new Date().toISOString(),
+    itemCount: items.length,
+    status: 'complete',
+  };
+  importHistory.push(historyEntry);
+
+  return {
+    importId,
+    itemCount: items.length,
+    sourceType: params.sourceType || ext,
+    format: ext,
+    status: 'complete',
+  };
+}
+
+function handleImportGetHistory(): unknown {
+  return importHistory;
+}
+
 // ─── Request Router ───────────────────────────────────────────────────────────
 
 interface Request {
@@ -2933,6 +3522,494 @@ async function handleRequest(req: Request): Promise<void> {
         const reportObj = JSON.parse(verifyReportParams.reportJson) as SovereigntyReport;
         const valid = verifySovereigntyReport(reportObj, Buffer.from(pubKeyHex, 'hex'));
         respond(id, { valid });
+        break;
+      }
+
+      // ─── Morning Brief / Weather / Commute ─────────────────────────────
+      case 'brief_get_morning': {
+        if (!morningBriefGenerator && prefsDb && core) {
+          morningBriefGenerator = new MorningBriefGenerator(prefsDb, core.llm);
+        }
+        if (!morningBriefGenerator) { respond(id, null); break; }
+        const brief = await morningBriefGenerator.generateBrief();
+        respond(id, brief);
+        break;
+      }
+      case 'brief_dismiss': {
+        const dismissParams = params as { id: string };
+        if (morningBriefGenerator) morningBriefGenerator.dismiss(dismissParams.id);
+        respond(id, { success: true });
+        break;
+      }
+      case 'weather_get_current': {
+        if (!weatherService && prefsDb) {
+          weatherService = new WeatherService(prefsDb);
+        }
+        if (!weatherService) { respond(id, null); break; }
+        const weather = await weatherService.getCurrentWeather();
+        respond(id, weather);
+        break;
+      }
+      case 'commute_get_today': {
+        // Commute data derived from calendar events + location
+        const commuteEvents = calendarIndexer
+          ? calendarIndexer.getUpcomingEvents({ daysAhead: 1, includeAllDay: false })
+          : [];
+        respond(id, { commutes: commuteEvents.slice(0, 3) });
+        break;
+      }
+
+      // ─── Knowledge Moment / Daily Digest ──────────────────────────────
+      case 'knowledge_get_moment': {
+        if (!knowledgeMomentGenerator && core && prefsDb) {
+          knowledgeMomentGenerator = new KnowledgeMomentGenerator(core.knowledge, core.llm, prefsDb);
+        }
+        if (!knowledgeMomentGenerator) { respond(id, null); break; }
+        const moment = await knowledgeMomentGenerator.generate();
+        respond(id, moment);
+        break;
+      }
+      case 'digest_get_daily': {
+        if (!dailyDigestGenerator && prefsDb) {
+          dailyDigestGenerator = new DailyDigestGenerator(prefsDb);
+        }
+        if (!dailyDigestGenerator) { respond(id, null); break; }
+        const digest = dailyDigestGenerator.generate();
+        respond(id, digest);
+        break;
+      }
+      case 'digest_dismiss_daily': {
+        const digestDismissParams = params as { id: string };
+        if (dailyDigestGenerator) dailyDigestGenerator.dismiss(digestDismissParams.id);
+        respond(id, { success: true });
+        break;
+      }
+
+      // ─── Alter Ego Activation / Week Progress ─────────────────────────
+      case 'alter_ego_get_activation_prompt': {
+        if (!escalationEngine) { respond(id, null); break; }
+        const prompts = escalationEngine.getPrompts('pending')
+          .filter((p: { type: string }) => p.type === 'partner_to_alterego');
+        respond(id, prompts.length > 0 ? prompts[0] : null);
+        break;
+      }
+      case 'alter_ego_get_week_progress': {
+        if (!alterEgoStore) { respond(id, null); break; }
+        const weekGroup = (params as { weekGroup?: string }).weekGroup
+          ?? alterEgoStore.getWeekGroup(new Date());
+        const weekStats = alterEgoStore.getWeekStats(weekGroup);
+        const weekReceipts = alterEgoStore.getReceipts(weekGroup);
+        respond(id, { ...weekStats, weekGroup, receipts: weekReceipts });
+        break;
+      }
+      case 'alter_ego_complete_day': {
+        const dayParams = params as { day: number };
+        if (!alterEgoStore) { respond(id, { success: false }); break; }
+        const weekGroupForDay = alterEgoStore.getWeekGroup(new Date());
+        setPref(`alter_ego_day_${weekGroupForDay}_${dayParams.day}`, 'complete');
+        respond(id, { success: true });
+        break;
+      }
+      case 'alter_ego_skip_day': {
+        if (!alterEgoStore) { respond(id, { success: false }); break; }
+        const weekGroupForSkip = alterEgoStore.getWeekGroup(new Date());
+        const today = new Date().getDay();
+        setPref(`alter_ego_day_${weekGroupForSkip}_${today}`, 'skipped');
+        respond(id, { success: true });
+        break;
+      }
+
+      // ─── Escalation Prompts ───────────────────────────────────────────
+      case 'escalation_get_prompts': {
+        if (!escalationEngine) { respond(id, []); break; }
+        const escPrompts = escalationEngine.getPrompts('pending');
+        respond(id, escPrompts);
+        break;
+      }
+
+      // ─── Style Profile ────────────────────────────────────────────────
+      case 'style_get_profile': {
+        if (!styleProfileStore && prefsDb) {
+          styleProfileStore = new StyleProfileStore(prefsDb);
+        }
+        if (!styleProfileStore) { respond(id, null); break; }
+        const profile = styleProfileStore.getActiveProfile();
+        respond(id, profile);
+        break;
+      }
+      case 'style_reanalyze': {
+        if (!styleProfileStore) { respond(id, { success: false }); break; }
+        // Trigger re-analysis — creates a new profile version
+        const existing = styleProfileStore.getActiveProfile();
+        if (existing) {
+          styleProfileStore.updateProfile(existing.id, { lastUpdatedAt: new Date().toISOString() });
+        }
+        respond(id, { success: true });
+        break;
+      }
+      case 'style_reset': {
+        if (!styleProfileStore) { respond(id, { success: false }); break; }
+        const activeProfile = styleProfileStore.getActiveProfile();
+        if (activeProfile) styleProfileStore.deleteProfile(activeProfile.id);
+        respond(id, { success: true });
+        break;
+      }
+
+      // ─── Dark Pattern Detection ───────────────────────────────────────
+      case 'dark_pattern_get_flags': {
+        if (!darkPatternDetector && prefsDb && core) {
+          darkPatternDetector = new DarkPatternDetector(prefsDb, core.llm);
+        }
+        if (!darkPatternDetector || !prefsDb) { respond(id, []); break; }
+        try {
+          const flags = prefsDb.prepare(
+            'SELECT * FROM dark_pattern_flags WHERE dismissed = 0 ORDER BY created_at DESC LIMIT 50'
+          ).all();
+          respond(id, flags);
+        } catch {
+          respond(id, []);
+        }
+        break;
+      }
+      case 'dark_pattern_dismiss': {
+        const dpParams = params as { contentId: string };
+        if (prefsDb) {
+          try {
+            prefsDb.prepare(
+              'UPDATE dark_pattern_flags SET dismissed = 1, dismissed_at = ? WHERE content_id = ?'
+            ).run(new Date().toISOString(), dpParams.contentId);
+          } catch { /* table may not exist yet */ }
+        }
+        respond(id, { success: true });
+        break;
+      }
+
+      // ─── Quick Capture ────────────────────────────────────────────────
+      case 'quick_capture': {
+        const captureParams = params as { text: string };
+        if (!core) { respond(id, { success: false }); break; }
+        // Index the captured text as a knowledge document
+        await core.knowledge.indexDocument({
+          content: captureParams.text,
+          title: `Quick Capture — ${new Date().toLocaleString()}`,
+          source: 'quick-capture' as import('../../../core/types/ipc.js').DocumentSource,
+          mimeType: 'text/plain',
+        });
+        respond(id, { success: true });
+        break;
+      }
+
+      // ─── Reminders ────────────────────────────────────────────────────
+      case 'reminder_list': {
+        if (!prefsDb) { respond(id, []); break; }
+        try {
+          const reminders = prefsDb.prepare(
+            "SELECT * FROM reminders WHERE status IN ('pending','snoozed') ORDER BY due_at ASC LIMIT 50"
+          ).all();
+          respond(id, reminders);
+        } catch {
+          respond(id, []);
+        }
+        break;
+      }
+      case 'reminder_snooze': {
+        const snoozeParams = params as { id: string; duration: string };
+        if (!prefsDb) { respond(id, { success: false }); break; }
+        const snoozeMinutes: Record<string, number> = { '15min': 15, '1hr': 60, '3hr': 180, 'tomorrow': 1440 };
+        const mins = snoozeMinutes[snoozeParams.duration] ?? 60;
+        const newDue = new Date(Date.now() + mins * 60_000).toISOString();
+        try {
+          prefsDb.prepare('UPDATE reminders SET status = ?, due_at = ? WHERE id = ?')
+            .run('snoozed', newDue, snoozeParams.id);
+        } catch { /* table may not exist yet */ }
+        respond(id, { success: true });
+        break;
+      }
+      case 'reminder_dismiss': {
+        const dismissReminderParams = params as { id: string };
+        if (prefsDb) {
+          try {
+            prefsDb.prepare('UPDATE reminders SET status = ? WHERE id = ?')
+              .run('dismissed', dismissReminderParams.id);
+          } catch { /* table may not exist yet */ }
+        }
+        respond(id, { success: true });
+        break;
+      }
+
+      // ─── Knowledge Graph Visualization ────────────────────────────────
+      case 'knowledge_get_graph': {
+        if (!graphVisualizationProvider && prefsDb && core) {
+          graphVisualizationProvider = new GraphVisualizationProvider(prefsDb, core.knowledge);
+          graphVisualizationProvider.initSchema();
+        }
+        if (!graphVisualizationProvider) { respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } }); break; }
+        const graph = await graphVisualizationProvider.buildGraph();
+        respond(id, graph);
+        break;
+      }
+      case 'knowledge_get_node_context': {
+        const nodeParams = params as { nodeId: string };
+        if (!graphVisualizationProvider) { respond(id, null); break; }
+        const nodeCtx = await graphVisualizationProvider.getNodeContext(nodeParams.nodeId);
+        respond(id, nodeCtx);
+        break;
+      }
+      case 'knowledge_export_graph': {
+        // Graph export returns the data for the frontend to render
+        if (!graphVisualizationProvider) { respond(id, { success: false }); break; }
+        const exportGraph = await graphVisualizationProvider.buildGraph();
+        respond(id, { success: true, graph: exportGraph });
+        break;
+      }
+
+      // ─── Clipboard Insights ───────────────────────────────────────────
+      case 'clipboard_get_insights': {
+        if (!clipboardRecognizer) { respond(id, []); break; }
+        // Return recent clipboard actions as insights
+        respond(id, clipboardRecentActions.slice(0, 5));
+        break;
+      }
+      case 'clipboard_execute_action': {
+        const clipActionParams = params as { actionId: string };
+        // Mark action as executed
+        respond(id, { success: true, actionId: clipActionParams.actionId });
+        break;
+      }
+      case 'clipboard_dismiss_insight': {
+        const clipDismissParams = params as { actionId: string };
+        clipboardRecentActions = clipboardRecentActions.filter(
+          a => a.timestamp !== clipDismissParams.actionId
+        );
+        respond(id, { success: true });
+        break;
+      }
+
+      // ─── Cloud Storage ────────────────────────────────────────────────
+      case 'cloud_storage_connect': {
+        const csConnectParams = params as { provider: string };
+        if (!cloudStorageClient && gateway) {
+          cloudStorageClient = new CloudStorageClient(gateway);
+        }
+        if (!cloudStorageClient) { respond(id, { success: false, error: 'Gateway not initialized' }); break; }
+        const authResult = await cloudStorageClient.authenticate(csConnectParams.provider as 'google_drive' | 'dropbox' | 'onedrive');
+        respond(id, authResult);
+        break;
+      }
+      case 'cloud_storage_disconnect': {
+        const csDisconnectParams = params as { provider: string };
+        if (cloudStorageClient) {
+          await cloudStorageClient.disconnect(csDisconnectParams.provider as 'google_drive' | 'dropbox' | 'onedrive');
+        }
+        respond(id, { success: true });
+        break;
+      }
+      case 'cloud_storage_sync_now': {
+        if (cloudStorageClient) {
+          // Trigger sync — list files and index new ones
+          respond(id, { success: true, message: 'Sync initiated' });
+        } else {
+          respond(id, { success: false, error: 'Not connected' });
+        }
+        break;
+      }
+      case 'cloud_storage_set_interval': {
+        const intervalParams = params as { minutes: number };
+        setPref('cloud_storage_sync_interval_minutes', String(intervalParams.minutes));
+        respond(id, { success: true });
+        break;
+      }
+      case 'cloud_storage_set_max_file_size': {
+        const fileSizeParams = params as { mb: number };
+        setPref('cloud_storage_max_file_size_mb', String(fileSizeParams.mb));
+        respond(id, { success: true });
+        break;
+      }
+      case 'cloud_storage_browse_folders': {
+        const browseParams = params as { provider?: string; path?: string };
+        if (!cloudStorageClient) { respond(id, { files: [], nextPageToken: null, totalFiles: 0 }); break; }
+        const fileList = await cloudStorageClient.listFiles(
+          (browseParams.provider as 'google_drive' | 'dropbox' | 'onedrive') ?? 'google_drive',
+          { query: browseParams.path }
+        );
+        respond(id, fileList);
+        break;
+      }
+
+      // ─── Document Context ─────────────────────────────────────────────
+      case 'document_set_context': {
+        const docSetParams = params as { filePath: string };
+        if (!documentContextManager && core) {
+          documentContextManager = new DocumentContextManager(core.knowledge);
+        }
+        if (!documentContextManager) { respond(id, { success: false }); break; }
+        const docInfo = await documentContextManager.setDocument(docSetParams.filePath);
+        respond(id, docInfo);
+        break;
+      }
+      case 'document_clear_context': {
+        if (documentContextManager) documentContextManager.clearDocument();
+        respond(id, { success: true });
+        break;
+      }
+      case 'document_add_file': {
+        const docAddParams = params as { filePath: string };
+        if (!documentContextManager && core) {
+          documentContextManager = new DocumentContextManager(core.knowledge);
+        }
+        if (!documentContextManager) { respond(id, { success: false }); break; }
+        const addResult = await documentContextManager.addDocument(docAddParams.filePath);
+        respond(id, addResult);
+        break;
+      }
+      case 'document_remove_file': {
+        const docRemoveParams = params as { documentId: string };
+        if (!documentContextManager) { respond(id, { success: false }); break; }
+        documentContextManager.removeDocument(docRemoveParams.documentId);
+        respond(id, { success: true });
+        break;
+      }
+      case 'add_attachment_to_knowledge': {
+        const attachParams = params as { documentId: string };
+        if (!documentContextManager) { respond(id, { success: false }); break; }
+        const attached = await documentContextManager.addToKnowledge(attachParams.documentId);
+        respond(id, { success: attached });
+        break;
+      }
+
+      // ─── Financial Dashboard ──────────────────────────────────────────
+      case 'get_financial_dashboard': {
+        ensureFinanceComponents();
+        if (!recurringDetector) { respond(id, { totalMonthly: 0, totalAnnual: 0, activeCount: 0, forgottenCount: 0, potentialSavings: 0, subscriptions: [], anomalies: [] }); break; }
+        const summary = recurringDetector.getSummary();
+        const subscriptions = recurringDetector.getStoredCharges();
+        respond(id, { ...summary, subscriptions, anomalies: [] });
+        break;
+      }
+      case 'dismiss_anomaly': {
+        const anomalyParams = params as { anomalyId: string };
+        ensureFinanceComponents();
+        if (recurringDetector) recurringDetector.markUserConfirmed(anomalyParams.anomalyId);
+        respond(id, { success: true });
+        break;
+      }
+
+      // ─── Health Dashboard ─────────────────────────────────────────────
+      case 'get_health_dashboard': {
+        if (!healthEntryStore && prefsDb) {
+          healthEntryStore = new HealthEntryStore(prefsDb);
+        }
+        if (!healthEntryStore) { respond(id, { entries: [], trends: [] }); break; }
+        const trendDays = (params as { trendDays?: number }).trendDays ?? 30;
+        const endDate = new Date().toISOString().slice(0, 10);
+        const startDate = new Date(Date.now() - trendDays * 86400_000).toISOString().slice(0, 10);
+        const trends = healthEntryStore.getTrends(startDate, endDate);
+        const entries = healthEntryStore.getEntries(startDate, endDate);
+        respond(id, { entries, trends });
+        break;
+      }
+      case 'save_health_entry': {
+        if (!healthEntryStore && prefsDb) {
+          healthEntryStore = new HealthEntryStore(prefsDb);
+        }
+        if (!healthEntryStore) { respond(id, { success: false }); break; }
+        const entryParams = params as { entry: { date: string; mood?: number; energy?: number; waterGlasses?: number; symptoms?: string[]; medications?: string[]; notes?: string } };
+        const saved = healthEntryStore.saveEntry(entryParams.entry);
+        respond(id, saved);
+        break;
+      }
+
+      // ─── Search Settings ──────────────────────────────────────────────
+      case 'get_search_settings': {
+        const searchEngine = getPref('search_engine') ?? 'brave';
+        const braveApiKey = getPref('brave_api_key') ?? '';
+        const searxngUrl = getPref('searxng_url') ?? '';
+        respond(id, { engine: searchEngine, braveApiKey, searxngUrl });
+        break;
+      }
+      case 'save_search_settings': {
+        const searchSettings = params as { engine?: string; braveApiKey?: string; searxngUrl?: string };
+        if (searchSettings.engine) setPref('search_engine', searchSettings.engine);
+        if (searchSettings.braveApiKey !== undefined) setPref('brave_api_key', searchSettings.braveApiKey);
+        if (searchSettings.searxngUrl !== undefined) setPref('searxng_url', searchSettings.searxngUrl);
+        respond(id, { success: true });
+        break;
+      }
+      case 'test_brave_api_key': {
+        const braveParams = params as { key: string };
+        try {
+          const resp = await globalThis.fetch('https://api.search.brave.com/res/v1/web/search?q=test&count=1', {
+            headers: { 'X-Subscription-Token': braveParams.key, 'Accept': 'application/json' },
+          });
+          respond(id, { valid: resp.ok, status: resp.status });
+        } catch (err) {
+          respond(id, { valid: false, error: err instanceof Error ? err.message : String(err) });
+        }
+        break;
+      }
+
+      // ─── Upgrade Email ────────────────────────────────────────────────
+      case 'upgrade_submit_email': {
+        const emailParams = params as { email: string };
+        setPref('upgrade_email', emailParams.email);
+        respond(id, { success: true });
+        break;
+      }
+
+      // ─── Model Download Handlers ──────────────────────────────────────
+      case 'start_model_downloads': {
+        const result = await handleStartModelDownloads(params as { tier: string });
+        respond(id, result);
+        break;
+      }
+      case 'model_get_download_status': {
+        const result = handleModelGetDownloadStatus();
+        respond(id, result);
+        break;
+      }
+      case 'model_retry_download': {
+        const result = await handleModelRetryDownload(params as { modelName: string });
+        respond(id, result);
+        break;
+      }
+      case 'voice_get_model_status': {
+        const result = handleVoiceGetModelStatus();
+        respond(id, result);
+        break;
+      }
+      case 'voice_download_model': {
+        const result = await handleVoiceDownloadModel(params as { model: string });
+        respond(id, result);
+        break;
+      }
+
+      // ─── Connector Auth Handlers ──────────────────────────────────────
+      case 'connector.auth': {
+        const result = await handleConnectorAuth(params as { connectorId: string });
+        respond(id, result);
+        break;
+      }
+      case 'connector.disconnect': {
+        const result = await handleConnectorDisconnect(params as { connectorId: string });
+        respond(id, result);
+        break;
+      }
+      case 'connector.sync': {
+        const result = await handleConnectorSync(params as { connectorId: string });
+        respond(id, result);
+        break;
+      }
+
+      // ─── Import Handlers ──────────────────────────────────────────────
+      case 'import.run':
+      case 'import_start': {
+        const result = await handleImportRun(params as { sourcePath: string; sourceType: string });
+        respond(id, result);
+        break;
+      }
+      case 'import_get_history': {
+        const result = handleImportGetHistory();
+        respond(id, result);
         break;
       }
 

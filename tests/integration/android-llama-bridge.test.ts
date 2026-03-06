@@ -1,19 +1,19 @@
 /**
  * Android llama.cpp Bridge Tests — Verify the adapter layer with mock native module.
  *
- * Same test pattern as iOS MLX bridge, using MockLlamaCppBridge.
+ * Same test pattern as iOS MLX bridge, using TestLlamaCppBridge.
  * Tests run on desktop without requiring Android NDK.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MockLlamaCppBridge } from '../../packages/core/llm/mobile-bridge-mock.js';
+import { TestLlamaCppBridge } from '../../packages/core/llm/mobile-bridge-mock.js';
 import type { MobileInferenceBridge } from '../../packages/core/llm/mobile-bridge-types.js';
 
-describe('Android llama.cpp Bridge (via MockLlamaCppBridge)', () => {
+describe('Android llama.cpp Bridge (via TestLlamaCppBridge)', () => {
   let bridge: MobileInferenceBridge;
 
   beforeEach(() => {
-    bridge = new MockLlamaCppBridge();
+    bridge = new TestLlamaCppBridge();
   });
 
   // ACID TEST: generated text must NOT be placeholder
@@ -182,9 +182,9 @@ describe('Android llama.cpp Bridge (via MockLlamaCppBridge)', () => {
   });
 
   it('MLX vs LlamaCpp bridges produce different outputs', async () => {
-    const { MockMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
-    const mlx = new MockMLXBridge();
-    const llama = new MockLlamaCppBridge();
+    const { TestMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
+    const mlx = new TestMLXBridge();
+    const llama = new TestLlamaCppBridge();
 
     await mlx.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
     await llama.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });

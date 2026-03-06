@@ -4,9 +4,9 @@ import { Canvas, Circle, Line, vec, Skia, useFrameCallback } from '@shopify/reac
 import type { FrameInfo } from '@shopify/react-native-skia';
 import { useSharedValue } from 'react-native-reanimated';
 import { createSimulation, applyLayout, clampNodePositions } from './graph-physics';
-import { projectGraph } from './graph-renderer.native';
-import { DetailPanel } from './detail-panel.native';
-import { CategoryLegend, deriveLegendCategories } from './CategoryLegend.native';
+import { projectGraph } from './graph-renderer';
+import { DetailPanel } from './detail-panel';
+import { CategoryLegend, deriveLegendCategories } from './CategoryLegend';
 import type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps } from './graph-types';
 
 export function KnowledgeGraph({

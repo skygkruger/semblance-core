@@ -9,7 +9,7 @@
  * 2. Email + calendar: meeting + email history (no docs)
  * 3. Email-only: unanswered emails + sender context
  * 4. Calendar-only: upcoming meetings + file context
- * 5. Files-only: document summary (Sprint 1 fallback)
+ * 5. Files-only: document summary (minimum-data fallback)
  *
  * CRITICAL: This file is in packages/core/. No network imports.
  */

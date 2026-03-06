@@ -154,9 +154,9 @@ describe('Root Cause 1: PlatformAdapter replaces all Node.js builtins', () => {
 // ─── Root Cause 2: Native Inference Acid Test ──────────────────────────────
 
 describe('Root Cause 2: Native inference bridges are not placeholder', () => {
-  it('MockMLXBridge generates non-placeholder text', async () => {
-    const { MockMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
-    const bridge = new MockMLXBridge();
+  it('TestMLXBridge generates non-placeholder text', async () => {
+    const { TestMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
+    const bridge = new TestMLXBridge();
     await bridge.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
 
     const chunks: string[] = [];
@@ -171,9 +171,9 @@ describe('Root Cause 2: Native inference bridges are not placeholder', () => {
     expect(fullText.toLowerCase()).not.toContain('todo');
   });
 
-  it('MockLlamaCppBridge generates non-placeholder text', async () => {
-    const { MockLlamaCppBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
-    const bridge = new MockLlamaCppBridge();
+  it('TestLlamaCppBridge generates non-placeholder text', async () => {
+    const { TestLlamaCppBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
+    const bridge = new TestLlamaCppBridge();
     await bridge.loadModel('/models/test.gguf', { contextLength: 2048, batchSize: 32, threads: 0 });
 
     const chunks: string[] = [];
@@ -189,14 +189,14 @@ describe('Root Cause 2: Native inference bridges are not placeholder', () => {
   });
 
   it('MLX bridge reports iOS platform', async () => {
-    const { MockMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
-    const bridge = new MockMLXBridge();
+    const { TestMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
+    const bridge = new TestMLXBridge();
     expect(bridge.getPlatform()).toBe('ios');
   });
 
   it('LlamaCpp bridge reports Android platform', async () => {
-    const { MockLlamaCppBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
-    const bridge = new MockLlamaCppBridge();
+    const { TestLlamaCppBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
+    const bridge = new TestLlamaCppBridge();
     expect(bridge.getPlatform()).toBe('android');
   });
 });
@@ -206,10 +206,10 @@ describe('Root Cause 2: Native inference bridges are not placeholder', () => {
 describe('InferenceRouter routes to mobile provider', () => {
   it('InferenceRouter accepts mobile provider config', async () => {
     const { InferenceRouter } = await import('../../packages/core/llm/inference-router.js');
-    const { MockMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
+    const { TestMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
     const { MobileProvider } = await import('../../packages/core/llm/mobile-provider.js');
 
-    const bridge = new MockMLXBridge();
+    const bridge = new TestMLXBridge();
     const mobileProvider = new MobileProvider({
       bridge,
       modelName: 'test-3b',
@@ -231,10 +231,10 @@ describe('InferenceRouter routes to mobile provider', () => {
   });
 
   it('MobileProvider wraps bridge correctly', async () => {
-    const { MockMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
+    const { TestMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
     const { MobileProvider } = await import('../../packages/core/llm/mobile-provider.js');
 
-    const bridge = new MockMLXBridge();
+    const bridge = new TestMLXBridge();
     const provider = new MobileProvider({
       bridge,
       modelName: 'test-3b',
@@ -249,10 +249,10 @@ describe('InferenceRouter routes to mobile provider', () => {
   });
 
   it('MobileProvider embedding returns number array', async () => {
-    const { MockMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
+    const { TestMLXBridge } = await import('../../packages/core/llm/mobile-bridge-mock.js');
     const { MobileProvider } = await import('../../packages/core/llm/mobile-provider.js');
 
-    const bridge = new MockMLXBridge();
+    const bridge = new TestMLXBridge();
     const provider = new MobileProvider({
       bridge,
       modelName: 'test-3b',

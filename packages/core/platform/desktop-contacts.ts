@@ -3,15 +3,15 @@
 // macOS: Uses Tauri plugin for CNContactStore (native Contacts.framework).
 // Windows/Linux: Returns empty gracefully — no native contacts API available.
 //
-// For dev/test: createMockContactsAdapter() provides a controllable mock.
+// For dev/test: createConfigurableContactsAdapter() provides controllable behavior.
 
 import type { ContactsAdapter, DeviceContact } from './types.js';
 
 /**
- * Create a mock contacts adapter for development and testing.
+ * Create a configurable contacts adapter for development and testing.
  * Accepts optional seed contacts and simulates permission flows.
  */
-export function createMockContactsAdapter(options?: {
+export function createConfigurableContactsAdapter(options?: {
   contacts?: DeviceContact[];
   permission?: 'authorized' | 'denied' | 'undetermined';
 }): ContactsAdapter {
@@ -54,11 +54,10 @@ export function createMockContactsAdapter(options?: {
 export function createDesktopContactsAdapter(platform: string): ContactsAdapter {
   // Windows and Linux: no native contacts API
   if (platform !== 'darwin') {
-    return createMockContactsAdapter({ contacts: [], permission: 'denied' });
+    return createConfigurableContactsAdapter({ contacts: [], permission: 'denied' });
   }
 
-  // macOS: Tauri plugin integration point
-  // TODO(Sprint 4): Wire up @tauri-apps/plugin-contacts when available
-  // For now, returns empty — the Tauri plugin will be wired in the desktop app init
-  return createMockContactsAdapter({ contacts: [], permission: 'undetermined' });
+  // macOS: No Tauri contacts plugin available yet — returns empty set with denied permission.
+  // When a contacts plugin ships, wire it here (same lazy-import pattern as desktop-clipboard.ts).
+  return createConfigurableContactsAdapter({ contacts: [], permission: 'denied' });
 }

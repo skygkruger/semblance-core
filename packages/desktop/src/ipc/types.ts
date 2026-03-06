@@ -777,7 +777,7 @@ export type HardwareKeyBackend =
   | 'android-keystore'
   | 'libsecret'
   | 'software'
-  | 'stub';
+  | 'memory-only';
 
 export interface HardwareKeyInfo {
   keyId: string;

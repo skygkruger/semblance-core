@@ -1,5 +1,5 @@
-// VTI Bridge — Stub for Veridian Trust Infrastructure registry.
-// VTI Registry is not yet live. This stub returns null/false for all operations.
+// VTI Bridge — Offline bridge to Veridian Trust Infrastructure registry.
+// VTI Registry is a future service. This bridge returns offline status for all operations.
 // Includes signatureAlgorithm metadata for future Ed25519 integration.
 // CRITICAL: No networking imports.
 
@@ -7,13 +7,13 @@ import type { WitnessAttestation } from './types.js';
 import { ED25519_PROOF_TYPE, HMAC_PROOF_TYPE } from '../attestation/attestation-format.js';
 
 /**
- * Stub bridge to the Veridian Trust Infrastructure.
- * Returns null/false until VTI Registry is operational.
+ * Offline bridge to the Veridian Trust Infrastructure.
+ * Returns null/false — VTI Registry is a future external service.
  */
 export class VtiBridge {
   /**
    * Get a registry reference for an attestation.
-   * Returns null — VTI Registry not yet live.
+   * Returns null — VTI Registry is an external service not yet available.
    */
   getRegistryRef(): string | null {
     return null;
@@ -21,7 +21,7 @@ export class VtiBridge {
 
   /**
    * Check if the VTI Registry is available.
-   * Returns false — not yet operational.
+   * Returns false — external service not yet operational.
    */
   isRegistryAvailable(): boolean {
     return false;
