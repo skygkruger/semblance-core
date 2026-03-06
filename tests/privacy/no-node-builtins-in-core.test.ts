@@ -71,6 +71,9 @@ const APPROVED_FILES = new Set([
   // License key Ed25519 signature verification uses node:crypto for Ed25519 verify.
   // On mobile, this would use the platform CryptoAdapter (not yet supporting Ed25519 verify).
   'premium/license-keys.ts',
+  // Sovereignty Report PDF renderer uses node:fs/promises + node:path + node:url to load
+  // bundled TTF font files. PDF generation is desktop-only; mobile shows JSON report.
+  'reporting/sovereignty-report.ts',
 ]);
 
 function collectTsFiles(dir: string, baseDir: string): string[] {
