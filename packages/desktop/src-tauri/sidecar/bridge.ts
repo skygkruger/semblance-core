@@ -1,6 +1,6 @@
 // Semblance Desktop Sidecar Bridge
 //
-// AUTONOMOUS DECISION: Node.js sidecar process for Sprint 1 integration.
+// Node.js sidecar process for Tauri integration.
 // Reasoning: SemblanceCore and Gateway are TypeScript/Node packages. This sidecar
 // hosts both in a single Node.js process, communicating with the Rust Tauri backend
 // via NDJSON (newline-delimited JSON) over stdin/stdout. This is the simplest approach
@@ -25,6 +25,8 @@ import { mkdirSync, existsSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
 import { createSemblanceCore, type SemblanceCore, type ChatMessage } from '../../../core/index.js';
+import { createLLMProvider } from '../../../core/llm/index.js';
+import type { NativeRuntimeBridge } from '../../../core/llm/native-bridge-types.js';
 import { getPlatform } from '../../../core/platform/index.js';
 import { createDesktopVectorStore } from '../../../core/platform/desktop-adapter.js';
 import { scanDirectory, readFileContent } from '../../../core/knowledge/file-scanner.js';
@@ -273,6 +275,82 @@ const importHistory: Array<{
   status: string;
 }> = [];
 
+// ─── NativeRuntime Bridge ────────────────────────────────────────────────────
+//
+// Implements NativeRuntimeBridge by wrapping sendCallback() calls to Rust.
+// This bridges NativeProvider (packages/core/llm/native-provider.ts) to the
+// Rust NativeRuntime via NDJSON callbacks. The entire SemblanceCore subsystem
+// (knowledge graph embeddings, orchestrator, model management) uses this
+// instead of requiring Ollama.
+
+const nativeRuntimeBridge: NativeRuntimeBridge = {
+  async generate(params) {
+    const result = await sendCallback('native_generate', {
+      prompt: params.prompt,
+      system_prompt: params.systemPrompt ?? '',
+      max_tokens: params.maxTokens ?? 2048,
+      temperature: params.temperature ?? 0.7,
+      stop: params.stop ?? ['<|eot_id|>', '<|end|>', '</s>'],
+    }) as { text: string; tokens_generated: number; duration_ms: number };
+    return {
+      text: result.text,
+      tokensGenerated: result.tokens_generated,
+      durationMs: result.duration_ms,
+    };
+  },
+
+  async embed(params) {
+    const result = await sendCallback('native_embed', {
+      model_path: '',
+      input: params.input,
+    }) as { embeddings: number[][]; dimensions: number; duration_ms: number };
+    return {
+      embeddings: result.embeddings,
+      dimensions: result.dimensions,
+      durationMs: result.duration_ms,
+    };
+  },
+
+  async loadModel(modelPath: string) {
+    await sendCallback('native_load_model', { model_path: modelPath, model_type: 'reasoning' });
+  },
+
+  async loadEmbeddingModel(modelPath: string) {
+    await sendCallback('native_load_model', { model_path: modelPath, model_type: 'embedding' });
+  },
+
+  async unloadModel() {
+    // NativeRuntime doesn't have explicit unload yet — no-op
+  },
+
+  async getStatus() {
+    const result = await sendCallback('native_status', {}) as {
+      status: string;
+      reasoning_model: string | null;
+      embedding_model: string | null;
+    };
+    const statusStr = result.status?.toLowerCase() ?? '';
+    let status: 'uninitialized' | 'loading' | 'ready' | 'error' = 'uninitialized';
+    if (statusStr.includes('ready')) status = 'ready';
+    else if (statusStr.includes('loading')) status = 'loading';
+    else if (statusStr.includes('error')) status = 'error';
+    return {
+      status,
+      reasoningModel: result.reasoning_model ?? null,
+      embeddingModel: result.embedding_model ?? null,
+    };
+  },
+
+  async isReady() {
+    try {
+      const status = await this.getStatus();
+      return status.status === 'ready';
+    } catch {
+      return false;
+    }
+  },
+};
+
 function ensureHwKeyProvider(): boolean {
   if (hwKeyProvider) return true;
   if (!prefsDb) return false;
@@ -384,10 +462,19 @@ async function handleInitialize(): Promise<unknown> {
     platform.vectorStore = createDesktopVectorStore(join(dataDir, 'knowledge'));
   }
 
-  // Initialize Core (boots SQLite, LanceDB, connects to Ollama)
-  core = createSemblanceCore({ dataDir });
+  // Create NativeProvider-backed LLM provider (routes all inference through Rust NativeRuntime)
+  // Falls back to Ollama automatically via InferenceRouter if NativeRuntime is unavailable
+  const nativeLlm = createLLMProvider({
+    runtime: 'builtin',
+    nativeBridge: nativeRuntimeBridge,
+    embeddingModel: 'nomic-embed-text-v1.5',
+  });
+
+  // Initialize Core with NativeProvider — entire subsystem (knowledge graph embeddings,
+  // orchestrator reasoning, model management) uses NativeRuntime instead of Ollama
+  core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
   await core.initialize();
-  console.error('[sidecar] Core initialized');
+  console.error('[sidecar] Core initialized (NativeRuntime-backed LLM provider)');
 
   // Open preferences DB (reuses core.db which is already WAL mode)
   prefsDb = new Database(join(dataDir, 'core.db'));
@@ -457,15 +544,67 @@ async function handleInitialize(): Promise<unknown> {
   emailAdapter = new EmailAdapter(credentialStore);
   calendarAdapter = new CalendarAdapter(credentialStore);
 
-  // Check Ollama status
-  const ollamaAvailable = await core.llm.isAvailable();
+  // Wire connection testing into the credential store
+  credentialStore.setConnectionTester(async (credential, password) => {
+    try {
+      if (credential.protocol === 'imap') {
+        return await emailAdapter!.imap.testConnection(credential, password);
+      } else if (credential.protocol === 'smtp') {
+        return await emailAdapter!.smtp.testConnection(credential, password);
+      } else if (credential.protocol === 'caldav') {
+        return await calendarAdapter!.caldav.testConnection(credential, password);
+      }
+      return { success: false, error: `No test available for protocol: ${credential.protocol}` };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  // Check NativeRuntime status (primary inference engine — llama.cpp via Rust)
+  let inferenceEngine: 'native' | 'ollama' | 'none' = 'none';
   let activeModel: string | null = null;
   let availableModels: string[] = [];
 
-  if (ollamaAvailable) {
-    const models = await core.llm.listModels();
-    availableModels = models.filter(m => !m.isEmbedding).map(m => m.name);
-    activeModel = await core.models.getActiveChatModel();
+  // Try loading existing GGUF models into NativeRuntime on startup
+  const modelsBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  for (const model of MODEL_CATALOG) {
+    if (isModelDownloaded(model.id, modelsBaseDir)) {
+      const modelPath = getModelPath(model.id, modelsBaseDir);
+      const modelType = model.id.includes('embed') ? 'embedding' : 'reasoning';
+      try {
+        await sendCallback('native_load_model', { model_path: modelPath, model_type: modelType });
+        console.error(`[sidecar] Loaded existing model "${model.id}" into NativeRuntime`);
+        if (modelType === 'reasoning') {
+          activeModel = model.displayName;
+          availableModels.push(model.displayName);
+        }
+      } catch (err) {
+        console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
+      }
+    }
+  }
+
+  // Check NativeRuntime status
+  try {
+    const nativeStatus = await sendCallback('native_status', {});
+    if (nativeStatus && (nativeStatus as { status: string }).status === 'ready') {
+      inferenceEngine = 'native';
+      console.error('[sidecar] NativeRuntime is ready');
+    }
+  } catch {
+    console.error('[sidecar] NativeRuntime not available, checking Ollama fallback');
+  }
+
+  // Fall back to Ollama if NativeRuntime has no models loaded
+  if (inferenceEngine === 'none') {
+    const ollamaAvailable = await core.llm.isAvailable();
+    if (ollamaAvailable) {
+      inferenceEngine = 'ollama';
+      const models = await core.llm.listModels();
+      availableModels = models.filter(m => !m.isEmbedding).map(m => m.name);
+      activeModel = await core.models.getActiveChatModel();
+      console.error('[sidecar] Using Ollama as inference backend');
+    }
   }
 
   // Load persisted preferences
@@ -475,7 +614,8 @@ async function handleInitialize(): Promise<unknown> {
   console.error('[sidecar] Ready');
 
   return {
-    ollamaStatus: ollamaAvailable ? 'connected' : 'disconnected',
+    ollamaStatus: inferenceEngine !== 'none' ? 'connected' : 'disconnected',
+    inferenceEngine,
     activeModel,
     availableModels,
     userName,
@@ -492,11 +632,22 @@ async function handleSendMessage(
     return;
   }
 
-  // Check Ollama availability
-  const available = await core.llm.isAvailable();
-  if (!available) {
-    respondError(id, 'Ollama is not running. Start Ollama and try again.');
-    return;
+  // Check inference availability — try NativeRuntime first, then Ollama
+  let useNative = false;
+  try {
+    const nativeStatus = await sendCallback('native_status', {});
+    if (nativeStatus && (nativeStatus as { status: string }).status === 'ready') {
+      useNative = true;
+    }
+  } catch {
+    // NativeRuntime not available
+  }
+  if (!useNative) {
+    const ollamaAvailable = await core.llm.isAvailable();
+    if (!ollamaAvailable) {
+      respondError(id, 'No inference engine available. Download a model in Settings or start Ollama.');
+      return;
+    }
   }
 
   const responseId = `msg_${Date.now()}`;
@@ -537,26 +688,48 @@ async function handleSendMessage(
           .join('\n\n');
     }
 
-    // Step 3: Build messages array
-    const model = (await core.models.getActiveChatModel()) ?? 'llama3.2:8b';
-    const messages: ChatMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT + contextStr },
-      { role: 'user', content: params.message },
-    ];
-
-    // Step 4: Stream LLM response token-by-token
+    // Step 3: Generate response via NativeRuntime or Ollama
     let fullResponse = '';
 
-    if (core.llm.chatStream) {
-      for await (const token of core.llm.chatStream({ model, messages })) {
-        emit('chat-token', token);
-        fullResponse += token;
+    if (useNative) {
+      // Use NativeRuntime (llama.cpp via Rust) — primary inference path
+      const prompt = params.message;
+      const systemPrompt = SYSTEM_PROMPT + contextStr;
+      try {
+        const result = await sendCallback('native_generate', {
+          prompt,
+          system_prompt: systemPrompt,
+          max_tokens: 2048,
+          temperature: 0.7,
+          stop: ['<|eot_id|>', '<|end|>', '</s>'],
+        }) as { text: string; tokens_generated: number; duration_ms: number };
+        fullResponse = result.text;
+        // Emit in chunks to simulate streaming for the frontend
+        const chunkSize = 12;
+        for (let i = 0; i < fullResponse.length; i += chunkSize) {
+          emit('chat-token', fullResponse.substring(i, i + chunkSize));
+        }
+      } catch (nativeErr) {
+        console.error('[sidecar] NativeRuntime generate failed:', nativeErr);
+        throw nativeErr;
       }
     } else {
-      // Fallback to non-streaming
-      const response = await core.llm.chat({ model, messages });
-      fullResponse = response.message.content;
-      emit('chat-token', fullResponse);
+      // Fallback: Ollama streaming
+      const model = (await core.models.getActiveChatModel()) ?? 'llama3.2:8b';
+      const messages: ChatMessage[] = [
+        { role: 'system', content: SYSTEM_PROMPT + contextStr },
+        { role: 'user', content: params.message },
+      ];
+      if (core.llm.chatStream) {
+        for await (const token of core.llm.chatStream({ model, messages })) {
+          emit('chat-token', token);
+          fullResponse += token;
+        }
+      } else {
+        const response = await core.llm.chat({ model, messages });
+        fullResponse = response.message.content;
+        emit('chat-token', fullResponse);
+      }
     }
 
     // Step 5: Emit completion
@@ -592,20 +765,44 @@ async function handleSendMessage(
 }
 
 async function handleGetOllamaStatus(): Promise<unknown> {
-  if (!core) return { status: 'disconnected', active_model: null, available_models: [] };
+  if (!core) return { status: 'disconnected', active_model: null, available_models: [], inferenceEngine: 'none' };
 
-  const available = await core.llm.isAvailable();
+  let inferenceEngine: 'native' | 'ollama' | 'none' = 'none';
   let activeModel: string | null = null;
   let availableModels: string[] = [];
 
-  if (available) {
-    const models = await core.llm.listModels();
-    availableModels = models.filter(m => !m.isEmbedding).map(m => m.name);
-    activeModel = await core.models.getActiveChatModel();
+  // Check NativeRuntime first
+  try {
+    const nativeStatus = await sendCallback('native_status', {});
+    if (nativeStatus && (nativeStatus as { status: string }).status === 'ready') {
+      inferenceEngine = 'native';
+      // List downloaded models from catalog
+      const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+      for (const model of MODEL_CATALOG) {
+        if (!model.id.includes('embed') && isModelDownloaded(model.id, baseDir)) {
+          availableModels.push(model.displayName);
+        }
+      }
+      activeModel = availableModels[0] ?? null;
+    }
+  } catch {
+    // NativeRuntime not available
+  }
+
+  // Fall back to Ollama
+  if (inferenceEngine === 'none') {
+    const ollamaAvailable = await core.llm.isAvailable();
+    if (ollamaAvailable) {
+      inferenceEngine = 'ollama';
+      const models = await core.llm.listModels();
+      availableModels = models.filter(m => !m.isEmbedding).map(m => m.name);
+      activeModel = await core.models.getActiveChatModel();
+    }
   }
 
   return {
-    status: available ? 'connected' : 'disconnected',
+    status: inferenceEngine !== 'none' ? 'connected' : 'disconnected',
+    inferenceEngine,
     active_model: activeModel,
     available_models: availableModels,
   };
@@ -614,15 +811,29 @@ async function handleGetOllamaStatus(): Promise<unknown> {
 async function handleSelectModel(params: { model_id: string }): Promise<unknown> {
   if (!core) throw new Error('Core not initialized');
 
-  // Verify model exists
+  // Check if it's a locally downloaded model
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  const catalogEntry = MODEL_CATALOG.find(m => m.displayName === params.model_id || m.id === params.model_id);
+  if (catalogEntry && isModelDownloaded(catalogEntry.id, baseDir)) {
+    const modelPath = getModelPath(catalogEntry.id, baseDir);
+    const modelType = catalogEntry.id.includes('embed') ? 'embedding' : 'reasoning';
+    try {
+      await sendCallback('native_load_model', { model_path: modelPath, model_type: modelType });
+      return { success: true, engine: 'native' };
+    } catch (err) {
+      console.error(`[sidecar] NativeRuntime load failed for "${params.model_id}":`, err);
+    }
+  }
+
+  // Fallback: check Ollama
   const models = await core.llm.listModels();
   const found = models.find(m => m.name === params.model_id);
   if (!found) {
-    throw new Error(`Model "${params.model_id}" not found. Is it pulled in Ollama?`);
+    throw new Error(`Model "${params.model_id}" not found. Download it first or check Ollama.`);
   }
 
   core.models.setActiveChatModel(params.model_id);
-  return { success: true };
+  return { success: true, engine: 'ollama' };
 }
 
 async function handleStartIndexing(
@@ -1769,6 +1980,104 @@ function ensureContactStore(): ContactStore {
   return contactStore;
 }
 
+function handleContactsImport(params: { filePath?: string }): unknown {
+  if (!params.filePath) {
+    return { success: false, imported: 0, error: 'Desktop contact import requires a file path. Use the file picker to select a .vcf or .csv file.' };
+  }
+
+  const store = ensureContactStore();
+  const { readFileSync } = require('node:fs') as typeof import('node:fs');
+  const content = readFileSync(params.filePath, 'utf-8');
+  const ext = params.filePath.toLowerCase();
+  let imported = 0;
+
+  if (ext.endsWith('.vcf') || ext.endsWith('.vcard')) {
+    // Parse vCard format — split by BEGIN:VCARD blocks
+    const cards = content.split(/(?=BEGIN:VCARD)/i).filter(c => c.trim().length > 0);
+    for (const card of cards) {
+      const get = (field: string): string | undefined => {
+        const match = card.match(new RegExp(`^${field}[;:](.*)$`, 'mi'));
+        return match?.[1]?.trim();
+      };
+      const fn = get('FN');
+      if (!fn) continue;
+
+      const nField = get('N');
+      let familyName: string | undefined;
+      let givenName: string | undefined;
+      if (nField) {
+        const parts = nField.split(';');
+        familyName = parts[0]?.trim() || undefined;
+        givenName = parts[1]?.trim() || undefined;
+      }
+
+      const emails: string[] = [];
+      for (const line of card.split('\n')) {
+        if (/^EMAIL/i.test(line)) {
+          const val = line.replace(/^EMAIL[^:]*:/i, '').trim();
+          if (val) emails.push(val);
+        }
+      }
+
+      const phones: string[] = [];
+      for (const line of card.split('\n')) {
+        if (/^TEL/i.test(line)) {
+          const val = line.replace(/^TEL[^:]*:/i, '').trim();
+          if (val) phones.push(val);
+        }
+      }
+
+      const org = get('ORG')?.replace(/;/g, ', ');
+      const title = get('TITLE');
+      const bday = get('BDAY');
+
+      store.insertContact({
+        displayName: fn,
+        givenName,
+        familyName,
+        emails: emails.length > 0 ? emails : undefined,
+        phones: phones.length > 0 ? phones : undefined,
+        organization: org,
+        jobTitle: title,
+        birthday: bday,
+        source: 'imported',
+      });
+      imported++;
+    }
+  } else if (ext.endsWith('.csv')) {
+    // Simple CSV parsing: expects headers in first row
+    const lines = content.split('\n').filter(l => l.trim().length > 0);
+    if (lines.length < 2) return { success: true, imported: 0 };
+
+    const headers = lines[0]!.split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+    const nameIdx = headers.findIndex(h => h === 'name' || h === 'display name' || h === 'displayname' || h === 'full name');
+    const emailIdx = headers.findIndex(h => h === 'email' || h === 'e-mail' || h === 'email address');
+    const phoneIdx = headers.findIndex(h => h === 'phone' || h === 'telephone' || h === 'mobile');
+
+    if (nameIdx === -1) {
+      return { success: false, imported: 0, error: 'CSV file must have a "Name" or "Display Name" column.' };
+    }
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i]!.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      const name = cols[nameIdx];
+      if (!name) continue;
+
+      store.insertContact({
+        displayName: name,
+        emails: emailIdx >= 0 && cols[emailIdx] ? [cols[emailIdx]!] : undefined,
+        phones: phoneIdx >= 0 && cols[phoneIdx] ? [cols[phoneIdx]!] : undefined,
+        source: 'imported',
+      });
+      imported++;
+    }
+  } else {
+    return { success: false, imported: 0, error: 'Unsupported file format. Use .vcf (vCard) or .csv.' };
+  }
+
+  return { success: true, imported };
+}
+
 function handleContactsList(params: { limit?: number; sortBy?: string }): unknown {
   const store = ensureContactStore();
   const contacts = store.listContacts({
@@ -1996,9 +2305,24 @@ async function downloadHfFile(
       fileStream.on('error', reject);
     });
 
-    download.status = 'complete';
     download.downloadedBytes = download.totalBytes;
     download.speedBytesPerSec = 0;
+
+    // Load the downloaded GGUF into NativeRuntime (llama.cpp via Rust)
+    const modelType = modelId.includes('embed') ? 'embedding' : 'reasoning';
+    try {
+      await sendCallback('native_load_model', { model_path: targetPath, model_type: modelType });
+      console.error(`[sidecar] Loaded model "${modelId}" into NativeRuntime (${modelType})`);
+      emit('native-model-loaded', { modelId, modelType, path: targetPath });
+    } catch (loadErr) {
+      console.error(`[sidecar] NativeRuntime load failed for "${modelId}":`, loadErr);
+      // Fall back to Ollama if available
+      if (core && await core.llm.isAvailable()) {
+        console.error(`[sidecar] Ollama available as fallback for "${modelId}"`);
+      }
+    }
+
+    download.status = 'complete';
     activeDownloads.set(modelId, download);
     emit('model-download-progress', { ...download, abortController: undefined });
   } catch (err) {
@@ -2846,7 +3170,7 @@ async function handleRequest(req: Request): Promise<void> {
       // ── Contacts (Step 14) ──
 
       case 'contacts:import':
-        result = { success: true, imported: 0, message: 'Contact import not yet connected to device adapter' };
+        result = handleContactsImport(params as { filePath?: string });
         respond(id, result);
         break;
 

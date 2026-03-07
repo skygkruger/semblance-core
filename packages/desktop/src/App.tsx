@@ -1,14 +1,14 @@
 import { useEffect, useCallback, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { listen } from '@tauri-apps/api/event';
-import { DesktopSidebar, PrivacyBadge, ThemeToggle, DotMatrix, ToastContainer } from '@semblance/ui';
-import type { NavItem, ThemeMode, ToastItem } from '@semblance/ui';
+import { DesktopSidebar, PrivacyBadge, DotMatrix, ToastContainer } from '@semblance/ui';
+import type { NavItem, ToastItem } from '@semblance/ui';
 import { AppStateProvider, useAppState, useAppDispatch } from './state/AppState';
 import { LicenseProvider, useLicense } from './contexts/LicenseContext';
 import { SoundEngineProvider, useSound } from './sound/SoundEngineContext';
 import { useTauriEvent } from './hooks/useTauriEvent';
 import { BiometricGate } from './auth/BiometricGate';
-import { useTheme } from './hooks/useTheme';
+
 import { OnboardingFlow } from './screens/OnboardingFlow';
 import { ChatScreen } from './screens/ChatScreen';
 import { FilesScreen } from './screens/FilesScreen';
@@ -165,6 +165,7 @@ const navItems: NavItem[] = [
   { id: 'health', label: 'Health', icon: <HeartIcon /> },
   { id: 'digest', label: 'Digest', icon: <DigestIcon /> },
   { id: 'network', label: 'Network', icon: <NetworkIcon /> },
+  { id: 'settings', label: 'Settings', icon: <GearIcon /> },
 ];
 
 function AppContent() {
@@ -172,7 +173,6 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, setTheme } = useTheme();
   const license = useLicense();
   const { play } = useSound();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -180,6 +180,25 @@ function AppContent() {
   const dismissToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
+
+  // Hydrate inference status from sidecar init
+  useTauriEvent<{ ollamaStatus?: string; inferenceEngine?: string; activeModel?: string; availableModels?: string[] }>(
+    'semblance://status-update',
+    useCallback((payload) => {
+      if (payload.ollamaStatus) {
+        dispatch({ type: 'SET_OLLAMA_STATUS', status: payload.ollamaStatus as 'connected' | 'disconnected' | 'checking' });
+      }
+      if (payload.inferenceEngine) {
+        dispatch({ type: 'SET_INFERENCE_ENGINE', engine: payload.inferenceEngine as 'native' | 'ollama' | 'none' });
+      }
+      if (payload.activeModel) {
+        dispatch({ type: 'SET_ACTIVE_MODEL', model: payload.activeModel });
+      }
+      if (payload.availableModels) {
+        dispatch({ type: 'SET_AVAILABLE_MODELS', models: payload.availableModels });
+      }
+    }, [dispatch]),
+  );
 
   // Sound: Morning brief ready
   useTauriEvent('semblance://morning-brief-ready', useCallback(() => {
@@ -261,7 +280,7 @@ function AppContent() {
   }
 
   return (
-    <div className="flex h-screen bg-semblance-bg-light dark:bg-semblance-bg-dark">
+    <div className="flex h-screen">
       <DotMatrix />
       <UpdateChecker />
       <DesktopSidebar
@@ -272,30 +291,6 @@ function AppContent() {
           <div className="space-y-3">
             <NetworkStatusIndicator onClick={() => navigate('/network')} />
             <PrivacyBadge />
-            <button
-              type="button"
-              onClick={() => navigate('/settings')}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
-                transition-colors duration-fast
-                focus-visible:outline-none focus-visible:shadow-focus
-                ${activeId === 'settings'
-                  ? 'bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark text-semblance-primary'
-                  : 'text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark'
-                }
-              `.trim()}
-            >
-              <GearIcon />
-              <span>Settings</span>
-            </button>
-            <ThemeToggle
-              value={theme}
-              onChange={(mode) => {
-                setTheme(mode);
-                dispatch({ type: 'SET_THEME', theme: mode as ThemeMode });
-              }}
-              className="w-full"
-            />
           </div>
         }
       />

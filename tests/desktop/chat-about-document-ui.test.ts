@@ -25,6 +25,7 @@ describe('AppState document context', () => {
     ollamaStatus: 'checking',
     activeModel: null,
     availableModels: [],
+    inferenceEngine: 'none',
     indexingStatus: { state: 'idle', filesScanned: 0, filesTotal: 0, chunksCreated: 0, currentFile: null, error: null },
     knowledgeStats: { documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null },
     autonomyConfig: {},

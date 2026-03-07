@@ -42,8 +42,8 @@ export function SubscriptionInsightCard({ charges, summary, onDismiss }: Subscri
     setProcessingId(chargeId);
     try {
       await updateSubscriptionStatus(chargeId, status);
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[SubscriptionInsightCard] updateStatus failed:', err);
     } finally {
       setProcessingId(null);
     }

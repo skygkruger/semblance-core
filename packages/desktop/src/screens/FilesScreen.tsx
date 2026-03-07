@@ -30,8 +30,8 @@ export function FilesScreen() {
   const handleRescan = useCallback(async (path: string) => {
     try {
       await startIndexing([path]);
-    } catch {
-      // Handle error
+    } catch (err) {
+      console.error('[FilesScreen] rescan failed:', err);
     }
   }, []);
 

@@ -1,7 +1,7 @@
 // TabNavigator — Bottom tab navigation with per-tab stack navigators.
-// 5 tabs: Chat, Brief, Knowledge, Privacy, Settings.
+// 5 tabs: Chat, Inbox, Brief, Knowledge, Settings (matching Storybook MobileTabBar).
 // Each tab has its own NativeStack for detail screen navigation.
-// Phase 6: All tabs wired to real screen implementations.
+// All screens from desktop are reachable — secondary screens nest in Settings stack.
 
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, Pressable, ActivityIndicator } from 'react-native';
@@ -14,32 +14,47 @@ import { colors, typography, spacing } from '../theme/tokens.js';
 import type {
   TabParamList,
   ChatStackParamList,
+  InboxStackParamList,
   BriefStackParamList,
   KnowledgeStackParamList,
-  PrivacyStackParamList,
   SettingsStackParamList,
 } from './types.js';
 
 // Screen imports
 import { ChatScreen } from '../screens/ChatScreen.js';
+import { InboxScreen } from '../screens/InboxScreen.js';
 import { BriefScreen } from '../screens/BriefScreen.js';
 import { KnowledgeGraphScreen } from '../screens/KnowledgeGraphScreen.js';
 import { PrivacyDashboardScreen } from '../screens/privacy/PrivacyDashboardScreen.js';
+import { ProofOfPrivacyScreen } from '../screens/privacy/ProofOfPrivacyScreen.js';
 import { SettingsScreen } from '../screens/SettingsScreen.js';
 import { CaptureScreen } from '../screens/CaptureScreen.js';
 import { ImportDigitalLifeScreen } from '../screens/ImportDigitalLifeScreen.js';
 import { VoiceSettingsScreen } from '../screens/VoiceSettingsScreen.js';
 import { CloudStorageSettingsScreen } from '../screens/CloudStorageSettingsScreen.js';
+import { ContactsScreen } from '../screens/ContactsScreen.js';
+import { ContactDetailScreen } from '../screens/ContactDetailScreen.js';
+import { FinancialDashboardScreen } from '../screens/FinancialDashboardScreen.js';
+import { HealthDashboardScreen } from '../screens/HealthDashboardScreen.js';
+import { LocationSettingsScreen } from '../screens/LocationSettingsScreen.js';
+import { AdversarialDashboardScreen } from '../screens/adversarial/AdversarialDashboardScreen.js';
+import { NetworkScreen } from '../screens/sovereignty/NetworkScreen.js';
+import { LivingWillScreen } from '../screens/sovereignty/LivingWillScreen.js';
+import { WitnessScreen } from '../screens/sovereignty/WitnessScreen.js';
+import { InheritanceScreen } from '../screens/sovereignty/InheritanceScreen.js';
+import { InheritanceActivationScreen } from '../screens/sovereignty/InheritanceActivationScreen.js';
+import { BiometricSetupScreen } from '../screens/security/BiometricSetupScreen.js';
+import { BackupScreen } from '../screens/security/BackupScreen.js';
 import { fetchKnowledgeGraph } from '../data/knowledge-graph-adapter.js';
 import type { KnowledgeGraphData } from '../data/knowledge-graph-adapter.js';
 
 // ─── Stack Navigators ──────────────────────────────────────────────────────
 
 const ChatStack = createNativeStackNavigator<ChatStackParamList>();
+const InboxStack = createNativeStackNavigator<InboxStackParamList>();
 const BriefStack = createNativeStackNavigator<BriefStackParamList>();
 const KnowledgeStack = createNativeStackNavigator<KnowledgeStackParamList>();
-const PrivacyStack = createNativeStackNavigator<PrivacyStackParamList>();
-const SettingsStack = createNativeStackNavigator<SettingsStackParamList>();
+const SettingsNavStack = createNativeStackNavigator<SettingsStackParamList>();
 
 const stackScreenOptions = {
   headerShown: false as const,
@@ -53,6 +68,16 @@ function ChatTabStack() {
     <ChatStack.Navigator screenOptions={stackScreenOptions}>
       <ChatStack.Screen name="Chat" component={ChatScreen} />
     </ChatStack.Navigator>
+  );
+}
+
+// ─── Inbox Tab Stack ──────────────────────────────────────────────────────
+
+function InboxTabStack() {
+  return (
+    <InboxStack.Navigator screenOptions={stackScreenOptions}>
+      <InboxStack.Screen name="Inbox" component={InboxScreen} />
+    </InboxStack.Navigator>
   );
 }
 
@@ -120,9 +145,8 @@ function KnowledgeTabStack() {
   );
 }
 
-// ─── Privacy Tab Stack ─────────────────────────────────────────────────────
+// ─── Screen Wrappers (for screens requiring injected props) ──────────────
 
-// Wrapper to provide default props for PrivacyDashboardScreen
 function PrivacyDashboardScreenWrapper() {
   const { requireAuth } = useFeatureAuth();
   const [authorized, setAuthorized] = useState(false);
@@ -144,7 +168,6 @@ function PrivacyDashboardScreenWrapper() {
     );
   }
 
-  // TODO: Sprint 5 — wire to real privacy data from Core
   return (
     <PrivacyDashboardScreen
       guarantees={[
@@ -163,11 +186,164 @@ function PrivacyDashboardScreenWrapper() {
   );
 }
 
-function PrivacyTabStack() {
+function FinancialDashboardScreenWrapper() {
   return (
-    <PrivacyStack.Navigator screenOptions={stackScreenOptions}>
-      <PrivacyStack.Screen name="PrivacyDashboard" component={PrivacyDashboardScreenWrapper} />
-    </PrivacyStack.Navigator>
+    <FinancialDashboardScreen
+      isPremium
+      onActivateDigitalRepresentative={() => {}}
+    />
+  );
+}
+
+function HealthDashboardScreenWrapper() {
+  return (
+    <HealthDashboardScreen
+      isPremium
+      onActivateDigitalRepresentative={() => {}}
+    />
+  );
+}
+
+function NetworkScreenWrapper() {
+  return (
+    <NetworkScreen
+      peers={[]}
+      activeOffers={[]}
+      onAcceptOffer={() => {}}
+      onRejectOffer={() => {}}
+      onRevokePeer={() => {}}
+      onRefresh={() => {}}
+    />
+  );
+}
+
+function LivingWillScreenWrapper() {
+  return (
+    <LivingWillScreen
+      exportStatus={{
+        lastExportAt: null,
+        lastExportSizeBytes: 0,
+        autoExportEnabled: false,
+        exportFormat: 'json-ld',
+      }}
+      isPremium
+      onExport={async () => {}}
+      onImport={async () => {}}
+      onToggleAutoExport={() => {}}
+      onChangeFormat={() => {}}
+    />
+  );
+}
+
+function WitnessScreenWrapper() {
+  return (
+    <WitnessScreen
+      attestations={[]}
+      isPremium
+      onSelectAttestation={() => {}}
+      onShareAttestation={async () => {}}
+      onVerifyAttestation={async () => ({ valid: true, details: '' })}
+    />
+  );
+}
+
+function InheritanceScreenWrapper() {
+  return (
+    <InheritanceScreen
+      enabled={false}
+      trustedParties={[]}
+      isPremium
+      onToggleEnabled={() => {}}
+      onAddParty={() => {}}
+      onRemoveParty={() => {}}
+      onRunDrill={async () => {}}
+    />
+  );
+}
+
+function InheritanceActivationScreenWrapper() {
+  return (
+    <InheritanceActivationScreen
+      isPremium
+      onPickFile={async () => null}
+      onActivate={async () => ({ success: false, error: 'Not yet implemented' })}
+    />
+  );
+}
+
+function AdversarialDashboardScreenWrapper() {
+  return (
+    <AdversarialDashboardScreen
+      alerts={[]}
+      subscriptions={[]}
+      optOutStatus={{ totalOptOuts: 0, pendingOptOuts: 0, successRate: 0 }}
+      onDismissAlert={() => {}}
+      onReviewSubscription={() => {}}
+      onInitiateOptOut={() => {}}
+    />
+  );
+}
+
+function BiometricSetupScreenWrapper() {
+  return (
+    <BiometricSetupScreen
+      isAvailable
+      isEnabled={false}
+      biometricType="fingerprint"
+      lockTimeout="5min"
+      sensitiveReconfirm
+      onToggleBiometric={() => {}}
+      onChangeLockTimeout={() => {}}
+      onToggleSensitiveReconfirm={() => {}}
+    />
+  );
+}
+
+function BackupScreenWrapper() {
+  return (
+    <BackupScreen
+      destinations={[]}
+      history={[]}
+      lastBackupAt={null}
+      schedule="manual"
+      isBackingUp={false}
+      onBackupNow={async () => {}}
+      onChangeSchedule={() => {}}
+      onAddDestination={() => {}}
+      onRemoveDestination={() => {}}
+      onRestore={async () => {}}
+    />
+  );
+}
+
+function ProofOfPrivacyScreenWrapper() {
+  return (
+    <ProofOfPrivacyScreen
+      reports={[]}
+      isPremium
+      isGenerating={false}
+      onGenerate={async () => {}}
+      onExportReport={async () => {}}
+      onViewReport={() => {}}
+    />
+  );
+}
+
+function LocationSettingsScreenWrapper() {
+  const [settings, setSettings] = useState({
+    enabled: false,
+    remindersEnabled: false,
+    commuteEnabled: false,
+    weatherEnabled: false,
+    defaultCity: '',
+    retentionDays: 7,
+  });
+  return (
+    <LocationSettingsScreen
+      settings={settings}
+      onSettingsChange={setSettings}
+      onClearHistory={() => {}}
+    />
   );
 }
 
@@ -175,13 +351,29 @@ function PrivacyTabStack() {
 
 function SettingsTabStack() {
   return (
-    <SettingsStack.Navigator screenOptions={stackScreenOptions}>
-      <SettingsStack.Screen name="SettingsRoot" component={SettingsScreen} />
-      <SettingsStack.Screen name="VoiceSettings" component={VoiceSettingsScreen} />
-      <SettingsStack.Screen name="CloudStorageSettings" component={CloudStorageSettingsScreen} />
-      <SettingsStack.Screen name="Capture" component={CaptureScreen} />
-      <SettingsStack.Screen name="ImportDigitalLife" component={ImportDigitalLifeScreen} />
-    </SettingsStack.Navigator>
+    <SettingsNavStack.Navigator screenOptions={stackScreenOptions}>
+      <SettingsNavStack.Screen name="SettingsRoot" component={SettingsScreen} />
+      <SettingsNavStack.Screen name="VoiceSettings" component={VoiceSettingsScreen} />
+      <SettingsNavStack.Screen name="CloudStorageSettings" component={CloudStorageSettingsScreen} />
+      <SettingsNavStack.Screen name="Capture" component={CaptureScreen} />
+      <SettingsNavStack.Screen name="ImportDigitalLife" component={ImportDigitalLifeScreen} />
+      <SettingsNavStack.Screen name="Contacts" component={ContactsScreen} />
+      <SettingsNavStack.Screen name="ContactDetail" component={ContactDetailScreen} />
+      <SettingsNavStack.Screen name="LocationSettings" component={LocationSettingsScreen} />
+      <SettingsNavStack.Screen name="FinancialDashboard" component={FinancialDashboardScreenWrapper} />
+      <SettingsNavStack.Screen name="HealthDashboard" component={HealthDashboardScreenWrapper} />
+      <SettingsNavStack.Screen name="PrivacyDashboard" component={PrivacyDashboardScreenWrapper} />
+      <SettingsNavStack.Screen name="ProofOfPrivacy" component={ProofOfPrivacyScreenWrapper} />
+      <SettingsNavStack.Screen name="LivingWill" component={LivingWillScreenWrapper} />
+      <SettingsNavStack.Screen name="Witness" component={WitnessScreenWrapper} />
+      <SettingsNavStack.Screen name="Inheritance" component={InheritanceScreenWrapper} />
+      <SettingsNavStack.Screen name="InheritanceActivation" component={InheritanceActivationScreenWrapper} />
+      <SettingsNavStack.Screen name="Network" component={NetworkScreenWrapper} />
+      <SettingsNavStack.Screen name="BiometricSetup" component={BiometricSetupScreenWrapper} />
+      <SettingsNavStack.Screen name="Backup" component={BackupScreenWrapper} />
+      <SettingsNavStack.Screen name="AdversarialDashboard" component={AdversarialDashboardScreenWrapper} />
+      <SettingsNavStack.Screen name="LocationSettings" component={LocationSettingsScreenWrapper} />
+    </SettingsNavStack.Navigator>
   );
 }
 
@@ -189,16 +381,16 @@ function SettingsTabStack() {
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
-// Custom tab bar matching MobileTabBar visual design
+// Custom tab bar matching MobileTabBar visual design from Storybook
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
-  // Tab display names
+  // Tab display names matching Storybook MobileTabBar story
   const TAB_LABELS: Record<string, string> = {
     ChatTab: 'Chat',
+    InboxTab: 'Inbox',
     BriefTab: 'Brief',
     KnowledgeTab: 'Knowledge',
-    PrivacyTab: 'Privacy',
     SettingsTab: 'Settings',
   };
 
@@ -225,7 +417,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           <Pressable
             key={route.key}
             onPress={onPress}
-            style={tabStyles.tab}
+            style={[tabStyles.tab, isFocused && tabStyles.tabActive]}
             accessibilityRole="button"
             accessibilityState={isFocused ? { selected: true } : {}}
             accessibilityLabel={label}
@@ -253,6 +445,11 @@ export function MainTabNavigator() {
         options={{ tabBarLabel: 'Chat' }}
       />
       <Tab.Screen
+        name="InboxTab"
+        component={InboxTabStack}
+        options={{ tabBarLabel: 'Inbox' }}
+      />
+      <Tab.Screen
         name="BriefTab"
         component={BriefTabStack}
         options={{ tabBarLabel: 'Brief' }}
@@ -261,11 +458,6 @@ export function MainTabNavigator() {
         name="KnowledgeTab"
         component={KnowledgeTabStack}
         options={{ tabBarLabel: 'Knowledge' }}
-      />
-      <Tab.Screen
-        name="PrivacyTab"
-        component={PrivacyTabStack}
-        options={{ tabBarLabel: 'Privacy' }}
       />
       <Tab.Screen
         name="SettingsTab"
@@ -293,6 +485,15 @@ const tabStyles = StyleSheet.create({
     paddingVertical: spacing.xs,
     minHeight: 44,
     justifyContent: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(152,160,168,0.35)',
+    backgroundColor: '#111518',
+    marginHorizontal: 2,
+  },
+  tabActive: {
+    borderColor: 'rgba(110,207,163,0.35)',
+    backgroundColor: 'rgba(110,207,163,0.10)',
   },
   indicator: {
     width: 4,
@@ -306,7 +507,10 @@ const tabStyles = StyleSheet.create({
   },
   tabLabel: {
     fontFamily: typography.fontBody,
-    fontSize: typography.size.xs,
+    fontSize: 10,
+    fontWeight: '400',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
     color: colors.textTertiary,
   },
   tabLabelActive: {

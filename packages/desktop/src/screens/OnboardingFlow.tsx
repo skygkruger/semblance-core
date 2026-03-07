@@ -63,7 +63,16 @@ function toHardwareInfo(hw: HardwareDisplayInfo): HardwareInfo {
   const tier = (hw.tier === 'capable' || hw.tier === 'standard' || hw.tier === 'constrained')
     ? hw.tier
     : 'standard';
-  return { ...hw, tier };
+  return {
+    tier,
+    totalRamMb: hw.totalRamMb,
+    cpuCores: hw.cpuCores,
+    gpuName: hw.gpu?.name ?? null,
+    gpuVramMb: hw.gpu?.vramMb ?? null,
+    os: hw.os,
+    arch: hw.cpuArch,
+    voiceCapable: hw.voiceCapable,
+  };
 }
 
 /** Map IPC KnowledgeMoment to semblance-ui KnowledgeMomentData */
@@ -122,7 +131,8 @@ export function OnboardingFlow() {
     setDetecting(true);
     detectHardware()
       .then((result) => setHardwareInfo(toHardwareInfo(result)))
-      .catch(() => {
+      .catch((err) => {
+        console.error('[OnboardingFlow] detectHardware failed:', err);
         setHardwareInfo({
           tier: 'standard',
           totalRamMb: 8192,
@@ -149,9 +159,10 @@ export function OnboardingFlow() {
     setDownloads(models);
 
     startModelDownloads(hardwareInfo?.tier ?? 'standard')
-      .catch(() => {
-        // Backend not ready — mark as complete so user can proceed
-        setDownloads(prev => prev.map(d => ({ ...d, status: 'complete' as const, downloadedBytes: d.totalBytes })));
+      .catch((err) => {
+        console.error('[OnboardingFlow] startModelDownloads failed:', err);
+        // Mark as error so user sees something went wrong
+        setDownloads(prev => prev.map(d => ({ ...d, status: 'error' as const })));
       });
 
     // Also start knowledge moment generation

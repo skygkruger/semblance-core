@@ -43,21 +43,22 @@ export function FinancialDashboardScreen({
   });
 
   useEffect(() => {
-    // TODO: Sprint 5 — wire to actual sidecar financial data commands
+    // Financial data will be loaded once sidecar financial data commands are wired via unified-bridge
     setLoading(false);
   }, [selectedPeriod]);
 
   const handleDismissAnomaly = useCallback((_id: string) => {
-    // TODO: Sprint 5 — wire to actual sidecar dismiss command
+    // Removes from local state; requires sidecar dismiss command for persistence
     setAnomalies((prev) => prev.filter((a) => a.id !== _id));
   }, []);
 
   const handleCancelSubscription = useCallback((_chargeId: string) => {
-    // TODO: Sprint 5 — wire to DR subscription cancellation workflow
+    // Requires Digital Representative subscription cancellation workflow via unified-bridge
+    console.warn('[FinancialDashboard] Subscription cancellation requires DR workflow integration');
   }, []);
 
   const handleKeepSubscription = useCallback((_chargeId: string) => {
-    // TODO: Sprint 5 — wire to sidecar subscription status update
+    // Updates local state; requires sidecar subscription status update for persistence
     setSubscriptions((prev) => ({
       ...prev,
       charges: prev.charges.map((c) =>
@@ -67,7 +68,8 @@ export function FinancialDashboardScreen({
   }, []);
 
   const handleImportStatement = useCallback(() => {
-    // TODO: Sprint 5 — wire to file picker + sidecar import command
+    // Requires file picker + sidecar import command via unified-bridge
+    console.warn('[FinancialDashboard] Statement import requires file picker and sidecar integration');
   }, []);
 
   if (!isPremium) {

@@ -72,8 +72,8 @@ export function PendingActionBanner({ filter }: PendingActionBannerProps) {
         }
       }
       setApprovalCounts(counts);
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[PendingActionBanner] loadPending failed:', err);
     }
   }, [filter]);
 

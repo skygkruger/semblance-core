@@ -21,8 +21,8 @@ export function NetworkStatusIndicator({ onClick }: { onClick: () => void }) {
     try {
       const result = await getNetworkTrustStatus();
       setStatus(result);
-    } catch {
-      // Sidecar not wired yet — default to clean
+    } catch (err) {
+      console.error('[NetworkStatusIndicator] loadStatus failed:', err);
     }
   }, []);
 

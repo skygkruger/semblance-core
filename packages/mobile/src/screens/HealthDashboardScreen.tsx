@@ -38,13 +38,12 @@ export function HealthDashboardScreen({
       setHasHealthKit(false);
     }
 
-    // Load health data via sidecar
-    // TODO: Sprint 5 — wire to actual sidecar health data commands
+    // Health data will be loaded once sidecar health data commands are wired via unified-bridge
     setLoading(false);
   }, []);
 
   const handleSaveEntry = useCallback(async (entry: Partial<HealthEntry> & { date: string }) => {
-    // TODO: Sprint 5 — wire to actual sidecar save command
+    // Saves locally in component state; requires sidecar save command for persistence
     const saved: HealthEntry = {
       id: entry.date,
       date: entry.date,

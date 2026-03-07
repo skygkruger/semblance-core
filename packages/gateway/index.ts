@@ -384,6 +384,7 @@ export { ServiceRegistry } from './services/registry.js';
 export { GatewayTransport } from './ipc/transport.js';
 export { validateAndExecute } from './ipc/validator.js';
 export { CredentialStore } from './credentials/store.js';
+export type { ConnectionTesterFn } from './credentials/store.js';
 export { PROVIDER_PRESETS } from './credentials/types.js';
 export { EmailAdapter, IMAPAdapter, SMTPAdapter } from './services/email/index.js';
 export { CalendarAdapter, CalDAVAdapter } from './services/calendar/index.js';

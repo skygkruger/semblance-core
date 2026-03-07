@@ -120,7 +120,8 @@ export function RelationshipsScreen() {
     try {
       const result = await listContacts(500, sortField === 'display_name' ? 'name' : sortField === 'last_contact_date' ? 'lastInteraction' : 'strength');
       setContacts((result.contacts ?? []) as unknown as ContactSummary[]);
-    } catch {
+    } catch (err) {
+      console.error('[RelationshipsScreen] loadContacts failed:', err);
       setContacts([]);
     }
   }, [sortField]);
@@ -129,8 +130,8 @@ export function RelationshipsScreen() {
     try {
       const result = await getContactStats();
       setStats(result as unknown as ContactStats);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('[RelationshipsScreen] loadStats failed:', err);
     }
   }, []);
 
@@ -138,7 +139,8 @@ export function RelationshipsScreen() {
     try {
       const result = await getUpcomingBirthdays();
       setBirthdays((result.birthdays ?? []) as unknown as BirthdayInfo[]);
-    } catch {
+    } catch (err) {
+      console.error('[RelationshipsScreen] loadBirthdays failed:', err);
       setBirthdays([]);
     }
   }, []);
@@ -152,8 +154,8 @@ export function RelationshipsScreen() {
     try {
       const result = await getContact(id);
       setSelectedContact(result as unknown as ContactDetail);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('[RelationshipsScreen] loadContact failed:', err);
     }
   }, []);
 
@@ -166,8 +168,8 @@ export function RelationshipsScreen() {
     try {
       const result = await searchContacts(query, 100);
       setContacts((result.contacts ?? []) as unknown as ContactSummary[]);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('[RelationshipsScreen] search failed:', err);
     }
   }, [loadContacts]);
 

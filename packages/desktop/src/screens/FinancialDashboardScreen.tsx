@@ -48,8 +48,8 @@ export function FinancialDashboardScreen() {
       setData((prev) =>
         prev ? { ...prev, anomalies: prev.anomalies.filter((a) => a.id !== anomalyId) } : prev,
       );
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[FinancialDashboard] dismissAnomaly failed:', err);
     }
   }, []);
 
@@ -66,8 +66,8 @@ export function FinancialDashboardScreen() {
           },
         };
       });
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[FinancialDashboard] cancelSubscription failed:', err);
     }
   }, []);
 
@@ -86,8 +86,8 @@ export function FinancialDashboardScreen() {
           },
         };
       });
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[FinancialDashboard] keepSubscription failed:', err);
     }
   }, []);
 

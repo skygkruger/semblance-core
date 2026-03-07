@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
+import DeviceInfo from 'react-native-device-info';
 import { isVoiceCapable } from '@semblance/core/llm/hardware-types';
 import type { HardwareProfileTier } from '@semblance/core/llm/hardware-types';
 
@@ -32,19 +33,34 @@ export function useHardwareTier(): HardwareTierInfo {
       return;
     }
 
-    // TODO(Sprint 4): Wire to unified-bridge.ts detectMobilePlatform() for real RAM detection
-    // For now, estimate based on platform heuristics
-    const estimatedRamMb = Platform.OS === 'ios' ? 6144 : 4096;
-    const tier: HardwareProfileTier = estimatedRamMb >= 6144 ? 'standard' : 'constrained';
-
-    const result: HardwareTierInfo = {
-      tier,
-      totalRamMb: estimatedRamMb,
-      voiceCapable: isVoiceCapable(estimatedRamMb, tier, 'mobile'),
-      loading: false,
-    };
-    cached = result;
-    setInfo(result);
+    // Use react-native-device-info for actual RAM detection
+    DeviceInfo.getTotalMemory()
+      .then((totalBytes) => {
+        const ramMb = Math.round(totalBytes / (1024 * 1024));
+        const tier: HardwareProfileTier = ramMb >= 6144 ? 'standard' : 'constrained';
+        const result: HardwareTierInfo = {
+          tier,
+          totalRamMb: ramMb,
+          voiceCapable: isVoiceCapable(ramMb, tier, 'mobile'),
+          loading: false,
+        };
+        cached = result;
+        setInfo(result);
+      })
+      .catch(() => {
+        // Fallback to platform-based estimates if DeviceInfo fails
+        // iOS: 6GB conservative estimate; Android: 4GB conservative estimate
+        const fallbackRamMb = Platform.OS === 'ios' ? 6144 : 4096;
+        const tier: HardwareProfileTier = fallbackRamMb >= 6144 ? 'standard' : 'constrained';
+        const result: HardwareTierInfo = {
+          tier,
+          totalRamMb: fallbackRamMb,
+          voiceCapable: isVoiceCapable(fallbackRamMb, tier, 'mobile'),
+          loading: false,
+        };
+        cached = result;
+        setInfo(result);
+      });
   }, []);
 
   return info;

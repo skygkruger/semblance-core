@@ -4,10 +4,8 @@
 // Reasoning: SemblanceCore and Gateway are TypeScript packages that require
 // a Node.js runtime. The Rust backend spawns a single Node.js sidecar process
 // that hosts both Core and Gateway, communicating via NDJSON over stdin/stdout.
-// This is the simplest integration approach that gets to real end-to-end
-// functionality in Sprint 1. The production process isolation model (OS-level
-// sandboxing) ships in Sprint 4.
-// Escalation check: Build prompt explicitly authorizes process model decisions.
+// This is the simplest integration approach for end-to-end functionality.
+// Production process isolation (OS-level sandboxing) is a future enhancement.
 //
 // All network access is mediated by the Core's OllamaProvider (localhost-only)
 // and the Gateway's validation pipeline. No direct network calls from this
@@ -34,6 +32,7 @@ pub struct OllamaStatus {
     pub status: String,
     pub active_model: Option<String>,
     pub available_models: Vec<String>,
+    pub inference_engine: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -461,6 +460,11 @@ async fn get_ollama_status(state: tauri::State<'_, AppBridge>) -> Result<OllamaS
                     .collect()
             })
             .unwrap_or_default(),
+        inference_engine: result
+            .get("inferenceEngine")
+            .and_then(|v| v.as_str())
+            .unwrap_or("none")
+            .to_string(),
     })
 }
 
@@ -2377,10 +2381,39 @@ pub fn run() {
                 }
             }
 
-            // System tray setup
+            // System tray setup with right-click menu
+            let tray_menu = tauri::menu::MenuBuilder::new(app)
+                .text("show", "Show Semblance")
+                .separator()
+                .text("quit", "Quit")
+                .build()?;
+
             let _tray = tauri::tray::TrayIconBuilder::new()
                 .tooltip("Semblance — Local Only")
+                .menu(&tray_menu)
                 .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| {
+                    match event.id().as_ref() {
+                        "show" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "quit" => {
+                            // Graceful shutdown: tell sidecar to clean up, then exit
+                            let app_clone = app.clone();
+                            tauri::async_runtime::spawn(async move {
+                                if let Some(bridge) = app_clone.try_state::<AppBridge>() {
+                                    bridge.bridge.shutdown().await;
+                                    eprintln!("[tauri] Sidecar shut down cleanly");
+                                }
+                                app_clone.exit(0);
+                            });
+                        }
+                        _ => {}
+                    }
+                })
                 .on_tray_icon_event(|tray, event| {
                     if let tauri::tray::TrayIconEvent::Click {
                         button: tauri::tray::MouseButton::Left,
@@ -2425,7 +2458,7 @@ pub fn run() {
             // AUTONOMOUS DECISION: Locate project root by walking up from the
             // Tauri resource directory. In development, the Tauri app runs from
             // packages/desktop/src-tauri/, so the project root is 3 levels up.
-            // In production, the sidecar would be bundled — that's Sprint 4 scope.
+            // In production, the sidecar is bundled alongside the binary.
             let project_root = std::env::current_dir()
                 .unwrap_or_else(|_| PathBuf::from("."))
                 .join("packages")
@@ -2490,15 +2523,10 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { .. } = event {
-                // Graceful shutdown: tell sidecar to clean up
-                let app = window.app_handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    if let Some(bridge) = app.try_state::<AppBridge>() {
-                        bridge.bridge.shutdown().await;
-                        eprintln!("[tauri] Sidecar shut down cleanly");
-                    }
-                });
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Minimize to tray instead of quitting
+                api.prevent_close();
+                let _ = window.hide();
             }
         })
         .invoke_handler(tauri::generate_handler![

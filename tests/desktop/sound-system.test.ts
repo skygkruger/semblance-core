@@ -277,9 +277,12 @@ describe('Settings UI', () => {
     expect(settingsSrc).toContain('PlayIcon');
   });
 
-  it('SettingsScreen imports and renders SoundSettingsSection', () => {
-    expect(settingsScreenSrc).toContain("import { SoundSettingsSection }");
-    expect(settingsScreenSrc).toContain('<SoundSettingsSection />');
+  it('SettingsScreen uses SettingsNavigator which includes sound settings', () => {
+    // SettingsScreen is a thin wrapper around SettingsNavigator from @semblance/ui.
+    // Sound settings are exposed via the soundEffects prop passed to SettingsNavigator.
+    expect(settingsScreenSrc).toContain("import { SettingsNavigator }");
+    expect(settingsScreenSrc).toContain('<SettingsNavigator');
+    expect(settingsScreenSrc).toContain('soundEffects');
   });
 });
 

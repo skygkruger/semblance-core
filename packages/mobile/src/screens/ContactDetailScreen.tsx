@@ -31,7 +31,7 @@ interface ContactDetail {
   } | null;
 }
 
-// Route params for ContactDetail — will be added to SettingsStackParamList in Sprint 5
+// Route params for ContactDetail
 type ContactDetailParams = { ContactDetail: { contactId: string } };
 type Props = NativeStackScreenProps<ContactDetailParams, 'ContactDetail'>;
 

@@ -40,6 +40,9 @@ i18n
     fallbackLng: 'en',
     ns: [...NAMESPACES],
     defaultNS: 'common',
+    // Resources are already loaded synchronously via Vite glob — no backend needed.
+    // Force synchronous init so translations are available on first render.
+    initAsync: false,
     interpolation: {
       escapeValue: false,
     },

@@ -42,8 +42,8 @@ export function HealthDashboardScreen() {
       setData((prev) =>
         prev ? { ...prev, todayEntry: saved } : prev,
       );
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[HealthDashboard] saveEntry failed:', err);
     }
   }, []);
 

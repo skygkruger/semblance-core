@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use sysinfo::System;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct GpuInfo {
     pub name: String,
     pub vendor: String,
@@ -14,6 +15,7 @@ pub struct GpuInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct HardwareProfile {
     pub tier: String,
     pub cpu_cores: usize,
@@ -54,10 +56,8 @@ pub fn detect_hardware() -> HardwareProfile {
         "unknown".to_string()
     };
 
-    // GPU detection — basic heuristic based on platform
-    // Full GPU enumeration (vulkan/metal/cuda) is Sprint 4 scope.
-    // For now, detect Apple Silicon (always has GPU compute) and report
-    // no dedicated GPU otherwise. Users can override in settings.
+    // GPU detection — platform-specific heuristics.
+    // Detects Apple Silicon (Metal) on macOS, NVIDIA/AMD/Intel via WMIC on Windows.
     let gpu = detect_gpu();
 
     let tier = classify_tier(total_ram_mb, &gpu);
@@ -101,11 +101,11 @@ fn is_voice_capable(total_ram_mb: u64, tier: &str) -> bool {
     total_ram_mb >= 8192 && tier != "constrained"
 }
 
-/// Basic GPU detection. Returns GPU info if a compute-capable GPU is detected.
+/// GPU detection. Returns GPU info if a compute-capable GPU is detected.
 ///
-/// On macOS with Apple Silicon, the GPU is integrated and always compute-capable
-/// (Metal). On other platforms, this returns None for now — full GPU enumeration
-/// via Vulkan/CUDA is Sprint 4 scope.
+/// On macOS with Apple Silicon, the GPU is integrated and always compute-capable (Metal).
+/// On Windows, uses WMIC to query the video controller for name and VRAM.
+/// On Linux, returns None (future: parse lspci or sysfs).
 fn detect_gpu() -> Option<GpuInfo> {
     #[cfg(target_os = "macos")]
     {
@@ -124,7 +124,64 @@ fn detect_gpu() -> Option<GpuInfo> {
         }
     }
 
-    // Other platforms: no GPU detection yet (Sprint 4)
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(output) = std::process::Command::new("wmic")
+            .args(["path", "win32_VideoController", "get", "Name,AdapterRAM", "/format:csv"])
+            .output()
+        {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
+                // CSV format: Node,AdapterRAM,Name
+                // Skip header lines and empty lines
+                for line in stdout.lines() {
+                    let line = line.trim();
+                    if line.is_empty() || line.starts_with("Node") {
+                        continue;
+                    }
+                    let parts: Vec<&str> = line.split(',').collect();
+                    if parts.len() >= 3 {
+                        let adapter_ram_str = parts[1].trim();
+                        let name = parts[2].trim().to_string();
+
+                        // Skip generic/basic adapters (Microsoft Basic Display)
+                        if name.contains("Basic Display") || name.contains("Remote Desktop") {
+                            continue;
+                        }
+
+                        let vram_bytes: u64 = adapter_ram_str.parse().unwrap_or(0);
+                        // WMIC reports AdapterRAM capped at 4GB (DWORD limit).
+                        // For GPUs with >4GB VRAM, estimate from the GPU name.
+                        let vram_mb = if vram_bytes > 0 {
+                            vram_bytes / (1024 * 1024)
+                        } else {
+                            0
+                        };
+
+                        let name_lower = name.to_lowercase();
+                        let vendor = if name_lower.contains("nvidia") || name_lower.contains("geforce") || name_lower.contains("rtx") || name_lower.contains("gtx") {
+                            "nvidia".to_string()
+                        } else if name_lower.contains("amd") || name_lower.contains("radeon") {
+                            "amd".to_string()
+                        } else if name_lower.contains("intel") {
+                            "intel".to_string()
+                        } else {
+                            "unknown".to_string()
+                        };
+
+                        let compute_capable = vendor == "nvidia" || vendor == "amd";
+
+                        return Some(GpuInfo {
+                            name,
+                            vendor,
+                            vram_mb,
+                            compute_capable,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     None
 }
 

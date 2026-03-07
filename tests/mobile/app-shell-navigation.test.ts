@@ -66,13 +66,13 @@ describe('Mobile App Shell — Design Tokens', () => {
 // ─── Navigation Structure ───────────────────────────────────────────────────
 
 describe('Mobile App Shell — Navigation', () => {
-  it('defines five tabs: Chat, Brief, Knowledge, Privacy, Settings', () => {
+  it('defines five tabs: Chat, Inbox, Brief, Knowledge, Settings', () => {
     const content = fs.readFileSync(path.join(MOBILE_SRC, 'navigation/types.ts'), 'utf-8');
 
     expect(content).toContain('ChatTab');
+    expect(content).toContain('InboxTab');
     expect(content).toContain('BriefTab');
     expect(content).toContain('KnowledgeTab');
-    expect(content).toContain('PrivacyTab');
     expect(content).toContain('SettingsTab');
   });
 

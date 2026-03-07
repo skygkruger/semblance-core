@@ -207,7 +207,7 @@ export class AutonomyManager {
 
       case 'alter_ego':
         // Alter Ego: Auto for almost everything. High-stakes execute = approval.
-        // Pattern learning not yet implemented. Behaves like Partner
+        // Pattern learning is a future enhancement. Currently behaves like Partner
         // with fewer approval requirements.
         if (risk === 'execute' && (action === 'email.send')) {
           // Even Alter Ego confirms sending emails (can be changed by learned patterns in S4)

@@ -240,9 +240,9 @@ describe('Settings Screen', () => {
   const settingsContent = readFileSync(SETTINGS_SCREEN, 'utf-8');
 
   it('allows editing the Semblance name', () => {
-    // Phase 5 migrated raw invoke() to typed IPC wrappers
+    // SettingsScreen is a thin wrapper around SettingsNavigator — name editing delegated via onChange/onRenameSemblance
     expect(settingsContent).toContain('setUserName');
-    expect(settingsContent).toContain('editingName');
+    expect(settingsContent).toContain('onRenameSemblance');
   });
 
   it('shows Ollama connection status', () => {
@@ -250,24 +250,25 @@ describe('Settings Screen', () => {
   });
 
   it('provides model selection', () => {
-    expect(settingsContent).toContain('availableModels');
-    // Phase 5 migrated raw invoke() to typed IPC wrappers
+    // Model selection delegated via onChange handler with 'activeModel' key
+    expect(settingsContent).toContain("case 'activeModel'");
     expect(settingsContent).toContain('selectModel');
   });
 
   it('includes autonomy configuration', () => {
-    expect(settingsContent).toContain('AutonomySelector');
-    // Phase 5 migrated raw invoke() to typed IPC wrappers
+    // Autonomy configuration delegated via onChange handler and autonomyTier prop
+    expect(settingsContent).toContain('autonomyTier');
     expect(settingsContent).toContain('setAutonomyTier');
   });
 
-  it('includes theme toggle', () => {
-    expect(settingsContent).toContain('ThemeToggle');
+  it('uses SettingsNavigator from semblance-ui', () => {
+    expect(settingsContent).toContain("import { SettingsNavigator }");
+    expect(settingsContent).toContain('<SettingsNavigator');
   });
 
   it('shows version information', () => {
-    // Phase 7 i18n: version string uses translation key
-    expect(settingsContent).toContain('screen.settings.about_version');
+    // Version passed as appVersion prop to SettingsNavigator
+    expect(settingsContent).toContain('appVersion=');
   });
 });
 
@@ -397,8 +398,8 @@ describe('Navigation and Routing', () => {
     expect(appContent).toContain('PrivacyBadge');
   });
 
-  it('renders ThemeToggle in sidebar', () => {
-    expect(appContent).toContain('ThemeToggle');
+  it('renders DesktopSidebar', () => {
+    expect(appContent).toContain('DesktopSidebar');
   });
 });
 
@@ -419,7 +420,8 @@ describe('User Name Display', () => {
   it('settings allows editing name', () => {
     const content = readFileSync(SETTINGS_SCREEN, 'utf-8');
     expect(content).toContain('userName');
-    // BEM migration: uses ai-name-shimmer BEM class instead of Tailwind text-semblance-accent
-    expect(content).toContain('ai-name-shimmer');
+    // Name editing delegated to SettingsNavigator via onRenameSemblance and semblanceName props
+    expect(content).toContain('semblanceName');
+    expect(content).toContain('onRenameSemblance');
   });
 });
