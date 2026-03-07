@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { Wordmark } from '../Wordmark/Wordmark';
 import { Button } from '../Button/Button';
 import type { LanguageSelectProps } from './LanguageSelect.types';
 import { SUPPORTED_LANGUAGES, findLanguage } from '../../../core/i18n/supported-languages';
@@ -36,8 +35,6 @@ export function LanguageSelect({ detectedCode, onConfirm }: LanguageSelectProps)
       width: '100%',
       animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
     }}>
-      <Wordmark size="hero" />
-
       <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-xl)' }}>
         Choose your language
       </h2>

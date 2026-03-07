@@ -60,10 +60,13 @@ function rowToCredential(row: CredentialRow): ServiceCredential {
   };
 }
 
+export type ConnectionTesterFn = (credential: ServiceCredential, password: string) => Promise<ConnectionTestResult>;
+
 export class CredentialStore {
   private db: Database.Database;
   private encryptionKey: Buffer;
   private keychain: KeychainStore | null;
+  private connectionTester: ConnectionTesterFn | null = null;
 
   constructor(db: Database.Database, encryptionKeyPath?: string, keychain?: KeychainStore) {
     this.db = db;
@@ -251,12 +254,28 @@ export class CredentialStore {
   }
 
   /**
-   * Test connection for a credential.
-   * Delegates to the appropriate adapter's testConnection method.
-   * Actual connection testing is delegated to the service adapter layer.
+   * Set the connection tester function. Called by the gateway initialization
+   * to wire adapter-level connection testing into the credential store.
    */
-  async testConnection(_id: string): Promise<ConnectionTestResult> {
-    // Actual implementation wired by the adapter layer
-    return { success: false, error: 'Connection testing not yet wired' };
+  setConnectionTester(tester: ConnectionTesterFn): void {
+    this.connectionTester = tester;
+  }
+
+  /**
+   * Test connection for a credential.
+   * Delegates to the registered connection tester (provided by the adapter layer).
+   */
+  async testConnection(id: string): Promise<ConnectionTestResult> {
+    const credential = this.get(id);
+    if (!credential) {
+      return { success: false, error: `Credential not found: ${id}` };
+    }
+
+    if (!this.connectionTester) {
+      return { success: false, error: 'Connection testing not available for this service type' };
+    }
+
+    const password = await this.getPasswordAsync(credential);
+    return this.connectionTester(credential, password);
   }
 }

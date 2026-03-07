@@ -41,8 +41,8 @@ export function EscalationPromptCard({ prompt, onAccepted, onDismissed }: Escala
     try {
       await respondToEscalation(prompt.id, true);
       onAccepted();
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[EscalationPromptCard] accept failed:', err);
     } finally {
       setResponding(false);
     }
@@ -53,8 +53,8 @@ export function EscalationPromptCard({ prompt, onAccepted, onDismissed }: Escala
     try {
       await respondToEscalation(prompt.id, false);
       onDismissed();
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[EscalationPromptCard] dismiss failed:', err);
     } finally {
       setResponding(false);
     }

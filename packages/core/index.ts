@@ -215,6 +215,8 @@ export interface SemblanceCoreConfig {
   embeddingModel?: string;
   /** Preferred chat model. If not set, the best available model is selected. */
   chatModel?: string;
+  /** External LLM provider. If supplied, used instead of creating OllamaProvider. */
+  llmProvider?: LLMProvider;
 }
 
 // Default socket path varies by platform
@@ -238,8 +240,8 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
   const socketPath = config?.socketPath ?? defaultSocketPath();
   const embeddingModel = config?.embeddingModel ?? 'nomic-embed-text';
 
-  // Create the LLM provider (localhost-only Ollama)
-  const llm = createLLMProvider({ baseUrl: ollamaBaseUrl });
+  // Use external LLM provider if supplied, otherwise create localhost-only Ollama
+  const llm = config?.llmProvider ?? createLLMProvider({ baseUrl: ollamaBaseUrl });
 
   // Deferred — initialized in initialize()
   let models: ModelManager | null = null;

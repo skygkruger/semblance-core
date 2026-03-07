@@ -1,6 +1,5 @@
 // BriefScreen — Morning Brief tab using BriefingCard from semblance-ui.
 // Container fetches brief data and passes to the shared component.
-// Data wired to Core in Sprint 5.
 
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
@@ -22,28 +21,18 @@ export function BriefScreen({
 }: BriefScreenProps) {
   const { t } = useTranslation();
   const [items, setItems] = useState<BriefingItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // TODO: Sprint 5 — wire to getMorningBrief() adapter for real data
-    const timer = setTimeout(() => {
-      setItems([
-        { type: 'action', text: 'Scheduled 2 calendar events for this week' },
-        { type: 'pending', text: '3 emails await review in Partner mode' },
-        { type: 'insight', text: 'Your meeting frequency decreased 15% this month' },
-        { type: 'action', text: 'Archived 12 newsletter emails overnight' },
-        { type: 'insight', text: 'You have a free afternoon on Thursday' },
-      ]);
-      setLoading(false);
-    }, 600);
-
-    return () => clearTimeout(timer);
+    // Briefing data will be populated once Core's getMorningBrief() adapter is wired via unified-bridge
   }, []);
 
-  if (loading) {
+  if (items.length === 0) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>{t('screen.brief.loading')}</Text>
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>
+          No briefing data yet. Import data on desktop to see it here.
+        </Text>
       </View>
     );
   }
@@ -69,15 +58,17 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     paddingBottom: spacing['3xl'],
   },
-  loadingContainer: {
+  emptyContainer: {
     flex: 1,
     backgroundColor: colors.bgDark,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 32,
   },
-  loadingText: {
+  emptyText: {
     fontFamily: typography.fontBody,
     fontSize: typography.size.base,
-    color: colors.textSecondaryDark,
+    color: '#8593A4',
+    textAlign: 'center',
   },
 });

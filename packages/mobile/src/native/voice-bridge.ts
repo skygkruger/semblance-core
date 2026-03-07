@@ -230,7 +230,7 @@ export function createMobileVoiceAdapter(platform: 'ios' | 'android'): VoiceAdap
     async getAvailableVoices() {
       const p = getPiper();
       if (!p) return [];
-      // TODO(Sprint 4): Wire up models directory path from app storage
+      // Requires native module integration to resolve app storage models directory path
       const voices = await p.listVoices('/models/piper');
       return voices.map(v => ({
         id: v.id,

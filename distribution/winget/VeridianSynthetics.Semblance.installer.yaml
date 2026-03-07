@@ -15,7 +15,7 @@ UpgradeBehavior: install
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/skygkruger/semblance-core/releases/download/v0.1.0/Semblance_0.1.0_x64_en-US.msi
-    InstallerSha256: PLACEHOLDER_SHA256
-    ProductCode: '{PLACEHOLDER-PRODUCT-CODE}'
+    InstallerSha256: PLACEHOLDER_SHA256  # Computed during CI release pipeline (sha256sum *.msi)
+    ProductCode: '{PLACEHOLDER-PRODUCT-CODE}'  # Extracted from MSI during CI release pipeline
 ManifestType: installer
 ManifestVersion: 1.6.0

@@ -251,9 +251,10 @@ describe('Phase 4c: Founding Member Integration', () => {
     expect(appContent).toContain('foundingSeat={license.foundingSeat}');
   });
 
-  it('SettingsScreen shows FoundingMemberBadge when applicable', () => {
+  it('SettingsScreen passes license status to SettingsNavigator', () => {
     const settingsContent = readFileSync(join(ROOT, 'packages', 'desktop', 'src', 'screens', 'SettingsScreen.tsx'), 'utf-8');
-    expect(settingsContent).toContain('FoundingMemberBadge');
-    expect(settingsContent).toContain('license.isFoundingMember');
+    // SettingsScreen delegates to SettingsNavigator, passing license status as props
+    expect(settingsContent).toContain('licenseStatus=');
+    expect(settingsContent).toContain('license.isPremium');
   });
 });

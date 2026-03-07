@@ -73,35 +73,34 @@ describe('Step 9: Onboarding Flow Updates', () => {
 
 describe('Step 9: Settings AI Engine Section', () => {
   const content = readFileSync(SETTINGS, 'utf-8');
+  const aiEngineSrc = readFileSync(join(ROOT, 'packages', 'semblance-ui', 'components', 'Settings', 'SettingsAIEngine.web.tsx'), 'utf-8');
 
-  it('has AI Engine section', () => {
-    expect(content).toContain('AI Engine');
+  it('SettingsScreen delegates to SettingsNavigator', () => {
+    expect(content).toContain("import { SettingsNavigator }");
+    expect(content).toContain('<SettingsNavigator');
   });
 
   it('no longer has standalone AI Model section', () => {
-    // Should not have "AI Model" as a section header (it's been replaced)
-    // The exact old string was: <h2...>AI Model</h2>
     const aiModelSectionRegex = />AI Model</;
     expect(aiModelSectionRegex.test(content)).toBe(false);
   });
 
-  it('has runtime selection (builtin/ollama/custom)', () => {
-    expect(content).toContain("'builtin'");
-    expect(content).toContain("'ollama'");
-    expect(content).toContain("'custom'");
-    expect(content).toContain('runtimeMode');
+  it('AI Engine sub-screen has model and hardware configuration', () => {
+    expect(aiEngineSrc).toContain('modelName');
+    expect(aiEngineSrc).toContain('hardwareProfile');
+    expect(aiEngineSrc).toContain('gpuAcceleration');
   });
 
-  it('imports HardwareProfileDisplay', () => {
-    expect(content).toContain('HardwareProfileDisplay');
+  it('SettingsScreen passes hardware profile', () => {
+    expect(content).toContain('hardwareProfile');
   });
 
   it('calls detectHardware on load', () => {
     expect(content).toContain('detectHardware');
   });
 
-  it('shows compact hardware display in builtin mode', () => {
-    expect(content).toContain('compact');
+  it('passes model running status to SettingsNavigator', () => {
+    expect(content).toContain('isModelRunning');
   });
 });
 

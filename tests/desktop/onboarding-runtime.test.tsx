@@ -77,7 +77,7 @@ describe('OnboardingFlow', () => {
     // The OnboardingFlow initializes autonomy state with useState<AutonomyTier>('partner')
     // This is a structural assertion — the component renders without error with partner default
     renderOnboarding();
-    expect(screen.getByText(/Semblance/i)).toBeInTheDocument();
+    expect(screen.getByText(/Choose your language/i)).toBeInTheDocument();
   });
 
   it('renders in a dark-themed container', () => {

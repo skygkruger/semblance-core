@@ -90,8 +90,8 @@ export function DigestScreen() {
       ]);
       if (latest.status === 'fulfilled' && latest.value) setDigest(latest.value as unknown as WeeklyDigest);
       if (list.status === 'fulfilled') setPastDigests(list.value as unknown as DigestSummary[]);
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[DigestScreen] load digest failed:', err);
     } finally {
       setLoading(false);
     }
@@ -111,8 +111,8 @@ export function DigestScreen() {
       const result = await generateDigest(weekStart, weekEnd);
       setDigest(result as unknown as WeeklyDigest);
       loadDigest();
-    } catch {
-      // Error
+    } catch (err) {
+      console.error('[DigestScreen] generate failed:', err);
     } finally {
       setLoading(false);
     }

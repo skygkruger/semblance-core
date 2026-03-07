@@ -9,6 +9,7 @@ export interface AppState {
   ollamaStatus: 'connected' | 'disconnected' | 'checking';
   activeModel: string | null;
   availableModels: string[];
+  inferenceEngine: 'native' | 'ollama' | 'none';
   indexingStatus: {
     state: 'idle' | 'scanning' | 'indexing' | 'complete' | 'error';
     filesScanned: number;
@@ -188,6 +189,7 @@ export type AppAction =
   | { type: 'SET_OLLAMA_STATUS'; status: AppState['ollamaStatus'] }
   | { type: 'SET_ACTIVE_MODEL'; model: string }
   | { type: 'SET_AVAILABLE_MODELS'; models: string[] }
+  | { type: 'SET_INFERENCE_ENGINE'; engine: AppState['inferenceEngine'] }
   | { type: 'SET_INDEXING_STATUS'; status: AppState['indexingStatus'] }
   | { type: 'SET_KNOWLEDGE_STATS'; stats: AppState['knowledgeStats'] }
   | { type: 'SET_AUTONOMY_TIER'; domain: string; tier: 'guardian' | 'partner' | 'alter_ego' }
@@ -250,6 +252,7 @@ export const initialState: AppState = {
   ollamaStatus: 'checking',
   activeModel: null,
   availableModels: [],
+  inferenceEngine: 'none',
   indexingStatus: {
     state: 'idle',
     filesScanned: 0,
@@ -385,6 +388,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, activeModel: action.model };
     case 'SET_AVAILABLE_MODELS':
       return { ...state, availableModels: action.models };
+    case 'SET_INFERENCE_ENGINE':
+      return { ...state, inferenceEngine: action.engine };
     case 'SET_INDEXING_STATUS':
       return { ...state, indexingStatus: action.status };
     case 'SET_KNOWLEDGE_STATS':

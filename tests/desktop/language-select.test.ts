@@ -16,8 +16,8 @@ describe('LanguageSelect web component', () => {
     expect(src).toContain("import { SUPPORTED_LANGUAGES, findLanguage }");
   });
 
-  it('renders Wordmark', () => {
-    expect(src).toContain('<Wordmark');
+  it('renders heading text', () => {
+    expect(src).toContain('Choose your language');
   });
 
   it('uses detectedCode prop for initial selection', () => {

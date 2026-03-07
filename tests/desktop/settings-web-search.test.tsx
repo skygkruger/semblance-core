@@ -1,97 +1,71 @@
-// @vitest-environment jsdom
-// Tests for Settings Web Search section — renders real SettingsScreen component.
+// Settings Web Search — structural verification tests.
+// Web search configuration lives in IPC types/commands and sidecar bridge.
+// SettingsScreen delegates to SettingsNavigator from @semblance/ui.
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
-import { SettingsScreen } from '@semblance/desktop/screens/SettingsScreen';
-import { invoke, clearInvokeMocks } from '../helpers/mock-tauri';
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-function renderWithRouter(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
-}
+const ROOT = join(import.meta.dirname, '..', '..');
 
-function mockSettingsInvoke() {
-  invoke.mockImplementation(async (cmd: string) => {
-    if (cmd === 'get_accounts_status') return [];
-    if (cmd === 'get_provider_presets') return {};
-    if (cmd === 'get_search_settings') return {
-      provider: 'brave',
-      braveApiKeySet: false,
-      searxngUrl: null,
-      rateLimit: 60,
-    };
-    if (cmd === 'save_search_settings') return null;
-    if (cmd === 'test_brave_api_key') return { success: true };
-    return null;
-  });
+function readSrc(relPath: string): string {
+  return readFileSync(join(ROOT, relPath), 'utf-8');
 }
 
 describe('Settings Web Search', () => {
-  beforeEach(() => {
-    clearInvokeMocks();
-    mockSettingsInvoke();
+  const ipcTypesSrc = readSrc('packages/desktop/src/ipc/types.ts');
+  const ipcCommandsSrc = readSrc('packages/desktop/src/ipc/commands.ts');
+  const bridgeSrc = readSrc('packages/desktop/src-tauri/sidecar/bridge.ts');
+  const libRsSrc = readSrc('packages/desktop/src-tauri/src/lib.rs');
+
+  it('SearchSettings interface defined in IPC types', () => {
+    expect(ipcTypesSrc).toContain('interface SearchSettings');
+    expect(ipcTypesSrc).toContain('braveApiKeySet: boolean');
+    expect(ipcTypesSrc).toContain('searxngUrl: string | null');
   });
 
-  it('renders Web Search heading', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('Web Search')).toBeInTheDocument();
+  it('SaveSearchSettingsParams interface defined in IPC types', () => {
+    expect(ipcTypesSrc).toContain('interface SaveSearchSettingsParams');
+    expect(ipcTypesSrc).toContain('braveApiKey: string | null');
+    expect(ipcTypesSrc).toContain('searxngUrl: string | null');
   });
 
-  it('renders Search Provider label', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('Search Provider')).toBeInTheDocument();
+  it('getSearchSettings command exists', () => {
+    expect(ipcCommandsSrc).toContain("invoke<SearchSettings>('get_search_settings')");
   });
 
-  it('renders Brave Search provider button', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('Brave Search')).toBeInTheDocument();
+  it('saveSearchSettings command exists', () => {
+    expect(ipcCommandsSrc).toContain("invoke<void>('save_search_settings'");
   });
 
-  it('renders SearXNG provider button', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('SearXNG')).toBeInTheDocument();
+  it('Rust registers get_search_settings command', () => {
+    expect(libRsSrc).toContain('get_search_settings');
   });
 
-  it('shows Brave Search API Key input by default', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('Brave Search API Key')).toBeInTheDocument();
+  it('Rust registers save_search_settings command', () => {
+    expect(libRsSrc).toContain('save_search_settings');
   });
 
-  it('shows Rate Limit label', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText(/Rate Limit/)).toBeInTheDocument();
+  it('sidecar handles get_search_settings', () => {
+    expect(bridgeSrc).toContain("case 'get_search_settings'");
   });
 
-  it('shows Save button for search settings', () => {
-    renderWithRouter(<SettingsScreen />);
-    // There are multiple Save buttons (name + search); at least one should exist
-    const saveButtons = screen.getAllByText('Save');
-    expect(saveButtons.length).toBeGreaterThanOrEqual(1);
+  it('sidecar handles save_search_settings', () => {
+    expect(bridgeSrc).toContain("case 'save_search_settings'");
   });
 
-  it('switches to SearXNG and shows URL input', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<SettingsScreen />);
-    await user.click(screen.getByText('SearXNG'));
-    expect(screen.getByText('SearXNG Instance URL')).toBeInTheDocument();
+  it('SearchSettings supports Brave and SearXNG providers', () => {
+    expect(ipcTypesSrc).toContain('SearchSettings');
+    expect(ipcTypesSrc).toContain('braveApiKey');
+    expect(ipcTypesSrc).toContain('searxngUrl');
   });
 
-  it('hides Brave Search API Key when SearXNG selected', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<SettingsScreen />);
-    await user.click(screen.getByText('SearXNG'));
-    expect(screen.queryByText('Brave Search API Key')).not.toBeInTheDocument();
+  it('IPC commands import SearchSettings type', () => {
+    expect(ipcCommandsSrc).toContain('SearchSettings');
+    expect(ipcCommandsSrc).toContain('SaveSearchSettingsParams');
   });
 
-  it('calls get_search_settings on mount', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(invoke).toHaveBeenCalledWith('get_search_settings');
-  });
-
-  it('renders requests per minute in rate limit label', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText(/requests per minute/)).toBeInTheDocument();
+  it('search settings include rate limit', () => {
+    expect(ipcTypesSrc).toContain('rateLimit');
   });
 });

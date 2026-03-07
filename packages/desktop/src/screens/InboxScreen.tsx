@@ -156,8 +156,8 @@ export function InboxScreen() {
       if (insightResult.status === 'fulfilled') setInsights(insightResult.value as unknown as ProactiveInsight[]);
       if (calendarResult.status === 'fulfilled') setTodayEvents(calendarResult.value as unknown as CalendarEvent[]);
       if (actionsResult.status === 'fulfilled') setActionsSummary(actionsResult.value as unknown as ActionsSummary);
-    } catch {
-      // Sidecar not yet wired — silent in dev
+    } catch (err) {
+      console.error('[InboxScreen] loadInboxData failed:', err);
     }
   }, []);
 
@@ -173,8 +173,8 @@ export function InboxScreen() {
       if (rems.status === 'fulfilled') setReminders(rems.value);
       if (flags.status === 'fulfilled') setDarkPatternFlags(flags.value);
       if (clips.status === 'fulfilled' && clips.value.length > 0) setClipboardInsight(clips.value[0]!);
-    } catch {
-      // Not yet wired
+    } catch (err) {
+      console.error('[InboxScreen] loadExtras failed:', err);
     }
   }, []);
 
@@ -201,8 +201,8 @@ export function InboxScreen() {
       setTimeout(() => {
         setUndoToast(prev => prev?.id === email.messageId ? null : prev);
       }, 8000);
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[InboxScreen] archive failed:', err);
     }
   };
 
@@ -235,8 +235,8 @@ export function InboxScreen() {
     try {
       await dismissInsight(insightId);
       setInsights(prev => prev.filter(i => i.id !== insightId));
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[InboxScreen] dismiss insight failed:', err);
     }
   };
 

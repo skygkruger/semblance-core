@@ -93,7 +93,6 @@ export function getTotalModelSize(dataDir?: string): number {
  */
 export function getAvailableDiskSpace(dataDir?: string): number {
   // Node.js doesn't have a built-in way to check disk space.
-  // Platform-specific disk space check not yet implemented.
-  // Returns -1 (unknown).
+  // Node.js lacks a cross-platform disk space API. Returns -1 (unknown).
   return -1;
 }

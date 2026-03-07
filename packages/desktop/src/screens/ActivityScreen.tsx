@@ -24,8 +24,8 @@ export function ActivityScreen() {
     try {
       const result = await getActionLog(50, 0);
       setEntries(result);
-    } catch {
-      // Gateway not yet wired
+    } catch (err) {
+      console.error('[ActivityScreen] loadEntries failed:', err);
     }
   }, []);
 
@@ -33,8 +33,8 @@ export function ActivityScreen() {
     try {
       const result = await getAlterEgoReceipts();
       setAlterEgoReceipts(result);
-    } catch {
-      // Not yet wired
+    } catch (err) {
+      console.error('[ActivityScreen] loadAlterEgoReceipts failed:', err);
     }
   }, []);
 
@@ -42,8 +42,8 @@ export function ActivityScreen() {
     try {
       const result = await getPendingActions();
       setPendingBatchItems(result.filter(a => a.status === 'pending_approval'));
-    } catch {
-      // Not yet wired
+    } catch (err) {
+      console.error('[ActivityScreen] loadPendingBatch failed:', err);
     }
   }, []);
 
@@ -64,8 +64,8 @@ export function ActivityScreen() {
     try {
       const result = await getEscalationPrompts();
       setEscalationPrompts(result);
-    } catch {
-      // Not yet wired
+    } catch (err) {
+      console.error('[ActivityScreen] loadEscalations failed:', err);
     }
   }, []);
 

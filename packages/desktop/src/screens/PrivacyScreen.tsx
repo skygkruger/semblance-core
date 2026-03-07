@@ -43,8 +43,8 @@ export function PrivacyScreen() {
       const periodStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const result = await generateSovereigntyReport(periodStart, periodEnd);
       setReport(result);
-    } catch {
-      // Report generation failed
+    } catch (err) {
+      console.error('[PrivacyScreen] report generation failed:', err);
     } finally {
       setReportLoading(false);
     }
@@ -58,8 +58,8 @@ export function PrivacyScreen() {
       link.href = `data:application/pdf;base64,${pdfBase64}`;
       link.download = `sovereignty-report-${new Date().toISOString().split('T')[0]}.pdf`;
       link.click();
-    } catch {
-      // PDF generation failed
+    } catch (err) {
+      console.error('[PrivacyScreen] PDF export failed:', err);
     }
   }, [report]);
 

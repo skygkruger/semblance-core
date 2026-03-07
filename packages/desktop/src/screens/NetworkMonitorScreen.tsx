@@ -364,8 +364,8 @@ export function NetworkMonitorScreen() {
       if (results[3]!.status === 'fulfilled') setUnauthorized(results[3]!.value as unknown as UnauthorizedAttempt[]);
       if (results[4]!.status === 'fulfilled') setTimeline(results[4]!.value as unknown as TimelinePoint[]);
       if (results[5]!.status === 'fulfilled') setHistory(results[5]!.value as unknown as ConnectionRecord[]);
-    } catch {
-      // Sidecar not wired
+    } catch (err) {
+      console.error('[NetworkMonitor] loadData failed:', err);
     } finally {
       setLoading(false);
     }
@@ -389,8 +389,8 @@ export function NetworkMonitorScreen() {
       await generatePrivacyReport(startDate, endDate);
       setReportGenerated(true);
       setTimeout(() => setReportGenerated(false), 3000);
-    } catch {
-      // Error generating report
+    } catch (err) {
+      console.error('[NetworkMonitor] generateReport failed:', err);
     }
   };
 

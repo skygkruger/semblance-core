@@ -32,7 +32,7 @@ interface BirthdayInfo {
   isToday: boolean;
 }
 
-// Contact navigation params — will be added to SettingsStackParamList in Sprint 5
+// Contact navigation params
 type ContactsParamList = { ContactDetail: { contactId: string } };
 
 interface Props {

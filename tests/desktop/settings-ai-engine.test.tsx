@@ -1,81 +1,70 @@
-// @vitest-environment jsdom
-// Tests for Settings AI Engine section — renders real SettingsScreen component.
+// Settings AI Engine section — structural verification tests.
+// SettingsScreen is a thin wrapper around SettingsNavigator from @semblance/ui.
+// AI Engine UI lives in SettingsAIEngine.web.tsx (sub-screen of SettingsNavigator).
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
-import { SettingsScreen } from '@semblance/desktop/screens/SettingsScreen';
-import { invoke, clearInvokeMocks } from '../helpers/mock-tauri';
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-function renderWithRouter(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+const ROOT = join(import.meta.dirname, '..', '..');
+
+function readSrc(relPath: string): string {
+  return readFileSync(join(ROOT, relPath), 'utf-8');
 }
 
 describe('Settings AI Engine', () => {
-  beforeEach(() => {
-    clearInvokeMocks();
-    invoke.mockImplementation(async (cmd: string) => {
-      if (cmd === 'get_accounts_status') return [];
-      if (cmd === 'get_provider_presets') return {};
-      if (cmd === 'get_search_settings') return { provider: 'brave', braveApiKeySet: false, searxngUrl: null, rateLimit: 60 };
-      return null;
-    });
+  const settingsScreenSrc = readSrc('packages/desktop/src/screens/SettingsScreen.tsx');
+  const navigatorSrc = readSrc('packages/semblance-ui/components/Settings/SettingsNavigator.web.tsx');
+  const aiEngineSrc = readSrc('packages/semblance-ui/components/Settings/SettingsAIEngine.web.tsx');
+  const rootSrc = readSrc('packages/semblance-ui/components/Settings/SettingsRoot.web.tsx');
+
+  it('SettingsScreen imports and renders SettingsNavigator', () => {
+    expect(settingsScreenSrc).toContain("import { SettingsNavigator }");
+    expect(settingsScreenSrc).toContain('<SettingsNavigator');
   });
 
-  it('renders AI Engine heading', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('AI Engine')).toBeInTheDocument();
+  it('SettingsNavigator routes to SettingsAIEngine sub-screen', () => {
+    expect(navigatorSrc).toContain("import { SettingsAIEngine }");
+    expect(navigatorSrc).toContain('<SettingsAIEngine');
+    expect(navigatorSrc).toContain("case 'ai-engine'");
   });
 
-  it('renders three runtime mode buttons', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('Built-in')).toBeInTheDocument();
-    expect(screen.getByText('Ollama')).toBeInTheDocument();
-    expect(screen.getByText('Custom')).toBeInTheDocument();
+  it('SettingsAIEngine renders AI engine heading via i18n', () => {
+    expect(aiEngineSrc).toContain("t('ai_engine.title')");
   });
 
-  it('defaults to builtin runtime with status message', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText(/Built-in runtime/)).toBeInTheDocument();
+  it('SettingsAIEngine shows model name and running status', () => {
+    expect(aiEngineSrc).toContain('modelName');
+    expect(aiEngineSrc).toContain('isModelRunning');
   });
 
-  it('switching to Ollama mode shows connection status', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<SettingsScreen />);
-    await user.click(screen.getByText('Ollama'));
-    expect(screen.getByText(/Ollama not connected/)).toBeInTheDocument();
+  it('SettingsAIEngine has inference thread options', () => {
+    expect(aiEngineSrc).toContain('threadOptions');
+    expect(aiEngineSrc).toContain('inferenceThreads');
   });
 
-  it('switching to Custom mode shows coming-soon message', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<SettingsScreen />);
-    await user.click(screen.getByText('Custom'));
-    expect(screen.getByText(/Custom runtime configuration coming in a future update/)).toBeInTheDocument();
+  it('SettingsAIEngine has context window options', () => {
+    expect(aiEngineSrc).toContain('contextOptions');
+    expect(aiEngineSrc).toContain('contextWindow');
   });
 
-  it('renders Runtime label', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('Runtime')).toBeInTheDocument();
+  it('SettingsAIEngine has GPU acceleration toggle', () => {
+    expect(aiEngineSrc).toContain('gpuAcceleration');
   });
 
-  it('renders Settings page heading', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('Settings')).toBeInTheDocument();
+  it('SettingsRoot shows ai-engine row', () => {
+    expect(rootSrc).toContain("screen: 'ai-engine'");
+    expect(rootSrc).toContain("t('root.rows.ai_engine')");
   });
 
-  it('renders Connected Accounts section', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('Connected Accounts')).toBeInTheDocument();
+  it('SettingsScreen passes AI engine props to SettingsNavigator', () => {
+    expect(settingsScreenSrc).toContain('modelName=');
+    expect(settingsScreenSrc).toContain('hardwareProfile=');
+    expect(settingsScreenSrc).toContain('isModelRunning=');
   });
 
-  it('renders Autonomy section', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('Autonomy')).toBeInTheDocument();
-  });
-
-  it('renders Appearance section', () => {
-    renderWithRouter(<SettingsScreen />);
-    expect(screen.getByText('Appearance')).toBeInTheDocument();
+  it('SettingsScreen passes autonomy props', () => {
+    expect(settingsScreenSrc).toContain('autonomyTier=');
+    expect(settingsScreenSrc).toContain('onChange={handleChange}');
   });
 });

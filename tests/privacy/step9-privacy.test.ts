@@ -226,11 +226,12 @@ describe('Step 9 Privacy: Embedding pipeline has no network access', () => {
 
 describe('Step 9 Privacy: Full privacy audit still passes', () => {
   it('privacy audit exits clean', () => {
-    const { execSync } = require('node:child_process');
-    const result = execSync('node scripts/privacy-audit/index.js', {
+    const { execFileSync } = require('node:child_process');
+    const result = execFileSync(process.execPath, ['scripts/privacy-audit/index.js'], {
       cwd: ROOT,
       encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 30_000,
+      maxBuffer: 10 * 1024 * 1024,
     });
     expect(result).toContain('RESULT: CLEAN');
   });

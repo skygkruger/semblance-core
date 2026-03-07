@@ -13,7 +13,7 @@ import { ED25519_PROOF_TYPE, HMAC_PROOF_TYPE } from '../attestation/attestation-
 export class VtiBridge {
   /**
    * Get a registry reference for an attestation.
-   * Returns null — VTI Registry is an external service not yet available.
+   * Returns null — VTI Registry is an external service (future enhancement).
    */
   getRegistryRef(): string | null {
     return null;

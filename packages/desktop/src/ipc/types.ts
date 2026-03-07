@@ -3,14 +3,21 @@
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
 
+export interface HardwareGpuInfo {
+  name: string;
+  vendor: string;
+  vramMb: number;
+  computeCapable: boolean;
+}
+
 export interface HardwareDisplayInfo {
   tier: string;
   totalRamMb: number;
   cpuCores: number;
-  gpuName: string | null;
-  gpuVramMb: number | null;
+  cpuArch: string;
+  availableRamMb: number;
   os: string;
-  arch: string;
+  gpu: HardwareGpuInfo | null;
   voiceCapable: boolean;
 }
 

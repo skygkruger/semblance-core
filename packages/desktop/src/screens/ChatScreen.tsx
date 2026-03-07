@@ -578,7 +578,7 @@ export function ChatScreen() {
             <StatusIndicator status={state.ollamaStatus === 'connected' ? 'success' : 'attention'} />
             <span className="text-xs text-semblance-text-tertiary">
               {state.ollamaStatus === 'connected'
-                ? state.activeModel || t('status.connected')
+                ? `${state.activeModel || t('status.connected')}${state.inferenceEngine === 'native' ? ' (built-in)' : ''}`
                 : t('screen.chat.status_not_connected')}
             </span>
           </div>
