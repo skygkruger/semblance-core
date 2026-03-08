@@ -124,7 +124,7 @@ export function sortEmailsByPriority(emails: IndexedEmail[]): IndexedEmail[] {
 export function InboxScreen() {
   const { t } = useTranslation();
   const state = useAppState();
-  const name = state.userName || 'Semblance';
+  const name = state.semblanceName || 'Semblance';
 
   const [emails, setEmails] = useState<IndexedEmail[]>([]);
   const [insights, setInsights] = useState<ProactiveInsight[]>([]);

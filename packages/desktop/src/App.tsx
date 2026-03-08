@@ -25,6 +25,7 @@ import { KnowledgeGraphScreen } from './screens/KnowledgeGraphScreen';
 import { IntentScreen } from './screens/IntentScreen';
 import { FinancialDashboardScreen } from './screens/FinancialDashboardScreen';
 import { HealthDashboardScreen } from './screens/HealthDashboardScreen';
+import { SovereigntyReportScreen } from './screens/SovereigntyReportScreen';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
 import { UpgradeScreen as UpgradeScreenComponent, UpgradeEmailCapture } from '@semblance/ui';
@@ -57,6 +58,15 @@ function ClockIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+function ScrollIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+      <path d="M10 13H8" /><path d="M16 17H8" /><path d="M16 13h-2" />
     </svg>
   );
 }
@@ -160,7 +170,7 @@ const navItems: NavItem[] = [
   { id: 'connections', label: 'Connections', icon: <PlugIcon /> },
   { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
   { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
-  { id: 'relationships', label: 'Contacts', icon: <ContactsIcon /> },
+  { id: 'sovereignty-report', label: 'Sovereignty', icon: <ScrollIcon /> },
   { id: 'finance', label: 'Finance', icon: <DollarIcon /> },
   { id: 'health', label: 'Health', icon: <HeartIcon /> },
   { id: 'digest', label: 'Digest', icon: <DigestIcon /> },
@@ -205,10 +215,10 @@ function AppContent() {
     play('morning_brief_ready');
   }, [play]));
 
-  // Sound: Proactive notification
+  // Proactive notification event (sound removed per user request)
   useTauriEvent('semblance://proactive-notification', useCallback(() => {
-    play('notification');
-  }, [play]));
+    // notification sound removed
+  }, []));
 
   // Toast notifications from sidecar
   useTauriEvent<{ id: string; message: string; variant: 'info' | 'success' | 'attention' | 'action' }>(
@@ -305,6 +315,7 @@ function AppContent() {
           <Route path="/connections" element={<ConnectionsScreen />} />
           <Route path="/activity" element={<ActivityScreen />} />
           <Route path="/privacy" element={<PrivacyScreen />} />
+          <Route path="/sovereignty-report" element={<SovereigntyReportScreen />} />
           <Route path="/relationships" element={<RelationshipsScreen />} />
           <Route path="/digest" element={<DigestScreen />} />
           <Route path="/finance" element={<FinancialDashboardScreen />} />

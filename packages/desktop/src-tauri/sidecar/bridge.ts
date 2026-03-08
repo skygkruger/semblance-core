@@ -344,7 +344,7 @@ const nativeRuntimeBridge: NativeRuntimeBridge = {
   async isReady() {
     try {
       const status = await this.getStatus();
-      return status.status === 'ready';
+      return (status.status ?? '').toLowerCase() === 'ready';
     } catch {
       return false;
     }
@@ -462,6 +462,23 @@ async function handleInitialize(): Promise<unknown> {
     platform.vectorStore = createDesktopVectorStore(join(dataDir, 'knowledge'));
   }
 
+  // Quick NativeRuntime callback channel check (5s timeout, non-blocking)
+  console.error('[sidecar] Testing NativeRuntime callback channel...');
+  const nativeChannelCheck = Promise.race([
+    sendCallback('native_status', {}),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+  ]).then((status) => {
+    if (status) {
+      console.error('[sidecar] NativeRuntime callback channel ready:', JSON.stringify(status));
+    } else {
+      console.error('[sidecar] NativeRuntime callback channel timed out (5s) — will retry later');
+    }
+  }).catch((err) => {
+    console.error('[sidecar] NativeRuntime callback channel not ready:', err);
+  });
+  // Don't await — let init continue while this checks in background
+  void nativeChannelCheck;
+
   // Create NativeProvider-backed LLM provider (routes all inference through Rust NativeRuntime)
   // Falls back to Ollama automatically via InferenceRouter if NativeRuntime is unavailable
   const nativeLlm = createLLMProvider({
@@ -469,6 +486,10 @@ async function handleInitialize(): Promise<unknown> {
     nativeBridge: nativeRuntimeBridge,
     embeddingModel: 'nomic-embed-text-v1.5',
   });
+
+  // Ensure knowledge directory exists before LanceDB tries to connect
+  const knowledgeDir = join(dataDir, 'knowledge');
+  if (!existsSync(knowledgeDir)) mkdirSync(knowledgeDir, { recursive: true });
 
   // Initialize Core with NativeProvider — entire subsystem (knowledge graph embeddings,
   // orchestrator reasoning, model management) uses NativeRuntime instead of Ollama
@@ -492,8 +513,13 @@ async function handleInitialize(): Promise<unknown> {
   if (prunedCount > 0) console.error(`[sidecar] Pruned ${prunedCount} expired conversations`);
 
   // Initialize Conversation Indexer (indexes turns into knowledge graph)
-  conversationIndexer = new ConversationIndexer({ db: prefsDb, knowledge: core.knowledge });
-  console.error('[sidecar] ConversationManager + ConversationIndexer initialized');
+  // Knowledge graph may be unavailable if LanceDB init failed — skip indexer in that case
+  try {
+    conversationIndexer = new ConversationIndexer({ db: prefsDb, knowledge: core.knowledge });
+    console.error('[sidecar] ConversationManager + ConversationIndexer initialized');
+  } catch {
+    console.error('[sidecar] ConversationIndexer skipped — knowledge graph unavailable');
+  }
 
   // Initialize IntentManager (idempotent schema migration)
   const modelName = await core.models.getActiveChatModel();
@@ -506,8 +532,12 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] IntentManager retryParsing error:', err)
   );
   // Wire intent manager into orchestrator for system prompt injection + hard limit enforcement
-  if (core.agent.setIntentManager) {
-    core.agent.setIntentManager(intentManager);
+  try {
+    if (core.agent.setIntentManager) {
+      core.agent.setIntentManager(intentManager);
+    }
+  } catch {
+    console.error('[sidecar] IntentManager wiring skipped — orchestrator unavailable');
   }
   console.error('[sidecar] IntentManager initialized');
 
@@ -515,8 +545,12 @@ async function handleInitialize(): Promise<unknown> {
   alterEgoStore = new AlterEgoStore(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
   alterEgoGuardrails = new AlterEgoGuardrails(alterEgoStore, contactStore);
   // Wire into orchestrator
-  if (core.agent.setAlterEgoGuardrails) {
-    core.agent.setAlterEgoGuardrails(alterEgoGuardrails, alterEgoStore);
+  try {
+    if (core.agent.setAlterEgoGuardrails) {
+      core.agent.setAlterEgoGuardrails(alterEgoGuardrails, alterEgoStore);
+    }
+  } catch {
+    console.error('[sidecar] AlterEgoGuardrails wiring skipped — orchestrator unavailable');
   }
   // Batch expiry cleanup — reject stale pending items on launch + every 15 minutes
   function cleanupStaleBatchItems(): void {
@@ -587,7 +621,7 @@ async function handleInitialize(): Promise<unknown> {
   // Check NativeRuntime status
   try {
     const nativeStatus = await sendCallback('native_status', {});
-    if (nativeStatus && (nativeStatus as { status: string }).status === 'ready') {
+    if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
       inferenceEngine = 'native';
       console.error('[sidecar] NativeRuntime is ready');
     }
@@ -636,7 +670,7 @@ async function handleSendMessage(
   let useNative = false;
   try {
     const nativeStatus = await sendCallback('native_status', {});
-    if (nativeStatus && (nativeStatus as { status: string }).status === 'ready') {
+    if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
       useNative = true;
     }
   } catch {
@@ -645,7 +679,7 @@ async function handleSendMessage(
   if (!useNative) {
     const ollamaAvailable = await core.llm.isAvailable();
     if (!ollamaAvailable) {
-      respondError(id, 'No inference engine available. Download a model in Settings or start Ollama.');
+      respondError(id, 'Model still loading. Please wait for the download to complete, then try again.');
       return;
     }
   }
@@ -672,8 +706,13 @@ async function handleSendMessage(
 
   // Streaming happens asynchronously
   try {
-    // Step 1: Search knowledge graph for relevant context
-    const context = await core.knowledge.search(params.message, { limit: 5 });
+    // Step 1: Search knowledge graph for relevant context (may be unavailable)
+    let context: Awaited<ReturnType<typeof core.knowledge.search>> = [];
+    try {
+      context = await core.knowledge.search(params.message, { limit: 5 });
+    } catch {
+      // Knowledge graph unavailable — proceed without context
+    }
 
     // Step 2: Build context string from search results
     let contextStr = '';
@@ -774,7 +813,7 @@ async function handleGetOllamaStatus(): Promise<unknown> {
   // Check NativeRuntime first
   try {
     const nativeStatus = await sendCallback('native_status', {});
-    if (nativeStatus && (nativeStatus as { status: string }).status === 'ready') {
+    if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
       inferenceEngine = 'native';
       // List downloaded models from catalog
       const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
@@ -2359,6 +2398,13 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
       activeDownloads.set(model.id, existing);
       emit('model-download-progress', existing);
       results.push({ modelId: model.id, status: 'already_downloaded' });
+
+      // Load already-downloaded model into NativeRuntime
+      const modelType = model.isEmbedding ? 'embedding' : 'reasoning';
+      sendCallback('native_load_model', { model_path: targetPath, model_type: modelType })
+        .then(() => console.error(`[sidecar] Loaded existing model "${model.id}" into NativeRuntime (${modelType})`))
+        .catch((err) => console.error(`[sidecar] NativeRuntime load failed for existing "${model.id}":`, err));
+
       continue;
     }
 

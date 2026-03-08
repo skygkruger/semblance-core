@@ -20,6 +20,7 @@ describe('AppState document context', () => {
 
   const baseState: AppState = {
     userName: null,
+    semblanceName: 'Semblance',
     onboardingComplete: false,
     onboardingStep: 0,
     ollamaStatus: 'checking',

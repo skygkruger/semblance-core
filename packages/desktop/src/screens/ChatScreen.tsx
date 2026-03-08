@@ -40,7 +40,7 @@ export function ChatScreen() {
   const dispatch = useAppDispatch();
   const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const name = state.userName || 'Semblance';
+  const name = state.semblanceName || 'Semblance';
   const [isDragging, setIsDragging] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -485,7 +485,7 @@ export function ChatScreen() {
     });
 
     dispatch({ type: 'SET_IS_RESPONDING', value: true });
-    play('message_sent');
+    // Sound effect removed per user request
 
     try {
       const result = await sendMessage(message, state.activeConversationId ?? undefined);
@@ -574,14 +574,14 @@ export function ChatScreen() {
             </svg>
           </button>
 
-          <div className="flex items-center gap-2">
-            <StatusIndicator status={state.ollamaStatus === 'connected' ? 'success' : 'attention'} />
-            <span className="text-xs text-semblance-text-tertiary">
-              {state.ollamaStatus === 'connected'
-                ? `${state.activeModel || t('status.connected')}${state.inferenceEngine === 'native' ? ' (built-in)' : ''}`
-                : t('screen.chat.status_not_connected')}
-            </span>
-          </div>
+          {state.activeModel && (
+            <div className="flex items-center gap-2">
+              <StatusIndicator status="success" />
+              <span className="text-xs text-semblance-text-tertiary">
+                {state.activeModel}{state.inferenceEngine === 'native' ? ' (built-in)' : ''}
+              </span>
+            </div>
+          )}
           {state.indexingStatus.state !== 'idle' && state.indexingStatus.state !== 'complete' && (
             <div className="flex items-center gap-2">
               <StatusIndicator status="accent" pulse />
@@ -639,7 +639,8 @@ export function ChatScreen() {
         )}
 
         {/* Message area */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto py-6 space-y-4">
+        <div className="max-w-[720px] mx-auto px-6 space-y-4">
           {state.chatMessages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <p className="text-lg text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
@@ -696,6 +697,7 @@ export function ChatScreen() {
             </>
           )}
         </div>
+        </div>
 
         {/* Voice waveform — shown when recording */}
         {voiceCapable && voice.voiceEnabled && voice.voiceState === 'listening' && (
@@ -729,7 +731,7 @@ export function ChatScreen() {
             }))}
             onAttach={handleAttach}
             onRemoveAttachment={handleRemoveAttachment}
-            placeholder={t('screen.chat.placeholder_with_name', { name })}
+            placeholder={undefined}
             voiceEnabled={voiceCapable && voice.voiceEnabled}
             voiceState={voice.voiceState}
             audioLevel={voice.audioLevel}

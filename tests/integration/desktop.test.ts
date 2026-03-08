@@ -414,12 +414,11 @@ describe('User Name Display', () => {
     const content = readFileSync(CHAT_SCREEN, 'utf-8');
     // Phase 7 i18n: name interpolated via t() call
     expect(content).toContain('screen.chat.ask_anything');
-    expect(content).toContain('userName');
+    expect(content).toContain('semblanceName');
   });
 
   it('settings allows editing name', () => {
     const content = readFileSync(SETTINGS_SCREEN, 'utf-8');
-    expect(content).toContain('userName');
     // Name editing delegated to SettingsNavigator via onRenameSemblance and semblanceName props
     expect(content).toContain('semblanceName');
     expect(content).toContain('onRenameSemblance');

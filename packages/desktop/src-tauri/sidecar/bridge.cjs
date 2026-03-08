@@ -51,10 +51,14 @@ var init_desktop_vector_store = __esm({
       async initialize(name, dimensions) {
         this.tableName = name;
         this.dimensions = dimensions;
+        console.error("[LanceDB] Connecting to", this.dataDir);
         this.db = await lancedb.connect(this.dataDir);
+        console.error("[LanceDB] Connected, listing tables");
         const tableNames = await this.db.tableNames();
+        console.error("[LanceDB] Tables:", tableNames);
         if (tableNames.includes(this.tableName)) {
           this.table = await this.db.openTable(this.tableName);
+          console.error("[LanceDB] Table opened:", this.tableName);
         }
       }
       async insertChunks(chunks) {
@@ -233263,11 +233267,11 @@ var MODEL_CATALOG = [
     family: "qwen2",
     parameterCount: "7B",
     quantization: "Q4_K_M",
-    fileSizeBytes: 47e8,
-    // ~4.7GB
+    fileSizeBytes: 4683074240,
+    // 4.36GB — single-file from bartowski
     ramRequiredMb: 8192,
-    hfRepo: "Qwen/Qwen2.5-7B-Instruct-GGUF",
-    hfFilename: "qwen2.5-7b-instruct-q4_k_m.gguf",
+    hfRepo: "bartowski/Qwen2.5-7B-Instruct-GGUF",
+    hfFilename: "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
     sha256: "",
     isEmbedding: false,
     minTier: "performance"
@@ -233279,11 +233283,11 @@ var MODEL_CATALOG = [
     family: "qwen2",
     parameterCount: "7B",
     quantization: "Q8_0",
-    fileSizeBytes: 81e8,
-    // ~8.1GB
+    fileSizeBytes: 8098525888,
+    // 7.54GB — single-file from bartowski
     ramRequiredMb: 12288,
-    hfRepo: "Qwen/Qwen2.5-7B-Instruct-GGUF",
-    hfFilename: "qwen2.5-7b-instruct-q8_0.gguf",
+    hfRepo: "bartowski/Qwen2.5-7B-Instruct-GGUF",
+    hfFilename: "Qwen2.5-7B-Instruct-Q8_0.gguf",
     sha256: "",
     isEmbedding: false,
     minTier: "workstation"
@@ -245452,7 +245456,7 @@ var C = {
   muted: (0, import_pdf_lib.rgb)(110 / 255, 106 / 255, 134 / 255)
   // #6E6A86
 };
-var __moduleDir = (0, import_node_path2.dirname)((0, import_node_url.fileURLToPath)(import_meta2.url));
+var __moduleDir = typeof import_meta2?.url === "string" ? (0, import_node_path2.dirname)((0, import_node_url.fileURLToPath)(import_meta2.url)) : __dirname ?? (0, import_node_path2.dirname)(process.argv[1] ?? ".");
 var FONT_DIR = (0, import_node_path2.join)(__moduleDir, "fonts");
 async function loadFontBytes(filename) {
   const fontPath = (0, import_node_path2.join)(FONT_DIR, filename);
@@ -245812,12 +245816,24 @@ function createSemblanceCore(config) {
       }
       chatModel = chatModel ?? "llama3.2:8b";
       const knowledgeDir = p.path.join(dataDir2, "knowledge");
-      knowledge = await createKnowledgeGraph({
-        dataDir: knowledgeDir,
-        llmProvider: llm,
-        embeddingModel
-      });
-      console.log("[SemblanceCore] Knowledge graph initialized");
+      try {
+        const kgPromise = createKnowledgeGraph({
+          dataDir: knowledgeDir,
+          llmProvider: llm,
+          embeddingModel
+        });
+        const timeoutPromise = new Promise(
+          (_3, reject2) => setTimeout(() => reject2(new Error("Knowledge graph init timed out after 10s")), 1e4)
+        );
+        knowledge = await Promise.race([kgPromise, timeoutPromise]);
+        console.log("[SemblanceCore] Knowledge graph initialized");
+      } catch (err) {
+        console.warn(
+          "[SemblanceCore] Knowledge graph initialization failed:",
+          err instanceof Error ? err.message : String(err),
+          "\u2014 Semantic search and indexing will be unavailable."
+        );
+      }
       ipc = new CoreIPCClient({
         socketPath,
         signingKeyPath
@@ -245832,43 +245848,47 @@ function createSemblanceCore(config) {
           "\u2014 Agent actions requiring Gateway will fail until Gateway is started."
         );
       }
-      agent = createOrchestrator({
-        llmProvider: llm,
-        knowledgeGraph: knowledge,
-        ipcClient: ipc,
-        autonomyConfig: config?.autonomyConfig,
-        dataDir: dataDir2,
-        model: chatModel
-      });
-      console.log("[SemblanceCore] Orchestrator initialized");
-      const extensions = await loadExtensions();
-      if (extensions.length > 0) {
-        const premiumGate2 = new PremiumGate(coreDb);
-        const styleProfileStore2 = new StyleProfileStore(coreDb);
-        const merchantNormalizer2 = new MerchantNormalizer({ llm, model: chatModel });
-        const recurringDetector2 = new RecurringDetector({ db: coreDb, normalizer: merchantNormalizer2 });
-        const extCtx = {
-          db: coreDb,
-          llm,
-          model: chatModel,
-          ipcClient: ipc,
-          autonomyManager: agent.autonomy,
-          premiumGate: premiumGate2,
-          styleProfileStore: styleProfileStore2,
-          semanticSearch: knowledge.semanticSearch,
-          recurringDetector: recurringDetector2,
+      if (knowledge) {
+        agent = createOrchestrator({
+          llmProvider: llm,
           knowledgeGraph: knowledge,
-          dataDir: dataDir2
-        };
-        for (const ext of extensions) {
-          if (ext.initialize) {
-            await ext.initialize(extCtx);
+          ipcClient: ipc,
+          autonomyConfig: config?.autonomyConfig,
+          dataDir: dataDir2,
+          model: chatModel
+        });
+        console.log("[SemblanceCore] Orchestrator initialized");
+        const extensions = await loadExtensions();
+        if (extensions.length > 0) {
+          const premiumGate2 = new PremiumGate(coreDb);
+          const styleProfileStore2 = new StyleProfileStore(coreDb);
+          const merchantNormalizer2 = new MerchantNormalizer({ llm, model: chatModel });
+          const recurringDetector2 = new RecurringDetector({ db: coreDb, normalizer: merchantNormalizer2 });
+          const extCtx = {
+            db: coreDb,
+            llm,
+            model: chatModel,
+            ipcClient: ipc,
+            autonomyManager: agent.autonomy,
+            premiumGate: premiumGate2,
+            styleProfileStore: styleProfileStore2,
+            semanticSearch: knowledge.semanticSearch,
+            recurringDetector: recurringDetector2,
+            knowledgeGraph: knowledge,
+            dataDir: dataDir2
+          };
+          for (const ext of extensions) {
+            if (ext.initialize) {
+              await ext.initialize(extCtx);
+            }
+            if (ext.tools && ext.tools.length > 0) {
+              agent.registerTools(ext.tools);
+            }
           }
-          if (ext.tools && ext.tools.length > 0) {
-            agent.registerTools(ext.tools);
-          }
+          console.log(`[SemblanceCore] Loaded ${extensions.length} extension(s)`);
         }
-        console.log(`[SemblanceCore] Loaded ${extensions.length} extension(s)`);
+      } else {
+        console.warn("[SemblanceCore] Skipping orchestrator and extensions \u2014 knowledge graph unavailable");
       }
       initialized = true;
       console.log("[SemblanceCore] All subsystems initialized");
@@ -258049,7 +258069,7 @@ var nativeRuntimeBridge = {
   async isReady() {
     try {
       const status = await this.getStatus();
-      return status.status === "ready";
+      return (status.status ?? "").toLowerCase() === "ready";
     } catch {
       return false;
     }
@@ -258141,11 +258161,27 @@ async function handleInitialize() {
   if (!platform4.vectorStore) {
     platform4.vectorStore = createDesktopVectorStore((0, import_node_path7.join)(dataDir, "knowledge"));
   }
+  console.error("[sidecar] Testing NativeRuntime callback channel...");
+  const nativeChannelCheck = Promise.race([
+    sendCallback("native_status", {}),
+    new Promise((resolve4) => setTimeout(() => resolve4(null), 5e3))
+  ]).then((status) => {
+    if (status) {
+      console.error("[sidecar] NativeRuntime callback channel ready:", JSON.stringify(status));
+    } else {
+      console.error("[sidecar] NativeRuntime callback channel timed out (5s) \u2014 will retry later");
+    }
+  }).catch((err) => {
+    console.error("[sidecar] NativeRuntime callback channel not ready:", err);
+  });
+  void nativeChannelCheck;
   const nativeLlm = createLLMProvider({
     runtime: "builtin",
     nativeBridge: nativeRuntimeBridge,
     embeddingModel: "nomic-embed-text-v1.5"
   });
+  const knowledgeDir = (0, import_node_path7.join)(dataDir, "knowledge");
+  if (!(0, import_node_fs7.existsSync)(knowledgeDir)) (0, import_node_fs7.mkdirSync)(knowledgeDir, { recursive: true });
   core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
   await core.initialize();
   console.error("[sidecar] Core initialized (NativeRuntime-backed LLM provider)");
@@ -258158,8 +258194,12 @@ async function handleInitialize() {
   conversationManager.migrate();
   const prunedCount = conversationManager.pruneExpired();
   if (prunedCount > 0) console.error(`[sidecar] Pruned ${prunedCount} expired conversations`);
-  conversationIndexer = new ConversationIndexer({ db: prefsDb, knowledge: core.knowledge });
-  console.error("[sidecar] ConversationManager + ConversationIndexer initialized");
+  try {
+    conversationIndexer = new ConversationIndexer({ db: prefsDb, knowledge: core.knowledge });
+    console.error("[sidecar] ConversationManager + ConversationIndexer initialized");
+  } catch {
+    console.error("[sidecar] ConversationIndexer skipped \u2014 knowledge graph unavailable");
+  }
   const modelName = await core.models.getActiveChatModel();
   intentManager = new IntentManager({
     db: prefsDb,
@@ -258169,14 +258209,22 @@ async function handleInitialize() {
   intentManager.retryParsing().catch(
     (err) => console.error("[sidecar] IntentManager retryParsing error:", err)
   );
-  if (core.agent.setIntentManager) {
-    core.agent.setIntentManager(intentManager);
+  try {
+    if (core.agent.setIntentManager) {
+      core.agent.setIntentManager(intentManager);
+    }
+  } catch {
+    console.error("[sidecar] IntentManager wiring skipped \u2014 orchestrator unavailable");
   }
   console.error("[sidecar] IntentManager initialized");
   alterEgoStore = new AlterEgoStore(prefsDb);
   alterEgoGuardrails = new AlterEgoGuardrails(alterEgoStore, contactStore);
-  if (core.agent.setAlterEgoGuardrails) {
-    core.agent.setAlterEgoGuardrails(alterEgoGuardrails, alterEgoStore);
+  try {
+    if (core.agent.setAlterEgoGuardrails) {
+      core.agent.setAlterEgoGuardrails(alterEgoGuardrails, alterEgoStore);
+    }
+  } catch {
+    console.error("[sidecar] AlterEgoGuardrails wiring skipped \u2014 orchestrator unavailable");
   }
   function cleanupStaleBatchItems() {
     if (!prefsDb) return;
@@ -258234,7 +258282,7 @@ async function handleInitialize() {
   }
   try {
     const nativeStatus = await sendCallback("native_status", {});
-    if (nativeStatus && nativeStatus.status === "ready") {
+    if (nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready") {
       inferenceEngine = "native";
       console.error("[sidecar] NativeRuntime is ready");
     }
@@ -258271,7 +258319,7 @@ async function handleSendMessage(id, params) {
   let useNative = false;
   try {
     const nativeStatus = await sendCallback("native_status", {});
-    if (nativeStatus && nativeStatus.status === "ready") {
+    if (nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready") {
       useNative = true;
     }
   } catch {
@@ -258279,7 +258327,7 @@ async function handleSendMessage(id, params) {
   if (!useNative) {
     const ollamaAvailable = await core.llm.isAvailable();
     if (!ollamaAvailable) {
-      respondError(id, "No inference engine available. Download a model in Settings or start Ollama.");
+      respondError(id, "Model still loading. Please wait for the download to complete, then try again.");
       return;
     }
   }
@@ -258299,7 +258347,11 @@ async function handleSendMessage(id, params) {
   }
   respond(id, { responseId, conversationId: convId });
   try {
-    const context = await core.knowledge.search(params.message, { limit: 5 });
+    let context = [];
+    try {
+      context = await core.knowledge.search(params.message, { limit: 5 });
+    } catch {
+    }
     let contextStr = "";
     if (context.length > 0) {
       contextStr = "\n\nRelevant documents from your files:\n" + context.map(
@@ -258377,7 +258429,7 @@ async function handleGetOllamaStatus() {
   let availableModels = [];
   try {
     const nativeStatus = await sendCallback("native_status", {});
-    if (nativeStatus && nativeStatus.status === "ready") {
+    if (nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready") {
       inferenceEngine = "native";
       const baseDir = dataDir ? (0, import_node_path7.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
       for (const model of MODEL_CATALOG) {
@@ -259636,6 +259688,8 @@ async function handleStartModelDownloads(params) {
       activeDownloads.set(model.id, existing);
       emit("model-download-progress", existing);
       results.push({ modelId: model.id, status: "already_downloaded" });
+      const modelType = model.isEmbedding ? "embedding" : "reasoning";
+      sendCallback("native_load_model", { model_path: targetPath, model_type: modelType }).then(() => console.error(`[sidecar] Loaded existing model "${model.id}" into NativeRuntime (${modelType})`)).catch((err) => console.error(`[sidecar] NativeRuntime load failed for existing "${model.id}":`, err));
       continue;
     }
     downloadHfFile(model, targetPath, model.id, model.displayName).catch((err) => {

@@ -305,13 +305,27 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
       chatModel = chatModel ?? 'llama3.2:8b';
 
       // Step 3: Initialize the knowledge graph (LanceDB + SQLite)
+      // Wrapped with timeout — LanceDB native bindings can hang if misconfigured.
+      // Knowledge graph failure is non-fatal: chat and model downloads still work.
       const knowledgeDir = p.path.join(dataDir, 'knowledge');
-      knowledge = await createKnowledgeGraph({
-        dataDir: knowledgeDir,
-        llmProvider: llm,
-        embeddingModel,
-      });
-      console.log('[SemblanceCore] Knowledge graph initialized');
+      try {
+        const kgPromise = createKnowledgeGraph({
+          dataDir: knowledgeDir,
+          llmProvider: llm,
+          embeddingModel,
+        });
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Knowledge graph init timed out after 10s')), 10_000)
+        );
+        knowledge = await Promise.race([kgPromise, timeoutPromise]);
+        console.log('[SemblanceCore] Knowledge graph initialized');
+      } catch (err) {
+        console.warn(
+          '[SemblanceCore] Knowledge graph initialization failed:',
+          err instanceof Error ? err.message : String(err),
+          '— Semantic search and indexing will be unavailable.'
+        );
+      }
 
       // Step 4: Create and connect the IPC client
       ipc = new CoreIPCClient({
@@ -330,46 +344,50 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
         );
       }
 
-      // Step 5: Create the orchestrator
-      agent = createOrchestrator({
-        llmProvider: llm,
-        knowledgeGraph: knowledge,
-        ipcClient: ipc,
-        autonomyConfig: config?.autonomyConfig,
-        dataDir,
-        model: chatModel,
-      });
-      console.log('[SemblanceCore] Orchestrator initialized');
-
-      // Step 6: Load and initialize extensions (e.g. @semblance/dr)
-      const extensions = await loadExtensions();
-      if (extensions.length > 0) {
-        const premiumGate = new PremiumGate(coreDb);
-        const styleProfileStore = new StyleProfileStore(coreDb);
-        const merchantNormalizer = new MerchantNormalizer({ llm, model: chatModel });
-        const recurringDetector = new RecurringDetector({ db: coreDb, normalizer: merchantNormalizer });
-        const extCtx: ExtensionInitContext = {
-          db: coreDb,
-          llm,
-          model: chatModel,
-          ipcClient: ipc,
-          autonomyManager: agent.autonomy,
-          premiumGate,
-          styleProfileStore,
-          semanticSearch: knowledge.semanticSearch,
-          recurringDetector,
+      // Step 5: Create the orchestrator (requires knowledge graph)
+      if (knowledge) {
+        agent = createOrchestrator({
+          llmProvider: llm,
           knowledgeGraph: knowledge,
+          ipcClient: ipc,
+          autonomyConfig: config?.autonomyConfig,
           dataDir,
-        };
-        for (const ext of extensions) {
-          if (ext.initialize) {
-            await ext.initialize(extCtx);
+          model: chatModel,
+        });
+        console.log('[SemblanceCore] Orchestrator initialized');
+
+        // Step 6: Load and initialize extensions (e.g. @semblance/dr)
+        const extensions = await loadExtensions();
+        if (extensions.length > 0) {
+          const premiumGate = new PremiumGate(coreDb);
+          const styleProfileStore = new StyleProfileStore(coreDb);
+          const merchantNormalizer = new MerchantNormalizer({ llm, model: chatModel });
+          const recurringDetector = new RecurringDetector({ db: coreDb, normalizer: merchantNormalizer });
+          const extCtx: ExtensionInitContext = {
+            db: coreDb,
+            llm,
+            model: chatModel,
+            ipcClient: ipc,
+            autonomyManager: agent.autonomy,
+            premiumGate,
+            styleProfileStore,
+            semanticSearch: knowledge.semanticSearch,
+            recurringDetector,
+            knowledgeGraph: knowledge,
+            dataDir,
+          };
+          for (const ext of extensions) {
+            if (ext.initialize) {
+              await ext.initialize(extCtx);
+            }
+            if (ext.tools && ext.tools.length > 0) {
+              agent.registerTools(ext.tools);
+            }
           }
-          if (ext.tools && ext.tools.length > 0) {
-            agent.registerTools(ext.tools);
-          }
+          console.log(`[SemblanceCore] Loaded ${extensions.length} extension(s)`);
         }
-        console.log(`[SemblanceCore] Loaded ${extensions.length} extension(s)`);
+      } else {
+        console.warn('[SemblanceCore] Skipping orchestrator and extensions — knowledge graph unavailable');
       }
 
       initialized = true;

@@ -2479,11 +2479,19 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 match SidecarBridge::spawn(project_root, app_handle_clone.clone(), native_runtime).await {
                     Ok(bridge) => {
-                        // Initialize Core and Gateway via the sidecar
-                        match bridge.call("initialize", Value::Null).await {
+                        // CRITICAL: Manage AppBridge IMMEDIATELY after spawn, BEFORE init.
+                        // This allows IPC commands (model downloads, hardware detection) to work
+                        // while init (LanceDB, Ollama checks) is still in progress.
+                        // The sidecar's NDJSON stdin/stdout loop is already running.
+                        app_handle_clone.manage(AppBridge { bridge });
+                        eprintln!("[tauri] AppBridge managed — IPC commands available");
+
+                        // Now initialize Core and Gateway asynchronously
+                        let app_for_init = app_handle_clone.clone();
+                        let bridge_state = app_handle_clone.state::<AppBridge>();
+                        match bridge_state.bridge.call("initialize", Value::Null).await {
                             Ok(init_result) => {
-                                // Emit initial status to frontend
-                                let _ = app_handle_clone.emit(
+                                let _ = app_for_init.emit(
                                     "semblance://status-update",
                                     &init_result,
                                 );
@@ -2491,13 +2499,10 @@ pub fn run() {
                                     "[tauri] Sidecar initialized: {}",
                                     serde_json::to_string(&init_result).unwrap_or_default()
                                 );
-
-                                // Store the bridge in managed state
-                                app_handle_clone.manage(AppBridge { bridge });
                             }
                             Err(e) => {
                                 eprintln!("[tauri] Sidecar initialization failed: {}", e);
-                                let _ = app_handle_clone.emit(
+                                let _ = app_for_init.emit(
                                     "semblance://status-update",
                                     serde_json::json!({
                                         "ollamaStatus": "disconnected",
