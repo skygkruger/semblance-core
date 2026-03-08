@@ -165,7 +165,8 @@
       "error_attach": "Could not attach document: {{error}}",
       "document_cleared": "Document context cleared.",
       "placeholder_with_name": "Message {{name}}...",
-      "error_response": "Error: Unable to get a response. {{error}}",
+      "error_response": "Error: Unable to get a response: {{error}}",
+      "error_response_default": "Unknown error",
       "processing_on": "Processing on {{device}}...",
       "ask_anything_short": "Ask anything",
       "thinking_dots": "Thinking..."

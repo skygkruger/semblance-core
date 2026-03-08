@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Button } from '@semblance/ui';
+import { Card, Button, ProgressBar } from '@semblance/ui';
 import { getLatestDigest, listDigests, generateDigest, getDailyDigest, dismissDailyDigest } from '../ipc/commands';
 import { DailyDigestCard } from '../components/DailyDigestCard';
 import type { DailyDigestResult } from '../ipc/types';
@@ -60,17 +60,6 @@ export function formatDateRange(start: string, end: string): string {
   return `${s.toLocaleDateString([], { month: 'short', day: 'numeric' })}–${e.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
 
-function ProgressBar({ value, max, className }: { value: number; max: number; className?: string }) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-  return (
-    <div className={`h-2 rounded-full bg-semblance-surface-2 dark:bg-semblance-surface-2-dark overflow-hidden ${className ?? ''}`}>
-      <div
-        className="h-full rounded-full bg-semblance-primary transition-all duration-normal"
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
 
 // ─── Component ──────────────────────────────────────────────────────────────
 

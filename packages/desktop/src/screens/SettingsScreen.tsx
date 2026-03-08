@@ -62,8 +62,7 @@ export function SettingsScreen() {
       }
       case 'semblanceName': {
         const name = value as string;
-        dispatch({ type: 'SET_USER_NAME', name });
-        await setUserName(name).catch(() => {});
+        dispatch({ type: 'SET_SEMBLANCE_NAME', name });
         break;
       }
       case 'activeModel': {
@@ -144,7 +143,7 @@ export function SettingsScreen() {
           licenseActivationDate={new Date().toISOString().split('T')[0]!}
           digitalRepresentativeActive={license.isPremium}
           digitalRepresentativeActivationDate={license.isPremium ? new Date().toISOString().split('T')[0]! : null}
-          semblanceName={state.userName || 'Semblance'}
+          semblanceName={state.semblanceName || 'Semblance'}
 
           /* Callbacks */
           onChange={handleChange}

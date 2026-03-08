@@ -11,7 +11,7 @@ import { useSound } from '../sound/SoundEngineContext';
 export function ActivityScreen() {
   const { t } = useTranslation();
   const state = useAppState();
-  const name = state.userName || 'Semblance';
+  const name = state.semblanceName || 'Semblance';
   const { play } = useSound();
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [alterEgoReceipts, setAlterEgoReceipts] = useState<AlterEgoReceiptData[]>([]);
@@ -110,13 +110,14 @@ export function ActivityScreen() {
   const weekGroups = Object.keys(receiptsByWeek).sort().reverse();
 
   return (
-    <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
-      <h1 className="text-xl font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
-        {t('screen.activity.title')}
-      </h1>
+    <div className="settings-screen">
+      <div className="settings-header">
+        <h1 className="settings-header__title">{t('screen.activity.title')}</h1>
+      </div>
+      <div className="settings-content">
 
       {/* Filter bar */}
-      <div className="flex gap-2">
+      <div style={{ display: 'flex', gap: 8, padding: '0 16px' }}>
         {(['all', 'success', 'pending', 'error', 'alter_ego'] as const).map((status) => {
           const filterLabels: Record<string, string> = {
             all: t('screen.activity.filter_all'),
@@ -125,19 +126,22 @@ export function ActivityScreen() {
             error: t('screen.activity.filter_error'),
             alter_ego: t('screen.alter_ego.filter_alter_ego'),
           };
+          const isActive = filterStatus === status;
           return (
             <button
               key={status}
               type="button"
               onClick={() => setFilterStatus(status)}
-              className={`
-                px-3 py-1.5 text-sm rounded-md transition-colors duration-fast
-                focus-visible:outline-none focus-visible:shadow-focus
-                ${filterStatus === status
-                  ? 'bg-semblance-primary text-white'
-                  : 'text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark'
-                }
-              `.trim()}
+              style={{
+                padding: '6px 12px',
+                fontSize: 13,
+                borderRadius: 6,
+                border: isActive ? '1px solid rgba(110, 207, 163, 0.4)' : '1px solid rgba(255, 255, 255, 0.06)',
+                background: isActive ? 'rgba(110, 207, 163, 0.06)' : 'none',
+                color: isActive ? '#6ECFA3' : '#8593A4',
+                fontFamily: "'DM Mono', monospace",
+                cursor: 'pointer',
+              }}
             >
               {filterLabels[status]}
             </button>
@@ -191,19 +195,19 @@ export function ActivityScreen() {
       {/* Alter Ego receipt view */}
       {filterStatus === 'alter_ego' ? (
         alterEgoReceipts.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+          <div style={{ textAlign: 'center', padding: '64px 0' }}>
+            <p style={{ color: '#8593A4', fontSize: 14 }}>
               {t('screen.activity.empty', { name })}
             </p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '0 16px' }}>
             {weekGroups.map((week) => (
-              <div key={week} className="space-y-3">
-                <h2 className="text-sm font-medium text-semblance-text-tertiary uppercase tracking-wider">
+              <div key={week} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="settings-section-header">
                   {t('screen.alter_ego.week_header', { week })}
-                  <span className="ml-2 text-xs font-normal">({receiptsByWeek[week]!.length} actions)</span>
-                </h2>
+                  <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400 }}>({receiptsByWeek[week]!.length} actions)</span>
+                </div>
                 {receiptsByWeek[week]!.map((receipt) => (
                   <AlterEgoReceipt
                     key={receipt.id}
@@ -222,13 +226,13 @@ export function ActivityScreen() {
       ) : (
         /* Standard action log */
         filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+          <div style={{ textAlign: 'center', padding: '64px 0' }}>
+            <p style={{ color: '#8593A4', fontSize: 14 }}>
               {t('screen.activity.empty', { name })}
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px' }}>
             {filtered.map((entry) => (
               <ActionCard
                 key={entry.id}
@@ -272,6 +276,7 @@ export function ActivityScreen() {
           </div>
         )
       )}
+      </div>
     </div>
   );
 }

@@ -14,10 +14,11 @@ const MOBILE_CONFIG = join(ROOT, 'packages', 'mobile', 'src', 'i18n', 'config.ts
 describe('i18n config — desktop', () => {
   const content = readFileSync(DESKTOP_CONFIG, 'utf8');
 
-  it('imports i18next, initReactI18next, and resourcesToBackend', () => {
+  it('imports i18next, initReactI18next, and locale files', () => {
     expect(content).toContain("from 'i18next'");
     expect(content).toContain("initReactI18next");
-    expect(content).toContain("resourcesToBackend");
+    // Desktop uses direct imports (not resourcesToBackend) for production bundle reliability
+    expect(content).toContain("@semblance/ui/locales/en/common.json");
   });
 
   it('sets defaultNS to common and fallbackLng to en', () => {

@@ -118,214 +118,185 @@ export function IntentScreen() {
 
   if (loading) {
     return (
-      <div style={{ padding: 32, color: '#8593A4' }}>{t('screen.intent.loading')}</div>
+      <div className="settings-screen">
+        <div className="settings-header">
+          <h1 className="settings-header__title">{t('screen.intent.title')}</h1>
+        </div>
+        <div className="settings-content">
+          <span style={{ color: '#8593A4', fontSize: 13 }}>{t('screen.intent.loading')}</span>
+        </div>
+      </div>
     );
   }
 
   const { primaryGoal, hardLimits, personalValues } = state.intentProfile;
 
   return (
-    <div style={{
-      padding: 32,
-      maxWidth: 640,
-      margin: '0 auto',
-      color: '#EEF1F4',
-      fontFamily: 'var(--fb)',
-    }}>
-      <h1 style={{
-        fontFamily: 'var(--fd)',
-        fontSize: 28,
-        fontWeight: 400,
-        marginBottom: 32,
-        color: '#EEF1F4',
-      }}>
-        {t('screen.intent.title')}
-      </h1>
-
-      {/* Primary Goal */}
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={sectionHeading}>{t('screen.intent.section_goal')}</h2>
-        {editingGoal ? (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="text"
-              value={goalDraft}
-              onChange={e => setGoalDraft(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleSaveGoal(); }}
-              placeholder={t('screen.intent.placeholder_goal')}
-              style={inputStyle}
-              autoFocus
-            />
-            <button type="button" onClick={handleSaveGoal} style={btnPrimary}>{t('button.save')}</button>
-            <button type="button" onClick={() => setEditingGoal(false)} style={btnGhost}>{t('button.cancel')}</button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <p style={{ margin: 0, color: primaryGoal ? '#EEF1F4' : '#8593A4', fontSize: 14 }}>
-              {primaryGoal || t('screen.intent.goal_empty')}
-            </p>
-            <button
-              type="button"
-              onClick={() => { setGoalDraft(primaryGoal || ''); setEditingGoal(true); }}
-              style={btnGhost}
-            >
-              {t('button.edit')}
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* Hard Limits */}
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={sectionHeading}>{t('screen.intent.section_limits')}</h2>
-        {hardLimits.length === 0 && (
-          <p style={{ color: '#8593A4', fontSize: 13, margin: '0 0 12px' }}>{t('screen.intent.limits_empty')}</p>
-        )}
-        <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 12px' }}>
-          {hardLimits.map(limit => (
-            <li key={limit.id} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 0',
-              borderBottom: '1px solid #1E2228',
-            }}>
-              <button
-                type="button"
-                onClick={() => handleToggleLimit(limit.id, !limit.active)}
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 4,
-                  border: `1.5px solid ${limit.active ? '#6ECFA3' : '#3A3F47'}`,
-                  backgroundColor: limit.active ? '#6ECFA320' : 'transparent',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-                title={limit.active ? t('screen.intent.limit_active_title') : t('screen.intent.limit_inactive_title')}
+    <div className="settings-screen">
+      <div className="settings-header">
+        <h1 className="settings-header__title">{t('screen.intent.title')}</h1>
+      </div>
+      <div className="settings-content">
+        {/* Primary Goal */}
+        <div className="settings-section-header">{t('screen.intent.section_goal')}</div>
+        <div className="settings-row settings-row--static">
+          {editingGoal ? (
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+              <input
+                type="text"
+                value={goalDraft}
+                onChange={e => setGoalDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSaveGoal(); }}
+                placeholder={t('screen.intent.placeholder_goal')}
+                style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#141820', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
+                autoFocus
               />
-              <span style={{
-                flex: 1,
-                fontSize: 14,
-                color: limit.active ? '#EEF1F4' : '#8593A4',
-                textDecoration: limit.active ? 'none' : 'line-through',
-              }}>
-                {limit.rawText}
+              <button type="button" onClick={handleSaveGoal} style={{ height: 36, padding: '0 16px', borderRadius: 6, border: 'none', backgroundColor: '#6ECFA3', color: '#0B0E11', fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>{t('button.save')}</button>
+              <button type="button" onClick={() => setEditingGoal(false)} style={{ background: 'none', border: 'none', color: '#8593A4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}>{t('button.cancel')}</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+              <span className="settings-row__label" style={{ flex: 1, color: primaryGoal ? '#EEF1F4' : '#8593A4', fontSize: 14 }}>
+                {primaryGoal || t('screen.intent.goal_empty')}
               </span>
               <button
                 type="button"
-                onClick={() => handleRemoveLimit(limit.id)}
-                style={{ ...btnGhost, color: '#B07A8A', fontSize: 12 }}
+                onClick={() => { setGoalDraft(primaryGoal || ''); setEditingGoal(true); }}
+                style={{ background: 'none', border: 'none', color: '#8593A4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}
               >
-                {t('button.remove')}
+                {t('button.edit')}
               </button>
-            </li>
-          ))}
-        </ul>
-        <div style={{ display: 'flex', gap: 8 }}>
+            </div>
+          )}
+        </div>
+
+        {/* Hard Limits */}
+        <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.intent.section_limits')}</div>
+        {hardLimits.length === 0 && (
+          <div className="settings-row settings-row--static">
+            <span className="settings-row__label" style={{ color: '#5E6B7C', fontSize: 13 }}>{t('screen.intent.limits_empty')}</span>
+          </div>
+        )}
+        {hardLimits.map(limit => (
+          <div key={limit.id} className="settings-row">
+            <button
+              type="button"
+              onClick={() => handleToggleLimit(limit.id, !limit.active)}
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: 4,
+                border: `1.5px solid ${limit.active ? '#6ECFA3' : '#3A3F47'}`,
+                backgroundColor: limit.active ? '#6ECFA320' : 'transparent',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+              title={limit.active ? t('screen.intent.limit_active_title') : t('screen.intent.limit_inactive_title')}
+            />
+            <span className="settings-row__label" style={{
+              flex: 1,
+              color: limit.active ? '#EEF1F4' : '#8593A4',
+              textDecoration: limit.active ? 'none' : 'line-through',
+            }}>
+              {limit.rawText}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleRemoveLimit(limit.id)}
+              style={{ background: 'none', border: 'none', color: '#B07A8A', fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}
+            >
+              {t('button.remove')}
+            </button>
+          </div>
+        ))}
+        <div className="settings-row settings-row--static" style={{ gap: 8 }}>
           <input
             type="text"
             value={newLimit}
             onChange={e => setNewLimit(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleAddLimit(); }}
             placeholder={t('screen.intent.placeholder_limit')}
-            style={inputStyle}
+            style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#141820', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
           />
-          <button type="button" onClick={handleAddLimit} disabled={!newLimit.trim()} style={btnPrimary}>{t('button.create')}</button>
+          <button type="button" onClick={handleAddLimit} disabled={!newLimit.trim()} style={{ height: 36, padding: '0 16px', borderRadius: 6, border: 'none', backgroundColor: '#6ECFA3', color: '#0B0E11', fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>{t('button.create')}</button>
         </div>
-      </section>
 
-      {/* Personal Values */}
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={sectionHeading}>{t('screen.intent.section_values')}</h2>
+        {/* Personal Values */}
+        <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.intent.section_values')}</div>
         {personalValues.length === 0 && (
-          <p style={{ color: '#8593A4', fontSize: 13, margin: '0 0 12px' }}>{t('screen.intent.values_empty')}</p>
+          <div className="settings-row settings-row--static">
+            <span className="settings-row__label" style={{ color: '#5E6B7C', fontSize: 13 }}>{t('screen.intent.values_empty')}</span>
+          </div>
         )}
-        <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 12px' }}>
-          {personalValues.map(value => (
-            <li key={value.id} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 0',
-              borderBottom: '1px solid #1E2228',
-            }}>
-              <span style={{ flex: 1, fontSize: 14, color: '#EEF1F4' }}>
-                {value.rawText}
+        {personalValues.map(value => (
+          <div key={value.id} className="settings-row">
+            <span className="settings-row__label" style={{ flex: 1 }}>
+              {value.rawText}
+            </span>
+            {value.theme && (
+              <span style={{
+                fontSize: 11,
+                color: '#6ECFA3',
+                backgroundColor: '#6ECFA315',
+                padding: '2px 8px',
+                borderRadius: 9999,
+                fontFamily: "'DM Mono', monospace",
+              }}>
+                {value.theme}
               </span>
-              {value.theme && (
-                <span style={{
-                  fontSize: 11,
-                  color: '#6ECFA3',
-                  backgroundColor: '#6ECFA315',
-                  padding: '2px 8px',
-                  borderRadius: 9999,
-                  fontFamily: 'var(--fm)',
-                }}>
-                  {value.theme}
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => handleRemoveValue(value.id)}
-                style={{ ...btnGhost, color: '#B07A8A', fontSize: 12 }}
-              >
-                {t('button.remove')}
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div style={{ display: 'flex', gap: 8 }}>
+            )}
+            <button
+              type="button"
+              onClick={() => handleRemoveValue(value.id)}
+              style={{ background: 'none', border: 'none', color: '#B07A8A', fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}
+            >
+              {t('button.remove')}
+            </button>
+          </div>
+        ))}
+        <div className="settings-row settings-row--static" style={{ gap: 8 }}>
           <input
             type="text"
             value={newValue}
             onChange={e => setNewValue(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleAddValue(); }}
             placeholder={t('screen.intent.placeholder_value')}
-            style={inputStyle}
+            style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#141820', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
           />
-          <button type="button" onClick={handleAddValue} disabled={!newValue.trim()} style={btnPrimary}>{t('button.create')}</button>
+          <button type="button" onClick={handleAddValue} disabled={!newValue.trim()} style={{ height: 36, padding: '0 16px', borderRadius: 6, border: 'none', backgroundColor: '#6ECFA3', color: '#0B0E11', fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>{t('button.create')}</button>
         </div>
-      </section>
 
-      {/* Escalation Prompts */}
-      {escalationPrompts.length > 0 && (
-        <section style={{ marginBottom: 32 }}>
-          <h2 style={sectionHeading}>{t('screen.intent.section_escalation', 'Autonomy Escalation')}</h2>
-          {escalationPrompts.map(prompt => (
-            <div key={prompt.id} style={{ marginBottom: 12 }}>
-              <EscalationPromptCard
-                prompt={prompt}
-                onAccepted={async () => {
-                  await respondToEscalation(prompt.id, true).catch(() => {});
-                  setEscalationPrompts(prev => prev.filter(p => p.id !== prompt.id));
-                }}
-                onDismissed={async () => {
-                  await respondToEscalation(prompt.id, false).catch(() => {});
-                  setEscalationPrompts(prev => prev.filter(p => p.id !== prompt.id));
-                }}
-              />
-            </div>
-          ))}
-        </section>
-      )}
+        {/* Escalation Prompts */}
+        {escalationPrompts.length > 0 && (
+          <>
+            <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.intent.section_escalation', 'Autonomy Escalation')}</div>
+            {escalationPrompts.map(prompt => (
+              <div key={prompt.id} style={{ padding: '0 16px', marginBottom: 12 }}>
+                <EscalationPromptCard
+                  prompt={prompt}
+                  onAccepted={async () => {
+                    await respondToEscalation(prompt.id, true).catch(() => {});
+                    setEscalationPrompts(prev => prev.filter(p => p.id !== prompt.id));
+                  }}
+                  onDismissed={async () => {
+                    await respondToEscalation(prompt.id, false).catch(() => {});
+                    setEscalationPrompts(prev => prev.filter(p => p.id !== prompt.id));
+                  }}
+                />
+              </div>
+            ))}
+          </>
+        )}
 
-      {/* Recent Alignment Observations */}
-      {observations.length > 0 && (
-        <section>
-          <h2 style={sectionHeading}>{t('screen.intent.section_alignment')}</h2>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
+        {/* Recent Alignment Observations */}
+        {observations.length > 0 && (
+          <>
+            <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.intent.section_alignment')}</div>
             {observations.slice(0, 10).map(obs => (
-              <li key={obs.id} style={{
-                padding: '10px 0',
-                borderBottom: '1px solid #1E2228',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 10,
-              }}>
+              <div key={obs.id} className="settings-row" style={{ alignItems: 'flex-start' }}>
                 <span style={{
                   fontSize: 10,
-                  fontFamily: 'var(--fm)',
+                  fontFamily: "'DM Mono', monospace",
                   padding: '2px 6px',
                   borderRadius: 4,
                   backgroundColor: obs.type === 'drift' ? '#B09A8A20' : obs.type === 'conflict' ? '#B07A8A20' : '#6ECFA320',
@@ -344,63 +315,15 @@ export function IntentScreen() {
                 <button
                   type="button"
                   onClick={() => handleDismissObservation(obs.id)}
-                  style={btnGhost}
+                  style={{ background: 'none', border: 'none', color: '#8593A4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}
                 >
                   {t('button.dismiss')}
                 </button>
-              </li>
+              </div>
             ))}
-          </ul>
-        </section>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
-
-// ─── Shared Styles ──────────────────────────────────────────────────────────
-
-const sectionHeading: React.CSSProperties = {
-  fontFamily: 'var(--fm)',
-  fontSize: 11,
-  fontWeight: 400,
-  color: '#5E6B7C',
-  textTransform: 'uppercase',
-  letterSpacing: '0.08em',
-  marginBottom: 12,
-};
-
-const inputStyle: React.CSSProperties = {
-  flex: 1,
-  height: 36,
-  padding: '0 12px',
-  border: '1px solid #2A2F35',
-  borderRadius: 6,
-  backgroundColor: '#141820',
-  color: '#EEF1F4',
-  fontSize: 13,
-  fontFamily: 'var(--fb)',
-  outline: 'none',
-};
-
-const btnPrimary: React.CSSProperties = {
-  height: 36,
-  padding: '0 16px',
-  borderRadius: 6,
-  border: 'none',
-  backgroundColor: '#6ECFA3',
-  color: '#0B0E11',
-  fontSize: 13,
-  fontWeight: 600,
-  fontFamily: 'var(--fb)',
-  cursor: 'pointer',
-};
-
-const btnGhost: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  color: '#8593A4',
-  fontSize: 13,
-  fontFamily: 'var(--fb)',
-  cursor: 'pointer',
-  padding: '4px 8px',
-};

@@ -37,7 +37,7 @@ export function MorningBriefScreen() {
   const { t } = useTranslation('morning-brief');
   const state = useAppState();
   const license = useLicense();
-  const aiName = state.userName || 'Semblance';
+  const aiName = state.semblanceName || 'Semblance';
 
   const [loading, setLoading] = useState(true);
   const [brief, setBrief] = useState<MorningBriefResult | null>(null);
@@ -103,7 +103,13 @@ export function MorningBriefScreen() {
           color: '#EEF1F4',
           margin: 0,
         }}>
-          {t('title', { name: aiName })}
+          {(() => {
+            const hour = new Date().getHours();
+            const period = hour < 12 ? t('greeting.morning') : hour < 17 ? t('greeting.afternoon') : t('greeting.evening');
+            return state.userName
+              ? t('greeting.with_name', { period, name: state.userName })
+              : t('greeting.anonymous', { period });
+          })()}
         </h1>
 
         {/* Briefing summary card */}

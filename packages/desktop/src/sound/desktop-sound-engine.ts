@@ -7,26 +7,23 @@ import type { SoundId, SoundCategory, SoundSettings, SoundEngine } from '@sembla
 import { SOUND_REGISTRY } from '@semblance/core/sound/sound-types';
 
 // Static imports of all sound files — Vite resolves these to asset URLs
-import messageSentUrl from '../assets/sounds/message-sent.wav?url';
 import actionRequestUrl from '../assets/sounds/action-request.wav?url';
 import approvedUrl from '../assets/sounds/approved.wav?url';
 import rejectedUrl from '../assets/sounds/rejected.wav?url';
 import hardLimitTriggeredUrl from '../assets/sounds/hard-limit-triggered.wav?url';
-import initializeUrl from '../assets/sounds/initialize.wav?url';
 import morningBriefUrl from '../assets/sounds/morning-brief.wav?url';
-import notificationUrl from '../assets/sounds/notification.wav?url';
 import voiceStartUrl from '../assets/sounds/voice-start.wav?url';
 import voiceStopUrl from '../assets/sounds/voice-stop.wav?url';
 
 const SOUND_URLS: Record<SoundId, string> = {
-  message_sent: messageSentUrl,
+  message_sent: '', // removed per user request
   alter_ego_batched: actionRequestUrl,
   action_approved: approvedUrl,
   action_rejected: rejectedUrl,
   hard_limit_triggered: hardLimitTriggeredUrl,
-  initialize: initializeUrl,
+  initialize: '', // removed per user request
   morning_brief_ready: morningBriefUrl,
-  notification: notificationUrl,
+  notification: '', // removed per user request
   voice_start: voiceStartUrl,
   voice_stop: voiceStopUrl,
 };

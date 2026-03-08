@@ -20,7 +20,7 @@ import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier } f
 import { detectOSLocale } from '@semblance/core/i18n/supported-languages';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { useAppDispatch } from '../state/AppState';
-import { useSound } from '../sound/SoundEngineContext';
+
 import {
   detectHardware,
   setUserName,
@@ -60,9 +60,10 @@ const STEP_ORDER: OnboardingStep[] = [
 
 /** Map IPC HardwareDisplayInfo to semblance-ui HardwareInfo */
 function toHardwareInfo(hw: HardwareDisplayInfo): HardwareInfo {
-  const tier = (hw.tier === 'capable' || hw.tier === 'standard' || hw.tier === 'constrained')
-    ? hw.tier
-    : 'standard';
+  const validTiers = ['workstation', 'performance', 'capable', 'standard', 'constrained'] as const;
+  const tier = validTiers.includes(hw.tier as typeof validTiers[number])
+    ? hw.tier as HardwareInfo['tier']
+    : 'standard' as const;
   return {
     tier,
     totalRamMb: hw.totalRamMb,
@@ -88,8 +89,6 @@ export function OnboardingFlow() {
   const { t, i18n } = useTranslation();
   const [step, setStep] = useState<OnboardingStep>('language-select');
   const dispatch = useAppDispatch();
-  const { play } = useSound();
-
   // Hardware detection state
   const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
   const [detecting, setDetecting] = useState(false);
@@ -151,31 +150,10 @@ export function OnboardingFlow() {
   useEffect(() => {
     if (step !== 'initialize') return;
 
-    // Initialize download states
-    const models: ModelDownload[] = [
-      { modelName: t('model.embedding'), totalBytes: 275_000_000, downloadedBytes: 0, speedBytesPerSec: 0, status: 'pending' },
-      { modelName: t('model.reasoning'), totalBytes: 2_100_000_000, downloadedBytes: 0, speedBytesPerSec: 0, status: 'pending' },
-    ];
-    setDownloads(models);
+    // Let the sidecar emit real progress events with accurate model names and sizes.
+    setDownloads([]);
 
-    startModelDownloads(hardwareInfo?.tier ?? 'standard')
-      .catch((err) => {
-        console.error('[OnboardingFlow] startModelDownloads failed:', err);
-        // Mark as error so user sees something went wrong
-        setDownloads(prev => prev.map(d => ({ ...d, status: 'error' as const })));
-      });
-
-    // Also start knowledge moment generation
-    setMomentLoading(true);
-    generateKnowledgeMoment()
-      .then((result) => setKnowledgeMoment(toKnowledgeMomentData(result)))
-      .catch(() => {})
-      .finally(() => {
-        setMomentLoading(false);
-        play('initialize');
-      });
-
-    // Listen for real download progress events from the sidecar
+    // Set up event listener BEFORE starting downloads to avoid race condition
     let unlisten: UnlistenFn | undefined;
     listen<{
       modelId: string;
@@ -185,31 +163,52 @@ export function OnboardingFlow() {
       speedBytesPerSec: number;
       status: 'pending' | 'downloading' | 'complete' | 'error';
       error?: string;
-    }>('model-download-progress', (event) => {
+    }>('semblance://model-download-progress', (event) => {
       const p = event.payload;
       setDownloads(prev => {
-        const idx = prev.findIndex(d => d.modelName === p.modelName);
-        if (idx === -1) {
-          return [...prev, {
-            modelName: p.modelName,
-            totalBytes: p.totalBytes,
-            downloadedBytes: p.downloadedBytes,
-            speedBytesPerSec: p.speedBytesPerSec,
-            status: p.status,
-          }];
-        }
-        const existing = prev[idx]!;
-        const updated = [...prev];
-        updated[idx] = {
-          modelName: existing.modelName,
+        // Match by modelId (stable) rather than modelName (localized)
+        const idx = prev.findIndex(d =>
+          (d as { modelId?: string }).modelId === p.modelId || d.modelName === p.modelName
+        );
+        const entry: ModelDownload = {
+          modelName: p.modelName,
           totalBytes: p.totalBytes,
           downloadedBytes: p.downloadedBytes,
           speedBytesPerSec: p.speedBytesPerSec,
           status: p.status,
         };
+        // Attach modelId for future matching
+        (entry as { modelId?: string }).modelId = p.modelId;
+        if (idx === -1) {
+          return [...prev, entry];
+        }
+        const updated = [...prev];
+        updated[idx] = entry;
         return updated;
       });
     }).then((fn) => { unlisten = fn; });
+
+    // Start downloads after listener is registered
+    startModelDownloads(hardwareInfo?.tier ?? 'standard')
+      .catch((err) => {
+        console.error('[OnboardingFlow] startModelDownloads failed:', err);
+        setDownloads([{
+          modelName: 'Download Error',
+          totalBytes: 0,
+          downloadedBytes: 0,
+          speedBytesPerSec: 0,
+          status: 'error',
+        }]);
+      });
+
+    // Start knowledge moment generation
+    setMomentLoading(true);
+    generateKnowledgeMoment()
+      .then((result) => setKnowledgeMoment(toKnowledgeMomentData(result)))
+      .catch(() => {})
+      .finally(() => {
+        setMomentLoading(false);
+      });
 
     return () => { unlisten?.(); };
   }, [step, hardwareInfo]);
@@ -300,7 +299,7 @@ export function OnboardingFlow() {
       )}
 
       {step === 'naming-ai' && (
-        <NamingYourAI onComplete={(name) => { setAiName(name); goNext(); }} />
+        <NamingYourAI onComplete={(name) => { setAiName(name); dispatch({ type: 'SET_SEMBLANCE_NAME', name }); goNext(); }} />
       )}
 
       {step === 'initialize' && (

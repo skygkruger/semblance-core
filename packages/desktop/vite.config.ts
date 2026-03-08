@@ -15,6 +15,9 @@ export default defineConfig({
     alias: {
       '@semblance/ui': resolve(__dirname, '../semblance-ui'),
     },
+    // Force single instance — pnpm hoists two i18next versions (v23 for semblance-ui, v24 for desktop).
+    // Without dedup, config loads resources into one singleton, useTranslation reads from another.
+    dedupe: ['i18next', 'react-i18next', 'react', 'react-dom'],
   },
   build: {
     target: 'esnext',

@@ -4,6 +4,7 @@ import { createContext, useContext, useReducer, type ReactNode, type Dispatch } 
 
 export interface AppState {
   userName: string | null;
+  semblanceName: string;
   onboardingComplete: boolean;
   onboardingStep: number;
   ollamaStatus: 'connected' | 'disconnected' | 'checking';
@@ -184,6 +185,7 @@ export interface ChatMessage {
 
 export type AppAction =
   | { type: 'SET_USER_NAME'; name: string }
+  | { type: 'SET_SEMBLANCE_NAME'; name: string }
   | { type: 'SET_ONBOARDING_COMPLETE' }
   | { type: 'SET_ONBOARDING_STEP'; step: number }
   | { type: 'SET_OLLAMA_STATUS'; status: AppState['ollamaStatus'] }
@@ -247,6 +249,7 @@ export type AppAction =
 
 export const initialState: AppState = {
   userName: null,
+  semblanceName: 'Semblance',
   onboardingComplete: false,
   onboardingStep: 0,
   ollamaStatus: 'checking',
@@ -378,6 +381,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_USER_NAME':
       return { ...state, userName: action.name };
+    case 'SET_SEMBLANCE_NAME':
+      return { ...state, semblanceName: action.name || 'Semblance' };
     case 'SET_ONBOARDING_COMPLETE':
       return { ...state, onboardingComplete: true };
     case 'SET_ONBOARDING_STEP':

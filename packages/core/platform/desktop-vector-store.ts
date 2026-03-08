@@ -21,11 +21,14 @@ export class LanceDBVectorStore implements VectorStoreAdapter {
   async initialize(name: string, dimensions: number): Promise<void> {
     this.tableName = name;
     this.dimensions = dimensions;
+    console.error('[LanceDB] Connecting to', this.dataDir);
     this.db = await lancedb.connect(this.dataDir);
-
+    console.error('[LanceDB] Connected, listing tables');
     const tableNames = await this.db.tableNames();
+    console.error('[LanceDB] Tables:', tableNames);
     if (tableNames.includes(this.tableName)) {
       this.table = await this.db.openTable(this.tableName);
+      console.error('[LanceDB] Table opened:', this.tableName);
     }
   }
 

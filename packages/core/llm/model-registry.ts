@@ -91,10 +91,10 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     family: 'qwen2',
     parameterCount: '7B',
     quantization: 'Q4_K_M',
-    fileSizeBytes: 4_700_000_000, // ~4.7GB
+    fileSizeBytes: 4_683_074_240, // 4.36GB — single-file from bartowski
     ramRequiredMb: 8192,
-    hfRepo: 'Qwen/Qwen2.5-7B-Instruct-GGUF',
-    hfFilename: 'qwen2.5-7b-instruct-q4_k_m.gguf',
+    hfRepo: 'bartowski/Qwen2.5-7B-Instruct-GGUF',
+    hfFilename: 'Qwen2.5-7B-Instruct-Q4_K_M.gguf',
     sha256: '',
     isEmbedding: false,
     minTier: 'performance',
@@ -107,10 +107,10 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     family: 'qwen2',
     parameterCount: '7B',
     quantization: 'Q8_0',
-    fileSizeBytes: 8_100_000_000, // ~8.1GB
+    fileSizeBytes: 8_098_525_888, // 7.54GB — single-file from bartowski
     ramRequiredMb: 12288,
-    hfRepo: 'Qwen/Qwen2.5-7B-Instruct-GGUF',
-    hfFilename: 'qwen2.5-7b-instruct-q8_0.gguf',
+    hfRepo: 'bartowski/Qwen2.5-7B-Instruct-GGUF',
+    hfFilename: 'Qwen2.5-7B-Instruct-Q8_0.gguf',
     sha256: '',
     isEmbedding: false,
     minTier: 'workstation',

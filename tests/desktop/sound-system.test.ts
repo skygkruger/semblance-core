@@ -198,8 +198,8 @@ describe('Trigger point wiring', () => {
   const voiceInputSrc = readSrc('packages/desktop/src/hooks/useVoiceInput.ts');
   const activitySrc = readSrc('packages/desktop/src/screens/ActivityScreen.tsx');
 
-  it('ChatScreen calls play(message_sent)', () => {
-    expect(chatScreenSrc).toContain("play('message_sent')");
+  it('ChatScreen does not play message_sent sound (intentionally removed)', () => {
+    expect(chatScreenSrc).not.toContain("play('message_sent')");
   });
 
   it('ChatScreen listens for alter-ego-batch-ready event', () => {
@@ -212,8 +212,8 @@ describe('Trigger point wiring', () => {
     expect(chatScreenSrc).toContain("play('hard_limit_triggered')");
   });
 
-  it('OnboardingFlow calls play(initialize)', () => {
-    expect(onboardingSrc).toContain("play('initialize')");
+  it('OnboardingFlow does not play initialize sound (intentionally removed)', () => {
+    expect(onboardingSrc).not.toContain("play('initialize')");
   });
 
   it('App listens for morning-brief-ready event', () => {
@@ -223,7 +223,7 @@ describe('Trigger point wiring', () => {
 
   it('App listens for proactive-notification event', () => {
     expect(appSrc).toContain('semblance://proactive-notification');
-    expect(appSrc).toContain("play('notification')");
+    // play('notification') intentionally removed — event still listened for
   });
 
   it('useVoiceInput accepts onSoundPlay callback', () => {

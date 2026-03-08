@@ -1,5 +1,5 @@
 export interface HardwareInfo {
-  tier: 'capable' | 'standard' | 'constrained';
+  tier: 'workstation' | 'performance' | 'capable' | 'standard' | 'constrained';
   totalRamMb: number;
   cpuCores: number;
   gpuName: string | null;

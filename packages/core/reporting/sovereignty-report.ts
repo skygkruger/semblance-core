@@ -186,7 +186,10 @@ const C = {
 // Font paths relative to this file — bundled as assets in the repo.
 // Uses Node.js fs directly (not platform abstraction) because this runs in the
 // Node.js sidecar process and must also work in vitest.
-const __moduleDir = dirname(fileURLToPath(import.meta.url));
+// CJS fallback: import.meta.url is undefined when bundled as CJS (sidecar bridge.cjs)
+const __moduleDir = typeof import.meta?.url === 'string'
+  ? dirname(fileURLToPath(import.meta.url))
+  : __dirname ?? dirname(process.argv[1] ?? '.');
 const FONT_DIR = join(__moduleDir, 'fonts');
 
 async function loadFontBytes(filename: string): Promise<Uint8Array> {
