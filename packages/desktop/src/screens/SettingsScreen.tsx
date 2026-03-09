@@ -6,6 +6,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { getVersion } from '@tauri-apps/api/app';
 import { SettingsNavigator } from '@semblance/ui';
 import type { AutonomyTier } from '@semblance/ui';
 import {
@@ -31,6 +32,7 @@ export function SettingsScreen() {
 
   const [accounts, setAccounts] = useState<AccountStatus[]>([]);
   const [hardwareProfile, setHardwareProfile] = useState('');
+  const [appVersion, setAppVersion] = useState('0.1.0');
 
   useEffect(() => {
     getAccountsStatus()
@@ -41,6 +43,9 @@ export function SettingsScreen() {
       .catch(() => setHardwareProfile('Unknown'));
     getAlterEgoSettings()
       .then((s) => dispatch({ type: 'SET_ALTER_EGO_SETTINGS', settings: s }))
+      .catch(() => {});
+    getVersion()
+      .then(setAppVersion)
       .catch(() => {});
   }, [dispatch]);
 
@@ -104,7 +109,7 @@ export function SettingsScreen() {
           autonomyTier={autonomyTier}
           privacyStatus="clean"
           licenseStatus={licenseStatus}
-          appVersion="0.1.0"
+          appVersion={appVersion}
 
           /* AI Engine props */
           modelName={state.activeModel || 'Loading...'}
@@ -127,7 +132,7 @@ export function SettingsScreen() {
             entityCount: 0,
           }))}
 
-          /* Notifications props */
+          /* Notifications props — TODO: Load from preferences via get_notification_settings IPC */
           morningBriefEnabled
           morningBriefTime="07:00"
           includeWeather

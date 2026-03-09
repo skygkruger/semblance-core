@@ -23,6 +23,7 @@ export function InheritanceScreen() {
   const navigate = useNavigate();
   const [protocolEnabled, setProtocolEnabled] = useState(false);
   const [trustedParties] = useState<TrustedParty[]>([]);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   if (!license.isPremium) {
     return (
@@ -99,17 +100,25 @@ export function InheritanceScreen() {
           )}
 
           <div className="inheritance__actions">
-            <button type="button" className="inheritance__btn inheritance__btn--primary">
+            <button
+              type="button"
+              className="inheritance__btn inheritance__btn--primary"
+              onClick={() => setStatusMessage(t('screen.inheritance.add_party_coming_soon'))}
+            >
               {t('screen.inheritance.add_trusted_party')}
             </button>
             <button
               type="button"
               className="inheritance__btn inheritance__btn--secondary"
               disabled={trustedParties.length === 0}
+              onClick={() => setStatusMessage(t('screen.inheritance.drill_coming_soon'))}
             >
               {t('screen.inheritance.run_drill_test')}
             </button>
           </div>
+          {statusMessage && (
+            <p className="inheritance__status-message">{statusMessage}</p>
+          )}
         </div>
       </div>
     </div>
