@@ -27,10 +27,16 @@ export function getModelPath(modelId: string, dataDir?: string): string {
 }
 
 /**
- * Check if a model file exists locally.
+ * Check if a model file exists locally and is non-trivial (at least 1MB).
+ * Catches partial downloads and corrupt files.
  */
 export function isModelDownloaded(modelId: string, dataDir?: string): boolean {
-  return getPlatform().fs.existsSync(getModelPath(modelId, dataDir));
+  const p = getPlatform();
+  const path = getModelPath(modelId, dataDir);
+  if (!p.fs.existsSync(path)) return false;
+  // Verify file is non-trivial (at least 1MB) — catches partial downloads
+  const stat = p.fs.statSync(path);
+  return stat.size > 1_000_000;
 }
 
 /**

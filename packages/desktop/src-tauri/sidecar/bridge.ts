@@ -670,19 +670,23 @@ async function handleSendMessage(
   }
 
   // Check inference availability — try NativeRuntime first, then Ollama
+  console.error('[sidecar] handleSendMessage — core initialized:', !!core, 'native check starting...');
   let useNative = false;
   try {
     const nativeStatus = await sendCallback('native_status', {});
+    console.error('[sidecar] handleSendMessage — native status:', JSON.stringify(nativeStatus));
     if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
       useNative = true;
     }
   } catch {
     // NativeRuntime not available
   }
+  console.error('[sidecar] handleSendMessage — useNative:', useNative);
   if (!useNative) {
     const ollamaAvailable = await core.llm.isAvailable();
+    console.error('[sidecar] handleSendMessage — ollama available:', ollamaAvailable);
     if (!ollamaAvailable) {
-      respondError(id, 'Model still loading. Please wait for the download to complete, then try again.');
+      respondError(id, 'No inference engine available. NativeRuntime is not ready and Ollama is not connected. Please wait for model download to complete or start Ollama.');
       return;
     }
   }
@@ -752,7 +756,7 @@ async function handleSendMessage(
           emit('chat-token', fullResponse.substring(i, i + chunkSize));
         }
       } catch (nativeErr) {
-        console.error('[sidecar] NativeRuntime generate failed:', nativeErr);
+        console.error('[sidecar] NativeRuntime generate failed:', nativeErr, 'Full error:', JSON.stringify(nativeErr));
         throw nativeErr;
       }
     } else {

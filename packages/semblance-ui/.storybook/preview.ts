@@ -25,6 +25,14 @@ i18n.use(initReactI18next).init({
   react: { useSuspense: false },
 });
 
+// Load Google Fonts for Storybook dev environment (desktop app bundles locally via fontsource)
+const fontLink = document.createElement('link');
+fontLink.rel = 'stylesheet';
+fontLink.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Josefin+Sans:wght@100;200;300&display=swap';
+if (!document.querySelector(`link[href="${fontLink.href}"]`)) {
+  document.head.appendChild(fontLink);
+}
+
 const preview: Preview = {
   parameters: {
     backgrounds: { disable: true },

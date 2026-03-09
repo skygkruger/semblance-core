@@ -372,7 +372,9 @@
       "btn_manage_subscription": "Manage Subscription",
       "section_about": "About",
       "about_version": "Semblance v0.1.0",
-      "about_license": "Open Source — MIT License"
+      "about_license": "Open Source — MIT License",
+      "intents_hard_limits": "Intents & Hard Limits",
+      "notifications_default": "Morning brief + approvals"
     },
     "knowledge_graph": {
       "loading": "Knowledge Graph loading...",

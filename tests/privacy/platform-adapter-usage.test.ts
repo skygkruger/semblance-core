@@ -109,7 +109,8 @@ describe('model-storage.ts via PlatformAdapter', () => {
 
   it('isModelDownloaded returns true after creating file', () => {
     const modelsDir = getModelsDir(testDir);
-    writeFileSync(join(modelsDir, 'test-model.gguf'), 'fake model data');
+    // File must be >1MB to pass the partial download check
+    writeFileSync(join(modelsDir, 'test-model.gguf'), Buffer.alloc(1_100_000));
     expect(isModelDownloaded('test-model', testDir)).toBe(true);
   });
 

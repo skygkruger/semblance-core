@@ -543,8 +543,8 @@ function run() {
         violation: 'Content Security Policy must be configured to block external resource loading',
       });
     } else {
-      // CSP must NOT contain http: or https: origins (except tauri: and asset: schemes)
-      const externalOriginPattern = /https?:\/\/(?!localhost)/;
+      // CSP must NOT contain http: or https: origins (except localhost and *.localhost like ipc.localhost)
+      const externalOriginPattern = /https?:\/\/(?!(?:\w+\.)?localhost\b)/;
       if (externalOriginPattern.test(csp)) {
         allViolations.push({
           file: TAURI_CONF_JSON,

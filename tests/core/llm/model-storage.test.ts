@@ -45,9 +45,17 @@ describe('Model Storage', () => {
 
   it('isModelDownloaded returns true for existing model', () => {
     const modelsDir = getModelsDir(testDir);
-    writeFileSync(join(modelsDir, 'test-model.gguf'), 'fake model data');
+    // File must be >1MB to pass the partial download check
+    writeFileSync(join(modelsDir, 'test-model.gguf'), Buffer.alloc(1_100_000));
 
     expect(isModelDownloaded('test-model', testDir)).toBe(true);
+  });
+
+  it('isModelDownloaded returns false for partial download (<1MB)', () => {
+    const modelsDir = getModelsDir(testDir);
+    writeFileSync(join(modelsDir, 'partial-model.gguf'), 'tiny');
+
+    expect(isModelDownloaded('partial-model', testDir)).toBe(false);
   });
 
   it('getModelFileSize returns 0 for missing model', () => {
@@ -64,7 +72,8 @@ describe('Model Storage', () => {
 
   it('deleteModel removes model file', () => {
     const modelsDir = getModelsDir(testDir);
-    writeFileSync(join(modelsDir, 'to-delete.gguf'), 'data');
+    // File must be >1MB for isModelDownloaded to return true
+    writeFileSync(join(modelsDir, 'to-delete.gguf'), Buffer.alloc(1_100_000));
 
     expect(isModelDownloaded('to-delete', testDir)).toBe(true);
     const deleted = deleteModel('to-delete', testDir);

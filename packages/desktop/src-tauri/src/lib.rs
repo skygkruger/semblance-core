@@ -22,6 +22,9 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::{oneshot, Mutex};
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 mod hardware;
 mod native_runtime;
 
@@ -189,14 +192,18 @@ impl SidecarBridge {
             (tsx_path, sidecar_script, project_root.clone())
         };
 
-        let mut child = Command::new(&node_path)
-            .arg(&script_path)
+        let mut cmd = Command::new(&node_path);
+        cmd.arg(&script_path)
             .current_dir(&working_dir)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
-            .kill_on_drop(true)
-            .spawn()
+            .kill_on_drop(true);
+
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+        let mut child = cmd.spawn()
             .map_err(|e| format!("Failed to spawn sidecar: {}", e))?;
 
         let stdin = child

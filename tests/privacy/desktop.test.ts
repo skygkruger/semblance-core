@@ -58,8 +58,8 @@ describe('Desktop Privacy: CSP', () => {
   });
 
   it('CSP does not allow external HTTP/HTTPS origins', () => {
-    // Should not contain any http:// or https:// URLs (except tauri internal)
-    const externalPattern = /https?:\/\/(?!localhost)/;
+    // Should not contain any http:// or https:// URLs (except localhost and *.localhost like ipc.localhost)
+    const externalPattern = /https?:\/\/(?!(?:\w+\.)?localhost\b)/;
     expect(externalPattern.test(csp)).toBe(false);
   });
 
