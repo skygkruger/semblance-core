@@ -89,6 +89,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: false,
     syncIntervalHours: 6,
+    iconType: 'files',
   });
   registry.register({
     id: 'dropbox',
@@ -99,6 +100,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'files',
   });
   registry.register({
     id: 'onedrive',
@@ -109,6 +111,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'files',
   });
   registry.register({
     id: 'box',
@@ -119,6 +122,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'files',
   });
 
   // ─── Productivity ───────────────────────────────────────────────────────────
@@ -131,6 +135,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 12,
+    iconType: 'import',
   });
   registry.register({
     id: 'todoist',
@@ -141,6 +146,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'import',
   });
   registry.register({
     id: 'things',
@@ -151,6 +157,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'macos',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
   registry.register({
     id: 'harvest',
@@ -161,6 +168,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'import',
   });
   registry.register({
     id: 'slack-export',
@@ -171,6 +179,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'messages',
   });
 
   // ─── Developer ──────────────────────────────────────────────────────────────
@@ -183,6 +192,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 12,
+    iconType: 'code',
   });
 
   // ─── Reading & Research ─────────────────────────────────────────────────────
@@ -195,6 +205,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 24,
+    iconType: 'reading',
   });
   registry.register({
     id: 'pocket',
@@ -205,6 +216,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 12,
+    iconType: 'reading',
   });
   registry.register({
     id: 'instapaper',
@@ -215,6 +227,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 12,
+    iconType: 'reading',
   });
   registry.register({
     id: 'zotero',
@@ -225,6 +238,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'reading',
   });
   registry.register({
     id: 'mendeley',
@@ -235,6 +249,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 24,
+    iconType: 'reading',
   });
   registry.register({
     id: 'goodreads-export',
@@ -245,6 +260,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'reading',
   });
 
   // ─── Health & Fitness ───────────────────────────────────────────────────────
@@ -257,6 +273,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'health',
   });
   registry.register({
     id: 'whoop',
@@ -267,6 +284,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'health',
   });
   registry.register({
     id: 'fitbit',
@@ -277,6 +295,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'health',
   });
   registry.register({
     id: 'strava',
@@ -287,6 +306,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'health',
   });
   registry.register({
     id: 'garmin',
@@ -297,6 +317,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'health',
   });
   registry.register({
     id: 'apple-health-export',
@@ -307,6 +328,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'health',
   });
   registry.register({
     id: 'toggl',
@@ -317,6 +339,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'health',
   });
   registry.register({
     id: 'rescuetime',
@@ -327,6 +350,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 24,
+    iconType: 'health',
   });
   registry.register({
     id: 'strava-export',
@@ -337,6 +361,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'health',
   });
 
   // ─── Social ─────────────────────────────────────────────────────────────────
@@ -349,6 +374,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'messages',
   });
   registry.register({
     id: 'facebook-export',
@@ -359,6 +385,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
   registry.register({
     id: 'instagram-export',
@@ -369,6 +396,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'photos',
   });
   registry.register({
     id: 'twitter-export',
@@ -379,6 +407,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
   registry.register({
     id: 'linkedin-export',
@@ -389,6 +418,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
   registry.register({
     id: 'discord-export',
@@ -399,6 +429,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'messages',
   });
 
   // ─── Music & Entertainment ──────────────────────────────────────────────────
@@ -411,6 +442,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 6,
+    iconType: 'music',
   });
   registry.register({
     id: 'lastfm',
@@ -421,6 +453,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 24,
+    iconType: 'music',
   });
   registry.register({
     id: 'letterboxd',
@@ -431,6 +464,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 24,
+    iconType: 'music',
   });
 
   // ─── Finance ────────────────────────────────────────────────────────────────
@@ -443,6 +477,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'finance',
   });
   registry.register({
     id: 'mint-export',
@@ -453,6 +488,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'finance',
   });
 
   // ─── Messaging ──────────────────────────────────────────────────────────────
@@ -465,6 +501,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'macos',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'messages',
   });
   registry.register({
     id: 'signal-export',
@@ -475,6 +512,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'messages',
   });
   registry.register({
     id: 'whatsapp-export',
@@ -485,6 +523,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'messages',
   });
   registry.register({
     id: 'telegram-export',
@@ -495,6 +534,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'messages',
   });
 
   // ─── Browser History (Native) ───────────────────────────────────────────────
@@ -507,6 +547,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'macos',
     isPremium: false,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
   registry.register({
     id: 'edge-history',
@@ -517,6 +558,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: false,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
   registry.register({
     id: 'arc-history',
@@ -527,6 +569,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'macos',
     isPremium: false,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
 
   // ─── Notes (Native) ────────────────────────────────────────────────────────
@@ -539,6 +582,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: false,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
 
   // ─── Google ─────────────────────────────────────────────────────────────────
@@ -551,6 +595,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
 
   // ─── Notes Export ───────────────────────────────────────────────────────────
@@ -563,6 +608,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
   registry.register({
     id: 'bear-export',
@@ -573,6 +619,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
   registry.register({
     id: 'evernote-export',
@@ -583,6 +630,7 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
     platform: 'all',
     isPremium: true,
     syncIntervalHours: 0,
+    iconType: 'import',
   });
 
   return registry;

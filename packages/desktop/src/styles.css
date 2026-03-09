@@ -5,41 +5,10 @@
 /*
  * Semblance Design System — Global Styles
  * All fonts are bundled locally. No CDN. No external requests.
- * Font files would live in public/fonts/ — for now we use system fallbacks
- * which are configured in tailwind.config.js and match the design system.
+ * Design Bible tokens are loaded from @semblance/ui/tokens/ in main.tsx.
  */
 
 @layer base {
-  :root {
-    --color-bg: #FAFBFC;
-    --color-surface-1: #FFFFFF;
-    --color-surface-2: #F5F6F8;
-    --color-border: #E2E4E9;
-    --color-text-primary: #1A1D2E;
-    --color-text-secondary: #5A6070;
-    --color-text-tertiary: #8B93A7;
-    --color-primary-subtle: #EBF2F9;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-    --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
-    --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
-    --shadow-xl: 0 8px 32px rgba(0,0,0,0.16);
-  }
-
-  .dark {
-    --color-bg: #1A1D2E;
-    --color-surface-1: #222538;
-    --color-surface-2: #2A2D42;
-    --color-border: #363952;
-    --color-text-primary: #ECEDF0;
-    --color-text-secondary: #9BA0B0;
-    --color-text-tertiary: #8B93A7;
-    --color-primary-subtle: #1E2A3E;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-    --shadow-md: 0 2px 8px rgba(0,0,0,0.3);
-    --shadow-lg: 0 4px 16px rgba(0,0,0,0.3);
-    --shadow-xl: 0 8px 32px rgba(0,0,0,0.3);
-  }
-
   html {
     font-family: 'DM Sans Variable', 'DM Sans', system-ui, -apple-system, sans-serif;
     font-size: 16px;
@@ -74,12 +43,8 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #8B93A7;
+    background: var(--slate2);
     border-radius: 9999px;
-  }
-
-  .dark ::-webkit-scrollbar-thumb {
-    background: #363952;
   }
 
   /* Respect reduced motion — non-negotiable per DESIGN_SYSTEM.md */

@@ -34,6 +34,7 @@ export interface ConnectorDefinition {
   isPremium: boolean;
   /** Sync interval in hours. 0 = manual only. */
   syncIntervalHours: number;
+  iconType?: string;
 }
 
 export interface ConnectorState {

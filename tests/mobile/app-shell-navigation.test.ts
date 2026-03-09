@@ -34,24 +34,24 @@ describe('Mobile App Shell — File Structure', () => {
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 
 describe('Mobile App Shell — Design Tokens', () => {
-  it('tokens file exports colors matching DESIGN_SYSTEM.md', () => {
+  it('tokens file exports colors from canonical Design Bible via native.ts', () => {
     const content = fs.readFileSync(path.join(MOBILE_SRC, 'theme/tokens.ts'), 'utf-8');
 
-    // Primary palette from DESIGN_SYSTEM.md
-    expect(content).toContain('#1A1D2E'); // Deep Ink (bg-dark)
-    expect(content).toContain('#4A7FBA'); // Semblance Blue (primary)
-    expect(content).toContain('#E8A838'); // Warm Amber (accent)
+    // Must import from canonical source
+    expect(content).toContain('@semblance/ui/tokens/native');
+    // Must reference brandColors (Design Bible v3 values)
+    expect(content).toContain('brandColors.base');
+    expect(content).toContain('brandColors.veridian');
     expect(content).toContain('#3DB87A'); // Living Green (success)
-    expect(content).toContain('#E85D5D'); // Alert Coral (attention)
-    expect(content).toContain('#8B93A7'); // Muted Slate (muted)
   });
 
-  it('tokens file exports typography scales', () => {
+  it('tokens file exports typography from canonical native font families', () => {
     const content = fs.readFileSync(path.join(MOBILE_SRC, 'theme/tokens.ts'), 'utf-8');
 
-    expect(content).toContain('DM Serif Display');
-    expect(content).toContain('Inter');
-    expect(content).toContain('JetBrains Mono');
+    // Must use nativeFontFamily from canonical source (DM Sans, Fraunces, DM Mono)
+    expect(content).toContain('nativeFontFamily.display');
+    expect(content).toContain('nativeFontFamily.ui');
+    expect(content).toContain('nativeFontFamily.mono');
   });
 
   it('tokens file exports spacing values', () => {

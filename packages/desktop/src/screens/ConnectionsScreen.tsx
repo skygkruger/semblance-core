@@ -71,6 +71,7 @@ export function ConnectionsScreen() {
         platform: connector.platform as 'all' | 'macos' | 'windows' | 'linux',
         userEmail: connState?.userEmail,
         lastSyncedAt: connState?.lastSyncedAt,
+        iconType: connector.iconType,
       };
     });
 
