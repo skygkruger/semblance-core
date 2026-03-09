@@ -248072,6 +248072,7 @@ var OAuthTokenManager = class {
 
 // packages/gateway/services/oauth-callback-server.ts
 var import_node_http = require("node:http");
+var import_node_https = require("node:https");
 var import_node_crypto8 = require("node:crypto");
 var import_node_url2 = require("node:url");
 var PORT_RANGE_START = 8080;
@@ -248086,21 +248087,38 @@ var OAuthCallbackServer = class {
   /**
    * Start the callback server. Returns the callback URL and state parameter.
    * The server listens on localhost only (127.0.0.1) for security.
+   * Pass { https: true } for providers that require HTTPS redirect URIs (e.g. Slack).
    */
-  async start() {
+  async start(options) {
     this.expectedState = (0, import_node_crypto8.randomBytes)(32).toString("hex");
+    const useHttps = options?.https ?? false;
     const port = await this.findAvailablePort();
     return new Promise((resolve4, reject2) => {
-      this.server = (0, import_node_http.createServer)((req, res) => {
+      const handler = (req, res) => {
         this.handleRequest(req, res);
-      });
+      };
+      let isHttps = false;
+      if (useHttps) {
+        try {
+          const { key, cert } = generateSelfSignedCert();
+          this.server = (0, import_node_https.createServer)({ key, cert }, handler);
+          isHttps = true;
+        } catch (err) {
+          console.error("[OAuthCallbackServer] Failed to create HTTPS server, falling back to HTTP:", err);
+          this.server = (0, import_node_http.createServer)(handler);
+        }
+      } else {
+        this.server = (0, import_node_http.createServer)(handler);
+      }
+      const protocol = isHttps ? "https" : "http";
+      const host = isHttps ? "localhost" : "127.0.0.1";
       this.server.listen(port, "127.0.0.1", () => {
         this.shutdownTimer = setTimeout(() => {
           this.rejectAuth?.(new Error("OAuth callback timed out"));
           this.stop();
         }, AUTO_SHUTDOWN_MS);
         resolve4({
-          callbackUrl: `http://127.0.0.1:${port}/callback`,
+          callbackUrl: `${protocol}://${host}:${port}/callback`,
           state: this.expectedState,
           port
         });
@@ -248131,7 +248149,8 @@ var OAuthCallbackServer = class {
     }
   }
   handleRequest(req, res) {
-    const url = new import_node_url2.URL(req.url ?? "/", `http://127.0.0.1`);
+    const host = req.headers.host ?? "localhost";
+    const url = new import_node_url2.URL(req.url ?? "/", `http://${host}`);
     if (url.pathname === "/callback") {
       const code = url.searchParams.get("code");
       const state = url.searchParams.get("state");
@@ -248188,6 +248207,60 @@ var OAuthCallbackServer = class {
     });
   }
 };
+function generateSelfSignedCert() {
+  const { privateKey, publicKey } = (0, import_node_crypto8.generateKeyPairSync)("rsa", {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" }
+  });
+  const now = /* @__PURE__ */ new Date();
+  const expiry = new Date(now.getTime() + 24 * 60 * 60 * 1e3);
+  const serial = (0, import_node_crypto8.randomBytes)(8);
+  const { execSync } = require("node:child_process");
+  try {
+    const certOut = execSync(
+      'openssl req -x509 -newkey rsa:2048 -keyout /dev/stdout -out /dev/stdout -days 1 -nodes -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null',
+      { encoding: "utf-8", timeout: 5e3 }
+    );
+    const keyMatch = certOut.match(/(-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----)/);
+    const certMatch = certOut.match(/(-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----)/);
+    if (keyMatch && certMatch) {
+      return { key: keyMatch[1], cert: certMatch[1] };
+    }
+  } catch {
+  }
+  try {
+    const { writeFileSync: writeFileSync5, unlinkSync: unlinkSync4, mkdtempSync } = require("node:fs");
+    const { join: join8 } = require("node:path");
+    const { tmpdir } = require("node:os");
+    const tmpDir = mkdtempSync(join8(tmpdir(), "semblance-cert-"));
+    const keyPath = join8(tmpDir, "key.pem");
+    const certPath = join8(tmpDir, "cert.pem");
+    writeFileSync5(keyPath, privateKey);
+    execSync(
+      `openssl req -x509 -key "${keyPath}" -out "${certPath}" -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null`,
+      { timeout: 5e3 }
+    );
+    const cert = require("node:fs").readFileSync(certPath, "utf-8");
+    try {
+      unlinkSync4(keyPath);
+    } catch {
+    }
+    try {
+      unlinkSync4(certPath);
+    } catch {
+    }
+    try {
+      require("node:fs").rmdirSync(tmpDir);
+    } catch {
+    }
+    return { key: privateKey, cert };
+  } catch {
+    throw new Error(
+      "Cannot generate self-signed certificate: openssl not found. Install OpenSSL or use HTTP-only OAuth for this connector."
+    );
+  }
+}
 
 // packages/gateway/services/google-drive-adapter.ts
 var GOOGLE_DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
@@ -260648,7 +260721,8 @@ async function handleConnectorAuth(params) {
   const tokenMgr = ensureOAuthTokenManager();
   const callbackServer = new OAuthCallbackServer();
   try {
-    const { callbackUrl, state } = await callbackServer.start();
+    const requiresHttps = params.connectorId === "slack";
+    const { callbackUrl, state } = await callbackServer.start({ https: requiresHttps });
     const authUrl = new URL(config.authUrl);
     authUrl.searchParams.set("client_id", config.clientId);
     authUrl.searchParams.set("redirect_uri", callbackUrl);
