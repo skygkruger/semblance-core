@@ -1,14 +1,14 @@
 // Navigation Types — Type-safe navigation for the mobile app.
-// Bottom tabs: Chat, Inbox, Brief, Knowledge, Settings (matching Storybook MobileTabBar).
+// Bottom tabs: Chat, Brief, Knowledge, Dashboards, Settings.
 // Per-tab stack navigators for detail screens.
 // All screens from desktop are reachable via nested stacks.
 
 /** Bottom tab navigator param list */
 export type TabParamList = {
   ChatTab: undefined;
-  InboxTab: undefined;
   BriefTab: undefined;
   KnowledgeTab: undefined;
+  DashboardsTab: undefined;
   SettingsTab: undefined;
 };
 
@@ -17,7 +17,7 @@ export type ChatStackParamList = {
   Chat: undefined;
 };
 
-/** Inbox tab stack */
+/** Inbox tab stack (kept for backward compat) */
 export type InboxStackParamList = {
   Inbox: undefined;
 };
@@ -31,6 +31,16 @@ export type BriefStackParamList = {
 export type KnowledgeStackParamList = {
   KnowledgeGraph: undefined;
   ImportDigitalLife: undefined;
+};
+
+/** Dashboards tab stack — hub + sub-dashboards */
+export type DashboardsStackParamList = {
+  DashboardHub: undefined;
+  Inbox: undefined;
+  FinancialDashboard: undefined;
+  HealthDashboard: undefined;
+  Contacts: undefined;
+  ContactDetail: { contactId: string };
 };
 
 /** Settings tab stack — all secondary screens nest here */
@@ -67,8 +77,8 @@ export type RootStackParamList = {
 /** Tab icon names for each tab */
 export const TAB_ICONS: Record<keyof TabParamList, string> = {
   ChatTab: 'chat',
-  InboxTab: 'inbox',
   BriefTab: 'sunrise',
   KnowledgeTab: 'brain',
+  DashboardsTab: 'grid',
   SettingsTab: 'settings',
 };

@@ -1,0 +1,201 @@
+/* InheritanceScreen — inheritance protocol configuration */
+
+.inheritance__gate-message {
+  color: var(--sv2);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.inheritance__gate-btn {
+  margin-top: var(--sp-4);
+  padding: 8px 16px;
+  background: rgba(110, 207, 163, 0.1);
+  border: 1px solid rgba(110, 207, 163, 0.3);
+  border-radius: var(--r-md);
+  color: var(--v);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.inheritance__container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.inheritance__title {
+  font-family: var(--fd);
+  font-size: var(--text-xl);
+  color: var(--white);
+  margin: 0 0 var(--sp-2);
+}
+
+.inheritance__subtitle {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: 0 0 var(--sp-6);
+}
+
+.inheritance__card {
+  padding: var(--sp-6);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-4);
+}
+
+.inheritance__section-title {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--white);
+  margin: 0 0 var(--sp-3);
+}
+
+.inheritance__empty {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+  padding: var(--sp-4) 0;
+}
+
+.inheritance__party-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.inheritance__party-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--s1);
+}
+
+.inheritance__party-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inheritance__party-name {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--white);
+}
+
+.inheritance__party-role {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.inheritance__party-status {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.inheritance__party-status--active {
+  background: rgba(110, 207, 163, 0.1);
+  color: #6ECFA3;
+}
+
+.inheritance__party-status--pending {
+  background: rgba(176, 154, 138, 0.15);
+  color: #B09A8A;
+}
+
+.inheritance__toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid rgba(110, 207, 163, 0.06);
+}
+
+.inheritance__toggle-row:last-child {
+  border-bottom: none;
+}
+
+.inheritance__toggle-label {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+}
+
+.inheritance__toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--s1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.inheritance__toggle--active {
+  background: rgba(110, 207, 163, 0.2);
+  border-color: rgba(110, 207, 163, 0.4);
+}
+
+.inheritance__toggle-knob {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sv2);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.inheritance__toggle--active .inheritance__toggle-knob {
+  transform: translateX(18px);
+  background: #6ECFA3;
+}
+
+.inheritance__actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.inheritance__btn {
+  padding: 8px 16px;
+  border-radius: var(--r-md);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.inheritance__btn:hover {
+  opacity: 0.85;
+}
+
+.inheritance__btn--primary {
+  background: rgba(110, 207, 163, 0.1);
+  border: 1px solid rgba(110, 207, 163, 0.3);
+  color: #6ECFA3;
+}
+
+.inheritance__btn--secondary {
+  background: var(--s1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--sv2);
+}
+
+.inheritance__btn--danger {
+  background: rgba(176, 122, 138, 0.1);
+  border: 1px solid rgba(176, 122, 138, 0.3);
+  color: #B07A8A;
+}

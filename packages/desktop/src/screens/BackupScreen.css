@@ -1,0 +1,211 @@
+/* BackupScreen — backup & restore settings */
+
+.backup-screen__container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.backup-screen__title {
+  font-family: var(--fd);
+  font-size: var(--text-xl);
+  color: var(--white);
+  margin: 0 0 var(--sp-2);
+}
+
+.backup-screen__subtitle {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: 0 0 var(--sp-6);
+}
+
+.backup-screen__card {
+  padding: var(--sp-6);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-4);
+}
+
+.backup-screen__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-4);
+}
+
+.backup-screen__card-title {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--white);
+  margin: 0;
+}
+
+.backup-screen__status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--s1);
+}
+
+.backup-screen__status-row:last-child {
+  border-bottom: none;
+}
+
+.backup-screen__label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.backup-screen__value {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+}
+
+.backup-screen__value--mono {
+  font-family: var(--fm);
+}
+
+.backup-screen__schedule-options {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.backup-screen__schedule-btn {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  background: var(--s1);
+  border: 1px solid var(--b2);
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.backup-screen__schedule-btn:hover {
+  border-color: var(--sv3);
+}
+
+.backup-screen__schedule-btn--active {
+  border-color: var(--v);
+  color: var(--v);
+}
+
+.backup-screen__empty {
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+}
+
+.backup-screen__empty-text {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.backup-screen__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.backup-screen__list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--s1);
+}
+
+.backup-screen__list-item:last-child {
+  border-bottom: none;
+}
+
+.backup-screen__list-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.backup-screen__list-item-name {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--white);
+}
+
+.backup-screen__list-item-detail {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+}
+
+.backup-screen__list-item-meta {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+}
+
+.backup-screen__list-item-status {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.backup-screen__list-item-status--success {
+  color: var(--v);
+}
+
+.backup-screen__list-item-status--failed {
+  color: #B07A8A;
+}
+
+.backup-screen__list-item-status--partial {
+  color: #B09A8A;
+}
+
+.backup-screen__actions {
+  display: flex;
+  gap: var(--sp-3);
+}
+
+.backup-screen__action-btn {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  background: var(--s1);
+  border: 1px solid var(--b2);
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-4);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.backup-screen__action-btn:hover:not(:disabled) {
+  border-color: var(--sv3);
+  color: var(--white);
+}
+
+.backup-screen__action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.backup-screen__action-btn--primary {
+  border-color: var(--v);
+  color: var(--v);
+}
+
+.backup-screen__action-btn--primary:hover:not(:disabled) {
+  border-color: var(--v);
+  color: var(--white);
+  background: rgba(110, 207, 163, 0.1);
+}

@@ -48,7 +48,7 @@ export { ActionLogItem } from './components/ActionLogItem/index.js';
 export { AgentInput } from './components/AgentInput/index.js';
 export { DesktopSidebar } from './components/Nav/DesktopSidebar';
 export type { DesktopSidebarProps } from './components/Nav/DesktopSidebar.types';
-export type { NavItem as SidebarNavItem } from './components/Nav/DesktopSidebar.types';
+export type { NavItem as SidebarNavItem, NavSection } from './components/Nav/DesktopSidebar.types';
 export { MobileTabBar } from './components/Nav/MobileTabBar';
 export { KnowledgeGraph } from './components/KnowledgeGraph/index.js';
 export type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps, CategoryLegendItem, DrillDownConfig, DrillDownItem } from './components/KnowledgeGraph/index.js';

@@ -165,5 +165,31 @@
 .settings-page__sync-btn:hover { border-color: rgba(110, 207, 163, 0.3); }
 .settings-page__sync-btn:disabled { opacity: 0.5; cursor: default; }
 
+/* Extra settings rows (e.g., Intents & Hard Limits) */
+.settings-extra-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--s1);
+  border: 1px solid var(--b2);
+  border-radius: var(--r-md);
+  color: var(--white);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-align: left;
+}
+
+.settings-extra-row:hover {
+  border-color: rgba(110, 207, 163, 0.25);
+}
+
+.settings-extra-row__arrow {
+  color: var(--sv2);
+  font-size: var(--text-xs);
+}
+
 /* Spacing helpers */
 .settings-page__mb-4 { margin-bottom: 16px; }

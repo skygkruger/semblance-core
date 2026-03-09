@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { listen } from '@tauri-apps/api/event';
 import { DesktopSidebar, PrivacyBadge, DotMatrix, ToastContainer } from '@semblance/ui';
-import type { NavItem, ToastItem } from '@semblance/ui';
+import type { NavItem, NavSection, ToastItem } from '@semblance/ui';
 import { AppStateProvider, useAppState, useAppDispatch } from './state/AppState';
 import { LicenseProvider, useLicense } from './contexts/LicenseContext';
 import { SoundEngineProvider, useSound } from './sound/SoundEngineContext';
@@ -26,6 +26,15 @@ import { IntentScreen } from './screens/IntentScreen';
 import { FinancialDashboardScreen } from './screens/FinancialDashboardScreen';
 import { HealthDashboardScreen } from './screens/HealthDashboardScreen';
 import { SovereigntyReportScreen } from './screens/SovereigntyReportScreen';
+import { AdversarialDashboardScreen } from './screens/AdversarialDashboardScreen';
+import { LivingWillScreen } from './screens/LivingWillScreen';
+import { WitnessScreen } from './screens/WitnessScreen';
+import { InheritanceScreen } from './screens/InheritanceScreen';
+import { BiometricSetupScreen } from './screens/BiometricSetupScreen';
+import { BackupScreen } from './screens/BackupScreen';
+import { VoiceSettingsScreen } from './screens/VoiceSettingsScreen';
+import { LocationSettingsScreen } from './screens/LocationSettingsScreen';
+import { CloudStorageSettingsScreen } from './screens/CloudStorageSettingsScreen';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
 import { UpgradeScreen as UpgradeScreenComponent, UpgradeEmailCapture } from '@semblance/ui';
@@ -160,23 +169,44 @@ function HeartIcon() {
   );
 }
 
-const navItems: NavItem[] = [
-  { id: 'chat', label: 'Chat', icon: <ChatIcon /> },
-  { id: 'inbox', label: 'Inbox', icon: <InboxIcon /> },
-  { id: 'morning-brief', label: 'Brief', icon: <SunriseIcon /> },
-  { id: 'knowledge', label: 'Knowledge', icon: <BrainIcon /> },
-  { id: 'intent', label: 'Intent', icon: <CompassIcon /> },
-  { id: 'files', label: 'Files', icon: <FolderIcon /> },
-  { id: 'connections', label: 'Connections', icon: <PlugIcon /> },
-  { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
-  { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
-  { id: 'sovereignty-report', label: 'Sovereignty', icon: <ScrollIcon /> },
-  { id: 'finance', label: 'Finance', icon: <DollarIcon /> },
-  { id: 'health', label: 'Health', icon: <HeartIcon /> },
-  { id: 'digest', label: 'Digest', icon: <DigestIcon /> },
-  { id: 'network', label: 'Network', icon: <NetworkIcon /> },
-  { id: 'settings', label: 'Settings', icon: <GearIcon /> },
+const navSections: NavSection[] = [
+  {
+    label: 'CORE',
+    items: [
+      { id: 'chat', label: 'Chat', icon: <ChatIcon /> },
+      { id: 'morning-brief', label: 'Brief', icon: <SunriseIcon /> },
+      { id: 'knowledge', label: 'Knowledge', icon: <BrainIcon /> },
+      { id: 'files', label: 'Files', icon: <FolderIcon /> },
+    ],
+  },
+  {
+    label: 'YOUR LIFE',
+    items: [
+      { id: 'inbox', label: 'Inbox', icon: <InboxIcon /> },
+      { id: 'relationships', label: 'Contacts', icon: <ContactsIcon /> },
+      { id: 'connections', label: 'Connections', icon: <PlugIcon /> },
+    ],
+  },
+  {
+    label: 'DIGITAL REPRESENTATIVE',
+    items: [
+      { id: 'finance', label: 'Finance', icon: <DollarIcon /> },
+      { id: 'health', label: 'Health', icon: <HeartIcon /> },
+      { id: 'digest', label: 'Digest', icon: <DigestIcon /> },
+    ],
+  },
+  {
+    label: 'TRUST & SOVEREIGNTY',
+    items: [
+      { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
+      { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
+      { id: 'sovereignty-report', label: 'Sovereignty', icon: <ScrollIcon /> },
+      { id: 'network', label: 'Network', icon: <NetworkIcon /> },
+    ],
+  },
 ];
+
+const settingsItem: NavItem = { id: 'settings', label: 'Settings', icon: <GearIcon /> };
 
 function AppContent() {
   const state = useAppState();
@@ -294,9 +324,30 @@ function AppContent() {
       <DotMatrix />
       <UpdateChecker />
       <DesktopSidebar
-        items={navItems}
+        items={(() => {
+          // Add conditional upgrade item to DR section
+          const sections = navSections.map(s => {
+            if (s.label === 'DIGITAL REPRESENTATIVE' && license.tier === 'free') {
+              return {
+                ...s,
+                items: [
+                  ...s.items,
+                  {
+                    id: 'upgrade',
+                    label: 'Digital Representative',
+                    icon: <></>,
+                    className: 'desktop-sidebar__item--upgrade',
+                  },
+                ],
+              };
+            }
+            return s;
+          });
+          return sections;
+        })()}
         activeId={activeId}
         onNavigate={(id) => navigate('/' + id)}
+        bottomItems={[settingsItem]}
         footer={
           <div className="space-y-3">
             <NetworkStatusIndicator onClick={() => navigate('/network')} />
@@ -310,7 +361,6 @@ function AppContent() {
           <Route path="/inbox" element={<InboxScreen />} />
           <Route path="/morning-brief" element={<MorningBriefScreen />} />
           <Route path="/knowledge" element={<KnowledgeGraphScreen />} />
-          <Route path="/intent" element={<IntentScreen />} />
           <Route path="/files" element={<FilesScreen />} />
           <Route path="/connections" element={<ConnectionsScreen />} />
           <Route path="/activity" element={<ActivityScreen />} />
@@ -322,6 +372,18 @@ function AppContent() {
           <Route path="/health" element={<HealthDashboardScreen />} />
           <Route path="/network" element={<NetworkMonitorScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
+          {/* Intent moved to Settings sub-route */}
+          <Route path="/settings/intents" element={<IntentScreen />} />
+          {/* 9 new desktop screens */}
+          <Route path="/adversarial" element={<AdversarialDashboardScreen />} />
+          <Route path="/living-will" element={<LivingWillScreen />} />
+          <Route path="/witness" element={<WitnessScreen />} />
+          <Route path="/inheritance" element={<InheritanceScreen />} />
+          <Route path="/settings/biometric" element={<BiometricSetupScreen />} />
+          <Route path="/settings/backup" element={<BackupScreen />} />
+          <Route path="/settings/voice" element={<VoiceSettingsScreen />} />
+          <Route path="/settings/location" element={<LocationSettingsScreen />} />
+          <Route path="/settings/cloud-storage" element={<CloudStorageSettingsScreen />} />
           <Route
             path="/upgrade"
             element={
