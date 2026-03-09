@@ -20,7 +20,7 @@
 import { createInterface } from 'node:readline';
 import { join } from 'node:path';
 import { homedir, hostname, totalmem } from 'node:os';
-import { mkdirSync, existsSync } from 'node:fs';
+import { mkdirSync, existsSync, readFileSync } from 'node:fs';
 
 import Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
@@ -293,7 +293,7 @@ const nativeRuntimeBridge: NativeRuntimeBridge = {
       system_prompt: params.systemPrompt ?? '',
       max_tokens: params.maxTokens ?? 2048,
       temperature: params.temperature ?? 0.7,
-      stop: params.stop ?? ['<|eot_id|>', '<|end|>', '</s>'],
+      stop: params.stop ?? ['<|im_end|>', '<|endoftext|>'],
     }) as { text: string; tokens_generated: number; duration_ms: number };
     return {
       text: result.text,
@@ -749,7 +749,7 @@ async function handleSendMessage(
           system_prompt: systemPrompt,
           max_tokens: 2048,
           temperature: 0.7,
-          stop: ['<|eot_id|>', '<|end|>', '</s>'],
+          stop: ['<|im_end|>', '<|endoftext|>'],
         }) as { text: string; tokens_generated: number; duration_ms: number };
         fullResponse = result.text;
         // Emit in chunks to simulate streaming for the frontend
@@ -4515,6 +4515,27 @@ async function handleRequest(req: Request): Promise<void> {
   } catch (err) {
     respondError(id, err instanceof Error ? err.message : String(err));
   }
+}
+
+// ─── Load .env for development (OAuth credentials, etc.) ─────────────────────
+// Zero-dependency .env parser — reads KEY=VALUE lines, skips comments and blanks.
+// In production, env vars are set at system level; .env is for development only.
+try {
+  const envPath = join(process.cwd(), '.env');
+  if (existsSync(envPath)) {
+    const envContent = readFileSync(envPath, 'utf-8');
+    for (const line of envContent.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx < 1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+      if (!process.env[key]) process.env[key] = val;
+    }
+  }
+} catch {
+  // .env not found or unreadable — not an error in production
 }
 
 // ─── Main Loop ────────────────────────────────────────────────────────────────

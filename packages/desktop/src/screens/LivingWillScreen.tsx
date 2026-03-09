@@ -24,6 +24,7 @@ export function LivingWillScreen() {
   const [autoExportEnabled, setAutoExportEnabled] = useState(false);
   const [exports] = useState<ExportRecord[]>([]);
   const [lastExport] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   if (!license.isPremium) {
     return (
@@ -74,13 +75,24 @@ export function LivingWillScreen() {
           </div>
 
           <div className="living-will__actions">
-            <button type="button" className="living-will__btn living-will__btn--primary">
+            <button
+              type="button"
+              className="living-will__btn living-will__btn--primary"
+              onClick={() => setStatusMessage(t('screen.living_will.export_coming_soon'))}
+            >
               {t('screen.living_will.export_now')}
             </button>
-            <button type="button" className="living-will__btn living-will__btn--secondary">
+            <button
+              type="button"
+              className="living-will__btn living-will__btn--secondary"
+              onClick={() => setStatusMessage(t('screen.living_will.import_coming_soon'))}
+            >
               {t('screen.living_will.import_archive')}
             </button>
           </div>
+          {statusMessage && (
+            <p className="living-will__status-message">{statusMessage}</p>
+          )}
         </div>
 
         {/* Auto-export toggle */}

@@ -203,13 +203,19 @@ impl NativeRuntime {
         let max_tokens = request.max_tokens.unwrap_or(512);
         let temperature = request.temperature.unwrap_or(0.7);
 
-        // Build prompt with optional system prompt
+        // CHAT TEMPLATE: Qwen 2.5 / ChatML format.
+        // All models in MODEL_CATALOG use the Qwen 2.5 family.
+        // If non-Qwen models are added to the catalog, this must be made model-aware
+        // (pass model family from the sidecar and select template based on it).
         let full_prompt = match &request.system_prompt {
             Some(sys) => format!(
-                "<|system|>\n{}\n<|end|>\n<|user|>\n{}\n<|end|>\n<|assistant|>\n",
+                "<|im_start|>system\n{}<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
                 sys, request.prompt
             ),
-            None => request.prompt.clone(),
+            None => format!(
+                "<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
+                request.prompt
+            ),
         };
 
         // Create context for this request

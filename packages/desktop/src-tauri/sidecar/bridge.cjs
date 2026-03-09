@@ -33342,7 +33342,7 @@ var require_xlsx = __commonJS({
         if (DBF_SUPPORTED_VERSIONS.indexOf(n[0]) > -1 && n[2] <= 12 && n[3] <= 31) return DBF.to_workbook(d, o);
         return read_prn(data, d, o, str);
       }
-      function readFileSync3(filename, opts) {
+      function readFileSync4(filename, opts) {
         var o = opts || {};
         o.type = "file";
         return readSync(filename, o);
@@ -34178,8 +34178,8 @@ var require_xlsx = __commonJS({
       if (typeof parse_xlscfb !== "undefined") XLSX2.parse_xlscfb = parse_xlscfb;
       XLSX2.parse_zip = parse_zip;
       XLSX2.read = readSync;
-      XLSX2.readFile = readFileSync3;
-      XLSX2.readFileSync = readFileSync3;
+      XLSX2.readFile = readFileSync4;
+      XLSX2.readFileSync = readFileSync4;
       XLSX2.write = writeSync;
       XLSX2.writeFile = writeFileSync5;
       XLSX2.writeFileSync = writeFileSync5;
@@ -258716,7 +258716,7 @@ var nativeRuntimeBridge = {
       system_prompt: params.systemPrompt ?? "",
       max_tokens: params.maxTokens ?? 2048,
       temperature: params.temperature ?? 0.7,
-      stop: params.stop ?? ["<|eot_id|>", "<|end|>", "</s>"]
+      stop: params.stop ?? ["<|im_end|>", "<|endoftext|>"]
     });
     return {
       text: result2.text,
@@ -259063,7 +259063,7 @@ async function handleSendMessage(id, params) {
           system_prompt: systemPrompt,
           max_tokens: 2048,
           temperature: 0.7,
-          stop: ["<|eot_id|>", "<|end|>", "</s>"]
+          stop: ["<|im_end|>", "<|endoftext|>"]
         });
         fullResponse = result2.text;
         const chunkSize = 12;
@@ -260130,8 +260130,8 @@ function handleContactsImport(params) {
     return { success: false, imported: 0, error: "Desktop contact import requires a file path. Use the file picker to select a .vcf or .csv file." };
   }
   const store = ensureContactStore();
-  const { readFileSync: readFileSync3 } = require("node:fs");
-  const content = readFileSync3(params.filePath, "utf-8");
+  const { readFileSync: readFileSync4 } = require("node:fs");
+  const content = readFileSync4(params.filePath, "utf-8");
   const ext = params.filePath.toLowerCase();
   let imported = 0;
   if (ext.endsWith(".vcf") || ext.endsWith(".vcard")) {
@@ -260743,8 +260743,8 @@ async function handleImportRun(params) {
   if (!core || !prefsDb) {
     throw new Error("Core not initialized");
   }
-  const { readFileSync: readFileSync3 } = await import("node:fs");
-  const content = readFileSync3(params.sourcePath, "utf-8");
+  const { readFileSync: readFileSync4 } = await import("node:fs");
+  const content = readFileSync4(params.sourcePath, "utf-8");
   const ext = params.sourcePath.split(".").pop()?.toLowerCase() ?? "";
   let items = [];
   if (ext === "csv") {
@@ -262319,6 +262319,22 @@ async function handleRequest(req) {
   } catch (err) {
     respondError(id, err instanceof Error ? err.message : String(err));
   }
+}
+try {
+  const envPath = (0, import_node_path7.join)(process.cwd(), ".env");
+  if ((0, import_node_fs7.existsSync)(envPath)) {
+    const envContent = (0, import_node_fs7.readFileSync)(envPath, "utf-8");
+    for (const line of envContent.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx < 1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+      if (!process.env[key]) process.env[key] = val;
+    }
+  }
+} catch {
 }
 var rl = (0, import_node_readline.createInterface)({ input: process.stdin, terminal: false });
 rl.on("line", (line) => {

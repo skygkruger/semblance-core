@@ -61,6 +61,7 @@ export function WitnessScreen() {
   }
 
   const hasSelection = selectedIds.size > 0;
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   return (
     <div className="witness h-full overflow-y-auto">
@@ -119,6 +120,7 @@ export function WitnessScreen() {
               type="button"
               className="witness__btn witness__btn--primary"
               disabled={!hasSelection}
+              onClick={() => setStatusMessage(t('screen.witness.share_coming_soon'))}
             >
               {t('screen.witness.share_selected')}
             </button>
@@ -126,10 +128,14 @@ export function WitnessScreen() {
               type="button"
               className="witness__btn witness__btn--secondary"
               disabled={!hasSelection}
+              onClick={() => setStatusMessage(t('screen.witness.verify_coming_soon'))}
             >
               {t('screen.witness.verify_selected')}
             </button>
           </div>
+          {statusMessage && (
+            <p className="witness__status-message">{statusMessage}</p>
+          )}
         </div>
       </div>
     </div>
