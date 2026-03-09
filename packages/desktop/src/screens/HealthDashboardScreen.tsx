@@ -63,7 +63,8 @@ export function HealthDashboardScreen() {
   }
 
   return (
-    <div style={{ height: '100%', overflow: 'auto' }}>
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
       <FeatureGate
         feature="health-tracking"
         isPremium={license.isPremium}
@@ -80,6 +81,7 @@ export function HealthDashboardScreen() {
           loading={loading}
         />
       </FeatureGate>
+      </div>
     </div>
   );
 }

@@ -21,6 +21,8 @@
       "alter-ego": "Alter Ego"
     }
   },
+  "intents_hard_limits": "Intents & Hard Limits",
+  "intents_hard_limits_subtitle": "Your goals, boundaries, and values",
   "ai_engine": {
     "title": "AI Engine",
     "section_model": "Active Model",

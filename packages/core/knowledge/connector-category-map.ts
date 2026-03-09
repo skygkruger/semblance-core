@@ -198,6 +198,9 @@ export function getCategoryForEntityType(
       return 'knowledge';
     }
 
+    case 'directory':
+      return 'knowledge';
+
     case 'event':
     case 'reminder':
       return 'work';

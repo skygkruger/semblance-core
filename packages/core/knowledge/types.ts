@@ -17,6 +17,7 @@ export interface Document {
 
 export type DocumentSource =
   | 'local_file'
+  | 'directory'
   | 'email'
   | 'calendar'
   | 'contact'

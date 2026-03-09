@@ -454,81 +454,84 @@ async function handleInitialize(): Promise<unknown> {
   dataDir = join(homedir(), '.semblance', 'data');
   if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 
-  // Start Gateway first (IPC server)
+  // ──── STEP 1: Open preferences DB FIRST ────
+  // Preferences (onboarding state, user name, autonomy tiers) are independent
+  // of the knowledge graph and must be available even if core fails to init.
+  prefsDb = new Database(join(dataDir, 'core.db'));
+  prefsDb.pragma('journal_mode = WAL');
+  prefsDb.exec(PREFS_TABLE_SQL);
+  console.error('[sidecar] Preferences DB ready');
+
+  // Initialize PremiumGate early (uses core.db)
+  premiumGate = new PremiumGate(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
+
+  // Initialize Conversation Manager early (uses core.db)
+  conversationManager = new ConversationManager(prefsDb);
+  conversationManager.migrate();
+  const prunedCount = conversationManager.pruneExpired();
+  if (prunedCount > 0) console.error(`[sidecar] Pruned ${prunedCount} expired conversations`);
+  console.error('[sidecar] ConversationManager ready');
+
+  // ──── STEP 2: Gateway ────
   gateway = new Gateway();
   await gateway.start();
   console.error('[sidecar] Gateway started');
 
-  // Configure the desktop platform's vector store (LanceDB) before Core init
+  // ──── STEP 3: Core init (can fail — knowledge graph depends on LanceDB) ────
+  // If this fails, the app still works for chat (NativeRuntime), preferences,
+  // navigation, and all screens that don't need the knowledge graph.
   const platform = getPlatform();
   if (!platform.vectorStore) {
     platform.vectorStore = createDesktopVectorStore(join(dataDir, 'knowledge'));
   }
+  const knowledgeDir = join(dataDir, 'knowledge');
+  if (!existsSync(knowledgeDir)) mkdirSync(knowledgeDir, { recursive: true });
 
-  // Quick NativeRuntime callback channel check (5s timeout, non-blocking)
-  console.error('[sidecar] Testing NativeRuntime callback channel...');
-  const nativeChannelCheck = Promise.race([
+  // NativeRuntime channel check (non-blocking)
+  void Promise.race([
     sendCallback('native_status', {}),
     new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
   ]).then((status) => {
-    if (status) {
-      console.error('[sidecar] NativeRuntime callback channel ready:', JSON.stringify(status));
-    } else {
-      console.error('[sidecar] NativeRuntime callback channel timed out (5s) — will retry later');
-    }
-  }).catch((err) => {
-    console.error('[sidecar] NativeRuntime callback channel not ready:', err);
-  });
-  // Don't await — let init continue while this checks in background
-  void nativeChannelCheck;
+    if (status) console.error('[sidecar] NativeRuntime channel ready:', JSON.stringify(status));
+    else console.error('[sidecar] NativeRuntime channel timed out (5s)');
+  }).catch((err) => console.error('[sidecar] NativeRuntime channel error:', err));
 
-  // Create NativeProvider-backed LLM provider (routes all inference through Rust NativeRuntime)
-  // Falls back to Ollama automatically via InferenceRouter if NativeRuntime is unavailable
   const nativeLlm = createLLMProvider({
     runtime: 'builtin',
     nativeBridge: nativeRuntimeBridge,
     embeddingModel: 'nomic-embed-text-v1.5',
   });
 
-  // Ensure knowledge directory exists before LanceDB tries to connect
-  const knowledgeDir = join(dataDir, 'knowledge');
-  if (!existsSync(knowledgeDir)) mkdirSync(knowledgeDir, { recursive: true });
+  try {
+    core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
+    await core.initialize();
+    console.error('[sidecar] Core initialized');
+  } catch (coreErr) {
+    console.error('[sidecar] Core initialization failed (knowledge graph unavailable):', coreErr);
+    // Core may be partially initialized — keep it so chat can still work
+    // via NativeRuntime even without knowledge graph context
+  }
 
-  // Initialize Core with NativeProvider — entire subsystem (knowledge graph embeddings,
-  // orchestrator reasoning, model management) uses NativeRuntime instead of Ollama
-  core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
-  await core.initialize();
-  console.error('[sidecar] Core initialized (NativeRuntime-backed LLM provider)');
-
-  // Open preferences DB (reuses core.db which is already WAL mode)
-  prefsDb = new Database(join(dataDir, 'core.db'));
-  prefsDb.pragma('journal_mode = WAL');
-  prefsDb.exec(PREFS_TABLE_SQL);
-
-  // Initialize PremiumGate (uses core.db for license storage)
-  premiumGate = new PremiumGate(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
-  console.error('[sidecar] PremiumGate initialized');
-
-  // Initialize Conversation Manager (idempotent schema migration)
-  conversationManager = new ConversationManager(prefsDb);
-  conversationManager.migrate();
-  const prunedCount = conversationManager.pruneExpired();
-  if (prunedCount > 0) console.error(`[sidecar] Pruned ${prunedCount} expired conversations`);
+  // ──── STEP 4: Post-core setup (skip gracefully if core failed) ────
 
   // Initialize Conversation Indexer (indexes turns into knowledge graph)
   // Knowledge graph may be unavailable if LanceDB init failed — skip indexer in that case
   try {
-    conversationIndexer = new ConversationIndexer({ db: prefsDb, knowledge: core.knowledge });
-    console.error('[sidecar] ConversationManager + ConversationIndexer initialized');
+    if (core) {
+      conversationIndexer = new ConversationIndexer({ db: prefsDb, knowledge: core.knowledge });
+      console.error('[sidecar] ConversationIndexer initialized');
+    } else {
+      console.error('[sidecar] ConversationIndexer skipped — core unavailable');
+    }
   } catch {
     console.error('[sidecar] ConversationIndexer skipped — knowledge graph unavailable');
   }
 
   // Initialize IntentManager (idempotent schema migration)
-  const modelName = await core.models.getActiveChatModel();
+  const modelName = core ? await core.models.getActiveChatModel() : null;
   intentManager = new IntentManager({
     db: prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
-    llm: core.llm,
+    llm: core?.llm,
     model: modelName ?? undefined,
   });
   intentManager.retryParsing().catch((err) =>
@@ -536,7 +539,7 @@ async function handleInitialize(): Promise<unknown> {
   );
   // Wire intent manager into orchestrator for system prompt injection + hard limit enforcement
   try {
-    if (core.agent.setIntentManager) {
+    if (core?.agent?.setIntentManager) {
       core.agent.setIntentManager(intentManager);
     }
   } catch {
@@ -549,7 +552,7 @@ async function handleInitialize(): Promise<unknown> {
   alterEgoGuardrails = new AlterEgoGuardrails(alterEgoStore, contactStore);
   // Wire into orchestrator
   try {
-    if (core.agent.setAlterEgoGuardrails) {
+    if (core?.agent?.setAlterEgoGuardrails) {
       core.agent.setAlterEgoGuardrails(alterEgoGuardrails, alterEgoStore);
     }
   } catch {
@@ -633,7 +636,7 @@ async function handleInitialize(): Promise<unknown> {
   }
 
   // Fall back to Ollama if NativeRuntime has no models loaded
-  if (inferenceEngine === 'none') {
+  if (inferenceEngine === 'none' && core) {
     const ollamaAvailable = await core.llm.isAvailable();
     if (ollamaAvailable) {
       inferenceEngine = 'ollama';
@@ -664,12 +667,7 @@ async function handleSendMessage(
   id: number | string,
   params: { message: string; conversation_id?: string },
 ): Promise<void> {
-  if (!core) {
-    respondError(id, 'Core not initialized');
-    return;
-  }
-
-  // Check inference availability — try NativeRuntime first, then Ollama
+  // Check inference availability — NativeRuntime works independently of core
   console.error('[sidecar] handleSendMessage — core initialized:', !!core, 'native check starting...');
   let useNative = false;
   try {
@@ -678,15 +676,17 @@ async function handleSendMessage(
     if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
       useNative = true;
     }
-  } catch {
-    // NativeRuntime not available
+  } catch (nativeErr) {
+    console.error('[sidecar] handleSendMessage — native check failed:', nativeErr);
   }
   console.error('[sidecar] handleSendMessage — useNative:', useNative);
+
   if (!useNative) {
-    const ollamaAvailable = await core.llm.isAvailable();
+    // Try Ollama as fallback
+    const ollamaAvailable = core ? await core.llm.isAvailable() : false;
     console.error('[sidecar] handleSendMessage — ollama available:', ollamaAvailable);
     if (!ollamaAvailable) {
-      respondError(id, 'No inference engine available. NativeRuntime is not ready and Ollama is not connected. Please wait for model download to complete or start Ollama.');
+      respondError(id, 'No AI model available. The model may still be loading — try again in a moment.');
       return;
     }
   }
@@ -714,9 +714,11 @@ async function handleSendMessage(
   // Streaming happens asynchronously
   try {
     // Step 1: Search knowledge graph for relevant context (may be unavailable)
-    let context: Awaited<ReturnType<typeof core.knowledge.search>> = [];
+    let context: Array<{ document: { title: string }; score: number; chunk: { content: string } }> = [];
     try {
-      context = await core.knowledge.search(params.message, { limit: 5 });
+      if (core) {
+        context = await core.knowledge.search(params.message, { limit: 5 });
+      }
     } catch {
       // Knowledge graph unavailable — proceed without context
     }
@@ -759,9 +761,9 @@ async function handleSendMessage(
         console.error('[sidecar] NativeRuntime generate failed:', nativeErr, 'Full error:', JSON.stringify(nativeErr));
         throw nativeErr;
       }
-    } else {
+    } else if (core) {
       // Fallback: Ollama streaming
-      const model = (await core.models.getActiveChatModel()) ?? 'llama3.2:8b';
+      const model = (await core.models.getActiveChatModel()) ?? getRecommendedReasoningModel('standard').id;
       const messages: ChatMessage[] = [
         { role: 'system', content: SYSTEM_PROMPT + contextStr },
         { role: 'user', content: params.message },
@@ -776,6 +778,9 @@ async function handleSendMessage(
         fullResponse = response.message.content;
         emit('chat-token', fullResponse);
       }
+    } else {
+      respondError(id, 'No inference engine available.');
+      return;
     }
 
     // Step 5: Emit completion
@@ -811,7 +816,6 @@ async function handleSendMessage(
 }
 
 async function handleGetOllamaStatus(): Promise<unknown> {
-  if (!core) return { status: 'disconnected', active_model: null, available_models: [], inferenceEngine: 'none' };
 
   let inferenceEngine: 'native' | 'ollama' | 'none' = 'none';
   let activeModel: string | null = null;
@@ -836,7 +840,7 @@ async function handleGetOllamaStatus(): Promise<unknown> {
   }
 
   // Fall back to Ollama
-  if (inferenceEngine === 'none') {
+  if (inferenceEngine === 'none' && core) {
     const ollamaAvailable = await core.llm.isAvailable();
     if (ollamaAvailable) {
       inferenceEngine = 'ollama';
@@ -928,36 +932,102 @@ async function handleStartIndexing(
         directories: params.directories,
       });
 
-      // Step 2: Index each file individually with progress updates
-      for (const file of allFiles) {
-        try {
-          emit('indexing-progress', {
-            filesScanned: totalFilesScanned,
-            filesTotal,
-            chunksCreated: totalChunksCreated,
-            currentFile: file.name,
-          });
+      // Step 2: Record each directory as a container node BEFORE indexing files
+      for (const dir of params.directories) {
+        const dirName = dir.split(/[/\\]/).pop() ?? dir;
+        const filesInDir = allFiles.filter(f => f.path.startsWith(dir)).length;
+        const totalSize = allFiles.filter(f => f.path.startsWith(dir)).reduce((sum, f) => sum + f.size, 0);
+        const extensions = [...new Set(allFiles.filter(f => f.path.startsWith(dir)).map(f => f.extension))];
 
-          const content = await readFileContent(file.path);
-          const result = await core!.knowledge.indexDocument({
-            content: content.content,
-            title: content.title,
-            source: 'local_file',
-            sourcePath: file.path,
-            mimeType: content.mimeType,
+        try {
+          await core!.knowledge.indexDocument({
+            content: [
+              `Directory: ${dirName}`,
+              `Path: ${dir}`,
+              `Files: ${filesInDir}`,
+              `Total size: ${(totalSize / 1024 / 1024).toFixed(1)} MB`,
+              `File types: ${extensions.join(', ')}`,
+              `Indexed: ${new Date().toISOString()}`,
+            ].join('\n'),
+            title: dirName,
+            source: 'directory' as import('../../../core/knowledge/types.js').DocumentSource,
+            sourcePath: dir,
+            mimeType: 'inode/directory',
             metadata: {
-              size: file.size,
-              lastModified: file.lastModified,
-              extension: file.extension,
+              isDirectory: true,
+              fileCount: filesInDir,
+              totalSizeBytes: totalSize,
+              extensions,
+              path: dir,
             },
           });
-
-          totalFilesScanned++;
-          totalChunksCreated += result.chunksCreated;
         } catch (err) {
-          console.error(`[sidecar] Failed to index ${file.path}:`, err);
-          totalFilesScanned++;
+          console.error(`[sidecar] Failed to record directory node for ${dir}:`, err);
         }
+      }
+
+      // Step 3: Index files in batches with breathing room
+      const BATCH_SIZE = 10;
+
+      for (let batchStart = 0; batchStart < allFiles.length; batchStart += BATCH_SIZE) {
+        const batch = allFiles.slice(batchStart, batchStart + BATCH_SIZE);
+
+        for (const file of batch) {
+          try {
+            emit('indexing-progress', {
+              filesScanned: totalFilesScanned,
+              filesTotal,
+              chunksCreated: totalChunksCreated,
+              currentFile: file.name,
+            });
+
+            // Skip very large files for content extraction (>50MB) — store metadata only
+            if (file.size > 50 * 1024 * 1024) {
+              await core!.knowledge.indexDocument({
+                content: `[Large file: ${file.name}] Size: ${(file.size / 1024 / 1024).toFixed(1)} MB. Content not extracted due to size.`,
+                title: file.name,
+                source: 'local_file',
+                sourcePath: file.path,
+                mimeType: 'application/octet-stream',
+                metadata: { size: file.size, lastModified: file.lastModified, extension: file.extension, largeFile: true },
+              });
+              totalFilesScanned++;
+              totalChunksCreated++;
+              continue;
+            }
+
+            const content = await readFileContent(file.path);
+
+            // Truncate extremely long content (>500K chars) to prevent OOM during embedding
+            let contentText = content.content;
+            if (contentText.length > 500_000) {
+              contentText = contentText.slice(0, 500_000);
+              console.error(`[sidecar] Truncated ${file.name} from ${content.content.length} to 500K chars`);
+            }
+
+            const result = await core!.knowledge.indexDocument({
+              content: contentText,
+              title: content.title,
+              source: 'local_file',
+              sourcePath: file.path,
+              mimeType: content.mimeType,
+              metadata: {
+                size: file.size,
+                lastModified: file.lastModified,
+                extension: file.extension,
+              },
+            });
+
+            totalFilesScanned++;
+            totalChunksCreated += result.chunksCreated;
+          } catch (err) {
+            console.error(`[sidecar] Failed to index ${file.path}:`, err);
+            totalFilesScanned++;
+          }
+        }
+
+        // Yield between batches — let event loop process IPC, progress events, etc.
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       // Step 3: Persist indexed directories
@@ -1453,7 +1523,7 @@ async function handleEmailCategorize(params: { message_id: string }): Promise<un
   if (!emailIndexer || !core || !prefsDb) return { categories: [], priority: 'normal' };
 
   if (!emailCategorizer) {
-    const model = (await core.models.getActiveChatModel()) ?? 'llama3.2:8b';
+    const model = (await core.models.getActiveChatModel()) ?? getRecommendedReasoningModel('standard').id;
     emailCategorizer = new EmailCategorizer({
       llm: core.llm,
       emailIndexer,
@@ -1471,7 +1541,7 @@ async function handleEmailCategorizeBatch(params: { message_ids: string[] }): Pr
   if (!emailIndexer || !core || !prefsDb) return [];
 
   if (!emailCategorizer) {
-    const model = (await core.models.getActiveChatModel()) ?? 'llama3.2:8b';
+    const model = (await core.models.getActiveChatModel()) ?? getRecommendedReasoningModel('standard').id;
     emailCategorizer = new EmailCategorizer({
       llm: core.llm,
       emailIndexer,
@@ -2173,7 +2243,7 @@ function handleContactsGetFrequencyAlerts(): unknown {
 
 function ensureMessageDrafter(): MessageDrafter {
   if (!messageDrafter && core) {
-    const model = getPref('active_chat_model') ?? 'llama3.2:8b';
+    const model = getPref('active_chat_model') ?? getRecommendedReasoningModel('standard').id;
     messageDrafter = new MessageDrafter({ llm: core.llm, model });
   }
   if (!messageDrafter) throw new Error('Message drafter not initialized');
@@ -2184,7 +2254,7 @@ function ensureClipboardRecognizer(): ClipboardPatternRecognizer {
   if (!clipboardRecognizer) {
     clipboardRecognizer = new ClipboardPatternRecognizer({
       llm: core?.llm,
-      model: getPref('active_chat_model') ?? 'llama3.2:8b',
+      model: getPref('active_chat_model') ?? getRecommendedReasoningModel('standard').id,
     });
   }
   return clipboardRecognizer;
@@ -4142,27 +4212,50 @@ async function handleRequest(req: Request): Promise<void> {
 
       // ─── Knowledge Graph Visualization ────────────────────────────────
       case 'knowledge_get_graph': {
-        if (!graphVisualizationProvider && prefsDb && core) {
-          graphVisualizationProvider = new GraphVisualizationProvider(prefsDb, core.knowledge);
-          graphVisualizationProvider.initSchema();
+        try {
+          if (!graphVisualizationProvider && prefsDb && core) {
+            // Ensure contactStore + relationshipAnalyzer exist for the graph provider
+            try { ensureContactStore(); } catch { /* contacts not critical for graph */ }
+            graphVisualizationProvider = new GraphVisualizationProvider({
+              db: prefsDb as unknown as import('../../../../core/platform/types.js').DatabaseHandle,
+              contactStore: contactStore!,
+              relationshipAnalyzer: relationshipAnalyzer!,
+            });
+            graphVisualizationProvider.initSchema();
+          }
+          if (!graphVisualizationProvider) {
+            respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+            break;
+          }
+          const graph = await graphVisualizationProvider.getGraphData();
+          respond(id, graph);
+        } catch (graphErr) {
+          console.error('[sidecar] knowledge_get_graph failed:', graphErr);
+          respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
         }
-        if (!graphVisualizationProvider) { respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } }); break; }
-        const graph = await graphVisualizationProvider.buildGraph();
-        respond(id, graph);
         break;
       }
       case 'knowledge_get_node_context': {
-        const nodeParams = params as { nodeId: string };
-        if (!graphVisualizationProvider) { respond(id, null); break; }
-        const nodeCtx = await graphVisualizationProvider.getNodeContext(nodeParams.nodeId);
-        respond(id, nodeCtx);
+        try {
+          const nodeParams = params as { nodeId: string };
+          if (!graphVisualizationProvider) { respond(id, null); break; }
+          const nodeCtx = await graphVisualizationProvider.getNodeContext(nodeParams.nodeId);
+          respond(id, nodeCtx);
+        } catch (nodeErr) {
+          console.error('[sidecar] knowledge_get_node_context failed:', nodeErr);
+          respond(id, null);
+        }
         break;
       }
       case 'knowledge_export_graph': {
-        // Graph export returns the data for the frontend to render
-        if (!graphVisualizationProvider) { respond(id, { success: false }); break; }
-        const exportGraph = await graphVisualizationProvider.buildGraph();
-        respond(id, { success: true, graph: exportGraph });
+        try {
+          if (!graphVisualizationProvider) { respond(id, { success: false }); break; }
+          const exportGraph = await graphVisualizationProvider.getGraphData();
+          respond(id, { success: true, graph: exportGraph });
+        } catch (exportErr) {
+          console.error('[sidecar] knowledge_export_graph failed:', exportErr);
+          respond(id, { success: false });
+        }
         break;
       }
 

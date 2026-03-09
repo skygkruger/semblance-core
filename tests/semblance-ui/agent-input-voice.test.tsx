@@ -131,7 +131,7 @@ describe('AgentInput Voice UI', () => {
     renderInput({ voiceEnabled: true, voiceState: 'speaking' });
     const textarea = screen.getByTestId('agent-input-field') as HTMLTextAreaElement;
     expect(textarea.tabIndex).toBe(-1);
-    expect(textarea.getAttribute('aria-hidden')).toBe('true');
+    expect(textarea.getAttribute('aria-readonly')).toBe('true');
   });
 
   // ─── Placeholder hint ────────────────────────────────────────────────────

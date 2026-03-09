@@ -15,6 +15,7 @@ export type VisualizationEntityType =
   | 'person'
   | 'topic'
   | 'document'
+  | 'directory'
   | 'event'
   | 'email_thread'
   | 'reminder'
@@ -230,7 +231,30 @@ export class GraphVisualizationProvider {
     }
 
     // --- Apply caps ---
-    const cappedNodes = this.capNodes(nodes, maxNodes);
+    let cappedNodes = this.capNodes(nodes, maxNodes);
+
+    // Hard display safety valve — if still too many nodes after soft cap,
+    // collapse the smallest into a summary node. This is a DISPLAY limit,
+    // not a data limit — all files are still indexed and searchable.
+    const MAX_DISPLAY_NODES = 500;
+    if (cappedNodes.length > MAX_DISPLAY_NODES) {
+      cappedNodes.sort((a, b) => b.size - a.size);
+      const displayed = cappedNodes.slice(0, MAX_DISPLAY_NODES);
+      const collapsed = cappedNodes.slice(MAX_DISPLAY_NODES);
+
+      displayed.push({
+        id: 'overflow_summary',
+        label: `${collapsed.length} more items`,
+        type: 'category',
+        size: collapsed.length,
+        createdAt: new Date().toISOString(),
+        domain: 'general',
+        metadata: { isOverflow: true, collapsedCount: collapsed.length },
+      });
+
+      cappedNodes = displayed;
+    }
+
     const cappedNodeIds = new Set(cappedNodes.map(n => n.id));
     let cappedEdges = edges.filter(
       e => cappedNodeIds.has(e.sourceId) && cappedNodeIds.has(e.targetId)
@@ -254,6 +278,49 @@ export class GraphVisualizationProvider {
     const graph = this.getGraphData();
     const node = graph.nodes.find(n => n.id === nodeId);
     if (!node) return null;
+
+    // Directory drill-down: show child files as connections
+    if (node.type === 'directory') {
+      const dirPath = node.metadata.path as string;
+      if (dirPath) {
+        try {
+          const childDocs = this.db.prepare(
+            "SELECT id, title, created_at, metadata FROM documents WHERE source = 'local_file' AND source_path LIKE ? || '%'"
+          ).all(dirPath) as Array<{ id: string; title: string; created_at: string; metadata: string | null }>;
+
+          const connections = childDocs.map(doc => {
+            let meta: Record<string, unknown> = {};
+            try { meta = doc.metadata ? JSON.parse(doc.metadata) : {}; } catch { /* ignore */ }
+            return {
+              node: {
+                id: `document_${doc.id}`,
+                label: doc.title,
+                type: 'document' as VisualizationEntityType,
+                size: 1,
+                createdAt: doc.created_at,
+                domain: 'general',
+                metadata: meta,
+              },
+              edge: {
+                id: `contains_${node.id}_${doc.id}`,
+                sourceId: node.id,
+                targetId: `document_${doc.id}`,
+                weight: 1,
+                label: 'contains',
+              },
+            };
+          });
+
+          return {
+            node,
+            connections,
+            recentActivity: [`${childDocs.length} files indexed`],
+          };
+        } catch {
+          // Fall through to default behavior
+        }
+      }
+    }
 
     const connections: NodeContext['connections'] = [];
     for (const edge of graph.edges) {
@@ -580,28 +647,74 @@ export class GraphVisualizationProvider {
 
   private addDocumentNodes(nodes: VisualizationNode[], nodeIds: Set<string>): void {
     const docs = this.db.prepare(
-      'SELECT d.id, d.title, d.created_at, d.source, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id GROUP BY d.id ORDER BY mention_count DESC LIMIT 100'
-    ).all() as Array<{ id: string; title: string; created_at: string; source: string; mention_count: number }>;
+      'SELECT d.id, d.title, d.created_at, d.source, d.source_path, d.metadata, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id GROUP BY d.id ORDER BY mention_count DESC LIMIT 500'
+    ).all() as Array<{ id: string; title: string; created_at: string; source: string; source_path: string | null; metadata: string | null; mention_count: number }>;
+
+    // Separate directory docs from file docs
+    const directoryDocs = docs.filter(d => d.source === 'directory');
+    const directoryPaths = directoryDocs.map(d => d.source_path).filter(Boolean) as string[];
 
     for (const doc of docs) {
-      const id = `document_${doc.id}`;
-      if (nodeIds.has(id)) continue;
-      nodeIds.add(id);
+      if (doc.source === 'directory') {
+        // Create a directory node
+        const id = `directory_${doc.id}`;
+        if (nodeIds.has(id)) continue;
+        nodeIds.add(id);
 
-      nodes.push({
-        id,
-        label: doc.title,
-        type: 'document',
-        size: Math.max(1, doc.mention_count),
-        createdAt: doc.created_at,
-        domain: doc.source === 'financial' ? 'finance' : doc.source === 'health' ? 'health' : 'general',
-        metadata: {
-          documentId: doc.id,
-          source: doc.source,
-          activityScore: Math.min(1, doc.mention_count / 10),
-        },
-      });
+        let meta: Record<string, unknown> = {};
+        try { meta = doc.metadata ? JSON.parse(doc.metadata) : {}; } catch { /* ignore */ }
+        const fileCount = docs.filter(d =>
+          d.source === 'local_file' && d.source_path?.startsWith(doc.source_path!)
+        ).length;
+
+        nodes.push({
+          id,
+          label: doc.title,
+          type: 'directory',
+          size: Math.min(fileCount, 20),
+          createdAt: doc.created_at,
+          domain: 'general',
+          metadata: { ...meta, documentId: doc.id, childCount: fileCount, path: doc.source_path },
+        });
+      } else if (doc.source === 'local_file') {
+        // Check if this file belongs to an indexed directory
+        const parentDir = directoryPaths.find(dirPath => doc.source_path?.startsWith(dirPath));
+        if (parentDir) {
+          // Skip — this file is a child of a directory node, shown in drill-down
+          continue;
+        }
+
+        // Standalone file — show as individual node
+        this.pushDocumentNode(nodes, nodeIds, doc);
+      } else {
+        // Email, calendar, contact, etc. — show as individual node
+        this.pushDocumentNode(nodes, nodeIds, doc);
+      }
     }
+  }
+
+  private pushDocumentNode(
+    nodes: VisualizationNode[],
+    nodeIds: Set<string>,
+    doc: { id: string; title: string; created_at: string; source: string; mention_count: number },
+  ): void {
+    const id = `document_${doc.id}`;
+    if (nodeIds.has(id)) return;
+    nodeIds.add(id);
+
+    nodes.push({
+      id,
+      label: doc.title,
+      type: 'document',
+      size: Math.max(1, doc.mention_count),
+      createdAt: doc.created_at,
+      domain: doc.source === 'financial' ? 'finance' : doc.source === 'health' ? 'health' : 'general',
+      metadata: {
+        documentId: doc.id,
+        source: doc.source,
+        activityScore: Math.min(1, doc.mention_count / 10),
+      },
+    });
   }
 
   private addEventNodes(

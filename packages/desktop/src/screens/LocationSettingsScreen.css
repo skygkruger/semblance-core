@@ -1,7 +1,7 @@
 /* LocationSettingsScreen — location & context settings */
 
 .location-settings__container {
-  max-width: 720px;
+  max-width: 1024px;
   margin: 0 auto;
   padding: var(--sp-6) var(--sp-4);
 }

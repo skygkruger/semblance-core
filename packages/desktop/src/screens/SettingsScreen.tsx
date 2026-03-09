@@ -98,7 +98,7 @@ export function SettingsScreen() {
         </div>
         <SettingsNavigator
           /* Root props */
-          currentModel={state.activeModel || 'Llama 3.2 3B'}
+          currentModel={state.activeModel || 'Loading...'}
           activeConnections={connectedAccounts}
           notificationSummary={t('screen.settings.notifications_default')}
           autonomyTier={autonomyTier}
@@ -107,13 +107,13 @@ export function SettingsScreen() {
           appVersion="0.1.0"
 
           /* AI Engine props */
-          modelName={state.activeModel || 'Llama 3.2 3B'}
-          modelSize="2.1 GB"
+          modelName={state.activeModel || 'Loading...'}
+          modelSize={state.activeModel ? '' : 'Detecting...'}
           hardwareProfile={hardwareProfile}
           isModelRunning={state.ollamaStatus === 'connected'}
           inferenceThreads="auto"
-          contextWindow={8192}
-          gpuAcceleration={false}
+          contextWindow={state.activeModel?.toLowerCase().includes('qwen') ? 32768 : 8192}
+          gpuAcceleration={hardwareProfile?.includes('nvidia') || hardwareProfile?.includes('gpu') || false}
           customModelPath={null}
 
           /* Connections props */

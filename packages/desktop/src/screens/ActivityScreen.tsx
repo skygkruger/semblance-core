@@ -110,11 +110,9 @@ export function ActivityScreen() {
   const weekGroups = Object.keys(receiptsByWeek).sort().reverse();
 
   return (
-    <div className="settings-screen">
-      <div className="settings-header">
-        <h1 className="settings-header__title">{t('screen.activity.title')}</h1>
-      </div>
-      <div className="settings-content">
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
+      <h1 className="settings-header__title">{t('screen.activity.title')}</h1>
 
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, padding: '0 16px' }}>

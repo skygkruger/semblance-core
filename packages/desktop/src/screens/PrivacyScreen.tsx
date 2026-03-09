@@ -6,6 +6,9 @@ import type { NetworkEntry, AuditEntry } from '@semblance/ui';
 import { useAppState } from '../state/AppState';
 import {
   renderSovereigntyReportPDF,
+  getAuditChainStatus,
+  getHardwareKeyBackend,
+  getHardwareKeyInfo,
 } from '../ipc/commands';
 
 export function PrivacyScreen() {
@@ -15,6 +18,14 @@ export function PrivacyScreen() {
   const { requireAuth } = useFeatureAuth();
   const [authorized, setAuthorized] = useState(false);
   const { privacyStatus, knowledgeStats } = state;
+
+  const [chainIntegrity, setChainIntegrity] = useState<{
+    verified: boolean; entryCount: number; daysVerified: number; loading: boolean;
+  }>({ verified: false, entryCount: 0, daysVerified: 0, loading: true });
+
+  const [keySecurity, setKeySecurity] = useState<{
+    hardwareBacked: boolean; backend: string; publicKeyFingerprint: string; loading: boolean;
+  }>({ hardwareBacked: false, backend: '', publicKeyFingerprint: '', loading: true });
 
   useEffect(() => {
     let cancelled = false;
@@ -29,6 +40,44 @@ export function PrivacyScreen() {
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load chain integrity from IPC
+  useEffect(() => {
+    if (!authorized) return;
+    getAuditChainStatus().then(status => {
+      setChainIntegrity({
+        verified: status.verified,
+        entryCount: status.entryCount,
+        daysVerified: status.daysVerified,
+        loading: false,
+      });
+    }).catch(() => {
+      setChainIntegrity(prev => ({ ...prev, loading: false }));
+    });
+  }, [authorized]);
+
+  // Load key security from IPC
+  useEffect(() => {
+    if (!authorized) return;
+    getHardwareKeyBackend().then(result => {
+      setKeySecurity({
+        hardwareBacked: result.backend !== 'software' && result.backend !== 'memory-only',
+        backend: result.backend,
+        publicKeyFingerprint: '',
+        loading: false,
+      });
+      return getHardwareKeyInfo();
+    }).then(info => {
+      if (info) {
+        setKeySecurity(prev => ({
+          ...prev,
+          publicKeyFingerprint: info.publicKeyHex?.slice(0, 14) ?? info.keyId ?? '',
+        }));
+      }
+    }).catch(() => {
+      setKeySecurity(prev => ({ ...prev, loading: false }));
+    });
+  }, [authorized]);
 
   const handleExportPDF = useCallback(async () => {
     try {
@@ -88,6 +137,7 @@ export function PrivacyScreen() {
   ];
 
   return (
+    <div className="h-full overflow-y-auto">
     <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
       <PrivacyDashboard
         dataSources={knowledgeStats.documentCount}
@@ -97,20 +147,11 @@ export function PrivacyScreen() {
         networkEntries={networkEntries}
         auditEntries={auditEntries}
         proofVerified={privacyStatus.allLocal && !privacyStatus.anomalyDetected}
-        chainIntegrity={{
-          verified: true,
-          entryCount: 847,
-          daysVerified: 23,
-          loading: false,
-        }}
-        keySecurity={{
-          hardwareBacked: true,
-          backend: 'Secure Enclave',
-          publicKeyFingerprint: 'a56b3b6451b013',
-          loading: false,
-        }}
+        chainIntegrity={chainIntegrity}
+        keySecurity={keySecurity}
         onExportReceipt={handleExportPDF}
       />
+    </div>
     </div>
   );
 }
