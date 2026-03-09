@@ -2740,7 +2740,9 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
   const callbackServer = new OAuthCallbackServer();
 
   try {
-    const { callbackUrl, state } = await callbackServer.start();
+    // Slack requires HTTPS redirect URIs — use self-signed cert for localhost
+    const requiresHttps = params.connectorId === 'slack';
+    const { callbackUrl, state } = await callbackServer.start({ https: requiresHttps });
 
     const authUrl = new URL(config.authUrl);
     authUrl.searchParams.set('client_id', config.clientId);
