@@ -1,73 +1,56 @@
-// Design Tokens — React Native equivalent of DESIGN_SYSTEM.md tokens.
-// All color, typography, spacing, and motion values from the canonical design system.
-// Dark mode is the default on mobile (matches the Deep Ink primary background).
+// Mobile Design Tokens — backed by canonical native.ts from @semblance/ui.
+// Source of truth: packages/semblance-ui/tokens/native.ts (from DESIGN_BIBLE.md)
+// This file maps the mobile API shape to canonical Design Bible values.
+
+import {
+  brandColors,
+  nativeSpacing,
+  nativeRadius,
+  nativeFontSize,
+  nativeFontFamily,
+  nativeFontWeight,
+  nativeMotion,
+} from '@semblance/ui/tokens/native';
 
 // ─── Colors ─────────────────────────────────────────────────────────────────
 
 export const colors = {
-  // Primary palette
-  bgDark: '#1A1D2E',
-  bgLight: '#FAFBFC',
-  primary: '#4A7FBA',
-  accent: '#E8A838',
+  // Primary palette — Design Bible v3
+  bgDark: brandColors.base,
+  primary: brandColors.veridian,
+  accent: brandColors.caution,
   success: '#3DB87A',
-  attention: '#E85D5D',
-  muted: '#8B93A7',
+  attention: brandColors.critical,
+  muted: brandColors.muted,
 
   // Extended palette — dark mode
-  primaryHover: '#3D6CA3',
-  primaryActive: '#325A8A',
-  primarySubtleDark: '#1E2A3E',
-  accentHover: '#D4952F',
-  surface1Dark: '#222538',
-  surface2Dark: '#2A2D42',
-  borderDark: '#363952',
-  textPrimaryDark: '#ECEDF0',
-  textSecondaryDark: '#9BA0B0',
-  textTertiary: '#8B93A7',
+  primaryActive: brandColors.veridianGlow,
+  primarySubtleDark: brandColors.veridianDim,
+  surface1Dark: brandColors.s1,
+  surface2Dark: brandColors.s2,
+  borderDark: brandColors.b2,
+  textPrimaryDark: brandColors.white,
+  textSecondaryDark: brandColors.sv3,
+  textTertiary: brandColors.sv2,
 
-  // Extended palette — light mode
-  primarySubtle: '#EBF2F9',
-  accentSubtle: '#FFF6E8',
-  successSubtle: '#EDFAF2',
-  attentionSubtle: '#FEF0F0',
-  surface1: '#FFFFFF',
-  surface2: '#F5F6F8',
-  border: '#E2E4E9',
-  textPrimary: '#1A1D2E',
-  textSecondary: '#5A6070',
+  // Aliases for screens that reference light-mode names in dark context
+  primarySubtle: brandColors.veridianDim,
+  successSubtle: 'rgba(61, 184, 122, 0.10)',
+  attentionSubtle: 'rgba(176, 122, 138, 0.10)',
+  surface1: brandColors.s1,
+  border: brandColors.b2,
+  textPrimary: brandColors.white,
+  textSecondary: brandColors.sv3,
 } as const;
 
 // ─── Typography ─────────────────────────────────────────────────────────────
 
 export const typography = {
-  // Font families (must be loaded via React Native font linking)
-  fontDisplay: 'DM Serif Display',
-  fontBody: 'Inter',
-  fontMono: 'JetBrains Mono',
-
-  // Font sizes (from DESIGN_SYSTEM.md scale)
-  size: {
-    xs: 11,
-    sm: 13,
-    base: 15,
-    md: 17,
-    lg: 20,
-    xl: 24,
-    '2xl': 32,
-    '3xl': 40,
-    '4xl': 48,
-  },
-
-  // Font weights
-  weight: {
-    regular: '400' as const,
-    medium: '500' as const,
-    semibold: '600' as const,
-    bold: '700' as const,
-  },
-
-  // Line heights (multiplier)
+  fontDisplay: nativeFontFamily.display,
+  fontBody: nativeFontFamily.ui,
+  fontMono: nativeFontFamily.mono,
+  size: nativeFontSize,
+  weight: nativeFontWeight,
   lineHeight: {
     tight: 1.2,
     normal: 1.5,
@@ -76,68 +59,57 @@ export const typography = {
 } as const;
 
 // ─── Typography Presets ─────────────────────────────────────────────────────
-// Convenience presets matching design system semantic names.
-// Spread into StyleSheet.create() for consistent text styling.
 
 export const typographyPresets = {
   titleLg: {
-    fontFamily: typography.fontDisplay,
-    fontSize: typography.size.lg,
-    fontWeight: typography.weight.semibold,
-    lineHeight: Math.round(typography.size.lg * typography.lineHeight.tight),
+    fontFamily: nativeFontFamily.display,
+    fontSize: nativeFontSize.lg,
+    fontWeight: nativeFontWeight.semibold,
+    lineHeight: Math.round(nativeFontSize.lg * 1.2),
   },
   titleMd: {
-    fontFamily: typography.fontDisplay,
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold,
-    lineHeight: Math.round(typography.size.md * typography.lineHeight.tight),
+    fontFamily: nativeFontFamily.display,
+    fontSize: nativeFontSize.md,
+    fontWeight: nativeFontWeight.semibold,
+    lineHeight: Math.round(nativeFontSize.md * 1.2),
   },
   bodySm: {
-    fontFamily: typography.fontBody,
-    fontSize: typography.size.sm,
-    lineHeight: Math.round(typography.size.sm * typography.lineHeight.normal),
+    fontFamily: nativeFontFamily.ui,
+    fontSize: nativeFontSize.sm,
+    lineHeight: Math.round(nativeFontSize.sm * 1.5),
   },
   bodyXs: {
-    fontFamily: typography.fontBody,
-    fontSize: typography.size.xs,
-    lineHeight: Math.round(typography.size.xs * typography.lineHeight.normal),
+    fontFamily: nativeFontFamily.ui,
+    fontSize: nativeFontSize.xs,
+    lineHeight: Math.round(nativeFontSize.xs * 1.5),
   },
 } as const;
 
 // ─── Spacing ────────────────────────────────────────────────────────────────
 
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  base: 16,
-  lg: 20,
-  xl: 24,
-  '2xl': 32,
-  '3xl': 40,
-  '4xl': 48,
-  '5xl': 64,
+  xs: nativeSpacing.s1,
+  sm: nativeSpacing.s2,
+  md: nativeSpacing.s3,
+  base: nativeSpacing.s4,
+  lg: nativeSpacing.s5,
+  xl: nativeSpacing.s6,
+  '2xl': nativeSpacing.s8,
+  '3xl': nativeSpacing.s10,
+  '4xl': nativeSpacing.s12,
+  '5xl': nativeSpacing.s16,
 } as const;
 
 // ─── Border Radius ──────────────────────────────────────────────────────────
 
-export const radius = {
-  sm: 6,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  full: 9999,
-} as const;
+export const radius = nativeRadius;
 
 // ─── Motion ─────────────────────────────────────────────────────────────────
 
 export const motion = {
-  /** Fast micro-interactions (button press, toggle) */
-  fast: 150,
-  /** Standard transitions (panel expand, card move) */
-  normal: 250,
-  /** Deliberate animations (page transition, modal) */
-  slow: 400,
+  fast: nativeMotion.fast,
+  normal: nativeMotion.base,
+  slow: nativeMotion.slow,
 } as const;
 
 // ─── Shadows ────────────────────────────────────────────────────────────────
