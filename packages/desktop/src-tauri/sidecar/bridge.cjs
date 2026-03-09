@@ -256340,7 +256340,11 @@ function getModelPath(modelId, dataDir2) {
   return getPlatform().path.join(getModelsDir(dataDir2), `${modelId}.gguf`);
 }
 function isModelDownloaded(modelId, dataDir2) {
-  return getPlatform().fs.existsSync(getModelPath(modelId, dataDir2));
+  const p = getPlatform();
+  const path2 = getModelPath(modelId, dataDir2);
+  if (!p.fs.existsSync(path2)) return false;
+  const stat2 = p.fs.statSync(path2);
+  return stat2.size > 1e6;
 }
 
 // packages/core/voice/whisper-model-manager.ts
@@ -258899,18 +258903,22 @@ async function handleSendMessage(id, params) {
     respondError(id, "Core not initialized");
     return;
   }
+  console.error("[sidecar] handleSendMessage \u2014 core initialized:", !!core, "native check starting...");
   let useNative = false;
   try {
     const nativeStatus = await sendCallback("native_status", {});
+    console.error("[sidecar] handleSendMessage \u2014 native status:", JSON.stringify(nativeStatus));
     if (nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready") {
       useNative = true;
     }
   } catch {
   }
+  console.error("[sidecar] handleSendMessage \u2014 useNative:", useNative);
   if (!useNative) {
     const ollamaAvailable = await core.llm.isAvailable();
+    console.error("[sidecar] handleSendMessage \u2014 ollama available:", ollamaAvailable);
     if (!ollamaAvailable) {
-      respondError(id, "Model still loading. Please wait for the download to complete, then try again.");
+      respondError(id, "No inference engine available. NativeRuntime is not ready and Ollama is not connected. Please wait for model download to complete or start Ollama.");
       return;
     }
   }
@@ -258959,7 +258967,7 @@ async function handleSendMessage(id, params) {
           emit("chat-token", fullResponse.substring(i, i + chunkSize));
         }
       } catch (nativeErr) {
-        console.error("[sidecar] NativeRuntime generate failed:", nativeErr);
+        console.error("[sidecar] NativeRuntime generate failed:", nativeErr, "Full error:", JSON.stringify(nativeErr));
         throw nativeErr;
       }
     } else {
