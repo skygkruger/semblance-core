@@ -13,6 +13,51 @@
 
 ---
 
+## MANDATORY RUNTIME VERIFICATION WORKFLOW — NON-NEGOTIABLE
+
+**This rule is equal in importance to the NO STUBS rule. It survives compaction.**
+
+### The Problem This Solves
+Code that compiles, type-checks, and passes all unit tests can still be completely broken at runtime. The Semblance project has repeatedly shipped builds where TypeScript was clean, 6,214 tests passed, the code reviewer said "SHIP" — and the app didn't work. Chat returned errors. Connectors faked "Connected" without doing anything. File indexing produced nothing. This workflow makes that failure mode structurally impossible.
+
+### The Rules
+
+**1. DIAGNOSE BEFORE FIX:** When a feature is reported broken, you MUST run the sidecar directly and read the actual error output before writing any fix. Do not analyze source code and guess. Run `node scripts/smoke-test-sidecar.js` or manually start the sidecar with `echo '{"id":1,"method":"initialize","params":{}}' | node packages/desktop/src-tauri/sidecar/bridge.cjs 2>&1` and read what it says.
+
+**2. SMOKE TEST AFTER EVERY BACKEND CHANGE:** After ANY change to `bridge.ts`, `lib.rs`, `native_runtime.rs`, or any IPC handler, you MUST run `/smoke` (the sidecar smoke test) and include the output in your report. Static checks (tsc, vitest) alone are NOT sufficient to report a task as complete.
+
+**3. INTEGRATION TEST BEFORE BUILD:** Before running `npx tauri build`, you MUST run `/diagnose` (the integration smoke test at `scripts/smoke-test-sidecar.js`). This sends real JSON-RPC requests to the sidecar and verifies responses. If any test fails, fix it before building.
+
+**4. PREFLIGHT BEFORE SHIP:** Before reporting any build as ready to install, you MUST run `/preflight` and include the full checklist output. Every item must show ✅ or have an explicit documented reason for ⚠️.
+
+**5. NO LYING ABOUT RESULTS:** You may NEVER use the phrases "all checks pass", "TypeScript clean", "tests pass", "build successful", "chat works", "connectors work", or "SHIP" without attaching the raw terminal output that proves them. Summarizing is lying. Show the output.
+
+**6. ERRORS ARE INFORMATION:** When a runtime test fails, the error message tells you what to fix. Read it. Do not guess based on source code. The sidecar has extensive diagnostic logging (`console.error('[sidecar] ...')`). The log output is the source of truth.
+
+**7. THE APP MUST ACTUALLY WORK:** The final test is: does a human user get a coherent response when they type a message in Chat? Does clicking "Connect" on a connector start a real OAuth flow? Does adding a directory to Files produce indexed documents? If the answer to any of these is "no", the task is not complete regardless of how many static checks pass.
+
+### Available Commands
+- `/smoke` — Run sidecar smoke test (does it start?)
+- `/diagnose` — Run integration smoke test (does it respond to requests?)
+- `/preflight` — Full pre-build checklist (all gates)
+- `/review` — Code review (static analysis, architecture, design bible)
+
+### Mandatory Workflow for Any Backend Fix
+```
+1. Reproduce the problem (run sidecar, see the error)
+2. Read the error, identify root cause
+3. Write the fix
+4. Run /smoke — sidecar starts without crashing
+5. Run /diagnose — all integration tests pass
+6. Run /preflight — all gates green
+7. Build
+8. Report with full output attached
+```
+
+### This Rule Survives Compaction
+
+---
+
 ## MANDATORY CONTEXT — READ ON EVERY SESSION START AND AFTER EVERY COMPACTION
 
 **Before doing ANY work, read this document:**

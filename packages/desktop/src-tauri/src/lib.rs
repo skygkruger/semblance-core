@@ -27,6 +27,7 @@ use std::os::windows::process::CommandExt;
 
 mod hardware;
 mod native_runtime;
+use native_runtime::RuntimeStatus;
 
 // ─── Data Types ────────────────────────────────────────────────────────────
 
@@ -295,12 +296,28 @@ impl SidecarBridge {
             );
         });
 
-        // Background task: read stderr from sidecar (logging)
+        // Background task: read stderr from sidecar (logging + file)
+        let log_dir = {
+            let home = std::env::var("USERPROFILE")
+                .or_else(|_| std::env::var("HOME"))
+                .unwrap_or_else(|_| ".".to_string());
+            PathBuf::from(home).join(".semblance").join("data")
+        };
+        let _ = std::fs::create_dir_all(&log_dir);
+        let log_path = log_dir.join("sidecar.log");
+
         tauri::async_runtime::spawn(async move {
+            use std::io::Write;
+            let mut log_file = std::fs::File::create(&log_path).ok();
+
             let reader = BufReader::new(stderr);
             let mut lines = reader.lines();
             while let Ok(Some(line)) = lines.next_line().await {
                 eprintln!("[sidecar] {}", line);
+                if let Some(ref mut f) = log_file {
+                    let _ = writeln!(f, "{}", line);
+                    let _ = f.flush();
+                }
             }
         });
 
@@ -1343,8 +1360,14 @@ async fn dispatch_native_callback(
         }
         "native_status" => {
             let rt = runtime.lock().await;
+            let status_str = match rt.status() {
+                RuntimeStatus::Ready => "ready",
+                RuntimeStatus::Loading => "loading",
+                RuntimeStatus::Uninitialized => "uninitialized",
+                RuntimeStatus::Error(_) => "error",
+            };
             Ok(serde_json::json!({
-                "status": format!("{:?}", rt.status()),
+                "status": status_str,
                 "reasoning_model": rt.reasoning_model_path().map(|p| p.display().to_string()),
                 "embedding_model": rt.embedding_model_path().map(|p| p.display().to_string()),
             }))
