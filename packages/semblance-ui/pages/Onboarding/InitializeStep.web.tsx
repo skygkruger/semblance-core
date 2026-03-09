@@ -40,9 +40,10 @@ function DownloadRow({ download, completeLabel }: { download: ModelDownload; com
   );
 }
 
-export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete, aiName }: InitializeStepProps) {
+export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete, aiName, runtimeReady = false }: InitializeStepProps) {
   const { t } = useTranslation('onboarding');
   const allComplete = downloads.length > 0 && downloads.every(d => d.status === 'complete');
+  const canProceed = allComplete && runtimeReady;
 
   return (
     <div style={{
@@ -110,7 +111,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
 
       {allComplete && !loading && (
         <div style={{ marginTop: 8 }}>
-          <Button variant="opal" size="lg" onClick={onComplete}>
+          <Button variant="opal" size="lg" onClick={onComplete} disabled={!runtimeReady}>
             <span className="btn__text">{t('initialize.start_button')}</span>
           </Button>
         </div>

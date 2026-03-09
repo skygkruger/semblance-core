@@ -124,6 +124,7 @@ export const KnowledgeMomentReady: Story = {
         loading={false}
         onComplete={() => console.log('[Story] onComplete fired')}
         aiName="Nova"
+        runtimeReady
       />
     </PageWrapper>
   ),
@@ -139,6 +140,23 @@ export const ReadyNoMoment: Story = {
         loading={false}
         onComplete={() => console.log('[Story] onComplete fired')}
         aiName="Nova"
+        runtimeReady
+      />
+    </PageWrapper>
+  ),
+};
+
+/** Downloads complete but runtime still loading — button disabled. */
+export const RuntimeNotReady: Story = {
+  render: () => (
+    <PageWrapper>
+      <InitializeStep
+        downloads={DOWNLOADS_COMPLETE}
+        knowledgeMoment={KNOWLEDGE_MOMENT}
+        loading={false}
+        onComplete={() => console.log('[Story] onComplete fired')}
+        aiName="Nova"
+        runtimeReady={false}
       />
     </PageWrapper>
   ),
