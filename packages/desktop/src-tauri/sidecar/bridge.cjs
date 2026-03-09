@@ -248229,11 +248229,12 @@ function generateSelfSignedCert() {
     }
   } catch {
   }
+  const { writeFileSync: writeFileSync5, unlinkSync: unlinkSync4, mkdtempSync, readFileSync: readFs, rmdirSync } = require("node:fs");
+  const { join: join8 } = require("node:path");
+  const { tmpdir } = require("node:os");
+  let tmpDir = null;
   try {
-    const { writeFileSync: writeFileSync5, unlinkSync: unlinkSync4, mkdtempSync } = require("node:fs");
-    const { join: join8 } = require("node:path");
-    const { tmpdir } = require("node:os");
-    const tmpDir = mkdtempSync(join8(tmpdir(), "semblance-cert-"));
+    tmpDir = mkdtempSync(join8(tmpdir(), "semblance-cert-"));
     const keyPath = join8(tmpDir, "key.pem");
     const certPath = join8(tmpDir, "cert.pem");
     writeFileSync5(keyPath, privateKey);
@@ -248241,24 +248242,27 @@ function generateSelfSignedCert() {
       `openssl req -x509 -key "${keyPath}" -out "${certPath}" -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null`,
       { timeout: 5e3 }
     );
-    const cert = require("node:fs").readFileSync(certPath, "utf-8");
-    try {
-      unlinkSync4(keyPath);
-    } catch {
-    }
-    try {
-      unlinkSync4(certPath);
-    } catch {
-    }
-    try {
-      require("node:fs").rmdirSync(tmpDir);
-    } catch {
-    }
+    const cert = readFs(certPath, "utf-8");
     return { key: privateKey, cert };
   } catch {
     throw new Error(
       "Cannot generate self-signed certificate: openssl not found. Install OpenSSL or use HTTP-only OAuth for this connector."
     );
+  } finally {
+    if (tmpDir) {
+      try {
+        unlinkSync4(join8(tmpDir, "key.pem"));
+      } catch {
+      }
+      try {
+        unlinkSync4(join8(tmpDir, "cert.pem"));
+      } catch {
+      }
+      try {
+        rmdirSync(tmpDir);
+      } catch {
+      }
+    }
   }
 }
 
@@ -258817,7 +258821,11 @@ var nativeRuntimeBridge = {
   async unloadModel() {
   },
   async getStatus() {
-    const result2 = await sendCallback("native_status", {});
+    const result2 = await Promise.race([
+      sendCallback("native_status", {}),
+      new Promise((resolve4) => setTimeout(() => resolve4(null), 5e3))
+    ]);
+    if (!result2) return { status: "uninitialized", reasoningModel: null, embeddingModel: null };
     const statusStr = result2.status?.toLowerCase() ?? "";
     let status = "uninitialized";
     if (statusStr.includes("ready")) status = "ready";
@@ -258922,6 +258930,22 @@ async function handleInitialize() {
   prefsDb.exec(PREFS_TABLE_SQL);
   console.error("[sidecar] Preferences DB ready");
   premiumGate = new PremiumGate(prefsDb);
+  prefsDb.exec(`
+    CREATE TABLE IF NOT EXISTS conversations (
+      id TEXT PRIMARY KEY,
+      title TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS conversation_turns (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+    );
+  `);
   conversationManager = new ConversationManager(prefsDb);
   conversationManager.migrate();
   const prunedCount = conversationManager.pruneExpired();
@@ -258949,8 +258973,13 @@ async function handleInitialize() {
     embeddingModel: "nomic-embed-text-v1.5"
   });
   try {
+    console.error("[sidecar] Creating SemblanceCore...");
     core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
-    await core.initialize();
+    console.error("[sidecar] SemblanceCore created, calling initialize...");
+    const initTimeout = new Promise(
+      (_3, reject2) => setTimeout(() => reject2(new Error("Core initialization timed out after 15s")), 15e3)
+    );
+    await Promise.race([core.initialize(), initTimeout]);
     console.error("[sidecar] Core initialized");
   } catch (coreErr) {
     console.error("[sidecar] Core initialization failed (knowledge graph unavailable):", coreErr);
@@ -258993,6 +259022,10 @@ async function handleInitialize() {
   }
   function cleanupStaleBatchItems() {
     if (!prefsDb) return;
+    try {
+      prefsDb.exec("CREATE TABLE IF NOT EXISTS pending_actions (id TEXT PRIMARY KEY, status TEXT, tier TEXT, created_at TEXT)");
+    } catch {
+    }
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1e3).toISOString();
     const stale = prefsDb.prepare(
       `UPDATE pending_actions SET status = 'rejected'
@@ -259034,8 +259067,15 @@ async function handleInitialize() {
       const modelPath = getModelPath(model.id, modelsBaseDir);
       const modelType = model.id.includes("embed") ? "embedding" : "reasoning";
       try {
-        await sendCallback("native_load_model", { model_path: modelPath, model_type: modelType });
-        console.error(`[sidecar] Loaded existing model "${model.id}" into NativeRuntime`);
+        const loadResult = await Promise.race([
+          sendCallback("native_load_model", { model_path: modelPath, model_type: modelType }),
+          new Promise((resolve4) => setTimeout(() => resolve4(null), 5e3))
+        ]);
+        if (loadResult === null) {
+          console.error(`[sidecar] native_load_model timed out for "${model.id}" \u2014 Rust backend may not be responding`);
+          break;
+        }
+        console.error(`[sidecar] Loaded model "${model.id}" into NativeRuntime (${modelType})`);
         if (modelType === "reasoning") {
           activeModel = model.displayName;
           availableModels.push(model.displayName);
@@ -259046,10 +259086,15 @@ async function handleInitialize() {
     }
   }
   try {
-    const nativeStatus = await sendCallback("native_status", {});
+    const nativeStatus = await Promise.race([
+      sendCallback("native_status", {}),
+      new Promise((resolve4) => setTimeout(() => resolve4(null), 5e3))
+    ]);
     if (nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready") {
       inferenceEngine = "native";
       console.error("[sidecar] NativeRuntime is ready");
+    } else if (nativeStatus === null) {
+      console.error("[sidecar] NativeRuntime status check timed out (5s)");
     }
   } catch {
     console.error("[sidecar] NativeRuntime not available, checking Ollama fallback");
@@ -259080,7 +259125,10 @@ async function handleSendMessage(id, params) {
   console.error("[sidecar] handleSendMessage \u2014 core initialized:", !!core, "native check starting...");
   let useNative = false;
   try {
-    const nativeStatus = await sendCallback("native_status", {});
+    const nativeStatus = await Promise.race([
+      sendCallback("native_status", {}),
+      new Promise((resolve4) => setTimeout(() => resolve4(null), 5e3))
+    ]);
     console.error("[sidecar] handleSendMessage \u2014 native status:", JSON.stringify(nativeStatus));
     if (nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready") {
       useNative = true;
@@ -259131,6 +259179,7 @@ async function handleSendMessage(id, params) {
       const prompt = params.message;
       const systemPrompt = SYSTEM_PROMPT2 + contextStr;
       try {
+        console.error("[sidecar] About to call native_generate, prompt length:", prompt.length);
         const result2 = await sendCallback("native_generate", {
           prompt,
           system_prompt: systemPrompt,
@@ -259138,6 +259187,7 @@ async function handleSendMessage(id, params) {
           temperature: 0.7,
           stop: ["<|im_end|>", "<|endoftext|>"]
         });
+        console.error("[sidecar] native_generate returned:", JSON.stringify(result2).slice(0, 200));
         fullResponse = result2.text;
         const chunkSize = 12;
         for (let i = 0; i < fullResponse.length; i += chunkSize) {
@@ -259286,6 +259336,10 @@ async function handleStartIndexing(id, params) {
         const filesInDir = allFiles.filter((f) => f.path.startsWith(dir)).length;
         const totalSize = allFiles.filter((f) => f.path.startsWith(dir)).reduce((sum, f) => sum + f.size, 0);
         const extensions = [...new Set(allFiles.filter((f) => f.path.startsWith(dir)).map((f) => f.extension))];
+        if (!core?.knowledge) {
+          console.error("[sidecar] Cannot index \u2014 core.knowledge not available");
+          continue;
+        }
         try {
           await core.knowledge.indexDocument({
             content: [
@@ -259324,6 +259378,11 @@ async function handleStartIndexing(id, params) {
               currentFile: file.name
             });
             if (file.size > 50 * 1024 * 1024) {
+              if (!core?.knowledge) {
+                console.error("[sidecar] Cannot index \u2014 core.knowledge not available");
+                totalFilesScanned++;
+                continue;
+              }
               await core.knowledge.indexDocument({
                 content: `[Large file: ${file.name}] Size: ${(file.size / 1024 / 1024).toFixed(1)} MB. Content not extracted due to size.`,
                 title: file.name,
@@ -259341,6 +259400,11 @@ async function handleStartIndexing(id, params) {
             if (contentText.length > 5e5) {
               contentText = contentText.slice(0, 5e5);
               console.error(`[sidecar] Truncated ${file.name} from ${content.content.length} to 500K chars`);
+            }
+            if (!core?.knowledge) {
+              console.error("[sidecar] Cannot index \u2014 core.knowledge not available");
+              totalFilesScanned++;
+              continue;
             }
             const result2 = await core.knowledge.indexDocument({
               content: contentText,
@@ -259366,7 +259430,7 @@ async function handleStartIndexing(id, params) {
       const existingDirs = JSON.parse(getPref("indexed_directories") ?? "[]");
       const allDirs = [.../* @__PURE__ */ new Set([...existingDirs, ...params.directories])];
       setPref("indexed_directories", JSON.stringify(allDirs));
-      const stats = await core.knowledge.getStats();
+      const stats = core?.knowledge ? await core.knowledge.getStats() : { totalDocuments: totalFilesScanned, totalChunks: totalChunksCreated };
       emit("indexing-complete", {
         filesScanned: totalFilesScanned,
         filesTotal,

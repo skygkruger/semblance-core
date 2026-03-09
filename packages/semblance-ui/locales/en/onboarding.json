@@ -27,7 +27,7 @@
     "skip_button": "Skip for now",
     "continue_button": "Continue",
     "connect_button": "Connect",
-    "connected_status": "Connected",
+    "connected_status": "Selected",
     "sources": {
       "email": {
         "name": "Email",

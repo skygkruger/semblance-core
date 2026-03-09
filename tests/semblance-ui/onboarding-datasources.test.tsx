@@ -45,8 +45,8 @@ describe('DataSourcesStep', () => {
     // Get the first Connect button (Email)
     const connectButtons = screen.getAllByText('Connect');
     fireEvent.click(connectButtons[0]!);
-    // Now Email should show "Connected" text
-    expect(screen.getByText('Connected')).toBeTruthy();
+    // Now Email should show "Selected" text
+    expect(screen.getByText('Selected')).toBeTruthy();
     // And only 5 Connect buttons remain
     expect(screen.getAllByText('Connect').length).toBe(5);
   });
@@ -73,7 +73,7 @@ describe('DataSourcesStep', () => {
 
   it('shows Connected status for pre-connected sources', () => {
     render(<DataSourcesStep initialConnected={new Set(['email', 'health'])} />);
-    const connectedLabels = screen.getAllByText('Connected');
+    const connectedLabels = screen.getAllByText('Selected');
     expect(connectedLabels.length).toBe(2);
     expect(screen.getAllByText('Connect').length).toBe(4);
   });

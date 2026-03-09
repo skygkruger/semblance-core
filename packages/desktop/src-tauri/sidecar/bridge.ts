@@ -327,11 +327,15 @@ const nativeRuntimeBridge: NativeRuntimeBridge = {
   },
 
   async getStatus() {
-    const result = await sendCallback('native_status', {}) as {
+    const result = await Promise.race([
+      sendCallback('native_status', {}),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+    ]) as {
       status: string;
       reasoning_model: string | null;
       embedding_model: string | null;
-    };
+    } | null;
+    if (!result) return { status: 'uninitialized' as const, reasoningModel: null, embeddingModel: null };
     const statusStr = result.status?.toLowerCase() ?? '';
     let status: 'uninitialized' | 'loading' | 'ready' | 'error' = 'uninitialized';
     if (statusStr.includes('ready')) status = 'ready';
@@ -465,6 +469,25 @@ async function handleInitialize(): Promise<unknown> {
   // Initialize PremiumGate early (uses core.db)
   premiumGate = new PremiumGate(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
 
+  // Ensure conversation tables exist BEFORE ConversationManager.migrate()
+  // (The Orchestrator normally creates these, but core may not initialize.)
+  prefsDb.exec(`
+    CREATE TABLE IF NOT EXISTS conversations (
+      id TEXT PRIMARY KEY,
+      title TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS conversation_turns (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+    );
+  `);
+
   // Initialize Conversation Manager early (uses core.db)
   conversationManager = new ConversationManager(prefsDb);
   conversationManager.migrate();
@@ -503,8 +526,14 @@ async function handleInitialize(): Promise<unknown> {
   });
 
   try {
+    console.error('[sidecar] Creating SemblanceCore...');
     core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
-    await core.initialize();
+    console.error('[sidecar] SemblanceCore created, calling initialize...');
+    // 15s timeout — core.initialize can hang if IPC or LLM checks block
+    const initTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Core initialization timed out after 15s')), 15000)
+    );
+    await Promise.race([core.initialize(), initTimeout]);
     console.error('[sidecar] Core initialized');
   } catch (coreErr) {
     console.error('[sidecar] Core initialization failed (knowledge graph unavailable):', coreErr);
@@ -561,6 +590,10 @@ async function handleInitialize(): Promise<unknown> {
   // Batch expiry cleanup — reject stale pending items on launch + every 15 minutes
   function cleanupStaleBatchItems(): void {
     if (!prefsDb) return;
+    // Ensure table exists before querying — AlterEgoStore.migrate() may not have run yet
+    try {
+      prefsDb.exec('CREATE TABLE IF NOT EXISTS pending_actions (id TEXT PRIMARY KEY, status TEXT, tier TEXT, created_at TEXT)');
+    } catch { /* table may already exist with more columns — that's fine */ }
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const stale = prefsDb.prepare(
       `UPDATE pending_actions SET status = 'rejected'
@@ -606,14 +639,22 @@ async function handleInitialize(): Promise<unknown> {
   let availableModels: string[] = [];
 
   // Try loading existing GGUF models into NativeRuntime on startup
+  // Each call has a 10s timeout — if Rust backend is unavailable, we skip gracefully
   const modelsBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
   for (const model of MODEL_CATALOG) {
     if (isModelDownloaded(model.id, modelsBaseDir)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
       const modelType = model.id.includes('embed') ? 'embedding' : 'reasoning';
       try {
-        await sendCallback('native_load_model', { model_path: modelPath, model_type: modelType });
-        console.error(`[sidecar] Loaded existing model "${model.id}" into NativeRuntime`);
+        const loadResult = await Promise.race([
+          sendCallback('native_load_model', { model_path: modelPath, model_type: modelType }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+        ]);
+        if (loadResult === null) {
+          console.error(`[sidecar] native_load_model timed out for "${model.id}" — Rust backend may not be responding`);
+          break; // Don't try more models if Rust is unresponsive
+        }
+        console.error(`[sidecar] Loaded model "${model.id}" into NativeRuntime (${modelType})`);
         if (modelType === 'reasoning') {
           activeModel = model.displayName;
           availableModels.push(model.displayName);
@@ -624,12 +665,17 @@ async function handleInitialize(): Promise<unknown> {
     }
   }
 
-  // Check NativeRuntime status
+  // Check NativeRuntime status (5s timeout)
   try {
-    const nativeStatus = await sendCallback('native_status', {});
+    const nativeStatus = await Promise.race([
+      sendCallback('native_status', {}),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+    ]);
     if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
       inferenceEngine = 'native';
       console.error('[sidecar] NativeRuntime is ready');
+    } else if (nativeStatus === null) {
+      console.error('[sidecar] NativeRuntime status check timed out (5s)');
     }
   } catch {
     console.error('[sidecar] NativeRuntime not available, checking Ollama fallback');
@@ -671,7 +717,10 @@ async function handleSendMessage(
   console.error('[sidecar] handleSendMessage — core initialized:', !!core, 'native check starting...');
   let useNative = false;
   try {
-    const nativeStatus = await sendCallback('native_status', {});
+    const nativeStatus = await Promise.race([
+      sendCallback('native_status', {}),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+    ]);
     console.error('[sidecar] handleSendMessage — native status:', JSON.stringify(nativeStatus));
     if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
       useNative = true;
@@ -744,6 +793,7 @@ async function handleSendMessage(
       const prompt = params.message;
       const systemPrompt = SYSTEM_PROMPT + contextStr;
       try {
+        console.error('[sidecar] About to call native_generate, prompt length:', prompt.length);
         const result = await sendCallback('native_generate', {
           prompt,
           system_prompt: systemPrompt,
@@ -751,6 +801,7 @@ async function handleSendMessage(
           temperature: 0.7,
           stop: ['<|im_end|>', '<|endoftext|>'],
         }) as { text: string; tokens_generated: number; duration_ms: number };
+        console.error('[sidecar] native_generate returned:', JSON.stringify(result).slice(0, 200));
         fullResponse = result.text;
         // Emit in chunks to simulate streaming for the frontend
         const chunkSize = 12;
@@ -939,8 +990,13 @@ async function handleStartIndexing(
         const totalSize = allFiles.filter(f => f.path.startsWith(dir)).reduce((sum, f) => sum + f.size, 0);
         const extensions = [...new Set(allFiles.filter(f => f.path.startsWith(dir)).map(f => f.extension))];
 
+        if (!core?.knowledge) {
+          console.error('[sidecar] Cannot index — core.knowledge not available');
+          continue;
+        }
+
         try {
-          await core!.knowledge.indexDocument({
+          await core.knowledge.indexDocument({
             content: [
               `Directory: ${dirName}`,
               `Path: ${dir}`,
@@ -983,7 +1039,12 @@ async function handleStartIndexing(
 
             // Skip very large files for content extraction (>50MB) — store metadata only
             if (file.size > 50 * 1024 * 1024) {
-              await core!.knowledge.indexDocument({
+              if (!core?.knowledge) {
+                console.error('[sidecar] Cannot index — core.knowledge not available');
+                totalFilesScanned++;
+                continue;
+              }
+              await core.knowledge.indexDocument({
                 content: `[Large file: ${file.name}] Size: ${(file.size / 1024 / 1024).toFixed(1)} MB. Content not extracted due to size.`,
                 title: file.name,
                 source: 'local_file',
@@ -1005,7 +1066,12 @@ async function handleStartIndexing(
               console.error(`[sidecar] Truncated ${file.name} from ${content.content.length} to 500K chars`);
             }
 
-            const result = await core!.knowledge.indexDocument({
+            if (!core?.knowledge) {
+              console.error('[sidecar] Cannot index — core.knowledge not available');
+              totalFilesScanned++;
+              continue;
+            }
+            const result = await core.knowledge.indexDocument({
               content: contentText,
               title: content.title,
               source: 'local_file',
@@ -1036,7 +1102,9 @@ async function handleStartIndexing(
       setPref('indexed_directories', JSON.stringify(allDirs));
 
       // Step 4: Get final stats
-      const stats = await core!.knowledge.getStats();
+      const stats = core?.knowledge
+        ? await core.knowledge.getStats()
+        : { totalDocuments: totalFilesScanned, totalChunks: totalChunksCreated };
 
       // Step 5: Emit completion
       emit('indexing-complete', {

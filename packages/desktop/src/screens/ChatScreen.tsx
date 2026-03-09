@@ -497,7 +497,7 @@ export function ChatScreen() {
       dispatch({ type: 'SET_IS_RESPONDING', value: false });
       dispatch({
         type: 'APPEND_TO_LAST_MESSAGE',
-        content: t('screen.chat.error_response', { error: err instanceof Error ? err.message : t('screen.chat.error_response_default') }),
+        content: `Error: ${err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)}`,
       });
     }
   }, [dispatch, state.activeConversationId]);

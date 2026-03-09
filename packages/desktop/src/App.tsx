@@ -221,8 +221,8 @@ function AppContent() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // Hydrate inference status from sidecar init
-  useTauriEvent<{ ollamaStatus?: string; inferenceEngine?: string; activeModel?: string; availableModels?: string[] }>(
+  // Hydrate inference status + onboarding state from sidecar init
+  useTauriEvent<{ ollamaStatus?: string; inferenceEngine?: string; activeModel?: string; availableModels?: string[]; onboardingComplete?: boolean; userName?: string | null }>(
     'semblance://status-update',
     useCallback((payload) => {
       if (payload.ollamaStatus) {
@@ -236,6 +236,12 @@ function AppContent() {
       }
       if (payload.availableModels) {
         dispatch({ type: 'SET_AVAILABLE_MODELS', models: payload.availableModels });
+      }
+      if (payload.onboardingComplete) {
+        dispatch({ type: 'SET_ONBOARDING_COMPLETE' });
+      }
+      if (payload.userName) {
+        dispatch({ type: 'SET_USER_NAME', name: payload.userName });
       }
     }, [dispatch]),
   );
@@ -275,8 +281,23 @@ function AppContent() {
   // Derive active screen from URL path
   const activeId = location.pathname.slice(1) || 'chat';
 
-  // Hydrate license status on startup + listen for deep link activations
+  // Hydrate onboarding + license status on startup
   useEffect(() => {
+    // Poll for onboarding status — sidecar may not be ready immediately
+    const checkOnboarding = () => {
+      import('./ipc/commands').then(({ getOnboardingComplete }) => {
+        getOnboardingComplete().then((complete) => {
+          if (complete) {
+            dispatch({ type: 'SET_ONBOARDING_COMPLETE' });
+          }
+        }).catch(() => {
+          // Sidecar not ready yet — retry in 1s
+          setTimeout(checkOnboarding, 1000);
+        });
+      });
+    };
+    checkOnboarding();
+
     license.refresh().catch(() => {
       // Not yet initialized — will be free tier by default
     });
