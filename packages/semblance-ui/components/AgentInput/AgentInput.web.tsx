@@ -208,7 +208,7 @@ export function AgentInput({
           rows={1}
           autoFocus={!thinking && autoFocus}
           readOnly={thinking || isVoiceActive}
-          aria-hidden={thinking || isVoiceActive ? true : undefined}
+          aria-readonly={thinking || isVoiceActive ? true : undefined}
           tabIndex={thinking || isVoiceActive ? -1 : 0}
           data-testid="agent-input-field"
         />

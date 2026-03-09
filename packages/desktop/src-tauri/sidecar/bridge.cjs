@@ -234192,15 +234192,25 @@ var Indexer = class {
     }
     const chunkTexts = textChunks.map((c) => c.content);
     let embeddings;
-    if (this.embeddingPipeline) {
-      const pipelineResult = await this.embeddingPipeline.embedBatch(chunkTexts);
-      embeddings = pipelineResult.embeddings;
-    } else {
-      const embedResponse = await this.llm.embed({
-        model: this.embeddingModel,
-        input: chunkTexts
-      });
-      embeddings = embedResponse.embeddings;
+    try {
+      if (this.embeddingPipeline) {
+        const pipelineResult = await this.embeddingPipeline.embedBatch(chunkTexts);
+        embeddings = pipelineResult.embeddings;
+      } else {
+        const embedResponse = await this.llm.embed({
+          model: this.embeddingModel,
+          input: chunkTexts
+        });
+        embeddings = embedResponse.embeddings;
+      }
+    } catch (embedErr) {
+      console.error(`[indexer] Embedding failed for "${params.title}", storing metadata only:`, embedErr);
+      return {
+        documentId,
+        chunksCreated: 0,
+        durationMs: Date.now() - startMs,
+        deduplicated: false
+      };
     }
     const vectorChunks = textChunks.map((chunk2, i) => ({
       id: nanoid(),
@@ -234474,6 +234484,8 @@ function getCategoryForEntityType(type, metadata) {
       if (source === "browser_history") return "browser";
       return "knowledge";
     }
+    case "directory":
+      return "knowledge";
     case "event":
     case "reminder":
       return "work";
@@ -257890,7 +257902,23 @@ var GraphVisualizationProvider = class {
         });
       }
     }
-    const cappedNodes = this.capNodes(nodes, maxNodes);
+    let cappedNodes = this.capNodes(nodes, maxNodes);
+    const MAX_DISPLAY_NODES = 500;
+    if (cappedNodes.length > MAX_DISPLAY_NODES) {
+      cappedNodes.sort((a, b) => b.size - a.size);
+      const displayed = cappedNodes.slice(0, MAX_DISPLAY_NODES);
+      const collapsed = cappedNodes.slice(MAX_DISPLAY_NODES);
+      displayed.push({
+        id: "overflow_summary",
+        label: `${collapsed.length} more items`,
+        type: "category",
+        size: collapsed.length,
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        domain: "general",
+        metadata: { isOverflow: true, collapsedCount: collapsed.length }
+      });
+      cappedNodes = displayed;
+    }
     const cappedNodeIds = new Set(cappedNodes.map((n) => n.id));
     let cappedEdges = edges.filter(
       (e) => cappedNodeIds.has(e.sourceId) && cappedNodeIds.has(e.targetId)
@@ -257911,6 +257939,47 @@ var GraphVisualizationProvider = class {
     const graph = this.getGraphData();
     const node = graph.nodes.find((n) => n.id === nodeId);
     if (!node) return null;
+    if (node.type === "directory") {
+      const dirPath = node.metadata.path;
+      if (dirPath) {
+        try {
+          const childDocs = this.db.prepare(
+            "SELECT id, title, created_at, metadata FROM documents WHERE source = 'local_file' AND source_path LIKE ? || '%'"
+          ).all(dirPath);
+          const connections2 = childDocs.map((doc) => {
+            let meta = {};
+            try {
+              meta = doc.metadata ? JSON.parse(doc.metadata) : {};
+            } catch {
+            }
+            return {
+              node: {
+                id: `document_${doc.id}`,
+                label: doc.title,
+                type: "document",
+                size: 1,
+                createdAt: doc.created_at,
+                domain: "general",
+                metadata: meta
+              },
+              edge: {
+                id: `contains_${node.id}_${doc.id}`,
+                sourceId: node.id,
+                targetId: `document_${doc.id}`,
+                weight: 1,
+                label: "contains"
+              }
+            };
+          });
+          return {
+            node,
+            connections: connections2,
+            recentActivity: [`${childDocs.length} files indexed`]
+          };
+        } catch {
+        }
+      }
+    }
     const connections = [];
     for (const edge of graph.edges) {
       if (edge.sourceId === nodeId) {
@@ -258173,26 +258242,60 @@ var GraphVisualizationProvider = class {
   }
   addDocumentNodes(nodes, nodeIds) {
     const docs = this.db.prepare(
-      "SELECT d.id, d.title, d.created_at, d.source, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id GROUP BY d.id ORDER BY mention_count DESC LIMIT 100"
+      "SELECT d.id, d.title, d.created_at, d.source, d.source_path, d.metadata, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id GROUP BY d.id ORDER BY mention_count DESC LIMIT 500"
     ).all();
+    const directoryDocs = docs.filter((d) => d.source === "directory");
+    const directoryPaths = directoryDocs.map((d) => d.source_path).filter(Boolean);
     for (const doc of docs) {
-      const id = `document_${doc.id}`;
-      if (nodeIds.has(id)) continue;
-      nodeIds.add(id);
-      nodes.push({
-        id,
-        label: doc.title,
-        type: "document",
-        size: Math.max(1, doc.mention_count),
-        createdAt: doc.created_at,
-        domain: doc.source === "financial" ? "finance" : doc.source === "health" ? "health" : "general",
-        metadata: {
-          documentId: doc.id,
-          source: doc.source,
-          activityScore: Math.min(1, doc.mention_count / 10)
+      if (doc.source === "directory") {
+        const id = `directory_${doc.id}`;
+        if (nodeIds.has(id)) continue;
+        nodeIds.add(id);
+        let meta = {};
+        try {
+          meta = doc.metadata ? JSON.parse(doc.metadata) : {};
+        } catch {
         }
-      });
+        const fileCount = docs.filter(
+          (d) => d.source === "local_file" && d.source_path?.startsWith(doc.source_path)
+        ).length;
+        nodes.push({
+          id,
+          label: doc.title,
+          type: "directory",
+          size: Math.min(fileCount, 20),
+          createdAt: doc.created_at,
+          domain: "general",
+          metadata: { ...meta, documentId: doc.id, childCount: fileCount, path: doc.source_path }
+        });
+      } else if (doc.source === "local_file") {
+        const parentDir = directoryPaths.find((dirPath) => doc.source_path?.startsWith(dirPath));
+        if (parentDir) {
+          continue;
+        }
+        this.pushDocumentNode(nodes, nodeIds, doc);
+      } else {
+        this.pushDocumentNode(nodes, nodeIds, doc);
+      }
     }
+  }
+  pushDocumentNode(nodes, nodeIds, doc) {
+    const id = `document_${doc.id}`;
+    if (nodeIds.has(id)) return;
+    nodeIds.add(id);
+    nodes.push({
+      id,
+      label: doc.title,
+      type: "document",
+      size: Math.max(1, doc.mention_count),
+      createdAt: doc.created_at,
+      domain: doc.source === "financial" ? "finance" : doc.source === "health" ? "health" : "general",
+      metadata: {
+        documentId: doc.id,
+        source: doc.source,
+        activityScore: Math.min(1, doc.mention_count / 10)
+      }
+    });
   }
   addEventNodes(nodes, nodeIds, daysBack, daysForward) {
     const pastCutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1e3).toISOString();
@@ -258741,6 +258844,16 @@ Core principles:
 async function handleInitialize() {
   dataDir = (0, import_node_path7.join)((0, import_node_os6.homedir)(), ".semblance", "data");
   if (!(0, import_node_fs7.existsSync)(dataDir)) (0, import_node_fs7.mkdirSync)(dataDir, { recursive: true });
+  prefsDb = new import_better_sqlite33.default((0, import_node_path7.join)(dataDir, "core.db"));
+  prefsDb.pragma("journal_mode = WAL");
+  prefsDb.exec(PREFS_TABLE_SQL);
+  console.error("[sidecar] Preferences DB ready");
+  premiumGate = new PremiumGate(prefsDb);
+  conversationManager = new ConversationManager(prefsDb);
+  conversationManager.migrate();
+  const prunedCount = conversationManager.pruneExpired();
+  if (prunedCount > 0) console.error(`[sidecar] Pruned ${prunedCount} expired conversations`);
+  console.error("[sidecar] ConversationManager ready");
   gateway = new Gateway();
   await gateway.start();
   console.error("[sidecar] Gateway started");
@@ -258748,56 +258861,48 @@ async function handleInitialize() {
   if (!platform4.vectorStore) {
     platform4.vectorStore = createDesktopVectorStore((0, import_node_path7.join)(dataDir, "knowledge"));
   }
-  console.error("[sidecar] Testing NativeRuntime callback channel...");
-  const nativeChannelCheck = Promise.race([
+  const knowledgeDir = (0, import_node_path7.join)(dataDir, "knowledge");
+  if (!(0, import_node_fs7.existsSync)(knowledgeDir)) (0, import_node_fs7.mkdirSync)(knowledgeDir, { recursive: true });
+  void Promise.race([
     sendCallback("native_status", {}),
     new Promise((resolve4) => setTimeout(() => resolve4(null), 5e3))
   ]).then((status) => {
-    if (status) {
-      console.error("[sidecar] NativeRuntime callback channel ready:", JSON.stringify(status));
-    } else {
-      console.error("[sidecar] NativeRuntime callback channel timed out (5s) \u2014 will retry later");
-    }
-  }).catch((err) => {
-    console.error("[sidecar] NativeRuntime callback channel not ready:", err);
-  });
-  void nativeChannelCheck;
+    if (status) console.error("[sidecar] NativeRuntime channel ready:", JSON.stringify(status));
+    else console.error("[sidecar] NativeRuntime channel timed out (5s)");
+  }).catch((err) => console.error("[sidecar] NativeRuntime channel error:", err));
   const nativeLlm = createLLMProvider({
     runtime: "builtin",
     nativeBridge: nativeRuntimeBridge,
     embeddingModel: "nomic-embed-text-v1.5"
   });
-  const knowledgeDir = (0, import_node_path7.join)(dataDir, "knowledge");
-  if (!(0, import_node_fs7.existsSync)(knowledgeDir)) (0, import_node_fs7.mkdirSync)(knowledgeDir, { recursive: true });
-  core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
-  await core.initialize();
-  console.error("[sidecar] Core initialized (NativeRuntime-backed LLM provider)");
-  prefsDb = new import_better_sqlite33.default((0, import_node_path7.join)(dataDir, "core.db"));
-  prefsDb.pragma("journal_mode = WAL");
-  prefsDb.exec(PREFS_TABLE_SQL);
-  premiumGate = new PremiumGate(prefsDb);
-  console.error("[sidecar] PremiumGate initialized");
-  conversationManager = new ConversationManager(prefsDb);
-  conversationManager.migrate();
-  const prunedCount = conversationManager.pruneExpired();
-  if (prunedCount > 0) console.error(`[sidecar] Pruned ${prunedCount} expired conversations`);
   try {
-    conversationIndexer = new ConversationIndexer({ db: prefsDb, knowledge: core.knowledge });
-    console.error("[sidecar] ConversationManager + ConversationIndexer initialized");
+    core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
+    await core.initialize();
+    console.error("[sidecar] Core initialized");
+  } catch (coreErr) {
+    console.error("[sidecar] Core initialization failed (knowledge graph unavailable):", coreErr);
+  }
+  try {
+    if (core) {
+      conversationIndexer = new ConversationIndexer({ db: prefsDb, knowledge: core.knowledge });
+      console.error("[sidecar] ConversationIndexer initialized");
+    } else {
+      console.error("[sidecar] ConversationIndexer skipped \u2014 core unavailable");
+    }
   } catch {
     console.error("[sidecar] ConversationIndexer skipped \u2014 knowledge graph unavailable");
   }
-  const modelName = await core.models.getActiveChatModel();
+  const modelName = core ? await core.models.getActiveChatModel() : null;
   intentManager = new IntentManager({
     db: prefsDb,
-    llm: core.llm,
+    llm: core?.llm,
     model: modelName ?? void 0
   });
   intentManager.retryParsing().catch(
     (err) => console.error("[sidecar] IntentManager retryParsing error:", err)
   );
   try {
-    if (core.agent.setIntentManager) {
+    if (core?.agent?.setIntentManager) {
       core.agent.setIntentManager(intentManager);
     }
   } catch {
@@ -258807,7 +258912,7 @@ async function handleInitialize() {
   alterEgoStore = new AlterEgoStore(prefsDb);
   alterEgoGuardrails = new AlterEgoGuardrails(alterEgoStore, contactStore);
   try {
-    if (core.agent.setAlterEgoGuardrails) {
+    if (core?.agent?.setAlterEgoGuardrails) {
       core.agent.setAlterEgoGuardrails(alterEgoGuardrails, alterEgoStore);
     }
   } catch {
@@ -258876,7 +258981,7 @@ async function handleInitialize() {
   } catch {
     console.error("[sidecar] NativeRuntime not available, checking Ollama fallback");
   }
-  if (inferenceEngine === "none") {
+  if (inferenceEngine === "none" && core) {
     const ollamaAvailable = await core.llm.isAvailable();
     if (ollamaAvailable) {
       inferenceEngine = "ollama";
@@ -258899,10 +259004,6 @@ async function handleInitialize() {
   };
 }
 async function handleSendMessage(id, params) {
-  if (!core) {
-    respondError(id, "Core not initialized");
-    return;
-  }
   console.error("[sidecar] handleSendMessage \u2014 core initialized:", !!core, "native check starting...");
   let useNative = false;
   try {
@@ -258911,14 +259012,15 @@ async function handleSendMessage(id, params) {
     if (nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready") {
       useNative = true;
     }
-  } catch {
+  } catch (nativeErr) {
+    console.error("[sidecar] handleSendMessage \u2014 native check failed:", nativeErr);
   }
   console.error("[sidecar] handleSendMessage \u2014 useNative:", useNative);
   if (!useNative) {
-    const ollamaAvailable = await core.llm.isAvailable();
+    const ollamaAvailable = core ? await core.llm.isAvailable() : false;
     console.error("[sidecar] handleSendMessage \u2014 ollama available:", ollamaAvailable);
     if (!ollamaAvailable) {
-      respondError(id, "No inference engine available. NativeRuntime is not ready and Ollama is not connected. Please wait for model download to complete or start Ollama.");
+      respondError(id, "No AI model available. The model may still be loading \u2014 try again in a moment.");
       return;
     }
   }
@@ -258940,7 +259042,9 @@ async function handleSendMessage(id, params) {
   try {
     let context = [];
     try {
-      context = await core.knowledge.search(params.message, { limit: 5 });
+      if (core) {
+        context = await core.knowledge.search(params.message, { limit: 5 });
+      }
     } catch {
     }
     let contextStr = "";
@@ -258970,8 +259074,8 @@ async function handleSendMessage(id, params) {
         console.error("[sidecar] NativeRuntime generate failed:", nativeErr, "Full error:", JSON.stringify(nativeErr));
         throw nativeErr;
       }
-    } else {
-      const model = await core.models.getActiveChatModel() ?? "llama3.2:8b";
+    } else if (core) {
+      const model = await core.models.getActiveChatModel() ?? getRecommendedReasoningModel("standard").id;
       const messages = [
         { role: "system", content: SYSTEM_PROMPT2 + contextStr },
         { role: "user", content: params.message }
@@ -258986,6 +259090,9 @@ async function handleSendMessage(id, params) {
         fullResponse = response.message.content;
         emit("chat-token", fullResponse);
       }
+    } else {
+      respondError(id, "No inference engine available.");
+      return;
     }
     emit("chat-complete", { id: responseId, content: fullResponse, actions: [] });
     const userTurnId = nanoid();
@@ -259014,7 +259121,6 @@ Error: ${errMsg}`);
   }
 }
 async function handleGetOllamaStatus() {
-  if (!core) return { status: "disconnected", active_model: null, available_models: [], inferenceEngine: "none" };
   let inferenceEngine = "none";
   let activeModel = null;
   let availableModels = [];
@@ -259032,7 +259138,7 @@ async function handleGetOllamaStatus() {
     }
   } catch {
   }
-  if (inferenceEngine === "none") {
+  if (inferenceEngine === "none" && core) {
     const ollamaAvailable = await core.llm.isAvailable();
     if (ollamaAvailable) {
       inferenceEngine = "ollama";
@@ -259102,33 +259208,87 @@ async function handleStartIndexing(id, params) {
         currentFile: null,
         directories: params.directories
       });
-      for (const file of allFiles) {
+      for (const dir of params.directories) {
+        const dirName = dir.split(/[/\\]/).pop() ?? dir;
+        const filesInDir = allFiles.filter((f) => f.path.startsWith(dir)).length;
+        const totalSize = allFiles.filter((f) => f.path.startsWith(dir)).reduce((sum, f) => sum + f.size, 0);
+        const extensions = [...new Set(allFiles.filter((f) => f.path.startsWith(dir)).map((f) => f.extension))];
         try {
-          emit("indexing-progress", {
-            filesScanned: totalFilesScanned,
-            filesTotal,
-            chunksCreated: totalChunksCreated,
-            currentFile: file.name
-          });
-          const content = await readFileContent(file.path);
-          const result2 = await core.knowledge.indexDocument({
-            content: content.content,
-            title: content.title,
-            source: "local_file",
-            sourcePath: file.path,
-            mimeType: content.mimeType,
+          await core.knowledge.indexDocument({
+            content: [
+              `Directory: ${dirName}`,
+              `Path: ${dir}`,
+              `Files: ${filesInDir}`,
+              `Total size: ${(totalSize / 1024 / 1024).toFixed(1)} MB`,
+              `File types: ${extensions.join(", ")}`,
+              `Indexed: ${(/* @__PURE__ */ new Date()).toISOString()}`
+            ].join("\n"),
+            title: dirName,
+            source: "directory",
+            sourcePath: dir,
+            mimeType: "inode/directory",
             metadata: {
-              size: file.size,
-              lastModified: file.lastModified,
-              extension: file.extension
+              isDirectory: true,
+              fileCount: filesInDir,
+              totalSizeBytes: totalSize,
+              extensions,
+              path: dir
             }
           });
-          totalFilesScanned++;
-          totalChunksCreated += result2.chunksCreated;
         } catch (err) {
-          console.error(`[sidecar] Failed to index ${file.path}:`, err);
-          totalFilesScanned++;
+          console.error(`[sidecar] Failed to record directory node for ${dir}:`, err);
         }
+      }
+      const BATCH_SIZE = 10;
+      for (let batchStart = 0; batchStart < allFiles.length; batchStart += BATCH_SIZE) {
+        const batch = allFiles.slice(batchStart, batchStart + BATCH_SIZE);
+        for (const file of batch) {
+          try {
+            emit("indexing-progress", {
+              filesScanned: totalFilesScanned,
+              filesTotal,
+              chunksCreated: totalChunksCreated,
+              currentFile: file.name
+            });
+            if (file.size > 50 * 1024 * 1024) {
+              await core.knowledge.indexDocument({
+                content: `[Large file: ${file.name}] Size: ${(file.size / 1024 / 1024).toFixed(1)} MB. Content not extracted due to size.`,
+                title: file.name,
+                source: "local_file",
+                sourcePath: file.path,
+                mimeType: "application/octet-stream",
+                metadata: { size: file.size, lastModified: file.lastModified, extension: file.extension, largeFile: true }
+              });
+              totalFilesScanned++;
+              totalChunksCreated++;
+              continue;
+            }
+            const content = await readFileContent(file.path);
+            let contentText = content.content;
+            if (contentText.length > 5e5) {
+              contentText = contentText.slice(0, 5e5);
+              console.error(`[sidecar] Truncated ${file.name} from ${content.content.length} to 500K chars`);
+            }
+            const result2 = await core.knowledge.indexDocument({
+              content: contentText,
+              title: content.title,
+              source: "local_file",
+              sourcePath: file.path,
+              mimeType: content.mimeType,
+              metadata: {
+                size: file.size,
+                lastModified: file.lastModified,
+                extension: file.extension
+              }
+            });
+            totalFilesScanned++;
+            totalChunksCreated += result2.chunksCreated;
+          } catch (err) {
+            console.error(`[sidecar] Failed to index ${file.path}:`, err);
+            totalFilesScanned++;
+          }
+        }
+        await new Promise((resolve4) => setTimeout(resolve4, 50));
       }
       const existingDirs = JSON.parse(getPref("indexed_directories") ?? "[]");
       const allDirs = [.../* @__PURE__ */ new Set([...existingDirs, ...params.directories])];
@@ -259517,7 +259677,7 @@ function handleGetProactiveInsights() {
 async function handleEmailCategorize(params) {
   if (!emailIndexer || !core || !prefsDb) return { categories: [], priority: "normal" };
   if (!emailCategorizer) {
-    const model = await core.models.getActiveChatModel() ?? "llama3.2:8b";
+    const model = await core.models.getActiveChatModel() ?? getRecommendedReasoningModel("standard").id;
     emailCategorizer = new EmailCategorizer({
       llm: core.llm,
       emailIndexer,
@@ -259531,7 +259691,7 @@ async function handleEmailCategorize(params) {
 async function handleEmailCategorizeBatch(params) {
   if (!emailIndexer || !core || !prefsDb) return [];
   if (!emailCategorizer) {
-    const model = await core.models.getActiveChatModel() ?? "llama3.2:8b";
+    const model = await core.models.getActiveChatModel() ?? getRecommendedReasoningModel("standard").id;
     emailCategorizer = new EmailCategorizer({
       llm: core.llm,
       emailIndexer,
@@ -260088,7 +260248,7 @@ function handleContactsGetFrequencyAlerts() {
 }
 function ensureMessageDrafter() {
   if (!messageDrafter && core) {
-    const model = getPref("active_chat_model") ?? "llama3.2:8b";
+    const model = getPref("active_chat_model") ?? getRecommendedReasoningModel("standard").id;
     messageDrafter = new MessageDrafter({ llm: core.llm, model });
   }
   if (!messageDrafter) throw new Error("Message drafter not initialized");
@@ -260098,7 +260258,7 @@ function ensureClipboardRecognizer() {
   if (!clipboardRecognizer) {
     clipboardRecognizer = new ClipboardPatternRecognizer({
       llm: core?.llm,
-      model: getPref("active_chat_model") ?? "llama3.2:8b"
+      model: getPref("active_chat_model") ?? getRecommendedReasoningModel("standard").id
     });
   }
   return clipboardRecognizer;
@@ -261832,35 +261992,58 @@ async function handleRequest(req) {
       }
       // ─── Knowledge Graph Visualization ────────────────────────────────
       case "knowledge_get_graph": {
-        if (!graphVisualizationProvider && prefsDb && core) {
-          graphVisualizationProvider = new GraphVisualizationProvider(prefsDb, core.knowledge);
-          graphVisualizationProvider.initSchema();
-        }
-        if (!graphVisualizationProvider) {
+        try {
+          if (!graphVisualizationProvider && prefsDb && core) {
+            try {
+              ensureContactStore();
+            } catch {
+            }
+            graphVisualizationProvider = new GraphVisualizationProvider({
+              db: prefsDb,
+              contactStore,
+              relationshipAnalyzer
+            });
+            graphVisualizationProvider.initSchema();
+          }
+          if (!graphVisualizationProvider) {
+            respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+            break;
+          }
+          const graph = await graphVisualizationProvider.getGraphData();
+          respond(id, graph);
+        } catch (graphErr) {
+          console.error("[sidecar] knowledge_get_graph failed:", graphErr);
           respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
-          break;
         }
-        const graph = await graphVisualizationProvider.buildGraph();
-        respond(id, graph);
         break;
       }
       case "knowledge_get_node_context": {
-        const nodeParams = params;
-        if (!graphVisualizationProvider) {
+        try {
+          const nodeParams = params;
+          if (!graphVisualizationProvider) {
+            respond(id, null);
+            break;
+          }
+          const nodeCtx = await graphVisualizationProvider.getNodeContext(nodeParams.nodeId);
+          respond(id, nodeCtx);
+        } catch (nodeErr) {
+          console.error("[sidecar] knowledge_get_node_context failed:", nodeErr);
           respond(id, null);
-          break;
         }
-        const nodeCtx = await graphVisualizationProvider.getNodeContext(nodeParams.nodeId);
-        respond(id, nodeCtx);
         break;
       }
       case "knowledge_export_graph": {
-        if (!graphVisualizationProvider) {
+        try {
+          if (!graphVisualizationProvider) {
+            respond(id, { success: false });
+            break;
+          }
+          const exportGraph = await graphVisualizationProvider.getGraphData();
+          respond(id, { success: true, graph: exportGraph });
+        } catch (exportErr) {
+          console.error("[sidecar] knowledge_export_graph failed:", exportErr);
           respond(id, { success: false });
-          break;
         }
-        const exportGraph = await graphVisualizationProvider.buildGraph();
-        respond(id, { success: true, graph: exportGraph });
         break;
       }
       // ─── Clipboard Insights ───────────────────────────────────────────

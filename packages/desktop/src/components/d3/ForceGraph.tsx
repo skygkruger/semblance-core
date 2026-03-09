@@ -21,6 +21,7 @@ const NODE_COLORS: Record<VisualizationEntityType, string> = {
   person: '#F5E6C8',
   topic: '#E8A838',
   document: '#8B93A7',
+  directory: '#6ECFA3',
   event: '#3DB87A',
   email_thread: 'rgba(74, 127, 186, 0.38)',
   reminder: '#E85D5D',

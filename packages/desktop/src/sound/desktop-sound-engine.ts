@@ -54,7 +54,8 @@ export class DesktopSoundEngine implements SoundEngine {
   async preload(): Promise<void> {
     if (!this.ctx) return;
 
-    const entries = Object.entries(SOUND_URLS) as [SoundId, string][];
+    const entries = (Object.entries(SOUND_URLS) as [SoundId, string][])
+      .filter(([, url]) => url.length > 0);
     const results = await Promise.allSettled(
       entries.map(async ([id, url]) => {
         const response = await fetch(url);

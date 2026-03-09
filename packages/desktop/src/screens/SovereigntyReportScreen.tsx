@@ -25,7 +25,8 @@ export function SovereigntyReportScreen() {
   }, [periodStart, periodEnd]);
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
+    <div className="h-full overflow-y-auto">
+    <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
       <SovereigntyReportCard
         periodStart={periodStart}
         periodEnd={periodEnd}
@@ -47,6 +48,7 @@ export function SovereigntyReportScreen() {
         }}
         onExportPDF={handleExportPDF}
       />
+    </div>
     </div>
   );
 }

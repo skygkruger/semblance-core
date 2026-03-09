@@ -124,7 +124,8 @@ export function FinancialDashboardScreen() {
   }
 
   return (
-    <div style={{ height: '100%', overflow: 'auto' }}>
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
       <FeatureGate
         feature="financial-dashboard"
         isPremium={license.isPremium}
@@ -167,6 +168,7 @@ export function FinancialDashboardScreen() {
           />
         )}
       </FeatureGate>
+      </div>
     </div>
   );
 }

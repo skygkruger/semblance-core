@@ -104,15 +104,27 @@ export class Indexer {
     // Generate embeddings in batch (prefer pipeline if available)
     const chunkTexts = textChunks.map(c => c.content);
     let embeddings: number[][];
-    if (this.embeddingPipeline) {
-      const pipelineResult = await this.embeddingPipeline.embedBatch(chunkTexts);
-      embeddings = pipelineResult.embeddings;
-    } else {
-      const embedResponse = await this.llm.embed({
-        model: this.embeddingModel,
-        input: chunkTexts,
-      });
-      embeddings = embedResponse.embeddings;
+    try {
+      if (this.embeddingPipeline) {
+        const pipelineResult = await this.embeddingPipeline.embedBatch(chunkTexts);
+        embeddings = pipelineResult.embeddings;
+      } else {
+        const embedResponse = await this.llm.embed({
+          model: this.embeddingModel,
+          input: chunkTexts,
+        });
+        embeddings = embedResponse.embeddings;
+      }
+    } catch (embedErr) {
+      // Embedding failed — store document metadata without vectors
+      // The document will be searchable by title/source but not by semantic similarity
+      console.error(`[indexer] Embedding failed for "${params.title}", storing metadata only:`, embedErr);
+      return {
+        documentId,
+        chunksCreated: 0,
+        durationMs: Date.now() - startMs,
+        deduplicated: false,
+      };
     }
 
     // Build vector chunks
