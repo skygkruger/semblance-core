@@ -102,6 +102,9 @@ export function OnboardingFlow() {
   // Model download state
   const [downloads, setDownloads] = useState<ModelDownload[]>([]);
 
+  // NativeRuntime readiness — set when reasoning model is loaded or timeout expires
+  const [runtimeReady, setRuntimeReady] = useState(false);
+
   // Knowledge moment state
   const [knowledgeMoment, setKnowledgeMoment] = useState<KnowledgeMomentData | null>(null);
   const [momentLoading, setMomentLoading] = useState(false);
@@ -152,6 +155,17 @@ export function OnboardingFlow() {
 
     // Let the sidecar emit real progress events with accurate model names and sizes.
     setDownloads([]);
+
+    // Listen for NativeRuntime model loaded event (reasoning model ready)
+    let unlistenModelLoaded: UnlistenFn | undefined;
+    listen<{ modelId: string; modelType: string; path: string }>(
+      'semblance://native-model-loaded',
+      (event) => {
+        if (event.payload.modelType === 'reasoning') {
+          setRuntimeReady(true);
+        }
+      }
+    ).then((fn) => { unlistenModelLoaded = fn; });
 
     // Set up event listener BEFORE starting downloads to avoid race condition
     let unlisten: UnlistenFn | undefined;
@@ -210,8 +224,22 @@ export function OnboardingFlow() {
         setMomentLoading(false);
       });
 
-    return () => { unlisten?.(); };
+    return () => { unlisten?.(); unlistenModelLoaded?.(); };
   }, [step, hardwareInfo]);
+
+  // Timeout fallback: if all downloads complete but runtime never reports ready,
+  // allow proceeding after 30s (model may have loaded via Ollama fallback).
+  useEffect(() => {
+    if (step !== 'initialize' || runtimeReady) return;
+    const allComplete = downloads.length > 0 && downloads.every(d => d.status === 'complete');
+    if (!allComplete) return;
+
+    const timer = setTimeout(() => {
+      console.error('[OnboardingFlow] Runtime ready timeout — allowing proceed');
+      setRuntimeReady(true);
+    }, 30_000);
+    return () => clearTimeout(timer);
+  }, [step, runtimeReady, downloads]);
 
   // Handle naming moment (user's name)
   const handleNamingMoment = useCallback(async (userName: string) => {
@@ -309,6 +337,7 @@ export function OnboardingFlow() {
           loading={momentLoading}
           onComplete={goNext}
           aiName={aiName}
+          runtimeReady={runtimeReady}
         />
       )}
 

@@ -32,6 +32,7 @@ use tokio::sync::Mutex;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GenerateRequest {
+    #[serde(default)]
     pub model_path: String,
     pub prompt: String,
     pub system_prompt: Option<String>,
@@ -49,6 +50,7 @@ pub struct GenerateResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmbedRequest {
+    #[serde(default)]
     pub model_path: String,
     pub input: Vec<String>,
 }

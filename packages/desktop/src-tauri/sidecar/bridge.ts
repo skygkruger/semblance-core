@@ -75,6 +75,9 @@ import { ClipboardPatternRecognizer } from '../../../core/agent/clipboard/patter
 import { sanitizeForAuditTrail } from '../../../core/agent/clipboard/clipboard-privacy.js';
 import type { MessagingAdapter } from '../../../core/platform/messaging-types.js';
 
+// Connector registry for auth type differentiation
+import { createDefaultConnectorRegistry } from '../../../core/importers/connector-registry.js';
+
 // Conversation management imports
 import { ConversationManager } from '../../../core/agent/conversation-manager.js';
 import { ConversationIndexer } from '../../../core/agent/conversation-indexer.js';
@@ -2621,6 +2624,32 @@ function getOAuthConfigForConnector(connectorId: string): {
 }
 
 async function handleConnectorAuth(params: { connectorId: string }): Promise<unknown> {
+  // Look up auth type from the connector registry to differentiate flow
+  const connectorRegistry = createDefaultConnectorRegistry();
+  const connectorDef = connectorRegistry.get(params.connectorId);
+  const authType = connectorDef?.authType ?? 'oauth2';
+
+  // Native connectors (file imports, local DB reads) don't need auth — succeed immediately
+  if (authType === 'native') {
+    return {
+      success: true,
+      connectorId: params.connectorId,
+      authType: 'native',
+    };
+  }
+
+  // API key connectors require manual credential entry in Settings
+  if (authType === 'api_key') {
+    return {
+      success: false,
+      requiresCredentials: true,
+      connectorId: params.connectorId,
+      authType: 'api_key',
+      error: `${connectorDef?.displayName ?? params.connectorId} requires an API key. Enter it in Settings > Connections.`,
+    };
+  }
+
+  // OAuth2, PKCE, and OAuth1a connectors use the OAuth flow
   const config = getOAuthConfigForConnector(params.connectorId);
   if (!config) {
     return { success: false, error: `No OAuth config for connector: ${params.connectorId}. Configure in Settings > Accounts for manual credential entry.` };

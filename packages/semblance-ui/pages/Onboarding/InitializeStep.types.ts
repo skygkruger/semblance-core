@@ -18,4 +18,6 @@ export interface InitializeStepProps {
   loading: boolean;
   onComplete?: () => void;
   aiName?: string;
+  /** When true, the NativeRuntime has loaded the reasoning model and is ready. */
+  runtimeReady?: boolean;
 }

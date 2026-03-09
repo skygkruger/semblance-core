@@ -62,7 +62,7 @@ const dlStyles = StyleSheet.create({
   },
 });
 
-export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete, aiName }: InitializeStepProps) {
+export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete, aiName, runtimeReady = false }: InitializeStepProps) {
   const { t } = useTranslation('onboarding');
   const allComplete = downloads.length > 0 && downloads.every(d => d.status === 'complete');
 
@@ -118,7 +118,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
 
       {allComplete && !loading && (
         <View style={styles.btnWrap}>
-          <Button variant="opal" size="lg" onPress={onComplete}>
+          <Button variant="opal" size="lg" onPress={onComplete} disabled={!runtimeReady}>
             {t('initialize.start_button')}
           </Button>
         </View>
