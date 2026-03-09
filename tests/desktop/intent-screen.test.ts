@@ -41,21 +41,18 @@ describe('IntentScreen — file and exports', () => {
 describe('IntentScreen — App.tsx routing', () => {
   const appTsx = readFile('packages/desktop/src/App.tsx');
 
-  it('includes intent route', () => {
-    expect(appTsx).toContain('/intent');
+  it('includes intent route as settings sub-route', () => {
+    // Intent moved from sidebar to Settings sub-route
+    expect(appTsx).toContain('/settings/intents');
     expect(appTsx).toContain('<IntentScreen');
   });
 
-  it('has CompassIcon component', () => {
-    expect(appTsx).toContain('CompassIcon');
-  });
-
-  it('navItems includes intent entry', () => {
-    // Verify intent is in the navItems array
-    const navItemsMatch = appTsx.match(/const navItems[^=]*=\s*\[([\s\S]*?)\];/);
-    expect(navItemsMatch).not.toBeNull();
-    const navBlock = navItemsMatch![1]!;
-    expect(navBlock).toContain("id: 'intent'");
-    expect(navBlock).toContain('<CompassIcon');
+  it('intent is NOT in sidebar navSections (moved to settings)', () => {
+    // Intent should not be in sidebar nav — it's now under Settings
+    const navSectionsMatch = appTsx.match(/const navSections[^=]*=\s*\[([\s\S]*?)\];\s*\n\s*const settingsItem/);
+    if (navSectionsMatch) {
+      const navBlock = navSectionsMatch[1]!;
+      expect(navBlock).not.toContain("id: 'intent'");
+    }
   });
 });

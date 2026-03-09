@@ -1,0 +1,140 @@
+/* VoiceSettingsScreen — voice capability settings */
+
+.voice-settings__container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.voice-settings__title {
+  font-family: var(--fd);
+  font-size: var(--text-xl);
+  color: var(--white);
+  margin: 0 0 var(--sp-2);
+}
+
+.voice-settings__subtitle {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: 0 0 var(--sp-6);
+}
+
+.voice-settings__card {
+  padding: var(--sp-6);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-4);
+}
+
+.voice-settings__card-header {
+  margin-bottom: var(--sp-4);
+}
+
+.voice-settings__card-title {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--white);
+  margin: 0;
+}
+
+.voice-settings__capability-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.voice-settings__capability-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--s1);
+}
+
+.voice-settings__capability-row:last-child {
+  border-bottom: none;
+}
+
+.voice-settings__capability-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.voice-settings__capability-name {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--white);
+}
+
+.voice-settings__capability-detail {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+}
+
+.voice-settings__capability-status {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.voice-settings__capability-status--available {
+  color: var(--v);
+}
+
+.voice-settings__capability-status--not-available {
+  color: var(--sv3);
+}
+
+.voice-settings__capability-status--downloading {
+  color: #B09A8A;
+}
+
+.voice-settings__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.voice-settings__info-text {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.voice-settings__architecture-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.voice-settings__architecture-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--s1);
+}
+
+.voice-settings__architecture-item:last-child {
+  border-bottom: none;
+}
+
+.voice-settings__architecture-label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.voice-settings__architecture-value {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+}

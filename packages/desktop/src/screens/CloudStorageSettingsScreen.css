@@ -1,0 +1,271 @@
+/* CloudStorageSettingsScreen — cloud storage integration settings */
+
+.cloud-storage__container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.cloud-storage__title {
+  font-family: var(--fd);
+  font-size: var(--text-xl);
+  color: var(--white);
+  margin: 0 0 var(--sp-2);
+}
+
+.cloud-storage__subtitle {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: 0 0 var(--sp-6);
+  line-height: 1.5;
+}
+
+.cloud-storage__card {
+  padding: var(--sp-6);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-4);
+}
+
+.cloud-storage__card-header {
+  margin-bottom: var(--sp-4);
+}
+
+.cloud-storage__card-title {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--white);
+  margin: 0;
+}
+
+.cloud-storage__field-hint {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  margin: 0 0 var(--sp-3);
+  line-height: 1.5;
+}
+
+.cloud-storage__empty {
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+}
+
+.cloud-storage__empty-text {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Connected provider list */
+.cloud-storage__provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.cloud-storage__provider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--s1);
+}
+
+.cloud-storage__provider-row:last-child {
+  border-bottom: none;
+}
+
+.cloud-storage__provider-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cloud-storage__provider-name {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--white);
+}
+
+.cloud-storage__provider-detail {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+}
+
+.cloud-storage__provider-status-group {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.cloud-storage__provider-status {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cloud-storage__provider-status--idle {
+  color: var(--v);
+}
+
+.cloud-storage__provider-status--syncing {
+  color: #B09A8A;
+}
+
+.cloud-storage__provider-status--error {
+  color: #B07A8A;
+}
+
+.cloud-storage__provider-status--disconnected {
+  color: var(--sv3);
+}
+
+.cloud-storage__disconnect-btn {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: #B07A8A;
+  background: none;
+  border: 1px solid rgba(176, 122, 138, 0.3);
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cloud-storage__disconnect-btn:hover {
+  border-color: #B07A8A;
+  background: rgba(176, 122, 138, 0.1);
+}
+
+/* Available providers */
+.cloud-storage__available-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.cloud-storage__available-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--s1);
+}
+
+.cloud-storage__available-row:last-child {
+  border-bottom: none;
+}
+
+.cloud-storage__available-name {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--white);
+}
+
+.cloud-storage__connect-btn {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--v);
+  background: none;
+  border: 1px solid rgba(110, 207, 163, 0.3);
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cloud-storage__connect-btn:hover:not(:disabled) {
+  border-color: var(--v);
+  background: rgba(110, 207, 163, 0.1);
+}
+
+.cloud-storage__connect-btn--connected {
+  color: var(--sv3);
+  border-color: var(--b2);
+  cursor: default;
+}
+
+.cloud-storage__connect-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Folder selection */
+.cloud-storage__folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.cloud-storage__folder-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.cloud-storage__folder-provider {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cloud-storage__folder-path {
+  font-family: var(--fm);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  padding-left: var(--sp-3);
+}
+
+.cloud-storage__folder-empty {
+  font-family: var(--fb);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  font-style: italic;
+  padding-left: var(--sp-3);
+}
+
+.cloud-storage__folder-btn {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  background: var(--s1);
+  border: 1px solid var(--b2);
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3);
+  cursor: pointer;
+  align-self: flex-start;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.cloud-storage__folder-btn:hover:not(:disabled) {
+  border-color: var(--sv3);
+  color: var(--white);
+}
+
+.cloud-storage__folder-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Privacy note */
+.cloud-storage__privacy-note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.cloud-storage__privacy-text {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: 0;
+  line-height: 1.6;
+}

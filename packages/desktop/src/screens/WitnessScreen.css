@@ -1,0 +1,167 @@
+/* WitnessScreen — cryptographic attestation management */
+
+.witness__gate-message {
+  color: var(--sv2);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.witness__gate-btn {
+  margin-top: var(--sp-4);
+  padding: 8px 16px;
+  background: rgba(110, 207, 163, 0.1);
+  border: 1px solid rgba(110, 207, 163, 0.3);
+  border-radius: var(--r-md);
+  color: var(--v);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.witness__container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.witness__title {
+  font-family: var(--fd);
+  font-size: var(--text-xl);
+  color: var(--white);
+  margin: 0 0 var(--sp-2);
+}
+
+.witness__subtitle {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: 0 0 var(--sp-6);
+}
+
+.witness__card {
+  padding: var(--sp-6);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-4);
+}
+
+.witness__section-title {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--white);
+  margin: 0 0 var(--sp-3);
+}
+
+.witness__empty {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+  padding: var(--sp-4) 0;
+}
+
+.witness__attestation-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.witness__attestation-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--s1);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.witness__attestation-item:hover {
+  background: rgba(110, 207, 163, 0.04);
+}
+
+.witness__attestation-item--selected {
+  border: 1px solid rgba(110, 207, 163, 0.2);
+}
+
+.witness__attestation-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.witness__attestation-check--active {
+  background: rgba(110, 207, 163, 0.15);
+  border-color: rgba(110, 207, 163, 0.4);
+}
+
+.witness__attestation-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.witness__attestation-action {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.witness__attestation-time {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+  margin-top: 2px;
+}
+
+.witness__attestation-hash {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  flex-shrink: 0;
+}
+
+.witness__actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.witness__btn {
+  padding: 8px 16px;
+  border-radius: var(--r-md);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.witness__btn:hover {
+  opacity: 0.85;
+}
+
+.witness__btn--primary {
+  background: rgba(110, 207, 163, 0.1);
+  border: 1px solid rgba(110, 207, 163, 0.3);
+  color: #6ECFA3;
+}
+
+.witness__btn--secondary {
+  background: var(--s1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--sv2);
+}
+
+.witness__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

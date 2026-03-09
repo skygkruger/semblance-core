@@ -23,7 +23,7 @@ describe('Mobile Tab Navigation', () => {
     expect(content).toContain('createBottomTabNavigator');
   });
 
-  it('TabNavigator.tsx defines 5 tabs: Chat, Inbox, Brief, Knowledge, Settings', () => {
+  it('TabNavigator.tsx defines 5 tabs: Chat, Brief, Knowledge, Dashboards, Settings', () => {
     const content = readFileSync(TAB_NAV_PATH, 'utf-8');
 
     // Check for Tab.Screen definitions or tab labels
@@ -31,8 +31,8 @@ describe('Mobile Tab Navigation', () => {
     expect(tabScreenMatches).not.toBeNull();
     expect(tabScreenMatches!.length).toBe(5);
 
-    // Verify each tab name/label is present
-    const expectedTabs = ['Chat', 'Inbox', 'Brief', 'Knowledge', 'Settings'];
+    // Verify each tab name/label is present (Inbox replaced by Dashboards)
+    const expectedTabs = ['Chat', 'Brief', 'Knowledge', 'Dashboards', 'Settings'];
     for (const tab of expectedTabs) {
       expect(content).toContain(`tabBarLabel: '${tab}'`);
     }

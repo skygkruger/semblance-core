@@ -1,0 +1,196 @@
+/* BiometricSetupScreen — biometric auth enrollment and settings */
+
+.biometric-setup__container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.biometric-setup__title {
+  font-family: var(--fd);
+  font-size: var(--text-xl);
+  color: var(--white);
+  margin: 0 0 var(--sp-2);
+}
+
+.biometric-setup__subtitle {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: 0 0 var(--sp-6);
+}
+
+.biometric-setup__card {
+  padding: var(--sp-6);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-4);
+}
+
+.biometric-setup__section-title {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--white);
+  margin: 0 0 var(--sp-3);
+}
+
+.biometric-setup__status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid rgba(110, 207, 163, 0.06);
+}
+
+.biometric-setup__status-row:last-child {
+  border-bottom: none;
+}
+
+.biometric-setup__status-label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.biometric-setup__status-value {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--white);
+}
+
+.biometric-setup__status-value--available {
+  color: #6ECFA3;
+}
+
+.biometric-setup__status-value--unavailable {
+  color: var(--sv3);
+}
+
+.biometric-setup__toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid rgba(110, 207, 163, 0.06);
+}
+
+.biometric-setup__toggle-row:last-child {
+  border-bottom: none;
+}
+
+.biometric-setup__toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.biometric-setup__toggle-label {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+}
+
+.biometric-setup__toggle-hint {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv3);
+}
+
+.biometric-setup__toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--s1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.biometric-setup__toggle--active {
+  background: rgba(110, 207, 163, 0.2);
+  border-color: rgba(110, 207, 163, 0.4);
+}
+
+.biometric-setup__toggle-knob {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sv2);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.biometric-setup__toggle--active .biometric-setup__toggle-knob {
+  transform: translateX(18px);
+  background: #6ECFA3;
+}
+
+.biometric-setup__timeout-selector {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.biometric-setup__timeout-option {
+  padding: 6px 14px;
+  border-radius: var(--r-md);
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--s1);
+  color: var(--sv2);
+  transition: all 0.15s ease;
+}
+
+.biometric-setup__timeout-option--selected {
+  background: rgba(110, 207, 163, 0.1);
+  border-color: rgba(110, 207, 163, 0.3);
+  color: #6ECFA3;
+}
+
+.biometric-setup__timeout-option:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.biometric-setup__actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.biometric-setup__btn {
+  padding: 8px 16px;
+  border-radius: var(--r-md);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.biometric-setup__btn:hover {
+  opacity: 0.85;
+}
+
+.biometric-setup__btn--primary {
+  background: rgba(110, 207, 163, 0.1);
+  border: 1px solid rgba(110, 207, 163, 0.3);
+  color: #6ECFA3;
+}
+
+.biometric-setup__btn--secondary {
+  background: var(--s1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--sv2);
+}
+
+.biometric-setup__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

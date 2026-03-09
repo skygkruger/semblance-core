@@ -1,5 +1,5 @@
 // TabNavigator — Bottom tab navigation with per-tab stack navigators.
-// 5 tabs: Chat, Inbox, Brief, Knowledge, Settings (matching Storybook MobileTabBar).
+// 5 tabs: Chat, Brief, Knowledge, Dashboards, Settings.
 // Each tab has its own NativeStack for detail screen navigation.
 // All screens from desktop are reachable — secondary screens nest in Settings stack.
 
@@ -14,9 +14,9 @@ import { colors, typography, spacing } from '../theme/tokens.js';
 import type {
   TabParamList,
   ChatStackParamList,
-  InboxStackParamList,
   BriefStackParamList,
   KnowledgeStackParamList,
+  DashboardsStackParamList,
   SettingsStackParamList,
 } from './types.js';
 
@@ -45,15 +45,16 @@ import { InheritanceScreen } from '../screens/sovereignty/InheritanceScreen.js';
 import { InheritanceActivationScreen } from '../screens/sovereignty/InheritanceActivationScreen.js';
 import { BiometricSetupScreen } from '../screens/security/BiometricSetupScreen.js';
 import { BackupScreen } from '../screens/security/BackupScreen.js';
+import { DashboardHubScreen } from '../screens/DashboardHubScreen.js';
 import { fetchKnowledgeGraph } from '../data/knowledge-graph-adapter.js';
 import type { KnowledgeGraphData } from '../data/knowledge-graph-adapter.js';
 
 // ─── Stack Navigators ──────────────────────────────────────────────────────
 
 const ChatStack = createNativeStackNavigator<ChatStackParamList>();
-const InboxStack = createNativeStackNavigator<InboxStackParamList>();
 const BriefStack = createNativeStackNavigator<BriefStackParamList>();
 const KnowledgeStack = createNativeStackNavigator<KnowledgeStackParamList>();
+const DashboardsStack = createNativeStackNavigator<DashboardsStackParamList>();
 const SettingsNavStack = createNativeStackNavigator<SettingsStackParamList>();
 
 const stackScreenOptions = {
@@ -68,16 +69,6 @@ function ChatTabStack() {
     <ChatStack.Navigator screenOptions={stackScreenOptions}>
       <ChatStack.Screen name="Chat" component={ChatScreen} />
     </ChatStack.Navigator>
-  );
-}
-
-// ─── Inbox Tab Stack ──────────────────────────────────────────────────────
-
-function InboxTabStack() {
-  return (
-    <InboxStack.Navigator screenOptions={stackScreenOptions}>
-      <InboxStack.Screen name="Inbox" component={InboxScreen} />
-    </InboxStack.Navigator>
   );
 }
 
@@ -347,6 +338,21 @@ function LocationSettingsScreenWrapper() {
   );
 }
 
+// ─── Dashboards Tab Stack (NEW) ────────────────────────────────────────────
+
+function DashboardsTabStack() {
+  return (
+    <DashboardsStack.Navigator screenOptions={stackScreenOptions}>
+      <DashboardsStack.Screen name="DashboardHub" component={DashboardHubScreen} />
+      <DashboardsStack.Screen name="Inbox" component={InboxScreen} />
+      <DashboardsStack.Screen name="FinancialDashboard" component={FinancialDashboardScreenWrapper} />
+      <DashboardsStack.Screen name="HealthDashboard" component={HealthDashboardScreenWrapper} />
+      <DashboardsStack.Screen name="Contacts" component={ContactsScreen} />
+      <DashboardsStack.Screen name="ContactDetail" component={ContactDetailScreen} />
+    </DashboardsStack.Navigator>
+  );
+}
+
 // ─── Settings Tab Stack ────────────────────────────────────────────────────
 
 function SettingsTabStack() {
@@ -359,7 +365,7 @@ function SettingsTabStack() {
       <SettingsNavStack.Screen name="ImportDigitalLife" component={ImportDigitalLifeScreen} />
       <SettingsNavStack.Screen name="Contacts" component={ContactsScreen} />
       <SettingsNavStack.Screen name="ContactDetail" component={ContactDetailScreen} />
-      <SettingsNavStack.Screen name="LocationSettings" component={LocationSettingsScreen} />
+      <SettingsNavStack.Screen name="LocationSettings" component={LocationSettingsScreenWrapper} />
       <SettingsNavStack.Screen name="FinancialDashboard" component={FinancialDashboardScreenWrapper} />
       <SettingsNavStack.Screen name="HealthDashboard" component={HealthDashboardScreenWrapper} />
       <SettingsNavStack.Screen name="PrivacyDashboard" component={PrivacyDashboardScreenWrapper} />
@@ -372,7 +378,6 @@ function SettingsTabStack() {
       <SettingsNavStack.Screen name="BiometricSetup" component={BiometricSetupScreenWrapper} />
       <SettingsNavStack.Screen name="Backup" component={BackupScreenWrapper} />
       <SettingsNavStack.Screen name="AdversarialDashboard" component={AdversarialDashboardScreenWrapper} />
-      <SettingsNavStack.Screen name="LocationSettings" component={LocationSettingsScreenWrapper} />
     </SettingsNavStack.Navigator>
   );
 }
@@ -385,12 +390,12 @@ const Tab = createBottomTabNavigator<TabParamList>();
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
-  // Tab display names matching Storybook MobileTabBar story
+  // Tab display names
   const TAB_LABELS: Record<string, string> = {
     ChatTab: 'Chat',
-    InboxTab: 'Inbox',
     BriefTab: 'Brief',
     KnowledgeTab: 'Knowledge',
+    DashboardsTab: 'Dashboards',
     SettingsTab: 'Settings',
   };
 
@@ -445,11 +450,6 @@ export function MainTabNavigator() {
         options={{ tabBarLabel: 'Chat' }}
       />
       <Tab.Screen
-        name="InboxTab"
-        component={InboxTabStack}
-        options={{ tabBarLabel: 'Inbox' }}
-      />
-      <Tab.Screen
         name="BriefTab"
         component={BriefTabStack}
         options={{ tabBarLabel: 'Brief' }}
@@ -458,6 +458,11 @@ export function MainTabNavigator() {
         name="KnowledgeTab"
         component={KnowledgeTabStack}
         options={{ tabBarLabel: 'Knowledge' }}
+      />
+      <Tab.Screen
+        name="DashboardsTab"
+        component={DashboardsTabStack}
+        options={{ tabBarLabel: 'Dashboards' }}
       />
       <Tab.Screen
         name="SettingsTab"

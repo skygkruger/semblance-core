@@ -1,0 +1,164 @@
+/* LivingWillScreen — encrypted digital twin export management */
+
+.living-will__gate-message {
+  color: var(--sv2);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.living-will__gate-btn {
+  margin-top: var(--sp-4);
+  padding: 8px 16px;
+  background: rgba(110, 207, 163, 0.1);
+  border: 1px solid rgba(110, 207, 163, 0.3);
+  border-radius: var(--r-md);
+  color: var(--v);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.living-will__container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.living-will__title {
+  font-family: var(--fd);
+  font-size: var(--text-xl);
+  color: var(--white);
+  margin: 0 0 var(--sp-2);
+}
+
+.living-will__subtitle {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: 0 0 var(--sp-6);
+}
+
+.living-will__card {
+  padding: var(--sp-6);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--sp-4);
+}
+
+.living-will__section-title {
+  font-family: var(--fb);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--white);
+  margin: 0 0 var(--sp-3);
+}
+
+.living-will__empty {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv3);
+  padding: var(--sp-4) 0;
+}
+
+.living-will__status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid rgba(110, 207, 163, 0.06);
+}
+
+.living-will__status-row:last-child {
+  border-bottom: none;
+}
+
+.living-will__status-label {
+  font-family: var(--fm);
+  font-size: var(--text-xs);
+  color: var(--sv2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.living-will__status-value {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--white);
+}
+
+.living-will__actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.living-will__btn {
+  padding: 8px 16px;
+  border-radius: var(--r-md);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.living-will__btn:hover {
+  opacity: 0.85;
+}
+
+.living-will__btn--primary {
+  background: rgba(110, 207, 163, 0.1);
+  border: 1px solid rgba(110, 207, 163, 0.3);
+  color: var(--v);
+}
+
+.living-will__btn--secondary {
+  background: var(--s1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--sv2);
+}
+
+.living-will__toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-3) 0;
+}
+
+.living-will__toggle-label {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+}
+
+.living-will__toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--s1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.living-will__toggle--active {
+  background: rgba(110, 207, 163, 0.2);
+  border-color: rgba(110, 207, 163, 0.4);
+}
+
+.living-will__toggle-knob {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sv2);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.living-will__toggle--active .living-will__toggle-knob {
+  transform: translateX(18px);
+  background: #6ECFA3;
+}
