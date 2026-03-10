@@ -529,9 +529,9 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] Creating SemblanceCore...');
     core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
     console.error('[sidecar] SemblanceCore created, calling initialize...');
-    // 15s timeout — core.initialize can hang if IPC or LLM checks block
+    // 60s timeout — core.initialize includes LanceDB, knowledge graph, IPC, and extensions
     const initTimeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Core initialization timed out after 15s')), 15000)
+      setTimeout(() => reject(new Error('Core initialization timed out after 60s')), 60000)
     );
     await Promise.race([core.initialize(), initTimeout]);
     console.error('[sidecar] Core initialized');
@@ -639,7 +639,7 @@ async function handleInitialize(): Promise<unknown> {
   let availableModels: string[] = [];
 
   // Try loading existing GGUF models into NativeRuntime on startup
-  // Each call has a 10s timeout — if Rust backend is unavailable, we skip gracefully
+  // Each call has a 120s timeout — model loading is a real disk+memory operation
   const modelsBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
   for (const model of MODEL_CATALOG) {
     if (isModelDownloaded(model.id, modelsBaseDir)) {
@@ -648,11 +648,11 @@ async function handleInitialize(): Promise<unknown> {
       try {
         const loadResult = await Promise.race([
           sendCallback('native_load_model', { model_path: modelPath, model_type: modelType }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 120000)),
         ]);
         if (loadResult === null) {
-          console.error(`[sidecar] native_load_model timed out for "${model.id}" — Rust backend may not be responding`);
-          break; // Don't try more models if Rust is unresponsive
+          console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s — model loading failed`);
+          break; // Don't try more models if loading fails
         }
         console.error(`[sidecar] Loaded model "${model.id}" into NativeRuntime (${modelType})`);
         if (modelType === 'reasoning') {
@@ -661,29 +661,41 @@ async function handleInitialize(): Promise<unknown> {
         }
       } catch (err) {
         console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
+        break; // Don't try more models if loading fails
       }
     }
   }
 
-  // Check NativeRuntime status (5s timeout)
+  // Check NativeRuntime status (10s timeout — models may still be settling after load)
   try {
     const nativeStatus = await Promise.race([
       sendCallback('native_status', {}),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
     ]);
     if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
       inferenceEngine = 'native';
       console.error('[sidecar] NativeRuntime is ready');
     } else if (nativeStatus === null) {
-      console.error('[sidecar] NativeRuntime status check timed out (5s)');
+      console.error('[sidecar] NativeRuntime status check timed out (10s)');
     }
   } catch {
     console.error('[sidecar] NativeRuntime not available, checking Ollama fallback');
   }
 
   // Fall back to Ollama if NativeRuntime has no models loaded
+  // Note: Don't use core.llm.isAvailable() here — it re-checks native providers (slow timeout).
+  // Instead check Ollama directly via the OllamaProvider if available.
   if (inferenceEngine === 'none' && core) {
-    const ollamaAvailable = await core.llm.isAvailable();
+    let ollamaAvailable = false;
+    try {
+      // Quick Ollama check — just try listing models
+      const { Ollama } = await import('ollama');
+      const ollamaClient = new Ollama({ host: 'http://localhost:11434' });
+      await ollamaClient.list();
+      ollamaAvailable = true;
+    } catch {
+      // Ollama not running
+    }
     if (ollamaAvailable) {
       inferenceEngine = 'ollama';
       const models = await core.llm.listModels();
