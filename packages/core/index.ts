@@ -223,7 +223,11 @@ export interface SemblanceCoreConfig {
 function defaultSocketPath(): string {
   const p = getPlatform();
   if (p.hardware.platform() === 'win32') {
-    return '\\\\.\\pipe\\semblance-gateway';
+    // Per-user pipe name — must match Gateway's getDefaultSocketPath()
+    // Use username from homedir path to avoid node:os dependency
+    const home = p.hardware.homedir();
+    const username = home.split(/[/\\]/).pop() ?? 'default';
+    return `\\\\.\\pipe\\semblance-gateway-${username}`;
   }
   return p.path.join(p.hardware.homedir(), '.semblance', 'gateway.sock');
 }
@@ -284,14 +288,18 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
       }
 
       // Initialize model manager (needs SQLite for preferences)
+      console.error('[SemblanceCore] Opening core.db...');
       const coreDb = p.sqlite.openDatabase(p.path.join(dataDir, 'core.db'));
       coreDb.pragma('journal_mode = WAL');
       models = new ModelManager(llm, coreDb);
+      console.error('[SemblanceCore] ModelManager ready, checking LLM availability...');
 
       // Step 1: Verify LLM is available
+      const llmCheckStart = Date.now();
       const llmAvailable = await llm.isAvailable();
+      console.error(`[SemblanceCore] LLM availability check took ${Date.now() - llmCheckStart}ms, available: ${llmAvailable}`);
       if (!llmAvailable) {
-        console.warn('[SemblanceCore] Ollama is not running. LLM features will be unavailable until Ollama starts.');
+        console.error('[SemblanceCore] Ollama is not running. LLM features will be unavailable until Ollama starts.');
       }
 
       // Step 2: Select the best chat model
@@ -299,11 +307,12 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
       if (!chatModel && llmAvailable) {
         chatModel = await models.getActiveChatModel() ?? undefined;
         if (chatModel) {
-          console.log(`[SemblanceCore] Selected chat model: ${chatModel}`);
+          console.error(`[SemblanceCore] Selected chat model: ${chatModel}`);
         }
       }
       chatModel = chatModel ?? 'llama3.2:8b';
 
+      console.error(`[SemblanceCore] Chat model selected: ${chatModel}`);
       // Step 3: Initialize the knowledge graph (LanceDB + SQLite)
       // Wrapped with timeout — LanceDB native bindings can hang if misconfigured.
       // Knowledge graph failure is non-fatal: chat and model downloads still work.
@@ -318,9 +327,9 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
           setTimeout(() => reject(new Error('Knowledge graph init timed out after 10s')), 10_000)
         );
         knowledge = await Promise.race([kgPromise, timeoutPromise]);
-        console.log('[SemblanceCore] Knowledge graph initialized');
+        console.error('[SemblanceCore] Knowledge graph initialized');
       } catch (err) {
-        console.warn(
+        console.error(
           '[SemblanceCore] Knowledge graph initialization failed:',
           err instanceof Error ? err.message : String(err),
           '— Semantic search and indexing will be unavailable.'
@@ -328,23 +337,27 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
       }
 
       // Step 4: Create and connect the IPC client
+      console.error('[SemblanceCore] Connecting IPC client...');
       ipc = new CoreIPCClient({
         socketPath,
         signingKeyPath,
       });
 
       try {
+        const ipcConnectStart = Date.now();
         await ipc.connect();
-        console.log('[SemblanceCore] Connected to Gateway via IPC');
+        console.error(`[SemblanceCore] Connected to Gateway via IPC (${Date.now() - ipcConnectStart}ms)`);
       } catch (err) {
-        console.warn(
+        console.error(
           '[SemblanceCore] Could not connect to Gateway:',
           err instanceof Error ? err.message : String(err),
           '— Agent actions requiring Gateway will fail until Gateway is started.'
         );
       }
+      console.error('[SemblanceCore] IPC step complete, creating orchestrator...');
 
       // Step 5: Create the orchestrator (requires knowledge graph)
+      console.error('[SemblanceCore] Creating orchestrator...');
       if (knowledge) {
         agent = createOrchestrator({
           llmProvider: llm,
@@ -354,10 +367,13 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
           dataDir,
           model: chatModel,
         });
-        console.log('[SemblanceCore] Orchestrator initialized');
+        console.error('[SemblanceCore] Orchestrator initialized');
 
         // Step 6: Load and initialize extensions (e.g. @semblance/dr)
+        console.error('[SemblanceCore] Loading extensions...');
+        const extStart = Date.now();
         const extensions = await loadExtensions();
+        console.error(`[SemblanceCore] Extensions loaded in ${Date.now() - extStart}ms`);
         if (extensions.length > 0) {
           const premiumGate = new PremiumGate(coreDb);
           const styleProfileStore = new StyleProfileStore(coreDb);
@@ -384,14 +400,14 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
               agent.registerTools(ext.tools);
             }
           }
-          console.log(`[SemblanceCore] Loaded ${extensions.length} extension(s)`);
+          console.error(`[SemblanceCore] Loaded ${extensions.length} extension(s)`);
         }
       } else {
-        console.warn('[SemblanceCore] Skipping orchestrator and extensions — knowledge graph unavailable');
+        console.error('[SemblanceCore] Skipping orchestrator and extensions — knowledge graph unavailable');
       }
 
       initialized = true;
-      console.log('[SemblanceCore] All subsystems initialized');
+      console.error('[SemblanceCore] All subsystems initialized');
     },
 
     async shutdown(): Promise<void> {

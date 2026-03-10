@@ -50,13 +50,17 @@ export class SocketTransport implements IPCTransport {
   }
 
   async start(): Promise<void> {
+    console.error(`[SocketTransport] Connecting to ${this.socketPath}...`);
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
+        console.error(`[SocketTransport] Connection timed out after ${this.connectTimeoutMs}ms`);
         reject(new Error(`[SocketTransport] Connection timed out after ${this.connectTimeoutMs}ms`));
       }, this.connectTimeoutMs);
 
       this.socket = createConnection(this.socketPath, () => {
         clearTimeout(timeout);
+        connected = true;
+        console.error(`[SocketTransport] Connected to ${this.socketPath}`);
         resolve();
       });
 
@@ -65,15 +69,19 @@ export class SocketTransport implements IPCTransport {
         this.processBuffer();
       });
 
+      let connected = false;
+
       this.socket.on('error', (err) => {
+        console.error(`[SocketTransport] Connection error: ${err.message}`);
         clearTimeout(timeout);
-        if (this.socket && !this.socket.connecting) {
+        if (connected) {
           // Post-connection error — reject any pending requests
           for (const [, pending] of this.pendingRequests) {
             pending.reject(new Error(`IPC connection error: ${err.message}`));
           }
           this.pendingRequests.clear();
         } else {
+          // Connection failed — reject the start() promise
           reject(new Error(`[SocketTransport] Connection failed: ${err.message}`));
         }
       });

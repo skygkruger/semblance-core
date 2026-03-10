@@ -74,10 +74,10 @@ async function runTests() {
 
   // === TEST: Initialize (send first, this triggers everything) ===
   // The sidecar waits for initialize before doing anything else.
-  // Model loading callbacks may timeout (no Rust backend in test mode) — allow 45s.
+  // Model loading has 120s timeout per model without Rust backend. Allow 180s total.
   try {
-    console.log('Sending initialize (may take up to 45s without Rust backend)...');
-    const result = await sendRequest('initialize', {}, 45000);
+    console.log('Sending initialize (may take up to 3 minutes for model loading)...');
+    const result = await sendRequest('initialize', {}, 180000);
     if (result.error) {
       fail('initialize', result.error);
     } else if (result.result) {
