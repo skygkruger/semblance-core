@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { listen } from '@tauri-apps/api/event';
-import { DesktopSidebar, PrivacyBadge, DotMatrix, ToastContainer } from '@semblance/ui';
+import { DesktopSidebar, PrivacyBadge, DotMatrix, ToastContainer, WireframeSpinner } from '@semblance/ui';
 import type { NavItem, NavSection, ToastItem } from '@semblance/ui';
 import { AppStateProvider, useAppState, useAppDispatch } from './state/AppState';
 import { LicenseProvider, useLicense } from './contexts/LicenseContext';
@@ -216,6 +216,7 @@ function AppContent() {
   const license = useLicense();
   const { play } = useSound();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [sidecarReady, setSidecarReady] = useState(false);
 
   const dismissToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -287,6 +288,7 @@ function AppContent() {
     const checkOnboarding = () => {
       import('./ipc/commands').then(({ getOnboardingComplete }) => {
         getOnboardingComplete().then((complete) => {
+          setSidecarReady(true);
           if (complete) {
             dispatch({ type: 'SET_ONBOARDING_COMPLETE' });
           }
@@ -335,8 +337,19 @@ function AppContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Show onboarding if not complete
+  // Show onboarding if not complete — but show loading spinner while waiting for sidecar
   if (!state.onboardingComplete) {
+    if (!sidecarReady) {
+      return (
+        <div className="h-screen flex items-center justify-center" style={{ backgroundColor: '#0B0E11' }}>
+          <DotMatrix />
+          <div className="text-center" style={{ position: 'relative', zIndex: 1 }}>
+            <WireframeSpinner size={80} />
+            <p style={{ color: '#8593A4', marginTop: 16, fontFamily: 'DM Sans, sans-serif' }}>Starting Semblance...</p>
+          </div>
+        </div>
+      );
+    }
     return <OnboardingFlow />;
   }
 

@@ -259845,6 +259845,12 @@ function createCallbackProtocol(writer, timeoutMs = 12e4) {
 }
 
 // packages/desktop/src-tauri/sidecar/bridge.ts
+process.on("uncaughtException", (err) => {
+  console.error("[sidecar] UNCAUGHT EXCEPTION:", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[sidecar] UNHANDLED REJECTION:", reason);
+});
 function emit(event, data) {
   process.stdout.write(JSON.stringify({ event, data }) + "\n");
 }
@@ -260252,6 +260258,14 @@ async function handleInitialize() {
   const userName = getPref("user_name");
   const onboardingComplete = getPref("onboarding_complete") === "true";
   console.error("[sidecar] Ready");
+  emit("status-update", {
+    ollamaStatus: inferenceEngine !== "none" ? "connected" : "disconnected",
+    inferenceEngine,
+    activeModel,
+    availableModels,
+    onboardingComplete,
+    userName
+  });
   return {
     ollamaStatus: inferenceEngine !== "none" ? "connected" : "disconnected",
     inferenceEngine,
@@ -260448,8 +260462,13 @@ async function handleStartIndexing(id, params) {
     respondError(id, "Indexing already in progress");
     return;
   }
+  if (!core?.knowledge) {
+    respondError(id, "Knowledge graph not initialized \u2014 cannot index files");
+    return;
+  }
   respond(id, "ok");
   indexingInProgress = true;
+  console.error(`[sidecar] Starting indexing for ${params.directories.length} directories: ${params.directories.join(", ")}`);
   (async () => {
     try {
       let totalFilesScanned = 0;
@@ -260535,6 +260554,7 @@ async function handleStartIndexing(id, params) {
               totalChunksCreated++;
               continue;
             }
+            console.error(`[sidecar] Indexing file ${totalFilesScanned + 1}/${filesTotal}: ${file.name} (${(file.size / 1024).toFixed(0)}KB)`);
             const content = await readFileContent(file.path);
             let contentText = content.content;
             if (contentText.length > 5e5) {
