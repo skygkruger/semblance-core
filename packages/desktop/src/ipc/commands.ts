@@ -311,8 +311,11 @@ export function getNetworkTrustStatus(): Promise<TrustStatus> {
 
 // ─── Connectors (via ipc_send) ──────────────────────────────────────────────
 
-export function ipcSend(params: ConnectorAction): Promise<void> {
-  return invoke<void>('ipc_send', { ...params });
+export function ipcSend(connectorAction: ConnectorAction): Promise<void> {
+  return invoke<void>('ipc_send', {
+    action: connectorAction.action,
+    params: connectorAction.payload,
+  });
 }
 
 // ─── Contacts (via sidecar_request) ─────────────────────────────────────────

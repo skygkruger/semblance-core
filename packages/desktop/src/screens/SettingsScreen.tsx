@@ -90,17 +90,6 @@ export function SettingsScreen() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto px-6 py-8">
-        {/* Extra settings rows not in SettingsNavigator */}
-        <div style={{ marginBottom: 16 }}>
-          <button
-            type="button"
-            className="settings-extra-row"
-            onClick={() => navigate('/settings/intents')}
-          >
-            <span>{t('screen.settings.intents_hard_limits')}</span>
-            <span className="settings-extra-row__arrow">{'\u2192'}</span>
-          </button>
-        </div>
         <SettingsNavigator
           /* Root props */
           currentModel={state.activeModel || 'Loading...'}
@@ -181,6 +170,16 @@ export function SettingsScreen() {
           onSignOut={() => {}}
           onDeactivateLicense={() => {}}
         />
+        {/* Intent settings — rendered as a row below the navigator */}
+        <button
+          type="button"
+          className="settings-extra-row"
+          onClick={() => navigate('/settings/intents')}
+          style={{ marginTop: 12 }}
+        >
+          <span>{t('screen.settings.intents_hard_limits')}</span>
+          <span className="settings-extra-row__arrow">{'\u2192'}</span>
+        </button>
       </div>
     </div>
   );

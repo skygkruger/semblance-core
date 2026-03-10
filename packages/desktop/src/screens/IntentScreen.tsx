@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import {
   getIntent,
@@ -21,6 +22,7 @@ import { EscalationPromptCard } from '../components/EscalationPromptCard';
 
 export function IntentScreen() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const state = useAppState();
   const dispatch = useAppDispatch();
   const [editingGoal, setEditingGoal] = useState(false);
@@ -120,6 +122,9 @@ export function IntentScreen() {
     return (
       <div className="settings-screen">
         <div className="settings-header">
+          <button type="button" className="settings-header__back" onClick={() => navigate('/settings')} aria-label="Back to settings">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
           <h1 className="settings-header__title">{t('screen.intent.title')}</h1>
         </div>
         <div className="settings-content">
@@ -134,6 +139,9 @@ export function IntentScreen() {
   return (
     <div className="settings-screen">
       <div className="settings-header">
+        <button type="button" className="settings-header__back" onClick={() => navigate('/settings')} aria-label="Back to settings">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
         <h1 className="settings-header__title">{t('screen.intent.title')}</h1>
       </div>
       <div className="settings-content">
@@ -151,7 +159,7 @@ export function IntentScreen() {
                 style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#141820', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
                 autoFocus
               />
-              <button type="button" onClick={handleSaveGoal} style={{ height: 36, padding: '0 16px', borderRadius: 6, border: 'none', backgroundColor: '#6ECFA3', color: '#0B0E11', fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>{t('button.save')}</button>
+              <button type="button" className="btn btn--opal btn--sm" onClick={handleSaveGoal}><span className="btn__text">{t('button.save')}</span></button>
               <button type="button" onClick={() => setEditingGoal(false)} style={{ background: 'none', border: 'none', color: '#8593A4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}>{t('button.cancel')}</button>
             </div>
           ) : (
@@ -218,7 +226,7 @@ export function IntentScreen() {
             placeholder={t('screen.intent.placeholder_limit')}
             style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#141820', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
           />
-          <button type="button" onClick={handleAddLimit} disabled={!newLimit.trim()} style={{ height: 36, padding: '0 16px', borderRadius: 6, border: 'none', backgroundColor: '#6ECFA3', color: '#0B0E11', fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>{t('button.create')}</button>
+          <button type="button" className="btn btn--opal btn--sm" onClick={handleAddLimit} disabled={!newLimit.trim()}><span className="btn__text">{t('button.create')}</span></button>
         </div>
 
         {/* Personal Values */}
@@ -263,7 +271,7 @@ export function IntentScreen() {
             placeholder={t('screen.intent.placeholder_value')}
             style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#141820', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
           />
-          <button type="button" onClick={handleAddValue} disabled={!newValue.trim()} style={{ height: 36, padding: '0 16px', borderRadius: 6, border: 'none', backgroundColor: '#6ECFA3', color: '#0B0E11', fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>{t('button.create')}</button>
+          <button type="button" className="btn btn--opal btn--sm" onClick={handleAddValue} disabled={!newValue.trim()}><span className="btn__text">{t('button.create')}</span></button>
         </div>
 
         {/* Escalation Prompts */}

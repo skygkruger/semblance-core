@@ -132,6 +132,15 @@ import { HealthEntryStore } from '../../../core/health/health-entry-store.js';
 import { CloudStorageClient } from '../../../core/cloud-storage/cloud-storage-client.js';
 import { GraphVisualizationProvider } from '../../../core/knowledge/graph-visualization.js';
 
+// ─── Process-level crash guards ──────────────────────────────────────────────
+// Prevent unhandled exceptions/rejections from killing the sidecar silently
+process.on('uncaughtException', (err) => {
+  console.error('[sidecar] UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[sidecar] UNHANDLED REJECTION:', reason);
+});
+
 // ─── NDJSON Protocol ──────────────────────────────────────────────────────────
 
 function emit(event: string, data: unknown): void {
@@ -711,6 +720,16 @@ async function handleInitialize(): Promise<unknown> {
 
   console.error('[sidecar] Ready');
 
+  // Emit status-update event so the frontend receives model name, engine, and onboarding state
+  emit('status-update', {
+    ollamaStatus: inferenceEngine !== 'none' ? 'connected' : 'disconnected',
+    inferenceEngine,
+    activeModel,
+    availableModels,
+    onboardingComplete,
+    userName,
+  });
+
   return {
     ollamaStatus: inferenceEngine !== 'none' ? 'connected' : 'disconnected',
     inferenceEngine,
@@ -963,9 +982,15 @@ async function handleStartIndexing(
     return;
   }
 
+  if (!core?.knowledge) {
+    respondError(id, 'Knowledge graph not initialized — cannot index files');
+    return;
+  }
+
   // Respond immediately
   respond(id, 'ok');
   indexingInProgress = true;
+  console.error(`[sidecar] Starting indexing for ${params.directories.length} directories: ${params.directories.join(', ')}`);
 
   // Run indexing asynchronously
   (async () => {
@@ -1069,6 +1094,7 @@ async function handleStartIndexing(
               continue;
             }
 
+            console.error(`[sidecar] Indexing file ${totalFilesScanned + 1}/${filesTotal}: ${file.name} (${(file.size / 1024).toFixed(0)}KB)`);
             const content = await readFileContent(file.path);
 
             // Truncate extremely long content (>500K chars) to prevent OOM during embedding
