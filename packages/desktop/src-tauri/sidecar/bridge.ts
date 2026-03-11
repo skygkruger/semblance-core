@@ -454,9 +454,45 @@ function getSystemPrompt(): string {
   const aiName = getPref('ai_name') ?? 'Semblance';
   const userName = getPref('user_name');
   const userRef = userName ? `${userName}'s` : "the user's";
+
+  // Build connected services section
+  let servicesSection = '';
+  try {
+    const tokenMgr = ensureOAuthTokenManager();
+    const connectorRegistry = createDefaultConnectorRegistry();
+    const connectedServices: string[] = [];
+    for (const connector of connectorRegistry.listAll()) {
+      const oauthCfg = getOAuthConfigForConnector(connector.id);
+      if (oauthCfg) {
+        const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
+        if (accessToken) {
+          connectedServices.push(connector.displayName);
+        }
+      }
+    }
+    if (connectedServices.length > 0) {
+      servicesSection = `\n\nConnected services: ${connectedServices.join(', ')}. You have access to data from these services through the user's local knowledge base.`;
+    }
+  } catch {
+    // Token manager not ready yet — no services to report
+  }
+
+  // Build knowledge stats section
+  let knowledgeSection = '';
+  try {
+    if (prefsDb) {
+      const docCount = (prefsDb.prepare('SELECT COUNT(*) as count FROM documents').get() as { count: number })?.count ?? 0;
+      if (docCount > 0) {
+        knowledgeSection = `\n\nThe user's knowledge base contains ${docCount} indexed documents. Search it to answer questions about their files, emails, and connected data.`;
+      }
+    }
+  } catch {
+    // documents table might not exist yet
+  }
+
   return `You are ${aiName}, ${userRef} personal AI. You run entirely on their device — their data never leaves their machine.
 
-You have access to their local files and documents through secure search. You can search their knowledge base and answer questions about their documents.
+You have access to their local files and documents through secure search. You can search their knowledge base and answer questions about their documents.${servicesSection}${knowledgeSection}
 
 Core principles:
 - You are helpful, warm, proactive, and concise
@@ -1084,8 +1120,9 @@ async function handleStartIndexing(
               currentFile: file.name,
             });
 
-            // Tier 1: Files > 100MB — metadata only, don't read content at all
-            if (file.size > 100 * 1024 * 1024) {
+            // Tier 1: Files > 10MB — metadata only, don't read content at all
+            // (100MB was too generous — large files can still OOM during readFileContent)
+            if (file.size > 10 * 1024 * 1024) {
               console.error(`[sidecar] Very large file "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)}MB) — metadata only`);
               try {
                 if (core?.knowledge) {
@@ -2765,6 +2802,17 @@ function getOAuthConfigForConnector(connectorId: string): {
       revokeUrl: 'https://oauth2.googleapis.com/revoke',
       extraAuthParams: { access_type: 'offline', prompt: 'consent' },
     }),
+    'google-calendar': () => ({
+      providerKey: 'google-calendar',
+      authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+      tokenUrl: 'https://oauth2.googleapis.com/token',
+      scopes: 'https://www.googleapis.com/auth/calendar.readonly',
+      clientId: process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
+      clientSecret: process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'],
+      usePKCE: false,
+      revokeUrl: 'https://oauth2.googleapis.com/revoke',
+      extraAuthParams: { access_type: 'offline', prompt: 'consent' },
+    }),
     'google-drive': () => ({
       providerKey: 'google-drive',
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -2877,12 +2925,26 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
     const requiresHttps = params.connectorId === 'slack';
     const { callbackUrl, state } = await callbackServer.start({ https: requiresHttps });
 
+    // Generate PKCE code_verifier + code_challenge for PKCE flows
+    let codeVerifier: string | null = null;
+    let codeChallenge: string | null = null;
+    if (config.usePKCE) {
+      const { randomBytes, createHash } = await import('node:crypto');
+      codeVerifier = randomBytes(32).toString('base64url');
+      codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
+      console.error(`[sidecar] PKCE flow — generated code_verifier (${codeVerifier.length} chars)`);
+    }
+
     const authUrl = new URL(config.authUrl);
     authUrl.searchParams.set('client_id', config.clientId);
     authUrl.searchParams.set('redirect_uri', callbackUrl);
     authUrl.searchParams.set('response_type', 'code');
     if (config.scopes) authUrl.searchParams.set('scope', config.scopes);
     authUrl.searchParams.set('state', state);
+    if (codeChallenge) {
+      authUrl.searchParams.set('code_challenge', codeChallenge);
+      authUrl.searchParams.set('code_challenge_method', 'S256');
+    }
     if (config.extraAuthParams) {
       for (const [k, v] of Object.entries(config.extraAuthParams)) {
         authUrl.searchParams.set(k, v);
@@ -2918,14 +2980,40 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
     if (config.clientSecret && !config.usePKCE) {
       tokenBody['client_secret'] = config.clientSecret;
     }
+    if (config.usePKCE && codeVerifier) {
+      tokenBody['code_verifier'] = codeVerifier;
+    }
 
     const tokenResponse = await globalThis.fetch(config.tokenUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',  // GitHub requires this to return JSON
+      },
       body: new URLSearchParams(tokenBody),
     });
 
-    const tokenData = await tokenResponse.json() as Record<string, unknown>;
+    // Check HTTP status BEFORE parsing body — non-200 may return HTML error pages
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text().catch(() => 'Unknown error');
+      console.error(`[sidecar] Token exchange HTTP ${tokenResponse.status}: ${errorText.slice(0, 500)}`);
+      return {
+        success: false,
+        error: `Token exchange failed (HTTP ${tokenResponse.status}): ${errorText.slice(0, 200)}`,
+      };
+    }
+
+    // GitHub returns access_token in application/x-www-form-urlencoded format
+    // when Accept header is not set to application/json.
+    const contentType = tokenResponse.headers.get('content-type') ?? '';
+    let tokenData: Record<string, unknown>;
+    if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('text/plain')) {
+      const text = await tokenResponse.text();
+      const urlParams = new URLSearchParams(text);
+      tokenData = Object.fromEntries(urlParams.entries());
+    } else {
+      tokenData = await tokenResponse.json() as Record<string, unknown>;
+    }
 
     if (tokenData.error || !tokenData.access_token) {
       return {
@@ -4677,13 +4765,31 @@ async function handleRequest(req: Request): Promise<void> {
       // ─── Connector Query Handlers ─────────────────────────────────────
       case 'get_connected_services': {
         // Return list of connected connector IDs (those with stored OAuth tokens)
+        // Tokens are stored in OAuthTokenManager (gateway/oauth.db), NOT in prefs.
+        // The token manager stores by providerKey, so we map connectorId → providerKey.
         const connectedList: string[] = [];
-        const connectorRegistry = createDefaultConnectorRegistry();
-        for (const connector of connectorRegistry.listAll()) {
-          const tokenJson = getPref(`oauth_token_${connector.id}`);
-          if (tokenJson) {
-            connectedList.push(connector.id);
+        try {
+          const tokenMgr = ensureOAuthTokenManager();
+          const connectorRegistry = createDefaultConnectorRegistry();
+          for (const connector of connectorRegistry.listAll()) {
+            // Look up the OAuth config to get the providerKey
+            const oauthCfg = getOAuthConfigForConnector(connector.id);
+            if (oauthCfg) {
+              const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
+              if (accessToken) {
+                connectedList.push(connector.id);
+              }
+            }
+            // Also check for native connectors that store state in prefs
+            if (connector.authType === 'native') {
+              const nativeState = getPref(`connector_state_${connector.id}`);
+              if (nativeState === 'connected') {
+                connectedList.push(connector.id);
+              }
+            }
           }
+        } catch (err) {
+          console.error('[sidecar] get_connected_services error:', err);
         }
         respond(id, connectedList);
         break;

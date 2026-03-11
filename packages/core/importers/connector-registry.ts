@@ -79,6 +79,30 @@ export class ConnectorRegistry {
 export function createDefaultConnectorRegistry(): ConnectorRegistry {
   const registry = new ConnectorRegistry();
 
+  // ─── Email & Calendar ──────────────────────────────────────────────────────
+  registry.register({
+    id: 'gmail',
+    displayName: 'Gmail',
+    description: 'Emails, labels, and threads from your Gmail account',
+    category: 'productivity',
+    authType: 'oauth2',
+    platform: 'all',
+    isPremium: false,
+    syncIntervalHours: 1,
+    iconType: 'email',
+  });
+  registry.register({
+    id: 'google-calendar',
+    displayName: 'Google Calendar',
+    description: 'Events, schedules, and reminders from Google Calendar',
+    category: 'productivity',
+    authType: 'oauth2',
+    platform: 'all',
+    isPremium: false,
+    syncIntervalHours: 1,
+    iconType: 'calendar',
+  });
+
   // ─── Cloud Storage ──────────────────────────────────────────────────────────
   registry.register({
     id: 'google-drive',
@@ -492,6 +516,17 @@ export function createDefaultConnectorRegistry(): ConnectorRegistry {
   });
 
   // ─── Messaging ──────────────────────────────────────────────────────────────
+  registry.register({
+    id: 'slack',
+    displayName: 'Slack',
+    description: 'Channels, messages, and threads from your Slack workspace',
+    category: 'messaging',
+    authType: 'oauth2',
+    platform: 'all',
+    isPremium: true,
+    syncIntervalHours: 6,
+    iconType: 'messages',
+  });
   registry.register({
     id: 'imessage',
     displayName: 'iMessage',

@@ -46,6 +46,7 @@ export const CONNECTOR_TO_CATEGORY: Record<string, VisualizationCategory> = {
   'mint-export': 'finance',
 
   // Social & Messaging
+  'slack': 'social',
   'slack-oauth': 'social',
   'facebook-export': 'social',
   'instagram-export': 'social',
@@ -56,6 +57,10 @@ export const CONNECTOR_TO_CATEGORY: Record<string, VisualizationCategory> = {
   'signal-export': 'social',
   'whatsapp-export': 'social',
   'telegram-export': 'social',
+
+  // Email & Calendar
+  'gmail': 'work',
+  'google-calendar': 'work',
 
   // Work & Productivity (reclassified: toggl/rescuetime from health_fitness)
   'github': 'work',
