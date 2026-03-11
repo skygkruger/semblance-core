@@ -22,6 +22,17 @@ let requestId = 1;
 let stderrBuffer = '';
 let stdoutBuffer = '';
 
+// Ensure sidecar is killed on any exit to prevent stale named pipes
+function killSidecar() {
+  if (sidecar && !sidecar.killed) {
+    sidecar.kill();
+  }
+}
+process.on('exit', killSidecar);
+process.on('SIGINT', () => { killSidecar(); process.exit(1); });
+process.on('SIGTERM', () => { killSidecar(); process.exit(1); });
+process.on('uncaughtException', (err) => { console.error('Uncaught:', err); killSidecar(); process.exit(1); });
+
 function log(msg) { console.log(`  ${msg}`); }
 function pass(name) { passed++; log(`✅ ${name}`); }
 function fail(name, reason) { failed++; log(`❌ ${name}: ${reason}`); }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FinancialDashboard, FeatureGate } from '@semblance/ui';
 import type { FinancialPeriod } from '@semblance/ui/components/FinancialDashboard/FinancialDashboard.types';
 import { useLicense } from '../contexts/LicenseContext';
@@ -14,6 +15,7 @@ import { StatementImportDialog } from '../components/StatementImportDialog';
 import { SubscriptionInsightCard } from '../components/SubscriptionInsightCard';
 
 export function FinancialDashboardScreen() {
+  const navigate = useNavigate();
   const license = useLicense();
   const { requireAuth } = useFeatureAuth();
   const [authed, setAuthed] = useState(false);
@@ -129,7 +131,7 @@ export function FinancialDashboardScreen() {
       <FeatureGate
         feature="financial-dashboard"
         isPremium={license.isPremium}
-        onLearnMore={() => license.openCheckout('monthly')}
+        onLearnMore={() => navigate('/upgrade')}
       >
         <FinancialDashboard
           overview={data?.overview ?? null}
@@ -151,7 +153,12 @@ export function FinancialDashboardScreen() {
             <SubscriptionInsightCard
               charges={data.subscriptions.charges}
               summary={data.subscriptions.summary}
-              onDismiss={() => {}}
+              onDismiss={() => {
+                // Refresh dashboard to clear dismissed subscription
+                import('../ipc/commands').then(({ getFinancialDashboard }) => {
+                  getFinancialDashboard('30d').then(setData).catch(() => {});
+                });
+              }}
             />
           </div>
         )}

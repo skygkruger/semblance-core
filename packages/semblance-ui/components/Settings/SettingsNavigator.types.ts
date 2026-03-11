@@ -9,7 +9,7 @@ export interface SettingsNavigatorProps {
   notificationSummary: string;
   autonomyTier: 'guardian' | 'partner' | 'alter-ego';
   privacyStatus: 'clean' | 'review-needed';
-  licenseStatus: 'founding-member' | 'active' | 'trial' | 'expired';
+  licenseStatus: 'founding-member' | 'active' | 'free' | 'expired';
   appVersion: string;
 
   /* AI Engine props */

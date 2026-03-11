@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { DesktopSidebar, PrivacyBadge, DotMatrix, ToastContainer, WireframeSpinner } from '@semblance/ui';
 import type { NavItem, NavSection, ToastItem } from '@semblance/ui';
 import { AppStateProvider, useAppState, useAppDispatch } from './state/AppState';
@@ -283,18 +284,41 @@ function AppContent() {
   const activeId = location.pathname.slice(1) || 'chat';
 
   // Hydrate onboarding + license status on startup
+  const fetchModelStatus = useCallback(() => {
+    invoke<{ ollamaStatus?: string; inferenceEngine?: string; activeModel?: string; availableModels?: string[]; userName?: string | null }>('sidecar_request', {
+      request: { method: 'get_model_status', params: {} },
+    }).then((status) => {
+      if (status?.activeModel) dispatch({ type: 'SET_ACTIVE_MODEL', model: status.activeModel });
+      if (status?.inferenceEngine) dispatch({ type: 'SET_INFERENCE_ENGINE', engine: status.inferenceEngine as 'native' | 'ollama' | 'none' });
+      if (status?.ollamaStatus) dispatch({ type: 'SET_OLLAMA_STATUS', status: status.ollamaStatus as 'connected' | 'disconnected' | 'checking' });
+      if (status?.userName) dispatch({ type: 'SET_USER_NAME', name: status.userName });
+    }).catch(() => {});
+  }, [dispatch]);
+
   useEffect(() => {
-    // Poll for onboarding status — sidecar may not be ready immediately
-    const checkOnboarding = () => {
+    // Poll for onboarding status — sidecar prefs may not be loaded on first response
+    const checkOnboarding = (attempt = 0) => {
       import('./ipc/commands').then(({ getOnboardingComplete }) => {
         getOnboardingComplete().then((complete) => {
-          setSidecarReady(true);
           if (complete) {
             dispatch({ type: 'SET_ONBOARDING_COMPLETE' });
+            setSidecarReady(true);
+            fetchModelStatus();
+          } else if (attempt < 5) {
+            // Sidecar responded but prefs may not be loaded yet — retry
+            setTimeout(() => checkOnboarding(attempt + 1), 800);
+          } else {
+            // After 5 attempts still false — genuine first run
+            setSidecarReady(true);
+            fetchModelStatus();
           }
         }).catch(() => {
-          // Sidecar not ready yet — retry in 1s
-          setTimeout(checkOnboarding, 1000);
+          // Sidecar not ready at all — retry
+          if (attempt < 20) {
+            setTimeout(() => checkOnboarding(attempt + 1), 1000);
+          } else {
+            setSidecarReady(true); // Give up, show whatever state we have
+          }
         });
       });
     };
@@ -337,15 +361,53 @@ function AppContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Poll for model status until it arrives — model loading happens AFTER initialize
+  // returns, so the initial get_model_status call may return null. Poll every 2s until
+  // we have a model name, then stop.
+  useEffect(() => {
+    if (!sidecarReady || state.activeModel) return;
+    const interval = setInterval(() => {
+      invoke<{ ollamaStatus?: string; inferenceEngine?: string; activeModel?: string; availableModels?: string[]; userName?: string | null }>('sidecar_request', {
+        request: { method: 'get_model_status', params: {} },
+      }).then((status) => {
+        if (status?.activeModel) {
+          dispatch({ type: 'SET_ACTIVE_MODEL', model: status.activeModel });
+          if (status.inferenceEngine) {
+            dispatch({ type: 'SET_INFERENCE_ENGINE', engine: status.inferenceEngine as 'native' | 'ollama' | 'none' });
+          }
+          if (status.ollamaStatus) {
+            dispatch({ type: 'SET_OLLAMA_STATUS', status: status.ollamaStatus as 'connected' | 'disconnected' | 'checking' });
+          }
+          clearInterval(interval);
+        }
+      }).catch(() => {});
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [sidecarReady, state.activeModel, dispatch]);
+
   // Show onboarding if not complete — but show loading spinner while waiting for sidecar
   if (!state.onboardingComplete) {
     if (!sidecarReady) {
       return (
-        <div className="h-screen flex items-center justify-center" style={{ backgroundColor: '#0B0E11' }}>
+        <div style={{
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#0B0E11',
+          gap: 16,
+        }}>
           <DotMatrix />
-          <div className="text-center" style={{ position: 'relative', zIndex: 1 }}>
-            <WireframeSpinner size={80} />
-            <p style={{ color: '#8593A4', marginTop: 16, fontFamily: 'DM Sans, sans-serif' }}>Starting Semblance...</p>
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <WireframeSpinner size={100} />
+            <p style={{
+              color: '#8593A4',
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+              fontSize: 14,
+              letterSpacing: '0.04em',
+              margin: 0,
+            }}>Initializing...</p>
           </div>
         </div>
       );

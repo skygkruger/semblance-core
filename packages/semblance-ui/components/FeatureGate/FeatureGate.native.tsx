@@ -31,7 +31,7 @@ function DefaultFallback({ onLearnMore }: { onLearnMore?: () => void }) {
       </Text>
 
       <View style={styles.lockedActions}>
-        <Button variant="solid" size="sm" onPress={onLearnMore}>
+        <Button variant="opal" size="sm" onPress={onLearnMore}>
           Learn more
         </Button>
         <Button variant="ghost" size="sm" onPress={() => setDismissed(true)}>

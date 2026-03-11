@@ -7,12 +7,14 @@ import { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { getVersion } from '@tauri-apps/api/app';
+import { emit } from '@tauri-apps/api/event';
 import { SettingsNavigator } from '@semblance/ui';
 import type { AutonomyTier } from '@semblance/ui';
 import {
   getAccountsStatus,
   detectHardware,
   setUserName,
+  setAiName,
   setAutonomyTier,
   selectModel,
   getAlterEgoSettings,
@@ -48,6 +50,15 @@ export function SettingsScreen() {
       .then(setAppVersion)
       .catch(() => {});
   }, [dispatch]);
+
+  // Toast helper for features not yet wired
+  const showToast = useCallback((message: string) => {
+    emit('semblance://toast', {
+      id: `toast_${Date.now()}`,
+      message,
+      variant: 'info',
+    }).catch(() => {});
+  }, []);
 
   const defaultTier = (state.autonomyConfig['email'] || 'partner') as string;
   const autonomyTier = defaultTier === 'alter_ego' ? 'alter-ego' : defaultTier as 'guardian' | 'partner' | 'alter-ego';
@@ -85,7 +96,7 @@ export function SettingsScreen() {
     ? 'founding-member' as const
     : license.isPremium
       ? 'active' as const
-      : 'trial' as const;
+      : 'free' as const;
 
   return (
     <div className="h-full overflow-y-auto">
@@ -155,31 +166,37 @@ export function SettingsScreen() {
           onManageAllConnections={() => navigate('/connections')}
           onConnectionTap={() => navigate('/connections')}
           onRunAudit={() => navigate('/privacy')}
-          onExportData={() => {}}
-          onExportHistory={() => {}}
-          onDeleteSourceData={() => {}}
-          onDeleteAllData={() => {}}
-          onResetSemblance={() => {}}
+          onExportData={() => showToast('Data export coming in a future update')}
+          onExportHistory={() => showToast('History export coming in a future update')}
+          onDeleteSourceData={() => showToast('Source data deletion coming in a future update')}
+          onDeleteAllData={() => showToast('Full data deletion coming in a future update')}
+          onResetSemblance={() => showToast('Reset coming in a future update')}
           onRenewLicense={() => navigate('/upgrade')}
           onActivateDigitalRepresentative={() => navigate('/upgrade')}
-          onViewDRAgreement={() => {}}
+          onViewDRAgreement={() => showToast('Agreement details coming in a future update')}
           onRenameSemblance={async (name) => {
-            dispatch({ type: 'SET_USER_NAME', name });
-            await setUserName(name).catch(() => {});
+            dispatch({ type: 'SET_SEMBLANCE_NAME', name });
+            await setAiName(name).catch(() => {});
           }}
-          onSignOut={() => {}}
-          onDeactivateLicense={() => {}}
+          onSignOut={() => showToast('Sign out coming in a future update')}
+          onDeactivateLicense={() => showToast('License deactivation coming in a future update')}
         />
-        {/* Intent settings — rendered as a row below the navigator */}
-        <button
-          type="button"
-          className="settings-extra-row"
-          onClick={() => navigate('/settings/intents')}
-          style={{ marginTop: 12 }}
-        >
-          <span>{t('screen.settings.intents_hard_limits')}</span>
-          <span className="settings-extra-row__arrow">{'\u2192'}</span>
-        </button>
+        {/* Intent settings — rendered as a row matching Settings card styling */}
+        <div style={{ marginTop: 12, borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+          <button
+            type="button"
+            className="settings-row"
+            onClick={() => navigate('/settings/intents')}
+            style={{ borderBottom: 'none' }}
+          >
+            <span className="settings-row__label">{t('screen.settings.intents_hard_limits')}</span>
+            <span className="settings-row__chevron">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#5E6B7C' }}>
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   );

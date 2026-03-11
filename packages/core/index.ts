@@ -223,11 +223,13 @@ export interface SemblanceCoreConfig {
 function defaultSocketPath(): string {
   const p = getPlatform();
   if (p.hardware.platform() === 'win32') {
-    // Per-user pipe name — must match Gateway's getDefaultSocketPath()
-    // Use username from homedir path to avoid node:os dependency
+    // Per-user, per-process pipe name — must match Gateway's getDefaultSocketPath()
+    // Use username from homedir path to avoid node:os dependency.
+    // PID suffix prevents collisions with stale pipes from crashed sidecars.
+    // Gateway and Core run in the same Node process, so process.pid always matches.
     const home = p.hardware.homedir();
     const username = home.split(/[/\\]/).pop() ?? 'default';
-    return `\\\\.\\pipe\\semblance-gateway-${username}`;
+    return `\\\\.\\pipe\\semblance-gateway-${username}-${process.pid}`;
   }
   return p.path.join(p.hardware.homedir(), '.semblance', 'gateway.sock');
 }

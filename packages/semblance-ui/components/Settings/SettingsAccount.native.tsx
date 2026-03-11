@@ -77,8 +77,8 @@ export function SettingsAccount({
             </View>
             <Text style={styles.cardDesc}>{t(`account.license_configs.${licenseStatus === 'founding-member' ? 'founding_member' : licenseStatus}.desc`)}</Text>
             <Text style={styles.cardMeta}>
-              {licenseStatus === 'trial' && trialDaysRemaining !== undefined
-                ? t('account.trial_days_remaining', { n: trialDaysRemaining })
+              {licenseStatus === 'free'
+                ? t('account.free_tier_active', 'Free tier active')
                 : t('account.activated_date', { date: licenseActivationDate })}
             </Text>
             {licenseStatus === 'expired' && (

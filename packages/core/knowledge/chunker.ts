@@ -41,7 +41,15 @@ export function chunkText(text: string, config?: ChunkerConfig): Chunk[] {
   }
 
   const rawChunks = recursiveSplit(text, chunkSize, SEPARATORS);
-  return mergeWithOverlap(rawChunks, chunkSize, overlap);
+  let chunks = mergeWithOverlap(rawChunks, chunkSize, overlap);
+
+  // Safety limit: cap chunks per document to prevent thousands of embedding calls
+  const MAX_CHUNKS_PER_DOCUMENT = 200;
+  if (chunks.length > MAX_CHUNKS_PER_DOCUMENT) {
+    chunks = chunks.slice(0, MAX_CHUNKS_PER_DOCUMENT);
+  }
+
+  return chunks;
 }
 
 /**

@@ -24,6 +24,7 @@ import { useAppDispatch } from '../state/AppState';
 import {
   detectHardware,
   setUserName,
+  setAiName as saveAiNamePref,
   setAutonomyTier,
   startModelDownloads,
   generateKnowledgeMoment,
@@ -327,7 +328,7 @@ export function OnboardingFlow() {
       )}
 
       {step === 'naming-ai' && (
-        <NamingYourAI onComplete={(name) => { setAiName(name); dispatch({ type: 'SET_SEMBLANCE_NAME', name }); goNext(); }} />
+        <NamingYourAI onComplete={async (name) => { setAiName(name); dispatch({ type: 'SET_SEMBLANCE_NAME', name }); await saveAiNamePref(name).catch(() => {}); goNext(); }} />
       )}
 
       {step === 'initialize' && (

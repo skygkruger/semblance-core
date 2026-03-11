@@ -23,10 +23,12 @@ export interface TransportConfig {
  */
 export function getDefaultSocketPath(): string {
   if (platform() === 'win32') {
-    // Per-user pipe name — prevents other users from connecting to our pipe
+    // Per-user, per-process pipe name — prevents collisions with stale pipes
+    // from crashed sidecars. Gateway and Core run in the same Node process,
+    // so process.pid always matches on both sides.
     const uid = userInfo().uid;
     const userSuffix = uid >= 0 ? `-${uid}` : `-${userInfo().username}`;
-    return `\\\\.\\pipe\\semblance-gateway${userSuffix}`;
+    return `\\\\.\\pipe\\semblance-gateway${userSuffix}-${process.pid}`;
   }
   const dir = join(homedir(), '.semblance');
   if (!existsSync(dir)) {
@@ -70,6 +72,7 @@ export class GatewayTransport {
 
   /**
    * Start listening for IPC connections.
+   * On EADDRINUSE (stale pipe from a crashed sidecar), retries once after cleanup.
    */
   async start(): Promise<void> {
     // Clean up stale socket file (Unix only)
@@ -77,7 +80,7 @@ export class GatewayTransport {
       unlinkSync(this.socketPath);
     }
 
-    return new Promise((resolve, reject) => {
+    const attemptListen = (): Promise<void> => new Promise((resolve, reject) => {
       this.server = createServer((socket) => {
         // Single connection only — reject if already connected
         if (this.client) {
@@ -121,6 +124,24 @@ export class GatewayTransport {
         resolve();
       });
     });
+
+    try {
+      await attemptListen();
+    } catch (err: unknown) {
+      // EADDRINUSE on Windows named pipes means a stale pipe from a crashed sidecar.
+      // Try connecting to see if anyone is actually listening — if not, retry.
+      if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'EADDRINUSE') {
+        console.error(`[Gateway] EADDRINUSE on ${this.socketPath} — attempting stale pipe cleanup`);
+        if (this.server) { this.server.close(); this.server = null; }
+
+        // On Windows, named pipes auto-clean when no process holds them.
+        // Brief delay lets the OS release the stale pipe handle.
+        await new Promise((r) => setTimeout(r, 500));
+        await attemptListen();
+      } else {
+        throw err;
+      }
+    }
   }
 
   /**

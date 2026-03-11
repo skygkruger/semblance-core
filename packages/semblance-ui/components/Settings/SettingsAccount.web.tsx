@@ -83,8 +83,8 @@ export function SettingsAccount({
             </div>
             <div style={{ fontSize: 13, color: '#A8B4C0', marginBottom: 4 }}>{t(`account.license_configs.${licenseStatus === 'founding-member' ? 'founding_member' : licenseStatus}.desc`)}</div>
             <div style={{ fontSize: 12, fontFamily: 'var(--fm)', color: '#5E6B7C' }}>
-              {licenseStatus === 'trial' && trialDaysRemaining !== undefined
-                ? t('account.trial_days_remaining', { n: trialDaysRemaining })
+              {licenseStatus === 'free'
+                ? t('account.free_tier_active', 'Free tier active')
                 : t('account.activated_date', { date: licenseActivationDate })}
             </div>
             {licenseStatus === 'expired' && (

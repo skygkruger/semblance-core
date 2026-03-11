@@ -1,7 +1,7 @@
 {
   "input": {
     "placeholder_default": "Awaiting direction",
-    "thinking_text": "On it.",
+    "thinking_text": "Thinking",
     "dismiss_document": "Dismiss document",
     "send": "Send",
     "send_message": "Send message",

@@ -131,14 +131,14 @@ const CREATE_CACHE_TABLE = `
 
 export class GraphVisualizationProvider {
   private db: DatabaseHandle;
-  private contactStore: ContactStore;
-  private relationshipAnalyzer: RelationshipAnalyzer;
+  private contactStore: ContactStore | null;
+  private relationshipAnalyzer: RelationshipAnalyzer | null;
   private reminderStore: ReminderStore | null;
 
   constructor(config: {
     db: DatabaseHandle;
-    contactStore: ContactStore;
-    relationshipAnalyzer: RelationshipAnalyzer;
+    contactStore: ContactStore | null;
+    relationshipAnalyzer: RelationshipAnalyzer | null;
     reminderStore?: ReminderStore;
   }) {
     this.db = config.db;
@@ -149,6 +149,47 @@ export class GraphVisualizationProvider {
 
   initSchema(): void {
     this.db.exec(CREATE_CACHE_TABLE);
+
+    // Ensure entities + entity_mentions + entity_relationships exist in this DB.
+    // DocumentStore creates them in core.db, but GraphVisualizationProvider may
+    // operate on prefsDb — CREATE IF NOT EXISTS is a no-op if they already exist.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS entities (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        aliases TEXT,
+        first_seen TEXT NOT NULL DEFAULT '',
+        last_seen TEXT NOT NULL DEFAULT '',
+        metadata TEXT
+      )
+    `);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS entity_mentions (
+        id TEXT PRIMARY KEY,
+        entity_id TEXT NOT NULL,
+        document_id TEXT NOT NULL,
+        chunk_id TEXT NOT NULL DEFAULT '',
+        context TEXT,
+        mentioned_at TEXT NOT NULL DEFAULT ''
+      )
+    `);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS entity_relationships (
+        id TEXT PRIMARY KEY,
+        source_id TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        relationship_type TEXT NOT NULL,
+        strength REAL DEFAULT 1.0,
+        first_seen TEXT,
+        last_seen TEXT,
+        metadata TEXT,
+        FOREIGN KEY (source_id) REFERENCES entities(id),
+        FOREIGN KEY (target_id) REFERENCES entities(id)
+      )
+    `);
   }
 
   /**
@@ -216,8 +257,8 @@ export class GraphVisualizationProvider {
     this.addRelationshipEdges(edges, edgeKeys, nodeIds);
 
     // --- Clusters from relationship graph ---
-    const relGraph = this.relationshipAnalyzer.buildRelationshipGraph();
-    for (const cluster of relGraph.clusters) {
+    const relGraph = this.relationshipAnalyzer?.buildRelationshipGraph();
+    for (const cluster of relGraph?.clusters ?? []) {
       const clusterNodeIds = cluster.contactIds
         .map(cid => `person_${cid}`)
         .filter(nid => nodeIds.has(nid));
@@ -355,13 +396,19 @@ export class GraphVisualizationProvider {
    */
   getGrowthTimeline(granularity: 'day' | 'week' | 'month' = 'day'): GrowthDataPoint[] {
     // Query entities first_seen + documents created_at
-    const entityDates = this.db.prepare(
-      'SELECT first_seen as date FROM entities ORDER BY first_seen ASC'
-    ).all() as { date: string }[];
+    let entityDates: { date: string }[] = [];
+    try {
+      entityDates = this.db.prepare(
+        'SELECT first_seen as date FROM entities ORDER BY first_seen ASC'
+      ).all() as { date: string }[];
+    } catch { /* entities table may not exist yet */ }
 
-    const docDates = this.db.prepare(
-      'SELECT created_at as date FROM documents ORDER BY created_at ASC'
-    ).all() as { date: string }[];
+    let docDates: { date: string }[] = [];
+    try {
+      docDates = this.db.prepare(
+        'SELECT created_at as date FROM documents ORDER BY created_at ASC'
+      ).all() as { date: string }[];
+    } catch { /* documents table may not exist yet */ }
 
     const allDates = [...entityDates, ...docDates]
       .map(r => r.date.substring(0, 10)) // YYYY-MM-DD
@@ -573,6 +620,7 @@ export class GraphVisualizationProvider {
   // ─── Private: Node Builders ────────────────────────────────────────────────
 
   private addPersonNodes(nodes: VisualizationNode[], nodeIds: Set<string>): void {
+    if (!this.contactStore) return;
     const contacts = this.contactStore.listContacts({ limit: 500 });
     for (const contact of contacts) {
       const id = `person_${contact.id}`;
@@ -646,50 +694,54 @@ export class GraphVisualizationProvider {
   }
 
   private addDocumentNodes(nodes: VisualizationNode[], nodeIds: Set<string>): void {
-    const docs = this.db.prepare(
-      'SELECT d.id, d.title, d.created_at, d.source, d.source_path, d.metadata, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id GROUP BY d.id ORDER BY mention_count DESC LIMIT 500'
-    ).all() as Array<{ id: string; title: string; created_at: string; source: string; source_path: string | null; metadata: string | null; mention_count: number }>;
+    try {
+      const docs = this.db.prepare(
+        'SELECT d.id, d.title, d.created_at, d.source, d.source_path, d.metadata, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id GROUP BY d.id ORDER BY mention_count DESC LIMIT 500'
+      ).all() as Array<{ id: string; title: string; created_at: string; source: string; source_path: string | null; metadata: string | null; mention_count: number }>;
 
-    // Separate directory docs from file docs
-    const directoryDocs = docs.filter(d => d.source === 'directory');
-    const directoryPaths = directoryDocs.map(d => d.source_path).filter(Boolean) as string[];
+      // Separate directory docs from file docs
+      const directoryDocs = docs.filter(d => d.source === 'directory');
+      const directoryPaths = directoryDocs.map(d => d.source_path).filter(Boolean) as string[];
 
-    for (const doc of docs) {
-      if (doc.source === 'directory') {
-        // Create a directory node
-        const id = `directory_${doc.id}`;
-        if (nodeIds.has(id)) continue;
-        nodeIds.add(id);
+      for (const doc of docs) {
+        if (doc.source === 'directory') {
+          // Create a directory node
+          const id = `directory_${doc.id}`;
+          if (nodeIds.has(id)) continue;
+          nodeIds.add(id);
 
-        let meta: Record<string, unknown> = {};
-        try { meta = doc.metadata ? JSON.parse(doc.metadata) : {}; } catch { /* ignore */ }
-        const fileCount = docs.filter(d =>
-          d.source === 'local_file' && d.source_path?.startsWith(doc.source_path!)
-        ).length;
+          let meta: Record<string, unknown> = {};
+          try { meta = doc.metadata ? JSON.parse(doc.metadata) : {}; } catch { /* ignore */ }
+          const fileCount = docs.filter(d =>
+            d.source === 'local_file' && d.source_path?.startsWith(doc.source_path!)
+          ).length;
 
-        nodes.push({
-          id,
-          label: doc.title,
-          type: 'directory',
-          size: Math.min(fileCount, 20),
-          createdAt: doc.created_at,
-          domain: 'general',
-          metadata: { ...meta, documentId: doc.id, childCount: fileCount, path: doc.source_path },
-        });
-      } else if (doc.source === 'local_file') {
-        // Check if this file belongs to an indexed directory
-        const parentDir = directoryPaths.find(dirPath => doc.source_path?.startsWith(dirPath));
-        if (parentDir) {
-          // Skip — this file is a child of a directory node, shown in drill-down
-          continue;
+          nodes.push({
+            id,
+            label: doc.title,
+            type: 'directory',
+            size: Math.min(fileCount, 20),
+            createdAt: doc.created_at,
+            domain: 'general',
+            metadata: { ...meta, documentId: doc.id, childCount: fileCount, path: doc.source_path },
+          });
+        } else if (doc.source === 'local_file') {
+          // Check if this file belongs to an indexed directory
+          const parentDir = directoryPaths.find(dirPath => doc.source_path?.startsWith(dirPath));
+          if (parentDir) {
+            // Skip — this file is a child of a directory node, shown in drill-down
+            continue;
+          }
+
+          // Standalone file — show as individual node
+          this.pushDocumentNode(nodes, nodeIds, doc);
+        } else {
+          // Email, calendar, contact, etc. — show as individual node
+          this.pushDocumentNode(nodes, nodeIds, doc);
         }
-
-        // Standalone file — show as individual node
-        this.pushDocumentNode(nodes, nodeIds, doc);
-      } else {
-        // Email, calendar, contact, etc. — show as individual node
-        this.pushDocumentNode(nodes, nodeIds, doc);
       }
+    } catch {
+      // documents table might not exist if DocumentStore hasn't initialized yet
     }
   }
 
@@ -986,6 +1038,7 @@ export class GraphVisualizationProvider {
     edgeKeys: Set<string>,
     nodeIds: Set<string>,
   ): void {
+    if (!this.relationshipAnalyzer) return; // No relationship analyzer — skip
     const relGraph = this.relationshipAnalyzer.buildRelationshipGraph();
 
     for (const edge of relGraph.edges) {
@@ -1024,6 +1077,7 @@ export class GraphVisualizationProvider {
 
   private buildEmailToNodeMap(nodeIds: Set<string>): Map<string, string> {
     const map = new Map<string, string>();
+    if (!this.contactStore) return map; // No contact store — return empty map
     const contacts = this.contactStore.listContacts({ limit: 500 });
     for (const contact of contacts) {
       const nodeId = `person_${contact.id}`;

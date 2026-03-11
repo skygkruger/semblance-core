@@ -114,10 +114,10 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
 
   const openCheckout = useCallback((plan: 'monthly' | 'founding' | 'lifetime') => {
     const url = PAYMENT_LINKS[plan];
-    // Open in system browser — NO in-app network calls
-    // @ts-expect-error — Tauri shell plugin may not have types in all environments
-    window.__TAURI__?.shell?.open?.(url)?.catch?.(() => {
-      // Fallback: window.open (won't work in Tauri webview but is a safe fallback)
+    import('@tauri-apps/plugin-shell').then((shell) => {
+      shell.open(url);
+    }).catch(() => {
+      // Fallback for environments without shell plugin
       window.open(url, '_blank');
     });
   }, []);
@@ -137,8 +137,9 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
       .then((res) => res.json() as Promise<{ url?: string; error?: string }>)
       .then((data) => {
         if (data.url) {
-          // @ts-expect-error — Tauri shell plugin may not have types in all environments
-          window.__TAURI__?.shell?.open?.(data.url)?.catch?.(() => {
+          import('@tauri-apps/plugin-shell').then((shell) => {
+            shell.open(data.url!);
+          }).catch(() => {
             window.open(data.url, '_blank');
           });
         }

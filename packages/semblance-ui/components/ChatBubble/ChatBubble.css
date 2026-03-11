@@ -98,6 +98,14 @@
   animation: loading-pulse 1s ease-in-out infinite;
 }
 
+.chat-bubble__spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  min-width: 70px;
+}
+
 @keyframes loading-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }

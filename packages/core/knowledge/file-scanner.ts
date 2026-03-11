@@ -113,6 +113,21 @@ export async function readFileContent(filePath: string): Promise<FileContent> {
   const ext = p.path.extname(filePath).toLowerCase();
   const name = p.path.basename(filePath, ext);
 
+  // Helper: detect binary files by checking for nul bytes in text content.
+  // Binary files (executables, images misnamed as .txt, etc.) contain nul bytes
+  // that cause "nul byte found in provided data" errors during tokenization/embedding.
+  function sanitizeTextContent(content: string, fallbackMime: string): FileContent {
+    if (content.includes('\0')) {
+      return {
+        path: filePath,
+        title: name,
+        content: `[Binary file: ${name}${ext}] — Not text-extractable.`,
+        mimeType: 'application/octet-stream',
+      };
+    }
+    return { path: filePath, title: name, content, mimeType: fallbackMime };
+  }
+
   switch (ext) {
     case '.txt':
     case '.md':
@@ -122,12 +137,7 @@ export async function readFileContent(filePath: string): Promise<FileContent> {
       const mimeMap: Record<string, string> = {
         '.md': 'text/markdown', '.csv': 'text/csv', '.rtf': 'application/rtf',
       };
-      return {
-        path: filePath,
-        title: name,
-        content,
-        mimeType: mimeMap[ext] ?? 'text/plain',
-      };
+      return sanitizeTextContent(content, mimeMap[ext] ?? 'text/plain');
     }
 
     // Code files — read as plain text
@@ -140,7 +150,7 @@ export async function readFileContent(filePath: string): Promise<FileContent> {
     case '.xml': case '.html': case '.css': case '.scss': case '.less':
     case '.sql': case '.graphql': case '.proto': case '.dockerfile': {
       const content = await p.fs.readFile(filePath, 'utf-8');
-      return { path: filePath, title: name, content, mimeType: 'text/plain' };
+      return sanitizeTextContent(content, 'text/plain');
     }
 
     case '.xlsx':

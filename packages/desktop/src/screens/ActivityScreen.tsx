@@ -112,8 +112,6 @@ export function ActivityScreen() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
-      <h1 className="settings-header__title">{t('screen.activity.title')}</h1>
-
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, padding: '0 16px' }}>
         {(['all', 'success', 'pending', 'error', 'alter_ego'] as const).map((status) => {
@@ -214,7 +212,10 @@ export function ActivityScreen() {
                     reasoning={receipt.reasoning}
                     undoExpiresAt={receipt.undoExpiresAt ?? null}
                     onUndo={handleUndoReceipt}
-                    onDismiss={() => {}}
+                    onDismiss={() => {
+                      // Refresh receipts list after dismiss
+                      loadAlterEgoReceipts();
+                    }}
                   />
                 ))}
               </div>

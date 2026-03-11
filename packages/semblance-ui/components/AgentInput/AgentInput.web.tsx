@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { WireframeSpinner } from '../WireframeSpinner/WireframeSpinner';
 import type { AgentInputProps, AttachmentPill } from './AgentInput.types';
 import {
   MIC_PATH,
@@ -213,10 +212,10 @@ export function AgentInput({
           data-testid="agent-input-field"
         />
 
-        {/* Thinking overlay — wireframe spinner + text */}
+        {/* Thinking overlay — green cursor + "Thinking" text */}
         {thinking && (
           <div className="agent-input__thinking-overlay" data-testid="thinking-overlay">
-            <WireframeSpinner size={60} speed={0.8} />
+            <span className="agent-input__thinking-cursor" />
             <span className="agent-input__thinking-text">{t('input.thinking_text')}</span>
           </div>
         )}

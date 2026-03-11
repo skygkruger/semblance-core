@@ -53,9 +53,9 @@ export const ActiveLicense: Story = {
   },
 };
 
-export const Trial: Story = {
+export const Free: Story = {
   args: {
-    licenseStatus: 'trial',
+    licenseStatus: 'free',
     licenseActivationDate: 'Feb 20, 2026',
     trialDaysRemaining: 12,
     digitalRepresentativeActive: false,

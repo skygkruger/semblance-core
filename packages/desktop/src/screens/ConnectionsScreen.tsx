@@ -4,9 +4,10 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { emit } from '@tauri-apps/api/event';
 import { ConnectionsScreen as ConnectionsScreenUI } from '@semblance/ui';
 import type { ConnectorEntry } from '@semblance/ui';
-import { ipcSend } from '../ipc/commands';
+import { ipcSend, getConnectedServices } from '../ipc/commands';
 import { useLicense } from '../contexts/LicenseContext';
 import {
   createDefaultConnectorRegistry,
@@ -15,7 +16,7 @@ import type {
   ConnectorCategory as CoreConnectorCategory,
   ConnectorState,
 } from '@semblance/core/importers/connector-status';
-import { useAppState } from '../state/AppState';
+import { useAppState, useAppDispatch } from '../state/AppState';
 
 const registry = createDefaultConnectorRegistry();
 
@@ -49,6 +50,7 @@ function mapCategory(cat: CoreConnectorCategory): 'native' | 'oauth' | 'manual' 
 
 export function ConnectionsScreen() {
   const state = useAppState();
+  const dispatch = useAppDispatch();
   const license = useLicense();
   const [connectors, setConnectors] = useState<ConnectorEntry[]>([]);
 
@@ -78,16 +80,66 @@ export function ConnectionsScreen() {
     setConnectors(entries);
   }, [state, license.tier]);
 
+  // Hydrate connector states from stored OAuth tokens on mount
+  useEffect(() => {
+    getConnectedServices().then((connectedIds) => {
+      if (connectedIds && Array.isArray(connectedIds)) {
+        for (const connectorId of connectedIds) {
+          dispatch({
+            type: 'SET_CONNECTOR_STATE',
+            connectorId,
+            state: {
+              connectorId,
+              status: 'connected',
+              lastSyncedAt: new Date().toISOString(),
+            },
+          });
+        }
+      }
+    }).catch(() => {});
+  }, [dispatch]);
+
   const handleConnect = useCallback(async (connectorId: string) => {
     try {
-      await ipcSend({
+      const result = await ipcSend({
         action: 'connector.auth',
         payload: { connectorId },
       });
+      // Check if sidecar returned a failure response
+      if (result && typeof result === 'object' && (result as Record<string, unknown>).success === false) {
+        const errorMsg = (result as Record<string, unknown>).error as string || 'Connection failed';
+        console.error(`Connector auth failed for ${connectorId}:`, errorMsg);
+        emit('semblance://toast', {
+          id: `conn_err_${Date.now()}`,
+          message: errorMsg,
+          variant: 'attention',
+        }).catch(() => {});
+      } else {
+        // Auth succeeded — update connector state so UI shows "Connected"
+        dispatch({
+          type: 'SET_CONNECTOR_STATE',
+          connectorId,
+          state: {
+            connectorId,
+            status: 'connected',
+            lastSyncedAt: new Date().toISOString(),
+          },
+        });
+        emit('semblance://toast', {
+          id: `conn_ok_${Date.now()}`,
+          message: `${connectorId} connected successfully`,
+          variant: 'success',
+        }).catch(() => {});
+      }
     } catch (err) {
       console.error(`Failed to connect ${connectorId}:`, err);
+      emit('semblance://toast', {
+        id: `conn_err_${Date.now()}`,
+        message: `Failed to connect ${connectorId}`,
+        variant: 'attention',
+      }).catch(() => {});
     }
-  }, []);
+  }, [dispatch]);
 
   const handleDisconnect = useCallback(async (connectorId: string) => {
     try {

@@ -156,7 +156,10 @@ export function MorningBriefScreen() {
           <KnowledgeMomentDisplay
             moment={knowledgeMoment}
             aiName={aiName}
-            onContinue={() => {}}
+            onContinue={() => {
+              // Navigate to chat to continue the knowledge conversation
+              window.location.hash = '#/chat';
+            }}
           />
         )}
 

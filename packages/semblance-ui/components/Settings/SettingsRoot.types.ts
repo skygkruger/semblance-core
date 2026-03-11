@@ -6,7 +6,7 @@ export interface SettingsRootProps {
   notificationSummary: string;
   autonomyTier: 'guardian' | 'partner' | 'alter-ego';
   privacyStatus: 'clean' | 'review-needed';
-  licenseStatus: 'founding-member' | 'active' | 'trial' | 'expired';
+  licenseStatus: 'founding-member' | 'active' | 'free' | 'expired';
   appVersion: string;
   onNavigate: (screen: SettingsScreen) => void;
 }
@@ -20,6 +20,6 @@ export const tierLabels: Record<string, string> = {
 export const licenseLabels: Record<string, string> = {
   'founding-member': 'Founding Member',
   active: 'Active',
-  trial: 'Trial',
+  free: 'Free',
   expired: 'Expired',
 };

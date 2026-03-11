@@ -1,13 +1,28 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DirectoryPicker, ProgressBar } from '@semblance/ui';
-import { startIndexing } from '../ipc/commands';
+import { startIndexing, getKnowledgeStats } from '../ipc/commands';
+import { useTauriEvent } from '../hooks/useTauriEvent';
 import { useAppState, useAppDispatch } from '../state/AppState';
 
 export function FilesScreen() {
   const { t } = useTranslation();
   const state = useAppState();
   const dispatch = useAppDispatch();
+
+  // Fetch knowledge stats on mount
+  useEffect(() => {
+    getKnowledgeStats().then((stats) => {
+      dispatch({ type: 'SET_KNOWLEDGE_STATS', stats });
+    }).catch(() => {});
+  }, [dispatch]);
+
+  // Refresh stats when indexing completes
+  useTauriEvent('semblance://indexing-complete', useCallback(() => {
+    getKnowledgeStats().then((stats) => {
+      dispatch({ type: 'SET_KNOWLEDGE_STATS', stats });
+    }).catch(() => {});
+  }, [dispatch]));
 
   const handleAddFolder = useCallback(async () => {
     try {
