@@ -127,17 +127,23 @@ export class Indexer {
       };
     }
 
-    // Build vector chunks
-    const vectorChunks = textChunks.map((chunk, i) => ({
-      id: nanoid(),
-      documentId,
-      content: chunk.content,
-      chunkIndex: chunk.chunkIndex,
-      embedding: embeddings[i]!,
-      metadata: JSON.stringify(params.metadata ?? {}),
-      sourceType: params.source,
-      sourceId: params.sourcePath ?? '',
-    }));
+    // Build vector chunks — skip any chunks where embedding is missing
+    const vectorChunks = textChunks
+      .map((chunk, i) => {
+        const embedding = embeddings[i];
+        if (!embedding || embedding.length === 0) return null;
+        return {
+          id: nanoid(),
+          documentId,
+          content: chunk.content,
+          chunkIndex: chunk.chunkIndex,
+          embedding,
+          metadata: JSON.stringify(params.metadata ?? {}),
+          sourceType: params.source,
+          sourceId: params.sourcePath ?? '',
+        };
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null);
 
     // Store in vector database
     try {

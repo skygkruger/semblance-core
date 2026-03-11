@@ -123,19 +123,25 @@ export class EmbeddingPipeline {
   }
 
   /**
-   * Embed a batch with retry logic.
+   * Embed a batch with retry logic and per-call timeout.
    */
   private async embedWithRetry(
     texts: string[],
   ): Promise<{ embeddings: number[][]; retriesUsed: number }> {
     let lastError: Error | null = null;
+    const EMBED_TIMEOUT_MS = 60_000; // 60s per batch — safety net for hung native runtime
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        const response: EmbedResponse = await this.llm.embed({
-          model: this.model,
-          input: texts,
-        });
+        const response: EmbedResponse = await Promise.race([
+          this.llm.embed({
+            model: this.model,
+            input: texts,
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Embedding timed out after ${EMBED_TIMEOUT_MS}ms`)), EMBED_TIMEOUT_MS)
+          ),
+        ]);
 
         // Validate dimensions
         for (const embedding of response.embeddings) {

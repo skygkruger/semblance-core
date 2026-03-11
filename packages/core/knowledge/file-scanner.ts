@@ -105,10 +105,26 @@ async function scanRecursive(dirPath: string, results: ScannedFile[]): Promise<v
   }
 }
 
+const READ_FILE_TIMEOUT_MS = 30_000; // 30s — corrupt PDFs/DOCX can hang forever
+
 /**
  * Read and extract text content from a file.
+ * Wraps actual parsing with a timeout to prevent corrupt files from hanging the indexer.
  */
 export async function readFileContent(filePath: string): Promise<FileContent> {
+  const p = getPlatform();
+  const ext = p.path.extname(filePath).toLowerCase();
+  const name = p.path.basename(filePath, ext);
+
+  return Promise.race([
+    readFileContentInner(filePath),
+    new Promise<FileContent>((_, reject) =>
+      setTimeout(() => reject(new Error(`readFileContent timed out after ${READ_FILE_TIMEOUT_MS}ms for ${name}${ext}`)), READ_FILE_TIMEOUT_MS)
+    ),
+  ]);
+}
+
+async function readFileContentInner(filePath: string): Promise<FileContent> {
   const p = getPlatform();
   const ext = p.path.extname(filePath).toLowerCase();
   const name = p.path.basename(filePath, ext);

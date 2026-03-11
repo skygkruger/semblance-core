@@ -151,8 +151,8 @@ export class GraphVisualizationProvider {
     this.db.exec(CREATE_CACHE_TABLE);
 
     // Ensure entities + entity_mentions + entity_relationships exist in this DB.
-    // DocumentStore creates them in core.db, but GraphVisualizationProvider may
-    // operate on prefsDb — CREATE IF NOT EXISTS is a no-op if they already exist.
+    // DocumentStore creates them in documents.db. CREATE IF NOT EXISTS is a
+    // no-op if they already exist — safe to call on every init.
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS entities (
         id TEXT PRIMARY KEY,
@@ -623,76 +623,86 @@ export class GraphVisualizationProvider {
   // ─── Private: Node Builders ────────────────────────────────────────────────
 
   private addPersonNodes(nodes: VisualizationNode[], nodeIds: Set<string>): void {
-    if (!this.contactStore) return;
-    const contacts = this.contactStore.listContacts({ limit: 500 });
-    for (const contact of contacts) {
-      const id = `person_${contact.id}`;
-      if (nodeIds.has(id)) continue;
-      nodeIds.add(id);
+    // Pull contacts from ContactStore if available
+    if (this.contactStore) {
+      const contacts = this.contactStore.listContacts({ limit: 500 });
+      for (const contact of contacts) {
+        const id = `person_${contact.id}`;
+        if (nodeIds.has(id)) continue;
+        nodeIds.add(id);
 
-      const domain = this.classifyPersonDomain(contact.organization ?? '', contact.emails);
+        const domain = this.classifyPersonDomain(contact.organization ?? '', contact.emails);
 
-      nodes.push({
-        id,
-        label: contact.displayName,
-        type: 'person',
-        size: Math.max(1, contact.interactionCount),
-        createdAt: contact.createdAt,
-        domain,
-        metadata: {
-          contactId: contact.id,
-          organization: contact.organization,
-          relationshipType: contact.relationshipType,
-          activityScore: Math.min(1, contact.interactionCount / 50),
-        },
-      });
+        nodes.push({
+          id,
+          label: contact.displayName,
+          type: 'person',
+          size: Math.max(1, contact.interactionCount),
+          createdAt: contact.createdAt,
+          domain,
+          metadata: {
+            contactId: contact.id,
+            organization: contact.organization,
+            relationshipType: contact.relationshipType,
+            activityScore: Math.min(1, contact.interactionCount / 50),
+          },
+        });
+      }
     }
 
-    // Also pull person entities from entities table that aren't already contacts
-    const entityPersons = this.db.prepare(
-      "SELECT * FROM entities WHERE type = 'person' LIMIT 200"
-    ).all() as Array<{ id: string; name: string; first_seen: string; last_seen: string; metadata: string | null }>;
+    // Also pull person entities from entities table (works even without contactStore)
+    try {
+      const entityPersons = this.db.prepare(
+        "SELECT * FROM entities WHERE type = 'person' LIMIT 200"
+      ).all() as Array<{ id: string; name: string; first_seen: string; last_seen: string; metadata: string | null }>;
 
-    for (const entity of entityPersons) {
-      const id = `person_entity_${entity.id}`;
-      if (nodeIds.has(id)) continue;
-      nodeIds.add(id);
+      for (const entity of entityPersons) {
+        const id = `person_entity_${entity.id}`;
+        if (nodeIds.has(id)) continue;
+        nodeIds.add(id);
 
-      nodes.push({
-        id,
-        label: entity.name,
-        type: 'person',
-        size: 1,
-        createdAt: entity.first_seen,
-        domain: 'general',
-        metadata: { entityId: entity.id },
-      });
+        nodes.push({
+          id,
+          label: entity.name,
+          type: 'person',
+          size: 1,
+          createdAt: entity.first_seen,
+          domain: 'general',
+          metadata: { entityId: entity.id },
+        });
+      }
+    } catch {
+      // entities table may not exist yet
     }
   }
 
   private addTopicNodes(nodes: VisualizationNode[], nodeIds: Set<string>): void {
-    const topics = this.db.prepare(
-      "SELECT e.id, e.name, e.first_seen, COUNT(m.id) as mention_count FROM entities e LEFT JOIN entity_mentions m ON e.id = m.entity_id WHERE e.type = 'topic' GROUP BY e.id ORDER BY mention_count DESC LIMIT 100"
-    ).all() as Array<{ id: string; name: string; first_seen: string; mention_count: number }>;
+    try {
+      const topics = this.db.prepare(
+        "SELECT e.id, e.name, e.first_seen, COUNT(m.id) as mention_count FROM entities e LEFT JOIN entity_mentions m ON e.id = m.entity_id WHERE e.type = 'topic' GROUP BY e.id ORDER BY mention_count DESC LIMIT 100"
+      ).all() as Array<{ id: string; name: string; first_seen: string; mention_count: number }>;
 
-    for (const topic of topics) {
-      const id = `topic_${topic.id}`;
-      if (nodeIds.has(id)) continue;
-      nodeIds.add(id);
+      for (const topic of topics) {
+        const id = `topic_${topic.id}`;
+        if (nodeIds.has(id)) continue;
+        nodeIds.add(id);
 
-      nodes.push({
-        id,
-        label: topic.name,
-        type: 'topic',
-        size: Math.max(1, topic.mention_count),
-        createdAt: topic.first_seen,
-        domain: 'general',
-        metadata: {
-          entityId: topic.id,
-          mentionCount: topic.mention_count,
-          activityScore: Math.min(1, topic.mention_count / 20),
-        },
-      });
+        nodes.push({
+          id,
+          label: topic.name,
+          type: 'topic',
+          size: Math.max(1, topic.mention_count),
+          createdAt: topic.first_seen,
+          domain: 'general',
+          metadata: {
+            entityId: topic.id,
+            mentionCount: topic.mention_count,
+            activityScore: Math.min(1, topic.mention_count / 20),
+          },
+        });
+      }
+    } catch {
+      // entities/entity_mentions tables may not exist yet
     }
   }
 
@@ -959,29 +969,33 @@ export class GraphVisualizationProvider {
     edgeKeys: Set<string>,
     nodeIds: Set<string>,
   ): void {
-    // entity_mentions links entity_id to document_id
-    const mentions = this.db.prepare(
-      'SELECT entity_id, document_id, COUNT(*) as count FROM entity_mentions GROUP BY entity_id, document_id'
-    ).all() as Array<{ entity_id: string; document_id: string; count: number }>;
+    try {
+      // entity_mentions links entity_id to document_id
+      const mentions = this.db.prepare(
+        'SELECT entity_id, document_id, COUNT(*) as count FROM entity_mentions GROUP BY entity_id, document_id'
+      ).all() as Array<{ entity_id: string; document_id: string; count: number }>;
 
-    for (const m of mentions) {
-      // Try to find the node IDs — could be person or topic entity
-      const entityNodeId = this.findEntityNodeId(m.entity_id, nodeIds);
-      const docNodeId = `document_${m.document_id}`;
+      for (const m of mentions) {
+        // Try to find the node IDs — could be person or topic entity
+        const entityNodeId = this.findEntityNodeId(m.entity_id, nodeIds);
+        const docNodeId = `document_${m.document_id}`;
 
-      if (!entityNodeId || !nodeIds.has(docNodeId)) continue;
+        if (!entityNodeId || !nodeIds.has(docNodeId)) continue;
 
-      const key = [entityNodeId, docNodeId].sort().join('::');
-      if (edgeKeys.has(key)) continue;
-      edgeKeys.add(key);
+        const key = [entityNodeId, docNodeId].sort().join('::');
+        if (edgeKeys.has(key)) continue;
+        edgeKeys.add(key);
 
-      edges.push({
-        id: `edge_mention_${m.entity_id}_${m.document_id}`,
-        sourceId: entityNodeId,
-        targetId: docNodeId,
-        weight: Math.min(1, m.count / 10),
-        label: 'mentioned_in',
-      });
+        edges.push({
+          id: `edge_mention_${m.entity_id}_${m.document_id}`,
+          sourceId: entityNodeId,
+          targetId: docNodeId,
+          weight: Math.min(1, m.count / 10),
+          label: 'mentioned_in',
+        });
+      }
+    } catch {
+      // entity_mentions table may not exist yet
     }
   }
 
