@@ -64,3 +64,26 @@ export const AlreadyRePrefixed: Story = {
     onCancel: () => {},
   },
 };
+
+export const NewCompose: Story = {
+  args: {
+    to: ['manager@company.com'],
+    toNames: ['Jamie Torres'],
+    subject: 'Quarterly review summary',
+    draftBody: 'Hi Jamie,\n\nHere\'s a quick summary of the key points from our quarterly review...\n\nBest regards,',
+    onSend: () => {},
+    onSaveDraft: () => {},
+    onCancel: () => {},
+  },
+};
+
+export const NewComposeEmpty: Story = {
+  args: {
+    to: ['client@external.co', 'cc@external.co'],
+    toNames: ['Morgan Lee', 'Pat Nguyen'],
+    subject: 'Project kickoff — next steps',
+    onSend: () => {},
+    onSaveDraft: () => {},
+    onCancel: () => {},
+  },
+};

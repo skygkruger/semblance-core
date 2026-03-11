@@ -85,6 +85,15 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'network.sendRevocation': 15,  // Revoking sharing with peer
   'network.syncContext': 60,     // Syncing context with peer (saves manual sharing)
   'file.write': 30,              // Writing file to disk (saves manual save)
+  'subscription.insight': 600,   // Research + decision time for subscription flagging
+  'dark_pattern.detected': 300,  // Identifying and reframing manipulative content
+  'insight.proactive': 120,      // Proactive insight surfacing
+  'insight.meeting_prep': 300,   // Meeting prep document surfacing
+  'insight.follow_up': 120,      // Follow-up suggestion
+  'insight.deadline': 60,        // Deadline alert
+  'insight.conflict': 180,       // Calendar conflict detection
+  'escalation.prompt': 0,        // Autonomy escalation prompt — informational
+  'health.entry': 30,            // Health metric entry
 };
 
 /**

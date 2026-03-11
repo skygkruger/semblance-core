@@ -70,6 +70,15 @@ export const ActionType = z.enum([
   'network.sendRevocation',
   'network.syncContext',
   'file.write',
+  'subscription.insight',
+  'dark_pattern.detected',
+  'insight.proactive',
+  'insight.meeting_prep',
+  'insight.follow_up',
+  'insight.deadline',
+  'insight.conflict',
+  'escalation.prompt',
+  'health.entry',
 ]);
 export type ActionType = z.infer<typeof ActionType>;
 
@@ -595,6 +604,16 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'network.sendRevocation': NetworkSendPayload.strict(),
   'network.syncContext': NetworkSendPayload.strict(),
   'file.write': FileWritePayload.strict(),
+  // Inline action types — these are UI-surfaced events, payload is passthrough
+  'subscription.insight': z.object({ charges: z.array(z.any()), summary: z.any() }).passthrough(),
+  'dark_pattern.detected': z.object({ confidence: z.number(), patterns: z.array(z.any()), reframe: z.string() }).passthrough(),
+  'insight.proactive': z.object({ title: z.string(), summary: z.string() }).passthrough(),
+  'insight.meeting_prep': z.object({ title: z.string(), summary: z.string() }).passthrough(),
+  'insight.follow_up': z.object({ title: z.string(), summary: z.string() }).passthrough(),
+  'insight.deadline': z.object({ title: z.string(), summary: z.string() }).passthrough(),
+  'insight.conflict': z.object({ title: z.string(), summary: z.string() }).passthrough(),
+  'escalation.prompt': z.object({ domain: z.string(), message: z.string() }).passthrough(),
+  'health.entry': z.object({ metric: z.string(), value: z.number() }).passthrough(),
 };
 
 // --- Core protocol schemas ---

@@ -1,7 +1,14 @@
 import { useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChatBubble, AgentInput, StatusIndicator, DocumentPanel, ArtifactPanel, ConversationHistoryPanel } from '@semblance/ui';
+import { ChatBubble, AgentInput, StatusIndicator, DocumentPanel, ArtifactPanel, ConversationHistoryPanel, ApprovalCard, AlterEgoDraftReview, AlterEgoReceipt, AlterEgoBatchReview, ActionCard } from '@semblance/ui';
 import type { ArtifactItem } from '@semblance/ui';
+import { MessageDraftCard } from '../components/MessageDraftCard';
+import { ReminderCard } from '../components/ReminderCard';
+import { SubscriptionInsightCard } from '../components/SubscriptionInsightCard';
+import { EscalationPromptCard } from '../components/EscalationPromptCard';
+import { DarkPatternBadge } from '../components/DarkPatternBadge';
+import { InsightCard } from '../components/InsightCard';
+import { ReplyComposer } from '../components/ReplyComposer';
 import { VoiceButton } from '../components/VoiceButton';
 import { VoiceWaveform } from '../components/VoiceWaveform';
 import { WebFetchSummary } from '../components/WebFetchSummary';
@@ -29,10 +36,12 @@ import {
   pinConversation,
   unpinConversation,
   searchConversations,
+  approveAction,
+  rejectAction,
 } from '../ipc/commands';
 import { validateAttachment, mimeFromExtension } from '@semblance/core/agent/attachments';
 import { createDesktopVoiceAdapter } from '@semblance/core/platform/desktop-voice';
-import type { DocumentContext, ChatMessage } from '../state/AppState';
+import type { DocumentContext, ChatMessage, ChatActionItem } from '../state/AppState';
 
 export function ChatScreen() {
   const { t } = useTranslation();
@@ -428,9 +437,22 @@ export function ChatScreen() {
   }, [dispatch]));
 
   // Listen for chat completion — refresh conversation list to show updated preview
-  useTauriEvent<{ id: string; content: string }>('semblance://chat-complete', useCallback(() => {
+  useTauriEvent<{ id: string; content: string; actions?: Array<{ id: string; type: string; status: string; payload: unknown; reasoning?: string }> }>('semblance://chat-complete', useCallback((payload) => {
     dispatch({ type: 'SET_IS_RESPONDING', value: false });
     refreshConversationList();
+    // Surface actions from orchestrator inline in chat
+    if (payload.actions && payload.actions.length > 0) {
+      dispatch({
+        type: 'SET_LAST_MESSAGE_ACTIONS',
+        actions: payload.actions.map(a => ({
+          id: a.id,
+          type: a.type,
+          status: a.status as ChatActionItem['status'],
+          payload: (a.payload ?? {}) as Record<string, unknown>,
+          reasoning: a.reasoning,
+        })),
+      });
+    }
   }, [dispatch, refreshConversationList]));
 
   // Sound: Alter Ego batch ready
@@ -502,6 +524,46 @@ export function ChatScreen() {
     }
   }, [dispatch, state.activeConversationId]);
 
+  // Action approve/reject handlers for inline approval cards
+  const handleApproveAction = useCallback(async (actionId: string) => {
+    try {
+      await approveAction(actionId);
+      // Update the action status in the chat message
+      const msgs = [...state.chatMessages];
+      for (const msg of msgs) {
+        if (msg.actions) {
+          const act = msg.actions.find(a => a.id === actionId);
+          if (act) {
+            act.status = 'executed';
+            break;
+          }
+        }
+      }
+      dispatch({ type: 'REPLACE_CHAT_MESSAGES', messages: msgs });
+    } catch (err) {
+      console.error('Failed to approve action:', err);
+    }
+  }, [state.chatMessages, dispatch]);
+
+  const handleRejectAction = useCallback(async (actionId: string) => {
+    try {
+      await rejectAction(actionId);
+      const msgs = [...state.chatMessages];
+      for (const msg of msgs) {
+        if (msg.actions) {
+          const act = msg.actions.find(a => a.id === actionId);
+          if (act) {
+            act.status = 'rejected';
+            break;
+          }
+        }
+      }
+      dispatch({ type: 'REPLACE_CHAT_MESSAGES', messages: msgs });
+    } catch (err) {
+      console.error('Failed to reject action:', err);
+    }
+  }, [state.chatMessages, dispatch]);
+
   // Build file list for DocumentPanel from chatAttachments
   const documentPanelFiles = state.chatAttachments
     .filter(a => a.status === 'ready' || a.status === 'processing')
@@ -525,6 +587,378 @@ export function ChatScreen() {
     turnCount: c.turnCount,
     lastMessagePreview: c.lastMessagePreview,
   }));
+
+  // Helper: describe an action for display
+  function describeAction(actionType: string, payload: Record<string, unknown>): string {
+    const truncate = (s: string, max: number) => s.length > max ? s.slice(0, max) + '...' : s;
+    switch (actionType) {
+      case 'email.send': {
+        const to = Array.isArray(payload['to']) ? payload['to'].join(', ') : '';
+        return `Send email to ${to}: ${truncate(String(payload['subject'] ?? ''), 60)}`;
+      }
+      case 'email.draft':
+        return `Save draft: ${truncate(String(payload['subject'] ?? ''), 60)}`;
+      case 'email.archive':
+        return `Archive ${Array.isArray(payload['messageIds']) ? payload['messageIds'].length : 1} email(s)`;
+      case 'email.move':
+        return `Move email(s) to ${payload['toFolder'] ?? 'folder'}`;
+      case 'email.markRead':
+        return `Mark ${Array.isArray(payload['messageIds']) ? payload['messageIds'].length : 1} email(s) as ${payload['read'] ? 'read' : 'unread'}`;
+      case 'calendar.create':
+        return `Create event: ${truncate(String(payload['title'] ?? ''), 50)}`;
+      case 'calendar.update':
+        return `Update event: ${truncate(String(payload['title'] ?? payload['eventId'] ?? ''), 50)}`;
+      case 'calendar.delete':
+        return `Delete event: ${truncate(String(payload['title'] ?? payload['eventId'] ?? ''), 50)}`;
+      case 'reminder.create':
+        return `Create reminder: ${truncate(String(payload['text'] ?? ''), 50)}`;
+      case 'reminder.delete':
+        return `Delete reminder`;
+      case 'messaging.send':
+        return `Send text to ${payload['recipientName'] ?? 'contact'}`;
+      case 'file.write':
+        return `Save file: ${payload['filename'] ?? 'file'}`;
+      default:
+        return actionType.replace(/\./g, ' ');
+    }
+  }
+
+  function getActionRisk(actionType: string): 'low' | 'medium' | 'high' {
+    switch (actionType) {
+      case 'email.send':
+      case 'messaging.send':
+      case 'calendar.delete':
+        return 'medium';
+      case 'email.archive':
+      case 'email.move':
+      case 'email.markRead':
+      case 'email.draft':
+      case 'calendar.create':
+      case 'calendar.update':
+      case 'reminder.create':
+      case 'reminder.delete':
+      case 'file.write':
+        return 'low';
+      default:
+        return 'low';
+    }
+  }
+
+  // Determine the autonomy tier for an action's domain
+  function getAutonomyTierForAction(actionType: string): 'guardian' | 'partner' | 'alter_ego' {
+    const domainMap: Record<string, string> = {
+      'email.send': 'email', 'email.draft': 'email', 'email.archive': 'email',
+      'email.move': 'email', 'email.markRead': 'email', 'email.fetch': 'email',
+      'calendar.create': 'calendar', 'calendar.update': 'calendar', 'calendar.delete': 'calendar', 'calendar.fetch': 'calendar',
+      'messaging.send': 'messaging', 'messaging.draft': 'messaging',
+      'reminder.create': 'general', 'reminder.delete': 'general', 'reminder.list': 'general',
+      'file.write': 'general',
+      'web.search': 'general', 'web.fetch': 'general',
+      'subscription.insight': 'finance', 'finance.fetch_transactions': 'finance',
+      'health.entry': 'health', 'health.fetch': 'health',
+      'dark_pattern.detected': 'general',
+      'insight.proactive': 'general', 'insight.meeting_prep': 'calendar',
+      'insight.follow_up': 'email', 'insight.deadline': 'general', 'insight.conflict': 'calendar',
+      'escalation.prompt': 'general',
+    };
+    const domain = domainMap[actionType] ?? 'general';
+    return state.autonomyConfig[domain] ?? 'partner';
+  }
+
+  // Route each action to the right UI component based on type, status, and autonomy tier
+  function renderInlineAction(act: ChatActionItem) {
+    const isPending = act.status === 'pending_approval';
+    const isExecuted = act.status === 'executed' || act.status === 'approved';
+    const isFailed = act.status === 'failed' || act.status === 'rejected';
+    const tier = getAutonomyTierForAction(act.type);
+    const approvalState = isPending ? 'pending' as const : isExecuted ? 'approved' as const : 'dismissed' as const;
+
+    // ─── Alter Ego receipts: any EXECUTED action in Alter Ego gets receipt with undo ───
+    if (isExecuted && tier === 'alter_ego') {
+      return (
+        <AlterEgoReceipt
+          key={act.id}
+          id={act.id}
+          summary={describeAction(act.type, act.payload)}
+          reasoning={act.reasoning ?? 'Acted autonomously based on your preferences.'}
+          undoExpiresAt={act.payload['undoExpiresAt'] as string | null ?? null}
+          onUndo={(id) => handleRejectAction(id)}
+          onDismiss={() => {/* dismiss receipt */}}
+        />
+      );
+    }
+
+    // ─── Completed/rejected actions (non-Alter Ego): ActionCard (status log) ───
+    if (isExecuted || isFailed) {
+      const actionCardStatus = isFailed
+        ? (act.status === 'rejected' ? 'rejected' as const : 'error' as const)
+        : 'success' as const;
+      return (
+        <ActionCard
+          key={act.id}
+          id={act.id}
+          timestamp={new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          actionType={act.type}
+          description={describeAction(act.type, act.payload)}
+          status={actionCardStatus}
+          autonomyTier={tier}
+          detail={act.reasoning ? <p style={{ color: '#8593A4', fontSize: '0.8125rem', margin: 0 }}>{act.reasoning}</p> : undefined}
+        />
+      );
+    }
+
+    // ─── From here, everything is PENDING ───
+
+    // ─── Email send/draft: always ReplyComposer (editable draft with To/Subject/Body) ───
+    if (act.type === 'email.send' || act.type === 'email.draft') {
+      const to = Array.isArray(act.payload['to']) ? act.payload['to'] as string[] : [];
+      const toNames = Array.isArray(act.payload['toNames']) ? act.payload['toNames'] as string[] : undefined;
+      const subject = (act.payload['subject'] as string) ?? '';
+      const body = (act.payload['body'] as string) ?? '';
+      const replyToMessageId = act.payload['replyToMessageId'] as string | undefined;
+
+      // Reply mode: pass original email context
+      if (replyToMessageId) {
+        return (
+          <ReplyComposer
+            key={act.id}
+            email={{
+              messageId: replyToMessageId,
+              from: to[0] ?? '',
+              fromName: (act.payload['fromName'] as string) ?? to[0] ?? '',
+              subject,
+            }}
+            draftBody={body}
+            onSend={() => handleApproveAction(act.id)}
+            onSaveDraft={() => handleRejectAction(act.id)}
+            onCancel={() => handleRejectAction(act.id)}
+          />
+        );
+      }
+
+      // Compose mode: new outbound email
+      return (
+        <ReplyComposer
+          key={act.id}
+          to={to}
+          toNames={toNames}
+          subject={subject}
+          draftBody={body}
+          onSend={() => handleApproveAction(act.id)}
+          onSaveDraft={() => handleRejectAction(act.id)}
+          onCancel={() => handleRejectAction(act.id)}
+        />
+      );
+    }
+
+    // ─── SMS/messaging: MessageDraftCard with autonomy-aware countdown ───
+    if (act.type === 'messaging.send' || act.type === 'messaging.draft') {
+      const recipientName = (act.payload['recipientName'] as string) ?? 'Contact';
+      const phone = (act.payload['phone'] as string) ?? '';
+      const maskedPhone = phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '';
+      const body = (act.payload['body'] as string) ?? '';
+
+      return (
+        <MessageDraftCard
+          key={act.id}
+          recipientName={recipientName}
+          maskedPhone={maskedPhone}
+          body={body}
+          autonomyTier={tier}
+          onSend={() => handleApproveAction(act.id)}
+          onEdit={() => {/* edit not wired yet */}}
+          onCancel={() => handleRejectAction(act.id)}
+        />
+      );
+    }
+
+    // ─── Reminders: ReminderCard with snooze/dismiss ───
+    if (act.type === 'reminder.create' || act.type === 'reminder.delete') {
+      return (
+        <ReminderCard
+          key={act.id}
+          reminder={{
+            id: act.id,
+            text: (act.payload['text'] as string) ?? describeAction(act.type, act.payload),
+            dueAt: (act.payload['dueAt'] as string) ?? new Date().toISOString(),
+            recurrence: (act.payload['recurrence'] as 'none' | 'daily' | 'weekly' | 'monthly') ?? 'none',
+            source: 'semblance',
+          }}
+          onSnooze={(id, duration) => {
+            // Snooze = reject current + the orchestrator will re-create with new time
+            handleRejectAction(id);
+          }}
+          onDismiss={(id) => handleRejectAction(id)}
+        />
+      );
+    }
+
+    // ─── Subscription insights ───
+    if (act.type === 'subscription.insight') {
+      const charges = (act.payload['charges'] as Array<{
+        id: string; merchantName: string; amount: number;
+        frequency: 'weekly' | 'monthly' | 'quarterly' | 'annual';
+        confidence: number; lastChargeDate: string; chargeCount: number;
+        estimatedAnnualCost: number; status: 'active' | 'forgotten' | 'cancelled' | 'user_confirmed';
+      }>) ?? [];
+      const summary = (act.payload['summary'] as {
+        totalMonthly: number; totalAnnual: number; activeCount: number;
+        forgottenCount: number; potentialSavings: number;
+      }) ?? { totalMonthly: 0, totalAnnual: 0, activeCount: charges.length, forgottenCount: 0, potentialSavings: 0 };
+
+      return (
+        <SubscriptionInsightCard
+          key={act.id}
+          charges={charges}
+          summary={summary}
+          onDismiss={() => handleRejectAction(act.id)}
+        />
+      );
+    }
+
+    // ─── Dark pattern detection ───
+    if (act.type === 'dark_pattern.detected') {
+      return (
+        <DarkPatternBadge
+          key={act.id}
+          flag={{
+            contentId: act.id,
+            confidence: (act.payload['confidence'] as number) ?? 0.8,
+            patterns: (act.payload['patterns'] as Array<{
+              category: string; evidence: string; confidence: number;
+            }>) ?? [{ category: (act.payload['category'] as string) ?? 'dark_pattern', evidence: (act.payload['evidence'] as string) ?? '', confidence: 0.8 }],
+            reframe: (act.payload['reframe'] as string) ?? (act.payload['description'] as string) ?? 'Potential manipulative pattern detected.',
+          }}
+          onDismiss={() => handleRejectAction(act.id)}
+        />
+      );
+    }
+
+    // ─── Proactive insights (meeting prep, follow-up, deadline, conflict) ───
+    if (act.type === 'insight.proactive' || act.type === 'insight.meeting_prep' ||
+        act.type === 'insight.follow_up' || act.type === 'insight.deadline' || act.type === 'insight.conflict') {
+      const rawInsightType = act.type.replace('insight.', '');
+      const insightType = (['meeting_prep', 'follow_up', 'deadline', 'conflict'].includes(rawInsightType)
+        ? rawInsightType : 'follow_up') as 'meeting_prep' | 'follow_up' | 'deadline' | 'conflict';
+      return (
+        <InsightCard
+          key={act.id}
+          insight={{
+            id: act.id,
+            type: insightType,
+            priority: (act.payload['priority'] as 'high' | 'normal' | 'low') ?? 'normal',
+            title: (act.payload['title'] as string) ?? describeAction(act.type, act.payload),
+            summary: (act.payload['summary'] as string) ?? act.reasoning ?? '',
+            suggestedAction: act.payload['suggestedAction'] as { actionType: string; payload: Record<string, unknown>; description: string } | null ?? null,
+            createdAt: new Date().toISOString(),
+          }}
+          onExecuteSuggestion={() => handleApproveAction(act.id)}
+          onDismiss={() => handleRejectAction(act.id)}
+          onExpand={() => {/* expand detail view */}}
+        />
+      );
+    }
+
+    // ─── Autonomy escalation prompts ───
+    if (act.type === 'escalation.prompt') {
+      return (
+        <EscalationPromptCard
+          key={act.id}
+          prompt={{
+            id: act.id,
+            type: (act.payload['escalationType'] as 'guardian_to_partner' | 'partner_to_alterego') ?? 'guardian_to_partner',
+            domain: (act.payload['domain'] as string) ?? 'general',
+            actionType: (act.payload['actionType'] as string) ?? '',
+            consecutiveApprovals: (act.payload['consecutiveApprovals'] as number) ?? 10,
+            message: (act.payload['message'] as string) ?? act.reasoning ?? 'You\'ve consistently approved these actions. Want to grant more autonomy?',
+            previewActions: (act.payload['previewActions'] as Array<{
+              description: string; currentBehavior: string; newBehavior: string; estimatedTimeSaved: string;
+            }>) ?? [],
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 7 * 86400_000).toISOString(),
+            status: 'pending',
+          }}
+          onAccepted={() => handleApproveAction(act.id)}
+          onDismissed={() => handleRejectAction(act.id)}
+        />
+      );
+    }
+
+    // ─── Calendar operations: ApprovalCard with structured data ───
+    if (act.type.startsWith('calendar.')) {
+      const title = (act.payload['title'] as string) ?? '';
+      const startTime = act.payload['startTime'] as string | undefined;
+      const dataOut = [
+        title ? `Event: ${title}` : null,
+        startTime ? `When: ${new Date(startTime).toLocaleString()}` : null,
+        act.payload['location'] ? `Where: ${act.payload['location']}` : null,
+      ].filter(Boolean) as string[];
+
+      return (
+        <ApprovalCard
+          key={act.id}
+          action={act.type}
+          context={act.reasoning ?? describeAction(act.type, act.payload)}
+          dataOut={dataOut.length > 0 ? dataOut : undefined}
+          risk={getActionRisk(act.type)}
+          state={approvalState}
+          onApprove={() => handleApproveAction(act.id)}
+          onDismiss={() => handleRejectAction(act.id)}
+        />
+      );
+    }
+
+    // ─── Email management (archive, move, markRead): ApprovalCard with detail ───
+    if (act.type === 'email.archive' || act.type === 'email.move' || act.type === 'email.markRead') {
+      const count = Array.isArray(act.payload['messageIds']) ? act.payload['messageIds'].length : 1;
+      const dataOut = [
+        `${count} email(s)`,
+        act.type === 'email.move' ? `To: ${act.payload['toFolder'] ?? 'folder'}` : null,
+      ].filter(Boolean) as string[];
+
+      return (
+        <ApprovalCard
+          key={act.id}
+          action={act.type}
+          context={act.reasoning ?? describeAction(act.type, act.payload)}
+          dataOut={dataOut}
+          risk={getActionRisk(act.type)}
+          state={approvalState}
+          onApprove={() => handleApproveAction(act.id)}
+          onDismiss={() => handleRejectAction(act.id)}
+        />
+      );
+    }
+
+    // ─── File operations: ApprovalCard with filename ───
+    if (act.type === 'file.write') {
+      return (
+        <ApprovalCard
+          key={act.id}
+          action={act.type}
+          context={act.reasoning ?? describeAction(act.type, act.payload)}
+          dataOut={act.payload['filename'] ? [`File: ${act.payload['filename']}`] : undefined}
+          risk={getActionRisk(act.type)}
+          state={approvalState}
+          onApprove={() => handleApproveAction(act.id)}
+          onDismiss={() => handleRejectAction(act.id)}
+        />
+      );
+    }
+
+    // ─── True fallback: ApprovalCard for unknown action types ───
+    return (
+      <ApprovalCard
+        key={act.id}
+        action={act.type}
+        context={act.reasoning ?? describeAction(act.type, act.payload)}
+        risk={getActionRisk(act.type)}
+        state={approvalState}
+        onApprove={() => handleApproveAction(act.id)}
+        onDismiss={() => handleRejectAction(act.id)}
+      />
+    );
+  }
 
   return (
     <div className="flex h-full">
@@ -668,13 +1102,19 @@ export function ChatScreen() {
           ) : (
             <>
               {state.chatMessages.map((msg, i) => (
-                <ChatBubble
-                  key={msg.id}
-                  role={msg.role}
-                  content={msg.content}
-                  timestamp={msg.timestamp}
-                  streaming={state.isResponding && msg.role === 'assistant' && i === state.chatMessages.length - 1}
-                />
+                <div key={msg.id}>
+                  <ChatBubble
+                    role={msg.role}
+                    content={msg.content}
+                    timestamp={msg.timestamp}
+                    streaming={state.isResponding && msg.role === 'assistant' && i === state.chatMessages.length - 1}
+                  />
+                  {msg.actions && msg.actions.length > 0 && (
+                    <div className="mt-2 space-y-2 max-w-[720px]">
+                      {msg.actions.map(act => renderInlineAction(act))}
+                    </div>
+                  )}
+                </div>
               ))}
               {/* Web search results — shown inline after relevant assistant messages */}
               {webSearchResults.length > 0 && (
