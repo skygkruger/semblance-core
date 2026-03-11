@@ -147,10 +147,16 @@ export function ConnectionsScreen() {
         action: 'connector.disconnect',
         payload: { connectorId },
       });
+      // Update UI state to reflect disconnection
+      dispatch({
+        type: 'SET_CONNECTOR_STATE',
+        connectorId,
+        state: { connectorId, status: 'disconnected' as ConnectorState['status'], lastSyncedAt: undefined },
+      });
     } catch (err) {
       console.error(`Failed to disconnect ${connectorId}:`, err);
     }
-  }, []);
+  }, [dispatch]);
 
   const handleSync = useCallback(async (connectorId: string) => {
     try {

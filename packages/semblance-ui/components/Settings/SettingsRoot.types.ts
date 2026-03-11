@@ -9,6 +9,7 @@ export interface SettingsRootProps {
   licenseStatus: 'founding-member' | 'active' | 'free' | 'expired';
   appVersion: string;
   onNavigate: (screen: SettingsScreen) => void;
+  onNavigateIntents?: () => void;
 }
 
 export const tierLabels: Record<string, string> = {

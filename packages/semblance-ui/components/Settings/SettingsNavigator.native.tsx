@@ -116,6 +116,7 @@ export function SettingsNavigator(props: SettingsNavigatorProps) {
           licenseStatus={props.licenseStatus}
           appVersion={props.appVersion}
           onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+          onNavigateIntents={props.onNavigateIntents}
         />
       );
   }

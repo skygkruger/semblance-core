@@ -6,6 +6,7 @@
   border-radius: var(--r-lg);
   padding: var(--sp-6);
   max-width: 480px;
+  margin: 0 auto;
 }
 
 .feature-gate__locked-header {

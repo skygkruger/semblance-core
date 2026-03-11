@@ -718,6 +718,25 @@ async function handleInitialize(): Promise<unknown> {
   emailAdapter = new EmailAdapter(credentialStore);
   calendarAdapter = new CalendarAdapter(credentialStore);
 
+  // Register email and calendar adapters with Gateway service registry
+  // so the orchestrator's tool calls (email.send, email.fetch, calendar.create, etc.)
+  // route to real adapters instead of hitting FallbackAdapter
+  try {
+    const registry = gateway!.getServiceRegistry();
+    registry.register('email.fetch', emailAdapter);
+    registry.register('email.send', emailAdapter);
+    registry.register('email.draft', emailAdapter);
+    registry.register('email.archive', emailAdapter);
+    registry.register('email.move', emailAdapter);
+    registry.register('email.markRead', emailAdapter);
+    registry.register('calendar.fetch', calendarAdapter);
+    registry.register('calendar.create', calendarAdapter);
+    registry.register('calendar.update', calendarAdapter);
+    console.error('[sidecar] Email + Calendar adapters registered with Gateway');
+  } catch (err) {
+    console.error('[sidecar] Failed to register email/calendar adapters:', err);
+  }
+
   // Wire connection testing into the credential store
   credentialStore.setConnectionTester(async (credential, password) => {
     try {
@@ -834,7 +853,7 @@ async function handleInitialize(): Promise<unknown> {
 
 async function handleSendMessage(
   id: number | string,
-  params: { message: string; conversation_id?: string },
+  params: { message: string; conversation_id?: string; attachments?: Array<{ id: string; fileName: string; filePath: string; mimeType: string }> },
 ): Promise<void> {
   // ─── ROUTE 1: Orchestrator (full agent loop with tools) ───────────────────
   // The orchestrator has 30+ tools, autonomy tiers, approval flows, intent
@@ -904,6 +923,57 @@ async function handleSendMessage(
     let fullResponse = '';
     let actions: Array<{ id: string; type: string; status: string; payload: unknown }> = [];
 
+    // ─── Attachment content injection ─────────────────────────────────
+    // Read attachment file contents and prepend to the user message so the
+    // LLM can see what was attached. Text-based files are read directly;
+    // binary files (images, etc.) get a metadata description.
+    // Safety: size-check BEFORE reading to prevent OOM on large files.
+    const MAX_ATTACHMENT_READ_BYTES = 512 * 1024; // 512KB — safe for LLM context
+    let augmentedMessage = params.message;
+    if (params.attachments && params.attachments.length > 0) {
+      const attachmentSections: string[] = [];
+      for (const att of params.attachments) {
+        try {
+          // Size check before reading — prevents OOM on large files
+          let fileSize = 0;
+          try {
+            const { statSync } = await import('node:fs');
+            fileSize = statSync(att.filePath).size;
+          } catch {
+            // Can't stat — try reading anyway with a small buffer
+          }
+
+          const isText = att.mimeType.startsWith('text/') ||
+            /\.(txt|md|csv|json|xml|html|css|js|ts|tsx|py|rs|toml|yaml|yml|log|ini|cfg|sh|bat|sql|env)$/i.test(att.fileName);
+
+          if (isText && fileSize <= MAX_ATTACHMENT_READ_BYTES) {
+            const content = readFileSync(att.filePath, 'utf-8');
+            const truncated = content.length > 8000 ? content.substring(0, 8000) + '\n...(truncated)' : content;
+            attachmentSections.push(`[Attached file: ${att.fileName}]\n${truncated}`);
+          } else if (isText && fileSize > MAX_ATTACHMENT_READ_BYTES) {
+            // File too large to inject — read first 8KB only using a file descriptor
+            const { openSync, readSync, closeSync } = await import('node:fs');
+            const fd = openSync(att.filePath, 'r');
+            const buf = Buffer.alloc(8192);
+            const bytesRead = readSync(fd, buf, 0, 8192, 0);
+            closeSync(fd);
+            const preview = buf.toString('utf-8', 0, bytesRead);
+            const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
+            attachmentSections.push(`[Attached file: ${att.fileName} (${sizeMB}MB — showing first 8KB)]\n${preview}\n...(truncated, full file is ${sizeMB}MB)`);
+          } else {
+            attachmentSections.push(`[Attached file: ${att.fileName} (${att.mimeType}, binary — content not shown)]`);
+          }
+        } catch (readErr) {
+          console.error(`[sidecar] Failed to read attachment ${att.fileName}:`, readErr);
+          attachmentSections.push(`[Attached file: ${att.fileName} — could not read]`);
+        }
+      }
+      if (attachmentSections.length > 0) {
+        augmentedMessage = attachmentSections.join('\n\n') + '\n\n' + params.message;
+      }
+      console.error(`[sidecar] Injected ${attachmentSections.length} attachment(s) into message`);
+    }
+
     if (hasOrchestrator) {
       // ─── PRIMARY PATH: Full orchestrator with tool calling ──────────
       // The orchestrator:
@@ -917,7 +987,7 @@ async function handleSendMessage(
       // 8. Returns final response + actions taken
       console.error('[sidecar] Routing through orchestrator (full agent loop)');
 
-      const orchResult = await core.agent.processMessage(params.message, convId);
+      const orchResult = await core.agent.processMessage(augmentedMessage, convId);
 
       fullResponse = orchResult.message;
       actions = orchResult.actions.map(a => ({
@@ -956,7 +1026,7 @@ async function handleSendMessage(
       const model = (await core.models.getActiveChatModel()) ?? getRecommendedReasoningModel('standard').id;
       const messages: ChatMessage[] = [
         { role: 'system', content: getSystemPrompt() + contextStr },
-        { role: 'user', content: params.message },
+        { role: 'user', content: augmentedMessage },
       ];
 
       if (core.llm.chatStream) {
@@ -1654,7 +1724,7 @@ async function handleEmailStartIndex(
     if (result.success && result.data) {
       const messages = (result.data as { messages: unknown[] }).messages ?? [];
       const indexed = await emailIndexer.indexMessages(messages as Parameters<EmailIndexer['indexMessages']>[0], params.account_id);
-      emit('semblance://email-index-complete', { indexed, total: messages.length });
+      emit('email-index-complete', { indexed, total: messages.length });
 
       // License auto-detection: scan email bodies for SEMBLANCE_LICENSE_KEY pattern
       if (premiumGate) {
@@ -1718,7 +1788,7 @@ async function handleCalendarStartIndex(
     if (result.success && result.data) {
       const events = (result.data as { events: unknown[] }).events ?? [];
       const indexed = await calendarIndexer.indexEvents(events as Parameters<CalendarIndexer['indexEvents']>[0], params.account_id);
-      emit('semblance://calendar-index-complete', { indexed, total: events.length });
+      emit('calendar-index-complete', { indexed, total: events.length });
     }
   } catch (err) {
     console.error('[sidecar] Calendar indexing error:', err);
@@ -2322,7 +2392,20 @@ function handleContactsImport(params: { filePath?: string }): unknown {
   }
 
   const store = ensureContactStore();
-  const { readFileSync } = require('node:fs') as typeof import('node:fs');
+  const { readFileSync, statSync } = require('node:fs') as typeof import('node:fs');
+
+  // Size guard — reject files larger than 50MB to prevent OOM
+  const MAX_CONTACT_IMPORT_BYTES = 50 * 1024 * 1024;
+  try {
+    const fstat = statSync(params.filePath);
+    if (fstat.size > MAX_CONTACT_IMPORT_BYTES) {
+      const sizeMB = (fstat.size / (1024 * 1024)).toFixed(1);
+      return { success: false, imported: 0, error: `Contact file too large (${sizeMB}MB). Maximum is 50MB.` };
+    }
+  } catch (e: any) {
+    return { success: false, imported: 0, error: `Cannot read file: ${e?.message ?? String(e)}` };
+  }
+
   const content = readFileSync(params.filePath, 'utf-8');
   const ext = params.filePath.toLowerCase();
   let imported = 0;
@@ -3153,7 +3236,21 @@ async function handleImportRun(params: { sourcePath: string; sourceType: string 
   }
 
   // Attempt to read and parse the file using the core import pipeline
-  const { readFileSync } = await import('node:fs');
+  const { readFileSync, statSync } = await import('node:fs');
+
+  // Size guard — reject files larger than 100MB to prevent OOM
+  const MAX_IMPORT_BYTES = 100 * 1024 * 1024;
+  try {
+    const fstat = statSync(params.sourcePath);
+    if (fstat.size > MAX_IMPORT_BYTES) {
+      const sizeMB = (fstat.size / (1024 * 1024)).toFixed(1);
+      throw new Error(`Import file too large (${sizeMB}MB). Maximum is 100MB.`);
+    }
+  } catch (e: any) {
+    if (e?.message?.includes('too large')) throw e;
+    throw new Error(`Cannot read import file: ${e?.message ?? String(e)}`);
+  }
+
   const content = readFileSync(params.sourcePath, 'utf-8');
   const ext = params.sourcePath.split('.').pop()?.toLowerCase() ?? '';
 
@@ -3280,7 +3377,7 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'send_message':
         // send_message responds and emits events internally
-        await handleSendMessage(id, params as { message: string; conversation_id?: string });
+        await handleSendMessage(id, params as { message: string; conversation_id?: string; attachments?: Array<{ id: string; fileName: string; filePath: string; mimeType: string }> });
         break;
 
       case 'get_ollama_status':
@@ -4120,6 +4217,32 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      // ─── Notification Settings ───────────────────────────────────────
+      case 'notification:getSettings': {
+        const raw = getPref('notification_settings');
+        respond(id, raw
+          ? JSON.parse(raw)
+          : {
+              morningBriefEnabled: true,
+              morningBriefTime: '07:00',
+              includeWeather: true,
+              includeCalendar: true,
+              remindersEnabled: true,
+              defaultSnoozeDuration: '15m',
+              notifyOnAction: true,
+              notifyOnApproval: true,
+              actionDigest: 'daily',
+              badgeCount: true,
+              soundEffects: true,
+            });
+        break;
+      }
+      case 'notification:saveSettings': {
+        setPref('notification_settings', JSON.stringify(params));
+        respond(id, params);
+        break;
+      }
+
       // ─── Language Preference ──────────────────────────────────────────
       case 'language:get': {
         result = getPref('language');
@@ -4718,10 +4841,35 @@ async function handleRequest(req: Request): Promise<void> {
       // ─── Financial Dashboard ──────────────────────────────────────────
       case 'get_financial_dashboard': {
         ensureFinanceComponents();
-        if (!recurringDetector) { respond(id, { totalMonthly: 0, totalAnnual: 0, activeCount: 0, forgottenCount: 0, potentialSavings: 0, subscriptions: [], anomalies: [] }); break; }
-        const summary = recurringDetector.getSummary();
-        const subscriptions = recurringDetector.getStoredCharges();
-        respond(id, { ...summary, subscriptions, anomalies: [] });
+        if (!recurringDetector) {
+          respond(id, {
+            overview: { totalSpending: 0, previousPeriodSpending: null, transactionCount: 0, periodStart: '', periodEnd: '' },
+            categories: [],
+            anomalies: [],
+            subscriptions: {
+              charges: [],
+              summary: { totalMonthly: 0, totalAnnual: 0, activeCount: 0, forgottenCount: 0, potentialSavings: 0 },
+            },
+          });
+          break;
+        }
+        const finSummary = recurringDetector.getSummary();
+        const finCharges = recurringDetector.getStoredCharges();
+        respond(id, {
+          overview: {
+            totalSpending: finSummary.totalMonthly,
+            previousPeriodSpending: null,
+            transactionCount: finCharges.length,
+            periodStart: new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10),
+            periodEnd: new Date().toISOString().slice(0, 10),
+          },
+          categories: [],
+          anomalies: [],
+          subscriptions: {
+            charges: finCharges,
+            summary: finSummary,
+          },
+        });
         break;
       }
       case 'dismiss_anomaly': {
@@ -4737,13 +4885,51 @@ async function handleRequest(req: Request): Promise<void> {
         if (!healthEntryStore && prefsDb) {
           healthEntryStore = new HealthEntryStore(prefsDb);
         }
-        if (!healthEntryStore) { respond(id, { entries: [], trends: [] }); break; }
+        if (!healthEntryStore) {
+          respond(id, { todayEntry: null, trends: [], insights: [], symptomsHistory: [], medicationsHistory: [], hasHealthKit: false });
+          break;
+        }
         const trendDays = (params as { trendDays?: number }).trendDays ?? 30;
         const endDate = new Date().toISOString().slice(0, 10);
         const startDate = new Date(Date.now() - trendDays * 86400_000).toISOString().slice(0, 10);
         const trends = healthEntryStore.getTrends(startDate, endDate);
         const entries = healthEntryStore.getEntries(startDate, endDate);
-        respond(id, { entries, trends });
+
+        // Find today's entry
+        const today = new Date().toISOString().slice(0, 10);
+        const todayEntry = entries.find((e: { date: string }) => e.date === today) ?? null;
+
+        // Collect unique symptoms and medications across all entries
+        const symptomsSet = new Set<string>();
+        const medicationsSet = new Set<string>();
+        for (const e of entries) {
+          const entry = e as { symptoms?: string[]; medications?: string[] };
+          if (entry.symptoms) entry.symptoms.forEach((s: string) => symptomsSet.add(s));
+          if (entry.medications) entry.medications.forEach((m: string) => medicationsSet.add(m));
+        }
+
+        // Generate basic insights from trends
+        const insights: Array<{ id: string; type: string; title: string; description: string; severity: string }> = [];
+        if (trends.length >= 7) {
+          const recentMoods = trends.slice(-7).map((t: { avgMood?: number | null }) => t.avgMood).filter((m): m is number => m != null);
+          if (recentMoods.length >= 3) {
+            const avgMood = recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length;
+            if (avgMood >= 4) {
+              insights.push({ id: 'mood-high', type: 'positive', title: 'Great mood week', description: `Average mood ${avgMood.toFixed(1)}/5 over the last 7 days.`, severity: 'positive' });
+            } else if (avgMood <= 2) {
+              insights.push({ id: 'mood-low', type: 'concern', title: 'Low mood trend', description: `Average mood ${avgMood.toFixed(1)}/5 over the last 7 days.`, severity: 'warning' });
+            }
+          }
+        }
+
+        respond(id, {
+          todayEntry,
+          trends,
+          insights,
+          symptomsHistory: [...symptomsSet],
+          medicationsHistory: [...medicationsSet],
+          hasHealthKit: false, // Desktop doesn't have HealthKit
+        });
         break;
       }
       case 'save_health_entry': {

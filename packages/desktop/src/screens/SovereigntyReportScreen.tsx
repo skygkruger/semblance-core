@@ -1,19 +1,28 @@
-import { useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SovereigntyReportCard } from '@semblance/ui';
 import { useAppState } from '../state/AppState';
-import { renderSovereigntyReportPDF } from '../ipc/commands';
+import { generateSovereigntyReport, renderSovereigntyReportPDF } from '../ipc/commands';
+import type { SovereigntyReportData } from '../ipc/types';
 
 export function SovereigntyReportScreen() {
   const state = useAppState();
   const { knowledgeStats, privacyStatus } = state;
+  const [report, setReport] = useState<SovereigntyReportData | null>(null);
 
   const now = new Date();
   const periodEnd = now.toISOString().split('T')[0]!;
   const periodStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]!;
 
+  // Fetch real report data on mount
+  useEffect(() => {
+    generateSovereigntyReport(periodStart, periodEnd)
+      .then(setReport)
+      .catch((err) => console.error('[SovereigntyReportScreen] Failed to load report:', err));
+  }, [periodStart, periodEnd]);
+
   const handleExportPDF = useCallback(async () => {
     try {
-      const reportData = JSON.stringify({ periodStart, periodEnd });
+      const reportData = JSON.stringify(report ?? { periodStart, periodEnd });
       const { pdfBase64 } = await renderSovereigntyReportPDF(reportData);
       const link = document.createElement('a');
       link.href = `data:application/pdf;base64,${pdfBase64}`;
@@ -22,7 +31,7 @@ export function SovereigntyReportScreen() {
     } catch (err) {
       console.error('[SovereigntyReportScreen] PDF export failed:', err);
     }
-  }, [periodStart, periodEnd]);
+  }, [periodStart, periodEnd, report]);
 
   return (
     <div className="h-full overflow-y-auto">
@@ -30,21 +39,21 @@ export function SovereigntyReportScreen() {
       <SovereigntyReportCard
         periodStart={periodStart}
         periodEnd={periodEnd}
-        generatedAt={now.toISOString()}
-        deviceId={`${navigator.userAgent.includes('Windows') ? 'windows' : 'desktop'}-local`}
+        generatedAt={report?.generatedAt ?? now.toISOString()}
+        deviceId={report?.deviceId ?? `${navigator.userAgent.includes('Windows') ? 'windows' : 'desktop'}-local`}
         knowledgeSummary={{
-          documents: knowledgeStats.documentCount,
-          chunks: knowledgeStats.chunkCount,
+          documents: report?.knowledgeSummary?.documents ?? knowledgeStats.documentCount,
+          chunks: report?.knowledgeSummary?.chunks ?? knowledgeStats.chunkCount,
         }}
         autonomousActions={{
-          byDomain: {},
-          totalTimeSavedSeconds: 0,
+          byDomain: report?.autonomousActions?.byDomain ?? {},
+          totalTimeSavedSeconds: report?.autonomousActions?.totalTimeSavedSeconds ?? 0,
         }}
-        hardLimitsEnforced={0}
+        hardLimitsEnforced={report?.hardLimitsEnforced ?? 0}
         auditChainStatus={{
-          verified: privacyStatus.allLocal && !privacyStatus.anomalyDetected,
-          totalEntries: 0,
-          daysCovered: 0,
+          verified: report?.auditChainStatus?.verified ?? (privacyStatus.allLocal && !privacyStatus.anomalyDetected),
+          totalEntries: report?.auditChainStatus?.totalEntries ?? 0,
+          daysCovered: report?.auditChainStatus?.daysCovered ?? 0,
         }}
         onExportPDF={handleExportPDF}
       />

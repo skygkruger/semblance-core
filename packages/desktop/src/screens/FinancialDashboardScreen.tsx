@@ -125,14 +125,27 @@ export function FinancialDashboardScreen() {
     );
   }
 
+  if (!license.isPremium) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        padding: 24,
+      }}>
+        <FeatureGate
+          feature="financial-dashboard"
+          isPremium={false}
+          onLearnMore={() => navigate('/upgrade')}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
-      <FeatureGate
-        feature="financial-dashboard"
-        isPremium={license.isPremium}
-        onLearnMore={() => navigate('/upgrade')}
-      >
         <FinancialDashboard
           overview={data?.overview ?? null}
           categories={data?.categories ?? []}
@@ -174,7 +187,6 @@ export function FinancialDashboardScreen() {
             }}
           />
         )}
-      </FeatureGate>
       </div>
     </div>
   );

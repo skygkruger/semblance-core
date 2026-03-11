@@ -197,8 +197,10 @@ describe('Conversation wiring — commands.ts', () => {
     expect(commands).toContain('export function setConversationAutoExpiry');
   });
 
-  it('sendMessage accepts conversationId parameter', () => {
-    expect(commands).toContain('sendMessage(message: string, conversationId?: string)');
+  it('sendMessage accepts conversationId and attachments parameters', () => {
+    expect(commands).toContain('sendMessage(');
+    expect(commands).toContain('conversationId?: string');
+    expect(commands).toContain('attachments?:');
   });
 });
 

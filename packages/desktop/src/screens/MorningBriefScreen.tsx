@@ -180,11 +180,52 @@ export function MorningBriefScreen() {
           />
         )}
 
-        {/* Empty state */}
+        {/* Empty state — polished card matching app design */}
         {!brief && !weather && !commutes && !knowledgeMoment && !activationPrompt && !dailyDigest && (
-          <div className="text-center py-16">
-            <p style={{ color: '#8593A4', fontSize: 14 }}>
-              {t('card.empty', 'No briefing data yet. Connect your email and calendar to get started.')}
+          <div style={{
+            background: 'linear-gradient(135deg, #171B1F, #111518)',
+            border: '1px solid rgba(255,255,255,0.05)',
+            borderRadius: 12,
+            padding: 32,
+            maxWidth: 520,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6ECFA3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              <span style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 11,
+                fontWeight: 400,
+                textTransform: 'uppercase' as const,
+                letterSpacing: '0.1em',
+                color: '#6ECFA3',
+              }}>
+                {t('card.empty_label', 'YOUR BRIEFING')}
+              </span>
+            </div>
+
+            <p style={{
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+              fontSize: 15,
+              fontWeight: 300,
+              color: '#A8B4C0',
+              lineHeight: 1.6,
+              margin: '0 0 12px 0',
+            }}>
+              {t('card.empty_body', `${aiName} will prepare your daily briefing once your data sources are connected. Email, calendar, and files are used to surface what matters today.`)}
+            </p>
+
+            <p style={{
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+              fontSize: 13,
+              fontWeight: 300,
+              color: '#5E6B7C',
+              lineHeight: 1.5,
+              margin: 0,
+            }}>
+              {t('card.empty_hint', 'Go to Settings \u2192 Connections to get started.')}
             </p>
           </div>
         )}

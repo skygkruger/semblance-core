@@ -468,12 +468,14 @@ async fn send_message(
     state: tauri::State<'_, AppBridge>,
     message: String,
     conversation_id: Option<String>,
+    attachments: Option<Value>,
 ) -> Result<Value, String> {
     state
         .bridge
         .call_fire("send_message", serde_json::json!({
             "message": message,
             "conversation_id": conversation_id,
+            "attachments": attachments,
         }))
         .await
 }
@@ -1702,6 +1704,21 @@ async fn save_sound_settings(
     state.bridge.call("sound:saveSettings", settings).await
 }
 
+// ─── Notification Settings ────────────────────────────────────────────────
+
+#[tauri::command]
+async fn get_notification_settings(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("notification:getSettings", Value::Null).await
+}
+
+#[tauri::command]
+async fn save_notification_settings(
+    state: tauri::State<'_, AppBridge>,
+    settings: Value,
+) -> Result<Value, String> {
+    state.bridge.call("notification:saveSettings", settings).await
+}
+
 // ─── Language Preference ──────────────────────────────────────────────────
 
 #[tauri::command]
@@ -2718,6 +2735,9 @@ pub fn run() {
             // Sound Settings
             get_sound_settings,
             save_sound_settings,
+            // Notification Settings
+            get_notification_settings,
+            save_notification_settings,
             // Language Preference
             get_language_preference,
             set_language_preference,

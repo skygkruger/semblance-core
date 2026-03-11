@@ -64,14 +64,27 @@ export function HealthDashboardScreen() {
     );
   }
 
+  if (!license.isPremium) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        padding: 24,
+      }}>
+        <FeatureGate
+          feature="health-tracking"
+          isPremium={false}
+          onLearnMore={() => navigate('/upgrade')}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
-      <FeatureGate
-        feature="health-tracking"
-        isPremium={license.isPremium}
-        onLearnMore={() => navigate('/upgrade')}
-      >
         <HealthDashboard
           todayEntry={data?.todayEntry ?? null}
           trends={data?.trends ?? []}
@@ -82,7 +95,6 @@ export function HealthDashboardScreen() {
           onSaveEntry={handleSaveEntry}
           loading={loading}
         />
-      </FeatureGate>
       </div>
     </div>
   );
