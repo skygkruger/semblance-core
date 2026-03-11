@@ -1,6 +1,7 @@
 // ChatScreen — Conversational interface for mobile.
 // Same chat UX as desktop. Wired to the mobile AI runtime via SemblanceProvider.
 // Messages flow through the orchestrator with full tool-use capability.
+// Includes conversation history panel (slide-up modal) for multi-conversation management.
 //
 // CRITICAL: No network imports. All inference is local via SemblanceProvider.
 
@@ -17,6 +18,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ConversationHistoryPanel } from '@semblance/ui';
+import type { ConversationHistoryItem as CHPItem } from '@semblance/ui';
 import { colors, typography, spacing, radius } from '../theme/tokens.js';
 import { useHardwareTier } from '../hooks/useHardwareTier';
 import { useVoiceInput } from '../hooks/useVoiceInput';
@@ -65,7 +68,9 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
   const { t } = useTranslation();
   const { t: tAgent } = useTranslation('agent');
   const [input, setInput] = useState('');
+  const [historySearch, setHistorySearch] = useState('');
   const flatListRef = useRef<FlatList>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // AI runtime
   const semblance = useSemblance();
@@ -79,6 +84,22 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
   const voice = useVoiceInput(voiceAdapter);
   const showVoice = voiceCapable && voice.voiceEnabled;
 
+  // Map SemblanceProvider conversations to ConversationHistoryPanel format
+  const historyItems: CHPItem[] = useMemo(
+    () =>
+      semblance.conversations.map((c) => ({
+        id: c.id,
+        title: c.title,
+        autoTitle: c.autoTitle,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        pinned: c.pinned,
+        turnCount: c.turnCount,
+        lastMessagePreview: c.lastMessagePreview,
+      })),
+    [semblance.conversations],
+  );
+
   // Auto-scroll on new messages
   useEffect(() => {
     if (semblance.messages.length > 0) {
@@ -86,7 +107,7 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
     }
   }, [semblance.messages.length]);
 
-  // Handle voice transcription → auto-send
+  // Handle voice transcription -> auto-fill input
   useEffect(() => {
     if (voice.lastTranscription && voice.lastTranscription.trim()) {
       setInput(voice.lastTranscription);
@@ -99,6 +120,66 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
     setInput('');
     semblance.sendMessage(text);
   }, [input, semblance]);
+
+  // ─── Conversation History Handlers ─────────────────────────────────────────
+
+  const handleHistorySelect = useCallback(
+    (id: string) => {
+      semblance.switchConversation(id);
+      semblance.toggleHistoryPanel();
+    },
+    [semblance],
+  );
+
+  const handleHistoryNew = useCallback(() => {
+    semblance.createConversation();
+    semblance.toggleHistoryPanel();
+  }, [semblance]);
+
+  const handleHistoryDelete = useCallback(
+    (id: string) => {
+      semblance.deleteConversation(id);
+    },
+    [semblance],
+  );
+
+  const handleHistoryPin = useCallback(
+    (id: string) => {
+      semblance.pinConversation(id);
+    },
+    [semblance],
+  );
+
+  const handleHistoryUnpin = useCallback(
+    (id: string) => {
+      semblance.unpinConversation(id);
+    },
+    [semblance],
+  );
+
+  const handleHistoryRename = useCallback(
+    (id: string, title: string) => {
+      semblance.renameConversation(id, title);
+    },
+    [semblance],
+  );
+
+  const handleHistorySearchChange = useCallback(
+    (query: string) => {
+      setHistorySearch(query);
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = setTimeout(() => {
+        semblance.searchConversations(query);
+      }, 300);
+    },
+    [semblance],
+  );
+
+  const handleHistoryClose = useCallback(() => {
+    setHistorySearch('');
+    semblance.refreshConversations();
+    semblance.toggleHistoryPanel();
+  }, [semblance]);
 
   // Show initialization screen while runtime loads
   if (semblance.initializing) {
@@ -122,7 +203,7 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
         <Text style={styles.errorTitle}>{t('screen.chat.setup_required', { defaultValue: 'Setup Required' })}</Text>
         <Text style={styles.errorText}>{semblance.error}</Text>
         <Text style={styles.initSubtext}>
-          Semblance needs a local AI model to work. Connect to Wi-Fi to download one.
+          {t('screen.chat.model_required', { defaultValue: 'Semblance needs a local AI model to work. Connect to Wi-Fi to download one.' })}
         </Text>
       </View>
     );
@@ -134,6 +215,29 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={90}
     >
+      {/* Top bar with history toggle and new chat */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          onPress={semblance.toggleHistoryPanel}
+          style={styles.topBarButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('screen.chat.history', { defaultValue: 'Conversation history' })}
+        >
+          <Text style={styles.topBarButtonText}>{t('screen.chat.history_icon', { defaultValue: 'H' })}</Text>
+        </TouchableOpacity>
+        <Text style={styles.topBarTitle} numberOfLines={1}>
+          {t('screen.chat.title', { defaultValue: 'Chat' })}
+        </Text>
+        <TouchableOpacity
+          onPress={handleHistoryNew}
+          style={styles.topBarButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('screen.chat.new_chat', { defaultValue: 'New chat' })}
+        >
+          <Text style={styles.topBarNewText}>+</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Document context banner */}
       {documentContext && (
         <View style={styles.documentBanner}>
@@ -162,9 +266,9 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>{t('screen.chat.ask_anything_short')}</Text>
+            <Text style={styles.emptyTitle}>{t('screen.chat.ask_anything_short', { defaultValue: 'Ask anything' })}</Text>
             <Text style={styles.emptyText}>
-              Semblance processes your request locally on your device.
+              {t('screen.chat.local_device_processing', { defaultValue: 'Semblance processes your request locally on your device.' })}
             </Text>
             {semblance.deviceInfo && (
               <Text style={styles.emptyDevice}>
@@ -177,7 +281,7 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
 
       {semblance.isProcessing && (
         <View style={styles.typingIndicator}>
-          <Text style={styles.typingText}>{t('screen.chat.thinking_dots')}</Text>
+          <Text style={styles.typingText}>{t('screen.chat.thinking_dots', { defaultValue: 'Thinking...' })}</Text>
         </View>
       )}
 
@@ -187,7 +291,7 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
             onPress={onAttachDocument}
             style={styles.attachButton}
             accessibilityRole="button"
-            accessibilityLabel={tAgent('input.attach_document')}
+            accessibilityLabel={tAgent('input.attach_document', { defaultValue: 'Attach document' })}
           >
             <Text style={styles.attachButtonText}>+</Text>
           </TouchableOpacity>
@@ -198,8 +302,8 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
           onChangeText={setInput}
           placeholder={
             semblance.ready
-              ? tAgent('input.placeholder_default')
-              : 'AI model loading...'
+              ? tAgent('input.placeholder_default', { defaultValue: 'Message Semblance...' })
+              : t('screen.chat.model_loading', { defaultValue: 'AI model loading...' })
           }
           placeholderTextColor={colors.textTertiary}
           multiline
@@ -214,7 +318,11 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
             style={styles.voiceButton}
             onPress={voice.voiceState === 'listening' ? voice.onVoiceStop : voice.onVoiceStart}
             accessibilityRole="button"
-            accessibilityLabel={voice.voiceState === 'listening' ? 'Stop listening' : 'Start voice input'}
+            accessibilityLabel={
+              voice.voiceState === 'listening'
+                ? t('screen.chat.voice_stop', { defaultValue: 'Stop listening' })
+                : t('screen.chat.voice_start', { defaultValue: 'Start voice input' })
+            }
             testID="voice-mic-button"
           >
             <Text style={[styles.voiceButtonText, voice.voiceState === 'listening' && styles.voiceButtonActive]}>
@@ -227,11 +335,27 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
           onPress={handleSend}
           disabled={!input.trim() || semblance.isProcessing}
           accessibilityRole="button"
-          accessibilityLabel={tAgent('input.send_message')}
+          accessibilityLabel={tAgent('input.send_message', { defaultValue: 'Send message' })}
         >
-          <Text style={styles.sendButtonText}>{t('button.send')}</Text>
+          <Text style={styles.sendButtonText}>{t('button.send', { defaultValue: 'Send' })}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Conversation History Modal */}
+      <ConversationHistoryPanel
+        items={historyItems}
+        activeId={semblance.conversationId}
+        open={semblance.historyPanelOpen}
+        searchQuery={historySearch}
+        onSearchChange={handleHistorySearchChange}
+        onSelect={handleHistorySelect}
+        onNew={handleHistoryNew}
+        onPin={handleHistoryPin}
+        onUnpin={handleHistoryUnpin}
+        onRename={handleHistoryRename}
+        onDelete={handleHistoryDelete}
+        onClose={handleHistoryClose}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -240,6 +364,44 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bgDark,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDark,
+    backgroundColor: colors.surface1Dark,
+  },
+  topBarButton: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface2Dark,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topBarButtonText: {
+    fontFamily: typography.fontMono,
+    fontSize: typography.size.base,
+    color: colors.textSecondaryDark,
+  },
+  topBarTitle: {
+    flex: 1,
+    fontFamily: typography.fontDisplay,
+    fontSize: typography.size.lg,
+    color: colors.textPrimaryDark,
+    textAlign: 'center',
+    marginHorizontal: spacing.sm,
+  },
+  topBarNewText: {
+    fontFamily: typography.fontMono,
+    fontSize: typography.size.xl,
+    color: colors.primary,
+    lineHeight: typography.size.xl * 1.1,
   },
   initContainer: {
     flex: 1,

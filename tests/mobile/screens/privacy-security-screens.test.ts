@@ -50,8 +50,8 @@ describe('Proof of Privacy Screen', () => {
 
   it('blocks generation for free tier', () => {
     expect(content).toContain('isPremium');
-    expect(content).toContain('Premium Feature');
-    expect(content).toContain("t('screen.proof_of_privacy.premium_required')");
+    expect(content).toContain('Digital Representative Feature');
+    expect(content).toContain("t('screen.proof_of_privacy.premium_alert'");
     expect(content).toContain('buttonDisabled');
   });
 

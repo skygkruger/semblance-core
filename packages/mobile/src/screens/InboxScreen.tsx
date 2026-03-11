@@ -1,8 +1,8 @@
 // InboxScreen — Universal Inbox adapted for mobile touch interface.
 // Pull-to-refresh, swipe actions (archive, categorize), category badges.
-// Data wired to Core's inbox manager in Commit 8.
+// Data loaded from Core's knowledge graph via inbox provider.
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing } from '../theme/tokens.js';
+import { getRuntimeState } from '../runtime/mobile-runtime.js';
+import { fetchInbox, createCoreDataSource, createEmptyDataSource } from '../data/inbox-provider.js';
 
 export interface InboxItem {
   id: string;
@@ -68,14 +70,55 @@ function badgeColor(type: InboxItem['type']): { backgroundColor: string } {
   }
 }
 
-export function InboxScreen({ items = [], onRefresh, onItemPress }: InboxScreenProps) {
+export function InboxScreen({ items: propItems, onRefresh, onItemPress }: InboxScreenProps) {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
+  const [loadedItems, setLoadedItems] = useState<InboxItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Items from props take precedence (allows parent to override), otherwise use loaded data
+  const items = propItems ?? loadedItems;
+
+  // Load inbox data from Core knowledge graph on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInbox() {
+      const { core } = getRuntimeState();
+      const source = core ? createCoreDataSource() : createEmptyDataSource();
+
+      try {
+        const result = await fetchInbox(source);
+        if (!cancelled) {
+          setLoadedItems(result.items);
+        }
+      } catch (err) {
+        console.error('[InboxScreen] Failed to load inbox:', err);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadInbox();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await onRefresh?.();
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        // Default refresh: reload from Core knowledge graph
+        const { core } = getRuntimeState();
+        const source = core ? createCoreDataSource() : createEmptyDataSource();
+        const result = await fetchInbox(source);
+        setLoadedItems(result.items);
+      }
+    } catch (err) {
+      console.error('[InboxScreen] Refresh failed:', err);
     } finally {
       setRefreshing(false);
     }

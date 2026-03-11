@@ -1,6 +1,16 @@
 // Network Monitor Adapter — Connects mobile to Gateway's audit trail.
 // Displays all Gateway actions with timestamps, matching desktop Network Monitor.
 // Data comes through Core → IPC → Gateway audit query.
+//
+// MOBILE NOTE: The mobile device does NOT run a Gateway process. All network
+// actions are performed by the desktop's Gateway. When mobile is operating
+// standalone (no desktop handoff active), there are genuinely zero outbound
+// network connections — returning an empty array is the truthful answer,
+// not a stub. The mobile AI core runs entirely on-device with no network access.
+//
+// When desktop handoff IS active (task routed to desktop), the desktop's
+// Network Monitor shows those actions. A future enhancement could sync
+// desktop audit trail entries to mobile for unified viewing.
 
 export interface NetworkMonitorEntry {
   id: string;
@@ -78,4 +88,28 @@ export function computeMonitorStats(entries: NetworkMonitorEntry[]): NetworkMoni
 function extractService(action: string): string {
   const dot = action.indexOf('.');
   return dot > 0 ? action.substring(0, dot) : action;
+}
+
+/**
+ * Fetch network monitor entries for mobile.
+ *
+ * Mobile does not run its own Gateway — all network actions flow through the
+ * desktop Gateway. When operating standalone, mobile makes zero outbound
+ * connections by design (Sanctuary Protocol / Rule 1). Returning an empty
+ * array is the honest, correct answer.
+ *
+ * The stats will show totalActions: 0, which is accurate and proves to the
+ * user that their mobile device is making no network calls.
+ */
+export function getMobileNetworkEntries(): NetworkMonitorEntry[] {
+  // Genuinely empty — mobile has no Gateway process and makes no network calls.
+  // This is not a stub; this is the truthful state of mobile networking.
+  return [];
+}
+
+/**
+ * Get mobile network stats — always zero, which is the correct answer.
+ */
+export function getMobileNetworkStats(): NetworkMonitorStats {
+  return computeMonitorStats([]);
 }

@@ -2,6 +2,11 @@
 // Uses the same StyleProfile from Core (synced from desktop or extracted from mobile emails).
 // StyleMatchIndicator shown on draft previews.
 
+import { getRuntimeState } from '../runtime/mobile-runtime.js';
+import { StyleProfileStore } from '@semblance/core/style/style-profile';
+import type { StyleProfile } from '@semblance/core/style/style-profile';
+import { getPlatform } from '@semblance/core/platform/index';
+
 export interface MobileStyleProfile {
   id: string;
   userName: string;
@@ -112,4 +117,79 @@ function generateFeedback(score: number, adjustments: StyleAdjustment[]): string
   if (score >= 90) return 'Matches your writing style well.';
   if (adjustments.length === 0) return 'Mostly matches your style.';
   return adjustments.map(a => a.description).join(' ');
+}
+
+// ─── Core Integration ─────────────────────────────────────────────────────────
+
+/**
+ * Load the user's style profile from Core's StyleProfileStore.
+ *
+ * The StyleProfileStore is backed by SQLite in the data directory. On mobile,
+ * the profile is either:
+ * 1. Extracted from locally-indexed sent emails (if email connector is active)
+ * 2. Synced from desktop via the knowledge graph sync mechanism
+ *
+ * Returns null if no profile exists yet (user hasn't connected email or
+ * doesn't have enough samples). This is the truthful state, not a stub.
+ */
+export function loadStyleProfile(): MobileStyleProfile | null {
+  const { core, dataDir } = getRuntimeState();
+  if (!core || !dataDir) return null;
+
+  try {
+    const p = getPlatform();
+    const dbPath = p.path.join(dataDir, 'core.db');
+
+    // Only attempt to open if the database file exists
+    if (!p.fs.existsSync(dbPath)) return null;
+
+    const db = p.sqlite.openDatabase(dbPath);
+    const store = new StyleProfileStore(db);
+    const profile = store.getActiveProfile();
+
+    if (!profile) return null;
+
+    return coreProfileToMobileProfile(profile);
+  } catch (err) {
+    console.error('[StyleAdapter] Failed to load style profile:', err);
+    return null;
+  }
+}
+
+/**
+ * Convert Core's StyleProfile to the mobile MobileStyleProfile format.
+ *
+ * Core's StyleProfile has a richer structure (greetings with context, tone scores,
+ * vocabulary analysis). We flatten it into the simpler MobileStyleProfile for
+ * the mobile style-match indicator.
+ */
+function coreProfileToMobileProfile(profile: StyleProfile): MobileStyleProfile {
+  const topGreeting = profile.greetings.patterns[0];
+  const topSignoff = profile.signoffs.patterns[0];
+
+  // Derive avgWordLength from contraction rate + formality (no direct metric in Core)
+  const estimatedAvgWordLength = profile.vocabulary.usesContractions ? 4.2 : 5.0;
+
+  // Map Core's warmthScore (0-1) to enthusiasm
+  const enthusiasm = profile.tone.warmthScore;
+
+  // Map Core's formalityScore to formality
+  const formality = profile.tone.formalityScore;
+
+  // Derive verbosity from average email/paragraph length
+  const verbosity = Math.min(1, profile.structure.avgEmailLength / 500);
+
+  return {
+    id: profile.id,
+    userName: '', // Core profile doesn't store userName directly
+    avgSentenceLength: profile.structure.avgSentenceLength,
+    avgWordLength: estimatedAvgWordLength,
+    formality,
+    enthusiasm,
+    verbosity,
+    greetingStyle: topGreeting?.text ?? '',
+    signoffStyle: topSignoff?.text ?? '',
+    commonPhrases: profile.vocabulary.commonPhrases,
+    sampleCount: profile.emailsAnalyzed,
+  };
 }

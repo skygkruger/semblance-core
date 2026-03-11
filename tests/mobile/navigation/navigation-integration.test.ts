@@ -60,20 +60,20 @@ describe('Settings Screen Integration', () => {
     const settingsPath = path.join(MOBILE_SRC, 'screens/SettingsScreen.tsx');
     const content = fs.readFileSync(settingsPath, 'utf-8');
 
-    // Step 31 sections
+    // Step 31 sections (literal section titles in source)
     expect(content).toContain('Your Digital Twin');
     expect(content).toContain('Security');
-    // Privacy section already existed but now has Privacy Dashboard
-    expect(content).toContain('Privacy Dashboard');
+    // Privacy section uses i18n key; verify the navigation route is wired
+    expect(content).toContain("navigate('PrivacyDashboard')");
 
-    // Digital Twin items
-    expect(content).toContain('Living Will');
-    expect(content).toContain('Inheritance Protocol');
-    expect(content).toContain('Semblance Network');
+    // Digital Twin items — uses i18n keys; verify navigation routes are wired
+    expect(content).toContain("navigate('LivingWill')");
+    expect(content).toContain("navigate('Inheritance')");
+    expect(content).toContain("navigate('Network')");
 
-    // Security items
-    expect(content).toContain('Biometric Lock');
-    expect(content).toContain('Encrypted Backup');
+    // Security items — uses i18n keys; verify navigation routes are wired
+    expect(content).toContain("navigate('BiometricSetup')");
+    expect(content).toContain("navigate('Backup')");
   });
 
   it('navigation from settings to sovereignty screens works via route types', () => {

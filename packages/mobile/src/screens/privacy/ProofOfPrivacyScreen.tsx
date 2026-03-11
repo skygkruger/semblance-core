@@ -36,7 +36,10 @@ export const ProofOfPrivacyScreen: React.FC<ProofOfPrivacyScreenProps> = ({
   const { t } = useTranslation();
   const handleGenerate = async () => {
     if (!isPremium) {
-      Alert.alert('Premium Feature', 'Proof of Privacy reports require Semblance Premium.');
+      Alert.alert(
+        t('premium.feature_title', { defaultValue: 'Digital Representative Feature' }),
+        t('screen.proof_of_privacy.premium_alert', { defaultValue: 'Proof of Privacy reports require Semblance Digital Representative.' }),
+      );
       return;
     }
     await onGenerate();
@@ -46,7 +49,7 @@ export const ProofOfPrivacyScreen: React.FC<ProofOfPrivacyScreenProps> = ({
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{t('screen.proof_of_privacy.title')}</Text>
       <Text style={styles.subtitle}>
-        Verifiable proof that Semblance operates within its privacy guarantees.
+        {t('screen.proof_of_privacy.subtitle', { defaultValue: 'Verifiable proof that Semblance operates within its privacy guarantees.' })}
       </Text>
 
       <TouchableOpacity
@@ -55,7 +58,9 @@ export const ProofOfPrivacyScreen: React.FC<ProofOfPrivacyScreenProps> = ({
         disabled={isGenerating}
       >
         <Text style={styles.generateButtonText}>
-          {isGenerating ? 'Generating...' : 'Generate New Report'}
+          {isGenerating
+            ? t('screen.proof_of_privacy.generating', { defaultValue: 'Generating...' })
+            : t('screen.proof_of_privacy.generate_button', { defaultValue: 'Generate New Report' })}
         </Text>
       </TouchableOpacity>
 
@@ -75,7 +80,7 @@ export const ProofOfPrivacyScreen: React.FC<ProofOfPrivacyScreenProps> = ({
               <Text style={styles.reportDate}>
                 {new Date(report.generatedAt).toLocaleDateString()}
               </Text>
-              <Text style={styles.reportDuration}>{report.durationDays}-day period</Text>
+              <Text style={styles.reportDuration}>{t('screen.proof_of_privacy.duration', { defaultValue: '{{days}}-day period', days: report.durationDays })}</Text>
             </View>
             <View style={styles.reportStats}>
               <View style={styles.reportStat}>

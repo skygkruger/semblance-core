@@ -9,10 +9,13 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
   type ListRenderItemInfo,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { getRuntimeState } from '../runtime/mobile-runtime.js';
+import { useSemblance } from '../runtime/SemblanceProvider.js';
 
 interface ContactSummary {
   id: string;
@@ -61,7 +64,9 @@ function BirthdaySection({ birthdays, onPress }: { birthdays: BirthdayInfo[]; on
           <View style={styles.birthdayDot} />
           <Text style={styles.birthdayName}>{b.displayName}</Text>
           <Text style={styles.birthdayDays}>
-            {b.isToday ? 'Today!' : `in ${b.daysUntil}d`}
+            {b.isToday
+              ? t('screen.contacts.birthday_today', { defaultValue: 'Today!' })
+              : t('screen.contacts.birthday_in_days', { defaultValue: 'in {{days}}d', days: b.daysUntil })}
           </Text>
         </TouchableOpacity>
       ))}
@@ -76,10 +81,65 @@ export function ContactsScreen({ navigation }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const { ready, searchKnowledge } = useSemblance();
+
   useEffect(() => {
-    // In production, fetch via bridge. For now, placeholder.
-    setLoading(false);
-  }, []);
+    if (!ready) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+
+    const loadContacts = async () => {
+      const state = getRuntimeState();
+      if (state.core) {
+        try {
+          // Search the knowledge graph for contact-related documents
+          const results = await searchKnowledge('contact person email phone', 50);
+          const parsed: ContactSummary[] = results
+            .filter((r) => r.score > 0.3)
+            .map((r, i) => ({
+              id: `contact-${i}`,
+              displayName: r.content.slice(0, 40).trim(),
+              organization: '',
+              relationshipType: 'contact',
+              lastContactDate: null,
+              interactionCount: 0,
+              birthday: '',
+            }));
+          if (!cancelled) {
+            setContacts(parsed);
+            // Extract any birthdays from parsed contacts
+            const now = new Date();
+            const bdays: BirthdayInfo[] = parsed
+              .filter((c) => c.birthday)
+              .map((c) => {
+                const bd = new Date(c.birthday);
+                const thisYearBd = new Date(now.getFullYear(), bd.getMonth(), bd.getDate());
+                if (thisYearBd < now) thisYearBd.setFullYear(now.getFullYear() + 1);
+                const daysUntil = Math.ceil((thisYearBd.getTime() - now.getTime()) / 86400000);
+                return {
+                  contactId: c.id,
+                  displayName: c.displayName,
+                  birthday: c.birthday,
+                  daysUntil,
+                  isToday: daysUntil === 0,
+                };
+              })
+              .sort((a, b) => a.daysUntil - b.daysUntil)
+              .slice(0, 5);
+            setBirthdays(bdays);
+          }
+        } catch {
+          // Knowledge graph unavailable
+        }
+      }
+      if (!cancelled) setLoading(false);
+    };
+
+    loadContacts();
+    return () => { cancelled = true; };
+  }, [ready, searchKnowledge]);
 
   const handleContactPress = useCallback((id: string) => {
     navigation.navigate('ContactDetail', { contactId: id });

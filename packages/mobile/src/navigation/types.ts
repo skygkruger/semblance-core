@@ -41,6 +41,7 @@ export type DashboardsStackParamList = {
   HealthDashboard: undefined;
   Contacts: undefined;
   ContactDetail: { contactId: string };
+  Activity: undefined;
 };
 
 /** Settings tab stack — all secondary screens nest here */
@@ -66,6 +67,8 @@ export type SettingsStackParamList = {
   Backup: undefined;
   AdversarialDashboard: undefined;
   Connections: undefined;
+  Files: undefined;
+  Activity: undefined;
 };
 
 /** Root stack navigator param list */
