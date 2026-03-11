@@ -114,12 +114,20 @@ describe('Mobile App Shell — Screen Contracts', () => {
     expect(content).toContain('RefreshControl');
   });
 
-  it('ChatScreen exports ChatMessage type and component', () => {
+  it('ChatScreen exports component and uses SemblanceProvider', () => {
     const content = fs.readFileSync(path.join(MOBILE_SRC, 'screens/ChatScreen.tsx'), 'utf-8');
 
-    expect(content).toContain('export interface ChatMessage');
     expect(content).toContain('export function ChatScreen');
     expect(content).toContain('KeyboardAvoidingView');
+    expect(content).toContain('useSemblance');
+  });
+
+  it('SemblanceProvider exports ChatMessage type', () => {
+    const content = fs.readFileSync(path.join(MOBILE_SRC, 'runtime/SemblanceProvider.tsx'), 'utf-8');
+
+    expect(content).toContain('export interface ChatMessage');
+    expect(content).toContain('export function SemblanceProvider');
+    expect(content).toContain('export function useSemblance');
   });
 
   it('CaptureScreen exports CaptureEntry type and component', () => {

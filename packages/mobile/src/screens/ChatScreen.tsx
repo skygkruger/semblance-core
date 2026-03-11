@@ -1,8 +1,10 @@
 // ChatScreen — Conversational interface for mobile.
-// Same chat UX as desktop, adapted for mobile keyboard and touch.
-// Data wired to Core's orchestrator in Commit 8.
+// Same chat UX as desktop. Wired to the mobile AI runtime via SemblanceProvider.
+// Messages flow through the orchestrator with full tool-use capability.
+//
+// CRITICAL: No network imports. All inference is local via SemblanceProvider.
 
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,21 +14,15 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, radius } from '../theme/tokens.js';
 import { useHardwareTier } from '../hooks/useHardwareTier';
 import { useVoiceInput } from '../hooks/useVoiceInput';
-import { createConfigurableVoiceAdapter } from '@semblance/core/platform/desktop-voice';
-
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: string;
-  /** Optional routing indicator (e.g., "Processing on MacBook Pro...") */
-  routedTo?: string;
-}
+import { createMobileVoiceAdapter } from '../native/voice-bridge';
+import { useSemblance } from '../runtime/SemblanceProvider';
+import type { ChatMessage } from '../runtime/SemblanceProvider';
 
 export interface DocumentContext {
   documentId: string;
@@ -36,51 +32,101 @@ export interface DocumentContext {
 }
 
 interface ChatScreenProps {
-  messages?: ChatMessage[];
-  onSend?: (text: string) => void;
   onAttachDocument?: () => void;
   onClearDocument?: () => void;
   documentContext?: DocumentContext | null;
-  isProcessing?: boolean;
-  deviceName?: string;
 }
 
 function MessageBubble({ message }: { message: ChatMessage }) {
-  const { t } = useTranslation();
   const isUser = message.role === 'user';
 
   return (
     <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
-      {message.routedTo && (
-        <Text style={styles.routedIndicator}>{t('screen.chat.processing_on', { device: message.routedTo })}</Text>
-      )}
       <Text style={[styles.messageText, isUser && styles.messageTextUser]}>
         {message.content}
       </Text>
-      <Text style={styles.messageTime}>{message.timestamp}</Text>
+      {message.actions && message.actions.length > 0 && (
+        <View style={styles.actionsContainer}>
+          {message.actions.map((action) => (
+            <View key={action.id} style={styles.actionBadge}>
+              <Text style={styles.actionText}>{action.type}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      <Text style={styles.messageTime}>
+        {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </Text>
     </View>
   );
 }
 
-export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDocument, documentContext, isProcessing = false }: ChatScreenProps) {
+export function ChatScreen({ onAttachDocument, onClearDocument, documentContext }: ChatScreenProps) {
   const { t } = useTranslation();
   const { t: tAgent } = useTranslation('agent');
   const [input, setInput] = useState('');
   const flatListRef = useRef<FlatList>(null);
 
-  // Voice hardware capability gate
+  // AI runtime
+  const semblance = useSemblance();
+
+  // Voice hardware capability gate — use MOBILE voice adapter
   const { voiceCapable } = useHardwareTier();
-  // TODO: Replace with real mobile voice adapter in device testing pass
-  const voiceAdapter = useMemo(() => createConfigurableVoiceAdapter({ sttReady: true }), []);
+  const voiceAdapter = useMemo(
+    () => createMobileVoiceAdapter(Platform.OS === 'ios' ? 'ios' : 'android'),
+    [],
+  );
   const voice = useVoiceInput(voiceAdapter);
   const showVoice = voiceCapable && voice.voiceEnabled;
 
+  // Auto-scroll on new messages
+  useEffect(() => {
+    if (semblance.messages.length > 0) {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    }
+  }, [semblance.messages.length]);
+
+  // Handle voice transcription → auto-send
+  useEffect(() => {
+    if (voice.lastTranscription && voice.lastTranscription.trim()) {
+      setInput(voice.lastTranscription);
+    }
+  }, [voice.lastTranscription]);
+
   const handleSend = useCallback(() => {
     const text = input.trim();
-    if (!text) return;
-    onSend?.(text);
+    if (!text || semblance.isProcessing) return;
     setInput('');
-  }, [input, onSend]);
+    semblance.sendMessage(text);
+  }, [input, semblance]);
+
+  // Show initialization screen while runtime loads
+  if (semblance.initializing) {
+    return (
+      <View style={styles.initContainer}>
+        <ActivityIndicator size="large" color="#6ECFA3" />
+        <Text style={styles.initTitle}>{t('screen.chat.starting', { defaultValue: 'Starting Semblance' })}</Text>
+        <Text style={styles.initProgress}>{semblance.progressLabel}</Text>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${semblance.progress}%` }]} />
+        </View>
+        <Text style={styles.initSubtext}>{t('screen.chat.local_processing', { defaultValue: 'All processing happens on your device' })}</Text>
+      </View>
+    );
+  }
+
+  // Show error state if runtime failed
+  if (semblance.error && !semblance.ready) {
+    return (
+      <View style={styles.initContainer}>
+        <Text style={styles.errorTitle}>{t('screen.chat.setup_required', { defaultValue: 'Setup Required' })}</Text>
+        <Text style={styles.errorText}>{semblance.error}</Text>
+        <Text style={styles.initSubtext}>
+          Semblance needs a local AI model to work. Connect to Wi-Fi to download one.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -108,7 +154,7 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
 
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={semblance.messages}
         keyExtractor={msg => msg.id}
         renderItem={({ item }) => <MessageBubble message={item} />}
         contentContainerStyle={styles.messageList}
@@ -120,11 +166,16 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
             <Text style={styles.emptyText}>
               Semblance processes your request locally on your device.
             </Text>
+            {semblance.deviceInfo && (
+              <Text style={styles.emptyDevice}>
+                {semblance.deviceInfo.deviceName} ({semblance.deviceInfo.totalMemMb}MB RAM)
+              </Text>
+            )}
           </View>
         }
       />
 
-      {isProcessing && (
+      {semblance.isProcessing && (
         <View style={styles.typingIndicator}>
           <Text style={styles.typingText}>{t('screen.chat.thinking_dots')}</Text>
         </View>
@@ -145,13 +196,18 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
           style={styles.input}
           value={input}
           onChangeText={setInput}
-          placeholder={tAgent('input.placeholder_default')}
+          placeholder={
+            semblance.ready
+              ? tAgent('input.placeholder_default')
+              : 'AI model loading...'
+          }
           placeholderTextColor={colors.textTertiary}
           multiline
           maxLength={4000}
           returnKeyType="send"
           onSubmitEditing={handleSend}
           blurOnSubmit={false}
+          editable={!semblance.isProcessing}
         />
         {showVoice && (
           <TouchableOpacity
@@ -167,9 +223,9 @@ export function ChatScreen({ messages = [], onSend, onAttachDocument, onClearDoc
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
+          style={[styles.sendButton, (!input.trim() || semblance.isProcessing) && styles.sendButtonDisabled]}
           onPress={handleSend}
-          disabled={!input.trim() || isProcessing}
+          disabled={!input.trim() || semblance.isProcessing}
           accessibilityRole="button"
           accessibilityLabel={tAgent('input.send_message')}
         >
@@ -184,6 +240,58 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bgDark,
+  },
+  initContainer: {
+    flex: 1,
+    backgroundColor: colors.bgDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  initTitle: {
+    fontFamily: typography.fontDisplay,
+    fontSize: typography.size.xl,
+    color: colors.textPrimaryDark,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  initProgress: {
+    fontFamily: typography.fontBody,
+    fontSize: typography.size.sm,
+    color: colors.textSecondaryDark,
+    marginBottom: spacing.lg,
+  },
+  progressBar: {
+    width: '80%',
+    height: 4,
+    backgroundColor: colors.surface2Dark,
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#6ECFA3',
+    borderRadius: 2,
+  },
+  initSubtext: {
+    fontFamily: typography.fontBody,
+    fontSize: typography.size.xs,
+    color: colors.textTertiary,
+    textAlign: 'center',
+  },
+  errorTitle: {
+    fontFamily: typography.fontDisplay,
+    fontSize: typography.size.xl,
+    color: '#B07A8A',
+    marginBottom: spacing.md,
+  },
+  errorText: {
+    fontFamily: typography.fontBody,
+    fontSize: typography.size.sm,
+    color: colors.textSecondaryDark,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
   },
   messageList: {
     padding: spacing.base,
@@ -223,11 +331,22 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     alignSelf: 'flex-end',
   },
-  routedIndicator: {
+  actionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: spacing.xs,
+  },
+  actionBadge: {
+    backgroundColor: 'rgba(110,207,163,0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  actionText: {
     fontFamily: typography.fontMono,
-    fontSize: typography.size.xs,
-    color: colors.accent,
-    marginBottom: spacing.xs,
+    fontSize: 10,
+    color: '#6ECFA3',
   },
   typingIndicator: {
     paddingHorizontal: spacing.base,
@@ -356,5 +475,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondaryDark,
     textAlign: 'center',
     maxWidth: 280,
+  },
+  emptyDevice: {
+    fontFamily: typography.fontMono,
+    fontSize: typography.size.xs,
+    color: colors.textTertiary,
+    marginTop: spacing.md,
   },
 });
