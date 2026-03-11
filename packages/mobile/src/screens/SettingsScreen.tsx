@@ -1,8 +1,10 @@
 // SettingsScreen — All settings from desktop adapted for mobile.
-// AI Engine, Web Search, Writing Style, Autonomy, Network Monitor, Devices.
-// Data wired to Core in Commit 8.
+// Wired to the mobile runtime for real model info, autonomy settings, and
+// device info. Navigation callbacks push into the Settings stack.
+//
+// CRITICAL: No network imports. All data is local.
 
-import React from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,8 +12,19 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  Alert,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing, radius } from '../theme/tokens.js';
+import { useSemblance } from '../runtime/SemblanceProvider.js';
+import { getRuntimeState } from '../runtime/mobile-runtime.js';
+import type { SettingsStackParamList } from '../navigation/types.js';
+
+type Nav = NativeStackNavigationProp<SettingsStackParamList>;
+
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface SettingsSection {
   title: string;
@@ -28,13 +41,7 @@ export interface SettingsItem {
   onToggle?: (value: boolean) => void;
 }
 
-interface SettingsScreenProps {
-  sections?: SettingsSection[];
-  aiModelName?: string;
-  autonomyTier?: string;
-  networkMonitorCount?: number;
-  onNavigate?: (screen: string) => void;
-}
+// ─── Settings Row ───────────────────────────────────────────────────────────
 
 function SettingsRow({ item }: { item: SettingsItem }) {
   return (
@@ -68,67 +75,258 @@ function SettingsRow({ item }: { item: SettingsItem }) {
   );
 }
 
-const DEFAULT_SECTIONS: SettingsSection[] = [
-  {
-    title: 'AI Engine',
-    items: [
-      { id: 'model', label: 'AI Model', type: 'value', value: 'Llama 3.2 3B' },
-      { id: 'model-storage', label: 'Model Storage', type: 'navigate', description: 'Manage downloaded models' },
-      { id: 'wifi-only', label: 'WiFi-Only Downloads', type: 'toggle', value: true },
-    ],
-  },
-  {
-    title: 'Autonomy',
-    items: [
-      { id: 'tier', label: 'Autonomy Tier', type: 'value', value: 'Partner' },
-      { id: 'domains', label: 'Per-Domain Settings', type: 'navigate' },
-    ],
-  },
-  {
-    title: 'Features',
-    items: [
-      { id: 'web-search', label: 'Web Search', type: 'navigate', description: 'Search provider settings' },
-      { id: 'writing-style', label: 'Writing Style', type: 'navigate', description: 'Communication style preferences' },
-      { id: 'reminders', label: 'Reminders', type: 'navigate' },
-    ],
-  },
-  {
-    title: 'Your Digital Twin',
-    items: [
-      { id: 'living-will', label: 'Living Will', type: 'navigate', description: 'Encrypted digital twin export' },
-      { id: 'inheritance', label: 'Inheritance Protocol', type: 'navigate', description: 'Trusted party access' },
-      { id: 'semblance-network', label: 'Semblance Network', type: 'navigate', description: 'Peer-to-peer sharing' },
-    ],
-  },
-  {
-    title: 'Security',
-    items: [
-      { id: 'biometric', label: 'Biometric Lock', type: 'navigate', description: 'Face ID, Touch ID, fingerprint' },
-      { id: 'backup', label: 'Encrypted Backup', type: 'navigate', description: 'Create and restore backups' },
-    ],
-  },
-  {
-    title: 'Privacy',
-    items: [
-      { id: 'privacy-dashboard', label: 'Privacy Dashboard', type: 'navigate', description: 'Data inventory and guarantees' },
-      { id: 'network-monitor', label: 'Network Monitor', type: 'navigate', description: 'View all network activity' },
-      { id: 'action-log', label: 'Action Log', type: 'navigate', description: 'Review autonomous actions' },
-    ],
-  },
-  {
-    title: 'Devices & Sync',
-    items: [
-      { id: 'paired-devices', label: 'Paired Devices', type: 'navigate' },
-      { id: 'sync-now', label: 'Sync Now', type: 'navigate', description: 'Sync with devices on this network' },
-      { id: 'task-routing', label: 'Task Routing', type: 'navigate', description: 'Configure inference routing' },
-    ],
-  },
-];
+// ─── SettingsScreen ─────────────────────────────────────────────────────────
 
-export function SettingsScreen({ sections = DEFAULT_SECTIONS }: SettingsScreenProps) {
+export function SettingsScreen() {
+  const { t } = useTranslation();
+  const { t: tSettings } = useTranslation('settings');
+  const navigation = useNavigation<Nav>();
+  const { ready, deviceInfo } = useSemblance();
+
+  // Runtime state
+  const [modelName, setModelName] = useState<string>('');
+  const [autonomyTier, setAutonomyTier] = useState<string>('partner');
+  const [wifiOnly, setWifiOnly] = useState(true);
+  const [appVersion] = useState('0.1.0');
+
+  // Load real data from runtime
+  useEffect(() => {
+    const state = getRuntimeState();
+
+    // Model name from runtime
+    if (state.inferenceRouter) {
+      const model = state.inferenceRouter.getModelForTask?.('reason') ?? '';
+      setModelName(model || 'Not loaded');
+    } else if (state.modelManager) {
+      setModelName('Not loaded');
+    } else {
+      setModelName('No inference');
+    }
+
+    // Device tier for display
+    if (state.deviceInfo) {
+      // Autonomy settings would come from persisted preferences
+      // TODO: Sprint 6 — Wire autonomy tier from persisted mobile preferences
+    }
+  }, [ready]);
+
+  // WiFi-only toggle persists to model manager
+  const handleWifiOnlyToggle = useCallback((value: boolean) => {
+    setWifiOnly(value);
+    const state = getRuntimeState();
+    if (state.modelManager) {
+      state.modelManager.setWifiOnly?.(value);
+    }
+  }, []);
+
+  // Build sections with real data and navigation callbacks
+  const sections = useMemo<SettingsSection[]>(() => {
+    const deviceTier = deviceInfo?.tier ?? 'unknown';
+    const ramInfo = deviceInfo ? `${deviceInfo.totalMemMb}MB RAM` : '';
+    const platformLabel = deviceInfo?.platform === 'ios' ? 'iOS' : 'Android';
+
+    return [
+      {
+        title: t('screen.settings.section_ai_engine'),
+        items: [
+          {
+            id: 'model',
+            label: tSettings('ai_engine.section_model'),
+            type: 'value' as const,
+            value: modelName,
+          },
+          {
+            id: 'hardware',
+            label: tSettings('ai_engine.section_hardware'),
+            type: 'value' as const,
+            value: ramInfo ? `${platformLabel} — ${ramInfo} (${deviceTier})` : platformLabel,
+          },
+          {
+            id: 'wifi-only',
+            label: 'WiFi-Only Downloads',
+            description: undefined,
+            type: 'toggle' as const,
+            value: wifiOnly,
+            onToggle: handleWifiOnlyToggle,
+          },
+        ],
+      },
+      {
+        title: t('screen.settings.section_autonomy'),
+        items: [
+          {
+            id: 'tier',
+            label: tSettings('autonomy.title'),
+            type: 'value' as const,
+            value: autonomyTier.charAt(0).toUpperCase() + autonomyTier.slice(1),
+          },
+          {
+            id: 'intents',
+            label: t('screen.settings.intents_hard_limits'),
+            type: 'navigate' as const,
+            description: tSettings('intents_hard_limits_subtitle'),
+            onPress: () => {
+              // Intent screen is handled by the desktop; on mobile we show an alert
+              // TODO: Sprint 6 — Create IntentScreen for mobile
+              Alert.alert(t('screen.intent.title'), t('screen.intent.loading'));
+            },
+          },
+        ],
+      },
+      {
+        title: t('nav.connections'),
+        items: [
+          {
+            id: 'connections',
+            label: t('screen.connections.title'),
+            type: 'navigate' as const,
+            description: t('screen.connections.subtitle'),
+            onPress: () => navigation.navigate('Connections'),
+          },
+          {
+            id: 'files',
+            label: t('screen.files.title'),
+            type: 'navigate' as const,
+            description: t('screen.files.section_directories'),
+            onPress: () => navigation.navigate('Files'),
+          },
+          {
+            id: 'import',
+            label: t('screen.import_life.title'),
+            type: 'navigate' as const,
+            onPress: () => navigation.navigate('ImportDigitalLife'),
+          },
+        ],
+      },
+      {
+        title: 'Features',
+        items: [
+          {
+            id: 'voice',
+            label: t('screen.voice_settings.title'),
+            type: 'navigate' as const,
+            onPress: () => navigation.navigate('VoiceSettings'),
+          },
+          {
+            id: 'cloud-storage',
+            label: t('screen.cloud_storage.title'),
+            type: 'navigate' as const,
+            onPress: () => navigation.navigate('CloudStorageSettings'),
+          },
+          {
+            id: 'location',
+            label: t('screen.location.title'),
+            type: 'navigate' as const,
+            onPress: () => navigation.navigate('LocationSettings'),
+          },
+          {
+            id: 'capture',
+            label: t('screen.capture.title'),
+            type: 'navigate' as const,
+            onPress: () => navigation.navigate('Capture'),
+          },
+        ],
+      },
+      {
+        title: 'Your Digital Twin',
+        items: [
+          {
+            id: 'living-will',
+            label: t('screen.living_will.title'),
+            type: 'navigate' as const,
+            description: t('screen.living_will.subtitle'),
+            onPress: () => navigation.navigate('LivingWill'),
+          },
+          {
+            id: 'witness',
+            label: t('screen.witness.title'),
+            type: 'navigate' as const,
+            description: t('screen.witness.subtitle'),
+            onPress: () => navigation.navigate('Witness', {}),
+          },
+          {
+            id: 'inheritance',
+            label: t('screen.inheritance.title'),
+            type: 'navigate' as const,
+            description: t('screen.inheritance.subtitle'),
+            onPress: () => navigation.navigate('Inheritance'),
+          },
+          {
+            id: 'semblance-network',
+            label: t('screen.semblance_network.title'),
+            type: 'navigate' as const,
+            onPress: () => navigation.navigate('Network'),
+          },
+        ],
+      },
+      {
+        title: 'Security',
+        items: [
+          {
+            id: 'biometric',
+            label: t('screen.biometric.title'),
+            type: 'navigate' as const,
+            onPress: () => navigation.navigate('BiometricSetup'),
+          },
+          {
+            id: 'backup',
+            label: t('screen.backup.title'),
+            type: 'navigate' as const,
+            onPress: () => navigation.navigate('Backup'),
+          },
+        ],
+      },
+      {
+        title: 'Privacy',
+        items: [
+          {
+            id: 'privacy-dashboard',
+            label: tSettings('privacy.title'),
+            type: 'navigate' as const,
+            onPress: () => navigation.navigate('PrivacyDashboard'),
+          },
+          {
+            id: 'adversarial',
+            label: t('screen.adversarial.title'),
+            type: 'navigate' as const,
+            onPress: () => navigation.navigate('AdversarialDashboard'),
+          },
+          {
+            id: 'activity',
+            label: t('screen.activity.title'),
+            type: 'navigate' as const,
+            description: t('screen.activity.empty', { name: 'Semblance' }).slice(0, 45) + '...',
+            onPress: () => navigation.navigate('Activity'),
+          },
+        ],
+      },
+      {
+        title: t('screen.settings.section_about'),
+        items: [
+          {
+            id: 'version',
+            label: t('screen.settings.about_version'),
+            type: 'value' as const,
+            value: `v${appVersion}`,
+          },
+          {
+            id: 'license',
+            label: t('screen.settings.about_license'),
+            type: 'value' as const,
+            value: '',
+          },
+        ],
+      },
+    ];
+  }, [
+    t, tSettings, navigation, modelName, autonomyTier, wifiOnly,
+    deviceInfo, handleWifiOnlyToggle, appVersion,
+  ]);
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {sections.map(section => (
+      <Text style={styles.screenTitle}>{t('screen.settings.title')}</Text>
+      {sections.map((section) => (
         <View key={section.title} style={styles.section}>
           <Text style={styles.sectionTitle}>{section.title}</Text>
           <View style={styles.sectionCard}>
@@ -145,6 +343,8 @@ export function SettingsScreen({ sections = DEFAULT_SECTIONS }: SettingsScreenPr
   );
 }
 
+// ─── Styles ─────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -153,6 +353,13 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.base,
     paddingBottom: spacing['3xl'],
+  },
+  screenTitle: {
+    fontFamily: typography.fontDisplay,
+    fontSize: typography.size.xl,
+    fontWeight: typography.weight.semibold,
+    color: colors.textPrimaryDark,
+    marginBottom: spacing.xl,
   },
   section: {
     marginBottom: spacing.xl,

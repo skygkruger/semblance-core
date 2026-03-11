@@ -70,6 +70,13 @@ export type { Orchestrator, OrchestratorResponse } from './agent/orchestrator.js
 export type { IPCClient, IPCClientConfig, IPCClientTransportConfig } from './agent/ipc-client.js';
 export { CoreIPCClient } from './agent/ipc-client.js';
 export { createOrchestrator } from './agent/index.js';
+export { ConversationManager } from './agent/conversation-manager.js';
+export type {
+  ConversationSummary as ConvSummary,
+  ConversationTurnRow,
+  ListConversationsOptions,
+  ConversationWithTurns,
+} from './agent/conversation-manager.js';
 
 // Re-export IPC transport abstraction
 export type { IPCTransport, IPCHandler } from './ipc/transport.js';

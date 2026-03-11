@@ -14,6 +14,13 @@ export { CoreIPCClient } from './ipc-client.js';
 export type { IPCClient, IPCClientConfig } from './ipc-client.js';
 export { OrchestratorImpl } from './orchestrator.js';
 export type { Orchestrator, OrchestratorResponse, SystemPromptConfig } from './orchestrator.js';
+export { ConversationManager } from './conversation-manager.js';
+export type {
+  ConversationSummary as ConvSummary,
+  ConversationTurnRow,
+  ListConversationsOptions,
+  ConversationWithTurns,
+} from './conversation-manager.js';
 export { DocumentContextManager } from './document-context.js';
 export type { DocumentContextInfo } from './document-context.js';
 export { DailyDigestGenerator } from './daily-digest.js';

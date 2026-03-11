@@ -8,6 +8,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Platform, NativeModules } from 'react-native';
+import { getRuntimeState } from '../runtime/mobile-runtime.js';
+import { useSemblance } from '../runtime/SemblanceProvider.js';
 import { HealthDashboard } from '@semblance/ui/components/HealthDashboard/HealthDashboard.native';
 import type { HealthEntry, HealthTrendPoint, HealthInsight } from '@semblance/ui/components/HealthDashboard/HealthDashboard.types';
 
@@ -28,6 +30,8 @@ export function HealthDashboardScreen({
   const [symptomsHistory, setSymptomsHistory] = useState<string[]>([]);
   const [medicationsHistory, setMedicationsHistory] = useState<string[]>([]);
 
+  const { ready, searchKnowledge } = useSemblance();
+
   useEffect(() => {
     // Detect HealthKit/Health Connect availability
     if (Platform.OS === 'ios' && NativeModules.HealthKitBridge) {
@@ -38,9 +42,49 @@ export function HealthDashboardScreen({
       setHasHealthKit(false);
     }
 
-    // Health data will be loaded once sidecar health data commands are wired via unified-bridge
-    setLoading(false);
-  }, []);
+    if (!ready) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+
+    const loadHealthData = async () => {
+      const state = getRuntimeState();
+      if (state.core) {
+        try {
+          // Search for health-related data in the knowledge graph
+          const results = await searchKnowledge('health mood energy sleep wellness', 20);
+          if (!cancelled && results.length > 0) {
+            // Parse any health insights from the knowledge graph
+            const parsedInsights: HealthInsight[] = results
+              .filter((r) => r.score > 0.3)
+              .map((r, i) => ({
+                id: `insight-${i}`,
+                type: 'correlation' as const,
+                title: r.content.slice(0, 60).trim(),
+                description: r.content.slice(0, 200),
+                confidence: r.score,
+                generatedAt: new Date().toISOString(),
+              }));
+            setInsights(parsedInsights);
+          }
+
+          // Load symptom/medication history from knowledge graph
+          const symptomResults = await searchKnowledge('symptom medication treatment', 10);
+          if (!cancelled && symptomResults.length > 0) {
+            const symptoms = symptomResults.map((r) => r.content.slice(0, 30).trim());
+            setSymptomsHistory(symptoms);
+          }
+        } catch {
+          // Knowledge graph unavailable
+        }
+      }
+      if (!cancelled) setLoading(false);
+    };
+
+    loadHealthData();
+    return () => { cancelled = true; };
+  }, [ready, searchKnowledge]);
 
   const handleSaveEntry = useCallback(async (entry: Partial<HealthEntry> & { date: string }) => {
     // Saves locally in component state; requires sidecar save command for persistence

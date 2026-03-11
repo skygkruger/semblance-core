@@ -22,8 +22,13 @@ import { Platform } from 'react-native';
 import RNFS from 'react-native-fs';
 import { setPlatform, createMobileAdapter } from '@semblance/core/platform/index';
 import { mobilePath } from '@semblance/core/platform/mobile-adapter';
-import { createSemblanceCore } from '@semblance/core';
+import { createSemblanceCore, ConversationManager } from '@semblance/core';
 import type { SemblanceCore } from '@semblance/core';
+import type {
+  ConvSummary,
+  ConversationTurnRow,
+  ListConversationsOptions,
+} from '@semblance/core';
 import { MobileProvider } from '@semblance/core/llm/mobile-provider';
 import { InferenceRouter } from '@semblance/core/llm/inference-router';
 import {
@@ -68,6 +73,8 @@ export interface MobileRuntimeState {
   modelManager: MobileModelManager | null;
   /** The native inference bridge */
   inferenceBridge: MobileInferenceBridge | null;
+  /** Conversation manager for multi-conversation CRUD */
+  conversationManager: ConversationManager | null;
   /** Data directory path */
   dataDir: string;
   /** Device profile info */
@@ -91,6 +98,7 @@ const initialState: MobileRuntimeState = {
   inferenceRouter: null,
   modelManager: null,
   inferenceBridge: null,
+  conversationManager: null,
   dataDir: '',
   deviceInfo: null,
   error: null,
@@ -289,6 +297,23 @@ async function doInitialize(onProgress?: ProgressCallback): Promise<MobileRuntim
       }
     }
 
+    // ─── Step 5b: Conversation Manager ──────────────────────────────────
+    updateProgress(80, 'Setting up conversations...', onProgress);
+
+    try {
+      const agentDbPath = `${dataDir}/agent.db`;
+      const agentDb = sqliteAdapter.openDatabase(agentDbPath);
+      agentDb.pragma('journal_mode = WAL');
+      const convManager = new ConversationManager(agentDb);
+      convManager.migrate();
+      convManager.pruneExpired();
+      runtimeState.conversationManager = convManager;
+      console.log('[MobileRuntime] ConversationManager ready');
+    } catch (err) {
+      console.error('[MobileRuntime] ConversationManager init failed:', err);
+      // Non-fatal — chat still works, just no conversation history
+    }
+
     // ─── Step 6: Finalize ──────────────────────────────────────────────
     updateProgress(90, 'Finalizing...', onProgress);
 
@@ -371,13 +396,97 @@ export async function sendChatMessage(
       ],
     });
     return {
-      response: response.content,
+      response: response.message.content,
       conversationId: conversationId ?? 'default',
       actions: [],
     };
   }
 
   throw new Error('No inference capability available.');
+}
+
+// ─── Conversation Management ───────────────────────────────────────────────
+
+export { type ConvSummary, type ConversationTurnRow, type ListConversationsOptions } from '@semblance/core';
+
+/**
+ * List conversations with optional filtering.
+ */
+export function listConversations(opts?: ListConversationsOptions): ConvSummary[] {
+  const { conversationManager } = runtimeState;
+  if (!conversationManager) return [];
+  return conversationManager.list(opts);
+}
+
+/**
+ * Create a new conversation. Returns the summary.
+ */
+export function createConversation(firstMessage?: string): ConvSummary | null {
+  const { conversationManager } = runtimeState;
+  if (!conversationManager) return null;
+  return conversationManager.create(firstMessage);
+}
+
+/**
+ * Switch to a conversation and load its turns.
+ */
+export function switchConversation(id: string, limit?: number): {
+  conversationId: string;
+  turns: ConversationTurnRow[];
+} | null {
+  const { conversationManager } = runtimeState;
+  if (!conversationManager) return null;
+  const turns = conversationManager.getTurns(id, limit ?? 100);
+  return { conversationId: id, turns };
+}
+
+/**
+ * Delete a conversation and all its turns.
+ */
+export function deleteConversation(id: string): boolean {
+  const { conversationManager } = runtimeState;
+  if (!conversationManager) return false;
+  conversationManager.delete(id);
+  return true;
+}
+
+/**
+ * Rename a conversation.
+ */
+export function renameConversation(id: string, title: string): boolean {
+  const { conversationManager } = runtimeState;
+  if (!conversationManager) return false;
+  conversationManager.rename(id, title);
+  return true;
+}
+
+/**
+ * Pin a conversation.
+ */
+export function pinConversation(id: string): boolean {
+  const { conversationManager } = runtimeState;
+  if (!conversationManager) return false;
+  conversationManager.pin(id);
+  return true;
+}
+
+/**
+ * Unpin a conversation.
+ */
+export function unpinConversation(id: string): boolean {
+  const { conversationManager } = runtimeState;
+  if (!conversationManager) return false;
+  conversationManager.unpin(id);
+  return true;
+}
+
+/**
+ * Search conversations by title/content.
+ */
+export function searchConversations(query: string, limit?: number): ConvSummary[] {
+  const { conversationManager } = runtimeState;
+  if (!conversationManager) return [];
+  return conversationManager.searchByTitle(query, limit);
 }
 
 /**

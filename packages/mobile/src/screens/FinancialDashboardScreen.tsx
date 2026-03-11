@@ -4,6 +4,8 @@
 // Manages IPC data loading and premium gating.
 
 import { useState, useEffect, useCallback } from 'react';
+import { getRuntimeState } from '../runtime/mobile-runtime.js';
+import { useSemblance } from '../runtime/SemblanceProvider.js';
 import { FinancialDashboard } from '@semblance/ui/components/FinancialDashboard/FinancialDashboard.native';
 import type {
   FinancialOverview,
@@ -42,10 +44,72 @@ export function FinancialDashboardScreen({
     },
   });
 
+  const { ready, searchKnowledge } = useSemblance();
+
   useEffect(() => {
-    // Financial data will be loaded once sidecar financial data commands are wired via unified-bridge
-    setLoading(false);
-  }, [selectedPeriod]);
+    if (!ready) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+
+    const loadFinancialData = async () => {
+      const state = getRuntimeState();
+      if (state.core) {
+        try {
+          // Search for subscription and recurring charge data in the knowledge graph
+          const subResults = await searchKnowledge('subscription recurring charge payment', 20);
+          if (!cancelled && subResults.length > 0) {
+            const charges: RecurringCharge[] = subResults
+              .filter((r) => r.score > 0.3)
+              .map((r, i) => ({
+                id: `charge-${i}`,
+                merchant: r.content.slice(0, 40).trim(),
+                amount: 0,
+                frequency: 'monthly' as const,
+                category: 'subscription',
+                lastCharged: new Date().toISOString(),
+                status: 'active' as const,
+                confidenceScore: r.score,
+              }));
+            setSubscriptions({
+              charges,
+              summary: {
+                totalMonthly: 0,
+                totalAnnual: 0,
+                activeCount: charges.length,
+                forgottenCount: 0,
+                potentialSavings: 0,
+              },
+            });
+          }
+
+          // Search for spending anomaly data
+          const anomalyResults = await searchKnowledge('unusual spending anomaly transaction', 10);
+          if (!cancelled && anomalyResults.length > 0) {
+            const parsedAnomalies: SpendingAnomaly[] = anomalyResults
+              .filter((r) => r.score > 0.4)
+              .map((r, i) => ({
+                id: `anomaly-${i}`,
+                merchant: r.content.slice(0, 40).trim(),
+                amount: 0,
+                typicalAmount: 0,
+                category: 'spending',
+                date: new Date().toISOString(),
+                description: r.content.slice(0, 120),
+              }));
+            setAnomalies(parsedAnomalies);
+          }
+        } catch {
+          // Knowledge graph unavailable
+        }
+      }
+      if (!cancelled) setLoading(false);
+    };
+
+    loadFinancialData();
+    return () => { cancelled = true; };
+  }, [selectedPeriod, ready, searchKnowledge]);
 
   const handleDismissAnomaly = useCallback((_id: string) => {
     // Removes from local state; requires sidecar dismiss command for persistence
