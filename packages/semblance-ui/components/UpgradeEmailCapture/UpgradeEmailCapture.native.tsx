@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
     fontSize: nativeFontSize.sm,
     color: brandColors.sv3,
     lineHeight: 20,
+    textAlign: 'center',
   },
   form: {
     flexDirection: 'row',

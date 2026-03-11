@@ -322,6 +322,7 @@ const styles = StyleSheet.create({
     borderRadius: nativeRadius.lg,
     padding: nativeSpacing.s6,
     gap: nativeSpacing.s2,
+    alignItems: 'center',
   },
   activeTier: {
     fontFamily: nativeFontFamily.mono,
@@ -329,11 +330,13 @@ const styles = StyleSheet.create({
     color: '#9aa8b8',
     textTransform: 'uppercase',
     letterSpacing: 2.24,
+    textAlign: 'center',
   },
   activeNote: {
     fontFamily: nativeFontFamily.ui,
     fontSize: nativeFontSize.base,
     color: brandColors.sv2,
+    textAlign: 'center',
   },
   activation: {
     gap: nativeSpacing.s3,
@@ -346,5 +349,6 @@ const styles = StyleSheet.create({
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
     color: brandColors.sv2,
+    textAlign: 'center',
   },
 });
