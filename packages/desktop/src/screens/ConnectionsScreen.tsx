@@ -20,6 +20,53 @@ import { useAppState, useAppDispatch } from '../state/AppState';
 
 const registry = createDefaultConnectorRegistry();
 
+/**
+ * Connectors enabled in the current release.
+ * Only connectors with real auth flows (.env credentials) or that work
+ * without any API (native/file import) are shown. All other connectors
+ * are preserved in the registry code but hidden from the UI until wired.
+ */
+const ENABLED_CONNECTORS = new Set([
+  // OAuth connectors with .env credentials and working auth flows
+  'gmail',
+  'google-calendar',
+  'google-drive',
+  'slack-oauth',
+  'github',
+  'dropbox',
+  'spotify',
+  'notion',
+
+  // Native/local connectors (no API required)
+  'things',             // macOS — local AppleScript
+  'imessage',           // macOS — local SQLite
+  'safari-history',     // macOS — local SQLite
+  'edge-history',       // all platforms — local SQLite
+  'arc-history',        // macOS — local SQLite
+  'obsidian',           // all platforms — local vault folder
+  'zotero',             // all platforms — local SQLite
+
+  // File import/export connectors (user provides export file)
+  'slack-export',
+  'goodreads-export',
+  'apple-health-export',
+  'strava-export',
+  'facebook-export',
+  'instagram-export',
+  'twitter-export',
+  'linkedin-export',
+  'discord-export',
+  'ynab-export',
+  'mint-export',
+  'signal-export',
+  'whatsapp-export',
+  'telegram-export',
+  'google-takeout',
+  'notion-export',
+  'bear-export',
+  'evernote-export',
+]);
+
 function getCurrentPlatform(): 'macos' | 'windows' | 'linux' {
   const ua = navigator.userAgent.toLowerCase();
   if (ua.includes('mac')) return 'macos';
@@ -56,7 +103,8 @@ export function ConnectionsScreen() {
 
   useEffect(() => {
     const platform = getCurrentPlatform();
-    const allConnectors = registry.listByPlatform(platform);
+    const allConnectors = registry.listByPlatform(platform)
+      .filter((c) => ENABLED_CONNECTORS.has(c.id));
     const connectorStates: Record<string, ConnectorState> = (state as unknown as Record<string, unknown>)['connectorStates'] as Record<string, ConnectorState> ?? {};
     const isPremium = license.tier !== 'free';
 
