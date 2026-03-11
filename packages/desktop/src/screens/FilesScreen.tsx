@@ -14,14 +14,56 @@ export function FilesScreen() {
   useEffect(() => {
     getKnowledgeStats().then((stats) => {
       dispatch({ type: 'SET_KNOWLEDGE_STATS', stats });
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error('[FilesScreen] failed to get knowledge stats:', err);
+    });
   }, [dispatch]);
 
+  // Listen for indexing progress events to update UI in real-time
+  useTauriEvent('semblance://indexing-progress', useCallback((event: unknown) => {
+    const payload = (event as { payload?: Record<string, unknown> })?.payload ?? event;
+    const data = payload as {
+      filesScanned?: number;
+      filesTotal?: number;
+      chunksCreated?: number;
+      currentFile?: string | null;
+    };
+    dispatch({
+      type: 'SET_INDEXING_STATUS',
+      status: {
+        state: 'indexing' as const,
+        filesScanned: data.filesScanned ?? 0,
+        filesTotal: data.filesTotal ?? 0,
+        chunksCreated: data.chunksCreated ?? 0,
+        currentFile: data.currentFile ?? null,
+        error: null,
+      },
+    });
+  }, [dispatch]));
+
   // Refresh stats when indexing completes
-  useTauriEvent('semblance://indexing-complete', useCallback(() => {
+  useTauriEvent('semblance://indexing-complete', useCallback((event: unknown) => {
+    const payload = (event as { payload?: Record<string, unknown> })?.payload ?? event;
+    const data = payload as { error?: string };
+
+    if (data.error) {
+      dispatch({
+        type: 'SET_INDEXING_STATUS',
+        status: { state: 'error' as const, error: data.error, filesScanned: 0, filesTotal: 0, chunksCreated: 0, currentFile: null },
+      });
+    } else {
+      dispatch({
+        type: 'SET_INDEXING_STATUS',
+        status: { state: 'complete' as const, filesScanned: 0, filesTotal: 0, chunksCreated: 0, currentFile: null, error: null },
+      });
+    }
+
+    // Refresh stats
     getKnowledgeStats().then((stats) => {
       dispatch({ type: 'SET_KNOWLEDGE_STATS', stats });
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error('[FilesScreen] failed to refresh knowledge stats:', err);
+    });
   }, [dispatch]));
 
   const handleAddFolder = useCallback(async () => {
@@ -30,10 +72,14 @@ export function FilesScreen() {
       const selected = await open({ directory: true, multiple: false });
       if (selected && typeof selected === 'string') {
         dispatch({ type: 'ADD_DIRECTORY', path: selected });
+        dispatch({
+          type: 'SET_INDEXING_STATUS',
+          status: { state: 'scanning' as const, filesScanned: 0, filesTotal: 0, chunksCreated: 0, currentFile: null, error: null },
+        });
         await startIndexing([...state.indexedDirectories, selected]);
       }
-    } catch {
-      // User cancelled or dialog unavailable
+    } catch (err) {
+      console.error('[FilesScreen] add folder failed:', err);
     }
   }, [dispatch, state.indexedDirectories]);
 
@@ -43,11 +89,15 @@ export function FilesScreen() {
 
   const handleRescan = useCallback(async (path: string) => {
     try {
+      dispatch({
+        type: 'SET_INDEXING_STATUS',
+        status: { state: 'scanning' as const, filesScanned: 0, filesTotal: 0, chunksCreated: 0, currentFile: null, error: null },
+      });
       await startIndexing([path]);
     } catch (err) {
       console.error('[FilesScreen] rescan failed:', err);
     }
-  }, []);
+  }, [dispatch]);
 
   const dirs = state.indexedDirectories.map((path) => ({
     path,
@@ -100,6 +150,11 @@ export function FilesScreen() {
                   <span style={{ color: '#B07A8A' }}>{t('screen.files.indexing_error', { error: indexingStatus.error })}</span>
                 )}
               </span>
+              {indexingStatus.state === 'indexing' && (indexingStatus as { currentFile?: string | null }).currentFile && (
+                <span style={{ color: '#5E6B7C', fontSize: 11, display: 'block', marginTop: 4, fontFamily: "'DM Mono', monospace" }}>
+                  {(indexingStatus as { currentFile?: string | null }).currentFile}
+                </span>
+              )}
             </div>
           )}
         </div>

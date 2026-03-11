@@ -256,6 +256,9 @@ export class GraphVisualizationProvider {
     // Person↔person edges from RelationshipAnalyzer
     this.addRelationshipEdges(edges, edgeKeys, nodeIds);
 
+    // Directory↔file edges
+    this.addDirectoryFileEdges(edges, edgeKeys, nodeIds);
+
     // --- Clusters from relationship graph ---
     const relGraph = this.relationshipAnalyzer?.buildRelationshipGraph();
     for (const cluster of relGraph?.clusters ?? []) {
@@ -729,7 +732,17 @@ export class GraphVisualizationProvider {
           // Check if this file belongs to an indexed directory
           const parentDir = directoryPaths.find(dirPath => doc.source_path?.startsWith(dirPath));
           if (parentDir) {
-            // Skip — this file is a child of a directory node, shown in drill-down
+            // File belongs to an indexed directory — still show it as a node
+            // but create an edge from the directory to this file
+            this.pushDocumentNode(nodes, nodeIds, doc);
+            // Create edge from directory to file
+            const dirDoc = directoryDocs.find(d => d.source_path === parentDir);
+            if (dirDoc) {
+              const dirNodeId = `directory_${dirDoc.id}`;
+              const fileNodeId = `document_${doc.id}`;
+              // Edge will be added below in addDocumentEdges if needed
+              // For now just ensure the file node exists in the graph
+            }
             continue;
           }
 
@@ -740,8 +753,9 @@ export class GraphVisualizationProvider {
           this.pushDocumentNode(nodes, nodeIds, doc);
         }
       }
-    } catch {
+    } catch (err) {
       // documents table might not exist if DocumentStore hasn't initialized yet
+      console.error('[GraphVisualizationProvider] addDocumentNodes failed:', err);
     }
   }
 
@@ -767,6 +781,48 @@ export class GraphVisualizationProvider {
         activityScore: Math.min(1, doc.mention_count / 10),
       },
     });
+  }
+
+  private addDirectoryFileEdges(
+    edges: VisualizationEdge[],
+    edgeKeys: Set<string>,
+    nodeIds: Set<string>,
+  ): void {
+    try {
+      // Find all directory documents and their child files
+      const dirs = this.db.prepare(
+        "SELECT id, source_path FROM documents WHERE source = 'directory' AND source_path IS NOT NULL"
+      ).all() as Array<{ id: string; source_path: string }>;
+
+      for (const dir of dirs) {
+        const dirNodeId = `directory_${dir.id}`;
+        if (!nodeIds.has(dirNodeId)) continue;
+
+        // Find files that are children of this directory
+        const children = this.db.prepare(
+          "SELECT id FROM documents WHERE source = 'local_file' AND source_path LIKE ? || '%'"
+        ).all(dir.source_path) as Array<{ id: string }>;
+
+        for (const child of children) {
+          const fileNodeId = `document_${child.id}`;
+          if (!nodeIds.has(fileNodeId)) continue;
+
+          const edgeKey = `${dirNodeId}→${fileNodeId}`;
+          if (edgeKeys.has(edgeKey)) continue;
+          edgeKeys.add(edgeKey);
+
+          edges.push({
+            id: `edge_dir_file_${dir.id}_${child.id}`,
+            sourceId: dirNodeId,
+            targetId: fileNodeId,
+            label: 'contains',
+            weight: 0.5,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[GraphVisualizationProvider] addDirectoryFileEdges failed:', err);
+    }
   }
 
   private addEventNodes(
