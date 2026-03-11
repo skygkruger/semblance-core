@@ -190,6 +190,7 @@ let calendarAdapter: CalendarAdapter | null = null;
 let indexingInProgress = false;
 let currentConversationId: string | null = null;
 let dataDir = '';
+let documentsDb: Database.Database | null = null;
 let emailIndexer: EmailIndexer | null = null;
 let calendarIndexer: CalendarIndexer | null = null;
 let emailCategorizer: EmailCategorizer | null = null;
@@ -477,11 +478,11 @@ function getSystemPrompt(): string {
     // Token manager not ready yet — no services to report
   }
 
-  // Build knowledge stats section
+  // Build knowledge stats section (documents live in documents.db, not core.db)
   let knowledgeSection = '';
   try {
-    if (prefsDb) {
-      const docCount = (prefsDb.prepare('SELECT COUNT(*) as count FROM documents').get() as { count: number })?.count ?? 0;
+    if (documentsDb) {
+      const docCount = (documentsDb.prepare('SELECT COUNT(*) as count FROM documents').get() as { count: number })?.count ?? 0;
       if (docCount > 0) {
         knowledgeSection = `\n\nThe user's knowledge base contains ${docCount} indexed documents. Search it to answer questions about their files, emails, and connected data.`;
       }
@@ -564,6 +565,15 @@ async function handleInitialize(): Promise<unknown> {
   }
   const knowledgeDir = join(dataDir, 'knowledge');
   if (!existsSync(knowledgeDir)) mkdirSync(knowledgeDir, { recursive: true });
+
+  // Open documents.db for GraphVisualizationProvider (documents live here, not in core.db)
+  try {
+    documentsDb = new Database(join(knowledgeDir, 'documents.db'));
+    documentsDb.pragma('journal_mode = WAL');
+    console.error('[sidecar] Documents DB ready (knowledge/documents.db)');
+  } catch (docDbErr) {
+    console.error('[sidecar] Failed to open documents.db:', docDbErr);
+  }
 
   // NativeRuntime channel check (non-blocking)
   void Promise.race([
@@ -4496,11 +4506,11 @@ async function handleRequest(req: Request): Promise<void> {
       // ─── Knowledge Graph Visualization ────────────────────────────────
       case 'knowledge_get_graph': {
         try {
-          if (!graphVisualizationProvider && prefsDb && core) {
-            // Ensure contactStore + relationshipAnalyzer exist for the graph provider
+          if (!graphVisualizationProvider && documentsDb) {
+            // Use documentsDb (knowledge/documents.db) — that's where DocumentStore writes documents
             try { ensureContactStore(); } catch { /* contacts not critical for graph */ }
             graphVisualizationProvider = new GraphVisualizationProvider({
-              db: prefsDb as unknown as import('../../../../core/platform/types.js').DatabaseHandle,
+              db: documentsDb as unknown as import('../../../../core/platform/types.js').DatabaseHandle,
               contactStore: contactStore ?? null,
               relationshipAnalyzer: relationshipAnalyzer ?? null,
             });
@@ -4811,10 +4821,10 @@ async function handleRequest(req: Request): Promise<void> {
       // Alias: get_graph_data → knowledge_get_graph
       case 'get_graph_data': {
         try {
-          if (!graphVisualizationProvider && prefsDb && core) {
+          if (!graphVisualizationProvider && documentsDb) {
             try { ensureContactStore(); } catch { /* contacts not critical for graph */ }
             graphVisualizationProvider = new GraphVisualizationProvider({
-              db: prefsDb as unknown as import('../../../../core/platform/types.js').DatabaseHandle,
+              db: documentsDb as unknown as import('../../../../core/platform/types.js').DatabaseHandle,
               contactStore: contactStore ?? null,
               relationshipAnalyzer: relationshipAnalyzer ?? null,
             });
