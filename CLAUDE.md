@@ -48,11 +48,15 @@ Code that compiles, type-checks, and passes all unit tests can still be complete
 2. Read the error, identify root cause
 3. Write the fix
 4. Run /smoke — sidecar starts without crashing
-5. Run /diagnose — all integration tests pass
-6. Run /preflight — all gates green
-7. Build
-8. Report with full output attached
+5. Run /demo-check — ALL 7 demo features pass (NO exceptions)
+6. Run /diagnose — all integration tests pass
+7. Run /preflight — all gates green
+8. Build
+9. Report with FULL /demo-check output attached
 ```
+
+**NON-NEGOTIABLE:** `/demo-check` output must be attached to every SHIP report.
+A build reported as "ready" without `/demo-check` output is a lie regardless of TypeScript or test status.
 
 ### This Rule Survives Compaction
 

@@ -450,7 +450,11 @@ function storeTurn(
 
 // ─── System Prompt (matches Orchestrator's prompt) ────────────────────────────
 
-const SYSTEM_PROMPT = `You are Semblance, the user's personal AI. You run entirely on their device — their data never leaves their machine.
+function getSystemPrompt(): string {
+  const aiName = getPref('ai_name') ?? 'Semblance';
+  const userName = getPref('user_name');
+  const userRef = userName ? `${userName}'s` : "the user's";
+  return `You are ${aiName}, ${userRef} personal AI. You run entirely on their device — their data never leaves their machine.
 
 You have access to their local files and documents through secure search. You can search their knowledge base and answer questions about their documents.
 
@@ -460,6 +464,7 @@ Core principles:
 - When you need information, search the user's knowledge base first
 - Be transparent about what data you're accessing
 - If you don't know something, say so honestly`;
+}
 
 // ─── Method Handlers ──────────────────────────────────────────────────────────
 
@@ -505,8 +510,13 @@ async function handleInitialize(): Promise<unknown> {
   console.error('[sidecar] ConversationManager ready');
 
   // ──── STEP 2: Gateway ────
+  console.error('[sidecar] Creating Gateway...');
   gateway = new Gateway();
-  await gateway.start();
+  console.error('[sidecar] Gateway created, calling start()...');
+  const gatewayTimeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Gateway.start() timed out after 10s')), 10_000)
+  );
+  await Promise.race([gateway.start(), gatewayTimeout]);
   console.error('[sidecar] Gateway started');
 
   // ──── STEP 3: Core init (can fail — knowledge graph depends on LanceDB) ────
@@ -822,7 +832,7 @@ async function handleSendMessage(
     if (useNative) {
       // Use NativeRuntime (llama.cpp via Rust) — primary inference path
       const prompt = params.message;
-      const systemPrompt = SYSTEM_PROMPT + contextStr;
+      const systemPrompt = getSystemPrompt() + contextStr;
       try {
         console.error('[sidecar] About to call native_generate, prompt length:', prompt.length);
         const result = await sendCallback('native_generate', {
@@ -847,7 +857,7 @@ async function handleSendMessage(
       // Fallback: Ollama streaming
       const model = (await core.models.getActiveChatModel()) ?? getRecommendedReasoningModel('standard').id;
       const messages: ChatMessage[] = [
-        { role: 'system', content: SYSTEM_PROMPT + contextStr },
+        { role: 'system', content: getSystemPrompt() + contextStr },
         { role: 'user', content: params.message },
       ];
       if (core.llm.chatStream) {
@@ -1074,21 +1084,21 @@ async function handleStartIndexing(
               currentFile: file.name,
             });
 
-            // Skip very large files for content extraction (>50MB) — store metadata only
-            if (file.size > 50 * 1024 * 1024) {
-              if (!core?.knowledge) {
-                console.error('[sidecar] Cannot index — core.knowledge not available');
-                totalFilesScanned++;
-                continue;
-              }
-              await core.knowledge.indexDocument({
-                content: `[Large file: ${file.name}] Size: ${(file.size / 1024 / 1024).toFixed(1)} MB. Content not extracted due to size.`,
-                title: file.name,
-                source: 'local_file',
-                sourcePath: file.path,
-                mimeType: 'application/octet-stream',
-                metadata: { size: file.size, lastModified: file.lastModified, extension: file.extension, largeFile: true },
-              });
+            // Tier 1: Files > 100MB — metadata only, don't read content at all
+            if (file.size > 100 * 1024 * 1024) {
+              console.error(`[sidecar] Very large file "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)}MB) — metadata only`);
+              try {
+                if (core?.knowledge) {
+                  await core.knowledge.indexDocument({
+                    content: `[Large file: ${file.name}] Size: ${(file.size / 1024 / 1024).toFixed(1)} MB. File indexed as metadata only due to size.`,
+                    title: file.name,
+                    source: 'local_file' as import('../../../core/knowledge/types.js').DocumentSource,
+                    sourcePath: file.path,
+                    mimeType: file.extension ? `application/${file.extension.replace('.', '')}` : 'application/octet-stream',
+                    metadata: { size: file.size, lastModified: file.lastModified, extension: file.extension, metadataOnly: true },
+                  });
+                }
+              } catch { /* metadata index failed — continue */ }
               totalFilesScanned++;
               totalChunksCreated++;
               continue;
@@ -1097,11 +1107,14 @@ async function handleStartIndexing(
             console.error(`[sidecar] Indexing file ${totalFilesScanned + 1}/${filesTotal}: ${file.name} (${(file.size / 1024).toFixed(0)}KB)`);
             const content = await readFileContent(file.path);
 
-            // Truncate extremely long content (>500K chars) to prevent OOM during embedding
+            // Truncate content to prevent memory exhaustion during embedding.
+            // 50K chars ≈ 12K tokens — well within embedding model capacity.
+            // This allows ANY file to be indexed safely.
             let contentText = content.content;
-            if (contentText.length > 500_000) {
-              contentText = contentText.slice(0, 500_000);
-              console.error(`[sidecar] Truncated ${file.name} from ${content.content.length} to 500K chars`);
+            const MAX_CONTENT_CHARS = 50_000;
+            if (contentText.length > MAX_CONTENT_CHARS) {
+              console.error(`[sidecar] Truncated "${file.name}" from ${contentText.length} to ${MAX_CONTENT_CHARS} chars for embedding`);
+              contentText = contentText.slice(0, MAX_CONTENT_CHARS);
             }
 
             if (!core?.knowledge) {
@@ -1132,6 +1145,11 @@ async function handleStartIndexing(
 
         // Yield between batches — let event loop process IPC, progress events, etc.
         await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Force garbage collection if available (requires --expose-gc flag)
+        if (typeof global.gc === 'function') {
+          global.gc();
+        }
       }
 
       // Step 3: Persist indexed directories
@@ -1180,15 +1198,15 @@ async function handleGetIndexingStatus(): Promise<unknown> {
 
 async function handleGetKnowledgeStats(): Promise<unknown> {
   if (!core) {
-    return { document_count: 0, chunk_count: 0, index_size_bytes: 0, last_indexed_at: null };
+    return { documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null };
   }
 
   const stats = await core.knowledge.getStats();
   return {
-    document_count: stats.totalDocuments,
-    chunk_count: stats.totalChunks,
-    index_size_bytes: 0,
-    last_indexed_at: getPref('last_indexed_at'),
+    documentCount: stats.totalDocuments,
+    chunkCount: stats.totalChunks,
+    indexSizeBytes: 0,
+    lastIndexedAt: getPref('last_indexed_at'),
   };
 }
 
@@ -2731,14 +2749,18 @@ function getOAuthConfigForConnector(connectorId: string): {
   revokeUrl?: string;
   extraAuthParams?: Record<string, string>;
 } | null {
+  // Read process.env DIRECTLY at call time — NOT from the cached oauthClients object.
+  // oauthClients reads process.env at MODULE LOAD TIME (before dotenv runs),
+  // so its values are permanently 'CONFIGURE_IN_ENV'. This function is called
+  // after dotenv has loaded, so process.env has the real values.
   const configs: Record<string, () => ReturnType<typeof getOAuthConfigForConnector>> = {
     'gmail': () => ({
       providerKey: 'google',
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
       scopes: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly',
-      clientId: oauthClients.google.clientId,
-      clientSecret: oauthClients.google.clientSecret,
+      clientId: process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
+      clientSecret: process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'],
       usePKCE: false,
       revokeUrl: 'https://oauth2.googleapis.com/revoke',
       extraAuthParams: { access_type: 'offline', prompt: 'consent' },
@@ -2748,8 +2770,8 @@ function getOAuthConfigForConnector(connectorId: string): {
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
       scopes: 'https://www.googleapis.com/auth/drive.readonly',
-      clientId: oauthClients.google.clientId,
-      clientSecret: oauthClients.google.clientSecret,
+      clientId: process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
+      clientSecret: process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'],
       usePKCE: false,
       revokeUrl: 'https://oauth2.googleapis.com/revoke',
       extraAuthParams: { access_type: 'offline', prompt: 'consent' },
@@ -2759,8 +2781,8 @@ function getOAuthConfigForConnector(connectorId: string): {
       authUrl: 'https://www.dropbox.com/oauth2/authorize',
       tokenUrl: 'https://api.dropboxapi.com/oauth2/token',
       scopes: '',
-      clientId: oauthClients.dropbox.clientId,
-      clientSecret: oauthClients.dropbox.clientSecret,
+      clientId: process.env['SEMBLANCE_DROPBOX_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
+      clientSecret: process.env['SEMBLANCE_DROPBOX_CLIENT_SECRET'],
       usePKCE: false,
     }),
     'github': () => ({
@@ -2768,7 +2790,7 @@ function getOAuthConfigForConnector(connectorId: string): {
       authUrl: 'https://github.com/login/oauth/authorize',
       tokenUrl: 'https://github.com/login/oauth/access_token',
       scopes: 'read:user user:email',
-      clientId: oauthClients.github.clientId,
+      clientId: process.env['SEMBLANCE_GITHUB_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
       usePKCE: true,
     }),
     'spotify': () => ({
@@ -2776,7 +2798,7 @@ function getOAuthConfigForConnector(connectorId: string): {
       authUrl: 'https://accounts.spotify.com/authorize',
       tokenUrl: 'https://accounts.spotify.com/api/token',
       scopes: 'user-read-recently-played user-library-read',
-      clientId: oauthClients.spotify.clientId,
+      clientId: process.env['SEMBLANCE_SPOTIFY_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
       usePKCE: true,
     }),
     'notion': () => ({
@@ -2784,8 +2806,8 @@ function getOAuthConfigForConnector(connectorId: string): {
       authUrl: 'https://api.notion.com/v1/oauth/authorize',
       tokenUrl: 'https://api.notion.com/v1/oauth/token',
       scopes: '',
-      clientId: oauthClients.notion.clientId,
-      clientSecret: oauthClients.notion.clientSecret,
+      clientId: process.env['SEMBLANCE_NOTION_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
+      clientSecret: process.env['SEMBLANCE_NOTION_CLIENT_SECRET'],
       usePKCE: false,
     }),
     'slack': () => ({
@@ -2793,8 +2815,8 @@ function getOAuthConfigForConnector(connectorId: string): {
       authUrl: 'https://slack.com/oauth/v2/authorize',
       tokenUrl: 'https://slack.com/api/oauth.v2.access',
       scopes: 'channels:history channels:read',
-      clientId: oauthClients.slack.clientId,
-      clientSecret: oauthClients.slack.clientSecret,
+      clientId: process.env['SEMBLANCE_SLACK_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
+      clientSecret: process.env['SEMBLANCE_SLACK_CLIENT_SECRET'],
       usePKCE: false,
     }),
   };
@@ -2804,9 +2826,11 @@ function getOAuthConfigForConnector(connectorId: string): {
 }
 
 async function handleConnectorAuth(params: { connectorId: string }): Promise<unknown> {
+  console.error('[sidecar] handleConnectorAuth called with:', JSON.stringify(params));
   // Look up auth type from the connector registry to differentiate flow
   const connectorRegistry = createDefaultConnectorRegistry();
   const connectorDef = connectorRegistry.get(params.connectorId);
+  console.error('[sidecar] connectorDef:', connectorDef ? JSON.stringify({ id: connectorDef.id, authType: connectorDef.authType }) : 'NOT FOUND');
   const authType = connectorDef?.authType ?? 'oauth2';
 
   // Native connectors (file imports, local DB reads) don't need auth — succeed immediately
@@ -2836,11 +2860,14 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
   }
 
   if (config.clientId === UNCONFIGURED_CLIENT_ID) {
+    const envKey = `SEMBLANCE_${params.connectorId.toUpperCase().replace(/-/g, '_')}_CLIENT_ID`;
+    console.error(`[sidecar] OAuth client ID not set for ${params.connectorId}. process.env[${envKey}]: ${process.env[envKey] ? 'SET' : 'NOT SET'}`);
     return {
       success: false,
-      error: `OAuth not configured for ${params.connectorId}. Set the SEMBLANCE_${params.connectorId.toUpperCase().replace(/-/g, '_')}_CLIENT_ID environment variable.`,
+      error: `OAuth not configured for ${params.connectorId}. Set the ${envKey} environment variable.`,
     };
   }
+  console.error(`[sidecar] OAuth config resolved for ${params.connectorId}, opening browser...`);
 
   const tokenMgr = ensureOAuthTokenManager();
   const callbackServer = new OAuthCallbackServer();
@@ -2864,9 +2891,19 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
 
     // Open system browser for OAuth consent
     const { exec } = await import('node:child_process');
-    const openCmd = process.platform === 'win32' ? 'start' :
-                    process.platform === 'darwin' ? 'open' : 'xdg-open';
-    exec(`${openCmd} "${authUrl.toString().replace(/"/g, '\\"')}"`);
+    if (process.platform === 'win32') {
+      exec(`start "" "${authUrl.toString().replace(/"/g, '\\"')}"`, (err) => {
+        if (err) console.error('[sidecar] Failed to open browser:', err);
+      });
+    } else if (process.platform === 'darwin') {
+      exec(`open "${authUrl.toString().replace(/"/g, '\\"')}"`, (err) => {
+        if (err) console.error('[sidecar] Failed to open browser:', err);
+      });
+    } else {
+      exec(`xdg-open "${authUrl.toString().replace(/"/g, '\\"')}"`, (err) => {
+        if (err) console.error('[sidecar] Failed to open browser:', err);
+      });
+    }
 
     // Wait for callback
     const { code } = await callbackServer.waitForCallback();
@@ -3049,6 +3086,51 @@ async function handleRequest(req: Request): Promise<void> {
         respond(id, result);
         break;
 
+      case 'get_model_status': {
+        // Return current model/engine status — used by frontend on startup
+        // to handle the race condition where status-update fires before listener mounts
+        const userName = getPref('user_name');
+        const onboardingComplete = getPref('onboarding_complete') === 'true';
+        let currentActiveModel: string | null = null;
+        let currentEngine: string = 'none';
+        // Check NativeRuntime
+        try {
+          const ns = await Promise.race([
+            sendCallback('native_status', {}),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+          ]);
+          if (ns && ((ns as { status: string })?.status ?? '').toLowerCase() === 'ready') {
+            currentEngine = 'native';
+            // Get model name from catalog
+            const modelsBase = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+            for (const m of MODEL_CATALOG) {
+              if (!m.id.includes('embed') && isModelDownloaded(m.id, modelsBase)) {
+                currentActiveModel = m.displayName;
+                break;
+              }
+            }
+          }
+        } catch { /* native not available */ }
+        // Fallback to Ollama
+        if (currentEngine === 'none' && core) {
+          try {
+            const ollamaModel = await core.models.getActiveChatModel();
+            if (ollamaModel) {
+              currentActiveModel = ollamaModel;
+              currentEngine = 'ollama';
+            }
+          } catch { /* no ollama */ }
+        }
+        respond(id, {
+          ollamaStatus: currentEngine !== 'none' ? 'connected' : 'disconnected',
+          inferenceEngine: currentEngine,
+          activeModel: currentActiveModel,
+          userName,
+          onboardingComplete,
+        });
+        break;
+      }
+
       case 'send_message':
         // send_message responds and emits events internally
         await handleSendMessage(id, params as { message: string; conversation_id?: string });
@@ -3097,6 +3179,11 @@ async function handleRequest(req: Request): Promise<void> {
       case 'set_user_name':
         result = handleSetUserName(params as { name: string });
         respond(id, result);
+        break;
+
+      case 'set_ai_name':
+        setPref('ai_name', (params as { name: string }).name);
+        respond(id, { success: true });
         break;
 
       case 'get_user_name':
@@ -4326,8 +4413,8 @@ async function handleRequest(req: Request): Promise<void> {
             try { ensureContactStore(); } catch { /* contacts not critical for graph */ }
             graphVisualizationProvider = new GraphVisualizationProvider({
               db: prefsDb as unknown as import('../../../../core/platform/types.js').DatabaseHandle,
-              contactStore: contactStore!,
-              relationshipAnalyzer: relationshipAnalyzer!,
+              contactStore: contactStore ?? null,
+              relationshipAnalyzer: relationshipAnalyzer ?? null,
             });
             graphVisualizationProvider.initSchema();
           }
@@ -4587,6 +4674,59 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      // ─── Connector Query Handlers ─────────────────────────────────────
+      case 'get_connected_services': {
+        // Return list of connected connector IDs (those with stored OAuth tokens)
+        const connectedList: string[] = [];
+        const connectorRegistry = createDefaultConnectorRegistry();
+        for (const connector of connectorRegistry.listAll()) {
+          const tokenJson = getPref(`oauth_token_${connector.id}`);
+          if (tokenJson) {
+            connectedList.push(connector.id);
+          }
+        }
+        respond(id, connectedList);
+        break;
+      }
+      case 'get_connector_config': {
+        // Return OAuth config status for a connector (without exposing secrets)
+        const cfgParams = params as { serviceId: string };
+        const cfg = getOAuthConfigForConnector(cfgParams.serviceId);
+        if (!cfg) {
+          respond(id, { error: `No config for connector: ${cfgParams.serviceId}` });
+        } else if (cfg.clientId === UNCONFIGURED_CLIENT_ID) {
+          respond(id, { error: `Connector ${cfgParams.serviceId} not configured — .env credentials missing` });
+        } else {
+          respond(id, { serviceId: cfgParams.serviceId, configured: true, usePKCE: cfg.usePKCE });
+        }
+        break;
+      }
+
+      // Alias: get_graph_data → knowledge_get_graph
+      case 'get_graph_data': {
+        try {
+          if (!graphVisualizationProvider && prefsDb && core) {
+            try { ensureContactStore(); } catch { /* contacts not critical for graph */ }
+            graphVisualizationProvider = new GraphVisualizationProvider({
+              db: prefsDb as unknown as import('../../../../core/platform/types.js').DatabaseHandle,
+              contactStore: contactStore ?? null,
+              relationshipAnalyzer: relationshipAnalyzer ?? null,
+            });
+            graphVisualizationProvider.initSchema();
+          }
+          if (!graphVisualizationProvider) {
+            respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+            break;
+          }
+          const graph = await graphVisualizationProvider.getGraphData();
+          respond(id, graph);
+        } catch (graphErr) {
+          console.error('[sidecar] get_graph_data failed:', graphErr);
+          respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+        }
+        break;
+      }
+
       // ─── Connector Auth Handlers ──────────────────────────────────────
       case 'connector.auth': {
         const result = await handleConnectorAuth(params as { connectorId: string });
@@ -4629,19 +4769,40 @@ async function handleRequest(req: Request): Promise<void> {
 // Zero-dependency .env parser — reads KEY=VALUE lines, skips comments and blanks.
 // In production, env vars are set at system level; .env is for development only.
 try {
-  const envPath = join(process.cwd(), '.env');
-  if (existsSync(envPath)) {
-    const envContent = readFileSync(envPath, 'utf-8');
-    for (const line of envContent.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eqIdx = trimmed.indexOf('=');
-      if (eqIdx < 1) continue;
-      const key = trimmed.slice(0, eqIdx).trim();
-      const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
-      if (!process.env[key]) process.env[key] = val;
+  // Try multiple .env locations — sidecar CWD varies between dev and production.
+  // In dev: cwd is repo root, __dirname/../../../.. resolves to repo root.
+  // In installed app: cwd is the install dir (e.g. C:\Program Files\Semblance\),
+  // so we also check __dirname itself (bundle-sidecar.js copies .env there)
+  // and ~/.semblance/.env as a user-managed fallback.
+  const envCandidates = [
+    join(__dirname, '.env'),                      // Bundled .env next to bridge.cjs (installed app)
+    join(homedir(), '.semblance', '.env'),         // User-managed fallback
+    join(process.cwd(), '.env'),                   // Dev: repo root
+    join(__dirname, '..', '..', '..', '..', '.env'), // Dev: relative to sidecar dir
+  ];
+  let envLoaded = false;
+  for (const envPath of envCandidates) {
+    if (existsSync(envPath)) {
+      const envContent = readFileSync(envPath, 'utf-8');
+      let count = 0;
+      for (const line of envContent.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx < 1) continue;
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+        if (!process.env[key]) { process.env[key] = val; count++; }
+      }
+      console.error(`[sidecar] Loaded ${count} env vars from ${envPath}`);
+      envLoaded = true;
+      break;
     }
   }
+  if (!envLoaded) console.error('[sidecar] No .env file found in:', envCandidates.join(', '));
+  // Log key OAuth credential status
+  console.error('[sidecar] SEMBLANCE_GOOGLE_CLIENT_ID:', process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ? 'SET' : 'NOT SET');
+  console.error('[sidecar] SEMBLANCE_SLACK_CLIENT_ID:', process.env['SEMBLANCE_SLACK_CLIENT_ID'] ? 'SET' : 'NOT SET');
 } catch {
   // .env not found or unreadable — not an error in production
 }

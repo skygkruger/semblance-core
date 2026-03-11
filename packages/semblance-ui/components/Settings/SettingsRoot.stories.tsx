@@ -41,10 +41,10 @@ export const PrivacyReviewNeeded: Story = {
   },
 };
 
-export const Trial: Story = {
+export const Free: Story = {
   args: {
     ...Default.args,
-    licenseStatus: 'trial',
+    licenseStatus: 'free',
     activeConnections: 3,
   },
 };

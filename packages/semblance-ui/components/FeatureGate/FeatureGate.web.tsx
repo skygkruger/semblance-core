@@ -35,7 +35,7 @@ function DefaultFallback({ onLearnMore }: { onLearnMore?: () => void }) {
       </p>
 
       <div className="feature-gate__locked-actions">
-        <Button variant="solid" size="sm" onClick={onLearnMore}>
+        <Button variant="opal" size="sm" onClick={onLearnMore}>
           Learn more
         </Button>
         <Button variant="ghost" size="sm" onClick={() => setDismissed(true)}>

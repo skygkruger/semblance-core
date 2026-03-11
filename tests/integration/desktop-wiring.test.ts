@@ -104,7 +104,7 @@ describe('Sidecar Bridge: Chat Streaming', () => {
   });
 
   it('builds system prompt with context', () => {
-    expect(bridgeContent).toContain('SYSTEM_PROMPT');
+    expect(bridgeContent).toContain('getSystemPrompt()');
   });
 
   it('stores conversation turns', () => {

@@ -50,6 +50,7 @@ pub struct IndexingStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct KnowledgeStats {
     pub document_count: u32,
     pub chunk_count: u32,
@@ -194,7 +195,9 @@ impl SidecarBridge {
         };
 
         let mut cmd = Command::new(&node_path);
-        cmd.arg(&script_path)
+        cmd.arg("--max-old-space-size=4096")
+            .arg("--expose-gc")
+            .arg(&script_path)
             .current_dir(&working_dir)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
@@ -308,7 +311,22 @@ impl SidecarBridge {
 
         tauri::async_runtime::spawn(async move {
             use std::io::Write;
-            let mut log_file = std::fs::File::create(&log_path).ok();
+            // Append mode — File::create was truncating on every restart,
+            // destroying all diagnostic history. Append preserves all sessions.
+            let mut log_file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&log_path)
+                .ok();
+            // Session separator so multiple restarts are distinguishable
+            if let Some(ref mut f) = log_file {
+                let ts = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                let _ = writeln!(f, "\n=== SESSION START unix={} ===", ts);
+                let _ = f.flush();
+            }
 
             let reader = BufReader::new(stderr);
             let mut lines = reader.lines();
@@ -2408,6 +2426,32 @@ pub fn run() {
             if std::env::var("SEMBLANCE_DEBUG").is_ok() {
                 if let Some(window) = app.get_webview_window("main") {
                     window.open_devtools();
+                }
+            }
+
+            // Kill stale node.exe sidecar processes from previous sessions
+            // This prevents named pipe conflicts and locked SQLite databases
+            #[cfg(target_os = "windows")]
+            {
+                use std::process::Command as StdCommand;
+                // Use wmic to find node.exe processes running bridge.cjs from a previous Semblance session
+                if let Ok(output) = StdCommand::new("wmic")
+                    .args(["process", "where", "CommandLine like '%semblance%bridge.cjs%'", "get", "ProcessId", "/value"])
+                    .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                    .output()
+                {
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    for line in stdout.lines() {
+                        if let Some(pid_str) = line.strip_prefix("ProcessId=") {
+                            if let Ok(pid) = pid_str.trim().parse::<u32>() {
+                                eprintln!("[tauri] Killing stale sidecar process PID={}", pid);
+                                let _ = StdCommand::new("taskkill")
+                                    .args(["/F", "/PID", &pid.to_string()])
+                                    .creation_flags(0x08000000)
+                                    .output();
+                            }
+                        }
+                    }
                 }
             }
 

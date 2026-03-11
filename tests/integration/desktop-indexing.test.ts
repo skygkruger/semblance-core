@@ -112,12 +112,12 @@ describe('Indexing: Knowledge Stats', () => {
   });
 
   it('returns document count', () => {
-    expect(bridgeContent).toContain('document_count');
+    expect(bridgeContent).toContain('documentCount');
     expect(bridgeContent).toContain('totalDocuments');
   });
 
   it('returns chunk count', () => {
-    expect(bridgeContent).toContain('chunk_count');
+    expect(bridgeContent).toContain('chunkCount');
     expect(bridgeContent).toContain('totalChunks');
   });
 });

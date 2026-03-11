@@ -395,9 +395,9 @@ describe('SettingsAccount', () => {
     expect(screen.getByText('ACTIVE')).toBeInTheDocument();
   });
 
-  it('shows trial days remaining for trial license', () => {
-    render(<SettingsAccount {...defaultProps} licenseStatus="trial" trialDaysRemaining={12} />);
-    expect(screen.getByText('12 days remaining')).toBeInTheDocument();
+  it('shows free tier active for free license', () => {
+    render(<SettingsAccount {...defaultProps} licenseStatus="free" />);
+    expect(screen.getByText('Free tier active')).toBeInTheDocument();
   });
 
   it('shows Renew button for expired license', () => {

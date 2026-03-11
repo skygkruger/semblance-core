@@ -140,7 +140,19 @@ export class Indexer {
     }));
 
     // Store in vector database
-    await this.vectorStore.insertChunks(vectorChunks);
+    try {
+      await this.vectorStore.insertChunks(vectorChunks);
+    } catch (lanceErr) {
+      // LanceDB insert failed — document metadata is already saved in SQLite,
+      // so the document is searchable by title/source but not by semantic similarity.
+      console.error(`[indexer] LanceDB insert failed for "${params.title}":`, lanceErr);
+      return {
+        documentId,
+        chunksCreated: 0,
+        durationMs: Date.now() - startMs,
+        deduplicated: false,
+      };
+    }
 
     return {
       documentId,

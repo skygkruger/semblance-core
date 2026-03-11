@@ -104,17 +104,32 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
             fontFamily: 'var(--fb)',
           }}
         >
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={(e) => setChecked(e.target.checked)}
+          <span
+            role="checkbox"
+            aria-checked={checked}
+            tabIndex={0}
+            onClick={() => setChecked(!checked)}
+            onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setChecked(!checked); } }}
             style={{
-              width: '18px',
-              height: '18px',
-              accentColor: '#6ECFA3',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 20,
+              height: 20,
+              borderRadius: 4,
+              border: `1.5px solid ${checked ? '#6ECFA3' : '#5E6B7C'}`,
+              backgroundColor: checked ? 'rgba(110,207,163,0.12)' : 'transparent',
               cursor: 'pointer',
+              flexShrink: 0,
+              transition: 'all 0.15s ease',
             }}
-          />
+          >
+            {checked && (
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M2.5 6L5 8.5L9.5 3.5" stroke="#6ECFA3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </span>
           {t('onboarding.terms.checkbox', {
             defaultValue: 'I understand and accept these terms',
           })}

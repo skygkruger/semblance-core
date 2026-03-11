@@ -99,6 +99,12 @@ export function setUserName(name: string): Promise<void> {
   return invoke<void>('set_user_name', { name });
 }
 
+export function setAiName(name: string): Promise<void> {
+  return invoke<void>('sidecar_request', {
+    request: { method: 'set_ai_name', params: { name } },
+  });
+}
+
 export function setAutonomyTier(domain: string, tier: string): Promise<void> {
   return invoke<void>('set_autonomy_tier', { domain, tier });
 }
@@ -311,10 +317,17 @@ export function getNetworkTrustStatus(): Promise<TrustStatus> {
 
 // ─── Connectors (via ipc_send) ──────────────────────────────────────────────
 
-export function ipcSend(connectorAction: ConnectorAction): Promise<void> {
-  return invoke<void>('ipc_send', {
+export function ipcSend(connectorAction: ConnectorAction): Promise<unknown> {
+  return invoke<unknown>('ipc_send', {
     action: connectorAction.action,
     params: connectorAction.payload,
+  });
+}
+
+/** Returns list of connector IDs that have stored OAuth tokens */
+export function getConnectedServices(): Promise<string[]> {
+  return invoke<string[]>('sidecar_request', {
+    request: { method: 'get_connected_services', params: {} },
   });
 }
 
@@ -526,6 +539,12 @@ export function setIntentOnboarding(responses: {
 
 export function startIndexing(directories: string[]): Promise<void> {
   return invoke<void>('start_indexing', { directories });
+}
+
+export function getKnowledgeStats(): Promise<{ documentCount: number; chunkCount: number; indexSizeBytes: number; lastIndexedAt: string | null }> {
+  return invoke<{ documentCount: number; chunkCount: number; indexSizeBytes: number; lastIndexedAt?: string | null }>('sidecar_request', {
+    request: { method: 'get_knowledge_stats', params: {} },
+  }).then(r => ({ ...r, lastIndexedAt: r.lastIndexedAt ?? null }));
 }
 
 // ─── Alter Ego Guardrails ──────────────────────────────────────────────────

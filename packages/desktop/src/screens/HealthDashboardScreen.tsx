@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HealthDashboard, FeatureGate } from '@semblance/ui';
 import { useLicense } from '../contexts/LicenseContext';
 import { useFeatureAuth } from '@semblance/ui';
@@ -9,6 +10,7 @@ import {
 import type { HealthDashboardData, HealthEntry } from '../ipc/types';
 
 export function HealthDashboardScreen() {
+  const navigate = useNavigate();
   const license = useLicense();
   const { requireAuth } = useFeatureAuth();
   const [authed, setAuthed] = useState(false);
@@ -68,7 +70,7 @@ export function HealthDashboardScreen() {
       <FeatureGate
         feature="health-tracking"
         isPremium={license.isPremium}
-        onLearnMore={() => license.openCheckout('monthly')}
+        onLearnMore={() => navigate('/upgrade')}
       >
         <HealthDashboard
           todayEntry={data?.todayEntry ?? null}

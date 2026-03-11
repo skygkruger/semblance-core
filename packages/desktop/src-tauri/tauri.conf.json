@@ -65,7 +65,8 @@
       "nsis": {
         "installerIcon": "icons/icon.ico",
         "headerImage": null,
-        "sidebarImage": null
+        "sidebarImage": null,
+        "installerHooks": "installer/nsis-hooks.nsi"
       },
       "wix": {
         "language": "en-US",

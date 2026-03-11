@@ -1,3 +1,4 @@
+import { WireframeSpinner } from '../WireframeSpinner/WireframeSpinner.web';
 import type { ChatBubbleProps } from './ChatBubble.types';
 import './ChatBubble.css';
 
@@ -9,7 +10,12 @@ export function ChatBubble({ role, content, timestamp, streaming = false, classN
       <div className="chat-bubble__card">
         <p className="chat-bubble__content">
           {content}
-          {streaming && <span className="chat-bubble__cursor" />}
+          {streaming && !content && (
+            <span className="chat-bubble__spinner">
+              <WireframeSpinner size={50} speed={0.8} />
+            </span>
+          )}
+          {streaming && content && <span className="chat-bubble__cursor" />}
         </p>
         {timestamp && (
           <p className="chat-bubble__timestamp">{timestamp}</p>

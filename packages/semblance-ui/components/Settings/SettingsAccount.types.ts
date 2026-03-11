@@ -1,5 +1,5 @@
 export interface SettingsAccountProps {
-  licenseStatus: 'founding-member' | 'active' | 'trial' | 'expired';
+  licenseStatus: 'founding-member' | 'active' | 'free' | 'expired';
   licenseActivationDate: string;
   trialDaysRemaining?: number;
   digitalRepresentativeActive: boolean;
@@ -37,12 +37,12 @@ export const licenseConfigs: Record<string, LicenseConfig> = {
     cardVariant: 'active',
     desc: 'All premium features active',
   },
-  trial: {
-    label: 'Trial',
-    badge: 'TRIAL',
+  free: {
+    label: 'Free',
+    badge: 'FREE',
     badgeVariant: 'muted',
     cardVariant: 'default',
-    desc: 'Exploring premium features',
+    desc: 'Core features \u2014 upgrade for Digital Representative',
   },
   expired: {
     label: 'Expired',

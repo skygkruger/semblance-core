@@ -233,7 +233,7 @@
   z-index: 1;
 }
 
-/* ─── Thinking state — overlay with wireframe spinner ─── */
+/* ─── Thinking state — green cursor + "Thinking" text ─── */
 .agent-input__thinking-overlay {
   position: absolute;
   inset: 0;
@@ -243,6 +243,19 @@
   padding-left: 16px;
   gap: 10px;
   pointer-events: none;
+}
+
+.agent-input__thinking-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 18px;
+  background: #6ECFA3;
+  animation: thinking-blink 1s step-end infinite;
+}
+
+@keyframes thinking-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .agent-input__thinking-text {
