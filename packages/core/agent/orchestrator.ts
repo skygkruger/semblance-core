@@ -369,6 +369,144 @@ const BASE_TOOLS: ToolDefinition[] = [
       required: ['chunkId', 'newCategory'],
     },
   },
+  // ─── New Tools: Contacts ─────────────────────────────────────────────────
+  {
+    name: 'search_contacts',
+    description: 'Search the user\'s contacts by name, email, phone, organization, or relationship. Returns matching contacts with their details.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query (name, email, company, etc.)' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_contact',
+    description: 'Get detailed information about a specific contact by name. Returns their email, phone, organization, relationship type, birthday, and interaction history.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Contact name to look up' },
+      },
+      required: ['name'],
+    },
+  },
+  // ─── New Tools: Calendar Management ──────────────────────────────────────
+  {
+    name: 'update_calendar_event',
+    description: 'Update an existing calendar event. Use when the user wants to reschedule, change the title, add attendees, or modify any event details.',
+    parameters: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'ID of the event to update' },
+        title: { type: 'string', description: 'New title (optional)' },
+        startTime: { type: 'string', description: 'New start time ISO 8601 (optional)' },
+        endTime: { type: 'string', description: 'New end time ISO 8601 (optional)' },
+        description: { type: 'string', description: 'New description (optional)' },
+        location: { type: 'string', description: 'New location (optional)' },
+        attendees: { type: 'array', items: { type: 'string' }, description: 'Updated attendee list (optional)' },
+      },
+      required: ['eventId'],
+    },
+  },
+  {
+    name: 'delete_calendar_event',
+    description: 'Delete a calendar event. Use when the user wants to cancel an appointment or remove an event from their calendar.',
+    parameters: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'ID of the event to delete' },
+        reason: { type: 'string', description: 'Why the event is being deleted (logged to audit trail)' },
+      },
+      required: ['eventId'],
+    },
+  },
+  // ─── New Tools: Email Management ────────────────────────────────────────
+  {
+    name: 'move_email',
+    description: 'Move emails to a specific folder/label. Use when the user wants to organize their inbox, move emails to folders like Work, Personal, etc.',
+    parameters: {
+      type: 'object',
+      properties: {
+        messageIds: { type: 'array', items: { type: 'string' }, description: 'Message IDs to move' },
+        toFolder: { type: 'string', description: 'Destination folder name (e.g., "Work", "Archive", "Trash")' },
+      },
+      required: ['messageIds', 'toFolder'],
+    },
+  },
+  {
+    name: 'mark_email_read',
+    description: 'Mark emails as read or unread. Use when the user wants to clean up their unread count or mark something to revisit later.',
+    parameters: {
+      type: 'object',
+      properties: {
+        messageIds: { type: 'array', items: { type: 'string' }, description: 'Message IDs to update' },
+        read: { type: 'boolean', description: 'true to mark as read, false to mark as unread' },
+      },
+      required: ['messageIds', 'read'],
+    },
+  },
+  // ─── New Tools: Reminders ───────────────────────────────────────────────
+  {
+    name: 'delete_reminder',
+    description: 'Permanently delete a reminder. Use when the user wants to completely remove a reminder, not just dismiss it.',
+    parameters: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Reminder ID to delete' },
+      },
+      required: ['id'],
+    },
+  },
+  // ─── New Tools: Finance ─────────────────────────────────────────────────
+  {
+    name: 'get_subscriptions',
+    description: 'Get the user\'s detected recurring charges and subscriptions. Shows what they\'re paying for monthly/yearly, including forgotten subscriptions. Use when the user asks about their subscriptions, recurring charges, or monthly expenses.',
+    parameters: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['active', 'cancelled', 'forgotten', 'all'], description: 'Filter by subscription status (default: all)' },
+      },
+    },
+  },
+  {
+    name: 'get_financial_summary',
+    description: 'Get a summary of the user\'s financial transactions. Shows total spending, top merchants, category breakdown. Use when the user asks about their spending, budget, or financial overview.',
+    parameters: {
+      type: 'object',
+      properties: {
+        days: { type: 'number', description: 'Number of days to look back (default: 30)' },
+      },
+    },
+  },
+  // ─── New Tools: Health ──────────────────────────────────────────────────
+  {
+    name: 'get_health_entries',
+    description: 'Get the user\'s health tracking entries (mood, energy, water intake, symptoms, medications). Use when the user asks about their health trends, how they\'ve been feeling, or wants to review their wellness data.',
+    parameters: {
+      type: 'object',
+      properties: {
+        days: { type: 'number', description: 'Number of days to look back (default: 7)' },
+      },
+    },
+  },
+  {
+    name: 'add_health_entry',
+    description: 'Log a health entry for the user. Use when the user mentions their mood, energy level, water intake, symptoms, or medications. Parse natural language into structured health data.',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: 'Date in YYYY-MM-DD format (default: today)' },
+        mood: { type: 'number', description: 'Mood rating 1-5 (1=very low, 5=great)' },
+        energy: { type: 'number', description: 'Energy rating 1-5 (1=exhausted, 5=energized)' },
+        waterGlasses: { type: 'number', description: 'Number of glasses of water' },
+        symptoms: { type: 'array', items: { type: 'string' }, description: 'List of symptoms' },
+        medications: { type: 'array', items: { type: 'string' }, description: 'List of medications taken' },
+        notes: { type: 'string', description: 'Free-text health notes' },
+      },
+    },
+  },
 ];
 
 // Map tool names to ActionTypes
@@ -388,6 +526,11 @@ const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'send_text': 'messaging.send',
   'get_weather': 'location.weather_query',
   'save_file': 'file.write',
+  'update_calendar_event': 'calendar.update',
+  'delete_calendar_event': 'calendar.delete',
+  'move_email': 'email.move',
+  'mark_email_read': 'email.markRead',
+  'delete_reminder': 'reminder.delete',
 };
 
 // Tools that are handled locally (no IPC needed)
@@ -399,6 +542,12 @@ const BASE_LOCAL_TOOLS = new Set([
   'search_cloud_files',
   'knowledge_remove',
   'knowledge_recategorize',
+  'search_contacts',
+  'get_contact',
+  'get_subscriptions',
+  'get_financial_summary',
+  'get_health_entries',
+  'add_health_entry',
 ]);
 
 // --- System Prompt ---
@@ -418,22 +567,59 @@ Core principles:
 - Bias toward action — do things on the user's behalf, don't just show information
 
 Available tools:
-- search_files: Search the user's local documents and files
+
+Email:
 - fetch_inbox: Fetch recent emails with AI-assigned priority
 - search_emails: Search indexed emails by keyword, sender, or date
 - send_email: Send an email (autonomy tier determines if approval is needed)
 - draft_email: Save an email draft (always available)
 - archive_email: Archive emails from inbox
+- move_email: Move emails to a specific folder
+- mark_email_read: Mark emails as read or unread
 - categorize_email: Apply AI categories and priority to emails
+
+Calendar:
 - fetch_calendar: View upcoming calendar events
 - create_calendar_event: Schedule a new event (checks for conflicts first)
+- update_calendar_event: Reschedule or modify an existing event
+- delete_calendar_event: Cancel/remove a calendar event
 - detect_calendar_conflicts: Check for scheduling conflicts
-- send_text: Send a text message to a contact
-- get_weather: Get current weather and forecast
-- search_cloud_files: Search cloud-synced files (Google Drive, Dropbox) indexed locally
-- save_file: Save content to a file on the user's filesystem (documents, exports, reports)
-- knowledge_remove: Remove an item from the knowledge graph (keeps file on disk)
+
+Contacts:
+- search_contacts: Search contacts by name, email, phone, or organization
+- get_contact: Get detailed info about a specific contact
+
+Messaging:
+- send_text: Send a text message to a contact (tone-matched to user's writing)
+
+Reminders:
+- create_reminder: Create a new reminder (natural language or structured)
+- list_reminders: List existing reminders
+- snooze_reminder: Snooze a reminder
+- dismiss_reminder: Dismiss a reminder
+- delete_reminder: Permanently delete a reminder
+
+Finance:
+- get_subscriptions: View detected recurring charges and subscriptions
+- get_financial_summary: Get spending summary for a time period
+
+Health:
+- get_health_entries: View health tracking data (mood, energy, symptoms)
+- add_health_entry: Log a health entry (mood, energy, water, symptoms, meds)
+
+Files & Knowledge:
+- search_files: Search the user's local documents and files
+- search_cloud_files: Search cloud-synced files indexed locally
+- save_file: Save content to a file
+- knowledge_remove: Remove an item from the knowledge graph
 - knowledge_recategorize: Change the category of a knowledge graph item
+
+Web:
+- search_web: Search the web for current information
+- fetch_url: Fetch and extract content from a URL
+- get_weather: Get current weather and forecast
+
+When an action requires approval (based on the user's autonomy tier), it will be queued for their review. Actions you take or queue will appear inline in the conversation for the user to see and approve.
 
 Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.
 
@@ -1234,6 +1420,220 @@ export class OrchestratorImpl implements Orchestrator {
             detail: result.detail,
           },
         });
+        continue;
+      }
+
+      // --- Contact tools (local, query prefsDb) ---
+
+      if (tc.name === 'search_contacts') {
+        const query = (tc.arguments['query'] as string ?? '').toLowerCase();
+        try {
+          const rows = this.db.prepare(
+            `SELECT id, display_name, emails, phones, organization, relationship_type, birthday
+             FROM contacts
+             WHERE LOWER(display_name) LIKE ? OR LOWER(emails) LIKE ? OR LOWER(organization) LIKE ? OR LOWER(phones) LIKE ?
+             ORDER BY interaction_count DESC LIMIT 10`
+          ).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) as Array<{
+            id: string; display_name: string; emails: string; phones: string;
+            organization: string | null; relationship_type: string; birthday: string | null;
+          }>;
+          executedResults.push({
+            tool: 'search_contacts',
+            result: rows.map(r => ({
+              id: r.id,
+              name: r.display_name,
+              emails: JSON.parse(r.emails),
+              phones: JSON.parse(r.phones),
+              organization: r.organization,
+              relationship: r.relationship_type,
+              birthday: r.birthday,
+            })),
+          });
+        } catch {
+          executedResults.push({ tool: 'search_contacts', result: { error: 'Contacts not available' } });
+        }
+        continue;
+      }
+
+      if (tc.name === 'get_contact') {
+        const name = (tc.arguments['name'] as string ?? '').toLowerCase();
+        try {
+          const row = this.db.prepare(
+            `SELECT id, display_name, given_name, family_name, emails, phones, organization,
+                    job_title, birthday, relationship_type, communication_frequency,
+                    last_contact_date, interaction_count, tags
+             FROM contacts
+             WHERE LOWER(display_name) LIKE ?
+             ORDER BY interaction_count DESC LIMIT 1`
+          ).get(`%${name}%`) as {
+            id: string; display_name: string; given_name: string | null; family_name: string | null;
+            emails: string; phones: string; organization: string | null; job_title: string | null;
+            birthday: string | null; relationship_type: string; communication_frequency: string;
+            last_contact_date: string | null; interaction_count: number; tags: string;
+          } | undefined;
+
+          if (row) {
+            executedResults.push({
+              tool: 'get_contact',
+              result: {
+                id: row.id,
+                name: row.display_name,
+                firstName: row.given_name,
+                lastName: row.family_name,
+                emails: JSON.parse(row.emails),
+                phones: JSON.parse(row.phones),
+                organization: row.organization,
+                jobTitle: row.job_title,
+                birthday: row.birthday,
+                relationship: row.relationship_type,
+                lastContact: row.last_contact_date,
+                interactionCount: row.interaction_count,
+                tags: JSON.parse(row.tags),
+              },
+            });
+          } else {
+            executedResults.push({ tool: 'get_contact', result: { found: false, message: `No contact found matching "${tc.arguments['name']}"` } });
+          }
+        } catch {
+          executedResults.push({ tool: 'get_contact', result: { error: 'Contacts not available' } });
+        }
+        continue;
+      }
+
+      // --- Finance tools (local, query prefsDb) ---
+
+      if (tc.name === 'get_subscriptions') {
+        const statusFilter = tc.arguments['status'] as string | undefined;
+        try {
+          const sql = statusFilter && statusFilter !== 'all'
+            ? 'SELECT * FROM recurring_charges WHERE status = ? ORDER BY estimated_annual_cost DESC'
+            : 'SELECT * FROM recurring_charges ORDER BY estimated_annual_cost DESC';
+          const rows = (statusFilter && statusFilter !== 'all'
+            ? this.db.prepare(sql).all(statusFilter)
+            : this.db.prepare(sql).all()
+          ) as Array<{
+            id: string; merchant_name: string; typical_amount: number; frequency: string;
+            confidence: number; last_charge_date: string; charge_count: number;
+            estimated_annual_cost: number; status: string;
+          }>;
+          executedResults.push({
+            tool: 'get_subscriptions',
+            result: {
+              subscriptions: rows.map(r => ({
+                id: r.id,
+                merchant: r.merchant_name,
+                amount: r.typical_amount,
+                frequency: r.frequency,
+                annualCost: r.estimated_annual_cost,
+                lastCharge: r.last_charge_date,
+                status: r.status,
+              })),
+              totalMonthly: rows.filter(r => r.status === 'active').reduce((sum, r) => sum + (r.frequency === 'monthly' ? r.typical_amount : r.typical_amount / 12), 0),
+              totalAnnual: rows.filter(r => r.status === 'active').reduce((sum, r) => sum + r.estimated_annual_cost, 0),
+            },
+          });
+        } catch {
+          executedResults.push({ tool: 'get_subscriptions', result: { subscriptions: [], message: 'No financial data imported yet. Import a bank statement first.' } });
+        }
+        continue;
+      }
+
+      if (tc.name === 'get_financial_summary') {
+        const days = (tc.arguments['days'] as number) || 30;
+        const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        try {
+          const totalRow = this.db.prepare(
+            'SELECT COUNT(*) as count, SUM(amount) as total FROM stored_transactions WHERE date >= ?'
+          ).get(cutoff) as { count: number; total: number | null } | undefined;
+          const topMerchants = this.db.prepare(
+            `SELECT normalized_merchant, SUM(amount) as total, COUNT(*) as count
+             FROM stored_transactions WHERE date >= ?
+             GROUP BY normalized_merchant ORDER BY total DESC LIMIT 10`
+          ).all(cutoff) as Array<{ normalized_merchant: string; total: number; count: number }>;
+          const byCategory = this.db.prepare(
+            `SELECT category, SUM(amount) as total, COUNT(*) as count
+             FROM stored_transactions WHERE date >= ? AND category != ''
+             GROUP BY category ORDER BY total DESC`
+          ).all(cutoff) as Array<{ category: string; total: number; count: number }>;
+
+          executedResults.push({
+            tool: 'get_financial_summary',
+            result: {
+              period: `Last ${days} days`,
+              transactionCount: totalRow?.count ?? 0,
+              totalSpending: Math.abs(totalRow?.total ?? 0),
+              topMerchants: topMerchants.map(r => ({ merchant: r.normalized_merchant, total: Math.abs(r.total), count: r.count })),
+              byCategory: byCategory.map(r => ({ category: r.category, total: Math.abs(r.total), count: r.count })),
+            },
+          });
+        } catch {
+          executedResults.push({ tool: 'get_financial_summary', result: { message: 'No financial data imported yet. Import a bank statement first.' } });
+        }
+        continue;
+      }
+
+      // --- Health tools (local, query prefsDb) ---
+
+      if (tc.name === 'get_health_entries') {
+        const days = (tc.arguments['days'] as number) || 7;
+        const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        try {
+          const rows = this.db.prepare(
+            'SELECT * FROM health_entries WHERE date >= ? ORDER BY date DESC'
+          ).all(cutoff) as Array<{
+            id: string; date: string; mood: number | null; energy: number | null;
+            water_glasses: number | null; symptoms: string; medications: string; notes: string | null;
+          }>;
+          executedResults.push({
+            tool: 'get_health_entries',
+            result: {
+              entries: rows.map(r => ({
+                id: r.id,
+                date: r.date,
+                mood: r.mood,
+                energy: r.energy,
+                waterGlasses: r.water_glasses,
+                symptoms: JSON.parse(r.symptoms),
+                medications: JSON.parse(r.medications),
+                notes: r.notes,
+              })),
+              averageMood: rows.filter(r => r.mood !== null).length > 0
+                ? rows.filter(r => r.mood !== null).reduce((sum, r) => sum + r.mood!, 0) / rows.filter(r => r.mood !== null).length
+                : null,
+              averageEnergy: rows.filter(r => r.energy !== null).length > 0
+                ? rows.filter(r => r.energy !== null).reduce((sum, r) => sum + r.energy!, 0) / rows.filter(r => r.energy !== null).length
+                : null,
+            },
+          });
+        } catch {
+          executedResults.push({ tool: 'get_health_entries', result: { entries: [], message: 'No health data recorded yet.' } });
+        }
+        continue;
+      }
+
+      if (tc.name === 'add_health_entry') {
+        const date = (tc.arguments['date'] as string) || new Date().toISOString().slice(0, 10);
+        const id = nanoid();
+        try {
+          this.db.prepare(
+            `INSERT OR REPLACE INTO health_entries (id, date, timestamp, mood, energy, water_glasses, symptoms, medications, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).run(
+            id, date, new Date().toISOString(),
+            tc.arguments['mood'] as number ?? null,
+            tc.arguments['energy'] as number ?? null,
+            tc.arguments['waterGlasses'] as number ?? null,
+            JSON.stringify(tc.arguments['symptoms'] ?? []),
+            JSON.stringify(tc.arguments['medications'] ?? []),
+            tc.arguments['notes'] as string ?? null,
+          );
+          executedResults.push({
+            tool: 'add_health_entry',
+            result: { success: true, id, date, message: `Health entry logged for ${date}` },
+          });
+        } catch (err) {
+          executedResults.push({ tool: 'add_health_entry', result: { error: err instanceof Error ? err.message : 'Failed to log health entry' } });
+        }
         continue;
       }
 

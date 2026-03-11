@@ -174,11 +174,20 @@ export interface ChatAttachmentState {
   addedToKnowledge: boolean;
 }
 
+export interface ChatActionItem {
+  id: string;
+  type: string;
+  status: 'pending_approval' | 'approved' | 'executed' | 'rejected' | 'failed';
+  payload: Record<string, unknown>;
+  reasoning?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  actions?: ChatActionItem[];
 }
 
 // ─── Actions ───────────────────────────────────────────────────────────────
@@ -233,6 +242,7 @@ export type AppAction =
   | { type: 'TOGGLE_HISTORY_PANEL' }
   | { type: 'SET_HISTORY_PANEL'; open: boolean }
   | { type: 'REPLACE_CHAT_MESSAGES'; messages: ChatMessage[] }
+  | { type: 'SET_LAST_MESSAGE_ACTIONS'; actions: ChatActionItem[] }
   | { type: 'SET_CONVERSATION_SETTINGS'; settings: AppState['conversationSettings'] }
   | { type: 'SET_INTENT_PROFILE'; profile: AppState['intentProfile'] }
   | { type: 'SET_PRIMARY_GOAL'; goal: string }
@@ -500,6 +510,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, historyPanelOpen: action.open };
     case 'REPLACE_CHAT_MESSAGES':
       return { ...state, chatMessages: action.messages };
+    case 'SET_LAST_MESSAGE_ACTIONS': {
+      const msgs = [...state.chatMessages];
+      const lastIdx = msgs.length - 1;
+      if (lastIdx >= 0 && msgs[lastIdx]!.role === 'assistant') {
+        msgs[lastIdx] = { ...msgs[lastIdx]!, actions: action.actions };
+      }
+      return { ...state, chatMessages: msgs };
+    }
     case 'SET_CONVERSATION_SETTINGS':
       return { ...state, conversationSettings: action.settings };
     case 'SET_INTENT_PROFILE':

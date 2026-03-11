@@ -800,28 +800,45 @@ async function handleSendMessage(
   id: number | string,
   params: { message: string; conversation_id?: string },
 ): Promise<void> {
-  // Check inference availability — NativeRuntime works independently of core
-  console.error('[sidecar] handleSendMessage — core initialized:', !!core, 'native check starting...');
-  let useNative = false;
-  try {
-    const nativeStatus = await Promise.race([
-      sendCallback('native_status', {}),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
-    ]);
-    console.error('[sidecar] handleSendMessage — native status:', JSON.stringify(nativeStatus));
-    if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
-      useNative = true;
-    }
-  } catch (nativeErr) {
-    console.error('[sidecar] handleSendMessage — native check failed:', nativeErr);
-  }
-  console.error('[sidecar] handleSendMessage — useNative:', useNative);
+  // ─── ROUTE 1: Orchestrator (full agent loop with tools) ───────────────────
+  // The orchestrator has 30+ tools, autonomy tiers, approval flows, intent
+  // checking, and audit logging. Both native runtime and Ollama go through
+  // it so the model can actually DO things — search files, send emails,
+  // manage calendar, etc. The LLM provider (NativeProvider or OllamaProvider)
+  // handles the inference; the orchestrator handles the agent loop.
 
-  if (!useNative) {
-    // Try Ollama as fallback
-    const ollamaAvailable = core ? await core.llm.isAvailable() : false;
-    console.error('[sidecar] handleSendMessage — ollama available:', ollamaAvailable);
-    if (!ollamaAvailable) {
+  console.error('[sidecar] handleSendMessage — core initialized:', !!core);
+
+  // Check if ANY inference is available
+  if (!core) {
+    respondError(id, 'Semblance core not initialized. Please wait for startup to complete.');
+    return;
+  }
+
+  // Check if the orchestrator (core.agent) is available
+  // core.agent throws if knowledge graph didn't initialize — catch it
+  let hasOrchestrator = false;
+  try {
+    hasOrchestrator = !!core.agent;
+  } catch {
+    // Orchestrator unavailable — knowledge graph didn't initialize
+  }
+  console.error('[sidecar] handleSendMessage — orchestrator available:', hasOrchestrator);
+
+  // Check if LLM is available (native or Ollama)
+  const llmAvailable = await core.llm.isAvailable().catch(() => false);
+  if (!llmAvailable) {
+    // Try a quick native status check as a fallback signal
+    let nativeReady = false;
+    try {
+      const nativeStatus = await Promise.race([
+        sendCallback('native_status', {}),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+      ]);
+      nativeReady = !!nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready';
+    } catch { /* native not available */ }
+
+    if (!nativeReady) {
       respondError(id, 'No AI model available. The model may still be loading — try again in a moment.');
       return;
     }
@@ -847,65 +864,65 @@ async function handleSendMessage(
   // Return response ID immediately so frontend can start showing the streaming bubble
   respond(id, { responseId, conversationId: convId });
 
-  // Streaming happens asynchronously
   try {
-    // Step 1: Search knowledge graph for relevant context (may be unavailable)
-    let context: Array<{ document: { title: string }; score: number; chunk: { content: string } }> = [];
-    try {
-      if (core) {
-        context = await core.knowledge.search(params.message, { limit: 5 });
-      }
-    } catch {
-      // Knowledge graph unavailable — proceed without context
-    }
-
-    // Step 2: Build context string from search results
-    let contextStr = '';
-    if (context.length > 0) {
-      contextStr =
-        '\n\nRelevant documents from your files:\n' +
-        context
-          .map(
-            r =>
-              `[${r.document.title}] (score: ${r.score.toFixed(2)}): ${r.chunk.content.substring(0, 500)}`,
-          )
-          .join('\n\n');
-    }
-
-    // Step 3: Generate response via NativeRuntime or Ollama
     let fullResponse = '';
+    let actions: Array<{ id: string; type: string; status: string; payload: unknown }> = [];
 
-    if (useNative) {
-      // Use NativeRuntime (llama.cpp via Rust) — primary inference path
-      const prompt = params.message;
-      const systemPrompt = getSystemPrompt() + contextStr;
-      try {
-        console.error('[sidecar] About to call native_generate, prompt length:', prompt.length);
-        const result = await sendCallback('native_generate', {
-          prompt,
-          system_prompt: systemPrompt,
-          max_tokens: 2048,
-          temperature: 0.7,
-          stop: ['<|im_end|>', '<|endoftext|>'],
-        }) as { text: string; tokens_generated: number; duration_ms: number };
-        console.error('[sidecar] native_generate returned:', JSON.stringify(result).slice(0, 200));
-        fullResponse = result.text;
-        // Emit in chunks to simulate streaming for the frontend
-        const chunkSize = 12;
-        for (let i = 0; i < fullResponse.length; i += chunkSize) {
-          emit('chat-token', fullResponse.substring(i, i + chunkSize));
-        }
-      } catch (nativeErr) {
-        console.error('[sidecar] NativeRuntime generate failed:', nativeErr, 'Full error:', JSON.stringify(nativeErr));
-        throw nativeErr;
+    if (hasOrchestrator) {
+      // ─── PRIMARY PATH: Full orchestrator with tool calling ──────────
+      // The orchestrator:
+      // 1. Searches knowledge graph for context
+      // 2. Builds conversation history (last 10 turns)
+      // 3. Injects intent context (user's goals, hard limits, values)
+      // 4. Sends to LLM WITH tool definitions
+      // 5. If model calls tools → executes them → sends results back to LLM
+      // 6. Applies autonomy tiers (Guardian/Partner/Alter Ego)
+      // 7. Logs actions to audit trail
+      // 8. Returns final response + actions taken
+      console.error('[sidecar] Routing through orchestrator (full agent loop)');
+
+      const orchResult = await core.agent.processMessage(params.message, convId);
+
+      fullResponse = orchResult.message;
+      actions = orchResult.actions.map(a => ({
+        id: a.id,
+        type: a.action,
+        status: a.status,
+        payload: a.payload,
+      }));
+
+      console.error(`[sidecar] Orchestrator returned: ${fullResponse.length} chars, ${actions.length} actions`);
+
+      // Emit response in chunks for streaming UX
+      const chunkSize = 12;
+      for (let i = 0; i < fullResponse.length; i += chunkSize) {
+        emit('chat-token', fullResponse.substring(i, i + chunkSize));
       }
-    } else if (core) {
-      // Fallback: Ollama streaming
+    } else {
+      // ─── FALLBACK: Direct LLM call (no tools, no agent loop) ────────
+      // Only used when knowledge graph failed to initialize (so no orchestrator).
+      // Still provides basic chat with RAG context.
+      console.error('[sidecar] Fallback: direct LLM (no orchestrator — knowledge graph unavailable)');
+
+      // Search knowledge graph for context (may be unavailable — core.knowledge throws if not init'd)
+      let contextStr = '';
+      try {
+        const context = await core.knowledge.search(params.message, { limit: 5 });
+        if (context.length > 0) {
+          contextStr =
+            '\n\nRelevant documents from your files:\n' +
+            context
+              .map(r => `[${r.document.title}] (score: ${r.score.toFixed(2)}): ${r.chunk.content.substring(0, 500)}`)
+              .join('\n\n');
+        }
+      } catch { /* knowledge unavailable */ }
+
       const model = (await core.models.getActiveChatModel()) ?? getRecommendedReasoningModel('standard').id;
       const messages: ChatMessage[] = [
         { role: 'system', content: getSystemPrompt() + contextStr },
         { role: 'user', content: params.message },
       ];
+
       if (core.llm.chatStream) {
         for await (const token of core.llm.chatStream({ model, messages })) {
           emit('chat-token', token);
@@ -916,28 +933,23 @@ async function handleSendMessage(
         fullResponse = response.message.content;
         emit('chat-token', fullResponse);
       }
-    } else {
-      respondError(id, 'No inference engine available.');
-      return;
+
+      // Store conversation turns (orchestrator handles this in the primary path)
+      storeTurn(convId, 'user', params.message);
+      storeTurn(convId, 'assistant', fullResponse);
+
+      if (conversationManager) {
+        conversationManager.updateAfterTurn(convId, params.message, 'user');
+        conversationManager.updateAfterTurn(convId, fullResponse, 'assistant');
+      }
     }
 
-    // Step 5: Emit completion
-    emit('chat-complete', { id: responseId, content: fullResponse, actions: [] });
+    // Emit completion with actions (empty if fallback path)
+    emit('chat-complete', { id: responseId, content: fullResponse, actions });
 
-    // Step 6: Persist conversation turns
-    const userTurnId = nanoid();
-    const assistantTurnId = nanoid();
-    storeTurn(convId, 'user', params.message);
-    storeTurn(convId, 'assistant', fullResponse);
-
-    // Step 7: Update conversation metadata via ConversationManager
-    if (conversationManager) {
-      conversationManager.updateAfterTurn(convId, params.message, 'user');
-      conversationManager.updateAfterTurn(convId, fullResponse, 'assistant');
-    }
-
-    // Step 8: Async, non-blocking semantic indexing of assistant response
+    // Async, non-blocking semantic indexing of assistant response
     if (conversationIndexer) {
+      const assistantTurnId = nanoid();
       conversationIndexer.indexTurn({
         conversationId: convId,
         turnId: assistantTurnId,
@@ -948,6 +960,7 @@ async function handleSendMessage(
     }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('[sidecar] handleSendMessage error:', errMsg);
     emit('chat-token', `\n\nError: ${errMsg}`);
     emit('chat-complete', { id: responseId, content: `Error: ${errMsg}`, actions: [] });
   }

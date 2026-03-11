@@ -84,6 +84,15 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'model.download_cancel': 'system',
   'model.verify': 'system',
   'file.write': 'system',
+  'subscription.insight': 'finances',
+  'dark_pattern.detected': 'system',
+  'insight.proactive': 'system',
+  'insight.meeting_prep': 'calendar',
+  'insight.follow_up': 'email',
+  'insight.deadline': 'reminders',
+  'insight.conflict': 'calendar',
+  'escalation.prompt': 'system',
+  'health.entry': 'health',
 };
 
 // Actions classified as read (safe), write (moderate), or execute (high-stakes)
@@ -155,6 +164,15 @@ export const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'model.download_cancel': 'write',
   'model.verify': 'read',
   'file.write': 'write',
+  'subscription.insight': 'read',
+  'dark_pattern.detected': 'read',
+  'insight.proactive': 'read',
+  'insight.meeting_prep': 'read',
+  'insight.follow_up': 'read',
+  'insight.deadline': 'read',
+  'insight.conflict': 'read',
+  'escalation.prompt': 'write',
+  'health.entry': 'write',
 };
 
 export type AutonomyDecision = 'auto_approve' | 'requires_approval' | 'blocked';
