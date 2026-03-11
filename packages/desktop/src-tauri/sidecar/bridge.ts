@@ -652,6 +652,42 @@ async function handleInitialize(): Promise<unknown> {
   } catch {
     console.error('[sidecar] AlterEgoGuardrails wiring skipped — orchestrator unavailable');
   }
+
+  // Wire prompt config (AI name, user name, connected services, doc count) into orchestrator
+  try {
+    if (core?.agent?.updatePromptConfig) {
+      const aiName = getPref('ai_name') ?? 'Semblance';
+      const userName = getPref('user_name') ?? undefined;
+
+      // Connected services
+      const connectedServices: string[] = [];
+      try {
+        const tokenMgr = ensureOAuthTokenManager();
+        const connectorRegistry = createDefaultConnectorRegistry();
+        for (const connector of connectorRegistry.listAll()) {
+          const oauthCfg = getOAuthConfigForConnector(connector.id);
+          if (oauthCfg) {
+            const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
+            if (accessToken) connectedServices.push(connector.displayName);
+          }
+        }
+      } catch { /* token manager not ready */ }
+
+      // Document count
+      let indexedDocCount = 0;
+      try {
+        if (documentsDb) {
+          indexedDocCount = (documentsDb.prepare('SELECT COUNT(*) as count FROM documents').get() as { count: number })?.count ?? 0;
+        }
+      } catch { /* documents table may not exist yet */ }
+
+      core.agent.updatePromptConfig({ aiName, userName, connectedServices, indexedDocCount });
+      console.error(`[sidecar] Prompt config wired: name=${aiName}, services=${connectedServices.length}, docs=${indexedDocCount}`);
+    }
+  } catch (err) {
+    console.error('[sidecar] Prompt config wiring failed:', err);
+  }
+
   // Batch expiry cleanup — reject stale pending items on launch + every 15 minutes
   function cleanupStaleBatchItems(): void {
     if (!prefsDb) return;

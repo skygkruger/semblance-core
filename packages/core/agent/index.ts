@@ -13,7 +13,7 @@ export type { AutonomyDecision } from './autonomy.js';
 export { CoreIPCClient } from './ipc-client.js';
 export type { IPCClient, IPCClientConfig } from './ipc-client.js';
 export { OrchestratorImpl } from './orchestrator.js';
-export type { Orchestrator, OrchestratorResponse } from './orchestrator.js';
+export type { Orchestrator, OrchestratorResponse, SystemPromptConfig } from './orchestrator.js';
 export { DocumentContextManager } from './document-context.js';
 export type { DocumentContextInfo } from './document-context.js';
 export { DailyDigestGenerator } from './daily-digest.js';
@@ -41,6 +41,10 @@ export function createOrchestrator(config: {
   dataDir: string;
   model: string;
   extensions?: SemblanceExtension[];
+  aiName?: string;
+  userName?: string;
+  connectedServices?: string[];
+  indexedDocCount?: number;
 }): Orchestrator {
   const p = getPlatform();
   const db = p.sqlite.openDatabase(p.path.join(config.dataDir, 'agent.db'));
@@ -55,6 +59,10 @@ export function createOrchestrator(config: {
     autonomy,
     db,
     model: config.model,
+    aiName: config.aiName,
+    userName: config.userName,
+    connectedServices: config.connectedServices,
+    indexedDocCount: config.indexedDocCount,
   });
 
   // Wire extension tools

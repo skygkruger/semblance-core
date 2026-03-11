@@ -554,78 +554,70 @@ const BASE_LOCAL_TOOLS = new Set([
 
 const VOICE_MODE_CONTEXT = `The user is in voice conversation mode. Keep responses concise and conversational — they will be spoken aloud. Avoid long lists, code blocks, and complex formatting.`;
 
-const SYSTEM_PROMPT = `You are Semblance, the user's personal AI. You run entirely on their device — their data never leaves their machine.
+export interface SystemPromptConfig {
+  aiName: string;
+  userName?: string;
+  autonomyTier: 'guardian' | 'partner' | 'alter_ego';
+  connectedServices?: string[];
+  indexedDocCount?: number;
+}
 
-You have access to their local files, documents, emails, and calendar through secure tools. You can search, send emails, manage their calendar, and take autonomous actions based on their configured autonomy tier.
+function buildSystemPrompt(config: SystemPromptConfig): string {
+  const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
+  const userRef = userName ? userName : 'the user';
 
-Core principles:
-- You are helpful, warm, proactive, and concise
-- You respect the user's privacy absolutely — all processing happens locally
-- When you need information, search the user's knowledge base and indexed emails first
-- When taking actions (sending emails, creating events), explain what you plan to do and why
-- Be transparent about what data you're accessing and what actions you're taking
-- Bias toward action — do things on the user's behalf, don't just show information
+  // Autonomy behavior — one line each, not per-tool
+  const autonomyBlock = autonomyTier === 'guardian'
+    ? `Autonomy: Guardian. All actions require ${userRef}'s explicit approval before execution. Always preview what you plan to do.`
+    : autonomyTier === 'alter_ego'
+    ? `Autonomy: Alter Ego. Act on ${userRef}'s behalf for routine tasks. Only pause for genuinely high-stakes or novel actions. When you act autonomously, briefly state what you did and why.`
+    : `Autonomy: Partner. Routine actions (archiving email, calendar scheduling, reminders) execute automatically. Novel or sensitive actions (sending email to new contacts, financial changes) require approval. State what you did for auto-executed actions.`;
 
-Available tools:
+  // Dynamic context sections
+  const servicesLine = connectedServices && connectedServices.length > 0
+    ? `\nConnected services: ${connectedServices.join(', ')}.`
+    : '';
+  const knowledgeLine = indexedDocCount && indexedDocCount > 0
+    ? `\nKnowledge base: ${indexedDocCount} indexed documents. Search it first before using web search.`
+    : '';
 
-Email:
-- fetch_inbox: Fetch recent emails with AI-assigned priority
-- search_emails: Search indexed emails by keyword, sender, or date
-- send_email: Send an email (autonomy tier determines if approval is needed)
-- draft_email: Save an email draft (always available)
-- archive_email: Archive emails from inbox
-- move_email: Move emails to a specific folder
-- mark_email_read: Mark emails as read or unread
-- categorize_email: Apply AI categories and priority to emails
+  // NOTE: Tool definitions with full parameters are injected separately by the LLM provider.
+  // This prompt gives behavioral guidance only — no tool listing to avoid duplication.
+  return `You are ${aiName}, ${userRef}'s personal AI running entirely on their device. All data stays local. You have full access to their emails, calendar, contacts, files, health data, finances, and reminders through tools.
+${servicesLine}${knowledgeLine}
 
-Calendar:
-- fetch_calendar: View upcoming calendar events
-- create_calendar_event: Schedule a new event (checks for conflicts first)
-- update_calendar_event: Reschedule or modify an existing event
-- delete_calendar_event: Cancel/remove a calendar event
-- detect_calendar_conflicts: Check for scheduling conflicts
+${autonomyBlock}
 
-Contacts:
-- search_contacts: Search contacts by name, email, phone, or organization
-- get_contact: Get detailed info about a specific contact
+# Behavior
 
-Messaging:
-- send_text: Send a text message to a contact (tone-matched to user's writing)
+DO:
+- Act first, explain after. When the user asks you to do something, use tools immediately — don't describe what you could do.
+- Search the knowledge base and emails before answering factual questions about ${userRef}'s data.
+- Draft messages in ${userRef}'s voice and tone when composing emails or texts.
+- Connect related information across domains (e.g., "You have a meeting with Sarah at 2pm — you still owe her a follow-up from last week's email").
+- Be warm, direct, and concise. One clear sentence beats three hedging ones.
+- When multiple tools are needed, call them in sequence without asking permission for each step.
 
-Reminders:
-- create_reminder: Create a new reminder (natural language or structured)
-- list_reminders: List existing reminders
-- snooze_reminder: Snooze a reminder
-- dismiss_reminder: Dismiss a reminder
-- delete_reminder: Permanently delete a reminder
+DON'T:
+- Don't narrate your tool usage. Never say "Let me search your emails" — just search and present the results.
+- Don't ask clarifying questions when you have enough context to act. Use your best judgment and let ${userRef} correct you if needed.
+- Don't repeat information ${userRef} already provided back to them.
+- Don't hedge with "I can help you with that" or "Sure, I'd be happy to" — just do it.
+- Don't provide unsolicited privacy reassurances. ${userRef} chose local AI; they know.
 
-Finance:
-- get_subscriptions: View detected recurring charges and subscriptions
-- get_financial_summary: Get spending summary for a time period
-
-Health:
-- get_health_entries: View health tracking data (mood, energy, symptoms)
-- add_health_entry: Log a health entry (mood, energy, water, symptoms, meds)
-
-Files & Knowledge:
-- search_files: Search the user's local documents and files
-- search_cloud_files: Search cloud-synced files indexed locally
-- save_file: Save content to a file
-- knowledge_remove: Remove an item from the knowledge graph
-- knowledge_recategorize: Change the category of a knowledge graph item
-
-Web:
-- search_web: Search the web for current information
-- fetch_url: Fetch and extract content from a URL
-- get_weather: Get current weather and forecast
-
-When an action requires approval (based on the user's autonomy tier), it will be queued for their review. Actions you take or queue will appear inline in the conversation for the user to see and approve.
-
-Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.
+# Actions
+Actions appear inline in the conversation for ${userRef} to review, edit, approve, or dismiss. When drafting emails or messages, provide a complete draft — ${userRef} can edit it before sending.
 
 ${ARTIFACT_SYSTEM_PROMPT}
 
 ${INJECTION_CANARY}`;
+}
+
+// Default prompt for when config isn't available yet (first message before prefs load)
+const DEFAULT_SYSTEM_PROMPT = buildSystemPrompt({
+  aiName: 'Semblance',
+  autonomyTier: 'partner',
+});
 
 // --- Orchestrator Interface ---
 
@@ -642,6 +634,8 @@ export interface Orchestrator {
   readonly autonomy: AutonomyManager;
   /** Set voice mode active/inactive (affects system prompt) */
   setVoiceMode(active: boolean): void;
+  /** Update system prompt config (AI name, user name, connected services, doc count) */
+  updatePromptConfig(updates: Partial<SystemPromptConfig>): void;
   /** Register extension tools for LLM dispatch */
   registerTools(tools: ExtensionTool[]): void;
   /** Set the intent manager for values/limits context (optional) */
@@ -680,6 +674,7 @@ export class OrchestratorImpl implements Orchestrator {
   private alterEgoGuardrails: AlterEgoGuardrails | null;
   private alterEgoStore: AlterEgoStore | null;
   private knowledgeCurator: KnowledgeCurator | null = null;
+  private promptConfig: SystemPromptConfig;
   // Extension support
   private extensionToolHandlers: Map<string, ToolHandler> = new Map();
   private allTools: ToolDefinition[] = [...BASE_TOOLS];
@@ -702,6 +697,10 @@ export class OrchestratorImpl implements Orchestrator {
     intentManager?: IntentManager;
     alterEgoGuardrails?: AlterEgoGuardrails;
     alterEgoStore?: AlterEgoStore;
+    aiName?: string;
+    userName?: string;
+    connectedServices?: string[];
+    indexedDocCount?: number;
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -720,6 +719,16 @@ export class OrchestratorImpl implements Orchestrator {
     this.intentManager = config.intentManager ?? null;
     this.alterEgoGuardrails = config.alterEgoGuardrails ?? null;
     this.alterEgoStore = config.alterEgoStore ?? null;
+    // Use the 'email' domain as a representative autonomy tier for the prompt —
+    // email is the most common action domain and Partner is the onboarding default
+    const representativeTier = this.autonomy.getDomainTier('email');
+    this.promptConfig = {
+      aiName: config.aiName ?? 'Semblance',
+      userName: config.userName,
+      autonomyTier: representativeTier,
+      connectedServices: config.connectedServices,
+      indexedDocCount: config.indexedDocCount,
+    };
     this.db.exec(CREATE_TABLES);
     // Migration: add reasoning_context column to existing pending_actions tables
     try {
@@ -951,6 +960,10 @@ export class OrchestratorImpl implements Orchestrator {
     this.voiceModeActive = active;
   }
 
+  updatePromptConfig(updates: Partial<SystemPromptConfig>): void {
+    this.promptConfig = { ...this.promptConfig, ...updates };
+  }
+
   setIntentManager(manager: IntentManager): void {
     this.intentManager = manager;
   }
@@ -1097,9 +1110,10 @@ export class OrchestratorImpl implements Orchestrator {
     history: ConversationTurn[],
     documentChunks: SearchResult[] = [],
   ): ChatMessage[] {
+    const basePrompt = buildSystemPrompt(this.promptConfig);
     let systemContent = this.voiceModeActive
-      ? `${SYSTEM_PROMPT}\n\n${VOICE_MODE_CONTEXT}`
-      : SYSTEM_PROMPT;
+      ? `${basePrompt}\n\n${VOICE_MODE_CONTEXT}`
+      : basePrompt;
 
     // Intent context: injected into system message (cannot be overridden by doc/knowledge injection)
     if (this.intentManager) {
