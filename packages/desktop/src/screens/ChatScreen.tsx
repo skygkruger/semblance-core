@@ -484,7 +484,18 @@ export function ChatScreen() {
   );
 
   const handleSend = useCallback(async (message: string) => {
-    // Add user message
+    // Snapshot current attachments for this message
+    const messageAttachments = state.chatAttachments
+      .filter(a => a.status === 'ready')
+      .map(a => ({
+        id: a.id,
+        fileName: a.fileName,
+        filePath: a.filePath,
+        mimeType: a.mimeType,
+        sizeBytes: a.sizeBytes,
+      }));
+
+    // Add user message with attachments
     dispatch({
       type: 'ADD_CHAT_MESSAGE',
       message: {
@@ -492,8 +503,19 @@ export function ChatScreen() {
         role: 'user',
         content: message,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        attachments: messageAttachments.length > 0 ? messageAttachments.map(a => ({
+          id: a.id,
+          fileName: a.fileName,
+          mimeType: a.mimeType,
+          sizeBytes: a.sizeBytes,
+        })) : undefined,
       },
     });
+
+    // Clear attachments from input area after they're attached to the message
+    if (messageAttachments.length > 0) {
+      dispatch({ type: 'CLEAR_ATTACHMENTS' });
+    }
 
     // Add empty assistant message for streaming
     dispatch({
@@ -507,10 +529,13 @@ export function ChatScreen() {
     });
 
     dispatch({ type: 'SET_IS_RESPONDING', value: true });
-    // Sound effect removed per user request
 
     try {
-      const result = await sendMessage(message, state.activeConversationId ?? undefined);
+      const result = await sendMessage(
+        message,
+        state.activeConversationId ?? undefined,
+        messageAttachments.length > 0 ? messageAttachments : undefined,
+      );
       // If we got a new conversation ID back (first message), update state
       if (result.conversationId && result.conversationId !== state.activeConversationId) {
         dispatch({ type: 'SET_ACTIVE_CONVERSATION', id: result.conversationId });
@@ -522,7 +547,7 @@ export function ChatScreen() {
         content: `Error: ${err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)}`,
       });
     }
-  }, [dispatch, state.activeConversationId]);
+  }, [dispatch, state.activeConversationId, state.chatAttachments]);
 
   // Action approve/reject handlers for inline approval cards
   const handleApproveAction = useCallback(async (actionId: string) => {
@@ -1103,6 +1128,29 @@ export function ChatScreen() {
             <>
               {state.chatMessages.map((msg, i) => (
                 <div key={msg.id}>
+                  {/* Attachments render above the user bubble (like Claude) */}
+                  {msg.role === 'user' && msg.attachments && msg.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2 justify-end max-w-[720px] ml-auto">
+                      {msg.attachments.map(att => (
+                        <div
+                          key={att.id}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
+                          style={{
+                            background: '#171B1F',
+                            border: '1px solid rgba(255,255,255,0.09)',
+                            color: '#A8B4C0',
+                            fontFamily: "'DM Mono', monospace",
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#6ECFA3', flexShrink: 0 }}>
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                          <span className="truncate" style={{ maxWidth: 180 }}>{att.fileName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <ChatBubble
                     role={msg.role}
                     content={msg.content}

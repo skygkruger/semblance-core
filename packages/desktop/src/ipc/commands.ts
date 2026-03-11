@@ -149,8 +149,12 @@ export function getAccountsStatus(): Promise<AccountStatus[]> {
 
 // ─── Chat / LLM ────────────────────────────────────────────────────────────
 
-export function sendMessage(message: string, conversationId?: string): Promise<SendMessageResult> {
-  return invoke<SendMessageResult>('send_message', { message, conversationId });
+export function sendMessage(
+  message: string,
+  conversationId?: string,
+  attachments?: Array<{ id: string; fileName: string; filePath: string; mimeType: string }>,
+): Promise<SendMessageResult> {
+  return invoke<SendMessageResult>('send_message', { message, conversationId, attachments });
 }
 
 export function documentPickFile(): Promise<string | null> {
@@ -585,6 +589,30 @@ export function getSoundSettings(): Promise<SoundSettings> {
 
 export function saveSoundSettings(settings: SoundSettings): Promise<void> {
   return invoke<void>('save_sound_settings', { settings });
+}
+
+// ─── Notification Settings ──────────────────────────────────────────────────
+
+export interface NotificationSettings {
+  morningBriefEnabled: boolean;
+  morningBriefTime: string;
+  includeWeather: boolean;
+  includeCalendar: boolean;
+  remindersEnabled: boolean;
+  defaultSnoozeDuration: '5m' | '15m' | '1h' | '1d';
+  notifyOnAction: boolean;
+  notifyOnApproval: boolean;
+  actionDigest: 'immediate' | 'hourly' | 'daily';
+  badgeCount: boolean;
+  soundEffects: boolean;
+}
+
+export function getNotificationSettings(): Promise<NotificationSettings> {
+  return invoke<NotificationSettings>('get_notification_settings');
+}
+
+export function saveNotificationSettings(settings: NotificationSettings): Promise<void> {
+  return invoke<void>('save_notification_settings', { settings });
 }
 
 // ─── Sync ───────────────────────────────────────────────────────────────────

@@ -324,4 +324,5 @@
   letter-spacing: 0.1em;
   color: var(--sv2);
   margin: 0 0 var(--sp-3) 0;
+  text-align: center;
 }

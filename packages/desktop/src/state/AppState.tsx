@@ -182,12 +182,20 @@ export interface ChatActionItem {
   reasoning?: string;
 }
 
+export interface ChatMessageAttachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
   actions?: ChatActionItem[];
+  attachments?: ChatMessageAttachment[];
 }
 
 // ─── Actions ───────────────────────────────────────────────────────────────

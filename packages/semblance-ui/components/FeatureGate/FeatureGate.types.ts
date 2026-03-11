@@ -28,7 +28,7 @@ export interface FeatureGateProps {
   /** Whether the user has premium access */
   isPremium: boolean;
   /** Content shown when feature is available */
-  children: ReactNode;
+  children?: ReactNode;
   /** Custom fallback when locked (defaults to upgrade prompt) */
   fallback?: ReactNode;
   /** Called when "Learn more" is clicked */

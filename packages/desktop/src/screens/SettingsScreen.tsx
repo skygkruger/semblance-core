@@ -20,7 +20,10 @@ import {
   getAlterEgoSettings,
   updateAlterEgoSettings,
   getStyleProfile,
+  getNotificationSettings,
+  saveNotificationSettings,
 } from '../ipc/commands';
+import type { NotificationSettings } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useLicense } from '../contexts/LicenseContext';
 import type { AccountStatus } from '../ipc/types';
@@ -35,6 +38,19 @@ export function SettingsScreen() {
   const [accounts, setAccounts] = useState<AccountStatus[]>([]);
   const [hardwareProfile, setHardwareProfile] = useState('');
   const [appVersion, setAppVersion] = useState('0.1.0');
+  const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
+    morningBriefEnabled: true,
+    morningBriefTime: '07:00',
+    includeWeather: true,
+    includeCalendar: true,
+    remindersEnabled: true,
+    defaultSnoozeDuration: '15m',
+    notifyOnAction: true,
+    notifyOnApproval: true,
+    actionDigest: 'daily',
+    badgeCount: true,
+    soundEffects: true,
+  });
 
   useEffect(() => {
     getAccountsStatus()
@@ -48,6 +64,9 @@ export function SettingsScreen() {
       .catch(() => {});
     getVersion()
       .then(setAppVersion)
+      .catch(() => {});
+    getNotificationSettings()
+      .then(setNotifSettings)
       .catch(() => {});
   }, [dispatch]);
 
@@ -85,6 +104,23 @@ export function SettingsScreen() {
         const model = value as string;
         dispatch({ type: 'SET_ACTIVE_MODEL', model });
         await selectModel(model).catch(() => {});
+        break;
+      }
+      // Notification settings — persist via IPC
+      case 'morningBriefEnabled':
+      case 'morningBriefTime':
+      case 'includeWeather':
+      case 'includeCalendar':
+      case 'remindersEnabled':
+      case 'defaultSnoozeDuration':
+      case 'notifyOnAction':
+      case 'notifyOnApproval':
+      case 'actionDigest':
+      case 'badgeCount':
+      case 'soundEffects': {
+        const updated = { ...notifSettings, [key]: value };
+        setNotifSettings(updated);
+        await saveNotificationSettings(updated).catch(() => {});
         break;
       }
       default:
@@ -132,18 +168,18 @@ export function SettingsScreen() {
             entityCount: 0,
           }))}
 
-          /* Notifications props — TODO: Load from preferences via get_notification_settings IPC */
-          morningBriefEnabled
-          morningBriefTime="07:00"
-          includeWeather
-          includeCalendar
-          remindersEnabled
-          defaultSnoozeDuration="15m"
-          notifyOnAction
-          notifyOnApproval
-          actionDigest="daily"
-          badgeCount
-          soundEffects
+          /* Notifications props — loaded from sidecar via IPC */
+          morningBriefEnabled={notifSettings.morningBriefEnabled}
+          morningBriefTime={notifSettings.morningBriefTime}
+          includeWeather={notifSettings.includeWeather}
+          includeCalendar={notifSettings.includeCalendar}
+          remindersEnabled={notifSettings.remindersEnabled}
+          defaultSnoozeDuration={notifSettings.defaultSnoozeDuration}
+          notifyOnAction={notifSettings.notifyOnAction}
+          notifyOnApproval={notifSettings.notifyOnApproval}
+          actionDigest={notifSettings.actionDigest}
+          badgeCount={notifSettings.badgeCount}
+          soundEffects={notifSettings.soundEffects}
 
           /* Autonomy props */
           domainOverrides={{}}
@@ -180,23 +216,8 @@ export function SettingsScreen() {
           }}
           onSignOut={() => showToast('Sign out coming in a future update')}
           onDeactivateLicense={() => showToast('License deactivation coming in a future update')}
+          onNavigateIntents={() => navigate('/settings/intents')}
         />
-        {/* Intent settings — rendered as a row matching Settings card styling */}
-        <div style={{ marginTop: 12, borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-          <button
-            type="button"
-            className="settings-row"
-            onClick={() => navigate('/settings/intents')}
-            style={{ borderBottom: 'none' }}
-          >
-            <span className="settings-row__label">{t('screen.settings.intents_hard_limits')}</span>
-            <span className="settings-row__chevron">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#5E6B7C' }}>
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </span>
-          </button>
-        </div>
       </div>
     </div>
   );

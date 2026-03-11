@@ -106,15 +106,33 @@ async function scanRecursive(dirPath: string, results: ScannedFile[]): Promise<v
 }
 
 const READ_FILE_TIMEOUT_MS = 30_000; // 30s — corrupt PDFs/DOCX can hang forever
+const MAX_READ_SIZE_BYTES = 50 * 1024 * 1024; // 50MB — reject files larger than this
 
 /**
  * Read and extract text content from a file.
  * Wraps actual parsing with a timeout to prevent corrupt files from hanging the indexer.
+ * Rejects files larger than MAX_READ_SIZE_BYTES to prevent OOM.
  */
 export async function readFileContent(filePath: string): Promise<FileContent> {
   const p = getPlatform();
   const ext = p.path.extname(filePath).toLowerCase();
   const name = p.path.basename(filePath, ext);
+
+  // Size guard — prevent OOM on huge files
+  try {
+    const stats = await p.fs.stat(filePath);
+    if (stats.size > MAX_READ_SIZE_BYTES) {
+      const sizeMB = (stats.size / (1024 * 1024)).toFixed(1);
+      return {
+        path: filePath,
+        title: name,
+        content: `[File too large: ${name}${ext} (${sizeMB}MB) — skipped to prevent memory issues]`,
+        mimeType: 'application/octet-stream',
+      };
+    }
+  } catch {
+    // Can't stat — proceed cautiously, the read itself may fail
+  }
 
   return Promise.race([
     readFileContentInner(filePath),

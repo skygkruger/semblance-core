@@ -84,4 +84,5 @@ export interface SettingsNavigatorProps {
   onRenameSemblance: (name: string) => void;
   onSignOut: () => void;
   onDeactivateLicense: () => void;
+  onNavigateIntents?: () => void;
 }

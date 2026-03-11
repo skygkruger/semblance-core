@@ -16,14 +16,16 @@ export function SettingsRoot({
   licenseStatus,
   appVersion,
   onNavigate,
+  onNavigateIntents,
 }: SettingsRootProps) {
   const { t } = useTranslation('settings');
 
-  const rows: Array<{ screen: SettingsScreen; label: string; value: string }> = [
+  const rows: Array<{ screen: SettingsScreen | '__intents'; label: string; value: string }> = [
     { screen: 'ai-engine', label: t('root.rows.ai_engine'), value: currentModel },
     { screen: 'connections', label: t('root.rows.connections'), value: t('root.row_values.connections_active', { n: activeConnections }) },
     { screen: 'notifications', label: t('root.rows.notifications'), value: notificationSummary },
     { screen: 'autonomy', label: t('root.rows.autonomy'), value: tierLabels[autonomyTier] || autonomyTier },
+    { screen: '__intents', label: t('root.rows.intents', 'Intents & Hard Limits'), value: '' },
     { screen: 'privacy', label: t('root.rows.privacy'), value: privacyStatus === 'clean' ? t('root.row_values.privacy_clean') : t('root.row_values.privacy_review') },
     { screen: 'account', label: t('root.rows.account'), value: licenseLabels[licenseStatus] || licenseStatus },
   ];
@@ -39,7 +41,7 @@ export function SettingsRoot({
           <Pressable
             key={row.screen}
             style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-            onPress={() => onNavigate(row.screen)}
+            onPress={() => row.screen === '__intents' ? onNavigateIntents?.() : onNavigate(row.screen as SettingsScreen)}
             accessibilityRole="button"
           >
             <Text style={styles.rowLabel}>{row.label}</Text>
