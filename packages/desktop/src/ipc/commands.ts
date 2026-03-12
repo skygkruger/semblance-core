@@ -245,8 +245,14 @@ export function getApprovalThreshold(actionType: string, payload: Record<string,
   return invoke<number>('get_approval_threshold', { actionType, payload });
 }
 
-export function approveAction(actionId: string): Promise<void> {
-  return invoke<void>('approve_action', { actionId });
+export function approveAction(actionId: string): Promise<{
+  requestId: string;
+  status: 'success' | 'error' | 'requires_approval' | 'rate_limited';
+  data?: unknown;
+  error?: { code: string; message: string };
+  auditRef: string;
+}> {
+  return invoke('approve_action', { actionId });
 }
 
 export function rejectAction(actionId: string): Promise<void> {

@@ -1656,16 +1656,24 @@ var init_ollama_provider = __esm({
           }
         });
         let toolCalls;
+        let contentText = response.message.content;
         if (response.message.tool_calls && response.message.tool_calls.length > 0) {
           toolCalls = response.message.tool_calls.map((tc) => ({
             name: tc.function.name,
             arguments: tc.function.arguments
           }));
         }
+        if (!toolCalls && contentText && request.tools && request.tools.length > 0) {
+          const parsed = this.parseTextToolCalls(contentText, request.tools);
+          if (parsed.toolCalls.length > 0) {
+            toolCalls = parsed.toolCalls;
+            contentText = parsed.textContent;
+          }
+        }
         return {
           message: {
             role: response.message.role,
-            content: response.message.content
+            content: contentText
           },
           model: response.model,
           tokensUsed: {
@@ -1742,6 +1750,63 @@ var init_ollama_provider = __esm({
         } catch {
           return null;
         }
+      }
+      /**
+       * Parse tool calls from raw text output when the model doesn't use
+       * structured tool_calls. Handles:
+       * - <tool_call>{...}</tool_call> blocks
+       * - ```json blocks with {name, arguments/parameters}
+       * - Bare JSON objects matching known tool names
+       */
+      parseTextToolCalls(text, tools) {
+        const toolCalls = [];
+        let textContent = text;
+        const toolNames = new Set(tools.map((t) => t.name));
+        const tagRegex = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g;
+        let match;
+        while ((match = tagRegex.exec(text)) !== null) {
+          const jsonStr = (match[1] ?? "").trim();
+          if (!jsonStr) continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.name && toolNames.has(parsed.name)) {
+              toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
+            }
+          } catch {
+          }
+        }
+        if (toolCalls.length > 0) {
+          textContent = text.replace(tagRegex, "").trim();
+          return { toolCalls, textContent };
+        }
+        const codeBlockRegex = /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\})\s*```/g;
+        while ((match = codeBlockRegex.exec(text)) !== null) {
+          const blockJson = match[1] ?? "";
+          if (!blockJson) continue;
+          try {
+            const parsed = JSON.parse(blockJson);
+            if (parsed.name && toolNames.has(parsed.name)) {
+              toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
+            }
+          } catch {
+          }
+        }
+        if (toolCalls.length > 0) {
+          textContent = text.replace(codeBlockRegex, "").trim();
+          return { toolCalls, textContent };
+        }
+        const bareJsonRegex = /\{[^{}]*"name"\s*:\s*"([^"]+)"[^{}]*\}/g;
+        while ((match = bareJsonRegex.exec(text)) !== null) {
+          try {
+            const parsed = JSON.parse(match[0]);
+            if (parsed.name && toolNames.has(parsed.name)) {
+              toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
+              textContent = text.replace(match[0], "").trim();
+            }
+          } catch {
+          }
+        }
+        return { toolCalls, textContent };
       }
     };
   }
@@ -237841,11 +237906,14 @@ DO:
 - When multiple tools are needed, call them in sequence without asking permission for each step.
 
 DON'T:
+- Don't use tools for greetings, small talk, or conversational messages. If ${userRef} says "hello", "how are you", "thanks", or makes casual conversation, respond naturally without calling any tools.
+- You already know your own name (${aiName}) and the user's name (${userRef}) from this conversation. Never search for this information \u2014 answer directly.
 - Don't narrate your tool usage. Never say "Let me search your emails" \u2014 just search and present the results.
 - Don't ask clarifying questions when you have enough context to act. Use your best judgment and let ${userRef} correct you if needed.
 - Don't repeat information ${userRef} already provided back to them.
 - Don't hedge with "I can help you with that" or "Sure, I'd be happy to" \u2014 just do it.
 - Don't provide unsolicited privacy reassurances. ${userRef} chose local AI; they know.
+- Don't call tools proactively unless ${userRef} asks for something specific. Only use tools when the message clearly requires data retrieval or action.
 
 # Actions
 Actions appear inline in the conversation for ${userRef} to review, edit, approve, or dismiss. When drafting emails or messages, provide a complete draft \u2014 ${userRef} can edit it before sending.
@@ -237916,6 +237984,28 @@ var OrchestratorImpl = class {
     } catch {
     }
   }
+  /** Update the active model name (e.g., after switching to Ollama). */
+  setModel(model) {
+    this.model = model;
+  }
+  /**
+   * Detect messages that are conversational and don't need tool access.
+   * For small models (7-8B), passing tools causes them to hallucinate tool
+   * usage or narrate planned actions instead of responding naturally.
+   */
+  isConversationalMessage(message) {
+    const lower = message.toLowerCase().trim();
+    const wordCount = lower.split(/\s+/).length;
+    if (wordCount <= 4) {
+      const greetings = /^(hi|hello|hey|howdy|sup|yo|good\s*(morning|afternoon|evening|night)|thanks|thank you|bye|goodbye|ok|okay|sure|yes|no|nah|yep|nope|cool|great|nice|hm+|huh|what'?s?\s*up)/;
+      if (greetings.test(lower)) return true;
+    }
+    const selfReferential = /(?:what(?:'s| is) your name|who are you|what can you do|what are you|tell me (?:about yourself|your name|my name)|what(?:'s| is) my name|how are you)/;
+    if (selfReferential.test(lower)) return true;
+    const casual = /(?:do you (?:like|think|feel|know|have)|how do you|what do you think|tell me a (?:joke|story)|are you (?:real|alive|sentient|ai|a bot))/;
+    if (casual.test(lower)) return true;
+    return false;
+  }
   async processMessage(message, conversationId) {
     const convId = conversationId ?? this.createConversation();
     if (conversationId) {
@@ -237927,15 +238017,39 @@ var OrchestratorImpl = class {
     const context = await this.knowledge.search(message, { limit: 5 });
     const history = conversationId ? await this.getConversation(convId) : [];
     const messages = this.buildMessages(message, context, history, documentChunks);
+    const isConversational = this.isConversationalMessage(message);
+    const tools = isConversational ? void 0 : this.allTools;
     const response = await this.llm.chat({
       model: this.model,
       messages,
-      tools: this.allTools,
+      tools,
       temperature: 0.7
     });
     const actions = [];
     let finalMessage = response.message.content;
     this.lastStyleScore = null;
+    const isNarrating = !response.toolCalls?.length && /(?:I will (?:first |now )?(?:search|look|check|fetch|retrieve)|Actions\s*\n|Please review the search|let me (?:search|look|check|find))/i.test(finalMessage);
+    if (isNarrating) {
+      const retryResponse = await this.llm.chat({
+        model: this.model,
+        messages,
+        temperature: 0.7
+      });
+      finalMessage = retryResponse.message.content;
+    }
+    if (!response.toolCalls || response.toolCalls.length === 0) {
+      const stripped = finalMessage.replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/g, "").replace(/```(?:json)?\s*\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\}\s*```/g, "").replace(/\{[^{}]*"name"\s*:\s*"[^"]*"[^{}]*"(?:parameters|arguments)"\s*:\s*\{[^{}]*\}[^{}]*\}/g, "").trim();
+      if (stripped.length > 0) {
+        finalMessage = stripped;
+      } else if (!isNarrating) {
+        const retryResponse = await this.llm.chat({
+          model: this.model,
+          messages,
+          temperature: 0.7
+        });
+        finalMessage = retryResponse.message.content;
+      }
+    }
     if (response.toolCalls && response.toolCalls.length > 0) {
       const toolResults = await this.processToolCalls(response.toolCalls, context, message);
       actions.push(...toolResults.actions);
@@ -237967,6 +238081,14 @@ ${sanitizedToolResults}`,
       }
       const pendingCount = actions.filter((a) => a.status === "pending_approval").length;
       if (pendingCount > 0) {
+        if (!finalMessage || finalMessage.trim().length === 0) {
+          const retryResponse = await this.llm.chat({
+            model: this.model,
+            messages,
+            temperature: 0.7
+          });
+          finalMessage = retryResponse.message.content;
+        }
         finalMessage += `
 
 [${pendingCount} action(s) awaiting your approval]`;
@@ -267800,6 +267922,10 @@ async function handleInitialize() {
         if (ollamaModel) {
           router.setReasoningProvider(ollamaProvider, ollamaModel);
           core.models.setActiveChatModel(ollamaModel);
+          try {
+            if (core.agent) core.agent.setModel(ollamaModel);
+          } catch {
+          }
           inferenceEngine = "ollama";
           activeModel = ollamaModel;
           availableModels = ollamaModels.filter((m) => !m.includes("embed") && !m.includes("nomic"));
@@ -267947,9 +268073,16 @@ ${preview}
         payload: a.payload
       }));
       console.error(`[sidecar] Orchestrator returned: ${fullResponse.length} chars, ${actions.length} actions`);
+      storeTurn(convId, "user", params.message);
+      storeTurn(convId, "assistant", fullResponse);
+      if (conversationManager) {
+        conversationManager.updateAfterTurn(convId, params.message, "user");
+        conversationManager.updateAfterTurn(convId, fullResponse, "assistant");
+      }
       const chunkSize = 12;
       for (let i = 0; i < fullResponse.length; i += chunkSize) {
         emit("chat-token", fullResponse.substring(i, i + chunkSize));
+        if (i % 120 === 0) await new Promise((r) => setTimeout(r, 10));
       }
     } else {
       console.error("[sidecar] Fallback: direct LLM (no orchestrator \u2014 knowledge graph unavailable)");
@@ -268261,13 +268394,17 @@ async function handleGetKnowledgeStats() {
   if (!core) {
     return { documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null };
   }
-  const stats = await core.knowledge.getStats();
-  return {
-    documentCount: stats.totalDocuments,
-    chunkCount: stats.totalChunks,
-    indexSizeBytes: 0,
-    lastIndexedAt: getPref("last_indexed_at")
-  };
+  try {
+    const stats = await core.knowledge.getStats();
+    return {
+      documentCount: stats.totalDocuments,
+      chunkCount: stats.totalChunks,
+      indexSizeBytes: 0,
+      lastIndexedAt: getPref("last_indexed_at")
+    };
+  } catch {
+    return { documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null };
+  }
 }
 async function handleGetIndexedDirectories() {
   const dirs = getPref("indexed_directories");
@@ -268656,22 +268793,38 @@ async function handleProactiveRun() {
 }
 async function handleActionApprove(params) {
   if (!core) throw new Error("Core not initialized");
-  return await core.agent.approveAction(params.action_id);
+  try {
+    return await core.agent.approveAction(params.action_id);
+  } catch {
+    throw new Error("Agent not available \u2014 knowledge graph may not have initialized");
+  }
 }
 async function handleActionReject(params) {
   if (!core) throw new Error("Core not initialized");
-  await core.agent.rejectAction(params.action_id);
-  return { success: true };
+  try {
+    await core.agent.rejectAction(params.action_id);
+    return { success: true };
+  } catch {
+    throw new Error("Agent not available \u2014 knowledge graph may not have initialized");
+  }
 }
 async function handleActionGetPending() {
   if (!core) return [];
-  return await core.agent.getPendingActions();
+  try {
+    return await core.agent.getPendingActions();
+  } catch {
+    return [];
+  }
 }
 function handleActionGetApprovalCount(params) {
   if (!core) return { count: 0, threshold: 3 };
-  const count = core.agent.getApprovalCount(params.action_type, params.payload);
-  const threshold = core.agent.getApprovalThreshold(params.action_type, params.payload);
-  return { count, threshold };
+  try {
+    const count = core.agent.getApprovalCount(params.action_type, params.payload);
+    const threshold = core.agent.getApprovalThreshold(params.action_type, params.payload);
+    return { count, threshold };
+  } catch {
+    return { count: 0, threshold: 3 };
+  }
 }
 function handleGetTodayEvents() {
   if (!calendarIndexer) return [];
@@ -268818,20 +268971,27 @@ function handleGetSubscriptionSummary() {
   return recurringDetector.getSummary();
 }
 function ensureEscalationEngine() {
-  if (!prefsDb || !core) throw new Error("Core not initialized");
+  if (!prefsDb || !core) return;
   if (!escalationEngine) {
-    escalationEngine = new EscalationEngine({
-      db: prefsDb,
-      autonomy: core.agent.autonomy,
-      aiName: getPref("ai_name") ?? "Semblance"
-    });
+    try {
+      escalationEngine = new EscalationEngine({
+        db: prefsDb,
+        autonomy: core.agent.autonomy,
+        aiName: getPref("ai_name") ?? "Semblance"
+      });
+    } catch {
+    }
   }
 }
 function handleCheckEscalations() {
   ensureEscalationEngine();
   if (!escalationEngine || !core) return [];
-  const patterns = core.agent.getApprovalPatterns();
-  return escalationEngine.checkForEscalations(patterns);
+  try {
+    const patterns = core.agent.getApprovalPatterns();
+    return escalationEngine.checkForEscalations(patterns);
+  } catch {
+    return [];
+  }
 }
 function handleRespondToEscalation(params) {
   ensureEscalationEngine();
@@ -270972,7 +271132,11 @@ async function handleRequest(req) {
       // ─── Knowledge Moment / Daily Digest ──────────────────────────────
       case "knowledge_get_moment": {
         if (!knowledgeMomentGenerator && core && prefsDb) {
-          knowledgeMomentGenerator = new KnowledgeMomentGenerator(core.knowledge, core.llm, prefsDb);
+          knowledgeMomentGenerator = new KnowledgeMomentGenerator({
+            knowledgeGraph: core.knowledge,
+            llm: core.llm,
+            aiName: getPref("ai_name") ?? "Semblance"
+          });
         }
         if (!knowledgeMomentGenerator) {
           respond(id, null);

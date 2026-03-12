@@ -552,21 +552,61 @@ export function ChatScreen() {
   // Action approve/reject handlers for inline approval cards
   const handleApproveAction = useCallback(async (actionId: string) => {
     try {
-      await approveAction(actionId);
+      const result = await approveAction(actionId);
       // Update the action status in the chat message
       const msgs = [...state.chatMessages];
+      let actionLabel = 'action';
       for (const msg of msgs) {
         if (msg.actions) {
           const act = msg.actions.find(a => a.id === actionId);
           if (act) {
-            act.status = 'executed';
+            act.status = result.status === 'success' ? 'executed' : 'failed';
+            actionLabel = act.type ?? 'action';
             break;
           }
         }
       }
       dispatch({ type: 'REPLACE_CHAT_MESSAGES', messages: msgs });
+
+      // Show the result as an assistant message so the user sees what happened
+      if (result.status === 'success' && result.data) {
+        const dataSummary = typeof result.data === 'string'
+          ? result.data
+          : JSON.stringify(result.data, null, 2);
+        const preview = dataSummary.length > 1000
+          ? dataSummary.slice(0, 1000) + '\n... (truncated)'
+          : dataSummary;
+        dispatch({
+          type: 'ADD_CHAT_MESSAGE',
+          message: {
+            id: `action_result_${Date.now()}`,
+            role: 'assistant',
+            content: `**${actionLabel}** completed successfully.\n\n\`\`\`json\n${preview}\n\`\`\``,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        });
+      } else if (result.status === 'error' || result.error) {
+        dispatch({
+          type: 'ADD_CHAT_MESSAGE',
+          message: {
+            id: `action_error_${Date.now()}`,
+            role: 'assistant',
+            content: `**${actionLabel}** failed: ${result.error?.message ?? 'Unknown error'}`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        });
+      }
     } catch (err) {
       console.error('Failed to approve action:', err);
+      dispatch({
+        type: 'ADD_CHAT_MESSAGE',
+        message: {
+          id: `action_error_${Date.now()}`,
+          role: 'assistant',
+          content: `Action failed: ${err instanceof Error ? err.message : String(err)}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      });
     }
   }, [state.chatMessages, dispatch]);
 
