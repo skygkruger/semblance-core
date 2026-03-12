@@ -66,32 +66,156 @@ export class EmailAdapter implements ServiceAdapter {
   }
 
   /**
-   * Try to get a Gmail OAuth access token. Returns null if not available.
+   * Try to refresh an expired Google OAuth token using the refresh_token.
+   * Returns the new access token, or null if refresh fails.
    */
-  private async getGmailOAuthToken(): Promise<{ accessToken: string; userEmail: string } | null> {
+  private async refreshGoogleToken(): Promise<string | null> {
     if (!this.oauthTokenManager) return null;
 
-    // Check for a Google OAuth token (stored with provider key 'google')
-    if (!this.oauthTokenManager.hasValidTokens('google')) return null;
+    const refreshToken = await this.oauthTokenManager.getRefreshTokenAsync('google');
+    if (!refreshToken) {
+      console.error('[EmailAdapter] No refresh token available for Google');
+      return null;
+    }
 
-    const accessToken = await this.oauthTokenManager.getAccessTokenAsync('google');
-    if (!accessToken) return null;
+    // We need the client ID and secret. These come from process.env since
+    // the EmailAdapter doesn't have direct access to the OAuth config.
+    const clientId = process.env['SEMBLANCE_GOOGLE_CLIENT_ID'];
+    const clientSecret = process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'];
+    if (!clientId) {
+      console.error('[EmailAdapter] Cannot refresh: SEMBLANCE_GOOGLE_CLIENT_ID not set');
+      return null;
+    }
 
-    const userEmail = this.oauthTokenManager.getUserEmail('google');
+    try {
+      console.error('[EmailAdapter] Attempting Google token refresh...');
+      const resp = await globalThis.fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken,
+          client_id: clientId,
+          ...(clientSecret ? { client_secret: clientSecret } : {}),
+        }),
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => 'unknown');
+        console.error(`[EmailAdapter] Token refresh failed (HTTP ${resp.status}): ${errText.slice(0, 300)}`);
+        return null;
+      }
+
+      const data = await resp.json() as {
+        access_token?: string;
+        expires_in?: number;
+        refresh_token?: string;
+      };
+
+      if (!data.access_token) {
+        console.error('[EmailAdapter] Token refresh response missing access_token');
+        return null;
+      }
+
+      // Store the refreshed tokens
+      const newExpiresAt = Date.now() + (data.expires_in ?? 3600) * 1000;
+      this.oauthTokenManager.refreshAccessToken(
+        'google',
+        data.access_token,
+        newExpiresAt,
+        data.refresh_token, // Google sometimes rotates refresh tokens
+      );
+
+      console.error('[EmailAdapter] Google token refreshed successfully, expires in', data.expires_in, 'seconds');
+      return data.access_token;
+    } catch (err) {
+      console.error('[EmailAdapter] Token refresh error:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Try to get a Gmail OAuth access token. Returns null if not available.
+   * Automatically refreshes expired tokens if a refresh_token is available.
+   */
+  private async getGmailOAuthToken(): Promise<{ accessToken: string; userEmail: string } | null> {
+    if (!this.oauthTokenManager) {
+      console.error('[EmailAdapter] No OAuthTokenManager — cannot use Gmail OAuth');
+      return null;
+    }
+
+    let accessToken: string | null = null;
+
+    // Check for valid (non-expired) tokens first
+    if (this.oauthTokenManager.hasValidTokens('google')) {
+      accessToken = await this.oauthTokenManager.getAccessTokenAsync('google');
+      console.error('[EmailAdapter] Google OAuth token is valid, retrieved:', accessToken ? 'YES' : 'NO');
+    } else {
+      // Tokens exist but expired — try auto-refresh
+      console.error('[EmailAdapter] Google OAuth token expired or missing, attempting refresh...');
+      accessToken = await this.refreshGoogleToken();
+    }
+
+    if (!accessToken) {
+      console.error('[EmailAdapter] No valid Google OAuth access token available');
+      return null;
+    }
+
+    let userEmail = this.oauthTokenManager.getUserEmail('google');
     if (!userEmail) {
-      // If we have no email on file, try to fetch it from Google's userinfo API
+      // If we have no email on file, try Gmail's own profile endpoint first
+      // (works with https://mail.google.com/ scope), then fall back to userinfo
+      console.error('[EmailAdapter] No stored user email, fetching from Gmail profile...');
       try {
-        const resp = await globalThis.fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        // Gmail API profile endpoint — works with the mail.google.com scope
+        const gmailResp = await globalThis.fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
-        if (resp.ok) {
-          const info = await resp.json() as { email?: string };
-          if (info.email) return { accessToken, userEmail: info.email };
+        if (gmailResp.ok) {
+          const profile = await gmailResp.json() as { emailAddress?: string };
+          if (profile.emailAddress) {
+            userEmail = profile.emailAddress;
+            console.error('[EmailAdapter] Got user email from Gmail profile:', userEmail);
+          }
+        } else {
+          console.error(`[EmailAdapter] Gmail profile API returned ${gmailResp.status}`);
         }
-      } catch {
-        // Can't determine email — fall through
+      } catch (gmailErr) {
+        console.error('[EmailAdapter] Gmail profile fetch failed:', gmailErr);
       }
-      return null;
+
+      // Fallback: try Google userinfo (requires email/openid scope)
+      if (!userEmail) {
+        try {
+          const resp = await globalThis.fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (resp.ok) {
+            const info = await resp.json() as { email?: string };
+            if (info.email) {
+              userEmail = info.email;
+              console.error('[EmailAdapter] Got user email from userinfo:', userEmail);
+            }
+          }
+        } catch {
+          // Can't determine email — fall through
+        }
+      }
+
+      if (!userEmail) {
+        console.error('[EmailAdapter] Could not determine Google user email from any source');
+        return null;
+      }
+
+      // Cache the email in the token manager for future calls
+      this.oauthTokenManager.storeTokens({
+        provider: 'google',
+        accessToken,
+        refreshToken: (await this.oauthTokenManager.getRefreshTokenAsync('google')) ?? '',
+        expiresAt: Date.now() + 3500 * 1000, // preserve ~current expiry
+        scopes: '',
+        userEmail,
+      });
     }
 
     return { accessToken, userEmail };
@@ -102,27 +226,44 @@ export class EmailAdapter implements ServiceAdapter {
     data?: unknown;
     error?: { code: string; message: string };
   }> {
+    console.error('[EmailAdapter] handleFetch called with params:', JSON.stringify(params));
+
     // 1. Try traditional IMAP credentials first
     const imapCreds = this.credentialStore.getByType('email')
       .filter(c => c.protocol === 'imap');
 
     if (imapCreds.length > 0) {
+      console.error('[EmailAdapter] Using traditional IMAP credentials');
       const messages = await this.imap.fetchMessages(imapCreds[0]!.id, params);
       return { success: true, data: { messages } };
     }
 
     // 2. Fall back to Gmail OAuth XOAUTH2
+    console.error('[EmailAdapter] No IMAP credentials found, trying Gmail OAuth...');
     const oauth = await this.getGmailOAuthToken();
     if (oauth) {
       console.error(`[EmailAdapter] Using Gmail XOAUTH2 for ${oauth.userEmail}`);
-      const messages = await this.imap.fetchMessagesOAuth(
-        GMAIL_IMAP_HOST, GMAIL_IMAP_PORT,
-        oauth.userEmail, oauth.accessToken,
-        params,
-      );
-      return { success: true, data: { messages } };
+      try {
+        const messages = await this.imap.fetchMessagesOAuth(
+          GMAIL_IMAP_HOST, GMAIL_IMAP_PORT,
+          oauth.userEmail, oauth.accessToken,
+          params,
+        );
+        console.error(`[EmailAdapter] Gmail XOAUTH2 fetch returned ${messages.length} messages`);
+        return { success: true, data: { messages } };
+      } catch (imapErr) {
+        console.error('[EmailAdapter] Gmail IMAP XOAUTH2 connection failed:', imapErr);
+        return {
+          success: false,
+          error: {
+            code: 'IMAP_XOAUTH2_FAILED',
+            message: `Gmail IMAP connection failed: ${imapErr instanceof Error ? imapErr.message : String(imapErr)}. Check that IMAP is enabled in Gmail Settings > Forwarding and POP/IMAP.`,
+          },
+        };
+      }
     }
 
+    console.error('[EmailAdapter] No email credentials or OAuth tokens available');
     return {
       success: false,
       error: { code: 'NO_EMAIL_CREDENTIALS', message: 'No email credentials configured. Connect Gmail or add IMAP credentials in Settings.' },

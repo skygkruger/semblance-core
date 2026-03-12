@@ -237458,7 +237458,7 @@ var BASE_TOOLS = [
   },
   {
     name: "send_email",
-    description: "Send an email on behalf of the user. In Guardian mode, this shows a preview and waits for approval. In Partner mode, routine responses are sent automatically; novel emails require approval. In Alter Ego mode, all emails are sent automatically.",
+    description: "Send an email on behalf of the user.",
     parameters: {
       type: "object",
       properties: {
@@ -237488,7 +237488,7 @@ var BASE_TOOLS = [
   },
   {
     name: "archive_email",
-    description: "Archive one or more emails (move from INBOX to Archive/All Mail). In Partner mode, archiving routine emails is automatic.",
+    description: "Archive one or more emails (move from INBOX to Archive/All Mail).",
     parameters: {
       type: "object",
       properties: {
@@ -237523,7 +237523,7 @@ var BASE_TOOLS = [
   },
   {
     name: "create_calendar_event",
-    description: "Create a new calendar event. In Guardian mode, shows preview and waits. In Partner mode, routine scheduling is automatic. In Alter Ego mode, all scheduling is automatic.",
+    description: "Create a new calendar event.",
     parameters: {
       type: "object",
       properties: {
@@ -237622,7 +237622,7 @@ var BASE_TOOLS = [
   },
   {
     name: "send_text",
-    description: `Send a text message (SMS) on behalf of the user. Use when the user says "text [name]", "message [name]", or "send a text to [name]". The message will be style-matched to the user's writing. In Guardian mode, shows a preview. In Partner mode, the message is presented for sending. In Alter Ego mode, sends autonomously if the platform supports it.`,
+    description: "Send a text message (SMS) on behalf of the user.",
     parameters: {
       type: "object",
       properties: {
@@ -237882,41 +237882,35 @@ var BASE_LOCAL_TOOLS = /* @__PURE__ */ new Set([
   "add_health_entry"
 ]);
 var VOICE_MODE_CONTEXT = `The user is in voice conversation mode. Keep responses concise and conversational \u2014 they will be spoken aloud. Avoid long lists, code blocks, and complex formatting.`;
-function buildSystemPrompt(config) {
+function buildSystemPrompt(config, conversational) {
   const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
   const userRef = userName ? userName : "the user";
-  const autonomyBlock = autonomyTier === "guardian" ? `Autonomy: Guardian. All actions require ${userRef}'s explicit approval before execution. Always preview what you plan to do.` : autonomyTier === "alter_ego" ? `Autonomy: Alter Ego. Act on ${userRef}'s behalf for routine tasks. Only pause for genuinely high-stakes or novel actions. When you act autonomously, briefly state what you did and why.` : `Autonomy: Partner. Routine actions (archiving email, calendar scheduling, reminders) execute automatically. Novel or sensitive actions (sending email to new contacts, financial changes) require approval. State what you did for auto-executed actions.`;
+  if (conversational) {
+    const userNameLine2 = userName ? ` Your user's name is ${userName}.` : "";
+    return `You are ${aiName}, a personal AI assistant.${userNameLine2} You run locally on ${userRef}'s device. All data stays private.
+
+You are warm, direct, and concise. Respond naturally like a helpful friend. Just chat back naturally. Do not make up any information about emails, meetings, schedules, or actions you have taken. Only discuss things you actually know.
+
+Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : " If you do not know your user's name, ask them."}
+
+${INJECTION_CANARY}`;
+  }
+  const autonomyBlock = autonomyTier === "guardian" ? `Autonomy: Guardian. All actions require ${userRef}'s explicit approval before execution. Always preview what you plan to do.` : autonomyTier === "alter_ego" ? `Autonomy: Alter Ego. Act on ${userRef}'s behalf for routine tasks. Only pause for genuinely high-stakes or novel actions. When you act autonomously, briefly state what you did and why.` : `Autonomy: Partner. Routine actions execute automatically. Novel or sensitive actions require approval. When you act autonomously, briefly state what you did.`;
   const servicesLine = connectedServices && connectedServices.length > 0 ? `
 Connected services: ${connectedServices.join(", ")}.` : "";
   const knowledgeLine = indexedDocCount && indexedDocCount > 0 ? `
 Knowledge base: ${indexedDocCount} indexed documents. Search it first before using web search.` : "";
-  return `You are ${aiName}, ${userRef}'s personal AI running entirely on their device. All data stays local. You have full access to their emails, calendar, contacts, files, health data, finances, and reminders through tools.
+  const userNameLine = userName ? `Your user's name is ${userName}.` : "";
+  return `You are ${aiName}, a personal AI assistant.${userNameLine ? " " + userNameLine : ""} You run locally on ${userRef}'s device. All data stays private.
 ${servicesLine}${knowledgeLine}
 
 ${autonomyBlock}
 
-# Behavior
+You are warm, direct, and concise. Respond naturally like a helpful friend. When ${userRef} greets you or makes small talk, just chat back naturally. When they ask you to do something specific, use your tools to help.
 
-DO:
-- Act first, explain after. When the user asks you to do something, use tools immediately \u2014 don't describe what you could do.
-- Search the knowledge base and emails before answering factual questions about ${userRef}'s data.
-- Draft messages in ${userRef}'s voice and tone when composing emails or texts.
-- Connect related information across domains (e.g., "You have a meeting with Sarah at 2pm \u2014 you still owe her a follow-up from last week's email").
-- Be warm, direct, and concise. One clear sentence beats three hedging ones.
-- When multiple tools are needed, call them in sequence without asking permission for each step.
+Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : " If you do not know your user's name, ask them."}
 
-DON'T:
-- Don't use tools for greetings, small talk, or conversational messages. If ${userRef} says "hello", "how are you", "thanks", or makes casual conversation, respond naturally without calling any tools.
-- You already know your own name (${aiName}) and the user's name (${userRef}) from this conversation. Never search for this information \u2014 answer directly.
-- Don't narrate your tool usage. Never say "Let me search your emails" \u2014 just search and present the results.
-- Don't ask clarifying questions when you have enough context to act. Use your best judgment and let ${userRef} correct you if needed.
-- Don't repeat information ${userRef} already provided back to them.
-- Don't hedge with "I can help you with that" or "Sure, I'd be happy to" \u2014 just do it.
-- Don't provide unsolicited privacy reassurances. ${userRef} chose local AI; they know.
-- Don't call tools proactively unless ${userRef} asks for something specific. Only use tools when the message clearly requires data retrieval or action.
-
-# Actions
-Actions appear inline in the conversation for ${userRef} to review, edit, approve, or dismiss. When drafting emails or messages, provide a complete draft \u2014 ${userRef} can edit it before sending.
+IMPORTANT: When you call a tool, do NOT write fake results in your message. Say only a brief sentence like "Let me check that for you." The real results come after the tool runs. Never invent emails, meetings, names, or data.
 
 ${ARTIFACT_SYSTEM_PROMPT}
 
@@ -238016,8 +238010,8 @@ var OrchestratorImpl = class {
     const documentChunks = this.documentContext ? await this.documentContext.getContextForPrompt(message, 5) : [];
     const context = await this.knowledge.search(message, { limit: 5 });
     const history = conversationId ? await this.getConversation(convId) : [];
-    const messages = this.buildMessages(message, context, history, documentChunks);
     const isConversational = this.isConversationalMessage(message);
+    const messages = this.buildMessages(message, context, history, documentChunks, isConversational);
     const tools = isConversational ? void 0 : this.allTools;
     const response = await this.llm.chat({
       model: this.model,
@@ -238081,7 +238075,7 @@ ${sanitizedToolResults}`,
       }
       const pendingCount = actions.filter((a) => a.status === "pending_approval").length;
       if (pendingCount > 0) {
-        if (!finalMessage || finalMessage.trim().length === 0) {
+        if (toolResults.executedResults.length === 0) {
           const retryResponse = await this.llm.chat({
             model: this.model,
             messages,
@@ -238310,8 +238304,8 @@ ${messageText}`,
     }
   }
   // --- Private helpers ---
-  buildMessages(message, context, history, documentChunks = []) {
-    const basePrompt = buildSystemPrompt(this.promptConfig);
+  buildMessages(message, context, history, documentChunks = [], conversational) {
+    const basePrompt = buildSystemPrompt(this.promptConfig, conversational);
     let systemContent = this.voiceModeActive ? `${basePrompt}
 
 ${VOICE_MODE_CONTEXT}` : basePrompt;
@@ -245022,7 +245016,8 @@ var EmailFetchPayload = external_exports.object({
   limit: external_exports.number().int().positive().default(50),
   since: external_exports.string().optional(),
   search: external_exports.string().optional(),
-  messageIds: external_exports.array(external_exports.string()).optional()
+  messageIds: external_exports.array(external_exports.string()).optional(),
+  unreadOnly: external_exports.boolean().optional()
 });
 var CalendarFetchPayload = external_exports.object({
   calendarId: external_exports.string().optional(),
@@ -251237,6 +251232,20 @@ function parseAddressList(list) {
 }
 function deriveThreadId(headers) {
   if (!headers) return void 0;
+  if (Buffer.isBuffer(headers)) {
+    const text = headers.toString("utf-8");
+    const referencesMatch = text.match(/^references:\s*(.+)/im);
+    if (referencesMatch) {
+      const firstRef = referencesMatch[1].trim().split(/\s+/)[0];
+      return firstRef || void 0;
+    }
+    const replyToMatch = text.match(/^in-reply-to:\s*(.+)/im);
+    if (replyToMatch) {
+      return replyToMatch[1].trim().split(/\s+/)[0] || void 0;
+    }
+    return void 0;
+  }
+  if (typeof headers.get !== "function") return void 0;
   const references = headers.get("references");
   if (references && references.length > 0) {
     const firstRef = references[0].trim().split(/\s+/)[0];
@@ -251257,6 +251266,50 @@ var IMAPAdapter = class {
     this.credentialStore = credentialStore2;
     this.idleTimeoutMs = options?.idleTimeoutMs ?? 3e5;
     this.cleanupInterval = setInterval(() => this.cleanupIdle(), 6e4);
+  }
+  /**
+   * Get or create an IMAP connection using OAuth2 XOAUTH2 authentication.
+   * Used for Gmail and other providers that support IMAP with OAuth tokens.
+   */
+  async getOAuthConnection(connectionKey, host, port, userEmail, accessToken) {
+    const existing = this.connections.get(connectionKey);
+    if (existing && existing.client.usable) {
+      existing.lastUsed = Date.now();
+      return existing.client;
+    }
+    if (existing) {
+      try {
+        existing.client.close();
+      } catch {
+      }
+      this.connections.delete(connectionKey);
+    }
+    const client = new import_imapflow.ImapFlow({
+      host,
+      port,
+      secure: true,
+      tls: { rejectUnauthorized: true },
+      auth: {
+        user: userEmail,
+        accessToken
+      },
+      logger: false
+    });
+    await client.connect();
+    this.connections.set(connectionKey, {
+      client,
+      lastUsed: Date.now(),
+      credentialId: connectionKey
+    });
+    return client;
+  }
+  /**
+   * Fetch messages using OAuth2 XOAUTH2 authentication (e.g. Gmail).
+   */
+  async fetchMessagesOAuth(host, port, userEmail, accessToken, params) {
+    const connectionKey = `oauth_${userEmail}`;
+    const client = await this.getOAuthConnection(connectionKey, host, port, userEmail, accessToken);
+    return this.fetchFromClient(client, params);
   }
   /**
    * Get or create an IMAP connection for the given credential.
@@ -251302,6 +251355,12 @@ var IMAPAdapter = class {
    */
   async fetchMessages(credentialId, params) {
     const client = await this.getConnection(credentialId);
+    return this.fetchFromClient(client, params);
+  }
+  /**
+   * Shared fetch implementation used by both credential-based and OAuth-based connections.
+   */
+  async fetchFromClient(client, params) {
     const folder = params.folder ?? "INBOX";
     const limit = params.limit ?? 50;
     const lock = await client.getMailboxLock(folder);
@@ -251310,6 +251369,9 @@ var IMAPAdapter = class {
       let searchCriteria = {};
       if (params.since) {
         searchCriteria = { since: new Date(params.since) };
+      }
+      if (params.unreadOnly) {
+        searchCriteria = { ...searchCriteria, seen: false };
       }
       if (params.search) {
         if (params.search === "UNSEEN") {
@@ -251665,6 +251727,43 @@ var SMTPAdapter = class {
     return { messageId: info2.messageId };
   }
   /**
+   * Send an email via Gmail SMTP using OAuth2 XOAUTH2 authentication.
+   */
+  async sendEmailOAuth(host, port, userEmail, accessToken, params) {
+    const rateKey = `oauth_${userEmail}`;
+    if (!this.checkRateLimit(rateKey)) {
+      throw new Error(`Rate limit exceeded: maximum ${this.maxPerMinute} emails per minute`);
+    }
+    const transporter = (0, import_nodemailer.createTransport)({
+      host,
+      port,
+      secure: port === 465,
+      auth: {
+        type: "OAuth2",
+        user: userEmail,
+        accessToken
+      },
+      tls: { rejectUnauthorized: true }
+    });
+    const mailOptions = {
+      from: userEmail,
+      to: params.to.join(", "),
+      subject: params.subject,
+      text: params.body
+    };
+    if (params.cc && params.cc.length > 0) {
+      mailOptions["cc"] = params.cc.join(", ");
+    }
+    if (params.replyToMessageId) {
+      mailOptions["inReplyTo"] = params.replyToMessageId;
+      mailOptions["references"] = params.replyToMessageId;
+    }
+    const info2 = await transporter.sendMail(mailOptions);
+    this.recordSend(rateKey);
+    transporter.close();
+    return { messageId: info2.messageId };
+  }
+  /**
    * Test SMTP connection: connect, authenticate (EHLO), disconnect.
    */
   async testConnection(credential, password) {
@@ -251753,12 +251852,18 @@ var SMTPAdapter = class {
 };
 
 // packages/gateway/services/email/email-adapter.ts
+var GMAIL_IMAP_HOST = "imap.gmail.com";
+var GMAIL_IMAP_PORT = 993;
+var GMAIL_SMTP_HOST = "smtp.gmail.com";
+var GMAIL_SMTP_PORT = 465;
 var EmailAdapter = class {
   imap;
   smtp;
   credentialStore;
-  constructor(credentialStore2) {
+  oauthTokenManager;
+  constructor(credentialStore2, oauthTokenManager2) {
     this.credentialStore = credentialStore2;
+    this.oauthTokenManager = oauthTokenManager2 ?? null;
     this.imap = new IMAPAdapter(credentialStore2);
     this.smtp = new SMTPAdapter(credentialStore2);
   }
@@ -251793,38 +251898,203 @@ var EmailAdapter = class {
       };
     }
   }
-  async handleFetch(params) {
-    const imapCreds = this.credentialStore.getByType("email").filter((c) => c.protocol === "imap");
-    if (imapCreds.length === 0) {
-      return {
-        success: false,
-        error: { code: "NO_IMAP_CREDENTIALS", message: "No IMAP credentials configured" }
-      };
+  /**
+   * Try to refresh an expired Google OAuth token using the refresh_token.
+   * Returns the new access token, or null if refresh fails.
+   */
+  async refreshGoogleToken() {
+    if (!this.oauthTokenManager) return null;
+    const refreshToken = await this.oauthTokenManager.getRefreshTokenAsync("google");
+    if (!refreshToken) {
+      console.error("[EmailAdapter] No refresh token available for Google");
+      return null;
     }
-    const messages = await this.imap.fetchMessages(imapCreds[0].id, params);
-    return { success: true, data: { messages } };
+    const clientId = process.env["SEMBLANCE_GOOGLE_CLIENT_ID"];
+    const clientSecret = process.env["SEMBLANCE_GOOGLE_CLIENT_SECRET"];
+    if (!clientId) {
+      console.error("[EmailAdapter] Cannot refresh: SEMBLANCE_GOOGLE_CLIENT_ID not set");
+      return null;
+    }
+    try {
+      console.error("[EmailAdapter] Attempting Google token refresh...");
+      const resp = await globalThis.fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+          client_id: clientId,
+          ...clientSecret ? { client_secret: clientSecret } : {}
+        })
+      });
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => "unknown");
+        console.error(`[EmailAdapter] Token refresh failed (HTTP ${resp.status}): ${errText.slice(0, 300)}`);
+        return null;
+      }
+      const data = await resp.json();
+      if (!data.access_token) {
+        console.error("[EmailAdapter] Token refresh response missing access_token");
+        return null;
+      }
+      const newExpiresAt = Date.now() + (data.expires_in ?? 3600) * 1e3;
+      this.oauthTokenManager.refreshAccessToken(
+        "google",
+        data.access_token,
+        newExpiresAt,
+        data.refresh_token
+        // Google sometimes rotates refresh tokens
+      );
+      console.error("[EmailAdapter] Google token refreshed successfully, expires in", data.expires_in, "seconds");
+      return data.access_token;
+    } catch (err) {
+      console.error("[EmailAdapter] Token refresh error:", err);
+      return null;
+    }
+  }
+  /**
+   * Try to get a Gmail OAuth access token. Returns null if not available.
+   * Automatically refreshes expired tokens if a refresh_token is available.
+   */
+  async getGmailOAuthToken() {
+    if (!this.oauthTokenManager) {
+      console.error("[EmailAdapter] No OAuthTokenManager \u2014 cannot use Gmail OAuth");
+      return null;
+    }
+    let accessToken = null;
+    if (this.oauthTokenManager.hasValidTokens("google")) {
+      accessToken = await this.oauthTokenManager.getAccessTokenAsync("google");
+      console.error("[EmailAdapter] Google OAuth token is valid, retrieved:", accessToken ? "YES" : "NO");
+    } else {
+      console.error("[EmailAdapter] Google OAuth token expired or missing, attempting refresh...");
+      accessToken = await this.refreshGoogleToken();
+    }
+    if (!accessToken) {
+      console.error("[EmailAdapter] No valid Google OAuth access token available");
+      return null;
+    }
+    let userEmail = this.oauthTokenManager.getUserEmail("google");
+    if (!userEmail) {
+      console.error("[EmailAdapter] No stored user email, fetching from Gmail profile...");
+      try {
+        const gmailResp = await globalThis.fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if (gmailResp.ok) {
+          const profile = await gmailResp.json();
+          if (profile.emailAddress) {
+            userEmail = profile.emailAddress;
+            console.error("[EmailAdapter] Got user email from Gmail profile:", userEmail);
+          }
+        } else {
+          console.error(`[EmailAdapter] Gmail profile API returned ${gmailResp.status}`);
+        }
+      } catch (gmailErr) {
+        console.error("[EmailAdapter] Gmail profile fetch failed:", gmailErr);
+      }
+      if (!userEmail) {
+        try {
+          const resp = await globalThis.fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          if (resp.ok) {
+            const info2 = await resp.json();
+            if (info2.email) {
+              userEmail = info2.email;
+              console.error("[EmailAdapter] Got user email from userinfo:", userEmail);
+            }
+          }
+        } catch {
+        }
+      }
+      if (!userEmail) {
+        console.error("[EmailAdapter] Could not determine Google user email from any source");
+        return null;
+      }
+      this.oauthTokenManager.storeTokens({
+        provider: "google",
+        accessToken,
+        refreshToken: await this.oauthTokenManager.getRefreshTokenAsync("google") ?? "",
+        expiresAt: Date.now() + 3500 * 1e3,
+        // preserve ~current expiry
+        scopes: "",
+        userEmail
+      });
+    }
+    return { accessToken, userEmail };
+  }
+  async handleFetch(params) {
+    console.error("[EmailAdapter] handleFetch called with params:", JSON.stringify(params));
+    const imapCreds = this.credentialStore.getByType("email").filter((c) => c.protocol === "imap");
+    if (imapCreds.length > 0) {
+      console.error("[EmailAdapter] Using traditional IMAP credentials");
+      const messages = await this.imap.fetchMessages(imapCreds[0].id, params);
+      return { success: true, data: { messages } };
+    }
+    console.error("[EmailAdapter] No IMAP credentials found, trying Gmail OAuth...");
+    const oauth = await this.getGmailOAuthToken();
+    if (oauth) {
+      console.error(`[EmailAdapter] Using Gmail XOAUTH2 for ${oauth.userEmail}`);
+      try {
+        const messages = await this.imap.fetchMessagesOAuth(
+          GMAIL_IMAP_HOST,
+          GMAIL_IMAP_PORT,
+          oauth.userEmail,
+          oauth.accessToken,
+          params
+        );
+        console.error(`[EmailAdapter] Gmail XOAUTH2 fetch returned ${messages.length} messages`);
+        return { success: true, data: { messages } };
+      } catch (imapErr) {
+        console.error("[EmailAdapter] Gmail IMAP XOAUTH2 connection failed:", imapErr);
+        return {
+          success: false,
+          error: {
+            code: "IMAP_XOAUTH2_FAILED",
+            message: `Gmail IMAP connection failed: ${imapErr instanceof Error ? imapErr.message : String(imapErr)}. Check that IMAP is enabled in Gmail Settings > Forwarding and POP/IMAP.`
+          }
+        };
+      }
+    }
+    console.error("[EmailAdapter] No email credentials or OAuth tokens available");
+    return {
+      success: false,
+      error: { code: "NO_EMAIL_CREDENTIALS", message: "No email credentials configured. Connect Gmail or add IMAP credentials in Settings." }
+    };
   }
   async handleSend(params) {
     const smtpCreds = this.credentialStore.getByType("email").filter((c) => c.protocol === "smtp");
-    if (smtpCreds.length === 0) {
-      return {
-        success: false,
-        error: { code: "NO_SMTP_CREDENTIALS", message: "No SMTP credentials configured" }
-      };
+    if (smtpCreds.length > 0) {
+      const result2 = await this.smtp.sendEmail(smtpCreds[0].id, params);
+      return { success: true, data: result2 };
     }
-    const result2 = await this.smtp.sendEmail(smtpCreds[0].id, params);
-    return { success: true, data: result2 };
+    const oauth = await this.getGmailOAuthToken();
+    if (oauth) {
+      console.error(`[EmailAdapter] Using Gmail SMTP XOAUTH2 for ${oauth.userEmail}`);
+      const result2 = await this.smtp.sendEmailOAuth(
+        GMAIL_SMTP_HOST,
+        GMAIL_SMTP_PORT,
+        oauth.userEmail,
+        oauth.accessToken,
+        params
+      );
+      return { success: true, data: result2 };
+    }
+    return {
+      success: false,
+      error: { code: "NO_EMAIL_CREDENTIALS", message: "No email credentials configured. Connect Gmail or add SMTP credentials in Settings." }
+    };
   }
   async handleDraft(params) {
     const imapCreds = this.credentialStore.getByType("email").filter((c) => c.protocol === "imap");
-    if (imapCreds.length === 0) {
-      return {
-        success: false,
-        error: { code: "NO_IMAP_CREDENTIALS", message: "No IMAP credentials configured" }
-      };
+    if (imapCreds.length > 0) {
+      await this.imap.saveDraft(imapCreds[0].id, params);
+      return { success: true, data: { saved: true } };
     }
-    await this.imap.saveDraft(imapCreds[0].id, params);
-    return { success: true, data: { saved: true } };
+    return {
+      success: false,
+      error: { code: "NO_IMAP_CREDENTIALS", message: "Draft saving requires IMAP credentials (Gmail OAuth draft support coming soon)" }
+    };
   }
   async handleArchive(params) {
     const imapCreds = this.credentialStore.getByType("email").filter((c) => c.protocol === "imap");
@@ -265059,6 +265329,18 @@ function registerAllConnectors(tokenManager) {
   router.registerAdapter("box", new BoxAdapter(tokenManager));
   return router;
 }
+function wireConnectorRouter(registry, router) {
+  const connectorActions = [
+    "connector.auth",
+    "connector.auth_status",
+    "connector.disconnect",
+    "connector.sync",
+    "connector.list_items"
+  ];
+  for (const action of connectorActions) {
+    registry.register(action, router);
+  }
+}
 
 // packages/core/agent/intent-drift-analyzer.ts
 var IntentDriftAnalyzer = class {
@@ -265618,7 +265900,7 @@ var MorningBriefGenerator = class {
     const systemPrompt = `You are a personal AI assistant generating a morning brief summary. Be:
 - Forward-looking and conversational
 - Concise (2-4 sentences max)
-- Connect related items when possible (e.g., "You have a meeting with X at 2pm \u2014 note you still owe them a follow-up")
+- Connect related items when possible
 - Never say "you have 0" of anything \u2014 omit empty sections
 - Use natural language, not bullet points
 
@@ -266635,6 +266917,34 @@ var GraphVisualizationProvider = class {
    * Get context for a specific node — connections, recent activity, related items.
    */
   getNodeContext(nodeId) {
+    if (nodeId.startsWith("cat_")) {
+      const categoryKey = nodeId.slice(4);
+      const catMeta = CATEGORY_META[categoryKey];
+      if (catMeta) {
+        const { nodes: catNodes, edges: catEdges } = this.getNodesForCategory(categoryKey);
+        const syntheticNode = {
+          id: nodeId,
+          label: catMeta.displayName,
+          type: "category",
+          size: catNodes.length,
+          createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+          domain: "general",
+          metadata: { category: categoryKey, color: catMeta.color, icon: catMeta.icon, nodeCount: catNodes.length }
+        };
+        const connections2 = catNodes.map((n) => ({
+          node: n,
+          edge: {
+            id: `cat_contains_${nodeId}_${n.id}`,
+            sourceId: nodeId,
+            targetId: n.id,
+            weight: 1,
+            label: "contains"
+          }
+        }));
+        const recentActivity2 = catNodes.slice(0, 5).map((n) => `Contains ${n.label}`);
+        return { node: syntheticNode, connections: connections2, recentActivity: recentActivity2 };
+      }
+    }
     const graph = this.getGraphData();
     const node = graph.nodes.find((n) => n.id === nodeId);
     if (!node) return null;
@@ -266958,7 +267268,7 @@ var GraphVisualizationProvider = class {
   addDocumentNodes(nodes, nodeIds) {
     try {
       const docs = this.db.prepare(
-        "SELECT d.id, d.title, d.created_at, d.source, d.source_path, d.metadata, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id GROUP BY d.id ORDER BY mention_count DESC LIMIT 500"
+        "SELECT d.id, d.title, d.created_at, d.source, d.source_path, d.metadata, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id WHERE d.source != 'conversation' GROUP BY d.id ORDER BY mention_count DESC LIMIT 500"
       ).all();
       const directoryDocs = docs.filter((d) => d.source === "directory");
       const directoryPaths = directoryDocs.map((d) => d.source_path).filter(Boolean);
@@ -267825,7 +268135,8 @@ async function handleInitialize() {
   if (!(0, import_node_fs8.existsSync)(gatewayDataDir)) (0, import_node_fs8.mkdirSync)(gatewayDataDir, { recursive: true });
   const credDb = new import_better_sqlite33.default((0, import_node_path8.join)(gatewayDataDir, "credentials.db"));
   credentialStore = new CredentialStore(credDb);
-  emailAdapter = new EmailAdapter(credentialStore);
+  const tokenMgrForEmail = ensureOAuthTokenManager();
+  emailAdapter = new EmailAdapter(credentialStore, tokenMgrForEmail);
   calendarAdapter = new CalendarAdapter(credentialStore);
   try {
     const registry = gateway.getServiceRegistry();
@@ -267839,6 +268150,14 @@ async function handleInitialize() {
     registry.register("calendar.create", calendarAdapter);
     registry.register("calendar.update", calendarAdapter);
     console.error("[sidecar] Email + Calendar adapters registered with Gateway");
+    try {
+      const tokenMgr = ensureOAuthTokenManager();
+      connectorRouter = registerAllConnectors(tokenMgr);
+      wireConnectorRouter(registry, connectorRouter);
+      console.error("[sidecar] ConnectorRouter wired to Gateway for", connectorRouter.listRegistered().length, "connectors");
+    } catch (crErr) {
+      console.error("[sidecar] Failed to wire ConnectorRouter:", crErr);
+    }
   } catch (err) {
     console.error("[sidecar] Failed to register email/calendar adapters:", err);
   }
@@ -269651,7 +269970,7 @@ function getOAuthConfigForConnector(connectorId) {
       providerKey: "google",
       authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
       tokenUrl: "https://oauth2.googleapis.com/token",
-      scopes: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly",
+      scopes: "openid email https://mail.google.com/ https://www.googleapis.com/auth/calendar.readonly",
       clientId: process.env["SEMBLANCE_GOOGLE_CLIENT_ID"] ?? UNCONFIGURED_CLIENT_ID,
       clientSecret: process.env["SEMBLANCE_GOOGLE_CLIENT_SECRET"],
       usePKCE: false,
@@ -269761,12 +270080,17 @@ async function handleConnectorAuth(params) {
       error: `OAuth not configured for ${params.connectorId}. Set the ${envKey} environment variable.`
     };
   }
-  console.error(`[sidecar] OAuth config resolved for ${params.connectorId}, opening browser...`);
+  console.error(`[sidecar] OAuth config resolved for ${params.connectorId}:`);
+  console.error(`[sidecar]   clientId: ${config.clientId.slice(0, 20)}...`);
+  console.error(`[sidecar]   clientSecret: ${config.clientSecret ? "SET" : "NOT SET"}`);
+  console.error(`[sidecar]   scopes: ${config.scopes}`);
+  console.error(`[sidecar]   usePKCE: ${config.usePKCE}`);
   const tokenMgr = ensureOAuthTokenManager();
   const callbackServer = new OAuthCallbackServer();
   try {
     const requiresHttps = params.connectorId === "slack";
     const { callbackUrl, state } = await callbackServer.start({ https: requiresHttps });
+    console.error(`[sidecar] Callback server started at: ${callbackUrl}`);
     let codeVerifier = null;
     let codeChallenge = null;
     if (config.usePKCE) {
@@ -269790,6 +270114,8 @@ async function handleConnectorAuth(params) {
         authUrl.searchParams.set(k, v);
       }
     }
+    console.error(`[sidecar] OAuth auth URL: ${authUrl.toString().slice(0, 200)}...`);
+    console.error(`[sidecar] redirect_uri in auth URL: ${callbackUrl}`);
     const { exec } = await import("node:child_process");
     if (process.platform === "win32") {
       exec(`start "" "${authUrl.toString().replace(/"/g, '\\"')}"`, (err) => {
@@ -269804,7 +270130,9 @@ async function handleConnectorAuth(params) {
         if (err) console.error("[sidecar] Failed to open browser:", err);
       });
     }
+    console.error("[sidecar] Waiting for OAuth callback (120s timeout)...");
     const { code } = await callbackServer.waitForCallback();
+    console.error(`[sidecar] OAuth callback received! Code length: ${code.length}`);
     const tokenBody = {
       code,
       client_id: config.clientId,
@@ -269849,19 +270177,47 @@ async function handleConnectorAuth(params) {
         error: tokenData.error_description ?? tokenData.error ?? "Token exchange failed"
       };
     }
+    let userEmail;
+    if (config.providerKey === "google" || config.providerKey === "google-calendar" || config.providerKey === "google-drive") {
+      try {
+        const userinfoResp = await globalThis.fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` }
+        });
+        if (userinfoResp.ok) {
+          const userinfo = await userinfoResp.json();
+          userEmail = userinfo.email;
+          console.error(`[sidecar] Google OAuth user email: ${userEmail}`);
+        }
+      } catch (emailErr) {
+        console.error("[sidecar] Failed to fetch Google userinfo:", emailErr);
+      }
+    }
+    const hasRefreshToken = !!tokenData.refresh_token;
+    const expiresIn = tokenData.expires_in ?? 3600;
+    console.error(`[sidecar] Storing OAuth tokens for ${config.providerKey}:`);
+    console.error(`[sidecar]   accessToken: ${tokenData.access_token.slice(0, 20)}...`);
+    console.error(`[sidecar]   refreshToken: ${hasRefreshToken ? "YES" : "NONE"}`);
+    console.error(`[sidecar]   expiresIn: ${expiresIn}s`);
+    console.error(`[sidecar]   userEmail: ${userEmail ?? "unknown"}`);
     tokenMgr.storeTokens({
       provider: config.providerKey,
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token ?? "",
-      expiresAt: Date.now() + (tokenData.expires_in ?? 3600) * 1e3,
-      scopes: config.scopes
+      expiresAt: Date.now() + expiresIn * 1e3,
+      scopes: config.scopes,
+      userEmail
     });
+    const storedValid = tokenMgr.hasValidTokens(config.providerKey);
+    const storedEmail = tokenMgr.getUserEmail(config.providerKey);
+    console.error(`[sidecar] Token storage verification: valid=${storedValid}, email=${storedEmail}`);
     return {
       success: true,
       provider: config.providerKey,
-      connectorId: params.connectorId
+      connectorId: params.connectorId,
+      userEmail
     };
   } catch (err) {
+    console.error(`[sidecar] OAuth flow error for ${params.connectorId}:`, err);
     callbackServer.stop();
     return {
       success: false,
@@ -271108,10 +271464,14 @@ async function handleRequest(req) {
       }
       case "weather_get_current": {
         if (!weatherService && prefsDb && core) {
-          if (!locationStore) {
-            locationStore = new LocationStore(prefsDb);
+          try {
+            if (!locationStore) {
+              locationStore = new LocationStore(prefsDb);
+            }
+            weatherService = new WeatherService(getPlatform(), core.ipc, locationStore);
+          } catch (wsErr) {
+            console.error("[sidecar] Failed to init WeatherService:", wsErr);
           }
-          weatherService = new WeatherService(getPlatform(), core.ipc, locationStore);
         }
         if (!weatherService) {
           respond(id, null);
@@ -271343,7 +271703,7 @@ async function handleRequest(req) {
         respond(id, { success: true });
         break;
       }
-      // ─── Knowledge Graph Visualization ────────────────────────────────
+      // ─── Knowledge Graph Visualization (returns category-grouped graph) ─
       case "knowledge_get_graph": {
         try {
           if (!graphVisualizationProvider && documentsDb) {
@@ -271359,14 +271719,14 @@ async function handleRequest(req) {
             graphVisualizationProvider.initSchema();
           }
           if (!graphVisualizationProvider) {
-            respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+            respond(id, { nodes: [], edges: [], clusters: [], categoryNodes: [], categoryEdges: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
             break;
           }
-          const graph = await graphVisualizationProvider.getGraphData();
+          const graph = graphVisualizationProvider.getCategoryGraph();
           respond(id, graph);
         } catch (graphErr) {
           console.error("[sidecar] knowledge_get_graph failed:", graphErr);
-          respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+          respond(id, { nodes: [], edges: [], clusters: [], categoryNodes: [], categoryEdges: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
         }
         break;
       }
@@ -271728,7 +272088,7 @@ async function handleRequest(req) {
         }
         break;
       }
-      // Alias: get_graph_data → knowledge_get_graph
+      // Alias: get_graph_data → knowledge_get_graph (returns category-grouped graph for renderer)
       case "get_graph_data": {
         try {
           if (!graphVisualizationProvider && documentsDb) {
@@ -271744,14 +272104,14 @@ async function handleRequest(req) {
             graphVisualizationProvider.initSchema();
           }
           if (!graphVisualizationProvider) {
-            respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+            respond(id, { nodes: [], edges: [], clusters: [], categoryNodes: [], categoryEdges: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
             break;
           }
-          const graph = await graphVisualizationProvider.getGraphData();
+          const graph = graphVisualizationProvider.getCategoryGraph();
           respond(id, graph);
         } catch (graphErr) {
           console.error("[sidecar] get_graph_data failed:", graphErr);
-          respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+          respond(id, { nodes: [], edges: [], clusters: [], categoryNodes: [], categoryEdges: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
         }
         break;
       }
@@ -271769,6 +272129,39 @@ async function handleRequest(req) {
       case "connector.sync": {
         const result3 = await handleConnectorSync(params);
         respond(id, result3);
+        break;
+      }
+      case "connector.debug": {
+        try {
+          const debugConnectorId = params.connectorId ?? "gmail";
+          const tokenMgr = ensureOAuthTokenManager();
+          const config = getOAuthConfigForConnector(debugConnectorId);
+          const providerKey = config?.providerKey ?? "unknown";
+          const hasTokens = config ? tokenMgr.hasValidTokens(providerKey) : false;
+          const isExpired = config ? tokenMgr.isTokenExpired(providerKey) : true;
+          const userEmail = config ? tokenMgr.getUserEmail(providerKey) : null;
+          const hasRefresh = config ? tokenMgr.getRefreshToken(providerKey) !== null : false;
+          const accessToken = config ? tokenMgr.getAccessToken(providerKey) : null;
+          const debugInfo = {
+            connectorId: debugConnectorId,
+            providerKey,
+            configFound: !!config,
+            clientIdSet: config ? config.clientId !== UNCONFIGURED_CLIENT_ID : false,
+            clientSecretSet: !!config?.clientSecret,
+            hasTokens,
+            isExpired,
+            hasRefreshToken: hasRefresh,
+            hasAccessToken: !!accessToken,
+            userEmail,
+            envGoogleClientId: process.env["SEMBLANCE_GOOGLE_CLIENT_ID"] ? "SET" : "NOT SET",
+            envGoogleClientSecret: process.env["SEMBLANCE_GOOGLE_CLIENT_SECRET"] ? "SET" : "NOT SET",
+            dataDir: dataDir || (0, import_node_path8.join)((0, import_node_os6.homedir)(), ".semblance")
+          };
+          console.error("[sidecar] connector.debug:", JSON.stringify(debugInfo, null, 2));
+          respond(id, debugInfo);
+        } catch (debugErr) {
+          respond(id, { error: String(debugErr) });
+        }
         break;
       }
       // ─── Import Handlers ──────────────────────────────────────────────
