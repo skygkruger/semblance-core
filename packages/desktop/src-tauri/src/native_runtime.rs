@@ -183,9 +183,25 @@ impl NativeRuntime {
         }
     }
 
+    // File-based logging — eprintln goes nowhere on Windows GUI apps
+    fn log(msg: &str) {
+        use std::io::Write;
+        let log_path = if cfg!(target_os = "windows") {
+            let appdata = std::env::var("LOCALAPPDATA").unwrap_or_else(|_| ".".to_string());
+            std::path::PathBuf::from(appdata).join("Semblance").join("native_runtime.log")
+        } else {
+            std::path::PathBuf::from("/tmp/semblance_native_runtime.log")
+        };
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+            let _ = writeln!(f, "[NativeRuntime] {}", msg);
+        }
+    }
+
     /// Generate text from a prompt using the loaded reasoning model.
     /// Blocking — runs the full inference loop synchronously.
     pub fn generate(&self, request: GenerateRequest) -> Result<GenerateResponse, String> {
+        Self::log("generate() entered");
+
         if !matches!(self.status, RuntimeStatus::Ready) {
             return Err("Runtime not ready — no model loaded".to_string());
         }
@@ -203,10 +219,6 @@ impl NativeRuntime {
         let max_tokens = request.max_tokens.unwrap_or(512);
         let temperature = request.temperature.unwrap_or(0.7);
 
-        // CHAT TEMPLATE: Qwen 2.5 / ChatML format.
-        // All models in MODEL_CATALOG use the Qwen 2.5 family.
-        // If non-Qwen models are added to the catalog, this must be made model-aware
-        // (pass model family from the sidecar and select template based on it).
         let full_prompt = match &request.system_prompt {
             Some(sys) if !sys.is_empty() => format!(
                 "<|im_start|>system\n{}<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
@@ -218,59 +230,63 @@ impl NativeRuntime {
             ),
         };
 
-        eprintln!(
-            "[NativeRuntime] generate: prompt_len={} chars, max_tokens={}, temp={}",
-            full_prompt.len(),
-            max_tokens,
-            temperature
-        );
+        Self::log(&format!("generate: prompt_len={} chars, max_tokens={}, temp={}", full_prompt.len(), max_tokens, temperature));
 
-        // Create context for this request.
-        // 8192 tokens: orchestrator system prompt (~1K) + tool definitions (~2K)
-        // + knowledge context (~1K) + conversation history (~2K) + response (~2K).
+        Self::log("generate: creating context with n_ctx=8192...");
         let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(8192));
         let mut ctx = model
             .new_context(backend, ctx_params)
             .map_err(|e| format!("Failed to create context: {}", e))?;
+        Self::log("generate: context created OK");
 
-        // Tokenize
+        Self::log("generate: tokenizing...");
         let tokens = model
             .str_to_token(&full_prompt, AddBos::Always)
             .map_err(|e| format!("Tokenization failed: {}", e))?;
 
-        eprintln!("[NativeRuntime] tokenized: {} tokens", tokens.len());
+        Self::log(&format!("generate: tokenized {} tokens", tokens.len()));
 
         if tokens.is_empty() {
             return Err("Empty prompt after tokenization".to_string());
         }
 
         // Safety: if prompt exceeds context window, truncate to leave room for response.
-        // Without this, llama.cpp can segfault accessing KV cache beyond allocated size.
         let n_ctx: usize = 8192;
         let max_prompt_tokens = n_ctx.saturating_sub(max_tokens as usize);
         let tokens = if tokens.len() > max_prompt_tokens {
-            eprintln!(
-                "[NativeRuntime] Prompt too long ({} tokens > {} limit), truncating to fit context",
-                tokens.len(),
-                max_prompt_tokens
-            );
+            Self::log(&format!("generate: TRUNCATING {} tokens -> {} to fit context", tokens.len(), max_prompt_tokens));
             tokens[..max_prompt_tokens].to_vec()
         } else {
+            Self::log(&format!("generate: tokens fit ({} <= {})", tokens.len(), max_prompt_tokens));
             tokens
         };
 
-        // Create batch and add prompt tokens (only compute logits for last token)
-        let mut batch = LlamaBatch::new(tokens.len().max(512), 1);
-        let last_idx = (tokens.len() - 1) as i32;
-        for (i, token) in (0i32..).zip(tokens.iter()) {
-            batch
-                .add(*token, i, &[0], i == last_idx)
-                .map_err(|e| format!("Batch add failed: {}", e))?;
+        // Chunked prefill: decode prompt in batches of CHUNK_SIZE tokens.
+        // Some llama.cpp backends (especially GPU) segfault on very large single-batch
+        // decode calls even when tokens fit the context window. Chunking avoids this.
+        let chunk_size: usize = 512;
+        let total_prompt_tokens = tokens.len();
+        Self::log(&format!("generate: chunked prefill, {} tokens in chunks of {}", total_prompt_tokens, chunk_size));
+
+        let mut pos: i32 = 0;
+        for (chunk_idx, chunk) in tokens.chunks(chunk_size).enumerate() {
+            let is_last_chunk = (chunk_idx + 1) * chunk_size >= total_prompt_tokens;
+            let mut batch = LlamaBatch::new(chunk.len().max(512), 1);
+
+            for (i, token) in chunk.iter().enumerate() {
+                let is_last_token = is_last_chunk && i == chunk.len() - 1;
+                batch
+                    .add(*token, pos, &[0], is_last_token)
+                    .map_err(|e| format!("Batch add failed: {}", e))?;
+                pos += 1;
+            }
+
+            Self::log(&format!("generate: decoding chunk {} ({} tokens, pos={})", chunk_idx, chunk.len(), pos));
+            ctx.decode(&mut batch)
+                .map_err(|e| format!("Prompt decode chunk {} failed: {}", chunk_idx, e))?;
         }
 
-        // Decode prompt (prefill)
-        ctx.decode(&mut batch)
-            .map_err(|e| format!("Prompt decode failed: {}", e))?;
+        Self::log("generate: prefill decode OK, starting generation loop...");
 
         // Create sampler chain: top-p + min-p + temperature + random sampling
         let mut sampler = LlamaSampler::chain_simple([
@@ -283,11 +299,14 @@ impl NativeRuntime {
         // Generation loop
         let mut output = String::new();
         let mut decoder = encoding_rs::UTF_8.new_decoder();
-        let mut n_cur = batch.n_tokens();
+        let mut n_cur = pos;
         let mut tokens_generated = 0u32;
 
+        // Single-token batch for auto-regressive generation
+        let mut gen_batch = LlamaBatch::new(1, 1);
+
         for _ in 0..max_tokens {
-            let token = sampler.sample(&ctx, batch.n_tokens() - 1);
+            let token = sampler.sample(&ctx, -1);
             sampler.accept(token);
 
             // End-of-generation check
@@ -311,11 +330,11 @@ impl NativeRuntime {
             }
 
             // Prepare next batch with just the new token
-            batch.clear();
-            batch
+            gen_batch.clear();
+            gen_batch
                 .add(token, n_cur, &[0], true)
                 .map_err(|e| format!("Batch add failed: {}", e))?;
-            ctx.decode(&mut batch)
+            ctx.decode(&mut gen_batch)
                 .map_err(|e| format!("Decode failed: {}", e))?;
             n_cur += 1;
         }
@@ -332,6 +351,8 @@ impl NativeRuntime {
     /// Generate embeddings for a batch of texts using the loaded embedding model.
     /// Blocking — runs forward pass for each input text synchronously.
     pub fn embed(&self, request: EmbedRequest) -> Result<EmbedResponse, String> {
+        Self::log(&format!("embed() entered, {} inputs", request.input.len()));
+
         let model = self
             .embedding_model
             .as_ref()
@@ -345,7 +366,9 @@ impl NativeRuntime {
         let n_embd = model.n_embd() as u32;
         let mut all_embeddings = Vec::with_capacity(request.input.len());
 
-        for text in &request.input {
+        for (text_idx, text) in request.input.iter().enumerate() {
+            Self::log(&format!("embed: processing input {}/{} ({} chars)", text_idx + 1, request.input.len(), text.len()));
+
             // Create embedding context per input (with mean pooling for sentence embeddings)
             let ctx_params = LlamaContextParams::default()
                 .with_embeddings(true)
@@ -358,6 +381,8 @@ impl NativeRuntime {
                 .str_to_token(text, AddBos::Always)
                 .map_err(|e| format!("Tokenization failed: {}", e))?;
 
+            Self::log(&format!("embed: tokenized {} tokens", tokens.len()));
+
             if tokens.is_empty() {
                 all_embeddings.push(vec![0.0f32; n_embd as usize]);
                 continue;
@@ -367,23 +392,40 @@ impl NativeRuntime {
             // Without this, llama.cpp segfaults when tokens exceed KV cache allocation.
             let embed_ctx_size: usize = 2048;
             let tokens = if tokens.len() > embed_ctx_size {
-                eprintln!(
-                    "[NativeRuntime] Embedding input too long ({} tokens > {} limit), truncating",
-                    tokens.len(), embed_ctx_size
-                );
+                Self::log(&format!("embed: TRUNCATING {} tokens -> {}", tokens.len(), embed_ctx_size));
                 tokens[..embed_ctx_size].to_vec()
             } else {
                 tokens
             };
 
-            let mut batch = LlamaBatch::new(tokens.len(), 1);
-            batch
-                .add_sequence(&tokens, 0, false)
-                .map_err(|e| format!("Batch add failed: {}", e))?;
+            // Chunked prefill: decode tokens in batches of CHUNK_SIZE to prevent
+            // llama.cpp segfaults on large single-batch decode calls.
+            // Same fix that resolved the generate() crash.
+            let chunk_size: usize = 512;
+            let total_tokens = tokens.len();
+            Self::log(&format!("embed: chunked prefill, {} tokens in chunks of {}", total_tokens, chunk_size));
 
             ctx.clear_kv_cache();
-            ctx.decode(&mut batch)
-                .map_err(|e| format!("Embedding decode failed: {}", e))?;
+
+            let mut pos: i32 = 0;
+            for (chunk_idx, chunk) in tokens.chunks(chunk_size).enumerate() {
+                let is_last_chunk = (chunk_idx + 1) * chunk_size >= total_tokens;
+                let mut batch = LlamaBatch::new(chunk.len().max(512), 1);
+
+                for (i, token) in chunk.iter().enumerate() {
+                    let is_last_token = is_last_chunk && i == chunk.len() - 1;
+                    batch
+                        .add(*token, pos, &[0], is_last_token)
+                        .map_err(|e| format!("Embed batch add failed: {}", e))?;
+                    pos += 1;
+                }
+
+                Self::log(&format!("embed: decoding chunk {} ({} tokens, pos={})", chunk_idx, chunk.len(), pos));
+                ctx.decode(&mut batch)
+                    .map_err(|e| format!("Embed decode chunk {} failed: {}", chunk_idx, e))?;
+            }
+
+            Self::log("embed: decode OK, extracting embeddings...");
 
             let embedding = ctx
                 .embeddings_seq_ith(0)
@@ -400,10 +442,12 @@ impl NativeRuntime {
                 embedding.to_vec()
             };
 
+            Self::log(&format!("embed: input {}/{} done (dim={})", text_idx + 1, request.input.len(), normalized.len()));
             all_embeddings.push(normalized);
         }
 
         let duration_ms = start.elapsed().as_millis() as u64;
+        Self::log(&format!("embed: all {} inputs done in {}ms", all_embeddings.len(), duration_ms));
 
         Ok(EmbedResponse {
             embeddings: all_embeddings,

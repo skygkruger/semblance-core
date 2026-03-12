@@ -987,6 +987,978 @@ var require_fetch_umd = __commonJS({
   }
 });
 
+// node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/browser.mjs
+function getPlatform2() {
+  if (typeof window !== "undefined" && window.navigator) {
+    const nav = navigator;
+    if ("userAgentData" in nav && nav.userAgentData?.platform) {
+      return `${nav.userAgentData.platform.toLowerCase()} Browser/${navigator.userAgent};`;
+    }
+    if (navigator.platform) {
+      return `${navigator.platform.toLowerCase()} Browser/${navigator.userAgent};`;
+    }
+    return `unknown Browser/${navigator.userAgent};`;
+  } else if (typeof process !== "undefined") {
+    return `${process.arch} ${process.platform} Node.js/${process.version}`;
+  }
+  return "";
+}
+function normalizeHeaders(headers) {
+  if (headers instanceof Headers) {
+    const obj2 = {};
+    headers.forEach((value, key) => {
+      obj2[key] = value;
+    });
+    return obj2;
+  } else if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  } else {
+    return headers || {};
+  }
+}
+var import_whatwg_fetch, defaultPort, defaultHost, version, __defProp$1, __defNormalProp$1, __publicField$1, ResponseError, AbortableAsyncIterator, checkOk, readEnvVar, fetchWithHeaders, get, post, del, parseJSON, formatHost, __defProp2, __defNormalProp, __publicField, Ollama$1, browser;
+var init_browser = __esm({
+  "node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/browser.mjs"() {
+    import_whatwg_fetch = __toESM(require_fetch_umd(), 1);
+    defaultPort = "11434";
+    defaultHost = `http://127.0.0.1:${defaultPort}`;
+    version = "0.6.3";
+    __defProp$1 = Object.defineProperty;
+    __defNormalProp$1 = (obj2, key, value) => key in obj2 ? __defProp$1(obj2, key, { enumerable: true, configurable: true, writable: true, value }) : obj2[key] = value;
+    __publicField$1 = (obj2, key, value) => {
+      __defNormalProp$1(obj2, typeof key !== "symbol" ? key + "" : key, value);
+      return value;
+    };
+    ResponseError = class _ResponseError extends Error {
+      constructor(error, status_code) {
+        super(error);
+        this.error = error;
+        this.status_code = status_code;
+        this.name = "ResponseError";
+        if (Error.captureStackTrace) {
+          Error.captureStackTrace(this, _ResponseError);
+        }
+      }
+    };
+    AbortableAsyncIterator = class {
+      constructor(abortController, itr, doneCallback) {
+        __publicField$1(this, "abortController");
+        __publicField$1(this, "itr");
+        __publicField$1(this, "doneCallback");
+        this.abortController = abortController;
+        this.itr = itr;
+        this.doneCallback = doneCallback;
+      }
+      abort() {
+        this.abortController.abort();
+      }
+      async *[Symbol.asyncIterator]() {
+        for await (const message of this.itr) {
+          if ("error" in message) {
+            throw new Error(message.error);
+          }
+          yield message;
+          if (message.done || message.status === "success") {
+            this.doneCallback();
+            return;
+          }
+        }
+        throw new Error("Did not receive done or success response in stream.");
+      }
+    };
+    checkOk = async (response) => {
+      if (response.ok) {
+        return;
+      }
+      let message = `Error ${response.status}: ${response.statusText}`;
+      let errorData = null;
+      if (response.headers.get("content-type")?.includes("application/json")) {
+        try {
+          errorData = await response.json();
+          message = errorData.error || message;
+        } catch (error) {
+          console.log("Failed to parse error response as JSON");
+        }
+      } else {
+        try {
+          console.log("Getting text from response");
+          const textResponse = await response.text();
+          message = textResponse || message;
+        } catch (error) {
+          console.log("Failed to get text from error response");
+        }
+      }
+      throw new ResponseError(message, response.status);
+    };
+    readEnvVar = (obj2, key) => {
+      return obj2[key];
+    };
+    fetchWithHeaders = async (fetch2, url, options = {}) => {
+      const defaultHeaders = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "User-Agent": `ollama-js/${version} (${getPlatform2()})`
+      };
+      options.headers = normalizeHeaders(options.headers);
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol === "https:" && parsed.hostname === "ollama.com") {
+          const apiKey = typeof process === "object" && process !== null && typeof process.env === "object" && process.env !== null ? readEnvVar(process.env, "OLLAMA_API_KEY") : void 0;
+          const authorization = options.headers["authorization"] || options.headers["Authorization"];
+          if (!authorization && apiKey) {
+            options.headers["Authorization"] = `Bearer ${apiKey}`;
+          }
+        }
+      } catch (error) {
+        console.error("error parsing url", error);
+      }
+      const customHeaders = Object.fromEntries(
+        Object.entries(options.headers).filter(
+          ([key]) => !Object.keys(defaultHeaders).some(
+            (defaultKey) => defaultKey.toLowerCase() === key.toLowerCase()
+          )
+        )
+      );
+      options.headers = {
+        ...defaultHeaders,
+        ...customHeaders
+      };
+      return fetch2(url, options);
+    };
+    get = async (fetch2, host, options) => {
+      const response = await fetchWithHeaders(fetch2, host, {
+        headers: options?.headers
+      });
+      await checkOk(response);
+      return response;
+    };
+    post = async (fetch2, host, data, options) => {
+      const isRecord = (input) => {
+        return input !== null && typeof input === "object" && !Array.isArray(input);
+      };
+      const formattedData = isRecord(data) ? JSON.stringify(data) : data;
+      const response = await fetchWithHeaders(fetch2, host, {
+        method: "POST",
+        body: formattedData,
+        signal: options?.signal,
+        headers: options?.headers
+      });
+      await checkOk(response);
+      return response;
+    };
+    del = async (fetch2, host, data, options) => {
+      const response = await fetchWithHeaders(fetch2, host, {
+        method: "DELETE",
+        body: JSON.stringify(data),
+        headers: options?.headers
+      });
+      await checkOk(response);
+      return response;
+    };
+    parseJSON = async function* (itr) {
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      const reader = itr.getReader();
+      while (true) {
+        const { done, value: chunk2 } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(chunk2, { stream: true });
+        const parts = buffer.split("\n");
+        buffer = parts.pop() ?? "";
+        for (const part of parts) {
+          try {
+            yield JSON.parse(part);
+          } catch (error) {
+            console.warn("invalid json: ", part);
+          }
+        }
+      }
+      buffer += decoder.decode();
+      for (const part of buffer.split("\n").filter((p) => p !== "")) {
+        try {
+          yield JSON.parse(part);
+        } catch (error) {
+          console.warn("invalid json: ", part);
+        }
+      }
+    };
+    formatHost = (host) => {
+      if (!host) {
+        return defaultHost;
+      }
+      let isExplicitProtocol = host.includes("://");
+      if (host.startsWith(":")) {
+        host = `http://127.0.0.1${host}`;
+        isExplicitProtocol = true;
+      }
+      if (!isExplicitProtocol) {
+        host = `http://${host}`;
+      }
+      const url = new URL(host);
+      let port = url.port;
+      if (!port) {
+        if (!isExplicitProtocol) {
+          port = defaultPort;
+        } else {
+          port = url.protocol === "https:" ? "443" : "80";
+        }
+      }
+      let auth = "";
+      if (url.username) {
+        auth = url.username;
+        if (url.password) {
+          auth += `:${url.password}`;
+        }
+        auth += "@";
+      }
+      let formattedHost = `${url.protocol}//${auth}${url.hostname}:${port}${url.pathname}`;
+      if (formattedHost.endsWith("/")) {
+        formattedHost = formattedHost.slice(0, -1);
+      }
+      return formattedHost;
+    };
+    __defProp2 = Object.defineProperty;
+    __defNormalProp = (obj2, key, value) => key in obj2 ? __defProp2(obj2, key, { enumerable: true, configurable: true, writable: true, value }) : obj2[key] = value;
+    __publicField = (obj2, key, value) => {
+      __defNormalProp(obj2, typeof key !== "symbol" ? key + "" : key, value);
+      return value;
+    };
+    Ollama$1 = class Ollama {
+      constructor(config) {
+        __publicField(this, "config");
+        __publicField(this, "fetch");
+        __publicField(this, "ongoingStreamedRequests", []);
+        this.config = {
+          host: "",
+          headers: config?.headers
+        };
+        if (!config?.proxy) {
+          this.config.host = formatHost(config?.host ?? defaultHost);
+        }
+        this.fetch = config?.fetch ?? fetch;
+      }
+      // Abort any ongoing streamed requests to Ollama
+      abort() {
+        for (const request of this.ongoingStreamedRequests) {
+          request.abort();
+        }
+        this.ongoingStreamedRequests.length = 0;
+      }
+      /**
+       * Processes a request to the Ollama server. If the request is streamable, it will return a
+       * AbortableAsyncIterator that yields the response messages. Otherwise, it will return the response
+       * object.
+       * @param endpoint {string} - The endpoint to send the request to.
+       * @param request {object} - The request object to send to the endpoint.
+       * @protected {T | AbortableAsyncIterator<T>} - The response object or a AbortableAsyncIterator that yields
+       * response messages.
+       * @throws {Error} - If the response body is missing or if the response is an error.
+       * @returns {Promise<T | AbortableAsyncIterator<T>>} - The response object or a AbortableAsyncIterator that yields the streamed response.
+       */
+      async processStreamableRequest(endpoint, request) {
+        request.stream = request.stream ?? false;
+        const host = `${this.config.host}/api/${endpoint}`;
+        if (request.stream) {
+          const abortController = new AbortController();
+          const response2 = await post(this.fetch, host, request, {
+            signal: abortController.signal,
+            headers: this.config.headers
+          });
+          if (!response2.body) {
+            throw new Error("Missing body");
+          }
+          const itr = parseJSON(response2.body);
+          const abortableAsyncIterator = new AbortableAsyncIterator(
+            abortController,
+            itr,
+            () => {
+              const i = this.ongoingStreamedRequests.indexOf(abortableAsyncIterator);
+              if (i > -1) {
+                this.ongoingStreamedRequests.splice(i, 1);
+              }
+            }
+          );
+          this.ongoingStreamedRequests.push(abortableAsyncIterator);
+          return abortableAsyncIterator;
+        }
+        const response = await post(this.fetch, host, request, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Encodes an image to base64 if it is a Uint8Array.
+       * @param image {Uint8Array | string} - The image to encode.
+       * @returns {Promise<string>} - The base64 encoded image.
+       */
+      async encodeImage(image) {
+        if (typeof image !== "string") {
+          const uint8Array = new Uint8Array(image);
+          let byteString = "";
+          const len = uint8Array.byteLength;
+          for (let i = 0; i < len; i++) {
+            byteString += String.fromCharCode(uint8Array[i]);
+          }
+          return btoa(byteString);
+        }
+        return image;
+      }
+      /**
+       * Generates a response from a text prompt.
+       * @param request {GenerateRequest} - The request object.
+       * @returns {Promise<GenerateResponse | AbortableAsyncIterator<GenerateResponse>>} - The response object or
+       * an AbortableAsyncIterator that yields response messages.
+       */
+      async generate(request) {
+        if (request.images) {
+          request.images = await Promise.all(request.images.map(this.encodeImage.bind(this)));
+        }
+        return this.processStreamableRequest("generate", request);
+      }
+      /**
+       * Chats with the model. The request object can contain messages with images that are either
+       * Uint8Arrays or base64 encoded strings. The images will be base64 encoded before sending the
+       * request.
+       * @param request {ChatRequest} - The request object.
+       * @returns {Promise<ChatResponse | AbortableAsyncIterator<ChatResponse>>} - The response object or an
+       * AbortableAsyncIterator that yields response messages.
+       */
+      async chat(request) {
+        if (request.messages) {
+          for (const message of request.messages) {
+            if (message.images) {
+              message.images = await Promise.all(
+                message.images.map(this.encodeImage.bind(this))
+              );
+            }
+          }
+        }
+        return this.processStreamableRequest("chat", request);
+      }
+      /**
+       * Creates a new model from a stream of data.
+       * @param request {CreateRequest} - The request object.
+       * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or a stream of progress responses.
+       */
+      async create(request) {
+        return this.processStreamableRequest("create", {
+          ...request
+        });
+      }
+      /**
+       * Pulls a model from the Ollama registry. The request object can contain a stream flag to indicate if the
+       * response should be streamed.
+       * @param request {PullRequest} - The request object.
+       * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or
+       * an AbortableAsyncIterator that yields response messages.
+       */
+      async pull(request) {
+        return this.processStreamableRequest("pull", {
+          name: request.model,
+          stream: request.stream,
+          insecure: request.insecure
+        });
+      }
+      /**
+       * Pushes a model to the Ollama registry. The request object can contain a stream flag to indicate if the
+       * response should be streamed.
+       * @param request {PushRequest} - The request object.
+       * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or
+       * an AbortableAsyncIterator that yields response messages.
+       */
+      async push(request) {
+        return this.processStreamableRequest("push", {
+          name: request.model,
+          stream: request.stream,
+          insecure: request.insecure
+        });
+      }
+      /**
+       * Deletes a model from the server. The request object should contain the name of the model to
+       * delete.
+       * @param request {DeleteRequest} - The request object.
+       * @returns {Promise<StatusResponse>} - The response object.
+       */
+      async delete(request) {
+        await del(
+          this.fetch,
+          `${this.config.host}/api/delete`,
+          { name: request.model },
+          { headers: this.config.headers }
+        );
+        return { status: "success" };
+      }
+      /**
+       * Copies a model from one name to another. The request object should contain the name of the
+       * model to copy and the new name.
+       * @param request {CopyRequest} - The request object.
+       * @returns {Promise<StatusResponse>} - The response object.
+       */
+      async copy(request) {
+        await post(this.fetch, `${this.config.host}/api/copy`, { ...request }, {
+          headers: this.config.headers
+        });
+        return { status: "success" };
+      }
+      /**
+       * Lists the models on the server.
+       * @returns {Promise<ListResponse>} - The response object.
+       * @throws {Error} - If the response body is missing.
+       */
+      async list() {
+        const response = await get(this.fetch, `${this.config.host}/api/tags`, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Shows the metadata of a model. The request object should contain the name of the model.
+       * @param request {ShowRequest} - The request object.
+       * @returns {Promise<ShowResponse>} - The response object.
+       */
+      async show(request) {
+        const response = await post(this.fetch, `${this.config.host}/api/show`, {
+          ...request
+        }, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Embeds text input into vectors.
+       * @param request {EmbedRequest} - The request object.
+       * @returns {Promise<EmbedResponse>} - The response object.
+       */
+      async embed(request) {
+        const response = await post(this.fetch, `${this.config.host}/api/embed`, {
+          ...request
+        }, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Embeds a text prompt into a vector.
+       * @param request {EmbeddingsRequest} - The request object.
+       * @returns {Promise<EmbeddingsResponse>} - The response object.
+       */
+      async embeddings(request) {
+        const response = await post(this.fetch, `${this.config.host}/api/embeddings`, {
+          ...request
+        }, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Lists the running models on the server
+       * @returns {Promise<ListResponse>} - The response object.
+       * @throws {Error} - If the response body is missing.
+       */
+      async ps() {
+        const response = await get(this.fetch, `${this.config.host}/api/ps`, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Returns the Ollama server version.
+       * @returns {Promise<VersionResponse>} - The server version object.
+       */
+      async version() {
+        const response = await get(this.fetch, `${this.config.host}/api/version`, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Performs web search using the Ollama web search API
+       * @param request {WebSearchRequest} - The search request containing query and options
+       * @returns {Promise<WebSearchResponse>} - The search results
+       * @throws {Error} - If the request is invalid or the server returns an error
+       */
+      async webSearch(request) {
+        if (!request.query || request.query.length === 0) {
+          throw new Error("Query is required");
+        }
+        const response = await post(this.fetch, `https://ollama.com/api/web_search`, { ...request }, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Fetches a single page using the Ollama web fetch API
+       * @param request {WebFetchRequest} - The fetch request containing a URL
+       * @returns {Promise<WebFetchResponse>} - The fetch result
+       * @throws {Error} - If the request is invalid or the server returns an error
+       */
+      async webFetch(request) {
+        if (!request.url || request.url.length === 0) {
+          throw new Error("URL is required");
+        }
+        const response = await post(this.fetch, `https://ollama.com/api/web_fetch`, { ...request }, { headers: this.config.headers });
+        return await response.json();
+      }
+    };
+    browser = new Ollama$1();
+  }
+});
+
+// node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/index.mjs
+var import_node_fs, import_node_path, import_whatwg_fetch2, Ollama2, index;
+var init_dist = __esm({
+  "node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/index.mjs"() {
+    import_node_fs = __toESM(require("node:fs"), 1);
+    import_node_path = require("node:path");
+    init_browser();
+    import_whatwg_fetch2 = __toESM(require_fetch_umd(), 1);
+    Ollama2 = class extends Ollama$1 {
+      async encodeImage(image) {
+        if (typeof image !== "string") {
+          return Buffer.from(image).toString("base64");
+        }
+        try {
+          if (import_node_fs.default.existsSync(image)) {
+            const fileBuffer = await import_node_fs.promises.readFile((0, import_node_path.resolve)(image));
+            return Buffer.from(fileBuffer).toString("base64");
+          }
+        } catch {
+        }
+        return image;
+      }
+      /**
+       * checks if a file exists
+       * @param path {string} - The path to the file
+       * @private @internal
+       * @returns {Promise<boolean>} - Whether the file exists or not
+       */
+      async fileExists(path2) {
+        try {
+          await import_node_fs.promises.access(path2);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      async create(request) {
+        if (request.from && await this.fileExists((0, import_node_path.resolve)(request.from))) {
+          throw Error("Creating with a local path is not currently supported from ollama-js");
+        }
+        if (request.stream) {
+          return super.create(request);
+        } else {
+          return super.create(request);
+        }
+      }
+    };
+    index = new Ollama2();
+  }
+});
+
+// packages/core/llm/ollama-provider.ts
+var ollama_provider_exports = {};
+__export(ollama_provider_exports, {
+  OllamaProvider: () => OllamaProvider
+});
+function isLocalhost(url) {
+  try {
+    const parsed = new URL(url);
+    const hostname2 = parsed.hostname;
+    return hostname2 === "localhost" || hostname2 === "127.0.0.1" || hostname2 === "::1";
+  } catch {
+    return false;
+  }
+}
+function isEmbeddingModel(name) {
+  const lower = name.toLowerCase();
+  return EMBEDDING_MODEL_FAMILIES.some((family) => lower.includes(family));
+}
+var EMBEDDING_MODEL_FAMILIES, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS, NS_TO_MS, OllamaProvider;
+var init_ollama_provider = __esm({
+  "packages/core/llm/ollama-provider.ts"() {
+    "use strict";
+    init_dist();
+    EMBEDDING_MODEL_FAMILIES = ["nomic-embed", "all-minilm", "mxbai-embed", "snowflake-arctic-embed"];
+    DEFAULT_TEMPERATURE = 0.7;
+    DEFAULT_MAX_TOKENS = 2048;
+    NS_TO_MS = 1e6;
+    OllamaProvider = class {
+      client;
+      baseUrl;
+      constructor(config) {
+        this.baseUrl = config?.baseUrl ?? "http://localhost:11434";
+        if (!isLocalhost(this.baseUrl)) {
+          throw new Error(
+            `[OllamaProvider] SECURITY: Refused non-localhost URL "${this.baseUrl}". The Ollama provider may ONLY connect to localhost. This is a hard safety constraint \u2014 no data may leave this device.`
+          );
+        }
+        this.client = new Ollama2({ host: this.baseUrl });
+      }
+      async isAvailable() {
+        try {
+          await this.client.list();
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      async generate(request) {
+        const startMs = Date.now();
+        const response = await this.client.generate({
+          model: request.model,
+          prompt: request.prompt,
+          system: request.system,
+          stream: false,
+          format: request.format,
+          options: {
+            temperature: request.temperature ?? DEFAULT_TEMPERATURE,
+            num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+            stop: request.stop
+          }
+        });
+        return {
+          text: response.response,
+          model: response.model,
+          tokensUsed: {
+            prompt: response.prompt_eval_count ?? 0,
+            completion: response.eval_count ?? 0,
+            total: (response.prompt_eval_count ?? 0) + (response.eval_count ?? 0)
+          },
+          durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs
+        };
+      }
+      async chat(request) {
+        const startMs = Date.now();
+        const ollamaTools = request.tools?.map((tool) => ({
+          type: "function",
+          function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters
+          }
+        }));
+        const messages = request.messages.map((m) => ({
+          role: m.role,
+          content: m.content
+        }));
+        const response = await this.client.chat({
+          model: request.model,
+          messages,
+          stream: false,
+          format: request.format,
+          tools: ollamaTools,
+          options: {
+            temperature: request.temperature ?? DEFAULT_TEMPERATURE,
+            num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+            stop: request.stop
+          }
+        });
+        let toolCalls;
+        if (response.message.tool_calls && response.message.tool_calls.length > 0) {
+          toolCalls = response.message.tool_calls.map((tc) => ({
+            name: tc.function.name,
+            arguments: tc.function.arguments
+          }));
+        }
+        return {
+          message: {
+            role: response.message.role,
+            content: response.message.content
+          },
+          model: response.model,
+          tokensUsed: {
+            prompt: response.prompt_eval_count ?? 0,
+            completion: response.eval_count ?? 0,
+            total: (response.prompt_eval_count ?? 0) + (response.eval_count ?? 0)
+          },
+          durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs,
+          toolCalls
+        };
+      }
+      // AUTONOMOUS DECISION: Added chatStream() for real-time token streaming.
+      // Reasoning: The build prompt (STEP-4B) requires "tokens stream in real-time —
+      // the user sees words appearing, not a loading spinner followed by a wall of text."
+      // The existing chat() method uses stream: false. This is a minimal addition that
+      // enables the desktop sidecar to stream tokens to the frontend.
+      // Escalation check: Build prompt authorizes minimal Core bug fixes for blocking issues.
+      async *chatStream(request) {
+        const messages = request.messages.map((m) => ({
+          role: m.role,
+          content: m.content
+        }));
+        const response = await this.client.chat({
+          model: request.model,
+          messages,
+          stream: true,
+          options: {
+            temperature: request.temperature ?? DEFAULT_TEMPERATURE,
+            num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+            stop: request.stop
+          }
+        });
+        for await (const chunk2 of response) {
+          if (chunk2.message?.content) {
+            yield chunk2.message.content;
+          }
+        }
+      }
+      async embed(request) {
+        const startMs = Date.now();
+        const response = await this.client.embed({
+          model: request.model,
+          input: request.input
+        });
+        return {
+          embeddings: response.embeddings,
+          model: response.model,
+          durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs
+        };
+      }
+      async listModels() {
+        const response = await this.client.list();
+        return response.models.map((m) => ({
+          name: m.name,
+          size: m.size,
+          parameterCount: m.details?.parameter_size,
+          quantization: m.details?.quantization_level,
+          family: m.details?.family,
+          isEmbedding: isEmbeddingModel(m.name)
+        }));
+      }
+      async getModel(name) {
+        try {
+          const response = await this.client.show({ model: name });
+          return {
+            name,
+            size: 0,
+            // show() doesn't return size directly
+            parameterCount: response.details?.parameter_size,
+            quantization: response.details?.quantization_level,
+            family: response.details?.family,
+            isEmbedding: isEmbeddingModel(name)
+          };
+        } catch {
+          return null;
+        }
+      }
+    };
+  }
+});
+
+// packages/core/llm/inference-types.ts
+var TASK_TIER_MAP;
+var init_inference_types = __esm({
+  "packages/core/llm/inference-types.ts"() {
+    "use strict";
+    TASK_TIER_MAP = {
+      classify: "fast",
+      extract: "primary",
+      draft: "primary",
+      generate: "primary",
+      reason: "quality",
+      embed: "embedding"
+    };
+  }
+});
+
+// packages/core/llm/inference-router.ts
+var inference_router_exports = {};
+__export(inference_router_exports, {
+  InferenceRouter: () => InferenceRouter
+});
+var InferenceRouter;
+var init_inference_router = __esm({
+  "packages/core/llm/inference-router.ts"() {
+    "use strict";
+    init_inference_types();
+    InferenceRouter = class {
+      reasoningProvider;
+      embeddingProvider;
+      reasoningModel;
+      embeddingModel;
+      platform;
+      mobileProvider;
+      mobileReasoningModel;
+      mobileEmbeddingModel;
+      constructor(config) {
+        this.reasoningProvider = config.reasoningProvider;
+        this.embeddingProvider = config.embeddingProvider;
+        this.reasoningModel = config.reasoningModel;
+        this.embeddingModel = config.embeddingModel;
+        this.platform = config.platform ?? "desktop";
+        this.mobileProvider = config.mobileProvider ?? null;
+        this.mobileReasoningModel = config.mobileReasoningModel ?? null;
+        this.mobileEmbeddingModel = config.mobileEmbeddingModel ?? null;
+      }
+      // ─── LLMProvider Interface ───────────────────────────────────────────────
+      async isAvailable() {
+        const [reasoning, embedding] = await Promise.all([
+          this.reasoningProvider.isAvailable().catch(() => false),
+          this.embeddingProvider.isAvailable().catch(() => false)
+        ]);
+        return reasoning || embedding;
+      }
+      async generate(request) {
+        const provider = this.getProviderForTier("primary");
+        return provider.generate({
+          ...request,
+          model: request.model || this.reasoningModel
+        });
+      }
+      async chat(request) {
+        const provider = this.getProviderForTier("primary");
+        return provider.chat({
+          ...request,
+          model: request.model || this.reasoningModel
+        });
+      }
+      async *chatStream(request) {
+        const provider = this.getProviderForTier("primary");
+        if (provider.chatStream) {
+          yield* provider.chatStream({
+            ...request,
+            model: request.model || this.reasoningModel
+          });
+        } else {
+          const response = await provider.chat({
+            ...request,
+            model: request.model || this.reasoningModel
+          });
+          yield response.message.content;
+        }
+      }
+      async embed(request) {
+        return this.embeddingProvider.embed({
+          ...request,
+          model: request.model || this.embeddingModel
+        });
+      }
+      async listModels() {
+        const [reasoning, embedding] = await Promise.all([
+          this.reasoningProvider.listModels().catch(() => []),
+          this.embeddingProvider.listModels().catch(() => [])
+        ]);
+        const seen = /* @__PURE__ */ new Set();
+        const models = [];
+        for (const model of [...reasoning, ...embedding]) {
+          if (!seen.has(model.name)) {
+            seen.add(model.name);
+            models.push(model);
+          }
+        }
+        return models;
+      }
+      async getModel(name) {
+        const result2 = await this.reasoningProvider.getModel(name);
+        if (result2) return result2;
+        return this.embeddingProvider.getModel(name);
+      }
+      // ─── Task-Aware Routing ───────────────────────────────────────────────────
+      /**
+       * Route a chat request based on task type.
+       * Uses TASK_TIER_MAP to select the appropriate tier, with fallback.
+       */
+      async routedChat(request, taskType) {
+        const tier = TASK_TIER_MAP[taskType];
+        const provider = this.getProviderForTier(tier);
+        return provider.chat({
+          ...request,
+          model: request.model || this.reasoningModel
+        });
+      }
+      /**
+       * Route a generate request based on task type.
+       */
+      async routedGenerate(request, taskType) {
+        const tier = TASK_TIER_MAP[taskType];
+        const provider = this.getProviderForTier(tier);
+        return provider.generate({
+          ...request,
+          model: request.model || this.reasoningModel
+        });
+      }
+      /**
+       * Get the model name used for a specific task type.
+       */
+      getModelForTask(taskType) {
+        if (taskType === "embed") return this.embeddingModel;
+        return this.reasoningModel;
+      }
+      /**
+       * Get the active reasoning model name.
+       */
+      getReasoningModel() {
+        return this.reasoningModel;
+      }
+      /**
+       * Get the active embedding model name.
+       */
+      getEmbeddingModel() {
+        return this.embeddingModel;
+      }
+      /**
+       * Update the reasoning provider (e.g., when switching between Ollama and native).
+       */
+      setReasoningProvider(provider, model) {
+        this.reasoningProvider = provider;
+        this.reasoningModel = model;
+      }
+      /**
+       * Update the embedding provider.
+       */
+      setEmbeddingProvider(provider, model) {
+        this.embeddingProvider = provider;
+        this.embeddingModel = model;
+      }
+      /**
+       * Set or update the mobile provider (used when platform is 'ios' or 'android').
+       */
+      setMobileProvider(provider, reasoningModel, embeddingModel) {
+        this.mobileProvider = provider;
+        this.mobileReasoningModel = reasoningModel;
+        this.mobileEmbeddingModel = embeddingModel;
+      }
+      /**
+       * Get the current platform.
+       */
+      getPlatform() {
+        return this.platform;
+      }
+      /**
+       * Check if this router is running on a mobile platform.
+       */
+      isMobile() {
+        return this.platform === "ios" || this.platform === "android";
+      }
+      /**
+       * Check if the mobile provider is available and ready.
+       */
+      async isMobileReady() {
+        if (!this.mobileProvider) return false;
+        return this.mobileProvider.isAvailable();
+      }
+      // ─── Private ──────────────────────────────────────────────────────────────
+      /**
+       * Get the provider for a given inference tier.
+       * On mobile, uses the mobile provider if available.
+       * On desktop, uses the desktop reasoning/embedding providers.
+       * Embedding tier always uses the dedicated embedding provider for the platform.
+       */
+      getProviderForTier(tier) {
+        if (this.isMobile() && this.mobileProvider) {
+          return this.mobileProvider;
+        }
+        if (tier === "embedding") {
+          return this.embeddingProvider;
+        }
+        return this.reasoningProvider;
+      }
+    };
+  }
+});
+
 // node_modules/.pnpm/xlsx@0.18.5/node_modules/xlsx/dist/cpexcel.js
 var require_cpexcel = __commonJS({
   "node_modules/.pnpm/xlsx@0.18.5/node_modules/xlsx/dist/cpexcel.js"(exports2, module2) {
@@ -233001,7 +233973,7 @@ function normalizeHeaders2(headers) {
   }
 }
 var import_whatwg_fetch3, defaultPort2, defaultHost2, version3, __defProp$12, __defNormalProp$12, __publicField$12, ResponseError2, AbortableAsyncIterator2, checkOk2, readEnvVar2, fetchWithHeaders2, get3, post2, del2, parseJSON2, formatHost2, __defProp3, __defNormalProp2, __publicField2, Ollama$12, browser2;
-var init_browser = __esm({
+var init_browser2 = __esm({
   "node_modules/ollama/dist/browser.mjs"() {
     import_whatwg_fetch3 = __toESM(require_fetch_umd2(), 1);
     defaultPort2 = "11434";
@@ -233497,11 +234469,11 @@ __export(dist_exports, {
   default: () => index2
 });
 var import_node_fs7, import_node_path7, import_whatwg_fetch4, Ollama4, index2;
-var init_dist = __esm({
+var init_dist2 = __esm({
   "node_modules/ollama/dist/index.mjs"() {
     import_node_fs7 = __toESM(require("node:fs"), 1);
     import_node_path7 = require("node:path");
-    init_browser();
+    init_browser2();
     import_whatwg_fetch4 = __toESM(require_fetch_umd2(), 1);
     Ollama4 = class extends Ollama$12 {
       async encodeImage(image) {
@@ -233586,745 +234558,8 @@ function nanoid(size2 = 21) {
 // packages/core/index.ts
 init_platform();
 
-// node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/index.mjs
-var import_node_fs = __toESM(require("node:fs"), 1);
-var import_node_path = require("node:path");
-
-// node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/browser.mjs
-var import_whatwg_fetch = __toESM(require_fetch_umd(), 1);
-var defaultPort = "11434";
-var defaultHost = `http://127.0.0.1:${defaultPort}`;
-var version = "0.6.3";
-var __defProp$1 = Object.defineProperty;
-var __defNormalProp$1 = (obj2, key, value) => key in obj2 ? __defProp$1(obj2, key, { enumerable: true, configurable: true, writable: true, value }) : obj2[key] = value;
-var __publicField$1 = (obj2, key, value) => {
-  __defNormalProp$1(obj2, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
-var ResponseError = class _ResponseError extends Error {
-  constructor(error, status_code) {
-    super(error);
-    this.error = error;
-    this.status_code = status_code;
-    this.name = "ResponseError";
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, _ResponseError);
-    }
-  }
-};
-var AbortableAsyncIterator = class {
-  constructor(abortController, itr, doneCallback) {
-    __publicField$1(this, "abortController");
-    __publicField$1(this, "itr");
-    __publicField$1(this, "doneCallback");
-    this.abortController = abortController;
-    this.itr = itr;
-    this.doneCallback = doneCallback;
-  }
-  abort() {
-    this.abortController.abort();
-  }
-  async *[Symbol.asyncIterator]() {
-    for await (const message of this.itr) {
-      if ("error" in message) {
-        throw new Error(message.error);
-      }
-      yield message;
-      if (message.done || message.status === "success") {
-        this.doneCallback();
-        return;
-      }
-    }
-    throw new Error("Did not receive done or success response in stream.");
-  }
-};
-var checkOk = async (response) => {
-  if (response.ok) {
-    return;
-  }
-  let message = `Error ${response.status}: ${response.statusText}`;
-  let errorData = null;
-  if (response.headers.get("content-type")?.includes("application/json")) {
-    try {
-      errorData = await response.json();
-      message = errorData.error || message;
-    } catch (error) {
-      console.log("Failed to parse error response as JSON");
-    }
-  } else {
-    try {
-      console.log("Getting text from response");
-      const textResponse = await response.text();
-      message = textResponse || message;
-    } catch (error) {
-      console.log("Failed to get text from error response");
-    }
-  }
-  throw new ResponseError(message, response.status);
-};
-function getPlatform2() {
-  if (typeof window !== "undefined" && window.navigator) {
-    const nav = navigator;
-    if ("userAgentData" in nav && nav.userAgentData?.platform) {
-      return `${nav.userAgentData.platform.toLowerCase()} Browser/${navigator.userAgent};`;
-    }
-    if (navigator.platform) {
-      return `${navigator.platform.toLowerCase()} Browser/${navigator.userAgent};`;
-    }
-    return `unknown Browser/${navigator.userAgent};`;
-  } else if (typeof process !== "undefined") {
-    return `${process.arch} ${process.platform} Node.js/${process.version}`;
-  }
-  return "";
-}
-function normalizeHeaders(headers) {
-  if (headers instanceof Headers) {
-    const obj2 = {};
-    headers.forEach((value, key) => {
-      obj2[key] = value;
-    });
-    return obj2;
-  } else if (Array.isArray(headers)) {
-    return Object.fromEntries(headers);
-  } else {
-    return headers || {};
-  }
-}
-var readEnvVar = (obj2, key) => {
-  return obj2[key];
-};
-var fetchWithHeaders = async (fetch2, url, options = {}) => {
-  const defaultHeaders = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    "User-Agent": `ollama-js/${version} (${getPlatform2()})`
-  };
-  options.headers = normalizeHeaders(options.headers);
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol === "https:" && parsed.hostname === "ollama.com") {
-      const apiKey = typeof process === "object" && process !== null && typeof process.env === "object" && process.env !== null ? readEnvVar(process.env, "OLLAMA_API_KEY") : void 0;
-      const authorization = options.headers["authorization"] || options.headers["Authorization"];
-      if (!authorization && apiKey) {
-        options.headers["Authorization"] = `Bearer ${apiKey}`;
-      }
-    }
-  } catch (error) {
-    console.error("error parsing url", error);
-  }
-  const customHeaders = Object.fromEntries(
-    Object.entries(options.headers).filter(
-      ([key]) => !Object.keys(defaultHeaders).some(
-        (defaultKey) => defaultKey.toLowerCase() === key.toLowerCase()
-      )
-    )
-  );
-  options.headers = {
-    ...defaultHeaders,
-    ...customHeaders
-  };
-  return fetch2(url, options);
-};
-var get = async (fetch2, host, options) => {
-  const response = await fetchWithHeaders(fetch2, host, {
-    headers: options?.headers
-  });
-  await checkOk(response);
-  return response;
-};
-var post = async (fetch2, host, data, options) => {
-  const isRecord = (input) => {
-    return input !== null && typeof input === "object" && !Array.isArray(input);
-  };
-  const formattedData = isRecord(data) ? JSON.stringify(data) : data;
-  const response = await fetchWithHeaders(fetch2, host, {
-    method: "POST",
-    body: formattedData,
-    signal: options?.signal,
-    headers: options?.headers
-  });
-  await checkOk(response);
-  return response;
-};
-var del = async (fetch2, host, data, options) => {
-  const response = await fetchWithHeaders(fetch2, host, {
-    method: "DELETE",
-    body: JSON.stringify(data),
-    headers: options?.headers
-  });
-  await checkOk(response);
-  return response;
-};
-var parseJSON = async function* (itr) {
-  const decoder = new TextDecoder("utf-8");
-  let buffer = "";
-  const reader = itr.getReader();
-  while (true) {
-    const { done, value: chunk2 } = await reader.read();
-    if (done) {
-      break;
-    }
-    buffer += decoder.decode(chunk2, { stream: true });
-    const parts = buffer.split("\n");
-    buffer = parts.pop() ?? "";
-    for (const part of parts) {
-      try {
-        yield JSON.parse(part);
-      } catch (error) {
-        console.warn("invalid json: ", part);
-      }
-    }
-  }
-  buffer += decoder.decode();
-  for (const part of buffer.split("\n").filter((p) => p !== "")) {
-    try {
-      yield JSON.parse(part);
-    } catch (error) {
-      console.warn("invalid json: ", part);
-    }
-  }
-};
-var formatHost = (host) => {
-  if (!host) {
-    return defaultHost;
-  }
-  let isExplicitProtocol = host.includes("://");
-  if (host.startsWith(":")) {
-    host = `http://127.0.0.1${host}`;
-    isExplicitProtocol = true;
-  }
-  if (!isExplicitProtocol) {
-    host = `http://${host}`;
-  }
-  const url = new URL(host);
-  let port = url.port;
-  if (!port) {
-    if (!isExplicitProtocol) {
-      port = defaultPort;
-    } else {
-      port = url.protocol === "https:" ? "443" : "80";
-    }
-  }
-  let auth = "";
-  if (url.username) {
-    auth = url.username;
-    if (url.password) {
-      auth += `:${url.password}`;
-    }
-    auth += "@";
-  }
-  let formattedHost = `${url.protocol}//${auth}${url.hostname}:${port}${url.pathname}`;
-  if (formattedHost.endsWith("/")) {
-    formattedHost = formattedHost.slice(0, -1);
-  }
-  return formattedHost;
-};
-var __defProp2 = Object.defineProperty;
-var __defNormalProp = (obj2, key, value) => key in obj2 ? __defProp2(obj2, key, { enumerable: true, configurable: true, writable: true, value }) : obj2[key] = value;
-var __publicField = (obj2, key, value) => {
-  __defNormalProp(obj2, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
-var Ollama$1 = class Ollama {
-  constructor(config) {
-    __publicField(this, "config");
-    __publicField(this, "fetch");
-    __publicField(this, "ongoingStreamedRequests", []);
-    this.config = {
-      host: "",
-      headers: config?.headers
-    };
-    if (!config?.proxy) {
-      this.config.host = formatHost(config?.host ?? defaultHost);
-    }
-    this.fetch = config?.fetch ?? fetch;
-  }
-  // Abort any ongoing streamed requests to Ollama
-  abort() {
-    for (const request of this.ongoingStreamedRequests) {
-      request.abort();
-    }
-    this.ongoingStreamedRequests.length = 0;
-  }
-  /**
-   * Processes a request to the Ollama server. If the request is streamable, it will return a
-   * AbortableAsyncIterator that yields the response messages. Otherwise, it will return the response
-   * object.
-   * @param endpoint {string} - The endpoint to send the request to.
-   * @param request {object} - The request object to send to the endpoint.
-   * @protected {T | AbortableAsyncIterator<T>} - The response object or a AbortableAsyncIterator that yields
-   * response messages.
-   * @throws {Error} - If the response body is missing or if the response is an error.
-   * @returns {Promise<T | AbortableAsyncIterator<T>>} - The response object or a AbortableAsyncIterator that yields the streamed response.
-   */
-  async processStreamableRequest(endpoint, request) {
-    request.stream = request.stream ?? false;
-    const host = `${this.config.host}/api/${endpoint}`;
-    if (request.stream) {
-      const abortController = new AbortController();
-      const response2 = await post(this.fetch, host, request, {
-        signal: abortController.signal,
-        headers: this.config.headers
-      });
-      if (!response2.body) {
-        throw new Error("Missing body");
-      }
-      const itr = parseJSON(response2.body);
-      const abortableAsyncIterator = new AbortableAsyncIterator(
-        abortController,
-        itr,
-        () => {
-          const i = this.ongoingStreamedRequests.indexOf(abortableAsyncIterator);
-          if (i > -1) {
-            this.ongoingStreamedRequests.splice(i, 1);
-          }
-        }
-      );
-      this.ongoingStreamedRequests.push(abortableAsyncIterator);
-      return abortableAsyncIterator;
-    }
-    const response = await post(this.fetch, host, request, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Encodes an image to base64 if it is a Uint8Array.
-   * @param image {Uint8Array | string} - The image to encode.
-   * @returns {Promise<string>} - The base64 encoded image.
-   */
-  async encodeImage(image) {
-    if (typeof image !== "string") {
-      const uint8Array = new Uint8Array(image);
-      let byteString = "";
-      const len = uint8Array.byteLength;
-      for (let i = 0; i < len; i++) {
-        byteString += String.fromCharCode(uint8Array[i]);
-      }
-      return btoa(byteString);
-    }
-    return image;
-  }
-  /**
-   * Generates a response from a text prompt.
-   * @param request {GenerateRequest} - The request object.
-   * @returns {Promise<GenerateResponse | AbortableAsyncIterator<GenerateResponse>>} - The response object or
-   * an AbortableAsyncIterator that yields response messages.
-   */
-  async generate(request) {
-    if (request.images) {
-      request.images = await Promise.all(request.images.map(this.encodeImage.bind(this)));
-    }
-    return this.processStreamableRequest("generate", request);
-  }
-  /**
-   * Chats with the model. The request object can contain messages with images that are either
-   * Uint8Arrays or base64 encoded strings. The images will be base64 encoded before sending the
-   * request.
-   * @param request {ChatRequest} - The request object.
-   * @returns {Promise<ChatResponse | AbortableAsyncIterator<ChatResponse>>} - The response object or an
-   * AbortableAsyncIterator that yields response messages.
-   */
-  async chat(request) {
-    if (request.messages) {
-      for (const message of request.messages) {
-        if (message.images) {
-          message.images = await Promise.all(
-            message.images.map(this.encodeImage.bind(this))
-          );
-        }
-      }
-    }
-    return this.processStreamableRequest("chat", request);
-  }
-  /**
-   * Creates a new model from a stream of data.
-   * @param request {CreateRequest} - The request object.
-   * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or a stream of progress responses.
-   */
-  async create(request) {
-    return this.processStreamableRequest("create", {
-      ...request
-    });
-  }
-  /**
-   * Pulls a model from the Ollama registry. The request object can contain a stream flag to indicate if the
-   * response should be streamed.
-   * @param request {PullRequest} - The request object.
-   * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or
-   * an AbortableAsyncIterator that yields response messages.
-   */
-  async pull(request) {
-    return this.processStreamableRequest("pull", {
-      name: request.model,
-      stream: request.stream,
-      insecure: request.insecure
-    });
-  }
-  /**
-   * Pushes a model to the Ollama registry. The request object can contain a stream flag to indicate if the
-   * response should be streamed.
-   * @param request {PushRequest} - The request object.
-   * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or
-   * an AbortableAsyncIterator that yields response messages.
-   */
-  async push(request) {
-    return this.processStreamableRequest("push", {
-      name: request.model,
-      stream: request.stream,
-      insecure: request.insecure
-    });
-  }
-  /**
-   * Deletes a model from the server. The request object should contain the name of the model to
-   * delete.
-   * @param request {DeleteRequest} - The request object.
-   * @returns {Promise<StatusResponse>} - The response object.
-   */
-  async delete(request) {
-    await del(
-      this.fetch,
-      `${this.config.host}/api/delete`,
-      { name: request.model },
-      { headers: this.config.headers }
-    );
-    return { status: "success" };
-  }
-  /**
-   * Copies a model from one name to another. The request object should contain the name of the
-   * model to copy and the new name.
-   * @param request {CopyRequest} - The request object.
-   * @returns {Promise<StatusResponse>} - The response object.
-   */
-  async copy(request) {
-    await post(this.fetch, `${this.config.host}/api/copy`, { ...request }, {
-      headers: this.config.headers
-    });
-    return { status: "success" };
-  }
-  /**
-   * Lists the models on the server.
-   * @returns {Promise<ListResponse>} - The response object.
-   * @throws {Error} - If the response body is missing.
-   */
-  async list() {
-    const response = await get(this.fetch, `${this.config.host}/api/tags`, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Shows the metadata of a model. The request object should contain the name of the model.
-   * @param request {ShowRequest} - The request object.
-   * @returns {Promise<ShowResponse>} - The response object.
-   */
-  async show(request) {
-    const response = await post(this.fetch, `${this.config.host}/api/show`, {
-      ...request
-    }, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Embeds text input into vectors.
-   * @param request {EmbedRequest} - The request object.
-   * @returns {Promise<EmbedResponse>} - The response object.
-   */
-  async embed(request) {
-    const response = await post(this.fetch, `${this.config.host}/api/embed`, {
-      ...request
-    }, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Embeds a text prompt into a vector.
-   * @param request {EmbeddingsRequest} - The request object.
-   * @returns {Promise<EmbeddingsResponse>} - The response object.
-   */
-  async embeddings(request) {
-    const response = await post(this.fetch, `${this.config.host}/api/embeddings`, {
-      ...request
-    }, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Lists the running models on the server
-   * @returns {Promise<ListResponse>} - The response object.
-   * @throws {Error} - If the response body is missing.
-   */
-  async ps() {
-    const response = await get(this.fetch, `${this.config.host}/api/ps`, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Returns the Ollama server version.
-   * @returns {Promise<VersionResponse>} - The server version object.
-   */
-  async version() {
-    const response = await get(this.fetch, `${this.config.host}/api/version`, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Performs web search using the Ollama web search API
-   * @param request {WebSearchRequest} - The search request containing query and options
-   * @returns {Promise<WebSearchResponse>} - The search results
-   * @throws {Error} - If the request is invalid or the server returns an error
-   */
-  async webSearch(request) {
-    if (!request.query || request.query.length === 0) {
-      throw new Error("Query is required");
-    }
-    const response = await post(this.fetch, `https://ollama.com/api/web_search`, { ...request }, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Fetches a single page using the Ollama web fetch API
-   * @param request {WebFetchRequest} - The fetch request containing a URL
-   * @returns {Promise<WebFetchResponse>} - The fetch result
-   * @throws {Error} - If the request is invalid or the server returns an error
-   */
-  async webFetch(request) {
-    if (!request.url || request.url.length === 0) {
-      throw new Error("URL is required");
-    }
-    const response = await post(this.fetch, `https://ollama.com/api/web_fetch`, { ...request }, { headers: this.config.headers });
-    return await response.json();
-  }
-};
-var browser = new Ollama$1();
-
-// node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/index.mjs
-var import_whatwg_fetch2 = __toESM(require_fetch_umd(), 1);
-var Ollama2 = class extends Ollama$1 {
-  async encodeImage(image) {
-    if (typeof image !== "string") {
-      return Buffer.from(image).toString("base64");
-    }
-    try {
-      if (import_node_fs.default.existsSync(image)) {
-        const fileBuffer = await import_node_fs.promises.readFile((0, import_node_path.resolve)(image));
-        return Buffer.from(fileBuffer).toString("base64");
-      }
-    } catch {
-    }
-    return image;
-  }
-  /**
-   * checks if a file exists
-   * @param path {string} - The path to the file
-   * @private @internal
-   * @returns {Promise<boolean>} - Whether the file exists or not
-   */
-  async fileExists(path2) {
-    try {
-      await import_node_fs.promises.access(path2);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  async create(request) {
-    if (request.from && await this.fileExists((0, import_node_path.resolve)(request.from))) {
-      throw Error("Creating with a local path is not currently supported from ollama-js");
-    }
-    if (request.stream) {
-      return super.create(request);
-    } else {
-      return super.create(request);
-    }
-  }
-};
-var index = new Ollama2();
-
-// packages/core/llm/ollama-provider.ts
-var EMBEDDING_MODEL_FAMILIES = ["nomic-embed", "all-minilm", "mxbai-embed", "snowflake-arctic-embed"];
-var DEFAULT_TEMPERATURE = 0.7;
-var DEFAULT_MAX_TOKENS = 2048;
-var NS_TO_MS = 1e6;
-function isLocalhost(url) {
-  try {
-    const parsed = new URL(url);
-    const hostname2 = parsed.hostname;
-    return hostname2 === "localhost" || hostname2 === "127.0.0.1" || hostname2 === "::1";
-  } catch {
-    return false;
-  }
-}
-function isEmbeddingModel(name) {
-  const lower = name.toLowerCase();
-  return EMBEDDING_MODEL_FAMILIES.some((family) => lower.includes(family));
-}
-var OllamaProvider = class {
-  client;
-  baseUrl;
-  constructor(config) {
-    this.baseUrl = config?.baseUrl ?? "http://localhost:11434";
-    if (!isLocalhost(this.baseUrl)) {
-      throw new Error(
-        `[OllamaProvider] SECURITY: Refused non-localhost URL "${this.baseUrl}". The Ollama provider may ONLY connect to localhost. This is a hard safety constraint \u2014 no data may leave this device.`
-      );
-    }
-    this.client = new Ollama2({ host: this.baseUrl });
-  }
-  async isAvailable() {
-    try {
-      await this.client.list();
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  async generate(request) {
-    const startMs = Date.now();
-    const response = await this.client.generate({
-      model: request.model,
-      prompt: request.prompt,
-      system: request.system,
-      stream: false,
-      format: request.format,
-      options: {
-        temperature: request.temperature ?? DEFAULT_TEMPERATURE,
-        num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-        stop: request.stop
-      }
-    });
-    return {
-      text: response.response,
-      model: response.model,
-      tokensUsed: {
-        prompt: response.prompt_eval_count ?? 0,
-        completion: response.eval_count ?? 0,
-        total: (response.prompt_eval_count ?? 0) + (response.eval_count ?? 0)
-      },
-      durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs
-    };
-  }
-  async chat(request) {
-    const startMs = Date.now();
-    const ollamaTools = request.tools?.map((tool) => ({
-      type: "function",
-      function: {
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters
-      }
-    }));
-    const messages = request.messages.map((m) => ({
-      role: m.role,
-      content: m.content
-    }));
-    const response = await this.client.chat({
-      model: request.model,
-      messages,
-      stream: false,
-      format: request.format,
-      tools: ollamaTools,
-      options: {
-        temperature: request.temperature ?? DEFAULT_TEMPERATURE,
-        num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-        stop: request.stop
-      }
-    });
-    let toolCalls;
-    if (response.message.tool_calls && response.message.tool_calls.length > 0) {
-      toolCalls = response.message.tool_calls.map((tc) => ({
-        name: tc.function.name,
-        arguments: tc.function.arguments
-      }));
-    }
-    return {
-      message: {
-        role: response.message.role,
-        content: response.message.content
-      },
-      model: response.model,
-      tokensUsed: {
-        prompt: response.prompt_eval_count ?? 0,
-        completion: response.eval_count ?? 0,
-        total: (response.prompt_eval_count ?? 0) + (response.eval_count ?? 0)
-      },
-      durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs,
-      toolCalls
-    };
-  }
-  // AUTONOMOUS DECISION: Added chatStream() for real-time token streaming.
-  // Reasoning: The build prompt (STEP-4B) requires "tokens stream in real-time —
-  // the user sees words appearing, not a loading spinner followed by a wall of text."
-  // The existing chat() method uses stream: false. This is a minimal addition that
-  // enables the desktop sidecar to stream tokens to the frontend.
-  // Escalation check: Build prompt authorizes minimal Core bug fixes for blocking issues.
-  async *chatStream(request) {
-    const messages = request.messages.map((m) => ({
-      role: m.role,
-      content: m.content
-    }));
-    const response = await this.client.chat({
-      model: request.model,
-      messages,
-      stream: true,
-      options: {
-        temperature: request.temperature ?? DEFAULT_TEMPERATURE,
-        num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-        stop: request.stop
-      }
-    });
-    for await (const chunk2 of response) {
-      if (chunk2.message?.content) {
-        yield chunk2.message.content;
-      }
-    }
-  }
-  async embed(request) {
-    const startMs = Date.now();
-    const response = await this.client.embed({
-      model: request.model,
-      input: request.input
-    });
-    return {
-      embeddings: response.embeddings,
-      model: response.model,
-      durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs
-    };
-  }
-  async listModels() {
-    const response = await this.client.list();
-    return response.models.map((m) => ({
-      name: m.name,
-      size: m.size,
-      parameterCount: m.details?.parameter_size,
-      quantization: m.details?.quantization_level,
-      family: m.details?.family,
-      isEmbedding: isEmbeddingModel(m.name)
-    }));
-  }
-  async getModel(name) {
-    try {
-      const response = await this.client.show({ model: name });
-      return {
-        name,
-        size: 0,
-        // show() doesn't return size directly
-        parameterCount: response.details?.parameter_size,
-        quantization: response.details?.quantization_level,
-        family: response.details?.family,
-        isEmbedding: isEmbeddingModel(name)
-      };
-    } catch {
-      return null;
-    }
-  }
-};
+// packages/core/llm/index.ts
+init_ollama_provider();
 
 // packages/core/llm/model-manager.ts
 init_platform();
@@ -234846,202 +235081,11 @@ ${msg.content}
   }
 };
 
-// packages/core/llm/inference-types.ts
-var TASK_TIER_MAP = {
-  classify: "fast",
-  extract: "primary",
-  draft: "primary",
-  generate: "primary",
-  reason: "quality",
-  embed: "embedding"
-};
-
-// packages/core/llm/inference-router.ts
-var InferenceRouter = class {
-  reasoningProvider;
-  embeddingProvider;
-  reasoningModel;
-  embeddingModel;
-  platform;
-  mobileProvider;
-  mobileReasoningModel;
-  mobileEmbeddingModel;
-  constructor(config) {
-    this.reasoningProvider = config.reasoningProvider;
-    this.embeddingProvider = config.embeddingProvider;
-    this.reasoningModel = config.reasoningModel;
-    this.embeddingModel = config.embeddingModel;
-    this.platform = config.platform ?? "desktop";
-    this.mobileProvider = config.mobileProvider ?? null;
-    this.mobileReasoningModel = config.mobileReasoningModel ?? null;
-    this.mobileEmbeddingModel = config.mobileEmbeddingModel ?? null;
-  }
-  // ─── LLMProvider Interface ───────────────────────────────────────────────
-  async isAvailable() {
-    const [reasoning, embedding] = await Promise.all([
-      this.reasoningProvider.isAvailable().catch(() => false),
-      this.embeddingProvider.isAvailable().catch(() => false)
-    ]);
-    return reasoning || embedding;
-  }
-  async generate(request) {
-    const provider = this.getProviderForTier("primary");
-    return provider.generate({
-      ...request,
-      model: request.model || this.reasoningModel
-    });
-  }
-  async chat(request) {
-    const provider = this.getProviderForTier("primary");
-    return provider.chat({
-      ...request,
-      model: request.model || this.reasoningModel
-    });
-  }
-  async *chatStream(request) {
-    const provider = this.getProviderForTier("primary");
-    if (provider.chatStream) {
-      yield* provider.chatStream({
-        ...request,
-        model: request.model || this.reasoningModel
-      });
-    } else {
-      const response = await provider.chat({
-        ...request,
-        model: request.model || this.reasoningModel
-      });
-      yield response.message.content;
-    }
-  }
-  async embed(request) {
-    return this.embeddingProvider.embed({
-      ...request,
-      model: request.model || this.embeddingModel
-    });
-  }
-  async listModels() {
-    const [reasoning, embedding] = await Promise.all([
-      this.reasoningProvider.listModels().catch(() => []),
-      this.embeddingProvider.listModels().catch(() => [])
-    ]);
-    const seen = /* @__PURE__ */ new Set();
-    const models = [];
-    for (const model of [...reasoning, ...embedding]) {
-      if (!seen.has(model.name)) {
-        seen.add(model.name);
-        models.push(model);
-      }
-    }
-    return models;
-  }
-  async getModel(name) {
-    const result2 = await this.reasoningProvider.getModel(name);
-    if (result2) return result2;
-    return this.embeddingProvider.getModel(name);
-  }
-  // ─── Task-Aware Routing ───────────────────────────────────────────────────
-  /**
-   * Route a chat request based on task type.
-   * Uses TASK_TIER_MAP to select the appropriate tier, with fallback.
-   */
-  async routedChat(request, taskType) {
-    const tier = TASK_TIER_MAP[taskType];
-    const provider = this.getProviderForTier(tier);
-    return provider.chat({
-      ...request,
-      model: request.model || this.reasoningModel
-    });
-  }
-  /**
-   * Route a generate request based on task type.
-   */
-  async routedGenerate(request, taskType) {
-    const tier = TASK_TIER_MAP[taskType];
-    const provider = this.getProviderForTier(tier);
-    return provider.generate({
-      ...request,
-      model: request.model || this.reasoningModel
-    });
-  }
-  /**
-   * Get the model name used for a specific task type.
-   */
-  getModelForTask(taskType) {
-    if (taskType === "embed") return this.embeddingModel;
-    return this.reasoningModel;
-  }
-  /**
-   * Get the active reasoning model name.
-   */
-  getReasoningModel() {
-    return this.reasoningModel;
-  }
-  /**
-   * Get the active embedding model name.
-   */
-  getEmbeddingModel() {
-    return this.embeddingModel;
-  }
-  /**
-   * Update the reasoning provider (e.g., when switching between Ollama and native).
-   */
-  setReasoningProvider(provider, model) {
-    this.reasoningProvider = provider;
-    this.reasoningModel = model;
-  }
-  /**
-   * Update the embedding provider.
-   */
-  setEmbeddingProvider(provider, model) {
-    this.embeddingProvider = provider;
-    this.embeddingModel = model;
-  }
-  /**
-   * Set or update the mobile provider (used when platform is 'ios' or 'android').
-   */
-  setMobileProvider(provider, reasoningModel, embeddingModel) {
-    this.mobileProvider = provider;
-    this.mobileReasoningModel = reasoningModel;
-    this.mobileEmbeddingModel = embeddingModel;
-  }
-  /**
-   * Get the current platform.
-   */
-  getPlatform() {
-    return this.platform;
-  }
-  /**
-   * Check if this router is running on a mobile platform.
-   */
-  isMobile() {
-    return this.platform === "ios" || this.platform === "android";
-  }
-  /**
-   * Check if the mobile provider is available and ready.
-   */
-  async isMobileReady() {
-    if (!this.mobileProvider) return false;
-    return this.mobileProvider.isAvailable();
-  }
-  // ─── Private ──────────────────────────────────────────────────────────────
-  /**
-   * Get the provider for a given inference tier.
-   * On mobile, uses the mobile provider if available.
-   * On desktop, uses the desktop reasoning/embedding providers.
-   * Embedding tier always uses the dedicated embedding provider for the platform.
-   */
-  getProviderForTier(tier) {
-    if (this.isMobile() && this.mobileProvider) {
-      return this.mobileProvider;
-    }
-    if (tier === "embedding") {
-      return this.embeddingProvider;
-    }
-    return this.reasoningProvider;
-  }
-};
-
 // packages/core/llm/index.ts
+init_inference_router();
+init_inference_types();
+init_ollama_provider();
+init_inference_router();
 function createLLMProvider(config) {
   const runtime = config && "runtime" in config ? config.runtime : "ollama";
   const baseUrl = config && "baseUrl" in config ? config.baseUrl : void 0;
@@ -267240,7 +267284,7 @@ function respond(id, result2) {
 function respondError(id, error) {
   process.stdout.write(JSON.stringify({ id, error }) + "\n");
 }
-var CALLBACK_TIMEOUT_MS = 12e4;
+var CALLBACK_TIMEOUT_MS = 3e5;
 var callbackProtocol = createCallbackProtocol(
   (line) => process.stdout.write(line),
   CALLBACK_TIMEOUT_MS
@@ -267311,14 +267355,14 @@ var nativeRuntimeBridge = {
   async generate(params) {
     const sysLen = (params.systemPrompt ?? "").length;
     const promptLen = params.prompt.length;
-    console.error(`[sidecar] native_generate: system_prompt=${sysLen} chars, prompt=${promptLen} chars, max_tokens=${params.maxTokens ?? 2048}`);
+    console.error(`[sidecar] native_generate: system_prompt=${sysLen} chars, prompt=${promptLen} chars, max_tokens=${params.maxTokens ?? 512}`);
     if (sysLen + promptLen > 2e4) {
       console.error(`[sidecar] WARNING: very large prompt (${sysLen + promptLen} chars) \u2014 may exceed context window`);
     }
     const result2 = await sendCallback("native_generate", {
       prompt: params.prompt,
       system_prompt: params.systemPrompt ?? "",
-      max_tokens: params.maxTokens ?? 2048,
+      max_tokens: params.maxTokens ?? 512,
       temperature: params.temperature ?? 0.7,
       stop: params.stop ?? ["<|im_end|>", "<|endoftext|>"]
     });
@@ -267727,21 +267771,44 @@ async function handleInitialize() {
   } catch {
     console.error("[sidecar] NativeRuntime not available, checking Ollama fallback");
   }
-  if (inferenceEngine === "none" && core) {
+  if (core) {
     let ollamaAvailable = false;
+    let ollamaModels = [];
     try {
-      const { Ollama: Ollama5 } = await Promise.resolve().then(() => (init_dist(), dist_exports));
+      const { Ollama: Ollama5 } = await Promise.resolve().then(() => (init_dist2(), dist_exports));
       const ollamaClient = new Ollama5({ host: "http://localhost:11434" });
-      await ollamaClient.list();
+      const listResponse = await ollamaClient.list();
       ollamaAvailable = true;
+      ollamaModels = listResponse.models.map((m) => m.name);
+      console.error(`[sidecar] Ollama detected with ${ollamaModels.length} models: ${ollamaModels.join(", ")}`);
     } catch {
+      console.error("[sidecar] Ollama not running \u2014 using NativeRuntime for inference");
     }
     if (ollamaAvailable) {
-      inferenceEngine = "ollama";
-      const models = await core.llm.listModels();
-      availableModels = models.filter((m) => !m.isEmbedding).map((m) => m.name);
-      activeModel = await core.models.getActiveChatModel();
-      console.error("[sidecar] Using Ollama as inference backend");
+      const { OllamaProvider: OllamaProvider2 } = await Promise.resolve().then(() => (init_ollama_provider(), ollama_provider_exports));
+      const { InferenceRouter: InferenceRouter2 } = await Promise.resolve().then(() => (init_inference_router(), inference_router_exports));
+      const ollamaProvider = new OllamaProvider2();
+      const router = core.llm;
+      if (router.setReasoningProvider) {
+        const chatModel = await core.models.getActiveChatModel();
+        const ollamaModel = ollamaModels.find((m) => m === chatModel) ?? ollamaModels.find((m) => m.includes("llama3")) ?? ollamaModels.find((m) => !m.includes("embed") && !m.includes("nomic")) ?? ollamaModels[0];
+        if (ollamaModel) {
+          router.setReasoningProvider(ollamaProvider, ollamaModel);
+          core.models.setActiveChatModel(ollamaModel);
+          inferenceEngine = "ollama";
+          activeModel = ollamaModel;
+          availableModels = ollamaModels.filter((m) => !m.includes("embed") && !m.includes("nomic"));
+          console.error(`[sidecar] Switched reasoning to Ollama GPU inference (model: ${ollamaModel})`);
+        } else {
+          console.error("[sidecar] Ollama running but no reasoning models found \u2014 staying on NativeRuntime");
+        }
+      } else {
+        inferenceEngine = "ollama";
+        const models = await core.llm.listModels();
+        availableModels = models.filter((m) => !m.isEmbedding).map((m) => m.name);
+        activeModel = await core.models.getActiveChatModel();
+        console.error("[sidecar] Ollama detected but could not switch reasoning provider");
+      }
     }
   }
   const userName = getPref("user_name");
@@ -267861,7 +267928,7 @@ ${preview}
     if (hasOrchestrator) {
       console.error("[sidecar] Routing through orchestrator (full agent loop)");
       const orchTimeout = new Promise(
-        (_3, reject2) => setTimeout(() => reject2(new Error("Orchestrator timed out after 120s \u2014 the model may be overloaded or the prompt too large")), 12e4)
+        (_3, reject2) => setTimeout(() => reject2(new Error("Orchestrator timed out after 300s \u2014 the model may be overloaded or the prompt too large")), 3e5)
       );
       const orchResult = await Promise.race([
         core.agent.processMessage(augmentedMessage, convId),
@@ -267949,13 +268016,18 @@ async function handleGetOllamaStatus() {
     }
   } catch {
   }
-  if (inferenceEngine === "none" && core) {
-    const ollamaAvailable = await core.llm.isAvailable();
-    if (ollamaAvailable) {
-      inferenceEngine = "ollama";
-      const models = await core.llm.listModels();
-      availableModels = models.filter((m) => !m.isEmbedding).map((m) => m.name);
-      activeModel = await core.models.getActiveChatModel();
+  if (core) {
+    try {
+      const { Ollama: Ollama5 } = await Promise.resolve().then(() => (init_dist2(), dist_exports));
+      const ollamaClient = new Ollama5({ host: "http://localhost:11434" });
+      const listResponse = await ollamaClient.list();
+      const ollamaModels = listResponse.models.map((m) => m.name);
+      if (ollamaModels.length > 0) {
+        inferenceEngine = "ollama";
+        availableModels = ollamaModels.filter((m) => !m.includes("embed") && !m.includes("nomic"));
+        activeModel = await core.models.getActiveChatModel() ?? availableModels[0] ?? null;
+      }
+    } catch {
     }
   }
   return {

@@ -893,8 +893,8 @@ export class GraphRenderer {
 
     // Opacity and scale by glow tier
     const glowTier = tier ?? (isCategory ? 0 : 3);
-    const tierOpacity: Record<number, number> = { 0: 0.45, 1: 0.8, 2: 0.6, 3: 0.4, 4: 0 };
-    const tierScale: Record<number, number> = { 0: 1.6, 1: 1.6, 2: 1.3, 3: 1.0, 4: 1.0 };
+    const tierOpacity: Record<number, number> = { 0: 0.45, 1: 0.8, 2: 0.6, 3: 0.4, 4: 0.25 };
+    const tierScale: Record<number, number> = { 0: 1.6, 1: 1.6, 2: 1.3, 3: 1.0, 4: 0.9 };
 
     const material = new THREE.SpriteMaterial({
       map: texture,
@@ -1225,7 +1225,7 @@ export class GraphRenderer {
           coreMat.opacity = defaultOpacity;
           if ('emissiveIntensity' in coreMat) coreMat.emissiveIntensity = defaultEmissive;
         }
-        const tierOpacity: Record<number, number> = { 0: 0.45, 1: 0.8, 2: 0.6, 3: 0.4, 4: 0 };
+        const tierOpacity: Record<number, number> = { 0: 0.45, 1: 0.8, 2: 0.6, 3: 0.4, 4: 0.25 };
         glowMat.opacity = tierOpacity[nm.glowTier] ?? 0.4;
         if (nm.wireframe) (nm.wireframe.material as THREE.LineDashedMaterial).opacity = 0.6;
         if (nm.countSprite) (nm.countSprite.material as THREE.SpriteMaterial).opacity = 0.95;
@@ -1865,14 +1865,22 @@ export class GraphRenderer {
         this.secondNeighborSet = this.getSecondNeighborIds(nodeId);
         this.updateNodeVisuals();
 
-        // Camera focus
+        // Camera focus with snap animation (same as focusNode/clearSelection)
         const nm = this.nodeMeshes.get(nodeId);
         if (nm) {
           this.targetCameraTarget.copy(nm.group.position);
           this.targetSpherical.radius = 120;
+          this.resetCamera();
+
+          // Click flash: briefly boost glow for 200ms
+          const glowMat = nm.glow.material as THREE.SpriteMaterial;
+          const baseOpacity = glowMat.opacity;
+          glowMat.opacity = 1.0;
+          setTimeout(() => { glowMat.opacity = baseOpacity; }, 200);
         }
 
         this.onNodeSelect?.(nm?.node ?? null);
+        this.wake();
       }
     } else {
       this.clearSelection();

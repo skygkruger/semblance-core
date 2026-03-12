@@ -201,6 +201,18 @@ No cloud sync. No cloud backup. No remote storage of any kind. If the device is 
 
 ---
 
+## Consumer Inference Strategy (Post-Demo Priority)
+
+**Next major initiative after demo + bug fixes.** Canonical plan: `semblence-representative/docs/BITNET_CONSUMER_INFERENCE_PLAN.md` (private repo).
+
+**Summary:** Add BitNet.cpp (Microsoft's 1-bit LLM framework) as the default consumer inference backend. Ships a 2B model (~0.4GB) that runs at 29ms/token on CPU — no GPU, no Ollama, no setup. Slots into the existing InferenceRouter as a new `BitNetProvider` alongside NativeProvider and OllamaProvider. Zero breaking changes to orchestrator, knowledge graph, or frontend.
+
+**Provider priority:** Ollama (GPU) > BitNet (CPU default) > NativeRuntime (fallback).
+
+Do NOT start implementation until demo is complete and critical bugs are resolved.
+
+---
+
 ## Payment & License System
 
 The Semblance app makes zero outbound API calls. Ever.

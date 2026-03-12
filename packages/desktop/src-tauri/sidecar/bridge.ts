@@ -172,7 +172,7 @@ function respondError(id: number | string, error: string): void {
 // Re-exported here for backward compatibility within bridge.ts.
 import { createCallbackProtocol } from './ndjson-callback';
 
-const CALLBACK_TIMEOUT_MS = 120_000; // 2 minutes — model loading can be slow
+const CALLBACK_TIMEOUT_MS = 300_000; // 5 minutes — CPU inference on 7B model is slow
 
 const callbackProtocol = createCallbackProtocol(
   (line: string) => process.stdout.write(line),
@@ -306,14 +306,14 @@ const nativeRuntimeBridge: NativeRuntimeBridge = {
   async generate(params) {
     const sysLen = (params.systemPrompt ?? '').length;
     const promptLen = params.prompt.length;
-    console.error(`[sidecar] native_generate: system_prompt=${sysLen} chars, prompt=${promptLen} chars, max_tokens=${params.maxTokens ?? 2048}`);
+    console.error(`[sidecar] native_generate: system_prompt=${sysLen} chars, prompt=${promptLen} chars, max_tokens=${params.maxTokens ?? 512}`);
     if (sysLen + promptLen > 20000) {
       console.error(`[sidecar] WARNING: very large prompt (${sysLen + promptLen} chars) — may exceed context window`);
     }
     const result = await sendCallback('native_generate', {
       prompt: params.prompt,
       system_prompt: params.systemPrompt ?? '',
-      max_tokens: params.maxTokens ?? 2048,
+      max_tokens: params.maxTokens ?? 512,
       temperature: params.temperature ?? 0.7,
       stop: params.stop ?? ['<|im_end|>', '<|endoftext|>'],
     }) as { text: string; tokens_generated: number; duration_ms: number };
@@ -819,26 +819,58 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] NativeRuntime not available, checking Ollama fallback');
   }
 
-  // Fall back to Ollama if NativeRuntime has no models loaded
-  // Note: Don't use core.llm.isAvailable() here — it re-checks native providers (slow timeout).
-  // Instead check Ollama directly via the OllamaProvider if available.
-  if (inferenceEngine === 'none' && core) {
+  // Check Ollama — ALWAYS check regardless of NativeRuntime status.
+  // Ollama with GPU (e.g. NVIDIA 5090) is dramatically faster than CPU-only NativeRuntime.
+  // When Ollama is available, switch the reasoning provider to Ollama for GPU-accelerated inference
+  // while keeping NativeRuntime for embeddings (small model, already loaded, works fine on CPU).
+  if (core) {
     let ollamaAvailable = false;
+    let ollamaModels: string[] = [];
     try {
-      // Quick Ollama check — just try listing models
       const { Ollama } = await import('ollama');
       const ollamaClient = new Ollama({ host: 'http://localhost:11434' });
-      await ollamaClient.list();
+      const listResponse = await ollamaClient.list();
       ollamaAvailable = true;
+      ollamaModels = listResponse.models.map((m: { name: string }) => m.name);
+      console.error(`[sidecar] Ollama detected with ${ollamaModels.length} models: ${ollamaModels.join(', ')}`);
     } catch {
-      // Ollama not running
+      console.error('[sidecar] Ollama not running — using NativeRuntime for inference');
     }
     if (ollamaAvailable) {
-      inferenceEngine = 'ollama';
-      const models = await core.llm.listModels();
-      availableModels = models.filter(m => !m.isEmbedding).map(m => m.name);
-      activeModel = await core.models.getActiveChatModel();
-      console.error('[sidecar] Using Ollama as inference backend');
+      // Switch reasoning provider to Ollama for GPU-accelerated inference
+      const { OllamaProvider } = await import('../../../core/llm/ollama-provider.js');
+      const { InferenceRouter } = await import('../../../core/llm/inference-router.js');
+      const ollamaProvider = new OllamaProvider();
+
+      // The core.llm is an InferenceRouter — switch its reasoning provider to Ollama
+      const router = core.llm as InstanceType<typeof InferenceRouter>;
+      if (router.setReasoningProvider) {
+        // Determine best available model for reasoning
+        const chatModel = await core.models.getActiveChatModel();
+        // Check if the active chat model exists in Ollama
+        const ollamaModel = ollamaModels.find(m => m === chatModel) ??
+          ollamaModels.find(m => m.includes('llama3')) ??
+          ollamaModels.find(m => !m.includes('embed') && !m.includes('nomic')) ??
+          ollamaModels[0];
+
+        if (ollamaModel) {
+          router.setReasoningProvider(ollamaProvider, ollamaModel);
+          core.models.setActiveChatModel(ollamaModel);
+          inferenceEngine = 'ollama';
+          activeModel = ollamaModel;
+          availableModels = ollamaModels.filter(m => !m.includes('embed') && !m.includes('nomic'));
+          console.error(`[sidecar] Switched reasoning to Ollama GPU inference (model: ${ollamaModel})`);
+        } else {
+          console.error('[sidecar] Ollama running but no reasoning models found — staying on NativeRuntime');
+        }
+      } else {
+        // Fallback: update status but can't switch provider (shouldn't happen)
+        inferenceEngine = 'ollama';
+        const models = await core.llm.listModels();
+        availableModels = models.filter(m => !m.isEmbedding).map(m => m.name);
+        activeModel = await core.models.getActiveChatModel();
+        console.error('[sidecar] Ollama detected but could not switch reasoning provider');
+      }
     }
   }
 
@@ -1015,7 +1047,7 @@ async function handleSendMessage(
 
       // 120s timeout — inference on a 7B model with full tool prompt can take 60-90s
       const orchTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Orchestrator timed out after 120s — the model may be overloaded or the prompt too large')), 120_000)
+        setTimeout(() => reject(new Error('Orchestrator timed out after 300s — the model may be overloaded or the prompt too large')), 300_000)
       );
       const orchResult = await Promise.race([
         core.agent.processMessage(augmentedMessage, convId),
@@ -1129,14 +1161,20 @@ async function handleGetOllamaStatus(): Promise<unknown> {
     // NativeRuntime not available
   }
 
-  // Fall back to Ollama
-  if (inferenceEngine === 'none' && core) {
-    const ollamaAvailable = await core.llm.isAvailable();
-    if (ollamaAvailable) {
-      inferenceEngine = 'ollama';
-      const models = await core.llm.listModels();
-      availableModels = models.filter(m => !m.isEmbedding).map(m => m.name);
-      activeModel = await core.models.getActiveChatModel();
+  // Check Ollama — prefer it over NativeRuntime for GPU-accelerated inference
+  if (core) {
+    try {
+      const { Ollama } = await import('ollama');
+      const ollamaClient = new Ollama({ host: 'http://localhost:11434' });
+      const listResponse = await ollamaClient.list();
+      const ollamaModels = listResponse.models.map((m: { name: string }) => m.name);
+      if (ollamaModels.length > 0) {
+        inferenceEngine = 'ollama';
+        availableModels = ollamaModels.filter(m => !m.includes('embed') && !m.includes('nomic'));
+        activeModel = await core.models.getActiveChatModel() ?? availableModels[0] ?? null;
+      }
+    } catch {
+      // Ollama not running — keep NativeRuntime status
     }
   }
 
