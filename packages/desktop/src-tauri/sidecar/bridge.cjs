@@ -97159,6 +97159,81 @@ async function readFileContent(filePath) {
   const p = getPlatform();
   const ext = p.path.extname(filePath).toLowerCase();
   const name = p.path.basename(filePath, ext);
+  let fileSize = 0;
+  try {
+    const stats = await p.fs.stat(filePath);
+    fileSize = stats.size;
+  } catch {
+  }
+  const timeoutMs = fileSize > 50 * 1024 * 1024 ? READ_FILE_TIMEOUT_LARGE_MS : READ_FILE_TIMEOUT_MS;
+  return Promise.race([
+    readFileContentInner(filePath, fileSize),
+    new Promise(
+      (_3, reject2) => setTimeout(() => reject2(new Error(`readFileContent timed out after ${timeoutMs}ms for ${name}${ext}`)), timeoutMs)
+    )
+  ]);
+}
+function isTextFormat(ext) {
+  const textExts = /* @__PURE__ */ new Set([
+    ".txt",
+    ".md",
+    ".csv",
+    ".rtf",
+    ".json",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".py",
+    ".rs",
+    ".go",
+    ".java",
+    ".c",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".rb",
+    ".swift",
+    ".kt",
+    ".lua",
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".fish",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".ini",
+    ".xml",
+    ".html",
+    ".css",
+    ".scss",
+    ".less",
+    ".sql",
+    ".graphql",
+    ".proto",
+    ".dockerfile"
+  ]);
+  return textExts.has(ext);
+}
+async function readLargeTextFile(filePath, fileSize) {
+  const p = getPlatform();
+  let content = await p.fs.readFile(filePath, "utf-8");
+  if (content.length > CONTENT_EXTRACT_LIMIT_BYTES) {
+    content = content.slice(0, CONTENT_EXTRACT_LIMIT_BYTES);
+    const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
+    content += `
+
+[Content truncated: original file was ${sizeMB} MB, indexed first ${(CONTENT_EXTRACT_LIMIT_BYTES / (1024 * 1024)).toFixed(0)} MB]`;
+  }
+  return content;
+}
+async function readFileContentInner(filePath, fileSize) {
+  const p = getPlatform();
+  const ext = p.path.extname(filePath).toLowerCase();
+  const name = p.path.basename(filePath, ext);
+  const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
   function sanitizeTextContent(content, fallbackMime) {
     if (content.includes("\0")) {
       return {
@@ -97169,6 +97244,19 @@ async function readFileContent(filePath) {
       };
     }
     return { path: filePath, title: name, content, mimeType: fallbackMime };
+  }
+  if (isTextFormat(ext) && fileSize > 100 * 1024 * 1024) {
+    const content = await readLargeTextFile(filePath, fileSize);
+    if (ext === ".json") {
+      return sanitizeTextContent(content, "application/json");
+    }
+    const mimeMap = {
+      ".md": "text/markdown",
+      ".csv": "text/csv",
+      ".rtf": "application/rtf",
+      ".json": "application/json"
+    };
+    return sanitizeTextContent(content, mimeMap[ext] ?? "text/plain");
   }
   switch (ext) {
     case ".txt":
@@ -97223,23 +97311,40 @@ async function readFileContent(filePath) {
     }
     case ".xlsx":
     case ".xls": {
-      const buffer = await p.fs.readFileBuffer(filePath);
-      const XLSX = await Promise.resolve().then(() => __toESM(require_xlsx(), 1));
-      const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
-      const sheets = [];
-      for (const sheetName of workbook.SheetNames) {
-        const sheet = workbook.Sheets[sheetName];
-        if (!sheet) continue;
-        const csv = XLSX.utils.sheet_to_csv(sheet);
-        sheets.push(`--- Sheet: ${sheetName} ---
+      try {
+        const buffer = await p.fs.readFileBuffer(filePath);
+        const XLSX = await Promise.resolve().then(() => __toESM(require_xlsx(), 1));
+        const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
+        const sheets = [];
+        let totalLength = 0;
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName];
+          if (!sheet) continue;
+          const csv = XLSX.utils.sheet_to_csv(sheet);
+          sheets.push(`--- Sheet: ${sheetName} ---
 ${csv}`);
+          totalLength += csv.length;
+          if (totalLength > CONTENT_EXTRACT_LIMIT_BYTES) {
+            sheets.push(`
+[Content truncated: original file was ${sizeMB} MB, extracted partial spreadsheet content]`);
+            break;
+          }
+        }
+        return {
+          path: filePath,
+          title: name,
+          content: sheets.join("\n\n") || `[Empty spreadsheet: ${name}${ext}]`,
+          mimeType: ext === ".xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/vnd.ms-excel"
+        };
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return {
+          path: filePath,
+          title: name,
+          content: `[Spreadsheet: ${name}${ext}] (${sizeMB} MB) \u2014 Partial extraction failed: ${errMsg}. File is indexed as metadata.`,
+          mimeType: ext === ".xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/vnd.ms-excel"
+        };
       }
-      return {
-        path: filePath,
-        title: name,
-        content: sheets.join("\n\n") || `[Empty spreadsheet: ${name}${ext}]`,
-        mimeType: ext === ".xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/vnd.ms-excel"
-      };
     }
     // Images — no text extraction, metadata only
     case ".png":
@@ -97280,33 +97385,65 @@ ${csv}`);
       }
     }
     case ".pdf": {
-      const buffer = await p.fs.readFileBuffer(filePath);
-      const { PDFParse: PDFParse2 } = await Promise.resolve().then(() => (init_esm(), esm_exports));
-      const parser = new PDFParse2({ data: new Uint8Array(buffer) });
-      const result2 = await parser.getText();
-      return {
-        path: filePath,
-        title: name,
-        content: result2.text,
-        mimeType: "application/pdf"
-      };
+      try {
+        const buffer = await p.fs.readFileBuffer(filePath);
+        const { PDFParse: PDFParse2 } = await Promise.resolve().then(() => (init_esm(), esm_exports));
+        const parser = new PDFParse2({ data: new Uint8Array(buffer) });
+        const result2 = await parser.getText();
+        let text = result2.text;
+        if (fileSize > 50 * 1024 * 1024) {
+          text += `
+
+[Content truncated: original file was ${sizeMB} MB]`;
+        }
+        return {
+          path: filePath,
+          title: name,
+          content: text,
+          mimeType: "application/pdf"
+        };
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return {
+          path: filePath,
+          title: name,
+          content: `[PDF: ${name}${ext}] (${sizeMB} MB) \u2014 Extraction failed: ${errMsg}. File location indexed for reference.`,
+          mimeType: "application/pdf"
+        };
+      }
     }
     case ".docx": {
-      const buffer = await p.fs.readFileBuffer(filePath);
-      const mammoth = await Promise.resolve().then(() => __toESM(require_lib6(), 1));
-      const result2 = await mammoth.extractRawText({ buffer });
-      return {
-        path: filePath,
-        title: name,
-        content: result2.value,
-        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      };
+      try {
+        const buffer = await p.fs.readFileBuffer(filePath);
+        const mammoth = await Promise.resolve().then(() => __toESM(require_lib6(), 1));
+        const result2 = await mammoth.extractRawText({ buffer });
+        let text = result2.value;
+        if (fileSize > 50 * 1024 * 1024) {
+          text += `
+
+[Content truncated: original file was ${sizeMB} MB]`;
+        }
+        return {
+          path: filePath,
+          title: name,
+          content: text,
+          mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        };
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return {
+          path: filePath,
+          title: name,
+          content: `[DOCX: ${name}${ext}] (${sizeMB} MB) \u2014 Extraction failed: ${errMsg}. File location indexed for reference.`,
+          mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        };
+      }
     }
     default:
       throw new Error(`Unsupported file type: ${ext}`);
   }
 }
-var SUPPORTED_EXTENSIONS, EXCLUDED_DIRS;
+var SUPPORTED_EXTENSIONS, EXCLUDED_DIRS, READ_FILE_TIMEOUT_MS, READ_FILE_TIMEOUT_LARGE_MS, CONTENT_EXTRACT_LIMIT_BYTES, TEXT_STREAM_CHUNK_BYTES;
 var init_file_scanner = __esm({
   "packages/core/knowledge/file-scanner.ts"() {
     "use strict";
@@ -97382,6 +97519,10 @@ var init_file_scanner = __esm({
       "vendor",
       ".semblance"
     ]);
+    READ_FILE_TIMEOUT_MS = 3e4;
+    READ_FILE_TIMEOUT_LARGE_MS = 12e4;
+    CONTENT_EXTRACT_LIMIT_BYTES = 100 * 1024 * 1024;
+    TEXT_STREAM_CHUNK_BYTES = 1024 * 1024;
   }
 });
 
@@ -206550,7 +206691,7 @@ var require_tools2 = __commonJS({
     var libmime = require_libmime();
     var { resolveCharset } = require_charsets2();
     var { compiler } = require_imap_handler();
-    var { createHash: createHash2 } = require("crypto");
+    var { createHash: createHash4 } = require("crypto");
     var { JPDecoder } = require_jp_decoder();
     var iconv = require_lib17();
     var FLAG_COLORS = ["red", "orange", "yellow", "green", "blue", "purple", "grey"];
@@ -206940,7 +207081,7 @@ var require_tools2 = __commonJS({
             } catch {
             }
           }
-          map2.id = map2.emailId || createHash2("md5").update([path2, mailbox.uidValidity?.toString() || "", map2.uid.toString()].join(":")).digest("hex");
+          map2.id = map2.emailId || createHash4("md5").update([path2, mailbox.uidValidity?.toString() || "", map2.uid.toString()].join(":")).digest("hex");
         }
         if (map2.flags) {
           let flagColor = tools.getFlagColor(map2.flags);
@@ -227610,7 +227751,7 @@ var require_url_state_machine = __commonJS({
     function defaultPort3(scheme) {
       return specialSchemes[scheme];
     }
-    function percentEncode(c) {
+    function percentEncode2(c) {
       let hex = c.toString(16).toUpperCase();
       if (hex.length === 1) {
         hex = "0" + hex;
@@ -227621,7 +227762,7 @@ var require_url_state_machine = __commonJS({
       const buf = new Buffer(c);
       let str = "";
       for (let i = 0; i < buf.length; ++i) {
-        str += percentEncode(buf[i]);
+        str += percentEncode2(buf[i]);
       }
       return str;
     }
@@ -228481,7 +228622,7 @@ var require_url_state_machine = __commonJS({
         const buffer = new Buffer(this.buffer);
         for (let i = 0; i < buffer.length; ++i) {
           if (buffer[i] < 33 || buffer[i] > 126 || buffer[i] === 34 || buffer[i] === 35 || buffer[i] === 60 || buffer[i] === 62) {
-            this.url.query += percentEncode(buffer[i]);
+            this.url.query += percentEncode2(buffer[i]);
           } else {
             this.url.query += String.fromCodePoint(buffer[i]);
           }
@@ -234475,17 +234616,25 @@ var NativeProvider = class {
     };
   }
   async chat(request) {
-    const prompt = this.formatChatPrompt(request.messages);
+    const messages = request.tools && request.tools.length > 0 ? this.injectToolsIntoMessages(request.messages, request.tools) : request.messages;
+    const prompt = this.formatChatPrompt(messages);
     const result2 = await this.bridge.generate({
       prompt,
       maxTokens: request.maxTokens,
       temperature: request.temperature,
       stop: request.stop
     });
+    let content = result2.text;
+    let toolCalls;
+    if (request.tools && request.tools.length > 0) {
+      const parsed = this.parseToolCalls(content);
+      toolCalls = parsed.toolCalls.length > 0 ? parsed.toolCalls : void 0;
+      content = parsed.textContent;
+    }
     return {
       message: {
         role: "assistant",
-        content: result2.text
+        content
       },
       model: request.model || this.modelName,
       tokensUsed: {
@@ -234493,11 +234642,17 @@ var NativeProvider = class {
         completion: result2.tokensGenerated,
         total: result2.tokensGenerated
       },
-      durationMs: result2.durationMs
+      durationMs: result2.durationMs,
+      toolCalls
     };
   }
   async *chatStream(request) {
     if (!this.bridge.generateStream) {
+      const response = await this.chat(request);
+      yield response.message.content;
+      return;
+    }
+    if (request.tools && request.tools.length > 0) {
       const response = await this.chat(request);
       yield response.message.content;
       return;
@@ -234547,6 +234702,103 @@ var NativeProvider = class {
     const models = await this.listModels();
     return models.find((m) => m.name === name) ?? null;
   }
+  // ─── Tool Calling Support ───────────────────────────────────────────────────
+  /**
+   * Inject tool definitions into the system message so the model knows how to
+   * call tools. Uses a format compatible with most instruction-tuned models
+   * (Llama 3.1+, Mistral, Qwen, etc.).
+   */
+  injectToolsIntoMessages(messages, tools) {
+    const toolBlock = this.formatToolDefinitions(tools);
+    const result2 = [...messages];
+    const systemIdx = result2.findIndex((m) => m.role === "system");
+    if (systemIdx >= 0) {
+      const existing = result2[systemIdx];
+      result2[systemIdx] = {
+        role: existing.role,
+        content: existing.content + "\n\n" + toolBlock
+      };
+    } else {
+      result2.unshift({ role: "system", content: toolBlock });
+    }
+    return result2;
+  }
+  /**
+   * Format tool definitions as a prompt block the model can understand.
+   */
+  formatToolDefinitions(tools) {
+    const toolDescriptions = tools.map((t) => {
+      const params = t.parameters;
+      const paramList = Object.entries(params.properties ?? {}).map(([name, schema]) => {
+        const required = (params.required ?? []).includes(name);
+        const enumStr = schema.enum ? ` (one of: ${schema.enum.join(", ")})` : "";
+        return `    - ${name} (${schema.type}${required ? ", required" : ""}): ${schema.description ?? ""}${enumStr}`;
+      }).join("\n");
+      return `  ${t.name}: ${t.description}
+    Parameters:
+${paramList}`;
+    }).join("\n\n");
+    return `# Available Tools
+
+You have access to the following tools. To use a tool, output a tool_call block:
+
+<tool_call>
+{"name": "tool_name", "arguments": {"param1": "value1"}}
+</tool_call>
+
+You can call multiple tools in one response. After tool calls are executed, you will receive the results and can then provide your final response to the user.
+
+If a request can be answered from your knowledge without tools, respond directly. Only use tools when you need to access the user's data, take an action, or get external information.
+
+Tools:
+${toolDescriptions}`;
+  }
+  /**
+   * Parse <tool_call> blocks from the model's response.
+   * Returns extracted tool calls and the remaining text content.
+   */
+  parseToolCalls(text) {
+    const toolCalls = [];
+    let textContent = text;
+    const toolCallRegex = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g;
+    let match;
+    while ((match = toolCallRegex.exec(text)) !== null) {
+      const jsonStr = (match[1] ?? "").trim();
+      if (!jsonStr) continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        if (parsed.name && typeof parsed.name === "string") {
+          toolCalls.push({
+            name: parsed.name,
+            arguments: parsed.arguments ?? {}
+          });
+        }
+      } catch {
+        console.error("[NativeProvider] Failed to parse tool call JSON:", jsonStr.substring(0, 200));
+      }
+    }
+    textContent = text.replace(toolCallRegex, "").trim();
+    if (toolCalls.length === 0) {
+      const jsonBlockRegex = /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\})\s*```/g;
+      while ((match = jsonBlockRegex.exec(text)) !== null) {
+        const blockJson = match[1] ?? "";
+        if (!blockJson) continue;
+        try {
+          const parsed = JSON.parse(blockJson);
+          if (parsed.name && typeof parsed.name === "string") {
+            toolCalls.push({
+              name: parsed.name,
+              arguments: parsed.arguments ?? {}
+            });
+            textContent = text.replace(match[0], "").trim();
+          }
+        } catch {
+        }
+      }
+    }
+    return { toolCalls, textContent };
+  }
+  // ─── Prompt Formatting ──────────────────────────────────────────────────────
   /**
    * Format chat messages into a single prompt string.
    * Uses a simple template compatible with most instruction-tuned models.
@@ -235171,9 +235423,16 @@ function chunkText(text, config) {
   }
   const rawChunks = recursiveSplit(text, chunkSize, SEPARATORS);
   let chunks = mergeWithOverlap(rawChunks, chunkSize, overlap);
-  const MAX_CHUNKS_PER_DOCUMENT = 200;
+  const MAX_CHUNKS_PER_DOCUMENT = 2e3;
   if (chunks.length > MAX_CHUNKS_PER_DOCUMENT) {
+    const originalCount = chunks.length;
     chunks = chunks.slice(0, MAX_CHUNKS_PER_DOCUMENT);
+    const lastChunk = chunks[chunks.length - 1];
+    if (lastChunk) {
+      lastChunk.content += `
+
+[Document continues \u2014 indexed ${MAX_CHUNKS_PER_DOCUMENT} of ${originalCount} chunks]`;
+    }
   }
   return chunks;
 }
@@ -235341,16 +235600,20 @@ var Indexer = class {
         deduplicated: false
       };
     }
-    const vectorChunks = textChunks.map((chunk2, i) => ({
-      id: nanoid(),
-      documentId,
-      content: chunk2.content,
-      chunkIndex: chunk2.chunkIndex,
-      embedding: embeddings[i],
-      metadata: JSON.stringify(params.metadata ?? {}),
-      sourceType: params.source,
-      sourceId: params.sourcePath ?? ""
-    }));
+    const vectorChunks = textChunks.map((chunk2, i) => {
+      const embedding = embeddings[i];
+      if (!embedding || embedding.length === 0) return null;
+      return {
+        id: nanoid(),
+        documentId,
+        content: chunk2.content,
+        chunkIndex: chunk2.chunkIndex,
+        embedding,
+        metadata: JSON.stringify(params.metadata ?? {}),
+        sourceType: params.source,
+        sourceId: params.sourcePath ?? ""
+      };
+    }).filter((c) => c !== null);
     try {
       await this.vectorStore.insertChunks(vectorChunks);
     } catch (lanceErr) {
@@ -235514,16 +235777,22 @@ var EmbeddingPipeline = class {
     };
   }
   /**
-   * Embed a batch with retry logic.
+   * Embed a batch with retry logic and per-call timeout.
    */
   async embedWithRetry(texts) {
     let lastError = null;
+    const EMBED_TIMEOUT_MS = 6e4;
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        const response = await this.llm.embed({
-          model: this.model,
-          input: texts
-        });
+        const response = await Promise.race([
+          this.llm.embed({
+            model: this.model,
+            input: texts
+          }),
+          new Promise(
+            (_3, reject2) => setTimeout(() => reject2(new Error(`Embedding timed out after ${EMBED_TIMEOUT_MS}ms`)), EMBED_TIMEOUT_MS)
+          )
+        ]);
         for (const embedding of response.embeddings) {
           if (embedding.length !== this.dimensions) {
             throw new Error(
@@ -236210,7 +236479,16 @@ var ACTION_DOMAIN_MAP = {
   "model.download": "system",
   "model.download_cancel": "system",
   "model.verify": "system",
-  "file.write": "system"
+  "file.write": "system",
+  "subscription.insight": "finances",
+  "dark_pattern.detected": "system",
+  "insight.proactive": "system",
+  "insight.meeting_prep": "calendar",
+  "insight.follow_up": "email",
+  "insight.deadline": "reminders",
+  "insight.conflict": "calendar",
+  "escalation.prompt": "system",
+  "health.entry": "health"
 };
 var ACTION_RISK_MAP = {
   "email.fetch": "read",
@@ -236277,7 +236555,16 @@ var ACTION_RISK_MAP = {
   "model.download": "execute",
   "model.download_cancel": "write",
   "model.verify": "read",
-  "file.write": "write"
+  "file.write": "write",
+  "subscription.insight": "read",
+  "dark_pattern.detected": "read",
+  "insight.proactive": "read",
+  "insight.meeting_prep": "read",
+  "insight.follow_up": "read",
+  "insight.deadline": "read",
+  "insight.conflict": "read",
+  "escalation.prompt": "write",
+  "health.entry": "write"
 };
 var AutonomyManager = class {
   db;
@@ -237291,6 +237578,144 @@ var BASE_TOOLS = [
       },
       required: ["chunkId", "newCategory"]
     }
+  },
+  // ─── New Tools: Contacts ─────────────────────────────────────────────────
+  {
+    name: "search_contacts",
+    description: "Search the user's contacts by name, email, phone, organization, or relationship. Returns matching contacts with their details.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search query (name, email, company, etc.)" }
+      },
+      required: ["query"]
+    }
+  },
+  {
+    name: "get_contact",
+    description: "Get detailed information about a specific contact by name. Returns their email, phone, organization, relationship type, birthday, and interaction history.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Contact name to look up" }
+      },
+      required: ["name"]
+    }
+  },
+  // ─── New Tools: Calendar Management ──────────────────────────────────────
+  {
+    name: "update_calendar_event",
+    description: "Update an existing calendar event. Use when the user wants to reschedule, change the title, add attendees, or modify any event details.",
+    parameters: {
+      type: "object",
+      properties: {
+        eventId: { type: "string", description: "ID of the event to update" },
+        title: { type: "string", description: "New title (optional)" },
+        startTime: { type: "string", description: "New start time ISO 8601 (optional)" },
+        endTime: { type: "string", description: "New end time ISO 8601 (optional)" },
+        description: { type: "string", description: "New description (optional)" },
+        location: { type: "string", description: "New location (optional)" },
+        attendees: { type: "array", items: { type: "string" }, description: "Updated attendee list (optional)" }
+      },
+      required: ["eventId"]
+    }
+  },
+  {
+    name: "delete_calendar_event",
+    description: "Delete a calendar event. Use when the user wants to cancel an appointment or remove an event from their calendar.",
+    parameters: {
+      type: "object",
+      properties: {
+        eventId: { type: "string", description: "ID of the event to delete" },
+        reason: { type: "string", description: "Why the event is being deleted (logged to audit trail)" }
+      },
+      required: ["eventId"]
+    }
+  },
+  // ─── New Tools: Email Management ────────────────────────────────────────
+  {
+    name: "move_email",
+    description: "Move emails to a specific folder/label. Use when the user wants to organize their inbox, move emails to folders like Work, Personal, etc.",
+    parameters: {
+      type: "object",
+      properties: {
+        messageIds: { type: "array", items: { type: "string" }, description: "Message IDs to move" },
+        toFolder: { type: "string", description: 'Destination folder name (e.g., "Work", "Archive", "Trash")' }
+      },
+      required: ["messageIds", "toFolder"]
+    }
+  },
+  {
+    name: "mark_email_read",
+    description: "Mark emails as read or unread. Use when the user wants to clean up their unread count or mark something to revisit later.",
+    parameters: {
+      type: "object",
+      properties: {
+        messageIds: { type: "array", items: { type: "string" }, description: "Message IDs to update" },
+        read: { type: "boolean", description: "true to mark as read, false to mark as unread" }
+      },
+      required: ["messageIds", "read"]
+    }
+  },
+  // ─── New Tools: Reminders ───────────────────────────────────────────────
+  {
+    name: "delete_reminder",
+    description: "Permanently delete a reminder. Use when the user wants to completely remove a reminder, not just dismiss it.",
+    parameters: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Reminder ID to delete" }
+      },
+      required: ["id"]
+    }
+  },
+  // ─── New Tools: Finance ─────────────────────────────────────────────────
+  {
+    name: "get_subscriptions",
+    description: "Get the user's detected recurring charges and subscriptions. Shows what they're paying for monthly/yearly, including forgotten subscriptions. Use when the user asks about their subscriptions, recurring charges, or monthly expenses.",
+    parameters: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["active", "cancelled", "forgotten", "all"], description: "Filter by subscription status (default: all)" }
+      }
+    }
+  },
+  {
+    name: "get_financial_summary",
+    description: "Get a summary of the user's financial transactions. Shows total spending, top merchants, category breakdown. Use when the user asks about their spending, budget, or financial overview.",
+    parameters: {
+      type: "object",
+      properties: {
+        days: { type: "number", description: "Number of days to look back (default: 30)" }
+      }
+    }
+  },
+  // ─── New Tools: Health ──────────────────────────────────────────────────
+  {
+    name: "get_health_entries",
+    description: "Get the user's health tracking entries (mood, energy, water intake, symptoms, medications). Use when the user asks about their health trends, how they've been feeling, or wants to review their wellness data.",
+    parameters: {
+      type: "object",
+      properties: {
+        days: { type: "number", description: "Number of days to look back (default: 7)" }
+      }
+    }
+  },
+  {
+    name: "add_health_entry",
+    description: "Log a health entry for the user. Use when the user mentions their mood, energy level, water intake, symptoms, or medications. Parse natural language into structured health data.",
+    parameters: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Date in YYYY-MM-DD format (default: today)" },
+        mood: { type: "number", description: "Mood rating 1-5 (1=very low, 5=great)" },
+        energy: { type: "number", description: "Energy rating 1-5 (1=exhausted, 5=energized)" },
+        waterGlasses: { type: "number", description: "Number of glasses of water" },
+        symptoms: { type: "array", items: { type: "string" }, description: "List of symptoms" },
+        medications: { type: "array", items: { type: "string" }, description: "List of medications taken" },
+        notes: { type: "string", description: "Free-text health notes" }
+      }
+    }
   }
 ];
 var BASE_TOOL_ACTION_MAP = {
@@ -237308,7 +237733,12 @@ var BASE_TOOL_ACTION_MAP = {
   "dismiss_reminder": "reminder.update",
   "send_text": "messaging.send",
   "get_weather": "location.weather_query",
-  "save_file": "file.write"
+  "save_file": "file.write",
+  "update_calendar_event": "calendar.update",
+  "delete_calendar_event": "calendar.delete",
+  "move_email": "email.move",
+  "mark_email_read": "email.markRead",
+  "delete_reminder": "reminder.delete"
 };
 var BASE_LOCAL_TOOLS = /* @__PURE__ */ new Set([
   "search_files",
@@ -237317,44 +237747,56 @@ var BASE_LOCAL_TOOLS = /* @__PURE__ */ new Set([
   "detect_calendar_conflicts",
   "search_cloud_files",
   "knowledge_remove",
-  "knowledge_recategorize"
+  "knowledge_recategorize",
+  "search_contacts",
+  "get_contact",
+  "get_subscriptions",
+  "get_financial_summary",
+  "get_health_entries",
+  "add_health_entry"
 ]);
 var VOICE_MODE_CONTEXT = `The user is in voice conversation mode. Keep responses concise and conversational \u2014 they will be spoken aloud. Avoid long lists, code blocks, and complex formatting.`;
-var SYSTEM_PROMPT = `You are Semblance, the user's personal AI. You run entirely on their device \u2014 their data never leaves their machine.
+function buildSystemPrompt(config) {
+  const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
+  const userRef = userName ? userName : "the user";
+  const autonomyBlock = autonomyTier === "guardian" ? `Autonomy: Guardian. All actions require ${userRef}'s explicit approval before execution. Always preview what you plan to do.` : autonomyTier === "alter_ego" ? `Autonomy: Alter Ego. Act on ${userRef}'s behalf for routine tasks. Only pause for genuinely high-stakes or novel actions. When you act autonomously, briefly state what you did and why.` : `Autonomy: Partner. Routine actions (archiving email, calendar scheduling, reminders) execute automatically. Novel or sensitive actions (sending email to new contacts, financial changes) require approval. State what you did for auto-executed actions.`;
+  const servicesLine = connectedServices && connectedServices.length > 0 ? `
+Connected services: ${connectedServices.join(", ")}.` : "";
+  const knowledgeLine = indexedDocCount && indexedDocCount > 0 ? `
+Knowledge base: ${indexedDocCount} indexed documents. Search it first before using web search.` : "";
+  return `You are ${aiName}, ${userRef}'s personal AI running entirely on their device. All data stays local. You have full access to their emails, calendar, contacts, files, health data, finances, and reminders through tools.
+${servicesLine}${knowledgeLine}
 
-You have access to their local files, documents, emails, and calendar through secure tools. You can search, send emails, manage their calendar, and take autonomous actions based on their configured autonomy tier.
+${autonomyBlock}
 
-Core principles:
-- You are helpful, warm, proactive, and concise
-- You respect the user's privacy absolutely \u2014 all processing happens locally
-- When you need information, search the user's knowledge base and indexed emails first
-- When taking actions (sending emails, creating events), explain what you plan to do and why
-- Be transparent about what data you're accessing and what actions you're taking
-- Bias toward action \u2014 do things on the user's behalf, don't just show information
+# Behavior
 
-Available tools:
-- search_files: Search the user's local documents and files
-- fetch_inbox: Fetch recent emails with AI-assigned priority
-- search_emails: Search indexed emails by keyword, sender, or date
-- send_email: Send an email (autonomy tier determines if approval is needed)
-- draft_email: Save an email draft (always available)
-- archive_email: Archive emails from inbox
-- categorize_email: Apply AI categories and priority to emails
-- fetch_calendar: View upcoming calendar events
-- create_calendar_event: Schedule a new event (checks for conflicts first)
-- detect_calendar_conflicts: Check for scheduling conflicts
-- send_text: Send a text message to a contact
-- get_weather: Get current weather and forecast
-- search_cloud_files: Search cloud-synced files (Google Drive, Dropbox) indexed locally
-- save_file: Save content to a file on the user's filesystem (documents, exports, reports)
-- knowledge_remove: Remove an item from the knowledge graph (keeps file on disk)
-- knowledge_recategorize: Change the category of a knowledge graph item
+DO:
+- Act first, explain after. When the user asks you to do something, use tools immediately \u2014 don't describe what you could do.
+- Search the knowledge base and emails before answering factual questions about ${userRef}'s data.
+- Draft messages in ${userRef}'s voice and tone when composing emails or texts.
+- Connect related information across domains (e.g., "You have a meeting with Sarah at 2pm \u2014 you still owe her a follow-up from last week's email").
+- Be warm, direct, and concise. One clear sentence beats three hedging ones.
+- When multiple tools are needed, call them in sequence without asking permission for each step.
 
-Always use tools when the user's request involves their data or external actions. Respond conversationally when the user just wants to chat.
+DON'T:
+- Don't narrate your tool usage. Never say "Let me search your emails" \u2014 just search and present the results.
+- Don't ask clarifying questions when you have enough context to act. Use your best judgment and let ${userRef} correct you if needed.
+- Don't repeat information ${userRef} already provided back to them.
+- Don't hedge with "I can help you with that" or "Sure, I'd be happy to" \u2014 just do it.
+- Don't provide unsolicited privacy reassurances. ${userRef} chose local AI; they know.
+
+# Actions
+Actions appear inline in the conversation for ${userRef} to review, edit, approve, or dismiss. When drafting emails or messages, provide a complete draft \u2014 ${userRef} can edit it before sending.
 
 ${ARTIFACT_SYSTEM_PROMPT}
 
 ${INJECTION_CANARY}`;
+}
+var DEFAULT_SYSTEM_PROMPT = buildSystemPrompt({
+  aiName: "Semblance",
+  autonomyTier: "partner"
+});
 var OrchestratorImpl = class {
   llm;
   knowledge;
@@ -237375,6 +237817,7 @@ var OrchestratorImpl = class {
   alterEgoGuardrails;
   alterEgoStore;
   knowledgeCurator = null;
+  promptConfig;
   // Extension support
   extensionToolHandlers = /* @__PURE__ */ new Map();
   allTools = [...BASE_TOOLS];
@@ -237398,6 +237841,14 @@ var OrchestratorImpl = class {
     this.intentManager = config.intentManager ?? null;
     this.alterEgoGuardrails = config.alterEgoGuardrails ?? null;
     this.alterEgoStore = config.alterEgoStore ?? null;
+    const representativeTier = this.autonomy.getDomainTier("email");
+    this.promptConfig = {
+      aiName: config.aiName ?? "Semblance",
+      userName: config.userName,
+      autonomyTier: representativeTier,
+      connectedServices: config.connectedServices,
+      indexedDocCount: config.indexedDocCount
+    };
     this.db.exec(CREATE_TABLES2);
     try {
       this.db.exec("ALTER TABLE pending_actions ADD COLUMN reasoning_context TEXT");
@@ -237559,6 +238010,9 @@ ${checkIn}`;
   setVoiceMode(active) {
     this.voiceModeActive = active;
   }
+  updatePromptConfig(updates) {
+    this.promptConfig = { ...this.promptConfig, ...updates };
+  }
   setIntentManager(manager) {
     this.intentManager = manager;
   }
@@ -237669,9 +238123,10 @@ ${messageText}`,
   }
   // --- Private helpers ---
   buildMessages(message, context, history, documentChunks = []) {
-    let systemContent = this.voiceModeActive ? `${SYSTEM_PROMPT}
+    const basePrompt = buildSystemPrompt(this.promptConfig);
+    let systemContent = this.voiceModeActive ? `${basePrompt}
 
-${VOICE_MODE_CONTEXT}` : SYSTEM_PROMPT;
+${VOICE_MODE_CONTEXT}` : basePrompt;
     if (this.intentManager) {
       const intentCtx = this.intentManager.buildIntentContext();
       if (intentCtx) systemContent += `
@@ -237949,6 +238404,184 @@ ${docContextStr}`,
             detail: result2.detail
           }
         });
+        continue;
+      }
+      if (tc.name === "search_contacts") {
+        const query = (tc.arguments["query"] ?? "").toLowerCase();
+        try {
+          const rows = this.db.prepare(
+            `SELECT id, display_name, emails, phones, organization, relationship_type, birthday
+             FROM contacts
+             WHERE LOWER(display_name) LIKE ? OR LOWER(emails) LIKE ? OR LOWER(organization) LIKE ? OR LOWER(phones) LIKE ?
+             ORDER BY interaction_count DESC LIMIT 10`
+          ).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`);
+          executedResults.push({
+            tool: "search_contacts",
+            result: rows.map((r) => ({
+              id: r.id,
+              name: r.display_name,
+              emails: JSON.parse(r.emails),
+              phones: JSON.parse(r.phones),
+              organization: r.organization,
+              relationship: r.relationship_type,
+              birthday: r.birthday
+            }))
+          });
+        } catch {
+          executedResults.push({ tool: "search_contacts", result: { error: "Contacts not available" } });
+        }
+        continue;
+      }
+      if (tc.name === "get_contact") {
+        const name = (tc.arguments["name"] ?? "").toLowerCase();
+        try {
+          const row = this.db.prepare(
+            `SELECT id, display_name, given_name, family_name, emails, phones, organization,
+                    job_title, birthday, relationship_type, communication_frequency,
+                    last_contact_date, interaction_count, tags
+             FROM contacts
+             WHERE LOWER(display_name) LIKE ?
+             ORDER BY interaction_count DESC LIMIT 1`
+          ).get(`%${name}%`);
+          if (row) {
+            executedResults.push({
+              tool: "get_contact",
+              result: {
+                id: row.id,
+                name: row.display_name,
+                firstName: row.given_name,
+                lastName: row.family_name,
+                emails: JSON.parse(row.emails),
+                phones: JSON.parse(row.phones),
+                organization: row.organization,
+                jobTitle: row.job_title,
+                birthday: row.birthday,
+                relationship: row.relationship_type,
+                lastContact: row.last_contact_date,
+                interactionCount: row.interaction_count,
+                tags: JSON.parse(row.tags)
+              }
+            });
+          } else {
+            executedResults.push({ tool: "get_contact", result: { found: false, message: `No contact found matching "${tc.arguments["name"]}"` } });
+          }
+        } catch {
+          executedResults.push({ tool: "get_contact", result: { error: "Contacts not available" } });
+        }
+        continue;
+      }
+      if (tc.name === "get_subscriptions") {
+        const statusFilter = tc.arguments["status"];
+        try {
+          const sql = statusFilter && statusFilter !== "all" ? "SELECT * FROM recurring_charges WHERE status = ? ORDER BY estimated_annual_cost DESC" : "SELECT * FROM recurring_charges ORDER BY estimated_annual_cost DESC";
+          const rows = statusFilter && statusFilter !== "all" ? this.db.prepare(sql).all(statusFilter) : this.db.prepare(sql).all();
+          executedResults.push({
+            tool: "get_subscriptions",
+            result: {
+              subscriptions: rows.map((r) => ({
+                id: r.id,
+                merchant: r.merchant_name,
+                amount: r.typical_amount,
+                frequency: r.frequency,
+                annualCost: r.estimated_annual_cost,
+                lastCharge: r.last_charge_date,
+                status: r.status
+              })),
+              totalMonthly: rows.filter((r) => r.status === "active").reduce((sum, r) => sum + (r.frequency === "monthly" ? r.typical_amount : r.typical_amount / 12), 0),
+              totalAnnual: rows.filter((r) => r.status === "active").reduce((sum, r) => sum + r.estimated_annual_cost, 0)
+            }
+          });
+        } catch {
+          executedResults.push({ tool: "get_subscriptions", result: { subscriptions: [], message: "No financial data imported yet. Import a bank statement first." } });
+        }
+        continue;
+      }
+      if (tc.name === "get_financial_summary") {
+        const days = tc.arguments["days"] || 30;
+        const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1e3).toISOString().slice(0, 10);
+        try {
+          const totalRow = this.db.prepare(
+            "SELECT COUNT(*) as count, SUM(amount) as total FROM stored_transactions WHERE date >= ?"
+          ).get(cutoff);
+          const topMerchants = this.db.prepare(
+            `SELECT normalized_merchant, SUM(amount) as total, COUNT(*) as count
+             FROM stored_transactions WHERE date >= ?
+             GROUP BY normalized_merchant ORDER BY total DESC LIMIT 10`
+          ).all(cutoff);
+          const byCategory = this.db.prepare(
+            `SELECT category, SUM(amount) as total, COUNT(*) as count
+             FROM stored_transactions WHERE date >= ? AND category != ''
+             GROUP BY category ORDER BY total DESC`
+          ).all(cutoff);
+          executedResults.push({
+            tool: "get_financial_summary",
+            result: {
+              period: `Last ${days} days`,
+              transactionCount: totalRow?.count ?? 0,
+              totalSpending: Math.abs(totalRow?.total ?? 0),
+              topMerchants: topMerchants.map((r) => ({ merchant: r.normalized_merchant, total: Math.abs(r.total), count: r.count })),
+              byCategory: byCategory.map((r) => ({ category: r.category, total: Math.abs(r.total), count: r.count }))
+            }
+          });
+        } catch {
+          executedResults.push({ tool: "get_financial_summary", result: { message: "No financial data imported yet. Import a bank statement first." } });
+        }
+        continue;
+      }
+      if (tc.name === "get_health_entries") {
+        const days = tc.arguments["days"] || 7;
+        const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1e3).toISOString().slice(0, 10);
+        try {
+          const rows = this.db.prepare(
+            "SELECT * FROM health_entries WHERE date >= ? ORDER BY date DESC"
+          ).all(cutoff);
+          executedResults.push({
+            tool: "get_health_entries",
+            result: {
+              entries: rows.map((r) => ({
+                id: r.id,
+                date: r.date,
+                mood: r.mood,
+                energy: r.energy,
+                waterGlasses: r.water_glasses,
+                symptoms: JSON.parse(r.symptoms),
+                medications: JSON.parse(r.medications),
+                notes: r.notes
+              })),
+              averageMood: rows.filter((r) => r.mood !== null).length > 0 ? rows.filter((r) => r.mood !== null).reduce((sum, r) => sum + r.mood, 0) / rows.filter((r) => r.mood !== null).length : null,
+              averageEnergy: rows.filter((r) => r.energy !== null).length > 0 ? rows.filter((r) => r.energy !== null).reduce((sum, r) => sum + r.energy, 0) / rows.filter((r) => r.energy !== null).length : null
+            }
+          });
+        } catch {
+          executedResults.push({ tool: "get_health_entries", result: { entries: [], message: "No health data recorded yet." } });
+        }
+        continue;
+      }
+      if (tc.name === "add_health_entry") {
+        const date = tc.arguments["date"] || (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+        const id = nanoid();
+        try {
+          this.db.prepare(
+            `INSERT OR REPLACE INTO health_entries (id, date, timestamp, mood, energy, water_glasses, symptoms, medications, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).run(
+            id,
+            date,
+            (/* @__PURE__ */ new Date()).toISOString(),
+            tc.arguments["mood"] ?? null,
+            tc.arguments["energy"] ?? null,
+            tc.arguments["waterGlasses"] ?? null,
+            JSON.stringify(tc.arguments["symptoms"] ?? []),
+            JSON.stringify(tc.arguments["medications"] ?? []),
+            tc.arguments["notes"] ?? null
+          );
+          executedResults.push({
+            tool: "add_health_entry",
+            result: { success: true, id, date, message: `Health entry logged for ${date}` }
+          });
+        } catch (err) {
+          executedResults.push({ tool: "add_health_entry", result: { error: err instanceof Error ? err.message : "Failed to log health entry" } });
+        }
         continue;
       }
       if ((tc.name === "draft_email" || tc.name === "send_email") && tc.arguments["body"]) {
@@ -238275,6 +238908,251 @@ ${retryHint}`;
     this.db.prepare(
       "UPDATE conversations SET updated_at = ? WHERE id = ?"
     ).run(now, conversationId);
+  }
+};
+
+// packages/core/agent/conversation-manager.ts
+var ConversationManager = class {
+  db;
+  constructor(db) {
+    this.db = db;
+  }
+  /** Idempotent schema migration — safe to call multiple times. */
+  migrate() {
+    const alterStatements = [
+      "ALTER TABLE conversations ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
+      "ALTER TABLE conversations ADD COLUMN pinned_at TEXT",
+      "ALTER TABLE conversations ADD COLUMN auto_title TEXT",
+      "ALTER TABLE conversations ADD COLUMN turn_count INTEGER NOT NULL DEFAULT 0",
+      "ALTER TABLE conversations ADD COLUMN last_message_preview TEXT",
+      "ALTER TABLE conversations ADD COLUMN expires_at TEXT"
+    ];
+    for (const sql of alterStatements) {
+      try {
+        this.db.exec(sql);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!msg.includes("duplicate column name")) {
+          throw err;
+        }
+      }
+    }
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS conversation_embeddings (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        turn_id TEXT NOT NULL,
+        chunk_id TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    `);
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_conv_embed_conv ON conversation_embeddings(conversation_id)
+    `);
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_conv_embed_turn ON conversation_embeddings(turn_id)
+    `);
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_conversations_expires ON conversations(expires_at) WHERE expires_at IS NOT NULL
+    `);
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_conversations_pinned ON conversations(pinned) WHERE pinned = 1
+    `);
+  }
+  /** Create a new conversation. Optionally auto-title from first user message. */
+  create(firstUserMessage) {
+    const id = nanoid();
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const autoTitle = firstUserMessage ? firstUserMessage.split(/\s+/).slice(0, 6).join(" ").substring(0, 50) : null;
+    this.db.prepare(
+      `INSERT INTO conversations (id, created_at, updated_at, title, pinned, pinned_at, auto_title, turn_count, last_message_preview, expires_at)
+       VALUES (?, ?, ?, NULL, 0, NULL, ?, 0, NULL, NULL)`
+    ).run(id, now, now, autoTitle);
+    return {
+      id,
+      title: null,
+      autoTitle,
+      createdAt: now,
+      updatedAt: now,
+      pinned: false,
+      pinnedAt: null,
+      turnCount: 0,
+      lastMessagePreview: null,
+      expiresAt: null
+    };
+  }
+  /** List conversations — pinned first (by pinned_at DESC), then by updated_at DESC. */
+  list(opts) {
+    const limit = opts?.limit ?? 50;
+    const offset = opts?.offset ?? 0;
+    let sql;
+    const params = [];
+    if (opts?.pinnedOnly) {
+      sql = `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
+             FROM conversations WHERE pinned = 1
+             ORDER BY pinned_at DESC
+             LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
+    } else if (opts?.search) {
+      sql = `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
+             FROM conversations
+             WHERE title LIKE ? OR auto_title LIKE ? OR last_message_preview LIKE ?
+             ORDER BY pinned DESC, CASE WHEN pinned = 1 THEN pinned_at END DESC, updated_at DESC
+             LIMIT ? OFFSET ?`;
+      const pattern = `%${opts.search}%`;
+      params.push(pattern, pattern, pattern, limit, offset);
+    } else {
+      sql = `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
+             FROM conversations
+             ORDER BY pinned DESC, CASE WHEN pinned = 1 THEN pinned_at END DESC, updated_at DESC
+             LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
+    }
+    const rows = this.db.prepare(sql).all(...params);
+    return rows.map(this.rowToSummary);
+  }
+  /** Get a full conversation with its turns. */
+  get(id) {
+    const row = this.db.prepare(
+      `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
+       FROM conversations WHERE id = ?`
+    ).get(id);
+    if (!row) return null;
+    const turns = this.getTurns(id);
+    return { ...this.rowToSummary(row), turns };
+  }
+  /** Get paginated turns for a conversation. */
+  getTurns(id, limit = 100, offset = 0) {
+    const rows = this.db.prepare(
+      `SELECT id, conversation_id, role, content, timestamp
+       FROM conversation_turns
+       WHERE conversation_id = ?
+       ORDER BY timestamp ASC
+       LIMIT ? OFFSET ?`
+    ).all(id, limit, offset);
+    return rows.map((r) => ({
+      id: r.id,
+      conversationId: r.conversation_id,
+      role: r.role,
+      content: r.content,
+      timestamp: r.timestamp
+    }));
+  }
+  /** Rename a conversation (user-set title). */
+  rename(id, title) {
+    this.db.prepare(
+      "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?"
+    ).run(title, (/* @__PURE__ */ new Date()).toISOString(), id);
+  }
+  /** Delete a conversation and cascade to turns + embeddings. */
+  delete(id) {
+    this.db.prepare("DELETE FROM conversation_embeddings WHERE conversation_id = ?").run(id);
+    this.db.prepare("DELETE FROM conversation_turns WHERE conversation_id = ?").run(id);
+    this.db.prepare("DELETE FROM conversations WHERE id = ?").run(id);
+  }
+  /** Pin a conversation. */
+  pin(id) {
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    this.db.prepare(
+      "UPDATE conversations SET pinned = 1, pinned_at = ?, updated_at = ? WHERE id = ?"
+    ).run(now, now, id);
+  }
+  /** Unpin a conversation. */
+  unpin(id) {
+    this.db.prepare(
+      "UPDATE conversations SET pinned = 0, pinned_at = NULL, updated_at = ? WHERE id = ?"
+    ).run((/* @__PURE__ */ new Date()).toISOString(), id);
+  }
+  /** Search conversations by title/autoTitle/preview using LIKE. */
+  searchByTitle(query, limit = 20) {
+    const pattern = `%${query}%`;
+    const rows = this.db.prepare(
+      `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
+       FROM conversations
+       WHERE title LIKE ? OR auto_title LIKE ? OR last_message_preview LIKE ?
+       ORDER BY updated_at DESC
+       LIMIT ?`
+    ).all(pattern, pattern, pattern, limit);
+    return rows.map(this.rowToSummary);
+  }
+  /** Delete expired conversations (where expires_at < now AND not pinned). Returns count deleted. */
+  pruneExpired() {
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const expired = this.db.prepare(
+      `SELECT id FROM conversations WHERE expires_at IS NOT NULL AND expires_at < ? AND pinned = 0`
+    ).all(now);
+    for (const row of expired) {
+      this.delete(row.id);
+    }
+    return expired.length;
+  }
+  /** Set expiry on a conversation. */
+  setExpiry(id, expiresAt) {
+    this.db.prepare(
+      "UPDATE conversations SET expires_at = ?, updated_at = ? WHERE id = ?"
+    ).run(expiresAt, (/* @__PURE__ */ new Date()).toISOString(), id);
+  }
+  /** Update conversation metadata after a turn is added. */
+  updateAfterTurn(id, content, role) {
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const preview = content.substring(0, 120);
+    if (role === "user") {
+      const conv = this.db.prepare(
+        "SELECT turn_count, auto_title FROM conversations WHERE id = ?"
+      ).get(id);
+      if (conv && !conv.auto_title) {
+        const autoTitle = content.split(/\s+/).slice(0, 6).join(" ").substring(0, 50);
+        this.db.prepare(
+          "UPDATE conversations SET auto_title = ?, turn_count = turn_count + 1, last_message_preview = ?, updated_at = ? WHERE id = ?"
+        ).run(autoTitle, preview, now, id);
+        return;
+      }
+    }
+    this.db.prepare(
+      "UPDATE conversations SET turn_count = turn_count + 1, last_message_preview = ?, updated_at = ? WHERE id = ?"
+    ).run(preview, now, id);
+  }
+  /** Bulk delete all conversations. Optionally preserve pinned. Returns count deleted. */
+  clearAll(opts) {
+    let ids;
+    if (opts?.preservePinned) {
+      ids = this.db.prepare(
+        "SELECT id FROM conversations WHERE pinned = 0"
+      ).all();
+    } else {
+      ids = this.db.prepare(
+        "SELECT id FROM conversations"
+      ).all();
+    }
+    for (const row of ids) {
+      this.delete(row.id);
+    }
+    return ids.length;
+  }
+  /** Get conversation counts. */
+  getCount() {
+    const total = this.db.prepare(
+      "SELECT COUNT(*) as count FROM conversations"
+    ).get();
+    const pinned = this.db.prepare(
+      "SELECT COUNT(*) as count FROM conversations WHERE pinned = 1"
+    ).get();
+    return { total: total.count, pinned: pinned.count };
+  }
+  // ─── Internal ──────────────────────────────────────────────────────────────
+  rowToSummary(row) {
+    return {
+      id: row.id,
+      title: row.title ?? null,
+      autoTitle: row.auto_title ?? null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      pinned: row.pinned === 1,
+      pinnedAt: row.pinned_at ?? null,
+      turnCount: row.turn_count ?? 0,
+      lastMessagePreview: row.last_message_preview ?? null,
+      expiresAt: row.expires_at ?? null
+    };
   }
 };
 
@@ -238704,7 +239582,11 @@ function createOrchestrator(config) {
     ipc: config.ipcClient,
     autonomy,
     db,
-    model: config.model
+    model: config.model,
+    aiName: config.aiName,
+    userName: config.userName,
+    connectedServices: config.connectedServices,
+    indexedDocCount: config.indexedDocCount
   });
   if (config.extensions) {
     for (const ext of config.extensions) {
@@ -243929,7 +244811,16 @@ var ActionType = external_exports.enum([
   "network.sendAcceptance",
   "network.sendRevocation",
   "network.syncContext",
-  "file.write"
+  "file.write",
+  "subscription.insight",
+  "dark_pattern.detected",
+  "insight.proactive",
+  "insight.meeting_prep",
+  "insight.follow_up",
+  "insight.deadline",
+  "insight.conflict",
+  "escalation.prompt",
+  "health.entry"
 ]);
 var EmailSendPayload = external_exports.object({
   to: external_exports.array(external_exports.string().email()),
@@ -244298,7 +245189,17 @@ var ActionPayloadMap = {
   "network.sendAcceptance": NetworkSendPayload.strict(),
   "network.sendRevocation": NetworkSendPayload.strict(),
   "network.syncContext": NetworkSendPayload.strict(),
-  "file.write": FileWritePayload.strict()
+  "file.write": FileWritePayload.strict(),
+  // Inline action types — these are UI-surfaced events, payload is passthrough
+  "subscription.insight": external_exports.object({ charges: external_exports.array(external_exports.any()), summary: external_exports.any() }).passthrough(),
+  "dark_pattern.detected": external_exports.object({ confidence: external_exports.number(), patterns: external_exports.array(external_exports.any()), reframe: external_exports.string() }).passthrough(),
+  "insight.proactive": external_exports.object({ title: external_exports.string(), summary: external_exports.string() }).passthrough(),
+  "insight.meeting_prep": external_exports.object({ title: external_exports.string(), summary: external_exports.string() }).passthrough(),
+  "insight.follow_up": external_exports.object({ title: external_exports.string(), summary: external_exports.string() }).passthrough(),
+  "insight.deadline": external_exports.object({ title: external_exports.string(), summary: external_exports.string() }).passthrough(),
+  "insight.conflict": external_exports.object({ title: external_exports.string(), summary: external_exports.string() }).passthrough(),
+  "escalation.prompt": external_exports.object({ domain: external_exports.string(), message: external_exports.string() }).passthrough(),
+  "health.entry": external_exports.object({ metric: external_exports.string(), value: external_exports.number() }).passthrough()
 };
 var ActionRequest = external_exports.object({
   id: external_exports.string(),
@@ -245897,7 +246798,7 @@ function eddsa(Point2, cHash, eddsaOpts = {}) {
   });
   const { prehash } = eddsaOpts;
   const { BASE, Fp: Fp2, Fn: Fn2 } = Point2;
-  const randomBytes7 = eddsaOpts.randomBytes || randomBytes2;
+  const randomBytes9 = eddsaOpts.randomBytes || randomBytes2;
   const adjustScalarBytes2 = eddsaOpts.adjustScalarBytes || ((bytes) => bytes);
   const domain = eddsaOpts.domain || ((data, ctx, phflag) => {
     _abool2(phflag, "phflag");
@@ -245979,7 +246880,7 @@ function eddsa(Point2, cHash, eddsaOpts = {}) {
     signature: 2 * _size,
     seed: _size
   };
-  function randomSecretKey(seed = randomBytes7(lengths.seed)) {
+  function randomSecretKey(seed = randomBytes9(lengths.seed)) {
     return _abytes2(seed, lengths.seed, "seed");
   }
   function keygen(seed) {
@@ -246993,10 +247894,19 @@ function createSemblanceCore(config) {
         );
       }
       console.error("[SemblanceCore] Connecting IPC client...");
-      ipc = new CoreIPCClient({
-        socketPath,
-        signingKeyPath
-      });
+      if (config?.ipcTransport) {
+        const keyBytes = new Uint8Array(32);
+        for (let i = 0; i < 32; i++) keyBytes[i] = Math.floor(Math.random() * 256);
+        ipc = new CoreIPCClient({
+          transport: config.ipcTransport,
+          signingKey: Buffer.from(keyBytes)
+        });
+      } else {
+        ipc = new CoreIPCClient({
+          socketPath,
+          signingKeyPath
+        });
+      }
       try {
         const ipcConnectStart = Date.now();
         await ipc.connect();
@@ -247968,8 +248878,26 @@ var TIME_SAVED_DEFAULTS = {
   // Revoking sharing with peer
   "network.syncContext": 60,
   // Syncing context with peer (saves manual sharing)
-  "file.write": 30
+  "file.write": 30,
   // Writing file to disk (saves manual save)
+  "subscription.insight": 600,
+  // Research + decision time for subscription flagging
+  "dark_pattern.detected": 300,
+  // Identifying and reframing manipulative content
+  "insight.proactive": 120,
+  // Proactive insight surfacing
+  "insight.meeting_prep": 300,
+  // Meeting prep document surfacing
+  "insight.follow_up": 120,
+  // Follow-up suggestion
+  "insight.deadline": 60,
+  // Deadline alert
+  "insight.conflict": 180,
+  // Calendar conflict detection
+  "escalation.prompt": 0,
+  // Autonomy escalation prompt — informational
+  "health.entry": 30
+  // Health metric entry
 };
 function getDefaultTimeSaved(action) {
   return TIME_SAVED_DEFAULTS[action] ?? 0;
@@ -255719,6 +256647,28 @@ var ConnectorRegistry = class {
 function createDefaultConnectorRegistry() {
   const registry = new ConnectorRegistry();
   registry.register({
+    id: "gmail",
+    displayName: "Gmail",
+    description: "Emails, labels, and threads from your Gmail account",
+    category: "productivity",
+    authType: "oauth2",
+    platform: "all",
+    isPremium: false,
+    syncIntervalHours: 1,
+    iconType: "email"
+  });
+  registry.register({
+    id: "google-calendar",
+    displayName: "Google Calendar",
+    description: "Events, schedules, and reminders from Google Calendar",
+    category: "productivity",
+    authType: "oauth2",
+    platform: "all",
+    isPremium: false,
+    syncIntervalHours: 1,
+    iconType: "calendar"
+  });
+  registry.register({
     id: "google-drive",
     displayName: "Google Drive",
     description: "Access documents, spreadsheets, and files from Google Drive",
@@ -256115,6 +257065,17 @@ function createDefaultConnectorRegistry() {
     iconType: "finance"
   });
   registry.register({
+    id: "slack",
+    displayName: "Slack",
+    description: "Channels, messages, and threads from your Slack workspace",
+    category: "messaging",
+    authType: "oauth2",
+    platform: "all",
+    isPremium: true,
+    syncIntervalHours: 6,
+    iconType: "messages"
+  });
+  registry.register({
     id: "imessage",
     displayName: "iMessage",
     description: "Read messages from the local iMessage database (requires Full Disk Access)",
@@ -256248,251 +257209,6 @@ function createDefaultConnectorRegistry() {
   });
   return registry;
 }
-
-// packages/core/agent/conversation-manager.ts
-var ConversationManager = class {
-  db;
-  constructor(db) {
-    this.db = db;
-  }
-  /** Idempotent schema migration — safe to call multiple times. */
-  migrate() {
-    const alterStatements = [
-      "ALTER TABLE conversations ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
-      "ALTER TABLE conversations ADD COLUMN pinned_at TEXT",
-      "ALTER TABLE conversations ADD COLUMN auto_title TEXT",
-      "ALTER TABLE conversations ADD COLUMN turn_count INTEGER NOT NULL DEFAULT 0",
-      "ALTER TABLE conversations ADD COLUMN last_message_preview TEXT",
-      "ALTER TABLE conversations ADD COLUMN expires_at TEXT"
-    ];
-    for (const sql of alterStatements) {
-      try {
-        this.db.exec(sql);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (!msg.includes("duplicate column name")) {
-          throw err;
-        }
-      }
-    }
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS conversation_embeddings (
-        id TEXT PRIMARY KEY,
-        conversation_id TEXT NOT NULL,
-        turn_id TEXT NOT NULL,
-        chunk_id TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      )
-    `);
-    this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_conv_embed_conv ON conversation_embeddings(conversation_id)
-    `);
-    this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_conv_embed_turn ON conversation_embeddings(turn_id)
-    `);
-    this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_conversations_expires ON conversations(expires_at) WHERE expires_at IS NOT NULL
-    `);
-    this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_conversations_pinned ON conversations(pinned) WHERE pinned = 1
-    `);
-  }
-  /** Create a new conversation. Optionally auto-title from first user message. */
-  create(firstUserMessage) {
-    const id = nanoid();
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const autoTitle = firstUserMessage ? firstUserMessage.split(/\s+/).slice(0, 6).join(" ").substring(0, 50) : null;
-    this.db.prepare(
-      `INSERT INTO conversations (id, created_at, updated_at, title, pinned, pinned_at, auto_title, turn_count, last_message_preview, expires_at)
-       VALUES (?, ?, ?, NULL, 0, NULL, ?, 0, NULL, NULL)`
-    ).run(id, now, now, autoTitle);
-    return {
-      id,
-      title: null,
-      autoTitle,
-      createdAt: now,
-      updatedAt: now,
-      pinned: false,
-      pinnedAt: null,
-      turnCount: 0,
-      lastMessagePreview: null,
-      expiresAt: null
-    };
-  }
-  /** List conversations — pinned first (by pinned_at DESC), then by updated_at DESC. */
-  list(opts) {
-    const limit = opts?.limit ?? 50;
-    const offset = opts?.offset ?? 0;
-    let sql;
-    const params = [];
-    if (opts?.pinnedOnly) {
-      sql = `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
-             FROM conversations WHERE pinned = 1
-             ORDER BY pinned_at DESC
-             LIMIT ? OFFSET ?`;
-      params.push(limit, offset);
-    } else if (opts?.search) {
-      sql = `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
-             FROM conversations
-             WHERE title LIKE ? OR auto_title LIKE ? OR last_message_preview LIKE ?
-             ORDER BY pinned DESC, CASE WHEN pinned = 1 THEN pinned_at END DESC, updated_at DESC
-             LIMIT ? OFFSET ?`;
-      const pattern = `%${opts.search}%`;
-      params.push(pattern, pattern, pattern, limit, offset);
-    } else {
-      sql = `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
-             FROM conversations
-             ORDER BY pinned DESC, CASE WHEN pinned = 1 THEN pinned_at END DESC, updated_at DESC
-             LIMIT ? OFFSET ?`;
-      params.push(limit, offset);
-    }
-    const rows = this.db.prepare(sql).all(...params);
-    return rows.map(this.rowToSummary);
-  }
-  /** Get a full conversation with its turns. */
-  get(id) {
-    const row = this.db.prepare(
-      `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
-       FROM conversations WHERE id = ?`
-    ).get(id);
-    if (!row) return null;
-    const turns = this.getTurns(id);
-    return { ...this.rowToSummary(row), turns };
-  }
-  /** Get paginated turns for a conversation. */
-  getTurns(id, limit = 100, offset = 0) {
-    const rows = this.db.prepare(
-      `SELECT id, conversation_id, role, content, timestamp
-       FROM conversation_turns
-       WHERE conversation_id = ?
-       ORDER BY timestamp ASC
-       LIMIT ? OFFSET ?`
-    ).all(id, limit, offset);
-    return rows.map((r) => ({
-      id: r.id,
-      conversationId: r.conversation_id,
-      role: r.role,
-      content: r.content,
-      timestamp: r.timestamp
-    }));
-  }
-  /** Rename a conversation (user-set title). */
-  rename(id, title) {
-    this.db.prepare(
-      "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?"
-    ).run(title, (/* @__PURE__ */ new Date()).toISOString(), id);
-  }
-  /** Delete a conversation and cascade to turns + embeddings. */
-  delete(id) {
-    this.db.prepare("DELETE FROM conversation_embeddings WHERE conversation_id = ?").run(id);
-    this.db.prepare("DELETE FROM conversation_turns WHERE conversation_id = ?").run(id);
-    this.db.prepare("DELETE FROM conversations WHERE id = ?").run(id);
-  }
-  /** Pin a conversation. */
-  pin(id) {
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    this.db.prepare(
-      "UPDATE conversations SET pinned = 1, pinned_at = ?, updated_at = ? WHERE id = ?"
-    ).run(now, now, id);
-  }
-  /** Unpin a conversation. */
-  unpin(id) {
-    this.db.prepare(
-      "UPDATE conversations SET pinned = 0, pinned_at = NULL, updated_at = ? WHERE id = ?"
-    ).run((/* @__PURE__ */ new Date()).toISOString(), id);
-  }
-  /** Search conversations by title/autoTitle/preview using LIKE. */
-  searchByTitle(query, limit = 20) {
-    const pattern = `%${query}%`;
-    const rows = this.db.prepare(
-      `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
-       FROM conversations
-       WHERE title LIKE ? OR auto_title LIKE ? OR last_message_preview LIKE ?
-       ORDER BY updated_at DESC
-       LIMIT ?`
-    ).all(pattern, pattern, pattern, limit);
-    return rows.map(this.rowToSummary);
-  }
-  /** Delete expired conversations (where expires_at < now AND not pinned). Returns count deleted. */
-  pruneExpired() {
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const expired = this.db.prepare(
-      `SELECT id FROM conversations WHERE expires_at IS NOT NULL AND expires_at < ? AND pinned = 0`
-    ).all(now);
-    for (const row of expired) {
-      this.delete(row.id);
-    }
-    return expired.length;
-  }
-  /** Set expiry on a conversation. */
-  setExpiry(id, expiresAt) {
-    this.db.prepare(
-      "UPDATE conversations SET expires_at = ?, updated_at = ? WHERE id = ?"
-    ).run(expiresAt, (/* @__PURE__ */ new Date()).toISOString(), id);
-  }
-  /** Update conversation metadata after a turn is added. */
-  updateAfterTurn(id, content, role) {
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const preview = content.substring(0, 120);
-    if (role === "user") {
-      const conv = this.db.prepare(
-        "SELECT turn_count, auto_title FROM conversations WHERE id = ?"
-      ).get(id);
-      if (conv && !conv.auto_title) {
-        const autoTitle = content.split(/\s+/).slice(0, 6).join(" ").substring(0, 50);
-        this.db.prepare(
-          "UPDATE conversations SET auto_title = ?, turn_count = turn_count + 1, last_message_preview = ?, updated_at = ? WHERE id = ?"
-        ).run(autoTitle, preview, now, id);
-        return;
-      }
-    }
-    this.db.prepare(
-      "UPDATE conversations SET turn_count = turn_count + 1, last_message_preview = ?, updated_at = ? WHERE id = ?"
-    ).run(preview, now, id);
-  }
-  /** Bulk delete all conversations. Optionally preserve pinned. Returns count deleted. */
-  clearAll(opts) {
-    let ids;
-    if (opts?.preservePinned) {
-      ids = this.db.prepare(
-        "SELECT id FROM conversations WHERE pinned = 0"
-      ).all();
-    } else {
-      ids = this.db.prepare(
-        "SELECT id FROM conversations"
-      ).all();
-    }
-    for (const row of ids) {
-      this.delete(row.id);
-    }
-    return ids.length;
-  }
-  /** Get conversation counts. */
-  getCount() {
-    const total = this.db.prepare(
-      "SELECT COUNT(*) as count FROM conversations"
-    ).get();
-    const pinned = this.db.prepare(
-      "SELECT COUNT(*) as count FROM conversations WHERE pinned = 1"
-    ).get();
-    return { total: total.count, pinned: pinned.count };
-  }
-  // ─── Internal ──────────────────────────────────────────────────────────────
-  rowToSummary(row) {
-    return {
-      id: row.id,
-      title: row.title ?? null,
-      autoTitle: row.auto_title ?? null,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      pinned: row.pinned === 1,
-      pinnedAt: row.pinned_at ?? null,
-      turnCount: row.turn_count ?? 0,
-      lastMessagePreview: row.last_message_preview ?? null,
-      expiresAt: row.expires_at ?? null
-    };
-  }
-};
 
 // packages/core/agent/conversation-indexer.ts
 var ConversationIndexer = class {
@@ -257784,6 +258500,6378 @@ var oauthClients = {
   }
 };
 
+// packages/gateway/services/connector-router.ts
+var ConnectorRouter = class {
+  adapters = /* @__PURE__ */ new Map();
+  /** Register an adapter for a specific connector ID. */
+  registerAdapter(connectorId, adapter) {
+    this.adapters.set(connectorId, adapter);
+  }
+  /** Check if an adapter is registered for a connector ID. */
+  hasAdapter(connectorId) {
+    return this.adapters.has(connectorId);
+  }
+  /** Get a registered adapter by connector ID. */
+  getAdapter(connectorId) {
+    return this.adapters.get(connectorId);
+  }
+  /** List all registered connector IDs. */
+  listRegistered() {
+    return Array.from(this.adapters.keys());
+  }
+  async execute(action, payload) {
+    const p = payload;
+    const connectorId = p["connectorId"];
+    if (!connectorId) {
+      return {
+        success: false,
+        error: { code: "MISSING_CONNECTOR_ID", message: "payload.connectorId is required" }
+      };
+    }
+    const adapter = this.adapters.get(connectorId);
+    if (!adapter) {
+      return {
+        success: false,
+        error: {
+          code: "UNKNOWN_CONNECTOR",
+          message: `No adapter registered for connector: ${connectorId}`
+        }
+      };
+    }
+    return adapter.execute(action, payload);
+  }
+};
+
+// packages/gateway/services/base-pkce-adapter.ts
+var import_node_crypto9 = require("node:crypto");
+
+// packages/gateway/services/base-oauth-adapter.ts
+var TokenResponseSchema = external_exports.object({
+  access_token: external_exports.string().optional(),
+  refresh_token: external_exports.string().optional(),
+  expires_in: external_exports.number().optional(),
+  error: external_exports.string().optional(),
+  error_description: external_exports.string().optional()
+}).passthrough();
+var RefreshTokenResponseSchema = external_exports.object({
+  access_token: external_exports.string(),
+  expires_in: external_exports.number(),
+  refresh_token: external_exports.string().optional()
+}).passthrough();
+var BaseOAuthAdapter = class {
+  tokenManager;
+  config;
+  constructor(tokenManager, config) {
+    this.tokenManager = tokenManager;
+    this.config = config;
+  }
+  /**
+   * Start the OAuth authorization flow.
+   * Opens a localhost callback server, builds the auth URL, exchanges the code for tokens.
+   */
+  async performAuthFlow() {
+    const callbackServer = new OAuthCallbackServer();
+    const { callbackUrl, state } = await callbackServer.start();
+    const authUrl = new URL(this.config.authUrl);
+    authUrl.searchParams.set("client_id", this.config.clientId);
+    authUrl.searchParams.set("redirect_uri", callbackUrl);
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("scope", this.config.scopes);
+    authUrl.searchParams.set("state", state);
+    if (this.config.extraAuthParams) {
+      for (const [key, value] of Object.entries(this.config.extraAuthParams)) {
+        authUrl.searchParams.set(key, value);
+      }
+    }
+    this.augmentAuthUrl(authUrl, callbackUrl);
+    try {
+      const { code } = await callbackServer.waitForCallback();
+      const tokenBody = this.buildTokenExchangeBody(code, callbackUrl);
+      const tokenResponse = await globalThis.fetch(this.config.tokenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(tokenBody)
+      });
+      const rawTokenData = await tokenResponse.json();
+      const tokenParse = TokenResponseSchema.safeParse(rawTokenData);
+      if (!tokenParse.success) {
+        return {
+          success: false,
+          error: {
+            code: "TOKEN_PARSE_ERROR",
+            message: `Invalid token response from ${this.config.providerKey}: ${tokenParse.error.message}`
+          }
+        };
+      }
+      const tokenData = tokenParse.data;
+      if (tokenData.error || !tokenData.access_token) {
+        return {
+          success: false,
+          error: {
+            code: "TOKEN_ERROR",
+            message: tokenData.error_description ?? tokenData.error ?? "Token exchange failed"
+          }
+        };
+      }
+      const userInfo2 = await this.getUserInfo(tokenData.access_token);
+      this.tokenManager.storeTokens({
+        provider: this.config.providerKey,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token ?? "",
+        expiresAt: Date.now() + (tokenData.expires_in ?? 3600) * 1e3,
+        scopes: this.config.scopes,
+        userEmail: userInfo2.email
+      });
+      return {
+        success: true,
+        data: {
+          provider: this.config.providerKey,
+          userEmail: userInfo2.email,
+          displayName: userInfo2.displayName
+        }
+      };
+    } catch (err) {
+      callbackServer.stop();
+      return {
+        success: false,
+        error: {
+          code: "AUTH_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /** Check current authentication status. */
+  handleAuthStatus() {
+    const hasTokens = this.tokenManager.hasValidTokens(this.config.providerKey);
+    const email = this.tokenManager.getUserEmail(this.config.providerKey);
+    return {
+      success: true,
+      data: { authenticated: hasTokens, userEmail: email }
+    };
+  }
+  /** Disconnect: revoke token (best-effort) and clear stored tokens. */
+  async performDisconnect() {
+    if (this.config.revokeUrl) {
+      const accessToken = this.tokenManager.getAccessToken(this.config.providerKey);
+      if (accessToken) {
+        try {
+          await globalThis.fetch(this.config.revokeUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ token: accessToken })
+          });
+        } catch {
+        }
+      }
+    }
+    this.tokenManager.revokeTokens(this.config.providerKey);
+    return { success: true, data: { disconnected: true } };
+  }
+  /**
+   * Get a valid access token, refreshing if expired.
+   * Throws if not authenticated.
+   */
+  async getValidAccessToken() {
+    if (!this.tokenManager.isTokenExpired(this.config.providerKey)) {
+      const token = this.tokenManager.getAccessToken(this.config.providerKey);
+      if (token) return token;
+    }
+    const refreshToken = this.tokenManager.getRefreshToken(this.config.providerKey);
+    if (!refreshToken) {
+      throw new Error(`Not authenticated with ${this.config.providerKey}`);
+    }
+    const body = {
+      refresh_token: refreshToken,
+      client_id: this.config.clientId,
+      grant_type: "refresh_token"
+    };
+    if (this.config.clientSecret && !this.config.usePKCE) {
+      body["client_secret"] = this.config.clientSecret;
+    }
+    const response = await globalThis.fetch(this.config.tokenUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(body)
+    });
+    const rawData = await response.json();
+    const refreshParse = RefreshTokenResponseSchema.safeParse(rawData);
+    if (!refreshParse.success) {
+      throw new Error(`Invalid refresh token response from ${this.config.providerKey}: ${refreshParse.error.message}`);
+    }
+    const data = refreshParse.data;
+    this.tokenManager.refreshAccessToken(
+      this.config.providerKey,
+      data.access_token,
+      Date.now() + data.expires_in * 1e3,
+      data.refresh_token
+    );
+    return data.access_token;
+  }
+  /**
+   * Extension point for subclasses to add params to the auth URL (e.g. PKCE).
+   * Default is a no-op.
+   */
+  augmentAuthUrl(_authUrl, _callbackUrl) {
+  }
+  /**
+   * Build the body for the token exchange POST.
+   * Override in BasePKCEAdapter to include code_verifier.
+   */
+  buildTokenExchangeBody(code, callbackUrl) {
+    const body = {
+      code,
+      client_id: this.config.clientId,
+      redirect_uri: callbackUrl,
+      grant_type: "authorization_code"
+    };
+    if (this.config.clientSecret && !this.config.usePKCE) {
+      body["client_secret"] = this.config.clientSecret;
+    }
+    return body;
+  }
+};
+
+// packages/gateway/services/base-pkce-adapter.ts
+function generateCodeVerifier(length = 64) {
+  const bytes = (0, import_node_crypto9.randomBytes)(length);
+  return bytes.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "").slice(0, 128);
+}
+function deriveCodeChallenge(codeVerifier) {
+  return (0, import_node_crypto9.createHash)("sha256").update(codeVerifier).digest("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+var BasePKCEAdapter = class extends BaseOAuthAdapter {
+  codeVerifier = null;
+  constructor(tokenManager, config) {
+    super(tokenManager, { ...config, usePKCE: true });
+  }
+  /**
+   * Augment the auth URL with PKCE params: code_challenge and code_challenge_method.
+   */
+  augmentAuthUrl(authUrl, _callbackUrl) {
+    this.codeVerifier = generateCodeVerifier();
+    const challenge = deriveCodeChallenge(this.codeVerifier);
+    authUrl.searchParams.set("code_challenge", challenge);
+    authUrl.searchParams.set("code_challenge_method", "S256");
+  }
+  /**
+   * Build token exchange body with code_verifier instead of client_secret.
+   * SECURITY: Clears the codeVerifier after use to prevent reuse or memory leakage.
+   */
+  buildTokenExchangeBody(code, callbackUrl) {
+    const body = {
+      code,
+      client_id: this.config.clientId,
+      redirect_uri: callbackUrl,
+      grant_type: "authorization_code"
+    };
+    if (this.codeVerifier) {
+      body["code_verifier"] = this.codeVerifier;
+      this.codeVerifier = null;
+    }
+    return body;
+  }
+};
+
+// packages/gateway/services/spotify/spotify-adapter.ts
+var SPOTIFY_SCOPES = "user-read-recently-played user-library-read user-top-read playlist-read-private";
+var API_BASE = "https://api.spotify.com/v1";
+function getSpotifyOAuthConfig() {
+  return {
+    providerKey: "spotify",
+    authUrl: "https://accounts.spotify.com/authorize",
+    tokenUrl: "https://accounts.spotify.com/api/token",
+    scopes: SPOTIFY_SCOPES,
+    usePKCE: true,
+    clientId: oauthClients.spotify.clientId
+  };
+}
+var SpotifyAdapter = class extends BasePKCEAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getSpotifyOAuthConfig());
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${API_BASE}/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`Spotify user info failed: HTTP ${response.status}`);
+    }
+    const profile = await response.json();
+    return {
+      email: profile.email,
+      displayName: profile.display_name
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `SpotifyAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "SPOTIFY_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync recently played, top tracks, and saved tracks from Spotify.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const limit = payload["limit"] ?? 50;
+    const items = [];
+    const errors = [];
+    try {
+      const recentItems = await this.fetchRecentlyPlayed(accessToken, limit);
+      items.push(...recentItems);
+    } catch (err) {
+      errors.push({ message: `Recently played: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const topItems = await this.fetchTopTracks(accessToken, Math.min(limit, 50));
+      items.push(...topItems);
+    } catch (err) {
+      errors.push({ message: `Top tracks: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const savedItems = await this.fetchSavedTracks(accessToken, Math.min(limit, 50));
+      items.push(...savedItems);
+    } catch (err) {
+      errors.push({ message: `Saved tracks: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List items with pagination support (used by connector.list_items).
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageSize = payload["pageSize"] ?? 50;
+    const pageToken = payload["pageToken"];
+    const url = new URL(`${API_BASE}/me/tracks`);
+    url.searchParams.set("limit", String(Math.min(pageSize, 50)));
+    if (pageToken) {
+      url.searchParams.set("offset", pageToken);
+    }
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "SPOTIFY_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const items = data.items.map((item) => this.savedTrackToImportedItem(item));
+    const nextOffset = data.next ? String(parseInt(pageToken ?? "0", 10) + data.items.length) : null;
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: nextOffset,
+        total: data.total
+      }
+    };
+  }
+  async fetchRecentlyPlayed(accessToken, limit) {
+    const url = new URL(`${API_BASE}/me/player/recently-played`);
+    url.searchParams.set("limit", String(Math.min(limit, 50)));
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.items.map((item) => ({
+      id: `spt_recent_${item.track.id}_${new Date(item.played_at).getTime()}`,
+      sourceType: "productivity",
+      title: `${item.track.name} - ${item.track.artists.map((a) => a.name).join(", ")}`,
+      content: `Listened to "${item.track.name}" by ${item.track.artists.map((a) => a.name).join(", ")} from album "${item.track.album.name}"`,
+      timestamp: item.played_at,
+      metadata: {
+        provider: "spotify",
+        type: "recently_played",
+        trackId: item.track.id,
+        trackName: item.track.name,
+        artists: item.track.artists.map((a) => a.name),
+        album: item.track.album.name,
+        durationMs: item.track.duration_ms,
+        spotifyUrl: item.track.external_urls?.spotify
+      }
+    }));
+  }
+  async fetchTopTracks(accessToken, limit) {
+    const url = new URL(`${API_BASE}/me/top/tracks`);
+    url.searchParams.set("limit", String(Math.min(limit, 50)));
+    url.searchParams.set("time_range", "medium_term");
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.items.map((track, index3) => ({
+      id: `spt_top_${track.id}`,
+      sourceType: "productivity",
+      title: `Top Track #${index3 + 1}: ${track.name} - ${track.artists.map((a) => a.name).join(", ")}`,
+      content: `Top track "${track.name}" by ${track.artists.map((a) => a.name).join(", ")} from album "${track.album.name}"`,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      metadata: {
+        provider: "spotify",
+        type: "top_track",
+        rank: index3 + 1,
+        trackId: track.id,
+        trackName: track.name,
+        artists: track.artists.map((a) => a.name),
+        album: track.album.name,
+        durationMs: track.duration_ms,
+        spotifyUrl: track.external_urls?.spotify
+      }
+    }));
+  }
+  async fetchSavedTracks(accessToken, limit) {
+    const url = new URL(`${API_BASE}/me/tracks`);
+    url.searchParams.set("limit", String(Math.min(limit, 50)));
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.items.map((item) => this.savedTrackToImportedItem(item));
+  }
+  savedTrackToImportedItem(item) {
+    return {
+      id: `spt_saved_${item.track.id}`,
+      sourceType: "productivity",
+      title: `${item.track.name} - ${item.track.artists.map((a) => a.name).join(", ")}`,
+      content: `Saved track "${item.track.name}" by ${item.track.artists.map((a) => a.name).join(", ")} from album "${item.track.album.name}"`,
+      timestamp: item.added_at,
+      metadata: {
+        provider: "spotify",
+        type: "saved_track",
+        trackId: item.track.id,
+        trackName: item.track.name,
+        artists: item.track.artists.map((a) => a.name),
+        album: item.track.album.name,
+        durationMs: item.track.duration_ms,
+        spotifyUrl: item.track.external_urls?.spotify
+      }
+    };
+  }
+};
+
+// packages/gateway/services/github/github-adapter.ts
+var GITHUB_SCOPES = "read:user repo";
+var API_BASE2 = "https://api.github.com";
+function getGitHubOAuthConfig() {
+  return {
+    providerKey: "github",
+    authUrl: "https://github.com/login/oauth/authorize",
+    tokenUrl: "https://github.com/login/oauth/access_token",
+    scopes: GITHUB_SCOPES,
+    usePKCE: true,
+    clientId: oauthClients.github.clientId
+  };
+}
+var GitHubAdapter = class extends BasePKCEAdapter {
+  /** Cached username from getUserInfo, used for events endpoint */
+  cachedLogin = null;
+  constructor(tokenManager) {
+    super(tokenManager, getGitHubOAuthConfig());
+  }
+  /**
+   * Override the token exchange to add Accept: application/json header.
+   * GitHub returns URL-encoded form data by default, not JSON.
+   */
+  async performAuthFlow() {
+    const originalFetch = globalThis.fetch;
+    const tokenUrl = this.config.tokenUrl;
+    globalThis.fetch = async (input, init) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url === tokenUrl && init?.method === "POST") {
+        const headers = new Headers(init.headers);
+        headers.set("Accept", "application/json");
+        return originalFetch(input, { ...init, headers });
+      }
+      return originalFetch(input, init);
+    };
+    try {
+      const result2 = await super.performAuthFlow();
+      return result2;
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${API_BASE2}/user`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`GitHub user info failed: HTTP ${response.status}`);
+    }
+    const user = await response.json();
+    this.cachedLogin = user.login;
+    return {
+      email: user.email ?? void 0,
+      displayName: user.login
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `GitHubAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "GITHUB_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync repos, starred repos, and recent events from GitHub.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const limit = payload["limit"] ?? 50;
+    const items = [];
+    const errors = [];
+    if (!this.cachedLogin) {
+      try {
+        const userInfo2 = await this.getUserInfo(accessToken);
+        this.cachedLogin = userInfo2.displayName ?? null;
+      } catch (err) {
+        errors.push({ message: `User info: ${err instanceof Error ? err.message : String(err)}` });
+      }
+    }
+    try {
+      const repoItems = await this.fetchRepos(accessToken, limit);
+      items.push(...repoItems);
+    } catch (err) {
+      errors.push({ message: `Repos: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const starredItems = await this.fetchStarred(accessToken, Math.min(limit, 100));
+      items.push(...starredItems);
+    } catch (err) {
+      errors.push({ message: `Starred: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    if (this.cachedLogin) {
+      try {
+        const eventItems = await this.fetchEvents(accessToken, this.cachedLogin, Math.min(limit, 100));
+        items.push(...eventItems);
+      } catch (err) {
+        errors.push({ message: `Events: ${err instanceof Error ? err.message : String(err)}` });
+      }
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List repos with pagination (used by connector.list_items).
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageSize = payload["pageSize"] ?? 30;
+    const page = payload["pageToken"] ? parseInt(payload["pageToken"], 10) : 1;
+    const url = new URL(`${API_BASE2}/user/repos`);
+    url.searchParams.set("per_page", String(Math.min(pageSize, 100)));
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("sort", "updated");
+    const response = await globalThis.fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json"
+      }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "GITHUB_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const repos = await response.json();
+    const linkHeader = response.headers.get("Link");
+    const hasNext = linkHeader !== null && linkHeader.includes('rel="next"');
+    const items = repos.map((repo) => this.repoToImportedItem(repo));
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: hasNext ? String(page + 1) : null
+      }
+    };
+  }
+  async fetchRepos(accessToken, limit) {
+    const url = new URL(`${API_BASE2}/user/repos`);
+    url.searchParams.set("per_page", String(Math.min(limit, 100)));
+    url.searchParams.set("sort", "updated");
+    url.searchParams.set("direction", "desc");
+    const response = await globalThis.fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const repos = await response.json();
+    return repos.map((repo) => this.repoToImportedItem(repo));
+  }
+  async fetchStarred(accessToken, limit) {
+    const url = new URL(`${API_BASE2}/user/starred`);
+    url.searchParams.set("per_page", String(Math.min(limit, 100)));
+    url.searchParams.set("sort", "updated");
+    const response = await globalThis.fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const repos = await response.json();
+    return repos.map((repo) => ({
+      id: `gh_starred_${repo.id}`,
+      sourceType: "research",
+      title: `Starred: ${repo.full_name}`,
+      content: `Starred repository "${repo.full_name}"${repo.description ? `: ${repo.description}` : ""}. Language: ${repo.language ?? "unknown"}. Stars: ${repo.stargazers_count}. Forks: ${repo.forks_count}.`,
+      timestamp: repo.updated_at,
+      metadata: {
+        provider: "github",
+        type: "starred_repo",
+        repoId: repo.id,
+        fullName: repo.full_name,
+        description: repo.description,
+        language: repo.language,
+        stars: repo.stargazers_count,
+        forks: repo.forks_count,
+        url: repo.html_url,
+        topics: repo.topics ?? []
+      }
+    }));
+  }
+  async fetchEvents(accessToken, login, limit) {
+    const url = new URL(`${API_BASE2}/users/${login}/events`);
+    url.searchParams.set("per_page", String(Math.min(limit, 100)));
+    const response = await globalThis.fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const events = await response.json();
+    return events.map((event) => ({
+      id: `gh_event_${event.id}`,
+      sourceType: "productivity",
+      title: `${event.type} on ${event.repo.name}`,
+      content: `GitHub event: ${event.type} on repository ${event.repo.name}`,
+      timestamp: event.created_at,
+      metadata: {
+        provider: "github",
+        type: "event",
+        eventType: event.type,
+        eventId: event.id,
+        repoName: event.repo.name
+      }
+    }));
+  }
+  repoToImportedItem(repo) {
+    return {
+      id: `gh_repo_${repo.id}`,
+      sourceType: "productivity",
+      title: repo.full_name,
+      content: `Repository "${repo.full_name}"${repo.description ? `: ${repo.description}` : ""}. Language: ${repo.language ?? "unknown"}. Stars: ${repo.stargazers_count}. Forks: ${repo.forks_count}. ${repo.private ? "Private" : "Public"}.`,
+      timestamp: repo.updated_at,
+      metadata: {
+        provider: "github",
+        type: "repo",
+        repoId: repo.id,
+        fullName: repo.full_name,
+        description: repo.description,
+        language: repo.language,
+        stars: repo.stargazers_count,
+        forks: repo.forks_count,
+        isPrivate: repo.private,
+        url: repo.html_url,
+        topics: repo.topics ?? [],
+        createdAt: repo.created_at
+      }
+    };
+  }
+};
+
+// packages/gateway/services/readwise/readwise-adapter.ts
+var PROVIDER_KEY = "readwise";
+var API_BASE3 = "https://readwise.io/api/v2";
+var ReadwiseAdapter = class {
+  tokenManager;
+  constructor(tokenManager) {
+    this.tokenManager = tokenManager;
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.handleAuth(p);
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return this.handleDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `ReadwiseAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "READWISE_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Authenticate with an API key. Validates the key against the Readwise auth endpoint.
+   */
+  async handleAuth(payload) {
+    const apiKey = payload["apiKey"];
+    if (!apiKey) {
+      return {
+        success: false,
+        error: { code: "MISSING_API_KEY", message: "payload.apiKey is required for Readwise" }
+      };
+    }
+    const response = await globalThis.fetch(`${API_BASE3}/auth/`, {
+      headers: { Authorization: `Token ${apiKey}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "INVALID_API_KEY", message: `Readwise API key validation failed: HTTP ${response.status}` }
+      };
+    }
+    this.tokenManager.storeTokens({
+      provider: PROVIDER_KEY,
+      accessToken: apiKey,
+      refreshToken: "",
+      expiresAt: Date.now() + 10 * 365 * 24 * 60 * 60 * 1e3,
+      scopes: "readwise:read"
+    });
+    return {
+      success: true,
+      data: {
+        provider: PROVIDER_KEY,
+        authenticated: true
+      }
+    };
+  }
+  handleAuthStatus() {
+    const hasTokens = this.tokenManager.hasValidTokens(PROVIDER_KEY);
+    return {
+      success: true,
+      data: { authenticated: hasTokens }
+    };
+  }
+  handleDisconnect() {
+    this.tokenManager.revokeTokens(PROVIDER_KEY);
+    return { success: true, data: { disconnected: true } };
+  }
+  /**
+   * Sync highlights and books from Readwise.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   */
+  async handleSync(payload) {
+    const apiKey = this.getApiKey();
+    const limit = payload["limit"] ?? 1e3;
+    const items = [];
+    const errors = [];
+    try {
+      const highlightItems = await this.fetchAllHighlights(apiKey, limit);
+      items.push(...highlightItems);
+    } catch (err) {
+      errors.push({ message: `Highlights: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const bookItems = await this.fetchAllBooks(apiKey, limit);
+      items.push(...bookItems);
+    } catch (err) {
+      errors.push({ message: `Books: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List highlights with pagination (used by connector.list_items).
+   */
+  async handleListItems(payload) {
+    const apiKey = this.getApiKey();
+    const pageSize = payload["pageSize"] ?? 100;
+    const pageToken = payload["pageToken"];
+    const url = pageToken ?? `${API_BASE3}/highlights/?page_size=${Math.min(pageSize, 1e3)}`;
+    const response = await globalThis.fetch(url, {
+      headers: { Authorization: `Token ${apiKey}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "READWISE_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const items = data.results.map((h) => this.highlightToImportedItem(h));
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: data.next,
+        total: data.count
+      }
+    };
+  }
+  /**
+   * Fetch all highlights with pagination, up to the specified limit.
+   */
+  async fetchAllHighlights(apiKey, limit) {
+    const items = [];
+    let nextUrl = `${API_BASE3}/highlights/?page_size=${Math.min(limit, 1e3)}`;
+    while (nextUrl && items.length < limit) {
+      const response = await globalThis.fetch(nextUrl, {
+        headers: { Authorization: `Token ${apiKey}` }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      for (const highlight of data.results) {
+        if (items.length >= limit) break;
+        items.push(this.highlightToImportedItem(highlight));
+      }
+      nextUrl = data.next;
+    }
+    return items;
+  }
+  /**
+   * Fetch all books with pagination.
+   */
+  async fetchAllBooks(apiKey, limit) {
+    const items = [];
+    let nextUrl = `${API_BASE3}/books/?page_size=${Math.min(limit, 1e3)}`;
+    while (nextUrl && items.length < limit) {
+      const response = await globalThis.fetch(nextUrl, {
+        headers: { Authorization: `Token ${apiKey}` }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      for (const book of data.results) {
+        if (items.length >= limit) break;
+        items.push(this.bookToImportedItem(book));
+      }
+      nextUrl = data.next;
+    }
+    return items;
+  }
+  highlightToImportedItem(highlight) {
+    return {
+      id: `rw_highlight_${highlight.id}`,
+      sourceType: "research",
+      title: highlight.text.slice(0, 100) + (highlight.text.length > 100 ? "..." : ""),
+      content: highlight.text + (highlight.note ? `
+
+Note: ${highlight.note}` : ""),
+      timestamp: highlight.highlighted_at ?? highlight.updated,
+      metadata: {
+        provider: "readwise",
+        type: "highlight",
+        highlightId: highlight.id,
+        bookId: highlight.book_id,
+        location: highlight.location,
+        locationType: highlight.location_type,
+        color: highlight.color,
+        url: highlight.url,
+        tags: highlight.tags.map((t) => t.name)
+      }
+    };
+  }
+  bookToImportedItem(book) {
+    return {
+      id: `rw_book_${book.id}`,
+      sourceType: "research",
+      title: book.title,
+      content: `"${book.title}" by ${book.author ?? "Unknown"}. Category: ${book.category}. Source: ${book.source}. ${book.num_highlights} highlights.`,
+      timestamp: book.updated,
+      metadata: {
+        provider: "readwise",
+        type: "book",
+        bookId: book.id,
+        author: book.author,
+        category: book.category,
+        source: book.source,
+        numHighlights: book.num_highlights,
+        coverImageUrl: book.cover_image_url
+      }
+    };
+  }
+  /**
+   * Get the stored API key. Throws if not authenticated.
+   */
+  getApiKey() {
+    const apiKey = this.tokenManager.getAccessToken(PROVIDER_KEY);
+    if (!apiKey) {
+      throw new Error("Not authenticated with Readwise. Provide an API key via connector.auth.");
+    }
+    return apiKey;
+  }
+};
+
+// packages/gateway/services/notion/notion-adapter.ts
+var NOTION_VERSION = "2022-06-28";
+function getNotionOAuthConfig() {
+  return {
+    providerKey: "notion",
+    authUrl: "https://api.notion.com/v1/oauth/authorize",
+    tokenUrl: "https://api.notion.com/v1/oauth/token",
+    scopes: "",
+    // Notion uses Integration capabilities, not scopes
+    usePKCE: false,
+    clientId: oauthClients.notion.clientId,
+    clientSecret: oauthClients.notion.clientSecret,
+    extraAuthParams: {
+      owner: "user"
+    }
+  };
+}
+var NotionAdapter = class extends BaseOAuthAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getNotionOAuthConfig());
+  }
+  /**
+   * Override the entire auth flow because Notion's token exchange uses
+   * Basic auth (base64(client_id:client_secret)) in the Authorization header
+   * instead of client_id/client_secret in the body. Also, user info comes
+   * from the token response itself (owner.user).
+   */
+  async performAuthFlow() {
+    const callbackServer = new OAuthCallbackServer();
+    const { callbackUrl, state } = await callbackServer.start();
+    const authUrl = new URL(this.config.authUrl);
+    authUrl.searchParams.set("client_id", this.config.clientId);
+    authUrl.searchParams.set("redirect_uri", callbackUrl);
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("state", state);
+    authUrl.searchParams.set("owner", "user");
+    try {
+      const { code } = await callbackServer.waitForCallback();
+      const basicAuth = Buffer.from(`${this.config.clientId}:${this.config.clientSecret ?? ""}`).toString("base64");
+      const tokenResponse = await globalThis.fetch(this.config.tokenUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${basicAuth}`
+        },
+        body: JSON.stringify({
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: callbackUrl
+        })
+      });
+      const tokenData = await tokenResponse.json();
+      if (tokenData.error || !tokenData.access_token) {
+        return {
+          success: false,
+          error: {
+            code: "TOKEN_ERROR",
+            message: tokenData.error ?? "Notion token exchange failed"
+          }
+        };
+      }
+      const userEmail = tokenData.owner?.user?.person?.email;
+      const displayName = tokenData.owner?.user?.name;
+      this.tokenManager.storeTokens({
+        provider: this.config.providerKey,
+        accessToken: tokenData.access_token,
+        refreshToken: "",
+        // Notion doesn't issue refresh tokens
+        expiresAt: Date.now() + 10 * 365 * 24 * 60 * 60 * 1e3,
+        scopes: this.config.scopes,
+        userEmail
+      });
+      return {
+        success: true,
+        data: {
+          provider: this.config.providerKey,
+          userEmail,
+          displayName,
+          workspaceName: tokenData.workspace_name,
+          workspaceId: tokenData.workspace_id
+        }
+      };
+    } catch (err) {
+      callbackServer.stop();
+      return {
+        success: false,
+        error: {
+          code: "AUTH_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch("https://api.notion.com/v1/users/me", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Notion-Version": NOTION_VERSION
+      }
+    });
+    if (!response.ok) {
+      return {};
+    }
+    const user = await response.json();
+    return {
+      email: user.person?.email,
+      displayName: user.name ?? void 0
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `NotionAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "NOTION_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync all pages and databases from Notion.
+   * Uses POST /v1/search with pagination.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const limit = payload["limit"] ?? 100;
+    const items = [];
+    const errors = [];
+    try {
+      let hasMore = true;
+      let startCursor;
+      while (hasMore && items.length < limit) {
+        const body = {
+          page_size: Math.min(limit - items.length, 100)
+        };
+        if (startCursor) {
+          body["start_cursor"] = startCursor;
+        }
+        const response = await globalThis.fetch("https://api.notion.com/v1/search", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+            "Notion-Version": NOTION_VERSION
+          },
+          body: JSON.stringify(body)
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        for (const result2 of data.results) {
+          if (items.length >= limit) break;
+          if (result2.object === "page") {
+            items.push(this.pageToImportedItem(result2));
+          } else if (result2.object === "database") {
+            items.push(this.databaseToImportedItem(result2));
+          }
+        }
+        hasMore = data.has_more;
+        startCursor = data.next_cursor ?? void 0;
+      }
+    } catch (err) {
+      errors.push({ message: `Search: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List items with pagination (used by connector.list_items).
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageSize = payload["pageSize"] ?? 100;
+    const startCursor = payload["pageToken"];
+    const body = {
+      page_size: Math.min(pageSize, 100)
+    };
+    if (startCursor) {
+      body["start_cursor"] = startCursor;
+    }
+    const response = await globalThis.fetch("https://api.notion.com/v1/search", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "Notion-Version": NOTION_VERSION
+      },
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "NOTION_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const items = [];
+    for (const result2 of data.results) {
+      if (result2.object === "page") {
+        items.push(this.pageToImportedItem(result2));
+      } else if (result2.object === "database") {
+        items.push(this.databaseToImportedItem(result2));
+      }
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: data.has_more ? data.next_cursor : null
+      }
+    };
+  }
+  pageToImportedItem(page) {
+    let title = "Untitled";
+    for (const prop of Object.values(page.properties)) {
+      if (prop.type === "title" && prop.title && prop.title.length > 0) {
+        title = prop.title.map((t) => t.plain_text).join("");
+        break;
+      }
+    }
+    return {
+      id: `ntn_page_${page.id.replace(/-/g, "")}`,
+      sourceType: "notes",
+      title,
+      content: `Notion page: "${title}". Last edited: ${page.last_edited_time}.`,
+      timestamp: page.last_edited_time,
+      metadata: {
+        provider: "notion",
+        type: "page",
+        pageId: page.id,
+        url: page.url,
+        parentType: page.parent.type,
+        parentId: page.parent.database_id ?? page.parent.page_id ?? null,
+        createdTime: page.created_time
+      }
+    };
+  }
+  databaseToImportedItem(db) {
+    const title = db.title.map((t) => t.plain_text).join("") || "Untitled Database";
+    const description = db.description.map((t) => t.plain_text).join("");
+    return {
+      id: `ntn_db_${db.id.replace(/-/g, "")}`,
+      sourceType: "notes",
+      title,
+      content: `Notion database: "${title}"${description ? `. ${description}` : ""}. Last edited: ${db.last_edited_time}.`,
+      timestamp: db.last_edited_time,
+      metadata: {
+        provider: "notion",
+        type: "database",
+        databaseId: db.id,
+        url: db.url,
+        description,
+        createdTime: db.created_time
+      }
+    };
+  }
+};
+
+// packages/gateway/services/dropbox/dropbox-adapter.ts
+var DROPBOX_SCOPES = "files.metadata.read files.content.read";
+var API_BASE4 = "https://api.dropboxapi.com/2";
+var CONTENT_BASE = "https://content.dropboxapi.com/2";
+function getDropboxOAuthConfig() {
+  return {
+    providerKey: "dropbox",
+    authUrl: "https://www.dropbox.com/oauth2/authorize",
+    tokenUrl: "https://api.dropboxapi.com/2/oauth2/token",
+    scopes: DROPBOX_SCOPES,
+    usePKCE: false,
+    clientId: oauthClients.dropbox.clientId,
+    clientSecret: oauthClients.dropbox.clientSecret,
+    revokeUrl: "https://api.dropboxapi.com/2/auth/token/revoke",
+    extraAuthParams: {
+      token_access_type: "offline"
+    }
+  };
+}
+var DropboxAdapter = class extends BaseOAuthAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getDropboxOAuthConfig());
+  }
+  /**
+   * Override disconnect to use Dropbox's POST-based token revocation.
+   * Dropbox requires a POST to /2/auth/token/revoke with the bearer token.
+   */
+  async performDisconnect() {
+    const accessToken = this.tokenManager.getAccessToken(this.config.providerKey);
+    if (accessToken) {
+      try {
+        await globalThis.fetch(`${API_BASE4}/auth/token/revoke`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+      } catch {
+      }
+    }
+    this.tokenManager.revokeTokens(this.config.providerKey);
+    return { success: true, data: { disconnected: true } };
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${API_BASE4}/users/get_current_account`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: "null"
+    });
+    if (!response.ok) {
+      throw new Error(`Dropbox user info failed: HTTP ${response.status}`);
+    }
+    const account = await response.json();
+    return {
+      email: account.email,
+      displayName: account.name.display_name
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        case "cloud.list_files":
+          return await this.handleListFiles(p);
+        case "cloud.download_file":
+          return await this.handleDownloadFile(p);
+        case "cloud.file_metadata":
+          return await this.handleFileMetadata(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `DropboxAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "DROPBOX_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync files from the Dropbox root folder.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const limit = payload["limit"] ?? 100;
+    const items = [];
+    const errors = [];
+    try {
+      let hasMore = true;
+      let cursor;
+      const initialResponse = await globalThis.fetch(`${API_BASE4}/files/list_folder`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          path: "",
+          recursive: true,
+          include_media_info: false,
+          include_deleted: false,
+          limit: Math.min(limit, 2e3)
+        })
+      });
+      if (!initialResponse.ok) {
+        throw new Error(`HTTP ${initialResponse.status}: ${initialResponse.statusText}`);
+      }
+      let data = await initialResponse.json();
+      items.push(...this.entriesToImportedItems(data.entries));
+      hasMore = data.has_more;
+      cursor = data.cursor;
+      while (hasMore && items.length < limit && cursor) {
+        const continueResponse = await globalThis.fetch(`${API_BASE4}/files/list_folder/continue`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ cursor })
+        });
+        if (!continueResponse.ok) {
+          throw new Error(`HTTP ${continueResponse.status}: ${continueResponse.statusText}`);
+        }
+        data = await continueResponse.json();
+        items.push(...this.entriesToImportedItems(data.entries));
+        hasMore = data.has_more;
+        cursor = data.cursor;
+      }
+    } catch (err) {
+      errors.push({ message: `List folder: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items: items.slice(0, limit),
+        totalItems: Math.min(items.length, limit),
+        errors
+      }
+    };
+  }
+  /**
+   * List files in a folder with pagination (connector.list_items).
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageSize = payload["pageSize"] ?? 100;
+    const cursor = payload["pageToken"];
+    let response;
+    if (cursor) {
+      response = await globalThis.fetch(`${API_BASE4}/files/list_folder/continue`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ cursor })
+      });
+    } else {
+      response = await globalThis.fetch(`${API_BASE4}/files/list_folder`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          path: "",
+          recursive: false,
+          include_media_info: false,
+          include_deleted: false,
+          limit: Math.min(pageSize, 2e3)
+        })
+      });
+    }
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "DROPBOX_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const items = this.entriesToImportedItems(data.entries);
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: data.has_more ? data.cursor : null
+      }
+    };
+  }
+  /**
+   * List files in a folder (cloud.list_files).
+   */
+  async handleListFiles(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const folderPath = payload["folderId"] ?? "";
+    const pageSize = payload["pageSize"] ?? 100;
+    const cursor = payload["pageToken"];
+    let response;
+    if (cursor) {
+      response = await globalThis.fetch(`${API_BASE4}/files/list_folder/continue`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ cursor })
+      });
+    } else {
+      response = await globalThis.fetch(`${API_BASE4}/files/list_folder`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          path: folderPath,
+          recursive: false,
+          include_media_info: false,
+          include_deleted: false,
+          limit: Math.min(pageSize, 2e3)
+        })
+      });
+    }
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "DROPBOX_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const files = data.entries.map((entry) => {
+      const isFile = entry[".tag"] === "file";
+      const fileEntry = isFile ? entry : null;
+      return {
+        id: entry.id,
+        name: entry.name,
+        pathDisplay: entry.path_display,
+        pathLower: entry.path_lower,
+        isFolder: entry[".tag"] === "folder",
+        sizeBytes: fileEntry?.size ?? 0,
+        serverModified: fileEntry?.server_modified ?? null,
+        clientModified: fileEntry?.client_modified ?? null,
+        contentHash: fileEntry?.content_hash ?? null
+      };
+    });
+    return {
+      success: true,
+      data: {
+        files,
+        nextPageToken: data.has_more ? data.cursor : null,
+        totalFiles: files.length
+      }
+    };
+  }
+  /**
+   * Download a file from Dropbox (cloud.download_file).
+   */
+  async handleDownloadFile(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const filePath = payload["fileId"];
+    const localPath = payload["localPath"];
+    const response = await globalThis.fetch(`${CONTENT_BASE}/files/download`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Dropbox-API-Arg": JSON.stringify({ path: filePath })
+      }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "DOWNLOAD_FAILED", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const fs4 = await import("node:fs");
+    const path2 = await import("node:path");
+    const dir = path2.dirname(localPath);
+    if (!fs4.existsSync(dir)) {
+      fs4.mkdirSync(dir, { recursive: true });
+    }
+    fs4.writeFileSync(localPath, buffer);
+    return {
+      success: true,
+      data: {
+        localPath,
+        sizeBytes: buffer.length
+      }
+    };
+  }
+  /**
+   * Get file metadata (cloud.file_metadata).
+   */
+  async handleFileMetadata(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const filePath = payload["fileId"];
+    const response = await globalThis.fetch(`${API_BASE4}/files/get_metadata`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        path: filePath,
+        include_media_info: false
+      })
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "METADATA_FAILED", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const entry = await response.json();
+    const isFile = entry[".tag"] === "file";
+    const fileEntry = isFile ? entry : null;
+    return {
+      success: true,
+      data: {
+        id: entry.id,
+        name: entry.name,
+        pathDisplay: entry.path_display,
+        pathLower: entry.path_lower,
+        isFolder: entry[".tag"] === "folder",
+        sizeBytes: fileEntry?.size ?? 0,
+        serverModified: fileEntry?.server_modified ?? null,
+        clientModified: fileEntry?.client_modified ?? null,
+        contentHash: fileEntry?.content_hash ?? null
+      }
+    };
+  }
+  entriesToImportedItems(entries) {
+    return entries.map((entry) => {
+      const isFile = entry[".tag"] === "file";
+      const fileEntry = isFile ? entry : null;
+      return {
+        id: `dbx_${entry.id.replace(/^id:/, "")}`,
+        sourceType: "productivity",
+        title: entry.name,
+        content: `Dropbox ${isFile ? "file" : "folder"}: "${entry.path_display}"${fileEntry ? `. Size: ${fileEntry.size} bytes. Modified: ${fileEntry.server_modified}` : ""}`,
+        timestamp: fileEntry?.server_modified ?? (/* @__PURE__ */ new Date()).toISOString(),
+        metadata: {
+          provider: "dropbox",
+          type: isFile ? "file" : "folder",
+          entryId: entry.id,
+          pathDisplay: entry.path_display,
+          pathLower: entry.path_lower,
+          sizeBytes: fileEntry?.size ?? 0,
+          serverModified: fileEntry?.server_modified ?? null,
+          contentHash: fileEntry?.content_hash ?? null
+        }
+      };
+    });
+  }
+};
+
+// packages/gateway/services/onedrive/onedrive-adapter.ts
+var ONEDRIVE_SCOPES = "Files.Read.All User.Read offline_access";
+var GRAPH_BASE = "https://graph.microsoft.com/v1.0";
+function getOneDriveOAuthConfig() {
+  return {
+    providerKey: "onedrive",
+    authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+    tokenUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+    scopes: ONEDRIVE_SCOPES,
+    usePKCE: false,
+    clientId: oauthClients.onedrive.clientId,
+    clientSecret: oauthClients.onedrive.clientSecret,
+    extraAuthParams: {
+      response_mode: "query"
+    }
+  };
+}
+var OneDriveAdapter = class extends BaseOAuthAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getOneDriveOAuthConfig());
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${GRAPH_BASE}/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`OneDrive user info failed: HTTP ${response.status}`);
+    }
+    const user = await response.json();
+    return {
+      email: user.mail ?? user.userPrincipalName,
+      displayName: user.displayName
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        case "cloud.list_files":
+          return await this.handleListFiles(p);
+        case "cloud.download_file":
+          return await this.handleDownloadFile(p);
+        case "cloud.file_metadata":
+          return await this.handleFileMetadata(p);
+        case "cloud.check_changed":
+          return await this.handleCheckChanged(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `OneDriveAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "ONEDRIVE_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync files from the OneDrive root.
+   * Paginates using @odata.nextLink.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const limit = payload["limit"] ?? 100;
+    const items = [];
+    const errors = [];
+    try {
+      let nextLink = `${GRAPH_BASE}/me/drive/root/children?$top=${Math.min(limit, 200)}`;
+      while (nextLink && items.length < limit) {
+        const response = await globalThis.fetch(nextLink, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        for (const item of data.value) {
+          if (items.length >= limit) break;
+          items.push(this.driveItemToImportedItem(item));
+        }
+        nextLink = data["@odata.nextLink"] ?? null;
+      }
+    } catch (err) {
+      errors.push({ message: `List files: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List items with pagination (connector.list_items).
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageSize = payload["pageSize"] ?? 100;
+    const nextLink = payload["pageToken"];
+    const url = nextLink ?? `${GRAPH_BASE}/me/drive/root/children?$top=${Math.min(pageSize, 200)}`;
+    const response = await globalThis.fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "ONEDRIVE_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const items = data.value.map((item) => this.driveItemToImportedItem(item));
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: data["@odata.nextLink"] ?? null
+      }
+    };
+  }
+  /**
+   * List files in a folder (cloud.list_files).
+   */
+  async handleListFiles(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const folderId = payload["folderId"] ?? "root";
+    const pageSize = payload["pageSize"] ?? 100;
+    const nextLink = payload["pageToken"];
+    let url;
+    if (nextLink) {
+      url = nextLink;
+    } else if (folderId === "root") {
+      url = `${GRAPH_BASE}/me/drive/root/children?$top=${Math.min(pageSize, 200)}`;
+    } else {
+      url = `${GRAPH_BASE}/me/drive/items/${folderId}/children?$top=${Math.min(pageSize, 200)}`;
+    }
+    const response = await globalThis.fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "ONEDRIVE_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const files = data.value.map((item) => ({
+      id: item.id,
+      name: item.name,
+      isFolder: !!item.folder,
+      sizeBytes: item.size,
+      mimeType: item.file?.mimeType ?? null,
+      createdTime: item.createdDateTime,
+      modifiedTime: item.lastModifiedDateTime,
+      webUrl: item.webUrl,
+      childCount: item.folder?.childCount ?? null,
+      parentPath: item.parentReference?.path ?? null
+    }));
+    return {
+      success: true,
+      data: {
+        files,
+        nextPageToken: data["@odata.nextLink"] ?? null,
+        totalFiles: files.length
+      }
+    };
+  }
+  /**
+   * Download a file from OneDrive (cloud.download_file).
+   */
+  async handleDownloadFile(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const fileId = payload["fileId"];
+    const localPath = payload["localPath"];
+    const response = await globalThis.fetch(`${GRAPH_BASE}/me/drive/items/${fileId}/content`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      redirect: "follow"
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "DOWNLOAD_FAILED", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const fs4 = await import("node:fs");
+    const path2 = await import("node:path");
+    const dir = path2.dirname(localPath);
+    if (!fs4.existsSync(dir)) {
+      fs4.mkdirSync(dir, { recursive: true });
+    }
+    fs4.writeFileSync(localPath, buffer);
+    return {
+      success: true,
+      data: {
+        localPath,
+        sizeBytes: buffer.length
+      }
+    };
+  }
+  /**
+   * Get file metadata (cloud.file_metadata).
+   */
+  async handleFileMetadata(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const fileId = payload["fileId"];
+    const response = await globalThis.fetch(`${GRAPH_BASE}/me/drive/items/${fileId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "METADATA_FAILED", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const item = await response.json();
+    return {
+      success: true,
+      data: {
+        id: item.id,
+        name: item.name,
+        isFolder: !!item.folder,
+        sizeBytes: item.size,
+        mimeType: item.file?.mimeType ?? null,
+        createdTime: item.createdDateTime,
+        modifiedTime: item.lastModifiedDateTime,
+        webUrl: item.webUrl,
+        childCount: item.folder?.childCount ?? null,
+        sha1Hash: item.file?.hashes?.sha1Hash ?? null
+      }
+    };
+  }
+  /**
+   * Check if a file has changed since a given timestamp (cloud.check_changed).
+   */
+  async handleCheckChanged(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const fileId = payload["fileId"];
+    const sinceTimestamp = payload["sinceTimestamp"];
+    const response = await globalThis.fetch(
+      `${GRAPH_BASE}/me/drive/items/${fileId}?$select=lastModifiedDateTime`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "CHECK_CHANGED_FAILED", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const remoteModified = new Date(data.lastModifiedDateTime).getTime();
+    const sinceMs = new Date(sinceTimestamp).getTime();
+    return {
+      success: true,
+      data: { changed: remoteModified > sinceMs }
+    };
+  }
+  driveItemToImportedItem(item) {
+    const isFile = !!item.file;
+    return {
+      id: `od_${item.id}`,
+      sourceType: "productivity",
+      title: item.name,
+      content: `OneDrive ${isFile ? "file" : "folder"}: "${item.name}". Size: ${item.size} bytes. Modified: ${item.lastModifiedDateTime}.${item.file ? ` Type: ${item.file.mimeType}.` : ""}${item.folder ? ` Contains ${item.folder.childCount} items.` : ""}`,
+      timestamp: item.lastModifiedDateTime,
+      metadata: {
+        provider: "onedrive",
+        type: isFile ? "file" : "folder",
+        itemId: item.id,
+        name: item.name,
+        sizeBytes: item.size,
+        mimeType: item.file?.mimeType ?? null,
+        webUrl: item.webUrl,
+        createdTime: item.createdDateTime,
+        parentPath: item.parentReference?.path ?? null,
+        childCount: item.folder?.childCount ?? null,
+        sha1Hash: item.file?.hashes?.sha1Hash ?? null
+      }
+    };
+  }
+};
+
+// packages/gateway/services/oura/oura-adapter.ts
+var OURA_SCOPES = "daily heartrate workout tag session personal email";
+var API_BASE5 = "https://api.ouraring.com/v2";
+function getOuraOAuthConfig() {
+  return {
+    providerKey: "oura",
+    authUrl: "https://cloud.ouraring.com/oauth/authorize",
+    tokenUrl: "https://api.ouraring.com/oauth/token",
+    scopes: OURA_SCOPES,
+    usePKCE: false,
+    clientId: oauthClients.oura.clientId,
+    clientSecret: oauthClients.oura.clientSecret
+  };
+}
+var OuraAdapter = class extends BaseOAuthAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getOuraOAuthConfig());
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${API_BASE5}/usercollection/personal_info`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`Oura user info failed: HTTP ${response.status}`);
+    }
+    const info2 = await response.json();
+    return {
+      email: info2.email,
+      displayName: info2.email
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `OuraAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "OURA_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync sleep, readiness, activity, and heart rate data from Oura.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const since = payload["since"];
+    const items = [];
+    const errors = [];
+    const startDate = since ? since.split("T")[0] : new Date(Date.now() - 7 * 24 * 60 * 60 * 1e3).toISOString().split("T")[0];
+    const endDate = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    try {
+      const sleepItems = await this.fetchDailySleep(accessToken, startDate, endDate);
+      items.push(...sleepItems);
+    } catch (err) {
+      errors.push({ message: `Daily sleep: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const readinessItems = await this.fetchDailyReadiness(accessToken, startDate, endDate);
+      items.push(...readinessItems);
+    } catch (err) {
+      errors.push({ message: `Daily readiness: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const activityItems = await this.fetchDailyActivity(accessToken, startDate, endDate);
+      items.push(...activityItems);
+    } catch (err) {
+      errors.push({ message: `Daily activity: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const hrItems = await this.fetchHeartRate(accessToken, startDate, endDate);
+      items.push(...hrItems);
+    } catch (err) {
+      errors.push({ message: `Heart rate: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List items with pagination support (used by connector.list_items).
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageToken = payload["pageToken"];
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString().split("T")[0];
+    const endDate = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const url = new URL(`${API_BASE5}/usercollection/daily_sleep`);
+    url.searchParams.set("start_date", startDate);
+    url.searchParams.set("end_date", endDate);
+    if (pageToken) {
+      url.searchParams.set("next_token", pageToken);
+    }
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "OURA_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const items = data.data.map((entry) => this.sleepToImportedItem(entry));
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: data.next_token
+      }
+    };
+  }
+  async fetchDailySleep(accessToken, startDate, endDate) {
+    const url = new URL(`${API_BASE5}/usercollection/daily_sleep`);
+    url.searchParams.set("start_date", startDate);
+    url.searchParams.set("end_date", endDate);
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.data.map((entry) => this.sleepToImportedItem(entry));
+  }
+  sleepToImportedItem(entry) {
+    return {
+      id: `our_sleep_${entry.id}`,
+      sourceType: "health",
+      title: `Oura Sleep Score: ${entry.score ?? "N/A"} (${entry.day})`,
+      content: `Sleep score of ${entry.score ?? "N/A"} on ${entry.day}. Deep sleep: ${entry.contributors?.deep_sleep ?? "N/A"}, Efficiency: ${entry.contributors?.efficiency ?? "N/A"}, REM: ${entry.contributors?.rem_sleep ?? "N/A"}`,
+      timestamp: entry.timestamp,
+      metadata: {
+        provider: "oura",
+        type: "daily_sleep",
+        day: entry.day,
+        score: entry.score,
+        contributors: entry.contributors
+      }
+    };
+  }
+  async fetchDailyReadiness(accessToken, startDate, endDate) {
+    const url = new URL(`${API_BASE5}/usercollection/daily_readiness`);
+    url.searchParams.set("start_date", startDate);
+    url.searchParams.set("end_date", endDate);
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.data.map((entry) => ({
+      id: `our_readiness_${entry.id}`,
+      sourceType: "health",
+      title: `Oura Readiness Score: ${entry.score ?? "N/A"} (${entry.day})`,
+      content: `Readiness score of ${entry.score ?? "N/A"} on ${entry.day}. HRV balance: ${entry.contributors?.hrv_balance ?? "N/A"}, Resting HR: ${entry.contributors?.resting_heart_rate ?? "N/A"}, Recovery: ${entry.contributors?.recovery_index ?? "N/A"}`,
+      timestamp: entry.timestamp,
+      metadata: {
+        provider: "oura",
+        type: "daily_readiness",
+        day: entry.day,
+        score: entry.score,
+        temperatureDeviation: entry.temperature_deviation,
+        contributors: entry.contributors
+      }
+    }));
+  }
+  async fetchDailyActivity(accessToken, startDate, endDate) {
+    const url = new URL(`${API_BASE5}/usercollection/daily_activity`);
+    url.searchParams.set("start_date", startDate);
+    url.searchParams.set("end_date", endDate);
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.data.map((entry) => ({
+      id: `our_activity_${entry.id}`,
+      sourceType: "health",
+      title: `Oura Activity: ${entry.steps} steps, Score ${entry.score ?? "N/A"} (${entry.day})`,
+      content: `Activity on ${entry.day}: ${entry.steps} steps, ${entry.active_calories} active calories, score ${entry.score ?? "N/A"}. Total calories: ${entry.total_calories ?? "N/A"}`,
+      timestamp: entry.timestamp,
+      metadata: {
+        provider: "oura",
+        type: "daily_activity",
+        day: entry.day,
+        score: entry.score,
+        steps: entry.steps,
+        activeCalories: entry.active_calories,
+        totalCalories: entry.total_calories,
+        equivalentWalkingDistance: entry.equivalent_walking_distance,
+        contributors: entry.contributors
+      }
+    }));
+  }
+  async fetchHeartRate(accessToken, startDate, endDate) {
+    const url = new URL(`${API_BASE5}/usercollection/heartrate`);
+    url.searchParams.set("start_date", startDate);
+    url.searchParams.set("end_date", endDate);
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    const byDay = /* @__PURE__ */ new Map();
+    for (const hr of data.data) {
+      const day = hr.timestamp.split("T")[0];
+      const existing = byDay.get(day) ?? [];
+      existing.push(hr);
+      byDay.set(day, existing);
+    }
+    const items = [];
+    for (const [day, readings] of byDay) {
+      const bpms = readings.map((r) => r.bpm);
+      const avg = Math.round(bpms.reduce((sum, v) => sum + v, 0) / bpms.length);
+      const min2 = Math.min(...bpms);
+      const max2 = Math.max(...bpms);
+      items.push({
+        id: `our_hr_${day}`,
+        sourceType: "health",
+        title: `Oura Heart Rate: avg ${avg} bpm (${day})`,
+        content: `Heart rate on ${day}: average ${avg} bpm, min ${min2} bpm, max ${max2} bpm (${readings.length} readings)`,
+        timestamp: `${day}T00:00:00.000Z`,
+        metadata: {
+          provider: "oura",
+          type: "heart_rate_summary",
+          day,
+          averageBpm: avg,
+          minBpm: min2,
+          maxBpm: max2,
+          readingCount: readings.length
+        }
+      });
+    }
+    return items;
+  }
+};
+
+// packages/gateway/services/whoop/whoop-adapter.ts
+var WHOOP_SCOPES = "read:recovery read:cycles read:sleep read:workout read:profile read:body_measurement";
+var API_BASE6 = "https://api.prod.whoop.com/developer/v1";
+function getWhoopOAuthConfig() {
+  return {
+    providerKey: "whoop",
+    authUrl: "https://api.prod.whoop.com/oauth/oauth2/auth",
+    tokenUrl: "https://api.prod.whoop.com/oauth/oauth2/token",
+    scopes: WHOOP_SCOPES,
+    usePKCE: true,
+    clientId: oauthClients.whoop.clientId
+  };
+}
+var WhoopAdapter = class extends BasePKCEAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getWhoopOAuthConfig());
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${API_BASE6}/user/profile/basic`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`WHOOP user info failed: HTTP ${response.status}`);
+    }
+    const profile = await response.json();
+    const displayName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || void 0;
+    return {
+      email: profile.email,
+      displayName
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `WhoopAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "WHOOP_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync cycles, recovery, and sleep data from WHOOP.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const limit = payload["limit"] ?? 25;
+    const items = [];
+    const errors = [];
+    try {
+      const cycleItems = await this.fetchCycles(accessToken, limit);
+      items.push(...cycleItems);
+    } catch (err) {
+      errors.push({ message: `Cycles: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const recoveryItems = await this.fetchRecovery(accessToken, limit);
+      items.push(...recoveryItems);
+    } catch (err) {
+      errors.push({ message: `Recovery: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const sleepItems = await this.fetchSleep(accessToken, limit);
+      items.push(...sleepItems);
+    } catch (err) {
+      errors.push({ message: `Sleep: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List items with pagination support (used by connector.list_items).
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageSize = payload["pageSize"] ?? 25;
+    const pageToken = payload["pageToken"];
+    const url = new URL(`${API_BASE6}/cycle`);
+    url.searchParams.set("limit", String(Math.min(pageSize, 25)));
+    if (pageToken) {
+      url.searchParams.set("nextToken", pageToken);
+    }
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "WHOOP_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const items = data.records.map((cycle) => this.cycleToImportedItem(cycle));
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: data.next_token
+      }
+    };
+  }
+  async fetchCycles(accessToken, limit) {
+    const url = new URL(`${API_BASE6}/cycle`);
+    url.searchParams.set("limit", String(Math.min(limit, 25)));
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.records.map((cycle) => this.cycleToImportedItem(cycle));
+  }
+  cycleToImportedItem(cycle) {
+    const strain = cycle.score?.strain ?? 0;
+    const day = cycle.start.split("T")[0];
+    return {
+      id: `whp_cycle_${cycle.id}`,
+      sourceType: "health",
+      title: `WHOOP Cycle: Strain ${strain.toFixed(1)} (${day})`,
+      content: `WHOOP cycle on ${day}: strain ${strain.toFixed(1)}, ${cycle.score?.kilojoule?.toFixed(0) ?? 0} kJ, avg HR ${cycle.score?.average_heart_rate ?? "N/A"} bpm, max HR ${cycle.score?.max_heart_rate ?? "N/A"} bpm`,
+      timestamp: cycle.start,
+      metadata: {
+        provider: "whoop",
+        type: "cycle",
+        cycleId: cycle.id,
+        strain: cycle.score?.strain,
+        kilojoule: cycle.score?.kilojoule,
+        averageHeartRate: cycle.score?.average_heart_rate,
+        maxHeartRate: cycle.score?.max_heart_rate
+      }
+    };
+  }
+  async fetchRecovery(accessToken, limit) {
+    const url = new URL(`${API_BASE6}/recovery`);
+    url.searchParams.set("limit", String(Math.min(limit, 25)));
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.records.map((rec) => {
+      const day = rec.created_at.split("T")[0];
+      const score = rec.score?.recovery_score ?? 0;
+      return {
+        id: `whp_recovery_${rec.cycle_id}`,
+        sourceType: "health",
+        title: `WHOOP Recovery: ${score}% (${day})`,
+        content: `WHOOP recovery on ${day}: ${score}% recovery, resting HR ${rec.score?.resting_heart_rate ?? "N/A"} bpm, HRV ${rec.score?.hrv_rmssd_milli ?? "N/A"} ms, SpO2 ${rec.score?.spo2_percentage ?? "N/A"}%`,
+        timestamp: rec.created_at,
+        metadata: {
+          provider: "whoop",
+          type: "recovery",
+          cycleId: rec.cycle_id,
+          recoveryScore: rec.score?.recovery_score,
+          restingHeartRate: rec.score?.resting_heart_rate,
+          hrvRmssd: rec.score?.hrv_rmssd_milli,
+          spo2: rec.score?.spo2_percentage,
+          skinTemp: rec.score?.skin_temp_celsius
+        }
+      };
+    });
+  }
+  async fetchSleep(accessToken, limit) {
+    const url = new URL(`${API_BASE6}/sleep`);
+    url.searchParams.set("limit", String(Math.min(limit, 25)));
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.records.map((sleep) => {
+      const day = sleep.start.split("T")[0];
+      const totalSleepMs = sleep.score?.stage_summary.total_in_bed_time_milli ?? 0;
+      const totalSleepHrs = (totalSleepMs / 36e5).toFixed(1);
+      const performance = sleep.score?.sleep_performance_percentage ?? 0;
+      return {
+        id: `whp_sleep_${sleep.id}`,
+        sourceType: "health",
+        title: `WHOOP Sleep: ${totalSleepHrs}h, ${performance}% performance (${day})`,
+        content: `WHOOP sleep on ${day}: ${totalSleepHrs} hours in bed, ${performance}% performance, ${sleep.score?.sleep_efficiency_percentage ?? "N/A"}% efficiency. REM: ${((sleep.score?.stage_summary.total_rem_sleep_time_milli ?? 0) / 36e5).toFixed(1)}h, Deep: ${((sleep.score?.stage_summary.total_slow_wave_sleep_time_milli ?? 0) / 36e5).toFixed(1)}h${sleep.nap ? " (nap)" : ""}`,
+        timestamp: sleep.start,
+        metadata: {
+          provider: "whoop",
+          type: "sleep",
+          sleepId: sleep.id,
+          isNap: sleep.nap,
+          totalInBedMs: sleep.score?.stage_summary.total_in_bed_time_milli,
+          totalRemMs: sleep.score?.stage_summary.total_rem_sleep_time_milli,
+          totalDeepMs: sleep.score?.stage_summary.total_slow_wave_sleep_time_milli,
+          totalLightMs: sleep.score?.stage_summary.total_light_sleep_time_milli,
+          sleepPerformance: sleep.score?.sleep_performance_percentage,
+          sleepEfficiency: sleep.score?.sleep_efficiency_percentage,
+          sleepConsistency: sleep.score?.sleep_consistency_percentage,
+          respiratoryRate: sleep.score?.respiratory_rate,
+          disturbanceCount: sleep.score?.stage_summary.disturbance_count
+        }
+      };
+    });
+  }
+};
+
+// packages/gateway/services/fitbit/fitbit-adapter.ts
+var FITBIT_SCOPES = "activity heartrate sleep weight profile";
+var API_BASE7 = "https://api.fitbit.com";
+function getFitbitOAuthConfig() {
+  return {
+    providerKey: "fitbit",
+    authUrl: "https://www.fitbit.com/oauth2/authorize",
+    tokenUrl: "https://api.fitbit.com/oauth2/token",
+    scopes: FITBIT_SCOPES,
+    usePKCE: true,
+    clientId: oauthClients.fitbit.clientId
+  };
+}
+var FitbitAdapter = class extends BasePKCEAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getFitbitOAuthConfig());
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${API_BASE7}/1/user/-/profile.json`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`Fitbit user info failed: HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    return {
+      displayName: data.user.displayName ?? data.user.fullName
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `FitbitAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "FITBIT_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync activity, sleep, and body weight data from Fitbit.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const since = payload["since"];
+    const items = [];
+    const errors = [];
+    const targetDate = since ? since.split("T")[0] : (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    try {
+      const activityItems = await this.fetchActivity(accessToken, targetDate);
+      items.push(...activityItems);
+    } catch (err) {
+      errors.push({ message: `Activity: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const sleepItems = await this.fetchSleep(accessToken, targetDate);
+      items.push(...sleepItems);
+    } catch (err) {
+      errors.push({ message: `Sleep: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const weightItems = await this.fetchWeight(accessToken, targetDate);
+      items.push(...weightItems);
+    } catch (err) {
+      errors.push({ message: `Weight: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List items with pagination support (used by connector.list_items).
+   * Returns recent activity days.
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageToken = payload["pageToken"];
+    const date = pageToken ?? (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const activityItems = await this.fetchActivity(accessToken, date);
+    const dateObj = new Date(date);
+    dateObj.setDate(dateObj.getDate() - 1);
+    const prevDate = dateObj.toISOString().split("T")[0];
+    return {
+      success: true,
+      data: {
+        items: activityItems,
+        nextPageToken: prevDate
+      }
+    };
+  }
+  async fetchActivity(accessToken, date) {
+    const url = `${API_BASE7}/1/user/-/activities/date/${date}.json`;
+    const response = await globalThis.fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    const items = [];
+    items.push({
+      id: `ftb_activity_${date}`,
+      sourceType: "health",
+      title: `Fitbit Activity: ${data.summary.steps} steps (${date})`,
+      content: `Fitbit activity on ${date}: ${data.summary.steps} steps, ${data.summary.caloriesOut} calories burned, ${data.summary.veryActiveMinutes} very active min, ${data.summary.fairlyActiveMinutes} fairly active min, ${data.summary.lightlyActiveMinutes} lightly active min, ${data.summary.sedentaryMinutes} sedentary min${data.summary.restingHeartRate ? `, resting HR ${data.summary.restingHeartRate} bpm` : ""}`,
+      timestamp: `${date}T00:00:00.000Z`,
+      metadata: {
+        provider: "fitbit",
+        type: "daily_activity",
+        date,
+        steps: data.summary.steps,
+        caloriesOut: data.summary.caloriesOut,
+        activityCalories: data.summary.activityCalories,
+        floors: data.summary.floors,
+        veryActiveMinutes: data.summary.veryActiveMinutes,
+        fairlyActiveMinutes: data.summary.fairlyActiveMinutes,
+        lightlyActiveMinutes: data.summary.lightlyActiveMinutes,
+        sedentaryMinutes: data.summary.sedentaryMinutes,
+        restingHeartRate: data.summary.restingHeartRate,
+        distances: data.summary.distances
+      }
+    });
+    for (const activity of data.activities) {
+      items.push({
+        id: `ftb_activity_log_${activity.activityId}_${date}`,
+        sourceType: "health",
+        title: `Fitbit ${activity.name}: ${activity.calories} cal (${date})`,
+        content: `${activity.name} on ${date}: ${activity.calories} calories, ${activity.duration} ms duration${activity.steps ? `, ${activity.steps} steps` : ""}${activity.distance ? `, ${activity.distance} distance` : ""}`,
+        timestamp: `${date}T${activity.startTime}`,
+        metadata: {
+          provider: "fitbit",
+          type: "activity_log",
+          activityId: activity.activityId,
+          name: activity.name,
+          calories: activity.calories,
+          duration: activity.duration,
+          steps: activity.steps,
+          distance: activity.distance
+        }
+      });
+    }
+    return items;
+  }
+  async fetchSleep(accessToken, date) {
+    const url = `${API_BASE7}/1.2/user/-/sleep/date/${date}.json`;
+    const response = await globalThis.fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.sleep.map((sleep) => {
+      const hoursAsleep = (sleep.minutesAsleep / 60).toFixed(1);
+      return {
+        id: `ftb_sleep_${sleep.logId}`,
+        sourceType: "health",
+        title: `Fitbit Sleep: ${hoursAsleep}h, ${sleep.efficiency}% efficiency (${sleep.dateOfSleep})`,
+        content: `Fitbit sleep on ${sleep.dateOfSleep}: ${hoursAsleep} hours asleep, ${sleep.efficiency}% efficiency, ${sleep.minutesAwake} min awake, ${sleep.timeInBed} min in bed${sleep.isMainSleep ? " (main sleep)" : " (nap)"}. Deep: ${sleep.levels?.summary.deep?.minutes ?? "N/A"} min, Light: ${sleep.levels?.summary.light?.minutes ?? "N/A"} min, REM: ${sleep.levels?.summary.rem?.minutes ?? "N/A"} min`,
+        timestamp: sleep.startTime,
+        metadata: {
+          provider: "fitbit",
+          type: "sleep",
+          logId: sleep.logId,
+          dateOfSleep: sleep.dateOfSleep,
+          minutesAsleep: sleep.minutesAsleep,
+          minutesAwake: sleep.minutesAwake,
+          efficiency: sleep.efficiency,
+          timeInBed: sleep.timeInBed,
+          isMainSleep: sleep.isMainSleep,
+          sleepType: sleep.type,
+          deepMinutes: sleep.levels?.summary.deep?.minutes,
+          lightMinutes: sleep.levels?.summary.light?.minutes,
+          remMinutes: sleep.levels?.summary.rem?.minutes,
+          wakeMinutes: sleep.levels?.summary.wake?.minutes
+        }
+      };
+    });
+  }
+  async fetchWeight(accessToken, date) {
+    const url = `${API_BASE7}/1/user/-/body/log/weight/date/${date}/30d.json`;
+    const response = await globalThis.fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.weight.map((entry) => ({
+      id: `ftb_weight_${entry.logId}`,
+      sourceType: "health",
+      title: `Fitbit Weight: ${entry.weight} kg, BMI ${entry.bmi.toFixed(1)} (${entry.date})`,
+      content: `Fitbit weight log on ${entry.date}: ${entry.weight} kg, BMI ${entry.bmi.toFixed(1)}${entry.fat !== void 0 ? `, body fat ${entry.fat}%` : ""}`,
+      timestamp: `${entry.date}T${entry.time}`,
+      metadata: {
+        provider: "fitbit",
+        type: "weight_log",
+        logId: entry.logId,
+        date: entry.date,
+        weight: entry.weight,
+        bmi: entry.bmi,
+        fat: entry.fat,
+        source: entry.source
+      }
+    }));
+  }
+};
+
+// packages/gateway/services/strava/strava-adapter.ts
+var STRAVA_SCOPES = "activity:read_all";
+var API_BASE8 = "https://www.strava.com/api/v3";
+function getStravaOAuthConfig() {
+  return {
+    providerKey: "strava",
+    authUrl: "https://www.strava.com/oauth/authorize",
+    tokenUrl: "https://www.strava.com/oauth/token",
+    scopes: STRAVA_SCOPES,
+    usePKCE: false,
+    clientId: oauthClients.strava.clientId,
+    clientSecret: oauthClients.strava.clientSecret,
+    revokeUrl: "https://www.strava.com/oauth/deauthorize"
+  };
+}
+var StravaAdapter = class extends BaseOAuthAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getStravaOAuthConfig());
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${API_BASE8}/athlete`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`Strava user info failed: HTTP ${response.status}`);
+    }
+    const athlete = await response.json();
+    const displayName = [athlete.firstname, athlete.lastname].filter(Boolean).join(" ") || athlete.username;
+    return {
+      displayName
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `StravaAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "STRAVA_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync activity summaries from Strava.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   * NOTE: Only imports activity summaries, not raw GPS data.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const since = payload["since"];
+    const limit = payload["limit"] ?? 100;
+    const items = [];
+    const errors = [];
+    try {
+      const activities = await this.fetchActivities(accessToken, since, limit);
+      items.push(...activities);
+    } catch (err) {
+      errors.push({ message: `Activities: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List items with pagination support (used by connector.list_items).
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageSize = payload["pageSize"] ?? 30;
+    const pageToken = payload["pageToken"];
+    const page = pageToken ? parseInt(pageToken, 10) : 1;
+    const url = new URL(`${API_BASE8}/athlete/activities`);
+    url.searchParams.set("per_page", String(Math.min(pageSize, 100)));
+    url.searchParams.set("page", String(page));
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "STRAVA_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const activities = await response.json();
+    const items = activities.map((activity) => this.activityToImportedItem(activity));
+    const nextPageToken = activities.length >= Math.min(pageSize, 100) ? String(page + 1) : null;
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken
+      }
+    };
+  }
+  async fetchActivities(accessToken, since, limit) {
+    const allItems = [];
+    let page = 1;
+    const perPage = Math.min(limit, 100);
+    while (allItems.length < limit) {
+      const url = new URL(`${API_BASE8}/athlete/activities`);
+      url.searchParams.set("per_page", String(perPage));
+      url.searchParams.set("page", String(page));
+      if (since) {
+        const afterEpoch = Math.floor(new Date(since).getTime() / 1e3);
+        url.searchParams.set("after", String(afterEpoch));
+      }
+      const response = await globalThis.fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const activities = await response.json();
+      if (activities.length === 0) break;
+      for (const activity of activities) {
+        if (allItems.length >= limit) break;
+        allItems.push(this.activityToImportedItem(activity));
+      }
+      if (activities.length < perPage) break;
+      page++;
+    }
+    return allItems;
+  }
+  activityToImportedItem(activity) {
+    const distanceKm = (activity.distance / 1e3).toFixed(2);
+    const durationMin = Math.round(activity.moving_time / 60);
+    const day = activity.start_date_local.split("T")[0];
+    return {
+      id: `stv_activity_${activity.id}`,
+      sourceType: "health",
+      title: `Strava ${activity.type}: ${activity.name} (${day})`,
+      content: `${activity.type} "${activity.name}" on ${day}: ${distanceKm} km in ${durationMin} min, elevation gain ${activity.total_elevation_gain} m, avg speed ${activity.average_speed.toFixed(1)} m/s${activity.average_heartrate ? `, avg HR ${activity.average_heartrate} bpm` : ""}${activity.calories ? `, ${activity.calories} cal` : ""}${activity.commute ? " (commute)" : ""}`,
+      timestamp: activity.start_date,
+      metadata: {
+        provider: "strava",
+        type: "activity",
+        activityId: activity.id,
+        activityType: activity.type,
+        sportType: activity.sport_type,
+        name: activity.name,
+        distanceMeters: activity.distance,
+        movingTimeSeconds: activity.moving_time,
+        elapsedTimeSeconds: activity.elapsed_time,
+        totalElevationGain: activity.total_elevation_gain,
+        averageSpeed: activity.average_speed,
+        maxSpeed: activity.max_speed,
+        averageHeartrate: activity.average_heartrate,
+        maxHeartrate: activity.max_heartrate,
+        averageWatts: activity.average_watts,
+        kilojoules: activity.kilojoules,
+        sufferScore: activity.suffer_score,
+        calories: activity.calories,
+        averageCadence: activity.average_cadence,
+        achievementCount: activity.achievement_count,
+        kudosCount: activity.kudos_count,
+        isTrainer: activity.trainer,
+        isCommute: activity.commute,
+        isManual: activity.manual
+      }
+    };
+  }
+};
+
+// packages/gateway/services/oauth1-signer.ts
+var import_node_crypto10 = require("node:crypto");
+function percentEncode(value) {
+  return encodeURIComponent(value).replace(/!/g, "%21").replace(/\*/g, "%2A").replace(/'/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29");
+}
+function generateNonce() {
+  return (0, import_node_crypto10.randomBytes)(16).toString("hex");
+}
+function getTimestamp() {
+  return Math.floor(Date.now() / 1e3).toString();
+}
+function buildSignatureBaseString(method, baseUrl, params) {
+  const sortedKeys = Object.keys(params).sort();
+  const paramString = sortedKeys.map((key) => `${percentEncode(key)}=${percentEncode(params[key])}`).join("&");
+  return [
+    method.toUpperCase(),
+    percentEncode(baseUrl),
+    percentEncode(paramString)
+  ].join("&");
+}
+function signHmacSha1(baseString, consumerSecret, tokenSecret = "") {
+  const signingKey = `${percentEncode(consumerSecret)}&${percentEncode(tokenSecret)}`;
+  return (0, import_node_crypto10.createHmac)("sha1", signingKey).update(baseString).digest("base64");
+}
+function generateOAuth1Header(credentials, params) {
+  const nonce = generateNonce();
+  const timestamp = getTimestamp();
+  const oauthParams = {
+    oauth_consumer_key: credentials.consumerKey,
+    oauth_nonce: nonce,
+    oauth_signature_method: "HMAC-SHA1",
+    oauth_timestamp: timestamp,
+    oauth_version: "1.0"
+  };
+  if (credentials.token) {
+    oauthParams["oauth_token"] = credentials.token;
+  }
+  const allParams = {
+    ...oauthParams,
+    ...params.extraParams
+  };
+  const urlObj = new URL(params.url);
+  const baseUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+  for (const [key, value] of urlObj.searchParams) {
+    allParams[key] = value;
+  }
+  const baseString = buildSignatureBaseString(params.method, baseUrl, allParams);
+  const signature = signHmacSha1(
+    baseString,
+    credentials.consumerSecret,
+    credentials.tokenSecret ?? ""
+  );
+  oauthParams["oauth_signature"] = signature;
+  const headerParts = Object.keys(oauthParams).sort().map((key) => `${percentEncode(key)}="${percentEncode(oauthParams[key])}"`).join(", ");
+  return `OAuth ${headerParts}`;
+}
+
+// packages/gateway/services/garmin/garmin-adapter.ts
+var REQUEST_TOKEN_URL = "https://connectapi.garmin.com/oauth-service/oauth/request_token";
+var AUTHORIZE_URL = "https://connect.garmin.com/oauthConfirm";
+var ACCESS_TOKEN_URL = "https://connectapi.garmin.com/oauth-service/oauth/access_token";
+var WELLNESS_API_BASE = "https://apis.garmin.com/wellness-api/rest";
+var PROVIDER_KEY2 = "garmin";
+var GarminAdapter = class {
+  tokenManager;
+  consumerKey;
+  consumerSecret;
+  constructor(tokenManager) {
+    this.tokenManager = tokenManager;
+    this.consumerKey = oauthClients.garmin.consumerKey;
+    this.consumerSecret = oauthClients.garmin.consumerSecret ?? "";
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `GarminAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "GARMIN_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * OAuth 1.0a three-legged flow:
+   * 1. Get request token (temporary credentials)
+   * 2. Direct user to authorize URL
+   * 3. Exchange request token + verifier for access token
+   */
+  async performAuthFlow() {
+    const callbackServer = new OAuthCallbackServer();
+    const { callbackUrl } = await callbackServer.start();
+    const requestTokenCredentials = {
+      consumerKey: this.consumerKey,
+      consumerSecret: this.consumerSecret
+    };
+    const requestTokenHeader = generateOAuth1Header(requestTokenCredentials, {
+      method: "POST",
+      url: REQUEST_TOKEN_URL,
+      extraParams: { oauth_callback: callbackUrl }
+    });
+    const requestTokenResponse = await globalThis.fetch(REQUEST_TOKEN_URL, {
+      method: "POST",
+      headers: { Authorization: requestTokenHeader }
+    });
+    if (!requestTokenResponse.ok) {
+      callbackServer.stop();
+      return {
+        success: false,
+        error: {
+          code: "REQUEST_TOKEN_ERROR",
+          message: `Failed to get request token: HTTP ${requestTokenResponse.status}`
+        }
+      };
+    }
+    const requestTokenBody = await requestTokenResponse.text();
+    const requestTokenParams = new URLSearchParams(requestTokenBody);
+    const oauthToken = requestTokenParams.get("oauth_token");
+    const oauthTokenSecret = requestTokenParams.get("oauth_token_secret");
+    if (!oauthToken || !oauthTokenSecret) {
+      callbackServer.stop();
+      return {
+        success: false,
+        error: { code: "REQUEST_TOKEN_ERROR", message: "Missing oauth_token or oauth_token_secret in response" }
+      };
+    }
+    const _authorizeUrl = `${AUTHORIZE_URL}?oauth_token=${encodeURIComponent(oauthToken)}`;
+    try {
+      const { code: oauthVerifier } = await callbackServer.waitForCallback();
+      const accessTokenCredentials = {
+        consumerKey: this.consumerKey,
+        consumerSecret: this.consumerSecret,
+        token: oauthToken,
+        tokenSecret: oauthTokenSecret
+      };
+      const accessTokenHeader = generateOAuth1Header(accessTokenCredentials, {
+        method: "POST",
+        url: ACCESS_TOKEN_URL,
+        extraParams: { oauth_verifier: oauthVerifier }
+      });
+      const accessTokenResponse = await globalThis.fetch(ACCESS_TOKEN_URL, {
+        method: "POST",
+        headers: { Authorization: accessTokenHeader }
+      });
+      if (!accessTokenResponse.ok) {
+        return {
+          success: false,
+          error: {
+            code: "ACCESS_TOKEN_ERROR",
+            message: `Failed to get access token: HTTP ${accessTokenResponse.status}`
+          }
+        };
+      }
+      const accessTokenBody = await accessTokenResponse.text();
+      const accessTokenParams = new URLSearchParams(accessTokenBody);
+      const accessToken = accessTokenParams.get("oauth_token");
+      const accessTokenSecret = accessTokenParams.get("oauth_token_secret");
+      if (!accessToken || !accessTokenSecret) {
+        return {
+          success: false,
+          error: { code: "ACCESS_TOKEN_ERROR", message: "Missing tokens in access token response" }
+        };
+      }
+      this.tokenManager.storeTokens({
+        provider: PROVIDER_KEY2,
+        accessToken,
+        refreshToken: accessTokenSecret,
+        expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1e3,
+        // 1 year
+        scopes: "wellness"
+      });
+      return {
+        success: true,
+        data: {
+          provider: PROVIDER_KEY2,
+          displayName: "Garmin Connect"
+        }
+      };
+    } catch (err) {
+      callbackServer.stop();
+      return {
+        success: false,
+        error: {
+          code: "AUTH_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  handleAuthStatus() {
+    const hasTokens = this.tokenManager.hasValidTokens(PROVIDER_KEY2);
+    const email = this.tokenManager.getUserEmail(PROVIDER_KEY2);
+    return {
+      success: true,
+      data: { authenticated: hasTokens, userEmail: email }
+    };
+  }
+  async performDisconnect() {
+    this.tokenManager.revokeTokens(PROVIDER_KEY2);
+    return { success: true, data: { disconnected: true } };
+  }
+  /**
+   * Sync dailies, activities, sleep, and body comp data from Garmin.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   */
+  async handleSync(payload) {
+    const since = payload["since"];
+    const items = [];
+    const errors = [];
+    const endTime = Math.floor(Date.now() / 1e3);
+    const startTime = since ? Math.floor(new Date(since).getTime() / 1e3) : endTime - 7 * 24 * 60 * 60;
+    try {
+      const dailyItems = await this.fetchDailies(startTime, endTime);
+      items.push(...dailyItems);
+    } catch (err) {
+      errors.push({ message: `Dailies: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const activityItems = await this.fetchActivities(startTime, endTime);
+      items.push(...activityItems);
+    } catch (err) {
+      errors.push({ message: `Activities: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const sleepItems = await this.fetchSleeps(startTime, endTime);
+      items.push(...sleepItems);
+    } catch (err) {
+      errors.push({ message: `Sleep: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const bodyItems = await this.fetchBodyComps(startTime, endTime);
+      items.push(...bodyItems);
+    } catch (err) {
+      errors.push({ message: `Body comp: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  async handleListItems(payload) {
+    const pageToken = payload["pageToken"];
+    const endTime = pageToken ? parseInt(pageToken, 10) : Math.floor(Date.now() / 1e3);
+    const startTime = endTime - 7 * 24 * 60 * 60;
+    const items = await this.fetchDailies(startTime, endTime);
+    const nextPageToken = String(startTime);
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken
+      }
+    };
+  }
+  /**
+   * Make an authenticated API call to the Garmin Wellness API.
+   * Signs the request using OAuth 1.0a HMAC-SHA1.
+   */
+  async garminApiCall(url) {
+    const accessToken = this.tokenManager.getAccessToken(PROVIDER_KEY2);
+    const tokenSecret = this.tokenManager.getRefreshToken(PROVIDER_KEY2);
+    if (!accessToken || !tokenSecret) {
+      throw new Error("Not authenticated with Garmin Connect");
+    }
+    const credentials = {
+      consumerKey: this.consumerKey,
+      consumerSecret: this.consumerSecret,
+      token: accessToken,
+      tokenSecret
+    };
+    const authHeader = generateOAuth1Header(credentials, {
+      method: "GET",
+      url
+    });
+    const response = await globalThis.fetch(url, {
+      method: "GET",
+      headers: { Authorization: authHeader }
+    });
+    if (!response.ok) {
+      throw new Error(`Garmin API error: HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response.json();
+  }
+  async fetchDailies(startTime, endTime) {
+    const url = `${WELLNESS_API_BASE}/dailies?uploadStartTimeInSeconds=${startTime}&uploadEndTimeInSeconds=${endTime}`;
+    const data = await this.garminApiCall(url);
+    return data.map((daily) => ({
+      id: `gmn_daily_${daily.summaryId}`,
+      sourceType: "health",
+      title: `Garmin Daily: ${daily.steps} steps (${daily.calendarDate})`,
+      content: `Garmin daily summary on ${daily.calendarDate}: ${daily.steps} steps, ${(daily.distanceInMeters / 1e3).toFixed(1)} km, ${daily.activeKilocalories} active kcal${daily.averageHeartRateInBeatsPerMinute ? `, avg HR ${daily.averageHeartRateInBeatsPerMinute} bpm` : ""}${daily.restingHeartRateInBeatsPerMinute ? `, resting HR ${daily.restingHeartRateInBeatsPerMinute} bpm` : ""}${daily.floorsClimbed ? `, ${daily.floorsClimbed} floors` : ""}${daily.averageStressLevel !== void 0 ? `, avg stress ${daily.averageStressLevel}` : ""}`,
+      timestamp: new Date(daily.startTimeInSeconds * 1e3).toISOString(),
+      metadata: {
+        provider: "garmin",
+        type: "daily_summary",
+        summaryId: daily.summaryId,
+        calendarDate: daily.calendarDate,
+        steps: daily.steps,
+        distanceInMeters: daily.distanceInMeters,
+        activeKilocalories: daily.activeKilocalories,
+        bmrKilocalories: daily.bmrKilocalories,
+        floorsClimbed: daily.floorsClimbed,
+        averageHeartRate: daily.averageHeartRateInBeatsPerMinute,
+        maxHeartRate: daily.maxHeartRateInBeatsPerMinute,
+        restingHeartRate: daily.restingHeartRateInBeatsPerMinute,
+        moderateIntensitySeconds: daily.moderateIntensityDurationInSeconds,
+        vigorousIntensitySeconds: daily.vigorousIntensityDurationInSeconds,
+        averageStressLevel: daily.averageStressLevel,
+        activeTimeSeconds: daily.activeTimeInSeconds
+      }
+    }));
+  }
+  async fetchActivities(startTime, endTime) {
+    const url = `${WELLNESS_API_BASE}/activities?uploadStartTimeInSeconds=${startTime}&uploadEndTimeInSeconds=${endTime}`;
+    const data = await this.garminApiCall(url);
+    return data.map((activity) => {
+      const durationMin = Math.round(activity.durationInSeconds / 60);
+      const distanceKm = (activity.distanceInMeters / 1e3).toFixed(2);
+      const startDate = new Date(activity.startTimeInSeconds * 1e3).toISOString();
+      const day = startDate.split("T")[0];
+      return {
+        id: `gmn_activity_${activity.activityId}`,
+        sourceType: "health",
+        title: `Garmin ${activity.activityType}: ${activity.activityName} (${day})`,
+        content: `${activity.activityType} "${activity.activityName}" on ${day}: ${distanceKm} km in ${durationMin} min, ${activity.activeKilocalories} kcal${activity.averageHeartRateInBeatsPerMinute ? `, avg HR ${activity.averageHeartRateInBeatsPerMinute} bpm` : ""}${activity.elevationGainInMeters ? `, ${activity.elevationGainInMeters} m elevation gain` : ""}`,
+        timestamp: startDate,
+        metadata: {
+          provider: "garmin",
+          type: "activity",
+          activityId: activity.activityId,
+          activityType: activity.activityType,
+          activityName: activity.activityName,
+          durationSeconds: activity.durationInSeconds,
+          distanceMeters: activity.distanceInMeters,
+          activeKilocalories: activity.activeKilocalories,
+          averageHeartRate: activity.averageHeartRateInBeatsPerMinute,
+          maxHeartRate: activity.maxHeartRateInBeatsPerMinute,
+          averageSpeed: activity.averageSpeedInMetersPerSecond,
+          maxSpeed: activity.maxSpeedInMetersPerSecond,
+          steps: activity.steps,
+          elevationGain: activity.elevationGainInMeters
+        }
+      };
+    });
+  }
+  async fetchSleeps(startTime, endTime) {
+    const url = `${WELLNESS_API_BASE}/sleeps?uploadStartTimeInSeconds=${startTime}&uploadEndTimeInSeconds=${endTime}`;
+    const data = await this.garminApiCall(url);
+    return data.map((sleep) => {
+      const totalHours = (sleep.durationInSeconds / 3600).toFixed(1);
+      const deepHours = (sleep.deepSleepDurationInSeconds / 3600).toFixed(1);
+      const lightHours = (sleep.lightSleepDurationInSeconds / 3600).toFixed(1);
+      const remHours = (sleep.remSleepInSeconds / 3600).toFixed(1);
+      return {
+        id: `gmn_sleep_${sleep.summaryId}`,
+        sourceType: "health",
+        title: `Garmin Sleep: ${totalHours}h (${sleep.calendarDate})`,
+        content: `Garmin sleep on ${sleep.calendarDate}: ${totalHours} hours total, deep ${deepHours}h, light ${lightHours}h, REM ${remHours}h, awake ${(sleep.awakeDurationInSeconds / 60).toFixed(0)} min`,
+        timestamp: new Date(sleep.startTimeInSeconds * 1e3).toISOString(),
+        metadata: {
+          provider: "garmin",
+          type: "sleep",
+          summaryId: sleep.summaryId,
+          calendarDate: sleep.calendarDate,
+          durationSeconds: sleep.durationInSeconds,
+          deepSleepSeconds: sleep.deepSleepDurationInSeconds,
+          lightSleepSeconds: sleep.lightSleepDurationInSeconds,
+          remSleepSeconds: sleep.remSleepInSeconds,
+          awakeSeconds: sleep.awakeDurationInSeconds,
+          validation: sleep.validation
+        }
+      };
+    });
+  }
+  async fetchBodyComps(startTime, endTime) {
+    const url = `${WELLNESS_API_BASE}/bodyComps?uploadStartTimeInSeconds=${startTime}&uploadEndTimeInSeconds=${endTime}`;
+    const data = await this.garminApiCall(url);
+    return data.map((comp) => {
+      const weightKg = (comp.weightInGrams / 1e3).toFixed(1);
+      const date = new Date(comp.measurementTimeInSeconds * 1e3).toISOString();
+      const day = date.split("T")[0];
+      return {
+        id: `gmn_bodycomp_${comp.summaryId}`,
+        sourceType: "health",
+        title: `Garmin Body: ${weightKg} kg${comp.bmi ? `, BMI ${comp.bmi.toFixed(1)}` : ""} (${day})`,
+        content: `Garmin body composition on ${day}: ${weightKg} kg${comp.bmi ? `, BMI ${comp.bmi.toFixed(1)}` : ""}${comp.bodyFatPercentage !== void 0 ? `, body fat ${comp.bodyFatPercentage.toFixed(1)}%` : ""}${comp.muscleMassInGrams !== void 0 ? `, muscle ${(comp.muscleMassInGrams / 1e3).toFixed(1)} kg` : ""}`,
+        timestamp: date,
+        metadata: {
+          provider: "garmin",
+          type: "body_composition",
+          summaryId: comp.summaryId,
+          weightGrams: comp.weightInGrams,
+          bmi: comp.bmi,
+          bodyFatPercentage: comp.bodyFatPercentage,
+          muscleMassGrams: comp.muscleMassInGrams,
+          boneMassGrams: comp.boneMassInGrams,
+          bodyWaterPercentage: comp.bodyWaterPercentage
+        }
+      };
+    });
+  }
+};
+
+// packages/gateway/services/toggl/toggl-adapter.ts
+var API_BASE9 = "https://api.track.toggl.com/api/v9";
+var PROVIDER_KEY3 = "toggl";
+var TogglAdapter = class {
+  tokenManager;
+  constructor(tokenManager) {
+    this.tokenManager = tokenManager;
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.handleAuth(p);
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return this.handleDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `TogglAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "TOGGL_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Authenticate with an API key. Validates the key by calling /me.
+   * The API key is passed in payload.apiKey.
+   */
+  async handleAuth(payload) {
+    const apiKey = payload["apiKey"];
+    if (!apiKey) {
+      return {
+        success: false,
+        error: { code: "MISSING_API_KEY", message: "payload.apiKey is required for Toggl authentication" }
+      };
+    }
+    const authHeader = this.buildBasicAuthHeader(apiKey);
+    const response = await globalThis.fetch(`${API_BASE9}/me`, {
+      headers: { Authorization: authHeader }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: {
+          code: "AUTH_FAILED",
+          message: response.status === 403 ? "Invalid Toggl API token" : `Toggl auth failed: HTTP ${response.status}`
+        }
+      };
+    }
+    const user = await response.json();
+    this.tokenManager.storeTokens({
+      provider: PROVIDER_KEY3,
+      accessToken: apiKey,
+      refreshToken: "",
+      expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1e3,
+      // 1 year
+      scopes: "api_key",
+      userEmail: user.email
+    });
+    return {
+      success: true,
+      data: {
+        provider: PROVIDER_KEY3,
+        userEmail: user.email,
+        displayName: user.fullname,
+        workspaceId: user.default_workspace_id
+      }
+    };
+  }
+  handleAuthStatus() {
+    const hasTokens = this.tokenManager.hasValidTokens(PROVIDER_KEY3);
+    const email = this.tokenManager.getUserEmail(PROVIDER_KEY3);
+    return {
+      success: true,
+      data: { authenticated: hasTokens, userEmail: email }
+    };
+  }
+  handleDisconnect() {
+    this.tokenManager.revokeTokens(PROVIDER_KEY3);
+    return { success: true, data: { disconnected: true } };
+  }
+  /**
+   * Sync time entries and projects from Toggl.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   */
+  async handleSync(payload) {
+    const apiKey = this.getApiKey();
+    const since = payload["since"];
+    const items = [];
+    const errors = [];
+    let projectMap = /* @__PURE__ */ new Map();
+    try {
+      const projects = await this.fetchProjects(apiKey);
+      projectMap = new Map(projects.map((p) => [p.id, p]));
+    } catch (err) {
+      errors.push({ message: `Projects: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const timeEntryItems = await this.fetchTimeEntries(apiKey, since, projectMap);
+      items.push(...timeEntryItems);
+    } catch (err) {
+      errors.push({ message: `Time entries: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List items with pagination support (used by connector.list_items).
+   */
+  async handleListItems(payload) {
+    const apiKey = this.getApiKey();
+    const pageToken = payload["pageToken"];
+    const before2 = pageToken ?? (/* @__PURE__ */ new Date()).toISOString();
+    const sinceDate = new Date(before2);
+    sinceDate.setDate(sinceDate.getDate() - 7);
+    const since = sinceDate.toISOString();
+    const projectMap = /* @__PURE__ */ new Map();
+    try {
+      const projects = await this.fetchProjects(apiKey);
+      for (const p of projects) {
+        projectMap.set(p.id, p);
+      }
+    } catch {
+    }
+    const items = await this.fetchTimeEntries(apiKey, since, projectMap);
+    const nextPageToken = since;
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken
+      }
+    };
+  }
+  async fetchTimeEntries(apiKey, since, projectMap) {
+    const url = new URL(`${API_BASE9}/me/time_entries`);
+    if (since) {
+      url.searchParams.set("since", String(Math.floor(new Date(since).getTime() / 1e3)));
+    }
+    const before2 = /* @__PURE__ */ new Date();
+    url.searchParams.set("before", before2.toISOString());
+    const authHeader = this.buildBasicAuthHeader(apiKey);
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: authHeader }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const entries = await response.json();
+    return entries.filter((entry) => entry.duration >= 0).map((entry) => {
+      const projectName = entry.project_id ? projectMap.get(entry.project_id)?.name ?? `Project #${entry.project_id}` : "No Project";
+      const durationMin = Math.round(entry.duration / 60);
+      const durationHrs = (entry.duration / 3600).toFixed(1);
+      const day = entry.start.split("T")[0];
+      const description = entry.description || "Untitled entry";
+      return {
+        id: `tgl_entry_${entry.id}`,
+        sourceType: "productivity",
+        title: `Toggl: ${description} (${durationMin} min)`,
+        content: `Time tracked on ${day}: "${description}" for ${projectName}, ${durationHrs} hours (${durationMin} min)${entry.tags.length > 0 ? `, tags: ${entry.tags.join(", ")}` : ""}${entry.billable ? " [billable]" : ""}`,
+        timestamp: entry.start,
+        metadata: {
+          provider: "toggl",
+          type: "time_entry",
+          entryId: entry.id,
+          description: entry.description,
+          projectId: entry.project_id,
+          projectName,
+          durationSeconds: entry.duration,
+          tags: entry.tags,
+          billable: entry.billable,
+          startTime: entry.start,
+          stopTime: entry.stop
+        }
+      };
+    });
+  }
+  async fetchProjects(apiKey) {
+    const authHeader = this.buildBasicAuthHeader(apiKey);
+    const response = await globalThis.fetch(`${API_BASE9}/me/projects`, {
+      headers: { Authorization: authHeader }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response.json();
+  }
+  /** Get the stored API key from the token manager. */
+  getApiKey() {
+    const apiKey = this.tokenManager.getAccessToken(PROVIDER_KEY3);
+    if (!apiKey) {
+      throw new Error("Not authenticated with Toggl. Provide an API key via connector.auth.");
+    }
+    return apiKey;
+  }
+  /** Build the Basic auth header for Toggl API (api_token:api_token). */
+  buildBasicAuthHeader(apiKey) {
+    const encoded = Buffer.from(`${apiKey}:api_token`).toString("base64");
+    return `Basic ${encoded}`;
+  }
+};
+
+// packages/gateway/services/rescuetime/rescuetime-adapter.ts
+var API_BASE10 = "https://www.rescuetime.com/anapi";
+var PROVIDER_KEY4 = "rescuetime";
+var PRODUCTIVITY_LABELS = {
+  "-2": "Very Distracting",
+  "-1": "Distracting",
+  "0": "Neutral",
+  "1": "Productive",
+  "2": "Very Productive"
+};
+var RescueTimeAdapter = class {
+  tokenManager;
+  constructor(tokenManager) {
+    this.tokenManager = tokenManager;
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.handleAuth(p);
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return this.handleDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `RescueTimeAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "RESCUETIME_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Authenticate with an API key. Validates the key by making a test request.
+   * The API key is passed in payload.apiKey.
+   */
+  async handleAuth(payload) {
+    const apiKey = payload["apiKey"];
+    if (!apiKey) {
+      return {
+        success: false,
+        error: { code: "MISSING_API_KEY", message: "payload.apiKey is required for RescueTime authentication" }
+      };
+    }
+    const url = new URL(`${API_BASE10}/data`);
+    url.searchParams.set("key", apiKey);
+    url.searchParams.set("perspective", "rank");
+    url.searchParams.set("restrict_kind", "productivity");
+    url.searchParams.set("interval", "day");
+    url.searchParams.set("format", "json");
+    const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    url.searchParams.set("restrict_begin", today);
+    url.searchParams.set("restrict_end", today);
+    const response = await globalThis.fetch(url.toString());
+    if (!response.ok) {
+      return {
+        success: false,
+        error: {
+          code: "AUTH_FAILED",
+          message: response.status === 403 ? "Invalid RescueTime API key" : `RescueTime auth validation failed: HTTP ${response.status}`
+        }
+      };
+    }
+    try {
+      await response.json();
+    } catch {
+      return {
+        success: false,
+        error: { code: "AUTH_FAILED", message: "Invalid response from RescueTime \u2014 API key may be incorrect" }
+      };
+    }
+    this.tokenManager.storeTokens({
+      provider: PROVIDER_KEY4,
+      accessToken: apiKey,
+      refreshToken: "",
+      expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1e3,
+      // 1 year
+      scopes: "api_key"
+    });
+    return {
+      success: true,
+      data: {
+        provider: PROVIDER_KEY4,
+        displayName: "RescueTime"
+      }
+    };
+  }
+  handleAuthStatus() {
+    const hasTokens = this.tokenManager.hasValidTokens(PROVIDER_KEY4);
+    const email = this.tokenManager.getUserEmail(PROVIDER_KEY4);
+    return {
+      success: true,
+      data: { authenticated: hasTokens, userEmail: email }
+    };
+  }
+  handleDisconnect() {
+    this.tokenManager.revokeTokens(PROVIDER_KEY4);
+    return { success: true, data: { disconnected: true } };
+  }
+  /**
+   * Sync productivity data from RescueTime.
+   * Returns ImportedItem[] for the knowledge graph pipeline.
+   */
+  async handleSync(payload) {
+    const apiKey = this.getApiKey();
+    const since = payload["since"];
+    const items = [];
+    const errors = [];
+    const endDate = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const startDate = since ? since.split("T")[0] : new Date(Date.now() - 7 * 24 * 60 * 60 * 1e3).toISOString().split("T")[0];
+    try {
+      const productivityItems = await this.fetchProductivityData(apiKey, startDate, endDate);
+      items.push(...productivityItems);
+    } catch (err) {
+      errors.push({ message: `Productivity data: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const dailyItems = await this.fetchDailySummary(apiKey, startDate, endDate);
+      items.push(...dailyItems);
+    } catch (err) {
+      errors.push({ message: `Daily summary: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List items with pagination support (used by connector.list_items).
+   */
+  async handleListItems(payload) {
+    const apiKey = this.getApiKey();
+    const pageToken = payload["pageToken"];
+    const endDate = pageToken ?? (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const startDateObj = new Date(endDate);
+    startDateObj.setDate(startDateObj.getDate() - 7);
+    const startDate = startDateObj.toISOString().split("T")[0];
+    const items = await this.fetchDailySummary(apiKey, startDate, endDate);
+    const nextPageToken = startDate;
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken
+      }
+    };
+  }
+  async fetchProductivityData(apiKey, startDate, endDate) {
+    const url = new URL(`${API_BASE10}/data`);
+    url.searchParams.set("key", apiKey);
+    url.searchParams.set("perspective", "rank");
+    url.searchParams.set("restrict_kind", "productivity");
+    url.searchParams.set("interval", "day");
+    url.searchParams.set("format", "json");
+    url.searchParams.set("restrict_begin", startDate);
+    url.searchParams.set("restrict_end", endDate);
+    const response = await globalThis.fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    const byDate = /* @__PURE__ */ new Map();
+    for (const row of data.rows) {
+      const rank = row[0];
+      const timeSeconds = row[1];
+      const activity = row[3];
+      const category = row[4];
+      const productivity = row[5];
+      const key = `${startDate}_${endDate}`;
+      const existing = byDate.get(key) ?? { totalSeconds: 0, productiveSeconds: 0, distractingSeconds: 0, activities: [] };
+      existing.totalSeconds += timeSeconds;
+      if (productivity > 0) existing.productiveSeconds += timeSeconds;
+      if (productivity < 0) existing.distractingSeconds += timeSeconds;
+      existing.activities.push({
+        name: activity,
+        category,
+        seconds: timeSeconds,
+        productivity
+      });
+      byDate.set(key, existing);
+      void rank;
+    }
+    const items = [];
+    for (const [key, summary] of byDate) {
+      const totalHours = (summary.totalSeconds / 3600).toFixed(1);
+      const productiveHours = (summary.productiveSeconds / 3600).toFixed(1);
+      const distractingHours = (summary.distractingSeconds / 3600).toFixed(1);
+      const productivePercent = summary.totalSeconds > 0 ? Math.round(summary.productiveSeconds / summary.totalSeconds * 100) : 0;
+      const topActivities = summary.activities.sort((a, b) => b.seconds - a.seconds).slice(0, 5).map((a) => `${a.name} (${(a.seconds / 3600).toFixed(1)}h, ${PRODUCTIVITY_LABELS[a.productivity] ?? "Unknown"})`).join("; ");
+      items.push({
+        id: `rt_productivity_${key}`,
+        sourceType: "productivity",
+        title: `RescueTime: ${productivePercent}% productive, ${totalHours}h tracked (${startDate} to ${endDate})`,
+        content: `RescueTime productivity ${startDate} to ${endDate}: ${totalHours} total hours, ${productiveHours}h productive, ${distractingHours}h distracting (${productivePercent}% productive). Top activities: ${topActivities}`,
+        timestamp: `${startDate}T00:00:00.000Z`,
+        metadata: {
+          provider: "rescuetime",
+          type: "productivity_summary",
+          startDate,
+          endDate,
+          totalSeconds: summary.totalSeconds,
+          productiveSeconds: summary.productiveSeconds,
+          distractingSeconds: summary.distractingSeconds,
+          productivePercentage: productivePercent,
+          topActivities: summary.activities.sort((a, b) => b.seconds - a.seconds).slice(0, 10)
+        }
+      });
+    }
+    return items;
+  }
+  async fetchDailySummary(apiKey, startDate, endDate) {
+    const url = new URL(`${API_BASE10}/daily_summary_feed`);
+    url.searchParams.set("key", apiKey);
+    url.searchParams.set("restrict_begin", startDate);
+    url.searchParams.set("restrict_end", endDate);
+    url.searchParams.set("format", "json");
+    const response = await globalThis.fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.map((day) => ({
+      id: `rt_daily_${day.date}`,
+      sourceType: "productivity",
+      title: `RescueTime Daily: Pulse ${day.productivity_pulse}, ${day.total_duration_formatted} (${day.date})`,
+      content: `RescueTime on ${day.date}: productivity pulse ${day.productivity_pulse}/100, ${day.total_hours.toFixed(1)}h total. Very productive: ${day.very_productive_hours.toFixed(1)}h (${day.very_productive_percentage}%), Productive: ${day.productive_hours.toFixed(1)}h (${day.productive_percentage}%), Neutral: ${day.neutral_hours.toFixed(1)}h (${day.neutral_percentage}%), Distracting: ${day.distracting_hours.toFixed(1)}h (${day.distracting_percentage}%), Very distracting: ${day.very_distracting_hours.toFixed(1)}h (${day.very_distracting_percentage}%)`,
+      timestamp: `${day.date}T00:00:00.000Z`,
+      metadata: {
+        provider: "rescuetime",
+        type: "daily_summary",
+        date: day.date,
+        productivityPulse: day.productivity_pulse,
+        totalHours: day.total_hours,
+        veryProductiveHours: day.very_productive_hours,
+        productiveHours: day.productive_hours,
+        neutralHours: day.neutral_hours,
+        distractingHours: day.distracting_hours,
+        veryDistractingHours: day.very_distracting_hours,
+        allProductivePercentage: day.all_productive_percentage,
+        allDistractingPercentage: day.all_distracting_percentage
+      }
+    }));
+  }
+  /** Get the stored API key from the token manager. */
+  getApiKey() {
+    const apiKey = this.tokenManager.getAccessToken(PROVIDER_KEY4);
+    if (!apiKey) {
+      throw new Error("Not authenticated with RescueTime. Provide an API key via connector.auth.");
+    }
+    return apiKey;
+  }
+};
+
+// packages/gateway/services/pocket/pocket-adapter.ts
+var PROVIDER_KEY5 = "pocket";
+var API_BASE11 = "https://getpocket.com/v3";
+var POCKET_HEADERS = {
+  "Content-Type": "application/json",
+  "X-Accept": "application/json"
+};
+var PocketAdapter = class {
+  tokenManager;
+  consumerKey;
+  constructor(tokenManager) {
+    this.tokenManager = tokenManager;
+    this.consumerKey = oauthClients.pocket.clientId;
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return this.handleDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `PocketAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "POCKET_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Pocket's non-standard OAuth flow:
+   * 1. Obtain a request token
+   * 2. Redirect the user to authorize
+   * 3. Exchange the request token for an access token
+   */
+  async performAuthFlow() {
+    const callbackServer = new OAuthCallbackServer();
+    const { callbackUrl } = await callbackServer.start();
+    try {
+      const requestTokenResponse = await globalThis.fetch(`${API_BASE11}/oauth/request`, {
+        method: "POST",
+        headers: POCKET_HEADERS,
+        body: JSON.stringify({
+          consumer_key: this.consumerKey,
+          redirect_uri: callbackUrl
+        })
+      });
+      if (!requestTokenResponse.ok) {
+        const errorText = await requestTokenResponse.text();
+        return {
+          success: false,
+          error: { code: "REQUEST_TOKEN_ERROR", message: `Failed to get request token: ${errorText}` }
+        };
+      }
+      const requestTokenData = await requestTokenResponse.json();
+      const requestToken = requestTokenData.code;
+      await callbackServer.waitForCallback();
+      const authorizeResponse = await globalThis.fetch(`${API_BASE11}/oauth/authorize`, {
+        method: "POST",
+        headers: POCKET_HEADERS,
+        body: JSON.stringify({
+          consumer_key: this.consumerKey,
+          code: requestToken
+        })
+      });
+      if (!authorizeResponse.ok) {
+        const errorText = await authorizeResponse.text();
+        return {
+          success: false,
+          error: { code: "TOKEN_ERROR", message: `Pocket authorization failed: ${errorText}` }
+        };
+      }
+      const authorizeData = await authorizeResponse.json();
+      this.tokenManager.storeTokens({
+        provider: PROVIDER_KEY5,
+        accessToken: authorizeData.access_token,
+        refreshToken: "",
+        // Pocket doesn't use refresh tokens
+        expiresAt: Date.now() + 10 * 365 * 24 * 60 * 60 * 1e3,
+        // 10 years
+        scopes: "read",
+        userEmail: authorizeData.username
+      });
+      return {
+        success: true,
+        data: {
+          provider: PROVIDER_KEY5,
+          username: authorizeData.username
+        }
+      };
+    } catch (err) {
+      callbackServer.stop();
+      return {
+        success: false,
+        error: {
+          code: "AUTH_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  handleAuthStatus() {
+    const hasTokens = this.tokenManager.hasValidTokens(PROVIDER_KEY5);
+    const username = this.tokenManager.getUserEmail(PROVIDER_KEY5);
+    return {
+      success: true,
+      data: { authenticated: hasTokens, username }
+    };
+  }
+  handleDisconnect() {
+    this.tokenManager.revokeTokens(PROVIDER_KEY5);
+    return { success: true, data: { disconnected: true } };
+  }
+  /**
+   * Sync all saved articles from Pocket.
+   * Uses POST /v3/get with state=all, detailType=complete, sort=newest.
+   */
+  async handleSync(payload) {
+    const accessToken = this.getAccessToken();
+    const limit = payload["limit"] ?? 200;
+    const since = payload["since"];
+    const items = [];
+    const errors = [];
+    try {
+      const body = {
+        consumer_key: this.consumerKey,
+        access_token: accessToken,
+        state: "all",
+        detailType: "complete",
+        sort: "newest",
+        count: Math.min(limit, 5e3)
+      };
+      if (since) {
+        body["since"] = since;
+      }
+      const response = await globalThis.fetch(`${API_BASE11}/get`, {
+        method: "POST",
+        headers: POCKET_HEADERS,
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(`Pocket API error: ${data.error}`);
+      }
+      const articles = Object.values(data.list);
+      for (const article of articles) {
+        if (items.length >= limit) break;
+        items.push(this.articleToImportedItem(article));
+      }
+    } catch (err) {
+      errors.push({ message: `Pocket sync: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List articles with offset-based pagination.
+   */
+  async handleListItems(payload) {
+    const accessToken = this.getAccessToken();
+    const pageSize = payload["pageSize"] ?? 30;
+    const offset = payload["pageToken"] ? parseInt(payload["pageToken"], 10) : 0;
+    const response = await globalThis.fetch(`${API_BASE11}/get`, {
+      method: "POST",
+      headers: POCKET_HEADERS,
+      body: JSON.stringify({
+        consumer_key: this.consumerKey,
+        access_token: accessToken,
+        state: "all",
+        detailType: "complete",
+        sort: "newest",
+        count: pageSize,
+        offset
+      })
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "POCKET_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const articles = Object.values(data.list);
+    const items = articles.map((a) => this.articleToImportedItem(a));
+    const nextOffset = articles.length === pageSize ? String(offset + articles.length) : null;
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: nextOffset
+      }
+    };
+  }
+  articleToImportedItem(article) {
+    const title = article.resolved_title || article.given_title || "Untitled";
+    const url = article.resolved_url || article.given_url;
+    const tags = article.tags ? Object.values(article.tags).map((t) => t.tag) : [];
+    const authors = article.authors ? Object.values(article.authors).map((a) => a.name) : [];
+    const statusLabel = article.status === "0" ? "unread" : article.status === "1" ? "archived" : "deleted";
+    return {
+      id: `pkt_${article.item_id}`,
+      sourceType: "research",
+      title,
+      content: `"${title}"${article.excerpt ? `: ${article.excerpt}` : ""}. URL: ${url}. Status: ${statusLabel}. Words: ${article.word_count}.${authors.length > 0 ? ` Authors: ${authors.join(", ")}.` : ""}`,
+      timestamp: new Date(parseInt(article.time_added, 10) * 1e3).toISOString(),
+      metadata: {
+        provider: "pocket",
+        type: "article",
+        itemId: article.item_id,
+        url,
+        status: statusLabel,
+        favorite: article.favorite === "1",
+        wordCount: parseInt(article.word_count, 10),
+        tags,
+        authors,
+        timeRead: article.time_read !== "0" ? new Date(parseInt(article.time_read, 10) * 1e3).toISOString() : null
+      }
+    };
+  }
+  /**
+   * Get the stored access token. Throws if not authenticated.
+   */
+  getAccessToken() {
+    const token = this.tokenManager.getAccessToken(PROVIDER_KEY5);
+    if (!token) {
+      throw new Error("Not authenticated with Pocket. Use connector.auth to connect.");
+    }
+    return token;
+  }
+};
+
+// packages/gateway/services/instapaper/instapaper-adapter.ts
+var PROVIDER_KEY6 = "instapaper";
+var API_BASE12 = "https://www.instapaper.com/api/1";
+var InstapaperAdapter = class {
+  tokenManager;
+  consumerKey;
+  consumerSecret;
+  constructor(tokenManager) {
+    this.tokenManager = tokenManager;
+    this.consumerKey = oauthClients.instapaper.consumerKey;
+    this.consumerSecret = oauthClients.instapaper.consumerSecret ?? "";
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.handleAuth(p);
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return this.handleDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `InstapaperAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "INSTAPAPER_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * xAuth flow: directly exchange username/password for an OAuth token.
+   * No request token step — simpler than full OAuth 1.0a.
+   */
+  async handleAuth(payload) {
+    const username = payload["username"];
+    const password = payload["password"];
+    if (!username) {
+      return {
+        success: false,
+        error: { code: "MISSING_USERNAME", message: "payload.username is required for Instapaper xAuth" }
+      };
+    }
+    const url = `${API_BASE12}/oauth/access_token`;
+    const extraParams = {
+      x_auth_username: username,
+      x_auth_password: password ?? "",
+      x_auth_mode: "client_auth"
+    };
+    const credentials = {
+      consumerKey: this.consumerKey,
+      consumerSecret: this.consumerSecret
+    };
+    const authHeader = generateOAuth1Header(credentials, {
+      method: "POST",
+      url,
+      extraParams
+    });
+    const response = await globalThis.fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: new URLSearchParams(extraParams)
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "AUTH_FAILED", message: `Instapaper xAuth failed: HTTP ${response.status}` }
+      };
+    }
+    const responseText = await response.text();
+    const params = new URLSearchParams(responseText);
+    const oauthToken = params.get("oauth_token");
+    const oauthTokenSecret = params.get("oauth_token_secret");
+    if (!oauthToken || !oauthTokenSecret) {
+      return {
+        success: false,
+        error: { code: "TOKEN_ERROR", message: "Failed to parse OAuth token from Instapaper response" }
+      };
+    }
+    this.tokenManager.storeTokens({
+      provider: PROVIDER_KEY6,
+      accessToken: oauthToken,
+      refreshToken: oauthTokenSecret,
+      // Repurposed: stores OAuth 1.0a token_secret
+      expiresAt: Date.now() + 10 * 365 * 24 * 60 * 60 * 1e3,
+      // Instapaper tokens don't expire
+      scopes: "read",
+      userEmail: username
+    });
+    return {
+      success: true,
+      data: {
+        provider: PROVIDER_KEY6,
+        username
+      }
+    };
+  }
+  handleAuthStatus() {
+    const hasTokens = this.tokenManager.hasValidTokens(PROVIDER_KEY6);
+    const username = this.tokenManager.getUserEmail(PROVIDER_KEY6);
+    return {
+      success: true,
+      data: { authenticated: hasTokens, username }
+    };
+  }
+  handleDisconnect() {
+    this.tokenManager.revokeTokens(PROVIDER_KEY6);
+    return { success: true, data: { disconnected: true } };
+  }
+  /**
+   * Sync bookmarks and highlights from Instapaper.
+   */
+  async handleSync(payload) {
+    const limit = payload["limit"] ?? 500;
+    const items = [];
+    const errors = [];
+    try {
+      const bookmarkItems = await this.fetchBookmarks(limit);
+      items.push(...bookmarkItems);
+    } catch (err) {
+      errors.push({ message: `Bookmarks: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const highlightItems = await this.fetchHighlights(items.slice(0, Math.min(items.length, 50)));
+      items.push(...highlightItems);
+    } catch (err) {
+      errors.push({ message: `Highlights: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List bookmarks with pagination.
+   */
+  async handleListItems(payload) {
+    const pageSize = payload["pageSize"] ?? 25;
+    const folderId = payload["folderId"] ?? "unread";
+    const haveParam = payload["pageToken"];
+    const url = `${API_BASE12}/bookmarks/list`;
+    const extraParams = {
+      limit: String(Math.min(pageSize, 500)),
+      folder_id: folderId
+    };
+    if (haveParam) {
+      extraParams["have"] = haveParam;
+    }
+    const response = await this.makeSignedRequest("POST", url, extraParams);
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "INSTAPAPER_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const bookmarks = data.filter((item) => item.type === "bookmark");
+    const items = bookmarks.map((b) => this.bookmarkItemToImportedItem(b));
+    const lastBookmarkId = bookmarks.length > 0 ? String(bookmarks[bookmarks.length - 1].bookmark_id) : null;
+    const nextPageToken = bookmarks.length === pageSize ? lastBookmarkId : null;
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken
+      }
+    };
+  }
+  async fetchBookmarks(limit) {
+    const url = `${API_BASE12}/bookmarks/list`;
+    const extraParams = {
+      limit: String(Math.min(limit, 500))
+    };
+    const response = await this.makeSignedRequest("POST", url, extraParams);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    const bookmarks = data.filter((item) => item.type === "bookmark");
+    return bookmarks.map((b) => this.bookmarkItemToImportedItem(b));
+  }
+  async fetchHighlights(bookmarkItems) {
+    const items = [];
+    for (const bookmark of bookmarkItems) {
+      const bookmarkId = bookmark.metadata["bookmarkId"];
+      if (!bookmarkId) continue;
+      try {
+        const url = `${API_BASE12}/bookmarks/${bookmarkId}/highlights`;
+        const response = await this.makeSignedRequest("GET", url);
+        if (!response.ok) continue;
+        const highlights = await response.json();
+        for (const highlight of highlights) {
+          items.push({
+            id: `ip_highlight_${highlight.highlight_id}`,
+            sourceType: "research",
+            title: `Highlight: ${highlight.text.slice(0, 80)}${highlight.text.length > 80 ? "..." : ""}`,
+            content: highlight.text + (highlight.note ? `
+
+Note: ${highlight.note}` : ""),
+            timestamp: new Date(highlight.time * 1e3).toISOString(),
+            metadata: {
+              provider: "instapaper",
+              type: "highlight",
+              highlightId: highlight.highlight_id,
+              bookmarkId: highlight.bookmark_id,
+              position: highlight.position
+            }
+          });
+        }
+      } catch {
+      }
+    }
+    return items;
+  }
+  bookmarkItemToImportedItem(bookmark) {
+    const title = bookmark.title ?? "Untitled";
+    return {
+      id: `ip_${bookmark.bookmark_id}`,
+      sourceType: "research",
+      title,
+      content: `"${title}"${bookmark.description ? `: ${bookmark.description}` : ""}. URL: ${bookmark.url ?? "unknown"}.`,
+      timestamp: bookmark.time ? new Date(bookmark.time * 1e3).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      metadata: {
+        provider: "instapaper",
+        type: "bookmark",
+        bookmarkId: bookmark.bookmark_id,
+        url: bookmark.url,
+        starred: bookmark.starred === "1",
+        progress: bookmark.progress,
+        hash: bookmark.hash
+      }
+    };
+  }
+  /**
+   * Make an OAuth 1.0a signed request to the Instapaper API.
+   */
+  async makeSignedRequest(method, url, extraParams) {
+    const oauthToken = this.tokenManager.getAccessToken(PROVIDER_KEY6);
+    const oauthTokenSecret = this.tokenManager.getRefreshToken(PROVIDER_KEY6);
+    if (!oauthToken || !oauthTokenSecret) {
+      throw new Error("Not authenticated with Instapaper. Use connector.auth to connect.");
+    }
+    const credentials = {
+      consumerKey: this.consumerKey,
+      consumerSecret: this.consumerSecret,
+      token: oauthToken,
+      tokenSecret: oauthTokenSecret
+    };
+    const authHeader = generateOAuth1Header(credentials, {
+      method,
+      url,
+      extraParams
+    });
+    const headers = {
+      Authorization: authHeader
+    };
+    const init = {
+      method,
+      headers
+    };
+    if (method === "POST" && extraParams) {
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+      init.body = new URLSearchParams(extraParams);
+    }
+    return globalThis.fetch(url, init);
+  }
+};
+
+// packages/gateway/services/todoist/todoist-adapter.ts
+var REST_API_BASE = "https://api.todoist.com/rest/v2";
+var SYNC_API_BASE = "https://api.todoist.com/sync/v9";
+function getTodoistOAuthConfig() {
+  return {
+    providerKey: "todoist",
+    authUrl: "https://todoist.com/oauth/authorize",
+    tokenUrl: "https://todoist.com/oauth/access_token",
+    scopes: "data:read",
+    usePKCE: false,
+    clientId: oauthClients.todoist.clientId,
+    clientSecret: oauthClients.todoist.clientSecret
+  };
+}
+var TodoistAdapter = class extends BaseOAuthAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getTodoistOAuthConfig());
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${SYNC_API_BASE}/sync`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: new URLSearchParams({
+        sync_token: "*",
+        resource_types: '["user"]'
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Todoist user info failed: HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    return {
+      email: data.user?.email,
+      displayName: data.user?.full_name
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `TodoistAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "TODOIST_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync active tasks and completed tasks from Todoist.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const limit = payload["limit"] ?? 200;
+    const items = [];
+    const errors = [];
+    let projectMap = /* @__PURE__ */ new Map();
+    try {
+      projectMap = await this.fetchProjectMap(accessToken);
+    } catch (err) {
+      errors.push({ message: `Projects: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const activeTasks = await this.fetchActiveTasks(accessToken);
+      for (const task of activeTasks) {
+        if (items.length >= limit) break;
+        items.push(this.taskToImportedItem(task, projectMap));
+      }
+    } catch (err) {
+      errors.push({ message: `Active tasks: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const completedItems = await this.fetchCompletedTasks(accessToken, limit - items.length);
+      for (const completed of completedItems) {
+        if (items.length >= limit) break;
+        items.push(this.completedTaskToImportedItem(completed, projectMap));
+      }
+    } catch (err) {
+      errors.push({ message: `Completed tasks: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List active tasks with pagination.
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const projectId = payload["projectId"];
+    const url = new URL(`${REST_API_BASE}/tasks`);
+    if (projectId) {
+      url.searchParams.set("project_id", projectId);
+    }
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "TODOIST_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const tasks = await response.json();
+    let projectMap = /* @__PURE__ */ new Map();
+    try {
+      projectMap = await this.fetchProjectMap(accessToken);
+    } catch {
+    }
+    const items = tasks.map((task) => this.taskToImportedItem(task, projectMap));
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: null
+        // Todoist REST v2 doesn't use cursor pagination for tasks
+      }
+    };
+  }
+  async fetchActiveTasks(accessToken) {
+    const response = await globalThis.fetch(`${REST_API_BASE}/tasks`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return await response.json();
+  }
+  async fetchCompletedTasks(accessToken, limit) {
+    const url = new URL(`${SYNC_API_BASE}/completed/get_all`);
+    url.searchParams.set("limit", String(Math.min(limit, 200)));
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.items;
+  }
+  async fetchProjectMap(accessToken) {
+    const response = await globalThis.fetch(`${REST_API_BASE}/projects`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const projects = await response.json();
+    const map2 = /* @__PURE__ */ new Map();
+    for (const project of projects) {
+      map2.set(project.id, project.name);
+    }
+    return map2;
+  }
+  taskToImportedItem(task, projectMap) {
+    const projectName = projectMap.get(task.project_id) ?? "Unknown Project";
+    const dueStr = task.due ? ` Due: ${task.due.string}.` : "";
+    return {
+      id: `tds_task_${task.id}`,
+      sourceType: "productivity",
+      title: task.content,
+      content: `Task: "${task.content}"${task.description ? `. ${task.description}` : ""}. Project: ${projectName}. Priority: ${task.priority}.${dueStr}${task.labels.length > 0 ? ` Labels: ${task.labels.join(", ")}.` : ""}`,
+      timestamp: task.created_at,
+      metadata: {
+        provider: "todoist",
+        type: "task",
+        taskId: task.id,
+        projectId: task.project_id,
+        projectName,
+        priority: task.priority,
+        labels: task.labels,
+        due: task.due,
+        isCompleted: task.is_completed,
+        url: task.url,
+        parentId: task.parent_id,
+        sectionId: task.section_id
+      }
+    };
+  }
+  completedTaskToImportedItem(completed, projectMap) {
+    const projectName = projectMap.get(completed.project_id) ?? "Unknown Project";
+    return {
+      id: `tds_done_${completed.task_id}`,
+      sourceType: "productivity",
+      title: `Completed: ${completed.content}`,
+      content: `Completed task: "${completed.content}". Project: ${projectName}. Completed at: ${completed.completed_at}.`,
+      timestamp: completed.completed_at,
+      metadata: {
+        provider: "todoist",
+        type: "completed_task",
+        taskId: completed.task_id,
+        completedItemId: completed.id,
+        projectId: completed.project_id,
+        projectName,
+        completedAt: completed.completed_at
+      }
+    };
+  }
+};
+
+// packages/gateway/services/lastfm/lastfm-adapter.ts
+var import_node_crypto11 = require("node:crypto");
+var PROVIDER_KEY7 = "lastfm";
+var API_BASE13 = "https://ws.audioscrobbler.com/2.0/";
+var LastFmAdapter = class {
+  tokenManager;
+  apiKey;
+  apiSecret;
+  constructor(tokenManager, apiKey, apiSecret) {
+    this.tokenManager = tokenManager;
+    this.apiKey = apiKey;
+    this.apiSecret = apiSecret;
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return this.handleDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `LastFmAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "LASTFM_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Last.fm auth flow:
+   * 1. Redirect to https://www.last.fm/api/auth/?api_key={key}
+   * 2. User authorizes and callback receives a token
+   * 3. Call auth.getSession with token and api_sig to get session key
+   */
+  async performAuthFlow() {
+    const callbackServer = new OAuthCallbackServer();
+    const { callbackUrl } = await callbackServer.start();
+    try {
+      const { code: token } = await callbackServer.waitForCallback();
+      const apiSig = this.generateApiSig({
+        api_key: this.apiKey,
+        method: "auth.getSession",
+        token
+      });
+      const url = new URL(API_BASE13);
+      url.searchParams.set("method", "auth.getSession");
+      url.searchParams.set("api_key", this.apiKey);
+      url.searchParams.set("token", token);
+      url.searchParams.set("api_sig", apiSig);
+      url.searchParams.set("format", "json");
+      const response = await globalThis.fetch(url.toString());
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          success: false,
+          error: { code: "SESSION_ERROR", message: `Last.fm session exchange failed: ${errorText}` }
+        };
+      }
+      const data = await response.json();
+      if (!data.session?.key) {
+        return {
+          success: false,
+          error: { code: "SESSION_ERROR", message: "No session key in Last.fm response" }
+        };
+      }
+      this.tokenManager.storeTokens({
+        provider: PROVIDER_KEY7,
+        accessToken: data.session.key,
+        refreshToken: "",
+        // Last.fm doesn't use refresh tokens
+        expiresAt: Date.now() + 10 * 365 * 24 * 60 * 60 * 1e3,
+        scopes: "read",
+        userEmail: data.session.name
+        // Store username as email field
+      });
+      return {
+        success: true,
+        data: {
+          provider: PROVIDER_KEY7,
+          username: data.session.name
+        }
+      };
+    } catch (err) {
+      callbackServer.stop();
+      return {
+        success: false,
+        error: {
+          code: "AUTH_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  handleAuthStatus() {
+    const hasTokens = this.tokenManager.hasValidTokens(PROVIDER_KEY7);
+    const username = this.tokenManager.getUserEmail(PROVIDER_KEY7);
+    return {
+      success: true,
+      data: { authenticated: hasTokens, username }
+    };
+  }
+  handleDisconnect() {
+    this.tokenManager.revokeTokens(PROVIDER_KEY7);
+    return { success: true, data: { disconnected: true } };
+  }
+  /**
+   * Sync recent tracks and loved tracks from Last.fm.
+   */
+  async handleSync(payload) {
+    const username = this.getUsername();
+    const limit = payload["limit"] ?? 200;
+    const from = payload["from"];
+    const to = payload["to"];
+    const items = [];
+    const errors = [];
+    try {
+      const recentItems = await this.fetchRecentTracks(username, limit, from, to);
+      items.push(...recentItems);
+    } catch (err) {
+      errors.push({ message: `Recent tracks: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const lovedItems = await this.fetchLovedTracks(username, Math.min(limit, 200));
+      items.push(...lovedItems);
+    } catch (err) {
+      errors.push({ message: `Loved tracks: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List recent tracks with pagination.
+   */
+  async handleListItems(payload) {
+    const username = this.getUsername();
+    const pageSize = payload["pageSize"] ?? 50;
+    const page = payload["pageToken"] ? parseInt(payload["pageToken"], 10) : 1;
+    const url = new URL(API_BASE13);
+    url.searchParams.set("method", "user.getRecentTracks");
+    url.searchParams.set("user", username);
+    url.searchParams.set("api_key", this.apiKey);
+    url.searchParams.set("format", "json");
+    url.searchParams.set("limit", String(Math.min(pageSize, 200)));
+    url.searchParams.set("page", String(page));
+    const response = await globalThis.fetch(url.toString());
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "LASTFM_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const tracks = data.recenttracks.track.filter((t) => !t["@attr"]?.nowplaying);
+    const items = tracks.map((track) => this.scrobbleToImportedItem(track));
+    const totalPages = parseInt(data.recenttracks["@attr"].totalPages, 10);
+    const currentPage = parseInt(data.recenttracks["@attr"].page, 10);
+    const nextPageToken = currentPage < totalPages ? String(currentPage + 1) : null;
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken,
+        total: parseInt(data.recenttracks["@attr"].total, 10)
+      }
+    };
+  }
+  async fetchRecentTracks(username, limit, from, to) {
+    const items = [];
+    let page = 1;
+    let totalPages = 1;
+    while (items.length < limit && page <= totalPages) {
+      const url = new URL(API_BASE13);
+      url.searchParams.set("method", "user.getRecentTracks");
+      url.searchParams.set("user", username);
+      url.searchParams.set("api_key", this.apiKey);
+      url.searchParams.set("format", "json");
+      url.searchParams.set("limit", String(Math.min(limit - items.length, 200)));
+      url.searchParams.set("page", String(page));
+      if (from !== void 0) url.searchParams.set("from", String(from));
+      if (to !== void 0) url.searchParams.set("to", String(to));
+      const response = await globalThis.fetch(url.toString());
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      totalPages = parseInt(data.recenttracks["@attr"].totalPages, 10);
+      const tracks = data.recenttracks.track.filter((t) => !t["@attr"]?.nowplaying);
+      for (const track of tracks) {
+        if (items.length >= limit) break;
+        items.push(this.scrobbleToImportedItem(track));
+      }
+      page++;
+    }
+    return items;
+  }
+  async fetchLovedTracks(username, limit) {
+    const url = new URL(API_BASE13);
+    url.searchParams.set("method", "user.getLovedTracks");
+    url.searchParams.set("user", username);
+    url.searchParams.set("api_key", this.apiKey);
+    url.searchParams.set("format", "json");
+    url.searchParams.set("limit", String(Math.min(limit, 200)));
+    const response = await globalThis.fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.lovedtracks.track.map((track) => ({
+      id: `lfm_loved_${track.mbid || `${track.artist.name}_${track.name}`.replace(/\s+/g, "_")}`,
+      sourceType: "productivity",
+      title: `Loved: ${track.name} - ${track.artist.name}`,
+      content: `Loved track: "${track.name}" by ${track.artist.name}.`,
+      timestamp: track.date ? new Date(parseInt(track.date.uts, 10) * 1e3).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      metadata: {
+        provider: "lastfm",
+        type: "loved_track",
+        trackName: track.name,
+        artistName: track.artist.name,
+        mbid: track.mbid,
+        url: track.url
+      }
+    }));
+  }
+  scrobbleToImportedItem(track) {
+    const timestamp = track.date ? new Date(parseInt(track.date.uts, 10) * 1e3).toISOString() : (/* @__PURE__ */ new Date()).toISOString();
+    const uniqueSuffix = track.date?.uts ?? Date.now().toString();
+    return {
+      id: `lfm_${track.mbid || `${track.artist["#text"]}_${track.name}`.replace(/\s+/g, "_")}_${uniqueSuffix}`,
+      sourceType: "productivity",
+      title: `${track.name} - ${track.artist["#text"]}`,
+      content: `Listened to "${track.name}" by ${track.artist["#text"]}${track.album["#text"] ? ` from "${track.album["#text"]}"` : ""}.`,
+      timestamp,
+      metadata: {
+        provider: "lastfm",
+        type: "scrobble",
+        trackName: track.name,
+        artistName: track.artist["#text"],
+        albumName: track.album["#text"],
+        mbid: track.mbid,
+        url: track.url
+      }
+    };
+  }
+  /**
+   * Generate the api_sig for Last.fm API calls.
+   * Signature = md5(sorted params as key+value concatenated + api_secret)
+   */
+  generateApiSig(params) {
+    const sortedKeys = Object.keys(params).sort();
+    let sigString = "";
+    for (const key of sortedKeys) {
+      sigString += key + params[key];
+    }
+    sigString += this.apiSecret;
+    return (0, import_node_crypto11.createHash)("md5").update(sigString).digest("hex");
+  }
+  /**
+   * Get the stored username. Throws if not authenticated.
+   */
+  getUsername() {
+    const username = this.tokenManager.getUserEmail(PROVIDER_KEY7);
+    if (!username) {
+      throw new Error("Not authenticated with Last.fm. Use connector.auth to connect.");
+    }
+    return username;
+  }
+};
+
+// packages/gateway/services/letterboxd/letterboxd-adapter.ts
+var import_node_crypto12 = require("node:crypto");
+var PROVIDER_KEY8 = "letterboxd";
+var API_BASE14 = "https://api.letterboxd.com/api/v0";
+var LetterboxdAdapter = class {
+  tokenManager;
+  apiKey;
+  apiSecret;
+  constructor(tokenManager, apiKey, apiSecret) {
+    this.tokenManager = tokenManager;
+    this.apiKey = apiKey;
+    this.apiSecret = apiSecret;
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.handleAuth(p);
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return this.handleDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `LetterboxdAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "LETTERBOXD_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Authenticate with Letterboxd using API key + username/password.
+   * The Letterboxd API uses token-based auth after initial authentication.
+   */
+  async handleAuth(payload) {
+    const username = payload["username"];
+    const password = payload["password"];
+    if (!username || !password) {
+      return {
+        success: false,
+        error: { code: "MISSING_CREDENTIALS", message: "payload.username and payload.password are required for Letterboxd" }
+      };
+    }
+    const url = `${API_BASE14}/auth/token`;
+    const body = new URLSearchParams({
+      grant_type: "password",
+      username,
+      password
+    }).toString();
+    const response = await this.makeSignedRequest("POST", url, body, "application/x-www-form-urlencoded");
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "AUTH_FAILED", message: `Letterboxd authentication failed: HTTP ${response.status}` }
+      };
+    }
+    const data = await response.json();
+    if (!data.access_token) {
+      return {
+        success: false,
+        error: { code: "TOKEN_ERROR", message: "No access token in Letterboxd auth response" }
+      };
+    }
+    let memberId = username;
+    let displayName = username;
+    try {
+      const meResponse = await this.makeSignedRequest("GET", `${API_BASE14}/me`, void 0, void 0, data.access_token);
+      if (meResponse.ok) {
+        const meData = await meResponse.json();
+        memberId = meData.member.id;
+        displayName = meData.member.displayName || meData.member.username;
+      }
+    } catch {
+    }
+    this.tokenManager.storeTokens({
+      provider: PROVIDER_KEY8,
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? "",
+      expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1e3,
+      // 1 year
+      scopes: "read",
+      userEmail: memberId
+    });
+    return {
+      success: true,
+      data: {
+        provider: PROVIDER_KEY8,
+        memberId,
+        displayName
+      }
+    };
+  }
+  handleAuthStatus() {
+    const hasTokens = this.tokenManager.hasValidTokens(PROVIDER_KEY8);
+    const memberId = this.tokenManager.getUserEmail(PROVIDER_KEY8);
+    return {
+      success: true,
+      data: { authenticated: hasTokens, memberId }
+    };
+  }
+  handleDisconnect() {
+    this.tokenManager.revokeTokens(PROVIDER_KEY8);
+    return { success: true, data: { disconnected: true } };
+  }
+  /**
+   * Sync diary entries and watchlist from Letterboxd.
+   */
+  async handleSync(payload) {
+    const memberId = this.getMemberId();
+    const accessToken = this.getAccessToken();
+    const limit = payload["limit"] ?? 100;
+    const items = [];
+    const errors = [];
+    try {
+      const logItems = await this.fetchLogEntries(memberId, accessToken, limit);
+      items.push(...logItems);
+    } catch (err) {
+      errors.push({ message: `Log entries: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const watchlistItems = await this.fetchWatchlist(memberId, accessToken, Math.min(limit, 100));
+      items.push(...watchlistItems);
+    } catch (err) {
+      errors.push({ message: `Watchlist: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List diary entries with cursor-based pagination.
+   */
+  async handleListItems(payload) {
+    const memberId = this.getMemberId();
+    const accessToken = this.getAccessToken();
+    const pageSize = payload["pageSize"] ?? 20;
+    const cursor = payload["pageToken"];
+    const url = new URL(`${API_BASE14}/member/${memberId}/log-entries`);
+    url.searchParams.set("perPage", String(Math.min(pageSize, 100)));
+    if (cursor) {
+      url.searchParams.set("cursor", cursor);
+    }
+    const response = await this.makeSignedRequest("GET", url.toString(), void 0, void 0, accessToken);
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "LETTERBOXD_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const items = data.items.map((entry) => this.logEntryToImportedItem(entry));
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: data.next
+      }
+    };
+  }
+  async fetchLogEntries(memberId, accessToken, limit) {
+    const items = [];
+    let nextCursor = null;
+    const url = new URL(`${API_BASE14}/member/${memberId}/log-entries`);
+    url.searchParams.set("perPage", String(Math.min(limit, 100)));
+    let fetchUrl = url.toString();
+    while (items.length < limit) {
+      const response = await this.makeSignedRequest("GET", fetchUrl, void 0, void 0, accessToken);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      for (const entry of data.items) {
+        if (items.length >= limit) break;
+        items.push(this.logEntryToImportedItem(entry));
+      }
+      nextCursor = data.next;
+      if (!nextCursor || data.items.length === 0) break;
+      fetchUrl = nextCursor;
+    }
+    return items;
+  }
+  async fetchWatchlist(memberId, accessToken, limit) {
+    const url = new URL(`${API_BASE14}/member/${memberId}/watchlist`);
+    url.searchParams.set("perPage", String(Math.min(limit, 100)));
+    const response = await this.makeSignedRequest("GET", url.toString(), void 0, void 0, accessToken);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.items.map((entry) => {
+      const directors = entry.film.directors?.map((d) => d.name).join(", ") ?? "Unknown";
+      return {
+        id: `lbx_watchlist_${entry.film.id}`,
+        sourceType: "productivity",
+        title: `Watchlist: ${entry.film.name}${entry.film.releaseYear ? ` (${entry.film.releaseYear})` : ""}`,
+        content: `Watchlisted "${entry.film.name}"${entry.film.releaseYear ? ` (${entry.film.releaseYear})` : ""} directed by ${directors}.`,
+        timestamp: entry.whenCreated,
+        metadata: {
+          provider: "letterboxd",
+          type: "watchlist",
+          filmId: entry.film.id,
+          filmName: entry.film.name,
+          releaseYear: entry.film.releaseYear,
+          directors: entry.film.directors?.map((d) => d.name) ?? []
+        }
+      };
+    });
+  }
+  logEntryToImportedItem(entry) {
+    const directors = entry.film.directors?.map((d) => d.name).join(", ") ?? "Unknown";
+    const ratingStr = entry.rating !== void 0 ? ` Rating: ${entry.rating}/5.` : "";
+    const reviewStr = entry.review?.text ? ` Review: ${entry.review.text.slice(0, 200)}${entry.review.text.length > 200 ? "..." : ""}` : "";
+    const tags = entry.tags?.map((t) => t.displayTag) ?? [];
+    return {
+      id: `lbx_${entry.id}`,
+      sourceType: "productivity",
+      title: `${entry.film.name}${entry.film.releaseYear ? ` (${entry.film.releaseYear})` : ""}`,
+      content: `Watched "${entry.film.name}"${entry.film.releaseYear ? ` (${entry.film.releaseYear})` : ""} directed by ${directors}.${ratingStr}${entry.diaryDetails?.rewatch ? " (Rewatch)" : ""}${reviewStr}`,
+      timestamp: entry.diaryDetails?.diaryDate ?? entry.whenCreated,
+      metadata: {
+        provider: "letterboxd",
+        type: "log_entry",
+        entryId: entry.id,
+        filmId: entry.film.id,
+        filmName: entry.film.name,
+        releaseYear: entry.film.releaseYear,
+        directors: entry.film.directors?.map((d) => d.name) ?? [],
+        rating: entry.rating,
+        liked: entry.like,
+        rewatch: entry.diaryDetails?.rewatch ?? false,
+        diaryDate: entry.diaryDetails?.diaryDate,
+        hasReview: entry.review !== void 0,
+        tags
+      }
+    };
+  }
+  /**
+   * Make an HMAC-SHA256 signed request to the Letterboxd API.
+   * Signature = HMAC-SHA256(method + '\0' + url + '\0' + body + '\0', apiSecret)
+   */
+  async makeSignedRequest(method, url, body, contentType, accessToken) {
+    const urlObj = new URL(url);
+    urlObj.searchParams.set("apikey", this.apiKey);
+    urlObj.searchParams.set("nonce", crypto.randomUUID());
+    urlObj.searchParams.set("timestamp", Math.floor(Date.now() / 1e3).toString());
+    const finalUrl = urlObj.toString();
+    const bodyStr = body ?? "";
+    const sigInput = `${method.toUpperCase()}\0${finalUrl}\0${bodyStr}`;
+    const signature = (0, import_node_crypto12.createHmac)("sha256", this.apiSecret).update(sigInput).digest("hex");
+    const headers = {
+      Authorization: `Signature ${signature}`
+    };
+    if (contentType) {
+      headers["Content-Type"] = contentType;
+    }
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+      headers["X-Letterboxd-Signature"] = signature;
+    }
+    const init = {
+      method,
+      headers
+    };
+    if (body && method !== "GET") {
+      init.body = body;
+    }
+    return globalThis.fetch(finalUrl, init);
+  }
+  getMemberId() {
+    const memberId = this.tokenManager.getUserEmail(PROVIDER_KEY8);
+    if (!memberId) {
+      throw new Error("Not authenticated with Letterboxd. Use connector.auth to connect.");
+    }
+    return memberId;
+  }
+  getAccessToken() {
+    const token = this.tokenManager.getAccessToken(PROVIDER_KEY8);
+    if (!token) {
+      throw new Error("Not authenticated with Letterboxd. Use connector.auth to connect.");
+    }
+    return token;
+  }
+};
+
+// packages/gateway/services/mendeley/mendeley-adapter.ts
+var API_BASE15 = "https://api.mendeley.com";
+function getMendeleyOAuthConfig() {
+  return {
+    providerKey: "mendeley",
+    authUrl: "https://api.mendeley.com/oauth/authorize",
+    tokenUrl: "https://api.mendeley.com/oauth/token",
+    scopes: "all",
+    usePKCE: false,
+    clientId: oauthClients.mendeley.clientId,
+    clientSecret: oauthClients.mendeley.clientSecret
+  };
+}
+var MendeleyAdapter = class extends BaseOAuthAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getMendeleyOAuthConfig());
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${API_BASE15}/profiles/v2/me`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Mendeley user info failed: HTTP ${response.status}`);
+    }
+    const profile = await response.json();
+    return {
+      email: profile.email,
+      displayName: profile.display_name
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `MendeleyAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "MENDELEY_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync documents and annotations from Mendeley.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const limit = payload["limit"] ?? 200;
+    const items = [];
+    const errors = [];
+    try {
+      const docItems = await this.fetchDocuments(accessToken, limit);
+      items.push(...docItems);
+    } catch (err) {
+      errors.push({ message: `Documents: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const annotationItems = await this.fetchAnnotations(accessToken, limit);
+      items.push(...annotationItems);
+    } catch (err) {
+      errors.push({ message: `Annotations: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List documents with marker-based pagination.
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageSize = payload["pageSize"] ?? 50;
+    const marker = payload["pageToken"];
+    const url = new URL(`${API_BASE15}/documents`);
+    url.searchParams.set("limit", String(Math.min(pageSize, 500)));
+    url.searchParams.set("order", "desc");
+    url.searchParams.set("sort", "last_modified");
+    url.searchParams.set("view", "all");
+    if (marker) {
+      url.searchParams.set("marker", marker);
+    }
+    const response = await globalThis.fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.mendeley-document.1+json"
+      }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "MENDELEY_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const documents = await response.json();
+    const items = documents.map((doc) => this.documentToImportedItem(doc));
+    const linkHeader = response.headers.get("Link");
+    let nextMarker = null;
+    if (linkHeader) {
+      const nextMatch = linkHeader.match(/marker=([^&>]+)/);
+      if (nextMatch) {
+        nextMarker = nextMatch[1];
+      }
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: nextMarker
+      }
+    };
+  }
+  async fetchDocuments(accessToken, limit) {
+    const items = [];
+    let marker;
+    while (items.length < limit) {
+      const url = new URL(`${API_BASE15}/documents`);
+      url.searchParams.set("limit", String(Math.min(limit - items.length, 500)));
+      url.searchParams.set("order", "desc");
+      url.searchParams.set("sort", "last_modified");
+      url.searchParams.set("view", "all");
+      if (marker) {
+        url.searchParams.set("marker", marker);
+      }
+      const response = await globalThis.fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/vnd.mendeley-document.1+json"
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const documents = await response.json();
+      if (documents.length === 0) break;
+      for (const doc of documents) {
+        if (items.length >= limit) break;
+        items.push(this.documentToImportedItem(doc));
+      }
+      const linkHeader = response.headers.get("Link");
+      if (!linkHeader) break;
+      const nextMatch = linkHeader.match(/marker=([^&>]+)/);
+      if (!nextMatch) break;
+      marker = nextMatch[1];
+    }
+    return items;
+  }
+  async fetchAnnotations(accessToken, limit) {
+    const items = [];
+    let marker;
+    while (items.length < limit) {
+      const url = new URL(`${API_BASE15}/annotations`);
+      url.searchParams.set("limit", String(Math.min(limit - items.length, 200)));
+      if (marker) {
+        url.searchParams.set("marker", marker);
+      }
+      const response = await globalThis.fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/vnd.mendeley-annotation.1+json"
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const annotations = await response.json();
+      if (annotations.length === 0) break;
+      for (const annotation of annotations) {
+        if (items.length >= limit) break;
+        items.push(this.annotationToImportedItem(annotation));
+      }
+      const linkHeader = response.headers.get("Link");
+      if (!linkHeader) break;
+      const nextMatch = linkHeader.match(/marker=([^&>]+)/);
+      if (!nextMatch) break;
+      marker = nextMatch[1];
+    }
+    return items;
+  }
+  documentToImportedItem(doc) {
+    const authors = doc.authors?.map((a) => `${a.first_name} ${a.last_name}`).join(", ") ?? "Unknown";
+    const identifierStr = doc.identifiers?.doi ? ` DOI: ${doc.identifiers.doi}.` : "";
+    return {
+      id: `mnd_doc_${doc.id}`,
+      sourceType: "research",
+      title: doc.title,
+      content: `"${doc.title}" by ${authors}.${doc.year ? ` (${doc.year}).` : ""}${doc.source ? ` In: ${doc.source}.` : ""}${identifierStr}${doc.abstract ? ` Abstract: ${doc.abstract.slice(0, 300)}${doc.abstract.length > 300 ? "..." : ""}` : ""}`,
+      timestamp: doc.last_modified,
+      metadata: {
+        provider: "mendeley",
+        type: "document",
+        documentId: doc.id,
+        docType: doc.type,
+        authors: doc.authors?.map((a) => `${a.first_name} ${a.last_name}`) ?? [],
+        year: doc.year,
+        source: doc.source,
+        doi: doc.identifiers?.doi,
+        isbn: doc.identifiers?.isbn,
+        keywords: doc.keywords ?? [],
+        tags: doc.tags ?? [],
+        read: doc.read,
+        starred: doc.starred,
+        fileAttached: doc.file_attached,
+        websites: doc.websites ?? [],
+        createdAt: doc.created
+      }
+    };
+  }
+  annotationToImportedItem(annotation) {
+    const titleText = annotation.text ? annotation.text.slice(0, 80) + (annotation.text.length > 80 ? "..." : "") : `${annotation.type} annotation`;
+    return {
+      id: `mnd_ann_${annotation.id}`,
+      sourceType: "research",
+      title: titleText,
+      content: annotation.text ?? `${annotation.type} annotation on document ${annotation.document_id}`,
+      timestamp: annotation.last_modified,
+      metadata: {
+        provider: "mendeley",
+        type: "annotation",
+        annotationId: annotation.id,
+        annotationType: annotation.type,
+        documentId: annotation.document_id,
+        color: annotation.color,
+        positions: annotation.positions,
+        createdAt: annotation.created
+      }
+    };
+  }
+};
+
+// packages/gateway/services/harvest/harvest-adapter.ts
+var API_BASE16 = "https://api.harvestapp.com/v2";
+function getHarvestOAuthConfig() {
+  return {
+    providerKey: "harvest",
+    authUrl: "https://id.getharvest.com/oauth2/authorize",
+    tokenUrl: "https://id.getharvest.com/api/v2/oauth2/token",
+    scopes: "harvest:timers",
+    usePKCE: false,
+    clientId: oauthClients.harvest.clientId,
+    clientSecret: oauthClients.harvest.clientSecret
+  };
+}
+var HarvestAdapter = class extends BaseOAuthAdapter {
+  /** Cached Harvest account ID, required for all API calls. */
+  accountId = null;
+  constructor(tokenManager) {
+    super(tokenManager, getHarvestOAuthConfig());
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${API_BASE16}/users/me`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "User-Agent": "Semblance (semblance@veridiantools.dev)"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Harvest user info failed: HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.accounts.length > 0) {
+      this.accountId = String(data.accounts[0].id);
+    }
+    return {
+      email: data.email,
+      displayName: `${data.first_name} ${data.last_name}`
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `HarvestAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "HARVEST_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync time entries and projects from Harvest.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    await this.ensureAccountId(accessToken);
+    const limit = payload["limit"] ?? 200;
+    const items = [];
+    const errors = [];
+    try {
+      const timeItems = await this.fetchTimeEntries(accessToken, limit);
+      items.push(...timeItems);
+    } catch (err) {
+      errors.push({ message: `Time entries: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    try {
+      const projectItems = await this.fetchProjects(accessToken, Math.min(limit, 100));
+      items.push(...projectItems);
+    } catch (err) {
+      errors.push({ message: `Projects: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List time entries with page-based pagination.
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    await this.ensureAccountId(accessToken);
+    const pageSize = payload["pageSize"] ?? 50;
+    const page = payload["pageToken"] ? parseInt(payload["pageToken"], 10) : 1;
+    const url = new URL(`${API_BASE16}/time_entries`);
+    url.searchParams.set("per_page", String(Math.min(pageSize, 100)));
+    url.searchParams.set("page", String(page));
+    const response = await globalThis.fetch(url.toString(), {
+      headers: this.getApiHeaders(accessToken)
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "HARVEST_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const items = data.time_entries.map((entry) => this.timeEntryToImportedItem(entry));
+    const nextPageToken = data.next_page ? String(data.next_page) : null;
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken,
+        total: data.total_entries
+      }
+    };
+  }
+  async fetchTimeEntries(accessToken, limit) {
+    const items = [];
+    let page = 1;
+    while (items.length < limit) {
+      const url = new URL(`${API_BASE16}/time_entries`);
+      url.searchParams.set("per_page", String(Math.min(100, limit - items.length)));
+      url.searchParams.set("page", String(page));
+      const response = await globalThis.fetch(url.toString(), {
+        headers: this.getApiHeaders(accessToken)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      for (const entry of data.time_entries) {
+        if (items.length >= limit) break;
+        items.push(this.timeEntryToImportedItem(entry));
+      }
+      if (!data.next_page) break;
+      page = data.next_page;
+    }
+    return items;
+  }
+  async fetchProjects(accessToken, limit) {
+    const items = [];
+    let page = 1;
+    while (items.length < limit) {
+      const url = new URL(`${API_BASE16}/projects`);
+      url.searchParams.set("per_page", String(Math.min(100, limit - items.length)));
+      url.searchParams.set("page", String(page));
+      const response = await globalThis.fetch(url.toString(), {
+        headers: this.getApiHeaders(accessToken)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      for (const project of data.projects) {
+        if (items.length >= limit) break;
+        items.push(this.projectToImportedItem(project));
+      }
+      if (!data.next_page) break;
+      page = data.next_page;
+    }
+    return items;
+  }
+  timeEntryToImportedItem(entry) {
+    const timeStr = entry.started_time && entry.ended_time ? ` (${entry.started_time} - ${entry.ended_time})` : "";
+    return {
+      id: `hrv_time_${entry.id}`,
+      sourceType: "productivity",
+      title: `${entry.project.name}: ${entry.task.name} (${entry.hours}h)`,
+      content: `Time entry: ${entry.hours}h on "${entry.project.name}" \u2014 ${entry.task.name}.${entry.notes ? ` Notes: ${entry.notes}` : ""} Client: ${entry.client.name}. Date: ${entry.spent_date}.${timeStr}${entry.billable ? " Billable." : ""}`,
+      timestamp: entry.created_at,
+      metadata: {
+        provider: "harvest",
+        type: "time_entry",
+        entryId: entry.id,
+        hours: entry.hours,
+        roundedHours: entry.rounded_hours,
+        spentDate: entry.spent_date,
+        projectId: entry.project.id,
+        projectName: entry.project.name,
+        taskId: entry.task.id,
+        taskName: entry.task.name,
+        clientId: entry.client.id,
+        clientName: entry.client.name,
+        billable: entry.billable,
+        isBilled: entry.is_billed,
+        isRunning: entry.is_running,
+        notes: entry.notes,
+        startedTime: entry.started_time,
+        endedTime: entry.ended_time
+      }
+    };
+  }
+  projectToImportedItem(project) {
+    return {
+      id: `hrv_proj_${project.id}`,
+      sourceType: "productivity",
+      title: `Project: ${project.name}`,
+      content: `Harvest project: "${project.name}"${project.code ? ` (${project.code})` : ""}. Client: ${project.client.name}. ${project.is_active ? "Active" : "Inactive"}. ${project.is_billable ? "Billable" : "Non-billable"}.${project.notes ? ` Notes: ${project.notes}` : ""}`,
+      timestamp: project.updated_at,
+      metadata: {
+        provider: "harvest",
+        type: "project",
+        projectId: project.id,
+        projectName: project.name,
+        projectCode: project.code,
+        clientId: project.client.id,
+        clientName: project.client.name,
+        isActive: project.is_active,
+        isBillable: project.is_billable,
+        budget: project.budget,
+        budgetBy: project.budget_by,
+        startsOn: project.starts_on,
+        endsOn: project.ends_on,
+        createdAt: project.created_at
+      }
+    };
+  }
+  /**
+   * Ensure we have a Harvest account ID. Fetches from /users/me if needed.
+   */
+  async ensureAccountId(accessToken) {
+    if (this.accountId) return;
+    const response = await globalThis.fetch(`${API_BASE16}/users/me`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "User-Agent": "Semblance (semblance@veridiantools.dev)"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Harvest account info: HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.accounts.length > 0) {
+      this.accountId = String(data.accounts[0].id);
+    } else {
+      throw new Error("No Harvest accounts found for this user");
+    }
+  }
+  /**
+   * Get standard API headers including the required Harvest-Account-Id.
+   */
+  getApiHeaders(accessToken) {
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      "User-Agent": "Semblance (semblance@veridiantools.dev)",
+      Accept: "application/json"
+    };
+    if (this.accountId) {
+      headers["Harvest-Account-Id"] = this.accountId;
+    }
+    return headers;
+  }
+};
+
+// packages/gateway/services/slack/slack-adapter.ts
+var API_BASE17 = "https://slack.com/api";
+function getSlackOAuthConfig() {
+  return {
+    providerKey: "slack-oauth",
+    authUrl: "https://slack.com/oauth/v2/authorize",
+    tokenUrl: "https://slack.com/api/oauth.v2.access",
+    scopes: "channels:history,channels:read,users:read,users:read.email",
+    usePKCE: false,
+    clientId: oauthClients.slack.clientId,
+    clientSecret: oauthClients.slack.clientSecret
+  };
+}
+var SlackAdapter = class extends BaseOAuthAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getSlackOAuthConfig());
+  }
+  /**
+   * Override auth flow to handle Slack's non-standard token response.
+   * Slack returns { ok, access_token, team, authed_user, ... } instead of standard OAuth.
+   * We use the authed_user.access_token for user-scoped operations.
+   */
+  async performAuthFlow() {
+    const callbackServer = new OAuthCallbackServer();
+    const { callbackUrl, state } = await callbackServer.start();
+    const authUrl = new URL(this.config.authUrl);
+    authUrl.searchParams.set("client_id", this.config.clientId);
+    authUrl.searchParams.set("redirect_uri", callbackUrl);
+    authUrl.searchParams.set("scope", "");
+    authUrl.searchParams.set("user_scope", this.config.scopes);
+    authUrl.searchParams.set("state", state);
+    try {
+      const { code } = await callbackServer.waitForCallback();
+      const tokenResponse = await globalThis.fetch(this.config.tokenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: this.config.clientId,
+          client_secret: this.config.clientSecret ?? "",
+          redirect_uri: callbackUrl
+        })
+      });
+      const tokenData = await tokenResponse.json();
+      if (!tokenData.ok || !tokenData.authed_user?.access_token) {
+        return {
+          success: false,
+          error: {
+            code: "TOKEN_ERROR",
+            message: tokenData.error ?? "Slack token exchange failed"
+          }
+        };
+      }
+      const userToken = tokenData.authed_user.access_token;
+      const userInfo2 = await this.getUserInfo(userToken);
+      this.tokenManager.storeTokens({
+        provider: this.config.providerKey,
+        accessToken: userToken,
+        refreshToken: "",
+        // Slack tokens don't refresh (they're long-lived)
+        expiresAt: Date.now() + 10 * 365 * 24 * 60 * 60 * 1e3,
+        scopes: tokenData.authed_user.scope,
+        userEmail: userInfo2.email ?? userInfo2.displayName
+      });
+      return {
+        success: true,
+        data: {
+          provider: this.config.providerKey,
+          teamName: tokenData.team.name,
+          teamId: tokenData.team.id,
+          userId: tokenData.authed_user.id,
+          displayName: userInfo2.displayName
+        }
+      };
+    } catch (err) {
+      callbackServer.stop();
+      return {
+        success: false,
+        error: {
+          code: "AUTH_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  async getUserInfo(accessToken) {
+    const authResponse = await globalThis.fetch(`${API_BASE17}/auth.test`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!authResponse.ok) {
+      throw new Error(`Slack auth.test failed: HTTP ${authResponse.status}`);
+    }
+    const authData = await authResponse.json();
+    if (!authData.ok) {
+      throw new Error(`Slack auth.test error: ${authData.error}`);
+    }
+    const userResponse = await globalThis.fetch(`${API_BASE17}/users.info?user=${authData.user_id}`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!userResponse.ok) {
+      throw new Error(`Slack users.info failed: HTTP ${userResponse.status}`);
+    }
+    const userData = await userResponse.json();
+    if (!userData.ok || !userData.user) {
+      return { displayName: authData.user };
+    }
+    return {
+      email: userData.user.profile.email,
+      displayName: userData.user.profile.real_name ?? userData.user.real_name ?? userData.user.name
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `SlackAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "SLACK_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync channels and messages from Slack.
+   * Fetches conversations.list, then conversations.history for each channel.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const limit = payload["limit"] ?? 200;
+    const maxChannels = payload["maxChannels"] ?? 10;
+    const items = [];
+    const errors = [];
+    let channels = [];
+    try {
+      channels = await this.fetchConversations(accessToken, maxChannels);
+    } catch (err) {
+      errors.push({ message: `Conversations: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    const messagesPerChannel = Math.max(1, Math.floor(limit / Math.max(channels.length, 1)));
+    for (const channel of channels) {
+      if (items.length >= limit) break;
+      try {
+        const messageItems = await this.fetchChannelHistory(
+          accessToken,
+          channel,
+          Math.min(messagesPerChannel, limit - items.length)
+        );
+        items.push(...messageItems);
+      } catch (err) {
+        errors.push({ message: `Channel ${channel.name}: ${err instanceof Error ? err.message : String(err)}` });
+      }
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        channelsScanned: channels.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List channels/conversations with cursor-based pagination.
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const pageSize = payload["pageSize"] ?? 20;
+    const cursor = payload["pageToken"];
+    const url = new URL(`${API_BASE17}/conversations.list`);
+    url.searchParams.set("types", "public_channel,private_channel,im");
+    url.searchParams.set("limit", String(Math.min(pageSize, 1e3)));
+    url.searchParams.set("exclude_archived", "true");
+    if (cursor) {
+      url.searchParams.set("cursor", cursor);
+    }
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "SLACK_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    if (!data.ok) {
+      return {
+        success: false,
+        error: { code: "SLACK_API_ERROR", message: data.error ?? "Unknown Slack API error" }
+      };
+    }
+    const items = data.channels.map((channel) => this.channelToImportedItem(channel));
+    const nextCursor = data.response_metadata?.next_cursor || null;
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken: nextCursor && nextCursor.length > 0 ? nextCursor : null
+      }
+    };
+  }
+  async fetchConversations(accessToken, limit) {
+    const channels = [];
+    let cursor;
+    while (channels.length < limit) {
+      const url = new URL(`${API_BASE17}/conversations.list`);
+      url.searchParams.set("types", "public_channel,private_channel,im");
+      url.searchParams.set("limit", String(Math.min(200, limit - channels.length)));
+      url.searchParams.set("exclude_archived", "true");
+      if (cursor) {
+        url.searchParams.set("cursor", cursor);
+      }
+      const response = await globalThis.fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (!data.ok) {
+        throw new Error(`Slack API error: ${data.error}`);
+      }
+      const memberChannels = data.channels.filter((c) => c.is_member || c.is_im);
+      channels.push(...memberChannels);
+      const nextCursor = data.response_metadata?.next_cursor;
+      if (!nextCursor || nextCursor.length === 0) break;
+      cursor = nextCursor;
+    }
+    return channels.slice(0, limit);
+  }
+  async fetchChannelHistory(accessToken, channel, limit) {
+    const url = new URL(`${API_BASE17}/conversations.history`);
+    url.searchParams.set("channel", channel.id);
+    url.searchParams.set("limit", String(Math.min(limit, 200)));
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    if (!data.ok) {
+      throw new Error(`Slack API error: ${data.error}`);
+    }
+    return data.messages.filter((msg) => msg.type === "message" && !msg.subtype).map((msg) => this.messageToImportedItem(msg, channel));
+  }
+  messageToImportedItem(message, channel) {
+    const channelName = channel.name || (channel.is_im ? "DM" : "unknown");
+    const tsMs = parseFloat(message.ts) * 1e3;
+    return {
+      id: `slk_live_${channel.id}_${message.ts.replace(".", "")}`,
+      sourceType: "messaging",
+      title: `${channelName}: ${message.text.slice(0, 80)}${message.text.length > 80 ? "..." : ""}`,
+      content: message.text,
+      timestamp: new Date(tsMs).toISOString(),
+      metadata: {
+        provider: "slack-oauth",
+        type: "message",
+        channelId: channel.id,
+        channelName,
+        userId: message.user,
+        threadTs: message.thread_ts,
+        replyCount: message.reply_count,
+        isThread: !!message.thread_ts && message.thread_ts !== message.ts,
+        hasAttachments: (message.attachments?.length ?? 0) > 0
+      }
+    };
+  }
+  channelToImportedItem(channel) {
+    const channelType = channel.is_im ? "DM" : channel.is_mpim ? "Group DM" : channel.is_private ? "Private Channel" : "Channel";
+    return {
+      id: `slk_live_channel_${channel.id}`,
+      sourceType: "messaging",
+      title: `${channelType}: ${channel.name || "Direct Message"}`,
+      content: `Slack ${channelType.toLowerCase()}: "${channel.name || "DM"}"${channel.topic?.value ? `. Topic: ${channel.topic.value}` : ""}${channel.purpose?.value ? `. Purpose: ${channel.purpose.value}` : ""}. ${channel.num_members ?? 0} members.`,
+      timestamp: channel.updated ? new Date(channel.updated * 1e3).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      metadata: {
+        provider: "slack-oauth",
+        type: "channel",
+        channelId: channel.id,
+        channelName: channel.name,
+        channelType,
+        isPrivate: channel.is_private,
+        isArchived: channel.is_archived,
+        numMembers: channel.num_members
+      }
+    };
+  }
+};
+
+// packages/gateway/services/box/box-adapter.ts
+var API_BASE18 = "https://api.box.com/2.0";
+function getBoxOAuthConfig() {
+  return {
+    providerKey: "box",
+    authUrl: "https://account.box.com/api/oauth2/authorize",
+    tokenUrl: "https://api.box.com/oauth2/token",
+    scopes: "root_readwrite",
+    usePKCE: false,
+    clientId: oauthClients.box.clientId,
+    clientSecret: oauthClients.box.clientSecret,
+    revokeUrl: "https://api.box.com/oauth2/revoke"
+  };
+}
+var BoxAdapter = class extends BaseOAuthAdapter {
+  constructor(tokenManager) {
+    super(tokenManager, getBoxOAuthConfig());
+  }
+  async getUserInfo(accessToken) {
+    const response = await globalThis.fetch(`${API_BASE18}/users/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      throw new Error(`Box user info failed: HTTP ${response.status}`);
+    }
+    const user = await response.json();
+    return {
+      email: user.login,
+      displayName: user.name
+    };
+  }
+  async execute(action, payload) {
+    const p = payload;
+    try {
+      switch (action) {
+        // Connector actions
+        case "connector.auth":
+          return await this.performAuthFlow();
+        case "connector.auth_status":
+          return this.handleAuthStatus();
+        case "connector.disconnect":
+          return await this.performDisconnect();
+        case "connector.sync":
+          return await this.handleSync(p);
+        case "connector.list_items":
+          return await this.handleListItems(p);
+        // Cloud storage actions (read-only)
+        case "cloud.auth":
+          return await this.performAuthFlow();
+        case "cloud.auth_status":
+          return this.handleAuthStatus();
+        case "cloud.disconnect":
+          return await this.performDisconnect();
+        case "cloud.list_files":
+          return await this.handleListFiles(p);
+        case "cloud.file_metadata":
+          return await this.handleFileMetadata(p);
+        case "cloud.download_file":
+          return await this.handleDownloadFile(p);
+        case "cloud.check_changed":
+          return await this.handleCheckChanged(p);
+        default:
+          return {
+            success: false,
+            error: { code: "UNKNOWN_ACTION", message: `BoxAdapter does not handle action: ${action}` }
+          };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "BOX_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  /**
+   * Sync root folder items from Box.
+   */
+  async handleSync(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const limit = payload["limit"] ?? 200;
+    const folderId = payload["folderId"] ?? "0";
+    const items = [];
+    const errors = [];
+    try {
+      const fileItems = await this.fetchFolderItems(accessToken, folderId, limit);
+      items.push(...fileItems);
+    } catch (err) {
+      errors.push({ message: `Folder items: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return {
+      success: true,
+      data: {
+        items,
+        totalItems: items.length,
+        errors
+      }
+    };
+  }
+  /**
+   * List items in a folder with offset-based pagination.
+   */
+  async handleListItems(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const folderId = payload["folderId"] ?? "0";
+    const pageSize = payload["pageSize"] ?? 50;
+    const offset = payload["pageToken"] ? parseInt(payload["pageToken"], 10) : 0;
+    const url = new URL(`${API_BASE18}/folders/${folderId}/items`);
+    url.searchParams.set("limit", String(Math.min(pageSize, 1e3)));
+    url.searchParams.set("offset", String(offset));
+    url.searchParams.set("fields", "id,type,name,description,size,created_at,modified_at,content_created_at,content_modified_at,parent,path_collection,extension,sha1");
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "BOX_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const items = data.entries.map((item) => this.boxItemToImportedItem(item));
+    const nextOffset = offset + data.entries.length;
+    const nextPageToken = nextOffset < data.total_count ? String(nextOffset) : null;
+    return {
+      success: true,
+      data: {
+        items,
+        nextPageToken,
+        total: data.total_count
+      }
+    };
+  }
+  /**
+   * List files in a Box folder (cloud.list_files action).
+   */
+  async handleListFiles(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const folderId = payload["folderId"] ?? "0";
+    const pageSize = payload["pageSize"] ?? 100;
+    const pageToken = payload["pageToken"];
+    const offset = pageToken ? parseInt(pageToken, 10) : 0;
+    const url = new URL(`${API_BASE18}/folders/${folderId}/items`);
+    url.searchParams.set("limit", String(Math.min(pageSize, 1e3)));
+    url.searchParams.set("offset", String(offset));
+    url.searchParams.set("fields", "id,type,name,description,size,created_at,modified_at,content_created_at,content_modified_at,parent,path_collection,extension,sha1,shared_link");
+    const response = await globalThis.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "BOX_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const files = data.entries.map((item) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      sizeBytes: item.size,
+      modifiedTime: item.modified_at,
+      createdTime: item.created_at,
+      parentId: item.parent?.id ?? null,
+      sha1: item.sha1 ?? null,
+      isFolder: item.type === "folder",
+      extension: item.extension ?? null
+    }));
+    const nextOffset = offset + data.entries.length;
+    const nextPageTokenValue = nextOffset < data.total_count ? String(nextOffset) : null;
+    return {
+      success: true,
+      data: { files, nextPageToken: nextPageTokenValue, totalFiles: data.total_count }
+    };
+  }
+  /**
+   * Get file metadata (cloud.file_metadata action).
+   */
+  async handleFileMetadata(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const fileId = payload["fileId"];
+    if (!fileId) {
+      return {
+        success: false,
+        error: { code: "MISSING_FILE_ID", message: "payload.fileId is required" }
+      };
+    }
+    const url = `${API_BASE18}/files/${fileId}?fields=id,type,name,description,size,created_at,modified_at,content_created_at,content_modified_at,parent,path_collection,extension,sha1,shared_link`;
+    const response = await globalThis.fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "BOX_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const item = await response.json();
+    return {
+      success: true,
+      data: {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        sizeBytes: item.size,
+        modifiedTime: item.modified_at,
+        createdTime: item.created_at,
+        parentId: item.parent?.id ?? null,
+        sha1: item.sha1 ?? null,
+        isFolder: item.type === "folder",
+        extension: item.extension ?? null,
+        description: item.description,
+        sharedLink: item.shared_link?.url ?? null,
+        path: item.path_collection?.entries.map((e) => e.name).join("/") ?? null
+      }
+    };
+  }
+  /**
+   * Download a file from Box (cloud.download_file action).
+   */
+  async handleDownloadFile(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const fileId = payload["fileId"];
+    const localPath = payload["localPath"];
+    if (!fileId || !localPath) {
+      return {
+        success: false,
+        error: { code: "MISSING_PARAMS", message: "payload.fileId and payload.localPath are required" }
+      };
+    }
+    const response = await globalThis.fetch(`${API_BASE18}/files/${fileId}/content`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "DOWNLOAD_FAILED", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const fs4 = await import("node:fs");
+    const path2 = await import("node:path");
+    const dir = path2.dirname(localPath);
+    if (!fs4.existsSync(dir)) {
+      fs4.mkdirSync(dir, { recursive: true });
+    }
+    fs4.writeFileSync(localPath, buffer);
+    return {
+      success: true,
+      data: {
+        localPath,
+        sizeBytes: buffer.length
+      }
+    };
+  }
+  /**
+   * Check if a file has been modified since a given timestamp (cloud.check_changed action).
+   */
+  async handleCheckChanged(payload) {
+    const accessToken = await this.getValidAccessToken();
+    const fileId = payload["fileId"];
+    const sinceTimestamp = payload["sinceTimestamp"];
+    if (!fileId || !sinceTimestamp) {
+      return {
+        success: false,
+        error: { code: "MISSING_PARAMS", message: "payload.fileId and payload.sinceTimestamp are required" }
+      };
+    }
+    const response = await globalThis.fetch(`${API_BASE18}/files/${fileId}?fields=modified_at`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: { code: "BOX_API_ERROR", message: `HTTP ${response.status}: ${response.statusText}` }
+      };
+    }
+    const data = await response.json();
+    const remoteModified = new Date(data.modified_at).getTime();
+    const sinceMs = new Date(sinceTimestamp).getTime();
+    return {
+      success: true,
+      data: { changed: remoteModified > sinceMs }
+    };
+  }
+  async fetchFolderItems(accessToken, folderId, limit) {
+    const items = [];
+    let offset = 0;
+    while (items.length < limit) {
+      const url = new URL(`${API_BASE18}/folders/${folderId}/items`);
+      url.searchParams.set("limit", String(Math.min(1e3, limit - items.length)));
+      url.searchParams.set("offset", String(offset));
+      url.searchParams.set("fields", "id,type,name,description,size,created_at,modified_at,content_created_at,content_modified_at,parent,path_collection,extension,sha1");
+      const response = await globalThis.fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.entries.length === 0) break;
+      for (const entry of data.entries) {
+        if (items.length >= limit) break;
+        items.push(this.boxItemToImportedItem(entry));
+      }
+      offset += data.entries.length;
+      if (offset >= data.total_count) break;
+    }
+    return items;
+  }
+  boxItemToImportedItem(item) {
+    const pathStr = item.path_collection ? item.path_collection.entries.map((e) => e.name).join("/") : "";
+    return {
+      id: `box_${item.type}_${item.id}`,
+      sourceType: "productivity",
+      title: item.name,
+      content: `Box ${item.type}: "${item.name}"${pathStr ? ` at /${pathStr}` : ""}.${item.description ? ` ${item.description}` : ""} Size: ${item.size} bytes. Modified: ${item.modified_at}.`,
+      timestamp: item.modified_at,
+      metadata: {
+        provider: "box",
+        type: item.type,
+        itemId: item.id,
+        name: item.name,
+        size: item.size,
+        extension: item.extension,
+        sha1: item.sha1,
+        parentId: item.parent?.id,
+        parentName: item.parent?.name,
+        path: pathStr,
+        isFolder: item.type === "folder",
+        createdAt: item.created_at,
+        contentCreatedAt: item.content_created_at,
+        contentModifiedAt: item.content_modified_at
+      }
+    };
+  }
+};
+
+// packages/gateway/services/connector-registration.ts
+function registerAllConnectors(tokenManager) {
+  const router = new ConnectorRouter();
+  router.registerAdapter("spotify", new SpotifyAdapter(tokenManager));
+  router.registerAdapter("github", new GitHubAdapter(tokenManager));
+  router.registerAdapter("readwise", new ReadwiseAdapter(tokenManager));
+  router.registerAdapter("notion", new NotionAdapter(tokenManager));
+  router.registerAdapter("dropbox", new DropboxAdapter(tokenManager));
+  router.registerAdapter("onedrive", new OneDriveAdapter(tokenManager));
+  router.registerAdapter("oura", new OuraAdapter(tokenManager));
+  router.registerAdapter("whoop", new WhoopAdapter(tokenManager));
+  router.registerAdapter("fitbit", new FitbitAdapter(tokenManager));
+  router.registerAdapter("strava", new StravaAdapter(tokenManager));
+  router.registerAdapter("garmin", new GarminAdapter(tokenManager));
+  router.registerAdapter("toggl", new TogglAdapter(tokenManager));
+  router.registerAdapter("rescuetime", new RescueTimeAdapter(tokenManager));
+  router.registerAdapter("pocket", new PocketAdapter(tokenManager));
+  router.registerAdapter("instapaper", new InstapaperAdapter(tokenManager));
+  router.registerAdapter("todoist", new TodoistAdapter(tokenManager));
+  const lastfmKey = process.env["LASTFM_API_KEY"];
+  const lastfmSecret = process.env["LASTFM_API_SECRET"];
+  if (lastfmKey && lastfmSecret) {
+    router.registerAdapter("lastfm", new LastFmAdapter(tokenManager, lastfmKey, lastfmSecret));
+  }
+  const letterboxdKey = process.env["LETTERBOXD_API_KEY"];
+  const letterboxdSecret = process.env["LETTERBOXD_API_SECRET"];
+  if (letterboxdKey && letterboxdSecret) {
+    router.registerAdapter("letterboxd", new LetterboxdAdapter(tokenManager, letterboxdKey, letterboxdSecret));
+  }
+  router.registerAdapter("mendeley", new MendeleyAdapter(tokenManager));
+  router.registerAdapter("harvest", new HarvestAdapter(tokenManager));
+  router.registerAdapter("slack-oauth", new SlackAdapter(tokenManager));
+  router.registerAdapter("box", new BoxAdapter(tokenManager));
+  return router;
+}
+
 // packages/core/agent/intent-drift-analyzer.ts
 var IntentDriftAnalyzer = class {
   db;
@@ -258577,10 +265665,10 @@ var WeatherService = class {
   webFallback;
   locationStore;
   cache;
-  constructor(platform4, ipcClient, locationStore) {
+  constructor(platform4, ipcClient, locationStore2) {
     this.platform = platform4;
     this.webFallback = new WeatherWebFallback(ipcClient);
-    this.locationStore = locationStore;
+    this.locationStore = locationStore2;
     this.cache = new WeatherCache();
   }
   /**
@@ -258649,6 +265737,147 @@ var WeatherService = class {
       }
     }
     return closest;
+  }
+};
+
+// packages/core/location/location-privacy.ts
+function reduceCoordinatePrecision(coord, decimalPlaces = 3) {
+  const factor = Math.pow(10, decimalPlaces);
+  return {
+    latitude: Math.round(coord.latitude * factor) / factor,
+    longitude: Math.round(coord.longitude * factor) / factor
+  };
+}
+function isValidCoordinate(coord) {
+  if (typeof coord.latitude !== "number" || typeof coord.longitude !== "number") {
+    return false;
+  }
+  if (Number.isNaN(coord.latitude) || Number.isNaN(coord.longitude)) {
+    return false;
+  }
+  if (!Number.isFinite(coord.latitude) || !Number.isFinite(coord.longitude)) {
+    return false;
+  }
+  if (coord.latitude < -90 || coord.latitude > 90) {
+    return false;
+  }
+  if (coord.longitude < -180 || coord.longitude > 180) {
+    return false;
+  }
+  return true;
+}
+function distanceMeters(a, b) {
+  const R = 6371e3;
+  const toRad = (deg) => deg * Math.PI / 180;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLon = Math.sin(dLon / 2);
+  const aVal = sinDLat * sinDLat + Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * sinDLon * sinDLon;
+  const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
+  return R * c;
+}
+
+// packages/core/location/location-store.ts
+var CREATE_TABLES11 = `
+  CREATE TABLE IF NOT EXISTS location_history (
+    id TEXT PRIMARY KEY,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    accuracy_m REAL NOT NULL,
+    timestamp TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_location_timestamp ON location_history(timestamp);
+`;
+function rowToStoredLocation(row) {
+  return {
+    id: row.id,
+    coordinate: { latitude: row.latitude, longitude: row.longitude },
+    accuracyMeters: row.accuracy_m,
+    timestamp: row.timestamp,
+    createdAt: row.created_at
+  };
+}
+var LocationStore = class {
+  db;
+  constructor(db) {
+    this.db = db;
+    this.db.pragma("journal_mode = WAL");
+    this.db.exec(CREATE_TABLES11);
+  }
+  /**
+   * Record a device location. Reduces precision before storage.
+   * Deduplicates: skips if < 100m from last reading within 5 minutes.
+   */
+  recordLocation(location) {
+    if (!isValidCoordinate(location.coordinate)) return null;
+    const reduced = reduceCoordinatePrecision(location.coordinate, 3);
+    const last2 = this.getLastKnownLocation();
+    if (last2) {
+      const dist = distanceMeters(reduced, last2.coordinate);
+      const timeDiffMs = new Date(location.timestamp).getTime() - new Date(last2.timestamp).getTime();
+      const fiveMinMs = 5 * 60 * 1e3;
+      if (dist < 100 && timeDiffMs < fiveMinMs) {
+        return null;
+      }
+    }
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const id = `loc_${nanoid()}`;
+    this.db.prepare(`
+      INSERT INTO location_history (id, latitude, longitude, accuracy_m, timestamp, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(id, reduced.latitude, reduced.longitude, location.accuracyMeters, location.timestamp, now);
+    return {
+      id,
+      coordinate: reduced,
+      accuracyMeters: location.accuracyMeters,
+      timestamp: location.timestamp,
+      createdAt: now
+    };
+  }
+  /**
+   * Retrieve recent locations from the last N hours.
+   */
+  getRecentLocations(hours) {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1e3).toISOString();
+    const rows = this.db.prepare(
+      "SELECT * FROM location_history WHERE timestamp >= ? ORDER BY timestamp DESC"
+    ).all(since);
+    return rows.map(rowToStoredLocation);
+  }
+  /**
+   * Get the most recent stored location.
+   */
+  getLastKnownLocation() {
+    const row = this.db.prepare(
+      "SELECT * FROM location_history ORDER BY timestamp DESC LIMIT 1"
+    ).get();
+    return row ? rowToStoredLocation(row) : null;
+  }
+  /**
+   * Purge locations older than the given number of days.
+   */
+  purgeOldLocations(daysToKeep) {
+    const cutoff = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1e3).toISOString();
+    const result2 = this.db.prepare(
+      "DELETE FROM location_history WHERE timestamp < ?"
+    ).run(cutoff);
+    return result2.changes;
+  }
+  /**
+   * Delete all location history — nuclear wipe.
+   */
+  clearAllLocations() {
+    this.db.prepare("DELETE FROM location_history").run();
+  }
+  /**
+   * Count total location entries.
+   */
+  count() {
+    const row = this.db.prepare("SELECT COUNT(*) as count FROM location_history").get();
+    return row.count;
   }
 };
 
@@ -259172,6 +266401,7 @@ var GraphVisualizationProvider = class {
     this.addAttendeeEdges(edges, edgeKeys, nodeIds);
     this.addEmailThreadEdges(edges, edgeKeys, nodeIds);
     this.addRelationshipEdges(edges, edgeKeys, nodeIds);
+    this.addDirectoryFileEdges(edges, edgeKeys, nodeIds);
     const relGraph = this.relationshipAnalyzer?.buildRelationshipGraph();
     for (const cluster of relGraph?.clusters ?? []) {
       const clusterNodeIds = cluster.contactIds.map((cid) => `person_${cid}`).filter((nid) => nodeIds.has(nid));
@@ -259467,67 +266697,74 @@ var GraphVisualizationProvider = class {
   }
   // ─── Private: Node Builders ────────────────────────────────────────────────
   addPersonNodes(nodes, nodeIds) {
-    if (!this.contactStore) return;
-    const contacts = this.contactStore.listContacts({ limit: 500 });
-    for (const contact of contacts) {
-      const id = `person_${contact.id}`;
-      if (nodeIds.has(id)) continue;
-      nodeIds.add(id);
-      const domain = this.classifyPersonDomain(contact.organization ?? "", contact.emails);
-      nodes.push({
-        id,
-        label: contact.displayName,
-        type: "person",
-        size: Math.max(1, contact.interactionCount),
-        createdAt: contact.createdAt,
-        domain,
-        metadata: {
-          contactId: contact.id,
-          organization: contact.organization,
-          relationshipType: contact.relationshipType,
-          activityScore: Math.min(1, contact.interactionCount / 50)
-        }
-      });
+    if (this.contactStore) {
+      const contacts = this.contactStore.listContacts({ limit: 500 });
+      for (const contact of contacts) {
+        const id = `person_${contact.id}`;
+        if (nodeIds.has(id)) continue;
+        nodeIds.add(id);
+        const domain = this.classifyPersonDomain(contact.organization ?? "", contact.emails);
+        nodes.push({
+          id,
+          label: contact.displayName,
+          type: "person",
+          size: Math.max(1, contact.interactionCount),
+          createdAt: contact.createdAt,
+          domain,
+          metadata: {
+            contactId: contact.id,
+            organization: contact.organization,
+            relationshipType: contact.relationshipType,
+            activityScore: Math.min(1, contact.interactionCount / 50)
+          }
+        });
+      }
     }
-    const entityPersons = this.db.prepare(
-      "SELECT * FROM entities WHERE type = 'person' LIMIT 200"
-    ).all();
-    for (const entity of entityPersons) {
-      const id = `person_entity_${entity.id}`;
-      if (nodeIds.has(id)) continue;
-      nodeIds.add(id);
-      nodes.push({
-        id,
-        label: entity.name,
-        type: "person",
-        size: 1,
-        createdAt: entity.first_seen,
-        domain: "general",
-        metadata: { entityId: entity.id }
-      });
+    try {
+      const entityPersons = this.db.prepare(
+        "SELECT * FROM entities WHERE type = 'person' LIMIT 200"
+      ).all();
+      for (const entity of entityPersons) {
+        const id = `person_entity_${entity.id}`;
+        if (nodeIds.has(id)) continue;
+        nodeIds.add(id);
+        nodes.push({
+          id,
+          label: entity.name,
+          type: "person",
+          size: 1,
+          createdAt: entity.first_seen,
+          domain: "general",
+          metadata: { entityId: entity.id }
+        });
+      }
+    } catch {
     }
   }
   addTopicNodes(nodes, nodeIds) {
-    const topics = this.db.prepare(
-      "SELECT e.id, e.name, e.first_seen, COUNT(m.id) as mention_count FROM entities e LEFT JOIN entity_mentions m ON e.id = m.entity_id WHERE e.type = 'topic' GROUP BY e.id ORDER BY mention_count DESC LIMIT 100"
-    ).all();
-    for (const topic of topics) {
-      const id = `topic_${topic.id}`;
-      if (nodeIds.has(id)) continue;
-      nodeIds.add(id);
-      nodes.push({
-        id,
-        label: topic.name,
-        type: "topic",
-        size: Math.max(1, topic.mention_count),
-        createdAt: topic.first_seen,
-        domain: "general",
-        metadata: {
-          entityId: topic.id,
-          mentionCount: topic.mention_count,
-          activityScore: Math.min(1, topic.mention_count / 20)
-        }
-      });
+    try {
+      const topics = this.db.prepare(
+        "SELECT e.id, e.name, e.first_seen, COUNT(m.id) as mention_count FROM entities e LEFT JOIN entity_mentions m ON e.id = m.entity_id WHERE e.type = 'topic' GROUP BY e.id ORDER BY mention_count DESC LIMIT 100"
+      ).all();
+      for (const topic of topics) {
+        const id = `topic_${topic.id}`;
+        if (nodeIds.has(id)) continue;
+        nodeIds.add(id);
+        nodes.push({
+          id,
+          label: topic.name,
+          type: "topic",
+          size: Math.max(1, topic.mention_count),
+          createdAt: topic.first_seen,
+          domain: "general",
+          metadata: {
+            entityId: topic.id,
+            mentionCount: topic.mention_count,
+            activityScore: Math.min(1, topic.mention_count / 20)
+          }
+        });
+      }
+    } catch {
     }
   }
   addDocumentNodes(nodes, nodeIds) {
@@ -259562,6 +266799,12 @@ var GraphVisualizationProvider = class {
         } else if (doc.source === "local_file") {
           const parentDir = directoryPaths.find((dirPath) => doc.source_path?.startsWith(dirPath));
           if (parentDir) {
+            this.pushDocumentNode(nodes, nodeIds, doc);
+            const dirDoc = directoryDocs.find((d) => d.source_path === parentDir);
+            if (dirDoc) {
+              const dirNodeId = `directory_${dirDoc.id}`;
+              const fileNodeId = `document_${doc.id}`;
+            }
             continue;
           }
           this.pushDocumentNode(nodes, nodeIds, doc);
@@ -259569,7 +266812,8 @@ var GraphVisualizationProvider = class {
           this.pushDocumentNode(nodes, nodeIds, doc);
         }
       }
-    } catch {
+    } catch (err) {
+      console.error("[GraphVisualizationProvider] addDocumentNodes failed:", err);
     }
   }
   pushDocumentNode(nodes, nodeIds, doc) {
@@ -259589,6 +266833,36 @@ var GraphVisualizationProvider = class {
         activityScore: Math.min(1, doc.mention_count / 10)
       }
     });
+  }
+  addDirectoryFileEdges(edges, edgeKeys, nodeIds) {
+    try {
+      const dirs = this.db.prepare(
+        "SELECT id, source_path FROM documents WHERE source = 'directory' AND source_path IS NOT NULL"
+      ).all();
+      for (const dir of dirs) {
+        const dirNodeId = `directory_${dir.id}`;
+        if (!nodeIds.has(dirNodeId)) continue;
+        const children = this.db.prepare(
+          "SELECT id FROM documents WHERE source = 'local_file' AND source_path LIKE ? || '%'"
+        ).all(dir.source_path);
+        for (const child of children) {
+          const fileNodeId = `document_${child.id}`;
+          if (!nodeIds.has(fileNodeId)) continue;
+          const edgeKey = `${dirNodeId}\u2192${fileNodeId}`;
+          if (edgeKeys.has(edgeKey)) continue;
+          edgeKeys.add(edgeKey);
+          edges.push({
+            id: `edge_dir_file_${dir.id}_${child.id}`,
+            sourceId: dirNodeId,
+            targetId: fileNodeId,
+            label: "contains",
+            weight: 0.5
+          });
+        }
+      }
+    } catch (err) {
+      console.error("[GraphVisualizationProvider] addDirectoryFileEdges failed:", err);
+    }
   }
   addEventNodes(nodes, nodeIds, daysBack, daysForward) {
     const pastCutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1e3).toISOString();
@@ -259691,23 +266965,26 @@ var GraphVisualizationProvider = class {
   }
   // ─── Private: Edge Builders ────────────────────────────────────────────────
   addMentionEdges(edges, edgeKeys, nodeIds) {
-    const mentions = this.db.prepare(
-      "SELECT entity_id, document_id, COUNT(*) as count FROM entity_mentions GROUP BY entity_id, document_id"
-    ).all();
-    for (const m of mentions) {
-      const entityNodeId = this.findEntityNodeId(m.entity_id, nodeIds);
-      const docNodeId = `document_${m.document_id}`;
-      if (!entityNodeId || !nodeIds.has(docNodeId)) continue;
-      const key = [entityNodeId, docNodeId].sort().join("::");
-      if (edgeKeys.has(key)) continue;
-      edgeKeys.add(key);
-      edges.push({
-        id: `edge_mention_${m.entity_id}_${m.document_id}`,
-        sourceId: entityNodeId,
-        targetId: docNodeId,
-        weight: Math.min(1, m.count / 10),
-        label: "mentioned_in"
-      });
+    try {
+      const mentions = this.db.prepare(
+        "SELECT entity_id, document_id, COUNT(*) as count FROM entity_mentions GROUP BY entity_id, document_id"
+      ).all();
+      for (const m of mentions) {
+        const entityNodeId = this.findEntityNodeId(m.entity_id, nodeIds);
+        const docNodeId = `document_${m.document_id}`;
+        if (!entityNodeId || !nodeIds.has(docNodeId)) continue;
+        const key = [entityNodeId, docNodeId].sort().join("::");
+        if (edgeKeys.has(key)) continue;
+        edgeKeys.add(key);
+        edges.push({
+          id: `edge_mention_${m.entity_id}_${m.document_id}`,
+          sourceId: entityNodeId,
+          targetId: docNodeId,
+          weight: Math.min(1, m.count / 10),
+          label: "mentioned_in"
+        });
+      }
+    } catch {
     }
   }
   addAttendeeEdges(edges, edgeKeys, nodeIds) {
@@ -259962,6 +267239,7 @@ var calendarAdapter = null;
 var indexingInProgress = false;
 var currentConversationId = null;
 var dataDir = "";
+var documentsDb = null;
 var emailIndexer = null;
 var calendarIndexer = null;
 var emailCategorizer = null;
@@ -260001,6 +267279,7 @@ var hwKeyProvider = null;
 var morningBriefGenerator = null;
 var dailyDigestGenerator = null;
 var weatherService = null;
+var locationStore = null;
 var styleProfileStore = null;
 var darkPatternDetector = null;
 var documentContextManager = null;
@@ -260009,6 +267288,7 @@ var cloudStorageClient = null;
 var graphVisualizationProvider = null;
 var activeDownloads = /* @__PURE__ */ new Map();
 var oauthTokenManager = null;
+var connectorRouter = null;
 var importHistory = [];
 var nativeRuntimeBridge = {
   async generate(params) {
@@ -260140,9 +267420,42 @@ function getSystemPrompt() {
   const aiName = getPref("ai_name") ?? "Semblance";
   const userName = getPref("user_name");
   const userRef = userName ? `${userName}'s` : "the user's";
+  let servicesSection = "";
+  try {
+    const tokenMgr = ensureOAuthTokenManager();
+    const connectorRegistry = createDefaultConnectorRegistry();
+    const connectedServices = [];
+    for (const connector of connectorRegistry.listAll()) {
+      const oauthCfg = getOAuthConfigForConnector(connector.id);
+      if (oauthCfg) {
+        const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
+        if (accessToken) {
+          connectedServices.push(connector.displayName);
+        }
+      }
+    }
+    if (connectedServices.length > 0) {
+      servicesSection = `
+
+Connected services: ${connectedServices.join(", ")}. You have access to data from these services through the user's local knowledge base.`;
+    }
+  } catch {
+  }
+  let knowledgeSection = "";
+  try {
+    if (documentsDb) {
+      const docCount = documentsDb.prepare("SELECT COUNT(*) as count FROM documents").get()?.count ?? 0;
+      if (docCount > 0) {
+        knowledgeSection = `
+
+The user's knowledge base contains ${docCount} indexed documents. Search it to answer questions about their files, emails, and connected data.`;
+      }
+    }
+  } catch {
+  }
   return `You are ${aiName}, ${userRef} personal AI. You run entirely on their device \u2014 their data never leaves their machine.
 
-You have access to their local files and documents through secure search. You can search their knowledge base and answer questions about their documents.
+You have access to their local files and documents through secure search. You can search their knowledge base and answer questions about their documents.${servicesSection}${knowledgeSection}
 
 Core principles:
 - You are helpful, warm, proactive, and concise
@@ -260194,6 +267507,13 @@ async function handleInitialize() {
   }
   const knowledgeDir = (0, import_node_path8.join)(dataDir, "knowledge");
   if (!(0, import_node_fs8.existsSync)(knowledgeDir)) (0, import_node_fs8.mkdirSync)(knowledgeDir, { recursive: true });
+  try {
+    documentsDb = new import_better_sqlite33.default((0, import_node_path8.join)(knowledgeDir, "documents.db"));
+    documentsDb.pragma("journal_mode = WAL");
+    console.error("[sidecar] Documents DB ready (knowledge/documents.db)");
+  } catch (docDbErr) {
+    console.error("[sidecar] Failed to open documents.db:", docDbErr);
+  }
   void Promise.race([
     sendCallback("native_status", {}),
     new Promise((resolve5) => setTimeout(() => resolve5(null), 5e3))
@@ -260254,6 +267574,36 @@ async function handleInitialize() {
   } catch {
     console.error("[sidecar] AlterEgoGuardrails wiring skipped \u2014 orchestrator unavailable");
   }
+  try {
+    if (core?.agent?.updatePromptConfig) {
+      const aiName = getPref("ai_name") ?? "Semblance";
+      const userName2 = getPref("user_name") ?? void 0;
+      const connectedServices = [];
+      try {
+        const tokenMgr = ensureOAuthTokenManager();
+        const connectorRegistry = createDefaultConnectorRegistry();
+        for (const connector of connectorRegistry.listAll()) {
+          const oauthCfg = getOAuthConfigForConnector(connector.id);
+          if (oauthCfg) {
+            const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
+            if (accessToken) connectedServices.push(connector.displayName);
+          }
+        }
+      } catch {
+      }
+      let indexedDocCount = 0;
+      try {
+        if (documentsDb) {
+          indexedDocCount = documentsDb.prepare("SELECT COUNT(*) as count FROM documents").get()?.count ?? 0;
+        }
+      } catch {
+      }
+      core.agent.updatePromptConfig({ aiName, userName: userName2, connectedServices, indexedDocCount });
+      console.error(`[sidecar] Prompt config wired: name=${aiName}, services=${connectedServices.length}, docs=${indexedDocCount}`);
+    }
+  } catch (err) {
+    console.error("[sidecar] Prompt config wiring failed:", err);
+  }
   function cleanupStaleBatchItems() {
     if (!prefsDb) return;
     try {
@@ -260278,6 +267628,21 @@ async function handleInitialize() {
   credentialStore = new CredentialStore(credDb);
   emailAdapter = new EmailAdapter(credentialStore);
   calendarAdapter = new CalendarAdapter(credentialStore);
+  try {
+    const registry = gateway.getServiceRegistry();
+    registry.register("email.fetch", emailAdapter);
+    registry.register("email.send", emailAdapter);
+    registry.register("email.draft", emailAdapter);
+    registry.register("email.archive", emailAdapter);
+    registry.register("email.move", emailAdapter);
+    registry.register("email.markRead", emailAdapter);
+    registry.register("calendar.fetch", calendarAdapter);
+    registry.register("calendar.create", calendarAdapter);
+    registry.register("calendar.update", calendarAdapter);
+    console.error("[sidecar] Email + Calendar adapters registered with Gateway");
+  } catch (err) {
+    console.error("[sidecar] Failed to register email/calendar adapters:", err);
+  }
   credentialStore.setConnectionTester(async (credential, password) => {
     try {
       if (credential.protocol === "imap") {
@@ -260372,25 +267737,29 @@ async function handleInitialize() {
   };
 }
 async function handleSendMessage(id, params) {
-  console.error("[sidecar] handleSendMessage \u2014 core initialized:", !!core, "native check starting...");
-  let useNative = false;
-  try {
-    const nativeStatus = await Promise.race([
-      sendCallback("native_status", {}),
-      new Promise((resolve5) => setTimeout(() => resolve5(null), 5e3))
-    ]);
-    console.error("[sidecar] handleSendMessage \u2014 native status:", JSON.stringify(nativeStatus));
-    if (nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready") {
-      useNative = true;
-    }
-  } catch (nativeErr) {
-    console.error("[sidecar] handleSendMessage \u2014 native check failed:", nativeErr);
+  console.error("[sidecar] handleSendMessage \u2014 core initialized:", !!core);
+  if (!core) {
+    respondError(id, "Semblance core not initialized. Please wait for startup to complete.");
+    return;
   }
-  console.error("[sidecar] handleSendMessage \u2014 useNative:", useNative);
-  if (!useNative) {
-    const ollamaAvailable = core ? await core.llm.isAvailable() : false;
-    console.error("[sidecar] handleSendMessage \u2014 ollama available:", ollamaAvailable);
-    if (!ollamaAvailable) {
+  let hasOrchestrator = false;
+  try {
+    hasOrchestrator = !!core.agent;
+  } catch {
+  }
+  console.error("[sidecar] handleSendMessage \u2014 orchestrator available:", hasOrchestrator);
+  const llmAvailable = await core.llm.isAvailable().catch(() => false);
+  if (!llmAvailable) {
+    let nativeReady = false;
+    try {
+      const nativeStatus = await Promise.race([
+        sendCallback("native_status", {}),
+        new Promise((resolve5) => setTimeout(() => resolve5(null), 5e3))
+      ]);
+      nativeReady = !!nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready";
+    } catch {
+    }
+    if (!nativeReady) {
       respondError(id, "No AI model available. The model may still be loading \u2014 try again in a moment.");
       return;
     }
@@ -260411,47 +267780,79 @@ async function handleSendMessage(id, params) {
   }
   respond(id, { responseId, conversationId: convId });
   try {
-    let context = [];
-    try {
-      if (core) {
-        context = await core.knowledge.search(params.message, { limit: 5 });
-      }
-    } catch {
-    }
-    let contextStr = "";
-    if (context.length > 0) {
-      contextStr = "\n\nRelevant documents from your files:\n" + context.map(
-        (r) => `[${r.document.title}] (score: ${r.score.toFixed(2)}): ${r.chunk.content.substring(0, 500)}`
-      ).join("\n\n");
-    }
     let fullResponse = "";
-    if (useNative) {
-      const prompt = params.message;
-      const systemPrompt = getSystemPrompt() + contextStr;
-      try {
-        console.error("[sidecar] About to call native_generate, prompt length:", prompt.length);
-        const result2 = await sendCallback("native_generate", {
-          prompt,
-          system_prompt: systemPrompt,
-          max_tokens: 2048,
-          temperature: 0.7,
-          stop: ["<|im_end|>", "<|endoftext|>"]
-        });
-        console.error("[sidecar] native_generate returned:", JSON.stringify(result2).slice(0, 200));
-        fullResponse = result2.text;
-        const chunkSize = 12;
-        for (let i = 0; i < fullResponse.length; i += chunkSize) {
-          emit("chat-token", fullResponse.substring(i, i + chunkSize));
+    let actions = [];
+    const MAX_ATTACHMENT_READ_BYTES = 512 * 1024;
+    let augmentedMessage = params.message;
+    if (params.attachments && params.attachments.length > 0) {
+      const attachmentSections = [];
+      for (const att of params.attachments) {
+        try {
+          let fileSize = 0;
+          try {
+            const { statSync: statSync2 } = await import("node:fs");
+            fileSize = statSync2(att.filePath).size;
+          } catch {
+          }
+          const isText = att.mimeType.startsWith("text/") || /\.(txt|md|csv|json|xml|html|css|js|ts|tsx|py|rs|toml|yaml|yml|log|ini|cfg|sh|bat|sql|env)$/i.test(att.fileName);
+          if (isText && fileSize <= MAX_ATTACHMENT_READ_BYTES) {
+            const content = (0, import_node_fs8.readFileSync)(att.filePath, "utf-8");
+            const truncated = content.length > 8e3 ? content.substring(0, 8e3) + "\n...(truncated)" : content;
+            attachmentSections.push(`[Attached file: ${att.fileName}]
+${truncated}`);
+          } else if (isText && fileSize > MAX_ATTACHMENT_READ_BYTES) {
+            const { openSync, readSync, closeSync } = await import("node:fs");
+            const fd = openSync(att.filePath, "r");
+            const buf = Buffer.alloc(8192);
+            const bytesRead = readSync(fd, buf, 0, 8192, 0);
+            closeSync(fd);
+            const preview = buf.toString("utf-8", 0, bytesRead);
+            const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
+            attachmentSections.push(`[Attached file: ${att.fileName} (${sizeMB}MB \u2014 showing first 8KB)]
+${preview}
+...(truncated, full file is ${sizeMB}MB)`);
+          } else {
+            attachmentSections.push(`[Attached file: ${att.fileName} (${att.mimeType}, binary \u2014 content not shown)]`);
+          }
+        } catch (readErr) {
+          console.error(`[sidecar] Failed to read attachment ${att.fileName}:`, readErr);
+          attachmentSections.push(`[Attached file: ${att.fileName} \u2014 could not read]`);
         }
-      } catch (nativeErr) {
-        console.error("[sidecar] NativeRuntime generate failed:", nativeErr, "Full error:", JSON.stringify(nativeErr));
-        throw nativeErr;
       }
-    } else if (core) {
+      if (attachmentSections.length > 0) {
+        augmentedMessage = attachmentSections.join("\n\n") + "\n\n" + params.message;
+      }
+      console.error(`[sidecar] Injected ${attachmentSections.length} attachment(s) into message`);
+    }
+    if (hasOrchestrator) {
+      console.error("[sidecar] Routing through orchestrator (full agent loop)");
+      const orchResult = await core.agent.processMessage(augmentedMessage, convId);
+      fullResponse = orchResult.message;
+      actions = orchResult.actions.map((a) => ({
+        id: a.id,
+        type: a.action,
+        status: a.status,
+        payload: a.payload
+      }));
+      console.error(`[sidecar] Orchestrator returned: ${fullResponse.length} chars, ${actions.length} actions`);
+      const chunkSize = 12;
+      for (let i = 0; i < fullResponse.length; i += chunkSize) {
+        emit("chat-token", fullResponse.substring(i, i + chunkSize));
+      }
+    } else {
+      console.error("[sidecar] Fallback: direct LLM (no orchestrator \u2014 knowledge graph unavailable)");
+      let contextStr = "";
+      try {
+        const context = await core.knowledge.search(params.message, { limit: 5 });
+        if (context.length > 0) {
+          contextStr = "\n\nRelevant documents from your files:\n" + context.map((r) => `[${r.document.title}] (score: ${r.score.toFixed(2)}): ${r.chunk.content.substring(0, 500)}`).join("\n\n");
+        }
+      } catch {
+      }
       const model = await core.models.getActiveChatModel() ?? getRecommendedReasoningModel("standard").id;
       const messages = [
         { role: "system", content: getSystemPrompt() + contextStr },
-        { role: "user", content: params.message }
+        { role: "user", content: augmentedMessage }
       ];
       if (core.llm.chatStream) {
         for await (const token of core.llm.chatStream({ model, messages })) {
@@ -260463,20 +267864,16 @@ async function handleSendMessage(id, params) {
         fullResponse = response.message.content;
         emit("chat-token", fullResponse);
       }
-    } else {
-      respondError(id, "No inference engine available.");
-      return;
+      storeTurn(convId, "user", params.message);
+      storeTurn(convId, "assistant", fullResponse);
+      if (conversationManager) {
+        conversationManager.updateAfterTurn(convId, params.message, "user");
+        conversationManager.updateAfterTurn(convId, fullResponse, "assistant");
+      }
     }
-    emit("chat-complete", { id: responseId, content: fullResponse, actions: [] });
-    const userTurnId = nanoid();
-    const assistantTurnId = nanoid();
-    storeTurn(convId, "user", params.message);
-    storeTurn(convId, "assistant", fullResponse);
-    if (conversationManager) {
-      conversationManager.updateAfterTurn(convId, params.message, "user");
-      conversationManager.updateAfterTurn(convId, fullResponse, "assistant");
-    }
+    emit("chat-complete", { id: responseId, content: fullResponse, actions });
     if (conversationIndexer) {
+      const assistantTurnId = nanoid();
       conversationIndexer.indexTurn({
         conversationId: convId,
         turnId: assistantTurnId,
@@ -260487,6 +267884,7 @@ async function handleSendMessage(id, params) {
     }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[sidecar] handleSendMessage error:", errMsg);
     emit("chat-token", `
 
 Error: ${errMsg}`);
@@ -260632,52 +268030,57 @@ async function handleStartIndexing(id, params) {
               chunksCreated: totalChunksCreated,
               currentFile: file.name
             });
-            if (file.size > 100 * 1024 * 1024) {
-              console.error(`[sidecar] Very large file "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)}MB) \u2014 metadata only`);
-              try {
-                if (core?.knowledge) {
-                  await core.knowledge.indexDocument({
-                    content: `[Large file: ${file.name}] Size: ${(file.size / 1024 / 1024).toFixed(1)} MB. File indexed as metadata only due to size.`,
-                    title: file.name,
-                    source: "local_file",
-                    sourcePath: file.path,
-                    mimeType: file.extension ? `application/${file.extension.replace(".", "")}` : "application/octet-stream",
-                    metadata: { size: file.size, lastModified: file.lastModified, extension: file.extension, metadataOnly: true }
-                  });
-                }
-              } catch {
-              }
-              totalFilesScanned++;
-              totalChunksCreated++;
-              continue;
-            }
             console.error(`[sidecar] Indexing file ${totalFilesScanned + 1}/${filesTotal}: ${file.name} (${(file.size / 1024).toFixed(0)}KB)`);
             const content = await readFileContent(file.path);
-            let contentText = content.content;
-            const MAX_CONTENT_CHARS = 5e4;
-            if (contentText.length > MAX_CONTENT_CHARS) {
-              console.error(`[sidecar] Truncated "${file.name}" from ${contentText.length} to ${MAX_CONTENT_CHARS} chars for embedding`);
-              contentText = contentText.slice(0, MAX_CONTENT_CHARS);
-            }
             if (!core?.knowledge) {
               console.error("[sidecar] Cannot index \u2014 core.knowledge not available");
               totalFilesScanned++;
               continue;
             }
-            const result2 = await core.knowledge.indexDocument({
-              content: contentText,
-              title: content.title,
-              source: "local_file",
-              sourcePath: file.path,
-              mimeType: content.mimeType,
-              metadata: {
-                size: file.size,
-                lastModified: file.lastModified,
-                extension: file.extension
+            const fullText = content.content;
+            const SEGMENT_SIZE = 5e4;
+            if (fullText.length <= SEGMENT_SIZE) {
+              const result2 = await core.knowledge.indexDocument({
+                content: fullText,
+                title: content.title,
+                source: "local_file",
+                sourcePath: file.path,
+                mimeType: content.mimeType,
+                metadata: {
+                  size: file.size,
+                  lastModified: file.lastModified,
+                  extension: file.extension
+                }
+              });
+              totalChunksCreated += result2.chunksCreated;
+            } else {
+              const totalSegments = Math.ceil(fullText.length / SEGMENT_SIZE);
+              console.error(`[sidecar] Large content for "${file.name}" (${fullText.length} chars) \u2014 splitting into ${totalSegments} segments`);
+              for (let segIdx = 0; segIdx < totalSegments; segIdx++) {
+                const segmentText = fullText.slice(segIdx * SEGMENT_SIZE, (segIdx + 1) * SEGMENT_SIZE);
+                const segTitle = totalSegments > 1 ? `${content.title} (part ${segIdx + 1}/${totalSegments})` : content.title;
+                try {
+                  const result2 = await core.knowledge.indexDocument({
+                    content: segmentText,
+                    title: segTitle,
+                    source: "local_file",
+                    sourcePath: file.path,
+                    mimeType: content.mimeType,
+                    metadata: {
+                      size: file.size,
+                      lastModified: file.lastModified,
+                      extension: file.extension,
+                      part: segIdx + 1,
+                      totalParts: totalSegments
+                    }
+                  });
+                  totalChunksCreated += result2.chunksCreated;
+                } catch (segErr) {
+                  console.error(`[sidecar] Failed to index segment ${segIdx + 1}/${totalSegments} of ${file.name}:`, segErr);
+                }
               }
-            });
+            }
             totalFilesScanned++;
-            totalChunksCreated += result2.chunksCreated;
           } catch (err) {
             console.error(`[sidecar] Failed to index ${file.path}:`, err);
             totalFilesScanned++;
@@ -261001,7 +268404,7 @@ async function handleEmailStartIndex(id, params) {
     if (result2.success && result2.data) {
       const messages = result2.data.messages ?? [];
       const indexed = await emailIndexer.indexMessages(messages, params.account_id);
-      emit("semblance://email-index-complete", { indexed, total: messages.length });
+      emit("email-index-complete", { indexed, total: messages.length });
       if (premiumGate) {
         for (const msg of messages) {
           const bodyText = msg?.body?.text;
@@ -261054,7 +268457,7 @@ async function handleCalendarStartIndex(id, params) {
     if (result2.success && result2.data) {
       const events = result2.data.events ?? [];
       const indexed = await calendarIndexer.indexEvents(events, params.account_id);
-      emit("semblance://calendar-index-complete", { indexed, total: events.length });
+      emit("calendar-index-complete", { indexed, total: events.length });
     }
   } catch (err) {
     console.error("[sidecar] Calendar indexing error:", err);
@@ -261528,7 +268931,17 @@ function handleContactsImport(params) {
     return { success: false, imported: 0, error: "Desktop contact import requires a file path. Use the file picker to select a .vcf or .csv file." };
   }
   const store = ensureContactStore();
-  const { readFileSync: readFileSync4 } = require("node:fs");
+  const { readFileSync: readFileSync4, statSync: statSync2 } = require("node:fs");
+  const MAX_CONTACT_IMPORT_BYTES = 50 * 1024 * 1024;
+  try {
+    const fstat = statSync2(params.filePath);
+    if (fstat.size > MAX_CONTACT_IMPORT_BYTES) {
+      const sizeMB = (fstat.size / (1024 * 1024)).toFixed(1);
+      return { success: false, imported: 0, error: `Contact file too large (${sizeMB}MB). Maximum is 50MB.` };
+    }
+  } catch (e) {
+    return { success: false, imported: 0, error: `Cannot read file: ${e?.message ?? String(e)}` };
+  }
   const content = readFileSync4(params.filePath, "utf-8");
   const ext = params.filePath.toLowerCase();
   let imported = 0;
@@ -261955,6 +269368,17 @@ function getOAuthConfigForConnector(connectorId) {
       revokeUrl: "https://oauth2.googleapis.com/revoke",
       extraAuthParams: { access_type: "offline", prompt: "consent" }
     }),
+    "google-calendar": () => ({
+      providerKey: "google-calendar",
+      authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+      tokenUrl: "https://oauth2.googleapis.com/token",
+      scopes: "https://www.googleapis.com/auth/calendar.readonly",
+      clientId: process.env["SEMBLANCE_GOOGLE_CLIENT_ID"] ?? UNCONFIGURED_CLIENT_ID,
+      clientSecret: process.env["SEMBLANCE_GOOGLE_CLIENT_SECRET"],
+      usePKCE: false,
+      revokeUrl: "https://oauth2.googleapis.com/revoke",
+      extraAuthParams: { access_type: "offline", prompt: "consent" }
+    }),
     "google-drive": () => ({
       providerKey: "google-drive",
       authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
@@ -262053,12 +269477,24 @@ async function handleConnectorAuth(params) {
   try {
     const requiresHttps = params.connectorId === "slack";
     const { callbackUrl, state } = await callbackServer.start({ https: requiresHttps });
+    let codeVerifier = null;
+    let codeChallenge = null;
+    if (config.usePKCE) {
+      const { randomBytes: randomBytes9, createHash: createHash4 } = await import("node:crypto");
+      codeVerifier = randomBytes9(32).toString("base64url");
+      codeChallenge = createHash4("sha256").update(codeVerifier).digest("base64url");
+      console.error(`[sidecar] PKCE flow \u2014 generated code_verifier (${codeVerifier.length} chars)`);
+    }
     const authUrl = new URL(config.authUrl);
     authUrl.searchParams.set("client_id", config.clientId);
     authUrl.searchParams.set("redirect_uri", callbackUrl);
     authUrl.searchParams.set("response_type", "code");
     if (config.scopes) authUrl.searchParams.set("scope", config.scopes);
     authUrl.searchParams.set("state", state);
+    if (codeChallenge) {
+      authUrl.searchParams.set("code_challenge", codeChallenge);
+      authUrl.searchParams.set("code_challenge_method", "S256");
+    }
     if (config.extraAuthParams) {
       for (const [k, v] of Object.entries(config.extraAuthParams)) {
         authUrl.searchParams.set(k, v);
@@ -262088,12 +269524,35 @@ async function handleConnectorAuth(params) {
     if (config.clientSecret && !config.usePKCE) {
       tokenBody["client_secret"] = config.clientSecret;
     }
+    if (config.usePKCE && codeVerifier) {
+      tokenBody["code_verifier"] = codeVerifier;
+    }
     const tokenResponse = await globalThis.fetch(config.tokenUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json"
+        // GitHub requires this to return JSON
+      },
       body: new URLSearchParams(tokenBody)
     });
-    const tokenData = await tokenResponse.json();
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text().catch(() => "Unknown error");
+      console.error(`[sidecar] Token exchange HTTP ${tokenResponse.status}: ${errorText.slice(0, 500)}`);
+      return {
+        success: false,
+        error: `Token exchange failed (HTTP ${tokenResponse.status}): ${errorText.slice(0, 200)}`
+      };
+    }
+    const contentType = tokenResponse.headers.get("content-type") ?? "";
+    let tokenData;
+    if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("text/plain")) {
+      const text = await tokenResponse.text();
+      const urlParams = new URLSearchParams(text);
+      tokenData = Object.fromEntries(urlParams.entries());
+    } else {
+      tokenData = await tokenResponse.json();
+    }
     if (tokenData.error || !tokenData.access_token) {
       return {
         success: false,
@@ -262152,13 +269611,94 @@ async function handleConnectorSync(params) {
   if (!hasTokens) {
     return { success: false, error: "Not authenticated. Please connect first." };
   }
-  return { success: true, synced: true, connectorId: params.connectorId, message: "Sync initiated" };
+  if (!connectorRouter) {
+    connectorRouter = registerAllConnectors(tokenMgr);
+    console.error("[sidecar] ConnectorRouter initialized with adapters:", connectorRouter.listRegistered().join(", "));
+  }
+  if (!connectorRouter.hasAdapter(params.connectorId)) {
+    return {
+      success: false,
+      error: `No sync adapter registered for connector: ${params.connectorId}. Adapter may not be implemented yet.`
+    };
+  }
+  console.error(`[sidecar] Syncing connector: ${params.connectorId}`);
+  const syncResult = await connectorRouter.execute("connector.sync", {
+    connectorId: params.connectorId
+  });
+  if (!syncResult.success) {
+    console.error(`[sidecar] Connector sync failed for ${params.connectorId}:`, syncResult.error);
+    return {
+      success: false,
+      error: syncResult.error?.message ?? "Sync failed",
+      code: syncResult.error?.code
+    };
+  }
+  const syncData = syncResult.data;
+  const items = syncData?.items ?? [];
+  let indexedCount = 0;
+  const indexErrors = [];
+  if (core?.knowledge && items.length > 0) {
+    const sourceTypeMap = {
+      browser_history: "browser_history",
+      notes: "note",
+      photos_metadata: "photos_metadata",
+      messaging: "messaging",
+      social: "social",
+      health: "health",
+      finance: "financial",
+      productivity: "note",
+      research: "note"
+    };
+    for (const item of items) {
+      try {
+        const docSource = sourceTypeMap[item.sourceType ?? ""] ?? "manual";
+        await core.knowledge.indexDocument({
+          content: item.content,
+          title: item.title,
+          source: docSource,
+          metadata: {
+            connectorId: params.connectorId,
+            syncedAt: (/* @__PURE__ */ new Date()).toISOString(),
+            originalId: item.id,
+            ...item.metadata ?? {}
+          }
+        });
+        indexedCount++;
+      } catch (indexErr) {
+        const msg = indexErr instanceof Error ? indexErr.message : String(indexErr);
+        indexErrors.push(`Failed to index "${item.title}": ${msg}`);
+        console.error(`[sidecar] Failed to index synced item "${item.title}":`, msg);
+      }
+    }
+    console.error(`[sidecar] Connector ${params.connectorId} sync complete: ${indexedCount}/${items.length} items indexed`);
+  } else if (items.length > 0) {
+    console.error(`[sidecar] Connector ${params.connectorId} synced ${items.length} items but core.knowledge not available \u2014 items not indexed`);
+  }
+  return {
+    success: true,
+    synced: true,
+    connectorId: params.connectorId,
+    itemCount: items.length,
+    indexedCount,
+    errors: indexErrors.length > 0 ? indexErrors : void 0
+  };
 }
 async function handleImportRun(params) {
   if (!core || !prefsDb) {
     throw new Error("Core not initialized");
   }
-  const { readFileSync: readFileSync4 } = await import("node:fs");
+  const { readFileSync: readFileSync4, statSync: statSync2 } = await import("node:fs");
+  const MAX_IMPORT_BYTES = 100 * 1024 * 1024;
+  try {
+    const fstat = statSync2(params.sourcePath);
+    if (fstat.size > MAX_IMPORT_BYTES) {
+      const sizeMB = (fstat.size / (1024 * 1024)).toFixed(1);
+      throw new Error(`Import file too large (${sizeMB}MB). Maximum is 100MB.`);
+    }
+  } catch (e) {
+    if (e?.message?.includes("too large")) throw e;
+    throw new Error(`Cannot read import file: ${e?.message ?? String(e)}`);
+  }
   const content = readFileSync4(params.sourcePath, "utf-8");
   const ext = params.sourcePath.split(".").pop()?.toLowerCase() ?? "";
   let items = [];
@@ -262963,6 +270503,59 @@ async function handleRequest(req) {
         respond(id, result2);
         break;
       }
+      // ─── Notification Settings ───────────────────────────────────────
+      case "notification:getSettings": {
+        const raw = getPref("notification_settings");
+        respond(id, raw ? JSON.parse(raw) : {
+          morningBriefEnabled: true,
+          morningBriefTime: "07:00",
+          includeWeather: true,
+          includeCalendar: true,
+          remindersEnabled: true,
+          defaultSnoozeDuration: "15m",
+          notifyOnAction: true,
+          notifyOnApproval: true,
+          actionDigest: "daily",
+          badgeCount: true,
+          soundEffects: true
+        });
+        break;
+      }
+      case "notification:saveSettings": {
+        setPref("notification_settings", JSON.stringify(params));
+        respond(id, params);
+        break;
+      }
+      // ─── Location Settings ──────────────────────────────────────────
+      case "location:getSettings": {
+        const raw = getPref("location_settings");
+        respond(id, raw ? JSON.parse(raw) : {
+          enabled: false,
+          defaultCity: "",
+          weatherEnabled: false,
+          commuteEnabled: false,
+          remindersEnabled: false,
+          retentionDays: 30
+        });
+        break;
+      }
+      case "location:saveSettings": {
+        setPref("location_settings", JSON.stringify(params));
+        respond(id, params);
+        break;
+      }
+      case "location:clearHistory": {
+        setPref("location_settings", JSON.stringify({
+          enabled: false,
+          defaultCity: "",
+          weatherEnabled: false,
+          commuteEnabled: false,
+          remindersEnabled: false,
+          retentionDays: 30
+        }));
+        respond(id, { cleared: true });
+        break;
+      }
       // ─── Language Preference ──────────────────────────────────────────
       case "language:get": {
         result2 = getPref("language");
@@ -263224,14 +270817,20 @@ async function handleRequest(req) {
         break;
       }
       case "weather_get_current": {
-        if (!weatherService && prefsDb) {
-          weatherService = new WeatherService(prefsDb);
+        if (!weatherService && prefsDb && core) {
+          if (!locationStore) {
+            locationStore = new LocationStore(prefsDb);
+          }
+          weatherService = new WeatherService(getPlatform(), core.ipc, locationStore);
         }
         if (!weatherService) {
           respond(id, null);
           break;
         }
-        const weather = await weatherService.getCurrentWeather();
+        const locSettingsRaw = getPref("location_settings");
+        const locSettings = locSettingsRaw ? JSON.parse(locSettingsRaw) : null;
+        const cityLabel = locSettings?.defaultCity || void 0;
+        const weather = await weatherService.getCurrentWeather(cityLabel);
         respond(id, weather);
         break;
       }
@@ -263453,13 +271052,13 @@ async function handleRequest(req) {
       // ─── Knowledge Graph Visualization ────────────────────────────────
       case "knowledge_get_graph": {
         try {
-          if (!graphVisualizationProvider && prefsDb && core) {
+          if (!graphVisualizationProvider && documentsDb) {
             try {
               ensureContactStore();
             } catch {
             }
             graphVisualizationProvider = new GraphVisualizationProvider({
-              db: prefsDb,
+              db: documentsDb,
               contactStore: contactStore ?? null,
               relationshipAnalyzer: relationshipAnalyzer ?? null
             });
@@ -263639,12 +271238,34 @@ async function handleRequest(req) {
       case "get_financial_dashboard": {
         ensureFinanceComponents();
         if (!recurringDetector) {
-          respond(id, { totalMonthly: 0, totalAnnual: 0, activeCount: 0, forgottenCount: 0, potentialSavings: 0, subscriptions: [], anomalies: [] });
+          respond(id, {
+            overview: { totalSpending: 0, previousPeriodSpending: null, transactionCount: 0, periodStart: "", periodEnd: "" },
+            categories: [],
+            anomalies: [],
+            subscriptions: {
+              charges: [],
+              summary: { totalMonthly: 0, totalAnnual: 0, activeCount: 0, forgottenCount: 0, potentialSavings: 0 }
+            }
+          });
           break;
         }
-        const summary = recurringDetector.getSummary();
-        const subscriptions = recurringDetector.getStoredCharges();
-        respond(id, { ...summary, subscriptions, anomalies: [] });
+        const finSummary = recurringDetector.getSummary();
+        const finCharges = recurringDetector.getStoredCharges();
+        respond(id, {
+          overview: {
+            totalSpending: finSummary.totalMonthly,
+            previousPeriodSpending: null,
+            transactionCount: finCharges.length,
+            periodStart: new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10),
+            periodEnd: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10)
+          },
+          categories: [],
+          anomalies: [],
+          subscriptions: {
+            charges: finCharges,
+            summary: finSummary
+          }
+        });
         break;
       }
       case "dismiss_anomaly": {
@@ -263660,7 +271281,7 @@ async function handleRequest(req) {
           healthEntryStore = new HealthEntryStore(prefsDb);
         }
         if (!healthEntryStore) {
-          respond(id, { entries: [], trends: [] });
+          respond(id, { todayEntry: null, trends: [], insights: [], symptomsHistory: [], medicationsHistory: [], hasHealthKit: false });
           break;
         }
         const trendDays = params.trendDays ?? 30;
@@ -263668,7 +271289,36 @@ async function handleRequest(req) {
         const startDate = new Date(Date.now() - trendDays * 864e5).toISOString().slice(0, 10);
         const trends = healthEntryStore.getTrends(startDate, endDate);
         const entries = healthEntryStore.getEntries(startDate, endDate);
-        respond(id, { entries, trends });
+        const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+        const todayEntry = entries.find((e) => e.date === today) ?? null;
+        const symptomsSet = /* @__PURE__ */ new Set();
+        const medicationsSet = /* @__PURE__ */ new Set();
+        for (const e of entries) {
+          const entry = e;
+          if (entry.symptoms) entry.symptoms.forEach((s) => symptomsSet.add(s));
+          if (entry.medications) entry.medications.forEach((m) => medicationsSet.add(m));
+        }
+        const insights = [];
+        if (trends.length >= 7) {
+          const recentMoods = trends.slice(-7).map((t) => t.avgMood).filter((m) => m != null);
+          if (recentMoods.length >= 3) {
+            const avgMood = recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length;
+            if (avgMood >= 4) {
+              insights.push({ id: "mood-high", type: "positive", title: "Great mood week", description: `Average mood ${avgMood.toFixed(1)}/5 over the last 7 days.`, severity: "positive" });
+            } else if (avgMood <= 2) {
+              insights.push({ id: "mood-low", type: "concern", title: "Low mood trend", description: `Average mood ${avgMood.toFixed(1)}/5 over the last 7 days.`, severity: "warning" });
+            }
+          }
+        }
+        respond(id, {
+          todayEntry,
+          trends,
+          insights,
+          symptomsHistory: [...symptomsSet],
+          medicationsHistory: [...medicationsSet],
+          hasHealthKit: false
+          // Desktop doesn't have HealthKit
+        });
         break;
       }
       case "save_health_entry": {
@@ -263748,12 +271398,26 @@ async function handleRequest(req) {
       // ─── Connector Query Handlers ─────────────────────────────────────
       case "get_connected_services": {
         const connectedList = [];
-        const connectorRegistry = createDefaultConnectorRegistry();
-        for (const connector of connectorRegistry.listAll()) {
-          const tokenJson = getPref(`oauth_token_${connector.id}`);
-          if (tokenJson) {
-            connectedList.push(connector.id);
+        try {
+          const tokenMgr = ensureOAuthTokenManager();
+          const connectorRegistry = createDefaultConnectorRegistry();
+          for (const connector of connectorRegistry.listAll()) {
+            const oauthCfg = getOAuthConfigForConnector(connector.id);
+            if (oauthCfg) {
+              const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
+              if (accessToken) {
+                connectedList.push(connector.id);
+              }
+            }
+            if (connector.authType === "native") {
+              const nativeState = getPref(`connector_state_${connector.id}`);
+              if (nativeState === "connected") {
+                connectedList.push(connector.id);
+              }
+            }
           }
+        } catch (err) {
+          console.error("[sidecar] get_connected_services error:", err);
         }
         respond(id, connectedList);
         break;
@@ -263773,13 +271437,13 @@ async function handleRequest(req) {
       // Alias: get_graph_data → knowledge_get_graph
       case "get_graph_data": {
         try {
-          if (!graphVisualizationProvider && prefsDb && core) {
+          if (!graphVisualizationProvider && documentsDb) {
             try {
               ensureContactStore();
             } catch {
             }
             graphVisualizationProvider = new GraphVisualizationProvider({
-              db: prefsDb,
+              db: documentsDb,
               contactStore: contactStore ?? null,
               relationshipAnalyzer: relationshipAnalyzer ?? null
             });

@@ -130,7 +130,7 @@ export function SettingsScreen() {
       default:
         break;
     }
-  }, [dispatch]);
+  }, [dispatch, notifSettings]);
 
   const licenseStatus = license.tier === 'founding'
     ? 'founding-member' as const
