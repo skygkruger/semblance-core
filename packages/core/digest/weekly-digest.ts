@@ -153,7 +153,7 @@ export class WeeklyDigestGenerator {
     this.db = config.db;
     this.auditDb = config.auditDb;
     this.llm = config.llm;
-    this.model = config.model ?? 'llama3.2:8b';
+    this.model = config.model ?? 'llama3.1:8b';
     this.aiName = config.aiName ?? 'Semblance';
     this.alterEgoStore = config.alterEgoStore;
     this.db.exec(CREATE_DIGEST_TABLE);

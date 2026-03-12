@@ -5,8 +5,8 @@ import { getPlatform } from '../platform/index.js';
 import type { LLMProvider, ModelInfo } from './types.js';
 
 const PREFERRED_CHAT_MODELS = [
-  'llama3.2:8b',
-  'llama3.2',
+  'llama3.1:8b',
+  'llama3.1',
   'llama3.1:8b',
   'llama3.1',
   'mistral',
@@ -103,12 +103,12 @@ export class ModelManager {
 
     if (totalGb >= 32) {
       recommendations.push({
-        model: 'llama3.2:8b',
+        model: 'llama3.1:8b',
         reason: `${totalGb}GB RAM detected — 8B parameter models recommended for best quality`,
       });
     } else if (totalGb >= 16) {
       recommendations.push({
-        model: 'llama3.2:3b',
+        model: 'llama3.1:3b',
         reason: `${totalGb}GB RAM detected — 3B parameter models for good balance of speed and quality`,
       });
     } else if (totalGb >= 8) {

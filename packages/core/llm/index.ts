@@ -100,7 +100,7 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
   return new InferenceRouter({
     reasoningProvider: provider,
     embeddingProvider: provider,
-    reasoningModel: reasoningModel ?? 'llama3.2:8b',
+    reasoningModel: reasoningModel ?? 'llama3.1:8b',
     embeddingModel: embeddingModel ?? 'nomic-embed-text',
   });
 }

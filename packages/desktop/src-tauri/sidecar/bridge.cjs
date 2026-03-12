@@ -234564,8 +234564,8 @@ init_ollama_provider();
 // packages/core/llm/model-manager.ts
 init_platform();
 var PREFERRED_CHAT_MODELS = [
-  "llama3.2:8b",
-  "llama3.2",
+  "llama3.1:8b",
+  "llama3.1",
   "llama3.1:8b",
   "llama3.1",
   "mistral",
@@ -234645,12 +234645,12 @@ var ModelManager = class {
     const recommendations = [];
     if (totalGb >= 32) {
       recommendations.push({
-        model: "llama3.2:8b",
+        model: "llama3.1:8b",
         reason: `${totalGb}GB RAM detected \u2014 8B parameter models recommended for best quality`
       });
     } else if (totalGb >= 16) {
       recommendations.push({
-        model: "llama3.2:3b",
+        model: "llama3.1:3b",
         reason: `${totalGb}GB RAM detected \u2014 3B parameter models for good balance of speed and quality`
       });
     } else if (totalGb >= 8) {
@@ -235105,7 +235105,7 @@ function createLLMProvider(config) {
   return new InferenceRouter({
     reasoningProvider: provider,
     embeddingProvider: provider,
-    reasoningModel: reasoningModel ?? "llama3.2:8b",
+    reasoningModel: reasoningModel ?? "llama3.1:8b",
     embeddingModel: embeddingModel ?? "nomic-embed-text"
   });
 }
@@ -235998,7 +235998,7 @@ var KnowledgeCurator = class {
     this.indexer = config.indexer;
     this.db = config.db;
     this.llm = config.llm;
-    this.activeModel = config.activeModel ?? "llama3.2:3b";
+    this.activeModel = config.activeModel ?? "llama3.1:3b";
   }
   // ─── List chunks by category ────────────────────────────────────────────
   /**
@@ -240680,7 +240680,7 @@ var MerchantNormalizer = class {
   userCorrections = /* @__PURE__ */ new Map();
   constructor(config) {
     this.llm = config?.llm;
-    this.model = config?.model ?? "llama3.2:8b";
+    this.model = config?.model ?? "llama3.1:8b";
   }
   /**
    * Normalize a raw transaction description to a clean merchant name.
@@ -247933,7 +247933,7 @@ function createSemblanceCore(config) {
           console.error(`[SemblanceCore] Selected chat model: ${chatModel}`);
         }
       }
-      chatModel = chatModel ?? "llama3.2:8b";
+      chatModel = chatModel ?? "llama3.1:8b";
       console.error(`[SemblanceCore] Chat model selected: ${chatModel}`);
       const knowledgeDir = p.path.join(dataDir2, "knowledge");
       try {
@@ -253988,7 +253988,7 @@ var StatementParser = class {
   model;
   constructor(config) {
     this.llm = config?.llm;
-    this.model = config?.model ?? "llama3.2:8b";
+    this.model = config?.model ?? "llama3.1:8b";
   }
   /**
    * Auto-detect format and parse a bank statement file.
@@ -254420,7 +254420,7 @@ var KnowledgeMomentGenerator = class {
     this.calendarIndexer = config.calendarIndexer;
     this.knowledgeGraph = config.knowledgeGraph;
     this.llm = config.llm;
-    this.model = config.model ?? "llama3.2:8b";
+    this.model = config.model ?? "llama3.1:8b";
     this.aiName = config.aiName ?? "Semblance";
   }
   /**
@@ -254693,7 +254693,7 @@ var WeeklyDigestGenerator = class {
     this.db = config.db;
     this.auditDb = config.auditDb;
     this.llm = config.llm;
-    this.model = config.model ?? "llama3.2:8b";
+    this.model = config.model ?? "llama3.1:8b";
     this.aiName = config.aiName ?? "Semblance";
     this.alterEgoStore = config.alterEgoStore;
     this.db.exec(CREATE_DIGEST_TABLE);
@@ -255315,7 +255315,7 @@ var RelationshipAnalyzer = class {
     this.db = config.db;
     this.contactStore = config.contactStore;
     this.llm = config.llm ?? null;
-    this.model = config.model ?? "llama3.2:8b";
+    this.model = config.model ?? "llama3.1:8b";
   }
   /**
    * Analyze communication frequency for a contact over the last 90 days.

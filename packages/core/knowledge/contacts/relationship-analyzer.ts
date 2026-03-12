@@ -36,7 +36,7 @@ export class RelationshipAnalyzer {
     this.db = config.db;
     this.contactStore = config.contactStore;
     this.llm = config.llm ?? null;
-    this.model = config.model ?? 'llama3.2:8b';
+    this.model = config.model ?? 'llama3.1:8b';
   }
 
   /**
