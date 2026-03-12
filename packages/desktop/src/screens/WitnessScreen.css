@@ -45,12 +45,19 @@
   margin-bottom: var(--sp-4);
 }
 
+.witness__section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-3);
+}
+
 .witness__section-title {
   font-family: var(--fb);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--white);
-  margin: 0 0 var(--sp-3);
+  margin: 0;
 }
 
 .witness__empty {
@@ -99,6 +106,7 @@
 .witness__attestation-check--active {
   background: rgba(110, 207, 163, 0.15);
   border-color: rgba(110, 207, 163, 0.4);
+  color: var(--v);
 }
 
 .witness__attestation-info {
@@ -152,7 +160,7 @@
 .witness__btn--primary {
   background: rgba(110, 207, 163, 0.1);
   border: 1px solid rgba(110, 207, 163, 0.3);
-  color: #6ECFA3;
+  color: var(--v);
 }
 
 .witness__btn--secondary {

@@ -42,6 +42,10 @@ export type DashboardsStackParamList = {
   Contacts: undefined;
   ContactDetail: { contactId: string };
   Activity: undefined;
+  Digest: undefined;
+  Relationships: undefined;
+  SovereigntyReport: undefined;
+  NetworkMonitor: undefined;
 };
 
 /** Settings tab stack — all secondary screens nest here */
@@ -69,6 +73,11 @@ export type SettingsStackParamList = {
   Connections: undefined;
   Files: undefined;
   Activity: undefined;
+  Intent: undefined;
+  Digest: undefined;
+  NetworkMonitor: undefined;
+  Relationships: undefined;
+  SovereigntyReport: undefined;
 };
 
 /** Root stack navigator param list */

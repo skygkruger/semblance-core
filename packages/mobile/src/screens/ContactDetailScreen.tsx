@@ -9,6 +9,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { createMobileContactsAdapter } from '../native/contacts-bridge.js';
+import { getRuntimeState } from '../runtime/mobile-runtime.js';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 interface ContactDetail {
@@ -75,8 +77,105 @@ export function ContactDetailScreen({ route }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In production, fetch via bridge. For now, placeholder.
-    setLoading(false);
+    let cancelled = false;
+
+    async function fetchContact() {
+      try {
+        const adapter = createMobileContactsAdapter();
+        const allContacts = await adapter.getAllContacts();
+        const match = allContacts.find(c => c.deviceContactId === contactId);
+
+        if (cancelled) return;
+
+        if (!match) {
+          setLoading(false);
+          return;
+        }
+
+        // Map DeviceContact to ContactDetail
+        const detail: ContactDetail = {
+          id: match.deviceContactId,
+          displayName: match.displayName,
+          givenName: match.givenName,
+          familyName: match.familyName,
+          emails: match.emails.map(e => e.value),
+          phones: match.phones.map(p => p.value),
+          organization: match.organization,
+          jobTitle: match.jobTitle,
+          birthday: match.birthday,
+          relationshipType: 'contact',
+          lastContactDate: null,
+          interactionCount: 0,
+          communicationFrequency: null,
+        };
+
+        // Attempt knowledge graph enrichment for communication frequency
+        try {
+          const state = getRuntimeState();
+          if (state.core?.knowledge?.search) {
+            const emailResults = await state.core.knowledge.search(
+              `email from:${match.displayName}`,
+              { limit: 20 },
+            );
+            const meetingResults = await state.core.knowledge.search(
+              `meeting with:${match.displayName}`,
+              { limit: 20 },
+            );
+
+            if (cancelled) return;
+
+            const emailCount = emailResults?.length ?? 0;
+            const meetingCount = meetingResults?.length ?? 0;
+
+            if (emailCount > 0 || meetingCount > 0) {
+              // Estimate weekly/monthly rates from recent results
+              const emailsPerWeek = Math.round((emailCount / 4) * 10) / 10;
+              const meetingsPerMonth = meetingCount;
+              const trend = emailsPerWeek > 2 ? 'increasing' : emailsPerWeek > 0 ? 'stable' : 'sparse';
+
+              detail.communicationFrequency = {
+                emailsPerWeek,
+                meetingsPerMonth,
+                trend,
+              };
+              detail.interactionCount = emailCount + meetingCount;
+
+              // Use the most recent result as lastContactDate
+              const allResults = [...(emailResults ?? []), ...(meetingResults ?? [])];
+              const mostRecent = allResults
+                .map(r => r.document.createdAt)
+                .filter(Boolean)
+                .sort()
+                .pop();
+              if (mostRecent) {
+                detail.lastContactDate = mostRecent;
+              }
+
+              // Derive relationship type from interaction volume
+              if (detail.interactionCount > 15) {
+                detail.relationshipType = 'frequent';
+              } else if (detail.interactionCount > 5) {
+                detail.relationshipType = 'regular';
+              }
+            }
+          }
+        } catch {
+          // Knowledge graph unavailable — proceed with device-only data
+        }
+
+        if (!cancelled) {
+          setContact(detail);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void fetchContact();
+    return () => { cancelled = true; };
   }, [contactId]);
 
   if (loading) {

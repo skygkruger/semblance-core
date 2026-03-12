@@ -8,6 +8,8 @@
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+// @ts-expect-error — react-native-webview types installed at app level, not in this package
+import { WebView } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
 import { styles } from './KnowledgeGraphScreen.styles';
 import { GraphFilterSheet } from './GraphFilterSheet';
@@ -276,9 +278,15 @@ export const KnowledgeGraphScreen: React.FC<KnowledgeGraphScreenProps> = ({
         </View>
       )}
 
-      {/* WebView placeholder — in real app, this is a react-native-webview */}
       <View style={styles.webviewContainer} testID="graph-webview">
-        {/* WebView source={{ html: htmlContent }} onMessage={handleMessage} */}
+        <WebView
+          source={{ html: htmlContent }}
+          onMessage={handleMessage}
+          originWhitelist={['*']}
+          javaScriptEnabled={true}
+          scrollEnabled={false}
+          style={{ flex: 1, backgroundColor: '#1a1a2e' }}
+        />
       </View>
 
       {/* Filter Sheet */}

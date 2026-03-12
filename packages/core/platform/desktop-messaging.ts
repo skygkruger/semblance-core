@@ -81,12 +81,30 @@ export function createConfigurableMessagingAdapter(options?: {
 }
 
 /**
+ * Dependencies injected by the desktop app at construction time.
+ * Keeps packages/core/ free of platform-specific imports (@tauri-apps/*).
+ */
+export interface DesktopMessagingDeps {
+  /** Open a URL scheme via the OS (e.g. sms://, ms-chat://). */
+  openUrl?: (url: string) => Promise<void>;
+  /** Write text to the system clipboard. */
+  writeClipboard?: (text: string) => Promise<void>;
+}
+
+/**
  * Create the desktop messaging adapter.
  * macOS: Opens iMessage via sms:// URL scheme.
- * Windows: Opens "Your Phone" or clipboard fallback.
+ * Windows: Opens "Your Phone" companion via ms-chat:// URL scheme.
  * Linux: Clipboard fallback.
+ *
+ * The caller provides `deps.openUrl` (from @tauri-apps/plugin-shell → shell.open)
+ * and `deps.writeClipboard` (from @tauri-apps/plugin-clipboard-manager → writeText)
+ * so that this module has zero platform-specific imports.
  */
-export function createDesktopMessagingAdapter(platform: string): MessagingAdapter {
+export function createDesktopMessagingAdapter(
+  platform: string,
+  deps?: DesktopMessagingDeps,
+): MessagingAdapter {
   return {
     async isAvailable() {
       // Desktop always has some form of messaging presentation
@@ -107,20 +125,32 @@ export function createDesktopMessagingAdapter(platform: string): MessagingAdapte
         return { status: 'failed', error: 'Invalid phone number' };
       }
 
-      // Platform-specific presentation
+      const cleanPhone = request.phone.replace(/[\s\-\(\)\.]/g, '');
+
       if (platform === 'darwin') {
         // macOS: Open iMessage via sms:// URL scheme
-        // In a real Tauri app, this would use shell.open()
-        // For now, return 'presented' — Tauri integration point
+        const smsUrl = `sms:${cleanPhone}&body=${encodeURIComponent(request.body)}`;
+        if (deps?.openUrl) {
+          try { await deps.openUrl(smsUrl); } catch { /* open failed */ }
+        }
         return { status: 'presented' };
       }
 
       if (platform === 'win32') {
-        // Windows: Open "Your Phone" companion app or clipboard
+        // Windows: Open "Your Phone" companion app via ms-chat:// URL scheme
+        const chatUrl = `ms-chat:?ContactNumber=${cleanPhone}&Message=${encodeURIComponent(request.body)}`;
+        if (deps?.openUrl) {
+          try { await deps.openUrl(chatUrl); } catch { /* open failed */ }
+        } else if (deps?.writeClipboard) {
+          try { await deps.writeClipboard(request.body); } catch { /* clipboard failed */ }
+        }
         return { status: 'presented' };
       }
 
-      // Linux and others: Clipboard fallback
+      // Linux and others: clipboard fallback
+      if (deps?.writeClipboard) {
+        try { await deps.writeClipboard(`To: ${request.phone}\n${request.body}`); } catch { /* clipboard failed */ }
+      }
       return { status: 'presented' };
     },
   };

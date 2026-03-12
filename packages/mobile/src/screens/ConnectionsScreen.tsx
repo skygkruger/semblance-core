@@ -36,11 +36,10 @@ const registry = createDefaultConnectorRegistry();
 
 /**
  * Connectors enabled in the current release.
- * Mirrors the desktop ENABLED_CONNECTORS set — only connectors with real auth
- * flows or that work without any API (native/file import) are shown.
+ * Mirrors desktop — only connectors with registered gateway adapters
+ * (real working backends) are shown.
  */
 const ENABLED_CONNECTORS = new Set([
-  // OAuth connectors with .env credentials and working auth flows
   'gmail',
   'google-calendar',
   'google-drive',
@@ -49,35 +48,6 @@ const ENABLED_CONNECTORS = new Set([
   'dropbox',
   'spotify',
   'notion',
-
-  // Native/local connectors (no API required)
-  'things',
-  'imessage',
-  'safari-history',
-  'edge-history',
-  'arc-history',
-  'obsidian',
-  'zotero',
-
-  // File import/export connectors (user provides export file)
-  'slack-export',
-  'goodreads-export',
-  'apple-health-export',
-  'strava-export',
-  'facebook-export',
-  'instagram-export',
-  'twitter-export',
-  'linkedin-export',
-  'discord-export',
-  'ynab-export',
-  'mint-export',
-  'signal-export',
-  'whatsapp-export',
-  'telegram-export',
-  'google-takeout',
-  'notion-export',
-  'bear-export',
-  'evernote-export',
 ]);
 
 type UICategory = 'oauth' | 'native' | 'manual';
@@ -331,6 +301,72 @@ const rowStyles = StyleSheet.create({
   },
 });
 
+/** Persist connector states to AsyncStorage so they survive app restarts. */
+async function persistConnectorStates(states: Record<string, ConnectorState>): Promise<void> {
+  try {
+    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+    await AsyncStorage.setItem('semblance.connector_states', JSON.stringify(states));
+  } catch {
+    // Storage write failed — state still in memory
+  }
+}
+
+/** Build an OAuth2 authorization URL for the given connector. */
+function buildOAuthUrl(connectorId: string): string {
+  const redirectUri = 'semblance://oauth/callback';
+  const state = `${connectorId}:${Date.now()}`;
+
+  // Provider-specific authorization endpoints
+  const authEndpoints: Record<string, { url: string; scope: string }> = {
+    'gmail': {
+      url: 'https://accounts.google.com/o/oauth2/v2/auth',
+      scope: 'https://www.googleapis.com/auth/gmail.readonly',
+    },
+    'google-calendar': {
+      url: 'https://accounts.google.com/o/oauth2/v2/auth',
+      scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    },
+    'google-drive': {
+      url: 'https://accounts.google.com/o/oauth2/v2/auth',
+      scope: 'https://www.googleapis.com/auth/drive.readonly',
+    },
+    'github': {
+      url: 'https://github.com/login/oauth/authorize',
+      scope: 'read:user repo',
+    },
+    'spotify': {
+      url: 'https://accounts.spotify.com/authorize',
+      scope: 'user-read-recently-played user-library-read',
+    },
+    'dropbox': {
+      url: 'https://www.dropbox.com/oauth2/authorize',
+      scope: '',
+    },
+    'notion': {
+      url: 'https://api.notion.com/v1/oauth/authorize',
+      scope: '',
+    },
+    'slack-oauth': {
+      url: 'https://slack.com/oauth/v2/authorize',
+      scope: 'channels:read channels:history',
+    },
+  };
+
+  const endpoint = authEndpoints[connectorId];
+  if (!endpoint) {
+    throw new Error(`No OAuth endpoint configured for ${connectorId}`);
+  }
+
+  const params = new URLSearchParams({
+    response_type: 'code',
+    redirect_uri: redirectUri,
+    state,
+    scope: endpoint.scope,
+  });
+
+  return `${endpoint.url}?${params.toString()}`;
+}
+
 export function ConnectionsScreen() {
   const { t } = useTranslation();
   const { t: tConn } = useTranslation('connections');
@@ -360,10 +396,49 @@ export function ConnectionsScreen() {
   }, [connectorStates]);
 
   useEffect(() => {
-    // On mobile, connector state comes from the runtime's persisted preferences.
-    // TODO: Sprint 6 — Wire to mobile runtime's connector state persistence.
-    // For now, we initialize empty and update on connect/disconnect actions.
-    setLoading(false);
+    // Load persisted connector states from AsyncStorage
+    const loadStates = async () => {
+      try {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const raw = await AsyncStorage.getItem('semblance.connector_states');
+        if (raw) {
+          const parsed = JSON.parse(raw) as Record<string, ConnectorState>;
+          setConnectorStates(parsed);
+        }
+      } catch {
+        // First launch or storage unavailable — start empty
+      }
+      setLoading(false);
+    };
+    loadStates();
+  }, []);
+
+  useEffect(() => {
+    // Listen for OAuth callback deep links
+    const handleDeepLink = (event: { url: string }) => {
+      if (event.url.startsWith('semblance://oauth/callback')) {
+        const url = new URL(event.url);
+        const state = url.searchParams.get('state') ?? '';
+        const connectorId = state.split(':')[0];
+        if (connectorId) {
+          setConnectorStates((prev) => {
+            const next = {
+              ...prev,
+              [connectorId]: {
+                connectorId,
+                status: 'connected' as ConnectorStatus,
+                lastSyncedAt: new Date().toISOString(),
+              },
+            };
+            persistConnectorStates(next);
+            return next;
+          });
+        }
+      }
+    };
+
+    const sub = Linking.addEventListener('url', handleDeepLink);
+    return () => sub.remove();
   }, []);
 
   // Group connectors by UI category
@@ -395,45 +470,105 @@ export function ConnectionsScreen() {
     }));
 
     if (connDef.authType === 'oauth2' || connDef.authType === 'pkce') {
-      // OAuth connectors: on mobile, we need to open system browser for auth.
-      // The runtime handles the callback via deep link.
-      // TODO: Sprint 6 — Wire OAuth flow through mobile runtime's connector.auth IPC.
-      // For now, show an alert explaining the requirement.
-      Alert.alert(
-        connDef.displayName,
-        t('screen.connections.subtitle'),
-        [{ text: t('button.done') }],
-      );
-      // Simulate connection for now — will be replaced with real OAuth flow
-      setConnectorStates((prev) => ({
-        ...prev,
-        [connectorId]: {
-          connectorId,
-          status: 'connected',
-          lastSyncedAt: new Date().toISOString(),
-        },
-      }));
+      // OAuth connectors: open the authorization URL in the system browser.
+      // The deep link listener above handles the callback and marks connected.
+      try {
+        const oauthUrl = buildOAuthUrl(connectorId);
+        await Linking.openURL(oauthUrl);
+        // State stays 'pending' until the deep link callback arrives
+      } catch {
+        Alert.alert(
+          connDef.displayName,
+          t('screen.connections.auth_failed'),
+          [{ text: t('button.done') }],
+        );
+        setConnectorStates((prev) => {
+          const next = {
+            ...prev,
+            [connectorId]: { connectorId, status: 'error' as ConnectorStatus },
+          };
+          persistConnectorStates(next);
+          return next;
+        });
+      }
     } else if (connDef.authType === 'native') {
-      // Native connectors access local data directly
-      setConnectorStates((prev) => ({
-        ...prev,
-        [connectorId]: {
-          connectorId,
-          status: 'connected',
-          lastSyncedAt: new Date().toISOString(),
-        },
-      }));
+      // Native connectors access local data directly — mark connected and persist
+      setConnectorStates((prev) => {
+        const next = {
+          ...prev,
+          [connectorId]: {
+            connectorId,
+            status: 'connected' as ConnectorStatus,
+            lastSyncedAt: new Date().toISOString(),
+          },
+        };
+        persistConnectorStates(next);
+        return next;
+      });
     } else {
-      // File import / API key connectors
-      // TODO: Sprint 6 — Wire file picker for export file imports
-      setConnectorStates((prev) => ({
-        ...prev,
-        [connectorId]: {
-          connectorId,
-          status: 'connected',
-          lastSyncedAt: new Date().toISOString(),
-        },
-      }));
+      // File import / API key connectors — open document picker for user's export file
+      try {
+        const DocumentPicker = await import('react-native-document-picker').catch(() => null);
+        if (DocumentPicker) {
+          const result = await DocumentPicker.default.pick({
+            type: [DocumentPicker.default.types.allFiles],
+          });
+          if (result?.[0]?.uri) {
+            // Feed the file to the runtime's import pipeline
+            const runtimeState = getRuntimeState();
+            if (runtimeState.core) {
+              await runtimeState.core.importers?.importFile?.(result[0].uri, connectorId);
+            }
+            setConnectorStates((prev) => {
+              const next = {
+                ...prev,
+                [connectorId]: {
+                  connectorId,
+                  status: 'connected' as ConnectorStatus,
+                  lastSyncedAt: new Date().toISOString(),
+                },
+              };
+              persistConnectorStates(next);
+              return next;
+            });
+          } else {
+            // User cancelled — revert to disconnected
+            setConnectorStates((prev) => {
+              const next = {
+                ...prev,
+                [connectorId]: { connectorId, status: 'disconnected' as ConnectorStatus },
+              };
+              persistConnectorStates(next);
+              return next;
+            });
+          }
+        } else {
+          Alert.alert(
+            connDef.displayName,
+            'File picker unavailable on this device.',
+          );
+          setConnectorStates((prev) => {
+            const next = {
+              ...prev,
+              [connectorId]: { connectorId, status: 'disconnected' as ConnectorStatus },
+            };
+            persistConnectorStates(next);
+            return next;
+          });
+        }
+      } catch (err) {
+        if ((err as Record<string, unknown>)?.code !== 'DOCUMENT_PICKER_CANCELED') {
+          console.error('[ConnectionsScreen] file import failed:', err);
+        }
+        setConnectorStates((prev) => {
+          const next = {
+            ...prev,
+            [connectorId]: { connectorId, status: 'disconnected' as ConnectorStatus },
+          };
+          persistConnectorStates(next);
+          return next;
+        });
+      }
     }
   }, [t]);
 
@@ -447,30 +582,64 @@ export function ConnectionsScreen() {
           text: t('button.disconnect'),
           style: 'destructive',
           onPress: () => {
-            setConnectorStates((prev) => ({
-              ...prev,
-              [connectorId]: {
-                connectorId,
-                status: 'disconnected',
-              },
-            }));
+            setConnectorStates((prev) => {
+              const next = {
+                ...prev,
+                [connectorId]: {
+                  connectorId,
+                  status: 'disconnected' as ConnectorStatus,
+                },
+              };
+              persistConnectorStates(next);
+              return next;
+            });
           },
         },
       ],
     );
   }, [t]);
 
-  const handleSync = useCallback((_connectorId: string) => {
-    // TODO: Sprint 6 — Wire sync through mobile runtime IPC
+  const handleSync = useCallback(async (connectorId: string) => {
+    // Mark as syncing
     setConnectorStates((prev) => ({
       ...prev,
-      [_connectorId]: {
-        ...prev[_connectorId]!,
-        connectorId: _connectorId,
-        status: prev[_connectorId]?.status ?? 'connected',
-        lastSyncedAt: new Date().toISOString(),
+      [connectorId]: {
+        ...prev[connectorId]!,
+        connectorId,
+        status: 'pending' as ConnectorStatus,
       },
     }));
+
+    try {
+      const runtimeState = getRuntimeState();
+      if (runtimeState.core) {
+        // Trigger knowledge graph re-ingestion for this connector's data
+        await runtimeState.core.knowledge.reindex?.({ source: connectorId });
+      }
+      setConnectorStates((prev) => {
+        const next = {
+          ...prev,
+          [connectorId]: {
+            ...prev[connectorId]!,
+            connectorId,
+            status: 'connected' as ConnectorStatus,
+            lastSyncedAt: new Date().toISOString(),
+          },
+        };
+        persistConnectorStates(next);
+        return next;
+      });
+    } catch (err) {
+      console.error(`[ConnectionsScreen] sync failed for ${connectorId}:`, err);
+      setConnectorStates((prev) => ({
+        ...prev,
+        [connectorId]: {
+          ...prev[connectorId]!,
+          connectorId,
+          status: 'error' as ConnectorStatus,
+        },
+      }));
+    }
   }, []);
 
   const categoryKeys: UICategory[] = ['oauth', 'native', 'manual'];

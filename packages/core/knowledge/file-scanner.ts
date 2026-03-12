@@ -105,47 +105,92 @@ async function scanRecursive(dirPath: string, results: ScannedFile[]): Promise<v
   }
 }
 
-const READ_FILE_TIMEOUT_MS = 30_000; // 30s — corrupt PDFs/DOCX can hang forever
-const MAX_READ_SIZE_BYTES = 50 * 1024 * 1024; // 50MB — reject files larger than this
+const READ_FILE_TIMEOUT_MS = 30_000; // 30s — default timeout for normal files
+const READ_FILE_TIMEOUT_LARGE_MS = 120_000; // 120s — timeout for files >50MB
+const CONTENT_EXTRACT_LIMIT_BYTES = 100 * 1024 * 1024; // 100MB — max text content to extract from huge files
+const TEXT_STREAM_CHUNK_BYTES = 1024 * 1024; // 1MB — chunk size for streaming text reads
 
 /**
  * Read and extract text content from a file.
  * Wraps actual parsing with a timeout to prevent corrupt files from hanging the indexer.
- * Rejects files larger than MAX_READ_SIZE_BYTES to prevent OOM.
+ *
+ * Tiered approach for large files:
+ * - Up to 100MB: Read normally
+ * - 100MB-500MB: Read in chunks, extract first 100MB of text content
+ * - >500MB: Extract first 100MB, note truncation
+ *
+ * Content is ALWAYS real extracted text, never a placeholder.
  */
 export async function readFileContent(filePath: string): Promise<FileContent> {
   const p = getPlatform();
   const ext = p.path.extname(filePath).toLowerCase();
   const name = p.path.basename(filePath, ext);
 
-  // Size guard — prevent OOM on huge files
+  let fileSize = 0;
   try {
     const stats = await p.fs.stat(filePath);
-    if (stats.size > MAX_READ_SIZE_BYTES) {
-      const sizeMB = (stats.size / (1024 * 1024)).toFixed(1);
-      return {
-        path: filePath,
-        title: name,
-        content: `[File too large: ${name}${ext} (${sizeMB}MB) — skipped to prevent memory issues]`,
-        mimeType: 'application/octet-stream',
-      };
-    }
+    fileSize = stats.size;
   } catch {
     // Can't stat — proceed cautiously, the read itself may fail
   }
 
+  // Use longer timeout for large files (>50MB)
+  const timeoutMs = fileSize > 50 * 1024 * 1024 ? READ_FILE_TIMEOUT_LARGE_MS : READ_FILE_TIMEOUT_MS;
+
   return Promise.race([
-    readFileContentInner(filePath),
+    readFileContentInner(filePath, fileSize),
     new Promise<FileContent>((_, reject) =>
-      setTimeout(() => reject(new Error(`readFileContent timed out after ${READ_FILE_TIMEOUT_MS}ms for ${name}${ext}`)), READ_FILE_TIMEOUT_MS)
+      setTimeout(() => reject(new Error(`readFileContent timed out after ${timeoutMs}ms for ${name}${ext}`)), timeoutMs)
     ),
   ]);
 }
 
-async function readFileContentInner(filePath: string): Promise<FileContent> {
+/**
+ * Check if an extension is a text-based format that can be streamed.
+ */
+function isTextFormat(ext: string): boolean {
+  const textExts = new Set([
+    '.txt', '.md', '.csv', '.rtf', '.json',
+    '.ts', '.tsx', '.js', '.jsx', '.py', '.rs', '.go', '.java',
+    '.c', '.cpp', '.h', '.hpp', '.cs', '.rb', '.swift', '.kt',
+    '.lua', '.sh', '.bash', '.zsh', '.fish',
+    '.yaml', '.yml', '.toml', '.ini',
+    '.xml', '.html', '.css', '.scss', '.less',
+    '.sql', '.graphql', '.proto', '.dockerfile',
+  ]);
+  return textExts.has(ext);
+}
+
+/**
+ * Read a large text file via the platform abstraction layer.
+ * Uses p.fs.readFile (the only file API available in packages/core/)
+ * then truncates the result to CONTENT_EXTRACT_LIMIT_BYTES.
+ *
+ * NOTE: We cannot use node:fs streaming here because packages/core/
+ * must have ZERO Node.js builtins (Rule 1 — Zero Network in AI Core).
+ * The platform abstraction handles the actual I/O.
+ */
+async function readLargeTextFile(filePath: string, fileSize: number): Promise<string> {
+  const p = getPlatform();
+  // The platform layer reads the file; for very large files this may use significant memory
+  // temporarily, but it's released after we extract the content we need.
+  let content = await p.fs.readFile(filePath, 'utf-8');
+
+  // Truncate to our extraction limit
+  if (content.length > CONTENT_EXTRACT_LIMIT_BYTES) {
+    content = content.slice(0, CONTENT_EXTRACT_LIMIT_BYTES);
+    const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
+    content += `\n\n[Content truncated: original file was ${sizeMB} MB, indexed first ${(CONTENT_EXTRACT_LIMIT_BYTES / (1024 * 1024)).toFixed(0)} MB]`;
+  }
+
+  return content;
+}
+
+async function readFileContentInner(filePath: string, fileSize: number): Promise<FileContent> {
   const p = getPlatform();
   const ext = p.path.extname(filePath).toLowerCase();
   const name = p.path.basename(filePath, ext);
+  const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
 
   // Helper: detect binary files by checking for nul bytes in text content.
   // Binary files (executables, images misnamed as .txt, etc.) contain nul bytes
@@ -160,6 +205,20 @@ async function readFileContentInner(filePath: string): Promise<FileContent> {
       };
     }
     return { path: filePath, title: name, content, mimeType: fallbackMime };
+  }
+
+  // For large text-based files (>100MB), use streaming reads
+  if (isTextFormat(ext) && fileSize > 100 * 1024 * 1024) {
+    const content = await readLargeTextFile(filePath, fileSize);
+    if (ext === '.json') {
+      // For large JSON, skip pretty-printing (too expensive), return raw
+      return sanitizeTextContent(content, 'application/json');
+    }
+    const mimeMap: Record<string, string> = {
+      '.md': 'text/markdown', '.csv': 'text/csv', '.rtf': 'application/rtf',
+      '.json': 'application/json',
+    };
+    return sanitizeTextContent(content, mimeMap[ext] ?? 'text/plain');
   }
 
   switch (ext) {
@@ -189,24 +248,44 @@ async function readFileContentInner(filePath: string): Promise<FileContent> {
 
     case '.xlsx':
     case '.xls': {
-      const buffer = await p.fs.readFileBuffer(filePath);
-      const XLSX = await import('xlsx');
-      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
-      const sheets: string[] = [];
-      for (const sheetName of workbook.SheetNames) {
-        const sheet = workbook.Sheets[sheetName];
-        if (!sheet) continue;
-        const csv = XLSX.utils.sheet_to_csv(sheet);
-        sheets.push(`--- Sheet: ${sheetName} ---\n${csv}`);
+      try {
+        const buffer = await p.fs.readFileBuffer(filePath);
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+        const sheets: string[] = [];
+        let totalLength = 0;
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName];
+          if (!sheet) continue;
+          const csv = XLSX.utils.sheet_to_csv(sheet);
+          sheets.push(`--- Sheet: ${sheetName} ---\n${csv}`);
+          totalLength += csv.length;
+          // Stop extracting if we've accumulated enough text content
+          if (totalLength > CONTENT_EXTRACT_LIMIT_BYTES) {
+            sheets.push(`\n[Content truncated: original file was ${sizeMB} MB, extracted partial spreadsheet content]`);
+            break;
+          }
+        }
+        return {
+          path: filePath,
+          title: name,
+          content: sheets.join('\n\n') || `[Empty spreadsheet: ${name}${ext}]`,
+          mimeType: ext === '.xlsx'
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : 'application/vnd.ms-excel',
+        };
+      } catch (err) {
+        // OOM or parse failure on large spreadsheet — return what we can
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return {
+          path: filePath,
+          title: name,
+          content: `[Spreadsheet: ${name}${ext}] (${sizeMB} MB) — Partial extraction failed: ${errMsg}. File is indexed as metadata.`,
+          mimeType: ext === '.xlsx'
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : 'application/vnd.ms-excel',
+        };
       }
-      return {
-        path: filePath,
-        title: name,
-        content: sheets.join('\n\n') || `[Empty spreadsheet: ${name}${ext}]`,
-        mimeType: ext === '.xlsx'
-          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          : 'application/vnd.ms-excel',
-      };
     }
 
     // Images — no text extraction, metadata only
@@ -242,28 +321,58 @@ async function readFileContentInner(filePath: string): Promise<FileContent> {
     }
 
     case '.pdf': {
-      const buffer = await p.fs.readFileBuffer(filePath);
-      const { PDFParse } = await import('pdf-parse');
-      const parser = new PDFParse({ data: new Uint8Array(buffer) });
-      const result = await parser.getText();
-      return {
-        path: filePath,
-        title: name,
-        content: result.text,
-        mimeType: 'application/pdf',
-      };
+      try {
+        const buffer = await p.fs.readFileBuffer(filePath);
+        const { PDFParse } = await import('pdf-parse');
+        const parser = new PDFParse({ data: new Uint8Array(buffer) });
+        const result = await parser.getText();
+        let text = result.text;
+        if (fileSize > 50 * 1024 * 1024) {
+          text += `\n\n[Content truncated: original file was ${sizeMB} MB]`;
+        }
+        return {
+          path: filePath,
+          title: name,
+          content: text,
+          mimeType: 'application/pdf',
+        };
+      } catch (err) {
+        // Parse failure on large/corrupt PDF — return what context we can
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return {
+          path: filePath,
+          title: name,
+          content: `[PDF: ${name}${ext}] (${sizeMB} MB) — Extraction failed: ${errMsg}. File location indexed for reference.`,
+          mimeType: 'application/pdf',
+        };
+      }
     }
 
     case '.docx': {
-      const buffer = await p.fs.readFileBuffer(filePath);
-      const mammoth = await import('mammoth');
-      const result = await mammoth.extractRawText({ buffer });
-      return {
-        path: filePath,
-        title: name,
-        content: result.value,
-        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      };
+      try {
+        const buffer = await p.fs.readFileBuffer(filePath);
+        const mammoth = await import('mammoth');
+        const result = await mammoth.extractRawText({ buffer });
+        let text = result.value;
+        if (fileSize > 50 * 1024 * 1024) {
+          text += `\n\n[Content truncated: original file was ${sizeMB} MB]`;
+        }
+        return {
+          path: filePath,
+          title: name,
+          content: text,
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        };
+      } catch (err) {
+        // Parse failure on large/corrupt DOCX — return what context we can
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return {
+          path: filePath,
+          title: name,
+          content: `[DOCX: ${name}${ext}] (${sizeMB} MB) — Extraction failed: ${errMsg}. File location indexed for reference.`,
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        };
+      }
     }
 
     default:

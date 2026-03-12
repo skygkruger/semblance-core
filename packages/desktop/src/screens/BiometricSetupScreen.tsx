@@ -3,7 +3,7 @@
  * Shows biometric availability status, enable/disable toggle, test, and lock timeout config.
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import './BiometricSetupScreen.css';
 
@@ -17,17 +17,105 @@ const TIMEOUT_OPTIONS: { value: LockTimeout; label: string }[] = [
   { value: 'never', label: 'Never' },
 ];
 
+/** Issue an IPC request to the Tauri sidecar bridge. */
+async function invokeIPC<T>(method: string, params?: Record<string, unknown>): Promise<T> {
+  const { invoke } = await import('@tauri-apps/api/core');
+  return invoke<T>('sidecar_request', { request: { method, params: params ?? {} } });
+}
+
+/** Read a persisted biometric preference from localStorage. */
+function loadPref<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(`biometric.${key}`);
+    return raw !== null ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Persist a biometric preference to localStorage. */
+function savePref(key: string, value: unknown): void {
+  localStorage.setItem(`biometric.${key}`, JSON.stringify(value));
+}
+
 export function BiometricSetupScreen() {
   const { t } = useTranslation();
-  const [biometricAvailable] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [lockTimeout, setLockTimeout] = useState<LockTimeout>('5min');
   const [testResult, setTestResult] = useState<'idle' | 'success' | 'failed'>('idle');
 
-  function handleTest() {
-    // TODO: Sprint 6 — wire to Tauri biometric test command
+  // On mount: detect biometric hardware and load persisted preferences
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkAvailability = async () => {
+      try {
+        // Attempt Tauri sidecar command first
+        const result = await invokeIPC<{ available: boolean }>('biometric:check', {});
+        if (!cancelled) setBiometricAvailable(result.available);
+      } catch {
+        // Fallback: WebAuthn platform authenticator detection
+        if (window.PublicKeyCredential) {
+          try {
+            const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            if (!cancelled) setBiometricAvailable(available);
+          } catch {
+            if (!cancelled) setBiometricAvailable(false);
+          }
+        }
+      }
+    };
+
+    checkAvailability();
+
+    // Hydrate persisted preferences
+    setBiometricEnabled(loadPref<boolean>('enabled', false));
+    setLockTimeout(loadPref<LockTimeout>('lockTimeout', '5min'));
+
+    return () => { cancelled = true; };
+  }, []);
+
+  // Persist biometricEnabled whenever it changes via toggle
+  const handleToggleBiometric = useCallback(() => {
+    setBiometricEnabled((prev) => {
+      const next = !prev;
+      savePref('enabled', next);
+      return next;
+    });
+  }, []);
+
+  // Persist lockTimeout whenever user selects a different value
+  const handleSetTimeout = useCallback((value: LockTimeout) => {
+    setLockTimeout(value);
+    savePref('lockTimeout', value);
+  }, []);
+
+  // Test biometric authentication via Tauri command, falling back to WebAuthn
+  const handleTest = useCallback(async () => {
     setTestResult('idle');
-  }
+    try {
+      // Attempt Tauri sidecar biometric challenge
+      const result = await invokeIPC<{ success: boolean }>('biometric:test', {});
+      setTestResult(result.success ? 'success' : 'failed');
+    } catch {
+      // Fallback: WebAuthn assertion with userVerification required
+      try {
+        const credential = await navigator.credentials.get({
+          publicKey: {
+            challenge: crypto.getRandomValues(new Uint8Array(32)),
+            timeout: 30000,
+            rpId: window.location.hostname || 'localhost',
+            userVerification: 'required',
+            allowCredentials: [],
+          },
+        });
+        setTestResult(credential ? 'success' : 'failed');
+      } catch {
+        setTestResult('failed');
+      }
+    }
+  }, []);
 
   return (
     <div className="biometric-setup h-full overflow-y-auto">
@@ -81,7 +169,7 @@ export function BiometricSetupScreen() {
             <button
               type="button"
               className={`biometric-setup__toggle ${biometricEnabled ? 'biometric-setup__toggle--active' : ''}`}
-              onClick={() => setBiometricEnabled(!biometricEnabled)}
+              onClick={handleToggleBiometric}
               disabled={!biometricAvailable}
               aria-pressed={biometricEnabled}
               aria-label="Toggle biometric unlock"
@@ -101,7 +189,7 @@ export function BiometricSetupScreen() {
                   className={`biometric-setup__timeout-option ${
                     lockTimeout === opt.value ? 'biometric-setup__timeout-option--selected' : ''
                   }`}
-                  onClick={() => setLockTimeout(opt.value)}
+                  onClick={() => handleSetTimeout(opt.value)}
                 >
                   {opt.label}
                 </button>

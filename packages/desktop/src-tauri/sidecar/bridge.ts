@@ -120,6 +120,8 @@ import type { ImportSummary } from '../../../core/importers/import-pipeline.js';
 import { OAuthTokenManager } from '../../../gateway/services/oauth-token-manager.js';
 import { OAuthCallbackServer } from '../../../gateway/services/oauth-callback-server.js';
 import { oauthClients, UNCONFIGURED_CLIENT_ID } from '../../../gateway/config/oauth-clients.js';
+import { registerAllConnectors } from '../../../gateway/services/connector-registration.js';
+import type { ConnectorRouter } from '../../../gateway/services/connector-router.js';
 
 // Morning Brief / Daily Digest / Weather / Style / Dark Pattern / Document Context / Health / Cloud Storage / Graph Vis
 import { MorningBriefGenerator } from '../../../core/agent/morning-brief.js';
@@ -276,6 +278,8 @@ const activeDownloads: Map<string, ActiveDownload> = new Map();
 
 // OAuth token manager state
 let oauthTokenManager: OAuthTokenManager | null = null;
+// Connector router (lazy-initialized on first sync)
+let connectorRouter: ConnectorRouter | null = null;
 
 // Import pipeline state
 let importPipeline: ImportPipeline | null = null;
@@ -1249,60 +1253,71 @@ async function handleStartIndexing(
               currentFile: file.name,
             });
 
-            // Tier 1: Files > 10MB — metadata only, don't read content at all
-            // (100MB was too generous — large files can still OOM during readFileContent)
-            if (file.size > 10 * 1024 * 1024) {
-              console.error(`[sidecar] Very large file "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)}MB) — metadata only`);
-              try {
-                if (core?.knowledge) {
-                  await core.knowledge.indexDocument({
-                    content: `[Large file: ${file.name}] Size: ${(file.size / 1024 / 1024).toFixed(1)} MB. File indexed as metadata only due to size.`,
-                    title: file.name,
-                    source: 'local_file' as import('../../../core/knowledge/types.js').DocumentSource,
-                    sourcePath: file.path,
-                    mimeType: file.extension ? `application/${file.extension.replace('.', '')}` : 'application/octet-stream',
-                    metadata: { size: file.size, lastModified: file.lastModified, extension: file.extension, metadataOnly: true },
-                  });
-                }
-              } catch { /* metadata index failed — continue */ }
-              totalFilesScanned++;
-              totalChunksCreated++;
-              continue;
-            }
-
             console.error(`[sidecar] Indexing file ${totalFilesScanned + 1}/${filesTotal}: ${file.name} (${(file.size / 1024).toFixed(0)}KB)`);
             const content = await readFileContent(file.path);
-
-            // Truncate content to prevent memory exhaustion during embedding.
-            // 50K chars ≈ 12K tokens — well within embedding model capacity.
-            // This allows ANY file to be indexed safely.
-            let contentText = content.content;
-            const MAX_CONTENT_CHARS = 50_000;
-            if (contentText.length > MAX_CONTENT_CHARS) {
-              console.error(`[sidecar] Truncated "${file.name}" from ${contentText.length} to ${MAX_CONTENT_CHARS} chars for embedding`);
-              contentText = contentText.slice(0, MAX_CONTENT_CHARS);
-            }
 
             if (!core?.knowledge) {
               console.error('[sidecar] Cannot index — core.knowledge not available');
               totalFilesScanned++;
               continue;
             }
-            const result = await core.knowledge.indexDocument({
-              content: contentText,
-              title: content.title,
-              source: 'local_file',
-              sourcePath: file.path,
-              mimeType: content.mimeType,
-              metadata: {
-                size: file.size,
-                lastModified: file.lastModified,
-                extension: file.extension,
-              },
-            });
+
+            // Multi-pass indexing: split large content into 50K-char segments
+            // so the ENTIRE document is searchable, not just the first 50K chars.
+            // Each segment is indexed as a separate document with the same sourcePath
+            // but different part metadata, so search hits anywhere in the file.
+            const fullText = content.content;
+            const SEGMENT_SIZE = 50_000;
+
+            if (fullText.length <= SEGMENT_SIZE) {
+              // Small file — single-pass index (most common path)
+              const result = await core.knowledge.indexDocument({
+                content: fullText,
+                title: content.title,
+                source: 'local_file',
+                sourcePath: file.path,
+                mimeType: content.mimeType,
+                metadata: {
+                  size: file.size,
+                  lastModified: file.lastModified,
+                  extension: file.extension,
+                },
+              });
+              totalChunksCreated += result.chunksCreated;
+            } else {
+              // Large file — multi-pass indexing
+              const totalSegments = Math.ceil(fullText.length / SEGMENT_SIZE);
+              console.error(`[sidecar] Large content for "${file.name}" (${fullText.length} chars) — splitting into ${totalSegments} segments`);
+
+              for (let segIdx = 0; segIdx < totalSegments; segIdx++) {
+                const segmentText = fullText.slice(segIdx * SEGMENT_SIZE, (segIdx + 1) * SEGMENT_SIZE);
+                const segTitle = totalSegments > 1
+                  ? `${content.title} (part ${segIdx + 1}/${totalSegments})`
+                  : content.title;
+
+                try {
+                  const result = await core.knowledge.indexDocument({
+                    content: segmentText,
+                    title: segTitle,
+                    source: 'local_file',
+                    sourcePath: file.path,
+                    mimeType: content.mimeType,
+                    metadata: {
+                      size: file.size,
+                      lastModified: file.lastModified,
+                      extension: file.extension,
+                      part: segIdx + 1,
+                      totalParts: totalSegments,
+                    },
+                  });
+                  totalChunksCreated += result.chunksCreated;
+                } catch (segErr) {
+                  console.error(`[sidecar] Failed to index segment ${segIdx + 1}/${totalSegments} of ${file.name}:`, segErr);
+                }
+              }
+            }
 
             totalFilesScanned++;
-            totalChunksCreated += result.chunksCreated;
           } catch (err) {
             console.error(`[sidecar] Failed to index ${file.path}:`, err);
             totalFilesScanned++;
@@ -3214,7 +3229,6 @@ async function handleConnectorDisconnect(params: { connectorId: string }): Promi
 }
 
 async function handleConnectorSync(params: { connectorId: string }): Promise<unknown> {
-  // For now, return status — full sync implementation depends on per-connector data fetching
   const config = getOAuthConfigForConnector(params.connectorId);
   if (!config) {
     return { success: false, error: `No OAuth config for connector: ${params.connectorId}` };
@@ -3227,7 +3241,90 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
     return { success: false, error: 'Not authenticated. Please connect first.' };
   }
 
-  return { success: true, synced: true, connectorId: params.connectorId, message: 'Sync initiated' };
+  // Lazy-initialize the connector router with all registered adapters
+  if (!connectorRouter) {
+    connectorRouter = registerAllConnectors(tokenMgr);
+    console.error('[sidecar] ConnectorRouter initialized with adapters:', connectorRouter.listRegistered().join(', '));
+  }
+
+  // Check if this connector has a registered adapter
+  if (!connectorRouter.hasAdapter(params.connectorId)) {
+    return {
+      success: false,
+      error: `No sync adapter registered for connector: ${params.connectorId}. Adapter may not be implemented yet.`,
+    };
+  }
+
+  // Execute the actual sync via the adapter
+  console.error(`[sidecar] Syncing connector: ${params.connectorId}`);
+  const syncResult = await connectorRouter.execute('connector.sync' as import('../../../core/types/actions.js').ActionType, {
+    connectorId: params.connectorId,
+  });
+
+  if (!syncResult.success) {
+    console.error(`[sidecar] Connector sync failed for ${params.connectorId}:`, syncResult.error);
+    return {
+      success: false,
+      error: syncResult.error?.message ?? 'Sync failed',
+      code: syncResult.error?.code,
+    };
+  }
+
+  // Extract synced items from the adapter response
+  const syncData = syncResult.data as { items?: Array<{ id: string; title: string; content: string; timestamp: string; sourceType?: string; metadata?: Record<string, unknown> }>; totalItems?: number } | undefined;
+  const items = syncData?.items ?? [];
+  let indexedCount = 0;
+  const indexErrors: string[] = [];
+
+  // Ingest synced items into the knowledge graph if core is available
+  if (core?.knowledge && items.length > 0) {
+    // Map ImportSourceType to DocumentSource for indexing
+    const sourceTypeMap: Record<string, string> = {
+      browser_history: 'browser_history',
+      notes: 'note',
+      photos_metadata: 'photos_metadata',
+      messaging: 'messaging',
+      social: 'social',
+      health: 'health',
+      finance: 'financial',
+      productivity: 'note',
+      research: 'note',
+    };
+
+    for (const item of items) {
+      try {
+        const docSource = (sourceTypeMap[item.sourceType ?? ''] ?? 'manual') as import('../../../core/knowledge/types.js').DocumentSource;
+        await core.knowledge.indexDocument({
+          content: item.content,
+          title: item.title,
+          source: docSource,
+          metadata: {
+            connectorId: params.connectorId,
+            syncedAt: new Date().toISOString(),
+            originalId: item.id,
+            ...(item.metadata ?? {}),
+          },
+        });
+        indexedCount++;
+      } catch (indexErr) {
+        const msg = indexErr instanceof Error ? indexErr.message : String(indexErr);
+        indexErrors.push(`Failed to index "${item.title}": ${msg}`);
+        console.error(`[sidecar] Failed to index synced item "${item.title}":`, msg);
+      }
+    }
+    console.error(`[sidecar] Connector ${params.connectorId} sync complete: ${indexedCount}/${items.length} items indexed`);
+  } else if (items.length > 0) {
+    console.error(`[sidecar] Connector ${params.connectorId} synced ${items.length} items but core.knowledge not available — items not indexed`);
+  }
+
+  return {
+    success: true,
+    synced: true,
+    connectorId: params.connectorId,
+    itemCount: items.length,
+    indexedCount,
+    errors: indexErrors.length > 0 ? indexErrors : undefined,
+  };
 }
 
 async function handleImportRun(params: { sourcePath: string; sourceType: string }): Promise<unknown> {

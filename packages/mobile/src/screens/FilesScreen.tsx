@@ -266,11 +266,6 @@ export function FilesScreen() {
   }, []);
 
   const handleAddFolder = useCallback(async () => {
-    // On mobile, we use the document picker to select a directory.
-    // React Native doesn't have a native directory picker on all platforms,
-    // so we use react-native-document-picker when available.
-    // TODO: Sprint 6 — Wire document picker for directory selection.
-    // For now, show an alert explaining the process.
     try {
       const DocumentPicker = await import('react-native-document-picker').catch(() => null);
       if (DocumentPicker) {
@@ -282,23 +277,73 @@ export function FilesScreen() {
             lastIndexed: undefined,
           };
           setDirectories((prev) => [...prev, newDir]);
-          setIndexingStatus({
-            state: 'scanning',
-            filesScanned: 0,
-            filesTotal: 0,
-            chunksCreated: 0,
-            currentFile: null,
-            error: null,
-          });
 
-          // Trigger indexing through the runtime's core
           const runtimeState = getRuntimeState();
-          if (runtimeState.core) {
-            // Indexing will emit progress events; for mobile these are handled
-            // via the runtime's event system once fully wired.
-            // TODO: Sprint 6 — Wire indexing progress events from mobile runtime.
+          if (runtimeState.core && runtimeState.core.knowledge) {
+            try {
+              setIndexingStatus({
+                state: 'indexing',
+                filesScanned: 0,
+                filesTotal: 0,
+                chunksCreated: 0,
+                currentFile: null,
+                error: null,
+              });
+
+              const indexResult = await runtimeState.core.knowledge.indexDirectory?.(result.uri, {
+                onProgress: (scanned: number, total: number, currentFile: string) => {
+                  setIndexingStatus((prev) => ({
+                    ...prev,
+                    state: 'indexing',
+                    filesScanned: scanned,
+                    filesTotal: total,
+                    currentFile,
+                  }));
+                },
+              });
+
+              const filesIndexed = indexResult?.filesIndexed ?? 0;
+              const chunks = indexResult?.chunksCreated ?? 0;
+
+              setDirectories((prev) =>
+                prev.map((d) =>
+                  d.path === result.uri
+                    ? { ...d, fileCount: filesIndexed, lastIndexed: new Date().toISOString() }
+                    : d,
+                ),
+              );
+
+              setIndexingStatus({
+                state: 'complete',
+                filesScanned: filesIndexed,
+                filesTotal: filesIndexed,
+                chunksCreated: chunks,
+                currentFile: null,
+                error: null,
+              });
+
+              const stats = await runtimeState.core.knowledge.getStats?.();
+              if (stats) {
+                setKnowledgeStats({
+                  documentCount: stats.documentCount ?? 0,
+                  chunkCount: stats.chunkCount ?? 0,
+                  indexSizeBytes: stats.indexSizeBytes ?? 0,
+                });
+              }
+            } catch (err) {
+              console.error('[FilesScreen] indexing failed:', err);
+              setIndexingStatus({
+                state: 'error',
+                filesScanned: 0,
+                filesTotal: 0,
+                chunksCreated: 0,
+                currentFile: null,
+                error: err instanceof Error ? err.message : 'Indexing failed',
+              });
+            }
+          } else {
             setIndexingStatus({
-              state: 'complete',
+              state: 'idle',
               filesScanned: 0,
               filesTotal: 0,
               chunksCreated: 0,
@@ -337,7 +382,7 @@ export function FilesScreen() {
     );
   }, [t]);
 
-  const handleRescan = useCallback((path: string) => {
+  const handleRescan = useCallback(async (path: string) => {
     setIndexingStatus({
       state: 'scanning',
       filesScanned: 0,
@@ -347,17 +392,70 @@ export function FilesScreen() {
       error: null,
     });
 
-    // TODO: Sprint 6 — Wire re-indexing through mobile runtime
-    setTimeout(() => {
+    const runtimeState = getRuntimeState();
+    if (runtimeState.core && runtimeState.core.knowledge) {
+      try {
+        const indexResult = await runtimeState.core.knowledge.indexDirectory?.(path, {
+          onProgress: (scanned: number, total: number, currentFile: string) => {
+            setIndexingStatus((prev) => ({
+              ...prev,
+              state: 'indexing',
+              filesScanned: scanned,
+              filesTotal: total,
+              currentFile,
+            }));
+          },
+        });
+
+        const filesIndexed = indexResult?.filesIndexed ?? 0;
+        const chunks = indexResult?.chunksCreated ?? 0;
+
+        setDirectories((prev) =>
+          prev.map((d) =>
+            d.path === path
+              ? { ...d, fileCount: filesIndexed, lastIndexed: new Date().toISOString() }
+              : d,
+          ),
+        );
+
+        setIndexingStatus({
+          state: 'complete',
+          filesScanned: filesIndexed,
+          filesTotal: filesIndexed,
+          chunksCreated: chunks,
+          currentFile: null,
+          error: null,
+        });
+
+        const stats = await runtimeState.core.knowledge.getStats?.();
+        if (stats) {
+          setKnowledgeStats({
+            documentCount: stats.documentCount ?? 0,
+            chunkCount: stats.chunkCount ?? 0,
+            indexSizeBytes: stats.indexSizeBytes ?? 0,
+          });
+        }
+      } catch (err) {
+        console.error('[FilesScreen] re-index failed:', err);
+        setIndexingStatus({
+          state: 'error',
+          filesScanned: 0,
+          filesTotal: 0,
+          chunksCreated: 0,
+          currentFile: null,
+          error: err instanceof Error ? err.message : 'Re-indexing failed',
+        });
+      }
+    } else {
       setIndexingStatus({
-        state: 'complete',
+        state: 'error',
         filesScanned: 0,
         filesTotal: 0,
         chunksCreated: 0,
         currentFile: null,
-        error: null,
+        error: 'Runtime not initialized',
       });
-    }, 1000);
+    }
   }, []);
 
   const indexSizeMb = (knowledgeStats.indexSizeBytes / (1024 * 1024)).toFixed(1);

@@ -10,10 +10,9 @@
 // When no desktop is available, web search is genuinely unavailable — not
 // broken, but architecturally impossible without violating the zero-network
 // constraint. The UI should indicate this clearly.
-//
-// TODO(Sprint 3, Step 11): Wire web search to desktop handoff when task
-// routing is implemented. Mobile will delegate web search requests to
-// desktop Gateway and receive results back via the handoff channel.
+
+import type { TaskDelegationEngine } from '@semblance/core/routing/task-delegation.js';
+import { getRuntimeState } from '../runtime/mobile-runtime.js';
 
 export interface MobileSearchResult {
   id: string;
@@ -112,6 +111,38 @@ function estimateWordCount(text: string): number {
   return text.split(/\s+/).filter(w => w.length > 0).length;
 }
 
+// ─── Module-level delegation engine ──────────────────────────────────────────
+
+let delegationEngine: TaskDelegationEngine | null = null;
+
+/**
+ * Register the TaskDelegationEngine for web search routing.
+ * Called by the mobile runtime after initialization.
+ */
+export function setWebSearchDelegationEngine(engine: TaskDelegationEngine): void {
+  delegationEngine = engine;
+}
+
+/**
+ * Get the currently registered delegation engine.
+ */
+function getDelegationEngine(): TaskDelegationEngine | null {
+  // Prefer the explicitly registered engine
+  if (delegationEngine) return delegationEngine;
+
+  // Fall back to checking the mobile runtime state
+  const state = getRuntimeState();
+  if (state.core) {
+    const coreAny = state.core as unknown as Record<string, unknown>;
+    const routing = coreAny.routing as { taskDelegation?: TaskDelegationEngine } | undefined;
+    if (routing?.taskDelegation) {
+      return routing.taskDelegation;
+    }
+  }
+
+  return null;
+}
+
 // ─── Mobile Web Search ────────────────────────────────────────────────────────
 
 export interface MobileWebSearchStatus {
@@ -124,46 +155,57 @@ export interface MobileWebSearchStatus {
  *
  * Web search requires the Gateway, which only runs on desktop. Mobile can
  * access web search via desktop handoff when a desktop device is discovered
- * on the local network.
- *
- * Returns { available: false, reason: 'no_gateway' } — this is the honest
- * answer, not a stub. Mobile architecturally cannot make network calls
- * (Rule 1: Zero Network in AI Core).
- *
- * TODO(Sprint 3): Check desktop handoff availability via task router.
- * When desktop is reachable, return { available: true, reason: 'desktop_connected' }.
+ * on the local network and a TaskDelegationEngine is available.
  */
 export function getWebSearchStatus(): MobileWebSearchStatus {
-  // Mobile has no Gateway process — web search requires desktop handoff.
-  // This is an architectural truth, not a missing implementation.
-  return { available: false, reason: 'no_gateway' };
+  const engine = getDelegationEngine();
+  if (engine) {
+    const routing = engine.decideRouting('web_search.classify');
+    if (routing.target === 'remote' && !routing.degraded) {
+      return { available: true, reason: 'desktop_connected' };
+    }
+  }
+
+  // No desktop connection — web search requires Gateway which is desktop-only
+  return { available: false, reason: 'no_desktop' };
 }
 
 /**
- * Attempt a web search via desktop handoff.
+ * Perform a web search via desktop handoff.
  *
- * Currently returns null because desktop handoff for web search is not yet
- * implemented (Sprint 3, Step 11). When implemented, this will:
- * 1. Check if desktop is reachable via task router
- * 2. Send search request to desktop Gateway
- * 3. Receive and transform results
- *
- * Returns null (not fake results) when unavailable.
- *
- * TODO(Sprint 3, Step 11): Implement desktop handoff for web search.
+ * Routes the search request to the desktop Gateway using the
+ * TaskDelegationEngine. Returns null if no desktop is available —
+ * web search is architecturally impossible on mobile without the Gateway.
  */
 export async function performWebSearch(
-  _query: string,
+  query: string,
 ): Promise<MobileSearchResponse | null> {
   const status = getWebSearchStatus();
   if (!status.available) {
-    // Web search is genuinely unavailable on mobile without desktop handoff.
-    // Returning null signals the UI to show "web search requires desktop" message.
     return null;
   }
 
-  // TODO(Sprint 3, Step 11): Route through desktop handoff
-  // const result = await taskRouter.handoffToDesktop({ action: 'web.search', payload: { query } });
-  // return toMobileSearchResults(query, result.data, result.provider);
+  const engine = getDelegationEngine();
+  if (!engine) return null;
+
+  try {
+    const result = await engine.executeTask(
+      'web_search.classify',
+      { query },
+      // Local executor — web search cannot run locally on mobile, return null
+      async () => null,
+    );
+
+    if (result.status === 'success' && result.result) {
+      const data = result.result as {
+        results: Array<{ title: string; url: string; snippet: string }>;
+        provider: string;
+      };
+      return toMobileSearchResults(query, data.results, data.provider);
+    }
+  } catch {
+    // Desktop handoff failed — web search unavailable
+  }
+
   return null;
 }
