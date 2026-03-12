@@ -224,6 +224,11 @@ export interface SemblanceCoreConfig {
   chatModel?: string;
   /** External LLM provider. If supplied, used instead of creating OllamaProvider. */
   llmProvider?: LLMProvider;
+  /**
+   * External IPC transport. If supplied, used instead of creating a socket-based transport.
+   * Used by mobile to inject MobileGatewayTransport (in-process web search/fetch).
+   */
+  ipcTransport?: import('./ipc/transport.js').IPCTransport;
 }
 
 // Default socket path varies by platform
@@ -347,10 +352,22 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
 
       // Step 4: Create and connect the IPC client
       console.error('[SemblanceCore] Connecting IPC client...');
-      ipc = new CoreIPCClient({
-        socketPath,
-        signingKeyPath,
-      });
+      if (config?.ipcTransport) {
+        // Mobile: use provided transport (e.g. MobileGatewayTransport)
+        // Generate a random signing key for in-process use (never sent over network)
+        const keyBytes = new Uint8Array(32);
+        for (let i = 0; i < 32; i++) keyBytes[i] = Math.floor(Math.random() * 256);
+        ipc = new CoreIPCClient({
+          transport: config.ipcTransport,
+          signingKey: Buffer.from(keyBytes),
+        });
+      } else {
+        // Desktop: connect to Gateway via Unix socket / named pipe
+        ipc = new CoreIPCClient({
+          socketPath,
+          signingKeyPath,
+        });
+      }
 
       try {
         const ipcConnectStart = Date.now();

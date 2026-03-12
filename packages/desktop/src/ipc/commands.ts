@@ -867,6 +867,29 @@ export function skipAlterEgoDay(): Promise<void> {
   return invoke<void>('alter_ego_skip_day');
 }
 
+// ─── Location Settings ─────────────────────────────────────────────────────
+
+export interface LocationSettings {
+  enabled: boolean;
+  defaultCity: string;
+  weatherEnabled: boolean;
+  commuteEnabled: boolean;
+  remindersEnabled: boolean;
+  retentionDays: number;
+}
+
+export function getLocationSettings(): Promise<LocationSettings> {
+  return invoke<LocationSettings>('get_location_settings');
+}
+
+export function saveLocationSettings(settings: LocationSettings): Promise<void> {
+  return invoke<void>('save_location_settings', { settings });
+}
+
+export function clearLocationHistory(): Promise<{ cleared: boolean }> {
+  return invoke<{ cleared: boolean }>('clear_location_history');
+}
+
 // ─── Upgrade Email Capture ──────────────────────────────────────────────────
 
 export function submitUpgradeEmail(email: string): Promise<void> {

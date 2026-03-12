@@ -239,6 +239,13 @@ export function SettingsScreen() {
             onPress: () => navigation.navigate('LocationSettings'),
           },
           {
+            id: 'search',
+            label: t('screen.search_settings.title', { defaultValue: 'Search' }),
+            type: 'navigate' as const,
+            description: t('screen.search_settings.nav_description', { defaultValue: 'Search engine and API keys' }),
+            onPress: () => navigation.navigate('SearchSettings'),
+          },
+          {
             id: 'capture',
             label: t('screen.capture.title'),
             type: 'navigate' as const,

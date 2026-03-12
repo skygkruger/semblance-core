@@ -31,6 +31,7 @@ export type DocumentSource =
   | 'social'
   | 'chat_attachment'
   | 'conversation'
+  | 'location'
   | 'manual';
 
 export interface DocumentChunk {

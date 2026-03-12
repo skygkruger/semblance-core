@@ -1,19 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  getLocationSettings,
+  saveLocationSettings,
+  clearLocationHistory,
+  type LocationSettings,
+} from '../ipc/commands';
 import './LocationSettingsScreen.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-interface LocationSettings {
-  enabled: boolean;
-  defaultCity: string;
-  weatherEnabled: boolean;
-  commuteEnabled: boolean;
-  remindersEnabled: boolean;
-  retentionDays: number;
-}
-
-const STORAGE_KEY = 'semblance.location_settings';
 
 const DEFAULT_SETTINGS: LocationSettings = {
   enabled: false,
@@ -34,11 +29,8 @@ export function LocationSettingsScreen() {
   useEffect(() => {
     async function loadData() {
       try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setSettings({ ...DEFAULT_SETTINGS, ...parsed });
-        }
+        const saved = await getLocationSettings();
+        setSettings({ ...DEFAULT_SETTINGS, ...saved });
       } catch (err) {
         console.error('[LocationSettingsScreen] load failed:', err);
       } finally {
@@ -51,7 +43,9 @@ export function LocationSettingsScreen() {
   const updateSettings = useCallback((changes: Partial<LocationSettings>) => {
     setSettings((prev) => {
       const updated = { ...prev, ...changes };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      saveLocationSettings(updated).catch((err) => {
+        console.error('[LocationSettingsScreen] save failed:', err);
+      });
       return updated;
     });
   }, []);
@@ -207,7 +201,14 @@ export function LocationSettingsScreen() {
           <p className="location-settings__field-hint">
             {t('screen.location.clear_history_hint')}
           </p>
-          <button className="location-settings__danger-btn" disabled>
+          <button
+            className="location-settings__danger-btn"
+            onClick={() => {
+              clearLocationHistory()
+                .then(() => setSettings(DEFAULT_SETTINGS))
+                .catch((err) => console.error('[LocationSettingsScreen] clear failed:', err));
+            }}
+          >
             {t('screen.location.clear_all')}
           </button>
         </div>
