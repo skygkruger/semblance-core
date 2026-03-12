@@ -191,6 +191,14 @@ function deriveSublabel(n: VisualizationNode): string | undefined {
 }
 
 function toKnowledgeNode(n: VisualizationNode): KnowledgeNode {
+  // Derive an activityScore if not present — ensures nodes get visible glow tiers
+  // in the Three.js renderer instead of tier 4 (dimmest)
+  const meta = n.metadata ?? {};
+  if (meta.activityScore == null) {
+    // Heuristic: weight-based activity score so nodes with more connections glow brighter
+    meta.activityScore = Math.min(1, (n.size ?? 1) / 20);
+  }
+
   return {
     id: n.id,
     type: n.type === 'person' ? 'person'
@@ -201,7 +209,7 @@ function toKnowledgeNode(n: VisualizationNode): KnowledgeNode {
     label: n.label,
     sublabel: deriveSublabel(n),
     weight: n.size,
-    metadata: n.metadata,
+    metadata: meta,
   };
 }
 

@@ -1342,40 +1342,79 @@ async fn dispatch_native_callback(
     method: &str,
     params: Value,
 ) -> Result<Value, String> {
+    // File-based logging — eprintln goes nowhere on Windows GUI apps
+    fn log_to_file(msg: &str) {
+        use std::io::Write;
+        let log_path = if cfg!(target_os = "windows") {
+            let appdata = std::env::var("LOCALAPPDATA").unwrap_or_else(|_| ".".to_string());
+            std::path::PathBuf::from(appdata).join("Semblance").join("native_runtime.log")
+        } else {
+            std::path::PathBuf::from("/tmp/semblance_native_runtime.log")
+        };
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+            let _ = writeln!(f, "{}", msg);
+        }
+    }
+
     match method {
         "native_generate" => {
+            log_to_file(&format!("native_generate: parsing request..."));
             let request: native_runtime::GenerateRequest =
                 serde_json::from_value(params).map_err(|e| format!("Invalid generate params: {}", e))?;
 
-            // Run generate in a catch_unwind to prevent llama.cpp C-level crashes
-            // from killing the entire Tauri process. If llama.cpp segfaults or panics,
-            // we return an error instead of crashing the app.
+            let sys_len = request.system_prompt.as_ref().map(|s| s.len()).unwrap_or(0);
+            let prompt_len = request.prompt.len();
+            let max_tok = request.max_tokens.unwrap_or(512);
+            log_to_file(&format!("native_generate: sys={}chars prompt={}chars max_tokens={}", sys_len, prompt_len, max_tok));
+
+            log_to_file("native_generate: acquiring runtime lock...");
             let rt = runtime.lock().await;
+            log_to_file("native_generate: lock acquired, calling generate with catch_unwind...");
+
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 rt.generate(request)
             }));
+
             match result {
                 Ok(Ok(response)) => {
+                    log_to_file(&format!("native_generate: SUCCESS, {} tokens in {}ms", response.tokens_generated, response.duration_ms));
                     serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
                 }
-                Ok(Err(e)) => Err(format!("Generate error: {}", e)),
-                Err(_) => Err("Native runtime panicked during generation — the prompt may be too large or malformed".to_string()),
+                Ok(Err(e)) => {
+                    log_to_file(&format!("native_generate: ERROR: {}", e));
+                    Err(format!("Generate error: {}", e))
+                }
+                Err(_) => {
+                    log_to_file("native_generate: PANIC caught by catch_unwind");
+                    Err("Native runtime panicked during generation — the prompt may be too large or malformed".to_string())
+                }
             }
         }
         "native_embed" => {
+            log_to_file(&format!("native_embed: parsing request..."));
             let request: native_runtime::EmbedRequest =
                 serde_json::from_value(params).map_err(|e| format!("Invalid embed params: {}", e))?;
 
+            log_to_file(&format!("native_embed: {} inputs", request.input.len()));
             let rt = runtime.lock().await;
+            log_to_file("native_embed: lock acquired, calling embed with catch_unwind...");
+
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 rt.embed(request)
             }));
             match result {
                 Ok(Ok(response)) => {
+                    log_to_file(&format!("native_embed: SUCCESS, {} embeddings in {}ms", response.embeddings.len(), response.duration_ms));
                     serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
                 }
-                Ok(Err(e)) => Err(format!("Embed error: {}", e)),
-                Err(_) => Err("Native runtime panicked during embedding — input text may be too large".to_string()),
+                Ok(Err(e)) => {
+                    log_to_file(&format!("native_embed: ERROR: {}", e));
+                    Err(format!("Embed error: {}", e))
+                }
+                Err(_) => {
+                    log_to_file("native_embed: PANIC caught by catch_unwind");
+                    Err("Native runtime panicked during embedding — input text may be too large".to_string())
+                }
             }
         }
         "native_load_model" => {
