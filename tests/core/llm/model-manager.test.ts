@@ -30,7 +30,7 @@ describe('ModelManager', () => {
 
   it('lists models from provider', async () => {
     const models: ModelInfo[] = [
-      { name: 'llama3.2:8b', size: 4_000_000_000, isEmbedding: false, family: 'llama' },
+      { name: 'llama3.1:8b', size: 4_000_000_000, isEmbedding: false, family: 'llama' },
       { name: 'nomic-embed-text', size: 500_000_000, isEmbedding: true },
     ];
     const provider = createMockProvider(models);
@@ -44,14 +44,14 @@ describe('ModelManager', () => {
   it('selects preferred chat model when available', async () => {
     const models: ModelInfo[] = [
       { name: 'mistral', size: 4_000_000_000, isEmbedding: false },
-      { name: 'llama3.2:8b', size: 4_000_000_000, isEmbedding: false },
+      { name: 'llama3.1:8b', size: 4_000_000_000, isEmbedding: false },
     ];
     const provider = createMockProvider(models);
     const manager = new ModelManager(provider, db as unknown as DatabaseHandle);
 
     const chat = await manager.getActiveChatModel();
-    // llama3.2:8b is higher priority than mistral
-    expect(chat).toBe('llama3.2:8b');
+    // llama3.1:8b is higher priority than mistral
+    expect(chat).toBe('llama3.1:8b');
   });
 
   it('falls back to first non-embedding model', async () => {
@@ -77,7 +77,7 @@ describe('ModelManager', () => {
   it('selects preferred embedding model', async () => {
     const models: ModelInfo[] = [
       { name: 'nomic-embed-text', size: 500_000_000, isEmbedding: true },
-      { name: 'llama3.2:8b', size: 4_000_000_000, isEmbedding: false },
+      { name: 'llama3.1:8b', size: 4_000_000_000, isEmbedding: false },
     ];
     const provider = createMockProvider(models);
     const manager = new ModelManager(provider, db as unknown as DatabaseHandle);
@@ -89,7 +89,7 @@ describe('ModelManager', () => {
   it('persists model preference', async () => {
     const models: ModelInfo[] = [
       { name: 'mistral', size: 4_000_000_000, isEmbedding: false },
-      { name: 'llama3.2:8b', size: 4_000_000_000, isEmbedding: false },
+      { name: 'llama3.1:8b', size: 4_000_000_000, isEmbedding: false },
     ];
     const provider = createMockProvider(models);
     const manager = new ModelManager(provider, db as unknown as DatabaseHandle);
