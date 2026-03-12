@@ -3086,7 +3086,7 @@ function getOAuthConfigForConnector(connectorId: string): {
       providerKey: 'google',
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
-      scopes: 'https://mail.google.com/ https://www.googleapis.com/auth/calendar.readonly',
+      scopes: 'openid email https://mail.google.com/ https://www.googleapis.com/auth/calendar.readonly',
       clientId: process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
       clientSecret: process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'],
       usePKCE: false,
@@ -3206,7 +3206,11 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
       error: `OAuth not configured for ${params.connectorId}. Set the ${envKey} environment variable.`,
     };
   }
-  console.error(`[sidecar] OAuth config resolved for ${params.connectorId}, opening browser...`);
+  console.error(`[sidecar] OAuth config resolved for ${params.connectorId}:`);
+  console.error(`[sidecar]   clientId: ${config.clientId.slice(0, 20)}...`);
+  console.error(`[sidecar]   clientSecret: ${config.clientSecret ? 'SET' : 'NOT SET'}`);
+  console.error(`[sidecar]   scopes: ${config.scopes}`);
+  console.error(`[sidecar]   usePKCE: ${config.usePKCE}`);
 
   const tokenMgr = ensureOAuthTokenManager();
   const callbackServer = new OAuthCallbackServer();
@@ -3215,6 +3219,7 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
     // Slack requires HTTPS redirect URIs — use self-signed cert for localhost
     const requiresHttps = params.connectorId === 'slack';
     const { callbackUrl, state } = await callbackServer.start({ https: requiresHttps });
+    console.error(`[sidecar] Callback server started at: ${callbackUrl}`);
 
     // Generate PKCE code_verifier + code_challenge for PKCE flows
     let codeVerifier: string | null = null;
@@ -3243,6 +3248,8 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
     }
 
     // Open system browser for OAuth consent
+    console.error(`[sidecar] OAuth auth URL: ${authUrl.toString().slice(0, 200)}...`);
+    console.error(`[sidecar] redirect_uri in auth URL: ${callbackUrl}`);
     const { exec } = await import('node:child_process');
     if (process.platform === 'win32') {
       exec(`start "" "${authUrl.toString().replace(/"/g, '\\"')}"`, (err) => {
@@ -3259,7 +3266,9 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
     }
 
     // Wait for callback
+    console.error('[sidecar] Waiting for OAuth callback (120s timeout)...');
     const { code } = await callbackServer.waitForCallback();
+    console.error(`[sidecar] OAuth callback received! Code length: ${code.length}`);
 
     // Exchange code for tokens
     const tokenBody: Record<string, string> = {
@@ -3331,14 +3340,27 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
     }
 
     // Store tokens
+    const hasRefreshToken = !!(tokenData.refresh_token as string);
+    const expiresIn = (tokenData.expires_in as number) ?? 3600;
+    console.error(`[sidecar] Storing OAuth tokens for ${config.providerKey}:`);
+    console.error(`[sidecar]   accessToken: ${(tokenData.access_token as string).slice(0, 20)}...`);
+    console.error(`[sidecar]   refreshToken: ${hasRefreshToken ? 'YES' : 'NONE'}`);
+    console.error(`[sidecar]   expiresIn: ${expiresIn}s`);
+    console.error(`[sidecar]   userEmail: ${userEmail ?? 'unknown'}`);
+
     tokenMgr.storeTokens({
       provider: config.providerKey,
       accessToken: tokenData.access_token as string,
       refreshToken: (tokenData.refresh_token as string) ?? '',
-      expiresAt: Date.now() + ((tokenData.expires_in as number) ?? 3600) * 1000,
+      expiresAt: Date.now() + expiresIn * 1000,
       scopes: config.scopes,
       userEmail,
     });
+
+    // Verify storage worked by reading back
+    const storedValid = tokenMgr.hasValidTokens(config.providerKey);
+    const storedEmail = tokenMgr.getUserEmail(config.providerKey);
+    console.error(`[sidecar] Token storage verification: valid=${storedValid}, email=${storedEmail}`);
 
     return {
       success: true,
@@ -3347,6 +3369,7 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
       userEmail,
     };
   } catch (err) {
+    console.error(`[sidecar] OAuth flow error for ${params.connectorId}:`, err);
     callbackServer.stop();
     return {
       success: false,
@@ -5390,6 +5413,42 @@ async function handleRequest(req: Request): Promise<void> {
       case 'connector.sync': {
         const result = await handleConnectorSync(params as { connectorId: string });
         respond(id, result);
+        break;
+      }
+      case 'connector.debug': {
+        // Diagnostic endpoint: returns full token and config state for a connector
+        try {
+          const debugConnectorId = (params as { connectorId?: string }).connectorId ?? 'gmail';
+          const tokenMgr = ensureOAuthTokenManager();
+          const config = getOAuthConfigForConnector(debugConnectorId);
+          const providerKey = config?.providerKey ?? 'unknown';
+
+          const hasTokens = config ? tokenMgr.hasValidTokens(providerKey) : false;
+          const isExpired = config ? tokenMgr.isTokenExpired(providerKey) : true;
+          const userEmail = config ? tokenMgr.getUserEmail(providerKey) : null;
+          const hasRefresh = config ? (tokenMgr.getRefreshToken(providerKey) !== null) : false;
+          const accessToken = config ? tokenMgr.getAccessToken(providerKey) : null;
+
+          const debugInfo = {
+            connectorId: debugConnectorId,
+            providerKey,
+            configFound: !!config,
+            clientIdSet: config ? config.clientId !== UNCONFIGURED_CLIENT_ID : false,
+            clientSecretSet: !!config?.clientSecret,
+            hasTokens,
+            isExpired,
+            hasRefreshToken: hasRefresh,
+            hasAccessToken: !!accessToken,
+            userEmail,
+            envGoogleClientId: process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ? 'SET' : 'NOT SET',
+            envGoogleClientSecret: process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'] ? 'SET' : 'NOT SET',
+            dataDir: dataDir || join(homedir(), '.semblance'),
+          };
+          console.error('[sidecar] connector.debug:', JSON.stringify(debugInfo, null, 2));
+          respond(id, debugInfo);
+        } catch (debugErr) {
+          respond(id, { error: String(debugErr) });
+        }
         break;
       }
 

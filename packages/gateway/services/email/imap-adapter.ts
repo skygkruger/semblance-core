@@ -41,9 +41,30 @@ export function parseAddressList(list: unknown): EmailAddress[] {
 
 /**
  * Derive a thread ID from In-Reply-To and References headers.
+ * ImapFlow returns a Buffer when specific header names are requested,
+ * or a Map when `headers: true` is used. Handle both.
  */
-export function deriveThreadId(headers: Map<string, string[]> | undefined): string | undefined {
+export function deriveThreadId(headers: Map<string, string[]> | Buffer | undefined): string | undefined {
   if (!headers) return undefined;
+
+  // If headers is a Buffer (raw header text from ImapFlow specific-header fetch),
+  // parse it into a simple map
+  if (Buffer.isBuffer(headers)) {
+    const text = headers.toString('utf-8');
+    const referencesMatch = text.match(/^references:\s*(.+)/im);
+    if (referencesMatch) {
+      const firstRef = referencesMatch[1]!.trim().split(/\s+/)[0];
+      return firstRef || undefined;
+    }
+    const replyToMatch = text.match(/^in-reply-to:\s*(.+)/im);
+    if (replyToMatch) {
+      return replyToMatch[1]!.trim().split(/\s+/)[0] || undefined;
+    }
+    return undefined;
+  }
+
+  // Map path (when headers: true is used)
+  if (typeof headers.get !== 'function') return undefined;
 
   // Use the first References header value as thread ID
   const references = headers.get('references');
@@ -265,7 +286,7 @@ export class IMAPAdapter {
             }
           }
 
-          const threadId = deriveThreadId(msg.headers as Map<string, string[]> | undefined);
+          const threadId = deriveThreadId(msg.headers as Map<string, string[]> | Buffer | undefined);
 
           messages.push({
             id: String(msg.uid),
