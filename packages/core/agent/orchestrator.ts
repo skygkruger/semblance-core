@@ -122,7 +122,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'send_email',
-    description: 'Send an email on behalf of the user. In Guardian mode, this shows a preview and waits for approval. In Partner mode, routine responses are sent automatically; novel emails require approval. In Alter Ego mode, all emails are sent automatically.',
+    description: 'Send an email on behalf of the user.',
     parameters: {
       type: 'object',
       properties: {
@@ -152,7 +152,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'archive_email',
-    description: 'Archive one or more emails (move from INBOX to Archive/All Mail). In Partner mode, archiving routine emails is automatic.',
+    description: 'Archive one or more emails (move from INBOX to Archive/All Mail).',
     parameters: {
       type: 'object',
       properties: {
@@ -187,7 +187,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'create_calendar_event',
-    description: 'Create a new calendar event. In Guardian mode, shows preview and waits. In Partner mode, routine scheduling is automatic. In Alter Ego mode, all scheduling is automatic.',
+    description: 'Create a new calendar event.',
     parameters: {
       type: 'object',
       properties: {
@@ -286,7 +286,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'send_text',
-    description: 'Send a text message (SMS) on behalf of the user. Use when the user says "text [name]", "message [name]", or "send a text to [name]". The message will be style-matched to the user\'s writing. In Guardian mode, shows a preview. In Partner mode, the message is presented for sending. In Alter Ego mode, sends autonomously if the platform supports it.',
+    description: 'Send a text message (SMS) on behalf of the user.',
     parameters: {
       type: 'object',
       properties: {

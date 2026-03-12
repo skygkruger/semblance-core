@@ -319,6 +319,36 @@ export class GraphVisualizationProvider {
    * Get context for a specific node — connections, recent activity, related items.
    */
   getNodeContext(nodeId: string): NodeContext | null {
+    // Handle synthetic category nodes (e.g., "cat_knowledge", "cat_people")
+    if (nodeId.startsWith('cat_')) {
+      const categoryKey = nodeId.slice(4) as VisualizationCategory;
+      const catMeta = CATEGORY_META[categoryKey];
+      if (catMeta) {
+        const { nodes: catNodes, edges: catEdges } = this.getNodesForCategory(categoryKey);
+        const syntheticNode: VisualizationNode = {
+          id: nodeId,
+          label: catMeta.displayName,
+          type: 'category',
+          size: catNodes.length,
+          createdAt: new Date().toISOString(),
+          domain: 'general',
+          metadata: { category: categoryKey, color: catMeta.color, icon: catMeta.icon, nodeCount: catNodes.length },
+        };
+        const connections = catNodes.map(n => ({
+          node: n,
+          edge: {
+            id: `cat_contains_${nodeId}_${n.id}`,
+            sourceId: nodeId,
+            targetId: n.id,
+            weight: 1,
+            label: 'contains',
+          },
+        }));
+        const recentActivity = catNodes.slice(0, 5).map(n => `Contains ${n.label}`);
+        return { node: syntheticNode, connections, recentActivity };
+      }
+    }
+
     const graph = this.getGraphData();
     const node = graph.nodes.find(n => n.id === nodeId);
     if (!node) return null;
