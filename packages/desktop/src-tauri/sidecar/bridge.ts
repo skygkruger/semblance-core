@@ -197,6 +197,7 @@ let documentsDb: Database.Database | null = null;
 let emailIndexer: EmailIndexer | null = null;
 let calendarIndexer: CalendarIndexer | null = null;
 let emailCategorizer: EmailCategorizer | null = null;
+let _refreshPromptConfig: () => void = () => {}; // set during initializeCore
 let proactiveEngine: ProactiveEngine | null = null;
 
 // Step 7 state
@@ -704,6 +705,44 @@ async function handleInitialize(): Promise<unknown> {
   } catch (err) {
     console.error('[sidecar] Prompt config wiring failed:', err);
   }
+
+  // Re-read prefs and push updated prompt config to the orchestrator.
+  // Called whenever ai_name or user_name changes (e.g. during onboarding).
+  function refreshPromptConfig(): void {
+    try {
+      if (!core?.agent?.updatePromptConfig) return;
+      const aiName = getPref('ai_name') ?? 'Semblance';
+      const userName = getPref('user_name') ?? undefined;
+
+      const connectedServices: string[] = [];
+      try {
+        const tokenMgr = ensureOAuthTokenManager();
+        const connectorRegistry = createDefaultConnectorRegistry();
+        for (const connector of connectorRegistry.listAll()) {
+          const oauthCfg = getOAuthConfigForConnector(connector.id);
+          if (oauthCfg) {
+            const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
+            if (accessToken) connectedServices.push(connector.displayName);
+          }
+        }
+      } catch { /* token manager not ready */ }
+
+      let indexedDocCount = 0;
+      try {
+        if (documentsDb) {
+          indexedDocCount = (documentsDb.prepare('SELECT COUNT(*) as count FROM documents').get() as { count: number })?.count ?? 0;
+        }
+      } catch { /* documents table may not exist yet */ }
+
+      core.agent.updatePromptConfig({ aiName, userName, connectedServices, indexedDocCount });
+      console.error(`[sidecar] Prompt config refreshed: name=${aiName}, user=${userName ?? '(not set)'}, services=${connectedServices.length}`);
+    } catch (err) {
+      console.error('[sidecar] Prompt config refresh failed:', err);
+    }
+  }
+
+  // Make refreshPromptConfig available to IPC handlers outside this scope
+  _refreshPromptConfig = refreshPromptConfig;
 
   // Batch expiry cleanup — reject stale pending items on launch + every 15 minutes
   function cleanupStaleBatchItems(): void {
@@ -1568,6 +1607,8 @@ async function handleGetPrivacyStatus(): Promise<unknown> {
 
 function handleSetUserName(params: { name: string }): unknown {
   setPref('user_name', params.name);
+  // Immediately update the orchestrator's system prompt so chat knows the user's name
+  _refreshPromptConfig();
   return { success: true };
 }
 
@@ -1577,6 +1618,8 @@ function handleGetUserName(): unknown {
 
 function handleSetOnboardingComplete(): unknown {
   setPref('onboarding_complete', 'true');
+  // Final onboarding step — ensure orchestrator has the user's chosen names
+  _refreshPromptConfig();
   return { success: true };
 }
 
@@ -3700,6 +3743,8 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'set_ai_name':
         setPref('ai_name', (params as { name: string }).name);
+        // Immediately update the orchestrator's system prompt so chat uses the new AI name
+        _refreshPromptConfig();
         respond(id, { success: true });
         break;
 
