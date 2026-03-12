@@ -640,7 +640,7 @@ export class MorningBriefGenerator {
     const systemPrompt = `You are a personal AI assistant generating a morning brief summary. Be:
 - Forward-looking and conversational
 - Concise (2-4 sentences max)
-- Connect related items when possible (e.g., "You have a meeting with X at 2pm — note you still owe them a follow-up")
+- Connect related items when possible
 - Never say "you have 0" of anything — omit empty sections
 - Use natural language, not bullet points
 
