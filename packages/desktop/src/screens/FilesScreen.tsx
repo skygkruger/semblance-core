@@ -44,7 +44,7 @@ export function FilesScreen() {
   // Refresh stats when indexing completes
   useTauriEvent('semblance://indexing-complete', useCallback((event: unknown) => {
     const payload = (event as { payload?: Record<string, unknown> })?.payload ?? event;
-    const data = payload as { error?: string };
+    const data = (payload && typeof payload === 'object' ? payload : {}) as { error?: string };
 
     if (data.error) {
       dispatch({

@@ -76,6 +76,55 @@ export class IMAPAdapter {
   }
 
   /**
+   * Get or create an IMAP connection using OAuth2 XOAUTH2 authentication.
+   * Used for Gmail and other providers that support IMAP with OAuth tokens.
+   */
+  private async getOAuthConnection(connectionKey: string, host: string, port: number, userEmail: string, accessToken: string): Promise<ImapFlow> {
+    const existing = this.connections.get(connectionKey);
+    if (existing && existing.client.usable) {
+      existing.lastUsed = Date.now();
+      return existing.client;
+    }
+
+    // Clean up dead connection
+    if (existing) {
+      try { existing.client.close(); } catch { /* already dead */ }
+      this.connections.delete(connectionKey);
+    }
+
+    const client = new ImapFlow({
+      host,
+      port,
+      secure: true,
+      tls: { rejectUnauthorized: true },
+      auth: {
+        user: userEmail,
+        accessToken,
+      },
+      logger: false,
+    });
+
+    await client.connect();
+
+    this.connections.set(connectionKey, {
+      client,
+      lastUsed: Date.now(),
+      credentialId: connectionKey,
+    });
+
+    return client;
+  }
+
+  /**
+   * Fetch messages using OAuth2 XOAUTH2 authentication (e.g. Gmail).
+   */
+  async fetchMessagesOAuth(host: string, port: number, userEmail: string, accessToken: string, params: EmailFetchParams): Promise<EmailMessage[]> {
+    const connectionKey = `oauth_${userEmail}`;
+    const client = await this.getOAuthConnection(connectionKey, host, port, userEmail, accessToken);
+    return this.fetchFromClient(client, params);
+  }
+
+  /**
    * Get or create an IMAP connection for the given credential.
    */
   private async getConnection(credentialId: string): Promise<ImapFlow> {
@@ -125,7 +174,13 @@ export class IMAPAdapter {
    */
   async fetchMessages(credentialId: string, params: EmailFetchParams): Promise<EmailMessage[]> {
     const client = await this.getConnection(credentialId);
+    return this.fetchFromClient(client, params);
+  }
 
+  /**
+   * Shared fetch implementation used by both credential-based and OAuth-based connections.
+   */
+  private async fetchFromClient(client: ImapFlow, params: EmailFetchParams): Promise<EmailMessage[]> {
     const folder = params.folder ?? 'INBOX';
     const limit = params.limit ?? 50;
 

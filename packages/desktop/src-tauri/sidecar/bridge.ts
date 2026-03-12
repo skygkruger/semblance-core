@@ -120,7 +120,7 @@ import type { ImportSummary } from '../../../core/importers/import-pipeline.js';
 import { OAuthTokenManager } from '../../../gateway/services/oauth-token-manager.js';
 import { OAuthCallbackServer } from '../../../gateway/services/oauth-callback-server.js';
 import { oauthClients, UNCONFIGURED_CLIENT_ID } from '../../../gateway/config/oauth-clients.js';
-import { registerAllConnectors } from '../../../gateway/services/connector-registration.js';
+import { registerAllConnectors, wireConnectorRouter } from '../../../gateway/services/connector-registration.js';
 import type { ConnectorRouter } from '../../../gateway/services/connector-router.js';
 
 // Morning Brief / Daily Digest / Weather / Style / Dark Pattern / Document Context / Health / Cloud Storage / Graph Vis
@@ -731,8 +731,9 @@ async function handleInitialize(): Promise<unknown> {
   const credDb = new Database(join(gatewayDataDir, 'credentials.db'));
   credentialStore = new CredentialStore(credDb);
 
-  // Initialize service adapters
-  emailAdapter = new EmailAdapter(credentialStore);
+  // Initialize service adapters (pass OAuthTokenManager so Gmail OAuth tokens bridge to IMAP/SMTP)
+  const tokenMgrForEmail = ensureOAuthTokenManager();
+  emailAdapter = new EmailAdapter(credentialStore, tokenMgrForEmail);
   calendarAdapter = new CalendarAdapter(credentialStore);
 
   // Register email and calendar adapters with Gateway service registry
@@ -750,6 +751,17 @@ async function handleInitialize(): Promise<unknown> {
     registry.register('calendar.create', calendarAdapter);
     registry.register('calendar.update', calendarAdapter);
     console.error('[sidecar] Email + Calendar adapters registered with Gateway');
+
+    // Wire ConnectorRouter to Gateway ServiceRegistry so connector.* actions
+    // (connector.sync, connector.auth, etc.) route to the correct OAuth adapters
+    try {
+      const tokenMgr = ensureOAuthTokenManager();
+      connectorRouter = registerAllConnectors(tokenMgr);
+      wireConnectorRouter(registry, connectorRouter);
+      console.error('[sidecar] ConnectorRouter wired to Gateway for', connectorRouter.listRegistered().length, 'connectors');
+    } catch (crErr) {
+      console.error('[sidecar] Failed to wire ConnectorRouter:', crErr);
+    }
   } catch (err) {
     console.error('[sidecar] Failed to register email/calendar adapters:', err);
   }
@@ -3074,7 +3086,7 @@ function getOAuthConfigForConnector(connectorId: string): {
       providerKey: 'google',
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
-      scopes: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly',
+      scopes: 'https://mail.google.com/ https://www.googleapis.com/auth/calendar.readonly',
       clientId: process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
       clientSecret: process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'],
       usePKCE: false,
@@ -3301,6 +3313,23 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
       };
     }
 
+    // Fetch user email from Google userinfo (needed for IMAP XOAUTH2)
+    let userEmail: string | undefined;
+    if (config.providerKey === 'google' || config.providerKey === 'google-calendar' || config.providerKey === 'google-drive') {
+      try {
+        const userinfoResp = await globalThis.fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: { Authorization: `Bearer ${tokenData.access_token as string}` },
+        });
+        if (userinfoResp.ok) {
+          const userinfo = await userinfoResp.json() as { email?: string };
+          userEmail = userinfo.email;
+          console.error(`[sidecar] Google OAuth user email: ${userEmail}`);
+        }
+      } catch (emailErr) {
+        console.error('[sidecar] Failed to fetch Google userinfo:', emailErr);
+      }
+    }
+
     // Store tokens
     tokenMgr.storeTokens({
       provider: config.providerKey,
@@ -3308,12 +3337,14 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
       refreshToken: (tokenData.refresh_token as string) ?? '',
       expiresAt: Date.now() + ((tokenData.expires_in as number) ?? 3600) * 1000,
       scopes: config.scopes,
+      userEmail,
     });
 
     return {
       success: true,
       provider: config.providerKey,
       connectorId: params.connectorId,
+      userEmail,
     };
   } catch (err) {
     callbackServer.stop();
@@ -4733,10 +4764,14 @@ async function handleRequest(req: Request): Promise<void> {
       }
       case 'weather_get_current': {
         if (!weatherService && prefsDb && core) {
-          if (!locationStore) {
-            locationStore = new LocationStore(prefsDb);
+          try {
+            if (!locationStore) {
+              locationStore = new LocationStore(prefsDb);
+            }
+            weatherService = new WeatherService(getPlatform(), core.ipc, locationStore);
+          } catch (wsErr) {
+            console.error('[sidecar] Failed to init WeatherService:', wsErr);
           }
-          weatherService = new WeatherService(getPlatform(), core.ipc, locationStore);
         }
         if (!weatherService) { respond(id, null); break; }
         // Read defaultCity from location settings to use as web-search fallback label
@@ -4938,7 +4973,7 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
-      // ─── Knowledge Graph Visualization ────────────────────────────────
+      // ─── Knowledge Graph Visualization (returns category-grouped graph) ─
       case 'knowledge_get_graph': {
         try {
           if (!graphVisualizationProvider && documentsDb) {
@@ -4952,14 +4987,14 @@ async function handleRequest(req: Request): Promise<void> {
             graphVisualizationProvider.initSchema();
           }
           if (!graphVisualizationProvider) {
-            respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+            respond(id, { nodes: [], edges: [], clusters: [], categoryNodes: [], categoryEdges: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
             break;
           }
-          const graph = await graphVisualizationProvider.getGraphData();
+          const graph = graphVisualizationProvider.getCategoryGraph();
           respond(id, graph);
         } catch (graphErr) {
           console.error('[sidecar] knowledge_get_graph failed:', graphErr);
-          respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+          respond(id, { nodes: [], edges: [], clusters: [], categoryNodes: [], categoryEdges: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
         }
         break;
       }
@@ -5316,7 +5351,7 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
-      // Alias: get_graph_data → knowledge_get_graph
+      // Alias: get_graph_data → knowledge_get_graph (returns category-grouped graph for renderer)
       case 'get_graph_data': {
         try {
           if (!graphVisualizationProvider && documentsDb) {
@@ -5329,14 +5364,14 @@ async function handleRequest(req: Request): Promise<void> {
             graphVisualizationProvider.initSchema();
           }
           if (!graphVisualizationProvider) {
-            respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+            respond(id, { nodes: [], edges: [], clusters: [], categoryNodes: [], categoryEdges: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
             break;
           }
-          const graph = await graphVisualizationProvider.getGraphData();
+          const graph = graphVisualizationProvider.getCategoryGraph();
           respond(id, graph);
         } catch (graphErr) {
           console.error('[sidecar] get_graph_data failed:', graphErr);
-          respond(id, { nodes: [], edges: [], clusters: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
+          respond(id, { nodes: [], edges: [], clusters: [], categoryNodes: [], categoryEdges: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
         }
         break;
       }
