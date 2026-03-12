@@ -610,9 +610,7 @@ You are warm, direct, and concise. Respond naturally like a helpful friend. When
 
 Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : ' If you do not know your user\'s name, ask them.'}
 
-When using tools, just present the results directly. Never describe what tools you plan to use.
-
-Do not fabricate information. Never claim to have taken actions (like archiving emails or checking calendars) unless you actually executed a tool call that did so.
+IMPORTANT: When you call a tool, do NOT write fake results in your message. Say only a brief sentence like "Let me check that for you." The real results come after the tool runs. Never invent emails, meetings, names, or data.
 
 ${ARTIFACT_SYSTEM_PROMPT}
 
@@ -895,9 +893,10 @@ export class OrchestratorImpl implements Orchestrator {
       // Mention pending approvals
       const pendingCount = actions.filter(a => a.status === 'pending_approval').length;
       if (pendingCount > 0) {
-        // If the model's only response was empty/whitespace and all it did was
-        // queue actions for approval, re-prompt without tools for a real response
-        if (!finalMessage || finalMessage.trim().length === 0) {
+        // ALWAYS re-prompt when actions are pending — the model's original text
+        // often contains fabricated "results" that don't exist yet (7B model behavior).
+        // Re-prompting without tools forces a clean, honest message.
+        if (toolResults.executedResults.length === 0) {
           const retryResponse = await this.llm.chat({
             model: this.model,
             messages,

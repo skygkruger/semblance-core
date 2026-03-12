@@ -683,8 +683,20 @@ export function ChatScreen() {
         return `Send text to ${payload['recipientName'] ?? 'contact'}`;
       case 'file.write':
         return `Save file: ${payload['filename'] ?? 'file'}`;
+      case 'email.fetch':
+        return `Check inbox${payload['unreadOnly'] ? ' (unread)' : ''}${payload['folder'] && payload['folder'] !== 'INBOX' ? ` — ${payload['folder']}` : ''}`;
+      case 'calendar.fetch':
+        return `Check calendar`;
+      case 'web.search':
+        return `Search the web: ${truncate(String(payload['query'] ?? ''), 50)}`;
+      case 'web.fetch':
+        return `Fetch webpage`;
+      case 'finance.fetch_transactions':
+        return `Fetch recent transactions`;
+      case 'health.fetch':
+        return `Fetch health data`;
       default:
-        return actionType.replace(/\./g, ' ');
+        return actionType.replace(/[._]/g, ' ');
     }
   }
 
