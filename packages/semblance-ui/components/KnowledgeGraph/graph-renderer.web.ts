@@ -434,6 +434,7 @@ export class GraphRenderer {
   private static readonly SCALE = 0.25;
 
   constructor(options: GraphRendererOptions) {
+    console.log('[GraphRenderer] constructor', { width: options.width, height: options.height, isMobile: options.isMobile, canvasTag: options.canvas?.tagName });
     this.width = options.width;
     this.height = options.height;
     this.isMobile = !!options.isMobile;
@@ -459,6 +460,7 @@ export class GraphRenderer {
       alpha: true,
       antialias: true,
     });
+    console.log('[GraphRenderer] WebGL context:', this.renderer.getContext() ? 'OK' : 'FAILED');
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(this.width, this.height);
@@ -489,6 +491,7 @@ export class GraphRenderer {
   // ─── Public API ───
 
   setData(nodes: KnowledgeNode[], edges: KnowledgeEdge[]): void {
+    console.log('[GraphRenderer] setData', { nodes: nodes.length, edges: edges.length, types: nodes.map(n => n.type) });
     this.originPositions.clear();
     this.morphTargetsA.clear();
     this.morphTargetsB.clear();
@@ -664,6 +667,7 @@ export class GraphRenderer {
   // ─── Node mesh creation ───
 
   private createNodeMeshes(nodes: KnowledgeNode[]): void {
+    console.log('[GraphRenderer] createNodeMeshes', nodes.length, 'nodes, types:', [...new Set(nodes.map(n => n.type))], 'tiers:', nodes.map(n => computeGlowTier(n)));
     // Clear existing — dispose glow spheres, people parts, and reset PointLight count
     this.nodeMeshes.forEach(nm => {
       if (nm.glowSphere) {
@@ -1854,8 +1858,10 @@ export class GraphRenderer {
     this.nodeMeshes.forEach(nm => coreObjects.push(nm.core));
     const intersects = this.raycaster.intersectObjects(coreObjects);
 
+    console.log('[GraphRenderer] click', { wasClick, coreObjects: coreObjects.length, intersects: intersects.length });
     if (intersects.length > 0) {
       const nodeId = intersects[0]!.object.userData.nodeId as string;
+      console.log('[GraphRenderer] node hit:', nodeId);
       if (this.selectedId === nodeId) {
         this.clearSelection();
       } else {
