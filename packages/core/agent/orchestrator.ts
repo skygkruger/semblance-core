@@ -902,7 +902,9 @@ export class OrchestratorImpl implements Orchestrator {
             messages,
             temperature: 0.7,
           });
-          finalMessage = retryResponse.message.content;
+          if (retryResponse?.message?.content) {
+            finalMessage = retryResponse.message.content;
+          }
         }
         finalMessage += `\n\n[${pendingCount} action(s) awaiting your approval]`;
       }
