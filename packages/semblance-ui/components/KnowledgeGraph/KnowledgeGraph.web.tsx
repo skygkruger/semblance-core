@@ -31,17 +31,21 @@ export function KnowledgeGraph({
   const isMobile = width <= 600;
   const legendCategories = useMemo(() => deriveLegendCategories(nodes), [nodes]);
 
-  // Handle node selection from renderer
+  // Stable ref for onNodeSelect — prevents renderer recreation when callback identity changes
+  const onNodeSelectRef = useRef(onNodeSelect);
+  onNodeSelectRef.current = onNodeSelect;
+
+  // Handle node selection from renderer — stable identity (never changes)
   const handleNodeSelect = useCallback((node: KnowledgeNode | null) => {
     setSelectedNode(node);
-    onNodeSelect?.(node);
-  }, [onNodeSelect]);
+    onNodeSelectRef.current?.(node);
+  }, []);
 
   const handlePanelClose = useCallback(() => {
     setSelectedNode(null);
     rendererRef.current?.clearSelection();
-    onNodeSelect?.(null);
-  }, [onNodeSelect]);
+    onNodeSelectRef.current?.(null);
+  }, []);
 
   const handleLegendCategoryClick = useCallback((categoryId: string) => {
     rendererRef.current?.focusNode(categoryId);
@@ -53,9 +57,9 @@ export function KnowledgeGraph({
     const target = nodes.find(n => n.id === nodeId) ?? null;
     if (target) {
       setSelectedNode(target);
-      onNodeSelect?.(target);
+      onNodeSelectRef.current?.(target);
     }
-  }, [nodes, onNodeSelect]);
+  }, [nodes]);
 
   // Initialize renderer + simulation
   useEffect(() => {
@@ -120,7 +124,9 @@ export function KnowledgeGraph({
       rendererRef.current = null;
       simRef.current = null;
     };
-  }, [nodes, edges, width, height, layoutMode, isMobile, handleNodeSelect]);
+  // handleNodeSelect is stable (uses ref) — safe to omit from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges, width, height, layoutMode, isMobile]);
 
   // Handle resize
   useEffect(() => {
