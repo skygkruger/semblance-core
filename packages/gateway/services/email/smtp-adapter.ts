@@ -140,6 +140,51 @@ export class SMTPAdapter {
   }
 
   /**
+   * Send an email via Gmail SMTP using OAuth2 XOAUTH2 authentication.
+   */
+  async sendEmailOAuth(host: string, port: number, userEmail: string, accessToken: string, params: EmailSendParams): Promise<{ messageId: string }> {
+    // Rate limit using email as key
+    const rateKey = `oauth_${userEmail}`;
+    if (!this.checkRateLimit(rateKey)) {
+      throw new Error(`Rate limit exceeded: maximum ${this.maxPerMinute} emails per minute`);
+    }
+
+    const transporter = createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: {
+        type: 'OAuth2',
+        user: userEmail,
+        accessToken,
+      },
+      tls: { rejectUnauthorized: true },
+    });
+
+    const mailOptions: Record<string, unknown> = {
+      from: userEmail,
+      to: params.to.join(', '),
+      subject: params.subject,
+      text: params.body,
+    };
+
+    if (params.cc && params.cc.length > 0) {
+      mailOptions['cc'] = params.cc.join(', ');
+    }
+
+    if (params.replyToMessageId) {
+      mailOptions['inReplyTo'] = params.replyToMessageId;
+      mailOptions['references'] = params.replyToMessageId;
+    }
+
+    const info = await transporter.sendMail(mailOptions);
+    this.recordSend(rateKey);
+    transporter.close();
+
+    return { messageId: info.messageId };
+  }
+
+  /**
    * Test SMTP connection: connect, authenticate (EHLO), disconnect.
    */
   async testConnection(credential: ServiceCredential, password: string): Promise<{ success: boolean; error?: string }> {

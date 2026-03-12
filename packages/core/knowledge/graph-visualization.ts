@@ -709,7 +709,7 @@ export class GraphVisualizationProvider {
   private addDocumentNodes(nodes: VisualizationNode[], nodeIds: Set<string>): void {
     try {
       const docs = this.db.prepare(
-        'SELECT d.id, d.title, d.created_at, d.source, d.source_path, d.metadata, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id GROUP BY d.id ORDER BY mention_count DESC LIMIT 500'
+        "SELECT d.id, d.title, d.created_at, d.source, d.source_path, d.metadata, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id WHERE d.source != 'conversation' GROUP BY d.id ORDER BY mention_count DESC LIMIT 500"
       ).all() as Array<{ id: string; title: string; created_at: string; source: string; source_path: string | null; metadata: string | null; mention_count: number }>;
 
       // Separate directory docs from file docs

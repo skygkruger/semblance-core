@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { SkeletonCard } from '@semblance/ui';
 import { KnowledgeGraphView } from '../components/KnowledgeGraphView';
 import type { VisualizationGraph, NodeContext } from '../../../core/knowledge/graph-visualization';
+import type { VisualizationGraphV2 } from '../components/KnowledgeGraphView';
 import {
   getKnowledgeGraphData,
   getKnowledgeNodeContext,
@@ -17,6 +18,7 @@ export function KnowledgeGraphScreen() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [graph, setGraph] = useState<VisualizationGraph | null>(null);
+  const [categoryGraph, setCategoryGraph] = useState<VisualizationGraphV2 | null>(null);
   const [nodeContext, setNodeContext] = useState<NodeContext | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,9 +27,13 @@ export function KnowledgeGraphScreen() {
     setError(null);
     getKnowledgeGraphData()
       .then((data) => {
-        const g = data as unknown as VisualizationGraph;
-        console.log('[KnowledgeGraphScreen] graph data:', g?.nodes?.length, 'nodes,', g?.edges?.length, 'edges');
+        const g = data as unknown as VisualizationGraphV2;
+        console.log('[KnowledgeGraphScreen] graph data:', g?.nodes?.length, 'nodes,', g?.edges?.length, 'edges,', g?.categoryNodes?.length, 'categories');
         setGraph(g);
+        // If the response includes categoryNodes/categoryEdges, set as categoryGraph
+        if (g?.categoryNodes && g?.categoryEdges) {
+          setCategoryGraph(g);
+        }
       })
       .catch((err) => {
         console.error('[KnowledgeGraphScreen] failed to fetch graph:', err);
@@ -97,7 +103,7 @@ export function KnowledgeGraphScreen() {
     );
   }
 
-  if (!graph || (graph.nodes.length === 0 && graph.edges.length === 0)) {
+  if (!graph || !graph.nodes || !graph.edges || (graph.nodes.length === 0 && graph.edges.length === 0)) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8">
         <p style={{ color: '#8593A4', fontSize: 14, marginBottom: 12 }}>
@@ -125,6 +131,7 @@ export function KnowledgeGraphScreen() {
     <div className="h-full overflow-hidden">
       <KnowledgeGraphView
         graph={graph}
+        categoryGraph={categoryGraph ?? undefined}
         onExport={handleExport}
         onNodeSelect={handleNodeSelect}
         nodeContext={nodeContext}
