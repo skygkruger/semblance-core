@@ -208,15 +208,22 @@ impl NativeRuntime {
         // If non-Qwen models are added to the catalog, this must be made model-aware
         // (pass model family from the sidecar and select template based on it).
         let full_prompt = match &request.system_prompt {
-            Some(sys) => format!(
+            Some(sys) if !sys.is_empty() => format!(
                 "<|im_start|>system\n{}<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
                 sys, request.prompt
             ),
-            None => format!(
+            _ => format!(
                 "<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
                 request.prompt
             ),
         };
+
+        eprintln!(
+            "[NativeRuntime] generate: prompt_len={} chars, max_tokens={}, temp={}",
+            full_prompt.len(),
+            max_tokens,
+            temperature
+        );
 
         // Create context for this request.
         // 8192 tokens: orchestrator system prompt (~1K) + tool definitions (~2K)
@@ -230,6 +237,8 @@ impl NativeRuntime {
         let tokens = model
             .str_to_token(&full_prompt, AddBos::Always)
             .map_err(|e| format!("Tokenization failed: {}", e))?;
+
+        eprintln!("[NativeRuntime] tokenized: {} tokens", tokens.len());
 
         if tokens.is_empty() {
             return Err("Empty prompt after tokenization".to_string());
@@ -353,6 +362,19 @@ impl NativeRuntime {
                 all_embeddings.push(vec![0.0f32; n_embd as usize]);
                 continue;
             }
+
+            // Safety: truncate tokens to fit within the embedding context window (2048).
+            // Without this, llama.cpp segfaults when tokens exceed KV cache allocation.
+            let embed_ctx_size: usize = 2048;
+            let tokens = if tokens.len() > embed_ctx_size {
+                eprintln!(
+                    "[NativeRuntime] Embedding input too long ({} tokens > {} limit), truncating",
+                    tokens.len(), embed_ctx_size
+                );
+                tokens[..embed_ctx_size].to_vec()
+            } else {
+                tokens
+            };
 
             let mut batch = LlamaBatch::new(tokens.len(), 1);
             batch
