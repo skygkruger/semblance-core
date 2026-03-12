@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
-import { FinancialDashboard } from './FinancialDashboard.web';
+import { FinancialDashboard } from './FinancialDashboard';
 import { DotMatrix } from '../DotMatrix/DotMatrix';
 import type {
   FinancialDashboardProps,

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
-import { HealthDashboard } from './HealthDashboard.web';
+import { HealthDashboard } from './HealthDashboard';
 import type { HealthEntry, HealthTrendPoint, HealthInsight } from './HealthDashboard.types';
 
 const meta: Meta<typeof HealthDashboard> = {
