@@ -127,6 +127,7 @@ import type { ConnectorRouter } from '../../../gateway/services/connector-router
 import { MorningBriefGenerator } from '../../../core/agent/morning-brief.js';
 import { DailyDigestGenerator } from '../../../core/agent/daily-digest.js';
 import { WeatherService } from '../../../core/weather/weather-service.js';
+import { LocationStore } from '../../../core/location/location-store.js';
 import { StyleProfileStore } from '../../../core/style/style-profile.js';
 import { DarkPatternDetector } from '../../../core/defense/dark-pattern-detector.js';
 import { DocumentContextManager } from '../../../core/agent/document-context.js';
@@ -256,6 +257,7 @@ let hwKeyProvider: HardwareKeyProvider | null = null;
 let morningBriefGenerator: MorningBriefGenerator | null = null;
 let dailyDigestGenerator: DailyDigestGenerator | null = null;
 let weatherService: WeatherService | null = null;
+let locationStore: LocationStore | null = null;
 let styleProfileStore: StyleProfileStore | null = null;
 let darkPatternDetector: DarkPatternDetector | null = null;
 let documentContextManager: DocumentContextManager | null = null;
@@ -4340,6 +4342,39 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      // ─── Location Settings ──────────────────────────────────────────
+      case 'location:getSettings': {
+        const raw = getPref('location_settings');
+        respond(id, raw
+          ? JSON.parse(raw)
+          : {
+              enabled: false,
+              defaultCity: '',
+              weatherEnabled: false,
+              commuteEnabled: false,
+              remindersEnabled: false,
+              retentionDays: 30,
+            });
+        break;
+      }
+      case 'location:saveSettings': {
+        setPref('location_settings', JSON.stringify(params));
+        respond(id, params);
+        break;
+      }
+      case 'location:clearHistory': {
+        setPref('location_settings', JSON.stringify({
+          enabled: false,
+          defaultCity: '',
+          weatherEnabled: false,
+          commuteEnabled: false,
+          remindersEnabled: false,
+          retentionDays: 30,
+        }));
+        respond(id, { cleared: true });
+        break;
+      }
+
       // ─── Language Preference ──────────────────────────────────────────
       case 'language:get': {
         result = getPref('language');
@@ -4577,11 +4612,18 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
       case 'weather_get_current': {
-        if (!weatherService && prefsDb) {
-          weatherService = new WeatherService(prefsDb);
+        if (!weatherService && prefsDb && core) {
+          if (!locationStore) {
+            locationStore = new LocationStore(prefsDb);
+          }
+          weatherService = new WeatherService(getPlatform(), core.ipc, locationStore);
         }
         if (!weatherService) { respond(id, null); break; }
-        const weather = await weatherService.getCurrentWeather();
+        // Read defaultCity from location settings to use as web-search fallback label
+        const locSettingsRaw = getPref('location_settings');
+        const locSettings = locSettingsRaw ? JSON.parse(locSettingsRaw) as { defaultCity?: string } : null;
+        const cityLabel = locSettings?.defaultCity || undefined;
+        const weather = await weatherService.getCurrentWeather(cityLabel);
         respond(id, weather);
         break;
       }

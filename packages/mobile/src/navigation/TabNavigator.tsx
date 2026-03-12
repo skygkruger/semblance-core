@@ -3,7 +3,7 @@
 // Each tab has its own NativeStack for detail screen navigation.
 // All screens from desktop are reachable — secondary screens nest in Settings stack.
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, Text, Pressable, ActivityIndicator, Platform, Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -25,6 +25,7 @@ import type {
 // Runtime
 import { getRuntimeState } from '../runtime/mobile-runtime.js';
 import { useSemblance } from '../runtime/SemblanceProvider.js';
+import { getPlatform, hasPlatform } from '@semblance/core';
 import { createMobileBiometricAdapter } from '../adapters/mobile-biometric-adapter.js';
 import { createMobileShareAdapter } from '../adapters/mobile-share-adapter.js';
 import type { BiometricType, LockTimeout } from '@semblance/core/auth/types';
@@ -49,6 +50,8 @@ import { FinancialDashboardScreen } from '../screens/FinancialDashboardScreen.js
 import { HealthDashboardScreen } from '../screens/HealthDashboardScreen.js';
 import { LocationSettingsScreen } from '../screens/LocationSettingsScreen.js';
 import type { LocationSettingsState } from '../screens/LocationSettingsScreen.js';
+import { SearchSettingsScreen } from '../screens/SearchSettingsScreen.js';
+import type { SearchSettingsState } from '../screens/SearchSettingsScreen.js';
 import { AdversarialDashboardScreen } from '../screens/adversarial/AdversarialDashboardScreen.js';
 import type { DarkPatternAlert, SubscriptionAssessment, OptOutStatus } from '../screens/adversarial/AdversarialDashboardScreen.js';
 import { NetworkScreen } from '../screens/sovereignty/NetworkScreen.js';
@@ -1098,6 +1101,7 @@ function LocationSettingsScreenWrapper() {
   const { t } = useTranslation();
   const { ready } = useSemblance();
   const [loading, setLoading] = useState(true);
+  const stopWatchRef = useRef<(() => void) | null>(null);
   const [settings, setSettings] = useState<LocationSettingsState>({
     enabled: false,
     remindersEnabled: false,
@@ -1138,6 +1142,58 @@ function LocationSettingsScreenWrapper() {
     return () => { cancelled = true; };
   }, [ready]);
 
+  // Start/stop location watching when enabled changes
+  useEffect(() => {
+    if (!ready) return;
+
+    const state = getRuntimeState();
+    const locationAdapter = hasPlatform() ? getPlatform().location : undefined;
+
+    if (settings.enabled && locationAdapter) {
+      // Request permission then start watching
+      locationAdapter.requestPermission().then((result) => {
+        if (result === 'authorized') {
+          const stopFn = locationAdapter.watchLocation((location) => {
+            // Store location update to knowledge graph as a lightweight entry
+            if (state.core) {
+              const locStr = `${location.coordinate.latitude.toFixed(3)},${location.coordinate.longitude.toFixed(3)}`;
+              state.core.knowledge.indexDocument({
+                content: `Location update: ${locStr} at ${location.timestamp} (accuracy: ${location.accuracyMeters.toFixed(0)}m)`,
+                title: 'Device Location Update',
+                source: 'location',
+                mimeType: 'text/plain',
+                metadata: {
+                  type: 'location-update',
+                  latitude: location.coordinate.latitude,
+                  longitude: location.coordinate.longitude,
+                  accuracyMeters: location.accuracyMeters,
+                  timestamp: location.timestamp,
+                },
+              }).catch(() => { /* non-fatal */ });
+            }
+          });
+          stopWatchRef.current = stopFn;
+        }
+      }).catch(() => { /* permission request failed */ });
+    } else {
+      // Stop watching
+      if (stopWatchRef.current) {
+        stopWatchRef.current();
+        stopWatchRef.current = null;
+      }
+      if (locationAdapter) {
+        locationAdapter.stopWatching();
+      }
+    }
+
+    return () => {
+      if (stopWatchRef.current) {
+        stopWatchRef.current();
+        stopWatchRef.current = null;
+      }
+    };
+  }, [settings.enabled, ready]);
+
   const handleSettingsChange = useCallback(
     (newSettings: LocationSettingsState) => {
       setSettings(newSettings);
@@ -1170,6 +1226,11 @@ function LocationSettingsScreenWrapper() {
           style: 'destructive',
           onPress: () => {
             setSettings((prev) => ({ ...prev, enabled: false }));
+            // Stop watching when history is cleared
+            if (stopWatchRef.current) {
+              stopWatchRef.current();
+              stopWatchRef.current = null;
+            }
           },
         },
       ],
@@ -1185,6 +1246,99 @@ function LocationSettingsScreenWrapper() {
       settings={settings}
       onSettingsChange={handleSettingsChange}
       onClearHistory={handleClearHistory}
+    />
+  );
+}
+
+function SearchSettingsScreenWrapper() {
+  const { ready } = useSemblance();
+  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<SearchSettingsState>({
+    braveApiKey: '',
+    searchEngine: 'auto',
+  });
+
+  useEffect(() => {
+    if (!ready) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+
+    const loadSettings = async () => {
+      const state = getRuntimeState();
+      if (state.core) {
+        try {
+          const results = await state.core.knowledge.search('search settings configuration', { limit: 1 });
+          if (!cancelled && results.length > 0) {
+            try {
+              const parsed = JSON.parse(results[0]!.chunk.content) as Partial<SearchSettingsState>;
+              setSettings((prev) => ({ ...prev, ...parsed }));
+            } catch {
+              // Content is not valid JSON
+            }
+          }
+        } catch {
+          // Knowledge graph unavailable
+        }
+      }
+      // Also load API key from AsyncStorage (authoritative source for runtime)
+      try {
+        const storageModuleName = ['@react-native-async-storage', 'async-storage'].join('/');
+        const mod = await import(/* @vite-ignore */ storageModuleName);
+        const AsyncStorage = mod.default;
+        const storedKey = await AsyncStorage.getItem('semblance.brave_api_key');
+        if (!cancelled && storedKey !== null) {
+          setSettings((prev) => ({ ...prev, braveApiKey: storedKey }));
+        }
+      } catch {
+        // AsyncStorage unavailable
+      }
+      if (!cancelled) setLoading(false);
+    };
+
+    loadSettings();
+    return () => { cancelled = true; };
+  }, [ready]);
+
+  const handleSettingsChange = useCallback(
+    (newSettings: SearchSettingsState) => {
+      setSettings(newSettings);
+      const state = getRuntimeState();
+      if (state.core) {
+        state.core.knowledge.indexDocument({
+          content: JSON.stringify(newSettings),
+          title: 'Search Settings Configuration',
+          source: 'local_file',
+          mimeType: 'application/json',
+          metadata: { type: 'search-settings', updatedAt: new Date().toISOString() },
+        }).catch(() => {
+          // Persistence failed silently
+        });
+      }
+      // Persist braveApiKey to AsyncStorage so MobileGatewayTransport can read it
+      (async () => {
+        try {
+          const storageModuleName = ['@react-native-async-storage', 'async-storage'].join('/');
+          const mod = await import(/* @vite-ignore */ storageModuleName);
+          const AsyncStorage = mod.default;
+          await AsyncStorage.setItem('semblance.brave_api_key', newSettings.braveApiKey);
+        } catch {
+          // AsyncStorage unavailable
+        }
+      })();
+    },
+    [],
+  );
+
+  if (loading) {
+    return <LoadingView />;
+  }
+
+  return (
+    <SearchSettingsScreen
+      settings={settings}
+      onSettingsChange={handleSettingsChange}
     />
   );
 }
@@ -1222,6 +1376,7 @@ function SettingsTabStack() {
       <SettingsNavStack.Screen name="Contacts" component={ContactsScreen} />
       <SettingsNavStack.Screen name="ContactDetail" component={ContactDetailScreen} />
       <SettingsNavStack.Screen name="LocationSettings" component={LocationSettingsScreenWrapper} />
+      <SettingsNavStack.Screen name="SearchSettings" component={SearchSettingsScreenWrapper} />
       <SettingsNavStack.Screen name="FinancialDashboard" component={FinancialDashboardScreenWrapper} />
       <SettingsNavStack.Screen name="HealthDashboard" component={HealthDashboardScreenWrapper} />
       <SettingsNavStack.Screen name="PrivacyDashboard" component={PrivacyDashboardScreenWrapper} />

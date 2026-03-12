@@ -58,6 +58,7 @@ export type SettingsStackParamList = {
   Contacts: undefined;
   ContactDetail: { contactId: string };
   LocationSettings: undefined;
+  SearchSettings: undefined;
   FinancialDashboard: undefined;
   HealthDashboard: undefined;
   PrivacyDashboard: undefined;

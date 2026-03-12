@@ -1719,6 +1719,26 @@ async fn save_notification_settings(
     state.bridge.call("notification:saveSettings", settings).await
 }
 
+// ─── Location Settings ───────────────────────────────────────────────────
+
+#[tauri::command]
+async fn get_location_settings(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("location:getSettings", Value::Null).await
+}
+
+#[tauri::command]
+async fn save_location_settings(
+    state: tauri::State<'_, AppBridge>,
+    settings: Value,
+) -> Result<Value, String> {
+    state.bridge.call("location:saveSettings", settings).await
+}
+
+#[tauri::command]
+async fn clear_location_history(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state.bridge.call("location:clearHistory", Value::Null).await
+}
+
 // ─── Language Preference ──────────────────────────────────────────────────
 
 #[tauri::command]
@@ -2738,6 +2758,10 @@ pub fn run() {
             // Notification Settings
             get_notification_settings,
             save_notification_settings,
+            // Location Settings
+            get_location_settings,
+            save_location_settings,
+            clear_location_history,
             // Language Preference
             get_language_preference,
             set_language_preference,

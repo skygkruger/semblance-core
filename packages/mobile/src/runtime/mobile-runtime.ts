@@ -51,6 +51,7 @@ import {
   initHardwareInfo,
 } from './platform-adapters';
 import { createSQLiteVectorStore } from './sqlite-vector-store';
+import { MobileGatewayTransport } from './mobile-gateway';
 
 // Native bridges
 import { createMobileVoiceAdapter } from '../native/voice-bridge';
@@ -275,10 +276,18 @@ async function doInitialize(onProgress?: ProgressCallback): Promise<MobileRuntim
 
     if (inferenceRouter) {
       try {
+        // API key getter for MobileGatewayTransport — resolves AsyncStorage lazily
+        // to avoid Vite/vitest static import analysis failures in test environments.
+        const storageModuleName = ['@react-native-async-storage', 'async-storage'].join('/');
+        const mobileGateway = new MobileGatewayTransport(async () => {
+          const mod = await import(/* @vite-ignore */ storageModuleName);
+          return mod.default.getItem('semblance.brave_api_key') as Promise<string | null>;
+        });
         core = createSemblanceCore({
           dataDir,
           llmProvider: inferenceRouter,
           embeddingModel: embeddingModel?.id ?? 'nomic-embed-text',
+          ipcTransport: mobileGateway,
         });
 
         updateProgress(60, 'Connecting knowledge graph...', onProgress);

@@ -449,10 +449,13 @@ describe('Privacy: no unauthorized network access in mobile code', () => {
     const mobileDir = path.join(ROOT, 'packages/mobile/src');
     const files = scanDir(mobileDir);
     const violations: string[] = [];
+    // mobile-gateway.ts is the authorized mobile network layer (equivalent to packages/gateway/)
+    const allowedNetworkFiles = new Set(['runtime/mobile-gateway.ts']);
 
     for (const filePath of files) {
       const content = fs.readFileSync(filePath, 'utf-8');
       const rel = path.relative(mobileDir, filePath).replace(/\\/g, '/');
+      if (allowedNetworkFiles.has(rel)) continue;
       // Allow type references but not actual fetch calls
       if (/\bfetch\s*\(/.test(content) || /XMLHttpRequest/.test(content)) {
         violations.push(rel);
@@ -485,10 +488,13 @@ describe('Privacy: no unauthorized network access in mobile code', () => {
     const mobileDir = path.join(ROOT, 'packages/mobile/src');
     const files = scanDir(mobileDir);
     const violations: string[] = [];
+    // mobile-gateway.ts is the authorized mobile network layer (equivalent to packages/gateway/)
+    const allowedNetworkFiles = new Set(['runtime/mobile-gateway.ts']);
 
     for (const filePath of files) {
       const content = fs.readFileSync(filePath, 'utf-8');
       const rel = path.relative(mobileDir, filePath).replace(/\\/g, '/');
+      if (allowedNetworkFiles.has(rel)) continue;
       // No external API URLs (allow localhost references)
       const urls = content.match(/https?:\/\/[^\s'"`)]+/g) || [];
       const externalUrls = urls.filter(u =>
