@@ -106,7 +106,7 @@ export class MerchantNormalizer {
 
   constructor(config?: { llm?: LLMProvider; model?: string }) {
     this.llm = config?.llm;
-    this.model = config?.model ?? 'llama3.2:8b';
+    this.model = config?.model ?? 'llama3.1:8b';
   }
 
   /**

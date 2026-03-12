@@ -70,7 +70,7 @@ export class KnowledgeMomentGenerator {
     this.calendarIndexer = config.calendarIndexer;
     this.knowledgeGraph = config.knowledgeGraph;
     this.llm = config.llm;
-    this.model = config.model ?? 'llama3.2:8b';
+    this.model = config.model ?? 'llama3.1:8b';
     this.aiName = config.aiName ?? 'Semblance';
   }
 

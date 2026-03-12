@@ -90,7 +90,7 @@ export class KnowledgeCurator {
     this.indexer = config.indexer;
     this.db = config.db;
     this.llm = config.llm;
-    this.activeModel = config.activeModel ?? 'llama3.2:3b';
+    this.activeModel = config.activeModel ?? 'llama3.1:3b';
   }
 
   // ─── List chunks by category ────────────────────────────────────────────

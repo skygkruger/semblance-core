@@ -324,7 +324,7 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
           console.error(`[SemblanceCore] Selected chat model: ${chatModel}`);
         }
       }
-      chatModel = chatModel ?? 'llama3.2:8b';
+      chatModel = chatModel ?? 'llama3.1:8b';
 
       console.error(`[SemblanceCore] Chat model selected: ${chatModel}`);
       // Step 3: Initialize the knowledge graph (LanceDB + SQLite)
