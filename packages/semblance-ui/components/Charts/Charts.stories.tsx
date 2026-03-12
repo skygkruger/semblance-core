@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
-import { HorizontalBarChart } from './HorizontalBarChart.web';
-import { TrendLineChart } from './TrendLineChart.web';
-import { BarChart } from './BarChart.web';
-import { PeriodSelector } from './PeriodSelector.web';
+import { HorizontalBarChart } from './HorizontalBarChart';
+import { TrendLineChart } from './TrendLineChart';
+import { BarChart } from './BarChart';
+import { PeriodSelector } from './PeriodSelector';
 import type { PeriodOption } from './Charts.types';
 
 // ─── HorizontalBarChart ──────────────────────────────────────────────────────
