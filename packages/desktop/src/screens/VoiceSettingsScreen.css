@@ -90,7 +90,7 @@
 }
 
 .voice-settings__capability-status--downloading {
-  color: #B09A8A;
+  color: var(--caution);
 }
 
 .voice-settings__info {
@@ -137,4 +137,15 @@
   font-family: var(--fb);
   font-size: var(--text-sm);
   color: var(--sv2);
+}
+
+.voice-settings__range-input {
+  width: 120px;
+  margin-right: var(--sp-2);
+}
+
+.voice-settings__toggle-btn {
+  cursor: pointer;
+  border: none;
+  background: transparent;
 }

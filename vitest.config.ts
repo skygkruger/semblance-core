@@ -22,6 +22,7 @@ export default defineConfig({
       '@react-navigation/native-stack': resolve(__dirname, 'tests/helpers/mock-react-navigation.ts'),
       '@react-navigation/native': resolve(__dirname, 'tests/helpers/mock-react-navigation-native.ts'),
       'react-native-fs': resolve(__dirname, 'tests/helpers/mock-react-native-fs.ts'),
+      'react-native-webview': resolve(__dirname, 'tests/helpers/mock-react-native-webview.ts'),
       '@op-engineering/op-sqlite': resolve(__dirname, 'tests/helpers/mock-op-sqlite.ts'),
       'react-native-device-info': resolve(__dirname, 'tests/helpers/mock-device-info.ts'),
       '@notifee/react-native': resolve(__dirname, 'tests/helpers/mock-notifee.ts'),

@@ -43,10 +43,17 @@ export function chunkText(text: string, config?: ChunkerConfig): Chunk[] {
   const rawChunks = recursiveSplit(text, chunkSize, SEPARATORS);
   let chunks = mergeWithOverlap(rawChunks, chunkSize, overlap);
 
-  // Safety limit: cap chunks per document to prevent thousands of embedding calls
-  const MAX_CHUNKS_PER_DOCUMENT = 200;
+  // Safety limit: cap chunks per document to prevent runaway embedding calls.
+  // 2000 chunks at ~2000 chars each = ~4M chars (~1M tokens) — covers very large documents.
+  const MAX_CHUNKS_PER_DOCUMENT = 2000;
   if (chunks.length > MAX_CHUNKS_PER_DOCUMENT) {
+    const originalCount = chunks.length;
     chunks = chunks.slice(0, MAX_CHUNKS_PER_DOCUMENT);
+    // Annotate the last chunk so downstream consumers know content was truncated
+    const lastChunk = chunks[chunks.length - 1];
+    if (lastChunk) {
+      lastChunk.content += `\n\n[Document continues — indexed ${MAX_CHUNKS_PER_DOCUMENT} of ${originalCount} chunks]`;
+    }
   }
 
   return chunks;

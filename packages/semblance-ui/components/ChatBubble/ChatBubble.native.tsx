@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import type { ChatBubbleProps } from './ChatBubble.types';
 import { OpalBorderView, USER_BORDER_COLORS } from '../OpalBorderView/OpalBorderView.native';
+import { MarkdownText } from './MarkdownText.native';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 export function ChatBubble({ role, content, timestamp, streaming = false }: ChatBubbleProps) {
@@ -8,10 +9,17 @@ export function ChatBubble({ role, content, timestamp, streaming = false }: Chat
 
   const bubbleContent = (
     <>
-      <Text style={styles.content}>
-        {content}
-        {streaming ? '\u2588' : ''}
-      </Text>
+      {isUser ? (
+        <Text style={styles.content}>
+          {content}
+          {streaming ? '\u2588' : ''}
+        </Text>
+      ) : (
+        <View>
+          <MarkdownText text={content} />
+          {streaming ? <Text style={styles.content}>{'\u2588'}</Text> : null}
+        </View>
+      )}
       {timestamp ? (
         <Text style={styles.timestamp}>{timestamp}</Text>
       ) : null}

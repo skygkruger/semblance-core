@@ -67,6 +67,11 @@ import { DashboardHubScreen } from '../screens/DashboardHubScreen.js';
 import { ConnectionsScreen } from '../screens/ConnectionsScreen.js';
 import { FilesScreen } from '../screens/FilesScreen.js';
 import { ActivityScreen } from '../screens/ActivityScreen.js';
+import { IntentScreen } from '../screens/IntentScreen.js';
+import { DigestScreen } from '../screens/DigestScreen.js';
+import { NetworkMonitorScreen } from '../screens/NetworkMonitorScreen.js';
+import { RelationshipsScreen } from '../screens/RelationshipsScreen.js';
+import { SovereigntyReportScreen } from '../screens/SovereigntyReportScreen.js';
 import { fetchKnowledgeGraph } from '../data/knowledge-graph-adapter.js';
 import type { KnowledgeGraphData } from '../data/knowledge-graph-adapter.js';
 
@@ -1196,6 +1201,10 @@ function DashboardsTabStack() {
       <DashboardsStack.Screen name="Contacts" component={ContactsScreen} />
       <DashboardsStack.Screen name="ContactDetail" component={ContactDetailScreen} />
       <DashboardsStack.Screen name="Activity" component={ActivityScreen} />
+      <DashboardsStack.Screen name="Digest" component={DigestScreen} />
+      <DashboardsStack.Screen name="Relationships" component={RelationshipsScreen} />
+      <DashboardsStack.Screen name="SovereigntyReport" component={SovereigntyReportScreen} />
+      <DashboardsStack.Screen name="NetworkMonitor" component={NetworkMonitorScreen} />
     </DashboardsStack.Navigator>
   );
 }
@@ -1228,6 +1237,11 @@ function SettingsTabStack() {
       <SettingsNavStack.Screen name="Connections" component={ConnectionsScreen} />
       <SettingsNavStack.Screen name="Files" component={FilesScreen} />
       <SettingsNavStack.Screen name="Activity" component={ActivityScreen} />
+      <SettingsNavStack.Screen name="Intent" component={IntentScreen} />
+      <SettingsNavStack.Screen name="Digest" component={DigestScreen} />
+      <SettingsNavStack.Screen name="NetworkMonitor" component={NetworkMonitorScreen} />
+      <SettingsNavStack.Screen name="Relationships" component={RelationshipsScreen} />
+      <SettingsNavStack.Screen name="SovereigntyReport" component={SovereigntyReportScreen} />
     </SettingsNavStack.Navigator>
   );
 }

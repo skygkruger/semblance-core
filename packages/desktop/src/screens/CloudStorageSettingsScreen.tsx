@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getConnectedServices, cloudStorageConnect, cloudStorageDisconnect } from '../ipc/commands';
 import './CloudStorageSettingsScreen.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -13,11 +14,108 @@ interface CloudProvider {
   syncedFolders: string[];
 }
 
+const STORAGE_KEY_CLOUD_FOLDERS = 'semblance.cloud_storage.synced_folders';
+const STORAGE_KEY_CLOUD_SYNC = 'semblance.cloud_storage.last_sync';
+
+// Map connector IDs to display names
+const CLOUD_PROVIDER_NAMES: Record<string, string> = {
+  'google-drive': 'Google Drive',
+  'dropbox': 'Dropbox',
+  'icloud': 'iCloud',
+  'onedrive': 'OneDrive',
+};
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function CloudStorageSettingsScreen() {
   const { t } = useTranslation();
-  const [providers] = useState<CloudProvider[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [providers, setProviders] = useState<CloudProvider[]>([]);
+  const [connecting, setConnecting] = useState<string | null>(null);
+
+  // Load connected cloud storage providers from IPC
+  const loadProviders = useCallback(async () => {
+    try {
+      const connectedIds = await getConnectedServices().catch((err) => {
+        console.error('[CloudStorage] Failed to get connected services:', err);
+        return [] as string[];
+      });
+
+      // Load persisted folder selections and sync times from localStorage
+      const savedFolders = (() => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY_CLOUD_FOLDERS);
+          return raw ? (JSON.parse(raw) as Record<string, string[]>) : {};
+        } catch { return {}; }
+      })();
+
+      const savedSync = (() => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY_CLOUD_SYNC);
+          return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+        } catch { return {}; }
+      })();
+
+      // Cloud storage connector IDs that might appear
+      const cloudIds = ['google-drive', 'dropbox', 'icloud', 'onedrive'];
+      const connectedCloud = connectedIds.filter((id) => cloudIds.includes(id));
+
+      const mapped: CloudProvider[] = connectedCloud.map((id) => ({
+        id,
+        name: CLOUD_PROVIDER_NAMES[id] ?? id,
+        connected: true,
+        syncStatus: 'idle' as const,
+        lastSyncAt: savedSync[id] ?? null,
+        syncedFolders: savedFolders[id] ?? [],
+      }));
+
+      setProviders(mapped);
+    } catch (err) {
+      console.error('[CloudStorage] Failed to load providers:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProviders();
+  }, [loadProviders]);
+
+  // Connect to a cloud provider
+  const handleConnect = useCallback(async (providerId: string) => {
+    setConnecting(providerId);
+    try {
+      const result = await cloudStorageConnect(providerId);
+      if (result.success) {
+        await loadProviders(); // Refresh provider list after connecting
+      } else {
+        console.error('[CloudStorage] Connect failed:', result.error);
+      }
+    } catch (err) {
+      console.error('[CloudStorage] Connect error:', err);
+    } finally {
+      setConnecting(null);
+    }
+  }, [loadProviders]);
+
+  // Disconnect a cloud provider
+  const handleDisconnect = useCallback(async (providerId: string) => {
+    try {
+      await cloudStorageDisconnect(providerId);
+      // Remove persisted data for this provider
+      try {
+        const folders = JSON.parse(localStorage.getItem(STORAGE_KEY_CLOUD_FOLDERS) ?? '{}');
+        delete folders[providerId];
+        localStorage.setItem(STORAGE_KEY_CLOUD_FOLDERS, JSON.stringify(folders));
+        const sync = JSON.parse(localStorage.getItem(STORAGE_KEY_CLOUD_SYNC) ?? '{}');
+        delete sync[providerId];
+        localStorage.setItem(STORAGE_KEY_CLOUD_SYNC, JSON.stringify(sync));
+      } catch { /* ignore */ }
+      await loadProviders(); // Refresh
+    } catch (err) {
+      console.error('[CloudStorage] Disconnect error:', err);
+    }
+  }, [loadProviders]);
 
   const availableProviders = [
     { id: 'google-drive', name: t('screen.cloud_storage.google_drive') },
@@ -42,6 +140,10 @@ export function CloudStorageSettingsScreen() {
         <p className="cloud-storage__subtitle">
           {t('screen.cloud_storage.subtitle')}
         </p>
+
+        {loading && (
+          <p className="cloud-storage__empty-text">{t('common.loading', 'Loading...')}</p>
+        )}
 
         {/* Connected providers */}
         <div className="cloud-storage__card surface-void opal-wireframe">
@@ -70,7 +172,10 @@ export function CloudStorageSettingsScreen() {
                     <span className={`cloud-storage__provider-status cloud-storage__provider-status--${provider.syncStatus}`}>
                       {statusLabel(provider.syncStatus)}
                     </span>
-                    <button className="cloud-storage__disconnect-btn">
+                    <button
+                      className="cloud-storage__disconnect-btn"
+                      onClick={() => handleDisconnect(provider.id)}
+                    >
                       {t('screen.cloud_storage.disconnect')}
                     </button>
                   </div>
@@ -93,9 +198,14 @@ export function CloudStorageSettingsScreen() {
                   <span className="cloud-storage__available-name">{ap.name}</span>
                   <button
                     className={`cloud-storage__connect-btn ${isConnected ? 'cloud-storage__connect-btn--connected' : ''}`}
-                    disabled={isConnected}
+                    disabled={isConnected || connecting === ap.id}
+                    onClick={() => handleConnect(ap.id)}
                   >
-                    {isConnected ? t('screen.cloud_storage.connected') : t('screen.cloud_storage.connect')}
+                    {connecting === ap.id
+                      ? t('common.connecting', 'Connecting...')
+                      : isConnected
+                        ? t('screen.cloud_storage.connected')
+                        : t('screen.cloud_storage.connect')}
                   </button>
                 </div>
               );

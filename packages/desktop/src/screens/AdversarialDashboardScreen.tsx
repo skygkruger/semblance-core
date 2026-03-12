@@ -4,8 +4,9 @@
  * Thin IPC wrapper rendering with Design Bible CSS tokens.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getDarkPatternFlags, getFinancialDashboard } from '../ipc/commands';
 import './AdversarialDashboardScreen.css';
 
 interface DarkPatternAlert {
@@ -30,15 +31,70 @@ interface OptOutStatus {
   successRate: number;
 }
 
+const STORAGE_KEY_OPT_OUT = 'semblance.adversarial.opt_out_status';
+
+function loadOptOutStatus(): OptOutStatus {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_OPT_OUT);
+    if (raw) return JSON.parse(raw) as OptOutStatus;
+  } catch { /* ignore */ }
+  return { totalOptOuts: 0, pendingOptOuts: 0, successRate: 0 };
+}
+
 export function AdversarialDashboardScreen() {
   const { t } = useTranslation();
-  const [alerts] = useState<DarkPatternAlert[]>([]);
-  const [subscriptions] = useState<SubscriptionAssessment[]>([]);
-  const [optOutStatus] = useState<OptOutStatus>({
-    totalOptOuts: 0,
-    pendingOptOuts: 0,
-    successRate: 0,
-  });
+  const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState<DarkPatternAlert[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionAssessment[]>([]);
+  const [optOutStatus] = useState<OptOutStatus>(loadOptOutStatus);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        // Load dark pattern flags from IPC
+        const flags = await getDarkPatternFlags().catch((err) => {
+          console.error('[AdversarialDashboard] Failed to load dark pattern flags:', err);
+          return [];
+        });
+
+        // Map dark pattern results to alert format
+        const mappedAlerts: DarkPatternAlert[] = flags.map((flag) => ({
+          id: flag.contentId,
+          severity: flag.confidence >= 0.8 ? 'critical' as const : 'warning' as const,
+          source: (flag.patterns.length > 0 ? flag.patterns[0]?.category : undefined) ?? 'unknown',
+          description: flag.reframe,
+          detectedAt: new Date().toISOString(),
+        }));
+        setAlerts(mappedAlerts);
+
+        // Load subscription data from financial dashboard for value assessments
+        const financialData = await getFinancialDashboard('30d').catch((err) => {
+          console.error('[AdversarialDashboard] Failed to load financial data:', err);
+          return null;
+        });
+
+        if (financialData?.subscriptions?.charges) {
+          const mappedSubs: SubscriptionAssessment[] = financialData.subscriptions.charges.map((charge) => ({
+            id: charge.id,
+            name: charge.merchantName,
+            monthlyCost: charge.amount,
+            valueScore: charge.confidence,
+            recommendation: charge.status === 'cancelled'
+              ? 'Cancelled'
+              : charge.status === 'forgotten'
+                ? 'Potentially forgotten — review'
+                : 'Active',
+          }));
+          setSubscriptions(mappedSubs);
+        }
+      } catch (err) {
+        console.error('[AdversarialDashboard] Failed to load data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   return (
     <div className="adversarial-dashboard h-full overflow-y-auto">
@@ -47,6 +103,10 @@ export function AdversarialDashboardScreen() {
         <p className="adversarial-dashboard__subtitle">
           {t('screen.adversarial.subtitle')}
         </p>
+
+        {loading && (
+          <p className="adversarial-dashboard__empty">{t('common.loading', 'Loading...')}</p>
+        )}
 
         {/* Opt-out stats */}
         <div className="adversarial-dashboard__stats">

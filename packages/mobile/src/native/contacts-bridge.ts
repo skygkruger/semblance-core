@@ -125,11 +125,44 @@ export function createMobileContactsAdapter(): ContactsAdapter {
     },
 
     onContactsChanged(listener: () => void) {
-      // react-native-contacts doesn't have a built-in change listener.
-      // We use a polling approach or native module event in a future iteration.
-      // For now, return a no-op unsubscribe.
-      void listener;
-      return () => {};
+      // react-native-contacts lacks a native change listener.
+      // Poll every 30s by comparing contact count + ID hash.
+      let lastHash = '';
+      let intervalId: ReturnType<typeof setInterval> | null = null;
+
+      const computeHash = async (): Promise<string> => {
+        try {
+          const permission = await getContacts().checkPermission();
+          if (permission !== 'authorized') return '';
+          const contacts = await getContacts().getAll() as unknown as RNContact[];
+          // Hash by sorted record IDs and count
+          const ids = contacts.map(c => c.recordID).sort().join(',');
+          return `${contacts.length}:${ids.length > 100 ? ids.slice(0, 100) : ids}`;
+        } catch {
+          return '';
+        }
+      };
+
+      // Take initial snapshot
+      computeHash().then(hash => {
+        lastHash = hash;
+      });
+
+      intervalId = setInterval(async () => {
+        const currentHash = await computeHash();
+        if (currentHash && currentHash !== lastHash) {
+          lastHash = currentHash;
+          listener();
+        }
+      }, 30_000);
+
+      // Return unsubscribe function
+      return () => {
+        if (intervalId !== null) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      };
     },
   };
 }

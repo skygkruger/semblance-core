@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import './LocationSettingsScreen.css';
 
@@ -13,18 +13,48 @@ interface LocationSettings {
   retentionDays: number;
 }
 
+const STORAGE_KEY = 'semblance.location_settings';
+
+const DEFAULT_SETTINGS: LocationSettings = {
+  enabled: false,
+  defaultCity: '',
+  weatherEnabled: false,
+  commuteEnabled: false,
+  remindersEnabled: false,
+  retentionDays: 30,
+};
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function LocationSettingsScreen() {
   const { t } = useTranslation();
-  const [settings, setSettings] = useState<LocationSettings>({
-    enabled: false,
-    defaultCity: '',
-    weatherEnabled: false,
-    commuteEnabled: false,
-    remindersEnabled: false,
-    retentionDays: 30,
-  });
+  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<LocationSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setSettings({ ...DEFAULT_SETTINGS, ...parsed });
+        }
+      } catch (err) {
+        console.error('[LocationSettingsScreen] load failed:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const updateSettings = useCallback((changes: Partial<LocationSettings>) => {
+    setSettings((prev) => {
+      const updated = { ...prev, ...changes };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const retentionOptions = [
     { value: 7, label: t('screen.location.retention_7') },
@@ -34,8 +64,21 @@ export function LocationSettingsScreen() {
   ];
 
   const toggleSetting = (key: keyof LocationSettings) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+    updateSettings({ [key]: !settings[key] });
   };
+
+  if (loading) {
+    return (
+      <div className="location-settings h-full overflow-y-auto">
+        <div className="location-settings__container">
+          <h1 className="location-settings__title">{t('screen.location.title')}</h1>
+          <div className="location-settings__card surface-void opal-wireframe">
+            <p>{t('common.loading')}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="location-settings h-full overflow-y-auto">
@@ -77,7 +120,7 @@ export function LocationSettingsScreen() {
             className="location-settings__input"
             placeholder={t('screen.location.city_placeholder')}
             value={settings.defaultCity}
-            onChange={(e) => setSettings((prev) => ({ ...prev, defaultCity: e.target.value }))}
+            onChange={(e) => updateSettings({ defaultCity: e.target.value })}
           />
         </div>
 
@@ -148,7 +191,7 @@ export function LocationSettingsScreen() {
               <button
                 key={opt.value}
                 className={`location-settings__retention-btn ${settings.retentionDays === opt.value ? 'location-settings__retention-btn--active' : ''}`}
-                onClick={() => setSettings((prev) => ({ ...prev, retentionDays: opt.value }))}
+                onClick={() => updateSettings({ retentionDays: opt.value })}
               >
                 {opt.label}
               </button>

@@ -12,7 +12,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  Alert,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
@@ -103,12 +102,33 @@ export function SettingsScreen() {
       setModelName('No inference');
     }
 
-    // Device tier for display
-    if (state.deviceInfo) {
-      // Autonomy settings would come from persisted preferences
-      // TODO: Sprint 6 — Wire autonomy tier from persisted mobile preferences
-    }
+    // Load autonomy tier from persisted mobile preferences
+    (async () => {
+      try {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const raw = await AsyncStorage.getItem('semblance.autonomy_tier');
+        if (raw && ['guardian', 'partner', 'alter_ego'].includes(raw)) {
+          setAutonomyTier(raw);
+        }
+      } catch {
+        // AsyncStorage unavailable — keep default 'partner'
+      }
+    })();
   }, [ready]);
+
+  // Cycle autonomy tier and persist to AsyncStorage
+  const handleCycleAutonomyTier = useCallback(async () => {
+    const order = ['guardian', 'partner', 'alter_ego'] as const;
+    const currentIdx = order.indexOf(autonomyTier as typeof order[number]);
+    const next = order[(currentIdx + 1) % order.length] ?? 'partner';
+    setAutonomyTier(next);
+    try {
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      await AsyncStorage.setItem('semblance.autonomy_tier', next);
+    } catch {
+      // Persist failure — tier updated in state only
+    }
+  }, [autonomyTier]);
 
   // WiFi-only toggle persists to model manager
   const handleWifiOnlyToggle = useCallback((value: boolean) => {
@@ -158,18 +178,17 @@ export function SettingsScreen() {
             id: 'tier',
             label: tSettings('autonomy.title'),
             type: 'value' as const,
-            value: autonomyTier.charAt(0).toUpperCase() + autonomyTier.slice(1),
+            value: autonomyTier === 'alter_ego'
+              ? 'Alter Ego'
+              : autonomyTier.charAt(0).toUpperCase() + autonomyTier.slice(1),
+            onPress: handleCycleAutonomyTier,
           },
           {
             id: 'intents',
             label: t('screen.settings.intents_hard_limits'),
             type: 'navigate' as const,
             description: tSettings('intents_hard_limits_subtitle'),
-            onPress: () => {
-              // Intent screen is handled by the desktop; on mobile we show an alert
-              // TODO: Sprint 6 — Create IntentScreen for mobile
-              Alert.alert(t('screen.intent.title'), t('screen.intent.loading'));
-            },
+            onPress: () => navigation.navigate('Intent'),
           },
         ],
       },
@@ -320,7 +339,7 @@ export function SettingsScreen() {
     ];
   }, [
     t, tSettings, navigation, modelName, autonomyTier, wifiOnly,
-    deviceInfo, handleWifiOnlyToggle, appVersion,
+    deviceInfo, handleWifiOnlyToggle, handleCycleAutonomyTier, appVersion,
   ]);
 
   return (

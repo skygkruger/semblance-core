@@ -22,12 +22,11 @@ const registry = createDefaultConnectorRegistry();
 
 /**
  * Connectors enabled in the current release.
- * Only connectors with real auth flows (.env credentials) or that work
- * without any API (native/file import) are shown. All other connectors
- * are preserved in the registry code but hidden from the UI until wired.
+ * Only connectors with registered gateway adapters (real working backends)
+ * are shown. All other connectors are preserved in the registry code but
+ * hidden from the UI until their backends are implemented.
  */
 const ENABLED_CONNECTORS = new Set([
-  // OAuth connectors with .env credentials and working auth flows
   'gmail',
   'google-calendar',
   'google-drive',
@@ -36,35 +35,6 @@ const ENABLED_CONNECTORS = new Set([
   'dropbox',
   'spotify',
   'notion',
-
-  // Native/local connectors (no API required)
-  'things',             // macOS — local AppleScript
-  'imessage',           // macOS — local SQLite
-  'safari-history',     // macOS — local SQLite
-  'edge-history',       // all platforms — local SQLite
-  'arc-history',        // macOS — local SQLite
-  'obsidian',           // all platforms — local vault folder
-  'zotero',             // all platforms — local SQLite
-
-  // File import/export connectors (user provides export file)
-  'slack-export',
-  'goodreads-export',
-  'apple-health-export',
-  'strava-export',
-  'facebook-export',
-  'instagram-export',
-  'twitter-export',
-  'linkedin-export',
-  'discord-export',
-  'ynab-export',
-  'mint-export',
-  'signal-export',
-  'whatsapp-export',
-  'telegram-export',
-  'google-takeout',
-  'notion-export',
-  'bear-export',
-  'evernote-export',
 ]);
 
 function getCurrentPlatform(): 'macos' | 'windows' | 'linux' {

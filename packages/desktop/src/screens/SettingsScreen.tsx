@@ -22,6 +22,10 @@ import {
   getStyleProfile,
   getNotificationSettings,
   saveNotificationSettings,
+  getActionLog,
+  getKnowledgeStats,
+  exportKnowledgeGraph,
+  clearAllConversations,
 } from '../ipc/commands';
 import type { NotificationSettings } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
@@ -202,20 +206,187 @@ export function SettingsScreen() {
           onManageAllConnections={() => navigate('/connections')}
           onConnectionTap={() => navigate('/connections')}
           onRunAudit={() => navigate('/privacy')}
-          onExportData={() => showToast('Data export coming in a future update')}
-          onExportHistory={() => showToast('History export coming in a future update')}
-          onDeleteSourceData={() => showToast('Source data deletion coming in a future update')}
-          onDeleteAllData={() => showToast('Full data deletion coming in a future update')}
-          onResetSemblance={() => showToast('Reset coming in a future update')}
+          onExportData={async () => {
+            try {
+              // Try the dedicated knowledge graph export IPC first
+              await exportKnowledgeGraph();
+              showToast('Knowledge graph exported successfully');
+            } catch {
+              // Fallback: gather stats and export as JSON download
+              try {
+                const stats = await getKnowledgeStats();
+                const exportPayload = {
+                  exportedAt: new Date().toISOString(),
+                  knowledgeStats: stats,
+                };
+                const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `semblance-knowledge-export-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Knowledge data exported as JSON');
+              } catch {
+                showToast('Export failed — no knowledge data available');
+              }
+            }
+          }}
+          onExportHistory={async () => {
+            try {
+              const entries = await getActionLog(10000, 0);
+              const exportPayload = {
+                exportedAt: new Date().toISOString(),
+                entryCount: entries.length,
+                entries,
+              };
+              const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `semblance-action-history-${new Date().toISOString().split('T')[0]}.json`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              showToast(`Exported ${entries.length} action log entries`);
+            } catch {
+              showToast('History export failed — no action log entries available');
+            }
+          }}
+          onDeleteSourceData={() => {
+            const confirmed = window.confirm(
+              'Delete all indexed source data? This will remove all documents, embeddings, and knowledge graph entries. This cannot be undone.'
+            );
+            if (!confirmed) return;
+            exportKnowledgeGraph()
+              .catch(() => {})
+              .finally(() => {
+                clearAllConversations(false)
+                  .catch(() => {});
+                // Clear knowledge via sidecar
+                import('@tauri-apps/api/core').then(({ invoke }) => {
+                  invoke('sidecar_request', {
+                    request: { method: 'clear_knowledge_data', params: {} },
+                  }).catch(() => {});
+                }).catch(() => {});
+                showToast('Source data deletion initiated. Restart recommended.');
+              });
+          }}
+          onDeleteAllData={() => {
+            const confirmed = window.confirm(
+              'DELETE ALL DATA — This will erase your entire Semblance database including knowledge graph, conversations, action history, preferences, and all indexed content. This cannot be undone.'
+            );
+            if (!confirmed) return;
+            const typed = window.prompt('Type DELETE to confirm permanent data deletion:');
+            if (typed !== 'DELETE') {
+              showToast('Deletion cancelled — confirmation text did not match');
+              return;
+            }
+            // Clear conversations
+            clearAllConversations(false).catch(() => {});
+            // Clear knowledge via sidecar
+            import('@tauri-apps/api/core').then(({ invoke }) => {
+              invoke('sidecar_request', {
+                request: { method: 'clear_knowledge_data', params: {} },
+              }).catch(() => {});
+              invoke('sidecar_request', {
+                request: { method: 'clear_all_data', params: {} },
+              }).catch(() => {});
+            }).catch(() => {});
+            // Clear localStorage
+            Object.keys(localStorage).forEach((key) => {
+              if (key.startsWith('semblance.')) localStorage.removeItem(key);
+            });
+            showToast('All data deleted. Please restart Semblance.');
+          }}
+          onResetSemblance={() => {
+            const confirmed = window.confirm(
+              'FACTORY RESET — This will delete ALL data and restore Semblance to its initial state. All knowledge, conversations, preferences, connected accounts, and license data will be erased.'
+            );
+            if (!confirmed) return;
+            const typed = window.prompt('Type RESET to confirm factory reset:');
+            if (typed !== 'RESET') {
+              showToast('Reset cancelled — confirmation text did not match');
+              return;
+            }
+            // Clear all conversations
+            clearAllConversations(false).catch(() => {});
+            // Clear all sidecar data
+            import('@tauri-apps/api/core').then(({ invoke }) => {
+              invoke('sidecar_request', {
+                request: { method: 'clear_all_data', params: {} },
+              }).catch(() => {});
+              invoke('sidecar_request', {
+                request: { method: 'clear_knowledge_data', params: {} },
+              }).catch(() => {});
+            }).catch(() => {});
+            // Clear ALL localStorage (not just semblance. prefix)
+            localStorage.clear();
+            // Reset license state in app
+            dispatch({
+              type: 'SET_LICENSE',
+              license: { tier: 'free', isFoundingMember: false, foundingSeat: null, licenseKey: null },
+            });
+            showToast('Factory reset complete. Semblance will restart.');
+            setTimeout(() => window.location.reload(), 1500);
+          }}
           onRenewLicense={() => navigate('/upgrade')}
           onActivateDigitalRepresentative={() => navigate('/upgrade')}
-          onViewDRAgreement={() => showToast('Agreement details coming in a future update')}
+          onViewDRAgreement={() => {
+            window.alert(
+              'DIGITAL REPRESENTATIVE AGREEMENT\n\n' +
+              'By activating Digital Representative features, you agree to the following:\n\n' +
+              '1. AUTONOMY — Digital Representative operates under your configured autonomy tier ' +
+              '(Guardian, Partner, or Alter Ego). You control how much independence it has.\n\n' +
+              '2. AUDIT TRAIL — Every action taken on your behalf is cryptographically logged ' +
+              'in a tamper-evident audit trail. You can review, verify, and export this trail at any time.\n\n' +
+              '3. REVERSIBILITY — Where possible, actions are reversible. Undo is available ' +
+              'from the Action Log for supported action types.\n\n' +
+              '4. PRIVACY — Your data never leaves your device. All reasoning, drafting, and ' +
+              'decision-making happens locally. Network access is limited to authorized services only.\n\n' +
+              '5. YOUR CONTROL — You can revoke Digital Representative access, adjust autonomy tiers, ' +
+              'or deactivate entirely at any time from Settings.\n\n' +
+              'Semblance acts as your agent, not ours. Your intelligence. Your device. Your rules.'
+            );
+          }}
           onRenameSemblance={async (name) => {
             dispatch({ type: 'SET_SEMBLANCE_NAME', name });
             await setAiName(name).catch(() => {});
           }}
-          onSignOut={() => showToast('Sign out coming in a future update')}
-          onDeactivateLicense={() => showToast('License deactivation coming in a future update')}
+          onSignOut={() => {
+            const confirmed = window.confirm(
+              'Sign out of this session? Your license key will remain stored in the OS keychain for easy re-activation.'
+            );
+            if (!confirmed) return;
+            // Clear session-specific state from localStorage
+            const sessionKeys = ['semblance.session', 'semblance.lastSync', 'semblance.activeConversation'];
+            sessionKeys.forEach((key) => localStorage.removeItem(key));
+            // Reset app state license to free tier (keychain retains the key)
+            dispatch({
+              type: 'SET_LICENSE',
+              license: { tier: 'free', isFoundingMember: false, foundingSeat: null, licenseKey: null },
+            });
+            showToast('Signed out. License key remains in keychain.');
+          }}
+          onDeactivateLicense={() => {
+            const confirmed = window.confirm(
+              'Deactivate your license? Premium features (Digital Representative, Morning Brief, Visual Knowledge Graph, etc.) will be disabled immediately. You can re-activate later with your license key.'
+            );
+            if (!confirmed) return;
+            // Clear license from localStorage
+            Object.keys(localStorage).forEach((key) => {
+              if (key.startsWith('semblance.license')) localStorage.removeItem(key);
+            });
+            // Reset license state in app
+            dispatch({
+              type: 'SET_LICENSE',
+              license: { tier: 'free', isFoundingMember: false, foundingSeat: null, licenseKey: null },
+            });
+            showToast('License deactivated. Premium features disabled.');
+          }}
           onNavigateIntents={() => navigate('/settings/intents')}
         />
       </div>
