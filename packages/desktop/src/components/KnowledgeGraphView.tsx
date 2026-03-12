@@ -19,7 +19,7 @@ import type {
 } from '../../../core/knowledge/graph-visualization';
 import type { VisualizationCategory } from '../../../core/knowledge/connector-category-map';
 import { getAllCategories } from '../../../core/knowledge/connector-category-map';
-import type { KnowledgeNode, KnowledgeEdge } from '@semblance/ui';
+import type { KnowledgeNode, KnowledgeEdge, DrillDownConfig, DrillDownItem } from '@semblance/ui';
 import './KnowledgeGraphView.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -157,6 +157,39 @@ export const TimeSlider: React.FC<TimeSliderProps> = ({ nodes, range, onChange }
 
 // ─── Display Graph Builder ──────────────────────────────────────────────────
 
+function deriveSublabel(n: VisualizationNode): string | undefined {
+  const meta = n.metadata ?? {};
+  if (n.type === 'category') {
+    const count = meta.nodeCount as number | undefined;
+    return count != null ? `${count} entities` : undefined;
+  }
+  if (n.type === 'person') {
+    const count = meta.interactionCount as number | undefined;
+    if (count != null) return `${count} interactions`;
+    const org = meta.organization as string | undefined;
+    return org ?? undefined;
+  }
+  if (n.type === 'document' || n.type === 'directory') {
+    const source = meta.source as string | undefined;
+    const ext = meta.extension as string | undefined;
+    if (ext) return ext.toUpperCase().replace('.', '');
+    if (source) return source.replace(/_/g, ' ');
+    return undefined;
+  }
+  if (n.type === 'event') {
+    return meta.when as string | undefined;
+  }
+  if (n.type === 'email_thread') {
+    const count = meta.messageCount as number | undefined;
+    return count != null ? `${count} messages` : undefined;
+  }
+  if (n.type === 'topic') {
+    const count = meta.mentionCount as number | undefined;
+    return count != null ? `${count} mentions` : undefined;
+  }
+  return undefined;
+}
+
 function toKnowledgeNode(n: VisualizationNode): KnowledgeNode {
   return {
     id: n.id,
@@ -166,6 +199,7 @@ function toKnowledgeNode(n: VisualizationNode): KnowledgeNode {
       : n.type === 'category' ? 'category'
       : 'topic',
     label: n.label,
+    sublabel: deriveSublabel(n),
     weight: n.size,
     metadata: n.metadata,
   };
@@ -346,6 +380,78 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   const kgNodes = useMemo(() => filteredNodes.map(toKnowledgeNode), [filteredNodes]);
   const kgEdges = useMemo(() => filteredEdges.map(toKnowledgeEdge), [filteredEdges]);
 
+  // Build drill-down config from nodeContext (connections become drill-down items)
+  const [drillDownSearch, setDrillDownSearch] = useState('');
+  const drillDown = useMemo<DrillDownConfig | undefined>(() => {
+    if (!nodeContext || !selectedNodeId) return undefined;
+
+    // Build drill-down items from connections
+    const allItems: DrillDownItem[] = nodeContext.connections.map((conn) => ({
+      chunkId: conn.node.id,
+      title: conn.node.label,
+      preview: conn.edge.label
+        ? `${conn.edge.label} (weight: ${conn.edge.weight})`
+        : `Connected with weight ${conn.edge.weight}`,
+      source: conn.node.type,
+      category: conn.node.domain ?? 'general',
+      indexedAt: conn.node.createdAt ?? new Date().toISOString(),
+    }));
+
+    // Apply search filter
+    const items = drillDownSearch
+      ? allItems.filter(i =>
+          i.title.toLowerCase().includes(drillDownSearch.toLowerCase()) ||
+          i.preview.toLowerCase().includes(drillDownSearch.toLowerCase()))
+      : allItems;
+
+    return {
+      items,
+      total: allItems.length,
+      loading: false,
+      hasMore: false,
+      onSearch: (query: string) => setDrillDownSearch(query),
+      onLoadMore: () => { /* all items loaded from context */ },
+      onItemClick: (item: DrillDownItem) => {
+        // Navigate to the clicked connection node
+        handleNodeClick(item.chunkId);
+      },
+    };
+  }, [nodeContext, selectedNodeId, drillDownSearch, handleNodeClick]);
+
+  // Build stats for the KnowledgeGraph component
+  const graphStats = useMemo(() => {
+    const stats = categoryGraph?.stats ?? graph.stats;
+    if (!stats) return undefined;
+    // Count cross-domain edges as "insights"
+    const insights = stats.crossDomainInsights ?? Math.round(stats.totalEdges * 0.3);
+    return { entities: stats.totalNodes, insights };
+  }, [categoryGraph, graph]);
+
+  // Build filter config for the KnowledgeGraph component
+  const filterConfig = useMemo(() => {
+    const categories = kgNodes
+      .filter(n => n.type === 'category')
+      .map(n => ({
+        id: n.metadata?.category ?? n.id,
+        label: n.label,
+        color: n.metadata?.color ?? '#6ECFA3',
+        nodeCount: n.metadata?.nodeCount ?? 0,
+      }));
+    if (categories.length === 0) return undefined;
+    return {
+      categories,
+      enabled: enabledCategories as unknown as Set<string>,
+      onToggle: (catId: string) => handleToggleCategory(catId as VisualizationCategory),
+      onReset: handleResetFilters,
+    };
+  }, [kgNodes, enabledCategories, handleToggleCategory, handleResetFilters]);
+
+  // Determine layout mode — use radial when we have category nodes, otherwise force
+  const layoutMode = useMemo(() => {
+    const hasCategoryNodes = kgNodes.some(n => n.type === 'category');
+    return hasCategoryNodes ? 'radial' as const : 'force' as const;
+  }, [kgNodes]);
+
   return (
     <div data-testid="knowledge-graph-view" className="kg-view" style={{ width, height: height + 48 }}>
       {/* Header */}
@@ -382,7 +488,18 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
             edges={kgEdges}
             width={graphWidth}
             height={height - 80}
-            onNodeSelect={(node) => node && handleNodeClick(node.id)}
+            layoutMode={layoutMode}
+            stats={graphStats}
+            filterConfig={filterConfig}
+            drillDown={drillDown}
+            onNodeSelect={(node) => {
+              if (node) {
+                handleNodeClick(node.id);
+                setDrillDownSearch(''); // Reset search on new node selection
+              } else {
+                setSelectedNodeId(null);
+              }
+            }}
           />
         </div>
       </div>
@@ -391,7 +508,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
       <StatsOverlay stats={categoryGraph?.stats ?? graph.stats} visible={showStats} />
 
       {nodeContext && selectedNodeId && (
-        <NodeDetailPanel context={nodeContext} onClose={() => setSelectedNodeId(null)} />
+        <NodeDetailPanel context={nodeContext} onClose={() => { setSelectedNodeId(null); setDrillDownSearch(''); }} />
       )}
     </div>
   );

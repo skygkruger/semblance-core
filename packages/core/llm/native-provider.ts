@@ -76,10 +76,23 @@ export class NativeProvider implements LLMProvider {
       ? this.injectToolsIntoMessages(request.messages, request.tools)
       : request.messages;
 
-    const prompt = this.formatChatPrompt(messages);
+    // Extract system prompt and user messages separately so the Rust side
+    // can apply the correct ChatML template. DO NOT double-template here —
+    // native_runtime.rs wraps with <|im_start|>system/user/assistant<|im_end|>.
+    const systemMessages = messages.filter(m => m.role === 'system');
+    const nonSystemMessages = messages.filter(m => m.role !== 'system');
+    const systemPrompt = systemMessages.map(m => m.content).join('\n\n') || undefined;
+
+    // Build the user/assistant turns into a single prompt for the Rust ChatML template.
+    // The Rust side wraps the prompt as the "user" turn, so we concatenate history + latest.
+    const prompt = nonSystemMessages.map(m => {
+      if (m.role === 'assistant') return `Assistant: ${m.content}`;
+      return m.content;
+    }).join('\n\n');
 
     const result = await this.bridge.generate({
       prompt,
+      systemPrompt,
       maxTokens: request.maxTokens,
       temperature: request.temperature,
       stop: request.stop,

@@ -97219,6 +97219,16 @@ function isTextFormat(ext) {
 }
 async function readLargeTextFile(filePath, fileSize) {
   const p = getPlatform();
+  const SAFE_READ_LIMIT = 50 * 1024 * 1024;
+  if (fileSize > SAFE_READ_LIMIT) {
+    const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
+    let content2 = await p.fs.readFile(filePath, "utf-8");
+    const trimmed = content2.slice(0, 2 * 1024 * 1024);
+    content2 = "";
+    return trimmed + `
+
+[Content truncated: original file was ${sizeMB} MB, indexed first 2 MB]`;
+  }
   let content = await p.fs.readFile(filePath, "utf-8");
   if (content.length > CONTENT_EXTRACT_LIMIT_BYTES) {
     content = content.slice(0, CONTENT_EXTRACT_LIMIT_BYTES);
@@ -234617,9 +234627,16 @@ var NativeProvider = class {
   }
   async chat(request) {
     const messages = request.tools && request.tools.length > 0 ? this.injectToolsIntoMessages(request.messages, request.tools) : request.messages;
-    const prompt = this.formatChatPrompt(messages);
+    const systemMessages = messages.filter((m) => m.role === "system");
+    const nonSystemMessages = messages.filter((m) => m.role !== "system");
+    const systemPrompt = systemMessages.map((m) => m.content).join("\n\n") || void 0;
+    const prompt = nonSystemMessages.map((m) => {
+      if (m.role === "assistant") return `Assistant: ${m.content}`;
+      return m.content;
+    }).join("\n\n");
     const result2 = await this.bridge.generate({
       prompt,
+      systemPrompt,
       maxTokens: request.maxTokens,
       temperature: request.temperature,
       stop: request.stop
@@ -267766,17 +267783,23 @@ async function handleSendMessage(id, params) {
   }
   const responseId = `msg_${Date.now()}`;
   let convId;
-  if (params.conversation_id) {
-    convId = params.conversation_id;
+  try {
+    if (params.conversation_id) {
+      convId = params.conversation_id;
+      currentConversationId = convId;
+    } else if (currentConversationId) {
+      convId = currentConversationId;
+    } else if (conversationManager) {
+      const conv = conversationManager.create(params.message);
+      convId = conv.id;
+      currentConversationId = convId;
+    } else {
+      convId = ensureConversation();
+    }
+  } catch (convErr) {
+    console.error("[sidecar] Conversation setup failed:", convErr);
+    convId = `tmp_${Date.now()}`;
     currentConversationId = convId;
-  } else if (currentConversationId) {
-    convId = currentConversationId;
-  } else if (conversationManager) {
-    const conv = conversationManager.create(params.message);
-    convId = conv.id;
-    currentConversationId = convId;
-  } else {
-    convId = ensureConversation();
   }
   respond(id, { responseId, conversationId: convId });
   try {
@@ -267826,7 +267849,13 @@ ${preview}
     }
     if (hasOrchestrator) {
       console.error("[sidecar] Routing through orchestrator (full agent loop)");
-      const orchResult = await core.agent.processMessage(augmentedMessage, convId);
+      const orchTimeout = new Promise(
+        (_3, reject2) => setTimeout(() => reject2(new Error("Orchestrator timed out after 120s \u2014 the model may be overloaded or the prompt too large")), 12e4)
+      );
+      const orchResult = await Promise.race([
+        core.agent.processMessage(augmentedMessage, convId),
+        orchTimeout
+      ]);
       fullResponse = orchResult.message;
       actions = orchResult.actions.map((a) => ({
         id: a.id,
@@ -268019,11 +268048,24 @@ async function handleStartIndexing(id, params) {
           console.error(`[sidecar] Failed to record directory node for ${dir}:`, err);
         }
       }
-      const BATCH_SIZE = 10;
+      const BATCH_SIZE = 5;
+      const MAX_INDEXABLE_FILE_BYTES = 50 * 1024 * 1024;
+      const HEAP_PRESSURE_THRESHOLD = 512 * 1024 * 1024;
       for (let batchStart = 0; batchStart < allFiles.length; batchStart += BATCH_SIZE) {
         const batch = allFiles.slice(batchStart, batchStart + BATCH_SIZE);
+        const heapUsed = process.memoryUsage().heapUsed;
+        if (heapUsed > HEAP_PRESSURE_THRESHOLD) {
+          console.error(`[sidecar] Heap pressure: ${(heapUsed / 1024 / 1024).toFixed(0)}MB \u2014 yielding for GC`);
+          await new Promise((resolve5) => setTimeout(resolve5, 500));
+          if (typeof global.gc === "function") global.gc();
+        }
         for (const file of batch) {
           try {
+            if (file.size > MAX_INDEXABLE_FILE_BYTES) {
+              console.error(`[sidecar] Skipping ${file.name} \u2014 too large (${(file.size / 1024 / 1024).toFixed(1)}MB > ${MAX_INDEXABLE_FILE_BYTES / 1024 / 1024}MB limit)`);
+              totalFilesScanned++;
+              continue;
+            }
             emit("indexing-progress", {
               filesScanned: totalFilesScanned,
               filesTotal,
@@ -268086,7 +268128,7 @@ async function handleStartIndexing(id, params) {
             totalFilesScanned++;
           }
         }
-        await new Promise((resolve5) => setTimeout(resolve5, 50));
+        await new Promise((resolve5) => setTimeout(resolve5, 200));
         if (typeof global.gc === "function") {
           global.gc();
         }
