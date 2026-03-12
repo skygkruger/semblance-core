@@ -218,8 +218,10 @@ impl NativeRuntime {
             ),
         };
 
-        // Create context for this request
-        let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(4096));
+        // Create context for this request.
+        // 8192 tokens: orchestrator system prompt (~1K) + tool definitions (~2K)
+        // + knowledge context (~1K) + conversation history (~2K) + response (~2K).
+        let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(8192));
         let mut ctx = model
             .new_context(backend, ctx_params)
             .map_err(|e| format!("Failed to create context: {}", e))?;
@@ -232,6 +234,21 @@ impl NativeRuntime {
         if tokens.is_empty() {
             return Err("Empty prompt after tokenization".to_string());
         }
+
+        // Safety: if prompt exceeds context window, truncate to leave room for response.
+        // Without this, llama.cpp can segfault accessing KV cache beyond allocated size.
+        let n_ctx: usize = 8192;
+        let max_prompt_tokens = n_ctx.saturating_sub(max_tokens as usize);
+        let tokens = if tokens.len() > max_prompt_tokens {
+            eprintln!(
+                "[NativeRuntime] Prompt too long ({} tokens > {} limit), truncating to fit context",
+                tokens.len(),
+                max_prompt_tokens
+            );
+            tokens[..max_prompt_tokens].to_vec()
+        } else {
+            tokens
+        };
 
         // Create batch and add prompt tokens (only compute logits for last token)
         let mut batch = LlamaBatch::new(tokens.len().max(512), 1);

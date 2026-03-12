@@ -907,19 +907,28 @@ async function handleSendMessage(
 
   const responseId = `msg_${Date.now()}`;
 
-  // Use provided conversation_id or create a new one via ConversationManager
+  // Wrap ALL pre-processing in try-catch so conversation setup failures
+  // don't crash the sidecar (the response ID is needed for error reporting)
   let convId: string;
-  if (params.conversation_id) {
-    convId = params.conversation_id;
+  try {
+    // Use provided conversation_id or create a new one via ConversationManager
+    if (params.conversation_id) {
+      convId = params.conversation_id;
+      currentConversationId = convId;
+    } else if (currentConversationId) {
+      convId = currentConversationId;
+    } else if (conversationManager) {
+      const conv = conversationManager.create(params.message);
+      convId = conv.id;
+      currentConversationId = convId;
+    } else {
+      convId = ensureConversation();
+    }
+  } catch (convErr) {
+    console.error('[sidecar] Conversation setup failed:', convErr);
+    // Fall back to a temporary conversation ID so we can still respond
+    convId = `tmp_${Date.now()}`;
     currentConversationId = convId;
-  } else if (currentConversationId) {
-    convId = currentConversationId;
-  } else if (conversationManager) {
-    const conv = conversationManager.create(params.message);
-    convId = conv.id;
-    currentConversationId = convId;
-  } else {
-    convId = ensureConversation();
   }
 
   // Return response ID immediately so frontend can start showing the streaming bubble
@@ -993,7 +1002,14 @@ async function handleSendMessage(
       // 8. Returns final response + actions taken
       console.error('[sidecar] Routing through orchestrator (full agent loop)');
 
-      const orchResult = await core.agent.processMessage(augmentedMessage, convId);
+      // 120s timeout — inference on a 7B model with full tool prompt can take 60-90s
+      const orchTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Orchestrator timed out after 120s — the model may be overloaded or the prompt too large')), 120_000)
+      );
+      const orchResult = await Promise.race([
+        core.agent.processMessage(augmentedMessage, convId),
+        orchTimeout,
+      ]);
 
       fullResponse = orchResult.message;
       actions = orchResult.actions.map(a => ({
@@ -1241,13 +1257,30 @@ async function handleStartIndexing(
       }
 
       // Step 3: Index files in batches with breathing room
-      const BATCH_SIZE = 10;
+      const BATCH_SIZE = 5; // Reduced from 10 for memory safety
+      const MAX_INDEXABLE_FILE_BYTES = 50 * 1024 * 1024; // 50MB — skip files larger than this
+      const HEAP_PRESSURE_THRESHOLD = 512 * 1024 * 1024; // 512MB — pause if heap exceeds this
 
       for (let batchStart = 0; batchStart < allFiles.length; batchStart += BATCH_SIZE) {
         const batch = allFiles.slice(batchStart, batchStart + BATCH_SIZE);
 
+        // Check heap pressure before each batch
+        const heapUsed = process.memoryUsage().heapUsed;
+        if (heapUsed > HEAP_PRESSURE_THRESHOLD) {
+          console.error(`[sidecar] Heap pressure: ${(heapUsed / 1024 / 1024).toFixed(0)}MB — yielding for GC`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          if (typeof global.gc === 'function') global.gc();
+        }
+
         for (const file of batch) {
           try {
+            // Skip files that are too large to index safely
+            if (file.size > MAX_INDEXABLE_FILE_BYTES) {
+              console.error(`[sidecar] Skipping ${file.name} — too large (${(file.size / 1024 / 1024).toFixed(1)}MB > ${MAX_INDEXABLE_FILE_BYTES / 1024 / 1024}MB limit)`);
+              totalFilesScanned++;
+              continue;
+            }
+
             emit('indexing-progress', {
               filesScanned: totalFilesScanned,
               filesTotal,
@@ -1326,10 +1359,10 @@ async function handleStartIndexing(
           }
         }
 
-        // Yield between batches — let event loop process IPC, progress events, etc.
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // Yield between batches — let event loop process IPC, progress events, GC
+        await new Promise(resolve => setTimeout(resolve, 200));
 
-        // Force garbage collection if available (requires --expose-gc flag)
+        // Force garbage collection if available
         if (typeof global.gc === 'function') {
           global.gc();
         }

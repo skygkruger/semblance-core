@@ -172,8 +172,19 @@ function isTextFormat(ext: string): boolean {
  */
 async function readLargeTextFile(filePath: string, fileSize: number): Promise<string> {
   const p = getPlatform();
-  // The platform layer reads the file; for very large files this may use significant memory
-  // temporarily, but it's released after we extract the content we need.
+
+  // Guard: refuse to load files larger than 50MB into memory at once.
+  // The sidecar has 4GB heap, but loading many large files back-to-back
+  // causes OOM before GC can reclaim. Better to index first 2MB than crash.
+  const SAFE_READ_LIMIT = 50 * 1024 * 1024; // 50MB
+  if (fileSize > SAFE_READ_LIMIT) {
+    const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
+    let content = await p.fs.readFile(filePath, 'utf-8');
+    const trimmed = content.slice(0, 2 * 1024 * 1024); // 2MB extract
+    content = ''; // Release full string for GC
+    return trimmed + `\n\n[Content truncated: original file was ${sizeMB} MB, indexed first 2 MB]`;
+  }
+
   let content = await p.fs.readFile(filePath, 'utf-8');
 
   // Truncate to our extraction limit
