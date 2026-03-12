@@ -741,6 +741,14 @@ export class OrchestratorImpl implements Orchestrator {
   async processMessage(message: string, conversationId?: string): Promise<OrchestratorResponse> {
     // Get or create conversation
     const convId = conversationId ?? this.createConversation();
+    // Ensure conversation row exists in OUR table — the caller (bridge.ts) may
+    // have created the ID in ConversationManager's separate DB, which means
+    // the FK on conversation_turns would fail without this.
+    if (conversationId) {
+      this.db.prepare(
+        'INSERT OR IGNORE INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)'
+      ).run(conversationId, new Date().toISOString(), new Date().toISOString());
+    }
 
     // Step 1: Fetch document-scoped context (if active)
     const documentChunks = this.documentContext

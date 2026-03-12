@@ -237918,6 +237918,11 @@ var OrchestratorImpl = class {
   }
   async processMessage(message, conversationId) {
     const convId = conversationId ?? this.createConversation();
+    if (conversationId) {
+      this.db.prepare(
+        "INSERT OR IGNORE INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)"
+      ).run(conversationId, (/* @__PURE__ */ new Date()).toISOString(), (/* @__PURE__ */ new Date()).toISOString());
+    }
     const documentChunks = this.documentContext ? await this.documentContext.getContextForPrompt(message, 5) : [];
     const context = await this.knowledge.search(message, { limit: 5 });
     const history = conversationId ? await this.getConversation(convId) : [];
