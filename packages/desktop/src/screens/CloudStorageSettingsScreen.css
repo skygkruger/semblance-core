@@ -255,6 +255,43 @@
   cursor: not-allowed;
 }
 
+/* Browse results */
+.cloud-storage__browse-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-2) 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.cloud-storage__browse-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.cloud-storage__browse-item:hover {
+  background: rgba(110, 207, 163, 0.06);
+}
+
+.cloud-storage__browse-item input[type="checkbox"] {
+  accent-color: #6ECFA3;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.cloud-storage__browse-folder-name {
+  font-family: var(--fm);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+}
+
 /* Privacy note */
 .cloud-storage__privacy-note {
   display: flex;

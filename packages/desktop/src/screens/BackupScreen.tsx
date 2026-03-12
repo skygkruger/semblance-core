@@ -285,6 +285,12 @@ export function BackupScreen() {
             <button
               className="backup-screen__action-btn"
               disabled={history.length === 0}
+              onClick={() => {
+                window.alert(
+                  t('screen.backup.restore_coming_soon',
+                    'Restore from backup is coming in a future update. Your backup files are standard JSON exports and can be manually re-imported.')
+                );
+              }}
             >
               {t('screen.backup.restore')}
             </button>

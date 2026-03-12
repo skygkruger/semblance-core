@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getConnectedServices, cloudStorageConnect, cloudStorageDisconnect } from '../ipc/commands';
+import { getConnectedServices, cloudStorageConnect, cloudStorageDisconnect, cloudStorageBrowseFolders } from '../ipc/commands';
+import type { CloudFolder } from '../ipc/types';
 import './CloudStorageSettingsScreen.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -32,6 +33,9 @@ export function CloudStorageSettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [providers, setProviders] = useState<CloudProvider[]>([]);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [browsingProvider, setBrowsingProvider] = useState<string | null>(null);
+  const [browsedFolders, setBrowsedFolders] = useState<Record<string, CloudFolder[]>>({});
+  const [browseError, setBrowseError] = useState<string | null>(null);
 
   // Load connected cloud storage providers from IPC
   const loadProviders = useCallback(async () => {
@@ -116,6 +120,46 @@ export function CloudStorageSettingsScreen() {
       console.error('[CloudStorage] Disconnect error:', err);
     }
   }, [loadProviders]);
+
+  // Browse folders for a cloud provider
+  const handleBrowseFolders = useCallback(async (providerId: string) => {
+    setBrowsingProvider(providerId);
+    setBrowseError(null);
+    try {
+      const folders = await cloudStorageBrowseFolders(providerId, '');
+      setBrowsedFolders((prev) => ({ ...prev, [providerId]: folders }));
+    } catch (err) {
+      console.error('[CloudStorage] Browse folders error:', err);
+      setBrowseError(String(err));
+    } finally {
+      setBrowsingProvider(null);
+    }
+  }, []);
+
+  // Toggle a folder in the synced list for a provider
+  const handleToggleFolder = useCallback((providerId: string, folder: CloudFolder) => {
+    setProviders((prev) =>
+      prev.map((p) => {
+        if (p.id !== providerId) return p;
+        const isSynced = p.syncedFolders.includes(folder.name);
+        const updatedFolders = isSynced
+          ? p.syncedFolders.filter((f) => f !== folder.name)
+          : [...p.syncedFolders, folder.name];
+        return { ...p, syncedFolders: updatedFolders };
+      })
+    );
+    // Persist folder selections to localStorage
+    setProviders((current) => {
+      const allFolders: Record<string, string[]> = {};
+      for (const p of current) {
+        allFolders[p.id] = p.syncedFolders;
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY_CLOUD_FOLDERS, JSON.stringify(allFolders));
+      } catch { /* ignore */ }
+      return current;
+    });
+  }, []);
 
   const availableProviders = [
     { id: 'google-drive', name: t('screen.cloud_storage.google_drive') },
@@ -239,9 +283,42 @@ export function CloudStorageSettingsScreen() {
                       <span key={folder} className="cloud-storage__folder-path">{folder}</span>
                     ))
                   )}
-                  <button className="cloud-storage__folder-btn" disabled>
-                    {t('screen.cloud_storage.choose_folders')}
+                  <button
+                    className="cloud-storage__folder-btn"
+                    disabled={!provider.connected || browsingProvider === provider.id}
+                    onClick={() => handleBrowseFolders(provider.id)}
+                  >
+                    {browsingProvider === provider.id
+                      ? t('common.loading', 'Loading...')
+                      : t('screen.cloud_storage.choose_folders')}
                   </button>
+                  {browseError && browsingProvider === null && browsedFolders[provider.id] === undefined && (
+                    <span className="cloud-storage__folder-empty" style={{ color: '#B07A8A' }}>
+                      {browseError}
+                    </span>
+                  )}
+                  {browsedFolders[provider.id] != null && browsedFolders[provider.id]!.length > 0 && (
+                    <div className="cloud-storage__browse-results">
+                      {browsedFolders[provider.id]!.map((folder) => {
+                        const isSelected = provider.syncedFolders.includes(folder.name);
+                        return (
+                          <label key={folder.id} className="cloud-storage__browse-item">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleFolder(provider.id, folder)}
+                            />
+                            <span className="cloud-storage__browse-folder-name">{folder.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {browsedFolders[provider.id] != null && browsedFolders[provider.id]!.length === 0 && (
+                    <span className="cloud-storage__folder-empty">
+                      {t('screen.cloud_storage.no_folders_available', 'No folders available')}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
