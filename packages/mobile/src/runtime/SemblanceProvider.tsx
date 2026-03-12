@@ -266,7 +266,7 @@ export function SemblanceProvider({ children }: SemblanceProviderProps) {
     try {
       const results = await state.core.knowledge.search(query, { limit });
       return results.map((r) => ({
-        content: r.content,
+        content: r.chunk.content,
         score: r.score,
       }));
     } catch {

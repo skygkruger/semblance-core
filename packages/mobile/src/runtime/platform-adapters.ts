@@ -342,7 +342,7 @@ export function createHardwareAdapter(): HardwareAdapter {
       if (cpuCountCached !== null) return cpuCountCached;
       // Async populate
       cpuCountCached = platform === 'ios' ? 6 : 8;
-      DeviceInfo.getSupportedAbis().then((abis) => {
+      DeviceInfo.supportedAbis().then((abis: string[]) => {
         // Rough estimate based on typical mobile hardware
         cpuCountCached = abis.length >= 2 ? 8 : 4;
       }).catch(() => {});
