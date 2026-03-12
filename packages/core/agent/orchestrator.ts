@@ -562,16 +562,31 @@ export interface SystemPromptConfig {
   indexedDocCount?: number;
 }
 
-function buildSystemPrompt(config: SystemPromptConfig): string {
+function buildSystemPrompt(config: SystemPromptConfig, conversational?: boolean): string {
   const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
   const userRef = userName ? userName : 'the user';
 
-  // Autonomy behavior — one line each, not per-tool
+  // For conversational messages (greetings, small talk), use a minimal prompt
+  // that gives the model NO operational context to fabricate from.
+  // Small models (7-8B) will invent "I archived 17 emails" or "you have a meeting at 2 PM"
+  // if they see service names or autonomy descriptions in the system prompt.
+  if (conversational) {
+    const userNameLine = userName ? ` Your user's name is ${userName}.` : '';
+    return `You are ${aiName}, a personal AI assistant.${userNameLine} You run locally on ${userRef}'s device. All data stays private.
+
+You are warm, direct, and concise. Respond naturally like a helpful friend. Just chat back naturally. Do not make up any information about emails, meetings, schedules, or actions you have taken. Only discuss things you actually know.
+
+Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : ' If you do not know your user\'s name, ask them.'}
+
+${INJECTION_CANARY}`;
+  }
+
+  // Autonomy behavior — no specific action examples (small models parrot them as fabricated actions)
   const autonomyBlock = autonomyTier === 'guardian'
     ? `Autonomy: Guardian. All actions require ${userRef}'s explicit approval before execution. Always preview what you plan to do.`
     : autonomyTier === 'alter_ego'
     ? `Autonomy: Alter Ego. Act on ${userRef}'s behalf for routine tasks. Only pause for genuinely high-stakes or novel actions. When you act autonomously, briefly state what you did and why.`
-    : `Autonomy: Partner. Routine actions (archiving email, calendar scheduling, reminders) execute automatically. Novel or sensitive actions (sending email to new contacts, financial changes) require approval. State what you did for auto-executed actions.`;
+    : `Autonomy: Partner. Routine actions execute automatically. Novel or sensitive actions require approval. When you act autonomously, briefly state what you did.`;
 
   // Dynamic context sections
   const servicesLine = connectedServices && connectedServices.length > 0
@@ -596,6 +611,8 @@ You are warm, direct, and concise. Respond naturally like a helpful friend. When
 Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : ' If you do not know your user\'s name, ask them.'}
 
 When using tools, just present the results directly. Never describe what tools you plan to use.
+
+Do not fabricate information. Never claim to have taken actions (like archiving emails or checking calendars) unless you actually executed a tool call that did so.
 
 ${ARTIFACT_SYSTEM_PROMPT}
 
@@ -781,14 +798,15 @@ export class OrchestratorImpl implements Orchestrator {
     // Step 3: Build conversation history
     const history = conversationId ? await this.getConversation(convId) : [];
 
-    // Step 4: Construct messages for LLM (document context injected between system prompt and general context)
-    const messages = this.buildMessages(message, context, history, documentChunks);
-
-    // Step 5: Determine if tools are needed
+    // Step 4: Determine if this is conversational (greetings, small talk)
     // Small models (7-8B) are unreliable with tool calling — they narrate tool
     // usage instead of calling tools, or call tools for simple questions.
-    // Skip tools entirely for conversational messages that don't need data.
+    // For conversational messages, we also use a stripped-down system prompt
+    // that removes service/knowledge/autonomy context to prevent fabrication.
     const isConversational = this.isConversationalMessage(message);
+
+    // Step 5: Construct messages for LLM (document context injected between system prompt and general context)
+    const messages = this.buildMessages(message, context, history, documentChunks, isConversational);
     const tools = isConversational ? undefined : this.allTools;
 
     const response = await this.llm.chat({
@@ -1186,8 +1204,9 @@ export class OrchestratorImpl implements Orchestrator {
     context: SearchResult[],
     history: ConversationTurn[],
     documentChunks: SearchResult[] = [],
+    conversational?: boolean,
   ): ChatMessage[] {
-    const basePrompt = buildSystemPrompt(this.promptConfig);
+    const basePrompt = buildSystemPrompt(this.promptConfig, conversational);
     let systemContent = this.voiceModeActive
       ? `${basePrompt}\n\n${VOICE_MODE_CONTEXT}`
       : basePrompt;
