@@ -371,8 +371,8 @@ export class GraphRenderer {
   private peopleNodeParts: Map<string, PeopleNodeParts> = new Map();
 
   // Trackball rotation — angled down to reveal Z depth as perceivable parallax
-  private spherical = new THREE.Spherical(250, Math.PI / 2 - 0.45, 0.2);
-  private targetSpherical = new THREE.Spherical(250, Math.PI / 2 - 0.45, 0.2);
+  private spherical = new THREE.Spherical(120, Math.PI / 2 - 0.45, 0.2);
+  private targetSpherical = new THREE.Spherical(120, Math.PI / 2 - 0.45, 0.2);
   private isDragging = false;
   private dragStart = { x: 0, y: 0 };
   private dragSphericalStart = new THREE.Spherical();
@@ -431,7 +431,7 @@ export class GraphRenderer {
   private isMobile: boolean;
 
   // Node scale multiplier: physics radius → scene units
-  private static readonly SCALE = 0.25;
+  private static readonly SCALE = 1.0;
 
   constructor(options: GraphRendererOptions) {
     console.log('[GraphRenderer] constructor', { width: options.width, height: options.height, isMobile: options.isMobile, canvasTag: options.canvas?.tagName });

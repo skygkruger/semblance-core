@@ -599,11 +599,14 @@ DO:
 - When multiple tools are needed, call them in sequence without asking permission for each step.
 
 DON'T:
+- Don't use tools for greetings, small talk, or conversational messages. If ${userRef} says "hello", "how are you", "thanks", or makes casual conversation, respond naturally without calling any tools.
+- You already know your own name (${aiName}) and the user's name (${userRef}) from this conversation. Never search for this information — answer directly.
 - Don't narrate your tool usage. Never say "Let me search your emails" — just search and present the results.
 - Don't ask clarifying questions when you have enough context to act. Use your best judgment and let ${userRef} correct you if needed.
 - Don't repeat information ${userRef} already provided back to them.
 - Don't hedge with "I can help you with that" or "Sure, I'd be happy to" — just do it.
 - Don't provide unsolicited privacy reassurances. ${userRef} chose local AI; they know.
+- Don't call tools proactively unless ${userRef} asks for something specific. Only use tools when the message clearly requires data retrieval or action.
 
 # Actions
 Actions appear inline in the conversation for ${userRef} to review, edit, approve, or dismiss. When drafting emails or messages, provide a complete draft — ${userRef} can edit it before sending.
@@ -738,6 +741,37 @@ export class OrchestratorImpl implements Orchestrator {
     }
   }
 
+  /** Update the active model name (e.g., after switching to Ollama). */
+  setModel(model: string): void {
+    this.model = model;
+  }
+
+  /**
+   * Detect messages that are conversational and don't need tool access.
+   * For small models (7-8B), passing tools causes them to hallucinate tool
+   * usage or narrate planned actions instead of responding naturally.
+   */
+  private isConversationalMessage(message: string): boolean {
+    const lower = message.toLowerCase().trim();
+    const wordCount = lower.split(/\s+/).length;
+
+    // Short greetings and small talk
+    if (wordCount <= 4) {
+      const greetings = /^(hi|hello|hey|howdy|sup|yo|good\s*(morning|afternoon|evening|night)|thanks|thank you|bye|goodbye|ok|okay|sure|yes|no|nah|yep|nope|cool|great|nice|hm+|huh|what'?s?\s*up)/;
+      if (greetings.test(lower)) return true;
+    }
+
+    // Questions about the AI itself or the user that are answerable from the system prompt
+    const selfReferential = /(?:what(?:'s| is) your name|who are you|what can you do|what are you|tell me (?:about yourself|your name|my name)|what(?:'s| is) my name|how are you)/;
+    if (selfReferential.test(lower)) return true;
+
+    // Casual conversation / opinion questions
+    const casual = /(?:do you (?:like|think|feel|know|have)|how do you|what do you think|tell me a (?:joke|story)|are you (?:real|alive|sentient|ai|a bot))/;
+    if (casual.test(lower)) return true;
+
+    return false;
+  }
+
   async processMessage(message: string, conversationId?: string): Promise<OrchestratorResponse> {
     // Get or create conversation
     const convId = conversationId ?? this.createConversation();
@@ -764,11 +798,17 @@ export class OrchestratorImpl implements Orchestrator {
     // Step 4: Construct messages for LLM (document context injected between system prompt and general context)
     const messages = this.buildMessages(message, context, history, documentChunks);
 
-    // Step 5: Call LLM with tools
+    // Step 5: Determine if tools are needed
+    // Small models (7-8B) are unreliable with tool calling — they narrate tool
+    // usage instead of calling tools, or call tools for simple questions.
+    // Skip tools entirely for conversational messages that don't need data.
+    const isConversational = this.isConversationalMessage(message);
+    const tools = isConversational ? undefined : this.allTools;
+
     const response = await this.llm.chat({
       model: this.model,
       messages,
-      tools: this.allTools,
+      tools,
       temperature: 0.7,
     });
 
@@ -776,6 +816,39 @@ export class OrchestratorImpl implements Orchestrator {
     const actions: AgentAction[] = [];
     let finalMessage = response.message.content;
     this.lastStyleScore = null;
+
+    // Detect when the model narrates tool usage instead of actually calling tools
+    // (e.g., "I will first search your files..." or "Let me look up..." or "Actions\n1.")
+    // When this happens, re-prompt without tools to get a direct answer.
+    const isNarrating = !response.toolCalls?.length && /(?:I will (?:first |now )?(?:search|look|check|fetch|retrieve)|Actions\s*\n|Please review the search|let me (?:search|look|check|find))/i.test(finalMessage);
+    if (isNarrating) {
+      const retryResponse = await this.llm.chat({
+        model: this.model,
+        messages,
+        temperature: 0.7,
+      });
+      finalMessage = retryResponse.message.content;
+    }
+
+    // Strip leaked tool-call JSON from content — some models emit raw JSON
+    // tool calls in the text even when tools are provided via the API.
+    if (!response.toolCalls || response.toolCalls.length === 0) {
+      const stripped = finalMessage
+        .replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/g, '')
+        .replace(/```(?:json)?\s*\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\}\s*```/g, '')
+        .replace(/\{[^{}]*"name"\s*:\s*"[^"]*"[^{}]*"(?:parameters|arguments)"\s*:\s*\{[^{}]*\}[^{}]*\}/g, '')
+        .trim();
+      if (stripped.length > 0) {
+        finalMessage = stripped;
+      } else if (!isNarrating) {
+        const retryResponse = await this.llm.chat({
+          model: this.model,
+          messages,
+          temperature: 0.7,
+        });
+        finalMessage = retryResponse.message.content;
+      }
+    }
 
     if (response.toolCalls && response.toolCalls.length > 0) {
       const toolResults = await this.processToolCalls(response.toolCalls, context, message);
@@ -818,6 +891,16 @@ export class OrchestratorImpl implements Orchestrator {
       // Mention pending approvals
       const pendingCount = actions.filter(a => a.status === 'pending_approval').length;
       if (pendingCount > 0) {
+        // If the model's only response was empty/whitespace and all it did was
+        // queue actions for approval, re-prompt without tools for a real response
+        if (!finalMessage || finalMessage.trim().length === 0) {
+          const retryResponse = await this.llm.chat({
+            model: this.model,
+            messages,
+            temperature: 0.7,
+          });
+          finalMessage = retryResponse.message.content;
+        }
         finalMessage += `\n\n[${pendingCount} action(s) awaiting your approval]`;
       }
     }

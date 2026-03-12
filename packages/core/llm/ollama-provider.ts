@@ -136,6 +136,7 @@ export class OllamaProvider implements LLMProvider {
 
     // Map Ollama tool calls to our format
     let toolCalls: ToolCall[] | undefined;
+    let contentText = response.message.content;
     if (response.message.tool_calls && response.message.tool_calls.length > 0) {
       toolCalls = response.message.tool_calls.map(tc => ({
         name: tc.function.name,
@@ -143,10 +144,21 @@ export class OllamaProvider implements LLMProvider {
       }));
     }
 
+    // Fallback: some models emit tool calls as raw JSON in the content text
+    // instead of using the structured tool_calls field. Parse them out so
+    // the orchestrator can execute them instead of showing raw JSON to the user.
+    if (!toolCalls && contentText && request.tools && request.tools.length > 0) {
+      const parsed = this.parseTextToolCalls(contentText, request.tools);
+      if (parsed.toolCalls.length > 0) {
+        toolCalls = parsed.toolCalls;
+        contentText = parsed.textContent;
+      }
+    }
+
     return {
       message: {
         role: response.message.role as 'system' | 'user' | 'assistant',
-        content: response.message.content,
+        content: contentText,
       },
       model: response.model,
       tokensUsed: {
@@ -235,5 +247,70 @@ export class OllamaProvider implements LLMProvider {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Parse tool calls from raw text output when the model doesn't use
+   * structured tool_calls. Handles:
+   * - <tool_call>{...}</tool_call> blocks
+   * - ```json blocks with {name, arguments/parameters}
+   * - Bare JSON objects matching known tool names
+   */
+  private parseTextToolCalls(
+    text: string,
+    tools: Array<{ name: string }>,
+  ): { toolCalls: ToolCall[]; textContent: string } {
+    const toolCalls: ToolCall[] = [];
+    let textContent = text;
+    const toolNames = new Set(tools.map(t => t.name));
+
+    // Pattern 1: <tool_call>...</tool_call>
+    const tagRegex = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g;
+    let match;
+    while ((match = tagRegex.exec(text)) !== null) {
+      const jsonStr = (match[1] ?? '').trim();
+      if (!jsonStr) continue;
+      try {
+        const parsed = JSON.parse(jsonStr) as { name?: string; arguments?: Record<string, unknown>; parameters?: Record<string, unknown> };
+        if (parsed.name && toolNames.has(parsed.name)) {
+          toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
+        }
+      } catch { /* skip malformed */ }
+    }
+    if (toolCalls.length > 0) {
+      textContent = text.replace(tagRegex, '').trim();
+      return { toolCalls, textContent };
+    }
+
+    // Pattern 2: ```json blocks
+    const codeBlockRegex = /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\})\s*```/g;
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      const blockJson = match[1] ?? '';
+      if (!blockJson) continue;
+      try {
+        const parsed = JSON.parse(blockJson) as { name?: string; arguments?: Record<string, unknown>; parameters?: Record<string, unknown> };
+        if (parsed.name && toolNames.has(parsed.name)) {
+          toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
+        }
+      } catch { /* skip */ }
+    }
+    if (toolCalls.length > 0) {
+      textContent = text.replace(codeBlockRegex, '').trim();
+      return { toolCalls, textContent };
+    }
+
+    // Pattern 3: Bare JSON object with a known tool name
+    const bareJsonRegex = /\{[^{}]*"name"\s*:\s*"([^"]+)"[^{}]*\}/g;
+    while ((match = bareJsonRegex.exec(text)) !== null) {
+      try {
+        const parsed = JSON.parse(match[0]) as { name?: string; arguments?: Record<string, unknown>; parameters?: Record<string, unknown> };
+        if (parsed.name && toolNames.has(parsed.name)) {
+          toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
+          textContent = text.replace(match[0], '').trim();
+        }
+      } catch { /* skip */ }
+    }
+
+    return { toolCalls, textContent };
   }
 }

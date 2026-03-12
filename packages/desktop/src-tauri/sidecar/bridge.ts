@@ -856,6 +856,8 @@ async function handleInitialize(): Promise<unknown> {
         if (ollamaModel) {
           router.setReasoningProvider(ollamaProvider, ollamaModel);
           core.models.setActiveChatModel(ollamaModel);
+          // Update orchestrator's model name so it doesn't use the stale NativeRuntime model
+          try { if (core.agent) core.agent.setModel(ollamaModel); } catch { /* agent not available */ }
           inferenceEngine = 'ollama';
           activeModel = ollamaModel;
           availableModels = ollamaModels.filter(m => !m.includes('embed') && !m.includes('nomic'));
@@ -1064,10 +1066,20 @@ async function handleSendMessage(
 
       console.error(`[sidecar] Orchestrator returned: ${fullResponse.length} chars, ${actions.length} actions`);
 
-      // Emit response in chunks for streaming UX
+      // Store turns in prefsDb so the frontend can retrieve conversation history
+      // (the orchestrator stores in its own agent.db, but frontend queries prefsDb)
+      storeTurn(convId, 'user', params.message);
+      storeTurn(convId, 'assistant', fullResponse);
+      if (conversationManager) {
+        conversationManager.updateAfterTurn(convId, params.message, 'user');
+        conversationManager.updateAfterTurn(convId, fullResponse, 'assistant');
+      }
+
+      // Emit response in chunks with small delays for streaming UX
       const chunkSize = 12;
       for (let i = 0; i < fullResponse.length; i += chunkSize) {
         emit('chat-token', fullResponse.substring(i, i + chunkSize));
+        if (i % 120 === 0) await new Promise(r => setTimeout(r, 10));
       }
     } else {
       // ─── FALLBACK: Direct LLM call (no tools, no agent loop) ────────
@@ -1466,13 +1478,17 @@ async function handleGetKnowledgeStats(): Promise<unknown> {
     return { documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null };
   }
 
-  const stats = await core.knowledge.getStats();
-  return {
-    documentCount: stats.totalDocuments,
-    chunkCount: stats.totalChunks,
-    indexSizeBytes: 0,
-    lastIndexedAt: getPref('last_indexed_at'),
-  };
+  try {
+    const stats = await core.knowledge.getStats();
+    return {
+      documentCount: stats.totalDocuments,
+      chunkCount: stats.totalChunks,
+      indexSizeBytes: 0,
+      lastIndexedAt: getPref('last_indexed_at'),
+    };
+  } catch {
+    return { documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null };
+  }
 }
 
 async function handleGetIndexedDirectories(): Promise<string[]> {
@@ -1973,25 +1989,41 @@ async function handleProactiveRun(): Promise<unknown[]> {
 
 async function handleActionApprove(params: { action_id: string }): Promise<unknown> {
   if (!core) throw new Error('Core not initialized');
-  return await core.agent.approveAction(params.action_id);
+  try {
+    return await core.agent.approveAction(params.action_id);
+  } catch {
+    throw new Error('Agent not available — knowledge graph may not have initialized');
+  }
 }
 
 async function handleActionReject(params: { action_id: string }): Promise<unknown> {
   if (!core) throw new Error('Core not initialized');
-  await core.agent.rejectAction(params.action_id);
-  return { success: true };
+  try {
+    await core.agent.rejectAction(params.action_id);
+    return { success: true };
+  } catch {
+    throw new Error('Agent not available — knowledge graph may not have initialized');
+  }
 }
 
 async function handleActionGetPending(): Promise<unknown[]> {
   if (!core) return [];
-  return await core.agent.getPendingActions();
+  try {
+    return await core.agent.getPendingActions();
+  } catch {
+    return [];
+  }
 }
 
 function handleActionGetApprovalCount(params: { action_type: string; payload: Record<string, unknown> }): unknown {
   if (!core) return { count: 0, threshold: 3 };
-  const count = core.agent.getApprovalCount(params.action_type as ActionType, params.payload);
-  const threshold = core.agent.getApprovalThreshold(params.action_type as ActionType, params.payload);
-  return { count, threshold };
+  try {
+    const count = core.agent.getApprovalCount(params.action_type as ActionType, params.payload);
+    const threshold = core.agent.getApprovalThreshold(params.action_type as ActionType, params.payload);
+    return { count, threshold };
+  } catch {
+    return { count: 0, threshold: 3 };
+  }
 }
 
 function handleGetTodayEvents(): unknown[] {
@@ -2198,21 +2230,27 @@ function handleGetSubscriptionSummary(): unknown {
 // ─── Step 7: Autonomy Escalation Handlers ────────────────────────────────────
 
 function ensureEscalationEngine(): void {
-  if (!prefsDb || !core) throw new Error('Core not initialized');
+  if (!prefsDb || !core) return;
   if (!escalationEngine) {
-    escalationEngine = new EscalationEngine({
-      db: prefsDb,
-      autonomy: core.agent.autonomy,
-      aiName: getPref('ai_name') ?? 'Semblance',
-    });
+    try {
+      escalationEngine = new EscalationEngine({
+        db: prefsDb,
+        autonomy: core.agent.autonomy,
+        aiName: getPref('ai_name') ?? 'Semblance',
+      });
+    } catch { /* agent not available */ }
   }
 }
 
 function handleCheckEscalations(): unknown[] {
   ensureEscalationEngine();
   if (!escalationEngine || !core) return [];
-  const patterns = core.agent.getApprovalPatterns();
-  return escalationEngine.checkForEscalations(patterns);
+  try {
+    const patterns = core.agent.getApprovalPatterns();
+    return escalationEngine.checkForEscalations(patterns);
+  } catch {
+    return [];
+  }
 }
 
 function handleRespondToEscalation(params: { prompt_id: string; accepted: boolean }): unknown {
@@ -4721,7 +4759,11 @@ async function handleRequest(req: Request): Promise<void> {
       // ─── Knowledge Moment / Daily Digest ──────────────────────────────
       case 'knowledge_get_moment': {
         if (!knowledgeMomentGenerator && core && prefsDb) {
-          knowledgeMomentGenerator = new KnowledgeMomentGenerator(core.knowledge, core.llm, prefsDb);
+          knowledgeMomentGenerator = new KnowledgeMomentGenerator({
+            knowledgeGraph: core.knowledge,
+            llm: core.llm,
+            aiName: getPref('ai_name') ?? 'Semblance',
+          });
         }
         if (!knowledgeMomentGenerator) { respond(id, null); break; }
         const moment = await knowledgeMomentGenerator.generate();
