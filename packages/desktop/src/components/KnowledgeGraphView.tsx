@@ -5,7 +5,7 @@
  * header bar, filter panel, time slider, stats overlay, node detail panel.
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { KnowledgeGraph } from '@semblance/ui';
 import { FilterPanel } from './FilterPanel';
 import type {
@@ -314,9 +314,31 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   onExport,
   onNodeSelect,
   nodeContext,
-  width = 1200,
-  height = 800,
+  width: propWidth,
+  height: propHeight,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerSize({
+          width: Math.floor(entry.contentRect.width),
+          height: Math.floor(entry.contentRect.height),
+        });
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const width = propWidth ?? (containerSize.width || 1200);
+  const height = propHeight ?? (containerSize.height || 800);
+
   const [showStats, setShowStats] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -380,24 +402,41 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   const kgNodes = useMemo(() => filteredNodes.map(toKnowledgeNode), [filteredNodes]);
   const kgEdges = useMemo(() => filteredEdges.map(toKnowledgeEdge), [filteredEdges]);
 
-  // Build drill-down config from nodeContext (connections become drill-down items)
+  // Build drill-down config from nodeContext — only for category nodes (matches Storybook)
   const [drillDownSearch, setDrillDownSearch] = useState('');
-  const drillDown = useMemo<DrillDownConfig | undefined>(() => {
-    if (!nodeContext || !selectedNodeId) return undefined;
 
-    // Build drill-down items from connections
+  // Map node types to semantic source labels (what Storybook expects)
+  const mapNodeTypeToSource = useCallback((nodeType: string): string => {
+    switch (nodeType) {
+      case 'document': case 'directory': return 'local_file';
+      case 'email_thread': return 'email';
+      case 'event': return 'calendar';
+      case 'person': return 'contact';
+      default: return nodeType;
+    }
+  }, []);
+
+  const selectedNode = useMemo(() => {
+    if (!selectedNodeId) return null;
+    return filteredNodes.find(n => n.id === selectedNodeId) ?? null;
+  }, [selectedNodeId, filteredNodes]);
+
+  const drillDown = useMemo<DrillDownConfig | undefined>(() => {
+    // Only show drill-down for category nodes (matches Storybook detail-panel.web.tsx behavior)
+    if (!nodeContext || !selectedNode || selectedNode.type !== 'category') return undefined;
+
     const allItems: DrillDownItem[] = nodeContext.connections.map((conn) => ({
       chunkId: conn.node.id,
       title: conn.node.label,
       preview: conn.edge.label
         ? `${conn.edge.label} (weight: ${conn.edge.weight})`
         : `Connected with weight ${conn.edge.weight}`,
-      source: conn.node.type,
+      source: mapNodeTypeToSource(conn.node.type),
       category: conn.node.domain ?? 'general',
       indexedAt: conn.node.createdAt ?? new Date().toISOString(),
+      mimeType: (conn.node as VisualizationNode).metadata?.mimeType as string | undefined,
     }));
 
-    // Apply search filter
     const items = drillDownSearch
       ? allItems.filter(i =>
           i.title.toLowerCase().includes(drillDownSearch.toLowerCase()) ||
@@ -412,11 +451,10 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
       onSearch: (query: string) => setDrillDownSearch(query),
       onLoadMore: () => { /* all items loaded from context */ },
       onItemClick: (item: DrillDownItem) => {
-        // Navigate to the clicked connection node
         handleNodeClick(item.chunkId);
       },
     };
-  }, [nodeContext, selectedNodeId, drillDownSearch, handleNodeClick]);
+  }, [nodeContext, selectedNode, drillDownSearch, handleNodeClick, mapNodeTypeToSource]);
 
   // Build stats for the KnowledgeGraph component
   const graphStats = useMemo(() => {
@@ -453,7 +491,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   }, [kgNodes]);
 
   return (
-    <div data-testid="knowledge-graph-view" className="kg-view" style={{ width, height: height + 48 }}>
+    <div ref={containerRef} data-testid="knowledge-graph-view" className="kg-view" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div className="kg-view__header">
         <span className="kg-view__title">Knowledge Graph</span>
@@ -472,7 +510,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
         </div>
       </div>
 
-      <div className="kg-view__body">
+      <div className="kg-view__body" style={{ flex: 1, minHeight: 0 }}>
         {showFilter && categoryGraph && (
           <FilterPanel
             categories={categoryGraph.categoryNodes}
@@ -487,7 +525,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
             nodes={kgNodes}
             edges={kgEdges}
             width={graphWidth}
-            height={height - 80}
+            height={Math.max(height - 100, 400)}
             layoutMode={layoutMode}
             stats={graphStats}
             filterConfig={filterConfig}
@@ -495,7 +533,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
             onNodeSelect={(node) => {
               if (node) {
                 handleNodeClick(node.id);
-                setDrillDownSearch(''); // Reset search on new node selection
+                setDrillDownSearch('');
               } else {
                 setSelectedNodeId(null);
               }
@@ -506,10 +544,6 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
 
       <TimeSlider nodes={graph.nodes} range={timeRange} onChange={setTimeRange} />
       <StatsOverlay stats={categoryGraph?.stats ?? graph.stats} visible={showStats} />
-
-      {nodeContext && selectedNodeId && (
-        <NodeDetailPanel context={nodeContext} onClose={() => { setSelectedNodeId(null); setDrillDownSearch(''); }} />
-      )}
     </div>
   );
 };

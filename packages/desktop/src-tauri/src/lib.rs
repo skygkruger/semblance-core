@@ -1347,17 +1347,36 @@ async fn dispatch_native_callback(
             let request: native_runtime::GenerateRequest =
                 serde_json::from_value(params).map_err(|e| format!("Invalid generate params: {}", e))?;
 
+            // Run generate in a catch_unwind to prevent llama.cpp C-level crashes
+            // from killing the entire Tauri process. If llama.cpp segfaults or panics,
+            // we return an error instead of crashing the app.
             let rt = runtime.lock().await;
-            let result = rt.generate(request)?;
-            serde_json::to_value(result).map_err(|e| format!("Serialization error: {}", e))
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                rt.generate(request)
+            }));
+            match result {
+                Ok(Ok(response)) => {
+                    serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+                }
+                Ok(Err(e)) => Err(format!("Generate error: {}", e)),
+                Err(_) => Err("Native runtime panicked during generation — the prompt may be too large or malformed".to_string()),
+            }
         }
         "native_embed" => {
             let request: native_runtime::EmbedRequest =
                 serde_json::from_value(params).map_err(|e| format!("Invalid embed params: {}", e))?;
 
             let rt = runtime.lock().await;
-            let result = rt.embed(request)?;
-            serde_json::to_value(result).map_err(|e| format!("Serialization error: {}", e))
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                rt.embed(request)
+            }));
+            match result {
+                Ok(Ok(response)) => {
+                    serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+                }
+                Ok(Err(e)) => Err(format!("Embed error: {}", e)),
+                Err(_) => Err("Native runtime panicked during embedding — input text may be too large".to_string()),
+            }
         }
         "native_load_model" => {
             let model_path = params

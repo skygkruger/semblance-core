@@ -267309,6 +267309,12 @@ var connectorRouter = null;
 var importHistory = [];
 var nativeRuntimeBridge = {
   async generate(params) {
+    const sysLen = (params.systemPrompt ?? "").length;
+    const promptLen = params.prompt.length;
+    console.error(`[sidecar] native_generate: system_prompt=${sysLen} chars, prompt=${promptLen} chars, max_tokens=${params.maxTokens ?? 2048}`);
+    if (sysLen + promptLen > 2e4) {
+      console.error(`[sidecar] WARNING: very large prompt (${sysLen + promptLen} chars) \u2014 may exceed context window`);
+    }
     const result2 = await sendCallback("native_generate", {
       prompt: params.prompt,
       system_prompt: params.systemPrompt ?? "",
@@ -267323,6 +267329,11 @@ var nativeRuntimeBridge = {
     };
   },
   async embed(params) {
+    const totalChars = params.input.reduce((sum, t) => sum + t.length, 0);
+    console.error(`[sidecar] native_embed: ${params.input.length} texts, ${totalChars} total chars`);
+    if (totalChars > 3e4) {
+      console.error(`[sidecar] WARNING: large embed input (${totalChars} chars) \u2014 tokens may be truncated by Rust`);
+    }
     const result2 = await sendCallback("native_embed", {
       model_path: "",
       input: params.input
