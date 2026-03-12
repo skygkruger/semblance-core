@@ -237891,7 +237891,7 @@ function buildSystemPrompt(config, conversational) {
 
 You are warm, direct, and concise. Respond naturally like a helpful friend. Just chat back naturally. Do not make up any information about emails, meetings, schedules, or actions you have taken. Only discuss things you actually know.
 
-Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : " If you do not know your user's name, ask them."}
+Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : " You do not know your user's name yet. You MUST ask them what their name is. Do NOT guess or make up a name."}
 
 ${INJECTION_CANARY}`;
   }
@@ -237908,7 +237908,7 @@ ${autonomyBlock}
 
 You are warm, direct, and concise. Respond naturally like a helpful friend. When ${userRef} greets you or makes small talk, just chat back naturally. When they ask you to do something specific, use your tools to help.
 
-Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : " If you do not know your user's name, ask them."}
+Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : " You do not know your user's name yet. You MUST ask them what their name is. Do NOT guess or make up a name."}
 
 IMPORTANT: When you call a tool, do NOT write fake results in your message. Say only a brief sentence like "Let me check that for you." The real results come after the tool runs. Never invent emails, meetings, names, or data.
 
@@ -238081,7 +238081,9 @@ ${sanitizedToolResults}`,
             messages,
             temperature: 0.7
           });
-          finalMessage = retryResponse.message.content;
+          if (retryResponse?.message?.content) {
+            finalMessage = retryResponse.message.content;
+          }
         }
         finalMessage += `
 
@@ -267741,6 +267743,8 @@ var documentsDb = null;
 var emailIndexer = null;
 var calendarIndexer = null;
 var emailCategorizer = null;
+var _refreshPromptConfig = () => {
+};
 var proactiveEngine = null;
 var statementParser = null;
 var merchantNormalizer = null;
@@ -268113,6 +268117,38 @@ async function handleInitialize() {
   } catch (err) {
     console.error("[sidecar] Prompt config wiring failed:", err);
   }
+  function refreshPromptConfig() {
+    try {
+      if (!core?.agent?.updatePromptConfig) return;
+      const aiName = getPref("ai_name") ?? "Semblance";
+      const userName2 = getPref("user_name") ?? void 0;
+      const connectedServices = [];
+      try {
+        const tokenMgr = ensureOAuthTokenManager();
+        const connectorRegistry = createDefaultConnectorRegistry();
+        for (const connector of connectorRegistry.listAll()) {
+          const oauthCfg = getOAuthConfigForConnector(connector.id);
+          if (oauthCfg) {
+            const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
+            if (accessToken) connectedServices.push(connector.displayName);
+          }
+        }
+      } catch {
+      }
+      let indexedDocCount = 0;
+      try {
+        if (documentsDb) {
+          indexedDocCount = documentsDb.prepare("SELECT COUNT(*) as count FROM documents").get()?.count ?? 0;
+        }
+      } catch {
+      }
+      core.agent.updatePromptConfig({ aiName, userName: userName2, connectedServices, indexedDocCount });
+      console.error(`[sidecar] Prompt config refreshed: name=${aiName}, user=${userName2 ?? "(not set)"}, services=${connectedServices.length}`);
+    } catch (err) {
+      console.error("[sidecar] Prompt config refresh failed:", err);
+    }
+  }
+  _refreshPromptConfig = refreshPromptConfig;
   function cleanupStaleBatchItems() {
     if (!prefsDb) return;
     try {
@@ -268778,6 +268814,7 @@ async function handleGetPrivacyStatus() {
 }
 function handleSetUserName(params) {
   setPref("user_name", params.name);
+  _refreshPromptConfig();
   return { success: true };
 }
 function handleGetUserName() {
@@ -268785,6 +268822,7 @@ function handleGetUserName() {
 }
 function handleSetOnboardingComplete() {
   setPref("onboarding_complete", "true");
+  _refreshPromptConfig();
   return { success: true };
 }
 function handleGetOnboardingComplete() {
@@ -270487,6 +270525,7 @@ async function handleRequest(req) {
         break;
       case "set_ai_name":
         setPref("ai_name", params.name);
+        _refreshPromptConfig();
         respond(id, { success: true });
         break;
       case "get_user_name":
