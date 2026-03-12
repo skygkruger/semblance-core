@@ -21,7 +21,7 @@ export function ChatBubble({ role, content, timestamp, streaming = false, classN
         )}
         {streaming && !content && (
           <span className="chat-bubble__spinner">
-            <WireframeSpinner size={50} speed={0.8} />
+            <WireframeSpinner size={60} speed={0.8} />
           </span>
         )}
         {streaming && content && <span className="chat-bubble__cursor" />}

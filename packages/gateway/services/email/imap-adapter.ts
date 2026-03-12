@@ -193,6 +193,9 @@ export class IMAPAdapter {
       if (params.since) {
         searchCriteria = { since: new Date(params.since) };
       }
+      if (params.unreadOnly) {
+        searchCriteria = { ...searchCriteria, seen: false };
+      }
       if (params.search) {
         // Parse simple IMAP search criteria
         if (params.search === 'UNSEEN') {

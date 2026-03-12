@@ -99,6 +99,7 @@ export const EmailFetchPayload = z.object({
   since: z.string().optional(),
   search: z.string().optional(),
   messageIds: z.array(z.string()).optional(),
+  unreadOnly: z.boolean().optional(),
 });
 export type EmailFetchPayload = z.infer<typeof EmailFetchPayload>;
 

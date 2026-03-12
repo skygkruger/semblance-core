@@ -39,6 +39,7 @@ export const EmailFetchParams = z.object({
   since: z.string().optional(),
   search: z.string().optional(),
   messageIds: z.array(z.string()).optional(),
+  unreadOnly: z.boolean().optional(),
 });
 export type EmailFetchParams = z.infer<typeof EmailFetchParams>;
 
