@@ -211,6 +211,9 @@ No cloud sync. No cloud backup. No remote storage of any kind. If the device is 
 - `/install-verify:check` — Verify installed binary without reinstalling: `node scripts/install-and-verify.js --no-install`
 - `/diagnose` — Integration smoke test: `node scripts/smoke-test-sidecar.js`
 - `/review` — Code review (static analysis, architecture, design bible)
+- `/verify:json` — Machine-readable verify output: `node scripts/semblance-verify.js --json`
+- `update-state` — Auto-patch SEMBLANCE_STATE.md from verify output: `node scripts/update-state.js`
+- `update-state:dry` — Preview state patches without writing: `node scripts/update-state.js --dry-run`
 
 ## Consumer Inference Strategy (Post-Demo Priority)
 
@@ -713,11 +716,11 @@ Refer to `SEMBLANCE_BUILD_MAP_REVISION_2.md` for full, past sprint details inclu
 This repo: `C:\Users\skyle\desktop\world-shattering\semblance\` (semblance-core, public)
 Private docs: `C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\`
 
-### Three Required Documents
+### Required Documents
 
 **1. SEMBLANCE_STATE.md** — Living memory. Read at session START. Write at session END.
 `C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\SEMBLANCE_STATE.md`
-Contains: current build state, feature verification status (✅⚠️❌🔲), active issues with exact error messages, session log, locked decisions.
+Contains: current build state, feature verification status (✅⚠️❌🔲), environment prerequisites, cut list, active issues with exact error messages, session velocity, session log, locked decisions.
 
 **2. SLICE_CONTRACTS.md** — Top-down feature contracts. Read before implementing or fixing any feature.
 `C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\SLICE_CONTRACTS.md`
@@ -725,6 +728,13 @@ Contains: full data path for each feature, exact response shapes, numbered asser
 
 **3. SESSION_PROTOCOL.md** — Three-phase session discipline. Read once, follow always.
 `C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\SESSION_PROTOCOL.md`
+
+**4. DEMO_SCRIPT.md** — Investor demo screenplay. Read before any demo-prep session.
+`C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\DEMO_SCRIPT.md`
+Contains: 10-beat demo screenplay, beat-to-contract mapping, beat dependency graph, fallbacks, pre-demo checklist, cut list. Critical path: Beats 1→2→3→4→9.
+
+**5. DESIGN_BIBLE.md** — Canonical design spec. Read before any UI work.
+`C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\DESIGN_BIBLE.md`
 
 ### Mandatory Session Flow
 ```
@@ -744,8 +754,9 @@ SESSION END:
   1. Run: node scripts/semblance-verify.js  (compare to baseline)
   2. Run: node scripts/preflight.js
   3. Run gap detection (adjacent code scan)
-  4. Update SEMBLANCE_STATE.md
-  5. Post END report to Sky
+  4. Run: node scripts/update-state.js  (auto-patch feature table)
+  5. Manually update remaining SEMBLANCE_STATE.md sections
+  6. Post END report to Sky
 ```
 
 A session without a START report and END report is an incomplete session.
