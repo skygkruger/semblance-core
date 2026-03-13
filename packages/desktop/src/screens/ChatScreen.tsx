@@ -570,18 +570,28 @@ export function ChatScreen() {
 
       // Show the result as an assistant message so the user sees what happened
       if (result.status === 'success' && result.data) {
-        const dataSummary = typeof result.data === 'string'
-          ? result.data
-          : JSON.stringify(result.data, null, 2);
-        const preview = dataSummary.length > 1000
-          ? dataSummary.slice(0, 1000) + '\n... (truncated)'
-          : dataSummary;
+        // Summarize large results (email fetches, etc.) instead of dumping raw JSON
+        let preview: string;
+        const data = result.data as Record<string, unknown>;
+        if (actionLabel === 'email.fetch' && data.messages && Array.isArray(data.messages)) {
+          const count = data.messages.length;
+          preview = `Fetched ${count} email${count !== 1 ? 's' : ''} from your inbox.`;
+        } else if (actionLabel === 'email.send' || actionLabel === 'email.draft') {
+          preview = actionLabel === 'email.send' ? 'Email sent.' : 'Draft saved.';
+        } else {
+          const dataSummary = typeof result.data === 'string'
+            ? result.data
+            : JSON.stringify(result.data, null, 2);
+          preview = dataSummary.length > 500
+            ? dataSummary.slice(0, 500) + '\n... (truncated)'
+            : dataSummary;
+        }
         dispatch({
           type: 'ADD_CHAT_MESSAGE',
           message: {
             id: `action_result_${Date.now()}`,
             role: 'assistant',
-            content: `**${actionLabel}** completed successfully.\n\n\`\`\`json\n${preview}\n\`\`\``,
+            content: `**${actionLabel}** completed successfully.\n\n${preview}`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           },
         });
@@ -591,7 +601,7 @@ export function ChatScreen() {
           message: {
             id: `action_error_${Date.now()}`,
             role: 'assistant',
-            content: `**${actionLabel}** failed: ${result.error?.message ?? 'Unknown error'}`,
+            content: `**${actionLabel}** failed: ${typeof result.error?.message === 'string' ? result.error.message : typeof result.error === 'string' ? result.error : 'Unknown error'}`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           },
         });

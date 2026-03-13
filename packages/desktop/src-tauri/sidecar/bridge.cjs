@@ -245006,9 +245006,13 @@ var ActionType = external_exports.enum([
   "escalation.prompt",
   "health.entry"
 ]);
+var emailStringOrArray = external_exports.union([
+  external_exports.string().email().transform((s) => [s]),
+  external_exports.array(external_exports.string().email())
+]);
 var EmailSendPayload = external_exports.object({
-  to: external_exports.array(external_exports.string().email()),
-  cc: external_exports.array(external_exports.string().email()).optional(),
+  to: emailStringOrArray,
+  cc: external_exports.union([external_exports.string().email().transform((s) => [s]), external_exports.array(external_exports.string().email())]).optional(),
   subject: external_exports.string(),
   body: external_exports.string(),
   replyToMessageId: external_exports.string().optional()

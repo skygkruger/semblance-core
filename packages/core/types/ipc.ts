@@ -84,9 +84,15 @@ export type ActionType = z.infer<typeof ActionType>;
 
 // --- Action-specific payload schemas ---
 
+// Coerce single string to array — small models (7B) often pass "to": "email" instead of ["email"]
+const emailStringOrArray = z.union([
+  z.string().email().transform(s => [s]),
+  z.array(z.string().email()),
+]);
+
 export const EmailSendPayload = z.object({
-  to: z.array(z.string().email()),
-  cc: z.array(z.string().email()).optional(),
+  to: emailStringOrArray,
+  cc: z.union([z.string().email().transform(s => [s]), z.array(z.string().email())]).optional(),
   subject: z.string(),
   body: z.string(),
   replyToMessageId: z.string().optional(),
