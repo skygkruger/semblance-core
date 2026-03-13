@@ -11,6 +11,7 @@
  *   node scripts/semblance-verify.js --feature=chat    # One feature
  *   node scripts/semblance-verify.js --diff            # Compare to last run
  *   node scripts/semblance-verify.js --verbose         # Show sidecar stderr
+ *   node scripts/semblance-verify.js --json            # Machine-readable JSON output
  *
  * Exit code: 0 = P0 gate passes, 1 = P0 gate fails
  */
@@ -24,6 +25,7 @@ const os = require('os');
 
 const VERBOSE = process.argv.includes('--verbose');
 const DIFF_MODE = process.argv.includes('--diff');
+const JSON_MODE = process.argv.includes('--json');
 const FEATURE_FLAG = process.argv.find(a => a.startsWith('--feature='));
 const FEATURE_FILTER = FEATURE_FLAG ? FEATURE_FLAG.split('=')[1].toUpperCase() : null;
 
@@ -860,16 +862,25 @@ async function main() {
   if (should('PRIVACY')) await testPrivacy();
 
   const report = buildReport(initResult, date);
-  printReport(report);
 
-  // Save state for diff
+  // Save state for diff and for update-state.js consumption
   const previousState = existsSync(STATE_FILE)
     ? JSON.parse(readFileSync(STATE_FILE, 'utf8'))
     : null;
   writeFileSync(STATE_FILE, JSON.stringify(report, null, 2));
 
-  if (DIFF_MODE && previousState) {
-    diffReport(report, previousState);
+  // Also write latest.json for machine consumption (update-state.js)
+  const LATEST_FILE = join(STATE_DIR, 'latest.json');
+  writeFileSync(LATEST_FILE, JSON.stringify(report, null, 2));
+
+  if (JSON_MODE) {
+    // Machine-readable output — consumed by scripts/update-state.js
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    printReport(report);
+    if (DIFF_MODE && previousState) {
+      diffReport(report, previousState);
+    }
   }
 
   killSidecar();
