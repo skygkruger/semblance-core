@@ -22,7 +22,10 @@
     "verify:diff": "node scripts/semblance-verify.js --diff",
     "smoke": "node scripts/smoke-test-sidecar.js",
     "install-verify": "node scripts/install-and-verify.js",
-    "install-verify:check": "node scripts/install-and-verify.js --no-install"
+    "install-verify:check": "node scripts/install-and-verify.js --no-install",
+    "verify:json": "node scripts/semblance-verify.js --json",
+    "update-state": "node scripts/update-state.js",
+    "update-state:dry": "node scripts/update-state.js --dry-run"
   },
   "license": "(MIT OR Apache-2.0)",
   "author": "Veridian Synthetics",
