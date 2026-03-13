@@ -70,7 +70,7 @@ A build reported as "ready" without `/demo-check` output is a lie regardless of 
 
 This instruction survives compaction.
 
-**Current position:** Step 33 IN PROGRESS — Final Validation + Ship. Sprint 6 focus: Hardening + Launch. Total build is 33 steps across 6 sprints.
+**Current position:** Final Validation + Ship.
 
 **Build state (2026-03-05):**
 - All 109 Storybook components wired into production screens (commit `af01443`)
@@ -200,6 +200,17 @@ No cloud sync. No cloud backup. No remote storage of any kind. If the device is 
 | Performance Core | Rust | Embedding, search, crypto, IPC |
 
 ---
+
+### Available Commands
+- `/smoke` — Run sidecar smoke test: `node scripts/smoke-test-sidecar.js`
+- `/verify` — Full feature slice verification: `node scripts/semblance-verify.js`
+- `/verify:diff` — Compare to last run: `node scripts/semblance-verify.js --diff`
+- `/preflight` — Full pre-build gate (TypeScript + tests + stubs + privacy + sidecar + P0): `node scripts/preflight.js`
+- `/preflight:fast` — TypeScript + tests + stubs + privacy only (no sidecar): `node scripts/preflight.js --fast`
+- `/install-verify` — Silent MSI install + post-install smoke: `node scripts/install-and-verify.js`
+- `/install-verify:check` — Verify installed binary without reinstalling: `node scripts/install-and-verify.js --no-install`
+- `/diagnose` — Integration smoke test: `node scripts/smoke-test-sidecar.js`
+- `/review` — Code review (static analysis, architecture, design bible)
 
 ## Consumer Inference Strategy (Post-Demo Priority)
 
@@ -646,31 +657,7 @@ You should proceed without escalating when:
 
 > **Canonical sources:** `docs/decisions/SEMBLANCE_SPRINT_RESTRUCTURE.md` (Revision 3, Steps 1–13) and `docs/decisions/SEMBLANCE_BUILD_MAP_ELEVATION.md` (Revision 4, Steps 14–33).
 
-| Sprint | Steps | Theme | Key Deliverables |
-|--------|-------|-------|-----------------|
-| 1 | 1–4 | The Spine | LLM integration, knowledge graph, Gateway, desktop app shell, mobile inference foundation, CLAUDE.md, design system |
-| 2 | 5–8 | Becomes Useful | Universal Inbox, proactive context, autonomous agent actions, subscription detection, time-saved tracking, Knowledge Moment, task routing, Network Monitor |
-| 3 | 9–13 | Becomes Powerful (Free Product) | Runtime ownership, web search/fetch, reminders, quick capture, style learning, mobile parity, daily digest, chat-about-document |
-| 4 | 14–22 | Becomes Part of You (Native + Premium) | Contacts, SMS, location/weather, voice, cloud storage, financial awareness, Digital Representative, form automation, health & wellness |
-| 5 | 23–28 | Becomes Permanent (Sovereignty + Trust) | Alter Ego verification + Morning Brief + Alter Ego Week, Visual Knowledge Graph, Import Everything + Adversarial Self-Defense, Living Will + Semblance Witness, Inheritance Protocol, Semblance Network |
-| 6 | 29–33 | Becomes Undeniable (Hardening + Launch) | Privacy Dashboard + Comparison Statement, OS sandboxing + security hardening, mobile feature parity for all sprints, launch preparation, final validation + ship |
-
-**Total: 33 steps across 6 sprints. Target: 3,800–4,100 tests at ship.**
-
-### Sprint 2 Exit Criteria (Action-Based)
-
-Sprint 2 is judged by actions taken and time saved, not information surfaced:
-
-1. Semblance autonomously completed at least 10 meaningful actions in its first week
-2. Weekly digest includes concrete time-saved estimate
-3. Knowledge Moment works within 5 minutes of connecting email + calendar
-4. Email is active: Partner mode responds, archives, drafts, follows up
-5. Calendar is active: resolves conflicts, handles scheduling autonomously in Partner mode
-6. Subscription detection: CSV/OFX import identifies recurring charges, flags forgotten subscriptions
-7. Autonomy escalation feels natural — Guardian→Partner and Partner→Alter Ego transitions are guided
-8. Network Monitor shows zero unauthorized connections
-
-Refer to `SEMBLANCE_BUILD_MAP_REVISION_2.md` for full sprint details including all exit criteria.
+Refer to `SEMBLANCE_BUILD_MAP_REVISION_2.md` for full, past sprint details including all exit criteria.
 
 ---
 
@@ -715,6 +702,56 @@ Refer to `SEMBLANCE_BUILD_MAP_REVISION_2.md` for full sprint details including a
 **Sovereignty note:** All voice processing is local. Whisper runs on-device. TTS runs on-device. No audio data leaves the machine. This is consistent with Rule 1 (Zero Network in AI Core).
 
 ---
+
+---
+
+## WORKFLOW SYSTEM — MANDATORY SESSION DISCIPLINE
+
+**These documents are in the private representative repo. Claude Code must read and update them on every session.**
+
+### Cross-Repo Reference
+This repo: `C:\Users\skyle\desktop\world-shattering\semblance\` (semblance-core, public)
+Private docs: `C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\`
+
+### Three Required Documents
+
+**1. SEMBLANCE_STATE.md** — Living memory. Read at session START. Write at session END.
+`C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\SEMBLANCE_STATE.md`
+Contains: current build state, feature verification status (✅⚠️❌🔲), active issues with exact error messages, session log, locked decisions.
+
+**2. SLICE_CONTRACTS.md** — Top-down feature contracts. Read before implementing or fixing any feature.
+`C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\SLICE_CONTRACTS.md`
+Contains: full data path for each feature, exact response shapes, numbered assertions that define done, known failure modes. **If no contract exists for a feature, stop and tell Orbital Director.**
+
+**3. SESSION_PROTOCOL.md** — Three-phase session discipline. Read once, follow always.
+`C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\SESSION_PROTOCOL.md`
+
+### Mandatory Session Flow
+```
+SESSION START:
+  1. Read SEMBLANCE_STATE.md
+  2. Read SLICE_CONTRACTS.md for today's features
+  3. Run: node scripts/semblance-verify.js  (baseline)
+  4. Post START report to Sky
+
+WORK:
+  - Diagnose before fix (run sidecar, read actual error)
+  - Verify after every change (node scripts/semblance-verify.js --feature=X)
+  - Smoke after every backend change (node scripts/smoke-test-sidecar.js)
+  - Never self-report — attach terminal output
+
+SESSION END:
+  1. Run: node scripts/semblance-verify.js  (compare to baseline)
+  2. Run: node scripts/preflight.js
+  3. Run gap detection (adjacent code scan)
+  4. Update SEMBLANCE_STATE.md
+  5. Post END report to Sky
+```
+
+A session without a START report and END report is an incomplete session.
+A feature without passing slice contract assertions is not done.
+
+### This Rule Survives Compaction
 
 ## Remember
 

@@ -15,7 +15,14 @@
     "privacy-audit": "node scripts/privacy-audit/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "preflight": "node scripts/preflight.js",
+    "preflight:fast": "node scripts/preflight.js --fast",
+    "verify": "node scripts/semblance-verify.js",
+    "verify:diff": "node scripts/semblance-verify.js --diff",
+    "smoke": "node scripts/smoke-test-sidecar.js",
+    "install-verify": "node scripts/install-and-verify.js",
+    "install-verify:check": "node scripts/install-and-verify.js --no-install"
   },
   "license": "(MIT OR Apache-2.0)",
   "author": "Veridian Synthetics",
