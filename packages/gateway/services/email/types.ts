@@ -43,9 +43,12 @@ export const EmailFetchParams = z.object({
 });
 export type EmailFetchParams = z.infer<typeof EmailFetchParams>;
 
+// Coerce single string to array — 7B models often pass "to": "email" instead of ["email"]
+const stringOrArray = z.union([z.string().transform(s => [s]), z.array(z.string())]);
+
 export const EmailSendParams = z.object({
-  to: z.array(z.string()),
-  cc: z.array(z.string()).optional(),
+  to: stringOrArray,
+  cc: z.union([z.string().transform(s => [s]), z.array(z.string())]).optional(),
   subject: z.string(),
   body: z.string(),
   replyToMessageId: z.string().optional(),
