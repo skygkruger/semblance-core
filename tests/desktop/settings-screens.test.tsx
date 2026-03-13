@@ -94,6 +94,12 @@ describe('SettingsAIEngine', () => {
     customModelPath: null,
     onChange: vi.fn(),
     onBack: vi.fn(),
+    bitnetModels: [],
+    bitnetActiveModelId: null,
+    bitnetDownloadingModelId: null,
+    bitnetDownloadProgress: 0,
+    onBitNetDownload: vi.fn(),
+    onBitNetActivate: vi.fn(),
   };
 
   it('renders AI Engine header', () => {
@@ -474,6 +480,12 @@ describe('SettingsNavigator', () => {
     digitalRepresentativeActive: true,
     digitalRepresentativeActivationDate: 'Feb 1, 2026',
     semblanceName: 'Atlas',
+    bitnetModels: [],
+    bitnetActiveModelId: null,
+    bitnetDownloadingModelId: null,
+    bitnetDownloadProgress: 0,
+    onBitNetDownload: vi.fn(),
+    onBitNetActivate: vi.fn(),
     onChange: vi.fn(),
     onManageAllConnections: vi.fn(),
     onConnectionTap: vi.fn(),

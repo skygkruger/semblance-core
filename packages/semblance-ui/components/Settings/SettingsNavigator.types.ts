@@ -1,4 +1,5 @@
 import type { SettingsScreen } from './SettingsRoot.types';
+import type { BitNetModelInfo } from './SettingsAIEngine.types';
 
 export type Screen = 'root' | SettingsScreen;
 
@@ -21,6 +22,14 @@ export interface SettingsNavigatorProps {
   contextWindow: 4096 | 8192 | 16384 | 32768;
   gpuAcceleration: boolean;
   customModelPath: string | null;
+
+  /* BitNet Model Management */
+  bitnetModels: BitNetModelInfo[];
+  bitnetActiveModelId: string | null;
+  bitnetDownloadingModelId: string | null;
+  bitnetDownloadProgress: number;
+  onBitNetDownload: (modelId: string) => void;
+  onBitNetActivate: (modelId: string) => void;
 
   /* Connections props */
   connections: Array<{

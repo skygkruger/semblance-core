@@ -901,3 +901,45 @@ export function clearLocationHistory(): Promise<{ cleared: boolean }> {
 export function submitUpgradeEmail(email: string): Promise<void> {
   return invoke<void>('upgrade_submit_email', { email });
 }
+
+// ─── BitNet Model Management ────────────────────────────────────────────────
+
+export interface BitNetModelIPC {
+  id: string;
+  displayName: string;
+  family: string;
+  parameterCount: string;
+  fileSizeBytes: number;
+  ramRequiredMb: number;
+  license: string;
+  nativeOneBit: boolean;
+  contextLength: number;
+  isDownloaded: boolean;
+  isRecommended: boolean;
+}
+
+export interface BitNetModelsResponse {
+  models: BitNetModelIPC[];
+  recommendedModelId: string;
+  activeModelId: string | null;
+}
+
+export function getBitNetModels(tier?: string): Promise<BitNetModelsResponse> {
+  return invoke<BitNetModelsResponse>('bitnet_get_available_models', { tier: tier ?? '' });
+}
+
+export function downloadBitNetModel(modelId: string): Promise<{ status: string; modelId: string }> {
+  return invoke<{ status: string; modelId: string }>('bitnet_download_model', { modelId });
+}
+
+export function activateBitNetModel(modelId: string): Promise<{ status: string; modelId: string }> {
+  return invoke<{ status: string; modelId: string }>('bitnet_set_active_model', { modelId });
+}
+
+export function getBitNetStatus(): Promise<{
+  downloadedModels: Array<{ modelId: string; sizeBytes: number; displayName: string }>;
+  totalDownloadedBytes: number;
+  catalogSize: number;
+}> {
+  return invoke('bitnet_get_status');
+}

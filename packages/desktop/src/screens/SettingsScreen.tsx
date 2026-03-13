@@ -26,8 +26,11 @@ import {
   getKnowledgeStats,
   exportKnowledgeGraph,
   clearAllConversations,
+  getBitNetModels,
+  downloadBitNetModel,
+  activateBitNetModel,
 } from '../ipc/commands';
-import type { NotificationSettings } from '../ipc/commands';
+import type { NotificationSettings, BitNetModelIPC } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useLicense } from '../contexts/LicenseContext';
 import type { AccountStatus } from '../ipc/types';
@@ -42,6 +45,10 @@ export function SettingsScreen() {
   const [accounts, setAccounts] = useState<AccountStatus[]>([]);
   const [hardwareProfile, setHardwareProfile] = useState('');
   const [appVersion, setAppVersion] = useState('0.1.0');
+  const [bitnetModels, setBitnetModels] = useState<BitNetModelIPC[]>([]);
+  const [bitnetActiveModelId, setBitnetActiveModelId] = useState<string | null>(null);
+  const [bitnetDownloadingModelId, setBitnetDownloadingModelId] = useState<string | null>(null);
+  const [bitnetDownloadProgress, setBitnetDownloadProgress] = useState(0);
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     morningBriefEnabled: true,
     morningBriefTime: '07:00',
@@ -71,6 +78,12 @@ export function SettingsScreen() {
       .catch(() => {});
     getNotificationSettings()
       .then(setNotifSettings)
+      .catch(() => {});
+    getBitNetModels()
+      .then((res) => {
+        setBitnetModels(res.models);
+        if (res.activeModelId) setBitnetActiveModelId(res.activeModelId);
+      })
       .catch(() => {});
   }, [dispatch]);
 
@@ -132,6 +145,33 @@ export function SettingsScreen() {
     }
   }, [dispatch, notifSettings]);
 
+  const handleBitNetDownload = useCallback(async (modelId: string) => {
+    setBitnetDownloadingModelId(modelId);
+    setBitnetDownloadProgress(0);
+    try {
+      await downloadBitNetModel(modelId);
+      // Refresh model list to pick up isDownloaded change
+      const res = await getBitNetModels();
+      setBitnetModels(res.models);
+      showToast('Model downloaded successfully');
+    } catch {
+      showToast('Model download failed');
+    } finally {
+      setBitnetDownloadingModelId(null);
+      setBitnetDownloadProgress(0);
+    }
+  }, [showToast]);
+
+  const handleBitNetActivate = useCallback(async (modelId: string) => {
+    try {
+      await activateBitNetModel(modelId);
+      setBitnetActiveModelId(modelId);
+      showToast('Model activated');
+    } catch {
+      showToast('Model activation failed');
+    }
+  }, [showToast]);
+
   const licenseStatus = license.tier === 'founding'
     ? 'founding-member' as const
     : license.isPremium
@@ -160,6 +200,26 @@ export function SettingsScreen() {
           contextWindow={state.activeModel?.toLowerCase().includes('qwen') ? 32768 : 8192}
           gpuAcceleration={hardwareProfile?.includes('nvidia') || hardwareProfile?.includes('gpu') || false}
           customModelPath={null}
+
+          /* BitNet Model Management */
+          bitnetModels={bitnetModels.map(m => ({
+            id: m.id,
+            displayName: m.displayName,
+            family: m.family,
+            parameterCount: m.parameterCount,
+            fileSizeBytes: m.fileSizeBytes,
+            ramRequiredMb: m.ramRequiredMb,
+            license: m.license,
+            nativeOneBit: m.nativeOneBit,
+            contextLength: m.contextLength,
+            isDownloaded: m.isDownloaded,
+            isRecommended: m.isRecommended,
+          }))}
+          bitnetActiveModelId={bitnetActiveModelId}
+          bitnetDownloadingModelId={bitnetDownloadingModelId}
+          bitnetDownloadProgress={bitnetDownloadProgress}
+          onBitNetDownload={handleBitNetDownload}
+          onBitNetActivate={handleBitNetActivate}
 
           /* Connections props */
           connections={accounts.map(a => ({

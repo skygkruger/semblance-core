@@ -26,6 +26,12 @@ export function SettingsNavigator(props: SettingsNavigatorProps) {
           customModelPath={props.customModelPath}
           onChange={props.onChange}
           onBack={goBack}
+          bitnetModels={props.bitnetModels}
+          bitnetActiveModelId={props.bitnetActiveModelId}
+          bitnetDownloadingModelId={props.bitnetDownloadingModelId}
+          bitnetDownloadProgress={props.bitnetDownloadProgress}
+          onBitNetDownload={props.onBitNetDownload}
+          onBitNetActivate={props.onBitNetActivate}
         />
       );
 

@@ -40,6 +40,10 @@ export interface InferenceRouterConfig {
   mobileReasoningModel?: string;
   /** Mobile embedding model name. */
   mobileEmbeddingModel?: string;
+  /** BitNet provider for CPU-optimized 1-bit inference. Slots between Ollama and Native. */
+  bitnetProvider?: LLMProvider;
+  /** BitNet reasoning model name. */
+  bitnetReasoningModel?: string;
 }
 
 /**
@@ -58,6 +62,8 @@ export class InferenceRouter implements LLMProvider {
   private mobileProvider: LLMProvider | null;
   private mobileReasoningModel: string | null;
   private mobileEmbeddingModel: string | null;
+  private bitnetProvider: LLMProvider | null;
+  private bitnetReasoningModel: string | null;
 
   constructor(config: InferenceRouterConfig) {
     this.reasoningProvider = config.reasoningProvider;
@@ -68,6 +74,8 @@ export class InferenceRouter implements LLMProvider {
     this.mobileProvider = config.mobileProvider ?? null;
     this.mobileReasoningModel = config.mobileReasoningModel ?? null;
     this.mobileEmbeddingModel = config.mobileEmbeddingModel ?? null;
+    this.bitnetProvider = config.bitnetProvider ?? null;
+    this.bitnetReasoningModel = config.bitnetReasoningModel ?? null;
   }
 
   // ─── LLMProvider Interface ───────────────────────────────────────────────
@@ -220,6 +228,30 @@ export class InferenceRouter implements LLMProvider {
   }
 
   /**
+   * Set or update the BitNet provider (CPU-optimized 1-bit inference).
+   * Slots between Ollama (GPU) and NativeProvider (fallback) in the priority chain.
+   */
+  setBitNetProvider(provider: LLMProvider, model: string): void {
+    this.bitnetProvider = provider;
+    this.bitnetReasoningModel = model;
+  }
+
+  /**
+   * Check if the BitNet provider is available and ready.
+   */
+  async isBitNetReady(): Promise<boolean> {
+    if (!this.bitnetProvider) return false;
+    return this.bitnetProvider.isAvailable();
+  }
+
+  /**
+   * Get the active BitNet model name, or null if BitNet is not configured.
+   */
+  getBitNetModel(): string | null {
+    return this.bitnetReasoningModel;
+  }
+
+  /**
    * Get the current platform.
    */
   getPlatform(): InferencePlatform {
@@ -245,20 +277,33 @@ export class InferenceRouter implements LLMProvider {
 
   /**
    * Get the provider for a given inference tier.
-   * On mobile, uses the mobile provider if available.
-   * On desktop, uses the desktop reasoning/embedding providers.
-   * Embedding tier always uses the dedicated embedding provider for the platform.
+   *
+   * Priority chain (desktop):
+   *   1. Ollama (GPU) — reasoningProvider (if it's an OllamaProvider and available)
+   *   2. BitNet (CPU) — bitnetProvider (if configured and available)
+   *   3. Native (fallback) — reasoningProvider (NativeProvider)
+   *
+   * On mobile, uses the mobile provider for all tiers.
+   * Embedding tier always uses the dedicated embedding provider.
    */
   private getProviderForTier(tier: InferenceTier): LLMProvider {
     if (this.isMobile() && this.mobileProvider) {
-      // On mobile, use the mobile provider for all tiers
       return this.mobileProvider;
     }
 
     if (tier === 'embedding') {
       return this.embeddingProvider;
     }
-    // For desktop, all reasoning tiers use the same provider.
+
+    // If BitNet is configured, it acts as the primary reasoning provider.
+    // The reasoningProvider (Ollama or Native) is used when BitNet is not set up.
+    // Provider availability is checked at configuration time, not per-request,
+    // because isAvailable() is async and this method is sync.
+    // The sidecar reconfigures the router when providers change.
+    if (this.bitnetProvider) {
+      return this.bitnetProvider;
+    }
+
     return this.reasoningProvider;
   }
 }
