@@ -31,6 +31,14 @@ export interface SettingsNavigatorProps {
   onBitNetDownload: (modelId: string) => void;
   onBitNetActivate: (modelId: string) => void;
 
+  /* Standard Model Management (Qwen — power users) */
+  standardModels: BitNetModelInfo[];
+  standardActiveModelId: string | null;
+  standardDownloadingModelId: string | null;
+  standardDownloadProgress: number;
+  onStandardDownload: (modelId: string) => void;
+  onStandardActivate: (modelId: string) => void;
+
   /* Connections props */
   connections: Array<{
     id: string;

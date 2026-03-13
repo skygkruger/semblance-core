@@ -101,7 +101,7 @@ describe('TaskAssessor', () => {
   });
 
   describe('complex reasoning tasks', () => {
-    it('meeting_prep prefers desktop', () => {
+    it('meeting_prep prefers desktop but can run on mobile', () => {
       const req = assessor.assess({
         type: 'meeting_prep',
         urgency: 'background',
@@ -109,7 +109,7 @@ describe('TaskAssessor', () => {
         requiresLLM: true,
       });
       expect(req.preferredDevice).toBe('desktop');
-      expect(req.canRunOnMobile).toBe(false);
+      expect(req.canRunOnMobile).toBe(true); // BitNet 3B can handle meeting prep on mobile
       expect(req.estimatedBatteryImpact).toBe('high');
     });
 

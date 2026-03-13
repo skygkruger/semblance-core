@@ -2343,6 +2343,31 @@ async fn bitnet_get_status(
     state.bridge.call("bitnet_get_status", Value::Null).await
 }
 
+// ─── Standard Model Management Commands ─────────────────────────────────
+
+#[tauri::command]
+async fn standard_get_models(
+    state: tauri::State<'_, AppBridge>,
+) -> Result<Value, String> {
+    state.bridge.call("standard_get_models", Value::Null).await
+}
+
+#[tauri::command]
+async fn standard_download_model(
+    state: tauri::State<'_, AppBridge>,
+    model_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("standard_download_model", serde_json::json!({ "modelId": model_id })).await
+}
+
+#[tauri::command]
+async fn standard_set_active(
+    state: tauri::State<'_, AppBridge>,
+    model_id: String,
+) -> Result<Value, String> {
+    state.bridge.call("standard_set_active", serde_json::json!({ "modelId": model_id })).await
+}
+
 // ─── Alter Ego Week Commands ─────────────────────────────────────────────
 
 #[tauri::command]
@@ -2932,6 +2957,10 @@ pub fn run() {
             bitnet_download_model,
             bitnet_set_active_model,
             bitnet_get_status,
+            // Standard Model Management
+            standard_get_models,
+            standard_download_model,
+            standard_set_active,
             // Alter Ego Week
             alter_ego_get_week_progress,
             alter_ego_complete_day,

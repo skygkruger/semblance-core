@@ -32,6 +32,12 @@ export function SettingsNavigator(props: SettingsNavigatorProps) {
           bitnetDownloadProgress={props.bitnetDownloadProgress}
           onBitNetDownload={props.onBitNetDownload}
           onBitNetActivate={props.onBitNetActivate}
+          standardModels={props.standardModels}
+          standardActiveModelId={props.standardActiveModelId}
+          standardDownloadingModelId={props.standardDownloadingModelId}
+          standardDownloadProgress={props.standardDownloadProgress}
+          onStandardDownload={props.onStandardDownload}
+          onStandardActivate={props.onStandardActivate}
         />
       );
 

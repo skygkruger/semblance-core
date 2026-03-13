@@ -1,0 +1,14 @@
+[package]
+name = "bitnet-sys"
+version = "0.1.0"
+edition = "2021"
+description = "FFI bindings to BitNet.cpp (llama.cpp fork with 1-bit kernel support)"
+authors = ["Veridian Synthetics"]
+license = "MIT"
+
+[build-dependencies]
+# No cmake crate — we invoke cmake directly via std::process::Command
+# for full control over ClangCL toolset on Windows.
+
+[dependencies]
+# Pure FFI crate — no runtime dependencies.

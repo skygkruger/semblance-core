@@ -1,26 +1,23 @@
-// NativeRuntime — Direct llama.cpp integration via llama-cpp-2 Rust bindings.
+// NativeRuntime — Direct llama.cpp integration via BitNet.cpp FFI bindings.
 //
-// LOCKED DECISION: Uses `llama-cpp-2` (v0.1.x by utilityai), the actively maintained
-// Rust binding for llama.cpp. The alternative `llama_cpp_rs` (mdrokz) hasn't been
-// updated in 2+ years.
+// LOCKED DECISION (2026-03-13): Uses `bitnet-sys` crate which compiles BitNet.cpp
+// (Microsoft's llama.cpp fork with 1-bit kernel support) from source via CMake.
+// BitNet.cpp is a superset of llama.cpp — same API plus optimized TL1/TL2/i2_s
+// kernels. Standard GGUF models (Q4_K_M, Q8_0, etc.) load normally. BitNet GGUFs
+// get the optimized 1-bit kernels automatically.
+//
+// Replaces the previous `llama-cpp-2` crate (TODO-05 Step 1).
 //
 // Architecture:
 // - Only one reasoning model loaded at a time (Arc<Mutex<>> guarded)
 // - Embedding model stays resident separately (small, ~275MB)
 // - GPU backend auto-selected: CUDA (Windows/Linux) > Metal (macOS) > CPU fallback
-// - Methods are synchronous (CPU-bound llama.cpp calls) — callers use the async
+// - Methods are synchronous (CPU-bound llama.cpp FFI calls) — callers use the async
 //   Mutex wrapper and tokio tasks for concurrency.
-//
-// FALLBACK STRATEGY: If llama-cpp-2 compilation fails on Windows 11, bundle
-// `llama-server` as a managed subprocess instead. The NativeProvider TypeScript
-// interface stays the same regardless of backend.
 
-use llama_cpp_2::{
-    context::params::LlamaContextParams,
-    llama_backend::LlamaBackend,
-    llama_batch::LlamaBatch,
-    model::{params::LlamaModelParams, AddBos, LlamaModel},
-    sampling::LlamaSampler,
+use bitnet_sys::{
+    AddBos, LlamaBackend, LlamaBatch, LlamaContextParams, LlamaModel,
+    LlamaModelParams, LlamaSampler,
 };
 use serde::{Deserialize, Serialize};
 use std::num::NonZeroU32;
@@ -72,12 +69,12 @@ pub enum RuntimeStatus {
 
 // ─── NativeRuntime ───────────────────────────────────────────────────────────
 
-/// NativeRuntime manages llama.cpp model instances for local inference.
+/// NativeRuntime manages BitNet.cpp / llama.cpp model instances for local inference.
 ///
 /// Thread-safe via Arc<Mutex<>>. Only one reasoning model loaded at a time.
 /// Embedding model can be loaded concurrently (separate context).
 ///
-/// All inference methods are synchronous (CPU-bound llama.cpp FFI calls).
+/// All inference methods are synchronous (CPU-bound FFI calls).
 /// The caller wraps access in tokio::sync::Mutex for async compatibility.
 pub struct NativeRuntime {
     status: RuntimeStatus,
@@ -88,6 +85,7 @@ pub struct NativeRuntime {
     embedding_model_path: Option<PathBuf>,
 }
 
+#[allow(dead_code)] // Public API — callers wired in Step 2 (BitNetProvider)
 impl NativeRuntime {
     pub fn new() -> Self {
         let backend = match LlamaBackend::init() {
@@ -97,7 +95,7 @@ impl NativeRuntime {
             }
             Err(e) => {
                 eprintln!(
-                    "[NativeRuntime] Failed to initialize llama.cpp backend: {}",
+                    "[NativeRuntime] Failed to initialize BitNet.cpp backend: {}",
                     e
                 );
                 None
@@ -114,6 +112,7 @@ impl NativeRuntime {
     }
 
     /// Load a reasoning model from a GGUF file.
+    /// Works with both standard GGUF (Q4_K_M, Q8_0) and BitNet i2_s GGUFs.
     /// Blocking — model loading reads the full file from disk.
     pub fn load_reasoning_model(&mut self, model_path: PathBuf) -> Result<(), String> {
         if !model_path.exists() {
@@ -123,7 +122,7 @@ impl NativeRuntime {
         let backend = self
             .backend
             .as_ref()
-            .ok_or("llama.cpp backend not initialized")?;
+            .ok_or("BitNet.cpp backend not initialized")?;
 
         self.status = RuntimeStatus::Loading;
 
@@ -133,10 +132,10 @@ impl NativeRuntime {
         match LlamaModel::load_from_file(backend, &model_path, &model_params) {
             Ok(model) => {
                 eprintln!(
-                    "[NativeRuntime] Reasoning model loaded: {:?} ({} params, {} layers)",
+                    "[NativeRuntime] Reasoning model loaded: {:?} ({} params, embd={})",
                     model_path,
                     model.n_params(),
-                    model.n_layer()
+                    model.n_embd()
                 );
                 self.reasoning_model = Some(model);
                 self.reasoning_model_path = Some(model_path);
@@ -164,7 +163,7 @@ impl NativeRuntime {
         let backend = self
             .backend
             .as_ref()
-            .ok_or("llama.cpp backend not initialized")?;
+            .ok_or("BitNet.cpp backend not initialized")?;
 
         let model_params = LlamaModelParams::default().with_n_gpu_layers(1000);
 
@@ -188,11 +187,17 @@ impl NativeRuntime {
         use std::io::Write;
         let log_path = if cfg!(target_os = "windows") {
             let appdata = std::env::var("LOCALAPPDATA").unwrap_or_else(|_| ".".to_string());
-            std::path::PathBuf::from(appdata).join("Semblance").join("native_runtime.log")
+            std::path::PathBuf::from(appdata)
+                .join("Semblance")
+                .join("native_runtime.log")
         } else {
             std::path::PathBuf::from("/tmp/semblance_native_runtime.log")
         };
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&log_path)
+        {
             let _ = writeln!(f, "[NativeRuntime] {}", msg);
         }
     }
@@ -209,7 +214,7 @@ impl NativeRuntime {
         let backend = self
             .backend
             .as_ref()
-            .ok_or("llama.cpp backend not initialized")?;
+            .ok_or("BitNet.cpp backend not initialized")?;
         let model = self
             .reasoning_model
             .as_ref()
@@ -230,7 +235,12 @@ impl NativeRuntime {
             ),
         };
 
-        Self::log(&format!("generate: prompt_len={} chars, max_tokens={}, temp={}", full_prompt.len(), max_tokens, temperature));
+        Self::log(&format!(
+            "generate: prompt_len={} chars, max_tokens={}, temp={}",
+            full_prompt.len(),
+            max_tokens,
+            temperature
+        ));
 
         Self::log("generate: creating context with n_ctx=8192...");
         let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(8192));
@@ -254,19 +264,29 @@ impl NativeRuntime {
         let n_ctx: usize = 8192;
         let max_prompt_tokens = n_ctx.saturating_sub(max_tokens as usize);
         let tokens = if tokens.len() > max_prompt_tokens {
-            Self::log(&format!("generate: TRUNCATING {} tokens -> {} to fit context", tokens.len(), max_prompt_tokens));
+            Self::log(&format!(
+                "generate: TRUNCATING {} tokens -> {} to fit context",
+                tokens.len(),
+                max_prompt_tokens
+            ));
             tokens[..max_prompt_tokens].to_vec()
         } else {
-            Self::log(&format!("generate: tokens fit ({} <= {})", tokens.len(), max_prompt_tokens));
+            Self::log(&format!(
+                "generate: tokens fit ({} <= {})",
+                tokens.len(),
+                max_prompt_tokens
+            ));
             tokens
         };
 
         // Chunked prefill: decode prompt in batches of CHUNK_SIZE tokens.
-        // Some llama.cpp backends (especially GPU) segfault on very large single-batch
-        // decode calls even when tokens fit the context window. Chunking avoids this.
+        // Some backends segfault on very large single-batch decode calls.
         let chunk_size: usize = 512;
         let total_prompt_tokens = tokens.len();
-        Self::log(&format!("generate: chunked prefill, {} tokens in chunks of {}", total_prompt_tokens, chunk_size));
+        Self::log(&format!(
+            "generate: chunked prefill, {} tokens in chunks of {}",
+            total_prompt_tokens, chunk_size
+        ));
 
         let mut pos: i32 = 0;
         for (chunk_idx, chunk) in tokens.chunks(chunk_size).enumerate() {
@@ -281,7 +301,12 @@ impl NativeRuntime {
                 pos += 1;
             }
 
-            Self::log(&format!("generate: decoding chunk {} ({} tokens, pos={})", chunk_idx, chunk.len(), pos));
+            Self::log(&format!(
+                "generate: decoding chunk {} ({} tokens, pos={})",
+                chunk_idx,
+                chunk.len(),
+                pos
+            ));
             ctx.decode(&mut batch)
                 .map_err(|e| format!("Prompt decode chunk {} failed: {}", chunk_idx, e))?;
         }
@@ -296,9 +321,8 @@ impl NativeRuntime {
             LlamaSampler::dist(42),
         ]);
 
-        // Generation loop
-        let mut output = String::new();
-        let mut decoder = encoding_rs::UTF_8.new_decoder();
+        // Generation loop — accumulate raw bytes then decode to UTF-8 at the end
+        let mut output_bytes: Vec<u8> = Vec::new();
         let mut n_cur = pos;
         let mut tokens_generated = 0u32;
 
@@ -314,17 +338,19 @@ impl NativeRuntime {
                 break;
             }
 
-            // Decode token to text
-            let piece = model
-                .token_to_piece(token, &mut decoder, true, None)
-                .map_err(|e| format!("Token decode failed: {}", e))?;
-            output.push_str(&piece);
+            // Decode token to bytes
+            let piece = model.token_to_bytes(token);
+            output_bytes.extend_from_slice(&piece);
             tokens_generated += 1;
 
-            // Check stop sequences
+            // Check stop sequences (on the accumulated UTF-8 string so far)
+            let output_so_far = String::from_utf8_lossy(&output_bytes);
             if let Some(ref stops) = request.stop {
-                if let Some(stop) = stops.iter().find(|s| output.ends_with(s.as_str())) {
-                    output.truncate(output.len() - stop.len());
+                if let Some(stop) = stops.iter().find(|s| output_so_far.ends_with(s.as_str())) {
+                    let stop_len = stop.len();
+                    // Remove the stop sequence bytes from the end
+                    let output_str_len = output_so_far.len();
+                    output_bytes.truncate(output_str_len - stop_len);
                     break;
                 }
             }
@@ -340,6 +366,7 @@ impl NativeRuntime {
         }
 
         let duration_ms = start.elapsed().as_millis() as u64;
+        let output = String::from_utf8_lossy(&output_bytes).into_owned();
 
         Ok(GenerateResponse {
             text: output,
@@ -360,14 +387,19 @@ impl NativeRuntime {
         let backend = self
             .backend
             .as_ref()
-            .ok_or("llama.cpp backend not initialized")?;
+            .ok_or("BitNet.cpp backend not initialized")?;
 
         let start = std::time::Instant::now();
         let n_embd = model.n_embd() as u32;
         let mut all_embeddings = Vec::with_capacity(request.input.len());
 
         for (text_idx, text) in request.input.iter().enumerate() {
-            Self::log(&format!("embed: processing input {}/{} ({} chars)", text_idx + 1, request.input.len(), text.len()));
+            Self::log(&format!(
+                "embed: processing input {}/{} ({} chars)",
+                text_idx + 1,
+                request.input.len(),
+                text.len()
+            ));
 
             // Create embedding context per input (with mean pooling for sentence embeddings)
             let ctx_params = LlamaContextParams::default()
@@ -389,21 +421,25 @@ impl NativeRuntime {
             }
 
             // Safety: truncate tokens to fit within the embedding context window (2048).
-            // Without this, llama.cpp segfaults when tokens exceed KV cache allocation.
             let embed_ctx_size: usize = 2048;
             let tokens = if tokens.len() > embed_ctx_size {
-                Self::log(&format!("embed: TRUNCATING {} tokens -> {}", tokens.len(), embed_ctx_size));
+                Self::log(&format!(
+                    "embed: TRUNCATING {} tokens -> {}",
+                    tokens.len(),
+                    embed_ctx_size
+                ));
                 tokens[..embed_ctx_size].to_vec()
             } else {
                 tokens
             };
 
-            // Chunked prefill: decode tokens in batches of CHUNK_SIZE to prevent
-            // llama.cpp segfaults on large single-batch decode calls.
-            // Same fix that resolved the generate() crash.
+            // Chunked prefill: decode tokens in batches of CHUNK_SIZE
             let chunk_size: usize = 512;
             let total_tokens = tokens.len();
-            Self::log(&format!("embed: chunked prefill, {} tokens in chunks of {}", total_tokens, chunk_size));
+            Self::log(&format!(
+                "embed: chunked prefill, {} tokens in chunks of {}",
+                total_tokens, chunk_size
+            ));
 
             ctx.clear_kv_cache();
 
@@ -420,7 +456,12 @@ impl NativeRuntime {
                     pos += 1;
                 }
 
-                Self::log(&format!("embed: decoding chunk {} ({} tokens, pos={})", chunk_idx, chunk.len(), pos));
+                Self::log(&format!(
+                    "embed: decoding chunk {} ({} tokens, pos={})",
+                    chunk_idx,
+                    chunk.len(),
+                    pos
+                ));
                 ctx.decode(&mut batch)
                     .map_err(|e| format!("Embed decode chunk {} failed: {}", chunk_idx, e))?;
             }
@@ -442,12 +483,21 @@ impl NativeRuntime {
                 embedding.to_vec()
             };
 
-            Self::log(&format!("embed: input {}/{} done (dim={})", text_idx + 1, request.input.len(), normalized.len()));
+            Self::log(&format!(
+                "embed: input {}/{} done (dim={})",
+                text_idx + 1,
+                request.input.len(),
+                normalized.len()
+            ));
             all_embeddings.push(normalized);
         }
 
         let duration_ms = start.elapsed().as_millis() as u64;
-        Self::log(&format!("embed: all {} inputs done in {}ms", all_embeddings.len(), duration_ms));
+        Self::log(&format!(
+            "embed: all {} inputs done in {}ms",
+            all_embeddings.len(),
+            duration_ms
+        ));
 
         Ok(EmbedResponse {
             embeddings: all_embeddings,

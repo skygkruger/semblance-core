@@ -25,7 +25,7 @@ import { mkdirSync, existsSync, readFileSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
 import { createSemblanceCore, type SemblanceCore, type ChatMessage } from '../../../core/index.js';
-import { createLLMProvider } from '../../../core/llm/index.js';
+import { createLLMProvider, BitNetProvider, InferenceRouter } from '../../../core/llm/index.js';
 import type { NativeRuntimeBridge } from '../../../core/llm/native-bridge-types.js';
 import { getPlatform } from '../../../core/platform/index.js';
 import { createDesktopVectorStore } from '../../../core/platform/desktop-adapter.js';
@@ -156,6 +156,30 @@ function respond(id: number | string, result: unknown): void {
 
 function respondError(id: number | string, error: string): void {
   process.stdout.write(JSON.stringify({ id, error }) + '\n');
+}
+
+/** Log a provider transition to the audit trail for user visibility. */
+function logProviderTransition(from: string, to: string, model: string, reason: string): void {
+  if (!gateway) return;
+  try {
+    const trail = gateway.getAuditTrail();
+    trail.append({
+      requestId: `provider-transition-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      action: 'service.api_call',
+      direction: 'response',
+      status: 'success',
+      payloadHash: 'provider_transition',
+      signature: 'provider_transition',
+      metadata: {
+        event: 'provider_transition',
+        from,
+        to,
+        model,
+        reason,
+      },
+    });
+  } catch { /* audit trail not yet initialized — log only to console */ }
 }
 
 // ─── NDJSON Callback Protocol Extension (Step 9) ─────────────────────────────
@@ -602,10 +626,17 @@ async function handleInitialize(): Promise<unknown> {
     else console.error('[sidecar] NativeRuntime channel timed out (5s)');
   }).catch((err) => console.error('[sidecar] NativeRuntime channel error:', err));
 
+  // Check if a BitNet model was previously active — if so, create both NativeProvider
+  // and BitNetProvider so the InferenceRouter can route reasoning through BitNet's
+  // tool-calling-aware provider. Both use the same NativeRuntime bridge (one-fork approach:
+  // BitNet.cpp replaced llama-cpp-2 entirely, so both paths use BitNet.cpp's optimized kernels).
+  const activeBitNetModelId = getPref('bitnet_active_model') ?? null;
   const nativeLlm = createLLMProvider({
     runtime: 'builtin',
     nativeBridge: nativeRuntimeBridge,
     embeddingModel: 'nomic-embed-text-v1.5',
+    bitnetBridge: nativeRuntimeBridge,
+    bitnetModel: activeBitNetModelId ?? 'falcon-e-1b',
   });
 
   try {
@@ -906,6 +937,8 @@ async function handleInitialize(): Promise<unknown> {
 
         if (ollamaModel) {
           router.setReasoningProvider(ollamaProvider, ollamaModel);
+          // Clear BitNet provider so Ollama (GPU) takes priority over BitNet (CPU)
+          if (router.clearBitNetProvider) router.clearBitNetProvider();
           core.models.setActiveChatModel(ollamaModel);
           // Update orchestrator's model name so it doesn't use the stale NativeRuntime model
           try { if (core.agent) core.agent.setModel(ollamaModel); } catch { /* agent not available */ }
@@ -913,6 +946,7 @@ async function handleInitialize(): Promise<unknown> {
           activeModel = ollamaModel;
           availableModels = ollamaModels.filter(m => !m.includes('embed') && !m.includes('nomic'));
           console.error(`[sidecar] Switched reasoning to Ollama GPU inference (model: ${ollamaModel})`);
+          logProviderTransition('native', 'ollama', ollamaModel, 'Ollama GPU detected at startup');
         } else {
           console.error('[sidecar] Ollama running but no reasoning models found — staying on NativeRuntime');
         }
@@ -925,6 +959,75 @@ async function handleInitialize(): Promise<unknown> {
         console.error('[sidecar] Ollama detected but could not switch reasoning provider');
       }
     }
+  }
+
+  // ── BitNet Fallback Activation ─────────────────────────────────────────────
+  // If Ollama is not active, check for a downloaded BitNet model and activate it.
+  // This ensures zero-config CPU inference on fresh installs once a model is downloaded.
+  if (inferenceEngine !== 'ollama' && core) {
+    const activeBitNetId = getPref('bitnet_active_model') ?? null;
+    const bitnetBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+
+    // Try the persisted active model first, then the recommended model for detected tier
+    const candidateIds = activeBitNetId ? [activeBitNetId] : [];
+    try {
+      const downloaded = listDownloadedBitNetModels(bitnetBaseDir);
+      for (const d of downloaded) {
+        if (!candidateIds.includes(d.modelId)) candidateIds.push(d.modelId);
+      }
+    } catch { /* ignore */ }
+
+    for (const candidateId of candidateIds) {
+      if (isBitNetModelDownloaded(candidateId, bitnetBaseDir)) {
+        const candidatePath = getBitNetModelPath(candidateId, bitnetBaseDir);
+        try {
+          await Promise.race([
+            sendCallback('native_load_model', { model_path: candidatePath, model_type: 'reasoning' }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 120000)),
+          ]);
+          // Wire BitNetProvider into InferenceRouter
+          const router = core.llm as InstanceType<typeof InferenceRouter>;
+          if (router.setBitNetProvider) {
+            const bitnetProv = new BitNetProvider({ bridge: nativeRuntimeBridge, modelName: candidateId });
+            router.setBitNetProvider(bitnetProv, candidateId);
+          }
+          inferenceEngine = 'native'; // native with BitNet backend
+          const catalogEntry = BITNET_MODEL_CATALOG.find(m => m.id === candidateId);
+          activeModel = catalogEntry?.displayName ?? candidateId;
+          console.error(`[sidecar] BitNet fallback activated: "${candidateId}" (CPU inference)`);
+          logProviderTransition('none', 'bitnet', candidateId, 'BitNet CPU fallback at startup (no Ollama)');
+          break;
+        } catch (err) {
+          console.error(`[sidecar] BitNet fallback load failed for "${candidateId}":`, err);
+        }
+      }
+    }
+  }
+
+  // ── Standard Model Fallback ──────────────────────────────────────────────
+  // If no Ollama and no BitNet models loaded, try standard GGUF models from MODEL_CATALOG
+  if (inferenceEngine === 'none' && !activeModel && core) {
+    const stdBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+    for (const stdModel of MODEL_CATALOG.filter(m => !m.isEmbedding)) {
+      if (isModelDownloaded(stdModel.id, stdBaseDir)) {
+        const stdPath = getModelPath(stdModel.id, stdBaseDir);
+        try {
+          await sendCallback('native_load_model', { model_path: stdPath, model_type: 'reasoning' });
+          inferenceEngine = 'native';
+          activeModel = stdModel.displayName;
+          console.error(`[sidecar] Standard model fallback activated: "${stdModel.id}"`);
+          logProviderTransition('none', 'native', stdModel.id, 'Standard GGUF fallback (BitNet models unavailable)');
+          break;
+        } catch (err) {
+          console.error(`[sidecar] Standard model load failed for "${stdModel.id}":`, err);
+        }
+      }
+    }
+  }
+
+  // ── No Model Warning ──────────────────────────────────────────────────────
+  if (inferenceEngine === 'none' && !activeModel) {
+    console.error('[sidecar] WARNING: No inference model available. Chat will prompt user to download a model.');
   }
 
   // Load persisted preferences
@@ -942,6 +1045,46 @@ async function handleInitialize(): Promise<unknown> {
     onboardingComplete,
     userName,
   });
+
+  // ── Ollama Health Check (mid-session fallback) ──────────────────────────────
+  // If using Ollama, periodically check it's still running. If it crashes,
+  // fall back to BitNet without losing the conversation.
+  if (inferenceEngine === 'ollama' && core) {
+    const HEALTH_CHECK_INTERVAL = 30_000; // 30 seconds
+    setInterval(async () => {
+      try {
+        const { Ollama } = await import('ollama');
+        const client = new Ollama({ host: 'http://localhost:11434' });
+        await client.list();
+        // Ollama still running — all good
+      } catch {
+        // Ollama crashed or stopped — fall back to BitNet
+        console.error('[sidecar] Ollama health check failed — falling back to BitNet/NativeRuntime');
+        const router = core!.llm as InstanceType<typeof InferenceRouter>;
+        if (router.setReasoningProvider && router.setBitNetProvider) {
+          // Try to activate BitNet as the reasoning provider
+          const bDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+          const downloaded = listDownloadedBitNetModels(bDir);
+          if (downloaded.length > 0) {
+            const bitId = downloaded[0]!.modelId;
+            const bitnetProv = new BitNetProvider({ bridge: nativeRuntimeBridge, modelName: bitId });
+            router.setBitNetProvider(bitnetProv, bitId);
+            console.error(`[sidecar] Fell back to BitNet "${bitId}" after Ollama failure`);
+            logProviderTransition('ollama', 'bitnet', bitId, 'Ollama health check failed — mid-session fallback');
+          }
+          // Emit status update so UI reflects the change
+          emit('status-update', {
+            ollamaStatus: 'disconnected',
+            inferenceEngine: 'native',
+            activeModel: downloaded.length > 0 ? downloaded[0]!.modelId : activeModel,
+            availableModels: [],
+            onboardingComplete,
+            userName,
+          });
+        }
+      }
+    }, HEALTH_CHECK_INTERVAL);
+  }
 
   return {
     ollamaStatus: inferenceEngine !== 'none' ? 'connected' : 'disconnected',
@@ -996,7 +1139,7 @@ async function handleSendMessage(
     } catch { /* native not available */ }
 
     if (!nativeReady) {
-      respondError(id, 'No AI model available. The model may still be loading — try again in a moment.');
+      respondError(id, 'No AI model available. Go to Settings → AI Engine to download a model, or install Ollama (ollama.com) for GPU-accelerated inference.');
       return;
     }
   }
@@ -2848,12 +2991,32 @@ async function handleShutdown(): Promise<unknown> {
 // ─── Model Download Handlers ─────────────────────────────────────────────────
 
 async function downloadHfFile(
-  entry: { hfRepo: string; hfFilename: string; fileSizeBytes?: number; sizeMb?: number },
+  entry: { hfRepo: string; hfFilename: string; fileSizeBytes?: number; sizeMb?: number; sha256?: string },
   targetPath: string,
   modelId: string,
   displayName: string,
 ): Promise<void> {
   const totalBytes = entry.fileSizeBytes ?? ((entry.sizeMb ?? 0) * 1024 * 1024);
+
+  // Disk space check — verify sufficient space before downloading
+  if (totalBytes > 0) {
+    try {
+      const { statfsSync } = await import('node:fs');
+      const stats = statfsSync(targetPath.substring(0, targetPath.lastIndexOf('/')) || targetPath.substring(0, targetPath.lastIndexOf('\\')) || '.');
+      const availableBytes = stats.bavail * stats.bsize;
+      const requiredBytes = totalBytes + 2_000_000_000; // model + 2GB buffer
+      if (availableBytes < requiredBytes) {
+        const availMb = Math.round(availableBytes / (1024 * 1024));
+        const reqMb = Math.round(requiredBytes / (1024 * 1024));
+        throw new Error(`Insufficient disk space: ${availMb}MB available, ${reqMb}MB required (model + 2GB buffer)`);
+      }
+    } catch (diskErr) {
+      // statfsSync may not be available on all platforms — log and continue
+      if (diskErr instanceof Error && diskErr.message.includes('Insufficient disk space')) throw diskErr;
+      console.error(`[sidecar] Disk space check skipped: ${diskErr}`);
+    }
+  }
+
   const download: ActiveDownload = {
     modelId,
     modelName: displayName,
@@ -2871,13 +3034,36 @@ async function downloadHfFile(
   const { pipeline } = await import('node:stream/promises');
 
   try {
-    const response = await globalThis.fetch(url, {
-      signal: download.abortController!.signal,
-      redirect: 'follow',
-    });
+    // Fetch with exponential backoff retry (3 attempts: 0s, 2s, 8s)
+    let response: Response | null = null;
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        response = await globalThis.fetch(url, {
+          signal: download.abortController!.signal,
+          redirect: 'follow',
+        });
+        if (response.ok && response.body) break;
+        const statusErr = `HTTP ${response.status}: ${response.statusText}`;
+        if (response.status >= 400 && response.status < 500) {
+          // Client errors (404, 403) are not retryable
+          throw new Error(statusErr);
+        }
+        throw new Error(statusErr);
+      } catch (fetchErr) {
+        const isAbort = fetchErr instanceof DOMException && fetchErr.name === 'AbortError';
+        const isClientError = fetchErr instanceof Error && fetchErr.message.startsWith('HTTP 4');
+        if (isAbort || isClientError || attempt === maxRetries - 1) throw fetchErr;
+        const delayMs = Math.pow(2, attempt + 1) * 1000; // 2s, 4s
+        console.error(`[sidecar] Download attempt ${attempt + 1} failed, retrying in ${delayMs}ms...`);
+        await new Promise(r => setTimeout(r, delayMs));
+        // Reset download state for retry
+        download.downloadedBytes = 0;
+      }
+    }
 
-    if (!response.ok || !response.body) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    if (!response || !response.ok || !response.body) {
+      throw new Error(`Failed to download after ${maxRetries} attempts`);
     }
 
     const fileStream = createWriteStream(targetPath);
@@ -2919,7 +3105,25 @@ async function downloadHfFile(
     download.downloadedBytes = download.totalBytes;
     download.speedBytesPerSec = 0;
 
-    // Load the downloaded GGUF into NativeRuntime (llama.cpp via Rust)
+    // SHA-256 hash verification — catches corrupted or tampered downloads
+    if (entry.sha256) {
+      const { createHash } = await import('node:crypto');
+      const { createReadStream } = await import('node:fs');
+      const hash = createHash('sha256');
+      const readStream = createReadStream(targetPath);
+      for await (const chunk of readStream) {
+        hash.update(chunk);
+      }
+      const actual = hash.digest('hex');
+      if (actual !== entry.sha256) {
+        // Delete corrupt file and throw
+        try { (await import('node:fs')).unlinkSync(targetPath); } catch { /* ignore */ }
+        throw new Error(`SHA-256 mismatch for "${modelId}": expected ${entry.sha256}, got ${actual}`);
+      }
+      console.error(`[sidecar] SHA-256 verified for "${modelId}"`);
+    }
+
+    // Load the downloaded GGUF into NativeRuntime (BitNet.cpp via Rust)
     const modelType = modelId.includes('embed') ? 'embedding' : 'reasoning';
     try {
       await sendCallback('native_load_model', { model_path: targetPath, model_type: modelType });
@@ -2950,45 +3154,42 @@ async function downloadHfFile(
 
 async function handleStartModelDownloads(params: { tier: string }): Promise<unknown> {
   const tier = (params.tier || 'standard') as HardwareProfileTier;
-  const models = getModelsForTier(tier);
   const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
 
   const results: Array<{ modelId: string; status: string; backend?: string }> = [];
 
-  for (const model of models) {
-    const targetPath = getModelPath(model.id, baseDir);
+  // ── 1. Embedding model (required for knowledge graph — always download) ──
+  const embeddingModel = getEmbeddingModel();
+  const embeddingPath = getModelPath(embeddingModel.id, baseDir);
 
-    if (isModelDownloaded(model.id, baseDir)) {
-      const existing: ActiveDownload = {
-        modelId: model.id,
-        modelName: model.displayName,
-        totalBytes: model.fileSizeBytes,
-        downloadedBytes: model.fileSizeBytes,
-        speedBytesPerSec: 0,
-        status: 'complete',
-      };
-      activeDownloads.set(model.id, existing);
-      emit('model-download-progress', existing);
-      results.push({ modelId: model.id, status: 'already_downloaded' });
+  if (isModelDownloaded(embeddingModel.id, baseDir)) {
+    const existing: ActiveDownload = {
+      modelId: embeddingModel.id,
+      modelName: embeddingModel.displayName,
+      totalBytes: embeddingModel.fileSizeBytes,
+      downloadedBytes: embeddingModel.fileSizeBytes,
+      speedBytesPerSec: 0,
+      status: 'complete',
+    };
+    activeDownloads.set(embeddingModel.id, existing);
+    emit('model-download-progress', existing);
+    results.push({ modelId: embeddingModel.id, status: 'already_downloaded' });
 
-      // Load already-downloaded model into NativeRuntime
-      const modelType = model.isEmbedding ? 'embedding' : 'reasoning';
-      sendCallback('native_load_model', { model_path: targetPath, model_type: modelType })
-        .then(() => console.error(`[sidecar] Loaded existing model "${model.id}" into NativeRuntime (${modelType})`))
-        .catch((err) => console.error(`[sidecar] NativeRuntime load failed for existing "${model.id}":`, err));
-
-      continue;
-    }
-
-    // Download in background — don't await, let progress events flow
-    downloadHfFile(model, targetPath, model.id, model.displayName).catch((err) => {
-      console.error(`[sidecar] Model download failed: ${model.id}`, err);
+    sendCallback('native_load_model', { model_path: embeddingPath, model_type: 'embedding' })
+      .then(() => console.error(`[sidecar] Loaded embedding model "${embeddingModel.id}" into NativeRuntime`))
+      .catch((err) => console.error(`[sidecar] NativeRuntime load failed for embedding "${embeddingModel.id}":`, err));
+  } else {
+    downloadHfFile(embeddingModel, embeddingPath, embeddingModel.id, embeddingModel.displayName).catch((err) => {
+      console.error(`[sidecar] Embedding model download failed: ${embeddingModel.id}`, err);
     });
-    results.push({ modelId: model.id, status: 'started' });
+    results.push({ modelId: embeddingModel.id, status: 'started' });
   }
 
-  // Also download the recommended BitNet model for this tier.
-  // This gives users zero-config CPU inference as a fallback to Ollama.
+  // ── 2. BitNet reasoning model (DEFAULT — zero-config CPU inference) ──────
+  // BitNet is the primary reasoning backend. Hardware detection picks the right
+  // model for the device. No GPU, no Ollama, no setup required.
+  // Standard Qwen models are available in Settings → AI Engine for users who
+  // want larger models or have Ollama installed for GPU acceleration.
   const bitnetModel = getRecommendedBitNetModel(tier);
   const bitnetTargetPath = getBitNetModelPath(bitnetModel.id, baseDir);
 
@@ -3005,9 +3206,22 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
     emit('model-download-progress', existing);
     results.push({ modelId: bitnetModel.id, status: 'already_downloaded', backend: 'bitnet' });
 
-    // Load BitNet model as reasoning fallback
+    // Load BitNet model into NativeRuntime and wire BitNetProvider into router
     sendCallback('native_load_model', { model_path: bitnetTargetPath, model_type: 'reasoning' })
-      .then(() => console.error(`[sidecar] Loaded BitNet model "${bitnetModel.id}" into NativeRuntime`))
+      .then(() => {
+        console.error(`[sidecar] Loaded BitNet model "${bitnetModel.id}" into NativeRuntime`);
+        if (core) {
+          const router = core.llm as InstanceType<typeof InferenceRouter>;
+          if (router.setBitNetProvider) {
+            const bitnetProv = new BitNetProvider({
+              bridge: nativeRuntimeBridge,
+              modelName: bitnetModel.id,
+            });
+            router.setBitNetProvider(bitnetProv, bitnetModel.id);
+            console.error(`[sidecar] BitNetProvider wired into InferenceRouter for "${bitnetModel.id}"`);
+          }
+        }
+      })
       .catch((err) => console.error(`[sidecar] NativeRuntime load failed for BitNet "${bitnetModel.id}":`, err));
   } else {
     downloadHfFile(bitnetModel, bitnetTargetPath, bitnetModel.id, bitnetModel.displayName).catch((err) => {
@@ -3151,13 +3365,27 @@ async function handleBitNetSetActive(params: { modelId: string }): Promise<unkno
 
   const modelPath = getBitNetModelPath(model.id, baseDir);
 
-  // Load the BitNet model into NativeRuntime (Phase 1: same backend as standard GGUF)
+  // Load the BitNet model into NativeRuntime (BitNet.cpp backend — one-fork approach)
   await sendCallback('native_load_model', { model_path: modelPath, model_type: 'reasoning' });
-  console.error(`[sidecar] Activated BitNet model "${model.id}" from ${modelPath}`);
+  console.error(`[sidecar] Loaded BitNet model "${model.id}" into NativeRuntime from ${modelPath}`);
+
+  // Wire BitNetProvider into the InferenceRouter so requests route through BitNetProvider
+  // (which has tool-calling support via XML block parsing) instead of generic NativeProvider.
+  if (core) {
+    const router = core.llm as InstanceType<typeof InferenceRouter>;
+    if (router.setBitNetProvider) {
+      const bitnetProvider = new BitNetProvider({
+        bridge: nativeRuntimeBridge,
+        modelName: model.id,
+      });
+      router.setBitNetProvider(bitnetProvider, model.id);
+      console.error(`[sidecar] BitNetProvider wired into InferenceRouter for "${model.id}"`);
+    }
+  }
 
   // Save preference so it persists across restarts
   try {
-    await handleSetPref({ key: 'bitnet_active_model', value: model.id });
+    setPref('bitnet_active_model', model.id);
   } catch {
     // Non-fatal — model is loaded even if pref save fails
   }
@@ -3178,6 +3406,84 @@ function handleBitNetGetStatus(): unknown {
     totalDownloadedBytes: downloaded.reduce((sum, d) => sum + d.sizeBytes, 0),
     catalogSize: BITNET_MODEL_CATALOG.length,
   };
+}
+
+// ─── Standard (Qwen) Model Management ─────────────────────────────────────
+// Exposes standard GGUF models from MODEL_CATALOG in Settings for power users.
+
+function handleStandardGetModels(): unknown {
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  const standardModels = MODEL_CATALOG.filter(m => !m.isEmbedding);
+  const activeStdModel = getPref('standard_active_model') ?? null;
+
+  return {
+    models: standardModels.map(m => ({
+      id: m.id,
+      displayName: m.displayName,
+      family: m.family,
+      parameterCount: m.parameterCount,
+      fileSizeBytes: m.fileSizeBytes,
+      ramRequiredMb: m.ramRequiredMb,
+      license: m.license ?? 'Apache 2.0',
+      nativeOneBit: false,
+      contextLength: m.contextLength ?? 32768,
+      isDownloaded: isModelDownloaded(m.id, baseDir),
+      isRecommended: false,
+    })),
+    activeModelId: activeStdModel,
+  };
+}
+
+async function handleStandardDownloadModel(params: { modelId: string }): Promise<unknown> {
+  const model = MODEL_CATALOG.find(m => m.id === params.modelId && !m.isEmbedding);
+  if (!model) {
+    throw new Error(`Unknown standard model: ${params.modelId}`);
+  }
+
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  const targetPath = getModelPath(model.id, baseDir);
+
+  if (isModelDownloaded(model.id, baseDir)) {
+    return { status: 'already_downloaded', modelId: model.id, path: targetPath };
+  }
+
+  await downloadHfFile(model, targetPath, model.id, model.displayName);
+  return { status: 'started', modelId: model.id };
+}
+
+async function handleStandardSetActive(params: { modelId: string }): Promise<unknown> {
+  const model = MODEL_CATALOG.find(m => m.id === params.modelId && !m.isEmbedding);
+  if (!model) {
+    throw new Error(`Unknown standard model: ${params.modelId}`);
+  }
+
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  if (!isModelDownloaded(model.id, baseDir)) {
+    throw new Error(`Standard model not downloaded: ${model.id}. Download it first.`);
+  }
+
+  const modelPath = getModelPath(model.id, baseDir);
+
+  // Load the standard GGUF model into NativeRuntime
+  await sendCallback('native_load_model', { model_path: modelPath, model_type: 'reasoning' });
+  console.error(`[sidecar] Loaded standard model "${model.id}" into NativeRuntime from ${modelPath}`);
+
+  // Log provider transition
+  const currentBitnet = getPref('bitnet_active_model');
+  if (currentBitnet) {
+    logProviderTransition('bitnet', 'standard', model.id, 'User selected standard model from Settings');
+  }
+
+  // Save preference
+  try {
+    setPref('standard_active_model', model.id);
+    // Clear BitNet active model since standard model is now active
+    setPref('bitnet_active_model', '');
+  } catch {
+    // Non-fatal
+  }
+
+  return { status: 'active', modelId: model.id, modelPath };
 }
 
 function handleVoiceGetModelStatus(): unknown {
@@ -5514,6 +5820,23 @@ async function handleRequest(req: Request): Promise<void> {
       }
       case 'bitnet_get_status': {
         const result = handleBitNetGetStatus();
+        respond(id, result);
+        break;
+      }
+
+      // ─── Standard Model Management ──────────────────────────────────────
+      case 'standard_get_models': {
+        const result = handleStandardGetModels();
+        respond(id, result);
+        break;
+      }
+      case 'standard_download_model': {
+        const result = await handleStandardDownloadModel(params as { modelId: string });
+        respond(id, result);
+        break;
+      }
+      case 'standard_set_active': {
+        const result = await handleStandardSetActive(params as { modelId: string });
         respond(id, result);
         break;
       }

@@ -1,0 +1,3 @@
+[submodule "packages/desktop/src-tauri/3rdparty/BitNet"]
+	path = packages/desktop/src-tauri/3rdparty/BitNet
+	url = https://github.com/microsoft/BitNet.git

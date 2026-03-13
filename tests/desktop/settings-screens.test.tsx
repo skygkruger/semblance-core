@@ -100,6 +100,12 @@ describe('SettingsAIEngine', () => {
     bitnetDownloadProgress: 0,
     onBitNetDownload: vi.fn(),
     onBitNetActivate: vi.fn(),
+    standardModels: [],
+    standardActiveModelId: null,
+    standardDownloadingModelId: null,
+    standardDownloadProgress: 0,
+    onStandardDownload: vi.fn(),
+    onStandardActivate: vi.fn(),
   };
 
   it('renders AI Engine header', () => {
@@ -486,6 +492,12 @@ describe('SettingsNavigator', () => {
     bitnetDownloadProgress: 0,
     onBitNetDownload: vi.fn(),
     onBitNetActivate: vi.fn(),
+    standardModels: [],
+    standardActiveModelId: null,
+    standardDownloadingModelId: null,
+    standardDownloadProgress: 0,
+    onStandardDownload: vi.fn(),
+    onStandardActivate: vi.fn(),
     onChange: vi.fn(),
     onManageAllConnections: vi.fn(),
     onConnectionTap: vi.fn(),

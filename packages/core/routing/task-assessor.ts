@@ -118,14 +118,16 @@ const TASK_PROFILES: Record<string, Partial<TaskRequirements>> = {
   },
 
   // Complex reasoning tasks
+  // NOTE: With BitNet i2_s models, mobile can run 1-3B models efficiently on CPU.
+  // Tasks that don't strictly need 7B+ can run on mobile with reduced quality.
   'meeting_prep': {
     minRAM: 4,
-    minModelSize: '7B',
+    minModelSize: '3B', // Reduced from 7B — BitNet 3B handles meeting prep adequately
     requiresGPU: false,
     requiresNetwork: false,
     estimatedDurationMs: 30000,
     estimatedBatteryImpact: 'high',
-    canRunOnMobile: false,
+    canRunOnMobile: true,
     canRunOnDesktop: true,
     preferredDevice: 'desktop',
   },
@@ -141,13 +143,13 @@ const TASK_PROFILES: Record<string, Partial<TaskRequirements>> = {
     preferredDevice: 'either',
   },
   'knowledge_moment': {
-    minRAM: 4,
-    minModelSize: '7B',
+    minRAM: 2,
+    minModelSize: '3B', // Reduced from 7B — BitNet 3B can extract knowledge moments
     requiresGPU: false,
     requiresNetwork: false,
     estimatedDurationMs: 15000,
     estimatedBatteryImpact: 'medium',
-    canRunOnMobile: false,
+    canRunOnMobile: true,
     canRunOnDesktop: true,
     preferredDevice: 'desktop',
   },
@@ -158,7 +160,7 @@ const TASK_PROFILES: Record<string, Partial<TaskRequirements>> = {
     requiresNetwork: false,
     estimatedDurationMs: 20000,
     estimatedBatteryImpact: 'medium',
-    canRunOnMobile: false,
+    canRunOnMobile: false, // Weekly digest needs full context — desktop preferred
     canRunOnDesktop: true,
     preferredDevice: 'desktop',
   },

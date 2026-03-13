@@ -124,6 +124,12 @@ export function SettingsAIEngine({
   bitnetDownloadProgress,
   onBitNetDownload,
   onBitNetActivate,
+  standardModels,
+  standardActiveModelId,
+  standardDownloadingModelId,
+  standardDownloadProgress,
+  onStandardDownload,
+  onStandardActivate,
 }: SettingsAIEngineProps) {
   const { t } = useTranslation('settings');
 
@@ -169,6 +175,26 @@ export function SettingsAIEngine({
               downloadProgress={bitnetDownloadingModelId === model.id ? bitnetDownloadProgress : 0}
               onDownload={() => onBitNetDownload(model.id)}
               onActivate={() => onBitNetActivate(model.id)}
+            />
+          ))}
+        </div>
+
+        {/* Standard Models (Qwen — for power users) */}
+        <div className="settings-section-header">Standard Models</div>
+        <div className="settings-bitnet-explainer">
+          Higher-quality GGUF models for users with more RAM or GPU acceleration via Ollama.
+          Larger sizes, longer context, better reasoning.
+        </div>
+        <div className="settings-model-grid">
+          {standardModels.map((model) => (
+            <ModelCard
+              key={model.id}
+              model={model}
+              isActive={standardActiveModelId === model.id}
+              isDownloading={standardDownloadingModelId === model.id}
+              downloadProgress={standardDownloadingModelId === model.id ? standardDownloadProgress : 0}
+              onDownload={() => onStandardDownload(model.id)}
+              onActivate={() => onStandardActivate(model.id)}
             />
           ))}
         </div>
