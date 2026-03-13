@@ -96,10 +96,21 @@ export function getTotalModelSize(dataDir?: string): number {
 /**
  * Check available disk space (approximate).
  * Returns available space in bytes, or -1 if unable to determine.
+ * Uses Node.js statfsSync (available since Node 18.15).
  */
 export function getAvailableDiskSpace(dataDir?: string): number {
-  // Node.js doesn't have a built-in way to check disk space.
-  // Node.js lacks a cross-platform disk space API. Returns -1 (unknown).
+  try {
+    const dir = getModelsDir(dataDir);
+    // statfsSync is available in Node.js 18.15+ — use dynamic access to avoid
+    // type errors on the PlatformAdapter's fs subset.
+    const nodeFs = getPlatform().fs as unknown as Record<string, unknown>;
+    if (typeof nodeFs.statfsSync === 'function') {
+      const stats = (nodeFs.statfsSync as (path: string) => { bavail: number; bsize: number })(dir);
+      return stats.bavail * stats.bsize;
+    }
+  } catch {
+    // statfsSync may not be available on all platforms
+  }
   return -1;
 }
 

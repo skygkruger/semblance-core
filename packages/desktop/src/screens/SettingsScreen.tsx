@@ -29,6 +29,9 @@ import {
   getBitNetModels,
   downloadBitNetModel,
   activateBitNetModel,
+  getStandardModels,
+  downloadStandardModel,
+  activateStandardModel,
 } from '../ipc/commands';
 import type { NotificationSettings, BitNetModelIPC } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
@@ -49,6 +52,10 @@ export function SettingsScreen() {
   const [bitnetActiveModelId, setBitnetActiveModelId] = useState<string | null>(null);
   const [bitnetDownloadingModelId, setBitnetDownloadingModelId] = useState<string | null>(null);
   const [bitnetDownloadProgress, setBitnetDownloadProgress] = useState(0);
+  const [standardModels, setStandardModels] = useState<BitNetModelIPC[]>([]);
+  const [standardActiveModelId, setStandardActiveModelId] = useState<string | null>(null);
+  const [standardDownloadingModelId, setStandardDownloadingModelId] = useState<string | null>(null);
+  const [standardDownloadProgress, setStandardDownloadProgress] = useState(0);
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     morningBriefEnabled: true,
     morningBriefTime: '07:00',
@@ -83,6 +90,12 @@ export function SettingsScreen() {
       .then((res) => {
         setBitnetModels(res.models);
         if (res.activeModelId) setBitnetActiveModelId(res.activeModelId);
+      })
+      .catch(() => {});
+    getStandardModels()
+      .then((res) => {
+        setStandardModels(res.models);
+        if (res.activeModelId) setStandardActiveModelId(res.activeModelId);
       })
       .catch(() => {});
   }, [dispatch]);
@@ -166,6 +179,34 @@ export function SettingsScreen() {
     try {
       await activateBitNetModel(modelId);
       setBitnetActiveModelId(modelId);
+      setStandardActiveModelId(null); // Deselect standard model
+      showToast('Model activated');
+    } catch {
+      showToast('Model activation failed');
+    }
+  }, [showToast]);
+
+  const handleStandardDownload = useCallback(async (modelId: string) => {
+    setStandardDownloadingModelId(modelId);
+    setStandardDownloadProgress(0);
+    try {
+      await downloadStandardModel(modelId);
+      const res = await getStandardModels();
+      setStandardModels(res.models);
+      showToast('Model downloaded successfully');
+    } catch {
+      showToast('Model download failed');
+    } finally {
+      setStandardDownloadingModelId(null);
+      setStandardDownloadProgress(0);
+    }
+  }, [showToast]);
+
+  const handleStandardActivate = useCallback(async (modelId: string) => {
+    try {
+      await activateStandardModel(modelId);
+      setStandardActiveModelId(modelId);
+      setBitnetActiveModelId(null); // Deselect BitNet model
       showToast('Model activated');
     } catch {
       showToast('Model activation failed');
@@ -220,6 +261,26 @@ export function SettingsScreen() {
           bitnetDownloadProgress={bitnetDownloadProgress}
           onBitNetDownload={handleBitNetDownload}
           onBitNetActivate={handleBitNetActivate}
+
+          /* Standard Model Management */
+          standardModels={standardModels.map(m => ({
+            id: m.id,
+            displayName: m.displayName,
+            family: m.family,
+            parameterCount: m.parameterCount,
+            fileSizeBytes: m.fileSizeBytes,
+            ramRequiredMb: m.ramRequiredMb,
+            license: m.license,
+            nativeOneBit: m.nativeOneBit,
+            contextLength: m.contextLength,
+            isDownloaded: m.isDownloaded,
+            isRecommended: m.isRecommended,
+          }))}
+          standardActiveModelId={standardActiveModelId}
+          standardDownloadingModelId={standardDownloadingModelId}
+          standardDownloadProgress={standardDownloadProgress}
+          onStandardDownload={handleStandardDownload}
+          onStandardActivate={handleStandardActivate}
 
           /* Connections props */
           connections={accounts.map(a => ({

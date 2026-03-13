@@ -229,11 +229,21 @@ export class InferenceRouter implements LLMProvider {
 
   /**
    * Set or update the BitNet provider (CPU-optimized 1-bit inference).
-   * Slots between Ollama (GPU) and NativeProvider (fallback) in the priority chain.
+   * BitNet acts as the primary reasoning provider when no GPU provider (Ollama) is active.
+   * When Ollama is available, call clearBitNetProvider() so the GPU path is used instead.
    */
   setBitNetProvider(provider: LLMProvider, model: string): void {
     this.bitnetProvider = provider;
     this.bitnetReasoningModel = model;
+  }
+
+  /**
+   * Clear the BitNet provider (e.g., when Ollama GPU inference becomes available).
+   * Requests will fall through to the reasoning provider instead.
+   */
+  clearBitNetProvider(): void {
+    this.bitnetProvider = null;
+    this.bitnetReasoningModel = null;
   }
 
   /**

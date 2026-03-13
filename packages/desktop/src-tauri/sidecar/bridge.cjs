@@ -1847,6 +1847,8 @@ var init_inference_router = __esm({
       mobileProvider;
       mobileReasoningModel;
       mobileEmbeddingModel;
+      bitnetProvider;
+      bitnetReasoningModel;
       constructor(config) {
         this.reasoningProvider = config.reasoningProvider;
         this.embeddingProvider = config.embeddingProvider;
@@ -1856,6 +1858,8 @@ var init_inference_router = __esm({
         this.mobileProvider = config.mobileProvider ?? null;
         this.mobileReasoningModel = config.mobileReasoningModel ?? null;
         this.mobileEmbeddingModel = config.mobileEmbeddingModel ?? null;
+        this.bitnetProvider = config.bitnetProvider ?? null;
+        this.bitnetReasoningModel = config.bitnetReasoningModel ?? null;
       }
       // ─── LLMProvider Interface ───────────────────────────────────────────────
       async isAvailable() {
@@ -1986,6 +1990,27 @@ var init_inference_router = __esm({
         this.mobileEmbeddingModel = embeddingModel;
       }
       /**
+       * Set or update the BitNet provider (CPU-optimized 1-bit inference).
+       * Slots between Ollama (GPU) and NativeProvider (fallback) in the priority chain.
+       */
+      setBitNetProvider(provider, model) {
+        this.bitnetProvider = provider;
+        this.bitnetReasoningModel = model;
+      }
+      /**
+       * Check if the BitNet provider is available and ready.
+       */
+      async isBitNetReady() {
+        if (!this.bitnetProvider) return false;
+        return this.bitnetProvider.isAvailable();
+      }
+      /**
+       * Get the active BitNet model name, or null if BitNet is not configured.
+       */
+      getBitNetModel() {
+        return this.bitnetReasoningModel;
+      }
+      /**
        * Get the current platform.
        */
       getPlatform() {
@@ -2007,9 +2032,14 @@ var init_inference_router = __esm({
       // ─── Private ──────────────────────────────────────────────────────────────
       /**
        * Get the provider for a given inference tier.
-       * On mobile, uses the mobile provider if available.
-       * On desktop, uses the desktop reasoning/embedding providers.
-       * Embedding tier always uses the dedicated embedding provider for the platform.
+       *
+       * Priority chain (desktop):
+       *   1. Ollama (GPU) — reasoningProvider (if it's an OllamaProvider and available)
+       *   2. BitNet (CPU) — bitnetProvider (if configured and available)
+       *   3. Native (fallback) — reasoningProvider (NativeProvider)
+       *
+       * On mobile, uses the mobile provider for all tiers.
+       * Embedding tier always uses the dedicated embedding provider.
        */
       getProviderForTier(tier) {
         if (this.isMobile() && this.mobileProvider) {
@@ -2017,6 +2047,9 @@ var init_inference_router = __esm({
         }
         if (tier === "embedding") {
           return this.embeddingProvider;
+        }
+        if (this.bitnetProvider) {
+          return this.bitnetProvider;
         }
         return this.reasoningProvider;
       }
@@ -234868,6 +234901,162 @@ var MODEL_CATALOG = [
     minTier: "workstation"
   }
 ];
+var BITNET_MODEL_CATALOG = [
+  // ─── Native 1-bit Models (trained from scratch with ternary weights) ─────────
+  {
+    id: "bitnet-b1.58-2b4t",
+    displayName: "BitNet b1.58 2B4T",
+    family: "bitnet",
+    parameterCount: "2B",
+    quantization: "1.58-bit",
+    fileSizeBytes: 4e8,
+    // ~0.4GB
+    ramRequiredMb: 1024,
+    hfRepo: "1bitLLM/bitnet_b1_58-2B4T",
+    hfFilename: "bitnet-b1.58-2B4T.gguf",
+    sha256: "",
+    isEmbedding: false,
+    minTier: "constrained",
+    inferenceBackend: "bitnet",
+    license: "MIT",
+    nativeOneBit: true,
+    contextLength: 4096
+  },
+  {
+    id: "falcon-edge-1b",
+    displayName: "Falcon-Edge 1B",
+    family: "falcon-bitnet",
+    parameterCount: "1B",
+    quantization: "1.58-bit",
+    fileSizeBytes: 665e6,
+    // ~665MB
+    ramRequiredMb: 1536,
+    hfRepo: "tiiuae/Falcon-Edge-1B-1.58bit",
+    hfFilename: "falcon-edge-1b-1.58bit.gguf",
+    sha256: "",
+    isEmbedding: false,
+    minTier: "constrained",
+    inferenceBackend: "bitnet",
+    license: "TII Falcon 2.0",
+    nativeOneBit: true,
+    contextLength: 2048
+  },
+  {
+    id: "falcon-edge-3b",
+    displayName: "Falcon-Edge 3B",
+    family: "falcon-bitnet",
+    parameterCount: "3B",
+    quantization: "1.58-bit",
+    fileSizeBytes: 999e6,
+    // ~999MB
+    ramRequiredMb: 2048,
+    hfRepo: "tiiuae/Falcon-Edge-3B-1.58bit",
+    hfFilename: "falcon-edge-3b-1.58bit.gguf",
+    sha256: "",
+    isEmbedding: false,
+    minTier: "constrained",
+    inferenceBackend: "bitnet",
+    license: "TII Falcon 2.0",
+    nativeOneBit: true,
+    contextLength: 2048
+  },
+  // ─── Post-Training Quantized Models (standard models compressed to 1.58-bit) ─
+  {
+    id: "falcon3-1b-instruct-1.58bit",
+    displayName: "Falcon3 1B Instruct",
+    family: "falcon3-bitnet",
+    parameterCount: "1B",
+    quantization: "1.58-bit",
+    fileSizeBytes: 5e8,
+    // ~0.5GB
+    ramRequiredMb: 1024,
+    hfRepo: "tiiuae/Falcon3-1B-Instruct-1.58bit",
+    hfFilename: "falcon3-1b-instruct-1.58bit.gguf",
+    sha256: "",
+    isEmbedding: false,
+    minTier: "constrained",
+    inferenceBackend: "bitnet",
+    license: "TII Falcon 2.0",
+    nativeOneBit: false,
+    contextLength: 8192
+  },
+  {
+    id: "falcon3-3b-instruct-1.58bit",
+    displayName: "Falcon3 3B Instruct",
+    family: "falcon3-bitnet",
+    parameterCount: "3B",
+    quantization: "1.58-bit",
+    fileSizeBytes: 12e8,
+    // ~1.2GB
+    ramRequiredMb: 2048,
+    hfRepo: "tiiuae/Falcon3-3B-Instruct-1.58bit",
+    hfFilename: "falcon3-3b-instruct-1.58bit.gguf",
+    sha256: "",
+    isEmbedding: false,
+    minTier: "constrained",
+    inferenceBackend: "bitnet",
+    license: "TII Falcon 2.0",
+    nativeOneBit: false,
+    contextLength: 8192
+  },
+  {
+    id: "falcon3-7b-instruct-1.58bit",
+    displayName: "Falcon3 7B Instruct",
+    family: "falcon3-bitnet",
+    parameterCount: "7B",
+    quantization: "1.58-bit",
+    fileSizeBytes: 25e8,
+    // ~2.5GB
+    ramRequiredMb: 4096,
+    hfRepo: "tiiuae/Falcon3-7B-Instruct-1.58bit",
+    hfFilename: "falcon3-7b-instruct-1.58bit.gguf",
+    sha256: "",
+    isEmbedding: false,
+    minTier: "standard",
+    inferenceBackend: "bitnet",
+    license: "TII Falcon 2.0",
+    nativeOneBit: false,
+    contextLength: 8192
+  },
+  {
+    id: "falcon3-10b-instruct-1.58bit",
+    displayName: "Falcon3 10B Instruct",
+    family: "falcon3-bitnet",
+    parameterCount: "10B",
+    quantization: "1.58-bit",
+    fileSizeBytes: 35e8,
+    // ~3.5GB
+    ramRequiredMb: 6144,
+    hfRepo: "tiiuae/Falcon3-10B-Instruct-1.58bit",
+    hfFilename: "falcon3-10b-instruct-1.58bit.gguf",
+    sha256: "",
+    isEmbedding: false,
+    minTier: "performance",
+    inferenceBackend: "bitnet",
+    license: "TII Falcon 2.0",
+    nativeOneBit: false,
+    contextLength: 8192
+  },
+  {
+    id: "llama3-8b-instruct-1.58bit",
+    displayName: "Llama 3 8B Instruct",
+    family: "llama3-bitnet",
+    parameterCount: "8B",
+    quantization: "1.58-bit",
+    fileSizeBytes: 3e9,
+    // ~3GB
+    ramRequiredMb: 5120,
+    hfRepo: "1bitLLM/Llama3-8B-1.58-100B-tokens",
+    hfFilename: "llama3-8b-1.58bit.gguf",
+    sha256: "",
+    isEmbedding: false,
+    minTier: "performance",
+    inferenceBackend: "bitnet",
+    license: "Meta Llama 3",
+    nativeOneBit: false,
+    contextLength: 8192
+  }
+];
 function getRecommendedReasoningModel(tier) {
   const tierOrder = ["constrained", "standard", "performance", "workstation"];
   const tierIndex = tierOrder.indexOf(tier);
@@ -234886,6 +235075,24 @@ function getModelsForTier(tier) {
     getRecommendedReasoningModel(tier),
     getEmbeddingModel()
   ];
+}
+function getBitNetModelsForTier(tier) {
+  const tierOrder = ["constrained", "standard", "performance", "workstation"];
+  const tierIndex = tierOrder.indexOf(tier);
+  return BITNET_MODEL_CATALOG.filter((m) => tierOrder.indexOf(m.minTier) <= tierIndex);
+}
+function getRecommendedBitNetModel(tier) {
+  switch (tier) {
+    case "workstation":
+      return BITNET_MODEL_CATALOG.find((m) => m.id === "falcon3-10b-instruct-1.58bit");
+    case "performance":
+      return BITNET_MODEL_CATALOG.find((m) => m.id === "falcon3-7b-instruct-1.58bit");
+    case "standard":
+      return BITNET_MODEL_CATALOG.find((m) => m.id === "falcon-edge-3b");
+    case "constrained":
+    default:
+      return BITNET_MODEL_CATALOG.find((m) => m.id === "falcon-edge-1b");
+  }
 }
 
 // packages/core/llm/native-provider.ts
@@ -235146,6 +235353,260 @@ ${msg.content}
   }
 };
 
+// packages/core/llm/bitnet-provider.ts
+var BitNetProvider = class {
+  bridge;
+  modelName;
+  embeddingModelName;
+  constructor(config) {
+    this.bridge = config.bridge;
+    this.modelName = config.modelName ?? "falcon-edge-1b";
+    this.embeddingModelName = config.embeddingModelName ?? "nomic-embed-text-v1.5";
+  }
+  async isAvailable() {
+    try {
+      const status = await this.bridge.getStatus();
+      return status.status === "ready" && status.reasoningModel !== null;
+    } catch {
+      return false;
+    }
+  }
+  async generate(request) {
+    const result2 = await this.bridge.generate({
+      prompt: request.prompt,
+      systemPrompt: request.system,
+      maxTokens: request.maxTokens,
+      temperature: request.temperature,
+      stop: request.stop
+    });
+    return {
+      text: result2.text,
+      model: request.model || this.modelName,
+      tokensUsed: {
+        prompt: 0,
+        completion: result2.tokensGenerated,
+        total: result2.tokensGenerated
+      },
+      durationMs: result2.durationMs
+    };
+  }
+  async chat(request) {
+    const messages = request.tools && request.tools.length > 0 ? this.injectToolsIntoMessages(request.messages, request.tools) : request.messages;
+    const systemMessages = messages.filter((m) => m.role === "system");
+    const nonSystemMessages = messages.filter((m) => m.role !== "system");
+    const systemPrompt = systemMessages.map((m) => m.content).join("\n\n") || void 0;
+    const prompt = nonSystemMessages.map((m) => {
+      if (m.role === "assistant") return `Assistant: ${m.content}`;
+      return m.content;
+    }).join("\n\n");
+    const result2 = await this.bridge.generate({
+      prompt,
+      systemPrompt,
+      maxTokens: request.maxTokens,
+      temperature: request.temperature,
+      stop: request.stop
+    });
+    let content = result2.text;
+    let toolCalls;
+    if (request.tools && request.tools.length > 0) {
+      const parsed = this.parseToolCalls(content);
+      toolCalls = parsed.toolCalls.length > 0 ? parsed.toolCalls : void 0;
+      content = parsed.textContent;
+    }
+    return {
+      message: {
+        role: "assistant",
+        content
+      },
+      model: request.model || this.modelName,
+      tokensUsed: {
+        prompt: 0,
+        completion: result2.tokensGenerated,
+        total: result2.tokensGenerated
+      },
+      durationMs: result2.durationMs,
+      toolCalls
+    };
+  }
+  async *chatStream(request) {
+    if (!this.bridge.generateStream) {
+      const response = await this.chat(request);
+      yield response.message.content;
+      return;
+    }
+    if (request.tools && request.tools.length > 0) {
+      const response = await this.chat(request);
+      yield response.message.content;
+      return;
+    }
+    const prompt = this.formatChatPrompt(request.messages);
+    const stream = this.bridge.generateStream({
+      prompt,
+      maxTokens: request.maxTokens,
+      temperature: request.temperature,
+      stop: request.stop
+    });
+    for await (const token of stream) {
+      yield token;
+    }
+  }
+  async embed(request) {
+    const input = Array.isArray(request.input) ? request.input : [request.input];
+    const result2 = await this.bridge.embed({ input });
+    return {
+      embeddings: result2.embeddings,
+      model: request.model || this.embeddingModelName,
+      durationMs: result2.durationMs
+    };
+  }
+  async listModels() {
+    const status = await this.bridge.getStatus();
+    const models = [];
+    if (status.reasoningModel) {
+      models.push({
+        name: status.reasoningModel,
+        size: 0,
+        isEmbedding: false,
+        family: "bitnet"
+      });
+    }
+    if (status.embeddingModel) {
+      models.push({
+        name: status.embeddingModel,
+        size: 0,
+        isEmbedding: true,
+        family: "bitnet"
+      });
+    }
+    return models;
+  }
+  async getModel(name) {
+    const models = await this.listModels();
+    return models.find((m) => m.name === name) ?? null;
+  }
+  /**
+   * Get the currently active model name.
+   */
+  getModelName() {
+    return this.modelName;
+  }
+  /**
+   * Switch the active BitNet model. Triggers a model load on the bridge.
+   */
+  async switchModel(modelPath, modelName) {
+    await this.bridge.loadModel(modelPath);
+    this.modelName = modelName;
+  }
+  // ─── Tool Calling Support ───────────────────────────────────────────────────
+  injectToolsIntoMessages(messages, tools) {
+    const toolBlock = this.formatToolDefinitions(tools);
+    const result2 = [...messages];
+    const systemIdx = result2.findIndex((m) => m.role === "system");
+    if (systemIdx >= 0) {
+      const existing = result2[systemIdx];
+      result2[systemIdx] = {
+        role: existing.role,
+        content: existing.content + "\n\n" + toolBlock
+      };
+    } else {
+      result2.unshift({ role: "system", content: toolBlock });
+    }
+    return result2;
+  }
+  formatToolDefinitions(tools) {
+    const toolDescriptions = tools.map((t) => {
+      const params = t.parameters;
+      const paramList = Object.entries(params.properties ?? {}).map(([name, schema]) => {
+        const required = (params.required ?? []).includes(name);
+        const enumStr = schema.enum ? ` (one of: ${schema.enum.join(", ")})` : "";
+        return `    - ${name} (${schema.type}${required ? ", required" : ""}): ${schema.description ?? ""}${enumStr}`;
+      }).join("\n");
+      return `  ${t.name}: ${t.description}
+    Parameters:
+${paramList}`;
+    }).join("\n\n");
+    return `# Available Tools
+
+You have access to the following tools. To use a tool, output a tool_call block:
+
+<tool_call>
+{"name": "tool_name", "arguments": {"param1": "value1"}}
+</tool_call>
+
+You can call multiple tools in one response. After tool calls are executed, you will receive the results and can then provide your final response to the user.
+
+If a request can be answered from your knowledge without tools, respond directly. Only use tools when you need to access the user's data, take an action, or get external information.
+
+Tools:
+${toolDescriptions}`;
+  }
+  parseToolCalls(text) {
+    const toolCalls = [];
+    let textContent = text;
+    const toolCallRegex = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g;
+    let match;
+    while ((match = toolCallRegex.exec(text)) !== null) {
+      const jsonStr = (match[1] ?? "").trim();
+      if (!jsonStr) continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        if (parsed.name && typeof parsed.name === "string") {
+          toolCalls.push({
+            name: parsed.name,
+            arguments: parsed.arguments ?? {}
+          });
+        }
+      } catch {
+        console.error("[BitNetProvider] Failed to parse tool call JSON:", jsonStr.substring(0, 200));
+      }
+    }
+    textContent = text.replace(toolCallRegex, "").trim();
+    if (toolCalls.length === 0) {
+      const jsonBlockRegex = /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\})\s*```/g;
+      while ((match = jsonBlockRegex.exec(text)) !== null) {
+        const blockJson = match[1] ?? "";
+        if (!blockJson) continue;
+        try {
+          const parsed = JSON.parse(blockJson);
+          if (parsed.name && typeof parsed.name === "string") {
+            toolCalls.push({
+              name: parsed.name,
+              arguments: parsed.arguments ?? {}
+            });
+            textContent = text.replace(match[0], "").trim();
+          }
+        } catch {
+        }
+      }
+    }
+    return { toolCalls, textContent };
+  }
+  formatChatPrompt(messages) {
+    const parts = [];
+    for (const msg of messages) {
+      switch (msg.role) {
+        case "system":
+          parts.push(`<|system|>
+${msg.content}
+`);
+          break;
+        case "user":
+          parts.push(`<|user|>
+${msg.content}
+`);
+          break;
+        case "assistant":
+          parts.push(`<|assistant|>
+${msg.content}
+`);
+          break;
+      }
+    }
+    parts.push("<|assistant|>\n");
+    return parts.join("");
+  }
+};
+
 // packages/core/llm/index.ts
 init_inference_router();
 init_inference_types();
@@ -235157,8 +235618,16 @@ function createLLMProvider(config) {
   const nativeBridge = config && "nativeBridge" in config ? config.nativeBridge : void 0;
   const reasoningModel = config && "reasoningModel" in config ? config.reasoningModel : void 0;
   const embeddingModel = config && "embeddingModel" in config ? config.embeddingModel : "nomic-embed-text";
+  const bitnetBridge = config && "bitnetBridge" in config ? config.bitnetBridge : void 0;
+  const bitnetModel = config && "bitnetModel" in config ? config.bitnetModel : "falcon-edge-1b";
   let provider;
-  if (runtime === "builtin" && nativeBridge) {
+  if (runtime === "bitnet" && nativeBridge) {
+    provider = new BitNetProvider({
+      bridge: nativeBridge,
+      modelName: reasoningModel ?? "falcon-edge-1b",
+      embeddingModelName: embeddingModel
+    });
+  } else if (runtime === "builtin" && nativeBridge) {
     provider = new NativeProvider({
       bridge: nativeBridge,
       modelName: reasoningModel ?? "native",
@@ -235167,11 +235636,21 @@ function createLLMProvider(config) {
   } else {
     provider = new OllamaProvider({ baseUrl });
   }
+  let bitnetProvider;
+  if (bitnetBridge && runtime !== "bitnet") {
+    bitnetProvider = new BitNetProvider({
+      bridge: bitnetBridge,
+      modelName: bitnetModel ?? "falcon-edge-1b",
+      embeddingModelName: embeddingModel
+    });
+  }
   return new InferenceRouter({
     reasoningProvider: provider,
     embeddingProvider: provider,
     reasoningModel: reasoningModel ?? "llama3.1:8b",
-    embeddingModel: embeddingModel ?? "nomic-embed-text"
+    embeddingModel: embeddingModel ?? "nomic-embed-text",
+    bitnetProvider,
+    bitnetReasoningModel: bitnetProvider ? bitnetModel ?? "falcon-edge-1b" : void 0
   });
 }
 
@@ -258784,6 +259263,39 @@ function isModelDownloaded(modelId, dataDir2) {
   const stat2 = p.fs.statSync(path2);
   return stat2.size > 1e6;
 }
+var BITNET_SUBDIR = "bitnet";
+function getBitNetModelsDir(dataDir2) {
+  const p = getPlatform();
+  const dir = p.path.join(getModelsDir(dataDir2), BITNET_SUBDIR);
+  if (!p.fs.existsSync(dir)) {
+    p.fs.mkdirSync(dir, { recursive: true });
+  }
+  return dir;
+}
+function getBitNetModelPath(modelId, dataDir2) {
+  return getPlatform().path.join(getBitNetModelsDir(dataDir2), `${modelId}.gguf`);
+}
+function isBitNetModelDownloaded(modelId, dataDir2) {
+  const p = getPlatform();
+  const path2 = getBitNetModelPath(modelId, dataDir2);
+  if (!p.fs.existsSync(path2)) return false;
+  const stat2 = p.fs.statSync(path2);
+  return stat2.size > 1e6;
+}
+function listDownloadedBitNetModels(dataDir2) {
+  const p = getPlatform();
+  const dir = getBitNetModelsDir(dataDir2);
+  if (!p.fs.existsSync(dir)) return [];
+  return p.fs.readdirSync(dir).filter((f) => f.endsWith(".gguf")).map((filename) => {
+    const fullPath = p.path.join(dir, filename);
+    const stat2 = p.fs.statSync(fullPath);
+    return {
+      filename,
+      sizeBytes: stat2.size,
+      modelId: filename.replace(".gguf", "")
+    };
+  });
+}
 
 // packages/core/voice/whisper-model-manager.ts
 var WHISPER_MODELS = [
@@ -269885,11 +270397,11 @@ async function downloadHfFile(entry, targetPath, modelId, displayName) {
 async function handleStartModelDownloads(params) {
   const tier = params.tier || "standard";
   const models = getModelsForTier(tier);
-  const modelsDir = getModelsDir(dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0);
+  const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
   const results = [];
   for (const model of models) {
-    const targetPath = getModelPath(model.id, dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0);
-    if (isModelDownloaded(model.id, dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0)) {
+    const targetPath = getModelPath(model.id, baseDir);
+    if (isModelDownloaded(model.id, baseDir)) {
       const existing = {
         modelId: model.id,
         modelName: model.displayName,
@@ -269910,6 +270422,27 @@ async function handleStartModelDownloads(params) {
     });
     results.push({ modelId: model.id, status: "started" });
   }
+  const bitnetModel = getRecommendedBitNetModel(tier);
+  const bitnetTargetPath = getBitNetModelPath(bitnetModel.id, baseDir);
+  if (isBitNetModelDownloaded(bitnetModel.id, baseDir)) {
+    const existing = {
+      modelId: bitnetModel.id,
+      modelName: bitnetModel.displayName,
+      totalBytes: bitnetModel.fileSizeBytes,
+      downloadedBytes: bitnetModel.fileSizeBytes,
+      speedBytesPerSec: 0,
+      status: "complete"
+    };
+    activeDownloads.set(bitnetModel.id, existing);
+    emit("model-download-progress", existing);
+    results.push({ modelId: bitnetModel.id, status: "already_downloaded", backend: "bitnet" });
+    sendCallback("native_load_model", { model_path: bitnetTargetPath, model_type: "reasoning" }).then(() => console.error(`[sidecar] Loaded BitNet model "${bitnetModel.id}" into NativeRuntime`)).catch((err) => console.error(`[sidecar] NativeRuntime load failed for BitNet "${bitnetModel.id}":`, err));
+  } else {
+    downloadHfFile(bitnetModel, bitnetTargetPath, bitnetModel.id, bitnetModel.displayName).catch((err) => {
+      console.error(`[sidecar] BitNet model download failed: ${bitnetModel.id}`, err);
+    });
+    results.push({ modelId: bitnetModel.id, status: "started", backend: "bitnet" });
+  }
   return { started: results };
 }
 function handleModelGetDownloadStatus() {
@@ -269925,11 +270458,22 @@ function handleModelGetDownloadStatus() {
     });
   }
   if (statuses.length === 0) {
+    const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
     for (const model of MODEL_CATALOG) {
-      const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
       if (isModelDownloaded(model.id, baseDir)) {
         statuses.push({
           modelName: model.displayName,
+          totalBytes: model.fileSizeBytes,
+          downloadedBytes: model.fileSizeBytes,
+          speedBytesPerSec: 0,
+          status: "complete"
+        });
+      }
+    }
+    for (const model of BITNET_MODEL_CATALOG) {
+      if (isBitNetModelDownloaded(model.id, baseDir)) {
+        statuses.push({
+          modelName: `${model.displayName} (BitNet)`,
           totalBytes: model.fileSizeBytes,
           downloadedBytes: model.fileSizeBytes,
           speedBytesPerSec: 0,
@@ -269941,15 +270485,84 @@ function handleModelGetDownloadStatus() {
   return statuses;
 }
 async function handleModelRetryDownload(params) {
-  const model = MODEL_CATALOG.find((m) => m.displayName === params.modelName || m.id === params.modelName);
+  const model = MODEL_CATALOG.find((m) => m.displayName === params.modelName || m.id === params.modelName) ?? BITNET_MODEL_CATALOG.find((m) => m.displayName === params.modelName || m.id === params.modelName);
   if (!model) {
     throw new Error(`Unknown model: ${params.modelName}`);
   }
   const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
-  const targetPath = getModelPath(model.id, baseDir);
+  const isBitNet = model.inferenceBackend === "bitnet";
+  const targetPath = isBitNet ? getBitNetModelPath(model.id, baseDir) : getModelPath(model.id, baseDir);
   activeDownloads.delete(model.id);
   await downloadHfFile(model, targetPath, model.id, model.displayName);
   return { success: true };
+}
+function handleBitNetGetModels(params) {
+  const tier = params.tier || "standard";
+  const available = getBitNetModelsForTier(tier);
+  const recommended = getRecommendedBitNetModel(tier);
+  const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+  const activeModelId = getPref("bitnet_active_model") ?? null;
+  return {
+    models: available.map((m) => ({
+      id: m.id,
+      displayName: m.displayName,
+      family: m.family,
+      parameterCount: m.parameterCount,
+      fileSizeBytes: m.fileSizeBytes,
+      ramRequiredMb: m.ramRequiredMb,
+      license: m.license ?? "Unknown",
+      nativeOneBit: m.nativeOneBit ?? false,
+      contextLength: m.contextLength ?? 4096,
+      isDownloaded: isBitNetModelDownloaded(m.id, baseDir),
+      isRecommended: m.id === recommended.id
+    })),
+    recommendedModelId: recommended.id,
+    activeModelId
+  };
+}
+async function handleBitNetDownloadModel(params) {
+  const model = BITNET_MODEL_CATALOG.find((m) => m.id === params.modelId);
+  if (!model) {
+    throw new Error(`Unknown BitNet model: ${params.modelId}`);
+  }
+  const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+  const targetPath = getBitNetModelPath(model.id, baseDir);
+  if (isBitNetModelDownloaded(model.id, baseDir)) {
+    return { status: "already_downloaded", modelId: model.id, path: targetPath };
+  }
+  await downloadHfFile(model, targetPath, model.id, model.displayName);
+  return { status: "started", modelId: model.id };
+}
+async function handleBitNetSetActive(params) {
+  const model = BITNET_MODEL_CATALOG.find((m) => m.id === params.modelId);
+  if (!model) {
+    throw new Error(`Unknown BitNet model: ${params.modelId}`);
+  }
+  const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+  if (!isBitNetModelDownloaded(model.id, baseDir)) {
+    throw new Error(`BitNet model not downloaded: ${model.id}. Download it first.`);
+  }
+  const modelPath = getBitNetModelPath(model.id, baseDir);
+  await sendCallback("native_load_model", { model_path: modelPath, model_type: "reasoning" });
+  console.error(`[sidecar] Activated BitNet model "${model.id}" from ${modelPath}`);
+  try {
+    await handleSetPref({ key: "bitnet_active_model", value: model.id });
+  } catch {
+  }
+  return { status: "active", modelId: model.id, modelPath };
+}
+function handleBitNetGetStatus() {
+  const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+  const downloaded = listDownloadedBitNetModels(baseDir);
+  return {
+    downloadedModels: downloaded.map((d) => ({
+      modelId: d.modelId,
+      sizeBytes: d.sizeBytes,
+      displayName: BITNET_MODEL_CATALOG.find((m) => m.id === d.modelId)?.displayName ?? d.modelId
+    })),
+    totalDownloadedBytes: downloaded.reduce((sum, d) => sum + d.sizeBytes, 0),
+    catalogSize: BITNET_MODEL_CATALOG.length
+  };
 }
 function handleVoiceGetModelStatus() {
   const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
@@ -272079,6 +272692,27 @@ async function handleRequest(req) {
       }
       case "model_retry_download": {
         const result3 = await handleModelRetryDownload(params);
+        respond(id, result3);
+        break;
+      }
+      // ─── BitNet Model Management ────────────────────────────────────────
+      case "bitnet_get_models": {
+        const result3 = handleBitNetGetModels(params);
+        respond(id, result3);
+        break;
+      }
+      case "bitnet_download_model": {
+        const result3 = await handleBitNetDownloadModel(params);
+        respond(id, result3);
+        break;
+      }
+      case "bitnet_set_active": {
+        const result3 = await handleBitNetSetActive(params);
+        respond(id, result3);
+        break;
+      }
+      case "bitnet_get_status": {
+        const result3 = handleBitNetGetStatus();
         respond(id, result3);
         break;
       }

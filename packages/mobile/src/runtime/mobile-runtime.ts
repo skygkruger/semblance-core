@@ -323,8 +323,36 @@ async function doInitialize(onProgress?: ProgressCallback): Promise<MobileRuntim
       // Non-fatal — chat still works, just no conversation history
     }
 
-    // ─── Step 6: Finalize ──────────────────────────────────────────────
+    // ─── Step 6: Memory Pressure Handling ───────────────────────────────
     updateProgress(90, 'Finalizing...', onProgress);
+
+    // Register inference model as a non-essential allocation that unloads on memory pressure.
+    // iOS: applicationDidReceiveMemoryWarning fires AppState memoryWarning.
+    // Android: onTrimMemory is not directly exposed by RN, but AppState 'memoryWarning' works
+    // on newer RN versions. We also listen to AppState background transitions.
+    if (inferenceBridge) {
+      const { registerAllocation, onMemoryWarning } = await import('../performance/memory-manager');
+      // Estimate RAM from model size tier
+      const ramEstimate = reasoningModel?.sizeTier === '3B' ? 3072 : 2048;
+      const modelRamBytes = ramEstimate * 1024 * 1024;
+      registerAllocation('inference-model', modelRamBytes, () => {
+        // Release the loaded model on memory pressure
+        if (inferenceBridge && inferenceBridge.isModelLoaded()) {
+          console.log('[MobileRuntime] Memory pressure — unloading inference model');
+          inferenceBridge.unloadModel().catch(err => {
+            console.error('[MobileRuntime] Model unload failed:', err);
+          });
+        }
+      }, false /* non-essential */);
+
+      // Wire OS memory warning to the memory manager
+      const { AppState } = require('react-native');
+      AppState.addEventListener('memoryWarning', () => {
+        console.log('[MobileRuntime] OS memory warning received');
+        const released = onMemoryWarning();
+        console.log(`[MobileRuntime] Released ${released.length} allocations: ${released.join(', ')}`);
+      });
+    }
 
     runtimeState.initialized = true;
     runtimeState.error = null;

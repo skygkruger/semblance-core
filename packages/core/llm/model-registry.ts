@@ -138,12 +138,12 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     displayName: 'BitNet b1.58 2B4T',
     family: 'bitnet',
     parameterCount: '2B',
-    quantization: '1.58-bit',
-    fileSizeBytes: 400_000_000, // ~0.4GB
-    ramRequiredMb: 1024,
-    hfRepo: '1bitLLM/bitnet_b1_58-2B4T',
-    hfFilename: 'bitnet-b1.58-2B4T.gguf',
-    sha256: '',
+    quantization: 'i2_s',
+    fileSizeBytes: 1_187_801_280, // 1.11GB exact HuggingFace
+    ramRequiredMb: 2048,
+    hfRepo: 'microsoft/BitNet-b1.58-2B-4T-gguf',
+    hfFilename: 'ggml-model-i2_s.gguf',
+    sha256: '4221b252fdd5fd25e15847adfeb5ee88886506ba50b8a34548374492884c2162',
     isEmbedding: false,
     minTier: 'constrained',
     inferenceBackend: 'bitnet',
@@ -153,16 +153,16 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
   },
 
   {
-    id: 'falcon-edge-1b',
-    displayName: 'Falcon-Edge 1B',
+    id: 'falcon-e-1b',
+    displayName: 'Falcon-E 1B Instruct',
     family: 'falcon-bitnet',
     parameterCount: '1B',
-    quantization: '1.58-bit',
-    fileSizeBytes: 665_000_000, // ~665MB
+    quantization: 'i2_s',
+    fileSizeBytes: 666_324_256, // 635MB exact HuggingFace
     ramRequiredMb: 1536,
-    hfRepo: 'tiiuae/Falcon-Edge-1B-1.58bit',
-    hfFilename: 'falcon-edge-1b-1.58bit.gguf',
-    sha256: '',
+    hfRepo: 'tiiuae/Falcon-E-1B-Instruct-GGUF',
+    hfFilename: 'ggml-model-i2_s.gguf',
+    sha256: 'feb7478007e916d26bb807cb1a01cc45ac16f197e355d8c30aed25e550ecd73b',
     isEmbedding: false,
     minTier: 'constrained',
     inferenceBackend: 'bitnet',
@@ -172,16 +172,16 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
   },
 
   {
-    id: 'falcon-edge-3b',
-    displayName: 'Falcon-Edge 3B',
+    id: 'falcon-e-3b',
+    displayName: 'Falcon-E 3B Instruct',
     family: 'falcon-bitnet',
     parameterCount: '3B',
-    quantization: '1.58-bit',
-    fileSizeBytes: 999_000_000, // ~999MB
+    quantization: 'i2_s',
+    fileSizeBytes: 999_908_608, // 954MB exact HuggingFace
     ramRequiredMb: 2048,
-    hfRepo: 'tiiuae/Falcon-Edge-3B-1.58bit',
-    hfFilename: 'falcon-edge-3b-1.58bit.gguf',
-    sha256: '',
+    hfRepo: 'tiiuae/Falcon-E-3B-Instruct-GGUF',
+    hfFilename: 'ggml-model-i2_s.gguf',
+    sha256: 'acef6896311c5d0713d80e4c7f7bc2ffa1fa183d905e2ca9236545372f434255',
     isEmbedding: false,
     minTier: 'constrained',
     inferenceBackend: 'bitnet',
@@ -197,12 +197,12 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     displayName: 'Falcon3 1B Instruct',
     family: 'falcon3-bitnet',
     parameterCount: '1B',
-    quantization: '1.58-bit',
-    fileSizeBytes: 500_000_000, // ~0.5GB
-    ramRequiredMb: 1024,
-    hfRepo: 'tiiuae/Falcon3-1B-Instruct-1.58bit',
-    hfFilename: 'falcon3-1b-instruct-1.58bit.gguf',
-    sha256: '',
+    quantization: 'i2_s',
+    fileSizeBytes: 1_361_904_672, // 1.27GB exact HuggingFace
+    ramRequiredMb: 2048,
+    hfRepo: 'tiiuae/Falcon3-1B-Instruct-1.58bit-GGUF',
+    hfFilename: 'ggml-model-i2_s.gguf',
+    sha256: '0ecef8ad9bcb1b7d3b73bac7b0237daf2faa962b60cbbaf62c86ff51a39444b4',
     isEmbedding: false,
     minTier: 'constrained',
     inferenceBackend: 'bitnet',
@@ -216,12 +216,12 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     displayName: 'Falcon3 3B Instruct',
     family: 'falcon3-bitnet',
     parameterCount: '3B',
-    quantization: '1.58-bit',
-    fileSizeBytes: 1_200_000_000, // ~1.2GB
-    ramRequiredMb: 2048,
-    hfRepo: 'tiiuae/Falcon3-3B-Instruct-1.58bit',
-    hfFilename: 'falcon3-3b-instruct-1.58bit.gguf',
-    sha256: '',
+    quantization: 'i2_s',
+    fileSizeBytes: 2_221_465_632, // 2.07GB exact HuggingFace
+    ramRequiredMb: 3072,
+    hfRepo: 'tiiuae/Falcon3-3B-Instruct-1.58bit-GGUF',
+    hfFilename: 'ggml-model-i2_s.gguf',
+    sha256: '2ee9723dc1abcc53f231ef1637bdd7c1ec1dbaf132c2c59873100cfb48b41455',
     isEmbedding: false,
     minTier: 'constrained',
     inferenceBackend: 'bitnet',
@@ -235,12 +235,12 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     displayName: 'Falcon3 7B Instruct',
     family: 'falcon3-bitnet',
     parameterCount: '7B',
-    quantization: '1.58-bit',
-    fileSizeBytes: 2_500_000_000, // ~2.5GB
-    ramRequiredMb: 4096,
-    hfRepo: 'tiiuae/Falcon3-7B-Instruct-1.58bit',
-    hfFilename: 'falcon3-7b-instruct-1.58bit.gguf',
-    sha256: '',
+    quantization: 'i2_s',
+    fileSizeBytes: 3_278_680_768, // 3.05GB exact HuggingFace
+    ramRequiredMb: 5120,
+    hfRepo: 'tiiuae/Falcon3-7B-Instruct-1.58bit-GGUF',
+    hfFilename: 'ggml-model-i2_s.gguf',
+    sha256: '612ab67d4c5fb77d9f810eb521eb4a477dae46df1a85ca501018490e2dac35c6',
     isEmbedding: false,
     minTier: 'standard',
     inferenceBackend: 'bitnet',
@@ -254,12 +254,12 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     displayName: 'Falcon3 10B Instruct',
     family: 'falcon3-bitnet',
     parameterCount: '10B',
-    quantization: '1.58-bit',
-    fileSizeBytes: 3_500_000_000, // ~3.5GB
+    quantization: 'i2_s',
+    fileSizeBytes: 3_991_393_696, // 3.72GB exact HuggingFace
     ramRequiredMb: 6144,
-    hfRepo: 'tiiuae/Falcon3-10B-Instruct-1.58bit',
-    hfFilename: 'falcon3-10b-instruct-1.58bit.gguf',
-    sha256: '',
+    hfRepo: 'tiiuae/Falcon3-10B-Instruct-1.58bit-GGUF',
+    hfFilename: 'ggml-model-i2_s.gguf',
+    sha256: 'e37945ee82693a6541b5fa5484f0e24787c04a9ce95e6e377f68a6b15f139c1f',
     isEmbedding: false,
     minTier: 'performance',
     inferenceBackend: 'bitnet',
@@ -268,24 +268,8 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     contextLength: 8192,
   },
 
-  {
-    id: 'llama3-8b-instruct-1.58bit',
-    displayName: 'Llama 3 8B Instruct',
-    family: 'llama3-bitnet',
-    parameterCount: '8B',
-    quantization: '1.58-bit',
-    fileSizeBytes: 3_000_000_000, // ~3GB
-    ramRequiredMb: 5120,
-    hfRepo: '1bitLLM/Llama3-8B-1.58-100B-tokens',
-    hfFilename: 'llama3-8b-1.58bit.gguf',
-    sha256: '',
-    isEmbedding: false,
-    minTier: 'performance',
-    inferenceBackend: 'bitnet',
-    license: 'Meta Llama 3',
-    nativeOneBit: false,
-    contextLength: 8192,
-  },
+  // Llama3 8B 1.58bit removed — requires Python conversion (no pre-built GGUF available).
+  // Falcon3 7B covers the same tier with similar quality and ships as ready-made GGUF.
 ];
 
 /**
@@ -371,10 +355,10 @@ export function getBitNetModelsForTier(tier: HardwareProfileTier): ModelRegistry
 /**
  * Get the recommended BitNet model for a hardware tier.
  * Scales to the best model the hardware can handle:
- *   - constrained (<8GB): Falcon-Edge 1B (665MB, native 1-bit)
- *   - standard (8-15GB): Falcon-Edge 3B (999MB, native 1-bit)
- *   - performance (16-31GB): Falcon3 7B (2.5GB, 8192 context)
- *   - workstation (32GB+): Falcon3 10B (3.5GB, best quality)
+ *   - constrained (<8GB): Falcon-E 1B (666MB, native 1-bit)
+ *   - standard (8-15GB): Falcon-E 3B (1.0GB, native 1-bit)
+ *   - performance (16-31GB): Falcon3 7B (3.28GB, 8192 context)
+ *   - workstation (32GB+): Falcon3 10B (3.99GB, best quality)
  */
 export function getRecommendedBitNetModel(tier: HardwareProfileTier): ModelRegistryEntry {
   switch (tier) {
@@ -383,10 +367,10 @@ export function getRecommendedBitNetModel(tier: HardwareProfileTier): ModelRegis
     case 'performance':
       return BITNET_MODEL_CATALOG.find(m => m.id === 'falcon3-7b-instruct-1.58bit')!;
     case 'standard':
-      return BITNET_MODEL_CATALOG.find(m => m.id === 'falcon-edge-3b')!;
+      return BITNET_MODEL_CATALOG.find(m => m.id === 'falcon-e-3b')!;
     case 'constrained':
     default:
-      return BITNET_MODEL_CATALOG.find(m => m.id === 'falcon-edge-1b')!;
+      return BITNET_MODEL_CATALOG.find(m => m.id === 'falcon-e-1b')!;
   }
 }
 

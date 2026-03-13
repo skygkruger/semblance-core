@@ -943,3 +943,22 @@ export function getBitNetStatus(): Promise<{
 }> {
   return invoke('bitnet_get_status');
 }
+
+// ─── Standard Model Management ──────────────────────────────────────────────
+
+export interface StandardModelsResponse {
+  models: BitNetModelIPC[];
+  activeModelId: string | null;
+}
+
+export function getStandardModels(): Promise<StandardModelsResponse> {
+  return invoke<StandardModelsResponse>('standard_get_models');
+}
+
+export function downloadStandardModel(modelId: string): Promise<{ status: string; modelId: string }> {
+  return invoke<{ status: string; modelId: string }>('standard_download_model', { modelId });
+}
+
+export function activateStandardModel(modelId: string): Promise<{ status: string; modelId: string }> {
+  return invoke<{ status: string; modelId: string }>('standard_set_active', { modelId });
+}

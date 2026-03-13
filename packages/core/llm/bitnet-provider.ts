@@ -1,15 +1,19 @@
 // BitNetProvider — LLMProvider implementation for 1-bit quantized models via BitNet.cpp.
 //
-// Phase 1: Reuses the same NativeRuntimeBridge as NativeProvider. The Rust backend
-// loads BitNet GGUF models through the same llama.cpp path. This gives us functional
-// BitNet support immediately.
+// Uses NativeRuntimeBridge to communicate with the Rust NativeRuntime, which compiles
+// BitNet.cpp (Microsoft's llama.cpp fork with optimized i2_s/TL1/TL2 kernels) from
+// source via the bitnet-sys crate. BitNet i2_s GGUFs get the optimized MAD kernels
+// automatically. Standard GGUF models (Q4_K_M, Q8_0) also load normally since
+// BitNet.cpp is a superset of llama.cpp.
 //
-// Phase 2 (future): Will use optimized BitNet.cpp kernels via a separate Rust module
-// for 2-5x speedup on 1-bit models. The provider interface stays identical.
+// Compared to NativeProvider, BitNetProvider adds:
+//   - Tool-calling support (XML <tool_call> block injection + parsing)
+//   - Chat prompt formatting with <|system|>/<|user|>/<|assistant|> markers
+//   - BitNet model identification in the InferenceRouter
 //
-// Design: BitNetProvider slots into InferenceRouter alongside OllamaProvider and
-// NativeProvider. It is selected when Ollama is not available and a BitNet model
-// is downloaded. Priority: Ollama (GPU) > BitNet (CPU) > Native (fallback).
+// Design: Slots into InferenceRouter alongside OllamaProvider and NativeProvider.
+// Selected when Ollama is not available and a BitNet model is downloaded.
+// Priority: Ollama (GPU) > BitNet (CPU) > Native (fallback).
 //
 // CRITICAL: This file is in packages/core/. No network imports. No platform imports.
 
@@ -30,7 +34,7 @@ import type { NativeRuntimeBridge } from './native-bridge-types.js';
 export interface BitNetProviderConfig {
   /** Bridge to the native runtime (same interface as NativeProvider). */
   bridge: NativeRuntimeBridge;
-  /** Active BitNet model name (e.g., 'falcon-edge-1b'). */
+  /** Active BitNet model name (e.g., 'falcon-e-1b'). */
   modelName?: string;
   /** Embedding model name (shared with NativeProvider). */
   embeddingModelName?: string;
@@ -43,7 +47,7 @@ export class BitNetProvider implements LLMProvider {
 
   constructor(config: BitNetProviderConfig) {
     this.bridge = config.bridge;
-    this.modelName = config.modelName ?? 'falcon-edge-1b';
+    this.modelName = config.modelName ?? 'falcon-e-1b';
     this.embeddingModelName = config.embeddingModelName ?? 'nomic-embed-text-v1.5';
   }
 

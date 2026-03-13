@@ -73,11 +73,11 @@ export interface CreateLLMProviderConfig {
   baseUrl?: string;
   /** NativeRuntimeBridge implementation. Required when runtime is 'builtin' or 'bitnet'. */
   nativeBridge?: NativeRuntimeBridge;
-  /** Reasoning model name. Defaults to 'llama3.2:8b' for Ollama, 'native' for builtin, 'falcon-edge-1b' for bitnet. */
+  /** Reasoning model name. Defaults to 'llama3.2:8b' for Ollama, 'native' for builtin, 'falcon-e-1b' for bitnet. */
   reasoningModel?: string;
   /** Embedding model name. Defaults to 'nomic-embed-text'. */
   embeddingModel?: string;
-  /** BitNet bridge (can be same as nativeBridge in Phase 1). Used to create a BitNet fallback alongside the primary provider. */
+  /** BitNet bridge (same NativeRuntimeBridge — one-fork approach). Used to create a BitNet fallback alongside the primary provider. */
   bitnetBridge?: NativeRuntimeBridge;
   /** BitNet model name. Only used when bitnetBridge is provided. */
   bitnetModel?: string;
@@ -102,7 +102,7 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
   const reasoningModel = (config && 'reasoningModel' in config) ? config.reasoningModel : undefined;
   const embeddingModel = (config && 'embeddingModel' in config) ? config.embeddingModel : 'nomic-embed-text';
   const bitnetBridge = (config && 'bitnetBridge' in config) ? config.bitnetBridge : undefined;
-  const bitnetModel = (config && 'bitnetModel' in config) ? config.bitnetModel : 'falcon-edge-1b';
+  const bitnetModel = (config && 'bitnetModel' in config) ? config.bitnetModel : 'falcon-e-1b';
 
   let provider: LLMProvider;
 
@@ -110,7 +110,7 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
     // BitNet as primary provider (no Ollama available)
     provider = new BitNetProvider({
       bridge: nativeBridge,
-      modelName: reasoningModel ?? 'falcon-edge-1b',
+      modelName: reasoningModel ?? 'falcon-e-1b',
       embeddingModelName: embeddingModel,
     });
   } else if (runtime === 'builtin' && nativeBridge) {
@@ -130,7 +130,7 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
   if (bitnetBridge && runtime !== 'bitnet') {
     bitnetProvider = new BitNetProvider({
       bridge: bitnetBridge,
-      modelName: bitnetModel ?? 'falcon-edge-1b',
+      modelName: bitnetModel ?? 'falcon-e-1b',
       embeddingModelName: embeddingModel,
     });
   }
@@ -142,6 +142,6 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
     reasoningModel: reasoningModel ?? 'llama3.1:8b',
     embeddingModel: embeddingModel ?? 'nomic-embed-text',
     bitnetProvider,
-    bitnetReasoningModel: bitnetProvider ? (bitnetModel ?? 'falcon-edge-1b') : undefined,
+    bitnetReasoningModel: bitnetProvider ? (bitnetModel ?? 'falcon-e-1b') : undefined,
   });
 }

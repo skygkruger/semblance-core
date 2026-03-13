@@ -489,7 +489,8 @@ describe('Privacy: no unauthorized network access in mobile code', () => {
     const files = scanDir(mobileDir);
     const violations: string[] = [];
     // mobile-gateway.ts is the authorized mobile network layer (equivalent to packages/gateway/)
-    const allowedNetworkFiles = new Set(['runtime/mobile-gateway.ts']);
+    // inference/model-download.ts downloads GGUF models from HuggingFace (user-initiated, via Gateway)
+    const allowedNetworkFiles = new Set(['runtime/mobile-gateway.ts', 'inference/model-download.ts']);
 
     for (const filePath of files) {
       const content = fs.readFileSync(filePath, 'utf-8');

@@ -31,6 +31,14 @@ export interface SettingsAIEngineProps {
   bitnetDownloadProgress: number;
   onBitNetDownload: (modelId: string) => void;
   onBitNetActivate: (modelId: string) => void;
+
+  /** Standard (Qwen) model management — power users with Ollama/GPU */
+  standardModels: BitNetModelInfo[];
+  standardActiveModelId: string | null;
+  standardDownloadingModelId: string | null;
+  standardDownloadProgress: number;
+  onStandardDownload: (modelId: string) => void;
+  onStandardActivate: (modelId: string) => void;
 }
 
 export const threadOptions = ['auto', '4', '8', '16'] as const;
