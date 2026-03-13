@@ -214,6 +214,14 @@ No cloud sync. No cloud backup. No remote storage of any kind. If the device is 
 - `/verify:json` — Machine-readable verify output: `node scripts/semblance-verify.js --json`
 - `update-state` — Auto-patch SEMBLANCE_STATE.md from verify output: `node scripts/update-state.js`
 - `update-state:dry` — Preview state patches without writing: `node scripts/update-state.js --dry-run`
+- `/session-start` — Automated Phase 1: read state, run baseline, detect regressions: `node scripts/session-start.js`
+- `/session-start:quick` — State review only (skip verify): `node scripts/session-start.js --skip-verify`
+- `/session-end` — Automated Phase 3: verify, diff, preflight, update state, END report: `node scripts/session-end.js`
+- `/session-end:build` — Session end for build sessions (includes install-verify): `node scripts/session-end.js --build`
+- `/checkpoint` — Log mid-session progress (survives compaction): `node scripts/checkpoint.js "description"`
+- `/checkpoint:read` — Read all checkpoints this session: `node scripts/checkpoint.js --read`
+- `/build-all` — Full build pipeline (preflight → bundle → build → install-verify): `node scripts/build-and-verify.js`
+- `/canary` — Run canary tests for recurring failure patterns: `npx vitest run tests/canary/`
 
 ## Consumer Inference Strategy (Post-Demo Priority)
 

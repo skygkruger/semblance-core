@@ -102,3 +102,86 @@ export function getAvailableDiskSpace(dataDir?: string): number {
   // Node.js lacks a cross-platform disk space API. Returns -1 (unknown).
   return -1;
 }
+
+// ─── BitNet Model Storage ───────────────────────────────────────────────────────
+// BitNet models are stored in a dedicated subdirectory under the standard models dir.
+// This keeps them organized separately from standard GGUF models used by NativeProvider.
+
+const BITNET_SUBDIR = 'bitnet';
+
+/**
+ * Get the BitNet models directory path.
+ * Default: ~/.semblance/models/bitnet/
+ */
+export function getBitNetModelsDir(dataDir?: string): string {
+  const p = getPlatform();
+  const dir = p.path.join(getModelsDir(dataDir), BITNET_SUBDIR);
+  if (!p.fs.existsSync(dir)) {
+    p.fs.mkdirSync(dir, { recursive: true });
+  }
+  return dir;
+}
+
+/**
+ * Get the full path for a BitNet model file.
+ */
+export function getBitNetModelPath(modelId: string, dataDir?: string): string {
+  return getPlatform().path.join(getBitNetModelsDir(dataDir), `${modelId}.gguf`);
+}
+
+/**
+ * Check if a BitNet model is downloaded and non-trivial (>1MB).
+ */
+export function isBitNetModelDownloaded(modelId: string, dataDir?: string): boolean {
+  const p = getPlatform();
+  const path = getBitNetModelPath(modelId, dataDir);
+  if (!p.fs.existsSync(path)) return false;
+  const stat = p.fs.statSync(path);
+  return stat.size > 1_000_000;
+}
+
+/**
+ * Get the size of a downloaded BitNet model file in bytes.
+ */
+export function getBitNetModelFileSize(modelId: string, dataDir?: string): number {
+  const p = getPlatform();
+  const path = getBitNetModelPath(modelId, dataDir);
+  if (!p.fs.existsSync(path)) return 0;
+  return p.fs.statSync(path).size;
+}
+
+/**
+ * Delete a BitNet model file.
+ */
+export function deleteBitNetModel(modelId: string, dataDir?: string): boolean {
+  const p = getPlatform();
+  const path = getBitNetModelPath(modelId, dataDir);
+  if (!p.fs.existsSync(path)) return false;
+  p.fs.unlinkSync(path);
+  return true;
+}
+
+/**
+ * List all downloaded BitNet model files.
+ */
+export function listDownloadedBitNetModels(dataDir?: string): Array<{
+  filename: string;
+  sizeBytes: number;
+  modelId: string;
+}> {
+  const p = getPlatform();
+  const dir = getBitNetModelsDir(dataDir);
+  if (!p.fs.existsSync(dir)) return [];
+
+  return p.fs.readdirSync(dir)
+    .filter(f => f.endsWith('.gguf'))
+    .map(filename => {
+      const fullPath = p.path.join(dir, filename);
+      const stat = p.fs.statSync(fullPath);
+      return {
+        filename,
+        sizeBytes: stat.size,
+        modelId: filename.replace('.gguf', ''),
+      };
+    });
+}

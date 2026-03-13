@@ -105,9 +105,9 @@ import { generateSovereigntyReport, verifySovereigntyReport, renderSovereigntyRe
 import type { SovereigntyReport } from '../../../core/reporting/sovereignty-report.js';
 
 // Model download imports
-import { getModelsForTier, getEmbeddingModel, getRecommendedReasoningModel, getModelById, MODEL_CATALOG } from '../../../core/llm/model-registry.js';
+import { getModelsForTier, getEmbeddingModel, getRecommendedReasoningModel, getModelById, MODEL_CATALOG, BITNET_MODEL_CATALOG, getRecommendedBitNetModel, getBitNetModelsForTier, getAnyModelById } from '../../../core/llm/model-registry.js';
 import type { ModelRegistryEntry } from '../../../core/llm/model-registry.js';
-import { getModelsDir, getModelPath, isModelDownloaded, getModelFileSize } from '../../../core/llm/model-storage.js';
+import { getModelsDir, getModelPath, isModelDownloaded, getModelFileSize, getBitNetModelsDir, getBitNetModelPath, isBitNetModelDownloaded, listDownloadedBitNetModels } from '../../../core/llm/model-storage.js';
 import { WHISPER_MODELS } from '../../../core/voice/whisper-model-manager.js';
 import { PIPER_VOICES } from '../../../core/voice/piper-model-manager.js';
 import type { HardwareProfileTier } from '../../../core/llm/hardware-types.js';
@@ -2951,14 +2951,14 @@ async function downloadHfFile(
 async function handleStartModelDownloads(params: { tier: string }): Promise<unknown> {
   const tier = (params.tier || 'standard') as HardwareProfileTier;
   const models = getModelsForTier(tier);
-  const modelsDir = getModelsDir(dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined);
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
 
-  const results: Array<{ modelId: string; status: string }> = [];
+  const results: Array<{ modelId: string; status: string; backend?: string }> = [];
 
   for (const model of models) {
-    const targetPath = getModelPath(model.id, dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined);
+    const targetPath = getModelPath(model.id, baseDir);
 
-    if (isModelDownloaded(model.id, dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined)) {
+    if (isModelDownloaded(model.id, baseDir)) {
       const existing: ActiveDownload = {
         modelId: model.id,
         modelName: model.displayName,
@@ -2987,6 +2987,35 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
     results.push({ modelId: model.id, status: 'started' });
   }
 
+  // Also download the recommended BitNet model for this tier.
+  // This gives users zero-config CPU inference as a fallback to Ollama.
+  const bitnetModel = getRecommendedBitNetModel(tier);
+  const bitnetTargetPath = getBitNetModelPath(bitnetModel.id, baseDir);
+
+  if (isBitNetModelDownloaded(bitnetModel.id, baseDir)) {
+    const existing: ActiveDownload = {
+      modelId: bitnetModel.id,
+      modelName: bitnetModel.displayName,
+      totalBytes: bitnetModel.fileSizeBytes,
+      downloadedBytes: bitnetModel.fileSizeBytes,
+      speedBytesPerSec: 0,
+      status: 'complete',
+    };
+    activeDownloads.set(bitnetModel.id, existing);
+    emit('model-download-progress', existing);
+    results.push({ modelId: bitnetModel.id, status: 'already_downloaded', backend: 'bitnet' });
+
+    // Load BitNet model as reasoning fallback
+    sendCallback('native_load_model', { model_path: bitnetTargetPath, model_type: 'reasoning' })
+      .then(() => console.error(`[sidecar] Loaded BitNet model "${bitnetModel.id}" into NativeRuntime`))
+      .catch((err) => console.error(`[sidecar] NativeRuntime load failed for BitNet "${bitnetModel.id}":`, err));
+  } else {
+    downloadHfFile(bitnetModel, bitnetTargetPath, bitnetModel.id, bitnetModel.displayName).catch((err) => {
+      console.error(`[sidecar] BitNet model download failed: ${bitnetModel.id}`, err);
+    });
+    results.push({ modelId: bitnetModel.id, status: 'started', backend: 'bitnet' });
+  }
+
   return { started: results };
 }
 
@@ -3011,13 +3040,24 @@ function handleModelGetDownloadStatus(): unknown {
     });
   }
 
-  // If no active downloads, check on-disk models from catalog
+  // If no active downloads, check on-disk models from both catalogs
   if (statuses.length === 0) {
+    const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
     for (const model of MODEL_CATALOG) {
-      const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
       if (isModelDownloaded(model.id, baseDir)) {
         statuses.push({
           modelName: model.displayName,
+          totalBytes: model.fileSizeBytes,
+          downloadedBytes: model.fileSizeBytes,
+          speedBytesPerSec: 0,
+          status: 'complete',
+        });
+      }
+    }
+    for (const model of BITNET_MODEL_CATALOG) {
+      if (isBitNetModelDownloaded(model.id, baseDir)) {
+        statuses.push({
+          modelName: `${model.displayName} (BitNet)`,
           totalBytes: model.fileSizeBytes,
           downloadedBytes: model.fileSizeBytes,
           speedBytesPerSec: 0,
@@ -3031,20 +3071,113 @@ function handleModelGetDownloadStatus(): unknown {
 }
 
 async function handleModelRetryDownload(params: { modelName: string }): Promise<unknown> {
-  // Find model by display name or ID
-  const model = MODEL_CATALOG.find(m => m.displayName === params.modelName || m.id === params.modelName);
+  // Find model by display name or ID in both standard and BitNet catalogs
+  const model = MODEL_CATALOG.find(m => m.displayName === params.modelName || m.id === params.modelName)
+    ?? BITNET_MODEL_CATALOG.find(m => m.displayName === params.modelName || m.id === params.modelName);
   if (!model) {
     throw new Error(`Unknown model: ${params.modelName}`);
   }
 
   const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
-  const targetPath = getModelPath(model.id, baseDir);
+  const isBitNet = model.inferenceBackend === 'bitnet';
+  const targetPath = isBitNet ? getBitNetModelPath(model.id, baseDir) : getModelPath(model.id, baseDir);
 
   // Clear previous error state
   activeDownloads.delete(model.id);
 
   await downloadHfFile(model, targetPath, model.id, model.displayName);
   return { success: true };
+}
+
+// ─── BitNet Model Management ──────────────────────────────────────────────────
+// Handles listing, downloading, and activating BitNet 1-bit models.
+// All models are managed entirely within Semblance — no external tools required.
+
+function handleBitNetGetModels(params: { tier?: string }): unknown {
+  const tier = (params.tier || 'standard') as HardwareProfileTier;
+  const available = getBitNetModelsForTier(tier);
+  const recommended = getRecommendedBitNetModel(tier);
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+
+  const activeModelId = getPref('bitnet_active_model') ?? null;
+
+  return {
+    models: available.map(m => ({
+      id: m.id,
+      displayName: m.displayName,
+      family: m.family,
+      parameterCount: m.parameterCount,
+      fileSizeBytes: m.fileSizeBytes,
+      ramRequiredMb: m.ramRequiredMb,
+      license: m.license ?? 'Unknown',
+      nativeOneBit: m.nativeOneBit ?? false,
+      contextLength: m.contextLength ?? 4096,
+      isDownloaded: isBitNetModelDownloaded(m.id, baseDir),
+      isRecommended: m.id === recommended.id,
+    })),
+    recommendedModelId: recommended.id,
+    activeModelId,
+  };
+}
+
+async function handleBitNetDownloadModel(params: { modelId: string }): Promise<unknown> {
+  const model = BITNET_MODEL_CATALOG.find(m => m.id === params.modelId);
+  if (!model) {
+    throw new Error(`Unknown BitNet model: ${params.modelId}`);
+  }
+
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  const targetPath = getBitNetModelPath(model.id, baseDir);
+
+  if (isBitNetModelDownloaded(model.id, baseDir)) {
+    return { status: 'already_downloaded', modelId: model.id, path: targetPath };
+  }
+
+  // Reuse the existing HuggingFace download infrastructure
+  await downloadHfFile(model, targetPath, model.id, model.displayName);
+  return { status: 'started', modelId: model.id };
+}
+
+async function handleBitNetSetActive(params: { modelId: string }): Promise<unknown> {
+  const model = BITNET_MODEL_CATALOG.find(m => m.id === params.modelId);
+  if (!model) {
+    throw new Error(`Unknown BitNet model: ${params.modelId}`);
+  }
+
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  if (!isBitNetModelDownloaded(model.id, baseDir)) {
+    throw new Error(`BitNet model not downloaded: ${model.id}. Download it first.`);
+  }
+
+  const modelPath = getBitNetModelPath(model.id, baseDir);
+
+  // Load the BitNet model into NativeRuntime (Phase 1: same backend as standard GGUF)
+  await sendCallback('native_load_model', { model_path: modelPath, model_type: 'reasoning' });
+  console.error(`[sidecar] Activated BitNet model "${model.id}" from ${modelPath}`);
+
+  // Save preference so it persists across restarts
+  try {
+    await handleSetPref({ key: 'bitnet_active_model', value: model.id });
+  } catch {
+    // Non-fatal — model is loaded even if pref save fails
+  }
+
+  return { status: 'active', modelId: model.id, modelPath };
+}
+
+function handleBitNetGetStatus(): unknown {
+  const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  const downloaded = listDownloadedBitNetModels(baseDir);
+
+  return {
+    downloadedModels: downloaded.map(d => ({
+      modelId: d.modelId,
+      sizeBytes: d.sizeBytes,
+      displayName: BITNET_MODEL_CATALOG.find(m => m.id === d.modelId)?.displayName ?? d.modelId,
+    })),
+    totalDownloadedBytes: downloaded.reduce((sum, d) => sum + d.sizeBytes, 0),
+    catalogSize: BITNET_MODEL_CATALOG.length,
+  };
 }
 
 function handleVoiceGetModelStatus(): unknown {
@@ -5362,6 +5495,29 @@ async function handleRequest(req: Request): Promise<void> {
         respond(id, result);
         break;
       }
+
+      // ─── BitNet Model Management ────────────────────────────────────────
+      case 'bitnet_get_models': {
+        const result = handleBitNetGetModels(params as { tier?: string });
+        respond(id, result);
+        break;
+      }
+      case 'bitnet_download_model': {
+        const result = await handleBitNetDownloadModel(params as { modelId: string });
+        respond(id, result);
+        break;
+      }
+      case 'bitnet_set_active': {
+        const result = await handleBitNetSetActive(params as { modelId: string });
+        respond(id, result);
+        break;
+      }
+      case 'bitnet_get_status': {
+        const result = handleBitNetGetStatus();
+        respond(id, result);
+        break;
+      }
+
       case 'voice_get_model_status': {
         const result = handleVoiceGetModelStatus();
         respond(id, result);

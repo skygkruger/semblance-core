@@ -24,12 +24,18 @@ export { classifyHardware, describeTier, describeProfile } from './hardware-type
 export type { ModelRegistryEntry } from './model-registry.js';
 export {
   MODEL_CATALOG,
+  BITNET_MODEL_CATALOG,
   getRecommendedReasoningModel,
   getEmbeddingModel,
   getModelsForTier,
   getModelById,
   getTotalDownloadSize,
   formatBytes,
+  getBitNetModels,
+  getBitNetModelsForTier,
+  getRecommendedBitNetModel,
+  getAllReasoningModelsForTier,
+  getAnyModelById,
 } from './model-registry.js';
 
 // Native provider (llama.cpp via Rust FFI bridge)
@@ -43,6 +49,10 @@ export type {
   NativeBridgeStatus,
 } from './native-bridge-types.js';
 
+// BitNet provider (1-bit quantized models via CPU-optimized inference)
+export { BitNetProvider } from './bitnet-provider.js';
+export type { BitNetProviderConfig } from './bitnet-provider.js';
+
 // Inference routing
 export { InferenceRouter } from './inference-router.js';
 export type { InferenceRouterConfig } from './inference-router.js';
@@ -54,18 +64,23 @@ import { OllamaProvider } from './ollama-provider.js';
 import { InferenceRouter } from './inference-router.js';
 import type { NativeRuntimeBridge } from './native-bridge-types.js';
 import { NativeProvider } from './native-provider.js';
+import { BitNetProvider } from './bitnet-provider.js';
 
 export interface CreateLLMProviderConfig {
-  /** Runtime mode: 'ollama' uses OllamaProvider, 'builtin' uses NativeProvider. Default: 'ollama'. */
-  runtime?: 'ollama' | 'builtin' | 'custom';
+  /** Runtime mode: 'ollama' uses OllamaProvider, 'builtin' uses NativeProvider, 'bitnet' uses BitNetProvider. Default: 'ollama'. */
+  runtime?: 'ollama' | 'builtin' | 'bitnet' | 'custom';
   /** Ollama base URL. Only used when runtime is 'ollama'. */
   baseUrl?: string;
-  /** NativeRuntimeBridge implementation. Required when runtime is 'builtin'. */
+  /** NativeRuntimeBridge implementation. Required when runtime is 'builtin' or 'bitnet'. */
   nativeBridge?: NativeRuntimeBridge;
-  /** Reasoning model name. Defaults to 'llama3.2:8b' for Ollama, 'native' for builtin. */
+  /** Reasoning model name. Defaults to 'llama3.2:8b' for Ollama, 'native' for builtin, 'falcon-edge-1b' for bitnet. */
   reasoningModel?: string;
   /** Embedding model name. Defaults to 'nomic-embed-text'. */
   embeddingModel?: string;
+  /** BitNet bridge (can be same as nativeBridge in Phase 1). Used to create a BitNet fallback alongside the primary provider. */
+  bitnetBridge?: NativeRuntimeBridge;
+  /** BitNet model name. Only used when bitnetBridge is provided. */
+  bitnetModel?: string;
 }
 
 /**
@@ -74,6 +89,10 @@ export interface CreateLLMProviderConfig {
  * All callers receive an InferenceRouter (which implements LLMProvider).
  * The router delegates to the underlying provider based on task type.
  * This is the ONLY factory that should be used to create LLM providers.
+ *
+ * Provider priority (desktop): Ollama (GPU) > BitNet (CPU) > Native (fallback).
+ * When bitnetBridge is provided alongside the primary provider, BitNet is
+ * registered as the fallback reasoning provider in the router.
  */
 export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?: string }): LLMProvider {
   // Backward compatibility: plain { baseUrl } config → Ollama mode
@@ -82,10 +101,19 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
   const nativeBridge = (config && 'nativeBridge' in config) ? config.nativeBridge : undefined;
   const reasoningModel = (config && 'reasoningModel' in config) ? config.reasoningModel : undefined;
   const embeddingModel = (config && 'embeddingModel' in config) ? config.embeddingModel : 'nomic-embed-text';
+  const bitnetBridge = (config && 'bitnetBridge' in config) ? config.bitnetBridge : undefined;
+  const bitnetModel = (config && 'bitnetModel' in config) ? config.bitnetModel : 'falcon-edge-1b';
 
   let provider: LLMProvider;
 
-  if (runtime === 'builtin' && nativeBridge) {
+  if (runtime === 'bitnet' && nativeBridge) {
+    // BitNet as primary provider (no Ollama available)
+    provider = new BitNetProvider({
+      bridge: nativeBridge,
+      modelName: reasoningModel ?? 'falcon-edge-1b',
+      embeddingModelName: embeddingModel,
+    });
+  } else if (runtime === 'builtin' && nativeBridge) {
     provider = new NativeProvider({
       bridge: nativeBridge,
       modelName: reasoningModel ?? 'native',
@@ -96,11 +124,24 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
     provider = new OllamaProvider({ baseUrl });
   }
 
+  // Create BitNet fallback provider if a separate bitnet bridge is provided
+  // This allows Ollama > BitNet > Native priority chain
+  let bitnetProvider: LLMProvider | undefined;
+  if (bitnetBridge && runtime !== 'bitnet') {
+    bitnetProvider = new BitNetProvider({
+      bridge: bitnetBridge,
+      modelName: bitnetModel ?? 'falcon-edge-1b',
+      embeddingModelName: embeddingModel,
+    });
+  }
+
   // Wrap in InferenceRouter so all callers go through routing
   return new InferenceRouter({
     reasoningProvider: provider,
     embeddingProvider: provider,
     reasoningModel: reasoningModel ?? 'llama3.1:8b',
     embeddingModel: embeddingModel ?? 'nomic-embed-text',
+    bitnetProvider,
+    bitnetReasoningModel: bitnetProvider ? (bitnetModel ?? 'falcon-edge-1b') : undefined,
   });
 }

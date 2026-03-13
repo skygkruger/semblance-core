@@ -1,8 +1,111 @@
 import { useTranslation } from 'react-i18next';
 import './Settings.css';
 import { BackArrow } from './SettingsIcons';
-import type { SettingsAIEngineProps } from './SettingsAIEngine.types';
+import type { SettingsAIEngineProps, BitNetModelInfo } from './SettingsAIEngine.types';
 import { threadOptions, contextOptions, contextLabels } from './SettingsAIEngine.types';
+
+function formatModelSize(bytes: number): string {
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(0)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+function ModelCard({
+  model,
+  isActive,
+  isDownloading,
+  downloadProgress,
+  onDownload,
+  onActivate,
+}: {
+  model: BitNetModelInfo;
+  isActive: boolean;
+  isDownloading: boolean;
+  downloadProgress: number;
+  onDownload: () => void;
+  onActivate: () => void;
+}) {
+  const cardClass = [
+    'settings-model-card',
+    isActive ? 'settings-model-card--active' : '',
+  ].filter(Boolean).join(' ');
+
+  let actionButton: React.ReactNode;
+  if (isActive) {
+    actionButton = (
+      <span className="settings-model-card__action settings-model-card__action--active">
+        Active
+      </span>
+    );
+  } else if (isDownloading) {
+    actionButton = (
+      <span className="settings-model-card__action settings-model-card__action--downloading">
+        {downloadProgress > 0 ? `${downloadProgress}%` : 'Starting...'}
+      </span>
+    );
+  } else if (model.isDownloaded) {
+    actionButton = (
+      <button
+        type="button"
+        className="settings-model-card__action settings-model-card__action--activate"
+        onClick={onActivate}
+      >
+        Activate
+      </button>
+    );
+  } else {
+    actionButton = (
+      <button
+        type="button"
+        className="settings-model-card__action settings-model-card__action--download"
+        onClick={onDownload}
+      >
+        Download
+      </button>
+    );
+  }
+
+  return (
+    <div className={cardClass}>
+      <div className="settings-model-card__info">
+        <div className="settings-model-card__header">
+          <span className="settings-model-card__name">{model.displayName}</span>
+          {model.isRecommended && (
+            <span className="settings-badge--recommended">Recommended</span>
+          )}
+          {model.nativeOneBit && (
+            <span className="settings-model-card__tag settings-model-card__tag--native">Native 1-bit</span>
+          )}
+        </div>
+        <div className="settings-model-card__meta">
+          <span className="settings-model-card__tag settings-model-card__tag--size">
+            {model.parameterCount}
+          </span>
+          <span className="settings-model-card__tag settings-model-card__tag--separator">/</span>
+          <span className="settings-model-card__tag settings-model-card__tag--size">
+            {formatModelSize(model.fileSizeBytes)}
+          </span>
+          <span className="settings-model-card__tag settings-model-card__tag--separator">/</span>
+          <span className="settings-model-card__tag">
+            {model.contextLength >= 1024 ? `${model.contextLength / 1024}K ctx` : `${model.contextLength} ctx`}
+          </span>
+          <span className="settings-model-card__tag settings-model-card__tag--separator">/</span>
+          <span className="settings-model-card__tag">
+            {model.license}
+          </span>
+        </div>
+        {isDownloading && (
+          <div className="settings-model-card__progress">
+            <div
+              className="settings-model-card__progress-fill"
+              style={{ width: `${Math.max(downloadProgress, 2)}%` }}
+            />
+          </div>
+        )}
+      </div>
+      {actionButton}
+    </div>
+  );
+}
 
 export function SettingsAIEngine({
   modelName,
@@ -15,6 +118,12 @@ export function SettingsAIEngine({
   customModelPath,
   onChange,
   onBack,
+  bitnetModels,
+  bitnetActiveModelId,
+  bitnetDownloadingModelId,
+  bitnetDownloadProgress,
+  onBitNetDownload,
+  onBitNetActivate,
 }: SettingsAIEngineProps) {
   const { t } = useTranslation('settings');
 
@@ -42,6 +151,26 @@ export function SettingsAIEngine({
           <span style={{ fontFamily: 'var(--fm)', fontSize: 12, fontWeight: 300, color: '#A8B4C0' }}>
             {modelSize}
           </span>
+        </div>
+
+        {/* BitNet Models */}
+        <div className="settings-section-header">Local Models</div>
+        <div className="settings-bitnet-explainer">
+          1-bit quantized models that run entirely on CPU. No GPU required, no external tools.
+          Managed within Semblance.
+        </div>
+        <div className="settings-model-grid">
+          {bitnetModels.map((model) => (
+            <ModelCard
+              key={model.id}
+              model={model}
+              isActive={bitnetActiveModelId === model.id}
+              isDownloading={bitnetDownloadingModelId === model.id}
+              downloadProgress={bitnetDownloadingModelId === model.id ? bitnetDownloadProgress : 0}
+              onDownload={() => onBitNetDownload(model.id)}
+              onActivate={() => onBitNetActivate(model.id)}
+            />
+          ))}
         </div>
 
         {/* Hardware Profile */}

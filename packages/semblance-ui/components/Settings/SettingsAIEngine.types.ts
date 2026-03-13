@@ -1,3 +1,17 @@
+export interface BitNetModelInfo {
+  id: string;
+  displayName: string;
+  family: string;
+  parameterCount: string;
+  fileSizeBytes: number;
+  ramRequiredMb: number;
+  license: string;
+  nativeOneBit: boolean;
+  contextLength: number;
+  isDownloaded: boolean;
+  isRecommended: boolean;
+}
+
 export interface SettingsAIEngineProps {
   modelName: string;
   modelSize: string;
@@ -9,6 +23,14 @@ export interface SettingsAIEngineProps {
   customModelPath: string | null;
   onChange: (key: string, value: unknown) => void;
   onBack: () => void;
+
+  /** BitNet model management */
+  bitnetModels: BitNetModelInfo[];
+  bitnetActiveModelId: string | null;
+  bitnetDownloadingModelId: string | null;
+  bitnetDownloadProgress: number;
+  onBitNetDownload: (modelId: string) => void;
+  onBitNetActivate: (modelId: string) => void;
 }
 
 export const threadOptions = ['auto', '4', '8', '16'] as const;

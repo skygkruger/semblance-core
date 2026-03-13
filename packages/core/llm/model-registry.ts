@@ -23,6 +23,14 @@ export interface ModelRegistryEntry {
   isEmbedding: boolean;
   /** Minimum hardware tier that can run this model */
   minTier: HardwareProfileTier;
+  /** Inference backend: 'llama' (default llama.cpp) or 'bitnet' (1-bit optimized). */
+  inferenceBackend?: 'llama' | 'bitnet';
+  /** License identifier (e.g., 'MIT', 'TII Falcon 2.0', 'Meta Llama 3'). */
+  license?: string;
+  /** Whether this model uses native 1-bit training (vs post-training quantization). */
+  nativeOneBit?: boolean;
+  /** Context window size in tokens. */
+  contextLength?: number;
 }
 
 /**
@@ -117,6 +125,169 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
   },
 ] as const;
 
+// ─── BitNet Model Catalog ──────────────────────────────────────────────────────
+// 1-bit and 1.58-bit quantized models for CPU-optimized inference via BitNet.cpp.
+// These run without GPU, without Ollama — zero-config local inference.
+// All use GGUF format and are downloaded/managed entirely within Semblance.
+
+export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
+  // ─── Native 1-bit Models (trained from scratch with ternary weights) ─────────
+
+  {
+    id: 'bitnet-b1.58-2b4t',
+    displayName: 'BitNet b1.58 2B4T',
+    family: 'bitnet',
+    parameterCount: '2B',
+    quantization: '1.58-bit',
+    fileSizeBytes: 400_000_000, // ~0.4GB
+    ramRequiredMb: 1024,
+    hfRepo: '1bitLLM/bitnet_b1_58-2B4T',
+    hfFilename: 'bitnet-b1.58-2B4T.gguf',
+    sha256: '',
+    isEmbedding: false,
+    minTier: 'constrained',
+    inferenceBackend: 'bitnet',
+    license: 'MIT',
+    nativeOneBit: true,
+    contextLength: 4096,
+  },
+
+  {
+    id: 'falcon-edge-1b',
+    displayName: 'Falcon-Edge 1B',
+    family: 'falcon-bitnet',
+    parameterCount: '1B',
+    quantization: '1.58-bit',
+    fileSizeBytes: 665_000_000, // ~665MB
+    ramRequiredMb: 1536,
+    hfRepo: 'tiiuae/Falcon-Edge-1B-1.58bit',
+    hfFilename: 'falcon-edge-1b-1.58bit.gguf',
+    sha256: '',
+    isEmbedding: false,
+    minTier: 'constrained',
+    inferenceBackend: 'bitnet',
+    license: 'TII Falcon 2.0',
+    nativeOneBit: true,
+    contextLength: 2048,
+  },
+
+  {
+    id: 'falcon-edge-3b',
+    displayName: 'Falcon-Edge 3B',
+    family: 'falcon-bitnet',
+    parameterCount: '3B',
+    quantization: '1.58-bit',
+    fileSizeBytes: 999_000_000, // ~999MB
+    ramRequiredMb: 2048,
+    hfRepo: 'tiiuae/Falcon-Edge-3B-1.58bit',
+    hfFilename: 'falcon-edge-3b-1.58bit.gguf',
+    sha256: '',
+    isEmbedding: false,
+    minTier: 'constrained',
+    inferenceBackend: 'bitnet',
+    license: 'TII Falcon 2.0',
+    nativeOneBit: true,
+    contextLength: 2048,
+  },
+
+  // ─── Post-Training Quantized Models (standard models compressed to 1.58-bit) ─
+
+  {
+    id: 'falcon3-1b-instruct-1.58bit',
+    displayName: 'Falcon3 1B Instruct',
+    family: 'falcon3-bitnet',
+    parameterCount: '1B',
+    quantization: '1.58-bit',
+    fileSizeBytes: 500_000_000, // ~0.5GB
+    ramRequiredMb: 1024,
+    hfRepo: 'tiiuae/Falcon3-1B-Instruct-1.58bit',
+    hfFilename: 'falcon3-1b-instruct-1.58bit.gguf',
+    sha256: '',
+    isEmbedding: false,
+    minTier: 'constrained',
+    inferenceBackend: 'bitnet',
+    license: 'TII Falcon 2.0',
+    nativeOneBit: false,
+    contextLength: 8192,
+  },
+
+  {
+    id: 'falcon3-3b-instruct-1.58bit',
+    displayName: 'Falcon3 3B Instruct',
+    family: 'falcon3-bitnet',
+    parameterCount: '3B',
+    quantization: '1.58-bit',
+    fileSizeBytes: 1_200_000_000, // ~1.2GB
+    ramRequiredMb: 2048,
+    hfRepo: 'tiiuae/Falcon3-3B-Instruct-1.58bit',
+    hfFilename: 'falcon3-3b-instruct-1.58bit.gguf',
+    sha256: '',
+    isEmbedding: false,
+    minTier: 'constrained',
+    inferenceBackend: 'bitnet',
+    license: 'TII Falcon 2.0',
+    nativeOneBit: false,
+    contextLength: 8192,
+  },
+
+  {
+    id: 'falcon3-7b-instruct-1.58bit',
+    displayName: 'Falcon3 7B Instruct',
+    family: 'falcon3-bitnet',
+    parameterCount: '7B',
+    quantization: '1.58-bit',
+    fileSizeBytes: 2_500_000_000, // ~2.5GB
+    ramRequiredMb: 4096,
+    hfRepo: 'tiiuae/Falcon3-7B-Instruct-1.58bit',
+    hfFilename: 'falcon3-7b-instruct-1.58bit.gguf',
+    sha256: '',
+    isEmbedding: false,
+    minTier: 'standard',
+    inferenceBackend: 'bitnet',
+    license: 'TII Falcon 2.0',
+    nativeOneBit: false,
+    contextLength: 8192,
+  },
+
+  {
+    id: 'falcon3-10b-instruct-1.58bit',
+    displayName: 'Falcon3 10B Instruct',
+    family: 'falcon3-bitnet',
+    parameterCount: '10B',
+    quantization: '1.58-bit',
+    fileSizeBytes: 3_500_000_000, // ~3.5GB
+    ramRequiredMb: 6144,
+    hfRepo: 'tiiuae/Falcon3-10B-Instruct-1.58bit',
+    hfFilename: 'falcon3-10b-instruct-1.58bit.gguf',
+    sha256: '',
+    isEmbedding: false,
+    minTier: 'performance',
+    inferenceBackend: 'bitnet',
+    license: 'TII Falcon 2.0',
+    nativeOneBit: false,
+    contextLength: 8192,
+  },
+
+  {
+    id: 'llama3-8b-instruct-1.58bit',
+    displayName: 'Llama 3 8B Instruct',
+    family: 'llama3-bitnet',
+    parameterCount: '8B',
+    quantization: '1.58-bit',
+    fileSizeBytes: 3_000_000_000, // ~3GB
+    ramRequiredMb: 5120,
+    hfRepo: '1bitLLM/Llama3-8B-1.58-100B-tokens',
+    hfFilename: 'llama3-8b-1.58bit.gguf',
+    sha256: '',
+    isEmbedding: false,
+    minTier: 'performance',
+    inferenceBackend: 'bitnet',
+    license: 'Meta Llama 3',
+    nativeOneBit: false,
+    contextLength: 8192,
+  },
+];
+
 /**
  * Get the recommended reasoning model for a hardware tier.
  * Returns the highest-quality model the hardware can support.
@@ -177,4 +348,71 @@ export function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+// ─── BitNet Lookup Functions ────────────────────────────────────────────────────
+
+/**
+ * Get all BitNet models from the catalog.
+ */
+export function getBitNetModels(): readonly ModelRegistryEntry[] {
+  return BITNET_MODEL_CATALOG;
+}
+
+/**
+ * Get BitNet models that a given hardware tier can run.
+ */
+export function getBitNetModelsForTier(tier: HardwareProfileTier): ModelRegistryEntry[] {
+  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation'];
+  const tierIndex = tierOrder.indexOf(tier);
+  return BITNET_MODEL_CATALOG.filter(m => tierOrder.indexOf(m.minTier) <= tierIndex);
+}
+
+/**
+ * Get the recommended BitNet model for a hardware tier.
+ * Scales to the best model the hardware can handle:
+ *   - constrained (<8GB): Falcon-Edge 1B (665MB, native 1-bit)
+ *   - standard (8-15GB): Falcon-Edge 3B (999MB, native 1-bit)
+ *   - performance (16-31GB): Falcon3 7B (2.5GB, 8192 context)
+ *   - workstation (32GB+): Falcon3 10B (3.5GB, best quality)
+ */
+export function getRecommendedBitNetModel(tier: HardwareProfileTier): ModelRegistryEntry {
+  switch (tier) {
+    case 'workstation':
+      return BITNET_MODEL_CATALOG.find(m => m.id === 'falcon3-10b-instruct-1.58bit')!;
+    case 'performance':
+      return BITNET_MODEL_CATALOG.find(m => m.id === 'falcon3-7b-instruct-1.58bit')!;
+    case 'standard':
+      return BITNET_MODEL_CATALOG.find(m => m.id === 'falcon-edge-3b')!;
+    case 'constrained':
+    default:
+      return BITNET_MODEL_CATALOG.find(m => m.id === 'falcon-edge-1b')!;
+  }
+}
+
+/**
+ * Get all models (standard + BitNet) available for a given tier.
+ * Returns reasoning models only (no embedding).
+ */
+export function getAllReasoningModelsForTier(tier: HardwareProfileTier): ModelRegistryEntry[] {
+  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation'];
+  const tierIndex = tierOrder.indexOf(tier);
+
+  const standard = MODEL_CATALOG.filter(
+    m => !m.isEmbedding && tierOrder.indexOf(m.minTier) <= tierIndex,
+  );
+  const bitnet = getBitNetModelsForTier(tier);
+
+  return [...standard, ...bitnet];
+}
+
+/**
+ * Look up any model (standard or BitNet) by ID.
+ */
+export function getAnyModelById(id: string): ModelRegistryEntry | null {
+  return (
+    MODEL_CATALOG.find(m => m.id === id)
+    ?? BITNET_MODEL_CATALOG.find(m => m.id === id)
+    ?? null
+  );
 }

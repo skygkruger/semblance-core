@@ -718,6 +718,108 @@ async function testPrivacy() {
   return f;
 }
 
+// ─── Dependency-Aware Root Cause Analysis ─────────────────────────────────────
+//
+// When multiple features fail, often a single root cause is responsible.
+// This maps common failure patterns to their root cause and surfaces the
+// fix that would resolve the most failures at once.
+
+const ROOT_CAUSES = [
+  {
+    id: 'NO_MODEL',
+    label: 'No AI model available (Ollama not running or no model pulled)',
+    detect: (features) => {
+      const chat = features.find(f => f.name === 'CHAT');
+      if (!chat) return false;
+      return chat.tests.some(t =>
+        t.status === 'FAIL' && /engine.*none|no model|inferenceEngine=none/i.test(t.detail || '')
+      );
+    },
+    blocks: ['CHAT', 'BRIEF', 'PROACT', 'EMAIL (draft generation)'],
+    fix: 'ollama serve && ollama pull llama3.1:8b',
+  },
+  {
+    id: 'SIDECAR_INIT_FAIL',
+    label: 'Sidecar failed to initialize',
+    detect: (features) => {
+      // If CHAT, PERSIST, CONNECT all fail their first test, init is broken
+      const criticalFails = ['CHAT', 'PERSIST', 'CONNECT'].filter(name => {
+        const f = features.find(x => x.name === name);
+        return f && f.fail > 0 && f.tests[0]?.status === 'FAIL';
+      });
+      return criticalFails.length >= 2;
+    },
+    blocks: ['ALL FEATURES'],
+    fix: 'Check sidecar stderr above for the actual error. Run: echo \'{"id":1,"method":"initialize","params":{}}\' | node packages/desktop/src-tauri/sidecar/bridge.cjs 2>&1',
+  },
+  {
+    id: 'NO_OAUTH_CONFIG',
+    label: '.env missing Google OAuth credentials',
+    detect: (features) => {
+      const connect = features.find(f => f.name === 'CONNECT');
+      if (!connect) return false;
+      return connect.tests.some(t =>
+        (t.status === 'WARN' || t.status === 'FAIL') && /client.*ID|\.env|UNCONFIGURED/i.test(t.detail || '')
+      );
+    },
+    blocks: ['CONNECT (Google Drive)', 'EMAIL (Gmail)', 'CAL (Google Calendar)'],
+    fix: 'Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env in repo root',
+  },
+  {
+    id: 'NO_SEARCH_PROVIDER',
+    label: 'No web search provider configured',
+    detect: (features) => {
+      const web = features.find(f => f.name === 'WEB');
+      if (!web) return false;
+      return web.tests.some(t =>
+        (t.status === 'WARN' || t.status === 'FAIL') && /SearXNG|Brave|no search/i.test(t.detail || '')
+      );
+    },
+    blocks: ['WEB'],
+    fix: 'Add BRAVE_API_KEY to .env or start SearXNG: docker run -p 8080:8080 searxng/searxng',
+  },
+  {
+    id: 'NO_INDEXED_DATA',
+    label: 'No files/emails indexed — knowledge graph and search are empty',
+    detect: (features) => {
+      const graph = features.find(f => f.name === 'GRAPH');
+      const files = features.find(f => f.name === 'FILES');
+      const graphEmpty = graph?.tests.some(t => /0 nodes/i.test(t.detail || ''));
+      const filesEmpty = files?.tests.some(t => /docs=0|0 results/i.test(t.detail || ''));
+      return graphEmpty && filesEmpty;
+    },
+    blocks: ['GRAPH (population)', 'FILES (search results)', 'BRIEF (data to summarize)'],
+    fix: 'In the app: Files screen → add a directory. Or connect Gmail and sync.',
+  },
+  {
+    id: 'DB_SCHEMA_MISSING',
+    label: 'Database tables not created (fresh install without proper init)',
+    detect: (features) => {
+      return features.some(f =>
+        f.tests.some(t =>
+          t.status === 'FAIL' && /SQLITE_ERROR|no such table|FOREIGN KEY/i.test(t.detail || '')
+        )
+      );
+    },
+    blocks: ['Varies — check which features show SQLITE_ERROR'],
+    fix: 'Delete ~/.semblance/data/ and restart — initSchema should recreate tables. If it doesn\'t, the init code has a bug.',
+  },
+];
+
+function printRootCauseAnalysis(features) {
+  const triggered = ROOT_CAUSES.filter(rc => rc.detect(features));
+  if (triggered.length === 0) return;
+
+  console.log('\n  ── ROOT CAUSE ANALYSIS ──\n');
+  for (const rc of triggered) {
+    console.log(`  ❌ ROOT CAUSE: ${rc.label}`);
+    const blocks = Array.isArray(rc.blocks) ? rc.blocks.join(', ') : rc.blocks;
+    console.log(`     Blocks: ${blocks}`);
+    console.log(`     Fix: ${rc.fix}`);
+    console.log();
+  }
+}
+
 // ─── Report Generation ────────────────────────────────────────────────────────
 
 function buildReport(initResult, date) {
@@ -803,6 +905,9 @@ function printReport(report) {
         });
       });
   }
+
+  // ── Dependency-Aware Root Cause Analysis ──────────────────────────────────
+  printRootCauseAnalysis(allFeatures);
 
   console.log('\n  Sidecar stderr (last 10 lines):');
   stderrLines.slice(-10).forEach(l => console.log('  ' + l));
