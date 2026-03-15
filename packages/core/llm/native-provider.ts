@@ -228,33 +228,25 @@ export class NativeProvider implements LLMProvider {
    * Format tool definitions as a prompt block the model can understand.
    */
   private formatToolDefinitions(tools: ToolDefinition[]): string {
-    const toolDescriptions = tools.map(t => {
-      const params = t.parameters as {
-        properties?: Record<string, { type: string; description?: string; enum?: string[] }>;
-        required?: string[];
-      };
-      const paramList = Object.entries(params.properties ?? {}).map(([name, schema]) => {
-        const required = (params.required ?? []).includes(name);
-        const enumStr = schema.enum ? ` (one of: ${schema.enum.join(', ')})` : '';
-        return `    - ${name} (${schema.type}${required ? ', required' : ''}): ${schema.description ?? ''}${enumStr}`;
-      }).join('\n');
-      return `  ${t.name}: ${t.description}\n    Parameters:\n${paramList}`;
-    }).join('\n\n');
+    // Compact format — only core tools, one-line descriptions.
+    // Small models (7B) get confused by verbose tool definitions.
+    // The orchestrator's intent extraction handles tool calling robustly
+    // even when the model doesn't output perfect formatted calls.
+    const coreTools = tools.filter(t =>
+      ['search_web', 'deep_search_web', 'fetch_url', 'fetch_inbox', 'search_emails',
+       'send_email', 'draft_email', 'fetch_calendar', 'create_reminder',
+       'search_knowledge', 'search_files'].includes(t.name)
+    );
+    const toolList = (coreTools.length > 0 ? coreTools : tools.slice(0, 10))
+      .map(t => `- ${t.name}: ${t.description?.split('.')[0] ?? ''}`)
+      .join('\n');
 
-    return `# Available Tools
+    return `To use a tool: tool_name({"key":"value"})
 
-You have access to the following tools. To use a tool, output a tool_call block:
+Available tools:
+${toolList}
 
-<tool_call>
-{"name": "tool_name", "arguments": {"param1": "value1"}}
-</tool_call>
-
-You can call multiple tools in one response. After tool calls are executed, you will receive the results and can then provide your final response to the user.
-
-If a request can be answered from your knowledge without tools, respond directly. Only use tools when you need to access the user's data, take an action, or get external information.
-
-Tools:
-${toolDescriptions}`;
+Answer from knowledge first. Use tools only when needed.`;
   }
 
   /**
