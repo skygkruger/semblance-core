@@ -152,9 +152,9 @@ export function InboxScreen() {
         getActionsSummary(),
       ]);
 
-      if (emailResult.status === 'fulfilled') setEmails(emailResult.value as unknown as IndexedEmail[]);
-      if (insightResult.status === 'fulfilled') setInsights(insightResult.value as unknown as ProactiveInsight[]);
-      if (calendarResult.status === 'fulfilled') setTodayEvents(calendarResult.value as unknown as CalendarEvent[]);
+      if (emailResult.status === 'fulfilled' && Array.isArray(emailResult.value)) setEmails(emailResult.value as unknown as IndexedEmail[]);
+      if (insightResult.status === 'fulfilled' && Array.isArray(insightResult.value)) setInsights(insightResult.value as unknown as ProactiveInsight[]);
+      if (calendarResult.status === 'fulfilled' && Array.isArray(calendarResult.value)) setTodayEvents(calendarResult.value as unknown as CalendarEvent[]);
       if (actionsResult.status === 'fulfilled') setActionsSummary(actionsResult.value as unknown as ActionsSummary);
     } catch (err) {
       console.error('[InboxScreen] loadInboxData failed:', err);
