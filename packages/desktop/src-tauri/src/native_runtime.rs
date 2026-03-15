@@ -225,15 +225,42 @@ impl NativeRuntime {
         let max_tokens = request.max_tokens.unwrap_or(512);
         let temperature = request.temperature.unwrap_or(0.7);
 
-        let full_prompt = match &request.system_prompt {
-            Some(sys) if !sys.is_empty() => format!(
-                "<|im_start|>system\n{}<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
-                sys, request.prompt
-            ),
-            _ => format!(
-                "<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
-                request.prompt
-            ),
+        // Detect prompt template from model path.
+        // Falcon3 Instruct uses: <|system|>...<|end|>\n<|user|>...<|end|>\n<|assistant|>
+        // Qwen/ChatML uses: <|im_start|>system\n...<|im_end|>\n<|im_start|>user\n...<|im_end|>\n<|im_start|>assistant\n
+        // Default to Falcon template since BitNet models are primarily Falcon.
+        let model_path_lower = self.reasoning_model_path
+            .as_ref()
+            .map(|p| p.to_string_lossy().to_lowercase())
+            .unwrap_or_default();
+
+        let use_chatml = model_path_lower.contains("qwen")
+            || model_path_lower.contains("bitnet-b1.58-2b4t");
+
+        let full_prompt = if use_chatml {
+            // ChatML template (Qwen, BitNet 2B4T)
+            match &request.system_prompt {
+                Some(sys) if !sys.is_empty() => format!(
+                    "<|im_start|>system\n{}<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
+                    sys, request.prompt
+                ),
+                _ => format!(
+                    "<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
+                    request.prompt
+                ),
+            }
+        } else {
+            // Falcon3 Instruct template (default for BitNet models)
+            match &request.system_prompt {
+                Some(sys) if !sys.is_empty() => format!(
+                    "<|system|>\n{}<|end|>\n<|user|>\n{}<|end|>\n<|assistant|>\n",
+                    sys, request.prompt
+                ),
+                _ => format!(
+                    "<|user|>\n{}<|end|>\n<|assistant|>\n",
+                    request.prompt
+                ),
+            }
         };
 
         Self::log(&format!(
