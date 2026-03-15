@@ -1991,11 +1991,20 @@ var init_inference_router = __esm({
       }
       /**
        * Set or update the BitNet provider (CPU-optimized 1-bit inference).
-       * Slots between Ollama (GPU) and NativeProvider (fallback) in the priority chain.
+       * BitNet acts as the primary reasoning provider when no GPU provider (Ollama) is active.
+       * When Ollama is available, call clearBitNetProvider() so the GPU path is used instead.
        */
       setBitNetProvider(provider, model) {
         this.bitnetProvider = provider;
         this.bitnetReasoningModel = model;
+      }
+      /**
+       * Clear the BitNet provider (e.g., when Ollama GPU inference becomes available).
+       * Requests will fall through to the reasoning provider instead.
+       */
+      clearBitNetProvider() {
+        this.bitnetProvider = null;
+        this.bitnetReasoningModel = null;
       }
       /**
        * Check if the BitNet provider is available and ready.
@@ -39216,7 +39225,7 @@ var init_pdf = __esm({
           var DOM_EXCEPTION = "DOMException";
           var Error2 = getBuiltIn("Error");
           var NativeDOMException = getBuiltIn(DOM_EXCEPTION);
-          var $DOMException = function DOMException() {
+          var $DOMException = function DOMException2() {
             anInstance(this, DOMExceptionPrototype);
             var argumentsLength = arguments.length;
             var message = normalizeStringArgument(argumentsLength < 1 ? void 0 : arguments[0]);
@@ -86056,21 +86065,21 @@ var require_dom = __commonJS({
     var INVALID_MODIFICATION_ERR = ExceptionCode.INVALID_MODIFICATION_ERR = (ExceptionMessage[13] = "Invalid modification", 13);
     var NAMESPACE_ERR = ExceptionCode.NAMESPACE_ERR = (ExceptionMessage[14] = "Invalid namespace", 14);
     var INVALID_ACCESS_ERR = ExceptionCode.INVALID_ACCESS_ERR = (ExceptionMessage[15] = "Invalid access", 15);
-    function DOMException(code, message) {
+    function DOMException2(code, message) {
       if (message instanceof Error) {
         var error = message;
       } else {
         error = this;
         Error.call(this, ExceptionMessage[code]);
         this.message = ExceptionMessage[code];
-        if (Error.captureStackTrace) Error.captureStackTrace(this, DOMException);
+        if (Error.captureStackTrace) Error.captureStackTrace(this, DOMException2);
       }
       error.code = code;
       if (message) this.message = this.message + ": " + message;
       return error;
     }
-    DOMException.prototype = Error.prototype;
-    copy(ExceptionCode, DOMException);
+    DOMException2.prototype = Error.prototype;
+    copy(ExceptionCode, DOMException2);
     function NodeList() {
     }
     NodeList.prototype = {
@@ -86180,7 +86189,7 @@ var require_dom = __commonJS({
           }
         }
       } else {
-        throw new DOMException(NOT_FOUND_ERR, new Error(el.tagName + "@" + attr));
+        throw new DOMException2(NOT_FOUND_ERR, new Error(el.tagName + "@" + attr));
       }
     }
     NamedNodeMap.prototype = {
@@ -86198,7 +86207,7 @@ var require_dom = __commonJS({
       setNamedItem: function(attr) {
         var el = attr.ownerElement;
         if (el && el != this._ownerElement) {
-          throw new DOMException(INUSE_ATTRIBUTE_ERR);
+          throw new DOMException2(INUSE_ATTRIBUTE_ERR);
         }
         var oldAttr = this.getNamedItem(attr.nodeName);
         _addNamedNode(this._ownerElement, this, attr, oldAttr);
@@ -86208,7 +86217,7 @@ var require_dom = __commonJS({
       setNamedItemNS: function(attr) {
         var el = attr.ownerElement, oldAttr;
         if (el && el != this._ownerElement) {
-          throw new DOMException(INUSE_ATTRIBUTE_ERR);
+          throw new DOMException2(INUSE_ATTRIBUTE_ERR);
         }
         oldAttr = this.getNamedItemNS(attr.namespaceURI, attr.localName);
         _addNamedNode(this._ownerElement, this, attr, oldAttr);
@@ -86540,10 +86549,10 @@ var require_dom = __commonJS({
     }
     function assertPreInsertionValidity1to5(parent, node, child) {
       if (!hasValidParentNodeType(parent)) {
-        throw new DOMException(HIERARCHY_REQUEST_ERR, "Unexpected parent node type " + parent.nodeType);
+        throw new DOMException2(HIERARCHY_REQUEST_ERR, "Unexpected parent node type " + parent.nodeType);
       }
       if (child && child.parentNode !== parent) {
-        throw new DOMException(NOT_FOUND_ERR, "child not in parent");
+        throw new DOMException2(NOT_FOUND_ERR, "child not in parent");
       }
       if (
         // 4. If `node` is not a DocumentFragment, DocumentType, Element, or CharacterData node, then throw a "HierarchyRequestError" DOMException.
@@ -86553,7 +86562,7 @@ var require_dom = __commonJS({
         // or `node` is a doctype and `parent` is not a document, then throw a "HierarchyRequestError" DOMException.
         isDocTypeNode(node) && parent.nodeType !== Node2.DOCUMENT_NODE
       ) {
-        throw new DOMException(
+        throw new DOMException2(
           HIERARCHY_REQUEST_ERR,
           "Unexpected node type " + node.nodeType + " for parent node type " + parent.nodeType
         );
@@ -86565,27 +86574,27 @@ var require_dom = __commonJS({
       if (node.nodeType === Node2.DOCUMENT_FRAGMENT_NODE) {
         var nodeChildElements = nodeChildNodes.filter(isElementNode);
         if (nodeChildElements.length > 1 || find2(nodeChildNodes, isTextNode)) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "More than one element or text in fragment");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "More than one element or text in fragment");
         }
         if (nodeChildElements.length === 1 && !isElementInsertionPossible(parent, child)) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "Element in fragment can not be inserted before doctype");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Element in fragment can not be inserted before doctype");
         }
       }
       if (isElementNode(node)) {
         if (!isElementInsertionPossible(parent, child)) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "Only one element can be added and only after doctype");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Only one element can be added and only after doctype");
         }
       }
       if (isDocTypeNode(node)) {
         if (find2(parentChildNodes, isDocTypeNode)) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "Only one doctype is allowed");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Only one doctype is allowed");
         }
         var parentElementChild = find2(parentChildNodes, isElementNode);
         if (child && parentChildNodes.indexOf(parentElementChild) < parentChildNodes.indexOf(child)) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "Doctype can only be inserted before an element");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Doctype can only be inserted before an element");
         }
         if (!child && parentElementChild) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "Doctype can not be appended since element is present");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Doctype can not be appended since element is present");
         }
       }
     }
@@ -86595,15 +86604,15 @@ var require_dom = __commonJS({
       if (node.nodeType === Node2.DOCUMENT_FRAGMENT_NODE) {
         var nodeChildElements = nodeChildNodes.filter(isElementNode);
         if (nodeChildElements.length > 1 || find2(nodeChildNodes, isTextNode)) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "More than one element or text in fragment");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "More than one element or text in fragment");
         }
         if (nodeChildElements.length === 1 && !isElementReplacementPossible(parent, child)) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "Element in fragment can not be inserted before doctype");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Element in fragment can not be inserted before doctype");
         }
       }
       if (isElementNode(node)) {
         if (!isElementReplacementPossible(parent, child)) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "Only one element can be added and only after doctype");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Only one element can be added and only after doctype");
         }
       }
       if (isDocTypeNode(node)) {
@@ -86612,11 +86621,11 @@ var require_dom = __commonJS({
         };
         var hasDoctypeChildThatIsNotChild = hasDoctypeChildThatIsNotChild2;
         if (find2(parentChildNodes, hasDoctypeChildThatIsNotChild2)) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "Only one doctype is allowed");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Only one doctype is allowed");
         }
         var parentElementChild = find2(parentChildNodes, isElementNode);
         if (child && parentChildNodes.indexOf(parentElementChild) < parentChildNodes.indexOf(child)) {
-          throw new DOMException(HIERARCHY_REQUEST_ERR, "Doctype can only be inserted before an element");
+          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Doctype can only be inserted before an element");
         }
       }
     }
@@ -87398,7 +87407,7 @@ var require_dom = __commonJS({
     }
     var getTextContent;
     exports2.DocumentType = DocumentType;
-    exports2.DOMException = DOMException;
+    exports2.DOMException = DOMException2;
     exports2.DOMImplementation = DOMImplementation;
     exports2.Element = Element;
     exports2.Node = Node2;
@@ -234908,13 +234917,13 @@ var BITNET_MODEL_CATALOG = [
     displayName: "BitNet b1.58 2B4T",
     family: "bitnet",
     parameterCount: "2B",
-    quantization: "1.58-bit",
-    fileSizeBytes: 4e8,
-    // ~0.4GB
-    ramRequiredMb: 1024,
-    hfRepo: "1bitLLM/bitnet_b1_58-2B4T",
-    hfFilename: "bitnet-b1.58-2B4T.gguf",
-    sha256: "",
+    quantization: "i2_s",
+    fileSizeBytes: 1187801280,
+    // 1.11GB exact HuggingFace
+    ramRequiredMb: 2048,
+    hfRepo: "microsoft/BitNet-b1.58-2B-4T-gguf",
+    hfFilename: "ggml-model-i2_s.gguf",
+    sha256: "4221b252fdd5fd25e15847adfeb5ee88886506ba50b8a34548374492884c2162",
     isEmbedding: false,
     minTier: "constrained",
     inferenceBackend: "bitnet",
@@ -234923,17 +234932,17 @@ var BITNET_MODEL_CATALOG = [
     contextLength: 4096
   },
   {
-    id: "falcon-edge-1b",
-    displayName: "Falcon-Edge 1B",
+    id: "falcon-e-1b",
+    displayName: "Falcon-E 1B Instruct",
     family: "falcon-bitnet",
     parameterCount: "1B",
-    quantization: "1.58-bit",
-    fileSizeBytes: 665e6,
-    // ~665MB
+    quantization: "i2_s",
+    fileSizeBytes: 666324256,
+    // 635MB exact HuggingFace
     ramRequiredMb: 1536,
-    hfRepo: "tiiuae/Falcon-Edge-1B-1.58bit",
-    hfFilename: "falcon-edge-1b-1.58bit.gguf",
-    sha256: "",
+    hfRepo: "tiiuae/Falcon-E-1B-Instruct-GGUF",
+    hfFilename: "ggml-model-i2_s.gguf",
+    sha256: "feb7478007e916d26bb807cb1a01cc45ac16f197e355d8c30aed25e550ecd73b",
     isEmbedding: false,
     minTier: "constrained",
     inferenceBackend: "bitnet",
@@ -234942,17 +234951,17 @@ var BITNET_MODEL_CATALOG = [
     contextLength: 2048
   },
   {
-    id: "falcon-edge-3b",
-    displayName: "Falcon-Edge 3B",
+    id: "falcon-e-3b",
+    displayName: "Falcon-E 3B Instruct",
     family: "falcon-bitnet",
     parameterCount: "3B",
-    quantization: "1.58-bit",
-    fileSizeBytes: 999e6,
-    // ~999MB
+    quantization: "i2_s",
+    fileSizeBytes: 999908608,
+    // 954MB exact HuggingFace
     ramRequiredMb: 2048,
-    hfRepo: "tiiuae/Falcon-Edge-3B-1.58bit",
-    hfFilename: "falcon-edge-3b-1.58bit.gguf",
-    sha256: "",
+    hfRepo: "tiiuae/Falcon-E-3B-Instruct-GGUF",
+    hfFilename: "ggml-model-i2_s.gguf",
+    sha256: "acef6896311c5d0713d80e4c7f7bc2ffa1fa183d905e2ca9236545372f434255",
     isEmbedding: false,
     minTier: "constrained",
     inferenceBackend: "bitnet",
@@ -234966,13 +234975,13 @@ var BITNET_MODEL_CATALOG = [
     displayName: "Falcon3 1B Instruct",
     family: "falcon3-bitnet",
     parameterCount: "1B",
-    quantization: "1.58-bit",
-    fileSizeBytes: 5e8,
-    // ~0.5GB
-    ramRequiredMb: 1024,
-    hfRepo: "tiiuae/Falcon3-1B-Instruct-1.58bit",
-    hfFilename: "falcon3-1b-instruct-1.58bit.gguf",
-    sha256: "",
+    quantization: "i2_s",
+    fileSizeBytes: 1361904672,
+    // 1.27GB exact HuggingFace
+    ramRequiredMb: 2048,
+    hfRepo: "tiiuae/Falcon3-1B-Instruct-1.58bit-GGUF",
+    hfFilename: "ggml-model-i2_s.gguf",
+    sha256: "0ecef8ad9bcb1b7d3b73bac7b0237daf2faa962b60cbbaf62c86ff51a39444b4",
     isEmbedding: false,
     minTier: "constrained",
     inferenceBackend: "bitnet",
@@ -234985,13 +234994,13 @@ var BITNET_MODEL_CATALOG = [
     displayName: "Falcon3 3B Instruct",
     family: "falcon3-bitnet",
     parameterCount: "3B",
-    quantization: "1.58-bit",
-    fileSizeBytes: 12e8,
-    // ~1.2GB
-    ramRequiredMb: 2048,
-    hfRepo: "tiiuae/Falcon3-3B-Instruct-1.58bit",
-    hfFilename: "falcon3-3b-instruct-1.58bit.gguf",
-    sha256: "",
+    quantization: "i2_s",
+    fileSizeBytes: 2221465632,
+    // 2.07GB exact HuggingFace
+    ramRequiredMb: 3072,
+    hfRepo: "tiiuae/Falcon3-3B-Instruct-1.58bit-GGUF",
+    hfFilename: "ggml-model-i2_s.gguf",
+    sha256: "2ee9723dc1abcc53f231ef1637bdd7c1ec1dbaf132c2c59873100cfb48b41455",
     isEmbedding: false,
     minTier: "constrained",
     inferenceBackend: "bitnet",
@@ -235004,13 +235013,13 @@ var BITNET_MODEL_CATALOG = [
     displayName: "Falcon3 7B Instruct",
     family: "falcon3-bitnet",
     parameterCount: "7B",
-    quantization: "1.58-bit",
-    fileSizeBytes: 25e8,
-    // ~2.5GB
-    ramRequiredMb: 4096,
-    hfRepo: "tiiuae/Falcon3-7B-Instruct-1.58bit",
-    hfFilename: "falcon3-7b-instruct-1.58bit.gguf",
-    sha256: "",
+    quantization: "i2_s",
+    fileSizeBytes: 3278680768,
+    // 3.05GB exact HuggingFace
+    ramRequiredMb: 5120,
+    hfRepo: "tiiuae/Falcon3-7B-Instruct-1.58bit-GGUF",
+    hfFilename: "ggml-model-i2_s.gguf",
+    sha256: "612ab67d4c5fb77d9f810eb521eb4a477dae46df1a85ca501018490e2dac35c6",
     isEmbedding: false,
     minTier: "standard",
     inferenceBackend: "bitnet",
@@ -235023,39 +235032,22 @@ var BITNET_MODEL_CATALOG = [
     displayName: "Falcon3 10B Instruct",
     family: "falcon3-bitnet",
     parameterCount: "10B",
-    quantization: "1.58-bit",
-    fileSizeBytes: 35e8,
-    // ~3.5GB
+    quantization: "i2_s",
+    fileSizeBytes: 3991393696,
+    // 3.72GB exact HuggingFace
     ramRequiredMb: 6144,
-    hfRepo: "tiiuae/Falcon3-10B-Instruct-1.58bit",
-    hfFilename: "falcon3-10b-instruct-1.58bit.gguf",
-    sha256: "",
+    hfRepo: "tiiuae/Falcon3-10B-Instruct-1.58bit-GGUF",
+    hfFilename: "ggml-model-i2_s.gguf",
+    sha256: "e37945ee82693a6541b5fa5484f0e24787c04a9ce95e6e377f68a6b15f139c1f",
     isEmbedding: false,
     minTier: "performance",
     inferenceBackend: "bitnet",
     license: "TII Falcon 2.0",
     nativeOneBit: false,
     contextLength: 8192
-  },
-  {
-    id: "llama3-8b-instruct-1.58bit",
-    displayName: "Llama 3 8B Instruct",
-    family: "llama3-bitnet",
-    parameterCount: "8B",
-    quantization: "1.58-bit",
-    fileSizeBytes: 3e9,
-    // ~3GB
-    ramRequiredMb: 5120,
-    hfRepo: "1bitLLM/Llama3-8B-1.58-100B-tokens",
-    hfFilename: "llama3-8b-1.58bit.gguf",
-    sha256: "",
-    isEmbedding: false,
-    minTier: "performance",
-    inferenceBackend: "bitnet",
-    license: "Meta Llama 3",
-    nativeOneBit: false,
-    contextLength: 8192
   }
+  // Llama3 8B 1.58bit removed — requires Python conversion (no pre-built GGUF available).
+  // Falcon3 7B covers the same tier with similar quality and ships as ready-made GGUF.
 ];
 function getRecommendedReasoningModel(tier) {
   const tierOrder = ["constrained", "standard", "performance", "workstation"];
@@ -235070,17 +235062,6 @@ function getEmbeddingModel() {
   if (!entry) throw new Error("No embedding model in catalog \u2014 this is a build error");
   return entry;
 }
-function getModelsForTier(tier) {
-  return [
-    getRecommendedReasoningModel(tier),
-    getEmbeddingModel()
-  ];
-}
-function getBitNetModelsForTier(tier) {
-  const tierOrder = ["constrained", "standard", "performance", "workstation"];
-  const tierIndex = tierOrder.indexOf(tier);
-  return BITNET_MODEL_CATALOG.filter((m) => tierOrder.indexOf(m.minTier) <= tierIndex);
-}
 function getRecommendedBitNetModel(tier) {
   switch (tier) {
     case "workstation":
@@ -235088,10 +235069,10 @@ function getRecommendedBitNetModel(tier) {
     case "performance":
       return BITNET_MODEL_CATALOG.find((m) => m.id === "falcon3-7b-instruct-1.58bit");
     case "standard":
-      return BITNET_MODEL_CATALOG.find((m) => m.id === "falcon-edge-3b");
+      return BITNET_MODEL_CATALOG.find((m) => m.id === "falcon-e-3b");
     case "constrained":
     default:
-      return BITNET_MODEL_CATALOG.find((m) => m.id === "falcon-edge-1b");
+      return BITNET_MODEL_CATALOG.find((m) => m.id === "falcon-e-1b");
   }
 }
 
@@ -235360,7 +235341,7 @@ var BitNetProvider = class {
   embeddingModelName;
   constructor(config) {
     this.bridge = config.bridge;
-    this.modelName = config.modelName ?? "falcon-edge-1b";
+    this.modelName = config.modelName ?? "falcon-e-1b";
     this.embeddingModelName = config.embeddingModelName ?? "nomic-embed-text-v1.5";
   }
   async isAvailable() {
@@ -235619,12 +235600,12 @@ function createLLMProvider(config) {
   const reasoningModel = config && "reasoningModel" in config ? config.reasoningModel : void 0;
   const embeddingModel = config && "embeddingModel" in config ? config.embeddingModel : "nomic-embed-text";
   const bitnetBridge = config && "bitnetBridge" in config ? config.bitnetBridge : void 0;
-  const bitnetModel = config && "bitnetModel" in config ? config.bitnetModel : "falcon-edge-1b";
+  const bitnetModel = config && "bitnetModel" in config ? config.bitnetModel : "falcon-e-1b";
   let provider;
   if (runtime === "bitnet" && nativeBridge) {
     provider = new BitNetProvider({
       bridge: nativeBridge,
-      modelName: reasoningModel ?? "falcon-edge-1b",
+      modelName: reasoningModel ?? "falcon-e-1b",
       embeddingModelName: embeddingModel
     });
   } else if (runtime === "builtin" && nativeBridge) {
@@ -235640,7 +235621,7 @@ function createLLMProvider(config) {
   if (bitnetBridge && runtime !== "bitnet") {
     bitnetProvider = new BitNetProvider({
       bridge: bitnetBridge,
-      modelName: bitnetModel ?? "falcon-edge-1b",
+      modelName: bitnetModel ?? "falcon-e-1b",
       embeddingModelName: embeddingModel
     });
   }
@@ -235650,7 +235631,7 @@ function createLLMProvider(config) {
     reasoningModel: reasoningModel ?? "llama3.1:8b",
     embeddingModel: embeddingModel ?? "nomic-embed-text",
     bitnetProvider,
-    bitnetReasoningModel: bitnetProvider ? bitnetModel ?? "falcon-edge-1b" : void 0
+    bitnetReasoningModel: bitnetProvider ? bitnetModel ?? "falcon-e-1b" : void 0
   });
 }
 
@@ -237039,6 +237020,7 @@ var ACTION_DOMAIN_MAP = {
   "finance.plaid_disconnect": "finances",
   "health.fetch": "health",
   "web.search": "web",
+  "web.deep_search": "web",
   "web.fetch": "web",
   "reminder.create": "reminders",
   "reminder.update": "reminders",
@@ -237115,6 +237097,7 @@ var ACTION_RISK_MAP = {
   "finance.plaid_disconnect": "write",
   "health.fetch": "read",
   "web.search": "read",
+  "web.deep_search": "read",
   "web.fetch": "read",
   "reminder.create": "write",
   "reminder.update": "write",
@@ -238088,6 +238071,18 @@ var BASE_TOOLS = [
     }
   },
   {
+    name: "deep_search_web",
+    description: "Search the web AND fetch the actual content of the top results. Use this instead of search_web when you need to answer questions from web content, not just find links. Returns full page content for synthesis. Preferred for question-answering tasks.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "The search query" },
+        resultCount: { type: "number", description: "How many results to retrieve, default 3, max 5" }
+      },
+      required: ["query"]
+    }
+  },
+  {
     name: "fetch_url",
     description: "Fetch and extract content from a URL. Use when the user shares a link or asks to summarize an article. Available in all autonomy tiers (informational).",
     parameters: {
@@ -238331,6 +238326,7 @@ var BASE_TOOL_ACTION_MAP = {
   "fetch_calendar": "calendar.fetch",
   "create_calendar_event": "calendar.create",
   "search_web": "web.search",
+  "deep_search_web": "web.deep_search",
   "fetch_url": "web.fetch",
   "create_reminder": "reminder.create",
   "list_reminders": "reminder.list",
@@ -238388,6 +238384,8 @@ ${autonomyBlock}
 You are warm, direct, and concise. Respond naturally like a helpful friend. When ${userRef} greets you or makes small talk, just chat back naturally. When they ask you to do something specific, use your tools to help.
 
 Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : " You do not know your user's name yet. You MUST ask them what their name is. Do NOT guess or make up a name."}
+
+About this app: You are part of Semblance, a fully local, self-hosted personal AI. Semblance ingests emails, files, calendar, and other data into a local knowledge graph. All processing happens on-device \u2014 user data never leaves their machine. Semblance is built by VERIDIAN SYNTHETICS. If ${userRef} asks about the app, explain that you are their personal AI that runs entirely on their device for complete privacy. You can search their files, emails, and knowledge base, manage their calendar, draft emails, set reminders, and search the web. You get smarter over time as more of their data is indexed locally.
 
 IMPORTANT: When you call a tool, do NOT write fake results in your message. Say only a brief sentence like "Let me check that for you." The real results come after the tool runs. Never invent emails, meetings, names, or data.
 
@@ -238529,7 +238527,7 @@ var OrchestratorImpl = class {
       if (toolResults.executedResults.length > 0) {
         const sanitizedToolResults = toolResults.executedResults.map((r) => {
           const resultStr = JSON.stringify(r.result);
-          const needsFullSanitization = r.tool === "fetch_url" || r.tool === "search_web";
+          const needsFullSanitization = r.tool === "fetch_url" || r.tool === "search_web" || r.tool === "deep_search_web";
           const sanitized = needsFullSanitization ? sanitizeRetrievedContent(resultStr) : resultStr;
           return `${r.tool}: ${sanitized}`;
         }).join("\n");
@@ -239453,6 +239451,8 @@ ${docContextStr}`,
         return `Called ${payload["service"] ?? "service"}: ${payload["endpoint"] ?? ""}`;
       case "web.search":
         return `Searched web: ${truncate(String(payload["query"] ?? ""), 40)}`;
+      case "web.deep_search":
+        return `Deep searched web: ${truncate(String(payload["query"] ?? ""), 40)}`;
       case "web.fetch":
         return `Fetched URL: ${truncate(String(payload["url"] ?? ""), 50)}`;
       case "reminder.create":
@@ -245423,6 +245423,7 @@ var ActionType = external_exports.enum([
   "finance.fetch_transactions",
   "health.fetch",
   "web.search",
+  "web.deep_search",
   "web.fetch",
   "reminder.create",
   "reminder.update",
@@ -245612,7 +245613,21 @@ var WebSearchResponse = external_exports.object({
     age: external_exports.string().optional()
   })),
   query: external_exports.string(),
-  provider: external_exports.enum(["brave", "searxng"])
+  provider: external_exports.enum(["brave", "searxng", "duckduckgo"])
+});
+var WebDeepSearchPayload = external_exports.object({
+  query: external_exports.string().min(1),
+  resultCount: external_exports.number().int().min(1).max(5).optional().default(3)
+});
+var WebDeepSearchResponse = external_exports.object({
+  query: external_exports.string(),
+  provider: external_exports.enum(["brave", "searxng", "duckduckgo"]),
+  results: external_exports.array(external_exports.object({
+    title: external_exports.string(),
+    url: external_exports.string(),
+    snippet: external_exports.string(),
+    fullContent: external_exports.string().nullable()
+  }))
 });
 var WebFetchPayload = external_exports.object({
   url: external_exports.string().url(),
@@ -245812,6 +245827,7 @@ var ActionPayloadMap = {
   "finance.plaid_disconnect": PlaidDisconnectPayload.strict(),
   "health.fetch": HealthFetchPayload.strict(),
   "web.search": WebSearchPayload.strict(),
+  "web.deep_search": WebDeepSearchPayload.strict(),
   "web.fetch": WebFetchPayload.strict(),
   "reminder.create": ReminderCreatePayload.strict(),
   "reminder.update": ReminderUpdatePayload.strict(),
@@ -249456,6 +249472,8 @@ var TIME_SAVED_DEFAULTS = {
   // Fetching is infrastructure
   "web.search": 30,
   // Faster than switching to browser, searching, reading results
+  "web.deep_search": 180,
+  // Search + read multiple pages + synthesize — significant time save
   "web.fetch": 120,
   // Avoids reading and manually summarizing article
   "reminder.create": 60,
@@ -249808,8 +249826,8 @@ function extractTargetDomain(action, payload) {
   if (action === "model.download") {
     return "huggingface.co";
   }
-  if (action === "web.search") {
-    return "api.search.brave.com";
+  if (action === "web.search" || action === "web.deep_search") {
+    return null;
   }
   if (action === "web.fetch" && typeof payload["url"] === "string") {
     try {
@@ -250071,10 +250089,131 @@ var SearXNGAdapter = class {
   }
 };
 
+// packages/gateway/services/duckduckgo-adapter.ts
+var DuckDuckGoAdapter = class {
+  fetchFn;
+  constructor(config) {
+    this.fetchFn = config?.fetchFn ?? globalThis.fetch;
+  }
+  async execute(action, payload) {
+    if (action !== "web.search") {
+      return {
+        success: false,
+        error: { code: "UNSUPPORTED_ACTION", message: `DuckDuckGo adapter does not support: ${action}` }
+      };
+    }
+    try {
+      return await this.handleSearch(payload);
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "DUCKDUCKGO_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  async handleSearch(payload) {
+    const count = payload.count ?? 5;
+    const maxResults = Math.min(count, 10);
+    const params = new URLSearchParams({
+      q: payload.query
+    });
+    const url = `https://html.duckduckgo.com/html/?${params.toString()}`;
+    const response = await this.fetchFn(url, {
+      method: "GET",
+      headers: {
+        "User-Agent": "Semblance/1.0 (Local AI Assistant)",
+        "Accept": "text/html",
+        "Accept-Language": "en-US,en;q=0.9"
+      },
+      redirect: "follow"
+    });
+    if (response.status === 429 || response.status === 503) {
+      return {
+        success: false,
+        error: {
+          code: "RATE_LIMITED",
+          message: "DuckDuckGo rate limit \u2014 try again in a moment."
+        }
+      };
+    }
+    if (!response.ok) {
+      return {
+        success: false,
+        error: {
+          code: "DUCKDUCKGO_HTTP_ERROR",
+          message: `DuckDuckGo returned HTTP ${response.status}`
+        }
+      };
+    }
+    const html = await response.text();
+    const results = parseDuckDuckGoHTML(html, maxResults);
+    return {
+      success: true,
+      data: {
+        results,
+        query: payload.query,
+        provider: "duckduckgo"
+      }
+    };
+  }
+};
+function parseDuckDuckGoHTML(html, maxResults) {
+  const results = [];
+  const resultBlockRegex = /<div[^>]*class="[^"]*result[^"]*results_links[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/gi;
+  const titleRegex = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+  const snippetRegex = /<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
+  const titles = [];
+  let titleMatch;
+  while ((titleMatch = titleRegex.exec(html)) !== null) {
+    const rawUrl = titleMatch[1];
+    const rawTitle = titleMatch[2];
+    const realUrl = extractRealUrl(rawUrl);
+    const cleanTitle = stripHtml(rawTitle).trim();
+    if (realUrl && cleanTitle && !realUrl.includes("duckduckgo.com")) {
+      titles.push({ url: realUrl, title: cleanTitle });
+    }
+  }
+  const snippets = [];
+  let snippetMatch;
+  while ((snippetMatch = snippetRegex.exec(html)) !== null) {
+    snippets.push(stripHtml(snippetMatch[1]).trim());
+  }
+  for (let i = 0; i < Math.min(titles.length, maxResults); i++) {
+    results.push({
+      title: titles[i].title,
+      url: titles[i].url,
+      snippet: snippets[i] ?? ""
+    });
+  }
+  return results;
+}
+function extractRealUrl(ddgUrl) {
+  if (ddgUrl.includes("uddg=")) {
+    const match = ddgUrl.match(/uddg=([^&]+)/);
+    if (match?.[1]) {
+      try {
+        return decodeURIComponent(match[1]);
+      } catch {
+        return match[1];
+      }
+    }
+  }
+  if (ddgUrl.startsWith("http")) return ddgUrl;
+  if (ddgUrl.startsWith("//")) return `https:${ddgUrl}`;
+  return ddgUrl;
+}
+function stripHtml(html) {
+  return html.replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
+}
+
 // packages/gateway/services/web-search-factory.ts
 var WebSearchAdapterFactory = class {
   braveAdapter;
   searxngAdapter;
+  duckduckgoAdapter;
   config;
   constructor(config) {
     this.config = config;
@@ -250086,10 +250225,14 @@ var WebSearchAdapterFactory = class {
       getBaseUrl: config.getSearXNGUrl,
       fetchFn: config.fetchFn
     });
+    this.duckduckgoAdapter = new DuckDuckGoAdapter({
+      fetchFn: config.fetchFn
+    });
   }
   /**
    * Get the appropriate search adapter based on current configuration.
-   * Falls back to Brave if SearXNG is selected but not configured.
+   * Fallback chain: selected provider > DuckDuckGo (always available).
+   * DuckDuckGo never returns "not configured" — it always works.
    */
   getAdapter() {
     const provider = this.config.getProvider();
@@ -250098,10 +250241,17 @@ var WebSearchAdapterFactory = class {
       if (url) {
         return this.searxngAdapter;
       }
-      console.warn("[WebSearch] SearXNG selected but no URL configured, falling back to Brave");
-      return this.braveAdapter;
     }
-    return this.braveAdapter;
+    if (provider === "brave" || provider === "searxng") {
+      const apiKey = this.config.getBraveApiKey();
+      if (apiKey) {
+        return this.braveAdapter;
+      }
+    }
+    if (provider === "duckduckgo") {
+      return this.duckduckgoAdapter;
+    }
+    return this.duckduckgoAdapter;
   }
 };
 
@@ -250335,6 +250485,89 @@ var WebFetchAdapter = class {
   extractTitle(html) {
     const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     return match?.[1] ? match[1].trim() : "Untitled";
+  }
+};
+
+// packages/gateway/services/deep-search-adapter.ts
+var MAX_CONTENT_PER_PAGE = 3e3;
+var FETCH_TIMEOUT_MS = 8e3;
+var DeepSearchAdapter = class {
+  searchAdapter;
+  fetchAdapter;
+  constructor(config) {
+    this.searchAdapter = config.searchAdapter;
+    this.fetchAdapter = config.fetchAdapter;
+  }
+  /** Update search adapter reference (called when provider changes) */
+  setSearchAdapter(adapter) {
+    this.searchAdapter = adapter;
+  }
+  async execute(action, payload) {
+    if (action !== "web.deep_search") {
+      return {
+        success: false,
+        error: { code: "UNSUPPORTED_ACTION", message: `Deep search adapter does not support: ${action}` }
+      };
+    }
+    try {
+      return await this.handleDeepSearch(payload);
+    } catch (err) {
+      return {
+        success: false,
+        error: {
+          code: "DEEP_SEARCH_ERROR",
+          message: err instanceof Error ? err.message : String(err)
+        }
+      };
+    }
+  }
+  async handleDeepSearch(payload) {
+    const resultCount = payload.resultCount ?? 3;
+    const searchResult = await this.searchAdapter.execute("web.search", {
+      query: payload.query,
+      count: resultCount
+    });
+    if (!searchResult.success || !searchResult.data) {
+      return searchResult;
+    }
+    const searchData = searchResult.data;
+    const fetchPromises = searchData.results.map(async (result2) => {
+      try {
+        const fetchResult = await Promise.race([
+          this.fetchAdapter.execute("web.fetch", {
+            url: result2.url,
+            maxContentLength: MAX_CONTENT_PER_PAGE
+          }),
+          // Timeout fallback — resolves to null after FETCH_TIMEOUT_MS
+          new Promise((resolve5) => setTimeout(() => resolve5(null), FETCH_TIMEOUT_MS))
+        ]);
+        if (fetchResult && fetchResult.success && fetchResult.data) {
+          const fetchData2 = fetchResult.data;
+          return {
+            title: fetchData2.title || result2.title,
+            url: result2.url,
+            snippet: result2.snippet,
+            fullContent: fetchData2.content.substring(0, MAX_CONTENT_PER_PAGE)
+          };
+        }
+      } catch {
+      }
+      return {
+        title: result2.title,
+        url: result2.url,
+        snippet: result2.snippet,
+        fullContent: null
+      };
+    });
+    const results = await Promise.all(fetchPromises);
+    return {
+      success: true,
+      data: {
+        query: searchData.query,
+        provider: searchData.provider,
+        results
+      }
+    };
   }
 };
 
@@ -253617,7 +253850,7 @@ var Gateway = class {
       return row?.value ?? null;
     };
     const searchFactory = new WebSearchAdapterFactory({
-      getProvider: () => getWebSetting("provider") ?? "brave",
+      getProvider: () => getWebSetting("provider") ?? "duckduckgo",
       getBraveApiKey: () => getWebSetting("brave_api_key"),
       getSearXNGUrl: () => getWebSetting("searxng_url")
     });
@@ -253629,6 +253862,11 @@ var Gateway = class {
     this.serviceRegistry.register("web.search", searchDelegator);
     const webFetchAdapter = new WebFetchAdapter();
     this.serviceRegistry.register("web.fetch", webFetchAdapter);
+    const deepSearchAdapter = new DeepSearchAdapter({
+      searchAdapter: searchDelegator,
+      fetchAdapter: webFetchAdapter
+    });
+    this.serviceRegistry.register("web.deep_search", deepSearchAdapter);
     this.reminderDb = new import_better_sqlite32.default((0, import_node_path6.join)(dataDir2, "reminders.db"));
     const reminderStore = new ReminderStore(this.reminderDb);
     const reminderAdapter = new ReminderAdapter(reminderStore);
@@ -253668,6 +253906,14 @@ var Gateway = class {
       this.allowlist.addService({
         serviceName: "Google Accounts",
         domain: "accounts.google.com",
+        protocol: "https",
+        addedBy: "system"
+      });
+    }
+    if (!this.allowlist.isAllowed("html.duckduckgo.com")) {
+      this.allowlist.addService({
+        serviceName: "DuckDuckGo Search",
+        domain: "html.duckduckgo.com",
         protocol: "https",
         addedBy: "system"
       });
@@ -256970,14 +257216,17 @@ var TASK_PROFILES = {
     preferredDevice: "desktop"
   },
   // Complex reasoning tasks
+  // NOTE: With BitNet i2_s models, mobile can run 1-3B models efficiently on CPU.
+  // Tasks that don't strictly need 7B+ can run on mobile with reduced quality.
   "meeting_prep": {
     minRAM: 4,
-    minModelSize: "7B",
+    minModelSize: "3B",
+    // Reduced from 7B — BitNet 3B handles meeting prep adequately
     requiresGPU: false,
     requiresNetwork: false,
     estimatedDurationMs: 3e4,
     estimatedBatteryImpact: "high",
-    canRunOnMobile: false,
+    canRunOnMobile: true,
     canRunOnDesktop: true,
     preferredDevice: "desktop"
   },
@@ -256993,13 +257242,14 @@ var TASK_PROFILES = {
     preferredDevice: "either"
   },
   "knowledge_moment": {
-    minRAM: 4,
-    minModelSize: "7B",
+    minRAM: 2,
+    minModelSize: "3B",
+    // Reduced from 7B — BitNet 3B can extract knowledge moments
     requiresGPU: false,
     requiresNetwork: false,
     estimatedDurationMs: 15e3,
     estimatedBatteryImpact: "medium",
-    canRunOnMobile: false,
+    canRunOnMobile: true,
     canRunOnDesktop: true,
     preferredDevice: "desktop"
   },
@@ -257011,6 +257261,7 @@ var TASK_PROFILES = {
     estimatedDurationMs: 2e4,
     estimatedBatteryImpact: "medium",
     canRunOnMobile: false,
+    // Weekly digest needs full context — desktop preferred
     canRunOnDesktop: true,
     preferredDevice: "desktop"
   },
@@ -268239,6 +268490,29 @@ function respond(id, result2) {
 function respondError(id, error) {
   process.stdout.write(JSON.stringify({ id, error }) + "\n");
 }
+function logProviderTransition(from, to, model, reason) {
+  if (!gateway) return;
+  try {
+    const trail = gateway.getAuditTrail();
+    trail.append({
+      requestId: `provider-transition-${Date.now()}`,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      action: "service.api_call",
+      direction: "response",
+      status: "success",
+      payloadHash: "provider_transition",
+      signature: "provider_transition",
+      metadata: {
+        event: "provider_transition",
+        from,
+        to,
+        model,
+        reason
+      }
+    });
+  } catch {
+  }
+}
 var CALLBACK_TIMEOUT_MS = 3e5;
 var callbackProtocol = createCallbackProtocol(
   (line) => process.stdout.write(line),
@@ -268550,10 +268824,13 @@ async function handleInitialize() {
     if (status) console.error("[sidecar] NativeRuntime channel ready:", JSON.stringify(status));
     else console.error("[sidecar] NativeRuntime channel timed out (5s)");
   }).catch((err) => console.error("[sidecar] NativeRuntime channel error:", err));
+  const activeBitNetModelId = getPref("bitnet_active_model") ?? null;
   const nativeLlm = createLLMProvider({
     runtime: "builtin",
     nativeBridge: nativeRuntimeBridge,
-    embeddingModel: "nomic-embed-text-v1.5"
+    embeddingModel: "nomic-embed-text-v1.5",
+    bitnetBridge: nativeRuntimeBridge,
+    bitnetModel: activeBitNetModelId ?? "falcon-e-1b"
   });
   try {
     console.error("[sidecar] Creating SemblanceCore...");
@@ -268732,26 +269009,21 @@ async function handleInitialize() {
   let availableModels = [];
   const modelsBaseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
   for (const model of MODEL_CATALOG) {
+    if (!model.isEmbedding) continue;
     if (isModelDownloaded(model.id, modelsBaseDir)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
-      const modelType = model.id.includes("embed") ? "embedding" : "reasoning";
       try {
         const loadResult = await Promise.race([
-          sendCallback("native_load_model", { model_path: modelPath, model_type: modelType }),
+          sendCallback("native_load_model", { model_path: modelPath, model_type: "embedding" }),
           new Promise((resolve5) => setTimeout(() => resolve5(null), 12e4))
         ]);
         if (loadResult === null) {
-          console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s \u2014 model loading failed`);
+          console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s`);
           break;
         }
-        console.error(`[sidecar] Loaded model "${model.id}" into NativeRuntime (${modelType})`);
-        if (modelType === "reasoning") {
-          activeModel = model.displayName;
-          availableModels.push(model.displayName);
-        }
+        console.error(`[sidecar] Loaded embedding model "${model.id}" into NativeRuntime`);
       } catch (err) {
-        console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
-        break;
+        console.error(`[sidecar] Failed to load embedding "${model.id}":`, err);
       }
     }
   }
@@ -268784,7 +269056,7 @@ async function handleInitialize() {
     }
     if (ollamaAvailable) {
       const { OllamaProvider: OllamaProvider2 } = await Promise.resolve().then(() => (init_ollama_provider(), ollama_provider_exports));
-      const { InferenceRouter: InferenceRouter2 } = await Promise.resolve().then(() => (init_inference_router(), inference_router_exports));
+      const { InferenceRouter: InferenceRouter3 } = await Promise.resolve().then(() => (init_inference_router(), inference_router_exports));
       const ollamaProvider = new OllamaProvider2();
       const router = core.llm;
       if (router.setReasoningProvider) {
@@ -268792,6 +269064,7 @@ async function handleInitialize() {
         const ollamaModel = ollamaModels.find((m) => m === chatModel) ?? ollamaModels.find((m) => m.includes("llama3")) ?? ollamaModels.find((m) => !m.includes("embed") && !m.includes("nomic")) ?? ollamaModels[0];
         if (ollamaModel) {
           router.setReasoningProvider(ollamaProvider, ollamaModel);
+          if (router.clearBitNetProvider) router.clearBitNetProvider();
           core.models.setActiveChatModel(ollamaModel);
           try {
             if (core.agent) core.agent.setModel(ollamaModel);
@@ -268801,6 +269074,7 @@ async function handleInitialize() {
           activeModel = ollamaModel;
           availableModels = ollamaModels.filter((m) => !m.includes("embed") && !m.includes("nomic"));
           console.error(`[sidecar] Switched reasoning to Ollama GPU inference (model: ${ollamaModel})`);
+          logProviderTransition("native", "ollama", ollamaModel, "Ollama GPU detected at startup");
         } else {
           console.error("[sidecar] Ollama running but no reasoning models found \u2014 staying on NativeRuntime");
         }
@@ -268813,6 +269087,63 @@ async function handleInitialize() {
       }
     }
   }
+  if (inferenceEngine !== "ollama" && core) {
+    const activeBitNetId = getPref("bitnet_active_model") ?? null;
+    const bitnetBaseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+    const candidateIds = activeBitNetId ? [activeBitNetId] : [];
+    try {
+      const downloaded = listDownloadedBitNetModels(bitnetBaseDir);
+      for (const d of downloaded) {
+        if (!candidateIds.includes(d.modelId)) candidateIds.push(d.modelId);
+      }
+    } catch {
+    }
+    for (const candidateId of candidateIds) {
+      if (isBitNetModelDownloaded(candidateId, bitnetBaseDir)) {
+        const candidatePath = getBitNetModelPath(candidateId, bitnetBaseDir);
+        try {
+          await Promise.race([
+            sendCallback("native_load_model", { model_path: candidatePath, model_type: "reasoning" }),
+            new Promise((resolve5) => setTimeout(() => resolve5(null), 12e4))
+          ]);
+          const router = core.llm;
+          if (router.setBitNetProvider) {
+            const bitnetProv = new BitNetProvider({ bridge: nativeRuntimeBridge, modelName: candidateId });
+            router.setBitNetProvider(bitnetProv, candidateId);
+          }
+          inferenceEngine = "native";
+          const catalogEntry = BITNET_MODEL_CATALOG.find((m) => m.id === candidateId);
+          activeModel = catalogEntry?.displayName ?? candidateId;
+          console.error(`[sidecar] BitNet fallback activated: "${candidateId}" (CPU inference)`);
+          logProviderTransition("none", "bitnet", candidateId, "BitNet CPU fallback at startup (no Ollama)");
+          break;
+        } catch (err) {
+          console.error(`[sidecar] BitNet fallback load failed for "${candidateId}":`, err);
+        }
+      }
+    }
+  }
+  if (inferenceEngine === "none" && !activeModel && core) {
+    const stdBaseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+    for (const stdModel of MODEL_CATALOG.filter((m) => !m.isEmbedding)) {
+      if (isModelDownloaded(stdModel.id, stdBaseDir)) {
+        const stdPath = getModelPath(stdModel.id, stdBaseDir);
+        try {
+          await sendCallback("native_load_model", { model_path: stdPath, model_type: "reasoning" });
+          inferenceEngine = "native";
+          activeModel = stdModel.displayName;
+          console.error(`[sidecar] Standard model fallback activated: "${stdModel.id}"`);
+          logProviderTransition("none", "native", stdModel.id, "Standard GGUF fallback (BitNet models unavailable)");
+          break;
+        } catch (err) {
+          console.error(`[sidecar] Standard model load failed for "${stdModel.id}":`, err);
+        }
+      }
+    }
+  }
+  if (inferenceEngine === "none" && !activeModel) {
+    console.error("[sidecar] WARNING: No inference model available. Chat will prompt user to download a model.");
+  }
   const userName = getPref("user_name");
   const onboardingComplete = getPref("onboarding_complete") === "true";
   console.error("[sidecar] Ready");
@@ -268824,6 +269155,38 @@ async function handleInitialize() {
     onboardingComplete,
     userName
   });
+  if (inferenceEngine === "ollama" && core) {
+    const HEALTH_CHECK_INTERVAL = 3e4;
+    setInterval(async () => {
+      try {
+        const { Ollama: Ollama5 } = await Promise.resolve().then(() => (init_dist2(), dist_exports));
+        const client = new Ollama5({ host: "http://localhost:11434" });
+        await client.list();
+      } catch {
+        console.error("[sidecar] Ollama health check failed \u2014 falling back to BitNet/NativeRuntime");
+        const router = core.llm;
+        if (router.setReasoningProvider && router.setBitNetProvider) {
+          const bDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+          const downloaded = listDownloadedBitNetModels(bDir);
+          if (downloaded.length > 0) {
+            const bitId = downloaded[0].modelId;
+            const bitnetProv = new BitNetProvider({ bridge: nativeRuntimeBridge, modelName: bitId });
+            router.setBitNetProvider(bitnetProv, bitId);
+            console.error(`[sidecar] Fell back to BitNet "${bitId}" after Ollama failure`);
+            logProviderTransition("ollama", "bitnet", bitId, "Ollama health check failed \u2014 mid-session fallback");
+          }
+          emit("status-update", {
+            ollamaStatus: "disconnected",
+            inferenceEngine: "native",
+            activeModel: downloaded.length > 0 ? downloaded[0].modelId : activeModel,
+            availableModels: [],
+            onboardingComplete,
+            userName
+          });
+        }
+      }
+    }, HEALTH_CHECK_INTERVAL);
+  }
   return {
     ollamaStatus: inferenceEngine !== "none" ? "connected" : "disconnected",
     inferenceEngine,
@@ -268857,7 +269220,7 @@ async function handleSendMessage(id, params) {
     } catch {
     }
     if (!nativeReady) {
-      respondError(id, "No AI model available. The model may still be loading \u2014 try again in a moment.");
+      respondError(id, "No AI model available. Go to Settings \u2192 AI Engine to download a model, or install Ollama (ollama.com) for GPU-accelerated inference.");
       return;
     }
   }
@@ -270312,6 +270675,22 @@ async function handleShutdown() {
 }
 async function downloadHfFile(entry, targetPath, modelId, displayName) {
   const totalBytes = entry.fileSizeBytes ?? (entry.sizeMb ?? 0) * 1024 * 1024;
+  if (totalBytes > 0) {
+    try {
+      const { statfsSync } = await import("node:fs");
+      const stats = statfsSync(targetPath.substring(0, targetPath.lastIndexOf("/")) || targetPath.substring(0, targetPath.lastIndexOf("\\")) || ".");
+      const availableBytes = stats.bavail * stats.bsize;
+      const requiredBytes = totalBytes + 2e9;
+      if (availableBytes < requiredBytes) {
+        const availMb = Math.round(availableBytes / (1024 * 1024));
+        const reqMb = Math.round(requiredBytes / (1024 * 1024));
+        throw new Error(`Insufficient disk space: ${availMb}MB available, ${reqMb}MB required (model + 2GB buffer)`);
+      }
+    } catch (diskErr) {
+      if (diskErr instanceof Error && diskErr.message.includes("Insufficient disk space")) throw diskErr;
+      console.error(`[sidecar] Disk space check skipped: ${diskErr}`);
+    }
+  }
   const download = {
     modelId,
     modelName: displayName,
@@ -270327,12 +270706,32 @@ async function downloadHfFile(entry, targetPath, modelId, displayName) {
   const { createWriteStream } = await import("node:fs");
   const { pipeline } = await import("node:stream/promises");
   try {
-    const response = await globalThis.fetch(url, {
-      signal: download.abortController.signal,
-      redirect: "follow"
-    });
-    if (!response.ok || !response.body) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    let response = null;
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        response = await globalThis.fetch(url, {
+          signal: download.abortController.signal,
+          redirect: "follow"
+        });
+        if (response.ok && response.body) break;
+        const statusErr = `HTTP ${response.status}: ${response.statusText}`;
+        if (response.status >= 400 && response.status < 500) {
+          throw new Error(statusErr);
+        }
+        throw new Error(statusErr);
+      } catch (fetchErr) {
+        const isAbort = fetchErr instanceof DOMException && fetchErr.name === "AbortError";
+        const isClientError = fetchErr instanceof Error && fetchErr.message.startsWith("HTTP 4");
+        if (isAbort || isClientError || attempt === maxRetries - 1) throw fetchErr;
+        const delayMs = Math.pow(2, attempt + 1) * 1e3;
+        console.error(`[sidecar] Download attempt ${attempt + 1} failed, retrying in ${delayMs}ms...`);
+        await new Promise((r) => setTimeout(r, delayMs));
+        download.downloadedBytes = 0;
+      }
+    }
+    if (!response || !response.ok || !response.body) {
+      throw new Error(`Failed to download after ${maxRetries} attempts`);
     }
     const fileStream = createWriteStream(targetPath);
     const reader = response.body.getReader();
@@ -270367,6 +270766,24 @@ async function downloadHfFile(entry, targetPath, modelId, displayName) {
     });
     download.downloadedBytes = download.totalBytes;
     download.speedBytesPerSec = 0;
+    if (entry.sha256) {
+      const { createHash: createHash4 } = await import("node:crypto");
+      const { createReadStream } = await import("node:fs");
+      const hash = createHash4("sha256");
+      const readStream = createReadStream(targetPath);
+      for await (const chunk2 of readStream) {
+        hash.update(chunk2);
+      }
+      const actual = hash.digest("hex");
+      if (actual !== entry.sha256) {
+        try {
+          (await import("node:fs")).unlinkSync(targetPath);
+        } catch {
+        }
+        throw new Error(`SHA-256 mismatch for "${modelId}": expected ${entry.sha256}, got ${actual}`);
+      }
+      console.error(`[sidecar] SHA-256 verified for "${modelId}"`);
+    }
     const modelType = modelId.includes("embed") ? "embedding" : "reasoning";
     try {
       await sendCallback("native_load_model", { model_path: targetPath, model_type: modelType });
@@ -270396,31 +270813,28 @@ async function downloadHfFile(entry, targetPath, modelId, displayName) {
 }
 async function handleStartModelDownloads(params) {
   const tier = params.tier || "standard";
-  const models = getModelsForTier(tier);
   const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
   const results = [];
-  for (const model of models) {
-    const targetPath = getModelPath(model.id, baseDir);
-    if (isModelDownloaded(model.id, baseDir)) {
-      const existing = {
-        modelId: model.id,
-        modelName: model.displayName,
-        totalBytes: model.fileSizeBytes,
-        downloadedBytes: model.fileSizeBytes,
-        speedBytesPerSec: 0,
-        status: "complete"
-      };
-      activeDownloads.set(model.id, existing);
-      emit("model-download-progress", existing);
-      results.push({ modelId: model.id, status: "already_downloaded" });
-      const modelType = model.isEmbedding ? "embedding" : "reasoning";
-      sendCallback("native_load_model", { model_path: targetPath, model_type: modelType }).then(() => console.error(`[sidecar] Loaded existing model "${model.id}" into NativeRuntime (${modelType})`)).catch((err) => console.error(`[sidecar] NativeRuntime load failed for existing "${model.id}":`, err));
-      continue;
-    }
-    downloadHfFile(model, targetPath, model.id, model.displayName).catch((err) => {
-      console.error(`[sidecar] Model download failed: ${model.id}`, err);
+  const embeddingModel = getEmbeddingModel();
+  const embeddingPath = getModelPath(embeddingModel.id, baseDir);
+  if (isModelDownloaded(embeddingModel.id, baseDir)) {
+    const existing = {
+      modelId: embeddingModel.id,
+      modelName: embeddingModel.displayName,
+      totalBytes: embeddingModel.fileSizeBytes,
+      downloadedBytes: embeddingModel.fileSizeBytes,
+      speedBytesPerSec: 0,
+      status: "complete"
+    };
+    activeDownloads.set(embeddingModel.id, existing);
+    emit("model-download-progress", existing);
+    results.push({ modelId: embeddingModel.id, status: "already_downloaded" });
+    sendCallback("native_load_model", { model_path: embeddingPath, model_type: "embedding" }).then(() => console.error(`[sidecar] Loaded embedding model "${embeddingModel.id}" into NativeRuntime`)).catch((err) => console.error(`[sidecar] NativeRuntime load failed for embedding "${embeddingModel.id}":`, err));
+  } else {
+    downloadHfFile(embeddingModel, embeddingPath, embeddingModel.id, embeddingModel.displayName).catch((err) => {
+      console.error(`[sidecar] Embedding model download failed: ${embeddingModel.id}`, err);
     });
-    results.push({ modelId: model.id, status: "started" });
+    results.push({ modelId: embeddingModel.id, status: "started" });
   }
   const bitnetModel = getRecommendedBitNetModel(tier);
   const bitnetTargetPath = getBitNetModelPath(bitnetModel.id, baseDir);
@@ -270436,7 +270850,20 @@ async function handleStartModelDownloads(params) {
     activeDownloads.set(bitnetModel.id, existing);
     emit("model-download-progress", existing);
     results.push({ modelId: bitnetModel.id, status: "already_downloaded", backend: "bitnet" });
-    sendCallback("native_load_model", { model_path: bitnetTargetPath, model_type: "reasoning" }).then(() => console.error(`[sidecar] Loaded BitNet model "${bitnetModel.id}" into NativeRuntime`)).catch((err) => console.error(`[sidecar] NativeRuntime load failed for BitNet "${bitnetModel.id}":`, err));
+    sendCallback("native_load_model", { model_path: bitnetTargetPath, model_type: "reasoning" }).then(() => {
+      console.error(`[sidecar] Loaded BitNet model "${bitnetModel.id}" into NativeRuntime`);
+      if (core) {
+        const router = core.llm;
+        if (router.setBitNetProvider) {
+          const bitnetProv = new BitNetProvider({
+            bridge: nativeRuntimeBridge,
+            modelName: bitnetModel.id
+          });
+          router.setBitNetProvider(bitnetProv, bitnetModel.id);
+          console.error(`[sidecar] BitNetProvider wired into InferenceRouter for "${bitnetModel.id}"`);
+        }
+      }
+    }).catch((err) => console.error(`[sidecar] NativeRuntime load failed for BitNet "${bitnetModel.id}":`, err));
   } else {
     downloadHfFile(bitnetModel, bitnetTargetPath, bitnetModel.id, bitnetModel.displayName).catch((err) => {
       console.error(`[sidecar] BitNet model download failed: ${bitnetModel.id}`, err);
@@ -270498,8 +270925,8 @@ async function handleModelRetryDownload(params) {
 }
 function handleBitNetGetModels(params) {
   const tier = params.tier || "standard";
-  const available = getBitNetModelsForTier(tier);
   const recommended = getRecommendedBitNetModel(tier);
+  const available = getBitNetModels();
   const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
   const activeModelId = getPref("bitnet_active_model") ?? null;
   return {
@@ -270544,9 +270971,20 @@ async function handleBitNetSetActive(params) {
   }
   const modelPath = getBitNetModelPath(model.id, baseDir);
   await sendCallback("native_load_model", { model_path: modelPath, model_type: "reasoning" });
-  console.error(`[sidecar] Activated BitNet model "${model.id}" from ${modelPath}`);
+  console.error(`[sidecar] Loaded BitNet model "${model.id}" into NativeRuntime from ${modelPath}`);
+  if (core) {
+    const router = core.llm;
+    if (router.setBitNetProvider) {
+      const bitnetProvider = new BitNetProvider({
+        bridge: nativeRuntimeBridge,
+        modelName: model.id
+      });
+      router.setBitNetProvider(bitnetProvider, model.id);
+      console.error(`[sidecar] BitNetProvider wired into InferenceRouter for "${model.id}"`);
+    }
+  }
   try {
-    await handleSetPref({ key: "bitnet_active_model", value: model.id });
+    setPref("bitnet_active_model", model.id);
   } catch {
   }
   return { status: "active", modelId: model.id, modelPath };
@@ -270563,6 +271001,63 @@ function handleBitNetGetStatus() {
     totalDownloadedBytes: downloaded.reduce((sum, d) => sum + d.sizeBytes, 0),
     catalogSize: BITNET_MODEL_CATALOG.length
   };
+}
+function handleStandardGetModels() {
+  const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+  const standardModels = MODEL_CATALOG.filter((m) => !m.isEmbedding);
+  const activeStdModel = getPref("standard_active_model") ?? null;
+  return {
+    models: standardModels.map((m) => ({
+      id: m.id,
+      displayName: m.displayName,
+      family: m.family,
+      parameterCount: m.parameterCount,
+      fileSizeBytes: m.fileSizeBytes,
+      ramRequiredMb: m.ramRequiredMb,
+      license: m.license ?? "Apache 2.0",
+      nativeOneBit: false,
+      contextLength: m.contextLength ?? 32768,
+      isDownloaded: isModelDownloaded(m.id, baseDir),
+      isRecommended: false
+    })),
+    activeModelId: activeStdModel
+  };
+}
+async function handleStandardDownloadModel(params) {
+  const model = MODEL_CATALOG.find((m) => m.id === params.modelId && !m.isEmbedding);
+  if (!model) {
+    throw new Error(`Unknown standard model: ${params.modelId}`);
+  }
+  const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+  const targetPath = getModelPath(model.id, baseDir);
+  if (isModelDownloaded(model.id, baseDir)) {
+    return { status: "already_downloaded", modelId: model.id, path: targetPath };
+  }
+  await downloadHfFile(model, targetPath, model.id, model.displayName);
+  return { status: "started", modelId: model.id };
+}
+async function handleStandardSetActive(params) {
+  const model = MODEL_CATALOG.find((m) => m.id === params.modelId && !m.isEmbedding);
+  if (!model) {
+    throw new Error(`Unknown standard model: ${params.modelId}`);
+  }
+  const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+  if (!isModelDownloaded(model.id, baseDir)) {
+    throw new Error(`Standard model not downloaded: ${model.id}. Download it first.`);
+  }
+  const modelPath = getModelPath(model.id, baseDir);
+  await sendCallback("native_load_model", { model_path: modelPath, model_type: "reasoning" });
+  console.error(`[sidecar] Loaded standard model "${model.id}" into NativeRuntime from ${modelPath}`);
+  const currentBitnet = getPref("bitnet_active_model");
+  if (currentBitnet) {
+    logProviderTransition("bitnet", "standard", model.id, "User selected standard model from Settings");
+  }
+  try {
+    setPref("standard_active_model", model.id);
+    setPref("bitnet_active_model", "");
+  } catch {
+  }
+  return { status: "active", modelId: model.id, modelPath };
 }
 function handleVoiceGetModelStatus() {
   const baseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
@@ -272713,6 +273208,22 @@ async function handleRequest(req) {
       }
       case "bitnet_get_status": {
         const result3 = handleBitNetGetStatus();
+        respond(id, result3);
+        break;
+      }
+      // ─── Standard Model Management ──────────────────────────────────────
+      case "standard_get_models": {
+        const result3 = handleStandardGetModels();
+        respond(id, result3);
+        break;
+      }
+      case "standard_download_model": {
+        const result3 = await handleStandardDownloadModel(params);
+        respond(id, result3);
+        break;
+      }
+      case "standard_set_active": {
+        const result3 = await handleStandardSetActive(params);
         respond(id, result3);
         break;
       }

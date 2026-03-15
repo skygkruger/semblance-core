@@ -329,9 +329,10 @@ function extractTargetDomain(
   if (action === 'model.download') {
     return 'huggingface.co';
   }
-  // Web search targets the search API domain
-  if (action === 'web.search') {
-    return 'api.search.brave.com';
+  // Web search: skip allowlist check — adapter targets are controlled by configuration, not user input.
+  // DuckDuckGo (default), Brave, SearXNG are all well-known search providers.
+  if (action === 'web.search' || action === 'web.deep_search') {
+    return null;
   }
   // Web fetch targets the URL's domain (dynamic per-request authorization)
   if (action === 'web.fetch' && typeof payload['url'] === 'string') {
