@@ -43,7 +43,7 @@ describe('Hardware → Model Selection Pipeline', () => {
     expect(reasoning.parameterCount).toBe('7B');
   });
 
-  it('workstation hardware (64GB + RTX) gets best 7B Q8 model', () => {
+  it('workstation hardware (64GB + RTX) gets best 7B Q4_K_M model (CPU-optimized)', () => {
     const gpu: GpuInfo = {
       name: 'RTX 4090',
       vendor: 'nvidia',
@@ -54,7 +54,7 @@ describe('Hardware → Model Selection Pipeline', () => {
     expect(tier).toBe('workstation');
 
     const reasoning = getRecommendedReasoningModel(tier);
-    expect(reasoning.quantization).toBe('Q8_0');
+    expect(reasoning.quantization).toBe('Q4_K_M'); // Q4_K_M preferred — Q8_0 too slow on CPU-only
   });
 
   it('embedding model is identical across all tiers (locked decision)', () => {

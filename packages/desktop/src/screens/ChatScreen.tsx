@@ -568,26 +568,35 @@ export function ChatScreen() {
       }
       dispatch({ type: 'REPLACE_CHAT_MESSAGES', messages: msgs });
 
-      // Show the result as an assistant message so the user sees what happened
+      // After tool execution, automatically send results back to the AI for synthesis.
+      // The AI follows up with a natural-language response — the user NEVER needs to reprompt.
       if (result.status === 'success' && result.data) {
-        // Synthesize human-readable summaries for ALL tool results — never dump raw JSON.
         const preview = formatToolResult(actionLabel, result.data as Record<string, unknown>);
+
+        // Add a placeholder assistant message for the synthesis response
+        const synthMsgId = `synth_${Date.now()}`;
         dispatch({
           type: 'ADD_CHAT_MESSAGE',
-          message: {
-            id: `action_result_${Date.now()}`,
-            role: 'assistant',
-            content: preview,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
+          message: { id: synthMsgId, role: 'assistant', content: '', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
         });
+        dispatch({ type: 'SET_IS_RESPONDING', value: true });
+
+        // Send the tool result as a follow-up for the AI to synthesize.
+        // The normal streaming response flow will populate the placeholder message.
+        const synthesisPrompt = `[Tool result for ${actionLabel.replace(/\./g, ' ')}]:\n${preview}\n\nSummarize these results naturally for the user.`;
+        sendMessage(synthesisPrompt, state.activeConversationId ?? undefined)
+          .catch(() => {
+            // Fallback: show the formatted result directly if synthesis fails
+            dispatch({ type: 'APPEND_TO_LAST_MESSAGE', content: preview });
+            dispatch({ type: 'SET_IS_RESPONDING', value: false });
+          });
       } else if (result.status === 'error' || result.error) {
         dispatch({
           type: 'ADD_CHAT_MESSAGE',
           message: {
             id: `action_error_${Date.now()}`,
             role: 'assistant',
-            content: `**${actionLabel}** failed: ${typeof result.error?.message === 'string' ? result.error.message : typeof result.error === 'string' ? result.error : 'Unknown error'}`,
+            content: `That didn't work — ${typeof result.error?.message === 'string' ? result.error.message : typeof result.error === 'string' ? result.error : 'something went wrong'}. Would you like me to try again?`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           },
         });
@@ -604,7 +613,7 @@ export function ChatScreen() {
         },
       });
     }
-  }, [state.chatMessages, dispatch]);
+  }, [state.chatMessages, state.activeConversationId, dispatch]);
 
   const handleRejectAction = useCallback(async (actionId: string) => {
     try {
