@@ -280,9 +280,19 @@ export function getRecommendedReasoningModel(tier: HardwareProfileTier): ModelRe
   const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation'];
   const tierIndex = tierOrder.indexOf(tier);
 
-  // Find the best model this tier can run (highest minTier <= current tier)
+  // Find the best Q4_K_M model this tier can run. Q8_0 is excluded because
+  // it's designed for GPU acceleration — on CPU-only it's 2x slower than Q4_K_M
+  // with negligible quality improvement. Q4_K_M is the optimal CPU quantization.
   const candidates = MODEL_CATALOG
-    .filter(m => !m.isEmbedding && tierOrder.indexOf(m.minTier) <= tierIndex);
+    .filter(m => !m.isEmbedding && !m.quantization.includes('Q8') && tierOrder.indexOf(m.minTier) <= tierIndex);
+
+  if (candidates.length === 0) {
+    // Fallback: include all models if no Q4 candidates (shouldn't happen)
+    const all = MODEL_CATALOG.filter(m => !m.isEmbedding && tierOrder.indexOf(m.minTier) <= tierIndex);
+    return all.reduce((best, current) =>
+      tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
+    );
+  }
 
   // Return the one with the highest minTier (best quality the hardware supports)
   return candidates.reduce((best, current) =>

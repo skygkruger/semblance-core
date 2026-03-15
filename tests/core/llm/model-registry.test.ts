@@ -72,10 +72,10 @@ describe('getRecommendedReasoningModel', () => {
     expect(model.parameterCount).toBe('7B');
   });
 
-  it('workstation tier gets highest quality 7B model', () => {
+  it('workstation tier gets 7B Q4_K_M model (CPU-optimized)', () => {
     const model = getRecommendedReasoningModel('workstation');
     expect(model.parameterCount).toBe('7B');
-    expect(model.quantization).toBe('Q8_0');
+    expect(model.quantization).toBe('Q4_K_M'); // Q4_K_M preferred — Q8_0 too slow on CPU-only
   });
 
   it('higher tiers get larger or higher quality models', () => {

@@ -97,10 +97,11 @@ export class BitNetProvider implements LLMProvider {
     // which handles role separation. Adding "Assistant:" causes double-formatting.
     const prompt = nonSystemMessages.map(m => m.content).join('\n\n');
 
-    // Stop sequences for both ChatML (Qwen) and Falcon3 templates
+    // Stop sequences for all model families
     const stopSequences = [
       ...(request.stop ?? []),
       '<|im_end|>', '<|im_start|>',  // ChatML (Qwen)
+      '<|end|>', '<|eot_id|>',       // Common end tokens
       '<|user|>', '<|system|>', '<|endoftext|>',  // Falcon3
     ];
 
