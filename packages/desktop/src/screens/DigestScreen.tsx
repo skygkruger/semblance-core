@@ -78,7 +78,7 @@ export function DigestScreen() {
         listDigests(),
       ]);
       if (latest.status === 'fulfilled' && latest.value) setDigest(latest.value as unknown as WeeklyDigest);
-      if (list.status === 'fulfilled') setPastDigests(list.value as unknown as DigestSummary[]);
+      if (list.status === 'fulfilled' && Array.isArray(list.value)) setPastDigests(list.value as unknown as DigestSummary[]);
     } catch (err) {
       console.error('[DigestScreen] load digest failed:', err);
     } finally {
