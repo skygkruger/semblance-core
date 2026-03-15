@@ -570,28 +570,14 @@ export function ChatScreen() {
 
       // Show the result as an assistant message so the user sees what happened
       if (result.status === 'success' && result.data) {
-        // Summarize large results (email fetches, etc.) instead of dumping raw JSON
-        let preview: string;
-        const data = result.data as Record<string, unknown>;
-        if (actionLabel === 'email.fetch' && data.messages && Array.isArray(data.messages)) {
-          const count = data.messages.length;
-          preview = `Fetched ${count} email${count !== 1 ? 's' : ''} from your inbox.`;
-        } else if (actionLabel === 'email.send' || actionLabel === 'email.draft') {
-          preview = actionLabel === 'email.send' ? 'Email sent.' : 'Draft saved.';
-        } else {
-          const dataSummary = typeof result.data === 'string'
-            ? result.data
-            : JSON.stringify(result.data, null, 2);
-          preview = dataSummary.length > 500
-            ? dataSummary.slice(0, 500) + '\n... (truncated)'
-            : dataSummary;
-        }
+        // Synthesize human-readable summaries for ALL tool results — never dump raw JSON.
+        const preview = formatToolResult(actionLabel, result.data as Record<string, unknown>);
         dispatch({
           type: 'ADD_CHAT_MESSAGE',
           message: {
             id: `action_result_${Date.now()}`,
             role: 'assistant',
-            content: `**${actionLabel}** completed successfully.\n\n${preview}`,
+            content: preview,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           },
         });
@@ -662,6 +648,95 @@ export function ChatScreen() {
     turnCount: c.turnCount,
     lastMessagePreview: c.lastMessagePreview,
   }));
+
+  // Helper: format tool results into human-readable text — NEVER dump raw JSON to chat.
+  function formatToolResult(actionType: string, data: Record<string, unknown>): string {
+    switch (actionType) {
+      // ─── Email ────────────────────────────────────────────────────────
+      case 'email.fetch': {
+        const msgs = Array.isArray(data.messages) ? data.messages : [];
+        return `Fetched ${msgs.length} email${msgs.length !== 1 ? 's' : ''} from your inbox.`;
+      }
+      case 'email.send': return 'Email sent successfully.';
+      case 'email.draft': return 'Email draft saved.';
+      case 'email.archive': return 'Email archived.';
+      case 'email.move': return `Email moved to ${data.toFolder ?? 'folder'}.`;
+      case 'email.markRead': return 'Email marked as read.';
+
+      // ─── Calendar ─────────────────────────────────────────────────────
+      case 'calendar.fetch': {
+        const events = Array.isArray(data.events) ? data.events : [];
+        return `Found ${events.length} calendar event${events.length !== 1 ? 's' : ''}.`;
+      }
+      case 'calendar.create': return `Event "${data.title ?? 'event'}" created.`;
+      case 'calendar.update': return `Event "${data.title ?? 'event'}" updated.`;
+      case 'calendar.delete': return 'Event deleted.';
+
+      // ─── Web Search ───────────────────────────────────────────────────
+      case 'web.search':
+      case 'web.deep_search': {
+        const results = Array.isArray(data.results) ? data.results as Array<{ title?: string; url?: string; snippet?: string; fullContent?: string }> : [];
+        if (results.length === 0) return 'No web results found.';
+        return results.slice(0, 5).map((r, i) =>
+          `${i + 1}. **${r.title ?? 'Untitled'}**\n   ${r.snippet ?? ''}\n   ${r.url ?? ''}`
+        ).join('\n\n');
+      }
+
+      // ─── Web Fetch ────────────────────────────────────────────────────
+      case 'web.fetch': {
+        const title = (data.title as string) ?? 'Page';
+        const content = typeof data.content === 'string' ? data.content : '';
+        const truncated = content.slice(0, 400);
+        return `**${title}**\n\n${truncated}${content.length > 400 ? '...' : ''}`;
+      }
+
+      // ─── Reminders ────────────────────────────────────────────────────
+      case 'reminder.create': return `Reminder set: "${data.text ?? ''}"`;
+      case 'reminder.update': return 'Reminder updated.';
+      case 'reminder.delete': return 'Reminder deleted.';
+      case 'reminder.list': {
+        const rems = Array.isArray(data.reminders) ? data.reminders : [];
+        return rems.length === 0 ? 'No active reminders.' : `${rems.length} active reminder${rems.length !== 1 ? 's' : ''}.`;
+      }
+
+      // ─── Contacts ─────────────────────────────────────────────────────
+      case 'contacts.import': return `Imported ${data.count ?? 0} contacts.`;
+      case 'contacts.list': {
+        const contacts = Array.isArray(data.contacts) ? data.contacts : [];
+        return `Found ${contacts.length} contact${contacts.length !== 1 ? 's' : ''}.`;
+      }
+      case 'contacts.search': {
+        const found = Array.isArray(data.results) ? data.results : [];
+        return found.length === 0 ? 'No matching contacts.' : `Found ${found.length} contact${found.length !== 1 ? 's' : ''}.`;
+      }
+
+      // ─── Finance ──────────────────────────────────────────────────────
+      case 'finance.fetch_transactions': {
+        const txns = Array.isArray(data.transactions) ? data.transactions : [];
+        return `Fetched ${txns.length} transaction${txns.length !== 1 ? 's' : ''}.`;
+      }
+
+      // ─── Health ───────────────────────────────────────────────────────
+      case 'health.fetch': return `Health data retrieved.`;
+
+      // ─── Files ────────────────────────────────────────────────────────
+      case 'file.write': return `File saved: ${data.filename ?? 'file'}`;
+
+      // ─── Generic fallback: summarize without raw JSON ─────────────────
+      default: {
+        // Try to extract a meaningful summary from common field patterns
+        if (data.message && typeof data.message === 'string') return data.message;
+        if (data.summary && typeof data.summary === 'string') return data.summary;
+        if (data.status && typeof data.status === 'string') return `Completed: ${data.status}`;
+        if (data.count !== undefined) return `Completed. ${data.count} items processed.`;
+        // Last resort: one-line summary, not raw JSON
+        const keys = Object.keys(data).filter(k => k !== 'success');
+        return keys.length > 0
+          ? `Action completed. Returned: ${keys.join(', ')}.`
+          : 'Action completed successfully.';
+      }
+    }
+  }
 
   // Helper: describe an action for display
   function describeAction(actionType: string, payload: Record<string, unknown>): string {

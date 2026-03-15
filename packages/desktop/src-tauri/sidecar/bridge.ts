@@ -897,11 +897,11 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] NativeRuntime not available, checking Ollama fallback');
   }
 
-  // Check Ollama — ALWAYS check regardless of NativeRuntime status.
-  // Ollama with GPU (e.g. NVIDIA 5090) is dramatically faster than CPU-only NativeRuntime.
-  // When Ollama is available, switch the reasoning provider to Ollama for GPU-accelerated inference
-  // while keeping NativeRuntime for embeddings (small model, already loaded, works fine on CPU).
-  if (core) {
+  // Check Ollama — only auto-switch to Ollama if the user hasn't explicitly activated a BitNet model.
+  // When user downloaded a BitNet model during onboarding, that's their chosen inference backend.
+  // Ollama is available as an upgrade path in Settings > AI Engine for users who want GPU acceleration.
+  const userChoseBitNet = !!getPref('bitnet_active_model');
+  if (core && !userChoseBitNet) {
     let ollamaAvailable = false;
     let ollamaModels: string[] = [];
     try {
