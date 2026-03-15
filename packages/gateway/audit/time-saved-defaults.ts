@@ -39,6 +39,7 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'finance.plaid_disconnect': 5, // Disconnect cleanup
   'health.fetch': 0,             // Fetching is infrastructure
   'web.search': 30,              // Faster than switching to browser, searching, reading results
+  'web.deep_search': 180,       // Search + read multiple pages + synthesize — significant time save
   'web.fetch': 120,              // Avoids reading and manually summarizing article
   'reminder.create': 60,         // Avoids opening another app or setting a manual alarm
   'reminder.update': 15,         // Quick snooze/dismiss vs manual re-scheduling

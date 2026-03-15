@@ -273,6 +273,18 @@ const BASE_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: 'deep_search_web',
+    description: 'Search the web AND fetch the actual content of the top results. Use this instead of search_web when you need to answer questions from web content, not just find links. Returns full page content for synthesis. Preferred for question-answering tasks.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The search query' },
+        resultCount: { type: 'number', description: 'How many results to retrieve, default 3, max 5' },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'fetch_url',
     description: 'Fetch and extract content from a URL. Use when the user shares a link or asks to summarize an article. Available in all autonomy tiers (informational).',
     parameters: {
@@ -518,6 +530,7 @@ const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'fetch_calendar': 'calendar.fetch',
   'create_calendar_event': 'calendar.create',
   'search_web': 'web.search',
+  'deep_search_web': 'web.deep_search',
   'fetch_url': 'web.fetch',
   'create_reminder': 'reminder.create',
   'list_reminders': 'reminder.list',
@@ -863,7 +876,7 @@ export class OrchestratorImpl implements Orchestrator {
         const sanitizedToolResults = toolResults.executedResults.map(r => {
           const resultStr = JSON.stringify(r.result);
           // Web fetch and search results are the highest-entropy injection surface
-          const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web';
+          const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web' || r.tool === 'deep_search_web';
           const sanitized = needsFullSanitization
             ? sanitizeRetrievedContent(resultStr)
             : resultStr;
@@ -1973,6 +1986,8 @@ export class OrchestratorImpl implements Orchestrator {
         return `Called ${payload['service'] ?? 'service'}: ${payload['endpoint'] ?? ''}`;
       case 'web.search':
         return `Searched web: ${truncate(String(payload['query'] ?? ''), 40)}`;
+      case 'web.deep_search':
+        return `Deep searched web: ${truncate(String(payload['query'] ?? ''), 40)}`;
       case 'web.fetch':
         return `Fetched URL: ${truncate(String(payload['url'] ?? ''), 50)}`;
       case 'reminder.create':
