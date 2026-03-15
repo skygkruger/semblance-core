@@ -258,8 +258,41 @@ fn main() {
         .join("include");
     println!("cargo:include={}", dunce_canonicalize(&llama_include));
 
+    // ── Compile BitNet interface stubs ────────────────────────────────────
+    // When TL1/TL2 are both OFF, ggml-bitnet-lut.cpp compiles to an empty object
+    // (all code is behind #if GGML_BITNET_ARM_TL1 / GGML_BITNET_X86_TL2).
+    // The interface functions declared in ggml-bitnet.h (ggml_bitnet_init, etc.)
+    // have no definitions, causing segfaults at runtime. This stub provides
+    // safe no-op implementations for the MAD-only build path.
+    let stubs_file = manifest_dir
+        .join("..")
+        .join("..")
+        .join("3rdparty")
+        .join("bitnet-stubs.cpp");
+    if stubs_file.exists() {
+        let ggml_include = bitnet_dir
+            .join("3rdparty")
+            .join("llama.cpp")
+            .join("ggml")
+            .join("include");
+        let bitnet_include = bitnet_dir.join("include");
+
+        cc::Build::new()
+            .cpp(true)
+            .file(&stubs_file)
+            .include(&llama_include)
+            .include(&ggml_include)
+            .include(&bitnet_include)
+            .opt_level(2)
+            .compile("bitnet-stubs");
+        eprintln!("[bitnet-sys] Compiled bitnet-stubs.cpp (MAD-only interface stubs)");
+    } else {
+        eprintln!("[bitnet-sys] WARNING: bitnet-stubs.cpp not found at {:?}", stubs_file);
+    }
+
     // Only rerun if the build script itself changes
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=../../3rdparty/bitnet-stubs.cpp");
 }
 
 /// Canonicalize a path, stripping the \\?\ prefix on Windows.
