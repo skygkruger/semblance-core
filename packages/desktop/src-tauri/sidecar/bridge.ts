@@ -4038,26 +4038,32 @@ async function handleRequest(req: Request): Promise<void> {
           ]);
           if (ns && ((ns as { status: string })?.status ?? '').toLowerCase() === 'ready') {
             currentEngine = 'native';
-            // Get model name from catalog
             const modelsBase = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
-            for (const m of MODEL_CATALOG) {
-              if (!m.id.includes('embed') && isModelDownloaded(m.id, modelsBase)) {
-                currentActiveModel = m.displayName;
-                break;
+            // Check BitNet models FIRST (default backend)
+            const activeBitNetPref = getPref('bitnet_active_model');
+            if (activeBitNetPref) {
+              const entry = BITNET_MODEL_CATALOG.find(m => m.id === activeBitNetPref);
+              if (entry) currentActiveModel = entry.displayName;
+            }
+            if (!currentActiveModel) {
+              for (const m of BITNET_MODEL_CATALOG) {
+                if (isBitNetModelDownloaded(m.id, modelsBase)) {
+                  currentActiveModel = m.displayName;
+                  break;
+                }
+              }
+            }
+            // Then check standard models
+            if (!currentActiveModel) {
+              for (const m of MODEL_CATALOG) {
+                if (!m.isEmbedding && isModelDownloaded(m.id, modelsBase)) {
+                  currentActiveModel = m.displayName;
+                  break;
+                }
               }
             }
           }
         } catch { /* native not available */ }
-        // Fallback to Ollama
-        if (currentEngine === 'none' && core) {
-          try {
-            const ollamaModel = await core.models.getActiveChatModel();
-            if (ollamaModel) {
-              currentActiveModel = ollamaModel;
-              currentEngine = 'ollama';
-            }
-          } catch { /* no ollama */ }
-        }
         respond(id, {
           ollamaStatus: currentEngine !== 'none' ? 'connected' : 'disconnected',
           inferenceEngine: currentEngine,

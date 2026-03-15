@@ -92,10 +92,10 @@ export class BitNetProvider implements LLMProvider {
     const nonSystemMessages = messages.filter(m => m.role !== 'system');
     const systemPrompt = systemMessages.map(m => m.content).join('\n\n') || undefined;
 
-    const prompt = nonSystemMessages.map(m => {
-      if (m.role === 'assistant') return `Assistant: ${m.content}`;
-      return m.content;
-    }).join('\n\n');
+    // Build the prompt as plain user text. Do NOT add "Assistant:" prefixes —
+    // native_runtime.rs wraps the prompt in ChatML (<|im_start|>user/assistant)
+    // which handles role separation. Adding "Assistant:" causes double-formatting.
+    const prompt = nonSystemMessages.map(m => m.content).join('\n\n');
 
     const result = await this.bridge.generate({
       prompt,
@@ -238,33 +238,24 @@ export class BitNetProvider implements LLMProvider {
   }
 
   private formatToolDefinitions(tools: ToolDefinition[]): string {
-    const toolDescriptions = tools.map(t => {
-      const params = t.parameters as {
-        properties?: Record<string, { type: string; description?: string; enum?: string[] }>;
-        required?: string[];
-      };
-      const paramList = Object.entries(params.properties ?? {}).map(([name, schema]) => {
-        const required = (params.required ?? []).includes(name);
-        const enumStr = schema.enum ? ` (one of: ${schema.enum.join(', ')})` : '';
-        return `    - ${name} (${schema.type}${required ? ', required' : ''}): ${schema.description ?? ''}${enumStr}`;
-      }).join('\n');
-      return `  ${t.name}: ${t.description}\n    Parameters:\n${paramList}`;
-    }).join('\n\n');
+    // Keep tool descriptions COMPACT for small models (10B, 2048 context).
+    // Only list tool names + one-line description. No parameter details —
+    // the model doesn't need them to decide WHICH tool to call.
+    // Full parameter schemas are validated server-side anyway.
+    const coreTools = tools.filter(t =>
+      ['search_web', 'deep_search_web', 'fetch_url', 'fetch_inbox', 'search_emails',
+       'send_email', 'draft_email', 'fetch_calendar', 'create_reminder',
+       'search_knowledge', 'search_files'].includes(t.name)
+    );
+    const toolList = (coreTools.length > 0 ? coreTools : tools.slice(0, 10))
+      .map(t => `- ${t.name}: ${t.description?.split('.')[0] ?? ''}`)
+      .join('\n');
 
-    return `# Available Tools
+    return `You can use tools by outputting: <tool_call>{"name":"tool_name","arguments":{"key":"value"}}</tool_call>
 
-You have access to the following tools. To use a tool, output a tool_call block:
+Available: ${toolList}
 
-<tool_call>
-{"name": "tool_name", "arguments": {"param1": "value1"}}
-</tool_call>
-
-You can call multiple tools in one response. After tool calls are executed, you will receive the results and can then provide your final response to the user.
-
-If a request can be answered from your knowledge without tools, respond directly. Only use tools when you need to access the user's data, take an action, or get external information.
-
-Tools:
-${toolDescriptions}`;
+Only use tools when needed. Answer from knowledge first.`;
   }
 
   private parseToolCalls(text: string): { toolCalls: ToolCall[]; textContent: string } {
