@@ -269041,7 +269041,8 @@ async function handleInitialize() {
   } catch {
     console.error("[sidecar] NativeRuntime not available, checking Ollama fallback");
   }
-  if (core) {
+  const userChoseBitNet = !!getPref("bitnet_active_model");
+  if (core && !userChoseBitNet) {
     let ollamaAvailable = false;
     let ollamaModels = [];
     try {

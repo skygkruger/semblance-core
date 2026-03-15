@@ -897,70 +897,10 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] NativeRuntime not available, checking Ollama fallback');
   }
 
-  // Check Ollama — only auto-switch to Ollama if the user hasn't explicitly activated a BitNet model.
-  // When user downloaded a BitNet model during onboarding, that's their chosen inference backend.
-  // Ollama is available as an upgrade path in Settings > AI Engine for users who want GPU acceleration.
-  const userChoseBitNet = !!getPref('bitnet_active_model');
-  if (core && !userChoseBitNet) {
-    let ollamaAvailable = false;
-    let ollamaModels: string[] = [];
-    try {
-      const { Ollama } = await import('ollama');
-      const ollamaClient = new Ollama({ host: 'http://localhost:11434' });
-      const listResponse = await ollamaClient.list();
-      ollamaAvailable = true;
-      ollamaModels = listResponse.models.map((m: { name: string }) => m.name);
-      console.error(`[sidecar] Ollama detected with ${ollamaModels.length} models: ${ollamaModels.join(', ')}`);
-    } catch {
-      console.error('[sidecar] Ollama not running — using NativeRuntime for inference');
-    }
-    if (ollamaAvailable) {
-      // Switch reasoning provider to Ollama for GPU-accelerated inference
-      const { OllamaProvider } = await import('../../../core/llm/ollama-provider.js');
-      const { InferenceRouter } = await import('../../../core/llm/inference-router.js');
-      const ollamaProvider = new OllamaProvider();
-
-      // The core.llm is an InferenceRouter — switch its reasoning provider to Ollama
-      const router = core.llm as InstanceType<typeof InferenceRouter>;
-      if (router.setReasoningProvider) {
-        // Determine best available model for reasoning
-        const chatModel = await core.models.getActiveChatModel();
-        // Check if the active chat model exists in Ollama
-        const ollamaModel = ollamaModels.find(m => m === chatModel) ??
-          ollamaModels.find(m => m.includes('llama3')) ??
-          ollamaModels.find(m => !m.includes('embed') && !m.includes('nomic')) ??
-          ollamaModels[0];
-
-        if (ollamaModel) {
-          router.setReasoningProvider(ollamaProvider, ollamaModel);
-          // Clear BitNet provider so Ollama (GPU) takes priority over BitNet (CPU)
-          if (router.clearBitNetProvider) router.clearBitNetProvider();
-          core.models.setActiveChatModel(ollamaModel);
-          // Update orchestrator's model name so it doesn't use the stale NativeRuntime model
-          try { if (core.agent) core.agent.setModel(ollamaModel); } catch { /* agent not available */ }
-          inferenceEngine = 'ollama';
-          activeModel = ollamaModel;
-          availableModels = ollamaModels.filter(m => !m.includes('embed') && !m.includes('nomic'));
-          console.error(`[sidecar] Switched reasoning to Ollama GPU inference (model: ${ollamaModel})`);
-          logProviderTransition('native', 'ollama', ollamaModel, 'Ollama GPU detected at startup');
-        } else {
-          console.error('[sidecar] Ollama running but no reasoning models found — staying on NativeRuntime');
-        }
-      } else {
-        // Fallback: update status but can't switch provider (shouldn't happen)
-        inferenceEngine = 'ollama';
-        const models = await core.llm.listModels();
-        availableModels = models.filter(m => !m.isEmbedding).map(m => m.name);
-        activeModel = await core.models.getActiveChatModel();
-        console.error('[sidecar] Ollama detected but could not switch reasoning provider');
-      }
-    }
-  }
-
-  // ── BitNet Fallback Activation ─────────────────────────────────────────────
-  // If Ollama is not active, check for a downloaded BitNet model and activate it.
-  // This ensures zero-config CPU inference on fresh installs once a model is downloaded.
-  if (inferenceEngine !== 'ollama' && core) {
+  // ── BitNet Primary Activation ──────────────────────────────────────────────
+  // BitNet is the DEFAULT inference backend. Check for downloaded BitNet models
+  // and activate the best one. Ollama is NOT auto-activated — users opt in via Settings.
+  if (core) {
     const activeBitNetId = getPref('bitnet_active_model') ?? null;
     const bitnetBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
 
@@ -990,8 +930,8 @@ async function handleInitialize(): Promise<unknown> {
           inferenceEngine = 'native'; // native with BitNet backend
           const catalogEntry = BITNET_MODEL_CATALOG.find(m => m.id === candidateId);
           activeModel = catalogEntry?.displayName ?? candidateId;
-          console.error(`[sidecar] BitNet fallback activated: "${candidateId}" (CPU inference)`);
-          logProviderTransition('none', 'bitnet', candidateId, 'BitNet CPU fallback at startup (no Ollama)');
+          console.error(`[sidecar] BitNet activated: "${candidateId}" (${catalogEntry?.displayName ?? candidateId})`);
+          logProviderTransition('none', 'bitnet', candidateId, 'BitNet default backend activated at startup');
           break;
         } catch (err) {
           console.error(`[sidecar] BitNet fallback load failed for "${candidateId}":`, err);
