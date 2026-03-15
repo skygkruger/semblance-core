@@ -20,6 +20,8 @@ export {
   HealthFetchPayload,
   WebSearchPayload,
   WebSearchResponse,
+  WebDeepSearchPayload,
+  WebDeepSearchResponse,
   WebFetchPayload,
   WebFetchResponse,
   ReminderCreatePayload,

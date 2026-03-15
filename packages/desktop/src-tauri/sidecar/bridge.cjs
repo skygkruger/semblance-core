@@ -272646,7 +272646,7 @@ async function handleRequest(req) {
       }
       // ─── Search Settings ──────────────────────────────────────────────
       case "get_search_settings": {
-        const searchEngine = getPref("search_engine") ?? "brave";
+        const searchEngine = getPref("search_engine") ?? "duckduckgo";
         const braveApiKey = getPref("brave_api_key") ?? "";
         const searxngUrl = getPref("searxng_url") ?? "";
         respond(id, { engine: searchEngine, braveApiKey, searxngUrl });

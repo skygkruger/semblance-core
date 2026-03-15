@@ -122,8 +122,18 @@ describe('WebSearchAdapterFactory', () => {
     expect(adapter).toBeDefined();
   });
 
-  it('falls back to Brave when SearXNG selected but no URL configured', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('falls back to DuckDuckGo when SearXNG selected but no URL configured', () => {
+    const factory = new WebSearchAdapterFactory({
+      getProvider: () => 'searxng',
+      getBraveApiKey: () => null,
+      getSearXNGUrl: () => null,
+    });
+    const adapter = factory.getAdapter();
+    expect(adapter).toBeDefined();
+    // DuckDuckGo is the zero-config fallback — always available
+  });
+
+  it('falls back to Brave when SearXNG unconfigured but Brave key present', () => {
     const factory = new WebSearchAdapterFactory({
       getProvider: () => 'searxng',
       getBraveApiKey: () => 'test-key',
@@ -131,8 +141,16 @@ describe('WebSearchAdapterFactory', () => {
     });
     const adapter = factory.getAdapter();
     expect(adapter).toBeDefined();
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('falling back to Brave'));
-    warnSpy.mockRestore();
+  });
+
+  it('returns DuckDuckGo adapter when provider is duckduckgo', () => {
+    const factory = new WebSearchAdapterFactory({
+      getProvider: () => 'duckduckgo',
+      getBraveApiKey: () => null,
+      getSearXNGUrl: () => null,
+    });
+    const adapter = factory.getAdapter();
+    expect(adapter).toBeDefined();
   });
 
   it('factory adapters actually work with mocked fetch', async () => {

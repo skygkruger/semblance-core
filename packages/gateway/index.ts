@@ -20,6 +20,7 @@ import { validateAndExecute } from './ipc/validator.js';
 import { ReminderAdapter } from './services/reminder-adapter.js';
 import { WebSearchAdapterFactory } from './services/web-search-factory.js';
 import { WebFetchAdapter } from './services/web-fetch-adapter.js';
+import { DeepSearchAdapter } from './services/deep-search-adapter.js';
 import { ReminderStore } from '@semblance/core/knowledge/reminder-store.js';
 import { OAuthTokenManager } from './services/oauth-token-manager.js';
 import { GoogleDriveAdapter } from './services/google-drive-adapter.js';
@@ -106,9 +107,10 @@ export class Gateway {
       return row?.value ?? null;
     };
 
-    // Web Search: factory selects Brave vs. SearXNG based on user config
+    // Web Search: factory selects provider based on user config.
+    // Default: DuckDuckGo (zero-config, always works on fresh install).
     const searchFactory = new WebSearchAdapterFactory({
-      getProvider: () => (getWebSetting('provider') as 'brave' | 'searxng') ?? 'brave',
+      getProvider: () => (getWebSetting('provider') as 'brave' | 'searxng' | 'duckduckgo') ?? 'duckduckgo',
       getBraveApiKey: () => getWebSetting('brave_api_key'),
       getSearXNGUrl: () => getWebSetting('searxng_url'),
     });
@@ -123,6 +125,13 @@ export class Gateway {
     // Web Fetch: content extraction adapter
     const webFetchAdapter = new WebFetchAdapter();
     this.serviceRegistry.register('web.fetch', webFetchAdapter);
+
+    // Deep Search: search + parallel page fetch in one tool call
+    const deepSearchAdapter = new DeepSearchAdapter({
+      searchAdapter: searchDelegator,
+      fetchAdapter: webFetchAdapter,
+    });
+    this.serviceRegistry.register('web.deep_search', deepSearchAdapter);
 
     // Reminders: local-only CRUD via SQLite
     this.reminderDb = new Database(join(dataDir, 'reminders.db'));

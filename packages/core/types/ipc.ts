@@ -18,6 +18,7 @@ export const ActionType = z.enum([
   'finance.fetch_transactions',
   'health.fetch',
   'web.search',
+  'web.deep_search',
   'web.fetch',
   'reminder.create',
   'reminder.update',
@@ -261,9 +262,27 @@ export const WebSearchResponse = z.object({
     age: z.string().optional(),
   })),
   query: z.string(),
-  provider: z.enum(['brave', 'searxng']),
+  provider: z.enum(['brave', 'searxng', 'duckduckgo']),
 });
 export type WebSearchResponse = z.infer<typeof WebSearchResponse>;
+
+export const WebDeepSearchPayload = z.object({
+  query: z.string().min(1),
+  resultCount: z.number().int().min(1).max(5).optional().default(3),
+});
+export type WebDeepSearchPayload = z.infer<typeof WebDeepSearchPayload>;
+
+export const WebDeepSearchResponse = z.object({
+  query: z.string(),
+  provider: z.enum(['brave', 'searxng', 'duckduckgo']),
+  results: z.array(z.object({
+    title: z.string(),
+    url: z.string(),
+    snippet: z.string(),
+    fullContent: z.string().nullable(),
+  })),
+});
+export type WebDeepSearchResponse = z.infer<typeof WebDeepSearchResponse>;
 
 export const WebFetchPayload = z.object({
   url: z.string().url(),
@@ -565,6 +584,7 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'finance.plaid_disconnect': PlaidDisconnectPayload.strict(),
   'health.fetch': HealthFetchPayload.strict(),
   'web.search': WebSearchPayload.strict(),
+  'web.deep_search': WebDeepSearchPayload.strict(),
   'web.fetch': WebFetchPayload.strict(),
   'reminder.create': ReminderCreatePayload.strict(),
   'reminder.update': ReminderUpdatePayload.strict(),
