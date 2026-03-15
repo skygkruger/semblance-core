@@ -7,8 +7,9 @@ authors = ["Veridian Synthetics"]
 license = "MIT"
 
 [build-dependencies]
-# No cmake crate — we invoke cmake directly via std::process::Command
-# for full control over ClangCL toolset on Windows.
+# cmake invoked directly via std::process::Command for ClangCL toolset control.
+# cc crate compiles the bitnet-stubs.cpp for MAD-only builds.
+cc = "1"
 
 [dependencies]
 # Pure FFI crate — no runtime dependencies.
