@@ -97,12 +97,18 @@ export class BitNetProvider implements LLMProvider {
     // which handles role separation. Adding "Assistant:" causes double-formatting.
     const prompt = nonSystemMessages.map(m => m.content).join('\n\n');
 
+    // Add Falcon3 stop sequences — prevent the model from generating the next turn
+    const stopSequences = [
+      ...(request.stop ?? []),
+      '<|user|>', '<|system|>', '<|endoftext|>',
+    ];
+
     const result = await this.bridge.generate({
       prompt,
       systemPrompt,
-      maxTokens: request.maxTokens,
+      maxTokens: request.maxTokens ?? 256,
       temperature: request.temperature,
-      stop: request.stop,
+      stop: stopSequences,
     });
 
     // Parse tool calls from the response if tools were requested

@@ -251,13 +251,15 @@ impl NativeRuntime {
             }
         } else {
             // Falcon3 Instruct template (default for BitNet models)
+            // Format: <|system|>\n{content}\n<|user|>\n{content}\n<|assistant|>\n
+            // NO <|end|> tokens — roles are delimited by the next role tag.
             match &request.system_prompt {
                 Some(sys) if !sys.is_empty() => format!(
-                    "<|system|>\n{}<|end|>\n<|user|>\n{}<|end|>\n<|assistant|>\n",
+                    "<|system|>\n{}\n<|user|>\n{}\n<|assistant|>\n",
                     sys, request.prompt
                 ),
                 _ => format!(
-                    "<|user|>\n{}<|end|>\n<|assistant|>\n",
+                    "<|user|>\n{}\n<|assistant|>\n",
                     request.prompt
                 ),
             }
