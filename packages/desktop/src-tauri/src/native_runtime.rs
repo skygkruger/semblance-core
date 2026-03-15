@@ -283,9 +283,10 @@ impl NativeRuntime {
             tokens
         };
 
-        // Chunked prefill: decode prompt in batches of CHUNK_SIZE tokens.
-        // Some backends segfault on very large single-batch decode calls.
-        let chunk_size: usize = 512;
+        // Chunked prefill: decode prompt in small batches.
+        // i2_s (BitNet) models can segfault on large batch decode calls.
+        // Use small chunks (16 tokens) matching the MAD kernel's 16-row assumption.
+        let chunk_size: usize = 16;
         let total_prompt_tokens = tokens.len();
         Self::log(&format!(
             "generate: chunked prefill, {} tokens in chunks of {}",
@@ -306,13 +307,17 @@ impl NativeRuntime {
             }
 
             Self::log(&format!(
-                "generate: decoding chunk {} ({} tokens, pos={})",
+                "generate: decoding chunk {} ({} tokens, pos={}, batch_n_tokens={})",
                 chunk_idx,
                 chunk.len(),
-                pos
+                pos,
+                batch.inner.n_tokens
             ));
+            // Flush log before decode — if we crash here, at least we'll see which chunk
+            Self::log("generate: calling ctx.decode()...");
             ctx.decode(&mut batch)
                 .map_err(|e| format!("Prompt decode chunk {} failed: {}", chunk_idx, e))?;
+            Self::log(&format!("generate: chunk {} decoded OK", chunk_idx));
         }
 
         Self::log("generate: prefill decode OK, starting generation loop...");
