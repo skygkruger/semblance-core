@@ -857,30 +857,26 @@ async function handleInitialize(): Promise<unknown> {
   let activeModel: string | null = null;
   let availableModels: string[] = [];
 
-  // Try loading existing GGUF models into NativeRuntime on startup
-  // Each call has a 120s timeout — model loading is a real disk+memory operation
+  // Load EMBEDDING models only from MODEL_CATALOG on startup.
+  // Reasoning models are loaded from BitNet catalog (below) — BitNet is the default backend.
+  // Standard Qwen reasoning models are available in Settings for users who manually activate them.
   const modelsBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
   for (const model of MODEL_CATALOG) {
+    if (!model.isEmbedding) continue; // Skip standard reasoning models — BitNet is default
     if (isModelDownloaded(model.id, modelsBaseDir)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
-      const modelType = model.id.includes('embed') ? 'embedding' : 'reasoning';
       try {
         const loadResult = await Promise.race([
-          sendCallback('native_load_model', { model_path: modelPath, model_type: modelType }),
+          sendCallback('native_load_model', { model_path: modelPath, model_type: 'embedding' }),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 120000)),
         ]);
         if (loadResult === null) {
-          console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s — model loading failed`);
-          break; // Don't try more models if loading fails
+          console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s`);
+          break;
         }
-        console.error(`[sidecar] Loaded model "${model.id}" into NativeRuntime (${modelType})`);
-        if (modelType === 'reasoning') {
-          activeModel = model.displayName;
-          availableModels.push(model.displayName);
-        }
+        console.error(`[sidecar] Loaded embedding model "${model.id}" into NativeRuntime`);
       } catch (err) {
-        console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
-        break; // Don't try more models if loading fails
+        console.error(`[sidecar] Failed to load embedding "${model.id}":`, err);
       }
     }
   }
@@ -3309,8 +3305,10 @@ async function handleModelRetryDownload(params: { modelName: string }): Promise<
 
 function handleBitNetGetModels(params: { tier?: string }): unknown {
   const tier = (params.tier || 'standard') as HardwareProfileTier;
-  const available = getBitNetModelsForTier(tier);
   const recommended = getRecommendedBitNetModel(tier);
+  // Show ALL BitNet models in Settings, not just those matching the tier.
+  // Users should be able to see and download any model they want.
+  const available = getBitNetModels();
   const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
 
   const activeModelId = getPref('bitnet_active_model') ?? null;

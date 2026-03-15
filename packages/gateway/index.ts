@@ -182,6 +182,16 @@ export class Gateway {
       });
     }
 
+    // Auto-add DuckDuckGo to allowlist (zero-config web search fallback)
+    if (!this.allowlist.isAllowed('html.duckduckgo.com')) {
+      this.allowlist.addService({
+        serviceName: 'DuckDuckGo Search',
+        domain: 'html.duckduckgo.com',
+        protocol: 'https',
+        addedBy: 'system',
+      });
+    }
+
     // --- File Write: local filesystem save ---
     const fileWriteAdapter = new FileWriteAdapter();
     this.serviceRegistry.register('file.write', fileWriteAdapter);

@@ -21,6 +21,39 @@ function colorCodeNo(text: string, risk: RiskLevel): ReactNode {
   );
 }
 
+/** Map raw action types to human-friendly labels */
+const ACTION_LABELS: Record<string, string> = {
+  'web.search': 'Search the web',
+  'web.deep_search': 'Search the web (deep)',
+  'web.fetch': 'Fetch web page',
+  'email.send': 'Send email',
+  'email.draft': 'Draft email',
+  'email.fetch': 'Fetch emails',
+  'email.archive': 'Archive email',
+  'email.move': 'Move email',
+  'email.markRead': 'Mark email as read',
+  'calendar.fetch': 'Fetch calendar',
+  'calendar.create': 'Create event',
+  'calendar.update': 'Update event',
+  'calendar.delete': 'Delete event',
+  'reminder.create': 'Create reminder',
+  'reminder.update': 'Update reminder',
+  'reminder.delete': 'Delete reminder',
+  'file.write': 'Save file',
+  'contacts.import': 'Import contacts',
+  'finance.fetch_transactions': 'Fetch transactions',
+  'health.fetch': 'Fetch health data',
+  'service.api_call': 'API call',
+};
+
+function humanizeAction(action: string): string {
+  if (ACTION_LABELS[action]) return ACTION_LABELS[action];
+  // Fallback: convert dot notation to readable text (e.g. "cloud.auth" → "Cloud auth")
+  const parts = action.split('.');
+  const readable = parts.map((p, i) => i === 0 ? p.charAt(0).toUpperCase() + p.slice(1) : p.replace(/_/g, ' ')).join(' — ');
+  return readable;
+}
+
 export function ApprovalCard({
   action,
   context,
@@ -50,7 +83,7 @@ export function ApprovalCard({
       data-animating={animating ? 'true' : undefined}
     >
       <div className="approval-card__header">
-        <h3 className="approval-card__action">{action}</h3>
+        <h3 className="approval-card__action">{humanizeAction(action)}</h3>
         <span className={`approval-card__risk approval-card__risk--${risk}`}>
           {risk}
         </span>
