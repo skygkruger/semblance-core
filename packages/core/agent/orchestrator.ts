@@ -818,7 +818,7 @@ export class OrchestratorImpl implements Orchestrator {
     const messages = this.buildMessages(message, context, history, documentChunks, isConversational);
     const tools = isConversational ? undefined : this.allTools;
 
-    const response = await this.llm.chat({
+    let response = await this.llm.chat({
       model: this.model,
       messages,
       tools,
@@ -830,36 +830,29 @@ export class OrchestratorImpl implements Orchestrator {
     let finalMessage = response.message.content;
     this.lastStyleScore = null;
 
-    // Detect when the model narrates tool usage instead of actually calling tools
-    // (e.g., "I will first search your files..." or "Let me look up..." or "Actions\n1.")
-    // When this happens, re-prompt without tools to get a direct answer.
-    const isNarrating = !response.toolCalls?.length && /(?:I will (?:first |now )?(?:search|look|check|fetch|retrieve)|Actions\s*\n|Please review the search|let me (?:search|look|check|find))/i.test(finalMessage);
-    if (isNarrating) {
-      const retryResponse = await this.llm.chat({
-        model: this.model,
-        messages,
-        temperature: 0.7,
-      });
-      finalMessage = retryResponse.message.content;
+    // ── Intent extraction: when the model narrates instead of calling tools ────
+    // Small models (7B) often say "Let me search for X" instead of outputting a
+    // formatted tool call. When this happens, extract the intent from the model's
+    // text + the user's message and execute the tool directly.
+    if (!response.toolCalls?.length) {
+      const extractedCalls = this.extractToolIntent(message, finalMessage);
+      if (extractedCalls.length > 0) {
+        response = { ...response, toolCalls: extractedCalls };
+        // Clean the narration text — the tool results will replace it
+        finalMessage = '';
+      }
     }
 
-    // Strip leaked tool-call JSON from content — some models emit raw JSON
-    // tool calls in the text even when tools are provided via the API.
+    // Strip leaked tool-call formatting from content
     if (!response.toolCalls || response.toolCalls.length === 0) {
       const stripped = finalMessage
         .replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/g, '')
         .replace(/```(?:json)?\s*\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\}\s*```/g, '')
         .replace(/\{[^{}]*"name"\s*:\s*"[^"]*"[^{}]*"(?:parameters|arguments)"\s*:\s*\{[^{}]*\}[^{}]*\}/g, '')
+        .replace(/\b[a-z_]+\s*\(\s*\{[\s\S]*?\}\s*\)/g, '') // Qwen function-call format
         .trim();
       if (stripped.length > 0) {
         finalMessage = stripped;
-      } else if (!isNarrating) {
-        const retryResponse = await this.llm.chat({
-          model: this.model,
-          messages,
-          temperature: 0.7,
-        });
-        finalMessage = retryResponse.message.content;
       }
     }
 
@@ -1075,6 +1068,61 @@ export class OrchestratorImpl implements Orchestrator {
   setAlterEgoGuardrails(guardrails: AlterEgoGuardrails, store: AlterEgoStore): void {
     this.alterEgoGuardrails = guardrails;
     this.alterEgoStore = store;
+  }
+
+  // ─── Tool Intent Extraction ──────────────────────────────────────────────
+
+  /**
+   * Extract tool calls from the user's message + model's narration when the
+   * model describes what it wants to do instead of outputting formatted tool calls.
+   * This makes tool calling robust for small models (7B) that can understand
+   * WHAT to do but can't reliably format the call.
+   */
+  private extractToolIntent(userMessage: string, modelResponse: string): ToolCall[] {
+    const combined = `${userMessage}\n${modelResponse}`.toLowerCase();
+    const calls: ToolCall[] = [];
+
+    // ── Web search intent ────────────────────────────────────────────────
+    if (/search(?:ing)?\s+(?:the\s+)?(?:web|internet|online)|web\s+search|look\s+(?:up|online)|google|find\s+(?:out|information)\s+about/i.test(combined)) {
+      // Extract the search query from the user's message
+      const queryMatch = userMessage.match(
+        /(?:search\s+(?:for|about|the\s+web\s+for)?|look\s+up|find\s+(?:information\s+)?(?:about|on)?|google)\s+["""]?(.+?)["""]?\s*$/i
+      ) ?? userMessage.match(
+        /(?:about|for|on)\s+["""]?(.+?)["""]?\s*$/i
+      );
+      const query = queryMatch?.[1]?.trim() ?? userMessage.replace(/^.*(?:search|look|find|run)\s+/i, '').trim();
+      if (query && query.length > 1) {
+        calls.push({ name: 'search_web', arguments: { query } });
+      }
+    }
+
+    // ── Email fetch intent ───────────────────────────────────────────────
+    if (/(?:check|fetch|get|show|read)\s+(?:my\s+)?(?:email|inbox|mail)/i.test(combined) && calls.length === 0) {
+      calls.push({ name: 'fetch_inbox', arguments: { count: 10 } });
+    }
+
+    // ── Calendar fetch intent ────────────────────────────────────────────
+    if (/(?:check|fetch|get|show|what'?s?\s+on)\s+(?:my\s+)?(?:calendar|schedule|agenda)/i.test(combined) && calls.length === 0) {
+      calls.push({ name: 'fetch_calendar', arguments: {} });
+    }
+
+    // ── Reminder create intent ───────────────────────────────────────────
+    if (/(?:remind|set\s+a?\s*reminder|don'?t\s+let\s+me\s+forget)/i.test(combined) && calls.length === 0) {
+      const textMatch = userMessage.match(/remind\s+(?:me\s+)?(?:to\s+)?(.+)/i);
+      if (textMatch?.[1]) {
+        calls.push({ name: 'create_reminder', arguments: { text: textMatch[1].trim() } });
+      }
+    }
+
+    // ── File/knowledge search intent ─────────────────────────────────────
+    if (/(?:search|look\s+through|find\s+in)\s+(?:my\s+)?(?:files|documents|notes|knowledge)/i.test(combined) && calls.length === 0) {
+      const queryMatch = userMessage.match(/(?:search|find|look)\s+(?:for|in\s+my\s+files\s+for)?\s+(.+)/i);
+      if (queryMatch?.[1]) {
+        calls.push({ name: 'search_files', arguments: { query: queryMatch[1].trim() } });
+      }
+    }
+
+    return calls;
   }
 
   // ─── In-Chat Check-In (Phase 2d) ───────────────────────────────────────
