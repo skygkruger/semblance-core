@@ -857,26 +857,31 @@ async function handleInitialize(): Promise<unknown> {
   let activeModel: string | null = null;
   let availableModels: string[] = [];
 
-  // Load EMBEDDING models only from MODEL_CATALOG on startup.
-  // Reasoning models are loaded from BitNet catalog (below) — BitNet is the default backend.
-  // Standard Qwen reasoning models are available in Settings for users who manually activate them.
+  // Load models from MODEL_CATALOG on startup.
+  // Qwen standard models are the DEFAULT reasoning backend (proven quality).
+  // BitNet 1-bit models are available in Settings for users who want smaller/faster models.
   const modelsBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
   for (const model of MODEL_CATALOG) {
-    if (!model.isEmbedding) continue; // Skip standard reasoning models — BitNet is default
     if (isModelDownloaded(model.id, modelsBaseDir)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
+      const modelType = model.isEmbedding ? 'embedding' : 'reasoning';
       try {
         const loadResult = await Promise.race([
-          sendCallback('native_load_model', { model_path: modelPath, model_type: 'embedding' }),
+          sendCallback('native_load_model', { model_path: modelPath, model_type: modelType }),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 120000)),
         ]);
         if (loadResult === null) {
           console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s`);
           break;
         }
-        console.error(`[sidecar] Loaded embedding model "${model.id}" into NativeRuntime`);
+        console.error(`[sidecar] Loaded ${modelType} model "${model.id}" into NativeRuntime`);
+        if (modelType === 'reasoning') {
+          activeModel = model.displayName;
+          availableModels.push(model.displayName);
+        }
       } catch (err) {
-        console.error(`[sidecar] Failed to load embedding "${model.id}":`, err);
+        console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
+        break;
       }
     }
   }
@@ -897,10 +902,10 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] NativeRuntime not available, checking Ollama fallback');
   }
 
-  // ── BitNet Primary Activation ──────────────────────────────────────────────
-  // BitNet is the DEFAULT inference backend. Check for downloaded BitNet models
-  // and activate the best one. Ollama is NOT auto-activated — users opt in via Settings.
-  if (core) {
+  // ── BitNet Fallback Activation ──────────────────────────────────────────────
+  // If no standard Qwen model was loaded, check for downloaded BitNet 1-bit models.
+  // BitNet models are smaller/faster but lower quality than standard Q4_K_M models.
+  if (core && !activeModel) {
     const activeBitNetId = getPref('bitnet_active_model') ?? null;
     const bitnetBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
 
@@ -3121,49 +3126,34 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
     results.push({ modelId: embeddingModel.id, status: 'started' });
   }
 
-  // ── 2. BitNet reasoning model (DEFAULT — zero-config CPU inference) ──────
-  // BitNet is the primary reasoning backend. Hardware detection picks the right
-  // model for the device. No GPU, no Ollama, no setup required.
-  // Standard Qwen models are available in Settings → AI Engine for users who
-  // want larger models or have Ollama installed for GPU acceleration.
-  const bitnetModel = getRecommendedBitNetModel(tier);
-  const bitnetTargetPath = getBitNetModelPath(bitnetModel.id, baseDir);
+  // ── 2. Standard reasoning model (DEFAULT — proven conversational quality) ──
+  // Qwen Q4_K_M models are the default reasoning backend. Hardware detection
+  // picks the right size for the device. BitNet 1-bit models are available in
+  // Settings for users who want smaller/faster inference at lower quality.
+  const reasoningModel = getRecommendedReasoningModel(tier);
+  const reasoningTargetPath = getModelPath(reasoningModel.id, baseDir);
 
-  if (isBitNetModelDownloaded(bitnetModel.id, baseDir)) {
+  if (isModelDownloaded(reasoningModel.id, baseDir)) {
     const existing: ActiveDownload = {
-      modelId: bitnetModel.id,
-      modelName: bitnetModel.displayName,
-      totalBytes: bitnetModel.fileSizeBytes,
-      downloadedBytes: bitnetModel.fileSizeBytes,
+      modelId: reasoningModel.id,
+      modelName: reasoningModel.displayName,
+      totalBytes: reasoningModel.fileSizeBytes,
+      downloadedBytes: reasoningModel.fileSizeBytes,
       speedBytesPerSec: 0,
       status: 'complete',
     };
-    activeDownloads.set(bitnetModel.id, existing);
+    activeDownloads.set(reasoningModel.id, existing);
     emit('model-download-progress', existing);
-    results.push({ modelId: bitnetModel.id, status: 'already_downloaded', backend: 'bitnet' });
+    results.push({ modelId: reasoningModel.id, status: 'already_downloaded' });
 
-    // Load BitNet model into NativeRuntime and wire BitNetProvider into router
-    sendCallback('native_load_model', { model_path: bitnetTargetPath, model_type: 'reasoning' })
-      .then(() => {
-        console.error(`[sidecar] Loaded BitNet model "${bitnetModel.id}" into NativeRuntime`);
-        if (core) {
-          const router = core.llm as InstanceType<typeof InferenceRouter>;
-          if (router.setBitNetProvider) {
-            const bitnetProv = new BitNetProvider({
-              bridge: nativeRuntimeBridge,
-              modelName: bitnetModel.id,
-            });
-            router.setBitNetProvider(bitnetProv, bitnetModel.id);
-            console.error(`[sidecar] BitNetProvider wired into InferenceRouter for "${bitnetModel.id}"`);
-          }
-        }
-      })
-      .catch((err) => console.error(`[sidecar] NativeRuntime load failed for BitNet "${bitnetModel.id}":`, err));
+    sendCallback('native_load_model', { model_path: reasoningTargetPath, model_type: 'reasoning' })
+      .then(() => console.error(`[sidecar] Loaded reasoning model "${reasoningModel.id}" into NativeRuntime`))
+      .catch((err) => console.error(`[sidecar] NativeRuntime load failed for "${reasoningModel.id}":`, err));
   } else {
-    downloadHfFile(bitnetModel, bitnetTargetPath, bitnetModel.id, bitnetModel.displayName).catch((err) => {
-      console.error(`[sidecar] BitNet model download failed: ${bitnetModel.id}`, err);
+    downloadHfFile(reasoningModel, reasoningTargetPath, reasoningModel.id, reasoningModel.displayName).catch((err) => {
+      console.error(`[sidecar] Reasoning model download failed: ${reasoningModel.id}`, err);
     });
-    results.push({ modelId: bitnetModel.id, status: 'started', backend: 'bitnet' });
+    results.push({ modelId: reasoningModel.id, status: 'started' });
   }
 
   return { started: results };
@@ -4039,24 +4029,24 @@ async function handleRequest(req: Request): Promise<void> {
           if (ns && ((ns as { status: string })?.status ?? '').toLowerCase() === 'ready') {
             currentEngine = 'native';
             const modelsBase = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
-            // Check BitNet models FIRST (default backend)
-            const activeBitNetPref = getPref('bitnet_active_model');
-            if (activeBitNetPref) {
-              const entry = BITNET_MODEL_CATALOG.find(m => m.id === activeBitNetPref);
-              if (entry) currentActiveModel = entry.displayName;
+            // Check standard Qwen models FIRST (default, proven quality)
+            for (const m of MODEL_CATALOG) {
+              if (!m.isEmbedding && isModelDownloaded(m.id, modelsBase)) {
+                currentActiveModel = m.displayName;
+                break;
+              }
+            }
+            // Fallback: check BitNet models
+            if (!currentActiveModel) {
+              const activeBitNetPref = getPref('bitnet_active_model');
+              if (activeBitNetPref) {
+                const entry = BITNET_MODEL_CATALOG.find(m => m.id === activeBitNetPref);
+                if (entry) currentActiveModel = entry.displayName;
+              }
             }
             if (!currentActiveModel) {
               for (const m of BITNET_MODEL_CATALOG) {
                 if (isBitNetModelDownloaded(m.id, modelsBase)) {
-                  currentActiveModel = m.displayName;
-                  break;
-                }
-              }
-            }
-            // Then check standard models
-            if (!currentActiveModel) {
-              for (const m of MODEL_CATALOG) {
-                if (!m.isEmbedding && isModelDownloaded(m.id, modelsBase)) {
                   currentActiveModel = m.displayName;
                   break;
                 }
