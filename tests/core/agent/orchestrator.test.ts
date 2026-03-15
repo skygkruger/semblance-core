@@ -200,7 +200,8 @@ describe('Orchestrator', () => {
     expect(result.actions).toHaveLength(1);
     expect(result.actions[0]!.status).toBe('pending_approval');
     expect(result.actions[0]!.action).toBe('email.send');
-    expect(result.message).toContain('1 action(s) awaiting your approval');
+    // Approval cards are shown as UI elements, not text in the message
+    expect(result.actions[0]!.status).toBe('pending_approval');
   });
 
   it('auto-executes read actions in partner mode', async () => {

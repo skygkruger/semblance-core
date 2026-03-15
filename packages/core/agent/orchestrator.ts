@@ -905,23 +905,20 @@ export class OrchestratorImpl implements Orchestrator {
         finalMessage = followUp.message.content;
       }
 
-      // Mention pending approvals
+      // Handle pending approvals — re-prompt to get clean message without fabricated results.
+      // Do NOT append "[N action(s) awaiting your approval]" text — the UI shows approval cards
+      // as separate interactive elements below the message. Appending text is redundant and confusing.
       const pendingCount = actions.filter(a => a.status === 'pending_approval').length;
-      if (pendingCount > 0) {
-        // ALWAYS re-prompt when actions are pending — the model's original text
-        // often contains fabricated "results" that don't exist yet (7B model behavior).
-        // Re-prompting without tools forces a clean, honest message.
-        if (toolResults.executedResults.length === 0) {
-          const retryResponse = await this.llm.chat({
-            model: this.model,
-            messages,
-            temperature: 0.7,
-          });
-          if (retryResponse?.message?.content) {
-            finalMessage = retryResponse.message.content;
-          }
+      if (pendingCount > 0 && toolResults.executedResults.length === 0) {
+        // Re-prompt without tools to get a clean message (7B models fabricate results)
+        const retryResponse = await this.llm.chat({
+          model: this.model,
+          messages,
+          temperature: 0.7,
+        });
+        if (retryResponse?.message?.content) {
+          finalMessage = retryResponse.message.content;
         }
-        finalMessage += `\n\n[${pendingCount} action(s) awaiting your approval]`;
       }
     }
 
