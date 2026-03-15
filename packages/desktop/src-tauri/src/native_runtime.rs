@@ -226,33 +226,18 @@ impl NativeRuntime {
         let temperature = request.temperature.unwrap_or(0.7);
 
         // Detect prompt template from model path.
-        // Falcon3 Instruct uses: <|system|>...<|end|>\n<|user|>...<|end|>\n<|assistant|>
-        // Qwen/ChatML uses: <|im_start|>system\n...<|im_end|>\n<|im_start|>user\n...<|im_end|>\n<|im_start|>assistant\n
-        // Default to Falcon template since BitNet models are primarily Falcon.
+        // Qwen/ChatML: <|im_start|>system\n...<|im_end|>\n<|im_start|>user\n...<|im_end|>\n<|im_start|>assistant\n
+        // Falcon3: <|system|>\n...\n<|user|>\n...\n<|assistant|>\n
+        // Default to ChatML since Qwen is the primary reasoning model.
         let model_path_lower = self.reasoning_model_path
             .as_ref()
             .map(|p| p.to_string_lossy().to_lowercase())
             .unwrap_or_default();
 
-        let use_chatml = model_path_lower.contains("qwen")
-            || model_path_lower.contains("bitnet-b1.58-2b4t");
+        let use_falcon = model_path_lower.contains("falcon");
 
-        let full_prompt = if use_chatml {
-            // ChatML template (Qwen, BitNet 2B4T)
-            match &request.system_prompt {
-                Some(sys) if !sys.is_empty() => format!(
-                    "<|im_start|>system\n{}<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
-                    sys, request.prompt
-                ),
-                _ => format!(
-                    "<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
-                    request.prompt
-                ),
-            }
-        } else {
-            // Falcon3 Instruct template (default for BitNet models)
-            // Format: <|system|>\n{content}\n<|user|>\n{content}\n<|assistant|>\n
-            // NO <|end|> tokens — roles are delimited by the next role tag.
+        let full_prompt = if use_falcon {
+            // Falcon3 Instruct template
             match &request.system_prompt {
                 Some(sys) if !sys.is_empty() => format!(
                     "<|system|>\n{}\n<|user|>\n{}\n<|assistant|>\n",
@@ -260,6 +245,18 @@ impl NativeRuntime {
                 ),
                 _ => format!(
                     "<|user|>\n{}\n<|assistant|>\n",
+                    request.prompt
+                ),
+            }
+        } else {
+            // ChatML template (Qwen — default reasoning model)
+            match &request.system_prompt {
+                Some(sys) if !sys.is_empty() => format!(
+                    "<|im_start|>system\n{}<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
+                    sys, request.prompt
+                ),
+                _ => format!(
+                    "<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
                     request.prompt
                 ),
             }
@@ -272,11 +269,10 @@ impl NativeRuntime {
             temperature
         ));
 
-        // Use 2048 context for initial decode — 8192 was causing OOM crashes on 10B models.
-        // The KV cache for 10B at 8192 ctx requires ~4GB+ RAM on top of model weights.
-        // 2048 is sufficient for most conversational turns and keeps memory manageable.
-        Self::log("generate: creating context with n_ctx=2048...");
-        let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(2048));
+        // 4096 context — sufficient for conversational turns with Qwen Q4_K_M models.
+        // Smaller BitNet models use less KV cache so this is safe for both.
+        Self::log("generate: creating context with n_ctx=4096...");
+        let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(4096));
         let mut ctx = model
             .new_context(backend, ctx_params)
             .map_err(|e| format!("Failed to create context: {}", e))?;
@@ -294,7 +290,7 @@ impl NativeRuntime {
         }
 
         // Safety: if prompt exceeds context window, truncate to leave room for response.
-        let n_ctx: usize = 2048;
+        let n_ctx: usize = 4096;
         let max_prompt_tokens = n_ctx.saturating_sub(max_tokens as usize);
         let tokens = if tokens.len() > max_prompt_tokens {
             Self::log(&format!(
@@ -312,10 +308,8 @@ impl NativeRuntime {
             tokens
         };
 
-        // Chunked prefill: decode prompt in small batches.
-        // i2_s (BitNet) models can segfault on large batch decode calls.
-        // Use small chunks (16 tokens) matching the MAD kernel's 16-row assumption.
-        let chunk_size: usize = 16;
+        // Chunked prefill: decode prompt in batches.
+        let chunk_size: usize = 512;
         let total_prompt_tokens = tokens.len();
         Self::log(&format!(
             "generate: chunked prefill, {} tokens in chunks of {}",

@@ -235099,16 +235099,19 @@ var BitNetProvider = class {
     const systemMessages = messages.filter((m) => m.role === "system");
     const nonSystemMessages = messages.filter((m) => m.role !== "system");
     const systemPrompt = systemMessages.map((m) => m.content).join("\n\n") || void 0;
-    const prompt = nonSystemMessages.map((m) => {
-      if (m.role === "assistant") return `Assistant: ${m.content}`;
-      return m.content;
-    }).join("\n\n");
+    const prompt = nonSystemMessages.map((m) => m.content).join("\n\n");
+    const stopSequences = [
+      ...request.stop ?? [],
+      "<|user|>",
+      "<|system|>",
+      "<|endoftext|>"
+    ];
     const result2 = await this.bridge.generate({
       prompt,
       systemPrompt,
-      maxTokens: request.maxTokens,
+      maxTokens: request.maxTokens ?? 256,
       temperature: request.temperature,
-      stop: request.stop
+      stop: stopSequences
     });
     let content = result2.text;
     let toolCalls;
@@ -235218,31 +235221,27 @@ var BitNetProvider = class {
     return result2;
   }
   formatToolDefinitions(tools) {
-    const toolDescriptions = tools.map((t) => {
-      const params = t.parameters;
-      const paramList = Object.entries(params.properties ?? {}).map(([name, schema]) => {
-        const required = (params.required ?? []).includes(name);
-        const enumStr = schema.enum ? ` (one of: ${schema.enum.join(", ")})` : "";
-        return `    - ${name} (${schema.type}${required ? ", required" : ""}): ${schema.description ?? ""}${enumStr}`;
-      }).join("\n");
-      return `  ${t.name}: ${t.description}
-    Parameters:
-${paramList}`;
-    }).join("\n\n");
-    return `# Available Tools
+    const coreTools = tools.filter(
+      (t) => [
+        "search_web",
+        "deep_search_web",
+        "fetch_url",
+        "fetch_inbox",
+        "search_emails",
+        "send_email",
+        "draft_email",
+        "fetch_calendar",
+        "create_reminder",
+        "search_knowledge",
+        "search_files"
+      ].includes(t.name)
+    );
+    const toolList = (coreTools.length > 0 ? coreTools : tools.slice(0, 10)).map((t) => `- ${t.name}: ${t.description?.split(".")[0] ?? ""}`).join("\n");
+    return `You can use tools by outputting: <tool_call>{"name":"tool_name","arguments":{"key":"value"}}</tool_call>
 
-You have access to the following tools. To use a tool, output a tool_call block:
+Available: ${toolList}
 
-<tool_call>
-{"name": "tool_name", "arguments": {"param1": "value1"}}
-</tool_call>
-
-You can call multiple tools in one response. After tool calls are executed, you will receive the results and can then provide your final response to the user.
-
-If a request can be answered from your knowledge without tools, respond directly. Only use tools when you need to access the user's data, take an action, or get external information.
-
-Tools:
-${toolDescriptions}`;
+Only use tools when needed. Answer from knowledge first.`;
   }
   parseToolCalls(text) {
     const toolCalls = [];
@@ -237194,26 +237193,6 @@ var AutonomyManager = class {
   }
 };
 
-// packages/core/agent/artifact-parser.ts
-var ARTIFACT_SYSTEM_PROMPT = `
-When generating structured content (code, documents, data), wrap it in artifact tags:
-<artifact type="code" title="Description" language="typescript">
-// code here
-</artifact>
-
-Supported types: markdown, text, code, html, csv, json.
-Use artifact tags for:
-- Code snippets longer than 5 lines
-- Generated documents, letters, or emails
-- Data tables or structured output
-- Formatted content the user might want to save
-
-Do NOT use artifact tags for:
-- Brief inline code references
-- Short answers or explanations
-- Conversational responses
-`.trim();
-
 // packages/core/agent/approval-patterns.ts
 var CREATE_APPROVAL_PATTERNS_TABLE = `
   CREATE TABLE IF NOT EXISTS approval_patterns (
@@ -238317,8 +238296,8 @@ function buildSystemPrompt(config, conversational) {
   const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
   const userRef = userName ? userName : "the user";
   if (conversational) {
-    const userNameLine2 = userName ? ` Your user's name is ${userName}.` : "";
-    return `You are ${aiName}, a personal AI assistant.${userNameLine2} You run locally on ${userRef}'s device. All data stays private.
+    const userNameLine = userName ? ` Your user's name is ${userName}.` : "";
+    return `You are ${aiName}, a personal AI assistant.${userNameLine} You run locally on ${userRef}'s device. All data stays private.
 
 You are warm, direct, and concise. Respond naturally like a helpful friend. Just chat back naturally. Do not make up any information about emails, meetings, schedules, or actions you have taken. Only discuss things you actually know.
 
@@ -238331,21 +238310,12 @@ ${INJECTION_CANARY}`;
 Connected services: ${connectedServices.join(", ")}.` : "";
   const knowledgeLine = indexedDocCount && indexedDocCount > 0 ? `
 Knowledge base: ${indexedDocCount} indexed documents. Search it first before using web search.` : "";
-  const userNameLine = userName ? `Your user's name is ${userName}.` : "";
-  return `You are ${aiName}, a personal AI assistant.${userNameLine ? " " + userNameLine : ""} You run locally on ${userRef}'s device. All data stays private.
-${servicesLine}${knowledgeLine}
+  const nameLine = userName ? `Your name is ${aiName}. The user's name is ${userName}.` : `Your name is ${aiName}. Ask the user their name if you don't know it.`;
+  return `${nameLine} You are a personal AI running locally on the user's device. All data is private.${servicesLine}${knowledgeLine}
 
 ${autonomyBlock}
 
-You are warm, direct, and concise. Respond naturally like a helpful friend. When ${userRef} greets you or makes small talk, just chat back naturally. When they ask you to do something specific, use your tools to help.
-
-Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : " You do not know your user's name yet. You MUST ask them what their name is. Do NOT guess or make up a name."}
-
-About this app: You are part of Semblance, a fully local, self-hosted personal AI. Semblance ingests emails, files, calendar, and other data into a local knowledge graph. All processing happens on-device \u2014 user data never leaves their machine. Semblance is built by VERIDIAN SYNTHETICS. If ${userRef} asks about the app, explain that you are their personal AI that runs entirely on their device for complete privacy. You can search their files, emails, and knowledge base, manage their calendar, draft emails, set reminders, and search the web. You get smarter over time as more of their data is indexed locally.
-
-IMPORTANT: When you call a tool, do NOT write fake results in your message. Say only a brief sentence like "Let me check that for you." The real results come after the tool runs. Never invent emails, meetings, names, or data.
-
-${ARTIFACT_SYSTEM_PROMPT}
+Be warm, direct, and concise. Never invent data. If asked about yourself: you are Semblance, a local AI by VERIDIAN SYNTHETICS that searches files, emails, calendar, and the web \u2014 all on-device.
 
 ${INJECTION_CANARY}`;
 }
@@ -271474,24 +271444,29 @@ async function handleRequest(req) {
           if (ns && (ns?.status ?? "").toLowerCase() === "ready") {
             currentEngine = "native";
             const modelsBase = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
-            for (const m of MODEL_CATALOG) {
-              if (!m.id.includes("embed") && isModelDownloaded(m.id, modelsBase)) {
-                currentActiveModel = m.displayName;
-                break;
+            const activeBitNetPref = getPref("bitnet_active_model");
+            if (activeBitNetPref) {
+              const entry = BITNET_MODEL_CATALOG.find((m) => m.id === activeBitNetPref);
+              if (entry) currentActiveModel = entry.displayName;
+            }
+            if (!currentActiveModel) {
+              for (const m of BITNET_MODEL_CATALOG) {
+                if (isBitNetModelDownloaded(m.id, modelsBase)) {
+                  currentActiveModel = m.displayName;
+                  break;
+                }
+              }
+            }
+            if (!currentActiveModel) {
+              for (const m of MODEL_CATALOG) {
+                if (!m.isEmbedding && isModelDownloaded(m.id, modelsBase)) {
+                  currentActiveModel = m.displayName;
+                  break;
+                }
               }
             }
           }
         } catch {
-        }
-        if (currentEngine === "none" && core) {
-          try {
-            const ollamaModel = await core.models.getActiveChatModel();
-            if (ollamaModel) {
-              currentActiveModel = ollamaModel;
-              currentEngine = "ollama";
-            }
-          } catch {
-          }
         }
         respond(id, {
           ollamaStatus: currentEngine !== "none" ? "connected" : "disconnected",
