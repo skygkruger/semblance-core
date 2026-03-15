@@ -311,6 +311,23 @@ Only use tools when needed. Answer from knowledge first.`;
       }
     }
 
+    // Handle Qwen-style function calls: tool_name({"key": "value"})
+    if (toolCalls.length === 0) {
+      const funcCallRegex = /\b([a-z_]+)\s*\(\s*(\{[\s\S]*?\})\s*\)/g;
+      while ((match = funcCallRegex.exec(text)) !== null) {
+        const funcName = match[1] ?? '';
+        const argsJson = match[2] ?? '';
+        if (!funcName || !argsJson) continue;
+        try {
+          const args = JSON.parse(argsJson) as Record<string, unknown>;
+          toolCalls.push({ name: funcName, arguments: args });
+          textContent = text.replace(match[0], '').trim();
+        } catch {
+          // Not valid JSON arguments
+        }
+      }
+    }
+
     return { toolCalls, textContent };
   }
 

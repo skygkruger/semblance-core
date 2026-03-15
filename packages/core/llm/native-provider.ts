@@ -289,8 +289,7 @@ ${toolDescriptions}`;
     // Remove tool call blocks from the text content
     textContent = text.replace(toolCallRegex, '').trim();
 
-    // Also handle the common case where models use ```json blocks or other formats
-    // Try to catch {"name": "...", "arguments": {...}} at the start/end of response
+    // Handle ```json blocks
     if (toolCalls.length === 0) {
       const jsonBlockRegex = /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\})\s*```/g;
       while ((match = jsonBlockRegex.exec(text)) !== null) {
@@ -307,6 +306,24 @@ ${toolDescriptions}`;
           }
         } catch {
           // Not valid tool call JSON
+        }
+      }
+    }
+
+    // Handle Qwen-style function calls: tool_name({"key": "value"})
+    // Qwen 2.5 models naturally output this format instead of XML blocks.
+    if (toolCalls.length === 0) {
+      const funcCallRegex = /\b([a-z_]+)\s*\(\s*(\{[\s\S]*?\})\s*\)/g;
+      while ((match = funcCallRegex.exec(text)) !== null) {
+        const funcName = match[1] ?? '';
+        const argsJson = match[2] ?? '';
+        if (!funcName || !argsJson) continue;
+        try {
+          const args = JSON.parse(argsJson) as Record<string, unknown>;
+          toolCalls.push({ name: funcName, arguments: args });
+          textContent = text.replace(match[0], '').trim();
+        } catch {
+          // Not valid JSON arguments
         }
       }
     }
