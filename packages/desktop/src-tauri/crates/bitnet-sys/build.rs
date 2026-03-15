@@ -92,12 +92,21 @@ fn main() {
     configure.arg("-DGGML_BITNET_X86_TL2=OFF");
     configure.arg("-DGGML_BITNET_ARM_TL1=OFF");
 
+    // Ensure x86 SIMD instruction sets are explicitly enabled.
+    // ClangCL with -march=native may not define __AVX2__ on Windows,
+    // causing the MAD kernel's i2_s vec_dot path to compile without
+    // any functional SIMD code — resulting in a crash at runtime.
     if target.contains("x86_64") || target.contains("x86") {
-        eprintln!("[bitnet-sys] x86_64 target: using MAD kernels (TL2 LUT deferred — requires per-model headers)");
+        configure.arg("-DGGML_NATIVE=OFF");
+        configure.arg("-DGGML_AVX=ON");
+        configure.arg("-DGGML_AVX2=ON");
+        configure.arg("-DGGML_FMA=ON");
+        configure.arg("-DGGML_F16C=ON");
+        eprintln!("[bitnet-sys] x86_64 target: MAD kernels with explicit AVX2/FMA/F16C");
     } else if target.contains("aarch64") || target.contains("arm") {
-        eprintln!("[bitnet-sys] ARM target: using MAD kernels (TL1 LUT deferred — requires per-model headers)");
+        eprintln!("[bitnet-sys] ARM target: MAD kernels with NEON");
     } else {
-        eprintln!("[bitnet-sys] Unknown arch: using MAD kernels");
+        eprintln!("[bitnet-sys] Unknown arch: MAD kernels (generic)");
     }
 
     if target.contains("windows") {
