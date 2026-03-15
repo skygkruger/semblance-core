@@ -126,8 +126,9 @@ impl NativeRuntime {
 
         self.status = RuntimeStatus::Loading;
 
-        // Offload all layers to GPU if available; CPU fallback is automatic
-        let model_params = LlamaModelParams::default().with_n_gpu_layers(1000);
+        // CPU-only inference (CUDA/Vulkan disabled in BitNet build for portability).
+        // n_gpu_layers=0 keeps everything on CPU — avoids crashes from missing GPU backend.
+        let model_params = LlamaModelParams::default().with_n_gpu_layers(0);
 
         match LlamaModel::load_from_file(backend, &model_path, &model_params) {
             Ok(model) => {
@@ -165,7 +166,7 @@ impl NativeRuntime {
             .as_ref()
             .ok_or("BitNet.cpp backend not initialized")?;
 
-        let model_params = LlamaModelParams::default().with_n_gpu_layers(1000);
+        let model_params = LlamaModelParams::default().with_n_gpu_layers(0);
 
         match LlamaModel::load_from_file(backend, &model_path, &model_params) {
             Ok(model) => {
@@ -242,8 +243,11 @@ impl NativeRuntime {
             temperature
         ));
 
-        Self::log("generate: creating context with n_ctx=8192...");
-        let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(8192));
+        // Use 2048 context for initial decode — 8192 was causing OOM crashes on 10B models.
+        // The KV cache for 10B at 8192 ctx requires ~4GB+ RAM on top of model weights.
+        // 2048 is sufficient for most conversational turns and keeps memory manageable.
+        Self::log("generate: creating context with n_ctx=2048...");
+        let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(2048));
         let mut ctx = model
             .new_context(backend, ctx_params)
             .map_err(|e| format!("Failed to create context: {}", e))?;
@@ -261,7 +265,7 @@ impl NativeRuntime {
         }
 
         // Safety: if prompt exceeds context window, truncate to leave room for response.
-        let n_ctx: usize = 8192;
+        let n_ctx: usize = 2048;
         let max_prompt_tokens = n_ctx.saturating_sub(max_tokens as usize);
         let tokens = if tokens.len() > max_prompt_tokens {
             Self::log(&format!(
