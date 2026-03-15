@@ -307,11 +307,10 @@ impl NativeRuntime {
             }
 
             Self::log(&format!(
-                "generate: decoding chunk {} ({} tokens, pos={}, batch_n_tokens={})",
+                "generate: decoding chunk {} ({} tokens, pos={})",
                 chunk_idx,
                 chunk.len(),
-                pos,
-                batch.inner.n_tokens
+                pos
             ));
             // Flush log before decode — if we crash here, at least we'll see which chunk
             Self::log("generate: calling ctx.decode()...");
