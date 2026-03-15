@@ -169,10 +169,10 @@ export function InboxScreen() {
         getDarkPatternFlags(),
         getClipboardInsights(),
       ]);
-      if (approvals.status === 'fulfilled') setPendingApprovals(approvals.value.filter(a => a.status === 'pending_approval'));
-      if (rems.status === 'fulfilled') setReminders(rems.value);
-      if (flags.status === 'fulfilled') setDarkPatternFlags(flags.value);
-      if (clips.status === 'fulfilled' && clips.value.length > 0) setClipboardInsight(clips.value[0]!);
+      if (approvals.status === 'fulfilled' && Array.isArray(approvals.value)) setPendingApprovals(approvals.value.filter(a => a.status === 'pending_approval'));
+      if (rems.status === 'fulfilled' && Array.isArray(rems.value)) setReminders(rems.value);
+      if (flags.status === 'fulfilled' && Array.isArray(flags.value)) setDarkPatternFlags(flags.value);
+      if (clips.status === 'fulfilled' && Array.isArray(clips.value) && clips.value.length > 0) setClipboardInsight(clips.value[0]!);
     } catch (err) {
       console.error('[InboxScreen] loadExtras failed:', err);
     }
