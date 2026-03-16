@@ -116,7 +116,7 @@ export function FilesScreen() {
         {/* Indexed Directories */}
         <div className="settings-section-header">{t('screen.files.section_directories')}</div>
         <div className="settings-row settings-row--static">
-          {dirs.length === 0 ? (
+          {dirs.length === 0 && indexingStatus.state !== 'indexing' && indexingStatus.state !== 'scanning' ? (
             <span className="settings-row__label" style={{ color: '#5E6B7C', fontSize: 13 }}>
               {t('screen.files.empty_directories')}
             </span>

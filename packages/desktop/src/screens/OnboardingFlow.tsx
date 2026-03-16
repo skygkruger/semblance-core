@@ -157,12 +157,13 @@ export function OnboardingFlow() {
     // Let the sidecar emit real progress events with accurate model names and sizes.
     setDownloads([]);
 
-    // Listen for NativeRuntime model loaded event (reasoning model ready)
+    // Listen for NativeRuntime model loaded event (reasoning model ready).
+    // Fires for native loads (modelType='reasoning') AND Ollama detection (engine='ollama').
     let unlistenModelLoaded: UnlistenFn | undefined;
-    listen<{ modelId: string; modelType: string; path: string }>(
+    listen<{ modelId?: string; modelType?: string; path?: string; engine?: string }>(
       'semblance://native-model-loaded',
       (event) => {
-        if (event.payload.modelType === 'reasoning') {
+        if (event.payload.modelType === 'reasoning' || event.payload.engine === 'ollama') {
           setRuntimeReady(true);
         }
       }
@@ -229,7 +230,8 @@ export function OnboardingFlow() {
   }, [step, hardwareInfo]);
 
   // Timeout fallback: if all downloads complete but runtime never reports ready,
-  // allow proceeding after 30s (model may have loaded via Ollama fallback).
+  // allow proceeding after 3s (Ollama users get instant readiness via the
+  // native-model-loaded event; this is a safety net for edge cases).
   useEffect(() => {
     if (step !== 'initialize' || runtimeReady) return;
     const allComplete = downloads.length > 0 && downloads.every(d => d.status === 'complete');
@@ -238,7 +240,7 @@ export function OnboardingFlow() {
     const timer = setTimeout(() => {
       console.error('[OnboardingFlow] Runtime ready timeout — allowing proceed');
       setRuntimeReady(true);
-    }, 30_000);
+    }, 3_000);
     return () => clearTimeout(timer);
   }, [step, runtimeReady, downloads]);
 

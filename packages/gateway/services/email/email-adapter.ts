@@ -315,10 +315,53 @@ export class EmailAdapter implements ServiceAdapter {
       return { success: true, data: { saved: true } };
     }
 
-    // OAuth fallback for drafts not implemented yet — Gmail API would be needed
+    // Fall back to Gmail API drafts via OAuth
+    const oauth = await this.getGmailOAuthToken();
+    if (oauth) {
+      console.error(`[EmailAdapter] Creating Gmail draft via API for ${oauth.userEmail}`);
+      // Build RFC 2822 message for Gmail API
+      const toHeader = params.to.join(', ');
+      const ccHeader = params.cc && params.cc.length > 0 ? `Cc: ${params.cc.join(', ')}\r\n` : '';
+      const rawMessage = [
+        `From: ${oauth.userEmail}`,
+        `To: ${toHeader}`,
+        ccHeader ? `Cc: ${params.cc!.join(', ')}` : '',
+        `Subject: ${params.subject}`,
+        'Content-Type: text/plain; charset=utf-8',
+        '',
+        params.body,
+      ].filter(Boolean).join('\r\n');
+
+      // Gmail API expects URL-safe base64
+      const encoded = Buffer.from(rawMessage).toString('base64')
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+      const resp = await globalThis.fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${oauth.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: { raw: encoded } }),
+      });
+
+      if (resp.ok) {
+        const draft = await resp.json() as { id: string; message: { id: string } };
+        console.error(`[EmailAdapter] Gmail draft created: ${draft.id}`);
+        return { success: true, data: { saved: true, draftId: draft.id } };
+      }
+
+      const errText = await resp.text().catch(() => 'unknown');
+      console.error(`[EmailAdapter] Gmail draft API failed (${resp.status}): ${errText.slice(0, 300)}`);
+      return {
+        success: false,
+        error: { code: 'GMAIL_DRAFT_ERROR', message: `Gmail draft creation failed: ${resp.status}` },
+      };
+    }
+
     return {
       success: false,
-      error: { code: 'NO_IMAP_CREDENTIALS', message: 'Draft saving requires IMAP credentials (Gmail OAuth draft support coming soon)' },
+      error: { code: 'NO_EMAIL_CREDENTIALS', message: 'No email credentials configured. Connect Gmail or add IMAP credentials in Settings.' },
     };
   }
 

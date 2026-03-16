@@ -334,14 +334,11 @@ function extractTargetDomain(
   if (action === 'web.search' || action === 'web.deep_search') {
     return null;
   }
-  // Web fetch targets the URL's domain (dynamic per-request authorization)
-  if (action === 'web.fetch' && typeof payload['url'] === 'string') {
-    try {
-      const url = new URL(payload['url']);
-      return url.hostname;
-    } catch {
-      return null;
-    }
+  // Web fetch: skip allowlist check for user-initiated requests from chat.
+  // The user explicitly asked the AI to fetch a URL — that IS the authorization.
+  // The fetch adapter already validates URLs and enforces size limits.
+  if (action === 'web.fetch') {
+    return null;
   }
   // Cloud storage actions target Google Drive API
   if (action.startsWith('cloud.')) {

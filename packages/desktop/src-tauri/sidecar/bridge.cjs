@@ -987,6 +987,1087 @@ var require_fetch_umd = __commonJS({
   }
 });
 
+// node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/browser.mjs
+function getPlatform2() {
+  if (typeof window !== "undefined" && window.navigator) {
+    const nav = navigator;
+    if ("userAgentData" in nav && nav.userAgentData?.platform) {
+      return `${nav.userAgentData.platform.toLowerCase()} Browser/${navigator.userAgent};`;
+    }
+    if (navigator.platform) {
+      return `${navigator.platform.toLowerCase()} Browser/${navigator.userAgent};`;
+    }
+    return `unknown Browser/${navigator.userAgent};`;
+  } else if (typeof process !== "undefined") {
+    return `${process.arch} ${process.platform} Node.js/${process.version}`;
+  }
+  return "";
+}
+function normalizeHeaders(headers) {
+  if (headers instanceof Headers) {
+    const obj2 = {};
+    headers.forEach((value, key) => {
+      obj2[key] = value;
+    });
+    return obj2;
+  } else if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  } else {
+    return headers || {};
+  }
+}
+var import_whatwg_fetch, defaultPort, defaultHost, version, __defProp$1, __defNormalProp$1, __publicField$1, ResponseError, AbortableAsyncIterator, checkOk, readEnvVar, fetchWithHeaders, get, post, del, parseJSON, formatHost, __defProp2, __defNormalProp, __publicField, Ollama$1, browser;
+var init_browser = __esm({
+  "node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/browser.mjs"() {
+    import_whatwg_fetch = __toESM(require_fetch_umd(), 1);
+    defaultPort = "11434";
+    defaultHost = `http://127.0.0.1:${defaultPort}`;
+    version = "0.6.3";
+    __defProp$1 = Object.defineProperty;
+    __defNormalProp$1 = (obj2, key, value) => key in obj2 ? __defProp$1(obj2, key, { enumerable: true, configurable: true, writable: true, value }) : obj2[key] = value;
+    __publicField$1 = (obj2, key, value) => {
+      __defNormalProp$1(obj2, typeof key !== "symbol" ? key + "" : key, value);
+      return value;
+    };
+    ResponseError = class _ResponseError extends Error {
+      constructor(error, status_code) {
+        super(error);
+        this.error = error;
+        this.status_code = status_code;
+        this.name = "ResponseError";
+        if (Error.captureStackTrace) {
+          Error.captureStackTrace(this, _ResponseError);
+        }
+      }
+    };
+    AbortableAsyncIterator = class {
+      constructor(abortController, itr, doneCallback) {
+        __publicField$1(this, "abortController");
+        __publicField$1(this, "itr");
+        __publicField$1(this, "doneCallback");
+        this.abortController = abortController;
+        this.itr = itr;
+        this.doneCallback = doneCallback;
+      }
+      abort() {
+        this.abortController.abort();
+      }
+      async *[Symbol.asyncIterator]() {
+        for await (const message of this.itr) {
+          if ("error" in message) {
+            throw new Error(message.error);
+          }
+          yield message;
+          if (message.done || message.status === "success") {
+            this.doneCallback();
+            return;
+          }
+        }
+        throw new Error("Did not receive done or success response in stream.");
+      }
+    };
+    checkOk = async (response) => {
+      if (response.ok) {
+        return;
+      }
+      let message = `Error ${response.status}: ${response.statusText}`;
+      let errorData = null;
+      if (response.headers.get("content-type")?.includes("application/json")) {
+        try {
+          errorData = await response.json();
+          message = errorData.error || message;
+        } catch (error) {
+          console.log("Failed to parse error response as JSON");
+        }
+      } else {
+        try {
+          console.log("Getting text from response");
+          const textResponse = await response.text();
+          message = textResponse || message;
+        } catch (error) {
+          console.log("Failed to get text from error response");
+        }
+      }
+      throw new ResponseError(message, response.status);
+    };
+    readEnvVar = (obj2, key) => {
+      return obj2[key];
+    };
+    fetchWithHeaders = async (fetch2, url, options = {}) => {
+      const defaultHeaders = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "User-Agent": `ollama-js/${version} (${getPlatform2()})`
+      };
+      options.headers = normalizeHeaders(options.headers);
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol === "https:" && parsed.hostname === "ollama.com") {
+          const apiKey = typeof process === "object" && process !== null && typeof process.env === "object" && process.env !== null ? readEnvVar(process.env, "OLLAMA_API_KEY") : void 0;
+          const authorization = options.headers["authorization"] || options.headers["Authorization"];
+          if (!authorization && apiKey) {
+            options.headers["Authorization"] = `Bearer ${apiKey}`;
+          }
+        }
+      } catch (error) {
+        console.error("error parsing url", error);
+      }
+      const customHeaders = Object.fromEntries(
+        Object.entries(options.headers).filter(
+          ([key]) => !Object.keys(defaultHeaders).some(
+            (defaultKey) => defaultKey.toLowerCase() === key.toLowerCase()
+          )
+        )
+      );
+      options.headers = {
+        ...defaultHeaders,
+        ...customHeaders
+      };
+      return fetch2(url, options);
+    };
+    get = async (fetch2, host, options) => {
+      const response = await fetchWithHeaders(fetch2, host, {
+        headers: options?.headers
+      });
+      await checkOk(response);
+      return response;
+    };
+    post = async (fetch2, host, data, options) => {
+      const isRecord = (input) => {
+        return input !== null && typeof input === "object" && !Array.isArray(input);
+      };
+      const formattedData = isRecord(data) ? JSON.stringify(data) : data;
+      const response = await fetchWithHeaders(fetch2, host, {
+        method: "POST",
+        body: formattedData,
+        signal: options?.signal,
+        headers: options?.headers
+      });
+      await checkOk(response);
+      return response;
+    };
+    del = async (fetch2, host, data, options) => {
+      const response = await fetchWithHeaders(fetch2, host, {
+        method: "DELETE",
+        body: JSON.stringify(data),
+        headers: options?.headers
+      });
+      await checkOk(response);
+      return response;
+    };
+    parseJSON = async function* (itr) {
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      const reader = itr.getReader();
+      while (true) {
+        const { done, value: chunk2 } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(chunk2, { stream: true });
+        const parts = buffer.split("\n");
+        buffer = parts.pop() ?? "";
+        for (const part of parts) {
+          try {
+            yield JSON.parse(part);
+          } catch (error) {
+            console.warn("invalid json: ", part);
+          }
+        }
+      }
+      buffer += decoder.decode();
+      for (const part of buffer.split("\n").filter((p) => p !== "")) {
+        try {
+          yield JSON.parse(part);
+        } catch (error) {
+          console.warn("invalid json: ", part);
+        }
+      }
+    };
+    formatHost = (host) => {
+      if (!host) {
+        return defaultHost;
+      }
+      let isExplicitProtocol = host.includes("://");
+      if (host.startsWith(":")) {
+        host = `http://127.0.0.1${host}`;
+        isExplicitProtocol = true;
+      }
+      if (!isExplicitProtocol) {
+        host = `http://${host}`;
+      }
+      const url = new URL(host);
+      let port = url.port;
+      if (!port) {
+        if (!isExplicitProtocol) {
+          port = defaultPort;
+        } else {
+          port = url.protocol === "https:" ? "443" : "80";
+        }
+      }
+      let auth = "";
+      if (url.username) {
+        auth = url.username;
+        if (url.password) {
+          auth += `:${url.password}`;
+        }
+        auth += "@";
+      }
+      let formattedHost = `${url.protocol}//${auth}${url.hostname}:${port}${url.pathname}`;
+      if (formattedHost.endsWith("/")) {
+        formattedHost = formattedHost.slice(0, -1);
+      }
+      return formattedHost;
+    };
+    __defProp2 = Object.defineProperty;
+    __defNormalProp = (obj2, key, value) => key in obj2 ? __defProp2(obj2, key, { enumerable: true, configurable: true, writable: true, value }) : obj2[key] = value;
+    __publicField = (obj2, key, value) => {
+      __defNormalProp(obj2, typeof key !== "symbol" ? key + "" : key, value);
+      return value;
+    };
+    Ollama$1 = class Ollama {
+      constructor(config) {
+        __publicField(this, "config");
+        __publicField(this, "fetch");
+        __publicField(this, "ongoingStreamedRequests", []);
+        this.config = {
+          host: "",
+          headers: config?.headers
+        };
+        if (!config?.proxy) {
+          this.config.host = formatHost(config?.host ?? defaultHost);
+        }
+        this.fetch = config?.fetch ?? fetch;
+      }
+      // Abort any ongoing streamed requests to Ollama
+      abort() {
+        for (const request of this.ongoingStreamedRequests) {
+          request.abort();
+        }
+        this.ongoingStreamedRequests.length = 0;
+      }
+      /**
+       * Processes a request to the Ollama server. If the request is streamable, it will return a
+       * AbortableAsyncIterator that yields the response messages. Otherwise, it will return the response
+       * object.
+       * @param endpoint {string} - The endpoint to send the request to.
+       * @param request {object} - The request object to send to the endpoint.
+       * @protected {T | AbortableAsyncIterator<T>} - The response object or a AbortableAsyncIterator that yields
+       * response messages.
+       * @throws {Error} - If the response body is missing or if the response is an error.
+       * @returns {Promise<T | AbortableAsyncIterator<T>>} - The response object or a AbortableAsyncIterator that yields the streamed response.
+       */
+      async processStreamableRequest(endpoint, request) {
+        request.stream = request.stream ?? false;
+        const host = `${this.config.host}/api/${endpoint}`;
+        if (request.stream) {
+          const abortController = new AbortController();
+          const response2 = await post(this.fetch, host, request, {
+            signal: abortController.signal,
+            headers: this.config.headers
+          });
+          if (!response2.body) {
+            throw new Error("Missing body");
+          }
+          const itr = parseJSON(response2.body);
+          const abortableAsyncIterator = new AbortableAsyncIterator(
+            abortController,
+            itr,
+            () => {
+              const i = this.ongoingStreamedRequests.indexOf(abortableAsyncIterator);
+              if (i > -1) {
+                this.ongoingStreamedRequests.splice(i, 1);
+              }
+            }
+          );
+          this.ongoingStreamedRequests.push(abortableAsyncIterator);
+          return abortableAsyncIterator;
+        }
+        const response = await post(this.fetch, host, request, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Encodes an image to base64 if it is a Uint8Array.
+       * @param image {Uint8Array | string} - The image to encode.
+       * @returns {Promise<string>} - The base64 encoded image.
+       */
+      async encodeImage(image) {
+        if (typeof image !== "string") {
+          const uint8Array = new Uint8Array(image);
+          let byteString = "";
+          const len = uint8Array.byteLength;
+          for (let i = 0; i < len; i++) {
+            byteString += String.fromCharCode(uint8Array[i]);
+          }
+          return btoa(byteString);
+        }
+        return image;
+      }
+      /**
+       * Generates a response from a text prompt.
+       * @param request {GenerateRequest} - The request object.
+       * @returns {Promise<GenerateResponse | AbortableAsyncIterator<GenerateResponse>>} - The response object or
+       * an AbortableAsyncIterator that yields response messages.
+       */
+      async generate(request) {
+        if (request.images) {
+          request.images = await Promise.all(request.images.map(this.encodeImage.bind(this)));
+        }
+        return this.processStreamableRequest("generate", request);
+      }
+      /**
+       * Chats with the model. The request object can contain messages with images that are either
+       * Uint8Arrays or base64 encoded strings. The images will be base64 encoded before sending the
+       * request.
+       * @param request {ChatRequest} - The request object.
+       * @returns {Promise<ChatResponse | AbortableAsyncIterator<ChatResponse>>} - The response object or an
+       * AbortableAsyncIterator that yields response messages.
+       */
+      async chat(request) {
+        if (request.messages) {
+          for (const message of request.messages) {
+            if (message.images) {
+              message.images = await Promise.all(
+                message.images.map(this.encodeImage.bind(this))
+              );
+            }
+          }
+        }
+        return this.processStreamableRequest("chat", request);
+      }
+      /**
+       * Creates a new model from a stream of data.
+       * @param request {CreateRequest} - The request object.
+       * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or a stream of progress responses.
+       */
+      async create(request) {
+        return this.processStreamableRequest("create", {
+          ...request
+        });
+      }
+      /**
+       * Pulls a model from the Ollama registry. The request object can contain a stream flag to indicate if the
+       * response should be streamed.
+       * @param request {PullRequest} - The request object.
+       * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or
+       * an AbortableAsyncIterator that yields response messages.
+       */
+      async pull(request) {
+        return this.processStreamableRequest("pull", {
+          name: request.model,
+          stream: request.stream,
+          insecure: request.insecure
+        });
+      }
+      /**
+       * Pushes a model to the Ollama registry. The request object can contain a stream flag to indicate if the
+       * response should be streamed.
+       * @param request {PushRequest} - The request object.
+       * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or
+       * an AbortableAsyncIterator that yields response messages.
+       */
+      async push(request) {
+        return this.processStreamableRequest("push", {
+          name: request.model,
+          stream: request.stream,
+          insecure: request.insecure
+        });
+      }
+      /**
+       * Deletes a model from the server. The request object should contain the name of the model to
+       * delete.
+       * @param request {DeleteRequest} - The request object.
+       * @returns {Promise<StatusResponse>} - The response object.
+       */
+      async delete(request) {
+        await del(
+          this.fetch,
+          `${this.config.host}/api/delete`,
+          { name: request.model },
+          { headers: this.config.headers }
+        );
+        return { status: "success" };
+      }
+      /**
+       * Copies a model from one name to another. The request object should contain the name of the
+       * model to copy and the new name.
+       * @param request {CopyRequest} - The request object.
+       * @returns {Promise<StatusResponse>} - The response object.
+       */
+      async copy(request) {
+        await post(this.fetch, `${this.config.host}/api/copy`, { ...request }, {
+          headers: this.config.headers
+        });
+        return { status: "success" };
+      }
+      /**
+       * Lists the models on the server.
+       * @returns {Promise<ListResponse>} - The response object.
+       * @throws {Error} - If the response body is missing.
+       */
+      async list() {
+        const response = await get(this.fetch, `${this.config.host}/api/tags`, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Shows the metadata of a model. The request object should contain the name of the model.
+       * @param request {ShowRequest} - The request object.
+       * @returns {Promise<ShowResponse>} - The response object.
+       */
+      async show(request) {
+        const response = await post(this.fetch, `${this.config.host}/api/show`, {
+          ...request
+        }, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Embeds text input into vectors.
+       * @param request {EmbedRequest} - The request object.
+       * @returns {Promise<EmbedResponse>} - The response object.
+       */
+      async embed(request) {
+        const response = await post(this.fetch, `${this.config.host}/api/embed`, {
+          ...request
+        }, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Embeds a text prompt into a vector.
+       * @param request {EmbeddingsRequest} - The request object.
+       * @returns {Promise<EmbeddingsResponse>} - The response object.
+       */
+      async embeddings(request) {
+        const response = await post(this.fetch, `${this.config.host}/api/embeddings`, {
+          ...request
+        }, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Lists the running models on the server
+       * @returns {Promise<ListResponse>} - The response object.
+       * @throws {Error} - If the response body is missing.
+       */
+      async ps() {
+        const response = await get(this.fetch, `${this.config.host}/api/ps`, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Returns the Ollama server version.
+       * @returns {Promise<VersionResponse>} - The server version object.
+       */
+      async version() {
+        const response = await get(this.fetch, `${this.config.host}/api/version`, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Performs web search using the Ollama web search API
+       * @param request {WebSearchRequest} - The search request containing query and options
+       * @returns {Promise<WebSearchResponse>} - The search results
+       * @throws {Error} - If the request is invalid or the server returns an error
+       */
+      async webSearch(request) {
+        if (!request.query || request.query.length === 0) {
+          throw new Error("Query is required");
+        }
+        const response = await post(this.fetch, `https://ollama.com/api/web_search`, { ...request }, {
+          headers: this.config.headers
+        });
+        return await response.json();
+      }
+      /**
+       * Fetches a single page using the Ollama web fetch API
+       * @param request {WebFetchRequest} - The fetch request containing a URL
+       * @returns {Promise<WebFetchResponse>} - The fetch result
+       * @throws {Error} - If the request is invalid or the server returns an error
+       */
+      async webFetch(request) {
+        if (!request.url || request.url.length === 0) {
+          throw new Error("URL is required");
+        }
+        const response = await post(this.fetch, `https://ollama.com/api/web_fetch`, { ...request }, { headers: this.config.headers });
+        return await response.json();
+      }
+    };
+    browser = new Ollama$1();
+  }
+});
+
+// node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/index.mjs
+var import_node_fs, import_node_path, import_whatwg_fetch2, Ollama2, index;
+var init_dist = __esm({
+  "node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/index.mjs"() {
+    import_node_fs = __toESM(require("node:fs"), 1);
+    import_node_path = require("node:path");
+    init_browser();
+    import_whatwg_fetch2 = __toESM(require_fetch_umd(), 1);
+    Ollama2 = class extends Ollama$1 {
+      async encodeImage(image) {
+        if (typeof image !== "string") {
+          return Buffer.from(image).toString("base64");
+        }
+        try {
+          if (import_node_fs.default.existsSync(image)) {
+            const fileBuffer = await import_node_fs.promises.readFile((0, import_node_path.resolve)(image));
+            return Buffer.from(fileBuffer).toString("base64");
+          }
+        } catch {
+        }
+        return image;
+      }
+      /**
+       * checks if a file exists
+       * @param path {string} - The path to the file
+       * @private @internal
+       * @returns {Promise<boolean>} - Whether the file exists or not
+       */
+      async fileExists(path2) {
+        try {
+          await import_node_fs.promises.access(path2);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      async create(request) {
+        if (request.from && await this.fileExists((0, import_node_path.resolve)(request.from))) {
+          throw Error("Creating with a local path is not currently supported from ollama-js");
+        }
+        if (request.stream) {
+          return super.create(request);
+        } else {
+          return super.create(request);
+        }
+      }
+    };
+    index = new Ollama2();
+  }
+});
+
+// packages/core/llm/ollama-provider.ts
+var ollama_provider_exports = {};
+__export(ollama_provider_exports, {
+  OllamaProvider: () => OllamaProvider
+});
+function isLocalhost(url) {
+  try {
+    const parsed = new URL(url);
+    const hostname2 = parsed.hostname;
+    return hostname2 === "localhost" || hostname2 === "127.0.0.1" || hostname2 === "::1";
+  } catch {
+    return false;
+  }
+}
+function isEmbeddingModel(name) {
+  const lower = name.toLowerCase();
+  return EMBEDDING_MODEL_FAMILIES.some((family) => lower.includes(family));
+}
+var EMBEDDING_MODEL_FAMILIES, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS, NS_TO_MS, OllamaProvider;
+var init_ollama_provider = __esm({
+  "packages/core/llm/ollama-provider.ts"() {
+    "use strict";
+    init_dist();
+    EMBEDDING_MODEL_FAMILIES = ["nomic-embed", "all-minilm", "mxbai-embed", "snowflake-arctic-embed"];
+    DEFAULT_TEMPERATURE = 0.7;
+    DEFAULT_MAX_TOKENS = 2048;
+    NS_TO_MS = 1e6;
+    OllamaProvider = class {
+      client;
+      baseUrl;
+      constructor(config) {
+        this.baseUrl = config?.baseUrl ?? "http://localhost:11434";
+        if (!isLocalhost(this.baseUrl)) {
+          throw new Error(
+            `[OllamaProvider] SECURITY: Refused non-localhost URL "${this.baseUrl}". The Ollama provider may ONLY connect to localhost. This is a hard safety constraint \u2014 no data may leave this device.`
+          );
+        }
+        this.client = new Ollama2({ host: this.baseUrl });
+      }
+      async isAvailable() {
+        try {
+          await this.client.list();
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      async generate(request) {
+        const startMs = Date.now();
+        const response = await this.client.generate({
+          model: request.model,
+          prompt: request.prompt,
+          system: request.system,
+          stream: false,
+          format: request.format,
+          options: {
+            temperature: request.temperature ?? DEFAULT_TEMPERATURE,
+            num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+            stop: request.stop
+          }
+        });
+        return {
+          text: response.response,
+          model: response.model,
+          tokensUsed: {
+            prompt: response.prompt_eval_count ?? 0,
+            completion: response.eval_count ?? 0,
+            total: (response.prompt_eval_count ?? 0) + (response.eval_count ?? 0)
+          },
+          durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs
+        };
+      }
+      async chat(request) {
+        const startMs = Date.now();
+        const ollamaTools = request.tools?.map((tool) => ({
+          type: "function",
+          function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters
+          }
+        }));
+        const messages = request.messages.map((m) => ({
+          role: m.role,
+          content: m.content
+        }));
+        const response = await this.client.chat({
+          model: request.model,
+          messages,
+          stream: false,
+          format: request.format,
+          tools: ollamaTools,
+          options: {
+            temperature: request.temperature ?? DEFAULT_TEMPERATURE,
+            num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+            stop: request.stop
+          }
+        });
+        let toolCalls;
+        let contentText = response.message.content;
+        if (response.message.tool_calls && response.message.tool_calls.length > 0) {
+          toolCalls = response.message.tool_calls.map((tc) => ({
+            name: tc.function.name,
+            arguments: tc.function.arguments
+          }));
+        }
+        if (!toolCalls && contentText && request.tools && request.tools.length > 0) {
+          const parsed = this.parseTextToolCalls(contentText, request.tools);
+          if (parsed.toolCalls.length > 0) {
+            toolCalls = parsed.toolCalls;
+            contentText = parsed.textContent;
+          }
+        }
+        return {
+          message: {
+            role: response.message.role,
+            content: contentText
+          },
+          model: response.model,
+          tokensUsed: {
+            prompt: response.prompt_eval_count ?? 0,
+            completion: response.eval_count ?? 0,
+            total: (response.prompt_eval_count ?? 0) + (response.eval_count ?? 0)
+          },
+          durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs,
+          toolCalls
+        };
+      }
+      // AUTONOMOUS DECISION: Added chatStream() for real-time token streaming.
+      // Reasoning: The build prompt (STEP-4B) requires "tokens stream in real-time —
+      // the user sees words appearing, not a loading spinner followed by a wall of text."
+      // The existing chat() method uses stream: false. This is a minimal addition that
+      // enables the desktop sidecar to stream tokens to the frontend.
+      // Escalation check: Build prompt authorizes minimal Core bug fixes for blocking issues.
+      async *chatStream(request) {
+        const messages = request.messages.map((m) => ({
+          role: m.role,
+          content: m.content
+        }));
+        const response = await this.client.chat({
+          model: request.model,
+          messages,
+          stream: true,
+          options: {
+            temperature: request.temperature ?? DEFAULT_TEMPERATURE,
+            num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+            stop: request.stop
+          }
+        });
+        for await (const chunk2 of response) {
+          if (chunk2.message?.content) {
+            yield chunk2.message.content;
+          }
+        }
+      }
+      async embed(request) {
+        const startMs = Date.now();
+        const response = await this.client.embed({
+          model: request.model,
+          input: request.input
+        });
+        return {
+          embeddings: response.embeddings,
+          model: response.model,
+          durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs
+        };
+      }
+      async listModels() {
+        const response = await this.client.list();
+        return response.models.map((m) => ({
+          name: m.name,
+          size: m.size,
+          parameterCount: m.details?.parameter_size,
+          quantization: m.details?.quantization_level,
+          family: m.details?.family,
+          isEmbedding: isEmbeddingModel(m.name)
+        }));
+      }
+      async getModel(name) {
+        try {
+          const response = await this.client.show({ model: name });
+          return {
+            name,
+            size: 0,
+            // show() doesn't return size directly
+            parameterCount: response.details?.parameter_size,
+            quantization: response.details?.quantization_level,
+            family: response.details?.family,
+            isEmbedding: isEmbeddingModel(name)
+          };
+        } catch {
+          return null;
+        }
+      }
+      /**
+       * Parse tool calls from raw text output when the model doesn't use
+       * structured tool_calls. Handles:
+       * - <tool_call>{...}</tool_call> blocks
+       * - ```json blocks with {name, arguments/parameters}
+       * - Bare JSON objects matching known tool names
+       */
+      parseTextToolCalls(text, tools) {
+        const toolCalls = [];
+        let textContent = text;
+        const toolNames = new Set(tools.map((t) => t.name));
+        const tagRegex = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g;
+        let match;
+        while ((match = tagRegex.exec(text)) !== null) {
+          const jsonStr = (match[1] ?? "").trim();
+          if (!jsonStr) continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.name && toolNames.has(parsed.name)) {
+              toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
+            }
+          } catch {
+          }
+        }
+        if (toolCalls.length > 0) {
+          textContent = text.replace(tagRegex, "").trim();
+          return { toolCalls, textContent };
+        }
+        const codeBlockRegex = /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\})\s*```/g;
+        while ((match = codeBlockRegex.exec(text)) !== null) {
+          const blockJson = match[1] ?? "";
+          if (!blockJson) continue;
+          try {
+            const parsed = JSON.parse(blockJson);
+            if (parsed.name && toolNames.has(parsed.name)) {
+              toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
+            }
+          } catch {
+          }
+        }
+        if (toolCalls.length > 0) {
+          textContent = text.replace(codeBlockRegex, "").trim();
+          return { toolCalls, textContent };
+        }
+        const bareJsonRegex = /\{[^{}]*"name"\s*:\s*"([^"]+)"[^{}]*\}/g;
+        while ((match = bareJsonRegex.exec(text)) !== null) {
+          try {
+            const parsed = JSON.parse(match[0]);
+            if (parsed.name && toolNames.has(parsed.name)) {
+              toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
+              textContent = text.replace(match[0], "").trim();
+            }
+          } catch {
+          }
+        }
+        return { toolCalls, textContent };
+      }
+    };
+  }
+});
+
+// packages/core/llm/inference-types.ts
+var TASK_TIER_MAP;
+var init_inference_types = __esm({
+  "packages/core/llm/inference-types.ts"() {
+    "use strict";
+    TASK_TIER_MAP = {
+      classify: "fast",
+      extract: "primary",
+      draft: "primary",
+      generate: "primary",
+      reason: "quality",
+      embed: "embedding"
+    };
+  }
+});
+
+// packages/core/llm/inference-router.ts
+var inference_router_exports = {};
+__export(inference_router_exports, {
+  InferenceRouter: () => InferenceRouter
+});
+var InferenceRouter;
+var init_inference_router = __esm({
+  "packages/core/llm/inference-router.ts"() {
+    "use strict";
+    init_inference_types();
+    InferenceRouter = class {
+      reasoningProvider;
+      embeddingProvider;
+      reasoningModel;
+      embeddingModel;
+      platform;
+      mobileProvider;
+      mobileReasoningModel;
+      mobileEmbeddingModel;
+      bitnetProvider;
+      bitnetReasoningModel;
+      constructor(config) {
+        this.reasoningProvider = config.reasoningProvider;
+        this.embeddingProvider = config.embeddingProvider;
+        this.reasoningModel = config.reasoningModel;
+        this.embeddingModel = config.embeddingModel;
+        this.platform = config.platform ?? "desktop";
+        this.mobileProvider = config.mobileProvider ?? null;
+        this.mobileReasoningModel = config.mobileReasoningModel ?? null;
+        this.mobileEmbeddingModel = config.mobileEmbeddingModel ?? null;
+        this.bitnetProvider = config.bitnetProvider ?? null;
+        this.bitnetReasoningModel = config.bitnetReasoningModel ?? null;
+      }
+      // ─── LLMProvider Interface ───────────────────────────────────────────────
+      async isAvailable() {
+        const [reasoning, embedding] = await Promise.all([
+          this.reasoningProvider.isAvailable().catch(() => false),
+          this.embeddingProvider.isAvailable().catch(() => false)
+        ]);
+        return reasoning || embedding;
+      }
+      async generate(request) {
+        const provider = this.getProviderForTier("primary");
+        return provider.generate({
+          ...request,
+          model: request.model || this.reasoningModel
+        });
+      }
+      async chat(request) {
+        const provider = this.getProviderForTier("primary");
+        return provider.chat({
+          ...request,
+          model: request.model || this.reasoningModel
+        });
+      }
+      async *chatStream(request) {
+        const provider = this.getProviderForTier("primary");
+        if (provider.chatStream) {
+          yield* provider.chatStream({
+            ...request,
+            model: request.model || this.reasoningModel
+          });
+        } else {
+          const response = await provider.chat({
+            ...request,
+            model: request.model || this.reasoningModel
+          });
+          yield response.message.content;
+        }
+      }
+      async embed(request) {
+        return this.embeddingProvider.embed({
+          ...request,
+          model: request.model || this.embeddingModel
+        });
+      }
+      async listModels() {
+        const [reasoning, embedding] = await Promise.all([
+          this.reasoningProvider.listModels().catch(() => []),
+          this.embeddingProvider.listModels().catch(() => [])
+        ]);
+        const seen = /* @__PURE__ */ new Set();
+        const models = [];
+        for (const model of [...reasoning, ...embedding]) {
+          if (!seen.has(model.name)) {
+            seen.add(model.name);
+            models.push(model);
+          }
+        }
+        return models;
+      }
+      async getModel(name) {
+        const result2 = await this.reasoningProvider.getModel(name);
+        if (result2) return result2;
+        return this.embeddingProvider.getModel(name);
+      }
+      // ─── Task-Aware Routing ───────────────────────────────────────────────────
+      /**
+       * Route a chat request based on task type.
+       * Uses TASK_TIER_MAP to select the appropriate tier, with fallback.
+       */
+      async routedChat(request, taskType) {
+        const tier = TASK_TIER_MAP[taskType];
+        const provider = this.getProviderForTier(tier);
+        return provider.chat({
+          ...request,
+          model: request.model || this.reasoningModel
+        });
+      }
+      /**
+       * Route a generate request based on task type.
+       */
+      async routedGenerate(request, taskType) {
+        const tier = TASK_TIER_MAP[taskType];
+        const provider = this.getProviderForTier(tier);
+        return provider.generate({
+          ...request,
+          model: request.model || this.reasoningModel
+        });
+      }
+      /**
+       * Get the model name used for a specific task type.
+       */
+      getModelForTask(taskType) {
+        if (taskType === "embed") return this.embeddingModel;
+        return this.reasoningModel;
+      }
+      /**
+       * Get the active reasoning model name.
+       */
+      getReasoningModel() {
+        return this.reasoningModel;
+      }
+      /**
+       * Get the active embedding model name.
+       */
+      getEmbeddingModel() {
+        return this.embeddingModel;
+      }
+      /**
+       * Update the reasoning provider (e.g., when switching between Ollama and native).
+       */
+      setReasoningProvider(provider, model) {
+        this.reasoningProvider = provider;
+        this.reasoningModel = model;
+        this.bitnetProvider = null;
+        this.bitnetReasoningModel = null;
+      }
+      /**
+       * Update the embedding provider.
+       */
+      setEmbeddingProvider(provider, model) {
+        this.embeddingProvider = provider;
+        this.embeddingModel = model;
+      }
+      /**
+       * Set or update the mobile provider (used when platform is 'ios' or 'android').
+       */
+      setMobileProvider(provider, reasoningModel, embeddingModel) {
+        this.mobileProvider = provider;
+        this.mobileReasoningModel = reasoningModel;
+        this.mobileEmbeddingModel = embeddingModel;
+      }
+      /**
+       * Set or update the BitNet provider (CPU-optimized 1-bit inference).
+       * BitNet acts as the primary reasoning provider when no GPU provider (Ollama) is active.
+       * When Ollama is available, call clearBitNetProvider() so the GPU path is used instead.
+       */
+      setBitNetProvider(provider, model) {
+        this.bitnetProvider = provider;
+        this.bitnetReasoningModel = model;
+      }
+      /**
+       * Clear the BitNet provider (e.g., when Ollama GPU inference becomes available).
+       * Requests will fall through to the reasoning provider instead.
+       */
+      clearBitNetProvider() {
+        this.bitnetProvider = null;
+        this.bitnetReasoningModel = null;
+      }
+      /**
+       * Check if the BitNet provider is available and ready.
+       */
+      async isBitNetReady() {
+        if (!this.bitnetProvider) return false;
+        return this.bitnetProvider.isAvailable();
+      }
+      /**
+       * Get the active BitNet model name, or null if BitNet is not configured.
+       */
+      getBitNetModel() {
+        return this.bitnetReasoningModel;
+      }
+      /**
+       * Get the current platform.
+       */
+      getPlatform() {
+        return this.platform;
+      }
+      /**
+       * Check if this router is running on a mobile platform.
+       */
+      isMobile() {
+        return this.platform === "ios" || this.platform === "android";
+      }
+      /**
+       * Check if the mobile provider is available and ready.
+       */
+      async isMobileReady() {
+        if (!this.mobileProvider) return false;
+        return this.mobileProvider.isAvailable();
+      }
+      // ─── Private ──────────────────────────────────────────────────────────────
+      /**
+       * Get the provider for a given inference tier.
+       *
+       * Priority chain (desktop):
+       *   1. Ollama (GPU) — reasoningProvider (if it's an OllamaProvider and available)
+       *   2. BitNet (CPU) — bitnetProvider (if configured and available)
+       *   3. Native (fallback) — reasoningProvider (NativeProvider)
+       *
+       * On mobile, uses the mobile provider for all tiers.
+       * Embedding tier always uses the dedicated embedding provider.
+       */
+      getProviderForTier(tier) {
+        if (this.isMobile() && this.mobileProvider) {
+          return this.mobileProvider;
+        }
+        if (tier === "embedding") {
+          return this.embeddingProvider;
+        }
+        if (this.bitnetProvider) {
+          return this.bitnetProvider;
+        }
+        return this.reasoningProvider;
+      }
+    };
+  }
+});
+
 // node_modules/.pnpm/xlsx@0.18.5/node_modules/xlsx/dist/cpexcel.js
 var require_cpexcel = __commonJS({
   "node_modules/.pnpm/xlsx@0.18.5/node_modules/xlsx/dist/cpexcel.js"(exports2, module2) {
@@ -168097,6 +169178,504 @@ var require_cjs3 = __commonJS({
   }
 });
 
+// packages/gateway/services/oauth-callback-server.ts
+function generateSelfSignedCert() {
+  const { privateKey, publicKey } = (0, import_node_crypto8.generateKeyPairSync)("rsa", {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" }
+  });
+  const now = /* @__PURE__ */ new Date();
+  const expiry = new Date(now.getTime() + 24 * 60 * 60 * 1e3);
+  const serial = (0, import_node_crypto8.randomBytes)(8);
+  const { execSync } = require("node:child_process");
+  try {
+    const certOut = execSync(
+      'openssl req -x509 -newkey rsa:2048 -keyout /dev/stdout -out /dev/stdout -days 1 -nodes -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null',
+      { encoding: "utf-8", timeout: 5e3 }
+    );
+    const keyMatch = certOut.match(/(-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----)/);
+    const certMatch = certOut.match(/(-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----)/);
+    if (keyMatch && certMatch) {
+      return { key: keyMatch[1], cert: certMatch[1] };
+    }
+  } catch {
+  }
+  const { writeFileSync: writeFileSync5, unlinkSync: unlinkSync4, mkdtempSync, readFileSync: readFs, rmdirSync } = require("node:fs");
+  const { join: join8 } = require("node:path");
+  const { tmpdir } = require("node:os");
+  let tmpDir = null;
+  try {
+    tmpDir = mkdtempSync(join8(tmpdir(), "semblance-cert-"));
+    const keyPath = join8(tmpDir, "key.pem");
+    const certPath = join8(tmpDir, "cert.pem");
+    writeFileSync5(keyPath, privateKey);
+    execSync(
+      `openssl req -x509 -key "${keyPath}" -out "${certPath}" -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null`,
+      { timeout: 5e3 }
+    );
+    const cert = readFs(certPath, "utf-8");
+    return { key: privateKey, cert };
+  } catch {
+    throw new Error(
+      "Cannot generate self-signed certificate: openssl not found. Install OpenSSL or use HTTP-only OAuth for this connector."
+    );
+  } finally {
+    if (tmpDir) {
+      try {
+        unlinkSync4(join8(tmpDir, "key.pem"));
+      } catch {
+      }
+      try {
+        unlinkSync4(join8(tmpDir, "cert.pem"));
+      } catch {
+      }
+      try {
+        rmdirSync(tmpDir);
+      } catch {
+      }
+    }
+  }
+}
+var import_node_http, import_node_https, import_node_crypto8, import_node_url2, PORT_RANGE_START, PORT_RANGE_END, AUTO_SHUTDOWN_MS, OAuthCallbackServer;
+var init_oauth_callback_server = __esm({
+  "packages/gateway/services/oauth-callback-server.ts"() {
+    "use strict";
+    import_node_http = require("node:http");
+    import_node_https = require("node:https");
+    import_node_crypto8 = require("node:crypto");
+    import_node_url2 = require("node:url");
+    PORT_RANGE_START = 8080;
+    PORT_RANGE_END = 8099;
+    AUTO_SHUTDOWN_MS = 12e4;
+    OAuthCallbackServer = class {
+      server = null;
+      shutdownTimer = null;
+      resolveAuth = null;
+      rejectAuth = null;
+      expectedState = "";
+      /**
+       * Start the callback server. Returns the callback URL and state parameter.
+       * The server listens on localhost only (127.0.0.1) for security.
+       * Pass { https: true } for providers that require HTTPS redirect URIs (e.g. Slack).
+       */
+      async start(options) {
+        this.expectedState = (0, import_node_crypto8.randomBytes)(32).toString("hex");
+        const useHttps = options?.https ?? false;
+        const port = await this.findAvailablePort();
+        return new Promise((resolve5, reject2) => {
+          const handler = (req, res) => {
+            this.handleRequest(req, res);
+          };
+          let isHttps = false;
+          if (useHttps) {
+            try {
+              const { key, cert } = generateSelfSignedCert();
+              this.server = (0, import_node_https.createServer)({ key, cert }, handler);
+              isHttps = true;
+            } catch (err) {
+              console.error("[OAuthCallbackServer] Failed to create HTTPS server, falling back to HTTP:", err);
+              this.server = (0, import_node_http.createServer)(handler);
+            }
+          } else {
+            this.server = (0, import_node_http.createServer)(handler);
+          }
+          const protocol = isHttps ? "https" : "http";
+          const host = isHttps ? "localhost" : "127.0.0.1";
+          this.server.listen(port, "127.0.0.1", () => {
+            this.shutdownTimer = setTimeout(() => {
+              this.rejectAuth?.(new Error("OAuth callback timed out"));
+              this.stop();
+            }, AUTO_SHUTDOWN_MS);
+            resolve5({
+              callbackUrl: `${protocol}://${host}:${port}/callback`,
+              state: this.expectedState,
+              port
+            });
+          });
+          this.server.on("error", (err) => {
+            reject2(err);
+          });
+        });
+      }
+      /**
+       * Wait for the OAuth callback to arrive. Returns the authorization code.
+       */
+      waitForCallback() {
+        return new Promise((resolve5, reject2) => {
+          this.resolveAuth = resolve5;
+          this.rejectAuth = reject2;
+        });
+      }
+      /** Stop the server and clean up. */
+      stop() {
+        if (this.shutdownTimer) {
+          clearTimeout(this.shutdownTimer);
+          this.shutdownTimer = null;
+        }
+        if (this.server) {
+          this.server.close();
+          this.server = null;
+        }
+      }
+      handleRequest(req, res) {
+        const host = req.headers.host ?? "localhost";
+        const url = new import_node_url2.URL(req.url ?? "/", `http://${host}`);
+        if (url.pathname === "/callback") {
+          const code = url.searchParams.get("code");
+          const state = url.searchParams.get("state");
+          const error = url.searchParams.get("error");
+          if (error) {
+            res.writeHead(400, { "Content-Type": "text/html" });
+            res.end("<html><body><h1>Authorization Failed</h1><p>You can close this window.</p></body></html>");
+            this.rejectAuth?.(new Error(`OAuth error: ${error}`));
+            this.stop();
+            return;
+          }
+          if (!state || state !== this.expectedState) {
+            res.writeHead(400, { "Content-Type": "text/html" });
+            res.end("<html><body><h1>Invalid State</h1><p>Security validation failed.</p></body></html>");
+            this.rejectAuth?.(new Error("OAuth state parameter mismatch"));
+            this.stop();
+            return;
+          }
+          if (!code) {
+            res.writeHead(400, { "Content-Type": "text/html" });
+            res.end("<html><body><h1>Missing Code</h1><p>No authorization code received.</p></body></html>");
+            this.rejectAuth?.(new Error("No authorization code in callback"));
+            this.stop();
+            return;
+          }
+          res.writeHead(200, { "Content-Type": "text/html" });
+          res.end("<html><body><h1>Authorization Successful</h1><p>You can close this window and return to Semblance.</p></body></html>");
+          this.resolveAuth?.({ code, state });
+          this.stop();
+        } else {
+          res.writeHead(404);
+          res.end();
+        }
+      }
+      findAvailablePort() {
+        return new Promise((resolve5, reject2) => {
+          let currentPort = PORT_RANGE_START;
+          const tryPort = () => {
+            if (currentPort > PORT_RANGE_END) {
+              reject2(new Error("No available port found in range 8080-8099"));
+              return;
+            }
+            const testServer = (0, import_node_http.createServer)();
+            testServer.listen(currentPort, "127.0.0.1", () => {
+              const port = currentPort;
+              testServer.close(() => resolve5(port));
+            });
+            testServer.on("error", () => {
+              currentPort++;
+              tryPort();
+            });
+          };
+          tryPort();
+        });
+      }
+    };
+  }
+});
+
+// packages/gateway/services/google-drive-adapter.ts
+var google_drive_adapter_exports = {};
+__export(google_drive_adapter_exports, {
+  GOOGLE_DRIVE_READONLY_SCOPE: () => GOOGLE_DRIVE_READONLY_SCOPE,
+  GoogleDriveAdapter: () => GoogleDriveAdapter
+});
+var GOOGLE_DRIVE_READONLY_SCOPE, WORKSPACE_EXPORT_MAP, GoogleDriveAdapter;
+var init_google_drive_adapter = __esm({
+  "packages/gateway/services/google-drive-adapter.ts"() {
+    "use strict";
+    init_oauth_callback_server();
+    GOOGLE_DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+    WORKSPACE_EXPORT_MAP = {
+      "application/vnd.google-apps.document": { mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", extension: ".docx" },
+      "application/vnd.google-apps.spreadsheet": { mimeType: "text/csv", extension: ".csv" },
+      "application/vnd.google-apps.presentation": { mimeType: "application/pdf", extension: ".pdf" }
+    };
+    GoogleDriveAdapter = class {
+      tokenManager;
+      config;
+      constructor(tokenManager, config) {
+        this.tokenManager = tokenManager;
+        this.config = config;
+      }
+      async execute(action, payload) {
+        const p = payload;
+        try {
+          switch (action) {
+            case "cloud.auth":
+              return await this.handleAuth();
+            case "cloud.auth_status":
+              return this.handleAuthStatus();
+            case "cloud.disconnect":
+              return await this.handleDisconnect();
+            case "cloud.list_files":
+              return await this.handleListFiles(p);
+            case "cloud.file_metadata":
+              return await this.handleFileMetadata(p);
+            case "cloud.download_file":
+              return await this.handleDownloadFile(p);
+            case "cloud.check_changed":
+              return await this.handleCheckChanged(p);
+            default:
+              return { success: false, error: { code: "UNKNOWN_ACTION", message: `Unknown action: ${action}` } };
+          }
+        } catch (err) {
+          return {
+            success: false,
+            error: {
+              code: "DRIVE_ERROR",
+              message: err instanceof Error ? err.message : String(err)
+            }
+          };
+        }
+      }
+      async handleAuth() {
+        const callbackServer = new OAuthCallbackServer();
+        const { callbackUrl, state } = await callbackServer.start();
+        const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+        authUrl.searchParams.set("client_id", this.config.clientId);
+        authUrl.searchParams.set("redirect_uri", callbackUrl);
+        authUrl.searchParams.set("response_type", "code");
+        authUrl.searchParams.set("scope", GOOGLE_DRIVE_READONLY_SCOPE);
+        authUrl.searchParams.set("state", state);
+        authUrl.searchParams.set("access_type", "offline");
+        authUrl.searchParams.set("prompt", "consent");
+        try {
+          const { exec } = await import("node:child_process");
+          const url = authUrl.toString();
+          const platform4 = process.platform;
+          if (platform4 === "win32") exec(`start "" "${url}"`);
+          else if (platform4 === "darwin") exec(`open "${url}"`);
+          else exec(`xdg-open "${url}"`);
+        } catch {
+        }
+        try {
+          const { code } = await callbackServer.waitForCallback();
+          const tokenResponse = await globalThis.fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              code,
+              client_id: this.config.clientId,
+              client_secret: this.config.clientSecret,
+              redirect_uri: callbackUrl,
+              grant_type: "authorization_code"
+            })
+          });
+          const tokenData = await tokenResponse.json();
+          if (tokenData.error) {
+            return { success: false, error: { code: "TOKEN_ERROR", message: tokenData.error } };
+          }
+          const userResponse = await globalThis.fetch("https://www.googleapis.com/drive/v3/about?fields=user", {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` }
+          });
+          const userData = await userResponse.json();
+          this.tokenManager.storeTokens({
+            provider: "google_drive",
+            accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token,
+            expiresAt: Date.now() + tokenData.expires_in * 1e3,
+            scopes: GOOGLE_DRIVE_READONLY_SCOPE,
+            userEmail: userData.user?.emailAddress
+          });
+          return {
+            success: true,
+            data: {
+              success: true,
+              provider: "google_drive",
+              userEmail: userData.user?.emailAddress
+            }
+          };
+        } catch (err) {
+          callbackServer.stop();
+          return {
+            success: false,
+            error: { code: "AUTH_ERROR", message: err instanceof Error ? err.message : String(err) }
+          };
+        }
+      }
+      handleAuthStatus() {
+        const hasTokens = this.tokenManager.hasValidTokens("google_drive");
+        const email = this.tokenManager.getUserEmail("google_drive");
+        return {
+          success: true,
+          data: { authenticated: hasTokens, userEmail: email }
+        };
+      }
+      async handleDisconnect() {
+        const accessToken = this.tokenManager.getAccessToken("google_drive");
+        if (accessToken) {
+          try {
+            await globalThis.fetch("https://oauth2.googleapis.com/revoke", {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: new URLSearchParams({ token: accessToken })
+            });
+          } catch {
+          }
+        }
+        this.tokenManager.revokeTokens("google_drive");
+        return { success: true, data: { disconnected: true } };
+      }
+      async handleListFiles(payload) {
+        const accessToken = await this.getValidAccessToken();
+        const folderId = payload["folderId"] || "root";
+        const pageSize = payload["pageSize"] || 100;
+        const pageToken = payload["pageToken"];
+        const url = new URL("https://www.googleapis.com/drive/v3/files");
+        url.searchParams.set("q", `'${folderId}' in parents and trashed = false`);
+        url.searchParams.set("pageSize", String(pageSize));
+        url.searchParams.set("fields", "nextPageToken,files(id,name,mimeType,size,modifiedTime,createdTime,parents,md5Checksum,webViewLink)");
+        url.searchParams.set("orderBy", "modifiedTime desc");
+        if (pageToken) url.searchParams.set("pageToken", pageToken);
+        const response = await globalThis.fetch(url.toString(), {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const data = await response.json();
+        const files = data.files.map((f) => ({
+          id: f.id,
+          name: f.name,
+          mimeType: f.mimeType,
+          sizeBytes: parseInt(f.size ?? "0", 10),
+          modifiedTime: f.modifiedTime,
+          createdTime: f.createdTime,
+          parentId: f.parents?.[0] ?? null,
+          md5Checksum: f.md5Checksum ?? null,
+          isFolder: f.mimeType === "application/vnd.google-apps.folder",
+          webViewLink: f.webViewLink
+        }));
+        return {
+          success: true,
+          data: { files, nextPageToken: data.nextPageToken ?? null, totalFiles: files.length }
+        };
+      }
+      async handleFileMetadata(payload) {
+        const accessToken = await this.getValidAccessToken();
+        const fileId = payload["fileId"];
+        const url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,size,modifiedTime,createdTime,parents,md5Checksum,webViewLink`;
+        const response = await globalThis.fetch(url, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const f = await response.json();
+        return {
+          success: true,
+          data: {
+            id: f.id,
+            name: f.name,
+            mimeType: f.mimeType,
+            sizeBytes: parseInt(f.size ?? "0", 10),
+            modifiedTime: f.modifiedTime,
+            createdTime: f.createdTime,
+            parentId: f.parents?.[0] ?? null,
+            md5Checksum: f.md5Checksum ?? null,
+            isFolder: f.mimeType === "application/vnd.google-apps.folder",
+            webViewLink: f.webViewLink
+          }
+        };
+      }
+      async handleDownloadFile(payload) {
+        const accessToken = await this.getValidAccessToken();
+        const fileId = payload["fileId"];
+        const localPath = payload["localPath"];
+        const metaUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType,name,size`;
+        const metaResponse = await globalThis.fetch(metaUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const meta = await metaResponse.json();
+        let downloadUrl;
+        let finalMimeType = meta.mimeType;
+        const exportInfo = WORKSPACE_EXPORT_MAP[meta.mimeType];
+        if (exportInfo) {
+          downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=${encodeURIComponent(exportInfo.mimeType)}`;
+          finalMimeType = exportInfo.mimeType;
+        } else {
+          downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+        }
+        const downloadResponse = await globalThis.fetch(downloadUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if (!downloadResponse.ok) {
+          return {
+            success: false,
+            error: { code: "DOWNLOAD_FAILED", message: `HTTP ${downloadResponse.status}` }
+          };
+        }
+        const buffer = Buffer.from(await downloadResponse.arrayBuffer());
+        const fs4 = await import("node:fs");
+        const path2 = await import("node:path");
+        const dir = path2.dirname(localPath);
+        if (!fs4.existsSync(dir)) {
+          fs4.mkdirSync(dir, { recursive: true });
+        }
+        fs4.writeFileSync(localPath, buffer);
+        return {
+          success: true,
+          data: {
+            success: true,
+            localPath,
+            sizeBytes: buffer.length,
+            mimeType: finalMimeType
+          }
+        };
+      }
+      async handleCheckChanged(payload) {
+        const accessToken = await this.getValidAccessToken();
+        const fileId = payload["fileId"];
+        const sinceTimestamp = payload["sinceTimestamp"];
+        const url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=modifiedTime`;
+        const response = await globalThis.fetch(url, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const data = await response.json();
+        const remoteModified = new Date(data.modifiedTime).getTime();
+        const sinceMs = new Date(sinceTimestamp).getTime();
+        return {
+          success: true,
+          data: { changed: remoteModified > sinceMs }
+        };
+      }
+      async getValidAccessToken() {
+        if (!this.tokenManager.isTokenExpired("google_drive")) {
+          const token = this.tokenManager.getAccessToken("google_drive");
+          if (token) return token;
+        }
+        const refreshToken = this.tokenManager.getRefreshToken("google_drive");
+        if (!refreshToken) {
+          throw new Error("Not authenticated with Google Drive");
+        }
+        const response = await globalThis.fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            refresh_token: refreshToken,
+            client_id: this.config.clientId,
+            client_secret: this.config.clientSecret,
+            grant_type: "refresh_token"
+          })
+        });
+        const data = await response.json();
+        this.tokenManager.refreshAccessToken(
+          "google_drive",
+          data.access_token,
+          Date.now() + data.expires_in * 1e3,
+          data.refresh_token
+        );
+        return data.access_token;
+      }
+      /** Get the workspace export map (for testing) */
+      static getWorkspaceExportMap() {
+        return { ...WORKSPACE_EXPORT_MAP };
+      }
+    };
+  }
+});
+
 // node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err-helpers.js
 var require_err_helpers = __commonJS({
   "node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err-helpers.js"(exports2, module2) {
@@ -233001,7 +234580,7 @@ function normalizeHeaders2(headers) {
   }
 }
 var import_whatwg_fetch3, defaultPort2, defaultHost2, version3, __defProp$12, __defNormalProp$12, __publicField$12, ResponseError2, AbortableAsyncIterator2, checkOk2, readEnvVar2, fetchWithHeaders2, get3, post2, del2, parseJSON2, formatHost2, __defProp3, __defNormalProp2, __publicField2, Ollama$12, browser2;
-var init_browser = __esm({
+var init_browser2 = __esm({
   "node_modules/ollama/dist/browser.mjs"() {
     import_whatwg_fetch3 = __toESM(require_fetch_umd2(), 1);
     defaultPort2 = "11434";
@@ -233497,11 +235076,11 @@ __export(dist_exports, {
   default: () => index2
 });
 var import_node_fs7, import_node_path7, import_whatwg_fetch4, Ollama4, index2;
-var init_dist = __esm({
+var init_dist2 = __esm({
   "node_modules/ollama/dist/index.mjs"() {
     import_node_fs7 = __toESM(require("node:fs"), 1);
     import_node_path7 = require("node:path");
-    init_browser();
+    init_browser2();
     import_whatwg_fetch4 = __toESM(require_fetch_umd2(), 1);
     Ollama4 = class extends Ollama$12 {
       async encodeImage(image) {
@@ -233586,810 +235165,8 @@ function nanoid(size2 = 21) {
 // packages/core/index.ts
 init_platform();
 
-// node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/index.mjs
-var import_node_fs = __toESM(require("node:fs"), 1);
-var import_node_path = require("node:path");
-
-// node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/browser.mjs
-var import_whatwg_fetch = __toESM(require_fetch_umd(), 1);
-var defaultPort = "11434";
-var defaultHost = `http://127.0.0.1:${defaultPort}`;
-var version = "0.6.3";
-var __defProp$1 = Object.defineProperty;
-var __defNormalProp$1 = (obj2, key, value) => key in obj2 ? __defProp$1(obj2, key, { enumerable: true, configurable: true, writable: true, value }) : obj2[key] = value;
-var __publicField$1 = (obj2, key, value) => {
-  __defNormalProp$1(obj2, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
-var ResponseError = class _ResponseError extends Error {
-  constructor(error, status_code) {
-    super(error);
-    this.error = error;
-    this.status_code = status_code;
-    this.name = "ResponseError";
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, _ResponseError);
-    }
-  }
-};
-var AbortableAsyncIterator = class {
-  constructor(abortController, itr, doneCallback) {
-    __publicField$1(this, "abortController");
-    __publicField$1(this, "itr");
-    __publicField$1(this, "doneCallback");
-    this.abortController = abortController;
-    this.itr = itr;
-    this.doneCallback = doneCallback;
-  }
-  abort() {
-    this.abortController.abort();
-  }
-  async *[Symbol.asyncIterator]() {
-    for await (const message of this.itr) {
-      if ("error" in message) {
-        throw new Error(message.error);
-      }
-      yield message;
-      if (message.done || message.status === "success") {
-        this.doneCallback();
-        return;
-      }
-    }
-    throw new Error("Did not receive done or success response in stream.");
-  }
-};
-var checkOk = async (response) => {
-  if (response.ok) {
-    return;
-  }
-  let message = `Error ${response.status}: ${response.statusText}`;
-  let errorData = null;
-  if (response.headers.get("content-type")?.includes("application/json")) {
-    try {
-      errorData = await response.json();
-      message = errorData.error || message;
-    } catch (error) {
-      console.log("Failed to parse error response as JSON");
-    }
-  } else {
-    try {
-      console.log("Getting text from response");
-      const textResponse = await response.text();
-      message = textResponse || message;
-    } catch (error) {
-      console.log("Failed to get text from error response");
-    }
-  }
-  throw new ResponseError(message, response.status);
-};
-function getPlatform2() {
-  if (typeof window !== "undefined" && window.navigator) {
-    const nav = navigator;
-    if ("userAgentData" in nav && nav.userAgentData?.platform) {
-      return `${nav.userAgentData.platform.toLowerCase()} Browser/${navigator.userAgent};`;
-    }
-    if (navigator.platform) {
-      return `${navigator.platform.toLowerCase()} Browser/${navigator.userAgent};`;
-    }
-    return `unknown Browser/${navigator.userAgent};`;
-  } else if (typeof process !== "undefined") {
-    return `${process.arch} ${process.platform} Node.js/${process.version}`;
-  }
-  return "";
-}
-function normalizeHeaders(headers) {
-  if (headers instanceof Headers) {
-    const obj2 = {};
-    headers.forEach((value, key) => {
-      obj2[key] = value;
-    });
-    return obj2;
-  } else if (Array.isArray(headers)) {
-    return Object.fromEntries(headers);
-  } else {
-    return headers || {};
-  }
-}
-var readEnvVar = (obj2, key) => {
-  return obj2[key];
-};
-var fetchWithHeaders = async (fetch2, url, options = {}) => {
-  const defaultHeaders = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    "User-Agent": `ollama-js/${version} (${getPlatform2()})`
-  };
-  options.headers = normalizeHeaders(options.headers);
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol === "https:" && parsed.hostname === "ollama.com") {
-      const apiKey = typeof process === "object" && process !== null && typeof process.env === "object" && process.env !== null ? readEnvVar(process.env, "OLLAMA_API_KEY") : void 0;
-      const authorization = options.headers["authorization"] || options.headers["Authorization"];
-      if (!authorization && apiKey) {
-        options.headers["Authorization"] = `Bearer ${apiKey}`;
-      }
-    }
-  } catch (error) {
-    console.error("error parsing url", error);
-  }
-  const customHeaders = Object.fromEntries(
-    Object.entries(options.headers).filter(
-      ([key]) => !Object.keys(defaultHeaders).some(
-        (defaultKey) => defaultKey.toLowerCase() === key.toLowerCase()
-      )
-    )
-  );
-  options.headers = {
-    ...defaultHeaders,
-    ...customHeaders
-  };
-  return fetch2(url, options);
-};
-var get = async (fetch2, host, options) => {
-  const response = await fetchWithHeaders(fetch2, host, {
-    headers: options?.headers
-  });
-  await checkOk(response);
-  return response;
-};
-var post = async (fetch2, host, data, options) => {
-  const isRecord = (input) => {
-    return input !== null && typeof input === "object" && !Array.isArray(input);
-  };
-  const formattedData = isRecord(data) ? JSON.stringify(data) : data;
-  const response = await fetchWithHeaders(fetch2, host, {
-    method: "POST",
-    body: formattedData,
-    signal: options?.signal,
-    headers: options?.headers
-  });
-  await checkOk(response);
-  return response;
-};
-var del = async (fetch2, host, data, options) => {
-  const response = await fetchWithHeaders(fetch2, host, {
-    method: "DELETE",
-    body: JSON.stringify(data),
-    headers: options?.headers
-  });
-  await checkOk(response);
-  return response;
-};
-var parseJSON = async function* (itr) {
-  const decoder = new TextDecoder("utf-8");
-  let buffer = "";
-  const reader = itr.getReader();
-  while (true) {
-    const { done, value: chunk2 } = await reader.read();
-    if (done) {
-      break;
-    }
-    buffer += decoder.decode(chunk2, { stream: true });
-    const parts = buffer.split("\n");
-    buffer = parts.pop() ?? "";
-    for (const part of parts) {
-      try {
-        yield JSON.parse(part);
-      } catch (error) {
-        console.warn("invalid json: ", part);
-      }
-    }
-  }
-  buffer += decoder.decode();
-  for (const part of buffer.split("\n").filter((p) => p !== "")) {
-    try {
-      yield JSON.parse(part);
-    } catch (error) {
-      console.warn("invalid json: ", part);
-    }
-  }
-};
-var formatHost = (host) => {
-  if (!host) {
-    return defaultHost;
-  }
-  let isExplicitProtocol = host.includes("://");
-  if (host.startsWith(":")) {
-    host = `http://127.0.0.1${host}`;
-    isExplicitProtocol = true;
-  }
-  if (!isExplicitProtocol) {
-    host = `http://${host}`;
-  }
-  const url = new URL(host);
-  let port = url.port;
-  if (!port) {
-    if (!isExplicitProtocol) {
-      port = defaultPort;
-    } else {
-      port = url.protocol === "https:" ? "443" : "80";
-    }
-  }
-  let auth = "";
-  if (url.username) {
-    auth = url.username;
-    if (url.password) {
-      auth += `:${url.password}`;
-    }
-    auth += "@";
-  }
-  let formattedHost = `${url.protocol}//${auth}${url.hostname}:${port}${url.pathname}`;
-  if (formattedHost.endsWith("/")) {
-    formattedHost = formattedHost.slice(0, -1);
-  }
-  return formattedHost;
-};
-var __defProp2 = Object.defineProperty;
-var __defNormalProp = (obj2, key, value) => key in obj2 ? __defProp2(obj2, key, { enumerable: true, configurable: true, writable: true, value }) : obj2[key] = value;
-var __publicField = (obj2, key, value) => {
-  __defNormalProp(obj2, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
-var Ollama$1 = class Ollama {
-  constructor(config) {
-    __publicField(this, "config");
-    __publicField(this, "fetch");
-    __publicField(this, "ongoingStreamedRequests", []);
-    this.config = {
-      host: "",
-      headers: config?.headers
-    };
-    if (!config?.proxy) {
-      this.config.host = formatHost(config?.host ?? defaultHost);
-    }
-    this.fetch = config?.fetch ?? fetch;
-  }
-  // Abort any ongoing streamed requests to Ollama
-  abort() {
-    for (const request of this.ongoingStreamedRequests) {
-      request.abort();
-    }
-    this.ongoingStreamedRequests.length = 0;
-  }
-  /**
-   * Processes a request to the Ollama server. If the request is streamable, it will return a
-   * AbortableAsyncIterator that yields the response messages. Otherwise, it will return the response
-   * object.
-   * @param endpoint {string} - The endpoint to send the request to.
-   * @param request {object} - The request object to send to the endpoint.
-   * @protected {T | AbortableAsyncIterator<T>} - The response object or a AbortableAsyncIterator that yields
-   * response messages.
-   * @throws {Error} - If the response body is missing or if the response is an error.
-   * @returns {Promise<T | AbortableAsyncIterator<T>>} - The response object or a AbortableAsyncIterator that yields the streamed response.
-   */
-  async processStreamableRequest(endpoint, request) {
-    request.stream = request.stream ?? false;
-    const host = `${this.config.host}/api/${endpoint}`;
-    if (request.stream) {
-      const abortController = new AbortController();
-      const response2 = await post(this.fetch, host, request, {
-        signal: abortController.signal,
-        headers: this.config.headers
-      });
-      if (!response2.body) {
-        throw new Error("Missing body");
-      }
-      const itr = parseJSON(response2.body);
-      const abortableAsyncIterator = new AbortableAsyncIterator(
-        abortController,
-        itr,
-        () => {
-          const i = this.ongoingStreamedRequests.indexOf(abortableAsyncIterator);
-          if (i > -1) {
-            this.ongoingStreamedRequests.splice(i, 1);
-          }
-        }
-      );
-      this.ongoingStreamedRequests.push(abortableAsyncIterator);
-      return abortableAsyncIterator;
-    }
-    const response = await post(this.fetch, host, request, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Encodes an image to base64 if it is a Uint8Array.
-   * @param image {Uint8Array | string} - The image to encode.
-   * @returns {Promise<string>} - The base64 encoded image.
-   */
-  async encodeImage(image) {
-    if (typeof image !== "string") {
-      const uint8Array = new Uint8Array(image);
-      let byteString = "";
-      const len = uint8Array.byteLength;
-      for (let i = 0; i < len; i++) {
-        byteString += String.fromCharCode(uint8Array[i]);
-      }
-      return btoa(byteString);
-    }
-    return image;
-  }
-  /**
-   * Generates a response from a text prompt.
-   * @param request {GenerateRequest} - The request object.
-   * @returns {Promise<GenerateResponse | AbortableAsyncIterator<GenerateResponse>>} - The response object or
-   * an AbortableAsyncIterator that yields response messages.
-   */
-  async generate(request) {
-    if (request.images) {
-      request.images = await Promise.all(request.images.map(this.encodeImage.bind(this)));
-    }
-    return this.processStreamableRequest("generate", request);
-  }
-  /**
-   * Chats with the model. The request object can contain messages with images that are either
-   * Uint8Arrays or base64 encoded strings. The images will be base64 encoded before sending the
-   * request.
-   * @param request {ChatRequest} - The request object.
-   * @returns {Promise<ChatResponse | AbortableAsyncIterator<ChatResponse>>} - The response object or an
-   * AbortableAsyncIterator that yields response messages.
-   */
-  async chat(request) {
-    if (request.messages) {
-      for (const message of request.messages) {
-        if (message.images) {
-          message.images = await Promise.all(
-            message.images.map(this.encodeImage.bind(this))
-          );
-        }
-      }
-    }
-    return this.processStreamableRequest("chat", request);
-  }
-  /**
-   * Creates a new model from a stream of data.
-   * @param request {CreateRequest} - The request object.
-   * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or a stream of progress responses.
-   */
-  async create(request) {
-    return this.processStreamableRequest("create", {
-      ...request
-    });
-  }
-  /**
-   * Pulls a model from the Ollama registry. The request object can contain a stream flag to indicate if the
-   * response should be streamed.
-   * @param request {PullRequest} - The request object.
-   * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or
-   * an AbortableAsyncIterator that yields response messages.
-   */
-  async pull(request) {
-    return this.processStreamableRequest("pull", {
-      name: request.model,
-      stream: request.stream,
-      insecure: request.insecure
-    });
-  }
-  /**
-   * Pushes a model to the Ollama registry. The request object can contain a stream flag to indicate if the
-   * response should be streamed.
-   * @param request {PushRequest} - The request object.
-   * @returns {Promise<ProgressResponse | AbortableAsyncIterator<ProgressResponse>>} - The response object or
-   * an AbortableAsyncIterator that yields response messages.
-   */
-  async push(request) {
-    return this.processStreamableRequest("push", {
-      name: request.model,
-      stream: request.stream,
-      insecure: request.insecure
-    });
-  }
-  /**
-   * Deletes a model from the server. The request object should contain the name of the model to
-   * delete.
-   * @param request {DeleteRequest} - The request object.
-   * @returns {Promise<StatusResponse>} - The response object.
-   */
-  async delete(request) {
-    await del(
-      this.fetch,
-      `${this.config.host}/api/delete`,
-      { name: request.model },
-      { headers: this.config.headers }
-    );
-    return { status: "success" };
-  }
-  /**
-   * Copies a model from one name to another. The request object should contain the name of the
-   * model to copy and the new name.
-   * @param request {CopyRequest} - The request object.
-   * @returns {Promise<StatusResponse>} - The response object.
-   */
-  async copy(request) {
-    await post(this.fetch, `${this.config.host}/api/copy`, { ...request }, {
-      headers: this.config.headers
-    });
-    return { status: "success" };
-  }
-  /**
-   * Lists the models on the server.
-   * @returns {Promise<ListResponse>} - The response object.
-   * @throws {Error} - If the response body is missing.
-   */
-  async list() {
-    const response = await get(this.fetch, `${this.config.host}/api/tags`, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Shows the metadata of a model. The request object should contain the name of the model.
-   * @param request {ShowRequest} - The request object.
-   * @returns {Promise<ShowResponse>} - The response object.
-   */
-  async show(request) {
-    const response = await post(this.fetch, `${this.config.host}/api/show`, {
-      ...request
-    }, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Embeds text input into vectors.
-   * @param request {EmbedRequest} - The request object.
-   * @returns {Promise<EmbedResponse>} - The response object.
-   */
-  async embed(request) {
-    const response = await post(this.fetch, `${this.config.host}/api/embed`, {
-      ...request
-    }, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Embeds a text prompt into a vector.
-   * @param request {EmbeddingsRequest} - The request object.
-   * @returns {Promise<EmbeddingsResponse>} - The response object.
-   */
-  async embeddings(request) {
-    const response = await post(this.fetch, `${this.config.host}/api/embeddings`, {
-      ...request
-    }, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Lists the running models on the server
-   * @returns {Promise<ListResponse>} - The response object.
-   * @throws {Error} - If the response body is missing.
-   */
-  async ps() {
-    const response = await get(this.fetch, `${this.config.host}/api/ps`, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Returns the Ollama server version.
-   * @returns {Promise<VersionResponse>} - The server version object.
-   */
-  async version() {
-    const response = await get(this.fetch, `${this.config.host}/api/version`, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Performs web search using the Ollama web search API
-   * @param request {WebSearchRequest} - The search request containing query and options
-   * @returns {Promise<WebSearchResponse>} - The search results
-   * @throws {Error} - If the request is invalid or the server returns an error
-   */
-  async webSearch(request) {
-    if (!request.query || request.query.length === 0) {
-      throw new Error("Query is required");
-    }
-    const response = await post(this.fetch, `https://ollama.com/api/web_search`, { ...request }, {
-      headers: this.config.headers
-    });
-    return await response.json();
-  }
-  /**
-   * Fetches a single page using the Ollama web fetch API
-   * @param request {WebFetchRequest} - The fetch request containing a URL
-   * @returns {Promise<WebFetchResponse>} - The fetch result
-   * @throws {Error} - If the request is invalid or the server returns an error
-   */
-  async webFetch(request) {
-    if (!request.url || request.url.length === 0) {
-      throw new Error("URL is required");
-    }
-    const response = await post(this.fetch, `https://ollama.com/api/web_fetch`, { ...request }, { headers: this.config.headers });
-    return await response.json();
-  }
-};
-var browser = new Ollama$1();
-
-// node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/index.mjs
-var import_whatwg_fetch2 = __toESM(require_fetch_umd(), 1);
-var Ollama2 = class extends Ollama$1 {
-  async encodeImage(image) {
-    if (typeof image !== "string") {
-      return Buffer.from(image).toString("base64");
-    }
-    try {
-      if (import_node_fs.default.existsSync(image)) {
-        const fileBuffer = await import_node_fs.promises.readFile((0, import_node_path.resolve)(image));
-        return Buffer.from(fileBuffer).toString("base64");
-      }
-    } catch {
-    }
-    return image;
-  }
-  /**
-   * checks if a file exists
-   * @param path {string} - The path to the file
-   * @private @internal
-   * @returns {Promise<boolean>} - Whether the file exists or not
-   */
-  async fileExists(path2) {
-    try {
-      await import_node_fs.promises.access(path2);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  async create(request) {
-    if (request.from && await this.fileExists((0, import_node_path.resolve)(request.from))) {
-      throw Error("Creating with a local path is not currently supported from ollama-js");
-    }
-    if (request.stream) {
-      return super.create(request);
-    } else {
-      return super.create(request);
-    }
-  }
-};
-var index = new Ollama2();
-
-// packages/core/llm/ollama-provider.ts
-var EMBEDDING_MODEL_FAMILIES = ["nomic-embed", "all-minilm", "mxbai-embed", "snowflake-arctic-embed"];
-var DEFAULT_TEMPERATURE = 0.7;
-var DEFAULT_MAX_TOKENS = 2048;
-var NS_TO_MS = 1e6;
-function isLocalhost(url) {
-  try {
-    const parsed = new URL(url);
-    const hostname2 = parsed.hostname;
-    return hostname2 === "localhost" || hostname2 === "127.0.0.1" || hostname2 === "::1";
-  } catch {
-    return false;
-  }
-}
-function isEmbeddingModel(name) {
-  const lower = name.toLowerCase();
-  return EMBEDDING_MODEL_FAMILIES.some((family) => lower.includes(family));
-}
-var OllamaProvider = class {
-  client;
-  baseUrl;
-  constructor(config) {
-    this.baseUrl = config?.baseUrl ?? "http://localhost:11434";
-    if (!isLocalhost(this.baseUrl)) {
-      throw new Error(
-        `[OllamaProvider] SECURITY: Refused non-localhost URL "${this.baseUrl}". The Ollama provider may ONLY connect to localhost. This is a hard safety constraint \u2014 no data may leave this device.`
-      );
-    }
-    this.client = new Ollama2({ host: this.baseUrl });
-  }
-  async isAvailable() {
-    try {
-      await this.client.list();
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  async generate(request) {
-    const startMs = Date.now();
-    const response = await this.client.generate({
-      model: request.model,
-      prompt: request.prompt,
-      system: request.system,
-      stream: false,
-      format: request.format,
-      options: {
-        temperature: request.temperature ?? DEFAULT_TEMPERATURE,
-        num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-        stop: request.stop
-      }
-    });
-    return {
-      text: response.response,
-      model: response.model,
-      tokensUsed: {
-        prompt: response.prompt_eval_count ?? 0,
-        completion: response.eval_count ?? 0,
-        total: (response.prompt_eval_count ?? 0) + (response.eval_count ?? 0)
-      },
-      durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs
-    };
-  }
-  async chat(request) {
-    const startMs = Date.now();
-    const ollamaTools = request.tools?.map((tool) => ({
-      type: "function",
-      function: {
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters
-      }
-    }));
-    const messages = request.messages.map((m) => ({
-      role: m.role,
-      content: m.content
-    }));
-    const response = await this.client.chat({
-      model: request.model,
-      messages,
-      stream: false,
-      format: request.format,
-      tools: ollamaTools,
-      options: {
-        temperature: request.temperature ?? DEFAULT_TEMPERATURE,
-        num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-        stop: request.stop
-      }
-    });
-    let toolCalls;
-    let contentText = response.message.content;
-    if (response.message.tool_calls && response.message.tool_calls.length > 0) {
-      toolCalls = response.message.tool_calls.map((tc) => ({
-        name: tc.function.name,
-        arguments: tc.function.arguments
-      }));
-    }
-    if (!toolCalls && contentText && request.tools && request.tools.length > 0) {
-      const parsed = this.parseTextToolCalls(contentText, request.tools);
-      if (parsed.toolCalls.length > 0) {
-        toolCalls = parsed.toolCalls;
-        contentText = parsed.textContent;
-      }
-    }
-    return {
-      message: {
-        role: response.message.role,
-        content: contentText
-      },
-      model: response.model,
-      tokensUsed: {
-        prompt: response.prompt_eval_count ?? 0,
-        completion: response.eval_count ?? 0,
-        total: (response.prompt_eval_count ?? 0) + (response.eval_count ?? 0)
-      },
-      durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs,
-      toolCalls
-    };
-  }
-  // AUTONOMOUS DECISION: Added chatStream() for real-time token streaming.
-  // Reasoning: The build prompt (STEP-4B) requires "tokens stream in real-time —
-  // the user sees words appearing, not a loading spinner followed by a wall of text."
-  // The existing chat() method uses stream: false. This is a minimal addition that
-  // enables the desktop sidecar to stream tokens to the frontend.
-  // Escalation check: Build prompt authorizes minimal Core bug fixes for blocking issues.
-  async *chatStream(request) {
-    const messages = request.messages.map((m) => ({
-      role: m.role,
-      content: m.content
-    }));
-    const response = await this.client.chat({
-      model: request.model,
-      messages,
-      stream: true,
-      options: {
-        temperature: request.temperature ?? DEFAULT_TEMPERATURE,
-        num_predict: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-        stop: request.stop
-      }
-    });
-    for await (const chunk2 of response) {
-      if (chunk2.message?.content) {
-        yield chunk2.message.content;
-      }
-    }
-  }
-  async embed(request) {
-    const startMs = Date.now();
-    const response = await this.client.embed({
-      model: request.model,
-      input: request.input
-    });
-    return {
-      embeddings: response.embeddings,
-      model: response.model,
-      durationMs: response.total_duration ? Math.round(response.total_duration / NS_TO_MS) : Date.now() - startMs
-    };
-  }
-  async listModels() {
-    const response = await this.client.list();
-    return response.models.map((m) => ({
-      name: m.name,
-      size: m.size,
-      parameterCount: m.details?.parameter_size,
-      quantization: m.details?.quantization_level,
-      family: m.details?.family,
-      isEmbedding: isEmbeddingModel(m.name)
-    }));
-  }
-  async getModel(name) {
-    try {
-      const response = await this.client.show({ model: name });
-      return {
-        name,
-        size: 0,
-        // show() doesn't return size directly
-        parameterCount: response.details?.parameter_size,
-        quantization: response.details?.quantization_level,
-        family: response.details?.family,
-        isEmbedding: isEmbeddingModel(name)
-      };
-    } catch {
-      return null;
-    }
-  }
-  /**
-   * Parse tool calls from raw text output when the model doesn't use
-   * structured tool_calls. Handles:
-   * - <tool_call>{...}</tool_call> blocks
-   * - ```json blocks with {name, arguments/parameters}
-   * - Bare JSON objects matching known tool names
-   */
-  parseTextToolCalls(text, tools) {
-    const toolCalls = [];
-    let textContent = text;
-    const toolNames = new Set(tools.map((t) => t.name));
-    const tagRegex = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g;
-    let match;
-    while ((match = tagRegex.exec(text)) !== null) {
-      const jsonStr = (match[1] ?? "").trim();
-      if (!jsonStr) continue;
-      try {
-        const parsed = JSON.parse(jsonStr);
-        if (parsed.name && toolNames.has(parsed.name)) {
-          toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
-        }
-      } catch {
-      }
-    }
-    if (toolCalls.length > 0) {
-      textContent = text.replace(tagRegex, "").trim();
-      return { toolCalls, textContent };
-    }
-    const codeBlockRegex = /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\})\s*```/g;
-    while ((match = codeBlockRegex.exec(text)) !== null) {
-      const blockJson = match[1] ?? "";
-      if (!blockJson) continue;
-      try {
-        const parsed = JSON.parse(blockJson);
-        if (parsed.name && toolNames.has(parsed.name)) {
-          toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
-        }
-      } catch {
-      }
-    }
-    if (toolCalls.length > 0) {
-      textContent = text.replace(codeBlockRegex, "").trim();
-      return { toolCalls, textContent };
-    }
-    const bareJsonRegex = /\{[^{}]*"name"\s*:\s*"([^"]+)"[^{}]*\}/g;
-    while ((match = bareJsonRegex.exec(text)) !== null) {
-      try {
-        const parsed = JSON.parse(match[0]);
-        if (parsed.name && toolNames.has(parsed.name)) {
-          toolCalls.push({ name: parsed.name, arguments: parsed.arguments ?? parsed.parameters ?? {} });
-          textContent = text.replace(match[0], "").trim();
-        }
-      } catch {
-      }
-    }
-    return { toolCalls, textContent };
-  }
-};
+// packages/core/llm/index.ts
+init_ollama_provider();
 
 // packages/core/llm/model-manager.ts
 init_platform();
@@ -235133,7 +235910,7 @@ var BitNetProvider = class {
     const result2 = await this.bridge.generate({
       prompt,
       systemPrompt,
-      maxTokens: request.maxTokens ?? 256,
+      maxTokens: request.maxTokens ?? 128,
       temperature: request.temperature,
       stop: stopSequences
     });
@@ -235348,244 +236125,11 @@ ${msg.content}
   }
 };
 
-// packages/core/llm/inference-types.ts
-var TASK_TIER_MAP = {
-  classify: "fast",
-  extract: "primary",
-  draft: "primary",
-  generate: "primary",
-  reason: "quality",
-  embed: "embedding"
-};
-
-// packages/core/llm/inference-router.ts
-var InferenceRouter = class {
-  reasoningProvider;
-  embeddingProvider;
-  reasoningModel;
-  embeddingModel;
-  platform;
-  mobileProvider;
-  mobileReasoningModel;
-  mobileEmbeddingModel;
-  bitnetProvider;
-  bitnetReasoningModel;
-  constructor(config) {
-    this.reasoningProvider = config.reasoningProvider;
-    this.embeddingProvider = config.embeddingProvider;
-    this.reasoningModel = config.reasoningModel;
-    this.embeddingModel = config.embeddingModel;
-    this.platform = config.platform ?? "desktop";
-    this.mobileProvider = config.mobileProvider ?? null;
-    this.mobileReasoningModel = config.mobileReasoningModel ?? null;
-    this.mobileEmbeddingModel = config.mobileEmbeddingModel ?? null;
-    this.bitnetProvider = config.bitnetProvider ?? null;
-    this.bitnetReasoningModel = config.bitnetReasoningModel ?? null;
-  }
-  // ─── LLMProvider Interface ───────────────────────────────────────────────
-  async isAvailable() {
-    const [reasoning, embedding] = await Promise.all([
-      this.reasoningProvider.isAvailable().catch(() => false),
-      this.embeddingProvider.isAvailable().catch(() => false)
-    ]);
-    return reasoning || embedding;
-  }
-  async generate(request) {
-    const provider = this.getProviderForTier("primary");
-    return provider.generate({
-      ...request,
-      model: request.model || this.reasoningModel
-    });
-  }
-  async chat(request) {
-    const provider = this.getProviderForTier("primary");
-    return provider.chat({
-      ...request,
-      model: request.model || this.reasoningModel
-    });
-  }
-  async *chatStream(request) {
-    const provider = this.getProviderForTier("primary");
-    if (provider.chatStream) {
-      yield* provider.chatStream({
-        ...request,
-        model: request.model || this.reasoningModel
-      });
-    } else {
-      const response = await provider.chat({
-        ...request,
-        model: request.model || this.reasoningModel
-      });
-      yield response.message.content;
-    }
-  }
-  async embed(request) {
-    return this.embeddingProvider.embed({
-      ...request,
-      model: request.model || this.embeddingModel
-    });
-  }
-  async listModels() {
-    const [reasoning, embedding] = await Promise.all([
-      this.reasoningProvider.listModels().catch(() => []),
-      this.embeddingProvider.listModels().catch(() => [])
-    ]);
-    const seen = /* @__PURE__ */ new Set();
-    const models = [];
-    for (const model of [...reasoning, ...embedding]) {
-      if (!seen.has(model.name)) {
-        seen.add(model.name);
-        models.push(model);
-      }
-    }
-    return models;
-  }
-  async getModel(name) {
-    const result2 = await this.reasoningProvider.getModel(name);
-    if (result2) return result2;
-    return this.embeddingProvider.getModel(name);
-  }
-  // ─── Task-Aware Routing ───────────────────────────────────────────────────
-  /**
-   * Route a chat request based on task type.
-   * Uses TASK_TIER_MAP to select the appropriate tier, with fallback.
-   */
-  async routedChat(request, taskType) {
-    const tier = TASK_TIER_MAP[taskType];
-    const provider = this.getProviderForTier(tier);
-    return provider.chat({
-      ...request,
-      model: request.model || this.reasoningModel
-    });
-  }
-  /**
-   * Route a generate request based on task type.
-   */
-  async routedGenerate(request, taskType) {
-    const tier = TASK_TIER_MAP[taskType];
-    const provider = this.getProviderForTier(tier);
-    return provider.generate({
-      ...request,
-      model: request.model || this.reasoningModel
-    });
-  }
-  /**
-   * Get the model name used for a specific task type.
-   */
-  getModelForTask(taskType) {
-    if (taskType === "embed") return this.embeddingModel;
-    return this.reasoningModel;
-  }
-  /**
-   * Get the active reasoning model name.
-   */
-  getReasoningModel() {
-    return this.reasoningModel;
-  }
-  /**
-   * Get the active embedding model name.
-   */
-  getEmbeddingModel() {
-    return this.embeddingModel;
-  }
-  /**
-   * Update the reasoning provider (e.g., when switching between Ollama and native).
-   */
-  setReasoningProvider(provider, model) {
-    this.reasoningProvider = provider;
-    this.reasoningModel = model;
-  }
-  /**
-   * Update the embedding provider.
-   */
-  setEmbeddingProvider(provider, model) {
-    this.embeddingProvider = provider;
-    this.embeddingModel = model;
-  }
-  /**
-   * Set or update the mobile provider (used when platform is 'ios' or 'android').
-   */
-  setMobileProvider(provider, reasoningModel, embeddingModel) {
-    this.mobileProvider = provider;
-    this.mobileReasoningModel = reasoningModel;
-    this.mobileEmbeddingModel = embeddingModel;
-  }
-  /**
-   * Set or update the BitNet provider (CPU-optimized 1-bit inference).
-   * BitNet acts as the primary reasoning provider when no GPU provider (Ollama) is active.
-   * When Ollama is available, call clearBitNetProvider() so the GPU path is used instead.
-   */
-  setBitNetProvider(provider, model) {
-    this.bitnetProvider = provider;
-    this.bitnetReasoningModel = model;
-  }
-  /**
-   * Clear the BitNet provider (e.g., when Ollama GPU inference becomes available).
-   * Requests will fall through to the reasoning provider instead.
-   */
-  clearBitNetProvider() {
-    this.bitnetProvider = null;
-    this.bitnetReasoningModel = null;
-  }
-  /**
-   * Check if the BitNet provider is available and ready.
-   */
-  async isBitNetReady() {
-    if (!this.bitnetProvider) return false;
-    return this.bitnetProvider.isAvailable();
-  }
-  /**
-   * Get the active BitNet model name, or null if BitNet is not configured.
-   */
-  getBitNetModel() {
-    return this.bitnetReasoningModel;
-  }
-  /**
-   * Get the current platform.
-   */
-  getPlatform() {
-    return this.platform;
-  }
-  /**
-   * Check if this router is running on a mobile platform.
-   */
-  isMobile() {
-    return this.platform === "ios" || this.platform === "android";
-  }
-  /**
-   * Check if the mobile provider is available and ready.
-   */
-  async isMobileReady() {
-    if (!this.mobileProvider) return false;
-    return this.mobileProvider.isAvailable();
-  }
-  // ─── Private ──────────────────────────────────────────────────────────────
-  /**
-   * Get the provider for a given inference tier.
-   *
-   * Priority chain (desktop):
-   *   1. Ollama (GPU) — reasoningProvider (if it's an OllamaProvider and available)
-   *   2. BitNet (CPU) — bitnetProvider (if configured and available)
-   *   3. Native (fallback) — reasoningProvider (NativeProvider)
-   *
-   * On mobile, uses the mobile provider for all tiers.
-   * Embedding tier always uses the dedicated embedding provider.
-   */
-  getProviderForTier(tier) {
-    if (this.isMobile() && this.mobileProvider) {
-      return this.mobileProvider;
-    }
-    if (tier === "embedding") {
-      return this.embeddingProvider;
-    }
-    if (this.bitnetProvider) {
-      return this.bitnetProvider;
-    }
-    return this.reasoningProvider;
-  }
-};
-
 // packages/core/llm/index.ts
+init_inference_router();
+init_inference_types();
+init_ollama_provider();
+init_inference_router();
 function createLLMProvider(config) {
   const runtime = config && "runtime" in config ? config.runtime : "ollama";
   const baseUrl = config && "baseUrl" in config ? config.baseUrl : void 0;
@@ -237231,6 +237775,26 @@ var AutonomyManager = class {
   }
 };
 
+// packages/core/agent/artifact-parser.ts
+var ARTIFACT_SYSTEM_PROMPT = `
+When generating structured content (code, documents, data), wrap it in artifact tags:
+<artifact type="code" title="Description" language="typescript">
+// code here
+</artifact>
+
+Supported types: markdown, text, code, html, csv, json.
+Use artifact tags for:
+- Code snippets longer than 5 lines
+- Generated documents, letters, or emails
+- Data tables or structured output
+- Formatted content the user might want to save
+
+Do NOT use artifact tags for:
+- Brief inline code references
+- Short answers or explanations
+- Conversational responses
+`.trim();
+
 // packages/core/agent/approval-patterns.ts
 var CREATE_APPROVAL_PATTERNS_TABLE = `
   CREATE TABLE IF NOT EXISTS approval_patterns (
@@ -237728,6 +238292,26 @@ var BoundaryEnforcer = class {
     return null;
   }
   checkNovel(action) {
+    const readActions = [
+      "web.search",
+      "web.deep_search",
+      "web.fetch",
+      "email.fetch",
+      "calendar.fetch",
+      "reminder.list",
+      "contacts.list",
+      "contacts.get",
+      "contacts.search",
+      "contacts.import",
+      "finance.fetch_transactions",
+      "health.fetch",
+      "finance.plaid_sync",
+      "finance.plaid_balances",
+      "finance.plaid_status",
+      "messaging.read",
+      "clipboard.analyze"
+    ];
+    if (readActions.includes(action)) return null;
     try {
       const row = this.db.prepare(
         "SELECT COUNT(*) as count FROM approval_patterns WHERE action_type = ?"
@@ -238103,6 +238687,40 @@ var BASE_TOOLS = [
     }
   },
   {
+    name: "list_cloud_files",
+    description: "List files in the user's connected cloud storage (Google Drive). Use when the user asks what files they have in Drive, or asks to see their cloud files. Returns real-time file listing from the cloud API.",
+    parameters: {
+      type: "object",
+      properties: {
+        folderId: { type: "string", description: "Folder ID to list (default: root/My Drive)" },
+        query: { type: "string", description: "Optional search query to filter files" }
+      }
+    }
+  },
+  {
+    name: "list_indexed_documents",
+    description: "List all documents that have been indexed into the knowledge base. Returns file names, paths, types, and when they were indexed. Use when the user asks what files or documents you have access to, what has been indexed, or what is in a folder.",
+    parameters: {
+      type: "object",
+      properties: {
+        source: { type: "string", description: "Filter by source type: local_file, email, calendar, cloud_storage, etc. (optional)" },
+        limit: { type: "number", description: "Maximum number of documents to return (default 50)" }
+      }
+    }
+  },
+  {
+    name: "read_document",
+    description: "Read the full content of an indexed document by its title or filename. Use when the user asks you to read, summarize, or explain a specific document that has been indexed. Returns the complete document content.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "The document title or filename to read" },
+        documentId: { type: "string", description: "The document ID (if known from list_indexed_documents)" }
+      },
+      required: ["title"]
+    }
+  },
+  {
     name: "save_file",
     description: "Save content to a file on the user's filesystem. Use for documents, exports, generated reports, code files, and any content the user wants to keep. Always confirm the filename and location with the user before saving unless they have explicitly specified both.",
     parameters: {
@@ -238312,7 +238930,8 @@ var BASE_TOOL_ACTION_MAP = {
   "delete_calendar_event": "calendar.delete",
   "move_email": "email.move",
   "mark_email_read": "email.markRead",
-  "delete_reminder": "reminder.delete"
+  "delete_reminder": "reminder.delete",
+  "list_cloud_files": "cloud.list_files"
 };
 var BASE_LOCAL_TOOLS = /* @__PURE__ */ new Set([
   "search_files",
@@ -238320,6 +238939,8 @@ var BASE_LOCAL_TOOLS = /* @__PURE__ */ new Set([
   "categorize_email",
   "detect_calendar_conflicts",
   "search_cloud_files",
+  "list_indexed_documents",
+  "read_document",
   "knowledge_remove",
   "knowledge_recategorize",
   "search_contacts",
@@ -238353,7 +238974,11 @@ Knowledge base: ${indexedDocCount} indexed documents. Search it first before usi
 
 ${autonomyBlock}
 
-Be warm, direct, and concise. Never invent data. If asked about yourself: you are Semblance, a local AI by VERIDIAN SYNTHETICS that searches files, emails, calendar, and the web \u2014 all on-device.
+Be warm, direct, and concise. Never use emojis. Never invent data \u2014 if you don't have real data, say so. You have access to the user's email, calendar, files, and web search through your tools. If asked about yourself: you are Semblance, a local AI by VERIDIAN SYNTHETICS \u2014 all on-device.
+
+IMPORTANT: Always respond in English unless the user writes in another language. When summarizing tool results (search results, emails, fetched web pages), always present the summary in English regardless of the source language.
+
+${ARTIFACT_SYSTEM_PROMPT}
 
 ${INJECTION_CANARY}`;
 }
@@ -238431,6 +239056,10 @@ var OrchestratorImpl = class {
   isConversationalMessage(message) {
     const lower = message.toLowerCase().trim();
     const wordCount = lower.split(/\s+/).length;
+    if (wordCount <= 3) {
+      const followUps = /^(why\s*(?:not|is that|though)?|how\s*(?:come|so)|tell me more|go on|continue|explain|elaborate|and\??|what else|really|seriously|huh)\??$/;
+      if (followUps.test(lower)) return true;
+    }
     if (wordCount <= 4) {
       const greetings = /^(hi|hello|hey|howdy|sup|yo|good\s*(morning|afternoon|evening|night)|thanks|thank you|bye|goodbye|ok|okay|sure|yes|no|nah|yep|nope|cool|great|nice|hm+|huh|what'?s?\s*up)/;
       if (greetings.test(lower)) return true;
@@ -238452,68 +239081,173 @@ var OrchestratorImpl = class {
     const context = await this.knowledge.search(message, { limit: 5 });
     const history = conversationId ? await this.getConversation(convId) : [];
     const isConversational = this.isConversationalMessage(message);
-    const messages = this.buildMessages(message, context, history, documentChunks, isConversational);
-    const tools = isConversational ? void 0 : this.allTools;
-    let response = await this.llm.chat({
-      model: this.model,
-      messages,
-      tools,
-      temperature: 0.7
-    });
+    const READ_SAFE_TOOLS = /* @__PURE__ */ new Set([
+      "search_web",
+      "deep_search_web",
+      "fetch_url",
+      "fetch_inbox",
+      "search_emails",
+      "fetch_calendar",
+      "list_reminders",
+      "search_files",
+      "search_cloud_files",
+      "search_contacts",
+      "get_weather"
+    ]);
+    const allExtracted = isConversational ? [] : this.extractToolIntent(message, "");
+    const preExtractedCalls = allExtracted.filter((tc) => READ_SAFE_TOOLS.has(tc.name));
     const actions = [];
-    let finalMessage = response.message.content;
+    let finalMessage = "";
     this.lastStyleScore = null;
-    if (!response.toolCalls?.length) {
-      const extractedCalls = this.extractToolIntent(message, finalMessage);
-      if (extractedCalls.length > 0) {
-        response = { ...response, toolCalls: extractedCalls };
-        finalMessage = "";
-      }
-    }
-    if (!response.toolCalls || response.toolCalls.length === 0) {
-      const stripped = finalMessage.replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/g, "").replace(/```(?:json)?\s*\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\}\s*```/g, "").replace(/\{[^{}]*"name"\s*:\s*"[^"]*"[^{}]*"(?:parameters|arguments)"\s*:\s*\{[^{}]*\}[^{}]*\}/g, "").replace(/\b[a-z_]+\s*\(\s*\{[\s\S]*?\}\s*\)/g, "").trim();
-      if (stripped.length > 0) {
-        finalMessage = stripped;
-      }
-    }
-    if (response.toolCalls && response.toolCalls.length > 0) {
-      const toolResults = await this.processToolCalls(response.toolCalls, context, message);
+    if (preExtractedCalls.length > 0) {
+      const messages = this.buildMessages(message, context, history, documentChunks, false);
+      const toolResults = await this.processToolCalls(preExtractedCalls, context, message);
       actions.push(...toolResults.actions);
       if (toolResults.executedResults.length > 0) {
         const sanitizedToolResults = toolResults.executedResults.map((r) => {
           const resultStr = JSON.stringify(r.result);
           const needsFullSanitization = r.tool === "fetch_url" || r.tool === "search_web" || r.tool === "deep_search_web";
-          const sanitized = needsFullSanitization ? sanitizeRetrievedContent(resultStr) : resultStr;
+          let sanitized = needsFullSanitization ? sanitizeRetrievedContent(resultStr) : resultStr;
+          if (sanitized.length > 3e3) {
+            sanitized = sanitized.slice(0, 3e3) + "...(truncated)";
+          }
           return `${r.tool}: ${sanitized}`;
         }).join("\n");
-        const followUpMessages = [
+        const synthesisMessages = [
           ...messages,
-          { role: "assistant", content: response.message.content },
           {
             role: "user",
             content: wrapInDataBoundary(
-              `Tool results:
-${sanitizedToolResults}`,
+              `Here are the results for the user's request "${message}":
+
+${sanitizedToolResults}
+
+Present ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in English.`,
               "tool execution results"
             )
           }
         ];
-        const followUp = await this.llm.chat({
+        const synthesis = await this.llm.chat({
           model: this.model,
-          messages: followUpMessages,
-          temperature: 0.7
+          messages: synthesisMessages,
+          temperature: 0.7,
+          maxTokens: 2048
         });
-        finalMessage = followUp.message.content;
+        finalMessage = synthesis.message.content;
+      } else {
+        const errors = toolResults.actions.filter((a) => a.status === "failed").map((a) => a.response?.error?.message ?? "unknown error");
+        finalMessage = errors.length > 0 ? `I tried to help but ran into an issue: ${errors.join(". ")}. You may need to connect this service in Settings > Connections.` : "I wasn't able to complete that request. Please check your connections in Settings.";
       }
-      const pendingCount = actions.filter((a) => a.status === "pending_approval").length;
-      if (pendingCount > 0 && toolResults.executedResults.length === 0) {
-        const retryResponse = await this.llm.chat({
-          model: this.model,
-          messages,
-          temperature: 0.7
-        });
-        if (retryResponse?.message?.content) {
-          finalMessage = retryResponse.message.content;
+    } else {
+      const messages = this.buildMessages(message, context, history, documentChunks, isConversational);
+      const tools = isConversational ? void 0 : this.allTools;
+      let response = await this.llm.chat({
+        model: this.model,
+        messages,
+        tools,
+        temperature: 0.7,
+        maxTokens: 1024
+      });
+      finalMessage = response.message.content;
+      if (!response.toolCalls?.length) {
+        const textExtracted = this.extractToolIntent(message, finalMessage);
+        if (textExtracted.length > 0) {
+          response = { ...response, toolCalls: textExtracted };
+          finalMessage = "";
+        }
+      }
+      if (!response.toolCalls?.length) {
+        const bareJsonCalls = [];
+        const jsonPositions = [];
+        let searchStart = 0;
+        while (searchStart < finalMessage.length) {
+          const braceIdx = finalMessage.indexOf("{", searchStart);
+          if (braceIdx === -1) break;
+          let depth = 0;
+          let endIdx = -1;
+          for (let j = braceIdx; j < finalMessage.length; j++) {
+            if (finalMessage[j] === "{") depth++;
+            else if (finalMessage[j] === "}") {
+              depth--;
+              if (depth === 0) {
+                endIdx = j;
+                break;
+              }
+            }
+          }
+          if (endIdx === -1) break;
+          const candidate = finalMessage.slice(braceIdx, endIdx + 1);
+          try {
+            const parsed = JSON.parse(candidate);
+            if (parsed.name && typeof parsed.name === "string" && (parsed.parameters || parsed.arguments)) {
+              bareJsonCalls.push({ name: parsed.name, arguments: parsed.parameters ?? parsed.arguments ?? {} });
+              jsonPositions.push({ start: braceIdx, end: endIdx + 1 });
+            }
+          } catch {
+          }
+          searchStart = endIdx + 1;
+        }
+        if (bareJsonCalls.length > 0) {
+          response = { ...response, toolCalls: bareJsonCalls };
+          let cleaned = finalMessage;
+          for (let k = jsonPositions.length - 1; k >= 0; k--) {
+            const pos = jsonPositions[k];
+            cleaned = cleaned.slice(0, pos.start) + cleaned.slice(pos.end);
+          }
+          finalMessage = cleaned.trim();
+        }
+      }
+      if (!response.toolCalls || response.toolCalls.length === 0) {
+        const stripped = finalMessage.replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/g, "").replace(/```(?:json)?\s*\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\}\s*```/g, "").replace(/\b[a-z_]+\s*\(\s*\{[\s\S]*?\}\s*\)/g, "").replace(/\{[^{}]*"name"\s*:\s*"[a-z_]+"[\s\S]*?\}/g, "").trim();
+        if (stripped.length > 0) {
+          finalMessage = stripped;
+        }
+      }
+      if (response.toolCalls && response.toolCalls.length > 0) {
+        const toolResults = await this.processToolCalls(response.toolCalls, context, message);
+        actions.push(...toolResults.actions);
+        if (toolResults.executedResults.length > 0) {
+          const sanitizedToolResults = toolResults.executedResults.map((r) => {
+            const resultStr = JSON.stringify(r.result);
+            const needsFullSanitization = r.tool === "fetch_url" || r.tool === "search_web" || r.tool === "deep_search_web";
+            let sanitized = needsFullSanitization ? sanitizeRetrievedContent(resultStr) : resultStr;
+            if (sanitized.length > 3e3) {
+              sanitized = sanitized.slice(0, 3e3) + "...(truncated)";
+            }
+            return `${r.tool}: ${sanitized}`;
+          }).join("\n");
+          const followUpMessages = [
+            ...messages,
+            {
+              role: "user",
+              content: wrapInDataBoundary(
+                `Tool results:
+${sanitizedToolResults}
+
+Present ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in English.`,
+                "tool execution results"
+              )
+            }
+          ];
+          const followUp = await this.llm.chat({
+            model: this.model,
+            messages: followUpMessages,
+            temperature: 0.7,
+            maxTokens: 2048
+          });
+          finalMessage = followUp.message.content;
+        }
+        const pendingCount = actions.filter((a) => a.status === "pending_approval").length;
+        if (pendingCount > 0 && toolResults.executedResults.length === 0) {
+          const retryResponse = await this.llm.chat({
+            model: this.model,
+            messages,
+            temperature: 0.7,
+            maxTokens: 1024
+          });
+          if (retryResponse?.message?.content) {
+            finalMessage = retryResponse.message.content;
+          }
         }
       }
     }
@@ -238526,22 +239260,15 @@ ${sanitizedToolResults}`,
 ${checkIn}`;
       }
     }
+    const tokensUsed = { prompt: 0, completion: 0, total: 0 };
     this.storeTurn(convId, "user", message, context, null, 0, 0);
-    this.storeTurn(
-      convId,
-      "assistant",
-      finalMessage,
-      null,
-      actions,
-      response.tokensUsed.prompt,
-      response.tokensUsed.completion
-    );
+    this.storeTurn(convId, "assistant", finalMessage, null, actions, 0, 0);
     return {
       message: finalMessage,
       conversationId: convId,
       actions,
       context,
-      tokensUsed: response.tokensUsed,
+      tokensUsed,
       styleScore: this.lastStyleScore ?? void 0
     };
   }
@@ -238775,7 +239502,7 @@ ${messageText}`,
 
 "${obs.description}"`,
         temperature: 0.4,
-        maxTokens: 128
+        maxTokens: 1024
       };
       const response = await this.llm.generate(request);
       const checkIn = response.text.trim();
@@ -238808,7 +239535,9 @@ ${messageText}`,
     const basePrompt = buildSystemPrompt(this.promptConfig, conversational);
     let systemContent = this.voiceModeActive ? `${basePrompt}
 
-${VOICE_MODE_CONTEXT}` : basePrompt;
+${VOICE_MODE_CONTEXT}` : conversational ? basePrompt : `${basePrompt}
+
+${ARTIFACT_SYSTEM_PROMPT}`;
     if (this.intentManager) {
       const intentCtx = this.intentManager.buildIntentContext();
       if (intentCtx) systemContent += `
@@ -238844,7 +239573,7 @@ ${docContextStr}`,
         content: wrapInDataBoundary(contextStr, "knowledge base")
       });
     }
-    const recentHistory = history.slice(-10);
+    const recentHistory = history.slice(-3);
     for (const turn of recentHistory) {
       messages.push({
         role: turn.role,
@@ -238874,7 +239603,7 @@ ${docContextStr}`,
   async processToolCalls(toolCalls, context, userMessage) {
     const actions = [];
     const executedResults = [];
-    const reasoningCtx = context.length > 0 ? this.buildReasoningContext(userMessage, context) : void 0;
+    const reasoningCtx = context && context.length > 0 ? this.buildReasoningContext(userMessage, context) : void 0;
     for (const tc of toolCalls) {
       if (this.intentManager) {
         const actionType2 = this.allToolActionMap[tc.name];
@@ -238987,7 +239716,11 @@ ${docContextStr}`,
         executedResults.push({
           tool: "search_files",
           result: results.map((r) => ({
+            documentId: r.document.id,
             title: r.document.title,
+            sourcePath: r.document.sourcePath ?? null,
+            source: r.document.source,
+            mimeType: r.document.mimeType,
             content: r.chunk.content.slice(0, 500),
             score: r.score
           }))
@@ -239052,6 +239785,79 @@ ${docContextStr}`,
             metadata: r.document.metadata
           }))
         });
+        continue;
+      }
+      if (tc.name === "list_indexed_documents") {
+        const source = tc.arguments["source"];
+        const limit = tc.arguments["limit"] ?? 50;
+        try {
+          const docs = await this.knowledge.listDocuments({
+            source,
+            limit
+          });
+          executedResults.push({
+            tool: "list_indexed_documents",
+            result: docs.map((d) => ({
+              id: d.id,
+              title: d.title,
+              source: d.source,
+              sourcePath: d.sourcePath ?? null,
+              mimeType: d.mimeType,
+              indexedAt: d.indexedAt
+            }))
+          });
+        } catch {
+          executedResults.push({ tool: "list_indexed_documents", result: { error: "Could not list documents" } });
+        }
+        continue;
+      }
+      if (tc.name === "read_document") {
+        const title = tc.arguments["title"];
+        const docId = tc.arguments["documentId"];
+        try {
+          const searchResults = await this.knowledge.search(title, { limit: 20 });
+          let targetDocId = docId;
+          if (!targetDocId) {
+            const titleLower = title.toLowerCase();
+            const match = searchResults.find(
+              (r) => r.document.title.toLowerCase().includes(titleLower) || titleLower.includes(r.document.title.toLowerCase())
+            );
+            targetDocId = match?.document.id;
+          }
+          if (!targetDocId) {
+            targetDocId = searchResults[0]?.document.id;
+          }
+          if (targetDocId) {
+            const docChunks = searchResults.filter((r) => r.document.id === targetDocId).sort((a, b) => a.chunk.chunkIndex - b.chunk.chunkIndex);
+            const doc = docChunks[0]?.document;
+            let allContent = docChunks.map((c) => c.chunk.content).join("\n");
+            if (docChunks.length <= 2 && doc) {
+              const moreResults = await this.knowledge.search(doc.title, { limit: 30 });
+              const moreChunks = moreResults.filter((r) => r.document.id === targetDocId).sort((a, b) => a.chunk.chunkIndex - b.chunk.chunkIndex);
+              if (moreChunks.length > docChunks.length) {
+                allContent = moreChunks.map((c) => c.chunk.content).join("\n");
+              }
+            }
+            executedResults.push({
+              tool: "read_document",
+              result: {
+                title: doc?.title ?? title,
+                source: doc?.source,
+                sourcePath: doc?.sourcePath,
+                content: allContent.slice(0, 6e3),
+                // Cap at 6000 chars for context window
+                totalLength: allContent.length
+              }
+            });
+          } else {
+            executedResults.push({
+              tool: "read_document",
+              result: { error: `No document found matching "${title}". Use list_indexed_documents to see available files.` }
+            });
+          }
+        } catch (err) {
+          executedResults.push({ tool: "read_document", result: { error: `Failed to read document: ${err instanceof Error ? err.message : String(err)}` } });
+        }
         continue;
       }
       if (tc.name === "knowledge_remove") {
@@ -249857,13 +250663,8 @@ function extractTargetDomain(action, payload) {
   if (action === "web.search" || action === "web.deep_search") {
     return null;
   }
-  if (action === "web.fetch" && typeof payload["url"] === "string") {
-    try {
-      const url = new URL(payload["url"]);
-      return url.hostname;
-    } catch {
-      return null;
-    }
+  if (action === "web.fetch") {
+    return null;
   }
   if (action.startsWith("cloud.")) {
     return "www.googleapis.com";
@@ -251096,485 +251897,8 @@ var OAuthTokenManager = class {
   }
 };
 
-// packages/gateway/services/oauth-callback-server.ts
-var import_node_http = require("node:http");
-var import_node_https = require("node:https");
-var import_node_crypto8 = require("node:crypto");
-var import_node_url2 = require("node:url");
-var PORT_RANGE_START = 8080;
-var PORT_RANGE_END = 8099;
-var AUTO_SHUTDOWN_MS = 12e4;
-var OAuthCallbackServer = class {
-  server = null;
-  shutdownTimer = null;
-  resolveAuth = null;
-  rejectAuth = null;
-  expectedState = "";
-  /**
-   * Start the callback server. Returns the callback URL and state parameter.
-   * The server listens on localhost only (127.0.0.1) for security.
-   * Pass { https: true } for providers that require HTTPS redirect URIs (e.g. Slack).
-   */
-  async start(options) {
-    this.expectedState = (0, import_node_crypto8.randomBytes)(32).toString("hex");
-    const useHttps = options?.https ?? false;
-    const port = await this.findAvailablePort();
-    return new Promise((resolve5, reject2) => {
-      const handler = (req, res) => {
-        this.handleRequest(req, res);
-      };
-      let isHttps = false;
-      if (useHttps) {
-        try {
-          const { key, cert } = generateSelfSignedCert();
-          this.server = (0, import_node_https.createServer)({ key, cert }, handler);
-          isHttps = true;
-        } catch (err) {
-          console.error("[OAuthCallbackServer] Failed to create HTTPS server, falling back to HTTP:", err);
-          this.server = (0, import_node_http.createServer)(handler);
-        }
-      } else {
-        this.server = (0, import_node_http.createServer)(handler);
-      }
-      const protocol = isHttps ? "https" : "http";
-      const host = isHttps ? "localhost" : "127.0.0.1";
-      this.server.listen(port, "127.0.0.1", () => {
-        this.shutdownTimer = setTimeout(() => {
-          this.rejectAuth?.(new Error("OAuth callback timed out"));
-          this.stop();
-        }, AUTO_SHUTDOWN_MS);
-        resolve5({
-          callbackUrl: `${protocol}://${host}:${port}/callback`,
-          state: this.expectedState,
-          port
-        });
-      });
-      this.server.on("error", (err) => {
-        reject2(err);
-      });
-    });
-  }
-  /**
-   * Wait for the OAuth callback to arrive. Returns the authorization code.
-   */
-  waitForCallback() {
-    return new Promise((resolve5, reject2) => {
-      this.resolveAuth = resolve5;
-      this.rejectAuth = reject2;
-    });
-  }
-  /** Stop the server and clean up. */
-  stop() {
-    if (this.shutdownTimer) {
-      clearTimeout(this.shutdownTimer);
-      this.shutdownTimer = null;
-    }
-    if (this.server) {
-      this.server.close();
-      this.server = null;
-    }
-  }
-  handleRequest(req, res) {
-    const host = req.headers.host ?? "localhost";
-    const url = new import_node_url2.URL(req.url ?? "/", `http://${host}`);
-    if (url.pathname === "/callback") {
-      const code = url.searchParams.get("code");
-      const state = url.searchParams.get("state");
-      const error = url.searchParams.get("error");
-      if (error) {
-        res.writeHead(400, { "Content-Type": "text/html" });
-        res.end("<html><body><h1>Authorization Failed</h1><p>You can close this window.</p></body></html>");
-        this.rejectAuth?.(new Error(`OAuth error: ${error}`));
-        this.stop();
-        return;
-      }
-      if (!state || state !== this.expectedState) {
-        res.writeHead(400, { "Content-Type": "text/html" });
-        res.end("<html><body><h1>Invalid State</h1><p>Security validation failed.</p></body></html>");
-        this.rejectAuth?.(new Error("OAuth state parameter mismatch"));
-        this.stop();
-        return;
-      }
-      if (!code) {
-        res.writeHead(400, { "Content-Type": "text/html" });
-        res.end("<html><body><h1>Missing Code</h1><p>No authorization code received.</p></body></html>");
-        this.rejectAuth?.(new Error("No authorization code in callback"));
-        this.stop();
-        return;
-      }
-      res.writeHead(200, { "Content-Type": "text/html" });
-      res.end("<html><body><h1>Authorization Successful</h1><p>You can close this window and return to Semblance.</p></body></html>");
-      this.resolveAuth?.({ code, state });
-      this.stop();
-    } else {
-      res.writeHead(404);
-      res.end();
-    }
-  }
-  findAvailablePort() {
-    return new Promise((resolve5, reject2) => {
-      let currentPort = PORT_RANGE_START;
-      const tryPort = () => {
-        if (currentPort > PORT_RANGE_END) {
-          reject2(new Error("No available port found in range 8080-8099"));
-          return;
-        }
-        const testServer = (0, import_node_http.createServer)();
-        testServer.listen(currentPort, "127.0.0.1", () => {
-          const port = currentPort;
-          testServer.close(() => resolve5(port));
-        });
-        testServer.on("error", () => {
-          currentPort++;
-          tryPort();
-        });
-      };
-      tryPort();
-    });
-  }
-};
-function generateSelfSignedCert() {
-  const { privateKey, publicKey } = (0, import_node_crypto8.generateKeyPairSync)("rsa", {
-    modulusLength: 2048,
-    publicKeyEncoding: { type: "spki", format: "pem" },
-    privateKeyEncoding: { type: "pkcs8", format: "pem" }
-  });
-  const now = /* @__PURE__ */ new Date();
-  const expiry = new Date(now.getTime() + 24 * 60 * 60 * 1e3);
-  const serial = (0, import_node_crypto8.randomBytes)(8);
-  const { execSync } = require("node:child_process");
-  try {
-    const certOut = execSync(
-      'openssl req -x509 -newkey rsa:2048 -keyout /dev/stdout -out /dev/stdout -days 1 -nodes -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null',
-      { encoding: "utf-8", timeout: 5e3 }
-    );
-    const keyMatch = certOut.match(/(-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----)/);
-    const certMatch = certOut.match(/(-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----)/);
-    if (keyMatch && certMatch) {
-      return { key: keyMatch[1], cert: certMatch[1] };
-    }
-  } catch {
-  }
-  const { writeFileSync: writeFileSync5, unlinkSync: unlinkSync4, mkdtempSync, readFileSync: readFs, rmdirSync } = require("node:fs");
-  const { join: join8 } = require("node:path");
-  const { tmpdir } = require("node:os");
-  let tmpDir = null;
-  try {
-    tmpDir = mkdtempSync(join8(tmpdir(), "semblance-cert-"));
-    const keyPath = join8(tmpDir, "key.pem");
-    const certPath = join8(tmpDir, "cert.pem");
-    writeFileSync5(keyPath, privateKey);
-    execSync(
-      `openssl req -x509 -key "${keyPath}" -out "${certPath}" -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null`,
-      { timeout: 5e3 }
-    );
-    const cert = readFs(certPath, "utf-8");
-    return { key: privateKey, cert };
-  } catch {
-    throw new Error(
-      "Cannot generate self-signed certificate: openssl not found. Install OpenSSL or use HTTP-only OAuth for this connector."
-    );
-  } finally {
-    if (tmpDir) {
-      try {
-        unlinkSync4(join8(tmpDir, "key.pem"));
-      } catch {
-      }
-      try {
-        unlinkSync4(join8(tmpDir, "cert.pem"));
-      } catch {
-      }
-      try {
-        rmdirSync(tmpDir);
-      } catch {
-      }
-    }
-  }
-}
-
-// packages/gateway/services/google-drive-adapter.ts
-var GOOGLE_DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
-var WORKSPACE_EXPORT_MAP = {
-  "application/vnd.google-apps.document": { mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", extension: ".docx" },
-  "application/vnd.google-apps.spreadsheet": { mimeType: "text/csv", extension: ".csv" },
-  "application/vnd.google-apps.presentation": { mimeType: "application/pdf", extension: ".pdf" }
-};
-var GoogleDriveAdapter = class {
-  tokenManager;
-  config;
-  constructor(tokenManager, config) {
-    this.tokenManager = tokenManager;
-    this.config = config;
-  }
-  async execute(action, payload) {
-    const p = payload;
-    try {
-      switch (action) {
-        case "cloud.auth":
-          return await this.handleAuth();
-        case "cloud.auth_status":
-          return this.handleAuthStatus();
-        case "cloud.disconnect":
-          return await this.handleDisconnect();
-        case "cloud.list_files":
-          return await this.handleListFiles(p);
-        case "cloud.file_metadata":
-          return await this.handleFileMetadata(p);
-        case "cloud.download_file":
-          return await this.handleDownloadFile(p);
-        case "cloud.check_changed":
-          return await this.handleCheckChanged(p);
-        default:
-          return { success: false, error: { code: "UNKNOWN_ACTION", message: `Unknown action: ${action}` } };
-      }
-    } catch (err) {
-      return {
-        success: false,
-        error: {
-          code: "DRIVE_ERROR",
-          message: err instanceof Error ? err.message : String(err)
-        }
-      };
-    }
-  }
-  async handleAuth() {
-    const callbackServer = new OAuthCallbackServer();
-    const { callbackUrl, state } = await callbackServer.start();
-    const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-    authUrl.searchParams.set("client_id", this.config.clientId);
-    authUrl.searchParams.set("redirect_uri", callbackUrl);
-    authUrl.searchParams.set("response_type", "code");
-    authUrl.searchParams.set("scope", GOOGLE_DRIVE_READONLY_SCOPE);
-    authUrl.searchParams.set("state", state);
-    authUrl.searchParams.set("access_type", "offline");
-    authUrl.searchParams.set("prompt", "consent");
-    try {
-      const { exec } = await import("node:child_process");
-      const url = authUrl.toString();
-      const platform4 = process.platform;
-      if (platform4 === "win32") exec(`start "" "${url}"`);
-      else if (platform4 === "darwin") exec(`open "${url}"`);
-      else exec(`xdg-open "${url}"`);
-    } catch {
-    }
-    try {
-      const { code } = await callbackServer.waitForCallback();
-      const tokenResponse = await globalThis.fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          code,
-          client_id: this.config.clientId,
-          client_secret: this.config.clientSecret,
-          redirect_uri: callbackUrl,
-          grant_type: "authorization_code"
-        })
-      });
-      const tokenData = await tokenResponse.json();
-      if (tokenData.error) {
-        return { success: false, error: { code: "TOKEN_ERROR", message: tokenData.error } };
-      }
-      const userResponse = await globalThis.fetch("https://www.googleapis.com/drive/v3/about?fields=user", {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` }
-      });
-      const userData = await userResponse.json();
-      this.tokenManager.storeTokens({
-        provider: "google_drive",
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        expiresAt: Date.now() + tokenData.expires_in * 1e3,
-        scopes: GOOGLE_DRIVE_READONLY_SCOPE,
-        userEmail: userData.user?.emailAddress
-      });
-      return {
-        success: true,
-        data: {
-          success: true,
-          provider: "google_drive",
-          userEmail: userData.user?.emailAddress
-        }
-      };
-    } catch (err) {
-      callbackServer.stop();
-      return {
-        success: false,
-        error: { code: "AUTH_ERROR", message: err instanceof Error ? err.message : String(err) }
-      };
-    }
-  }
-  handleAuthStatus() {
-    const hasTokens = this.tokenManager.hasValidTokens("google_drive");
-    const email = this.tokenManager.getUserEmail("google_drive");
-    return {
-      success: true,
-      data: { authenticated: hasTokens, userEmail: email }
-    };
-  }
-  async handleDisconnect() {
-    const accessToken = this.tokenManager.getAccessToken("google_drive");
-    if (accessToken) {
-      try {
-        await globalThis.fetch("https://oauth2.googleapis.com/revoke", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ token: accessToken })
-        });
-      } catch {
-      }
-    }
-    this.tokenManager.revokeTokens("google_drive");
-    return { success: true, data: { disconnected: true } };
-  }
-  async handleListFiles(payload) {
-    const accessToken = await this.getValidAccessToken();
-    const folderId = payload["folderId"] || "root";
-    const pageSize = payload["pageSize"] || 100;
-    const pageToken = payload["pageToken"];
-    const url = new URL("https://www.googleapis.com/drive/v3/files");
-    url.searchParams.set("q", `'${folderId}' in parents and trashed = false`);
-    url.searchParams.set("pageSize", String(pageSize));
-    url.searchParams.set("fields", "nextPageToken,files(id,name,mimeType,size,modifiedTime,createdTime,parents,md5Checksum,webViewLink)");
-    url.searchParams.set("orderBy", "modifiedTime desc");
-    if (pageToken) url.searchParams.set("pageToken", pageToken);
-    const response = await globalThis.fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    const data = await response.json();
-    const files = data.files.map((f) => ({
-      id: f.id,
-      name: f.name,
-      mimeType: f.mimeType,
-      sizeBytes: parseInt(f.size ?? "0", 10),
-      modifiedTime: f.modifiedTime,
-      createdTime: f.createdTime,
-      parentId: f.parents?.[0] ?? null,
-      md5Checksum: f.md5Checksum ?? null,
-      isFolder: f.mimeType === "application/vnd.google-apps.folder",
-      webViewLink: f.webViewLink
-    }));
-    return {
-      success: true,
-      data: { files, nextPageToken: data.nextPageToken ?? null, totalFiles: files.length }
-    };
-  }
-  async handleFileMetadata(payload) {
-    const accessToken = await this.getValidAccessToken();
-    const fileId = payload["fileId"];
-    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,size,modifiedTime,createdTime,parents,md5Checksum,webViewLink`;
-    const response = await globalThis.fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    const f = await response.json();
-    return {
-      success: true,
-      data: {
-        id: f.id,
-        name: f.name,
-        mimeType: f.mimeType,
-        sizeBytes: parseInt(f.size ?? "0", 10),
-        modifiedTime: f.modifiedTime,
-        createdTime: f.createdTime,
-        parentId: f.parents?.[0] ?? null,
-        md5Checksum: f.md5Checksum ?? null,
-        isFolder: f.mimeType === "application/vnd.google-apps.folder",
-        webViewLink: f.webViewLink
-      }
-    };
-  }
-  async handleDownloadFile(payload) {
-    const accessToken = await this.getValidAccessToken();
-    const fileId = payload["fileId"];
-    const localPath = payload["localPath"];
-    const metaUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType,name,size`;
-    const metaResponse = await globalThis.fetch(metaUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    const meta = await metaResponse.json();
-    let downloadUrl;
-    let finalMimeType = meta.mimeType;
-    const exportInfo = WORKSPACE_EXPORT_MAP[meta.mimeType];
-    if (exportInfo) {
-      downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=${encodeURIComponent(exportInfo.mimeType)}`;
-      finalMimeType = exportInfo.mimeType;
-    } else {
-      downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
-    }
-    const downloadResponse = await globalThis.fetch(downloadUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    if (!downloadResponse.ok) {
-      return {
-        success: false,
-        error: { code: "DOWNLOAD_FAILED", message: `HTTP ${downloadResponse.status}` }
-      };
-    }
-    const buffer = Buffer.from(await downloadResponse.arrayBuffer());
-    const fs4 = await import("node:fs");
-    const path2 = await import("node:path");
-    const dir = path2.dirname(localPath);
-    if (!fs4.existsSync(dir)) {
-      fs4.mkdirSync(dir, { recursive: true });
-    }
-    fs4.writeFileSync(localPath, buffer);
-    return {
-      success: true,
-      data: {
-        success: true,
-        localPath,
-        sizeBytes: buffer.length,
-        mimeType: finalMimeType
-      }
-    };
-  }
-  async handleCheckChanged(payload) {
-    const accessToken = await this.getValidAccessToken();
-    const fileId = payload["fileId"];
-    const sinceTimestamp = payload["sinceTimestamp"];
-    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=modifiedTime`;
-    const response = await globalThis.fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    const data = await response.json();
-    const remoteModified = new Date(data.modifiedTime).getTime();
-    const sinceMs = new Date(sinceTimestamp).getTime();
-    return {
-      success: true,
-      data: { changed: remoteModified > sinceMs }
-    };
-  }
-  async getValidAccessToken() {
-    if (!this.tokenManager.isTokenExpired("google_drive")) {
-      const token = this.tokenManager.getAccessToken("google_drive");
-      if (token) return token;
-    }
-    const refreshToken = this.tokenManager.getRefreshToken("google_drive");
-    if (!refreshToken) {
-      throw new Error("Not authenticated with Google Drive");
-    }
-    const response = await globalThis.fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        refresh_token: refreshToken,
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
-        grant_type: "refresh_token"
-      })
-    });
-    const data = await response.json();
-    this.tokenManager.refreshAccessToken(
-      "google_drive",
-      data.access_token,
-      Date.now() + data.expires_in * 1e3,
-      data.refresh_token
-    );
-    return data.access_token;
-  }
-  /** Get the workspace export map (for testing) */
-  static getWorkspaceExportMap() {
-    return { ...WORKSPACE_EXPORT_MAP };
-  }
-};
+// packages/gateway/index.ts
+init_google_drive_adapter();
 
 // packages/gateway/services/file-write-adapter.ts
 var import_node_os4 = require("node:os");
@@ -252837,9 +253161,45 @@ var EmailAdapter = class {
       await this.imap.saveDraft(imapCreds[0].id, params);
       return { success: true, data: { saved: true } };
     }
+    const oauth = await this.getGmailOAuthToken();
+    if (oauth) {
+      console.error(`[EmailAdapter] Creating Gmail draft via API for ${oauth.userEmail}`);
+      const toHeader = params.to.join(", ");
+      const ccHeader = params.cc && params.cc.length > 0 ? `Cc: ${params.cc.join(", ")}\r
+` : "";
+      const rawMessage = [
+        `From: ${oauth.userEmail}`,
+        `To: ${toHeader}`,
+        ccHeader ? `Cc: ${params.cc.join(", ")}` : "",
+        `Subject: ${params.subject}`,
+        "Content-Type: text/plain; charset=utf-8",
+        "",
+        params.body
+      ].filter(Boolean).join("\r\n");
+      const encoded = Buffer.from(rawMessage).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      const resp = await globalThis.fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${oauth.accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message: { raw: encoded } })
+      });
+      if (resp.ok) {
+        const draft = await resp.json();
+        console.error(`[EmailAdapter] Gmail draft created: ${draft.id}`);
+        return { success: true, data: { saved: true, draftId: draft.id } };
+      }
+      const errText = await resp.text().catch(() => "unknown");
+      console.error(`[EmailAdapter] Gmail draft API failed (${resp.status}): ${errText.slice(0, 300)}`);
+      return {
+        success: false,
+        error: { code: "GMAIL_DRAFT_ERROR", message: `Gmail draft creation failed: ${resp.status}` }
+      };
+    }
     return {
       success: false,
-      error: { code: "NO_IMAP_CREDENTIALS", message: "Draft saving requires IMAP credentials (Gmail OAuth draft support coming soon)" }
+      error: { code: "NO_EMAIL_CREDENTIALS", message: "No email credentials configured. Connect Gmail or add IMAP credentials in Settings." }
     };
   }
   async handleArchive(params) {
@@ -253826,6 +254186,8 @@ function formatTimeSaved2(seconds) {
 }
 
 // packages/gateway/index.ts
+init_oauth_callback_server();
+init_google_drive_adapter();
 var Gateway = class {
   transport = null;
   auditDb = null;
@@ -259683,6 +260045,9 @@ var PIPER_VOICES = [
   }
 ];
 
+// packages/desktop/src-tauri/sidecar/bridge.ts
+init_oauth_callback_server();
+
 // packages/gateway/config/oauth-clients.ts
 function envOrDefault(envVar, defaultValue) {
   return process.env[envVar] ?? defaultValue;
@@ -259812,6 +260177,7 @@ var ConnectorRouter = class {
 var import_node_crypto9 = require("node:crypto");
 
 // packages/gateway/services/base-oauth-adapter.ts
+init_oauth_callback_server();
 var TokenResponseSchema = external_exports.object({
   access_token: external_exports.string().optional(),
   refresh_token: external_exports.string().optional(),
@@ -260773,6 +261139,7 @@ Note: ${highlight.note}` : ""),
 };
 
 // packages/gateway/services/notion/notion-adapter.ts
+init_oauth_callback_server();
 var NOTION_VERSION = "2022-06-28";
 function getNotionOAuthConfig() {
   return {
@@ -262710,6 +263077,7 @@ function generateOAuth1Header(credentials, params) {
 }
 
 // packages/gateway/services/garmin/garmin-adapter.ts
+init_oauth_callback_server();
 var REQUEST_TOKEN_URL = "https://connectapi.garmin.com/oauth-service/oauth/request_token";
 var AUTHORIZE_URL = "https://connect.garmin.com/oauthConfirm";
 var ACCESS_TOKEN_URL = "https://connectapi.garmin.com/oauth-service/oauth/access_token";
@@ -263571,6 +263939,7 @@ var RescueTimeAdapter = class {
 };
 
 // packages/gateway/services/pocket/pocket-adapter.ts
+init_oauth_callback_server();
 var PROVIDER_KEY5 = "pocket";
 var API_BASE11 = "https://getpocket.com/v3";
 var POCKET_HEADERS = {
@@ -264340,6 +264709,7 @@ var TodoistAdapter = class extends BaseOAuthAdapter {
 
 // packages/gateway/services/lastfm/lastfm-adapter.ts
 var import_node_crypto11 = require("node:crypto");
+init_oauth_callback_server();
 var PROVIDER_KEY7 = "lastfm";
 var API_BASE13 = "https://ws.audioscrobbler.com/2.0/";
 var LastFmAdapter = class {
@@ -265453,6 +265823,7 @@ var HarvestAdapter = class extends BaseOAuthAdapter {
 };
 
 // packages/gateway/services/slack/slack-adapter.ts
+init_oauth_callback_server();
 var API_BASE17 = "https://slack.com/api";
 function getSlackOAuthConfig() {
   return {
@@ -268843,6 +269214,13 @@ async function handleInitialize() {
   );
   await Promise.race([gateway.start(), gatewayTimeout]);
   console.error("[sidecar] Gateway started");
+  try {
+    const allowlist = gateway.getAllowlist();
+    for (const domain of ["www.googleapis.com", "gmail.googleapis.com", "oauth2.googleapis.com"]) {
+      allowlist.addService({ serviceName: "Google APIs", domain, protocol: "https", addedBy: "system_seed" });
+    }
+  } catch {
+  }
   const platform4 = getPlatform();
   if (!platform4.vectorStore) {
     platform4.vectorStore = createDesktopVectorStore((0, import_node_path8.join)(dataDir, "knowledge"));
@@ -269020,6 +269398,19 @@ async function handleInitialize() {
     console.error("[sidecar] Email + Calendar adapters registered with Gateway");
     try {
       const tokenMgr = ensureOAuthTokenManager();
+      const clientId = process.env["SEMBLANCE_GOOGLE_CLIENT_ID"] ?? "";
+      const clientSecret = process.env["SEMBLANCE_GOOGLE_CLIENT_SECRET"] ?? "";
+      if (clientId) {
+        const { GoogleDriveAdapter: GoogleDriveAdapter2 } = await Promise.resolve().then(() => (init_google_drive_adapter(), google_drive_adapter_exports));
+        const driveAdapter = new GoogleDriveAdapter2(tokenMgr, { clientId, clientSecret });
+        registry.register("cloud.list_files", driveAdapter);
+        console.error("[sidecar] GoogleDriveAdapter registered for cloud.list_files");
+      }
+    } catch (driveErr) {
+      console.error("[sidecar] Failed to register GoogleDriveAdapter:", driveErr);
+    }
+    try {
+      const tokenMgr = ensureOAuthTokenManager();
       connectorRouter = registerAllConnectors(tokenMgr);
       wireConnectorRouter(registry, connectorRouter);
       console.error("[sidecar] ConnectorRouter wired to Gateway for", connectorRouter.listRegistered().length, "connectors");
@@ -269053,43 +269444,87 @@ async function handleInitialize() {
   let activeModel = null;
   let availableModels = [];
   const modelsBaseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+  if (core) {
+    try {
+      const { Ollama: Ollama5 } = await Promise.resolve().then(() => (init_dist2(), dist_exports));
+      const ollamaClient = new Ollama5({ host: "http://localhost:11434" });
+      const listResponse = await ollamaClient.list();
+      const ollamaModels = listResponse.models.map((m) => m.name);
+      if (ollamaModels.length > 0) {
+        const { OllamaProvider: OllamaProvider2 } = await Promise.resolve().then(() => (init_ollama_provider(), ollama_provider_exports));
+        const { InferenceRouter: InferenceRouter3 } = await Promise.resolve().then(() => (init_inference_router(), inference_router_exports));
+        const ollamaProvider = new OllamaProvider2();
+        const router = core.llm;
+        const ollamaModel = ollamaModels.find((m) => m.includes("llama3")) ?? ollamaModels.find((m) => !m.includes("embed") && !m.includes("nomic")) ?? ollamaModels[0];
+        if (ollamaModel && router.setReasoningProvider) {
+          router.setReasoningProvider(ollamaProvider, ollamaModel);
+          core.models.setActiveChatModel(ollamaModel);
+          try {
+            if (core.agent) core.agent.setModel(ollamaModel);
+          } catch {
+          }
+          inferenceEngine = "ollama";
+          activeModel = ollamaModel;
+          availableModels = ollamaModels.filter((m) => !m.includes("embed") && !m.includes("nomic"));
+          console.error(`[sidecar] Ollama GPU inference active (model: ${ollamaModel}, ${ollamaModels.length} models available)`);
+          logProviderTransition("none", "ollama", ollamaModel, "Ollama GPU detected at startup");
+        }
+      }
+    } catch {
+      console.error("[sidecar] Ollama not running \u2014 will use NativeRuntime CPU inference");
+    }
+  }
   for (const model of MODEL_CATALOG) {
+    if (!model.isEmbedding) continue;
     if (isModelDownloaded(model.id, modelsBaseDir)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
-      const modelType = model.isEmbedding ? "embedding" : "reasoning";
       try {
-        const loadResult = await Promise.race([
-          sendCallback("native_load_model", { model_path: modelPath, model_type: modelType }),
+        await Promise.race([
+          sendCallback("native_load_model", { model_path: modelPath, model_type: "embedding" }),
           new Promise((resolve5) => setTimeout(() => resolve5(null), 12e4))
         ]);
-        if (loadResult === null) {
-          console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s`);
-          break;
-        }
-        console.error(`[sidecar] Loaded ${modelType} model "${model.id}" into NativeRuntime`);
-        if (modelType === "reasoning") {
-          activeModel = model.displayName;
-          availableModels.push(model.displayName);
-        }
+        console.error(`[sidecar] Loaded embedding model "${model.id}" into NativeRuntime`);
       } catch (err) {
-        console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
-        break;
+        console.error(`[sidecar] Failed to load embedding "${model.id}":`, err);
       }
     }
   }
-  try {
-    const nativeStatus = await Promise.race([
-      sendCallback("native_status", {}),
-      new Promise((resolve5) => setTimeout(() => resolve5(null), 1e4))
-    ]);
-    if (nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready") {
-      inferenceEngine = "native";
-      console.error("[sidecar] NativeRuntime is ready");
-    } else if (nativeStatus === null) {
-      console.error("[sidecar] NativeRuntime status check timed out (10s)");
+  if (inferenceEngine !== "ollama") {
+    for (const model of MODEL_CATALOG) {
+      if (model.isEmbedding) continue;
+      if (isModelDownloaded(model.id, modelsBaseDir)) {
+        const modelPath = getModelPath(model.id, modelsBaseDir);
+        try {
+          const loadResult = await Promise.race([
+            sendCallback("native_load_model", { model_path: modelPath, model_type: "reasoning" }),
+            new Promise((resolve5) => setTimeout(() => resolve5(null), 12e4))
+          ]);
+          if (loadResult === null) {
+            console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s`);
+            break;
+          }
+          console.error(`[sidecar] Loaded reasoning model "${model.id}" into NativeRuntime`);
+          activeModel = model.displayName;
+          availableModels.push(model.displayName);
+          break;
+        } catch (err) {
+          console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
+          break;
+        }
+      }
     }
-  } catch {
-    console.error("[sidecar] NativeRuntime not available, checking Ollama fallback");
+    try {
+      const nativeStatus = await Promise.race([
+        sendCallback("native_status", {}),
+        new Promise((resolve5) => setTimeout(() => resolve5(null), 1e4))
+      ]);
+      if (nativeStatus && (nativeStatus?.status ?? "").toLowerCase() === "ready") {
+        inferenceEngine = "native";
+        console.error("[sidecar] NativeRuntime is ready");
+      }
+    } catch {
+      console.error("[sidecar] NativeRuntime not available");
+    }
   }
   if (core && !activeModel) {
     const activeBitNetId = getPref("bitnet_active_model") ?? null;
@@ -269163,7 +269598,7 @@ async function handleInitialize() {
     const HEALTH_CHECK_INTERVAL = 3e4;
     setInterval(async () => {
       try {
-        const { Ollama: Ollama5 } = await Promise.resolve().then(() => (init_dist(), dist_exports));
+        const { Ollama: Ollama5 } = await Promise.resolve().then(() => (init_dist2(), dist_exports));
         const client = new Ollama5({ host: "http://localhost:11434" });
         await client.list();
       } catch {
@@ -269212,7 +269647,36 @@ async function handleSendMessage(id, params) {
   } catch {
   }
   console.error("[sidecar] handleSendMessage \u2014 orchestrator available:", hasOrchestrator);
-  const llmAvailable = await core.llm.isAvailable().catch(() => false);
+  let llmAvailable = await core.llm.isAvailable().catch(() => false);
+  if (!llmAvailable) {
+    try {
+      const { Ollama: OllamaClient } = await Promise.resolve().then(() => (init_dist2(), dist_exports));
+      const client = new OllamaClient({ host: "http://localhost:11434" });
+      const list = await Promise.race([
+        client.list(),
+        new Promise((_3, rej) => setTimeout(() => rej(new Error("timeout")), 3e3))
+      ]);
+      const models = list.models.filter((m) => !m.name.includes("embed") && !m.name.includes("nomic"));
+      if (models.length > 0) {
+        const { OllamaProvider: OllamaProvider2 } = await Promise.resolve().then(() => (init_ollama_provider(), ollama_provider_exports));
+        const { InferenceRouter: InferenceRouter3 } = await Promise.resolve().then(() => (init_inference_router(), inference_router_exports));
+        const ollamaProvider = new OllamaProvider2();
+        const router = core.llm;
+        const model = models[0].name;
+        if (router.setReasoningProvider) {
+          router.setReasoningProvider(ollamaProvider, model);
+          core.models.setActiveChatModel(model);
+          try {
+            if (core.agent) core.agent.setModel(model);
+          } catch {
+          }
+          console.error(`[sidecar] Late-wired Ollama provider (model: ${model})`);
+          llmAvailable = true;
+        }
+      }
+    } catch {
+    }
+  }
   if (!llmAvailable) {
     let nativeReady = false;
     try {
@@ -269394,7 +269858,7 @@ async function handleGetOllamaStatus() {
   }
   if (core) {
     try {
-      const { Ollama: Ollama5 } = await Promise.resolve().then(() => (init_dist(), dist_exports));
+      const { Ollama: Ollama5 } = await Promise.resolve().then(() => (init_dist2(), dist_exports));
       const ollamaClient = new Ollama5({ host: "http://localhost:11434" });
       const listResponse = await ollamaClient.list();
       const ollamaModels = listResponse.models.map((m) => m.name);
@@ -270840,26 +271304,72 @@ async function handleStartModelDownloads(params) {
     });
     results.push({ modelId: embeddingModel.id, status: "started" });
   }
-  const reasoningModel = getRecommendedReasoningModel(tier);
-  const reasoningTargetPath = getModelPath(reasoningModel.id, baseDir);
-  if (isModelDownloaded(reasoningModel.id, baseDir)) {
-    const existing = {
-      modelId: reasoningModel.id,
-      modelName: reasoningModel.displayName,
-      totalBytes: reasoningModel.fileSizeBytes,
-      downloadedBytes: reasoningModel.fileSizeBytes,
-      speedBytesPerSec: 0,
-      status: "complete"
-    };
-    activeDownloads.set(reasoningModel.id, existing);
-    emit("model-download-progress", existing);
-    results.push({ modelId: reasoningModel.id, status: "already_downloaded" });
-    sendCallback("native_load_model", { model_path: reasoningTargetPath, model_type: "reasoning" }).then(() => console.error(`[sidecar] Loaded reasoning model "${reasoningModel.id}" into NativeRuntime`)).catch((err) => console.error(`[sidecar] NativeRuntime load failed for "${reasoningModel.id}":`, err));
-  } else {
-    downloadHfFile(reasoningModel, reasoningTargetPath, reasoningModel.id, reasoningModel.displayName).catch((err) => {
-      console.error(`[sidecar] Reasoning model download failed: ${reasoningModel.id}`, err);
-    });
-    results.push({ modelId: reasoningModel.id, status: "started" });
+  let ollamaHasModel = false;
+  try {
+    const { Ollama: Ollama5 } = await Promise.resolve().then(() => (init_dist2(), dist_exports));
+    const client = new Ollama5({ host: "http://localhost:11434" });
+    const list = await client.list();
+    const reasoning = list.models.filter((m) => !m.name.includes("embed") && !m.name.includes("nomic"));
+    if (reasoning.length > 0) {
+      ollamaHasModel = true;
+      const ollamaModel = reasoning[0].name;
+      console.error(`[sidecar] Ollama detected with ${reasoning.length} models \u2014 skipping reasoning model download`);
+      if (core) {
+        try {
+          const { OllamaProvider: OllamaProvider2 } = await Promise.resolve().then(() => (init_ollama_provider(), ollama_provider_exports));
+          const { InferenceRouter: InferenceRouter3 } = await Promise.resolve().then(() => (init_inference_router(), inference_router_exports));
+          const ollamaProvider = new OllamaProvider2();
+          const router = core.llm;
+          if (router.setReasoningProvider) {
+            router.setReasoningProvider(ollamaProvider, ollamaModel);
+            core.models.setActiveChatModel(ollamaModel);
+            try {
+              if (core.agent) core.agent.setModel(ollamaModel);
+            } catch {
+            }
+            console.error(`[sidecar] Ollama provider wired into router (model: ${ollamaModel})`);
+          }
+        } catch (err) {
+          console.error("[sidecar] Failed to wire Ollama provider:", err);
+        }
+      }
+      const fakeComplete = {
+        modelId: "ollama-detected",
+        modelName: `Ollama: ${ollamaModel}`,
+        totalBytes: 1,
+        downloadedBytes: 1,
+        speedBytesPerSec: 0,
+        status: "complete"
+      };
+      activeDownloads.set("ollama-detected", fakeComplete);
+      emit("model-download-progress", fakeComplete);
+      emit("native-model-loaded", { modelId: ollamaModel, modelType: "reasoning", path: "", engine: "ollama" });
+      results.push({ modelId: ollamaModel, status: "already_downloaded", backend: "ollama" });
+    }
+  } catch {
+  }
+  if (!ollamaHasModel) {
+    const reasoningModel = getRecommendedReasoningModel(tier);
+    const reasoningTargetPath = getModelPath(reasoningModel.id, baseDir);
+    if (isModelDownloaded(reasoningModel.id, baseDir)) {
+      const existing = {
+        modelId: reasoningModel.id,
+        modelName: reasoningModel.displayName,
+        totalBytes: reasoningModel.fileSizeBytes,
+        downloadedBytes: reasoningModel.fileSizeBytes,
+        speedBytesPerSec: 0,
+        status: "complete"
+      };
+      activeDownloads.set(reasoningModel.id, existing);
+      emit("model-download-progress", existing);
+      results.push({ modelId: reasoningModel.id, status: "already_downloaded" });
+      sendCallback("native_load_model", { model_path: reasoningTargetPath, model_type: "reasoning" }).then(() => console.error(`[sidecar] Loaded reasoning model "${reasoningModel.id}" into NativeRuntime`)).catch((err) => console.error(`[sidecar] NativeRuntime load failed for "${reasoningModel.id}":`, err));
+    } else {
+      downloadHfFile(reasoningModel, reasoningTargetPath, reasoningModel.id, reasoningModel.displayName).catch((err) => {
+        console.error(`[sidecar] Reasoning model download failed: ${reasoningModel.id}`, err);
+      });
+      results.push({ modelId: reasoningModel.id, status: "started" });
+    }
   }
   return { started: results };
 }
@@ -271553,36 +272063,42 @@ async function handleRequest(req) {
         let currentActiveModel = null;
         let currentEngine = "none";
         try {
-          const ns = await Promise.race([
-            sendCallback("native_status", {}),
-            new Promise((resolve5) => setTimeout(() => resolve5(null), 3e3))
-          ]);
-          if (ns && (ns?.status ?? "").toLowerCase() === "ready") {
-            currentEngine = "native";
-            const modelsBase = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
-            for (const m of MODEL_CATALOG) {
-              if (!m.isEmbedding && isModelDownloaded(m.id, modelsBase)) {
-                currentActiveModel = m.displayName;
-                break;
-              }
-            }
-            if (!currentActiveModel) {
-              const activeBitNetPref = getPref("bitnet_active_model");
-              if (activeBitNetPref) {
-                const entry = BITNET_MODEL_CATALOG.find((m) => m.id === activeBitNetPref);
-                if (entry) currentActiveModel = entry.displayName;
-              }
-            }
-            if (!currentActiveModel) {
-              for (const m of BITNET_MODEL_CATALOG) {
-                if (isBitNetModelDownloaded(m.id, modelsBase)) {
+          const { Ollama: OllamaCheck } = await Promise.resolve().then(() => (init_dist2(), dist_exports));
+          const checkClient = new OllamaCheck({ host: "http://localhost:11434" });
+          const checkList = await checkClient.list();
+          const checkModels = checkList.models.filter((m) => !m.name.includes("embed"));
+          if (checkModels.length > 0) {
+            currentActiveModel = checkModels[0].name;
+            currentEngine = "ollama";
+          }
+        } catch {
+        }
+        if (!currentActiveModel) {
+          try {
+            const ns = await Promise.race([
+              sendCallback("native_status", {}),
+              new Promise((resolve5) => setTimeout(() => resolve5(null), 3e3))
+            ]);
+            if (ns && (ns?.status ?? "").toLowerCase() === "ready") {
+              currentEngine = "native";
+              const modelsBase = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+              for (const m of MODEL_CATALOG) {
+                if (!m.isEmbedding && isModelDownloaded(m.id, modelsBase)) {
                   currentActiveModel = m.displayName;
                   break;
                 }
               }
+              if (!currentActiveModel) {
+                for (const m of BITNET_MODEL_CATALOG) {
+                  if (isBitNetModelDownloaded(m.id, modelsBase)) {
+                    currentActiveModel = m.displayName;
+                    break;
+                  }
+                }
+              }
             }
+          } catch {
           }
-        } catch {
         }
         respond(id, {
           ollamaStatus: currentEngine !== "none" ? "connected" : "disconnected",
@@ -273231,6 +273747,79 @@ async function handleRequest(req) {
       case "voice_download_model": {
         const result3 = await handleVoiceDownloadModel(params);
         respond(id, result3);
+        break;
+      }
+      // ─── Inbox Data Handlers ──────────────────────────────────────────
+      case "get_inbox_items": {
+        const inboxParams = params;
+        const limit = inboxParams.limit ?? 30;
+        if (!emailAdapter) {
+          respond(id, []);
+          break;
+        }
+        try {
+          const result3 = await emailAdapter.execute("email.fetch", {
+            folder: "INBOX",
+            limit,
+            sort: "date_desc"
+          });
+          if (result3.success && result3.data) {
+            const messages = result3.data.messages ?? [];
+            const mapped = messages.map((m, i) => ({
+              id: m["id"] ?? `msg_${i}`,
+              messageId: m["messageId"] ?? m["id"] ?? `msg_${i}`,
+              threadId: m["threadId"] ?? "",
+              folder: "INBOX",
+              from: m["from"] ?? "",
+              fromName: (m["from"] ?? "").replace(/<.*>/, "").trim(),
+              to: Array.isArray(m["to"]) ? m["to"].join(", ") : m["to"] ?? "",
+              subject: m["subject"] ?? "(no subject)",
+              snippet: (m["body"]?.text ?? m["snippet"] ?? "").substring(0, 200),
+              receivedAt: m["date"] ?? m["receivedAt"] ?? (/* @__PURE__ */ new Date()).toISOString(),
+              isRead: m["isRead"] ?? !(m["flags"] ?? []).includes("\\Unseen"),
+              isStarred: m["isStarred"] ?? false,
+              hasAttachments: m["hasAttachments"] ?? false,
+              labels: m["labels"] ?? "",
+              priority: "normal",
+              accountId: "gmail"
+            }));
+            respond(id, mapped);
+          } else {
+            console.error("[sidecar] get_inbox_items: email adapter returned failure:", result3.error);
+            respond(id, []);
+          }
+        } catch (err) {
+          console.error("[sidecar] get_inbox_items error:", err);
+          respond(id, []);
+        }
+        break;
+      }
+      case "get_proactive_insights": {
+        respond(id, []);
+        break;
+      }
+      case "get_today_events": {
+        respond(id, []);
+        break;
+      }
+      case "get_actions_summary": {
+        respond(id, { todayCount: 0, todayTimeSavedSeconds: 0, recentActions: [] });
+        break;
+      }
+      case "get_pending_actions": {
+        respond(id, []);
+        break;
+      }
+      case "get_reminders": {
+        respond(id, []);
+        break;
+      }
+      case "get_dark_pattern_flags": {
+        respond(id, []);
+        break;
+      }
+      case "get_clipboard_insights": {
+        respond(id, []);
         break;
       }
       // ─── Connector Query Handlers ─────────────────────────────────────
