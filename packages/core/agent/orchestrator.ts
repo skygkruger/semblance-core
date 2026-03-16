@@ -1097,9 +1097,7 @@ export class OrchestratorImpl implements Orchestrator {
     }
 
     // ── Email fetch intent ───────────────────────────────────────────────
-    if (/(?:check|fetch|get|show|read)\s+(?:my\s+)?(?:email|inbox|mail)/i.test(combined) && calls.length === 0) {
-      // EmailFetchPayload expects: folder, limit, since, search, messageIds, unreadOnly
-      // All have defaults — empty object works. Use limit (NOT count).
+    if (/(?:check|fetch|get|show|read|tell\s+me\s+what(?:'s|\s+is)\s+in)\s+(?:my\s+)?(?:email|inbox|mail)|what(?:'s|\s+is)\s+in\s+my\s+(?:email|inbox|mail)|(?:any\s+)?(?:new\s+)?(?:email|mail)s?\s+(?:for\s+me|today|this\s+morning)/i.test(combined) && calls.length === 0) {
       calls.push({ name: 'fetch_inbox', arguments: { folder: 'INBOX', limit: 10 } });
     }
 
@@ -1123,12 +1121,47 @@ export class OrchestratorImpl implements Orchestrator {
       }
     }
 
+    // ── Google Drive / cloud files intent ───────────────────────────────
+    if (/(?:check|show|list|what'?s?\s+(?:in|on)|look\s+at|open)\s+(?:my\s+)?(?:google\s+)?(?:drive|cloud\s+(?:files|storage|documents))/i.test(combined) && calls.length === 0) {
+      calls.push({ name: 'search_cloud_files', arguments: { query: '*' } });
+    }
+
     // ── File/knowledge search intent ─────────────────────────────────────
-    if (/(?:search|look\s+through|find\s+in)\s+(?:my\s+)?(?:files|documents|notes|knowledge)/i.test(combined) && calls.length === 0) {
+    if (/(?:search|look\s+through|find\s+in|what\s+(?:files|documents))\s+(?:my\s+)?(?:files|documents|notes|knowledge)|(?:do\s+I\s+have|are\s+there)\s+(?:any\s+)?(?:files|documents)/i.test(combined) && calls.length === 0) {
       const queryMatch = userMessage.match(/(?:search|find|look)\s+(?:for|in\s+my\s+files\s+for)?\s+(.+)/i);
+      const query = queryMatch?.[1]?.trim() ?? '*';
+      calls.push({ name: 'search_files', arguments: { query } });
+    }
+
+    // ── Email search intent (specific query, not just "check inbox") ─────
+    if (/(?:find|search)\s+(?:my\s+)?(?:email|mail|messages?)\s+(?:about|from|regarding)/i.test(combined) && calls.length === 0) {
+      const queryMatch = userMessage.match(/(?:about|from|regarding)\s+(.+)/i);
       if (queryMatch?.[1]) {
-        calls.push({ name: 'search_files', arguments: { query: queryMatch[1].trim() } });
+        calls.push({ name: 'search_emails', arguments: { query: queryMatch[1].trim() } });
       }
+    }
+
+    // ── Contacts intent ──────────────────────────────────────────────────
+    if (/(?:who\s+is|find|look\s+up|search)\s+(?:my\s+)?(?:contact|person|people)/i.test(combined) && calls.length === 0) {
+      const queryMatch = userMessage.match(/(?:who\s+is|find|look\s+up)\s+(.+)/i);
+      if (queryMatch?.[1]) {
+        calls.push({ name: 'search_contacts', arguments: { query: queryMatch[1].trim() } });
+      }
+    }
+
+    // ── Weather intent ───────────────────────────────────────────────────
+    if (/(?:what'?s?\s+the\s+)?weather|forecast|temperature/i.test(combined) && calls.length === 0) {
+      calls.push({ name: 'get_weather', arguments: {} });
+    }
+
+    // ── Draft email intent ───────────────────────────────────────────────
+    if (/(?:draft|write|compose)\s+(?:a\s+|an\s+)?(?:email|message|reply)/i.test(combined) && calls.length === 0) {
+      calls.push({ name: 'draft_email', arguments: { to: [], subject: '', body: '' } });
+    }
+
+    // ── List reminders intent ────────────────────────────────────────────
+    if (/(?:show|list|what\s+are)\s+(?:my\s+)?(?:reminders?|to-?do)/i.test(combined) && calls.length === 0) {
+      calls.push({ name: 'list_reminders', arguments: {} });
     }
 
     return calls;
@@ -1930,7 +1963,14 @@ export class OrchestratorImpl implements Orchestrator {
           agentAction.status = response.status === 'success' ? 'executed' : 'failed';
           agentAction.executedAt = new Date().toISOString();
           agentAction.response = response;
-          executedResults.push({ tool: tc.name, result: response.data });
+
+          if (response.status === 'success') {
+            executedResults.push({ tool: tc.name, result: response.data });
+          } else {
+            // Push the error so the LLM can report it to the user
+            const errMsg = response.error?.message ?? response.error?.code ?? 'Action failed';
+            executedResults.push({ tool: tc.name, result: { error: errMsg } });
+          }
 
           // Log Alter Ego receipt for transparency
           if (tier === 'alter_ego' && this.alterEgoStore && agentAction.status === 'executed') {
@@ -1947,11 +1987,13 @@ export class OrchestratorImpl implements Orchestrator {
               executedAt: agentAction.executedAt!,
             };
             this.alterEgoStore.logReceipt(receipt);
-            // Acknowledge anomaly so future same-type actions proceed
             this.alterEgoStore.acknowledgeAnomaly(agentAction.action);
           }
-        } catch {
+        } catch (execErr) {
           agentAction.status = 'failed';
+          // Push the error so the LLM can explain what went wrong
+          const errMsg = execErr instanceof Error ? execErr.message : 'Action execution failed';
+          executedResults.push({ tool: tc.name, result: { error: errMsg } });
         }
       } else {
         // Queue for approval
