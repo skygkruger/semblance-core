@@ -366,6 +366,21 @@ const BASE_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: 'add_contact',
+    description: 'Add a new contact to the user\'s LOCAL address book stored on-device. This is separate from Google Contacts or any cloud contacts — it is Semblance\'s private contact list. Use when the user asks to add, save, or create a contact.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Full display name of the contact' },
+        email: { type: 'string', description: 'Email address (optional)' },
+        phone: { type: 'string', description: 'Phone number (optional)' },
+        organization: { type: 'string', description: 'Company or organization (optional)' },
+        jobTitle: { type: 'string', description: 'Job title (optional)' },
+      },
+      required: ['name'],
+    },
+  },
+  {
     name: 'save_file',
     description: 'Save content to a file on the user\'s filesystem. Use for documents, exports, generated reports, code files, and any content the user wants to keep. Always confirm the filename and location with the user before saving unless they have explicitly specified both.',
     parameters: {
@@ -590,6 +605,7 @@ const BASE_LOCAL_TOOLS = new Set([
   'search_cloud_files',
   'list_indexed_documents',
   'read_document',
+  'add_contact',
   'knowledge_remove',
   'knowledge_recategorize',
   'search_contacts',
@@ -1055,6 +1071,12 @@ export class OrchestratorImpl implements Orchestrator {
             maxTokens: 2048,
           });
           finalMessage = followUp.message.content;
+          // Clean up any leaked tool narration from synthesis output
+          finalMessage = finalMessage
+            .replace(/\bThe tool results are:\s*/gi, '')
+            .replace(/\b(?:search_files|search_emails|fetch_inbox|list_indexed_documents|read_document)\s*\[?\]?\s*(?:\(\))?/g, '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
         }
 
         const pendingCount = actions.filter(a => a.status === 'pending_approval').length;
@@ -1515,10 +1537,10 @@ export class OrchestratorImpl implements Orchestrator {
       });
     }
 
-    // Add recent conversation history (last 3 turns for small models).
-    // 10 turns overwhelms the 4096 context window — 3 turns gives enough
-    // context for multi-turn conversation without consuming the budget.
-    const recentHistory = history.slice(-3);
+    // Add recent conversation history (last 6 turns for multi-turn coherence).
+    // 10 turns overwhelms the 4096 context window — 6 turns gives enough
+    // context for follow-ups like "tell me more about that one" to work.
+    const recentHistory = history.slice(-6);
     for (const turn of recentHistory) {
       messages.push({
         role: turn.role,
@@ -1846,6 +1868,63 @@ export class OrchestratorImpl implements Orchestrator {
         continue;
       }
 
+      if (tc.name === 'add_contact') {
+        const name = tc.arguments['name'] as string;
+        const email = tc.arguments['email'] as string | undefined;
+        const phone = tc.arguments['phone'] as string | undefined;
+        const org = tc.arguments['organization'] as string | undefined;
+        const jobTitle = tc.arguments['jobTitle'] as string | undefined;
+        try {
+          const id = `ct_${Date.now()}`;
+          const now = new Date().toISOString();
+          this.db.prepare(`
+            INSERT OR IGNORE INTO contacts (
+              id, display_name, given_name, family_name,
+              emails, phones, organization, job_title,
+              source, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, ?)
+          `).run(
+            id, name, name.split(' ')[0] ?? name, name.split(' ').slice(1).join(' ') || null,
+            JSON.stringify(email ? [email] : []),
+            JSON.stringify(phone ? [phone] : []),
+            org ?? null, jobTitle ?? null,
+            now, now,
+          );
+          executedResults.push({
+            tool: 'add_contact',
+            result: { success: true, id, name, email, phone },
+          });
+        } catch (err) {
+          // Table might not exist — create it
+          try {
+            this.db.exec(`
+              CREATE TABLE IF NOT EXISTS contacts (
+                id TEXT PRIMARY KEY, device_contact_id TEXT UNIQUE,
+                display_name TEXT NOT NULL, given_name TEXT, family_name TEXT,
+                emails TEXT NOT NULL DEFAULT '[]', phones TEXT NOT NULL DEFAULT '[]',
+                organization TEXT, job_title TEXT, birthday TEXT, addresses TEXT DEFAULT '[]',
+                relationship_type TEXT DEFAULT 'unknown', communication_frequency TEXT DEFAULT '{}',
+                last_contact_date TEXT, first_contact_date TEXT, interaction_count INTEGER DEFAULT 0,
+                tags TEXT DEFAULT '[]', email_entity_ids TEXT DEFAULT '[]',
+                calendar_entity_ids TEXT DEFAULT '[]', document_entity_ids TEXT DEFAULT '[]',
+                source TEXT DEFAULT 'device', merged_from TEXT DEFAULT '[]',
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+              )
+            `);
+            const id = `ct_${Date.now()}`;
+            const now = new Date().toISOString();
+            this.db.prepare(`
+              INSERT INTO contacts (id, display_name, emails, phones, organization, job_title, source, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, 'manual', ?, ?)
+            `).run(id, name, JSON.stringify(email ? [email] : []), JSON.stringify(phone ? [phone] : []), org ?? null, jobTitle ?? null, now, now);
+            executedResults.push({ tool: 'add_contact', result: { success: true, id, name, email, phone } });
+          } catch (err2) {
+            executedResults.push({ tool: 'add_contact', result: { error: `Failed to add contact: ${err2 instanceof Error ? err2.message : String(err2)}` } });
+          }
+        }
+        continue;
+      }
+
       // --- Knowledge curation tools (local, no IPC) ---
 
       if (tc.name === 'knowledge_remove') {
@@ -1889,29 +1968,55 @@ export class OrchestratorImpl implements Orchestrator {
       if (tc.name === 'search_contacts') {
         const query = (tc.arguments['query'] as string ?? '').toLowerCase();
         try {
-          const rows = this.db.prepare(
-            `SELECT id, display_name, emails, phones, organization, relationship_type, birthday
-             FROM contacts
-             WHERE LOWER(display_name) LIKE ? OR LOWER(emails) LIKE ? OR LOWER(organization) LIKE ? OR LOWER(phones) LIKE ?
-             ORDER BY interaction_count DESC LIMIT 10`
-          ).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) as Array<{
-            id: string; display_name: string; emails: string; phones: string;
-            organization: string | null; relationship_type: string; birthday: string | null;
-          }>;
-          executedResults.push({
-            tool: 'search_contacts',
-            result: rows.map(r => ({
-              id: r.id,
-              name: r.display_name,
-              emails: JSON.parse(r.emails),
-              phones: JSON.parse(r.phones),
-              organization: r.organization,
-              relationship: r.relationship_type,
-              birthday: r.birthday,
-            })),
-          });
-        } catch {
-          executedResults.push({ tool: 'search_contacts', result: { error: 'Contacts not available' } });
+          // Ensure table exists
+          this.db.exec(`CREATE TABLE IF NOT EXISTS contacts (
+            id TEXT PRIMARY KEY, device_contact_id TEXT UNIQUE,
+            display_name TEXT NOT NULL, given_name TEXT, family_name TEXT,
+            emails TEXT NOT NULL DEFAULT '[]', phones TEXT NOT NULL DEFAULT '[]',
+            organization TEXT, job_title TEXT, birthday TEXT, addresses TEXT DEFAULT '[]',
+            relationship_type TEXT DEFAULT 'unknown', communication_frequency TEXT DEFAULT '{}',
+            last_contact_date TEXT, first_contact_date TEXT, interaction_count INTEGER DEFAULT 0,
+            tags TEXT DEFAULT '[]', email_entity_ids TEXT DEFAULT '[]',
+            calendar_entity_ids TEXT DEFAULT '[]', document_entity_ids TEXT DEFAULT '[]',
+            source TEXT DEFAULT 'device', merged_from TEXT DEFAULT '[]',
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+          )`);
+          const rows = query
+            ? this.db.prepare(
+                `SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
+                 FROM contacts
+                 WHERE LOWER(display_name) LIKE ? OR LOWER(emails) LIKE ? OR LOWER(organization) LIKE ? OR LOWER(phones) LIKE ?
+                 ORDER BY interaction_count DESC LIMIT 10`
+              ).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) as Array<{
+                id: string; display_name: string; emails: string; phones: string;
+                organization: string | null; relationship_type: string; birthday: string | null; source: string;
+              }>
+            : this.db.prepare(
+                `SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
+                 FROM contacts ORDER BY display_name ASC LIMIT 50`
+              ).all() as Array<{
+                id: string; display_name: string; emails: string; phones: string;
+                organization: string | null; relationship_type: string; birthday: string | null; source: string;
+              }>;
+          if (rows.length === 0) {
+            executedResults.push({ tool: 'search_contacts', result: { contacts: [], message: 'No contacts found. The user can add contacts using the add_contact tool or import from Google Contacts in Settings > Connections.' } });
+          } else {
+            executedResults.push({
+              tool: 'search_contacts',
+              result: rows.map(r => ({
+                id: r.id,
+                name: r.display_name,
+                emails: JSON.parse(r.emails),
+                phones: JSON.parse(r.phones),
+                organization: r.organization,
+                relationship: r.relationship_type,
+                birthday: r.birthday,
+                source: r.source ?? 'device',
+              })),
+            });
+          }
+        } catch (err) {
+          executedResults.push({ tool: 'search_contacts', result: { error: `Contact search failed: ${err instanceof Error ? err.message : String(err)}` } });
         }
         continue;
       }

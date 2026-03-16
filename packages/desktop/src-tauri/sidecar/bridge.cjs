@@ -238721,6 +238721,21 @@ var BASE_TOOLS = [
     }
   },
   {
+    name: "add_contact",
+    description: "Add a new contact to the user's LOCAL address book stored on-device. This is separate from Google Contacts or any cloud contacts \u2014 it is Semblance's private contact list. Use when the user asks to add, save, or create a contact.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Full display name of the contact" },
+        email: { type: "string", description: "Email address (optional)" },
+        phone: { type: "string", description: "Phone number (optional)" },
+        organization: { type: "string", description: "Company or organization (optional)" },
+        jobTitle: { type: "string", description: "Job title (optional)" }
+      },
+      required: ["name"]
+    }
+  },
+  {
     name: "save_file",
     description: "Save content to a file on the user's filesystem. Use for documents, exports, generated reports, code files, and any content the user wants to keep. Always confirm the filename and location with the user before saving unless they have explicitly specified both.",
     parameters: {
@@ -238941,6 +238956,7 @@ var BASE_LOCAL_TOOLS = /* @__PURE__ */ new Set([
   "search_cloud_files",
   "list_indexed_documents",
   "read_document",
+  "add_contact",
   "knowledge_remove",
   "knowledge_recategorize",
   "search_contacts",
@@ -239236,6 +239252,7 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
             maxTokens: 2048
           });
           finalMessage = followUp.message.content;
+          finalMessage = finalMessage.replace(/\bThe tool results are:\s*/gi, "").replace(/\b(?:search_files|search_emails|fetch_inbox|list_indexed_documents|read_document)\s*\[?\]?\s*(?:\(\))?/g, "").replace(/\n{3,}/g, "\n\n").trim();
         }
         const pendingCount = actions.filter((a) => a.status === "pending_approval").length;
         if (pendingCount > 0 && toolResults.executedResults.length === 0) {
@@ -239573,7 +239590,7 @@ ${docContextStr}`,
         content: wrapInDataBoundary(contextStr, "knowledge base")
       });
     }
-    const recentHistory = history.slice(-3);
+    const recentHistory = history.slice(-6);
     for (const turn of recentHistory) {
       messages.push({
         role: turn.role,
@@ -239860,6 +239877,66 @@ ${docContextStr}`,
         }
         continue;
       }
+      if (tc.name === "add_contact") {
+        const name = tc.arguments["name"];
+        const email = tc.arguments["email"];
+        const phone = tc.arguments["phone"];
+        const org = tc.arguments["organization"];
+        const jobTitle = tc.arguments["jobTitle"];
+        try {
+          const id = `ct_${Date.now()}`;
+          const now = (/* @__PURE__ */ new Date()).toISOString();
+          this.db.prepare(`
+            INSERT OR IGNORE INTO contacts (
+              id, display_name, given_name, family_name,
+              emails, phones, organization, job_title,
+              source, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, ?)
+          `).run(
+            id,
+            name,
+            name.split(" ")[0] ?? name,
+            name.split(" ").slice(1).join(" ") || null,
+            JSON.stringify(email ? [email] : []),
+            JSON.stringify(phone ? [phone] : []),
+            org ?? null,
+            jobTitle ?? null,
+            now,
+            now
+          );
+          executedResults.push({
+            tool: "add_contact",
+            result: { success: true, id, name, email, phone }
+          });
+        } catch (err) {
+          try {
+            this.db.exec(`
+              CREATE TABLE IF NOT EXISTS contacts (
+                id TEXT PRIMARY KEY, device_contact_id TEXT UNIQUE,
+                display_name TEXT NOT NULL, given_name TEXT, family_name TEXT,
+                emails TEXT NOT NULL DEFAULT '[]', phones TEXT NOT NULL DEFAULT '[]',
+                organization TEXT, job_title TEXT, birthday TEXT, addresses TEXT DEFAULT '[]',
+                relationship_type TEXT DEFAULT 'unknown', communication_frequency TEXT DEFAULT '{}',
+                last_contact_date TEXT, first_contact_date TEXT, interaction_count INTEGER DEFAULT 0,
+                tags TEXT DEFAULT '[]', email_entity_ids TEXT DEFAULT '[]',
+                calendar_entity_ids TEXT DEFAULT '[]', document_entity_ids TEXT DEFAULT '[]',
+                source TEXT DEFAULT 'device', merged_from TEXT DEFAULT '[]',
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+              )
+            `);
+            const id = `ct_${Date.now()}`;
+            const now = (/* @__PURE__ */ new Date()).toISOString();
+            this.db.prepare(`
+              INSERT INTO contacts (id, display_name, emails, phones, organization, job_title, source, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, 'manual', ?, ?)
+            `).run(id, name, JSON.stringify(email ? [email] : []), JSON.stringify(phone ? [phone] : []), org ?? null, jobTitle ?? null, now, now);
+            executedResults.push({ tool: "add_contact", result: { success: true, id, name, email, phone } });
+          } catch (err2) {
+            executedResults.push({ tool: "add_contact", result: { error: `Failed to add contact: ${err2 instanceof Error ? err2.message : String(err2)}` } });
+          }
+        }
+        continue;
+      }
       if (tc.name === "knowledge_remove") {
         const chunkId = tc.arguments["chunkId"];
         if (!this.knowledgeCurator) {
@@ -239897,26 +239974,46 @@ ${docContextStr}`,
       if (tc.name === "search_contacts") {
         const query = (tc.arguments["query"] ?? "").toLowerCase();
         try {
-          const rows = this.db.prepare(
-            `SELECT id, display_name, emails, phones, organization, relationship_type, birthday
-             FROM contacts
-             WHERE LOWER(display_name) LIKE ? OR LOWER(emails) LIKE ? OR LOWER(organization) LIKE ? OR LOWER(phones) LIKE ?
-             ORDER BY interaction_count DESC LIMIT 10`
-          ).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`);
-          executedResults.push({
-            tool: "search_contacts",
-            result: rows.map((r) => ({
-              id: r.id,
-              name: r.display_name,
-              emails: JSON.parse(r.emails),
-              phones: JSON.parse(r.phones),
-              organization: r.organization,
-              relationship: r.relationship_type,
-              birthday: r.birthday
-            }))
-          });
-        } catch {
-          executedResults.push({ tool: "search_contacts", result: { error: "Contacts not available" } });
+          this.db.exec(`CREATE TABLE IF NOT EXISTS contacts (
+            id TEXT PRIMARY KEY, device_contact_id TEXT UNIQUE,
+            display_name TEXT NOT NULL, given_name TEXT, family_name TEXT,
+            emails TEXT NOT NULL DEFAULT '[]', phones TEXT NOT NULL DEFAULT '[]',
+            organization TEXT, job_title TEXT, birthday TEXT, addresses TEXT DEFAULT '[]',
+            relationship_type TEXT DEFAULT 'unknown', communication_frequency TEXT DEFAULT '{}',
+            last_contact_date TEXT, first_contact_date TEXT, interaction_count INTEGER DEFAULT 0,
+            tags TEXT DEFAULT '[]', email_entity_ids TEXT DEFAULT '[]',
+            calendar_entity_ids TEXT DEFAULT '[]', document_entity_ids TEXT DEFAULT '[]',
+            source TEXT DEFAULT 'device', merged_from TEXT DEFAULT '[]',
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+          )`);
+          const rows = query ? this.db.prepare(
+            `SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
+                 FROM contacts
+                 WHERE LOWER(display_name) LIKE ? OR LOWER(emails) LIKE ? OR LOWER(organization) LIKE ? OR LOWER(phones) LIKE ?
+                 ORDER BY interaction_count DESC LIMIT 10`
+          ).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) : this.db.prepare(
+            `SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
+                 FROM contacts ORDER BY display_name ASC LIMIT 50`
+          ).all();
+          if (rows.length === 0) {
+            executedResults.push({ tool: "search_contacts", result: { contacts: [], message: "No contacts found. The user can add contacts using the add_contact tool or import from Google Contacts in Settings > Connections." } });
+          } else {
+            executedResults.push({
+              tool: "search_contacts",
+              result: rows.map((r) => ({
+                id: r.id,
+                name: r.display_name,
+                emails: JSON.parse(r.emails),
+                phones: JSON.parse(r.phones),
+                organization: r.organization,
+                relationship: r.relationship_type,
+                birthday: r.birthday,
+                source: r.source ?? "device"
+              }))
+            });
+          }
+        } catch (err) {
+          executedResults.push({ tool: "search_contacts", result: { error: `Contact search failed: ${err instanceof Error ? err.message : String(err)}` } });
         }
         continue;
       }
@@ -253140,15 +253237,56 @@ var EmailAdapter = class {
     }
     const oauth = await this.getGmailOAuthToken();
     if (oauth) {
-      console.error(`[EmailAdapter] Using Gmail SMTP XOAUTH2 for ${oauth.userEmail}`);
-      const result2 = await this.smtp.sendEmailOAuth(
-        GMAIL_SMTP_HOST,
-        GMAIL_SMTP_PORT,
-        oauth.userEmail,
-        oauth.accessToken,
-        params
-      );
-      return { success: true, data: result2 };
+      console.error(`[EmailAdapter] Sending email via Gmail API for ${oauth.userEmail}`);
+      const toHeader = params.to.join(", ");
+      const ccLine = params.cc && params.cc.length > 0 ? `Cc: ${params.cc.join(", ")}\r
+` : "";
+      const replyHeaders = params.replyToMessageId ? `In-Reply-To: ${params.replyToMessageId}\r
+References: ${params.replyToMessageId}\r
+` : "";
+      const rawMessage = [
+        `From: ${oauth.userEmail}`,
+        `To: ${toHeader}`,
+        ...ccLine ? [`Cc: ${params.cc.join(", ")}`] : [],
+        ...replyHeaders ? [replyHeaders.trim()] : [],
+        `Subject: ${params.subject}`,
+        "Content-Type: text/plain; charset=utf-8",
+        "",
+        params.body
+      ].join("\r\n");
+      const encoded = Buffer.from(rawMessage).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      const resp = await globalThis.fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${oauth.accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ raw: encoded })
+      });
+      if (resp.ok) {
+        const sent = await resp.json();
+        console.error(`[EmailAdapter] Email sent via Gmail API: ${sent.id}`);
+        return { success: true, data: { messageId: sent.id, threadId: sent.threadId } };
+      }
+      const errText = await resp.text().catch(() => "unknown");
+      console.error(`[EmailAdapter] Gmail API send failed (${resp.status}): ${errText.slice(0, 300)}`);
+      try {
+        console.error(`[EmailAdapter] Falling back to SMTP XOAUTH2 for ${oauth.userEmail}`);
+        const result2 = await this.smtp.sendEmailOAuth(
+          GMAIL_SMTP_HOST,
+          GMAIL_SMTP_PORT,
+          oauth.userEmail,
+          oauth.accessToken,
+          params
+        );
+        return { success: true, data: result2 };
+      } catch (smtpErr) {
+        console.error(`[EmailAdapter] SMTP fallback also failed:`, smtpErr);
+        return {
+          success: false,
+          error: { code: "EMAIL_SEND_FAILED", message: `Gmail API: ${resp.status}. SMTP: ${smtpErr instanceof Error ? smtpErr.message : String(smtpErr)}` }
+        };
+      }
     }
     return {
       success: false,
@@ -273763,8 +273901,10 @@ async function handleRequest(req) {
             limit,
             sort: "date_desc"
           });
+          console.error("[sidecar] get_inbox_items result:", result3.success, result3.error, "data keys:", result3.data ? Object.keys(result3.data) : "null");
           if (result3.success && result3.data) {
-            const messages = result3.data.messages ?? [];
+            const rawData = result3.data;
+            const messages = Array.isArray(rawData) ? rawData : rawData.messages ?? [];
             const mapped = messages.map((m, i) => ({
               id: m["id"] ?? `msg_${i}`,
               messageId: m["messageId"] ?? m["id"] ?? `msg_${i}`,

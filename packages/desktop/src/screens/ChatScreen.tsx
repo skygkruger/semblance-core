@@ -1299,7 +1299,12 @@ export function ChatScreen() {
                   )}
                   <ChatBubble
                     role={msg.role}
-                    content={msg.content}
+                    content={msg.role === 'assistant'
+                      ? msg.content
+                          .replace(/<artifact\s+[^>]*>[\s\S]*?<\/artifact>/g, '')
+                          .replace(/<\/?artifact[^>]*>/g, '')
+                          .trim()
+                      : msg.content}
                     timestamp={msg.timestamp}
                     streaming={state.isResponding && msg.role === 'assistant' && i === state.chatMessages.length - 1}
                   />

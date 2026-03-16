@@ -284,16 +284,62 @@ export class EmailAdapter implements ServiceAdapter {
       return { success: true, data: result };
     }
 
-    // 2. Fall back to Gmail OAuth XOAUTH2 via SMTP
+    // 2. Fall back to Gmail API send (more reliable than SMTP XOAUTH2)
     const oauth = await this.getGmailOAuthToken();
     if (oauth) {
-      console.error(`[EmailAdapter] Using Gmail SMTP XOAUTH2 for ${oauth.userEmail}`);
-      const result = await this.smtp.sendEmailOAuth(
-        GMAIL_SMTP_HOST, GMAIL_SMTP_PORT,
-        oauth.userEmail, oauth.accessToken,
-        params,
-      );
-      return { success: true, data: result };
+      console.error(`[EmailAdapter] Sending email via Gmail API for ${oauth.userEmail}`);
+      const toHeader = params.to.join(', ');
+      const ccLine = params.cc && params.cc.length > 0 ? `Cc: ${params.cc.join(', ')}\r\n` : '';
+      const replyHeaders = params.replyToMessageId
+        ? `In-Reply-To: ${params.replyToMessageId}\r\nReferences: ${params.replyToMessageId}\r\n`
+        : '';
+      const rawMessage = [
+        `From: ${oauth.userEmail}`,
+        `To: ${toHeader}`,
+        ...(ccLine ? [`Cc: ${params.cc!.join(', ')}`] : []),
+        ...(replyHeaders ? [replyHeaders.trim()] : []),
+        `Subject: ${params.subject}`,
+        'Content-Type: text/plain; charset=utf-8',
+        '',
+        params.body,
+      ].join('\r\n');
+
+      const encoded = Buffer.from(rawMessage).toString('base64')
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+      const resp = await globalThis.fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${oauth.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ raw: encoded }),
+      });
+
+      if (resp.ok) {
+        const sent = await resp.json() as { id: string; threadId: string };
+        console.error(`[EmailAdapter] Email sent via Gmail API: ${sent.id}`);
+        return { success: true, data: { messageId: sent.id, threadId: sent.threadId } };
+      }
+
+      const errText = await resp.text().catch(() => 'unknown');
+      console.error(`[EmailAdapter] Gmail API send failed (${resp.status}): ${errText.slice(0, 300)}`);
+      // Fall back to SMTP XOAUTH2 if API fails
+      try {
+        console.error(`[EmailAdapter] Falling back to SMTP XOAUTH2 for ${oauth.userEmail}`);
+        const result = await this.smtp.sendEmailOAuth(
+          GMAIL_SMTP_HOST, GMAIL_SMTP_PORT,
+          oauth.userEmail, oauth.accessToken,
+          params,
+        );
+        return { success: true, data: result };
+      } catch (smtpErr) {
+        console.error(`[EmailAdapter] SMTP fallback also failed:`, smtpErr);
+        return {
+          success: false,
+          error: { code: 'EMAIL_SEND_FAILED', message: `Gmail API: ${resp.status}. SMTP: ${smtpErr instanceof Error ? smtpErr.message : String(smtpErr)}` },
+        };
+      }
     }
 
     return {
