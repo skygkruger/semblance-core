@@ -814,60 +814,37 @@ export class OrchestratorImpl implements Orchestrator {
     // that removes service/knowledge/autonomy context to prevent fabrication.
     const isConversational = this.isConversationalMessage(message);
 
-    // Step 5: Construct messages for LLM (document context injected between system prompt and general context)
-    const messages = this.buildMessages(message, context, history, documentChunks, isConversational);
-    const tools = isConversational ? undefined : this.allTools;
+    // Step 5: Intent extraction BEFORE LLM call.
+    // If we can determine the user's intent from their message alone, execute the
+    // tool directly and skip the first LLM call entirely. The model only sees real
+    // data and summarizes it — it never gets a chance to fabricate.
+    // ONLY pre-extract read-safe actions (fetches, searches). Write/execute actions
+    // (send_email, draft_email, create_reminder) go through the normal LLM path
+    // so the model can compose content and the user can review before execution.
+    const READ_SAFE_TOOLS = new Set([
+      'search_web', 'deep_search_web', 'fetch_url',
+      'fetch_inbox', 'search_emails', 'fetch_calendar',
+      'list_reminders', 'search_files', 'search_cloud_files',
+      'search_contacts', 'get_weather',
+    ]);
+    const allExtracted = isConversational ? [] : this.extractToolIntent(message, '');
+    const preExtractedCalls = allExtracted.filter(tc => READ_SAFE_TOOLS.has(tc.name));
 
-    let response = await this.llm.chat({
-      model: this.model,
-      messages,
-      tools,
-      temperature: 0.7,
-      maxTokens: 128,
-    });
-
-    // Step 6: Process tool calls
     const actions: AgentAction[] = [];
-    let finalMessage = response.message.content;
+    let finalMessage = '';
     this.lastStyleScore = null;
 
-    // ── Intent extraction: when the model narrates instead of calling tools ────
-    // Small models (7B) often say "Let me search for X" instead of outputting a
-    // formatted tool call. When this happens, extract the intent from the model's
-    // text + the user's message and execute the tool directly.
-    if (!response.toolCalls?.length) {
-      const extractedCalls = this.extractToolIntent(message, finalMessage);
-      if (extractedCalls.length > 0) {
-        response = { ...response, toolCalls: extractedCalls };
-        // Clean the narration text — the tool results will replace it
-        finalMessage = '';
-      }
-    }
-
-    // Strip leaked tool-call formatting from content
-    if (!response.toolCalls || response.toolCalls.length === 0) {
-      const stripped = finalMessage
-        .replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/g, '')
-        .replace(/```(?:json)?\s*\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\}\s*```/g, '')
-        .replace(/\{[^{}]*"name"\s*:\s*"[^"]*"[^{}]*"(?:parameters|arguments)"\s*:\s*\{[^{}]*\}[^{}]*\}/g, '')
-        .replace(/\b[a-z_]+\s*\(\s*\{[\s\S]*?\}\s*\)/g, '') // Qwen function-call format
-        .trim();
-      if (stripped.length > 0) {
-        finalMessage = stripped;
-      }
-    }
-
-    if (response.toolCalls && response.toolCalls.length > 0) {
-      const toolResults = await this.processToolCalls(response.toolCalls, context, message);
+    if (preExtractedCalls.length > 0) {
+      // ── DIRECT EXECUTION PATH ──────────────────────────────────────────
+      // Intent was clear from the user's message. Execute tools, get real data,
+      // then give the model ONLY the real results to summarize.
+      const messages = this.buildMessages(message, context, history, documentChunks, false);
+      const toolResults = await this.processToolCalls(preExtractedCalls, context, message);
       actions.push(...toolResults.actions);
 
-      // If any tools were executed, send results back to LLM for final response
-      // SECURITY: Tool results (especially web.fetch / web.search) are sanitized
-      // before re-injection to prevent prompt injection via fetched web pages.
       if (toolResults.executedResults.length > 0) {
         const sanitizedToolResults = toolResults.executedResults.map(r => {
           const resultStr = JSON.stringify(r.result);
-          // Web fetch and search results are the highest-entropy injection surface
           const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web' || r.tool === 'deep_search_web';
           const sanitized = needsFullSanitization
             ? sanitizeRetrievedContent(resultStr)
@@ -875,39 +852,120 @@ export class OrchestratorImpl implements Orchestrator {
           return `${r.tool}: ${sanitized}`;
         }).join('\n');
 
-        const followUpMessages = [
+        // Give the model ONLY the real data to summarize — no tool definitions,
+        // no chance to fabricate. One LLM call, with real results.
+        const synthesisMessages = [
           ...messages,
-          { role: 'assistant' as const, content: response.message.content },
           {
             role: 'user' as const,
             content: wrapInDataBoundary(
-              `Tool results:\n${sanitizedToolResults}`,
+              `Here are the results for the user's request "${message}":\n\n${sanitizedToolResults}\n\nSummarize these results naturally for the user. Be concise and helpful. Do not add information that is not in the results.`,
               'tool execution results',
             ),
           },
         ];
 
-        const followUp = await this.llm.chat({
+        const synthesis = await this.llm.chat({
           model: this.model,
-          messages: followUpMessages,
+          messages: synthesisMessages,
           temperature: 0.7,
+          maxTokens: 128,
         });
-        finalMessage = followUp.message.content;
+        finalMessage = synthesis.message.content;
+      } else {
+        // All tools failed — tell the user
+        const errors = toolResults.actions
+          .filter(a => a.status === 'failed')
+          .map(a => a.response?.error?.message ?? 'unknown error');
+        finalMessage = errors.length > 0
+          ? `I tried to help but ran into an issue: ${errors.join('. ')}. You may need to connect this service in Settings > Connections.`
+          : 'I wasn\'t able to complete that request. Please check your connections in Settings.';
       }
 
-      // Handle pending approvals — re-prompt to get clean message without fabricated results.
-      // Do NOT append "[N action(s) awaiting your approval]" text — the UI shows approval cards
-      // as separate interactive elements below the message. Appending text is redundant and confusing.
-      const pendingCount = actions.filter(a => a.status === 'pending_approval').length;
-      if (pendingCount > 0 && toolResults.executedResults.length === 0) {
-        // Re-prompt without tools to get a clean message (7B models fabricate results)
-        const retryResponse = await this.llm.chat({
-          model: this.model,
-          messages,
-          temperature: 0.7,
-        });
-        if (retryResponse?.message?.content) {
-          finalMessage = retryResponse.message.content;
+    } else {
+      // ── STANDARD LLM PATH ──────────────────────────────────────────────
+      // No clear tool intent from the message. Let the model respond normally.
+      // If the model outputs tool calls, process them as before.
+      const messages = this.buildMessages(message, context, history, documentChunks, isConversational);
+      const tools = isConversational ? undefined : this.allTools;
+
+      let response = await this.llm.chat({
+        model: this.model,
+        messages,
+        tools,
+        temperature: 0.7,
+        maxTokens: 128,
+      });
+
+      finalMessage = response.message.content;
+
+      // Check if model output tool calls (formatted correctly)
+      if (!response.toolCalls?.length) {
+        // Try parsing tool calls from the response text (Qwen function-call format etc.)
+        const textExtracted = this.extractToolIntent(message, finalMessage);
+        if (textExtracted.length > 0) {
+          response = { ...response, toolCalls: textExtracted };
+          finalMessage = '';
+        }
+      }
+
+      // Strip leaked tool-call formatting
+      if (!response.toolCalls || response.toolCalls.length === 0) {
+        const stripped = finalMessage
+          .replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/g, '')
+          .replace(/```(?:json)?\s*\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\}\s*```/g, '')
+          .replace(/\b[a-z_]+\s*\(\s*\{[\s\S]*?\}\s*\)/g, '')
+          .trim();
+        if (stripped.length > 0) {
+          finalMessage = stripped;
+        }
+      }
+
+      if (response.toolCalls && response.toolCalls.length > 0) {
+        const toolResults = await this.processToolCalls(response.toolCalls, context, message);
+        actions.push(...toolResults.actions);
+
+        if (toolResults.executedResults.length > 0) {
+          const sanitizedToolResults = toolResults.executedResults.map(r => {
+            const resultStr = JSON.stringify(r.result);
+            const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web' || r.tool === 'deep_search_web';
+            const sanitized = needsFullSanitization
+              ? sanitizeRetrievedContent(resultStr)
+              : resultStr;
+            return `${r.tool}: ${sanitized}`;
+          }).join('\n');
+
+          const followUpMessages = [
+            ...messages,
+            {
+              role: 'user' as const,
+              content: wrapInDataBoundary(
+                `Tool results:\n${sanitizedToolResults}`,
+                'tool execution results',
+              ),
+            },
+          ];
+
+          const followUp = await this.llm.chat({
+            model: this.model,
+            messages: followUpMessages,
+            temperature: 0.7,
+            maxTokens: 128,
+          });
+          finalMessage = followUp.message.content;
+        }
+
+        const pendingCount = actions.filter(a => a.status === 'pending_approval').length;
+        if (pendingCount > 0 && toolResults.executedResults.length === 0) {
+          const retryResponse = await this.llm.chat({
+            model: this.model,
+            messages,
+            temperature: 0.7,
+            maxTokens: 128,
+          });
+          if (retryResponse?.message?.content) {
+            finalMessage = retryResponse.message.content;
+          }
         }
       }
     }
@@ -921,18 +979,16 @@ export class OrchestratorImpl implements Orchestrator {
     }
 
     // Step 8: Store conversation turns
+    const tokensUsed = { prompt: 0, completion: 0, total: 0 };
     this.storeTurn(convId, 'user', message, context, null, 0, 0);
-    this.storeTurn(
-      convId, 'assistant', finalMessage, null, actions,
-      response.tokensUsed.prompt, response.tokensUsed.completion,
-    );
+    this.storeTurn(convId, 'assistant', finalMessage, null, actions, 0, 0);
 
     return {
       message: finalMessage,
       conversationId: convId,
       actions,
       context,
-      tokensUsed: response.tokensUsed,
+      tokensUsed,
       styleScore: this.lastStyleScore ?? undefined,
     };
   }
