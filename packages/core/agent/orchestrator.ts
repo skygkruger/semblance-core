@@ -367,7 +367,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'add_contact',
-    description: 'Add a new contact to the user\'s LOCAL address book stored on-device. This is separate from Google Contacts or any cloud contacts — it is Semblance\'s private contact list. Use when the user asks to add, save, or create a contact.',
+    description: 'Add a new contact to the user\'s LOCAL address book stored on-device. This is separate from Google Contacts or cloud contacts. IMPORTANT: Before calling this tool, you MUST ask the user for the contact details (name, email, phone) if they have not provided them. Do NOT create a contact with just a name — always confirm the details first.',
     parameters: {
       type: 'object',
       properties: {
@@ -1073,8 +1073,8 @@ export class OrchestratorImpl implements Orchestrator {
           finalMessage = followUp.message.content;
           // Clean up any leaked tool narration from synthesis output
           finalMessage = finalMessage
-            .replace(/\bThe tool results are:\s*/gi, '')
-            .replace(/\b(?:search_files|search_emails|fetch_inbox|list_indexed_documents|read_document)\s*\[?\]?\s*(?:\(\))?/g, '')
+            .replace(/\b(?:Here are |The )?(?:tool (?:results|execution results) are|tool results):\s*/gi, '')
+            .replace(/\b(?:search_files|search_emails|fetch_inbox|list_indexed_documents|read_document|add_contact|search_contacts|list_cloud_files|save_file|search_cloud_files)\s*[:.]?\s*(?:\[.*?\]|\{.*?\})/gs, '')
             .replace(/\n{3,}/g, '\n\n')
             .trim();
         }
