@@ -148,6 +148,19 @@ export class BoundaryEnforcer {
   }
 
   private checkNovel(action: ActionType): EscalationBoundary | null {
+    // Read-risk actions (web search, email fetch, calendar fetch, etc.) should
+    // NEVER be escalated as "novel" — they're informational and safe to auto-execute.
+    // Novel escalation only applies to write/execute actions where caution is warranted.
+    const readActions: string[] = [
+      'web.search', 'web.deep_search', 'web.fetch',
+      'email.fetch', 'calendar.fetch', 'reminder.list',
+      'contacts.list', 'contacts.get', 'contacts.search', 'contacts.import',
+      'finance.fetch_transactions', 'health.fetch',
+      'finance.plaid_sync', 'finance.plaid_balances', 'finance.plaid_status',
+      'messaging.read', 'clipboard.analyze',
+    ];
+    if (readActions.includes(action)) return null;
+
     try {
       const row = this.db.prepare(
         'SELECT COUNT(*) as count FROM approval_patterns WHERE action_type = ?'

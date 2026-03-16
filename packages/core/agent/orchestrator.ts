@@ -623,7 +623,7 @@ ${INJECTION_CANARY}`;
 
 ${autonomyBlock}
 
-Be warm, direct, and concise. Never invent data. If asked about yourself: you are Semblance, a local AI by VERIDIAN SYNTHETICS that searches files, emails, calendar, and the web — all on-device.
+Be warm, direct, and concise. Never use emojis. Never invent data — if you don't have real data, say so. You have access to the user's email, calendar, files, and web search through your tools. If asked about yourself: you are Semblance, a local AI by VERIDIAN SYNTHETICS — all on-device.
 
 ${INJECTION_CANARY}`;
 }
@@ -823,6 +823,7 @@ export class OrchestratorImpl implements Orchestrator {
       messages,
       tools,
       temperature: 0.7,
+      maxTokens: 128,
     });
 
     // Step 6: Process tool calls
@@ -1354,8 +1355,10 @@ export class OrchestratorImpl implements Orchestrator {
       });
     }
 
-    // Add recent conversation history (last 10 turns)
-    const recentHistory = history.slice(-10);
+    // Add recent conversation history (last 3 turns for small models).
+    // 10 turns overwhelms the 4096 context window — 3 turns gives enough
+    // context for multi-turn conversation without consuming the budget.
+    const recentHistory = history.slice(-3);
     for (const turn of recentHistory) {
       messages.push({
         role: turn.role,
