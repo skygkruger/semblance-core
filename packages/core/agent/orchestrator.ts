@@ -1098,12 +1098,21 @@ export class OrchestratorImpl implements Orchestrator {
 
     // ── Email fetch intent ───────────────────────────────────────────────
     if (/(?:check|fetch|get|show|read)\s+(?:my\s+)?(?:email|inbox|mail)/i.test(combined) && calls.length === 0) {
-      calls.push({ name: 'fetch_inbox', arguments: { count: 10 } });
+      // EmailFetchPayload expects: folder, limit, since, search, messageIds, unreadOnly
+      // All have defaults — empty object works. Use limit (NOT count).
+      calls.push({ name: 'fetch_inbox', arguments: { folder: 'INBOX', limit: 10 } });
     }
 
     // ── Calendar fetch intent ────────────────────────────────────────────
     if (/(?:check|fetch|get|show|what'?s?\s+on)\s+(?:my\s+)?(?:calendar|schedule|agenda)/i.test(combined) && calls.length === 0) {
-      calls.push({ name: 'fetch_calendar', arguments: {} });
+      // CalendarFetchPayload REQUIRES startDate and endDate (ISO strings)
+      const now = new Date();
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+      calls.push({ name: 'fetch_calendar', arguments: {
+        startDate: now.toISOString(),
+        endDate: endOfDay.toISOString(),
+      } });
     }
 
     // ── Reminder create intent ───────────────────────────────────────────

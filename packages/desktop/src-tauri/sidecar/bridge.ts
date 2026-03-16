@@ -836,6 +836,16 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] Failed to register email/calendar adapters:', err);
   }
 
+  // Auto-configure SearXNG from environment variable if available.
+  // When SEARXNG_URL is set, SearXNG becomes the default search provider.
+  // This is the production path: VERIDIAN hosts SearXNG at search.veridian.run.
+  const envSearxngUrl = process.env['SEARXNG_URL'];
+  if (envSearxngUrl && !getPref('searxng_url')) {
+    setPref('searxng_url', envSearxngUrl);
+    setPref('search_engine', 'searxng');
+    console.error(`[sidecar] SearXNG auto-configured from env: ${envSearxngUrl}`);
+  }
+
   // Wire connection testing into the credential store
   credentialStore.setConnectionTester(async (credential, password) => {
     try {

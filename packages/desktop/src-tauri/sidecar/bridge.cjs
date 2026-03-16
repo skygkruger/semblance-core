@@ -234775,7 +234775,13 @@ var BITNET_MODEL_CATALOG = [
 function getRecommendedReasoningModel(tier) {
   const tierOrder = ["constrained", "standard", "performance", "workstation"];
   const tierIndex = tierOrder.indexOf(tier);
-  const candidates = MODEL_CATALOG.filter((m) => !m.isEmbedding && tierOrder.indexOf(m.minTier) <= tierIndex);
+  const candidates = MODEL_CATALOG.filter((m) => !m.isEmbedding && !m.quantization.includes("Q8") && tierOrder.indexOf(m.minTier) <= tierIndex);
+  if (candidates.length === 0) {
+    const all = MODEL_CATALOG.filter((m) => !m.isEmbedding && tierOrder.indexOf(m.minTier) <= tierIndex);
+    return all.reduce(
+      (best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
+    );
+  }
   return candidates.reduce(
     (best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
   );
@@ -234955,31 +234961,28 @@ var NativeProvider = class {
    * Format tool definitions as a prompt block the model can understand.
    */
   formatToolDefinitions(tools) {
-    const toolDescriptions = tools.map((t) => {
-      const params = t.parameters;
-      const paramList = Object.entries(params.properties ?? {}).map(([name, schema]) => {
-        const required = (params.required ?? []).includes(name);
-        const enumStr = schema.enum ? ` (one of: ${schema.enum.join(", ")})` : "";
-        return `    - ${name} (${schema.type}${required ? ", required" : ""}): ${schema.description ?? ""}${enumStr}`;
-      }).join("\n");
-      return `  ${t.name}: ${t.description}
-    Parameters:
-${paramList}`;
-    }).join("\n\n");
-    return `# Available Tools
+    const coreTools = tools.filter(
+      (t) => [
+        "search_web",
+        "deep_search_web",
+        "fetch_url",
+        "fetch_inbox",
+        "search_emails",
+        "send_email",
+        "draft_email",
+        "fetch_calendar",
+        "create_reminder",
+        "search_knowledge",
+        "search_files"
+      ].includes(t.name)
+    );
+    const toolList = (coreTools.length > 0 ? coreTools : tools.slice(0, 10)).map((t) => `- ${t.name}: ${t.description?.split(".")[0] ?? ""}`).join("\n");
+    return `To use a tool: tool_name({"key":"value"})
 
-You have access to the following tools. To use a tool, output a tool_call block:
+Available tools:
+${toolList}
 
-<tool_call>
-{"name": "tool_name", "arguments": {"param1": "value1"}}
-</tool_call>
-
-You can call multiple tools in one response. After tool calls are executed, you will receive the results and can then provide your final response to the user.
-
-If a request can be answered from your knowledge without tools, respond directly. Only use tools when you need to access the user's data, take an action, or get external information.
-
-Tools:
-${toolDescriptions}`;
+Answer from knowledge first. Use tools only when needed.`;
   }
   /**
    * Parse <tool_call> blocks from the model's response.
@@ -235020,6 +235023,20 @@ ${toolDescriptions}`;
             });
             textContent = text.replace(match[0], "").trim();
           }
+        } catch {
+        }
+      }
+    }
+    if (toolCalls.length === 0) {
+      const funcCallRegex = /\b([a-z_]+)\s*\(\s*(\{[\s\S]*?\})\s*\)/g;
+      while ((match = funcCallRegex.exec(text)) !== null) {
+        const funcName = match[1] ?? "";
+        const argsJson = match[2] ?? "";
+        if (!funcName || !argsJson) continue;
+        try {
+          const args = JSON.parse(argsJson);
+          toolCalls.push({ name: funcName, arguments: args });
+          textContent = text.replace(match[0], "").trim();
         } catch {
         }
       }
@@ -235102,9 +235119,16 @@ var BitNetProvider = class {
     const prompt = nonSystemMessages.map((m) => m.content).join("\n\n");
     const stopSequences = [
       ...request.stop ?? [],
+      "<|im_end|>",
+      "<|im_start|>",
+      // ChatML (Qwen)
+      "<|end|>",
+      "<|eot_id|>",
+      // Common end tokens
       "<|user|>",
       "<|system|>",
       "<|endoftext|>"
+      // Falcon3
     ];
     const result2 = await this.bridge.generate({
       prompt,
@@ -235278,6 +235302,20 @@ Only use tools when needed. Answer from knowledge first.`;
             });
             textContent = text.replace(match[0], "").trim();
           }
+        } catch {
+        }
+      }
+    }
+    if (toolCalls.length === 0) {
+      const funcCallRegex = /\b([a-z_]+)\s*\(\s*(\{[\s\S]*?\})\s*\)/g;
+      while ((match = funcCallRegex.exec(text)) !== null) {
+        const funcName = match[1] ?? "";
+        const argsJson = match[2] ?? "";
+        if (!funcName || !argsJson) continue;
+        try {
+          const args = JSON.parse(argsJson);
+          toolCalls.push({ name: funcName, arguments: args });
+          textContent = text.replace(match[0], "").trim();
         } catch {
         }
       }
@@ -238416,7 +238454,7 @@ var OrchestratorImpl = class {
     const isConversational = this.isConversationalMessage(message);
     const messages = this.buildMessages(message, context, history, documentChunks, isConversational);
     const tools = isConversational ? void 0 : this.allTools;
-    const response = await this.llm.chat({
+    let response = await this.llm.chat({
       model: this.model,
       messages,
       tools,
@@ -238425,26 +238463,17 @@ var OrchestratorImpl = class {
     const actions = [];
     let finalMessage = response.message.content;
     this.lastStyleScore = null;
-    const isNarrating = !response.toolCalls?.length && /(?:I will (?:first |now )?(?:search|look|check|fetch|retrieve)|Actions\s*\n|Please review the search|let me (?:search|look|check|find))/i.test(finalMessage);
-    if (isNarrating) {
-      const retryResponse = await this.llm.chat({
-        model: this.model,
-        messages,
-        temperature: 0.7
-      });
-      finalMessage = retryResponse.message.content;
+    if (!response.toolCalls?.length) {
+      const extractedCalls = this.extractToolIntent(message, finalMessage);
+      if (extractedCalls.length > 0) {
+        response = { ...response, toolCalls: extractedCalls };
+        finalMessage = "";
+      }
     }
     if (!response.toolCalls || response.toolCalls.length === 0) {
-      const stripped = finalMessage.replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/g, "").replace(/```(?:json)?\s*\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\}\s*```/g, "").replace(/\{[^{}]*"name"\s*:\s*"[^"]*"[^{}]*"(?:parameters|arguments)"\s*:\s*\{[^{}]*\}[^{}]*\}/g, "").trim();
+      const stripped = finalMessage.replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/g, "").replace(/```(?:json)?\s*\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\}\s*```/g, "").replace(/\{[^{}]*"name"\s*:\s*"[^"]*"[^{}]*"(?:parameters|arguments)"\s*:\s*\{[^{}]*\}[^{}]*\}/g, "").replace(/\b[a-z_]+\s*\(\s*\{[\s\S]*?\}\s*\)/g, "").trim();
       if (stripped.length > 0) {
         finalMessage = stripped;
-      } else if (!isNarrating) {
-        const retryResponse = await this.llm.chat({
-          model: this.model,
-          messages,
-          temperature: 0.7
-        });
-        finalMessage = retryResponse.message.content;
       }
     }
     if (response.toolCalls && response.toolCalls.length > 0) {
@@ -238601,6 +238630,48 @@ ${checkIn}`;
   setAlterEgoGuardrails(guardrails, store) {
     this.alterEgoGuardrails = guardrails;
     this.alterEgoStore = store;
+  }
+  // ─── Tool Intent Extraction ──────────────────────────────────────────────
+  /**
+   * Extract tool calls from the user's message + model's narration when the
+   * model describes what it wants to do instead of outputting formatted tool calls.
+   * This makes tool calling robust for small models (7B) that can understand
+   * WHAT to do but can't reliably format the call.
+   */
+  extractToolIntent(userMessage, modelResponse) {
+    const combined = `${userMessage}
+${modelResponse}`.toLowerCase();
+    const calls = [];
+    if (/search(?:ing)?\s+(?:the\s+)?(?:web|internet|online)|web\s+search|look\s+(?:up|online)|google|find\s+(?:out|information)\s+about/i.test(combined)) {
+      const queryMatch = userMessage.match(
+        /(?:search\s+(?:for|about|the\s+web\s+for)?|look\s+up|find\s+(?:information\s+)?(?:about|on)?|google)\s+["""]?(.+?)["""]?\s*$/i
+      ) ?? userMessage.match(
+        /(?:about|for|on)\s+["""]?(.+?)["""]?\s*$/i
+      );
+      const query = queryMatch?.[1]?.trim() ?? userMessage.replace(/^.*(?:search|look|find|run)\s+/i, "").trim();
+      if (query && query.length > 1) {
+        calls.push({ name: "search_web", arguments: { query } });
+      }
+    }
+    if (/(?:check|fetch|get|show|read)\s+(?:my\s+)?(?:email|inbox|mail)/i.test(combined) && calls.length === 0) {
+      calls.push({ name: "fetch_inbox", arguments: { count: 10 } });
+    }
+    if (/(?:check|fetch|get|show|what'?s?\s+on)\s+(?:my\s+)?(?:calendar|schedule|agenda)/i.test(combined) && calls.length === 0) {
+      calls.push({ name: "fetch_calendar", arguments: {} });
+    }
+    if (/(?:remind|set\s+a?\s*reminder|don'?t\s+let\s+me\s+forget)/i.test(combined) && calls.length === 0) {
+      const textMatch = userMessage.match(/remind\s+(?:me\s+)?(?:to\s+)?(.+)/i);
+      if (textMatch?.[1]) {
+        calls.push({ name: "create_reminder", arguments: { text: textMatch[1].trim() } });
+      }
+    }
+    if (/(?:search|look\s+through|find\s+in)\s+(?:my\s+)?(?:files|documents|notes|knowledge)/i.test(combined) && calls.length === 0) {
+      const queryMatch = userMessage.match(/(?:search|find|look)\s+(?:for|in\s+my\s+files\s+for)?\s+(.+)/i);
+      if (queryMatch?.[1]) {
+        calls.push({ name: "search_files", arguments: { query: queryMatch[1].trim() } });
+      }
+    }
+    return calls;
   }
   // ─── In-Chat Check-In (Phase 2d) ───────────────────────────────────────
   /**
@@ -268930,21 +269001,26 @@ async function handleInitialize() {
   let availableModels = [];
   const modelsBaseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
   for (const model of MODEL_CATALOG) {
-    if (!model.isEmbedding) continue;
     if (isModelDownloaded(model.id, modelsBaseDir)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
+      const modelType = model.isEmbedding ? "embedding" : "reasoning";
       try {
         const loadResult = await Promise.race([
-          sendCallback("native_load_model", { model_path: modelPath, model_type: "embedding" }),
+          sendCallback("native_load_model", { model_path: modelPath, model_type: modelType }),
           new Promise((resolve5) => setTimeout(() => resolve5(null), 12e4))
         ]);
         if (loadResult === null) {
           console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s`);
           break;
         }
-        console.error(`[sidecar] Loaded embedding model "${model.id}" into NativeRuntime`);
+        console.error(`[sidecar] Loaded ${modelType} model "${model.id}" into NativeRuntime`);
+        if (modelType === "reasoning") {
+          activeModel = model.displayName;
+          availableModels.push(model.displayName);
+        }
       } catch (err) {
-        console.error(`[sidecar] Failed to load embedding "${model.id}":`, err);
+        console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
+        break;
       }
     }
   }
@@ -268962,7 +269038,7 @@ async function handleInitialize() {
   } catch {
     console.error("[sidecar] NativeRuntime not available, checking Ollama fallback");
   }
-  if (core) {
+  if (core && !activeModel) {
     const activeBitNetId = getPref("bitnet_active_model") ?? null;
     const bitnetBaseDir = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
     const candidateIds = activeBitNetId ? [activeBitNetId] : [];
@@ -270711,39 +270787,26 @@ async function handleStartModelDownloads(params) {
     });
     results.push({ modelId: embeddingModel.id, status: "started" });
   }
-  const bitnetModel = getRecommendedBitNetModel(tier);
-  const bitnetTargetPath = getBitNetModelPath(bitnetModel.id, baseDir);
-  if (isBitNetModelDownloaded(bitnetModel.id, baseDir)) {
+  const reasoningModel = getRecommendedReasoningModel(tier);
+  const reasoningTargetPath = getModelPath(reasoningModel.id, baseDir);
+  if (isModelDownloaded(reasoningModel.id, baseDir)) {
     const existing = {
-      modelId: bitnetModel.id,
-      modelName: bitnetModel.displayName,
-      totalBytes: bitnetModel.fileSizeBytes,
-      downloadedBytes: bitnetModel.fileSizeBytes,
+      modelId: reasoningModel.id,
+      modelName: reasoningModel.displayName,
+      totalBytes: reasoningModel.fileSizeBytes,
+      downloadedBytes: reasoningModel.fileSizeBytes,
       speedBytesPerSec: 0,
       status: "complete"
     };
-    activeDownloads.set(bitnetModel.id, existing);
+    activeDownloads.set(reasoningModel.id, existing);
     emit("model-download-progress", existing);
-    results.push({ modelId: bitnetModel.id, status: "already_downloaded", backend: "bitnet" });
-    sendCallback("native_load_model", { model_path: bitnetTargetPath, model_type: "reasoning" }).then(() => {
-      console.error(`[sidecar] Loaded BitNet model "${bitnetModel.id}" into NativeRuntime`);
-      if (core) {
-        const router = core.llm;
-        if (router.setBitNetProvider) {
-          const bitnetProv = new BitNetProvider({
-            bridge: nativeRuntimeBridge,
-            modelName: bitnetModel.id
-          });
-          router.setBitNetProvider(bitnetProv, bitnetModel.id);
-          console.error(`[sidecar] BitNetProvider wired into InferenceRouter for "${bitnetModel.id}"`);
-        }
-      }
-    }).catch((err) => console.error(`[sidecar] NativeRuntime load failed for BitNet "${bitnetModel.id}":`, err));
+    results.push({ modelId: reasoningModel.id, status: "already_downloaded" });
+    sendCallback("native_load_model", { model_path: reasoningTargetPath, model_type: "reasoning" }).then(() => console.error(`[sidecar] Loaded reasoning model "${reasoningModel.id}" into NativeRuntime`)).catch((err) => console.error(`[sidecar] NativeRuntime load failed for "${reasoningModel.id}":`, err));
   } else {
-    downloadHfFile(bitnetModel, bitnetTargetPath, bitnetModel.id, bitnetModel.displayName).catch((err) => {
-      console.error(`[sidecar] BitNet model download failed: ${bitnetModel.id}`, err);
+    downloadHfFile(reasoningModel, reasoningTargetPath, reasoningModel.id, reasoningModel.displayName).catch((err) => {
+      console.error(`[sidecar] Reasoning model download failed: ${reasoningModel.id}`, err);
     });
-    results.push({ modelId: bitnetModel.id, status: "started", backend: "bitnet" });
+    results.push({ modelId: reasoningModel.id, status: "started" });
   }
   return { started: results };
 }
@@ -271444,22 +271507,22 @@ async function handleRequest(req) {
           if (ns && (ns?.status ?? "").toLowerCase() === "ready") {
             currentEngine = "native";
             const modelsBase = dataDir ? (0, import_node_path8.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
-            const activeBitNetPref = getPref("bitnet_active_model");
-            if (activeBitNetPref) {
-              const entry = BITNET_MODEL_CATALOG.find((m) => m.id === activeBitNetPref);
-              if (entry) currentActiveModel = entry.displayName;
+            for (const m of MODEL_CATALOG) {
+              if (!m.isEmbedding && isModelDownloaded(m.id, modelsBase)) {
+                currentActiveModel = m.displayName;
+                break;
+              }
+            }
+            if (!currentActiveModel) {
+              const activeBitNetPref = getPref("bitnet_active_model");
+              if (activeBitNetPref) {
+                const entry = BITNET_MODEL_CATALOG.find((m) => m.id === activeBitNetPref);
+                if (entry) currentActiveModel = entry.displayName;
+              }
             }
             if (!currentActiveModel) {
               for (const m of BITNET_MODEL_CATALOG) {
                 if (isBitNetModelDownloaded(m.id, modelsBase)) {
-                  currentActiveModel = m.displayName;
-                  break;
-                }
-              }
-            }
-            if (!currentActiveModel) {
-              for (const m of MODEL_CATALOG) {
-                if (!m.isEmbedding && isModelDownloaded(m.id, modelsBase)) {
                   currentActiveModel = m.displayName;
                   break;
                 }

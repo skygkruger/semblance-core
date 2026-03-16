@@ -107,8 +107,22 @@ export class Gateway {
       return row?.value ?? null;
     };
 
+    // Auto-seed SearXNG config from environment variable (SEARXNG_URL).
+    // When set, SearXNG becomes the default provider. This is the production path.
+    const envSearxngUrl = process.env['SEARXNG_URL'];
+    if (envSearxngUrl) {
+      const existing = getWebSetting('searxng_url');
+      if (!existing) {
+        const upsert = this.configDb.prepare(
+          'INSERT INTO web_search_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+        );
+        upsert.run('searxng_url', envSearxngUrl);
+        upsert.run('provider', 'searxng');
+      }
+    }
+
     // Web Search: factory selects provider based on user config.
-    // Default: DuckDuckGo (zero-config, always works on fresh install).
+    // Default: DuckDuckGo (zero-config fallback if SearXNG not configured).
     const searchFactory = new WebSearchAdapterFactory({
       getProvider: () => (getWebSetting('provider') as 'brave' | 'searxng' | 'duckduckgo') ?? 'duckduckgo',
       getBraveApiKey: () => getWebSetting('brave_api_key'),
