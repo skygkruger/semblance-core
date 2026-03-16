@@ -108,7 +108,7 @@ export class BitNetProvider implements LLMProvider {
     const result = await this.bridge.generate({
       prompt,
       systemPrompt,
-      maxTokens: request.maxTokens ?? 256,
+      maxTokens: request.maxTokens ?? 128,
       temperature: request.temperature,
       stop: stopSequences,
     });
