@@ -238722,7 +238722,7 @@ var BASE_TOOLS = [
   },
   {
     name: "add_contact",
-    description: "Add a new contact to the user's LOCAL address book stored on-device. This is separate from Google Contacts or any cloud contacts \u2014 it is Semblance's private contact list. Use when the user asks to add, save, or create a contact.",
+    description: "Add a new contact to the user's LOCAL address book stored on-device. This is separate from Google Contacts or cloud contacts. IMPORTANT: Before calling this tool, you MUST ask the user for the contact details (name, email, phone) if they have not provided them. Do NOT create a contact with just a name \u2014 always confirm the details first.",
     parameters: {
       type: "object",
       properties: {
@@ -239252,7 +239252,7 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
             maxTokens: 2048
           });
           finalMessage = followUp.message.content;
-          finalMessage = finalMessage.replace(/\bThe tool results are:\s*/gi, "").replace(/\b(?:search_files|search_emails|fetch_inbox|list_indexed_documents|read_document)\s*\[?\]?\s*(?:\(\))?/g, "").replace(/\n{3,}/g, "\n\n").trim();
+          finalMessage = finalMessage.replace(/\b(?:Here are |The )?(?:tool (?:results|execution results) are|tool results):\s*/gi, "").replace(/\b(?:search_files|search_emails|fetch_inbox|list_indexed_documents|read_document|add_contact|search_contacts|list_cloud_files|save_file|search_cloud_files)\s*[:.]?\s*(?:\[.*?\]|\{.*?\})/gs, "").replace(/\n{3,}/g, "\n\n").trim();
         }
         const pendingCount = actions.filter((a) => a.status === "pending_approval").length;
         if (pendingCount > 0 && toolResults.executedResults.length === 0) {
@@ -269558,11 +269558,11 @@ async function handleInitialize() {
   } catch (err) {
     console.error("[sidecar] Failed to register email/calendar adapters:", err);
   }
-  const envSearxngUrl = process.env["SEARXNG_URL"];
-  if (envSearxngUrl && !getPref("searxng_url")) {
+  const envSearxngUrl = process.env["SEARXNG_URL"] || "https://search.veridian.run";
+  if (!getPref("searxng_url") || !getPref("search_engine") || getPref("search_engine") === "duckduckgo") {
     setPref("searxng_url", envSearxngUrl);
     setPref("search_engine", "searxng");
-    console.error(`[sidecar] SearXNG auto-configured from env: ${envSearxngUrl}`);
+    console.error(`[sidecar] SearXNG configured: ${envSearxngUrl}`);
   }
   credentialStore.setConnectionTester(async (credential, password) => {
     try {

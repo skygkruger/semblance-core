@@ -862,11 +862,13 @@ async function handleInitialize(): Promise<unknown> {
   // Auto-configure SearXNG from environment variable if available.
   // When SEARXNG_URL is set, SearXNG becomes the default search provider.
   // This is the production path: VERIDIAN hosts SearXNG at search.veridian.run.
-  const envSearxngUrl = process.env['SEARXNG_URL'];
-  if (envSearxngUrl && !getPref('searxng_url')) {
+  // SearXNG is the default search provider for all Semblance users.
+  // Hardcoded fallback ensures it works even if .env is missing or stale.
+  const envSearxngUrl = process.env['SEARXNG_URL'] || 'https://search.veridian.run';
+  if (!getPref('searxng_url') || !getPref('search_engine') || getPref('search_engine') === 'duckduckgo') {
     setPref('searxng_url', envSearxngUrl);
     setPref('search_engine', 'searxng');
-    console.error(`[sidecar] SearXNG auto-configured from env: ${envSearxngUrl}`);
+    console.error(`[sidecar] SearXNG configured: ${envSearxngUrl}`);
   }
 
   // Wire connection testing into the credential store
