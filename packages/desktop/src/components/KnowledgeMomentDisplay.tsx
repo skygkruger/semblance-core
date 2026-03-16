@@ -92,7 +92,7 @@ export function KnowledgeMomentDisplay({
 
   const hasEmail = moment.emailContext !== null;
   const hasCalendar = moment.upcomingMeeting !== null;
-  const hasDocs = moment.relatedDocuments.length > 0;
+  const hasDocs = (moment.relatedDocuments ?? []).length > 0;
   const borderActive = !isOnboarding || revealStage >= 1;
 
   return (
@@ -125,7 +125,7 @@ export function KnowledgeMomentDisplay({
                 hour: 'numeric',
                 minute: '2-digit',
               })}
-              {moment.upcomingMeeting.attendees.length > 0 && (
+              {(moment.upcomingMeeting.attendees ?? []).length > 0 && (
                 <> &middot; {moment.upcomingMeeting.attendees.length} attendee{moment.upcomingMeeting.attendees.length !== 1 ? 's' : ''}</>
               )}
             </p>
@@ -153,7 +153,7 @@ export function KnowledgeMomentDisplay({
       )}
 
       {/* Related documents */}
-      {moment.relatedDocuments.length > 0 && (
+      {(moment.relatedDocuments ?? []).length > 0 && (
         <div className={revealCls(3)}>
           <div className="km-display__card">
             <p className="km-display__docs-label">Related documents:</p>

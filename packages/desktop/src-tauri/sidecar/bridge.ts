@@ -5968,8 +5968,11 @@ async function handleRequest(req: Request): Promise<void> {
             limit,
             sort: 'date_desc',
           });
+          console.error('[sidecar] get_inbox_items result:', result.success, result.error, 'data keys:', result.data ? Object.keys(result.data as object) : 'null');
           if (result.success && result.data) {
-            const messages = (result.data as { messages: Array<Record<string, unknown>> }).messages ?? [];
+            // Handle both { messages: [...] } and direct array
+            const rawData = result.data as { messages?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>;
+            const messages = Array.isArray(rawData) ? rawData : (rawData.messages ?? []);
             // Map to IndexedEmail shape expected by the frontend
             const mapped = messages.map((m: Record<string, unknown>, i: number) => ({
               id: (m['id'] as string) ?? `msg_${i}`,
