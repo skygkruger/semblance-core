@@ -862,54 +862,104 @@ async function handleInitialize(): Promise<unknown> {
     }
   });
 
-  // Check NativeRuntime status (primary inference engine — llama.cpp via Rust)
+  // Check inference backends — priority: Ollama (GPU) > NativeRuntime (CPU)
   let inferenceEngine: 'native' | 'ollama' | 'none' = 'none';
   let activeModel: string | null = null;
   let availableModels: string[] = [];
-
-  // Load models from MODEL_CATALOG on startup.
-  // Qwen standard models are the DEFAULT reasoning backend (proven quality).
-  // BitNet 1-bit models are available in Settings for users who want smaller/faster models.
   const modelsBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+
+  // ── Step 1: Check Ollama (GPU-accelerated, dramatically faster) ──────────
+  // If Ollama is running with a model, use it. 30-50 tok/s on GPU vs 1-2 on CPU.
+  if (core) {
+    try {
+      const { Ollama } = await import('ollama');
+      const ollamaClient = new Ollama({ host: 'http://localhost:11434' });
+      const listResponse = await ollamaClient.list();
+      const ollamaModels = listResponse.models.map((m: { name: string }) => m.name);
+
+      if (ollamaModels.length > 0) {
+        const { OllamaProvider } = await import('../../../core/llm/ollama-provider.js');
+        const { InferenceRouter } = await import('../../../core/llm/inference-router.js');
+        const ollamaProvider = new OllamaProvider();
+        const router = core.llm as InstanceType<typeof InferenceRouter>;
+
+        // Pick the best available model
+        const ollamaModel = ollamaModels.find((m: string) => m.includes('llama3')) ??
+          ollamaModels.find((m: string) => !m.includes('embed') && !m.includes('nomic')) ??
+          ollamaModels[0];
+
+        if (ollamaModel && router.setReasoningProvider) {
+          router.setReasoningProvider(ollamaProvider, ollamaModel);
+          core.models.setActiveChatModel(ollamaModel);
+          try { if (core.agent) core.agent.setModel(ollamaModel); } catch { /* */ }
+          inferenceEngine = 'ollama';
+          activeModel = ollamaModel;
+          availableModels = ollamaModels.filter((m: string) => !m.includes('embed') && !m.includes('nomic'));
+          console.error(`[sidecar] Ollama GPU inference active (model: ${ollamaModel}, ${ollamaModels.length} models available)`);
+          logProviderTransition('none', 'ollama', ollamaModel, 'Ollama GPU detected at startup');
+        }
+      }
+    } catch {
+      console.error('[sidecar] Ollama not running — will use NativeRuntime CPU inference');
+    }
+  }
+
+  // ── Step 2: Load embedding model (always needed, even with Ollama) ───────
   for (const model of MODEL_CATALOG) {
+    if (!model.isEmbedding) continue;
     if (isModelDownloaded(model.id, modelsBaseDir)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
-      const modelType = model.isEmbedding ? 'embedding' : 'reasoning';
       try {
-        const loadResult = await Promise.race([
-          sendCallback('native_load_model', { model_path: modelPath, model_type: modelType }),
+        await Promise.race([
+          sendCallback('native_load_model', { model_path: modelPath, model_type: 'embedding' }),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 120000)),
         ]);
-        if (loadResult === null) {
-          console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s`);
-          break;
-        }
-        console.error(`[sidecar] Loaded ${modelType} model "${model.id}" into NativeRuntime`);
-        if (modelType === 'reasoning') {
-          activeModel = model.displayName;
-          availableModels.push(model.displayName);
-        }
+        console.error(`[sidecar] Loaded embedding model "${model.id}" into NativeRuntime`);
       } catch (err) {
-        console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
-        break;
+        console.error(`[sidecar] Failed to load embedding "${model.id}":`, err);
       }
     }
   }
 
-  // Check NativeRuntime status (10s timeout — models may still be settling after load)
-  try {
-    const nativeStatus = await Promise.race([
-      sendCallback('native_status', {}),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
-    ]);
-    if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
-      inferenceEngine = 'native';
-      console.error('[sidecar] NativeRuntime is ready');
-    } else if (nativeStatus === null) {
-      console.error('[sidecar] NativeRuntime status check timed out (10s)');
+  // ── Step 3: If no Ollama, load NativeRuntime reasoning model (CPU) ───────
+  if (inferenceEngine !== 'ollama') {
+    for (const model of MODEL_CATALOG) {
+      if (model.isEmbedding) continue;
+      if (isModelDownloaded(model.id, modelsBaseDir)) {
+        const modelPath = getModelPath(model.id, modelsBaseDir);
+        try {
+          const loadResult = await Promise.race([
+            sendCallback('native_load_model', { model_path: modelPath, model_type: 'reasoning' }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 120000)),
+          ]);
+          if (loadResult === null) {
+            console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s`);
+            break;
+          }
+          console.error(`[sidecar] Loaded reasoning model "${model.id}" into NativeRuntime`);
+          activeModel = model.displayName;
+          availableModels.push(model.displayName);
+          break; // Only need one reasoning model
+        } catch (err) {
+          console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
+          break;
+        }
+      }
     }
-  } catch {
-    console.error('[sidecar] NativeRuntime not available, checking Ollama fallback');
+
+    // Check NativeRuntime status
+    try {
+      const nativeStatus = await Promise.race([
+        sendCallback('native_status', {}),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
+      ]);
+      if (nativeStatus && ((nativeStatus as { status: string })?.status ?? '').toLowerCase() === 'ready') {
+        inferenceEngine = 'native';
+        console.error('[sidecar] NativeRuntime is ready');
+      }
+    } catch {
+      console.error('[sidecar] NativeRuntime not available');
+    }
   }
 
   // ── BitNet Fallback Activation ──────────────────────────────────────────────
@@ -3136,34 +3186,62 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
     results.push({ modelId: embeddingModel.id, status: 'started' });
   }
 
-  // ── 2. Standard reasoning model (DEFAULT — proven conversational quality) ──
-  // Qwen Q4_K_M models are the default reasoning backend. Hardware detection
-  // picks the right size for the device. BitNet 1-bit models are available in
-  // Settings for users who want smaller/faster inference at lower quality.
-  const reasoningModel = getRecommendedReasoningModel(tier);
-  const reasoningTargetPath = getModelPath(reasoningModel.id, baseDir);
+  // ── 2. Reasoning model — skip download if Ollama already has one ──────────
+  // If Ollama is running with a model, the user already has GPU-accelerated
+  // inference. Don't make them wait for a 4GB CPU model download.
+  let ollamaHasModel = false;
+  try {
+    const { Ollama } = await import('ollama');
+    const client = new Ollama({ host: 'http://localhost:11434' });
+    const list = await client.list();
+    const reasoning = list.models.filter((m: { name: string }) => !m.name.includes('embed') && !m.name.includes('nomic'));
+    if (reasoning.length > 0) {
+      ollamaHasModel = true;
+      console.error(`[sidecar] Ollama detected with ${reasoning.length} models — skipping reasoning model download`);
+      // Signal download "complete" so onboarding UI proceeds
+      const fakeComplete: ActiveDownload = {
+        modelId: 'ollama-detected',
+        modelName: `Ollama: ${reasoning[0]!.name}`,
+        totalBytes: 1,
+        downloadedBytes: 1,
+        speedBytesPerSec: 0,
+        status: 'complete',
+      };
+      activeDownloads.set('ollama-detected', fakeComplete);
+      emit('model-download-progress', fakeComplete);
+      emit('native-model-loaded', { model: reasoning[0]!.name, engine: 'ollama' });
+      results.push({ modelId: reasoning[0]!.name, status: 'already_downloaded', backend: 'ollama' });
+    }
+  } catch {
+    // Ollama not running — proceed with download
+  }
 
-  if (isModelDownloaded(reasoningModel.id, baseDir)) {
-    const existing: ActiveDownload = {
-      modelId: reasoningModel.id,
-      modelName: reasoningModel.displayName,
-      totalBytes: reasoningModel.fileSizeBytes,
-      downloadedBytes: reasoningModel.fileSizeBytes,
-      speedBytesPerSec: 0,
-      status: 'complete',
-    };
-    activeDownloads.set(reasoningModel.id, existing);
-    emit('model-download-progress', existing);
-    results.push({ modelId: reasoningModel.id, status: 'already_downloaded' });
+  if (!ollamaHasModel) {
+    const reasoningModel = getRecommendedReasoningModel(tier);
+    const reasoningTargetPath = getModelPath(reasoningModel.id, baseDir);
 
-    sendCallback('native_load_model', { model_path: reasoningTargetPath, model_type: 'reasoning' })
-      .then(() => console.error(`[sidecar] Loaded reasoning model "${reasoningModel.id}" into NativeRuntime`))
-      .catch((err) => console.error(`[sidecar] NativeRuntime load failed for "${reasoningModel.id}":`, err));
-  } else {
-    downloadHfFile(reasoningModel, reasoningTargetPath, reasoningModel.id, reasoningModel.displayName).catch((err) => {
-      console.error(`[sidecar] Reasoning model download failed: ${reasoningModel.id}`, err);
-    });
-    results.push({ modelId: reasoningModel.id, status: 'started' });
+    if (isModelDownloaded(reasoningModel.id, baseDir)) {
+      const existing: ActiveDownload = {
+        modelId: reasoningModel.id,
+        modelName: reasoningModel.displayName,
+        totalBytes: reasoningModel.fileSizeBytes,
+        downloadedBytes: reasoningModel.fileSizeBytes,
+        speedBytesPerSec: 0,
+        status: 'complete',
+      };
+      activeDownloads.set(reasoningModel.id, existing);
+      emit('model-download-progress', existing);
+      results.push({ modelId: reasoningModel.id, status: 'already_downloaded' });
+
+      sendCallback('native_load_model', { model_path: reasoningTargetPath, model_type: 'reasoning' })
+        .then(() => console.error(`[sidecar] Loaded reasoning model "${reasoningModel.id}" into NativeRuntime`))
+        .catch((err) => console.error(`[sidecar] NativeRuntime load failed for "${reasoningModel.id}":`, err));
+    } else {
+      downloadHfFile(reasoningModel, reasoningTargetPath, reasoningModel.id, reasoningModel.displayName).catch((err) => {
+        console.error(`[sidecar] Reasoning model download failed: ${reasoningModel.id}`, err);
+      });
+      results.push({ modelId: reasoningModel.id, status: 'started' });
+    }
   }
 
   return { started: results };
@@ -4024,46 +4102,51 @@ async function handleRequest(req: Request): Promise<void> {
         break;
 
       case 'get_model_status': {
-        // Return current model/engine status — used by frontend on startup
-        // to handle the race condition where status-update fires before listener mounts
+        // Return current model/engine status — check Ollama first, then NativeRuntime
         const userName = getPref('user_name');
         const onboardingComplete = getPref('onboarding_complete') === 'true';
         let currentActiveModel: string | null = null;
         let currentEngine: string = 'none';
-        // Check NativeRuntime
+
+        // Check Ollama first (GPU, fast)
         try {
-          const ns = await Promise.race([
-            sendCallback('native_status', {}),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
-          ]);
-          if (ns && ((ns as { status: string })?.status ?? '').toLowerCase() === 'ready') {
-            currentEngine = 'native';
-            const modelsBase = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
-            // Check standard Qwen models FIRST (default, proven quality)
-            for (const m of MODEL_CATALOG) {
-              if (!m.isEmbedding && isModelDownloaded(m.id, modelsBase)) {
-                currentActiveModel = m.displayName;
-                break;
-              }
-            }
-            // Fallback: check BitNet models
-            if (!currentActiveModel) {
-              const activeBitNetPref = getPref('bitnet_active_model');
-              if (activeBitNetPref) {
-                const entry = BITNET_MODEL_CATALOG.find(m => m.id === activeBitNetPref);
-                if (entry) currentActiveModel = entry.displayName;
-              }
-            }
-            if (!currentActiveModel) {
-              for (const m of BITNET_MODEL_CATALOG) {
-                if (isBitNetModelDownloaded(m.id, modelsBase)) {
+          const { Ollama: OllamaCheck } = await import('ollama');
+          const checkClient = new OllamaCheck({ host: 'http://localhost:11434' });
+          const checkList = await checkClient.list();
+          const checkModels = checkList.models.filter((m: { name: string }) => !m.name.includes('embed'));
+          if (checkModels.length > 0) {
+            currentActiveModel = checkModels[0]!.name;
+            currentEngine = 'ollama';
+          }
+        } catch { /* Ollama not running */ }
+
+        // Fallback: check NativeRuntime
+        if (!currentActiveModel) {
+          try {
+            const ns = await Promise.race([
+              sendCallback('native_status', {}),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+            ]);
+            if (ns && ((ns as { status: string })?.status ?? '').toLowerCase() === 'ready') {
+              currentEngine = 'native';
+              const modelsBase = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+              for (const m of MODEL_CATALOG) {
+                if (!m.isEmbedding && isModelDownloaded(m.id, modelsBase)) {
                   currentActiveModel = m.displayName;
                   break;
                 }
               }
+              if (!currentActiveModel) {
+                for (const m of BITNET_MODEL_CATALOG) {
+                  if (isBitNetModelDownloaded(m.id, modelsBase)) {
+                    currentActiveModel = m.displayName;
+                    break;
+                  }
+                }
+              }
             }
-          }
-        } catch { /* native not available */ }
+          } catch { /* native not available */ }
+        }
         respond(id, {
           ollamaStatus: currentEngine !== 'none' ? 'connected' : 'disconnected',
           inferenceEngine: currentEngine,

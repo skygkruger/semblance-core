@@ -238653,11 +238653,17 @@ ${modelResponse}`.toLowerCase();
         calls.push({ name: "search_web", arguments: { query } });
       }
     }
-    if (/(?:check|fetch|get|show|read)\s+(?:my\s+)?(?:email|inbox|mail)/i.test(combined) && calls.length === 0) {
-      calls.push({ name: "fetch_inbox", arguments: { count: 10 } });
+    if (/(?:check|fetch|get|show|read|tell\s+me\s+what(?:'s|\s+is)\s+in)\s+(?:my\s+)?(?:email|inbox|mail)|what(?:'s|\s+is)\s+in\s+my\s+(?:email|inbox|mail)|(?:any\s+)?(?:new\s+)?(?:email|mail)s?\s+(?:for\s+me|today|this\s+morning)/i.test(combined) && calls.length === 0) {
+      calls.push({ name: "fetch_inbox", arguments: { folder: "INBOX", limit: 10 } });
     }
     if (/(?:check|fetch|get|show|what'?s?\s+on)\s+(?:my\s+)?(?:calendar|schedule|agenda)/i.test(combined) && calls.length === 0) {
-      calls.push({ name: "fetch_calendar", arguments: {} });
+      const now = /* @__PURE__ */ new Date();
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+      calls.push({ name: "fetch_calendar", arguments: {
+        startDate: now.toISOString(),
+        endDate: endOfDay.toISOString()
+      } });
     }
     if (/(?:remind|set\s+a?\s*reminder|don'?t\s+let\s+me\s+forget)/i.test(combined) && calls.length === 0) {
       const textMatch = userMessage.match(/remind\s+(?:me\s+)?(?:to\s+)?(.+)/i);
@@ -238665,11 +238671,34 @@ ${modelResponse}`.toLowerCase();
         calls.push({ name: "create_reminder", arguments: { text: textMatch[1].trim() } });
       }
     }
-    if (/(?:search|look\s+through|find\s+in)\s+(?:my\s+)?(?:files|documents|notes|knowledge)/i.test(combined) && calls.length === 0) {
+    if (/(?:check|show|list|what'?s?\s+(?:in|on)|look\s+at|open)\s+(?:my\s+)?(?:google\s+)?(?:drive|cloud\s+(?:files|storage|documents))/i.test(combined) && calls.length === 0) {
+      calls.push({ name: "search_cloud_files", arguments: { query: "*" } });
+    }
+    if (/(?:search|look\s+through|find\s+in|what\s+(?:files|documents))\s+(?:my\s+)?(?:files|documents|notes|knowledge)|(?:do\s+I\s+have|are\s+there)\s+(?:any\s+)?(?:files|documents)/i.test(combined) && calls.length === 0) {
       const queryMatch = userMessage.match(/(?:search|find|look)\s+(?:for|in\s+my\s+files\s+for)?\s+(.+)/i);
+      const query = queryMatch?.[1]?.trim() ?? "*";
+      calls.push({ name: "search_files", arguments: { query } });
+    }
+    if (/(?:find|search)\s+(?:my\s+)?(?:email|mail|messages?)\s+(?:about|from|regarding)/i.test(combined) && calls.length === 0) {
+      const queryMatch = userMessage.match(/(?:about|from|regarding)\s+(.+)/i);
       if (queryMatch?.[1]) {
-        calls.push({ name: "search_files", arguments: { query: queryMatch[1].trim() } });
+        calls.push({ name: "search_emails", arguments: { query: queryMatch[1].trim() } });
       }
+    }
+    if (/(?:who\s+is|find|look\s+up|search)\s+(?:my\s+)?(?:contact|person|people)/i.test(combined) && calls.length === 0) {
+      const queryMatch = userMessage.match(/(?:who\s+is|find|look\s+up)\s+(.+)/i);
+      if (queryMatch?.[1]) {
+        calls.push({ name: "search_contacts", arguments: { query: queryMatch[1].trim() } });
+      }
+    }
+    if (/(?:what'?s?\s+the\s+)?weather|forecast|temperature/i.test(combined) && calls.length === 0) {
+      calls.push({ name: "get_weather", arguments: {} });
+    }
+    if (/(?:draft|write|compose)\s+(?:a\s+|an\s+)?(?:email|message|reply)/i.test(combined) && calls.length === 0) {
+      calls.push({ name: "draft_email", arguments: { to: [], subject: "", body: "" } });
+    }
+    if (/(?:show|list|what\s+are)\s+(?:my\s+)?(?:reminders?|to-?do)/i.test(combined) && calls.length === 0) {
+      calls.push({ name: "list_reminders", arguments: {} });
     }
     return calls;
   }
@@ -239345,7 +239374,12 @@ ${docContextStr}`,
           agentAction.status = response.status === "success" ? "executed" : "failed";
           agentAction.executedAt = (/* @__PURE__ */ new Date()).toISOString();
           agentAction.response = response;
-          executedResults.push({ tool: tc.name, result: response.data });
+          if (response.status === "success") {
+            executedResults.push({ tool: tc.name, result: response.data });
+          } else {
+            const errMsg = response.error?.message ?? response.error?.code ?? "Action failed";
+            executedResults.push({ tool: tc.name, result: { error: errMsg } });
+          }
           if (tier === "alter_ego" && this.alterEgoStore && agentAction.status === "executed") {
             const receipt = {
               id: agentAction.id,
@@ -239362,8 +239396,10 @@ ${docContextStr}`,
             this.alterEgoStore.logReceipt(receipt);
             this.alterEgoStore.acknowledgeAnomaly(agentAction.action);
           }
-        } catch {
+        } catch (execErr) {
           agentAction.status = "failed";
+          const errMsg = execErr instanceof Error ? execErr.message : "Action execution failed";
+          executedResults.push({ tool: tc.name, result: { error: errMsg } });
         }
       } else {
         this.db.prepare(`
@@ -253841,6 +253877,17 @@ var Gateway = class {
       ).get(key);
       return row?.value ?? null;
     };
+    const envSearxngUrl = process.env["SEARXNG_URL"];
+    if (envSearxngUrl) {
+      const existing = getWebSetting("searxng_url");
+      if (!existing) {
+        const upsert = this.configDb.prepare(
+          "INSERT INTO web_search_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+        );
+        upsert.run("searxng_url", envSearxngUrl);
+        upsert.run("provider", "searxng");
+      }
+    }
     const searchFactory = new WebSearchAdapterFactory({
       getProvider: () => getWebSetting("provider") ?? "duckduckgo",
       getBraveApiKey: () => getWebSetting("brave_api_key"),
@@ -268981,6 +269028,12 @@ async function handleInitialize() {
     }
   } catch (err) {
     console.error("[sidecar] Failed to register email/calendar adapters:", err);
+  }
+  const envSearxngUrl = process.env["SEARXNG_URL"];
+  if (envSearxngUrl && !getPref("searxng_url")) {
+    setPref("searxng_url", envSearxngUrl);
+    setPref("search_engine", "searxng");
+    console.error(`[sidecar] SearXNG auto-configured from env: ${envSearxngUrl}`);
   }
   credentialStore.setConnectionTester(async (credential, password) => {
     try {
