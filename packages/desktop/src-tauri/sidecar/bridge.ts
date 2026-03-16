@@ -598,6 +598,14 @@ async function handleInitialize(): Promise<unknown> {
   await Promise.race([gateway.start(), gatewayTimeout]);
   console.error('[sidecar] Gateway started');
 
+  // Seed allowlist with Google API domains (needed for Gmail, Calendar, Drive)
+  try {
+    const allowlist = gateway.getAllowlist();
+    for (const domain of ['www.googleapis.com', 'gmail.googleapis.com', 'oauth2.googleapis.com']) {
+      allowlist.addService({ serviceName: 'Google APIs', domain, protocol: 'https', addedBy: 'system_seed' });
+    }
+  } catch { /* allowlist seeding is best-effort */ }
+
   // ──── STEP 3: Core init (can fail — knowledge graph depends on LanceDB) ────
   // If this fails, the app still works for chat (NativeRuntime), preferences,
   // navigation, and all screens that don't need the knowledge graph.
@@ -821,6 +829,21 @@ async function handleInitialize(): Promise<unknown> {
     registry.register('calendar.create', calendarAdapter);
     registry.register('calendar.update', calendarAdapter);
     console.error('[sidecar] Email + Calendar adapters registered with Gateway');
+
+    // Cloud storage — register GoogleDriveAdapter for cloud.list_files if Google credentials exist
+    try {
+      const tokenMgr = ensureOAuthTokenManager();
+      const clientId = process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? '';
+      const clientSecret = process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'] ?? '';
+      if (clientId) {
+        const { GoogleDriveAdapter } = await import('../../../gateway/services/google-drive-adapter.js');
+        const driveAdapter = new GoogleDriveAdapter(tokenMgr, { clientId, clientSecret });
+        registry.register('cloud.list_files', driveAdapter);
+        console.error('[sidecar] GoogleDriveAdapter registered for cloud.list_files');
+      }
+    } catch (driveErr) {
+      console.error('[sidecar] Failed to register GoogleDriveAdapter:', driveErr);
+    }
 
     // Wire ConnectorRouter to Gateway ServiceRegistry so connector.* actions
     // (connector.sync, connector.auth, etc.) route to the correct OAuth adapters
@@ -1127,7 +1150,36 @@ async function handleSendMessage(
   console.error('[sidecar] handleSendMessage — orchestrator available:', hasOrchestrator);
 
   // Check if LLM is available (native or Ollama)
-  const llmAvailable = await core.llm.isAvailable().catch(() => false);
+  let llmAvailable = await core.llm.isAvailable().catch(() => false);
+
+  // If router says unavailable, try to detect and wire Ollama on-the-fly.
+  // This handles the case where Ollama started after the sidecar initialized.
+  if (!llmAvailable) {
+    try {
+      const { Ollama: OllamaClient } = await import('ollama');
+      const client = new OllamaClient({ host: 'http://localhost:11434' });
+      const list = await Promise.race([
+        client.list(),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
+      ]);
+      const models = list.models.filter((m: { name: string }) => !m.name.includes('embed') && !m.name.includes('nomic'));
+      if (models.length > 0) {
+        const { OllamaProvider } = await import('../../../core/llm/ollama-provider.js');
+        const { InferenceRouter } = await import('../../../core/llm/inference-router.js');
+        const ollamaProvider = new OllamaProvider();
+        const router = core.llm as InstanceType<typeof InferenceRouter>;
+        const model = models[0]!.name;
+        if (router.setReasoningProvider) {
+          router.setReasoningProvider(ollamaProvider, model);
+          core.models.setActiveChatModel(model);
+          try { if (core.agent) core.agent.setModel(model); } catch { /* */ }
+          console.error(`[sidecar] Late-wired Ollama provider (model: ${model})`);
+          llmAvailable = true;
+        }
+      }
+    } catch { /* Ollama not running */ }
+  }
+
   if (!llmAvailable) {
     // Try a quick native status check as a fallback signal
     let nativeReady = false;
@@ -3197,11 +3249,33 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
     const reasoning = list.models.filter((m: { name: string }) => !m.name.includes('embed') && !m.name.includes('nomic'));
     if (reasoning.length > 0) {
       ollamaHasModel = true;
+      const ollamaModel = reasoning[0]!.name;
       console.error(`[sidecar] Ollama detected with ${reasoning.length} models — skipping reasoning model download`);
+
+      // Wire OllamaProvider into the InferenceRouter so chat works immediately.
+      // The startup check (handleInitialize) may have missed Ollama due to timing.
+      // setReasoningProvider also clears the BitNet provider so the router uses Ollama.
+      if (core) {
+        try {
+          const { OllamaProvider } = await import('../../../core/llm/ollama-provider.js');
+          const { InferenceRouter } = await import('../../../core/llm/inference-router.js');
+          const ollamaProvider = new OllamaProvider();
+          const router = core.llm as InstanceType<typeof InferenceRouter>;
+          if (router.setReasoningProvider) {
+            router.setReasoningProvider(ollamaProvider, ollamaModel);
+            core.models.setActiveChatModel(ollamaModel);
+            try { if (core.agent) core.agent.setModel(ollamaModel); } catch { /* */ }
+            console.error(`[sidecar] Ollama provider wired into router (model: ${ollamaModel})`);
+          }
+        } catch (err) {
+          console.error('[sidecar] Failed to wire Ollama provider:', err);
+        }
+      }
+
       // Signal download "complete" so onboarding UI proceeds
       const fakeComplete: ActiveDownload = {
         modelId: 'ollama-detected',
-        modelName: `Ollama: ${reasoning[0]!.name}`,
+        modelName: `Ollama: ${ollamaModel}`,
         totalBytes: 1,
         downloadedBytes: 1,
         speedBytesPerSec: 0,
@@ -3209,8 +3283,8 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
       };
       activeDownloads.set('ollama-detected', fakeComplete);
       emit('model-download-progress', fakeComplete);
-      emit('native-model-loaded', { model: reasoning[0]!.name, engine: 'ollama' });
-      results.push({ modelId: reasoning[0]!.name, status: 'already_downloaded', backend: 'ollama' });
+      emit('native-model-loaded', { modelId: ollamaModel, modelType: 'reasoning', path: '', engine: 'ollama' });
+      results.push({ modelId: ollamaModel, status: 'already_downloaded', backend: 'ollama' });
     }
   } catch {
     // Ollama not running — proceed with download
@@ -5876,6 +5950,82 @@ async function handleRequest(req: Request): Promise<void> {
       case 'voice_download_model': {
         const result = await handleVoiceDownloadModel(params as { model: string });
         respond(id, result);
+        break;
+      }
+
+      // ─── Inbox Data Handlers ──────────────────────────────────────────
+      case 'get_inbox_items': {
+        // Fetch recent emails from Gmail for the Inbox screen
+        const inboxParams = params as { limit?: number; offset?: number };
+        const limit = inboxParams.limit ?? 30;
+        if (!emailAdapter) {
+          respond(id, []);
+          break;
+        }
+        try {
+          const result = await emailAdapter.execute('email.fetch', {
+            folder: 'INBOX',
+            limit,
+            sort: 'date_desc',
+          });
+          if (result.success && result.data) {
+            const messages = (result.data as { messages: Array<Record<string, unknown>> }).messages ?? [];
+            // Map to IndexedEmail shape expected by the frontend
+            const mapped = messages.map((m: Record<string, unknown>, i: number) => ({
+              id: (m['id'] as string) ?? `msg_${i}`,
+              messageId: (m['messageId'] as string) ?? (m['id'] as string) ?? `msg_${i}`,
+              threadId: (m['threadId'] as string) ?? '',
+              folder: 'INBOX',
+              from: (m['from'] as string) ?? '',
+              fromName: ((m['from'] as string) ?? '').replace(/<.*>/, '').trim(),
+              to: Array.isArray(m['to']) ? (m['to'] as string[]).join(', ') : ((m['to'] as string) ?? ''),
+              subject: (m['subject'] as string) ?? '(no subject)',
+              snippet: ((m['body'] as { text?: string })?.text ?? (m['snippet'] as string) ?? '').substring(0, 200),
+              receivedAt: (m['date'] as string) ?? (m['receivedAt'] as string) ?? new Date().toISOString(),
+              isRead: (m['isRead'] as boolean) ?? !(m['flags'] as string[] ?? []).includes('\\Unseen'),
+              isStarred: (m['isStarred'] as boolean) ?? false,
+              hasAttachments: (m['hasAttachments'] as boolean) ?? false,
+              labels: (m['labels'] as string) ?? '',
+              priority: 'normal' as const,
+              accountId: 'gmail',
+            }));
+            respond(id, mapped);
+          } else {
+            console.error('[sidecar] get_inbox_items: email adapter returned failure:', result.error);
+            respond(id, []);
+          }
+        } catch (err) {
+          console.error('[sidecar] get_inbox_items error:', err);
+          respond(id, []);
+        }
+        break;
+      }
+      case 'get_proactive_insights': {
+        respond(id, []);
+        break;
+      }
+      case 'get_today_events': {
+        respond(id, []);
+        break;
+      }
+      case 'get_actions_summary': {
+        respond(id, { todayCount: 0, todayTimeSavedSeconds: 0, recentActions: [] });
+        break;
+      }
+      case 'get_pending_actions': {
+        respond(id, []);
+        break;
+      }
+      case 'get_reminders': {
+        respond(id, []);
+        break;
+      }
+      case 'get_dark_pattern_flags': {
+        respond(id, []);
+        break;
+      }
+      case 'get_clipboard_insights': {
+        respond(id, []);
         break;
       }
 

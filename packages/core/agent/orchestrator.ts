@@ -332,6 +332,40 @@ const BASE_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: 'list_cloud_files',
+    description: 'List files in the user\'s connected cloud storage (Google Drive). Use when the user asks what files they have in Drive, or asks to see their cloud files. Returns real-time file listing from the cloud API.',
+    parameters: {
+      type: 'object',
+      properties: {
+        folderId: { type: 'string', description: 'Folder ID to list (default: root/My Drive)' },
+        query: { type: 'string', description: 'Optional search query to filter files' },
+      },
+    },
+  },
+  {
+    name: 'list_indexed_documents',
+    description: 'List all documents that have been indexed into the knowledge base. Returns file names, paths, types, and when they were indexed. Use when the user asks what files or documents you have access to, what has been indexed, or what is in a folder.',
+    parameters: {
+      type: 'object',
+      properties: {
+        source: { type: 'string', description: 'Filter by source type: local_file, email, calendar, cloud_storage, etc. (optional)' },
+        limit: { type: 'number', description: 'Maximum number of documents to return (default 50)' },
+      },
+    },
+  },
+  {
+    name: 'read_document',
+    description: 'Read the full content of an indexed document by its title or filename. Use when the user asks you to read, summarize, or explain a specific document that has been indexed. Returns the complete document content.',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'The document title or filename to read' },
+        documentId: { type: 'string', description: 'The document ID (if known from list_indexed_documents)' },
+      },
+      required: ['title'],
+    },
+  },
+  {
     name: 'save_file',
     description: 'Save content to a file on the user\'s filesystem. Use for documents, exports, generated reports, code files, and any content the user wants to keep. Always confirm the filename and location with the user before saving unless they have explicitly specified both.',
     parameters: {
@@ -544,6 +578,7 @@ const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'move_email': 'email.move',
   'mark_email_read': 'email.markRead',
   'delete_reminder': 'reminder.delete',
+  'list_cloud_files': 'cloud.list_files',
 };
 
 // Tools that are handled locally (no IPC needed)
@@ -553,6 +588,8 @@ const BASE_LOCAL_TOOLS = new Set([
   'categorize_email',
   'detect_calendar_conflicts',
   'search_cloud_files',
+  'list_indexed_documents',
+  'read_document',
   'knowledge_remove',
   'knowledge_recategorize',
   'search_contacts',
@@ -624,6 +661,10 @@ ${INJECTION_CANARY}`;
 ${autonomyBlock}
 
 Be warm, direct, and concise. Never use emojis. Never invent data — if you don't have real data, say so. You have access to the user's email, calendar, files, and web search through your tools. If asked about yourself: you are Semblance, a local AI by VERIDIAN SYNTHETICS — all on-device.
+
+IMPORTANT: Always respond in English unless the user writes in another language. When summarizing tool results (search results, emails, fetched web pages), always present the summary in English regardless of the source language.
+
+${ARTIFACT_SYSTEM_PROMPT}
 
 ${INJECTION_CANARY}`;
 }
@@ -767,6 +808,14 @@ export class OrchestratorImpl implements Orchestrator {
     const lower = message.toLowerCase().trim();
     const wordCount = lower.split(/\s+/).length;
 
+    // Short follow-ups that are clearly continuations of the previous exchange —
+    // NOT queries that should trigger tool use. These should be handled as
+    // conversational continuations with the existing history context.
+    if (wordCount <= 3) {
+      const followUps = /^(why\s*(?:not|is that|though)?|how\s*(?:come|so)|tell me more|go on|continue|explain|elaborate|and\??|what else|really|seriously|huh)\??$/;
+      if (followUps.test(lower)) return true;
+    }
+
     // Short greetings and small talk
     if (wordCount <= 4) {
       const greetings = /^(hi|hello|hey|howdy|sup|yo|good\s*(morning|afternoon|evening|night)|thanks|thank you|bye|goodbye|ok|okay|sure|yes|no|nah|yep|nope|cool|great|nice|hm+|huh|what'?s?\s*up)/;
@@ -846,9 +895,13 @@ export class OrchestratorImpl implements Orchestrator {
         const sanitizedToolResults = toolResults.executedResults.map(r => {
           const resultStr = JSON.stringify(r.result);
           const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web' || r.tool === 'deep_search_web';
-          const sanitized = needsFullSanitization
+          let sanitized = needsFullSanitization
             ? sanitizeRetrievedContent(resultStr)
             : resultStr;
+          // Truncate large results (emails, file listings) to fit context window
+          if (sanitized.length > 3000) {
+            sanitized = sanitized.slice(0, 3000) + '...(truncated)';
+          }
           return `${r.tool}: ${sanitized}`;
         }).join('\n');
 
@@ -859,7 +912,7 @@ export class OrchestratorImpl implements Orchestrator {
           {
             role: 'user' as const,
             content: wrapInDataBoundary(
-              `Here are the results for the user's request "${message}":\n\n${sanitizedToolResults}\n\nSummarize these results naturally for the user. Be concise and helpful. Do not add information that is not in the results.`,
+              `Here are the results for the user's request "${message}":\n\n${sanitizedToolResults}\n\nPresent ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in English.`,
               'tool execution results',
             ),
           },
@@ -869,7 +922,7 @@ export class OrchestratorImpl implements Orchestrator {
           model: this.model,
           messages: synthesisMessages,
           temperature: 0.7,
-          maxTokens: 128,
+          maxTokens: 2048,
         });
         finalMessage = synthesis.message.content;
       } else {
@@ -894,7 +947,7 @@ export class OrchestratorImpl implements Orchestrator {
         messages,
         tools,
         temperature: 0.7,
-        maxTokens: 128,
+        maxTokens: 1024,
       });
 
       finalMessage = response.message.content;
@@ -909,12 +962,57 @@ export class OrchestratorImpl implements Orchestrator {
         }
       }
 
+      // Parse bare JSON tool calls from model output (e.g. {"name":"save_file","parameters":{...}})
+      // Models like llama3.1 sometimes output tool calls as raw JSON in the response text.
+      // Uses brace-depth counting to handle nested objects in parameters correctly.
+      if (!response.toolCalls?.length) {
+        const bareJsonCalls: Array<{ name: string; arguments: Record<string, unknown> }> = [];
+        const jsonPositions: Array<{ start: number; end: number }> = [];
+        // Find all top-level JSON objects containing "name" and "parameters"/"arguments"
+        let searchStart = 0;
+        while (searchStart < finalMessage.length) {
+          const braceIdx = finalMessage.indexOf('{', searchStart);
+          if (braceIdx === -1) break;
+          // Find matching closing brace using depth counting
+          let depth = 0;
+          let endIdx = -1;
+          for (let j = braceIdx; j < finalMessage.length; j++) {
+            if (finalMessage[j] === '{') depth++;
+            else if (finalMessage[j] === '}') {
+              depth--;
+              if (depth === 0) { endIdx = j; break; }
+            }
+          }
+          if (endIdx === -1) break;
+          const candidate = finalMessage.slice(braceIdx, endIdx + 1);
+          try {
+            const parsed = JSON.parse(candidate) as { name?: string; parameters?: Record<string, unknown>; arguments?: Record<string, unknown> };
+            if (parsed.name && typeof parsed.name === 'string' && (parsed.parameters || parsed.arguments)) {
+              bareJsonCalls.push({ name: parsed.name, arguments: parsed.parameters ?? parsed.arguments ?? {} });
+              jsonPositions.push({ start: braceIdx, end: endIdx + 1 });
+            }
+          } catch { /* not valid JSON — skip */ }
+          searchStart = endIdx + 1;
+        }
+        if (bareJsonCalls.length > 0) {
+          response = { ...response, toolCalls: bareJsonCalls };
+          // Strip matched JSON from the displayed message (reverse order to preserve indices)
+          let cleaned = finalMessage;
+          for (let k = jsonPositions.length - 1; k >= 0; k--) {
+            const pos = jsonPositions[k]!;
+            cleaned = cleaned.slice(0, pos.start) + cleaned.slice(pos.end);
+          }
+          finalMessage = cleaned.trim();
+        }
+      }
+
       // Strip leaked tool-call formatting
       if (!response.toolCalls || response.toolCalls.length === 0) {
         const stripped = finalMessage
           .replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/g, '')
           .replace(/```(?:json)?\s*\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\}\s*```/g, '')
           .replace(/\b[a-z_]+\s*\(\s*\{[\s\S]*?\}\s*\)/g, '')
+          .replace(/\{[^{}]*"name"\s*:\s*"[a-z_]+"[\s\S]*?\}/g, '')
           .trim();
         if (stripped.length > 0) {
           finalMessage = stripped;
@@ -929,9 +1027,13 @@ export class OrchestratorImpl implements Orchestrator {
           const sanitizedToolResults = toolResults.executedResults.map(r => {
             const resultStr = JSON.stringify(r.result);
             const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web' || r.tool === 'deep_search_web';
-            const sanitized = needsFullSanitization
+            let sanitized = needsFullSanitization
               ? sanitizeRetrievedContent(resultStr)
               : resultStr;
+            // Truncate large results (emails, file listings) to fit context window
+            if (sanitized.length > 3000) {
+              sanitized = sanitized.slice(0, 3000) + '...(truncated)';
+            }
             return `${r.tool}: ${sanitized}`;
           }).join('\n');
 
@@ -940,7 +1042,7 @@ export class OrchestratorImpl implements Orchestrator {
             {
               role: 'user' as const,
               content: wrapInDataBoundary(
-                `Tool results:\n${sanitizedToolResults}`,
+                `Tool results:\n${sanitizedToolResults}\n\nPresent ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in English.`,
                 'tool execution results',
               ),
             },
@@ -950,7 +1052,7 @@ export class OrchestratorImpl implements Orchestrator {
             model: this.model,
             messages: followUpMessages,
             temperature: 0.7,
-            maxTokens: 128,
+            maxTokens: 2048,
           });
           finalMessage = followUp.message.content;
         }
@@ -961,7 +1063,7 @@ export class OrchestratorImpl implements Orchestrator {
             model: this.model,
             messages,
             temperature: 0.7,
-            maxTokens: 128,
+            maxTokens: 1024,
           });
           if (retryResponse?.message?.content) {
             finalMessage = retryResponse.message.content;
@@ -1319,7 +1421,7 @@ export class OrchestratorImpl implements Orchestrator {
         system: 'You are curious and caring, like a trusted friend, not a therapist or notification. Write exactly one sentence.',
         prompt: `Gently surface this observation to the user in one sentence:\n\n"${obs.description}"`,
         temperature: 0.4,
-        maxTokens: 128,
+        maxTokens: 1024,
       };
 
       const response = await this.llm.generate(request);
@@ -1365,7 +1467,9 @@ export class OrchestratorImpl implements Orchestrator {
     const basePrompt = buildSystemPrompt(this.promptConfig, conversational);
     let systemContent = this.voiceModeActive
       ? `${basePrompt}\n\n${VOICE_MODE_CONTEXT}`
-      : basePrompt;
+      : conversational
+      ? basePrompt
+      : `${basePrompt}\n\n${ARTIFACT_SYSTEM_PROMPT}`;
 
     // Intent context: injected into system message (cannot be overridden by doc/knowledge injection)
     if (this.intentManager) {
@@ -1459,7 +1563,7 @@ export class OrchestratorImpl implements Orchestrator {
   }> {
     const actions: AgentAction[] = [];
     const executedResults: Array<{ tool: string; result: unknown }> = [];
-    const reasoningCtx = context.length > 0 ? this.buildReasoningContext(userMessage, context) : undefined;
+    const reasoningCtx = context && context.length > 0 ? this.buildReasoningContext(userMessage, context) : undefined;
 
     for (const tc of toolCalls) {
       // HARD LIMIT ENFORCEMENT — runs before ALL other checks (boundary, autonomy, extension)
@@ -1577,7 +1681,11 @@ export class OrchestratorImpl implements Orchestrator {
         executedResults.push({
           tool: 'search_files',
           result: results.map(r => ({
+            documentId: r.document.id,
             title: r.document.title,
+            sourcePath: r.document.sourcePath ?? null,
+            source: r.document.source,
+            mimeType: r.document.mimeType,
             content: r.chunk.content.slice(0, 500),
             score: r.score,
           })),
@@ -1650,6 +1758,91 @@ export class OrchestratorImpl implements Orchestrator {
             metadata: r.document.metadata,
           })),
         });
+        continue;
+      }
+
+      if (tc.name === 'list_indexed_documents') {
+        const source = tc.arguments['source'] as string | undefined;
+        const limit = (tc.arguments['limit'] as number) ?? 50;
+        try {
+          const docs = await this.knowledge.listDocuments({
+            source: source as import('../knowledge/types.js').DocumentSource | undefined,
+            limit,
+          });
+          executedResults.push({
+            tool: 'list_indexed_documents',
+            result: docs.map(d => ({
+              id: d.id,
+              title: d.title,
+              source: d.source,
+              sourcePath: d.sourcePath ?? null,
+              mimeType: d.mimeType,
+              indexedAt: d.indexedAt,
+            })),
+          });
+        } catch {
+          executedResults.push({ tool: 'list_indexed_documents', result: { error: 'Could not list documents' } });
+        }
+        continue;
+      }
+
+      if (tc.name === 'read_document') {
+        const title = tc.arguments['title'] as string;
+        const docId = tc.arguments['documentId'] as string | undefined;
+        try {
+          // Strategy: search for the document title to find its chunks, then
+          // gather all chunks belonging to the same documentId, sorted by chunkIndex.
+          const searchResults = await this.knowledge.search(title, { limit: 20 });
+          // Find the target document — match by ID or best title match
+          let targetDocId = docId;
+          if (!targetDocId) {
+            const titleLower = title.toLowerCase();
+            const match = searchResults.find(r =>
+              r.document.title.toLowerCase().includes(titleLower) ||
+              titleLower.includes(r.document.title.toLowerCase())
+            );
+            targetDocId = match?.document.id;
+          }
+          if (!targetDocId) {
+            // Fallback: just use the top result's document
+            targetDocId = searchResults[0]?.document.id;
+          }
+          if (targetDocId) {
+            // Collect all chunks for this document from search results
+            const docChunks = searchResults
+              .filter(r => r.document.id === targetDocId)
+              .sort((a, b) => a.chunk.chunkIndex - b.chunk.chunkIndex);
+            const doc = docChunks[0]?.document;
+            // If we don't have enough chunks, do a second search with the document title
+            let allContent = docChunks.map(c => c.chunk.content).join('\n');
+            if (docChunks.length <= 2 && doc) {
+              const moreResults = await this.knowledge.search(doc.title, { limit: 30 });
+              const moreChunks = moreResults
+                .filter(r => r.document.id === targetDocId)
+                .sort((a, b) => a.chunk.chunkIndex - b.chunk.chunkIndex);
+              if (moreChunks.length > docChunks.length) {
+                allContent = moreChunks.map(c => c.chunk.content).join('\n');
+              }
+            }
+            executedResults.push({
+              tool: 'read_document',
+              result: {
+                title: doc?.title ?? title,
+                source: doc?.source,
+                sourcePath: doc?.sourcePath,
+                content: allContent.slice(0, 6000), // Cap at 6000 chars for context window
+                totalLength: allContent.length,
+              },
+            });
+          } else {
+            executedResults.push({
+              tool: 'read_document',
+              result: { error: `No document found matching "${title}". Use list_indexed_documents to see available files.` },
+            });
+          }
+        } catch (err) {
+          executedResults.push({ tool: 'read_document', result: { error: `Failed to read document: ${err instanceof Error ? err.message : String(err)}` } });
+        }
         continue;
       }
 

@@ -208,6 +208,11 @@ export class InferenceRouter implements LLMProvider {
   setReasoningProvider(provider: LLMProvider, model: string): void {
     this.reasoningProvider = provider;
     this.reasoningModel = model;
+    // When a higher-priority provider (e.g. Ollama GPU) is set as reasoning provider,
+    // clear the BitNet CPU provider so getProviderForTier() doesn't bypass it.
+    // Priority: Ollama (GPU) > BitNet (CPU) > Native (fallback).
+    this.bitnetProvider = null;
+    this.bitnetReasoningModel = null;
   }
 
   /**

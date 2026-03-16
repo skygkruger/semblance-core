@@ -252,6 +252,9 @@ dependencies = [
 [[package]]
 name = "bitnet-sys"
 version = "0.1.0"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "block-buffer"
