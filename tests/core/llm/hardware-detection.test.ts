@@ -19,7 +19,7 @@ describe('Hardware → Model Selection Pipeline', () => {
     expect(models).toHaveLength(2);
 
     const reasoning = models.find(m => !m.isEmbedding)!;
-    expect(reasoning.parameterCount).toBe('1.5B');
+    expect(reasoning.parameterCount).toBe('1.7B');
     expect(reasoning.ramRequiredMb).toBeLessThanOrEqual(4 * 1024);
 
     const embedding = models.find(m => m.isEmbedding)!;
@@ -31,7 +31,7 @@ describe('Hardware → Model Selection Pipeline', () => {
     expect(tier).toBe('standard');
 
     const reasoning = getRecommendedReasoningModel(tier);
-    expect(reasoning.parameterCount).toBe('3B');
+    expect(reasoning.parameterCount).toBe('4B');
     expect(reasoning.ramRequiredMb).toBeLessThanOrEqual(12 * 1024);
   });
 
@@ -40,10 +40,10 @@ describe('Hardware → Model Selection Pipeline', () => {
     expect(tier).toBe('performance');
 
     const reasoning = getRecommendedReasoningModel(tier);
-    expect(reasoning.parameterCount).toBe('7B');
+    expect(reasoning.parameterCount).toBe('8B');
   });
 
-  it('workstation hardware (64GB + RTX) gets best 7B Q4_K_M model (CPU-optimized)', () => {
+  it('workstation hardware (64GB + RTX) gets best Qwen3 30B MoE model', () => {
     const gpu: GpuInfo = {
       name: 'RTX 4090',
       vendor: 'nvidia',

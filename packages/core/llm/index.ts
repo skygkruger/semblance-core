@@ -21,12 +21,13 @@ export type { ModelRecommendation } from './model-manager.js';
 // Hardware detection and model catalog
 export type { HardwareProfile, HardwareProfileTier, GpuInfo } from './hardware-types.js';
 export { classifyHardware, describeTier, describeProfile } from './hardware-types.js';
-export type { ModelRegistryEntry } from './model-registry.js';
+export type { ModelRegistryEntry, ResidencyPolicy } from './model-registry.js';
 export {
   MODEL_CATALOG,
   BITNET_MODEL_CATALOG,
   getRecommendedReasoningModel,
   getEmbeddingModel,
+  getFastTierModel,
   getModelsForTier,
   getModelById,
   getTotalDownloadSize,
@@ -36,7 +37,13 @@ export {
   getRecommendedBitNetModel,
   getAllReasoningModelsForTier,
   getAnyModelById,
+  getVisionModelsForTier,
+  getRecommendedVisionModel,
+  getRichVisionModel,
 } from './model-registry.js';
+
+// Model residency management
+export { ModelResidencyManager } from './model-residency.js';
 
 // Native provider (llama.cpp via Rust FFI bridge)
 export { NativeProvider } from './native-provider.js';

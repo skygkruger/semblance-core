@@ -1,4 +1,4 @@
-// Tests for InferenceRouter — task-based routing, fallback, provider delegation.
+// Tests for InferenceRouter — task-based routing, fallback, provider delegation, three-tier.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InferenceRouter } from '@semblance/core/llm/inference-router.js';
@@ -43,7 +43,7 @@ describe('InferenceRouter', () => {
     router = new InferenceRouter({
       reasoningProvider,
       embeddingProvider,
-      reasoningModel: 'qwen2.5-7b',
+      reasoningModel: 'qwen3-8b',
       embeddingModel: 'nomic-embed-text-v1.5',
     });
   });
@@ -77,7 +77,7 @@ describe('InferenceRouter', () => {
       await router.generate({ model: '', prompt: 'test' });
 
       expect(reasoningProvider.generate).toHaveBeenCalledWith(
-        expect.objectContaining({ model: 'qwen2.5-7b' })
+        expect.objectContaining({ model: 'qwen3-8b' })
       );
     });
 
@@ -109,7 +109,30 @@ describe('InferenceRouter', () => {
   });
 
   describe('Task-aware routing', () => {
-    it('routedChat routes classify to reasoning provider', async () => {
+    it('routedChat routes classify to fast provider when available', async () => {
+      const fastProvider = createMockProvider('fast');
+      router.setFastProvider(fastProvider, 'smollm2-1.7b');
+
+      await router.routedChat(
+        { model: '', messages: [{ role: 'user', content: 'classify this' }] },
+        'classify'
+      );
+      expect(fastProvider.chat).toHaveBeenCalled();
+      expect(reasoningProvider.chat).not.toHaveBeenCalled();
+    });
+
+    it('routedChat routes extract to fast provider when available', async () => {
+      const fastProvider = createMockProvider('fast');
+      router.setFastProvider(fastProvider, 'smollm2-1.7b');
+
+      await router.routedChat(
+        { model: '', messages: [{ role: 'user', content: 'extract data' }] },
+        'extract'
+      );
+      expect(fastProvider.chat).toHaveBeenCalled();
+    });
+
+    it('routedChat routes classify to reasoning provider when no fast provider', async () => {
       await router.routedChat(
         { model: '', messages: [{ role: 'user', content: 'classify this' }] },
         'classify'
@@ -133,12 +156,15 @@ describe('InferenceRouter', () => {
       expect(reasoningProvider.chat).toHaveBeenCalled();
     });
 
-    it('routedGenerate routes extract to reasoning provider', async () => {
+    it('routedGenerate routes extract to fast provider', async () => {
+      const fastProvider = createMockProvider('fast');
+      router.setFastProvider(fastProvider, 'smollm2-1.7b');
+
       await router.routedGenerate(
         { model: '', prompt: 'extract data' },
         'extract'
       );
-      expect(reasoningProvider.generate).toHaveBeenCalled();
+      expect(fastProvider.generate).toHaveBeenCalled();
     });
 
     it('all task types route to a provider without error', async () => {
@@ -153,11 +179,92 @@ describe('InferenceRouter', () => {
     });
   });
 
+  describe('Vision tier routing', () => {
+    it('routes vision_fast to vision provider', async () => {
+      const visionProvider = createMockProvider('vision');
+      router.setVisionProvider(visionProvider, 'moondream2', 'qwen2.5-vl-3b');
+
+      await router.routedChat(
+        { model: '', messages: [{ role: 'user', content: 'what is this?' }] },
+        'vision_fast'
+      );
+      expect(visionProvider.chat).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'moondream2' })
+      );
+    });
+
+    it('routes vision_rich to vision provider with rich model', async () => {
+      const visionProvider = createMockProvider('vision');
+      router.setVisionProvider(visionProvider, 'moondream2', 'qwen2.5-vl-3b');
+
+      await router.routedChat(
+        { model: '', messages: [{ role: 'user', content: 'OCR this document' }] },
+        'vision_rich'
+      );
+      expect(visionProvider.chat).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'qwen2.5-vl-3b' })
+      );
+    });
+
+    it('isVisionReady returns false when no vision provider', () => {
+      expect(router.isVisionReady()).toBe(false);
+    });
+
+    it('isVisionReady returns true when vision provider set', () => {
+      const visionProvider = createMockProvider('vision');
+      router.setVisionProvider(visionProvider, 'moondream2');
+      expect(router.isVisionReady()).toBe(true);
+    });
+  });
+
+  describe('Fast tier management', () => {
+    it('isFastTierReady returns false initially', () => {
+      expect(router.isFastTierReady()).toBe(false);
+    });
+
+    it('isFastTierReady returns true after setFastProvider', () => {
+      const fastProvider = createMockProvider('fast');
+      router.setFastProvider(fastProvider, 'smollm2-1.7b');
+      expect(router.isFastTierReady()).toBe(true);
+      expect(router.getFastModel()).toBe('smollm2-1.7b');
+    });
+  });
+
+  describe('routeByTier', () => {
+    it('returns fast tier for classify', () => {
+      const fastProvider = createMockProvider('fast');
+      router.setFastProvider(fastProvider, 'smollm2-1.7b');
+
+      const result = router.routeByTier('classify');
+      expect(result.tier).toBe('fast');
+      expect(result.modelName).toBe('smollm2-1.7b');
+    });
+
+    it('returns primary tier for generate', () => {
+      const result = router.routeByTier('generate');
+      expect(result.tier).toBe('primary');
+      expect(result.modelName).toBe('qwen3-8b');
+    });
+
+    it('returns vision tier for vision_fast', () => {
+      const visionProvider = createMockProvider('vision');
+      router.setVisionProvider(visionProvider, 'moondream2');
+
+      const result = router.routeByTier('vision_fast');
+      expect(result.tier).toBe('vision');
+      expect(result.modelName).toBe('moondream2');
+    });
+  });
+
   describe('Model name helpers', () => {
-    it('getModelForTask returns reasoning model for non-embed tasks', () => {
-      expect(router.getModelForTask('generate')).toBe('qwen2.5-7b');
-      expect(router.getModelForTask('classify')).toBe('qwen2.5-7b');
-      expect(router.getModelForTask('reason')).toBe('qwen2.5-7b');
+    it('getModelForTask returns fast model for classify when available', () => {
+      const fastProvider = createMockProvider('fast');
+      router.setFastProvider(fastProvider, 'smollm2-1.7b');
+      expect(router.getModelForTask('classify')).toBe('smollm2-1.7b');
+    });
+
+    it('getModelForTask returns reasoning model for generate', () => {
+      expect(router.getModelForTask('generate')).toBe('qwen3-8b');
     });
 
     it('getModelForTask returns embedding model for embed task', () => {
@@ -165,7 +272,7 @@ describe('InferenceRouter', () => {
     });
 
     it('getReasoningModel returns the reasoning model name', () => {
-      expect(router.getReasoningModel()).toBe('qwen2.5-7b');
+      expect(router.getReasoningModel()).toBe('qwen3-8b');
     });
 
     it('getEmbeddingModel returns the embedding model name', () => {
@@ -217,7 +324,6 @@ describe('InferenceRouter', () => {
       });
 
       const models = await singleRouter.listModels();
-      // Should not have duplicates
       const names = models.map(m => m.name);
       expect(new Set(names).size).toBe(names.length);
     });

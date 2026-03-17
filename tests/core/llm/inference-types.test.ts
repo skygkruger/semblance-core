@@ -9,7 +9,7 @@ import type { TaskType, InferenceTier } from '@semblance/core/llm/inference-type
 
 describe('TASK_TIER_MAP', () => {
   it('maps all task types to tiers', () => {
-    const taskTypes: TaskType[] = ['generate', 'classify', 'extract', 'embed', 'reason', 'draft'];
+    const taskTypes: TaskType[] = ['generate', 'classify', 'extract', 'embed', 'reason', 'draft', 'vision_fast', 'vision_rich'];
     for (const task of taskTypes) {
       expect(TASK_TIER_MAP[task]).toBeDefined();
     }
@@ -31,8 +31,16 @@ describe('TASK_TIER_MAP', () => {
     expect(TASK_TIER_MAP.generate).toBe('primary');
   });
 
-  it('extract maps to primary tier', () => {
-    expect(TASK_TIER_MAP.extract).toBe('primary');
+  it('extract maps to fast tier', () => {
+    expect(TASK_TIER_MAP.extract).toBe('fast');
+  });
+
+  it('vision_fast maps to vision tier', () => {
+    expect(TASK_TIER_MAP.vision_fast).toBe('vision');
+  });
+
+  it('vision_rich maps to vision tier', () => {
+    expect(TASK_TIER_MAP.vision_rich).toBe('vision');
   });
 
   it('draft maps to primary tier', () => {
@@ -42,7 +50,7 @@ describe('TASK_TIER_MAP', () => {
 
 describe('TIER_FALLBACK_CHAIN', () => {
   it('defines fallback for all tiers', () => {
-    const tiers: InferenceTier[] = ['fast', 'primary', 'quality', 'embedding'];
+    const tiers: InferenceTier[] = ['fast', 'primary', 'quality', 'vision', 'embedding'];
     for (const tier of tiers) {
       expect(TIER_FALLBACK_CHAIN[tier]).toBeDefined();
       expect(TIER_FALLBACK_CHAIN[tier].length).toBeGreaterThan(0);
@@ -65,8 +73,12 @@ describe('TIER_FALLBACK_CHAIN', () => {
     expect(TIER_FALLBACK_CHAIN.embedding).toEqual(['embedding']);
   });
 
+  it('vision has no fallback beyond itself', () => {
+    expect(TIER_FALLBACK_CHAIN.vision).toEqual(['vision']);
+  });
+
   it('every chain starts with the tier itself', () => {
-    const tiers: InferenceTier[] = ['fast', 'primary', 'quality', 'embedding'];
+    const tiers: InferenceTier[] = ['fast', 'primary', 'quality', 'vision', 'embedding'];
     for (const tier of tiers) {
       expect(TIER_FALLBACK_CHAIN[tier][0]).toBe(tier);
     }

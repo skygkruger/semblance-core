@@ -38,6 +38,7 @@ import { BoundaryEnforcer, type EscalationBoundary } from './escalation-boundari
 import { sanitizeRetrievedContent, wrapInDataBoundary, INJECTION_CANARY } from './content-sanitizer.js';
 import type { IntentManager } from './intent-manager.js';
 import type { AlterEgoGuardrails } from './alter-ego-guardrails.js';
+import { AdaptiveContextBudget } from './context-budget.js';
 import type { AlterEgoStore } from './alter-ego-store.js';
 import { ACTION_RISK_MAP } from './autonomy.js';
 
@@ -734,6 +735,8 @@ export class OrchestratorImpl implements Orchestrator {
   readonly autonomy: AutonomyManager;
   private db: DatabaseHandle;
   private model: string;
+  private contextBudget: AdaptiveContextBudget;
+  private lastLlmTokens: { prompt: number; completion: number } | null = null;
   private patternTracker: ApprovalPatternTracker;
   private styleProfileStore: StyleProfileStore | null;
   private styleScoreThreshold: number;
@@ -781,6 +784,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.autonomy = config.autonomy;
     this.db = config.db;
     this.model = config.model;
+    this.contextBudget = new AdaptiveContextBudget();
     this.patternTracker = new ApprovalPatternTracker(config.db);
     this.styleProfileStore = config.styleProfileStore ?? null;
     this.styleScoreThreshold = config.styleScoreThreshold ?? 70;
@@ -863,12 +867,16 @@ export class OrchestratorImpl implements Orchestrator {
     }
 
     // Step 1: Fetch document-scoped context (if active)
+    // Budget: adaptive limit based on model context window (document_context allocation)
+    const docLimit = this.contextBudget.calculateKnowledgeLimit(this.model, 800);
     const documentChunks = this.documentContext
-      ? await this.documentContext.getContextForPrompt(message, 5)
+      ? await this.documentContext.getContextForPrompt(message, docLimit)
       : [];
 
     // Step 2: Search knowledge graph for general context
-    const context = await this.knowledge.search(message, { limit: 5 });
+    // Budget: adaptive limit based on model context window (knowledge_graph allocation)
+    const kgLimit = this.contextBudget.calculateKnowledgeLimit(this.model);
+    const context = await this.knowledge.search(message, { limit: kgLimit });
 
     // Step 3: Build conversation history
     const history = conversationId ? await this.getConversation(convId) : [];
@@ -909,16 +917,16 @@ export class OrchestratorImpl implements Orchestrator {
       actions.push(...toolResults.actions);
 
       if (toolResults.executedResults.length > 0) {
+        const headroomBudget = this.contextBudget.allocate(this.model).headroomTokens;
         const sanitizedToolResults = toolResults.executedResults.map(r => {
           const resultStr = JSON.stringify(r.result);
           const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web' || r.tool === 'deep_search_web';
           let sanitized = needsFullSanitization
             ? sanitizeRetrievedContent(resultStr)
             : resultStr;
-          // Truncate large results (emails, file listings) to fit context window
-          if (sanitized.length > 3000) {
-            sanitized = sanitized.slice(0, 3000) + '...(truncated)';
-          }
+          // Truncate large results to fit within headroom budget
+          const truncated = this.contextBudget.truncateToFit(sanitized, headroomBudget);
+          sanitized = truncated.content;
           return `${r.tool}: ${sanitized}`;
         }).join('\n');
 
@@ -942,6 +950,9 @@ export class OrchestratorImpl implements Orchestrator {
           maxTokens: 2048,
         });
         finalMessage = synthesis.message.content;
+        if (synthesis.tokensUsed) {
+          this.lastLlmTokens = { prompt: synthesis.tokensUsed.prompt, completion: synthesis.tokensUsed.completion };
+        }
       } else {
         // All tools failed — tell the user
         const errors = toolResults.actions
@@ -966,6 +977,9 @@ export class OrchestratorImpl implements Orchestrator {
         temperature: 0.7,
         maxTokens: 1024,
       });
+      if (response.tokensUsed) {
+        this.lastLlmTokens = { prompt: response.tokensUsed.prompt, completion: response.tokensUsed.completion };
+      }
 
       finalMessage = response.message.content;
 
@@ -1041,16 +1055,16 @@ export class OrchestratorImpl implements Orchestrator {
         actions.push(...toolResults.actions);
 
         if (toolResults.executedResults.length > 0) {
+          const headroomBudget2 = this.contextBudget.allocate(this.model).headroomTokens;
           const sanitizedToolResults = toolResults.executedResults.map(r => {
             const resultStr = JSON.stringify(r.result);
             const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web' || r.tool === 'deep_search_web';
             let sanitized = needsFullSanitization
               ? sanitizeRetrievedContent(resultStr)
               : resultStr;
-            // Truncate large results (emails, file listings) to fit context window
-            if (sanitized.length > 3000) {
-              sanitized = sanitized.slice(0, 3000) + '...(truncated)';
-            }
+            // Truncate large results to fit within headroom budget
+            const truncated = this.contextBudget.truncateToFit(sanitized, headroomBudget2);
+            sanitized = truncated.content;
             return `${r.tool}: ${sanitized}`;
           }).join('\n');
 
@@ -1103,10 +1117,20 @@ export class OrchestratorImpl implements Orchestrator {
       }
     }
 
-    // Step 8: Store conversation turns
-    const tokensUsed = { prompt: 0, completion: 0, total: 0 };
-    this.storeTurn(convId, 'user', message, context, null, 0, 0);
-    this.storeTurn(convId, 'assistant', finalMessage, null, actions, 0, 0);
+    // Step 8: Store conversation turns with token tracking
+    // Record actual token counts from LLM response for context budget calibration.
+    // The lastLlmTokens are captured from the most recent llm.chat() response.
+    const promptTokens = this.lastLlmTokens?.prompt ?? 0;
+    const completionTokens = this.lastLlmTokens?.completion ?? 0;
+    const tokensUsed = { prompt: promptTokens, completion: completionTokens, total: promptTokens + completionTokens };
+    this.storeTurn(convId, 'user', message, context, null, promptTokens, 0);
+    this.storeTurn(convId, 'assistant', finalMessage, null, actions, 0, completionTokens);
+
+    // Calibrate context budget with actual token data
+    if (promptTokens > 0) {
+      const estimatedPromptChars = message.length + (context.reduce((s, r) => s + r.chunk.content.length, 0));
+      this.contextBudget.recordActualTokens(this.model, estimatedPromptChars, promptTokens);
+    }
 
     return {
       message: finalMessage,
@@ -1506,13 +1530,15 @@ export class OrchestratorImpl implements Orchestrator {
 
     // Add document-scoped context (high priority — before general context)
     // SECURITY: All retrieved content is sanitized to prevent prompt injection.
+    // Budget: document context gets 30% of context window.
     if (documentChunks.length > 0) {
+      const docChunkMaxChars = this.contextBudget.calculateDocChunkSize(this.model, documentChunks.length);
       const activeDocs = this.documentContext?.getActiveDocuments() ?? [];
       const docLabel = activeDocs.length === 1
         ? `'${activeDocs[0]?.fileName ?? 'document'}'`
         : `${activeDocs.length} attached documents (${activeDocs.map(d => d.fileName).join(', ')})`;
       const docContextStr = documentChunks.map((r, i) =>
-        `[${i + 1}] ${sanitizeRetrievedContent(r.chunk.content.slice(0, 800))}`
+        `[${i + 1}] ${sanitizeRetrievedContent(r.chunk.content.slice(0, docChunkMaxChars))}`
       ).join('\n\n');
       messages.push({
         role: 'user',
@@ -1525,12 +1551,17 @@ export class OrchestratorImpl implements Orchestrator {
 
     // Add general context from knowledge graph (deduplicated against document chunks)
     // SECURITY: Sanitized and wrapped in data boundaries.
+    // Budget: knowledge graph gets 20% of context window.
     const docChunkIds = new Set(documentChunks.map(r => r.chunk.id));
     const deduplicatedContext = context.filter(r => !docChunkIds.has(r.chunk.id));
 
     if (deduplicatedContext.length > 0) {
+      const budget = this.contextBudget.allocate(this.model);
+      const kgCharsPerResult = this.contextBudget.tokensToChars(
+        Math.floor(budget.knowledgeGraphTokens / Math.max(1, deduplicatedContext.length))
+      );
       const contextStr = deduplicatedContext.map((r, i) =>
-        `[${i + 1}] ${r.document.title} (${r.document.source}): ${sanitizeRetrievedContent(r.chunk.content.slice(0, 500))}`
+        `[${i + 1}] ${r.document.title} (${r.document.source}): ${sanitizeRetrievedContent(r.chunk.content.slice(0, kgCharsPerResult))}`
       ).join('\n\n');
       messages.push({
         role: 'user',
@@ -1538,10 +1569,11 @@ export class OrchestratorImpl implements Orchestrator {
       });
     }
 
-    // Add recent conversation history (last 6 turns for multi-turn coherence).
-    // 10 turns overwhelms the 4096 context window — 6 turns gives enough
-    // context for follow-ups like "tell me more about that one" to work.
-    const recentHistory = history.slice(-6);
+    // Add recent conversation history — adaptive based on model context window.
+    // History budget is 20% of context window. For 4096-token models that's ~6 turns,
+    // for 32k models it allows many more turns for better coherence.
+    const historyTurnCount = this.contextBudget.calculateHistoryTurns(history, this.model);
+    const recentHistory = history.slice(-historyTurnCount);
     for (const turn of recentHistory) {
       messages.push({
         role: turn.role,
