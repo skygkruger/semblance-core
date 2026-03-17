@@ -8,20 +8,24 @@
  */
 export type TaskType =
   | 'generate'          // General text generation (conversation, summaries)
-  | 'classify'          // Email categorization, sentiment, intent detection
-  | 'extract'           // Structured data extraction (receipts, statements)
+  | 'classify'          // Email categorization, sentiment, intent detection → SmolLM2 (fast)
+  | 'extract'           // Structured data extraction (receipts, statements) → SmolLM2 (fast)
   | 'embed'             // Embedding generation (knowledge graph)
   | 'reason'            // Multi-step reasoning (complex orchestration)
-  | 'draft';            // Draft composition (emails, messages)
+  | 'draft'             // Draft composition (emails, messages)
+  | 'vision_fast'       // Quick visual queries, screen reading → Moondream2
+  | 'vision_rich';      // Document OCR, rich visual analysis → Qwen2.5-VL
 
 /**
  * Inference quality tiers — maps to model size classes.
  *
- * For Step 9, 'fast' and 'primary' point to the same model since we only
- * download one reasoning model per tier. The distinction exists for future
- * multi-model setups.
+ * - fast: SmolLM2 1.7B — always resident, handles classify/extract tasks
+ * - primary: Qwen3 series — session resident, handles generate/reason/draft
+ * - quality: same as primary (reserved for future larger models)
+ * - vision: Moondream2 or Qwen2.5-VL — on-demand vision-language tasks
+ * - embedding: nomic-embed-text — always resident
  */
-export type InferenceTier = 'fast' | 'primary' | 'quality' | 'embedding';
+export type InferenceTier = 'fast' | 'primary' | 'quality' | 'vision' | 'embedding';
 
 /**
  * Map task types to their default inference tier.
@@ -29,11 +33,13 @@ export type InferenceTier = 'fast' | 'primary' | 'quality' | 'embedding';
  */
 export const TASK_TIER_MAP: Record<TaskType, InferenceTier> = {
   classify: 'fast',
-  extract: 'primary',
+  extract: 'fast',
   draft: 'primary',
   generate: 'primary',
   reason: 'quality',
   embed: 'embedding',
+  vision_fast: 'vision',
+  vision_rich: 'vision',
 };
 
 /**
@@ -44,6 +50,7 @@ export const TIER_FALLBACK_CHAIN: Record<InferenceTier, InferenceTier[]> = {
   quality: ['quality', 'primary', 'fast'],
   primary: ['primary', 'fast'],
   fast: ['fast'],
+  vision: ['vision'], // No fallback — vision models are required for vision tasks
   embedding: ['embedding'], // No fallback — embedding model is required
 };
 

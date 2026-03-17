@@ -449,3 +449,11 @@ export { OAuthCallbackServer } from './services/oauth-callback-server.js';
 export type { CallbackServerResult, AuthCodeResult } from './services/oauth-callback-server.js';
 export { GoogleDriveAdapter, GOOGLE_DRIVE_READONLY_SCOPE } from './services/google-drive-adapter.js';
 export type { GoogleDriveConfig } from './services/google-drive-adapter.js';
+
+// Daemon mode
+export { DaemonManager } from './daemon/daemon-manager.js';
+export type { DaemonStatus } from './daemon/daemon-manager.js';
+
+// Cron scheduler
+export { CronScheduler } from './cron/cron-scheduler.js';
+export type { CronJob } from './cron/cron-scheduler.js';

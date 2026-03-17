@@ -3,8 +3,10 @@
 // Implements LLMProvider so it's a drop-in replacement for any code that uses LLMProvider.
 // Routes by TaskType → InferenceTier → provider selection with fallback chains.
 //
-// For Step 9: fast and primary tiers point to the same model (one reasoning model
-// per hardware tier). The distinction exists for future multi-model setups.
+// Three-tier architecture:
+//   - Fast tier (SmolLM2): always-resident, handles classify/extract
+//   - Primary tier (Qwen3): session-resident, handles generate/reason/draft
+//   - Vision tier (Moondream2/Qwen2.5-VL): on-demand vision-language tasks
 //
 // CRITICAL: This file is in packages/core/. No network imports. No platform imports.
 
@@ -20,6 +22,7 @@ import type {
 } from './types.js';
 import type { TaskType, InferenceTier } from './inference-types.js';
 import { TASK_TIER_MAP, TIER_FALLBACK_CHAIN } from './inference-types.js';
+import type { ModelRegistryEntry } from './model-registry.js';
 
 export type InferencePlatform = 'desktop' | 'ios' | 'android';
 
@@ -44,6 +47,16 @@ export interface InferenceRouterConfig {
   bitnetProvider?: LLMProvider;
   /** BitNet reasoning model name. */
   bitnetReasoningModel?: string;
+  /** Fast tier provider (SmolLM2) — always-resident classification model. */
+  fastProvider?: LLMProvider;
+  /** Fast tier model name. */
+  fastModel?: string;
+  /** Vision provider (Moondream2 or Qwen2.5-VL). */
+  visionProvider?: LLMProvider;
+  /** Vision model name for fast vision tasks (Moondream2). */
+  visionFastModel?: string;
+  /** Vision model name for rich vision tasks (Qwen2.5-VL). */
+  visionRichModel?: string;
 }
 
 /**
@@ -64,6 +77,11 @@ export class InferenceRouter implements LLMProvider {
   private mobileEmbeddingModel: string | null;
   private bitnetProvider: LLMProvider | null;
   private bitnetReasoningModel: string | null;
+  private fastProvider: LLMProvider | null;
+  private fastModel: string | null;
+  private visionProvider: LLMProvider | null;
+  private visionFastModel: string | null;
+  private visionRichModel: string | null;
 
   constructor(config: InferenceRouterConfig) {
     this.reasoningProvider = config.reasoningProvider;
@@ -76,6 +94,11 @@ export class InferenceRouter implements LLMProvider {
     this.mobileEmbeddingModel = config.mobileEmbeddingModel ?? null;
     this.bitnetProvider = config.bitnetProvider ?? null;
     this.bitnetReasoningModel = config.bitnetReasoningModel ?? null;
+    this.fastProvider = config.fastProvider ?? null;
+    this.fastModel = config.fastModel ?? null;
+    this.visionProvider = config.visionProvider ?? null;
+    this.visionFastModel = config.visionFastModel ?? null;
+    this.visionRichModel = config.visionRichModel ?? null;
   }
 
   // ─── LLMProvider Interface ───────────────────────────────────────────────
@@ -161,10 +184,10 @@ export class InferenceRouter implements LLMProvider {
    */
   async routedChat(request: ChatRequest, taskType: TaskType): Promise<ChatResponse> {
     const tier = TASK_TIER_MAP[taskType];
-    const provider = this.getProviderForTier(tier);
+    const { provider, model } = this.resolveProviderAndModel(tier, taskType);
     return provider.chat({
       ...request,
-      model: request.model || this.reasoningModel,
+      model: request.model || model,
     });
   }
 
@@ -173,11 +196,21 @@ export class InferenceRouter implements LLMProvider {
    */
   async routedGenerate(request: GenerateRequest, taskType: TaskType): Promise<GenerateResponse> {
     const tier = TASK_TIER_MAP[taskType];
-    const provider = this.getProviderForTier(tier);
+    const { provider, model } = this.resolveProviderAndModel(tier, taskType);
     return provider.generate({
       ...request,
-      model: request.model || this.reasoningModel,
+      model: request.model || model,
     });
+  }
+
+  /**
+   * Route by tier directly. Used by the orchestrator when it knows the task type.
+   * Returns the model registry entry that should handle this task.
+   */
+  routeByTier(taskType: TaskType): { tier: InferenceTier; modelName: string } {
+    const tier = TASK_TIER_MAP[taskType];
+    const { model } = this.resolveProviderAndModel(tier, taskType);
+    return { tier, modelName: model };
   }
 
   /**
@@ -185,7 +218,8 @@ export class InferenceRouter implements LLMProvider {
    */
   getModelForTask(taskType: TaskType): string {
     if (taskType === 'embed') return this.embeddingModel;
-    return this.reasoningModel;
+    const { model } = this.resolveProviderAndModel(TASK_TIER_MAP[taskType], taskType);
+    return model;
   }
 
   /**
@@ -200,6 +234,13 @@ export class InferenceRouter implements LLMProvider {
    */
   getEmbeddingModel(): string {
     return this.embeddingModel;
+  }
+
+  /**
+   * Get the fast tier model name, or null if not configured.
+   */
+  getFastModel(): string | null {
+    return this.fastModel;
   }
 
   /**
@@ -252,6 +293,24 @@ export class InferenceRouter implements LLMProvider {
   }
 
   /**
+   * Set or update the fast tier provider (SmolLM2).
+   * The fast tier handles classify/extract tasks and is always-resident.
+   */
+  setFastProvider(provider: LLMProvider, model: string): void {
+    this.fastProvider = provider;
+    this.fastModel = model;
+  }
+
+  /**
+   * Set or update the vision provider.
+   */
+  setVisionProvider(provider: LLMProvider, fastModel: string, richModel?: string): void {
+    this.visionProvider = provider;
+    this.visionFastModel = fastModel;
+    this.visionRichModel = richModel ?? null;
+  }
+
+  /**
    * Check if the BitNet provider is available and ready.
    */
   async isBitNetReady(): Promise<boolean> {
@@ -264,6 +323,20 @@ export class InferenceRouter implements LLMProvider {
    */
   getBitNetModel(): string | null {
     return this.bitnetReasoningModel;
+  }
+
+  /**
+   * Check if the fast tier is ready (SmolLM2 loaded).
+   */
+  isFastTierReady(): boolean {
+    return this.fastProvider !== null && this.fastModel !== null;
+  }
+
+  /**
+   * Check if vision inference is available.
+   */
+  isVisionReady(): boolean {
+    return this.visionProvider !== null && this.visionFastModel !== null;
   }
 
   /**
@@ -291,34 +364,43 @@ export class InferenceRouter implements LLMProvider {
   // ─── Private ──────────────────────────────────────────────────────────────
 
   /**
-   * Get the provider for a given inference tier.
-   *
-   * Priority chain (desktop):
-   *   1. Ollama (GPU) — reasoningProvider (if it's an OllamaProvider and available)
-   *   2. BitNet (CPU) — bitnetProvider (if configured and available)
-   *   3. Native (fallback) — reasoningProvider (NativeProvider)
-   *
-   * On mobile, uses the mobile provider for all tiers.
-   * Embedding tier always uses the dedicated embedding provider.
+   * Resolve the provider and model name for a given tier and task type.
+   */
+  private resolveProviderAndModel(tier: InferenceTier, taskType?: TaskType): { provider: LLMProvider; model: string } {
+    if (this.isMobile() && this.mobileProvider) {
+      return { provider: this.mobileProvider, model: this.mobileReasoningModel ?? this.reasoningModel };
+    }
+
+    // Fast tier: use dedicated fast provider if available
+    if (tier === 'fast' && this.fastProvider && this.fastModel) {
+      return { provider: this.fastProvider, model: this.fastModel };
+    }
+
+    // Vision tier: route to vision provider
+    if (tier === 'vision' && this.visionProvider) {
+      const model = (taskType === 'vision_rich' && this.visionRichModel)
+        ? this.visionRichModel
+        : (this.visionFastModel ?? this.reasoningModel);
+      return { provider: this.visionProvider, model };
+    }
+
+    // Embedding tier
+    if (tier === 'embedding') {
+      return { provider: this.embeddingProvider, model: this.embeddingModel };
+    }
+
+    // Primary/Quality tier: BitNet > reasoning provider
+    if (this.bitnetProvider) {
+      return { provider: this.bitnetProvider, model: this.bitnetReasoningModel ?? this.reasoningModel };
+    }
+
+    return { provider: this.reasoningProvider, model: this.reasoningModel };
+  }
+
+  /**
+   * Get the provider for a given inference tier (legacy compatibility).
    */
   private getProviderForTier(tier: InferenceTier): LLMProvider {
-    if (this.isMobile() && this.mobileProvider) {
-      return this.mobileProvider;
-    }
-
-    if (tier === 'embedding') {
-      return this.embeddingProvider;
-    }
-
-    // If BitNet is configured, it acts as the primary reasoning provider.
-    // The reasoningProvider (Ollama or Native) is used when BitNet is not set up.
-    // Provider availability is checked at configuration time, not per-request,
-    // because isAvailable() is async and this method is sync.
-    // The sidecar reconfigures the router when providers change.
-    if (this.bitnetProvider) {
-      return this.bitnetProvider;
-    }
-
-    return this.reasoningProvider;
+    return this.resolveProviderAndModel(tier).provider;
   }
 }
