@@ -4067,6 +4067,156 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
     console.error(`[sidecar] Connector ${params.connectorId} synced ${items.length} items but core.knowledge not available — items not indexed`);
   }
 
+  // ─── Fix #1: After Gmail OAuth sync, index emails into local store ───────
+  // The connector router's generic sync returns items for knowledge graph,
+  // but email/calendar connectors need specialized indexing into their
+  // dedicated SQLite tables (indexed_emails, indexed_calendar_events) so
+  // that get_inbox_items and get_today_events can query locally.
+  const isGmail = params.connectorId === 'gmail' || params.connectorId === 'google-gmail';
+  const isGoogleCalendar = params.connectorId === 'google-calendar';
+  const isGoogleDrive = params.connectorId === 'google-drive';
+
+  if (isGmail && emailAdapter && core && prefsDb) {
+    // Background email indexing from Gmail API into local indexed_emails table
+    (async () => {
+      try {
+        if (!emailIndexer) {
+          emailIndexer = new EmailIndexer({
+            db: prefsDb!,
+            knowledge: core!.knowledge,
+            llm: core!.llm,
+          });
+          emailIndexer.onEvent((event, data) => emit(event, data));
+        }
+
+        console.error('[sidecar] Post-sync: fetching Gmail messages for local indexing...');
+        const fetchResult = await emailAdapter!.execute('email.fetch', {
+          folder: 'INBOX',
+          limit: 200,
+          sort: 'date_desc',
+        });
+
+        if (fetchResult.success && fetchResult.data) {
+          const rawData = fetchResult.data as { messages?: unknown[] } | unknown[];
+          const messages = Array.isArray(rawData) ? rawData : (rawData.messages ?? []);
+          const emailIndexed = await emailIndexer.indexMessages(
+            messages as Parameters<EmailIndexer['indexMessages']>[0],
+            'gmail',
+          );
+          console.error(`[sidecar] Post-sync: ${emailIndexed} emails indexed into local store`);
+          emit('semblance://indexing-complete', {
+            type: 'email',
+            connectorId: params.connectorId,
+            indexed: emailIndexed,
+            total: messages.length,
+          });
+        }
+      } catch (emailSyncErr) {
+        console.error('[sidecar] Post-sync email indexing failed:', emailSyncErr);
+      }
+    })();
+  }
+
+  // ─── Fix #3: After Google Drive OAuth sync, index file metadata ──────────
+  if (isGoogleDrive && core && prefsDb) {
+    (async () => {
+      try {
+        const tokenMgr = ensureOAuthTokenManager();
+        const clientId = process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? '';
+        const clientSecret = process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'] ?? '';
+        if (!clientId) return;
+
+        const { GoogleDriveAdapter } = await import('../../../gateway/services/google-drive-adapter.js');
+        const driveAdapter = new GoogleDriveAdapter(tokenMgr, { clientId, clientSecret });
+
+        console.error('[sidecar] Post-sync: listing Google Drive files for indexing...');
+        const listResult = await driveAdapter.execute('cloud.list_files' as import('../../../core/types/actions.js').ActionType, {
+          pageSize: 100,
+        });
+
+        if (listResult.success && listResult.data) {
+          const driveData = listResult.data as {
+            files: Array<{ id: string; name: string; mimeType: string; modifiedTime: string; webViewLink?: string; sizeBytes?: number }>;
+          };
+          const files = driveData.files ?? [];
+          let driveIndexed = 0;
+
+          for (const file of files) {
+            try {
+              // Index file metadata into knowledge graph with source: 'cloud_storage'
+              await core!.knowledge.indexDocument({
+                content: `Google Drive file: ${file.name} (${file.mimeType})`,
+                title: file.name,
+                source: 'cloud_storage' as import('../../../core/knowledge/types.js').DocumentSource,
+                sourcePath: file.id,
+                mimeType: file.mimeType,
+                metadata: {
+                  driveFileId: file.id,
+                  mimeType: file.mimeType,
+                  modifiedTime: file.modifiedTime,
+                  webViewLink: file.webViewLink,
+                  sizeBytes: file.sizeBytes,
+                  connectorId: 'google-drive',
+                },
+              });
+              driveIndexed++;
+            } catch {
+              // Skip individual file indexing failures
+            }
+          }
+          console.error(`[sidecar] Post-sync: ${driveIndexed}/${files.length} Drive files indexed into knowledge graph`);
+          emit('semblance://indexing-complete', {
+            type: 'drive',
+            connectorId: params.connectorId,
+            indexed: driveIndexed,
+            total: files.length,
+          });
+        }
+      } catch (driveSyncErr) {
+        console.error('[sidecar] Post-sync Drive indexing failed:', driveSyncErr);
+      }
+    })();
+  }
+
+  // ─── Fix #3b: After Google Calendar OAuth sync, index events ─────────────
+  if (isGoogleCalendar && calendarAdapter && core && prefsDb) {
+    (async () => {
+      try {
+        if (!calendarIndexer) {
+          calendarIndexer = new CalendarIndexer({
+            db: prefsDb!,
+            knowledge: core!.knowledge,
+            llm: core!.llm,
+          });
+          calendarIndexer.onEvent((event, data) => emit(event, data));
+        }
+
+        console.error('[sidecar] Post-sync: fetching calendar events for local indexing...');
+        const calResult = await calendarAdapter!.execute('calendar.fetch', {
+          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+
+        if (calResult.success && calResult.data) {
+          const events = ((calResult.data as { events?: unknown[] }).events ?? []) as Parameters<CalendarIndexer['indexEvents']>[0];
+          const calIndexed = await calendarIndexer.indexEvents(events, 'google-calendar');
+          console.error(`[sidecar] Post-sync: ${calIndexed} calendar events indexed`);
+          emit('semblance://indexing-complete', {
+            type: 'calendar',
+            connectorId: params.connectorId,
+            indexed: calIndexed,
+            total: events.length,
+          });
+        }
+      } catch (calSyncErr) {
+        console.error('[sidecar] Post-sync calendar indexing failed:', calSyncErr);
+      }
+    })();
+  }
+
+  // ─── Fix #6: Refresh prompt config so orchestrator knows new services ────
+  _refreshPromptConfig();
+
   return {
     success: true,
     synced: true,
@@ -5880,6 +6030,56 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      // ─── Email Search & Draft (IPC handlers for verify/frontend) ──────
+      case 'search_emails': {
+        const searchParams = params as { query: string; from?: string; limit?: number };
+        if (emailIndexer) {
+          try {
+            const results = emailIndexer.searchEmails(searchParams.query, {
+              from: searchParams.from,
+              limit: searchParams.limit ?? 20,
+            });
+            respond(id, results);
+          } catch (err) {
+            console.error('[sidecar] search_emails error:', err);
+            respond(id, []);
+          }
+        } else if (prefsDb && core) {
+          try {
+            emailIndexer = new EmailIndexer({
+              db: prefsDb,
+              knowledge: core.knowledge,
+              llm: core.llm,
+            });
+            emailIndexer.onEvent((event, data) => emit(event, data));
+            const results = emailIndexer.searchEmails(searchParams.query, {
+              from: searchParams.from,
+              limit: searchParams.limit ?? 20,
+            });
+            respond(id, results);
+          } catch {
+            respond(id, []);
+          }
+        } else {
+          respond(id, []);
+        }
+        break;
+      }
+      case 'draft_email_action': {
+        const draftParams = params as { to: string; subject: string; body: string };
+        if (!emailAdapter) {
+          respondError(id, 'Email adapter not initialized');
+          break;
+        }
+        try {
+          const result = await emailAdapter.execute('email.draft', draftParams);
+          respond(id, result.data ?? { success: result.success });
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+
       // ─── Upgrade Email ────────────────────────────────────────────────
       case 'upgrade_submit_email': {
         const emailParams = params as { email: string };
@@ -5957,72 +6157,252 @@ async function handleRequest(req: Request): Promise<void> {
 
       // ─── Inbox Data Handlers ──────────────────────────────────────────
       case 'get_inbox_items': {
-        // Fetch recent emails from Gmail for the Inbox screen
+        // Fix #2: Query from local indexed_emails table instead of live Gmail API.
+        // The local store is populated by connector sync (Fix #1) and email_start_index.
         const inboxParams = params as { limit?: number; offset?: number };
         const limit = inboxParams.limit ?? 30;
-        if (!emailAdapter) {
-          respond(id, []);
-          break;
-        }
-        try {
-          const result = await emailAdapter.execute('email.fetch', {
-            folder: 'INBOX',
-            limit,
-            sort: 'date_desc',
-          });
-          console.error('[sidecar] get_inbox_items result:', result.success, result.error, 'data keys:', result.data ? Object.keys(result.data as object) : 'null');
-          if (result.success && result.data) {
-            // Handle both { messages: [...] } and direct array
-            const rawData = result.data as { messages?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>;
-            const messages = Array.isArray(rawData) ? rawData : (rawData.messages ?? []);
-            // Map to IndexedEmail shape expected by the frontend
-            const mapped = messages.map((m: Record<string, unknown>, i: number) => ({
-              id: (m['id'] as string) ?? `msg_${i}`,
-              messageId: (m['messageId'] as string) ?? (m['id'] as string) ?? `msg_${i}`,
-              threadId: (m['threadId'] as string) ?? '',
+        const offset = inboxParams.offset ?? 0;
+
+        // Try local index first (fast, no network)
+        if (emailIndexer) {
+          try {
+            const indexed = emailIndexer.getIndexedEmails({
               folder: 'INBOX',
-              from: (m['from'] as string) ?? '',
-              fromName: ((m['from'] as string) ?? '').replace(/<.*>/, '').trim(),
-              to: Array.isArray(m['to']) ? (m['to'] as string[]).join(', ') : ((m['to'] as string) ?? ''),
-              subject: (m['subject'] as string) ?? '(no subject)',
-              snippet: ((m['body'] as { text?: string })?.text ?? (m['snippet'] as string) ?? '').substring(0, 200),
-              receivedAt: (m['date'] as string) ?? (m['receivedAt'] as string) ?? new Date().toISOString(),
-              isRead: (m['isRead'] as boolean) ?? !(m['flags'] as string[] ?? []).includes('\\Unseen'),
-              isStarred: (m['isStarred'] as boolean) ?? false,
-              hasAttachments: (m['hasAttachments'] as boolean) ?? false,
-              labels: (m['labels'] as string) ?? '',
-              priority: 'normal' as const,
-              accountId: 'gmail',
-            }));
-            respond(id, mapped);
-          } else {
-            console.error('[sidecar] get_inbox_items: email adapter returned failure:', result.error);
-            respond(id, []);
+              limit,
+              offset,
+            });
+            console.error(`[sidecar] get_inbox_items: ${indexed.length} emails from local index`);
+            respond(id, indexed);
+            break;
+          } catch (indexErr) {
+            console.error('[sidecar] get_inbox_items: local index query failed, falling back:', indexErr);
           }
-        } catch (err) {
-          console.error('[sidecar] get_inbox_items error:', err);
-          respond(id, []);
         }
+
+        // Fallback: initialize indexer from prefsDb if it exists but indexer wasn't created
+        if (!emailIndexer && prefsDb && core) {
+          try {
+            emailIndexer = new EmailIndexer({
+              db: prefsDb,
+              knowledge: core.knowledge,
+              llm: core.llm,
+            });
+            emailIndexer.onEvent((event, data) => emit(event, data));
+            const indexed = emailIndexer.getIndexedEmails({
+              folder: 'INBOX',
+              limit,
+              offset,
+            });
+            console.error(`[sidecar] get_inbox_items: ${indexed.length} emails from freshly-init index`);
+            respond(id, indexed);
+            break;
+          } catch {
+            // Table may not exist yet — return empty
+          }
+        }
+
+        respond(id, []);
         break;
       }
       case 'get_proactive_insights': {
-        respond(id, []);
+        // Fix #5: Query proactiveEngine for real insights instead of empty stub
+        if (proactiveEngine) {
+          try {
+            const insights = proactiveEngine.getActiveInsights();
+            // Map to frontend ProactiveInsight shape
+            respond(id, insights.map(i => ({
+              id: i.id,
+              type: i.type,
+              title: i.title,
+              description: i.summary,
+              priority: i.priority === 'high' ? 'high' : i.priority === 'low' ? 'low' : 'medium',
+              actionable: i.suggestedAction !== null,
+              suggestedAction: i.suggestedAction?.description,
+              relatedEntityId: i.sourceIds[0] ?? undefined,
+              createdAt: i.createdAt,
+            })));
+          } catch (err) {
+            console.error('[sidecar] get_proactive_insights error:', err);
+            respond(id, []);
+          }
+        } else {
+          // Try to initialize proactive engine if dependencies are available
+          if (emailIndexer && calendarIndexer && prefsDb && core) {
+            try {
+              const { AutonomyManager } = await import('../../../core/agent/autonomy.js');
+              const autonomy = new AutonomyManager(prefsDb);
+              proactiveEngine = new ProactiveEngine({
+                db: prefsDb,
+                knowledge: core.knowledge,
+                emailIndexer,
+                calendarIndexer,
+                autonomy,
+              });
+              proactiveEngine.onEvent((event, data) => emit(event, data));
+              // Run once to generate initial insights
+              await proactiveEngine.run();
+              const insights = proactiveEngine.getActiveInsights();
+              respond(id, insights.map(i => ({
+                id: i.id,
+                type: i.type,
+                title: i.title,
+                description: i.summary,
+                priority: i.priority === 'high' ? 'high' : i.priority === 'low' ? 'low' : 'medium',
+                actionable: i.suggestedAction !== null,
+                suggestedAction: i.suggestedAction?.description,
+                relatedEntityId: i.sourceIds[0] ?? undefined,
+                createdAt: i.createdAt,
+              })));
+            } catch (initErr) {
+              console.error('[sidecar] ProactiveEngine init failed:', initErr);
+              respond(id, []);
+            }
+          } else {
+            respond(id, []);
+          }
+        }
         break;
       }
       case 'get_today_events': {
-        respond(id, []);
+        // Fix #5: Query calendarIndexer for today's events instead of empty stub
+        if (calendarIndexer) {
+          try {
+            const events = calendarIndexer.getUpcomingEvents({ daysAhead: 1, limit: 20 });
+            // Map to frontend CalendarEvent shape
+            respond(id, events.map(e => ({
+              id: e.id,
+              title: e.title,
+              startTime: e.startTime,
+              endTime: e.endTime,
+              location: e.location || undefined,
+              description: e.description || undefined,
+              isAllDay: e.isAllDay,
+            })));
+          } catch (err) {
+            console.error('[sidecar] get_today_events error:', err);
+            respond(id, []);
+          }
+        } else if (prefsDb && core) {
+          // Try to initialize calendarIndexer
+          try {
+            calendarIndexer = new CalendarIndexer({
+              db: prefsDb,
+              knowledge: core.knowledge,
+              llm: core.llm,
+            });
+            calendarIndexer.onEvent((event, data) => emit(event, data));
+            const events = calendarIndexer.getUpcomingEvents({ daysAhead: 1, limit: 20 });
+            respond(id, events.map(e => ({
+              id: e.id,
+              title: e.title,
+              startTime: e.startTime,
+              endTime: e.endTime,
+              location: e.location || undefined,
+              description: e.description || undefined,
+              isAllDay: e.isAllDay,
+            })));
+          } catch {
+            respond(id, []);
+          }
+        } else {
+          respond(id, []);
+        }
         break;
       }
       case 'get_actions_summary': {
-        respond(id, { todayCount: 0, todayTimeSavedSeconds: 0, recentActions: [] });
+        // Query pending_actions table for today's actions
+        if (prefsDb) {
+          try {
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const todayIso = todayStart.toISOString();
+            const todayActions = prefsDb.prepare(
+              "SELECT * FROM pending_actions WHERE created_at >= ? AND status = 'approved' ORDER BY created_at DESC LIMIT 20"
+            ).all(todayIso) as Array<{ id: string; action: string; payload: string; reasoning: string; created_at: string }>;
+            respond(id, {
+              todayCount: todayActions.length,
+              todayTimeSavedSeconds: todayActions.length * 30, // ~30s per action estimate
+              recentActions: todayActions.map(a => ({
+                id: a.id,
+                action: a.action,
+                description: a.reasoning,
+                timestamp: a.created_at,
+              })),
+            });
+          } catch {
+            respond(id, { todayCount: 0, todayTimeSavedSeconds: 0, recentActions: [] });
+          }
+        } else {
+          respond(id, { todayCount: 0, todayTimeSavedSeconds: 0, recentActions: [] });
+        }
         break;
       }
       case 'get_pending_actions': {
-        respond(id, []);
+        // Fix #5: Query pending_actions table for real pending approvals
+        if (prefsDb) {
+          try {
+            const pending = prefsDb.prepare(
+              "SELECT * FROM pending_actions WHERE status = 'pending_approval' ORDER BY created_at DESC LIMIT 20"
+            ).all() as Array<{
+              id: string; action: string; payload: string; reasoning: string;
+              domain: string; tier: string; status: string; created_at: string;
+            }>;
+            respond(id, pending.map(p => ({
+              id: p.id,
+              action: p.action,
+              payload: p.payload ? JSON.parse(p.payload) : {},
+              reasoning: p.reasoning,
+              domain: p.domain ?? '',
+              tier: p.tier ?? 'guardian',
+              status: p.status,
+              createdAt: p.created_at,
+            })));
+          } catch (err) {
+            console.error('[sidecar] get_pending_actions error:', err);
+            respond(id, []);
+          }
+        } else {
+          respond(id, []);
+        }
         break;
       }
       case 'get_reminders': {
-        respond(id, []);
+        // Fix #5: Query reminders table for active reminders
+        if (prefsDb) {
+          try {
+            // Ensure reminders table exists
+            prefsDb.exec(`
+              CREATE TABLE IF NOT EXISTS reminders (
+                id TEXT PRIMARY KEY,
+                text TEXT NOT NULL,
+                due_at TEXT NOT NULL,
+                recurrence TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                source TEXT DEFAULT 'user',
+                created_at TEXT NOT NULL
+              )
+            `);
+            const reminders = prefsDb.prepare(
+              "SELECT * FROM reminders WHERE status IN ('pending', 'snoozed') ORDER BY due_at ASC LIMIT 50"
+            ).all() as Array<{
+              id: string; text: string; due_at: string; recurrence: string | null;
+              status: string; source: string; created_at: string;
+            }>;
+            respond(id, reminders.map(r => ({
+              id: r.id,
+              text: r.text,
+              dueAt: r.due_at,
+              recurrence: r.recurrence,
+              status: r.status,
+              source: r.source ?? 'user',
+            })));
+          } catch (err) {
+            console.error('[sidecar] get_reminders error:', err);
+            respond(id, []);
+          }
+        } else {
+          respond(id, []);
+        }
         break;
       }
       case 'get_dark_pattern_flags': {

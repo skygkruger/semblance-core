@@ -333,12 +333,12 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'list_cloud_files',
-    description: 'List files in the user\'s connected cloud storage (Google Drive). Use when the user asks what files they have in Drive, or asks to see their cloud files. Returns real-time file listing from the cloud API.',
+    description: 'List files from the user\'s connected cloud storage (Google Drive) that have been indexed locally. Use when the user asks what files they have in Drive. Returns files from the local knowledge index — no live cloud API call.',
     parameters: {
       type: 'object',
       properties: {
-        folderId: { type: 'string', description: 'Folder ID to list (default: root/My Drive)' },
-        query: { type: 'string', description: 'Optional search query to filter files' },
+        query: { type: 'string', description: 'Optional search query to filter files (default: list all)' },
+        limit: { type: 'number', description: 'Maximum number of files to return (default 50)' },
       },
     },
   },
@@ -593,7 +593,7 @@ const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'move_email': 'email.move',
   'mark_email_read': 'email.markRead',
   'delete_reminder': 'reminder.delete',
-  'list_cloud_files': 'cloud.list_files',
+  // list_cloud_files moved to LOCAL_TOOLS — queries local knowledge index, not cloud API
 };
 
 // Tools that are handled locally (no IPC needed)
@@ -603,6 +603,7 @@ const BASE_LOCAL_TOOLS = new Set([
   'categorize_email',
   'detect_calendar_conflicts',
   'search_cloud_files',
+  'list_cloud_files',
   'list_indexed_documents',
   'read_document',
   'add_contact',
@@ -1780,6 +1781,39 @@ export class OrchestratorImpl implements Orchestrator {
             metadata: r.document.metadata,
           })),
         });
+        continue;
+      }
+
+      // Fix #4: list_cloud_files queries local knowledge index instead of live cloud API
+      if (tc.name === 'list_cloud_files') {
+        const query = (tc.arguments['query'] as string) || '*';
+        const limit = (tc.arguments['limit'] as number) ?? 50;
+        try {
+          const docs = await this.knowledge.listDocuments({
+            source: 'cloud_storage' as import('../knowledge/types.js').DocumentSource,
+            limit,
+          });
+          // If a query was provided, filter by title match
+          const filtered = query === '*'
+            ? docs
+            : docs.filter(d => d.title.toLowerCase().includes(query.toLowerCase()));
+          executedResults.push({
+            tool: 'list_cloud_files',
+            result: filtered.map(d => ({
+              id: d.sourcePath ?? d.id,
+              name: d.title,
+              mimeType: d.mimeType,
+              source: d.source,
+              indexedAt: d.indexedAt,
+              metadata: d.metadata,
+            })),
+          });
+        } catch (err) {
+          executedResults.push({
+            tool: 'list_cloud_files',
+            result: `No cloud files indexed yet. The user needs to connect Google Drive first.`,
+          });
+        }
         continue;
       }
 
