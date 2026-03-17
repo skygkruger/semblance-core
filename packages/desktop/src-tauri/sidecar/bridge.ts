@@ -5533,7 +5533,21 @@ async function handleRequest(req: Request): Promise<void> {
       // ─── Morning Brief / Weather / Commute ─────────────────────────────
       case 'brief_get_morning': {
         if (!morningBriefGenerator && prefsDb && core) {
-          morningBriefGenerator = new MorningBriefGenerator(prefsDb, core.llm);
+          // Initialize calendarIndexer if not yet created (works without connected account)
+          if (!calendarIndexer) {
+            calendarIndexer = new CalendarIndexer({
+              db: prefsDb,
+              knowledge: core.knowledge,
+              llm: core.llm,
+            });
+            calendarIndexer.onEvent((event, data) => emit(event, data));
+          }
+          morningBriefGenerator = new MorningBriefGenerator({
+            db: prefsDb,
+            calendarIndexer,
+            llm: core.llm,
+            model: core.model ?? undefined,
+          });
         }
         if (!morningBriefGenerator) { respond(id, null); break; }
         const brief = await morningBriefGenerator.generateBrief();

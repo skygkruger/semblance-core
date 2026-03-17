@@ -71,6 +71,9 @@ export type { IPCClient, IPCClientConfig, IPCClientTransportConfig } from './age
 export { CoreIPCClient } from './agent/ipc-client.js';
 export { createOrchestrator } from './agent/index.js';
 export { ConversationManager } from './agent/conversation-manager.js';
+export { NamedSessionManager } from './agent/named-session-manager.js';
+export type { NamedSession } from './agent/named-session-manager.js';
+export { AdaptiveContextBudget } from './agent/context-budget.js';
 export type {
   ConversationSummary as ConvSummary,
   ConversationTurnRow,
