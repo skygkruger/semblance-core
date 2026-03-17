@@ -45,6 +45,10 @@ export {
 // Model residency management
 export { ModelResidencyManager } from './model-residency.js';
 
+// Vision provider
+export { VisionProvider } from './vision-provider.js';
+export type { VisionRequest, VisionResponse } from './vision-provider.js';
+
 // Native provider (llama.cpp via Rust FFI bridge)
 export { NativeProvider } from './native-provider.js';
 export type {

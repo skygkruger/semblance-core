@@ -457,3 +457,20 @@ export type { DaemonStatus } from './daemon/daemon-manager.js';
 // Cron scheduler
 export { CronScheduler } from './cron/cron-scheduler.js';
 export type { CronJob } from './cron/cron-scheduler.js';
+
+// Channel adapters
+export { ChannelRegistry } from './channels/channel-registry.js';
+export { InboundPipeline } from './channels/inbound-pipeline.js';
+export type { SanitizedInboundMessage } from './channels/inbound-pipeline.js';
+export { PairingManager } from './channels/pairing-manager.js';
+export { IMessageAdapter } from './channels/imessage/imessage-adapter.js';
+export { TelegramAdapter } from './channels/telegram/telegram-adapter.js';
+export type { ChannelAdapter, InboundMessage, OutboundMessage, ChannelStatus } from './channels/types.js';
+
+// Canvas
+export { CanvasManager } from './canvas/canvas-manager.js';
+export type { CanvasPushPayload, CanvasState, CanvasComponentType } from './canvas/canvas-manager.js';
+
+// Event bus
+export { SemblanceEventBus } from './events/event-bus.js';
+export type { SemblanceEvent, SemblanceEventType, SemblanceEventMap } from './events/event-bus.js';
