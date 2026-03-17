@@ -53,6 +53,9 @@ packages/mobile/android/build/
 # Test
 coverage/
 
+# Build Bible (canonical spec — private, not committed)
+SEMBLANCE_BUILD_BIBLE.md
+
 # Misc
 *.log
 npm-debug.log*

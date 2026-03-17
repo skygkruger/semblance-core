@@ -12,6 +12,7 @@ import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type { KnowledgeGraph } from './index.js';
 import type { LLMProvider } from '../llm/types.js';
+import { sanitizeRetrievedContent } from '../agent/content-sanitizer.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -146,10 +147,12 @@ export class EmailIndexer {
 
         if (existing) continue;
 
-        // Extract plaintext body
-        const bodyText = msg.body.text || '';
+        // Extract plaintext body — sanitize at ingestion to strip adversarial content
+        const rawBodyText = msg.body.text || '';
+        const bodyText = sanitizeRetrievedContent(rawBodyText);
         const snippet = bodyText.substring(0, 200).replace(/\s+/g, ' ').trim();
-        const embeddingContent = `${msg.subject} ${bodyText.substring(0, 500)}`;
+        const sanitizedSubject = sanitizeRetrievedContent(msg.subject);
+        const embeddingContent = `${sanitizedSubject} ${bodyText.substring(0, 500)}`;
 
         // Derive thread ID from the raw message
         const threadId = msg.threadId ?? msg.messageId;

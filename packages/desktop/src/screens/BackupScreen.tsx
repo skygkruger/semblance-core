@@ -1,91 +1,73 @@
+/**
+ * BackupScreen — Local backup management with destinations, scheduling, and history.
+ * All data persisted via IPC to the Rust backend (SQLite).
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getKnowledgeStats } from '../ipc/commands';
+import {
+  backupGetConfig,
+  backupGetHistory,
+  backupUpdateConfig,
+  backupCreate,
+  backupRestore,
+  backupAddDestination,
+  backupRemoveDestination,
+} from '../ipc/commands';
+import type { BackupDestinationEntry, BackupHistoryRecord } from '../ipc/commands';
 import './BackupScreen.css';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-interface BackupDestination {
-  id: string;
-  name: string;
-  type: 'local' | 'usb' | 'network';
-  path: string;
-  lastBackupAt: string | null;
-  sizeBytes: number;
-}
-
-interface BackupHistoryEntry {
-  id: string;
-  destinationId: string;
-  destinationName: string;
-  timestamp: string;
-  sizeBytes: number;
-  status: 'success' | 'failed' | 'partial';
-  durationSeconds: number;
-}
-
 type BackupSchedule = 'manual' | 'daily' | 'weekly' | 'monthly';
-
-// ─── localStorage keys ──────────────────────────────────────────────────────
-
-const STORAGE_KEY_DESTINATIONS = 'semblance.backup.destinations';
-const STORAGE_KEY_HISTORY = 'semblance.backup.history';
-const STORAGE_KEY_SCHEDULE = 'semblance.backup.schedule';
-
-function loadFromStorage<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) return JSON.parse(raw) as T;
-  } catch { /* ignore */ }
-  return fallback;
-}
-
-// ─── Component ──────────────────────────────────────────────────────────────
 
 export function BackupScreen() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
-  const [destinations, setDestinations] = useState<BackupDestination[]>([]);
-  const [history, setHistory] = useState<BackupHistoryEntry[]>([]);
+  const [destinations, setDestinations] = useState<BackupDestinationEntry[]>([]);
+  const [history, setHistory] = useState<BackupHistoryRecord[]>([]);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [schedule, setSchedule] = useState<BackupSchedule>('manual');
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  // Load persisted data from localStorage
   useEffect(() => {
-    try {
-      const savedDestinations = loadFromStorage<BackupDestination[]>(STORAGE_KEY_DESTINATIONS, []);
-      const savedHistory = loadFromStorage<BackupHistoryEntry[]>(STORAGE_KEY_HISTORY, []);
-      const savedSchedule = loadFromStorage<BackupSchedule>(STORAGE_KEY_SCHEDULE, 'manual');
+    async function loadData() {
+      try {
+        const [config, hist] = await Promise.all([
+          backupGetConfig(),
+          backupGetHistory(),
+        ]);
+        setDestinations(config.destinations);
+        setSchedule(config.schedule);
+        setHistory(hist);
 
-      setDestinations(savedDestinations);
-      setHistory(savedHistory);
-      setSchedule(savedSchedule);
-
-      // Derive last backup from history
-      if (savedHistory.length > 0) {
-        const latest = savedHistory.reduce((a, b) =>
-          new Date(a.timestamp) > new Date(b.timestamp) ? a : b,
-        );
-        setLastBackupAt(latest.timestamp);
+        if (hist.length > 0) {
+          const latest = hist.reduce((a, b) =>
+            new Date(a.timestamp) > new Date(b.timestamp) ? a : b,
+          );
+          setLastBackupAt(latest.timestamp);
+        }
+      } catch (err) {
+        console.error('[BackupScreen] Failed to load data:', err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('[BackupScreen] Failed to load persisted data:', err);
-    } finally {
-      setLoading(false);
     }
+    loadData();
   }, []);
 
-  // Persist schedule changes
-  const handleSetSchedule = useCallback((newSchedule: BackupSchedule) => {
+  const handleSetSchedule = useCallback(async (newSchedule: BackupSchedule) => {
+    const prev = schedule;
     setSchedule(newSchedule);
-    localStorage.setItem(STORAGE_KEY_SCHEDULE, JSON.stringify(newSchedule));
-  }, []);
+    try {
+      await backupUpdateConfig({ schedule: newSchedule });
+    } catch (err) {
+      console.error('[BackupScreen] Failed to update schedule:', err);
+      setSchedule(prev);
+    }
+  }, [schedule]);
 
-  // Add a new backup destination via Tauri file dialog
   const handleAddDestination = useCallback(async () => {
     try {
-      // Use Tauri dialog to pick a directory
       const { open } = await import('@tauri-apps/plugin-dialog');
       const selected = await open({ directory: true, multiple: false, title: 'Select Backup Directory' });
       if (!selected) return;
@@ -93,86 +75,71 @@ export function BackupScreen() {
       const dirPath = typeof selected === 'string' ? selected : String(selected);
       const dirName = dirPath.split(/[/\\]/).pop() || dirPath;
 
-      const newDest: BackupDestination = {
-        id: `dest_${Date.now()}`,
+      const newDest = await backupAddDestination({
         name: dirName,
-        type: 'local',
         path: dirPath,
-        lastBackupAt: null,
-        sizeBytes: 0,
-      };
-
-      const updated = [...destinations, newDest];
-      setDestinations(updated);
-      localStorage.setItem(STORAGE_KEY_DESTINATIONS, JSON.stringify(updated));
+        type: 'local',
+      });
+      setDestinations((prev) => [...prev, newDest]);
     } catch (err) {
       console.error('[BackupScreen] Failed to add destination:', err);
     }
-  }, [destinations]);
+  }, []);
 
-  // Remove a backup destination
-  const handleRemoveDestination = useCallback((id: string) => {
-    const updated = destinations.filter((d) => d.id !== id);
-    setDestinations(updated);
-    localStorage.setItem(STORAGE_KEY_DESTINATIONS, JSON.stringify(updated));
-  }, [destinations]);
+  const handleRemoveDestination = useCallback(async (id: string) => {
+    try {
+      await backupRemoveDestination(id);
+      setDestinations((prev) => prev.filter((d) => d.id !== id));
+    } catch (err) {
+      console.error('[BackupScreen] Failed to remove destination:', err);
+    }
+  }, []);
 
-  // Run backup: copy knowledge DB to each destination
   const handleBackupNow = useCallback(async () => {
     if (destinations.length === 0 || isBackingUp) return;
     setIsBackingUp(true);
-    const startTime = Date.now();
-
+    setStatusMessage(null);
     try {
-      // Ask sidecar for knowledge stats to get DB info
-      const stats = await getKnowledgeStats().catch(() => ({
-        documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null,
-      }));
+      const record = await backupCreate('');
+      setHistory((prev) => [record, ...prev].slice(0, 100));
+      setLastBackupAt(record.timestamp);
 
-      const timestamp = new Date().toISOString();
-      const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+      // Refresh destinations to get updated lastBackupAt
+      const config = await backupGetConfig();
+      setDestinations(config.destinations);
 
-      // Create history entries for each destination
-      const newEntries: BackupHistoryEntry[] = destinations.map((dest) => ({
-        id: `backup_${Date.now()}_${dest.id}`,
-        destinationId: dest.id,
-        destinationName: dest.name,
-        timestamp,
-        sizeBytes: stats.indexSizeBytes,
-        status: 'success' as const,
-        durationSeconds,
-      }));
-
-      // Update destination lastBackupAt
-      const updatedDests = destinations.map((d) => ({ ...d, lastBackupAt: timestamp, sizeBytes: stats.indexSizeBytes }));
-      const updatedHistory = [...newEntries, ...history].slice(0, 100); // Keep last 100
-
-      setDestinations(updatedDests);
-      setHistory(updatedHistory);
-      setLastBackupAt(timestamp);
-
-      localStorage.setItem(STORAGE_KEY_DESTINATIONS, JSON.stringify(updatedDests));
-      localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(updatedHistory));
+      setStatusMessage(t('screen.backup.backup_success', 'Backup completed successfully'));
+      setTimeout(() => setStatusMessage(null), 3000);
     } catch (err) {
       console.error('[BackupScreen] Backup failed:', err);
-
-      const timestamp = new Date().toISOString();
-      const failEntry: BackupHistoryEntry = {
-        id: `backup_${Date.now()}_fail`,
-        destinationId: destinations[0]?.id ?? 'unknown',
-        destinationName: destinations[0]?.name ?? 'Unknown',
-        timestamp,
-        sizeBytes: 0,
-        status: 'failed',
-        durationSeconds: Math.round((Date.now() - startTime) / 1000),
-      };
-      const updatedHistory = [failEntry, ...history].slice(0, 100);
-      setHistory(updatedHistory);
-      localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(updatedHistory));
+      setStatusMessage(t('screen.backup.backup_failed', 'Backup failed'));
+      setTimeout(() => setStatusMessage(null), 5000);
     } finally {
       setIsBackingUp(false);
     }
-  }, [destinations, history, isBackingUp]);
+  }, [destinations, isBackingUp, t]);
+
+  const handleRestore = useCallback(async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const filePath = await open({
+        title: 'Select Backup Archive',
+        multiple: false,
+        filters: [{ name: 'Backup Archive', extensions: ['enc', 'bak', 'json'] }],
+      });
+      if (!filePath) return;
+
+      const path = typeof filePath === 'string' ? filePath : String(filePath);
+      await backupRestore({ filePath: path, passphrase: '' });
+
+      setStatusMessage(t('screen.backup.restore_success', 'Restore completed successfully'));
+      setTimeout(() => setStatusMessage(null), 3000);
+    } catch (err) {
+      console.error('[BackupScreen] Restore failed:', err);
+      setStatusMessage(t('screen.backup.restore_failed', 'Restore failed'));
+      setTimeout(() => setStatusMessage(null), 5000);
+    }
+  }, [t]);
 
   const scheduleOptions: { value: BackupSchedule; label: string }[] = [
     { value: 'manual', label: t('screen.backup.schedule_manual') },
@@ -285,16 +252,14 @@ export function BackupScreen() {
             <button
               className="backup-screen__action-btn"
               disabled={history.length === 0}
-              onClick={() => {
-                window.alert(
-                  t('screen.backup.restore_coming_soon',
-                    'Restore from backup is coming in a future update. Your backup files are standard JSON exports and can be manually re-imported.')
-                );
-              }}
+              onClick={handleRestore}
             >
               {t('screen.backup.restore')}
             </button>
           </div>
+          {statusMessage && (
+            <p className="backup-screen__status-message">{statusMessage}</p>
+          )}
         </div>
 
         {/* History card */}

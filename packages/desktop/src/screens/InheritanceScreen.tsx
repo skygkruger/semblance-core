@@ -8,17 +8,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
+import {
+  inheritanceGetConfig,
+  inheritanceUpdateConfig,
+  inheritanceGetTrustedParties,
+  inheritanceAddTrustedParty,
+  inheritanceRemoveTrustedParty,
+  inheritanceRunTest,
+} from '../ipc/commands';
+import type { InheritanceTrustedParty } from '../ipc/commands';
 import './InheritanceScreen.css';
-
-interface TrustedParty {
-  id: string;
-  name: string;
-  role: 'primary' | 'secondary' | 'backup';
-  status: 'active' | 'pending';
-}
-
-const STORAGE_KEY_ENABLED = 'semblance.inheritance.protocol_enabled';
-const STORAGE_KEY_PARTIES = 'semblance.inheritance.trusted_parties';
 
 export function InheritanceScreen() {
   const { t } = useTranslation();
@@ -26,75 +25,95 @@ export function InheritanceScreen() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [protocolEnabled, setProtocolEnabled] = useState(false);
-  const [trustedParties, setTrustedParties] = useState<TrustedParty[]>([]);
+  const [trustedParties, setTrustedParties] = useState<InheritanceTrustedParty[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [runningDrill, setRunningDrill] = useState(false);
 
-  // Load persisted inheritance settings from localStorage
+  // Add-party form state
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newRelationship, setNewRelationship] = useState('');
+
   useEffect(() => {
-    try {
-      const savedEnabled = localStorage.getItem(STORAGE_KEY_ENABLED);
-      if (savedEnabled !== null) {
-        setProtocolEnabled(JSON.parse(savedEnabled) as boolean);
+    async function loadData() {
+      try {
+        const [config, parties] = await Promise.all([
+          inheritanceGetConfig(),
+          inheritanceGetTrustedParties(),
+        ]);
+        setProtocolEnabled(config.enabled);
+        setTrustedParties(parties);
+      } catch (err) {
+        console.error('[InheritanceScreen] Failed to load data:', err);
+      } finally {
+        setLoading(false);
       }
+    }
+    loadData();
+  }, []);
 
-      const savedParties = localStorage.getItem(STORAGE_KEY_PARTIES);
-      if (savedParties) {
-        setTrustedParties(JSON.parse(savedParties) as TrustedParty[]);
-      }
+  const handleToggleProtocol = useCallback(async () => {
+    const next = !protocolEnabled;
+    setProtocolEnabled(next);
+    try {
+      await inheritanceUpdateConfig({ enabled: next });
     } catch (err) {
-      console.error('[InheritanceScreen] Failed to load persisted data:', err);
-    } finally {
-      setLoading(false);
+      console.error('[InheritanceScreen] Failed to update config:', err);
+      setProtocolEnabled(!next);
+    }
+  }, [protocolEnabled]);
+
+  const handleAddTrustedParty = useCallback(async () => {
+    if (!newName.trim() || !newEmail.trim()) return;
+    try {
+      const party = await inheritanceAddTrustedParty({
+        name: newName.trim(),
+        email: newEmail.trim(),
+        relationship: newRelationship.trim() || 'primary',
+      });
+      setTrustedParties((prev) => [...prev, party]);
+      setNewName('');
+      setNewEmail('');
+      setNewRelationship('');
+      setShowAddForm(false);
+      setStatusMessage(t('screen.inheritance.party_added', 'Trusted party added.'));
+      setTimeout(() => setStatusMessage(null), 3000);
+    } catch (err) {
+      console.error('[InheritanceScreen] Failed to add party:', err);
+      setStatusMessage(t('screen.inheritance.add_failed', 'Failed to add trusted party.'));
+      setTimeout(() => setStatusMessage(null), 3000);
+    }
+  }, [newName, newEmail, newRelationship, t]);
+
+  const handleRemoveParty = useCallback(async (id: string) => {
+    try {
+      await inheritanceRemoveTrustedParty(id);
+      setTrustedParties((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) {
+      console.error('[InheritanceScreen] Failed to remove party:', err);
     }
   }, []);
 
-  // Toggle protocol enabled and persist
-  const handleToggleProtocol = useCallback(() => {
-    setProtocolEnabled((prev) => {
-      const next = !prev;
-      localStorage.setItem(STORAGE_KEY_ENABLED, JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
-  // Add a trusted party (placeholder prompt for now)
-  const handleAddTrustedParty = useCallback(() => {
-    const name = window.prompt(t('screen.inheritance.enter_name', 'Enter the name of the trusted party:'));
-    if (!name || !name.trim()) return;
-
-    const roleStr = window.prompt(
-      t('screen.inheritance.enter_role', 'Enter role (primary, secondary, or backup):'),
-      'primary',
-    );
-    const role = (['primary', 'secondary', 'backup'].includes(roleStr ?? '')
-      ? roleStr
-      : 'primary') as TrustedParty['role'];
-
-    const newParty: TrustedParty = {
-      id: `party_${Date.now()}`,
-      name: name.trim(),
-      role,
-      status: 'pending',
-    };
-
-    setTrustedParties((prev) => {
-      const updated = [...prev, newParty];
-      localStorage.setItem(STORAGE_KEY_PARTIES, JSON.stringify(updated));
-      return updated;
-    });
-
-    setStatusMessage(t('screen.inheritance.party_added', 'Trusted party added.'));
-    setTimeout(() => setStatusMessage(null), 3000);
+  const handleRunDrill = useCallback(async () => {
+    setRunningDrill(true);
+    setStatusMessage(null);
+    try {
+      const result = await inheritanceRunTest();
+      setStatusMessage(
+        result.success
+          ? t('screen.inheritance.drill_success', 'Drill test passed successfully.')
+          : t('screen.inheritance.drill_failed', 'Drill test failed: {{message}}', { message: result.message }),
+      );
+      setTimeout(() => setStatusMessage(null), 5000);
+    } catch (err) {
+      console.error('[InheritanceScreen] Drill test failed:', err);
+      setStatusMessage(t('screen.inheritance.drill_error', 'Drill test encountered an error.'));
+      setTimeout(() => setStatusMessage(null), 5000);
+    } finally {
+      setRunningDrill(false);
+    }
   }, [t]);
-
-  // Remove a trusted party
-  const handleRemoveParty = useCallback((id: string) => {
-    setTrustedParties((prev) => {
-      const updated = prev.filter((p) => p.id !== id);
-      localStorage.setItem(STORAGE_KEY_PARTIES, JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
 
   if (!license.isPremium) {
     return (
@@ -183,21 +202,74 @@ export function InheritanceScreen() {
             </div>
           )}
 
+          {/* Inline add-party form */}
+          {showAddForm && (
+            <div className="inheritance__add-form">
+              <input
+                type="text"
+                className="inheritance__input"
+                placeholder={t('screen.inheritance.name_placeholder', 'Name')}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+              <input
+                type="email"
+                className="inheritance__input"
+                placeholder={t('screen.inheritance.email_placeholder', 'Email')}
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+              <input
+                type="text"
+                className="inheritance__input"
+                placeholder={t('screen.inheritance.relationship_placeholder', 'Relationship (e.g. spouse, sibling)')}
+                value={newRelationship}
+                onChange={(e) => setNewRelationship(e.target.value)}
+              />
+              <div className="inheritance__add-form-actions">
+                <button
+                  type="button"
+                  className="inheritance__btn inheritance__btn--primary"
+                  onClick={handleAddTrustedParty}
+                  disabled={!newName.trim() || !newEmail.trim()}
+                >
+                  {t('screen.inheritance.confirm_add', 'Add')}
+                </button>
+                <button
+                  type="button"
+                  className="inheritance__btn inheritance__btn--secondary"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setNewName('');
+                    setNewEmail('');
+                    setNewRelationship('');
+                  }}
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="inheritance__actions">
-            <button
-              type="button"
-              className="inheritance__btn inheritance__btn--primary"
-              onClick={handleAddTrustedParty}
-            >
-              {t('screen.inheritance.add_trusted_party')}
-            </button>
+            {!showAddForm && (
+              <button
+                type="button"
+                className="inheritance__btn inheritance__btn--primary"
+                onClick={() => setShowAddForm(true)}
+              >
+                {t('screen.inheritance.add_trusted_party')}
+              </button>
+            )}
             <button
               type="button"
               className="inheritance__btn inheritance__btn--secondary"
-              disabled={trustedParties.length === 0}
-              onClick={() => setStatusMessage(t('screen.inheritance.drill_coming_soon'))}
+              disabled={trustedParties.length === 0 || runningDrill}
+              onClick={handleRunDrill}
             >
-              {t('screen.inheritance.run_drill_test')}
+              {runningDrill
+                ? t('screen.inheritance.running_drill', 'Running...')
+                : t('screen.inheritance.run_drill_test')}
             </button>
           </div>
           {statusMessage && (

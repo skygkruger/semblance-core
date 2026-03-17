@@ -11,6 +11,7 @@ import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
 import type { KnowledgeGraph } from './index.js';
 import type { LLMProvider } from '../llm/types.js';
+import { sanitizeRetrievedContent } from '../agent/content-sanitizer.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -208,8 +209,8 @@ export class CalendarIndexer {
           now,
         );
 
-        // Index into knowledge graph for semantic search
-        const embeddingContent = `Calendar: ${event.title} ${event.description ?? ''} ${event.location ?? ''}`;
+        // Index into knowledge graph for semantic search — sanitize at ingestion
+        const embeddingContent = `Calendar: ${sanitizeRetrievedContent(event.title)} ${sanitizeRetrievedContent(event.description ?? '')} ${sanitizeRetrievedContent(event.location ?? '')}`;
         await this.knowledge.indexDocument({
           content: embeddingContent,
           title: `Event: ${event.title}`,

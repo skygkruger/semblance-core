@@ -8,56 +8,29 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
-import { getKnowledgeStats } from '../ipc/commands';
+import {
+  witnessGetAttestations,
+  witnessGenerateAttestation,
+  witnessExportAttestation,
+  witnessVerifyAttestation,
+} from '../ipc/commands';
+import type { WitnessAttestation } from '../ipc/commands';
 import './WitnessScreen.css';
-
-interface Attestation {
-  id: string;
-  actionType: string;
-  description: string;
-  timestamp: string;
-  hash: string;
-  verified: boolean;
-}
-
-const STORAGE_KEY = 'semblance.attestations';
-
-function loadAttestations(): Attestation[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveAttestations(records: Attestation[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-}
-
-/** Simple hash of a string using Web Crypto API */
-async function sha256(input: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  const buffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(buffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
 
 export function WitnessScreen() {
   const { t } = useTranslation();
   const license = useLicense();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [attestations, setAttestations] = useState<Attestation[]>([]);
+  const [attestations, setAttestations] = useState<WitnessAttestation[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const records = loadAttestations();
+        const records = await witnessGetAttestations();
         setAttestations(records);
       } catch (err) {
         console.error('[WitnessScreen] load failed:', err);
@@ -70,38 +43,67 @@ export function WitnessScreen() {
 
   const handleCreateAttestation = useCallback(async () => {
     setCreating(true);
+    setStatusMessage(null);
     try {
-      // Get current knowledge graph state for the attestation hash
-      const stats = await getKnowledgeStats();
-
-      // Create a hash of the current knowledge state
-      const stateString = JSON.stringify({
-        documentCount: stats.documentCount,
-        chunkCount: stats.chunkCount,
-        indexSizeBytes: stats.indexSizeBytes,
-        lastIndexedAt: stats.lastIndexedAt,
-        attestedAt: new Date().toISOString(),
+      const attestation = await witnessGenerateAttestation({
+        auditEntryId: 'latest',
+        actionSummary: 'Knowledge graph state attestation',
       });
-      const hash = await sha256(stateString);
-
-      const attestation: Attestation = {
-        id: crypto.randomUUID(),
-        actionType: 'knowledge_state',
-        description: `Knowledge graph attestation: ${stats.documentCount} documents, ${stats.chunkCount} chunks`,
-        timestamp: new Date().toISOString(),
-        hash,
-        verified: true,
-      };
-
-      const updated = [attestation, ...attestations];
-      setAttestations(updated);
-      saveAttestations(updated);
+      setAttestations((prev) => [attestation, ...prev]);
+      setStatusMessage(t('screen.witness.attestation_created', 'Attestation created successfully'));
+      setTimeout(() => setStatusMessage(null), 3000);
     } catch (err) {
       console.error('[WitnessScreen] create attestation failed:', err);
+      setStatusMessage(t('screen.witness.create_failed', 'Failed to create attestation'));
     } finally {
       setCreating(false);
     }
-  }, [attestations]);
+  }, [t]);
+
+  const handleShareSelected = useCallback(async () => {
+    setStatusMessage(null);
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await witnessExportAttestation(id);
+      }
+      setStatusMessage(
+        t('screen.witness.share_success', 'Exported {{count}} attestation(s)', { count: ids.length }),
+      );
+      setTimeout(() => setStatusMessage(null), 3000);
+    } catch (err) {
+      console.error('[WitnessScreen] share failed:', err);
+      setStatusMessage(t('screen.witness.share_failed', 'Failed to export attestations'));
+    }
+  }, [selectedIds, t]);
+
+  const handleVerifySelected = useCallback(async () => {
+    setStatusMessage(null);
+    try {
+      const ids = Array.from(selectedIds);
+      let allValid = true;
+      for (const id of ids) {
+        const result = await witnessVerifyAttestation(id);
+        if (!result.valid) {
+          allValid = false;
+        }
+      }
+      if (allValid) {
+        setStatusMessage(
+          t('screen.witness.verify_success', 'All {{count}} attestation(s) verified', { count: ids.length }),
+        );
+      } else {
+        setStatusMessage(t('screen.witness.verify_partial', 'Some attestations failed verification'));
+      }
+      // Refresh attestation list to update verified status
+      const refreshed = await witnessGetAttestations();
+      setAttestations(refreshed);
+      setTimeout(() => setStatusMessage(null), 5000);
+    } catch (err) {
+      console.error('[WitnessScreen] verify failed:', err);
+      setStatusMessage(t('screen.witness.verify_failed', 'Verification failed'));
+    }
+  }, [selectedIds, t]);
 
   if (!license.isPremium) {
     return (
@@ -138,7 +140,6 @@ export function WitnessScreen() {
   }
 
   const hasSelection = selectedIds.size > 0;
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -220,7 +221,7 @@ export function WitnessScreen() {
               type="button"
               className="witness__btn witness__btn--primary"
               disabled={!hasSelection}
-              onClick={() => setStatusMessage(t('screen.witness.share_coming_soon'))}
+              onClick={handleShareSelected}
             >
               {t('screen.witness.share_selected')}
             </button>
@@ -228,7 +229,7 @@ export function WitnessScreen() {
               type="button"
               className="witness__btn witness__btn--secondary"
               disabled={!hasSelection}
-              onClick={() => setStatusMessage(t('screen.witness.verify_coming_soon'))}
+              onClick={handleVerifySelected}
             >
               {t('screen.witness.verify_selected')}
             </button>

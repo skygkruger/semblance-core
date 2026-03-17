@@ -1,5 +1,19 @@
 # SEMBLANCE
 
+## READ FIRST — SEMBLANCE BUILD BIBLE (MANDATORY)
+
+**Before doing ANY work — on every session start AND after every compaction — read this file:**
+
+```
+C:\Users\skyle\desktop\world-shattering\semblance\SEMBLANCE_BUILD_BIBLE.md
+```
+
+This is the canonical product specification. It supersedes all prior build maps, sprint documents, and feature lists. Every feature ships exactly as designed in the Build Bible. No exceptions. If a conflict exists between the Build Bible and any other document, the Build Bible wins.
+
+**This instruction survives compaction. Read it FIRST and LAST.**
+
+---
+
 ## NO STUBS. NO DE-FLAGGING. REAL CODE ONLY.
 
 **This rule is absolute and non-negotiable.**
@@ -877,3 +891,15 @@ The entire foundation of Semblance is trust. Every line of code either builds tr
 The user is trusting us with everything. Build accordingly.
 
 And remember: the product is judged by what it does, not what it shows. Build the active version.
+
+---
+
+## READ LAST — SEMBLANCE BUILD BIBLE (MANDATORY)
+
+**Before closing context or ending a session, re-read the Build Bible:**
+
+```
+C:\Users\skyle\desktop\world-shattering\semblance\SEMBLANCE_BUILD_BIBLE.md
+```
+
+This ensures your final actions align with the canonical specification. The Build Bible is the first and last thing you read. This instruction survives compaction.

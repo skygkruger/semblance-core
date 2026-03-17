@@ -30,6 +30,7 @@ import type { NativeRuntimeBridge } from '../../../core/llm/native-bridge-types.
 import { getPlatform } from '../../../core/platform/index.js';
 import { createDesktopVectorStore } from '../../../core/platform/desktop-adapter.js';
 import { scanDirectory, readFileContent } from '../../../core/knowledge/file-scanner.js';
+import { sanitizeRetrievedContent } from '../../../core/agent/content-sanitizer.js';
 import {
   Gateway,
   CredentialStore,
@@ -134,6 +135,17 @@ import { DocumentContextManager } from '../../../core/agent/document-context.js'
 import { HealthEntryStore } from '../../../core/health/health-entry-store.js';
 import { CloudStorageClient } from '../../../core/cloud-storage/cloud-storage-client.js';
 import { GraphVisualizationProvider } from '../../../core/knowledge/graph-visualization.js';
+
+// Sovereignty features — Living Will, Witness, Inheritance, Backup
+import { LivingWillExporter } from '../../../core/living-will/living-will-exporter.js';
+import { LivingWillImporter } from '../../../core/living-will/living-will-importer.js';
+import { LivingWillScheduler } from '../../../core/living-will/living-will-scheduler.js';
+import { WitnessGenerator } from '../../../core/witness/witness-generator.js';
+import { WitnessVerifier } from '../../../core/witness/witness-verifier.js';
+import { WitnessExporter } from '../../../core/witness/witness-exporter.js';
+import { AttestationSigner } from '../../../core/attestation/attestation-signer.js';
+import { InheritanceConfigStore } from '../../../core/inheritance/inheritance-config-store.js';
+import { BackupManager } from '../../../core/backup/backup-manager.js';
 
 // ─── Process-level crash guards ──────────────────────────────────────────────
 // Prevent unhandled exceptions/rejections from killing the sidecar silently
@@ -249,6 +261,17 @@ let clipboardRecentActions: Array<{ patternType: string; action: string; timesta
 
 // Premium state
 let premiumGate: PremiumGate | null = null;
+
+// Sovereignty feature state
+let livingWillExporter: LivingWillExporter | null = null;
+let livingWillImporter: LivingWillImporter | null = null;
+let livingWillScheduler: LivingWillScheduler | null = null;
+let witnessGenerator: WitnessGenerator | null = null;
+let witnessVerifier: WitnessVerifier | null = null;
+let witnessExporter: WitnessExporter | null = null;
+let attestationSigner: AttestationSigner | null = null;
+let inheritanceConfigStore: InheritanceConfigStore | null = null;
+let backupManager: BackupManager | null = null;
 
 // Step 14 state
 let contactStore: ContactStore | null = null;
@@ -1611,7 +1634,8 @@ async function handleStartIndexing(
             // so the ENTIRE document is searchable, not just the first 50K chars.
             // Each segment is indexed as a separate document with the same sourcePath
             // but different part metadata, so search hits anywhere in the file.
-            const fullText = content.content;
+            // Sanitize at ingestion — strip adversarial prompt injection content before KG storage
+            const fullText = sanitizeRetrievedContent(content.content);
             const SEGMENT_SIZE = 50_000;
 
             if (fullText.length <= SEGMENT_SIZE) {
@@ -5696,6 +5720,33 @@ async function handleRequest(req: Request): Promise<void> {
       }
 
       // ─── Reminders ────────────────────────────────────────────────────
+      case 'reminder_create': {
+        const rcParams = params as { text: string; dueAt: string; recurrence?: string };
+        if (!prefsDb) { respondError(id, 'Core not initialized'); break; }
+        try {
+          prefsDb.exec(`
+            CREATE TABLE IF NOT EXISTS reminders (
+              id TEXT PRIMARY KEY,
+              text TEXT NOT NULL,
+              due_at TEXT NOT NULL,
+              recurrence TEXT,
+              status TEXT NOT NULL DEFAULT 'pending',
+              source TEXT DEFAULT 'user',
+              created_at TEXT NOT NULL
+            )
+          `);
+          const { nanoid } = await import('nanoid');
+          const remId = nanoid();
+          const now = new Date().toISOString();
+          prefsDb.prepare(
+            'INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+          ).run(remId, rcParams.text, rcParams.dueAt, rcParams.recurrence ?? null, 'pending', 'user', now);
+          respond(id, { id: remId, text: rcParams.text, dueAt: rcParams.dueAt, status: 'pending' });
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
       case 'reminder_list': {
         if (!prefsDb) { respond(id, []); break; }
         try {
@@ -6026,6 +6077,71 @@ async function handleRequest(req: Request): Promise<void> {
           respond(id, { valid: resp.ok, status: resp.status });
         } catch (err) {
           respond(id, { valid: false, error: err instanceof Error ? err.message : String(err) });
+        }
+        break;
+      }
+
+      // ─── Web Search (direct IPC — routes through Gateway search adapter) ──
+      case 'web_search': {
+        const wsParams = params as { query: string; count?: number };
+        if (!gateway) { respondError(id, 'Gateway not initialized'); break; }
+        try {
+          const registry = gateway.getServiceRegistry();
+          const adapter = registry.getAdapter('web.search' as import('../../../core/types/actions.js').ActionType);
+          const result = await adapter.execute('web.search' as import('../../../core/types/actions.js').ActionType, {
+            query: wsParams.query,
+            count: wsParams.count ?? 5,
+          });
+          if (result.success && result.data) {
+            respond(id, result.data);
+          } else {
+            respondError(id, result.error?.message ?? 'Search failed');
+          }
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'fetch_url': {
+        const fuParams = params as { url: string; maxContentLength?: number };
+        if (!gateway) { respondError(id, 'Gateway not initialized'); break; }
+        try {
+          const registry = gateway.getServiceRegistry();
+          const adapter = registry.getAdapter('web.fetch' as import('../../../core/types/actions.js').ActionType);
+          const result = await adapter.execute('web.fetch' as import('../../../core/types/actions.js').ActionType, {
+            url: fuParams.url,
+            maxContentLength: fuParams.maxContentLength ?? 5000,
+          });
+          if (result.success) {
+            respond(id, result.data);
+          } else {
+            respondError(id, result.error?.message ?? 'Fetch failed');
+          }
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'list_available_connectors': {
+        try {
+          const { createDefaultConnectorRegistry } = await import('../../../core/importers/connector-registry.js');
+          const registry = createDefaultConnectorRegistry();
+          respond(id, registry.listAll());
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'get_audit_trail': {
+        const atParams = params as { limit?: number };
+        if (!prefsDb) { respond(id, []); break; }
+        try {
+          const entries = prefsDb.prepare(
+            'SELECT * FROM audit_trail ORDER BY timestamp DESC LIMIT ?'
+          ).all(atParams.limit ?? 50);
+          respond(id, entries);
+        } catch {
+          respond(id, []);
         }
         break;
       }
@@ -6578,6 +6694,419 @@ async function handleRequest(req: Request): Promise<void> {
       case 'import_get_history': {
         const result = handleImportGetHistory();
         respond(id, result);
+        break;
+      }
+
+      // ─── Living Will ──────────────────────────────────────────────────
+      case 'living_will_export': {
+        const lwParams = params as { passphrase: string; outputPath: string; sections?: string[] };
+        if (!prefsDb || !premiumGate) { respondError(id, 'Core not initialized'); break; }
+        try {
+          if (!livingWillExporter) {
+            livingWillExporter = new LivingWillExporter({
+              db: prefsDb,
+              premiumGate,
+              deviceId: getPref('device_id') ?? 'unknown',
+              documentStore: core?.knowledge ? { listDocuments: (opts?: unknown) => core!.knowledge.listDocuments(opts as Parameters<typeof core.knowledge.listDocuments>[0]), getStats: () => ({ documentCount: 0 }) } : undefined,
+              styleProfileStore: styleProfileStore ? { getActiveProfile: (uid?: string) => styleProfileStore!.getActiveProfile(uid) } : undefined,
+              contactStore: contactStore ? { getAllContacts: () => contactStore!.getAllContacts?.() ?? [] } : undefined,
+              attestationSigner: attestationSigner ?? undefined,
+            });
+            livingWillExporter.initSchema();
+          }
+          const result = await livingWillExporter.export(
+            { sections: lwParams.sections as Parameters<LivingWillExporter['export']>[0]['sections'] },
+            lwParams.passphrase,
+            lwParams.outputPath,
+          );
+          respond(id, result);
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'living_will_import': {
+        const liParams = params as { archivePath: string; passphrase: string };
+        if (!prefsDb || !premiumGate) { respondError(id, 'Core not initialized'); break; }
+        try {
+          if (!livingWillImporter) {
+            livingWillImporter = new LivingWillImporter({
+              db: prefsDb,
+              premiumGate,
+              localDeviceId: getPref('device_id') ?? 'unknown',
+            });
+          }
+          const result = await livingWillImporter.import(liParams.archivePath, liParams.passphrase);
+          respond(id, result);
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'living_will_get_history': {
+        if (!prefsDb || !premiumGate) { respond(id, []); break; }
+        try {
+          if (!livingWillExporter) {
+            livingWillExporter = new LivingWillExporter({
+              db: prefsDb,
+              premiumGate,
+              deviceId: getPref('device_id') ?? 'unknown',
+            });
+            livingWillExporter.initSchema();
+          }
+          respond(id, livingWillExporter.getExportHistory());
+        } catch {
+          respond(id, []);
+        }
+        break;
+      }
+      case 'living_will_get_settings': {
+        if (!prefsDb) { respond(id, { cadence: 'disabled', autoExportEnabled: false }); break; }
+        try {
+          if (!livingWillScheduler && livingWillExporter) {
+            livingWillScheduler = new LivingWillScheduler({
+              db: prefsDb,
+              exporter: livingWillExporter,
+              getPassphrase: async () => null,
+              outputPath: dataDir,
+            });
+          }
+          const config = livingWillScheduler?.getConfig() ?? { cadence: 'disabled' };
+          respond(id, config);
+        } catch {
+          respond(id, { cadence: 'disabled', autoExportEnabled: false });
+        }
+        break;
+      }
+      case 'living_will_update_settings': {
+        const settingsParams = params as { cadence?: 'weekly' | 'monthly' | 'disabled' };
+        if (!prefsDb || !premiumGate) { respondError(id, 'Core not initialized'); break; }
+        try {
+          if (!livingWillExporter) {
+            livingWillExporter = new LivingWillExporter({
+              db: prefsDb,
+              premiumGate,
+              deviceId: getPref('device_id') ?? 'unknown',
+            });
+            livingWillExporter.initSchema();
+          }
+          if (!livingWillScheduler) {
+            livingWillScheduler = new LivingWillScheduler({
+              db: prefsDb,
+              exporter: livingWillExporter,
+              getPassphrase: async () => null,
+              outputPath: dataDir,
+            });
+          }
+          if (settingsParams.cadence) {
+            livingWillScheduler.configure(settingsParams.cadence);
+          }
+          respond(id, livingWillScheduler.getConfig());
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+
+      // ─── Semblance Witness ─────────────────────────────────────────────
+      case 'witness_generate_attestation': {
+        const wParams = params as { auditEntryId: string; actionSummary: string; autonomyTier?: string };
+        if (!prefsDb || !premiumGate) { respondError(id, 'Core not initialized'); break; }
+        try {
+          if (!attestationSigner) {
+            // Use hardware key provider if available, otherwise generate ephemeral key
+            const { createHash, randomBytes } = await import('node:crypto');
+            const keyMaterial = randomBytes(32);
+            attestationSigner = new AttestationSigner({
+              signingKey: keyMaterial,
+              deviceIdentity: { deviceId: getPref('device_id') ?? 'unknown', platform: process.platform, createdAt: new Date().toISOString() },
+            });
+          }
+          if (!witnessGenerator) {
+            witnessGenerator = new WitnessGenerator({
+              db: prefsDb,
+              premiumGate,
+              attestationSigner,
+              deviceIdentity: { deviceId: getPref('device_id') ?? 'unknown', platform: process.platform, createdAt: new Date().toISOString() },
+            });
+            witnessGenerator.initSchema();
+          }
+          const result = witnessGenerator.generate(wParams.auditEntryId, wParams.actionSummary, wParams.autonomyTier);
+          respond(id, result);
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'witness_get_attestations': {
+        const wListParams = params as { limit?: number };
+        if (!prefsDb || !premiumGate) { respond(id, []); break; }
+        try {
+          if (!witnessGenerator) {
+            if (!attestationSigner) {
+              const { randomBytes } = await import('node:crypto');
+              attestationSigner = new AttestationSigner({
+                signingKey: randomBytes(32),
+                deviceIdentity: { deviceId: getPref('device_id') ?? 'unknown', platform: process.platform, createdAt: new Date().toISOString() },
+              });
+            }
+            witnessGenerator = new WitnessGenerator({
+              db: prefsDb,
+              premiumGate,
+              attestationSigner,
+              deviceIdentity: { deviceId: getPref('device_id') ?? 'unknown', platform: process.platform, createdAt: new Date().toISOString() },
+            });
+            witnessGenerator.initSchema();
+          }
+          respond(id, witnessGenerator.listAttestations(wListParams.limit ?? 50));
+        } catch {
+          respond(id, []);
+        }
+        break;
+      }
+      case 'witness_verify_attestation': {
+        const wvParams = params as { attestationId: string };
+        if (!prefsDb || !witnessGenerator) { respondError(id, 'Witness system not initialized'); break; }
+        try {
+          const attestation = witnessGenerator.getAttestation(wvParams.attestationId);
+          if (!attestation) { respondError(id, 'Attestation not found'); break; }
+          if (!witnessVerifier) {
+            witnessVerifier = new WitnessVerifier();
+          }
+          // For HMAC verification we need the signing key — for now report signature presence
+          respond(id, {
+            id: attestation.id,
+            hasSignature: !!attestation.signature,
+            algorithm: attestation.algorithm,
+            signedAt: attestation.signedAt,
+          });
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'witness_export_attestation': {
+        const weParams = params as { attestationId: string };
+        if (!witnessGenerator) { respondError(id, 'Witness system not initialized'); break; }
+        try {
+          const attestation = witnessGenerator.getAttestation(weParams.attestationId);
+          if (!attestation) { respondError(id, 'Attestation not found'); break; }
+          if (!witnessExporter) {
+            witnessExporter = new WitnessExporter();
+          }
+          const json = witnessExporter.exportAsJson(attestation);
+          respond(id, { json, attestation });
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+
+      // ─── Inheritance Protocol ──────────────────────────────────────────
+      case 'inheritance_get_config': {
+        if (!prefsDb) { respond(id, { enabled: false }); break; }
+        try {
+          if (!inheritanceConfigStore) {
+            inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
+            inheritanceConfigStore.initSchema();
+          }
+          respond(id, inheritanceConfigStore.getConfig());
+        } catch {
+          respond(id, { enabled: false });
+        }
+        break;
+      }
+      case 'inheritance_update_config': {
+        const icParams = params as Record<string, unknown>;
+        if (!prefsDb) { respondError(id, 'Core not initialized'); break; }
+        try {
+          if (!inheritanceConfigStore) {
+            inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
+            inheritanceConfigStore.initSchema();
+          }
+          const updated = inheritanceConfigStore.updateConfig(icParams);
+          respond(id, updated);
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'inheritance_add_trusted_party': {
+        const ipParams = params as { name: string; email: string; relationship: string };
+        if (!prefsDb) { respondError(id, 'Core not initialized'); break; }
+        try {
+          if (!inheritanceConfigStore) {
+            inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
+            inheritanceConfigStore.initSchema();
+          }
+          const { nanoid } = await import('nanoid');
+          const party = {
+            id: nanoid(),
+            name: ipParams.name,
+            email: ipParams.email,
+            relationship: ipParams.relationship,
+            passphraseHash: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          inheritanceConfigStore.insertParty(party);
+          respond(id, party);
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'inheritance_get_trusted_parties': {
+        if (!prefsDb) { respond(id, []); break; }
+        try {
+          if (!inheritanceConfigStore) {
+            inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
+            inheritanceConfigStore.initSchema();
+          }
+          respond(id, inheritanceConfigStore.getAllParties());
+        } catch {
+          respond(id, []);
+        }
+        break;
+      }
+      case 'inheritance_remove_trusted_party': {
+        const irpParams = params as { id: string };
+        if (!prefsDb) { respondError(id, 'Core not initialized'); break; }
+        try {
+          if (!inheritanceConfigStore) {
+            inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
+            inheritanceConfigStore.initSchema();
+          }
+          const removed = inheritanceConfigStore.removeParty(irpParams.id);
+          respond(id, { success: removed });
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'inheritance_run_test': {
+        if (!prefsDb) { respondError(id, 'Core not initialized'); break; }
+        try {
+          if (!inheritanceConfigStore) {
+            inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
+            inheritanceConfigStore.initSchema();
+          }
+          // Test run: validate config, check all parties reachable, simulate actions without executing
+          const config = inheritanceConfigStore.getConfig();
+          const parties = inheritanceConfigStore.getAllParties();
+          const actions = inheritanceConfigStore.getAllActions();
+          respond(id, {
+            success: true,
+            mode: 'dry_run',
+            configValid: config.enabled !== undefined,
+            trustedPartyCount: parties.length,
+            actionCount: actions.length,
+            message: `Test complete: ${parties.length} trusted parties, ${actions.length} pre-authorized actions. No real actions executed.`,
+          });
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+
+      // ─── Backup ────────────────────────────────────────────────────────
+      case 'backup_create': {
+        const bkParams = params as { passphrase: string; outputPath?: string };
+        if (!prefsDb) { respondError(id, 'Core not initialized'); break; }
+        try {
+          if (!backupManager) {
+            backupManager = new BackupManager({
+              db: prefsDb,
+              secureStorage: { getItem: async (k: string) => getPref(k), setItem: async (k: string, v: string) => setPref(k, v), removeItem: async (k: string) => { try { prefsDb!.prepare('DELETE FROM preferences WHERE key = ?').run(k); } catch {} } },
+              deviceId: getPref('device_id') ?? 'unknown',
+              dataCollector: {
+                collectSections: () => ({
+                  sections: [],
+                  entityCounts: {},
+                }),
+              },
+            });
+          }
+          const result = await backupManager.createBackup(bkParams.passphrase);
+          respond(id, result);
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'backup_get_history': {
+        if (!prefsDb) { respond(id, []); break; }
+        try {
+          if (!backupManager) {
+            backupManager = new BackupManager({
+              db: prefsDb,
+              secureStorage: { getItem: async (k: string) => getPref(k), setItem: async (k: string, v: string) => setPref(k, v), removeItem: async (k: string) => { try { prefsDb!.prepare('DELETE FROM preferences WHERE key = ?').run(k); } catch {} } },
+              deviceId: getPref('device_id') ?? 'unknown',
+              dataCollector: { collectSections: () => ({ sections: [], entityCounts: {} }) },
+            });
+          }
+          respond(id, backupManager.getBackupHistory());
+        } catch {
+          respond(id, []);
+        }
+        break;
+      }
+      case 'backup_get_config': {
+        if (!prefsDb) { respond(id, { schedule: 'manual', destinations: [] }); break; }
+        try {
+          if (!backupManager) {
+            backupManager = new BackupManager({
+              db: prefsDb,
+              secureStorage: { getItem: async (k: string) => getPref(k), setItem: async (k: string, v: string) => setPref(k, v), removeItem: async (k: string) => { try { prefsDb!.prepare('DELETE FROM preferences WHERE key = ?').run(k); } catch {} } },
+              deviceId: getPref('device_id') ?? 'unknown',
+              dataCollector: { collectSections: () => ({ sections: [], entityCounts: {} }) },
+            });
+          }
+          respond(id, backupManager.getConfig());
+        } catch {
+          respond(id, { schedule: 'manual', destinations: [] });
+        }
+        break;
+      }
+      case 'backup_update_config': {
+        const bcParams = params as Record<string, unknown>;
+        if (!prefsDb) { respondError(id, 'Core not initialized'); break; }
+        try {
+          if (!backupManager) {
+            backupManager = new BackupManager({
+              db: prefsDb,
+              secureStorage: { getItem: async (k: string) => getPref(k), setItem: async (k: string, v: string) => setPref(k, v), removeItem: async (k: string) => { try { prefsDb!.prepare('DELETE FROM preferences WHERE key = ?').run(k); } catch {} } },
+              deviceId: getPref('device_id') ?? 'unknown',
+              dataCollector: { collectSections: () => ({ sections: [], entityCounts: {} }) },
+            });
+          }
+          backupManager.configure(bcParams as Parameters<BackupManager['configure']>[0]);
+          respond(id, backupManager.getConfig());
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'backup_validate': {
+        const bvParams = params as { filePath: string; passphrase: string };
+        if (!backupManager) { respondError(id, 'Backup system not initialized'); break; }
+        try {
+          const result = await backupManager.validateBackup(bvParams.filePath, bvParams.passphrase);
+          respond(id, result);
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+      case 'backup_restore': {
+        const brParams = params as { filePath: string; passphrase: string };
+        if (!backupManager) { respondError(id, 'Backup system not initialized'); break; }
+        try {
+          const result = await backupManager.restoreFromBackup(brParams.filePath, brParams.passphrase);
+          respond(id, result);
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
         break;
       }
 

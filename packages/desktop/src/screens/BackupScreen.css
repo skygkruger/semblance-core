@@ -209,3 +209,10 @@
   color: var(--white);
   background: rgba(110, 207, 163, 0.1);
 }
+
+.backup-screen__status-message {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: #6ECFA3;
+  margin-top: var(--sp-3);
+}
