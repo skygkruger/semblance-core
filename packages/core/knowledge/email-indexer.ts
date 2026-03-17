@@ -14,6 +14,11 @@ import type { KnowledgeGraph } from './index.js';
 import type { LLMProvider } from '../llm/types.js';
 import { sanitizeRetrievedContent } from '../agent/content-sanitizer.js';
 
+/** Minimal event bus interface to avoid cross-boundary imports (core cannot import gateway). */
+interface EventBusLike {
+  emit(type: string, payload: Record<string, unknown>): void;
+}
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 export interface IndexedEmail {
@@ -99,6 +104,7 @@ export class EmailIndexer {
   private llm: LLMProvider;
   private embeddingModel: string;
   private eventHandler: EmailIndexEventHandler | null = null;
+  private eventBus: EventBusLike | null = null;
   private syncIntervalMs: number;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -108,12 +114,14 @@ export class EmailIndexer {
     llm: LLMProvider;
     embeddingModel?: string;
     syncIntervalMs?: number;
+    eventBus?: EventBusLike;
   }) {
     this.db = config.db;
     this.knowledge = config.knowledge;
     this.llm = config.llm;
     this.embeddingModel = config.embeddingModel ?? 'nomic-embed-text';
     this.syncIntervalMs = config.syncIntervalMs ?? 5 * 60 * 1000; // default 5 minutes
+    this.eventBus = config.eventBus ?? null;
     this.db.exec(CREATE_EMAIL_INDEX_TABLE);
   }
 
@@ -207,6 +215,17 @@ export class EmailIndexer {
         });
 
         indexed++;
+
+        // Emit event bus event for each newly indexed email
+        if (this.eventBus) {
+          // Default priority — categorizer may upgrade later
+          this.eventBus.emit('email.arrived', {
+            accountId,
+            messageId: msg.messageId,
+            subject: msg.subject,
+            priority: 'normal',
+          });
+        }
 
         this.emit('semblance://email-index-progress', {
           indexed,

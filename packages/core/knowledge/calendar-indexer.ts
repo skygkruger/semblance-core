@@ -13,6 +13,11 @@ import type { KnowledgeGraph } from './index.js';
 import type { LLMProvider } from '../llm/types.js';
 import { sanitizeRetrievedContent } from '../agent/content-sanitizer.js';
 
+/** Minimal event bus interface to avoid cross-boundary imports (core cannot import gateway). */
+interface EventBusLike {
+  emit(type: string, payload: Record<string, unknown>): void;
+}
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 export interface IndexedCalendarEvent {
@@ -88,6 +93,8 @@ export class CalendarIndexer {
   private llm: LLMProvider;
   private embeddingModel: string;
   private eventHandler: CalendarIndexEventHandler | null = null;
+  private eventBus: EventBusLike | null = null;
+  private calendarTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private syncIntervalMs: number;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -97,12 +104,14 @@ export class CalendarIndexer {
     llm: LLMProvider;
     embeddingModel?: string;
     syncIntervalMs?: number;
+    eventBus?: EventBusLike;
   }) {
     this.db = config.db;
     this.knowledge = config.knowledge;
     this.llm = config.llm;
     this.embeddingModel = config.embeddingModel ?? 'nomic-embed-text';
     this.syncIntervalMs = config.syncIntervalMs ?? 15 * 60 * 1000; // default 15 minutes
+    this.eventBus = config.eventBus ?? null;
     this.db.exec(CREATE_CALENDAR_INDEX_TABLE);
   }
 
@@ -229,6 +238,17 @@ export class CalendarIndexer {
         });
 
         indexed++;
+
+        // Emit calendar.created event for new events
+        if (this.eventBus) {
+          this.eventBus.emit('calendar.created', {
+            eventId: event.id,
+            title: event.title,
+            startTime: event.startTime,
+          });
+          // Register countdown timers for upcoming events
+          this.registerCalendarTimers(event.id, event.title, event.startTime);
+        }
 
         this.emit('semblance://calendar-index-progress', {
           indexed,
@@ -393,6 +413,54 @@ export class CalendarIndexer {
     if (this.syncTimer) {
       clearInterval(this.syncTimer);
       this.syncTimer = null;
+    }
+  }
+
+  /**
+   * Register countdown timers for upcoming events within 24 hours.
+   * Called at daemon startup to set up calendar.starting events.
+   */
+  registerUpcomingEventTimers(): void {
+    if (!this.eventBus) return;
+    const upcoming = this.getUpcomingEvents({ daysAhead: 1, includeAllDay: false });
+    for (const evt of upcoming) {
+      this.registerCalendarTimers(evt.uid, evt.title, evt.startTime);
+    }
+  }
+
+  /**
+   * Register T-45 and T-10 countdown timers for a single calendar event.
+   */
+  private registerCalendarTimers(eventId: string, title: string, startTime: string): void {
+    if (!this.eventBus) return;
+    const startMs = new Date(startTime).getTime();
+    const now = Date.now();
+
+    const fireAt = [
+      { minutesUntil: 45, label: 'T-45' },
+      { minutesUntil: 10, label: 'T-10' },
+    ];
+
+    for (const { minutesUntil, label } of fireAt) {
+      const fireMs = startMs - minutesUntil * 60 * 1000;
+      const delayMs = fireMs - now;
+      if (delayMs <= 0 || delayMs > 24 * 60 * 60 * 1000) continue; // skip past or >24h
+
+      const timerKey = `${eventId}:${label}`;
+      // Clear existing timer for this event/label combo
+      const existing = this.calendarTimers.get(timerKey);
+      if (existing) clearTimeout(existing);
+
+      const timer = setTimeout(() => {
+        this.eventBus?.emit('calendar.starting', { eventId, title, minutesUntil });
+        this.calendarTimers.delete(timerKey);
+      }, delayMs);
+
+      // Ensure timer doesn't prevent process exit
+      if (timer && typeof timer === 'object' && 'unref' in timer) {
+        (timer as NodeJS.Timeout).unref();
+      }
+      this.calendarTimers.set(timerKey, timer);
     }
   }
 

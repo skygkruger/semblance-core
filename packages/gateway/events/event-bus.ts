@@ -8,27 +8,43 @@
 
 export type SemblanceEventType =
   | 'email.arrived'
+  | 'email.follow_up_due'
   | 'calendar.starting'
+  | 'calendar.created'
   | 'file.created'
   | 'file.modified'
   | 'financial.anomaly'
+  | 'hardware.thermal_warning'
+  | 'hardware.memory_pressure'
+  | 'hardware.disk_low'
+  | 'app.launched'
+  | 'app.focused'
   | 'system.wake'
   | 'tunnel.connected'
   | 'tunnel.disconnected'
   | 'channel.message_received'
-  | 'cron.fired';
+  | 'cron.fired'
+  | 'preference.pattern_detected';
 
 export interface SemblanceEventMap {
   'email.arrived': { accountId: string; messageId: string; subject: string; priority: 'high' | 'normal' | 'low' };
+  'email.follow_up_due': { emailId: string; subject: string; recipientName: string; daysSinceEmail: number };
   'calendar.starting': { eventId: string; title: string; minutesUntil: number };
+  'calendar.created': { eventId: string; title: string; startTime: string };
   'file.created': { path: string; watchedDirectory: string };
   'file.modified': { path: string };
   'financial.anomaly': { description: string; amount: number };
+  'hardware.thermal_warning': { cpuTempCelsius: number; sustained: boolean };
+  'hardware.memory_pressure': { level: 'moderate' | 'critical'; availableMb: number };
+  'hardware.disk_low': { drivePath: string; availableGb: number };
+  'app.launched': { bundleId: string; appName: string };
+  'app.focused': { bundleId: string; appName: string };
   'system.wake': { timestamp: string };
   'tunnel.connected': { deviceId: string };
   'tunnel.disconnected': { deviceId: string };
   'channel.message_received': { channelId: string; senderId: string; sessionKey: string };
   'cron.fired': { jobId: string; actionType: string };
+  'preference.pattern_detected': { domain: string; pattern: string; confidence: number };
 }
 
 export interface SemblanceEvent<T extends SemblanceEventType = SemblanceEventType> {
@@ -50,6 +66,8 @@ const HIGH_PRIORITY_EVENTS: Set<SemblanceEventType> = new Set([
   'calendar.starting',
   'financial.anomaly',
   'channel.message_received',
+  'hardware.thermal_warning',
+  'hardware.disk_low',
 ]);
 
 const QUEUE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours

@@ -409,4 +409,152 @@ Respond with ONLY the relationship type (one word):`;
 
     return { nodes, edges, clusters };
   }
+
+  // ─── Reciprocity Analysis ──────────────────────────────────────────────────
+
+  /**
+   * Calculate reciprocity score for a contact.
+   * initiationRatio: 0.0 = contact always initiates, 1.0 = user always initiates
+   * responseAsymmetry: >0 means contact responds faster than user, <0 means slower
+   */
+  getReciprocityScore(contactId: string): ReciprocityScore | null {
+    const contact = this.contactStore.getContact(contactId);
+    if (!contact || contact.emails.length === 0) return null;
+
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    let userInitiated = 0;
+    let contactInitiated = 0;
+
+    for (const email of contact.emails) {
+      // Count threads initiated by the contact (first email in thread is from them)
+      const fromContact = this.db.prepare(`
+        SELECT COUNT(*) as cnt FROM indexed_emails
+        WHERE "from" = ? AND received_at > ? AND thread_id = message_id
+      `).get(email, ninetyDaysAgo) as { cnt: number };
+      contactInitiated += fromContact.cnt;
+
+      // Count threads initiated by the user (first email in thread is NOT from them)
+      // We approximate this by counting threads where contact appears in "to" but not "from" for the first message
+      const toContact = this.db.prepare(`
+        SELECT COUNT(DISTINCT thread_id) as cnt FROM indexed_emails
+        WHERE "from" != ? AND "to" LIKE ? AND received_at > ? AND thread_id = message_id
+      `).get(email, `%${email}%`, ninetyDaysAgo) as { cnt: number };
+      userInitiated += toContact.cnt;
+    }
+
+    const total = userInitiated + contactInitiated;
+    const initiationRatio = total > 0 ? userInitiated / total : 0.5;
+
+    // Response asymmetry: compare avg response times
+    // Positive = contact responds faster, negative = contact responds slower
+    let responseAsymmetry = 0;
+    const userResponseTimes: number[] = [];
+    const contactResponseTimes: number[] = [];
+
+    for (const email of contact.emails) {
+      // User's response time to contact's emails
+      const contactEmails = this.db.prepare(`
+        SELECT thread_id, received_at FROM indexed_emails
+        WHERE "from" = ? AND received_at > ?
+        ORDER BY received_at ASC LIMIT 20
+      `).all(email, ninetyDaysAgo) as Array<{ thread_id: string; received_at: string }>;
+
+      for (const ce of contactEmails) {
+        const userReply = this.db.prepare(`
+          SELECT received_at FROM indexed_emails
+          WHERE thread_id = ? AND "from" != ? AND received_at > ?
+          ORDER BY received_at ASC LIMIT 1
+        `).get(ce.thread_id, email, ce.received_at) as { received_at: string } | undefined;
+        if (userReply) {
+          const diff = new Date(userReply.received_at).getTime() - new Date(ce.received_at).getTime();
+          if (diff > 0 && diff < 7 * 24 * 60 * 60 * 1000) userResponseTimes.push(diff);
+        }
+      }
+
+      // Contact's response time to user's emails
+      const userEmails = this.db.prepare(`
+        SELECT thread_id, received_at FROM indexed_emails
+        WHERE "from" != ? AND "to" LIKE ? AND received_at > ?
+        ORDER BY received_at ASC LIMIT 20
+      `).all(email, `%${email}%`, ninetyDaysAgo) as Array<{ thread_id: string; received_at: string }>;
+
+      for (const ue of userEmails) {
+        const contactReply = this.db.prepare(`
+          SELECT received_at FROM indexed_emails
+          WHERE thread_id = ? AND "from" = ? AND received_at > ?
+          ORDER BY received_at ASC LIMIT 1
+        `).get(ue.thread_id, email, ue.received_at) as { received_at: string } | undefined;
+        if (contactReply) {
+          const diff = new Date(contactReply.received_at).getTime() - new Date(ue.received_at).getTime();
+          if (diff > 0 && diff < 7 * 24 * 60 * 60 * 1000) contactResponseTimes.push(diff);
+        }
+      }
+    }
+
+    if (userResponseTimes.length > 0 && contactResponseTimes.length > 0) {
+      const avgUser = userResponseTimes.reduce((a, b) => a + b, 0) / userResponseTimes.length;
+      const avgContact = contactResponseTimes.reduce((a, b) => a + b, 0) / contactResponseTimes.length;
+      // Normalize to hours, positive = contact faster
+      responseAsymmetry = (avgUser - avgContact) / (1000 * 60 * 60);
+    }
+
+    return {
+      contactId,
+      initiationRatio,
+      responseAsymmetry,
+      lastCalculatedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Detect introductions: when two contacts who weren't previously email-connected
+   * both appear in the same email CC/BCC line, infer the user introduced them.
+   */
+  getIntroductionHistory(): IntroductionRecord[] {
+    // Create introduction tracking table if not exists
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS contact_introductions (
+        id TEXT PRIMARY KEY,
+        introduced_contact_a TEXT NOT NULL,
+        introduced_contact_b TEXT NOT NULL,
+        introduced_at TEXT NOT NULL,
+        reciprocated INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+
+    const rows = this.db.prepare(
+      'SELECT * FROM contact_introductions ORDER BY introduced_at DESC LIMIT 50'
+    ).all() as Array<{
+      id: string;
+      introduced_contact_a: string;
+      introduced_contact_b: string;
+      introduced_at: string;
+      reciprocated: number;
+    }>;
+
+    return rows.map(r => ({
+      id: r.id,
+      introducedContactA: r.introduced_contact_a,
+      introducedContactB: r.introduced_contact_b,
+      introducedAt: r.introduced_at,
+      reciprocated: r.reciprocated === 1,
+    }));
+  }
+}
+
+// ─── Additional types ────────────────────────────────────────────────────────
+
+export interface ReciprocityScore {
+  contactId: string;
+  initiationRatio: number;
+  responseAsymmetry: number;
+  lastCalculatedAt: string;
+}
+
+export interface IntroductionRecord {
+  id: string;
+  introducedContactA: string;
+  introducedContactB: string;
+  introducedAt: string;
+  reciprocated: boolean;
 }

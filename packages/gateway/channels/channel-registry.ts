@@ -2,6 +2,7 @@
 // Daemon calls startAll() at boot. Individual channels can be started/stopped.
 
 import type { ChannelAdapter, ChannelStatus } from './types.js';
+import type { SemblanceEventBus } from '../events/event-bus.js';
 
 export interface ChannelRegistryEntry {
   adapter: ChannelAdapter;
@@ -13,6 +14,24 @@ export interface ChannelRegistryEntry {
  */
 export class ChannelRegistry {
   private adapters: Map<string, ChannelAdapter> = new Map();
+  private eventBus: SemblanceEventBus | null = null;
+
+  /**
+   * Set the event bus for channel message events.
+   */
+  setEventBus(eventBus: SemblanceEventBus): void {
+    this.eventBus = eventBus;
+  }
+
+  /**
+   * Emit channel.message_received event when a message is received on a channel.
+   * Called by channel adapters' InboundPipeline after processing an approved message.
+   */
+  emitMessageReceived(channelId: string, senderId: string, sessionKey: string): void {
+    if (this.eventBus) {
+      this.eventBus.emit('channel.message_received', { channelId, senderId, sessionKey });
+    }
+  }
 
   /**
    * Register a channel adapter.
