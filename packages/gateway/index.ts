@@ -474,3 +474,15 @@ export type { CanvasPushPayload, CanvasState, CanvasComponentType } from './canv
 // Event bus
 export { SemblanceEventBus } from './events/event-bus.js';
 export type { SemblanceEvent, SemblanceEventType, SemblanceEventMap } from './events/event-bus.js';
+
+// Tunnel / Compute Mesh
+export { TunnelGatewayServer } from './tunnel/tunnel-gateway-server.js';
+export type { TunnelGatewayServerConfig } from './tunnel/tunnel-gateway-server.js';
+export { WireGuardKeyManager } from './tunnel/wireguard-keys.js';
+export { HeadscaleClient } from './tunnel/headscale-client.js';
+export type { HeadscaleConfig, HeadscalePeer, WireGuardConfig, WireGuardPeer } from './tunnel/headscale-client.js';
+export { WireGuardManager } from './tunnel/wireguard-manager.js';
+export { PairingCoordinator } from './tunnel/pairing-coordinator.js';
+export type { PairedDevice, PairingQRPayload } from './tunnel/pairing-coordinator.js';
+export { TunnelKGSync } from './tunnel/kg-sync.js';
+export type { KGSyncRequest, KGSyncResponse, KGSyncDelta, KGSyncResult, KGSyncCategory } from './tunnel/kg-sync.js';
