@@ -101,6 +101,15 @@ import { PairingManager } from '../../../gateway/channels/pairing-manager.js';
 import { CanvasManager } from '../../../gateway/canvas/canvas-manager.js';
 import { SemblanceEventBus } from '../../../gateway/events/event-bus.js';
 
+// Sprint E: Intelligence Depth
+import { PreferenceGraph } from '../../../core/agent/preference-graph.js';
+import { runAllPreferenceDetectors } from '../../../core/agent/preference-detectors.js';
+import { SpeculativeLoader } from '../../../core/agent/speculative-loader.js';
+import { CommitmentTracker } from '../../../core/agent/commitment-tracker.js';
+import { PatternShiftDetector } from '../../../core/agent/pattern-shift-detector.js';
+import { CronScheduler } from '../../../gateway/cron/cron-scheduler.js';
+import { DaemonManager } from '../../../gateway/daemon/daemon-manager.js';
+
 // Sprint D: Tunnel / Compute Mesh
 import { TunnelGatewayServer } from '../../../gateway/tunnel/tunnel-gateway-server.js';
 import { WireGuardKeyManager } from '../../../gateway/tunnel/wireguard-keys.js';
@@ -316,6 +325,15 @@ let channelRegistry: ChannelRegistry | null = null;
 let pairingManager: PairingManager | null = null;
 let canvasManager: CanvasManager | null = null;
 let eventBus: SemblanceEventBus | null = null;
+
+// Sprint E: Intelligence Depth
+let preferenceGraph: PreferenceGraph | null = null;
+let speculativeLoader: SpeculativeLoader | null = null;
+let commitmentTracker: CommitmentTracker | null = null;
+let patternShiftDetector: PatternShiftDetector | null = null;
+let cronScheduler: CronScheduler | null = null;
+let daemonManager: DaemonManager | null = null;
+let hardwareMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
 // Sprint D: Tunnel / Compute Mesh
 let tunnelGatewayServer: TunnelGatewayServer | null = null;
@@ -1166,6 +1184,199 @@ async function handleInitialize(): Promise<unknown> {
     }, HEALTH_CHECK_INTERVAL);
   }
 
+  // ──── STEP 6: Sprint E — Intelligence Depth initialization ────
+  try {
+    const dbHandle = prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle;
+
+    // Initialize event bus (may already exist from Sprint C handler)
+    if (!eventBus) eventBus = new SemblanceEventBus();
+
+    // Preference Graph
+    preferenceGraph = new PreferenceGraph(dbHandle);
+    console.error('[sidecar] PreferenceGraph initialized');
+
+    // Wire preference graph into autonomy manager
+    if (core?.autonomy?.setPreferenceGraph) {
+      (core.autonomy as import('../../../core/agent/autonomy.js').AutonomyManager).setPreferenceGraph(preferenceGraph);
+      console.error('[sidecar] PreferenceGraph wired into AutonomyManager');
+    }
+
+    // Speculative Loader (in-memory cache)
+    speculativeLoader = new SpeculativeLoader();
+    console.error('[sidecar] SpeculativeLoader initialized');
+
+    // Commitment Tracker
+    commitmentTracker = new CommitmentTracker(dbHandle);
+    console.error('[sidecar] CommitmentTracker initialized');
+
+    // Pattern Shift Detector
+    patternShiftDetector = new PatternShiftDetector(dbHandle);
+    console.error('[sidecar] PatternShiftDetector initialized');
+
+    // Cron Scheduler (with event bus)
+    cronScheduler = new CronScheduler(undefined, eventBus);
+    console.error('[sidecar] CronScheduler initialized with event bus');
+
+    // Daemon Manager (with event bus + wake detection)
+    daemonManager = new DaemonManager({ eventBus });
+    daemonManager.startWakeDetection();
+    console.error('[sidecar] DaemonManager wake detection started');
+
+    // Hardware monitoring tick (30-second interval for thermal/memory/disk events)
+    hardwareMonitorInterval = setInterval(() => {
+      if (!eventBus) return;
+      try {
+        const os = require('node:os');
+        const availableMb = Math.round(os.freemem() / (1024 * 1024));
+
+        // Memory pressure detection
+        if (availableMb < 512) {
+          eventBus.emit('hardware.memory_pressure', {
+            level: availableMb < 256 ? 'critical' : 'moderate',
+            availableMb,
+          });
+        }
+
+        // Disk space detection (check home drive)
+        try {
+          const { execSync } = require('node:child_process');
+          const homeDir = os.homedir();
+          if (process.platform === 'win32') {
+            const drive = homeDir.substring(0, 2); // e.g. "C:"
+            const output = execSync(`wmic logicaldisk where "DeviceID='${drive}'" get FreeSpace /value`, { encoding: 'utf-8' });
+            const match = output.match(/FreeSpace=(\d+)/);
+            if (match) {
+              const freeGb = parseInt(match[1]!, 10) / (1024 * 1024 * 1024);
+              if (freeGb < 2) {
+                eventBus.emit('hardware.disk_low', { drivePath: drive, availableGb: Math.round(freeGb * 100) / 100 });
+              }
+            }
+          } else {
+            const output = execSync(`df -k "${homeDir}" | tail -1`, { encoding: 'utf-8' });
+            const parts = output.trim().split(/\s+/);
+            const availKb = parseInt(parts[3] ?? '0', 10);
+            const freeGb = availKb / (1024 * 1024);
+            if (freeGb < 2) {
+              eventBus.emit('hardware.disk_low', { drivePath: homeDir, availableGb: Math.round(freeGb * 100) / 100 });
+            }
+          }
+        } catch { /* disk check best-effort */ }
+      } catch (hwErr) {
+        console.error('[sidecar] Hardware monitor tick error:', hwErr);
+      }
+    }, 30_000);
+
+    // Register calendar event timers for upcoming events
+    if (core) {
+      try {
+        const coreDb = (core as unknown as { db: import('better-sqlite3').Database }).db;
+        if (coreDb) {
+          const calIndexer = new (await import('../../../core/knowledge/calendar-indexer.js')).CalendarIndexer({
+            db: coreDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
+            knowledge: core.knowledge,
+            llm: core.llm,
+            eventBus,
+          });
+          calIndexer.registerUpcomingEventTimers();
+          console.error('[sidecar] Calendar event timers registered');
+        }
+      } catch { /* calendar timer registration best-effort */ }
+    }
+
+    // Wire orchestrator event subscriptions
+    if (core?.agent) {
+      try {
+        // High-urgency email: push to canvas
+        eventBus.subscribe(['email.arrived'], async (event) => {
+          if (event.type !== 'email.arrived') return;
+          const payload = event.payload as { priority: string; messageId: string; subject: string };
+          if (payload.priority !== 'high') return;
+          if (canvasManager) {
+            canvasManager.push({
+              componentType: 'morning_brief' as any,
+              data: { urgentEmail: { messageId: payload.messageId, subject: payload.subject } },
+              replace: false,
+              title: 'Urgent email arrived',
+            });
+            emit('canvas:update', canvasManager.getCurrentPayload());
+          }
+        });
+
+        // Calendar prep: push meeting brief at T-15
+        eventBus.subscribe(['calendar.starting'], async (event) => {
+          if (event.type !== 'calendar.starting') return;
+          const payload = event.payload as { minutesUntil: number; eventId: string; title: string };
+          if (payload.minutesUntil > 15) return;
+          if (canvasManager) {
+            canvasManager.push({
+              componentType: 'morning_brief' as any,
+              data: { meetingPrep: { eventId: payload.eventId, title: payload.title, minutesUntil: payload.minutesUntil } },
+              replace: false,
+              title: `Meeting in ${payload.minutesUntil} minutes`,
+            });
+            emit('canvas:update', canvasManager.getCurrentPayload());
+          }
+        });
+
+        // Channel message: resolve bound named session and increment message count
+        eventBus.subscribe(['channel.message_received'], async (event) => {
+          if (event.type !== 'channel.message_received') return;
+          const payload = event.payload as { channelId: string; senderId: string; sessionKey: string };
+          if (namedSessionManager) {
+            try {
+              const session = await namedSessionManager.getSessionByChannel(payload.channelId);
+              if (session) {
+                namedSessionManager.incrementMessageCount(session.key);
+                console.error(`[EventBus] Channel message routed to session "${session.key}" from ${payload.senderId}`);
+              }
+            } catch (routeErr) {
+              console.error('[EventBus] Failed to route channel message:', routeErr);
+            }
+          }
+        });
+
+        // System wake: trigger morning brief if morning hours
+        eventBus.subscribe(['system.wake'], async (event) => {
+          if (event.type !== 'system.wake') return;
+          const payload = event.payload as { timestamp: string };
+          const hour = new Date(payload.timestamp).getHours();
+          if (hour >= 5 && hour <= 9 && cronScheduler) {
+            await cronScheduler.fireJob('morning-brief');
+          }
+        });
+
+        // Tunnel connected: trigger KG sync
+        eventBus.subscribe(['tunnel.connected'], async () => {
+          if (cronScheduler) {
+            await cronScheduler.fireJob('tunnel-sync');
+          }
+        });
+
+        // Financial anomaly: always push to canvas
+        eventBus.subscribe(['financial.anomaly'], async (event) => {
+          if (event.type !== 'financial.anomaly') return;
+          if (canvasManager) {
+            canvasManager.push({
+              componentType: 'chart' as any,
+              data: { anomaly: event.payload },
+              replace: false,
+              title: 'Financial anomaly detected',
+            });
+            emit('canvas:update', canvasManager.getCurrentPayload());
+          }
+        });
+
+        console.error('[sidecar] Orchestrator event subscriptions wired (6 handlers)');
+      } catch (subErr) {
+        console.error('[sidecar] Event subscription wiring failed:', subErr);
+      }
+    }
+
+    console.error('[sidecar] Sprint E initialization complete');
+  } catch (sprintEErr) {
+    console.error('[sidecar] Sprint E initialization failed (non-fatal):', sprintEErr);
+  }
+
   return {
     ollamaStatus: inferenceEngine !== 'none' ? 'connected' : 'disconnected',
     inferenceEngine,
@@ -1718,6 +1929,12 @@ async function handleStartIndexing(
             }
 
             totalFilesScanned++;
+
+            // Emit file.created event for newly indexed files
+            if (eventBus) {
+              const watchedDir = params.directories.find((d: string) => file.path.startsWith(d)) ?? '';
+              eventBus.emit('file.created', { path: file.path, watchedDirectory: watchedDir });
+            }
           } catch (err) {
             console.error(`[sidecar] Failed to index ${file.path}:`, err);
             totalFilesScanned++;
@@ -7540,6 +7757,140 @@ async function handleRequest(req: Request): Promise<void> {
         if (!eventBus) { eventBus = new SemblanceEventBus(); }
         const ebrParams = params as { limit?: number };
         respond(id, eventBus.getRecentEvents(ebrParams.limit ?? 20));
+        break;
+      }
+
+      // ─── Sprint E: Intelligence Depth Handlers ─────────────────────────────
+
+      case 'preference_list': {
+        if (!preferenceGraph) { respond(id, []); break; }
+        const plParams = params as { min_confidence?: number };
+        respond(id, preferenceGraph.getAllPreferences(plParams.min_confidence ?? 0.3));
+        break;
+      }
+
+      case 'preference_confirm': {
+        if (!preferenceGraph) { respondError(id, 'PreferenceGraph not initialized'); break; }
+        const pcParams = params as { id: string };
+        preferenceGraph.confirmPreference(pcParams.id);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'preference_deny': {
+        if (!preferenceGraph) { respondError(id, 'PreferenceGraph not initialized'); break; }
+        const pdParams = params as { id: string };
+        preferenceGraph.denyPreference(pdParams.id);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'preference_get_high_confidence': {
+        if (!preferenceGraph) { respond(id, []); break; }
+        respond(id, preferenceGraph.getHighConfidencePreferences());
+        break;
+      }
+
+      case 'speculative_cache_status': {
+        if (!speculativeLoader) { respond(id, { entries: 0, hitRate: 0, oldestEntryAge: 'none' }); break; }
+        respond(id, speculativeLoader.getStatus());
+        break;
+      }
+
+      case 'speculative_preload_now': {
+        if (!speculativeLoader) { respondError(id, 'SpeculativeLoader not initialized'); break; }
+        // Run pre-load pass with available deps
+        try {
+          const preloadResult = await speculativeLoader.runPreloadPass({
+            getUpcomingMeetings: (minutesAhead: number) => {
+              if (!core) return [];
+              try {
+                const coreDb = (core as unknown as { db: import('better-sqlite3').Database }).db;
+                if (!coreDb) return [];
+                const cutoff = new Date(Date.now() + minutesAhead * 60 * 1000).toISOString();
+                const now = new Date().toISOString();
+                const rows = coreDb.prepare(
+                  'SELECT uid, title, start_time, attendees FROM indexed_calendar_events WHERE start_time >= ? AND start_time <= ? AND is_all_day = 0 LIMIT 10'
+                ).all(now, cutoff) as Array<{ uid: string; title: string; start_time: string; attendees: string }>;
+                return rows.map(r => ({
+                  eventId: r.uid,
+                  title: r.title,
+                  startTime: r.start_time,
+                  attendees: JSON.parse(r.attendees || '[]') as string[],
+                }));
+              } catch { return []; }
+            },
+            assembleMeetingBrief: async (eventId: string) => ({ eventId, briefType: 'meeting_prep', assembledAt: new Date().toISOString() }),
+            assembleMorningBrief: async () => ({ briefType: 'morning', assembledAt: new Date().toISOString() }),
+            getHighRelationshipSenders: () => [],
+            assembleRelationshipContext: async (senderId: string) => ({ senderId }),
+          });
+          respond(id, preloadResult);
+        } catch (preloadErr) {
+          respondError(id, (preloadErr as Error).message);
+        }
+        break;
+      }
+
+      case 'commitment_list_due': {
+        if (!commitmentTracker) { respond(id, []); break; }
+        const cldParams = params as { threshold_days?: number };
+        respond(id, commitmentTracker.getDueCommitments(cldParams.threshold_days ?? 1));
+        break;
+      }
+
+      case 'commitment_resolve': {
+        if (!commitmentTracker) { respondError(id, 'CommitmentTracker not initialized'); break; }
+        const crParams = params as { id: string };
+        commitmentTracker.resolve(crParams.id);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'commitment_dismiss': {
+        if (!commitmentTracker) { respondError(id, 'CommitmentTracker not initialized'); break; }
+        const cdParams = params as { id: string };
+        commitmentTracker.dismiss(cdParams.id);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'relationship_pattern_shifts': {
+        if (!patternShiftDetector) { respond(id, []); break; }
+        try {
+          const shifts = await patternShiftDetector.detectShifts();
+          respond(id, shifts);
+        } catch (psErr) {
+          respondError(id, (psErr as Error).message);
+        }
+        break;
+      }
+
+      case 'relationship_reciprocity': {
+        if (!core) { respond(id, []); break; }
+        try {
+          const rrParams = params as { contact_id?: string };
+          const coreDb = (core as unknown as { db: import('better-sqlite3').Database }).db;
+          if (!coreDb || !contactStore) { respond(id, []); break; }
+          const dbHandle = coreDb as unknown as import('../../../core/platform/types.js').DatabaseHandle;
+          const analyzer = new (await import('../../../core/knowledge/contacts/relationship-analyzer.js')).RelationshipAnalyzer({
+            db: dbHandle,
+            contactStore: contactStore!,
+          });
+          if (rrParams.contact_id) {
+            const score = analyzer.getReciprocityScore(rrParams.contact_id);
+            respond(id, score ? [score] : []);
+          } else {
+            // Top 10 contacts by interaction count
+            const contacts = contactStore!.listContacts({ limit: 10, sortBy: 'interactionCount' as any });
+            const scores = contacts
+              .map(c => analyzer.getReciprocityScore(c.id))
+              .filter(Boolean);
+            respond(id, scores);
+          }
+        } catch (rrErr) {
+          respondError(id, (rrErr as Error).message);
+        }
         break;
       }
 

@@ -8,6 +8,7 @@
 // What never syncs: raw document chunks, email bodies, conversation history.
 
 import { sha256 } from '@semblance/core';
+import type { SemblanceEventBus } from '../events/event-bus.js';
 
 export type KGSyncCategory = 'contacts' | 'calendar' | 'preferences' | 'named_sessions';
 
@@ -59,17 +60,21 @@ interface TunnelTransportLike {
 export class TunnelKGSync {
   private store: KGSyncStore | null;
   private deviceId: string;
+  private eventBus: SemblanceEventBus | null;
   private lastSyncMerkleRoot: string = '';
   private lastSyncAt: string | null = null;
   private totalDeltasSent = 0;
   private totalDeltasReceived = 0;
+  private peerOnline = false;
 
   constructor(config: {
     store?: KGSyncStore;
     deviceId: string;
+    eventBus?: SemblanceEventBus;
   }) {
     this.store = config.store ?? null;
     this.deviceId = config.deviceId;
+    this.eventBus = config.eventBus ?? null;
   }
 
   /**
@@ -78,6 +83,11 @@ export class TunnelKGSync {
    */
   async sync(tunnelTransport: TunnelTransportLike): Promise<KGSyncResult> {
     if (!tunnelTransport.isReady()) {
+      // Peer went offline — emit disconnected if was previously online
+      if (this.peerOnline && this.eventBus) {
+        this.peerOnline = false;
+        this.eventBus.emit('tunnel.disconnected', { deviceId: this.deviceId });
+      }
       return {
         success: false,
         deltasSent: 0,
@@ -85,6 +95,12 @@ export class TunnelKGSync {
         syncedAt: new Date().toISOString(),
         error: 'Tunnel not ready',
       };
+    }
+
+    // Peer is online — emit connected if first time seeing it online
+    if (!this.peerOnline && this.eventBus) {
+      this.peerOnline = true;
+      this.eventBus.emit('tunnel.connected', { deviceId: this.deviceId });
     }
 
     const localMerkleRoot = this.store?.getMerkleRoot() ?? sha256(this.deviceId);

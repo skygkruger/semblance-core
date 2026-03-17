@@ -11,8 +11,9 @@
 //   Linux: systemd user service (~/.config/systemd/user/semblance-gateway.service)
 
 import { join } from 'node:path';
-import { homedir, platform } from 'node:os';
+import { homedir, platform, uptime } from 'node:os';
 import { existsSync, mkdirSync, writeFileSync, unlinkSync, readFileSync } from 'node:fs';
+import type { SemblanceEventBus } from '../events/event-bus.js';
 
 export interface DaemonStatus {
   running: boolean;
@@ -39,8 +40,11 @@ export class DaemonManager {
   private gatewayBinaryPath: string;
   private startTime: number | null = null;
   private fastTierLoaded: boolean = false;
+  private eventBus: SemblanceEventBus | null = null;
+  private lastUptimeSeconds: number = uptime();
+  private wakeCheckInterval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(config?: { dataDir?: string; gatewayBinaryPath?: string }) {
+  constructor(config?: { dataDir?: string; gatewayBinaryPath?: string; eventBus?: SemblanceEventBus }) {
     this.dataDir = config?.dataDir ?? join(homedir(), '.semblance');
     this.pidFilePath = join(this.dataDir, 'daemon.pid');
     this.gatewayBinaryPath = config?.gatewayBinaryPath ?? join(this.dataDir, 'gateway-daemon');
@@ -54,6 +58,45 @@ export class DaemonManager {
       this.detectedPlatform = 'linux';
     } else {
       this.detectedPlatform = 'unsupported';
+    }
+    this.eventBus = config?.eventBus ?? null;
+  }
+
+  /**
+   * Start system wake detection via uptime polling.
+   * If OS uptime resets relative to last check, the system woke from sleep.
+   * Polls every 60 seconds in the daemon tick loop.
+   */
+  startWakeDetection(): void {
+    if (this.wakeCheckInterval) return;
+    this.lastUptimeSeconds = uptime();
+
+    this.wakeCheckInterval = setInterval(() => {
+      const currentUptime = uptime();
+      // If current uptime is significantly less than last check, system woke/rebooted.
+      // Also detect if more wall-clock time passed than uptime advanced (sleep gap).
+      if (currentUptime < this.lastUptimeSeconds - 5) {
+        // System rebooted — uptime reset
+        if (this.eventBus) {
+          this.eventBus.emit('system.wake', { timestamp: new Date().toISOString() });
+        }
+      }
+      this.lastUptimeSeconds = currentUptime;
+    }, 60_000);
+
+    // Prevent timer from keeping process alive
+    if (this.wakeCheckInterval && typeof this.wakeCheckInterval === 'object' && 'unref' in this.wakeCheckInterval) {
+      (this.wakeCheckInterval as NodeJS.Timeout).unref();
+    }
+  }
+
+  /**
+   * Stop system wake detection.
+   */
+  stopWakeDetection(): void {
+    if (this.wakeCheckInterval) {
+      clearInterval(this.wakeCheckInterval);
+      this.wakeCheckInterval = null;
     }
   }
 

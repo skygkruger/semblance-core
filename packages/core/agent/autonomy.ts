@@ -8,6 +8,7 @@ import type {
   AutonomyConfig,
   AutonomyDomain,
 } from './types.js';
+import type { PreferenceGraph } from './preference-graph.js';
 
 const CREATE_TABLE = `
   CREATE TABLE IF NOT EXISTS autonomy_config (
@@ -183,6 +184,7 @@ export class AutonomyManager {
   private db: DatabaseHandle;
   private defaultTier: AutonomyTier;
   private onPreferenceChanged?: (domain: string, tier: string) => void;
+  private preferenceGraph: PreferenceGraph | null = null;
 
   constructor(db: DatabaseHandle, config?: AutonomyConfig & { onPreferenceChanged?: (domain: string, tier: string) => void }) {
     this.db = db;
@@ -201,9 +203,38 @@ export class AutonomyManager {
   }
 
   /**
-   * Decide whether an action should be auto-approved, requires approval, or is blocked.
+   * Set the preference graph for preference-driven auto-approval.
    */
-  decide(action: ActionType): AutonomyDecision {
+  setPreferenceGraph(graph: PreferenceGraph): void {
+    this.preferenceGraph = graph;
+  }
+
+  /**
+   * Decide whether an action should be auto-approved, requires approval, or is blocked.
+   * Consults preference graph after tier/risk check — high-confidence learned preferences
+   * can upgrade requires_approval → auto_approve (never downgrade).
+   */
+  decide(action: ActionType, context?: Record<string, unknown>): AutonomyDecision {
+    const baseDecision = this.decideBase(action);
+
+    // Preference graph integration: high-confidence learned preference can upgrade
+    // requires_approval → auto_approve (but never downgrade auto_approve)
+    if (baseDecision === 'requires_approval' && this.preferenceGraph) {
+      const pref = this.preferenceGraph.shouldAutoApprove(action, context ?? {});
+      if (pref && pref.confidence >= 0.85 && pref.override !== true) {
+        if (!(pref.overrideValue === false)) {
+          return 'auto_approve';
+        }
+      }
+    }
+
+    return baseDecision;
+  }
+
+  /**
+   * Base autonomy decision (tier + risk only, no preference graph).
+   */
+  private decideBase(action: ActionType): AutonomyDecision {
     const domain = ACTION_DOMAIN_MAP[action];
     const tier = this.getDomainTier(domain);
     const risk = ACTION_RISK_MAP[action];
@@ -227,10 +258,7 @@ export class AutonomyManager {
 
       case 'alter_ego':
         // Alter Ego: Auto for almost everything. High-stakes execute = approval.
-        // Pattern learning is a future enhancement. Currently behaves like Partner
-        // with fewer approval requirements.
         if (risk === 'execute' && (action === 'email.send')) {
-          // Even Alter Ego confirms sending emails (can be changed by learned patterns in S4)
           return 'requires_approval';
         }
         return 'auto_approve';

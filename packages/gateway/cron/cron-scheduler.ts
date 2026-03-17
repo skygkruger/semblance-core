@@ -13,6 +13,7 @@ import Database from 'better-sqlite3';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync, mkdirSync } from 'node:fs';
+import type { SemblanceEventBus } from '../events/event-bus.js';
 
 export interface CronJob {
   id: string;
@@ -100,6 +101,15 @@ const BUILT_IN_JOBS: Omit<CronJob, 'lastFiredAt' | 'nextFireAt' | 'createdAt'>[]
     autonomyDomain: 'network',
     enabled: true,
   },
+  {
+    id: 'morning-brief-preload',
+    name: 'Morning Brief Pre-load',
+    schedule: '0 5 * * *',
+    actionType: 'digest.preload',
+    payload: {},
+    autonomyDomain: 'digest',
+    enabled: true,
+  },
 ];
 
 /**
@@ -110,8 +120,9 @@ export class CronScheduler {
   private db: Database.Database;
   private tickInterval: ReturnType<typeof setInterval> | null = null;
   private onFireJob: ((job: CronJob) => Promise<void>) | null = null;
+  private eventBus: SemblanceEventBus | null = null;
 
-  constructor(dbOrPath?: Database.Database | string) {
+  constructor(dbOrPath?: Database.Database | string, eventBus?: SemblanceEventBus) {
     if (typeof dbOrPath === 'string' || dbOrPath === undefined) {
       const dbPath = dbOrPath ?? join(homedir(), '.semblance', 'data', 'cron.db');
       const dbDir = join(dbPath, '..');
@@ -121,6 +132,7 @@ export class CronScheduler {
       this.db = dbOrPath;
     }
 
+    this.eventBus = eventBus ?? null;
     this.initSchema();
     this.seedBuiltInJobs();
   }
@@ -238,6 +250,10 @@ export class CronScheduler {
         }
         this.markFired(job.id, job.schedule);
         firedIds.push(job.id);
+        // Emit cron.fired event
+        if (this.eventBus) {
+          this.eventBus.emit('cron.fired', { jobId: job.id, actionType: job.actionType });
+        }
       } catch (error) {
         console.error(`[CronScheduler] Job ${job.id} failed:`, (error as Error).message);
       }
