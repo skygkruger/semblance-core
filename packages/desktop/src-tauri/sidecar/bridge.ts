@@ -6406,11 +6406,41 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
       case 'get_dark_pattern_flags': {
-        respond(id, []);
+        // Queries dark_pattern_flags table (same logic as dark_pattern_get_flags)
+        const dpResult: Array<{ contentId: string; confidence: number; patterns: unknown[]; reframe: string }> = [];
+        if (!darkPatternDetector && prefsDb && core) {
+          darkPatternDetector = new DarkPatternDetector(prefsDb, core.llm);
+        }
+        if (darkPatternDetector && prefsDb) {
+          try {
+            const dpRows = prefsDb.prepare(
+              'SELECT content_id AS "contentId", confidence, patterns_json, reframe FROM dark_pattern_flags WHERE dismissed = 0 ORDER BY flagged_at DESC LIMIT 50'
+            ).all() as Array<{ contentId: string; confidence: number; patterns_json: string; reframe: string }>;
+            for (const f of dpRows) {
+              dpResult.push({
+                contentId: f.contentId,
+                confidence: f.confidence,
+                patterns: JSON.parse(f.patterns_json),
+                reframe: f.reframe,
+              });
+            }
+          } catch {
+            // Table may not exist yet — no dark patterns flagged
+          }
+        }
+        respond(id, dpResult);
         break;
       }
       case 'get_clipboard_insights': {
-        respond(id, []);
+        // Queries clipboard recognizer for recent actions (same as clipboard_get_insights)
+        const clipInsights = clipboardRecognizer
+          ? clipboardRecentActions.slice(0, 5).map(a => ({
+              patternDescription: a.patternType,
+              actionLabel: a.action,
+              actionId: a.timestamp,
+            }))
+          : ([] as Array<{ patternDescription: string; actionLabel: string; actionId: string }>);
+        respond(id, clipInsights);
         break;
       }
 

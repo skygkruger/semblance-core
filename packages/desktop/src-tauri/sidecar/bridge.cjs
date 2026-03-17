@@ -274728,11 +274728,36 @@ async function handleRequest(req) {
         break;
       }
       case "get_dark_pattern_flags": {
-        respond(id, []);
+        const dpResult = [];
+        if (!darkPatternDetector && prefsDb && core) {
+          darkPatternDetector = new DarkPatternDetector(prefsDb, core.llm);
+        }
+        if (darkPatternDetector && prefsDb) {
+          try {
+            const dpRows = prefsDb.prepare(
+              'SELECT content_id AS "contentId", confidence, patterns_json, reframe FROM dark_pattern_flags WHERE dismissed = 0 ORDER BY flagged_at DESC LIMIT 50'
+            ).all();
+            for (const f of dpRows) {
+              dpResult.push({
+                contentId: f.contentId,
+                confidence: f.confidence,
+                patterns: JSON.parse(f.patterns_json),
+                reframe: f.reframe
+              });
+            }
+          } catch {
+          }
+        }
+        respond(id, dpResult);
         break;
       }
       case "get_clipboard_insights": {
-        respond(id, []);
+        const clipInsights = clipboardRecognizer ? clipboardRecentActions.slice(0, 5).map((a) => ({
+          patternDescription: a.patternType,
+          actionLabel: a.action,
+          actionId: a.timestamp
+        })) : [];
+        respond(id, clipInsights);
         break;
       }
       // ─── Connector Query Handlers ─────────────────────────────────────
