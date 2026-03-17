@@ -101,6 +101,14 @@ import { PairingManager } from '../../../gateway/channels/pairing-manager.js';
 import { CanvasManager } from '../../../gateway/canvas/canvas-manager.js';
 import { SemblanceEventBus } from '../../../gateway/events/event-bus.js';
 
+// Sprint D: Tunnel / Compute Mesh
+import { TunnelGatewayServer } from '../../../gateway/tunnel/tunnel-gateway-server.js';
+import { WireGuardKeyManager } from '../../../gateway/tunnel/wireguard-keys.js';
+import { HeadscaleClient } from '../../../gateway/tunnel/headscale-client.js';
+import { WireGuardManager } from '../../../gateway/tunnel/wireguard-manager.js';
+import { PairingCoordinator } from '../../../gateway/tunnel/pairing-coordinator.js';
+import { TunnelKGSync } from '../../../gateway/tunnel/kg-sync.js';
+
 // Merkle chain imports
 import { MerkleChain } from '../../../core/audit/merkle-chain.js';
 import { generateKeyPair as ed25519GenerateKeyPair } from '../../../core/crypto/ed25519.js';
@@ -308,6 +316,13 @@ let channelRegistry: ChannelRegistry | null = null;
 let pairingManager: PairingManager | null = null;
 let canvasManager: CanvasManager | null = null;
 let eventBus: SemblanceEventBus | null = null;
+
+// Sprint D: Tunnel / Compute Mesh
+let tunnelGatewayServer: TunnelGatewayServer | null = null;
+let headscaleClient: HeadscaleClient | null = null;
+let wireguardManager: WireGuardManager | null = null;
+let tunnelPairingCoordinator: PairingCoordinator | null = null;
+let tunnelKGSync: TunnelKGSync | null = null;
 
 // Merkle chain state
 let merkleChain: MerkleChain | null = null;
@@ -7270,6 +7285,162 @@ async function handleRequest(req: Request): Promise<void> {
         const rcParams = params as { channelId: string; senderId: string };
         pairingManager.revokeContact(rcParams.channelId, rcParams.senderId);
         respond(id, { success: true });
+        break;
+      }
+
+      // ─── Sprint D: Tunnel / Compute Mesh Handlers ────────────────────────
+
+      case 'tunnel_gateway_start': {
+        const tgsParams = params as { bindAddress: string; port?: number };
+        if (!tunnelGatewayServer && gateway) {
+          tunnelGatewayServer = new TunnelGatewayServer({
+            bindAddress: tgsParams.bindAddress,
+            port: tgsParams.port ?? 51821,
+            validateAndExecute: async (req) => gateway!.getServiceRegistry().register as any,
+            auditTrail: gateway.getAuditTrail(),
+            deviceId: getPref('device_id') ?? 'desktop',
+          });
+        }
+        if (!tunnelGatewayServer) { respondError(id, 'Gateway not initialized'); break; }
+        try {
+          await tunnelGatewayServer.start();
+          respond(id, { success: true, ...tunnelGatewayServer.getStatus() });
+        } catch (e) {
+          respondError(id, (e as Error).message);
+        }
+        break;
+      }
+
+      case 'tunnel_gateway_stop': {
+        if (tunnelGatewayServer) await tunnelGatewayServer.stop();
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'tunnel_gateway_status': {
+        respond(id, tunnelGatewayServer?.getStatus() ?? { running: false, bindAddress: '', port: 51821, connectedPeers: 0 });
+        break;
+      }
+
+      case 'tunnel_wireguard_start': {
+        if (!wireguardManager) wireguardManager = new WireGuardManager({ dataDir });
+        const twsParams = params as { config: import('../../../gateway/tunnel/headscale-client.js').WireGuardConfig };
+        try {
+          await wireguardManager.start(twsParams.config);
+          respond(id, { success: true, ...wireguardManager.getStatus() });
+        } catch (e) {
+          respondError(id, (e as Error).message);
+        }
+        break;
+      }
+
+      case 'tunnel_wireguard_stop': {
+        if (wireguardManager) await wireguardManager.stop();
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'tunnel_wireguard_status': {
+        respond(id, wireguardManager?.getStatus() ?? { running: false, meshIp: null, processAlive: false });
+        break;
+      }
+
+      case 'tunnel_headscale_register': {
+        const thrParams = params as { serverUrl: string; authKey: string; machineName: string; publicKey: string };
+        headscaleClient = new HeadscaleClient({
+          serverUrl: thrParams.serverUrl,
+          authKey: thrParams.authKey,
+          machineName: thrParams.machineName,
+        });
+        try {
+          const regResult = await headscaleClient.register(thrParams.publicKey);
+          respond(id, regResult);
+        } catch (e) {
+          respondError(id, (e as Error).message);
+        }
+        break;
+      }
+
+      case 'tunnel_headscale_peers': {
+        if (!headscaleClient) { respond(id, []); break; }
+        try {
+          const peers = await headscaleClient.getPeers();
+          respond(id, peers);
+        } catch (e) {
+          respondError(id, (e as Error).message);
+        }
+        break;
+      }
+
+      case 'tunnel_headscale_is_registered': {
+        if (!headscaleClient) { respond(id, false); break; }
+        try {
+          const registered = await headscaleClient.isRegistered();
+          respond(id, registered);
+        } catch {
+          respond(id, false);
+        }
+        break;
+      }
+
+      case 'tunnel_generate_pairing_code': {
+        const gatewayDataDir = join(dataDir, 'gateway');
+        if (!tunnelPairingCoordinator) {
+          const configDbPath = join(gatewayDataDir, 'config.db');
+          if (existsSync(configDbPath)) {
+            tunnelPairingCoordinator = new PairingCoordinator(new Database(configDbPath));
+          }
+        }
+        if (!tunnelPairingCoordinator) { respondError(id, 'Pairing coordinator not initialized'); break; }
+        const tgpParams = params as { headscaleServer: string; preAuthKey: string; deviceId: string; publicKey: string; displayName: string; platform: string };
+        const pairingResult = await tunnelPairingCoordinator.generatePairingCode(tgpParams);
+        respond(id, pairingResult);
+        break;
+      }
+
+      case 'tunnel_verify_pairing_code': {
+        if (!tunnelPairingCoordinator) { respond(id, null); break; }
+        const tvpParams = params as { code: string };
+        const peerInfo = await tunnelPairingCoordinator.verifyPairingCode(tvpParams.code);
+        respond(id, peerInfo);
+        break;
+      }
+
+      case 'tunnel_complete_pairing': {
+        if (!tunnelPairingCoordinator) { respondError(id, 'Pairing coordinator not initialized'); break; }
+        const tcpParams = params as { deviceId: string; displayName: string; platform: string; meshIp: string; publicKey: string };
+        await tunnelPairingCoordinator.completePairing(tcpParams);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'tunnel_list_paired_devices': {
+        if (!tunnelPairingCoordinator) { respond(id, []); break; }
+        const devices = await tunnelPairingCoordinator.listPairedDevices();
+        respond(id, devices);
+        break;
+      }
+
+      case 'tunnel_unpair_device': {
+        if (!tunnelPairingCoordinator) { respondError(id, 'Pairing coordinator not initialized'); break; }
+        const tudParams = params as { deviceId: string };
+        await tunnelPairingCoordinator.unpairDevice(tudParams.deviceId);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'tunnel_sync_now': {
+        if (!tunnelKGSync) {
+          tunnelKGSync = new TunnelKGSync({ deviceId: getPref('device_id') ?? 'desktop' });
+        }
+        // Tunnel sync requires a TunnelTransport — return status only for now
+        respond(id, tunnelKGSync.getSyncStatus());
+        break;
+      }
+
+      case 'tunnel_sync_status': {
+        if (!tunnelKGSync) { respond(id, { lastSyncAt: null, deltasSent: 0, deltasReceived: 0, nextSyncAt: null }); break; }
+        respond(id, tunnelKGSync.getSyncStatus());
         break;
       }
 
