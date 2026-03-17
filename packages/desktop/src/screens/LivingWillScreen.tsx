@@ -8,32 +8,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
-import { exportKnowledgeGraph, getKnowledgeStats } from '../ipc/commands';
+import {
+  getKnowledgeStats,
+  livingWillGetHistory,
+  livingWillGetSettings,
+  livingWillUpdateSettings,
+  livingWillExport,
+  livingWillImport,
+} from '../ipc/commands';
+import type { LivingWillExportRecord } from '../ipc/commands';
 import './LivingWillScreen.css';
-
-interface ExportRecord {
-  id: string;
-  timestamp: string;
-  path: string;
-  sizeBytes: number;
-  encrypted: boolean;
-}
-
-const STORAGE_KEY = 'semblance.living_will_exports';
-const SETTINGS_KEY = 'semblance.living_will_settings';
-
-function loadExports(): ExportRecord[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveExports(records: ExportRecord[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-}
 
 export function LivingWillScreen() {
   const { t } = useTranslation();
@@ -41,28 +25,25 @@ export function LivingWillScreen() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [autoExportEnabled, setAutoExportEnabled] = useState(false);
-  const [exports, setExports] = useState<ExportRecord[]>([]);
+  const [exports, setExports] = useState<LivingWillExportRecord[]>([]);
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       try {
-        // Load export history from localStorage
-        const records = loadExports();
-        setExports(records);
-        const first = records[0];
+        const [history, settings] = await Promise.all([
+          livingWillGetHistory(),
+          livingWillGetSettings(),
+        ]);
+        setExports(history);
+        const first = history[0];
         if (first) {
           setLastExport(first.timestamp);
         }
-
-        // Load settings
-        const savedSettings = localStorage.getItem(SETTINGS_KEY);
-        if (savedSettings) {
-          const parsed = JSON.parse(savedSettings);
-          setAutoExportEnabled(parsed.autoExportEnabled ?? false);
-        }
+        setAutoExportEnabled(settings.autoExportEnabled);
       } catch (err) {
         console.error('[LivingWillScreen] load failed:', err);
       } finally {
@@ -72,35 +53,43 @@ export function LivingWillScreen() {
     loadData();
   }, []);
 
-  const handleToggleAutoExport = useCallback((value: boolean) => {
+  const handleToggleAutoExport = useCallback(async (value: boolean) => {
     setAutoExportEnabled(value);
-    const savedSettings = localStorage.getItem(SETTINGS_KEY);
-    const current = savedSettings ? JSON.parse(savedSettings) : {};
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...current, autoExportEnabled: value }));
+    try {
+      await livingWillUpdateSettings(value ? 'weekly' : 'manual');
+    } catch (err) {
+      console.error('[LivingWillScreen] failed to update settings:', err);
+      setAutoExportEnabled(!value);
+    }
   }, []);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
     setStatusMessage(null);
     try {
-      // Get knowledge stats for size estimation
-      const stats = await getKnowledgeStats();
+      // Get knowledge stats for size estimation display
+      await getKnowledgeStats();
 
-      // Trigger the knowledge graph export via IPC
-      await exportKnowledgeGraph();
+      // Use Tauri file dialog for output path
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const outputPath = await save({
+        title: 'Save Living Will Export',
+        defaultPath: `semblance-living-will-${new Date().toISOString().slice(0, 10)}.enc`,
+        filters: [{ name: 'Encrypted Archive', extensions: ['enc'] }],
+      });
+      if (!outputPath) {
+        setExporting(false);
+        return;
+      }
 
-      // Record the export
-      const record: ExportRecord = {
-        id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-        path: 'knowledge-export',
-        sizeBytes: stats.indexSizeBytes,
-        encrypted: true,
-      };
-      const updated = [record, ...exports];
-      setExports(updated);
+      const record = await livingWillExport({
+        passphrase: '',
+        outputPath,
+        sections: ['knowledge', 'preferences', 'audit'],
+      });
+
+      setExports((prev) => [record, ...prev]);
       setLastExport(record.timestamp);
-      saveExports(updated);
       setStatusMessage(t('screen.living_will.export_success', 'Export completed successfully'));
     } catch (err) {
       console.error('[LivingWillScreen] export failed:', err);
@@ -108,7 +97,41 @@ export function LivingWillScreen() {
     } finally {
       setExporting(false);
     }
-  }, [exports, t]);
+  }, [t]);
+
+  const handleImport = useCallback(async () => {
+    setImporting(true);
+    setStatusMessage(null);
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const archivePath = await open({
+        title: 'Select Living Will Archive',
+        multiple: false,
+        filters: [{ name: 'Encrypted Archive', extensions: ['enc'] }],
+      });
+      if (!archivePath) {
+        setImporting(false);
+        return;
+      }
+
+      const filePath = typeof archivePath === 'string' ? archivePath : String(archivePath);
+      await livingWillImport({ archivePath: filePath, passphrase: '' });
+
+      // Refresh history after import
+      const refreshed = await livingWillGetHistory();
+      setExports(refreshed);
+      const newest = refreshed[0];
+      if (newest) {
+        setLastExport(newest.timestamp);
+      }
+      setStatusMessage(t('screen.living_will.import_success', 'Archive imported successfully'));
+    } catch (err) {
+      console.error('[LivingWillScreen] import failed:', err);
+      setStatusMessage(t('screen.living_will.import_failed', 'Import failed. Please try again.'));
+    } finally {
+      setImporting(false);
+    }
+  }, [t]);
 
   if (!license.isPremium) {
     return (
@@ -183,9 +206,10 @@ export function LivingWillScreen() {
             <button
               type="button"
               className="living-will__btn living-will__btn--secondary"
-              onClick={() => setStatusMessage(t('screen.living_will.import_coming_soon'))}
+              onClick={handleImport}
+              disabled={importing}
             >
-              {t('screen.living_will.import_archive')}
+              {importing ? t('screen.living_will.importing', 'Importing...') : t('screen.living_will.import_archive')}
             </button>
           </div>
           {statusMessage && (

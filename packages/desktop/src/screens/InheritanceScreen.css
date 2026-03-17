@@ -199,3 +199,56 @@
   border: 1px solid rgba(176, 122, 138, 0.3);
   color: #B07A8A;
 }
+
+.inheritance__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.inheritance__party-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.inheritance__status-message {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: #6ECFA3;
+  margin-top: var(--sp-3);
+}
+
+.inheritance__add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4) 0;
+  border-top: 1px solid rgba(110, 207, 163, 0.06);
+  margin-top: var(--sp-3);
+}
+
+.inheritance__input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--s1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-md);
+  color: var(--white);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.inheritance__input::placeholder {
+  color: var(--sv3);
+}
+
+.inheritance__input:focus {
+  border-color: rgba(110, 207, 163, 0.4);
+}
+
+.inheritance__add-form-actions {
+  display: flex;
+  gap: var(--sp-3);
+}

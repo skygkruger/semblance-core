@@ -962,3 +962,172 @@ export function downloadStandardModel(modelId: string): Promise<{ status: string
 export function activateStandardModel(modelId: string): Promise<{ status: string; modelId: string }> {
   return invoke<{ status: string; modelId: string }>('standard_set_active', { modelId });
 }
+
+// ─── Living Will ───────────────────────────────────────────────────────────
+
+export interface LivingWillExportRecord {
+  id: string;
+  timestamp: string;
+  path: string;
+  sizeBytes: number;
+  encrypted: boolean;
+}
+
+export interface LivingWillSettings {
+  autoExportEnabled: boolean;
+  cadence: 'weekly' | 'monthly' | 'quarterly';
+}
+
+export function livingWillGetHistory(): Promise<LivingWillExportRecord[]> {
+  return invoke<LivingWillExportRecord[]>('living_will_get_history');
+}
+
+export function livingWillGetSettings(): Promise<LivingWillSettings> {
+  return invoke<LivingWillSettings>('living_will_get_settings');
+}
+
+export function livingWillUpdateSettings(cadence: string): Promise<void> {
+  return invoke<void>('living_will_update_settings', { cadence });
+}
+
+export function livingWillExport(params: {
+  passphrase: string;
+  outputPath: string;
+  sections: string[];
+}): Promise<LivingWillExportRecord> {
+  return invoke<LivingWillExportRecord>('living_will_export', params);
+}
+
+export function livingWillImport(params: {
+  archivePath: string;
+  passphrase: string;
+}): Promise<{ imported: boolean }> {
+  return invoke<{ imported: boolean }>('living_will_import', params);
+}
+
+// ─── Witness / Attestation ─────────────────────────────────────────────────
+
+export interface WitnessAttestation {
+  id: string;
+  actionType: string;
+  description: string;
+  timestamp: string;
+  hash: string;
+  verified: boolean;
+}
+
+export function witnessGetAttestations(): Promise<WitnessAttestation[]> {
+  return invoke<WitnessAttestation[]>('witness_get_attestations');
+}
+
+export function witnessGenerateAttestation(params: {
+  auditEntryId: string;
+  actionSummary: string;
+}): Promise<WitnessAttestation> {
+  return invoke<WitnessAttestation>('witness_generate_attestation', params);
+}
+
+export function witnessExportAttestation(attestationId: string): Promise<{ exported: boolean; path: string }> {
+  return invoke<{ exported: boolean; path: string }>('witness_export_attestation', { attestationId });
+}
+
+export function witnessVerifyAttestation(attestationId: string): Promise<{ valid: boolean; message: string }> {
+  return invoke<{ valid: boolean; message: string }>('witness_verify_attestation', { attestationId });
+}
+
+// ─── Inheritance Protocol ──────────────────────────────────────────────────
+
+export interface InheritanceConfig {
+  enabled: boolean;
+}
+
+export interface InheritanceTrustedParty {
+  id: string;
+  name: string;
+  email: string;
+  relationship: string;
+  role: 'primary' | 'secondary' | 'backup';
+  status: 'active' | 'pending';
+}
+
+export function inheritanceGetConfig(): Promise<InheritanceConfig> {
+  return invoke<InheritanceConfig>('inheritance_get_config');
+}
+
+export function inheritanceUpdateConfig(params: { enabled: boolean }): Promise<void> {
+  return invoke<void>('inheritance_update_config', params);
+}
+
+export function inheritanceGetTrustedParties(): Promise<InheritanceTrustedParty[]> {
+  return invoke<InheritanceTrustedParty[]>('inheritance_get_trusted_parties');
+}
+
+export function inheritanceAddTrustedParty(params: {
+  name: string;
+  email: string;
+  relationship: string;
+}): Promise<InheritanceTrustedParty> {
+  return invoke<InheritanceTrustedParty>('inheritance_add_trusted_party', params);
+}
+
+export function inheritanceRemoveTrustedParty(id: string): Promise<void> {
+  return invoke<void>('inheritance_remove_trusted_party', { id });
+}
+
+export function inheritanceRunTest(): Promise<{ success: boolean; message: string }> {
+  return invoke<{ success: boolean; message: string }>('inheritance_run_test');
+}
+
+// ─── Backup & Restore ──────────────────────────────────────────────────────
+
+export interface BackupConfig {
+  schedule: 'manual' | 'daily' | 'weekly' | 'monthly';
+  destinations: BackupDestinationEntry[];
+}
+
+export interface BackupDestinationEntry {
+  id: string;
+  name: string;
+  type: 'local' | 'usb' | 'network';
+  path: string;
+  lastBackupAt: string | null;
+  sizeBytes: number;
+}
+
+export interface BackupHistoryRecord {
+  id: string;
+  destinationId: string;
+  destinationName: string;
+  timestamp: string;
+  sizeBytes: number;
+  status: 'success' | 'failed' | 'partial';
+  durationSeconds: number;
+}
+
+export function backupGetConfig(): Promise<BackupConfig> {
+  return invoke<BackupConfig>('backup_get_config');
+}
+
+export function backupGetHistory(): Promise<BackupHistoryRecord[]> {
+  return invoke<BackupHistoryRecord[]>('backup_get_history');
+}
+
+export function backupUpdateConfig(params: Partial<BackupConfig>): Promise<void> {
+  return invoke<void>('backup_update_config', params);
+}
+
+export function backupCreate(passphrase: string): Promise<BackupHistoryRecord> {
+  return invoke<BackupHistoryRecord>('backup_create', { passphrase });
+}
+
+export function backupRestore(params: { filePath: string; passphrase: string }): Promise<{ restored: boolean }> {
+  return invoke<{ restored: boolean }>('backup_restore', params);
+}
+
+export function backupAddDestination(params: { name: string; path: string; type: 'local' | 'usb' | 'network' }): Promise<BackupDestinationEntry> {
+  return invoke<BackupDestinationEntry>('backup_add_destination', params);
+}
+
+export function backupRemoveDestination(id: string): Promise<void> {
+  return invoke<void>('backup_remove_destination', { id });
+}
