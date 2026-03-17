@@ -93,6 +93,14 @@ import { AlterEgoGuardrails } from '../../../core/agent/alter-ego-guardrails.js'
 // Knowledge curation imports
 import { KnowledgeCurator } from '../../../core/knowledge/knowledge-curator.js';
 
+// Sprint C: Named sessions, channels, canvas, event bus, vision
+import { NamedSessionManager } from '../../../core/agent/named-session-manager.js';
+import { VisionProvider } from '../../../core/llm/vision-provider.js';
+import { ChannelRegistry } from '../../../gateway/channels/channel-registry.js';
+import { PairingManager } from '../../../gateway/channels/pairing-manager.js';
+import { CanvasManager } from '../../../gateway/canvas/canvas-manager.js';
+import { SemblanceEventBus } from '../../../gateway/events/event-bus.js';
+
 // Merkle chain imports
 import { MerkleChain } from '../../../core/audit/merkle-chain.js';
 import { generateKeyPair as ed25519GenerateKeyPair } from '../../../core/crypto/ed25519.js';
@@ -292,6 +300,14 @@ let alterEgoGuardrails: AlterEgoGuardrails | null = null;
 
 // Knowledge curation state
 let curator: KnowledgeCurator | null = null;
+
+// Sprint C: Named sessions, channels, canvas, event bus, vision
+let namedSessionManager: NamedSessionManager | null = null;
+let visionProvider: VisionProvider | null = null;
+let channelRegistry: ChannelRegistry | null = null;
+let pairingManager: PairingManager | null = null;
+let canvasManager: CanvasManager | null = null;
+let eventBus: SemblanceEventBus | null = null;
 
 // Merkle chain state
 let merkleChain: MerkleChain | null = null;
@@ -7121,6 +7137,238 @@ async function handleRequest(req: Request): Promise<void> {
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));
         }
+        break;
+      }
+
+      // ─── Sprint C: Named Session Handlers ─────────────────────────────────
+
+      case 'session_create': {
+        if (!namedSessionManager && prefsDb) {
+          namedSessionManager = new NamedSessionManager(prefsDb as any);
+        }
+        if (!namedSessionManager) { respondError(id, 'Session manager not initialized'); break; }
+        const scParams = params as { key: string; label: string; autonomyOverrides?: Record<string, string>; modelOverride?: string; channelBinding?: string };
+        const convId = await namedSessionManager.createSession({
+          key: scParams.key,
+          label: scParams.label,
+          autonomyOverrides: scParams.autonomyOverrides as any,
+          modelOverride: scParams.modelOverride,
+          channelBinding: scParams.channelBinding,
+        });
+        respond(id, { conversationId: convId, key: scParams.key });
+        break;
+      }
+
+      case 'session_list': {
+        if (!namedSessionManager && prefsDb) {
+          namedSessionManager = new NamedSessionManager(prefsDb as any);
+        }
+        if (!namedSessionManager) { respond(id, []); break; }
+        const sessions = await namedSessionManager.listSessions();
+        respond(id, sessions);
+        break;
+      }
+
+      case 'session_get': {
+        if (!namedSessionManager && prefsDb) {
+          namedSessionManager = new NamedSessionManager(prefsDb as any);
+        }
+        if (!namedSessionManager) { respond(id, null); break; }
+        const sgParams = params as { key: string };
+        const session = await namedSessionManager.getSession(sgParams.key);
+        respond(id, session);
+        break;
+      }
+
+      case 'session_delete': {
+        if (!namedSessionManager && prefsDb) {
+          namedSessionManager = new NamedSessionManager(prefsDb as any);
+        }
+        if (!namedSessionManager) { respondError(id, 'Session manager not initialized'); break; }
+        const sdParams = params as { key: string };
+        await namedSessionManager.deleteSession(sdParams.key);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'session_resolve': {
+        if (!namedSessionManager && prefsDb) {
+          namedSessionManager = new NamedSessionManager(prefsDb as any);
+        }
+        if (!namedSessionManager) { respondError(id, 'Session manager not initialized'); break; }
+        const srParams = params as { key: string };
+        const resolvedConvId = await namedSessionManager.resolveSession(srParams.key);
+        respond(id, { conversationId: resolvedConvId });
+        break;
+      }
+
+      // ─── Sprint C: Channel Handlers ───────────────────────────────────────
+
+      case 'channel_list': {
+        if (!channelRegistry) {
+          channelRegistry = new ChannelRegistry();
+        }
+        respond(id, channelRegistry.listAll());
+        break;
+      }
+
+      case 'channel_start': {
+        if (!channelRegistry) { respondError(id, 'Channel registry not initialized'); break; }
+        const csParams = params as { channelId: string };
+        try {
+          await channelRegistry.start(csParams.channelId);
+          respond(id, { success: true });
+        } catch (e) {
+          respondError(id, (e as Error).message);
+        }
+        break;
+      }
+
+      case 'channel_stop': {
+        if (!channelRegistry) { respondError(id, 'Channel registry not initialized'); break; }
+        const cstParams = params as { channelId: string };
+        await channelRegistry.stop(cstParams.channelId);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'channel_get_status': {
+        if (!channelRegistry) { respond(id, null); break; }
+        const cgsParams = params as { channelId: string };
+        respond(id, channelRegistry.getStatus(cgsParams.channelId));
+        break;
+      }
+
+      case 'channel_approve_contact': {
+        if (!pairingManager && gateway) {
+          const gatewayDataDir = join(dataDir, 'gateway');
+          const configDbPath = join(gatewayDataDir, 'config.db');
+          if (existsSync(configDbPath)) {
+            const configDb = new Database(configDbPath);
+            pairingManager = new PairingManager(configDb);
+          }
+        }
+        if (!pairingManager) { respondError(id, 'Pairing manager not initialized'); break; }
+        const acParams = params as { channelId: string; senderId: string; displayName?: string; code?: string };
+        if (acParams.code) {
+          const valid = pairingManager.verifyCode(acParams.channelId, acParams.senderId, acParams.code);
+          if (!valid) { respondError(id, 'Invalid or expired pairing code'); break; }
+        }
+        pairingManager.approveContact(acParams.channelId, acParams.senderId, acParams.displayName);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'channel_list_pending_approvals': {
+        if (!pairingManager) { respond(id, []); break; }
+        respond(id, pairingManager.listPending());
+        break;
+      }
+
+      case 'channel_revoke_contact': {
+        if (!pairingManager) { respondError(id, 'Pairing manager not initialized'); break; }
+        const rcParams = params as { channelId: string; senderId: string };
+        pairingManager.revokeContact(rcParams.channelId, rcParams.senderId);
+        respond(id, { success: true });
+        break;
+      }
+
+      // ─── Sprint C: Canvas Handlers ────────────────────────────────────────
+
+      case 'canvas_push': {
+        if (!canvasManager) {
+          canvasManager = new CanvasManager({
+            auditTrail: gateway?.getAuditTrail() ?? undefined,
+          });
+        }
+        const cpParams = params as { componentType: string; data: Record<string, unknown>; replace: boolean; title?: string };
+        const pushResult = canvasManager.push({
+          componentType: cpParams.componentType as any,
+          data: cpParams.data,
+          replace: cpParams.replace ?? true,
+          title: cpParams.title,
+        });
+        if (pushResult.accepted) {
+          emit('canvas:update', canvasManager.getCurrentPayload());
+          respond(id, { accepted: true });
+        } else {
+          respondError(id, pushResult.reason ?? 'Canvas push rejected');
+        }
+        break;
+      }
+
+      case 'canvas_clear': {
+        if (!canvasManager) {
+          canvasManager = new CanvasManager();
+        }
+        canvasManager.clear();
+        emit('canvas:update', null);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'canvas_get_state': {
+        if (!canvasManager) { respond(id, { currentPayload: null, history: [], lastPushedAt: null, pushCount: 0 }); break; }
+        respond(id, canvasManager.getState());
+        break;
+      }
+
+      case 'canvas_snapshot': {
+        if (!canvasManager) { respond(id, { snapshot: 'null' }); break; }
+        respond(id, { snapshot: canvasManager.snapshot() });
+        break;
+      }
+
+      // ─── Sprint C: Vision Handlers ────────────────────────────────────────
+
+      case 'vision_analyze_image': {
+        if (!visionProvider) {
+          visionProvider = new VisionProvider();
+        }
+        const vaiParams = params as { imagePath: string; prompt?: string; tier?: 'fast' | 'rich' };
+        const visionResult = await visionProvider.analyzeFromPath(
+          vaiParams.imagePath,
+          vaiParams.prompt ?? 'Describe this image.',
+          vaiParams.tier ?? 'fast',
+        );
+        respond(id, visionResult);
+        break;
+      }
+
+      case 'vision_ocr_document': {
+        if (!visionProvider) {
+          visionProvider = new VisionProvider();
+        }
+        const vodParams = params as { imagePath: string };
+        const ocrResult = await visionProvider.ocrDocument(vodParams.imagePath);
+        respond(id, ocrResult);
+        break;
+      }
+
+      case 'vision_screen_capture': {
+        if (!visionProvider) {
+          visionProvider = new VisionProvider();
+        }
+        // Screen capture: base64 screenshot passed by the frontend via Tauri
+        const vscParams = params as { screenshotBase64?: string; prompt?: string };
+        if (!vscParams.screenshotBase64) {
+          respondError(id, 'screenshotBase64 parameter required — capture via Tauri screen API');
+          break;
+        }
+        const screenResult = await visionProvider.captureAndAnalyzeScreen(
+          vscParams.screenshotBase64,
+          vscParams.prompt,
+        );
+        respond(id, screenResult);
+        break;
+      }
+
+      // ─── Sprint C: Event Bus Handlers ─────────────────────────────────────
+
+      case 'event_bus_recent': {
+        if (!eventBus) { eventBus = new SemblanceEventBus(); }
+        const ebrParams = params as { limit?: number };
+        respond(id, eventBus.getRecentEvents(ebrParams.limit ?? 20));
         break;
       }
 
