@@ -716,6 +716,104 @@ Refer to `SEMBLANCE_BUILD_MAP_REVISION_2.md` for full, past sprint details inclu
 
 ---
 
+## FOLLOW THE DATA — MANDATORY PIPELINE VERIFICATION
+
+**This rule is equal to NO STUBS and MANDATORY RUNTIME VERIFICATION. It survives compaction.**
+
+### The Problem This Solves
+
+Code that compiles, passes IPC tests, and has all handlers registered can still produce zero data for the user. This is the pipeline gap failure mode: OAuth connects, the handler exists, IPC responds — but no sync trigger fires, so the knowledge graph stays empty, the inbox shows nothing, and the AI says it has no access to the user's data. This has cost days of work repeatedly.
+
+### The Rule
+
+**Before declaring any feature that moves data between systems complete, you MUST:**
+
+1. **Produce a pipeline map** using `/data-map` format, tracing the complete path from data source to database row to UI output — BEFORE writing any code. Post to Sky. Wait for approval.
+
+2. **Run `node scripts/data-audit.js`** after implementation and confirm expected database rows exist. Not your judgment. The actual row count from the database.
+
+3. **Confirm the consuming handler returns real data.** Call the IPC method manually and confirm the response contains real objects, not `[]`.
+
+### What "Data Flows" Means
+
+A pipeline is complete when ALL of these are true:
+- Write path runs: sync/indexing produces database rows with the correct `source` field value
+- `data-audit.js` shows the expected source has document count > 0
+- Read path runs: IPC handler queries the local index, not a live external API
+- IPC response contains real data when called manually against the live sidecar
+- AI tool for this data returns real results when asked in chat
+
+A pipeline is NOT complete when:
+- "The code should work" — the database either has data or it doesn't
+- IPC returns `[]` — always means the pipeline is broken or empty
+- The handler exists but was never connected to a sync trigger
+- Tests pass but the feature produces nothing for a real user
+
+### New Commands
+
+```
+/data-audit       — node scripts/data-audit.js
+                    Reads every database. Reports OAuth tokens, document counts by source,
+                    pipeline gaps, hardcoded stubs. Run at START and END of every session.
+
+/pipeline-check   — .claude/commands/pipeline-check.md
+                    Full pipeline integrity protocol and session report format.
+
+/pipeline-fix     — .claude/commands/pipeline-fix.md
+                    Required protocol for resolving pipeline gaps.
+
+/data-map         — .claude/commands/data-map.md
+                    Required pipeline map format. Written and approved BEFORE implementing
+                    any data-movement feature.
+```
+
+### Updated Mandatory Session Flow
+
+```
+SESSION START:
+  1. Read SEMBLANCE_STATE.md
+  2. Read SLICE_CONTRACTS.md for today's features (including DATA ASSERTIONS)
+  3. node scripts/semblance-verify.js   ← IPC baseline
+  4. node scripts/data-audit.js         ← DATA baseline (MANDATORY — NEW)
+  5. For data-movement features: write pipeline map → post to Sky → wait for approval
+  6. Post START report (must include data-audit output)
+
+WORK:
+  - Diagnose: sidecar + data-audit — actual errors AND actual data state
+  - Verify after every change: semblance-verify AND data-audit for pipeline work
+  - Smoke after every backend change
+  - Never self-report without terminal output
+
+SESSION END:
+  1. node scripts/semblance-verify.js   ← IPC comparison
+  2. node scripts/data-audit.js         ← DATA comparison (MANDATORY — NEW)
+  3. node scripts/preflight.js
+  4. Resolve all in-scope pipeline gaps (VERDICT must be HEALTHY)
+  5. Update SEMBLANCE_STATE.md
+  6. Post END report with before/after data-audit output
+```
+
+### Mandatory Workflow for Any Data-Movement Feature
+
+```
+1. Write pipeline map (/data-map format) — post to Sky — receive approval
+2. Implement write path + read path + AI tool path
+3. node scripts/bundle-sidecar.js
+4. Trigger sync manually via sidecar
+5. node scripts/data-audit.js — source must show >0 documents
+6. Call consuming IPC handler manually — must return real data, not []
+7. node scripts/smoke-test-sidecar.js
+8. node scripts/semblance-verify.js
+9. node scripts/preflight.js
+10. Report with full data-audit.js output attached
+
+NEVER report a data-movement feature done without data-audit.js output confirming rows exist.
+```
+
+### This Rule Survives Compaction
+
+---
+
 ## WORKFLOW SYSTEM — MANDATORY SESSION DISCIPLINE
 
 **These documents are in the private representative repo. Claude Code must read and update them on every session.**
