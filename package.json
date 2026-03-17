@@ -25,7 +25,10 @@
     "install-verify:check": "node scripts/install-and-verify.js --no-install",
     "verify:json": "node scripts/semblance-verify.js --json",
     "update-state": "node scripts/update-state.js",
-    "update-state:dry": "node scripts/update-state.js --dry-run"
+    "update-state:dry": "node scripts/update-state.js --dry-run",
+    "data-audit": "node scripts/data-audit.js",
+    "data-audit:json": "node scripts/data-audit.js --json",
+    "data-audit:strict": "node scripts/data-audit.js --strict"
   },
   "license": "(MIT OR Apache-2.0)",
   "author": "Veridian Synthetics",
