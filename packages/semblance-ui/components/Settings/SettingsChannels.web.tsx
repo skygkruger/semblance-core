@@ -82,7 +82,7 @@ export function SettingsChannels({ onBack }: { onBack: () => void }) {
             </button>
             {expanded === ch.channelId && (
               <div className="settings-card" style={{ margin: '0 16px 8px' }}>
-                <p style={{ fontSize: 13, color: '#A8B4C0', margin: 0 }}>
+                <p style={{ fontSize: 13, color: 'var(--sv3)', margin: 0 }}>
                   {ch.channelId === 'signal' && 'Requires signal-cli installed on your system. Visit github.com/AsamK/signal-cli for installation.'}
                   {ch.channelId === 'slack' && 'Add your Slack Bot Token (xoxb-) and App Token (xapp-) from your Slack app configuration.'}
                   {ch.channelId === 'whatsapp' && 'Scan a QR code from your WhatsApp mobile app to link this device.'}

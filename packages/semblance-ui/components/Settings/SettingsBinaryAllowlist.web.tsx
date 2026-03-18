@@ -45,7 +45,7 @@ export function SettingsBinaryAllowlist({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="settings-content">
-        <p style={{ fontSize: 12, color: '#8593A4', margin: '0 16px 12px', lineHeight: 1.4 }}>
+        <p style={{ fontSize: 12, color: 'var(--sv2)', margin: '0 16px 12px', lineHeight: 1.4 }}>
           Semblance can execute these approved programs on your behalf.
           Shells, interpreters, and network tools are permanently blocked.
         </p>
@@ -60,7 +60,7 @@ export function SettingsBinaryAllowlist({ onBack }: { onBack: () => void }) {
             </button>
             {expanded === bin.binaryName && (
               <div className="settings-card" style={{ margin: '0 16px 8px' }}>
-                <div style={{ fontSize: 12, color: '#A8B4C0', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--sv3)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span>Path: {bin.binaryPath}</span>
                   {bin.description && <span>Description: {bin.description}</span>}
                   <span>Max execution: {bin.maxExecutionSeconds} seconds</span>
@@ -68,7 +68,7 @@ export function SettingsBinaryAllowlist({ onBack }: { onBack: () => void }) {
                 <button
                   type="button"
                   onClick={() => handleRemove(bin.binaryName)}
-                  style={{ marginTop: 12, background: 'none', border: 'none', color: '#B07A8A', cursor: 'pointer', fontSize: 13 }}
+                  style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--critical)', cursor: 'pointer', fontSize: 13 }}
                 >
                   Remove from allowlist
                 </button>
@@ -79,13 +79,13 @@ export function SettingsBinaryAllowlist({ onBack }: { onBack: () => void }) {
 
         {binaries.length === 0 && (
           <div className="settings-card" style={{ margin: '0 16px 8px', textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: '#8593A4', margin: 0 }}>No binaries allowlisted.</p>
+            <p style={{ fontSize: 13, color: 'var(--sv2)', margin: 0 }}>No binaries allowlisted.</p>
           </div>
         )}
 
         <div className="settings-section-header">ADD BINARY</div>
         <div className="settings-card" style={{ margin: '0 16px 8px' }}>
-          <button type="button" className="settings-row" style={{ border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8 }}>
+          <button type="button" className="settings-row" style={{ border: '1px solid var(--b2)', borderRadius: 8 }}>
             <span className="settings-row__label">Add binary...</span>
           </button>
         </div>

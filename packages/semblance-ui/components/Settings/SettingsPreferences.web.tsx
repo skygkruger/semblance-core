@@ -59,26 +59,26 @@ export function SettingsPreferences({ onBack }: { onBack: () => void }) {
 
       <div className="settings-content">
         <div className="settings-section-header">HIGH CONFIDENCE <span className="settings-badge">{highConfidence.length} patterns</span></div>
-        <p style={{ fontSize: 12, color: '#8593A4', margin: '0 16px 8px', lineHeight: 1.4 }}>
+        <p style={{ fontSize: 12, color: 'var(--sv2)', margin: '0 16px 8px', lineHeight: 1.4 }}>
           These preferences actively influence autonomous decisions.
         </p>
 
         {highConfidence.map(pref => (
           <div key={pref.id} className="settings-card" style={{ margin: '0 16px 8px' }}>
-            <div style={{ fontSize: 13, color: '#EEF1F4' }}>
-              <span style={{ color: '#8593A4', textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.08em' }}>{pref.domain}</span>
+            <div style={{ fontSize: 13, color: 'var(--white)' }}>
+              <span style={{ color: 'var(--sv2)', textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.08em' }}>{pref.domain}</span>
               <div style={{ marginTop: 4 }}>{pref.pattern}</div>
-              <div style={{ fontSize: 11, color: '#8593A4', marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--sv2)', marginTop: 4 }}>
                 Confidence: {Math.round(pref.confidence * 100)}% &middot; {pref.evidenceCount} observations
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               {pref.override && pref.overrideValue === true ? (
-                <span style={{ color: '#6ECFA3', fontSize: 12 }}>Confirmed</span>
+                <span style={{ color: 'var(--v)', fontSize: 12 }}>Confirmed</span>
               ) : (
                 <>
-                  <button type="button" onClick={() => handleConfirm(pref.id)} style={{ background: 'none', border: '1px solid #6ECFA3', color: '#6ECFA3', borderRadius: 4, padding: '4px 12px', cursor: 'pointer', fontSize: 12 }}>Confirm</button>
-                  <button type="button" onClick={() => handleDeny(pref.id)} style={{ background: 'none', border: '1px solid #B07A8A', color: '#B07A8A', borderRadius: 4, padding: '4px 12px', cursor: 'pointer', fontSize: 12 }}>Deny</button>
+                  <button type="button" onClick={() => handleConfirm(pref.id)} style={{ background: 'none', border: '1px solid var(--v)', color: 'var(--v)', borderRadius: 4, padding: '4px 12px', cursor: 'pointer', fontSize: 12 }}>Confirm</button>
+                  <button type="button" onClick={() => handleDeny(pref.id)} style={{ background: 'none', border: '1px solid var(--critical)', color: 'var(--critical)', borderRadius: 4, padding: '4px 12px', cursor: 'pointer', fontSize: 12 }}>Deny</button>
                 </>
               )}
             </div>
@@ -87,7 +87,7 @@ export function SettingsPreferences({ onBack }: { onBack: () => void }) {
 
         {highConfidence.length === 0 && (
           <div className="settings-card" style={{ margin: '0 16px 8px', textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: '#8593A4', margin: 0 }}>No high-confidence patterns detected yet. Semblance learns from your behavior over time.</p>
+            <p style={{ fontSize: 13, color: 'var(--sv2)', margin: 0 }}>No high-confidence patterns detected yet. Semblance learns from your behavior over time.</p>
           </div>
         )}
 

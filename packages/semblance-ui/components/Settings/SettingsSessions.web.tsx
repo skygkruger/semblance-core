@@ -48,7 +48,7 @@ export function SettingsSessions({ onBack }: { onBack: () => void }) {
 
         {sessions.length === 0 && (
           <div className="settings-card" style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: '#8593A4', margin: 0 }}>No named sessions yet. Sessions are created automatically when channels connect.</p>
+            <p style={{ fontSize: 13, color: 'var(--sv2)', margin: 0 }}>No named sessions yet. Sessions are created automatically when channels connect.</p>
           </div>
         )}
 
@@ -60,7 +60,7 @@ export function SettingsSessions({ onBack }: { onBack: () => void }) {
             </button>
             {expanded === session.key && (
               <div className="settings-card" style={{ margin: '0 16px 8px' }}>
-                <div style={{ fontSize: 13, color: '#A8B4C0', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ fontSize: 13, color: 'var(--sv3)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span>Label: {session.label}</span>
                   <span>Channel: {session.channelBinding ?? 'Unbound'}</span>
                   <span>Last active: {new Date(session.lastActiveAt).toLocaleString()}</span>
@@ -68,7 +68,7 @@ export function SettingsSessions({ onBack }: { onBack: () => void }) {
                 <button
                   type="button"
                   onClick={() => handleDelete(session.key)}
-                  style={{ marginTop: 12, background: 'none', border: 'none', color: '#B07A8A', cursor: 'pointer', fontSize: 13 }}
+                  style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--critical)', cursor: 'pointer', fontSize: 13 }}
                 >
                   Delete session
                 </button>
