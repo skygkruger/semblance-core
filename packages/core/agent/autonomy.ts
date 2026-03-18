@@ -111,6 +111,18 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'system.process_kill': 'system',
   'system.process_signal': 'system',
   'system.process_list': 'system',
+  // Browser CDP (Sprint G.5)
+  'browser.navigate': 'web',
+  'browser.snapshot': 'web',
+  'browser.click': 'web',
+  'browser.type': 'web',
+  'browser.extract': 'web',
+  'browser.fill': 'web',
+  'browser.screenshot': 'web',
+  'browser.connect': 'web',
+  'browser.disconnect': 'web',
+  // Federated search
+  'search.federated': 'network',
 };
 
 // Actions classified as read (safe), write (moderate), or execute (high-stakes)
@@ -208,6 +220,18 @@ export const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'system.process_kill': 'execute',
   'system.process_signal': 'execute',
   'system.process_list': 'read',
+  // Browser CDP (Sprint G.5)
+  'browser.navigate': 'write',
+  'browser.snapshot': 'read',
+  'browser.click': 'write',
+  'browser.type': 'write',
+  'browser.extract': 'read',
+  'browser.fill': 'execute',
+  'browser.screenshot': 'read',
+  'browser.connect': 'write',
+  'browser.disconnect': 'read',
+  // Federated search
+  'search.federated': 'read',
 };
 
 export type AutonomyDecision = 'auto_approve' | 'requires_approval' | 'blocked';

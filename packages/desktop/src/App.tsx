@@ -546,7 +546,7 @@ function AppContent() {
   );
 }
 
-// Placeholder screens for new routes (real implementations in future sprints)
+// Minimal screens for routes pending full implementation
 function PlaceholderScreen({ title, description }: { title: string; description: string }) {
   return (
     <div style={{ padding: 32, maxWidth: 480, margin: '0 auto' }}>

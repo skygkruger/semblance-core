@@ -8,6 +8,7 @@
 // Both are local-only document parsers with ZERO network capabilities.
 
 import { getPlatform } from '../platform/index.js';
+import { sanitizeRetrievedContent } from '../agent/content-sanitizer.js';
 
 const SUPPORTED_EXTENSIONS = new Set([
   // Documents
@@ -122,6 +123,15 @@ const TEXT_STREAM_CHUNK_BYTES = 1024 * 1024; // 1MB — chunk size for streaming
  * Content is ALWAYS real extracted text, never a placeholder.
  */
 export async function readFileContent(filePath: string): Promise<FileContent> {
+  const raw = await readFileContentUnsanitized(filePath);
+  // Sanitize at ingestion — strip adversarial prompt injection content before KG storage
+  return {
+    ...raw,
+    content: sanitizeRetrievedContent(raw.content),
+  };
+}
+
+async function readFileContentUnsanitized(filePath: string): Promise<FileContent> {
   const p = getPlatform();
   const ext = p.path.extname(filePath).toLowerCase();
   const name = p.path.basename(filePath, ext);

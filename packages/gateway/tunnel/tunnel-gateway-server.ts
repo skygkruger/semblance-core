@@ -9,6 +9,26 @@ import { createServer, type Server, type IncomingMessage, type ServerResponse } 
 import { sha256 } from '@semblance/core';
 import type { AuditTrail } from '../audit/trail.js';
 
+export interface PeerCapabilityManifest {
+  deviceId: string;
+  displayName: string;
+  platform: 'macos' | 'windows' | 'linux' | 'ios' | 'android';
+  semblanceVersion: string;
+  modelTier: 'constrained' | 'standard' | 'performance' | 'workstation';
+  activeModelId: string | null;
+  knowledgeGraphStats: {
+    emailCount: number;
+    documentCount: number;
+    calendarEventCount: number;
+    contactCount: number;
+    totalNodes: number;
+  };
+  enabledFeatures: string[];
+  availableDiskGb: number;
+  availableRamMb: number;
+  lastUpdatedAt: string;
+}
+
 export interface TunnelGatewayServerConfig {
   /** Port to listen on. Default: 51821 */
   port?: number;
@@ -127,12 +147,27 @@ export class TunnelGatewayServer {
     }
 
     if (req.method === 'GET' && url === '/info') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
+      const manifest: PeerCapabilityManifest = {
         deviceId: this.config.deviceId ?? 'unknown',
-        platform: this.config.platform ?? process.platform,
-        capabilities: ['inference', 'knowledge_graph', 'tools', 'audit'],
-      }));
+        displayName: this.config.deviceId ?? 'Semblance Device',
+        platform: (this.config.platform ?? process.platform) as PeerCapabilityManifest['platform'],
+        semblanceVersion: '1.0.0',
+        modelTier: 'standard',
+        activeModelId: null,
+        knowledgeGraphStats: {
+          emailCount: 0,
+          documentCount: 0,
+          calendarEventCount: 0,
+          contactCount: 0,
+          totalNodes: 0,
+        },
+        enabledFeatures: ['inference', 'knowledge_graph', 'tools', 'audit', 'browser_cdp', 'channels'],
+        availableDiskGb: 0,
+        availableRamMb: 0,
+        lastUpdatedAt: new Date().toISOString(),
+      };
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(manifest));
       return;
     }
 
