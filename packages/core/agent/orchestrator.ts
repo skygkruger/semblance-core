@@ -569,6 +569,35 @@ const BASE_TOOLS: ToolDefinition[] = [
       },
     },
   },
+  // Sprint WIRE: federated search + form automation
+  {
+    name: 'search_all_devices',
+    description: 'Searches documents across all paired devices simultaneously and merges results. Each result tagged with its source device.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'What to search for' },
+        categories: { type: 'array', items: { type: 'string' }, description: 'Optional: filter to email, documents, or calendar' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'fill_web_form',
+    description: 'Fills a web form in the currently open browser using data from the knowledge graph. Always shows a preview before filling.',
+    parameters: {
+      type: 'object',
+      properties: {
+        fields: {
+          type: 'array',
+          description: 'Fields to fill — each with selector and value',
+          items: { type: 'object', properties: { selector: { type: 'string' }, value: { type: 'string' } }, required: ['selector', 'value'] },
+        },
+        confirmBeforeFilling: { type: 'boolean', description: 'Show preview and wait for confirmation (default: true)' },
+      },
+      required: ['fields'],
+    },
+  },
 ];
 
 // Map tool names to ActionTypes
@@ -594,6 +623,9 @@ const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'move_email': 'email.move',
   'mark_email_read': 'email.markRead',
   'delete_reminder': 'reminder.delete',
+  // Sprint WIRE: federated search + form automation
+  'search_all_devices': 'search.federated',
+  'fill_web_form': 'browser.fill',
   // list_cloud_files moved to LOCAL_TOOLS — queries local knowledge index, not cloud API
 };
 

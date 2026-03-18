@@ -56,6 +56,20 @@ export function SettingsScreen() {
   const [standardActiveModelId, setStandardActiveModelId] = useState<string | null>(null);
   const [standardDownloadingModelId, setStandardDownloadingModelId] = useState<string | null>(null);
   const [standardDownloadProgress, setStandardDownloadProgress] = useState(0);
+  // Sprint WIRE: badge props for expanded settings sections
+  const [channelCount, setChannelCount] = useState(0);
+  const [sessionCount, setSessionCount] = useState(0);
+  const [pairedDeviceCount, setPairedDeviceCount] = useState(0);
+  const [preferenceCount, setPreferenceCount] = useState(0);
+  const [installedSkillCount, setInstalledSkillCount] = useState(0);
+  const [livingWillLastBackup, setLivingWillLastBackup] = useState<string | null>(null);
+  const [witnessAttestationCount, setWitnessAttestationCount] = useState(0);
+  const [inheritanceConfigured, setInheritanceConfigured] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
+  const [binaryAllowlistCount, setBinaryAllowlistCount] = useState(0);
+  const [adversarialAlertCount, setAdversarialAlertCount] = useState(0);
+
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     morningBriefEnabled: true,
     morningBriefTime: '07:00',
@@ -98,6 +112,22 @@ export function SettingsScreen() {
         if (res.activeModelId) setStandardActiveModelId(res.activeModelId);
       })
       .catch(() => {});
+
+    // Sprint WIRE: fetch badge counts for expanded settings sections
+    import('@tauri-apps/api/core').then(({ invoke }) => {
+      const ipc = (method: string, params: Record<string, unknown> = {}) =>
+        invoke('ipc_send', { method, params }) as Promise<unknown>;
+
+      ipc('channel_list').then((r) => { if (Array.isArray(r)) setChannelCount(r.filter((c: { connected?: boolean }) => c.connected).length); }).catch(() => {});
+      ipc('session_list').then((r) => { if (Array.isArray(r)) setSessionCount(r.length); }).catch(() => {});
+      ipc('tunnel_list_paired_devices').then((r) => { if (Array.isArray(r)) setPairedDeviceCount(r.length); }).catch(() => {});
+      ipc('preference_get_high_confidence').then((r) => { if (Array.isArray(r)) setPreferenceCount(r.length); }).catch(() => {});
+      ipc('skill_list').then((r) => { if (Array.isArray(r)) setInstalledSkillCount(r.filter((s: { enabled?: boolean }) => s.enabled).length); }).catch(() => {});
+      ipc('binary_allowlist_list').then((r) => { if (Array.isArray(r)) setBinaryAllowlistCount(r.length); }).catch(() => {});
+      ipc('dark_pattern_get_flags').then((r) => { if (Array.isArray(r)) setAdversarialAlertCount(r.filter((f: { dismissed?: boolean }) => !f.dismissed).length); }).catch(() => {});
+      ipc('audit_get_chain_status').then((r) => { const s = r as { entryCount?: number }; setWitnessAttestationCount(s?.entryCount ?? 0); }).catch(() => {});
+      ipc('hw_key_get_info').then((r) => { const s = r as { available?: boolean }; setBiometricEnabled(!!s?.available); }).catch(() => {});
+    }).catch(() => {});
   }, [dispatch]);
 
   // Toast helper for features not yet wired
@@ -509,6 +539,21 @@ export function SettingsScreen() {
             showToast('License deactivated. Premium features disabled.');
           }}
           onNavigateIntents={() => navigate('/settings/intents')}
+          onNavigateExternal={(path) => navigate(path)}
+
+          /* Sprint WIRE: badge props */
+          channelCount={channelCount}
+          sessionCount={sessionCount}
+          pairedDeviceCount={pairedDeviceCount}
+          preferenceCount={preferenceCount}
+          installedSkillCount={installedSkillCount}
+          livingWillLastBackup={livingWillLastBackup}
+          witnessAttestationCount={witnessAttestationCount}
+          inheritanceConfigured={inheritanceConfigured}
+          biometricEnabled={biometricEnabled}
+          lastBackupAt={lastBackupAt}
+          binaryAllowlistCount={binaryAllowlistCount}
+          adversarialAlertCount={adversarialAlertCount}
         />
       </div>
     </div>
