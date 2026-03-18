@@ -111,6 +111,18 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'system.process_kill': 5,       // Kill process
   'system.process_signal': 5,     // Signal process
   'system.process_list': 0,       // List processes — informational
+  // Browser CDP (Sprint G.5)
+  'browser.navigate': 10,         // Navigate to URL
+  'browser.snapshot': 15,         // Extract page content
+  'browser.click': 5,             // Click element
+  'browser.type': 10,             // Type into input
+  'browser.extract': 30,          // Extract structured content
+  'browser.fill': 120,            // Fill form — high value
+  'browser.screenshot': 5,        // Take screenshot
+  'browser.connect': 0,           // Connect to browser — setup
+  'browser.disconnect': 0,        // Disconnect — cleanup
+  // Federated search
+  'search.federated': 60,         // Cross-device search
 };
 
 /**

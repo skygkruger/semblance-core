@@ -5,6 +5,8 @@ interface CanvasUpdate {
   data: Record<string, unknown>;
   replace: boolean;
   title?: string;
+  executedOn?: 'local' | 'remote';
+  remoteDeviceName?: string;
 }
 
 interface CanvasCard {
@@ -13,6 +15,8 @@ interface CanvasCard {
   data: Record<string, unknown>;
   title?: string;
   receivedAt: string;
+  executedOn?: 'local' | 'remote';
+  remoteDeviceName?: string;
 }
 
 export function CanvasPanel() {
@@ -42,6 +46,8 @@ export function CanvasPanel() {
           data: update.data,
           title: update.title,
           receivedAt: new Date().toISOString(),
+          executedOn: update.executedOn,
+          remoteDeviceName: update.remoteDeviceName,
         };
 
         if (update.replace) {
@@ -131,6 +137,11 @@ export function CanvasPanel() {
               </div>
             )}
             <CanvasCardContent componentType={card.componentType} data={card.data} />
+            {card.executedOn === 'remote' && card.remoteDeviceName && (
+              <div style={{ fontFamily: 'var(--fm, "DM Mono", monospace)', fontSize: 11, color: '#5E6B7C', marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6 }}>
+                Answered using {card.remoteDeviceName}&apos;s full knowledge graph
+              </div>
+            )}
           </div>
         ))}
       </div>

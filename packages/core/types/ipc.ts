@@ -96,6 +96,18 @@ export const ActionType = z.enum([
   'system.process_kill',
   'system.process_signal',
   'system.process_list',
+  // Browser CDP (Sprint G.5)
+  'browser.navigate',
+  'browser.snapshot',
+  'browser.click',
+  'browser.type',
+  'browser.extract',
+  'browser.fill',
+  'browser.screenshot',
+  'browser.connect',
+  'browser.disconnect',
+  // Federated search (Sprint G.5)
+  'search.federated',
 ]);
 export type ActionType = z.infer<typeof ActionType>;
 
@@ -673,6 +685,18 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'system.process_kill': z.object({ pid: z.number() }).passthrough(),
   'system.process_signal': z.object({ pid: z.number(), signal: z.string() }).passthrough(),
   'system.process_list': z.object({}).passthrough(),
+  // Browser CDP (Sprint G.5)
+  'browser.navigate': z.object({ url: z.string() }).passthrough(),
+  'browser.snapshot': z.object({}).passthrough(),
+  'browser.click': z.object({ selector: z.string() }).passthrough(),
+  'browser.type': z.object({ selector: z.string(), text: z.string() }).passthrough(),
+  'browser.extract': z.object({ extractType: z.string(), selector: z.string().optional() }).passthrough(),
+  'browser.fill': z.object({ selector: z.string(), value: z.string() }).passthrough(),
+  'browser.screenshot': z.object({}).passthrough(),
+  'browser.connect': z.object({ debuggingPort: z.number().optional() }).passthrough(),
+  'browser.disconnect': z.object({}).passthrough(),
+  // Federated search (Sprint G.5)
+  'search.federated': z.object({ query: z.string(), categories: z.array(z.string()).optional() }).passthrough(),
 };
 
 // --- Core protocol schemas ---
@@ -701,5 +725,8 @@ export const ActionResponse = z.object({
     message: z.string(),
   }).optional(),
   auditRef: z.string(),
+  executedOn: z.enum(['local', 'remote']).optional(),
+  remoteDeviceId: z.string().optional(),
+  remoteDeviceName: z.string().optional(),
 }).strict();
 export type ActionResponse = z.infer<typeof ActionResponse>;

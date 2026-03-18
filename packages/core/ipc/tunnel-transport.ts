@@ -176,8 +176,14 @@ export class TunnelTransport implements IPCTransport {
         );
       }
 
-      const data = await response.json();
-      return data as ActionResponse;
+      const data = await response.json() as ActionResponse;
+      // Tag response with remote provenance
+      return {
+        ...data,
+        executedOn: 'remote' as const,
+        remoteDeviceId: this.remoteDeviceId ?? undefined,
+        remoteDeviceName: this.remoteDeviceId ?? undefined,
+      };
     } catch (error) {
       clearTimeout(timeout);
 

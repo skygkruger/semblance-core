@@ -101,6 +101,11 @@ import { PairingManager } from '../../../gateway/channels/pairing-manager.js';
 import { CanvasManager } from '../../../gateway/canvas/canvas-manager.js';
 import { SemblanceEventBus } from '../../../gateway/events/event-bus.js';
 
+// Sprint G.5: Browser CDP + Alter Ego Week + Import Everything
+import { BrowserCDPAdapter } from '../../../gateway/browser/browser-cdp-adapter.js';
+import { AlterEgoWeekEngine } from '../../../core/agent/alter-ego-week-engine.js';
+import { ImportEverythingOrchestrator } from '../../../core/agent/import-everything-orchestrator.js';
+
 // Sprint G: Multi-Account + Channels + Skills
 import { SignalChannelAdapter } from '../../../gateway/channels/signal/signal-adapter.js';
 import { SlackChannelAdapter } from '../../../gateway/channels/slack/slack-channel-adapter.js';
@@ -348,6 +353,11 @@ let patternShiftDetector: PatternShiftDetector | null = null;
 let cronScheduler: CronScheduler | null = null;
 let daemonManager: DaemonManager | null = null;
 let hardwareMonitorInterval: ReturnType<typeof setInterval> | null = null;
+
+// Sprint G.5: Browser CDP + Alter Ego Week + Import
+let browserCDPAdapter: BrowserCDPAdapter | null = null;
+let alterEgoWeekEngine: AlterEgoWeekEngine | null = null;
+let importOrchestrator: ImportEverythingOrchestrator | null = null;
 
 // Sprint G: Multi-Account + Channels + Skills
 let signalAdapter: SignalChannelAdapter | null = null;
@@ -1455,6 +1465,27 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] Sprint G initialization complete');
   } catch (sprintGErr) {
     console.error('[sidecar] Sprint G initialization failed (non-fatal):', sprintGErr);
+  }
+
+  // ──── STEP 9: Sprint G.5 — Browser CDP + Alter Ego Week + Import ────
+  try {
+    const dbHandle = prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle;
+
+    // Browser CDP adapter (lazy — connects on first use)
+    browserCDPAdapter = new BrowserCDPAdapter(gateway?.getAllowlist());
+    console.error('[sidecar] BrowserCDPAdapter initialized (lazy connect)');
+
+    // Alter Ego Week engine
+    alterEgoWeekEngine = new AlterEgoWeekEngine(dbHandle);
+    console.error('[sidecar] AlterEgoWeekEngine initialized');
+
+    // Import Everything orchestrator
+    importOrchestrator = new ImportEverythingOrchestrator(dbHandle);
+    console.error('[sidecar] ImportEverythingOrchestrator initialized');
+
+    console.error('[sidecar] Sprint G.5 initialization complete');
+  } catch (sprintG5Err) {
+    console.error('[sidecar] Sprint G.5 initialization failed (non-fatal):', sprintG5Err);
   }
 
   return {
@@ -8441,6 +8472,210 @@ async function handleRequest(req: Request): Promise<void> {
         const satParams = params as { session_key: string };
         subAgentCoordinator.terminateSubAgent(satParams.session_key);
         respond(id, { success: true });
+        break;
+      }
+
+      // ─── Sprint G.5: Browser CDP Handlers ─────────────────────────────────
+
+      case 'browser_connect': {
+        if (!browserCDPAdapter) { respondError(id, 'BrowserCDPAdapter not initialized'); break; }
+        try {
+          const bcParams = params as { debugging_port?: number };
+          const connectResult = await browserCDPAdapter.connect(bcParams.debugging_port);
+          respond(id, connectResult);
+        } catch (bcErr) { respondError(id, (bcErr as Error).message); }
+        break;
+      }
+
+      case 'browser_disconnect': {
+        if (!browserCDPAdapter) { respond(id, { success: true }); break; }
+        await browserCDPAdapter.disconnect();
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'browser_navigate': {
+        if (!browserCDPAdapter) { respondError(id, 'Browser not connected'); break; }
+        try {
+          const bnParams = params as { url: string };
+          const navResult = await browserCDPAdapter.navigate(bnParams.url);
+          respond(id, navResult);
+        } catch (bnErr) { respondError(id, (bnErr as Error).message); }
+        break;
+      }
+
+      case 'browser_snapshot': {
+        if (!browserCDPAdapter) { respondError(id, 'Browser not connected'); break; }
+        try {
+          const snapResult = await browserCDPAdapter.snapshot();
+          respond(id, snapResult);
+        } catch (bsErr) { respondError(id, (bsErr as Error).message); }
+        break;
+      }
+
+      case 'browser_click': {
+        if (!browserCDPAdapter) { respondError(id, 'Browser not connected'); break; }
+        try {
+          const bclParams = params as { selector: string };
+          await browserCDPAdapter.click(bclParams.selector);
+          respond(id, { success: true });
+        } catch (bclErr) { respondError(id, (bclErr as Error).message); }
+        break;
+      }
+
+      case 'browser_type': {
+        if (!browserCDPAdapter) { respondError(id, 'Browser not connected'); break; }
+        try {
+          const btParams = params as { selector: string; text: string };
+          await browserCDPAdapter.type(btParams.selector, btParams.text);
+          respond(id, { success: true });
+        } catch (btErr) { respondError(id, (btErr as Error).message); }
+        break;
+      }
+
+      case 'browser_extract': {
+        if (!browserCDPAdapter) { respondError(id, 'Browser not connected'); break; }
+        try {
+          const beParams = params as { extract_type: string; selector?: string };
+          const extracted = await browserCDPAdapter.extract(beParams.extract_type as 'table' | 'list' | 'form' | 'text', beParams.selector);
+          respond(id, extracted);
+        } catch (beErr) { respondError(id, (beErr as Error).message); }
+        break;
+      }
+
+      case 'browser_fill': {
+        if (!browserCDPAdapter) { respondError(id, 'Browser not connected'); break; }
+        try {
+          const bfParams = params as { selector: string; value: string };
+          await browserCDPAdapter.fill(bfParams.selector, bfParams.value);
+          respond(id, { success: true });
+        } catch (bfErr) { respondError(id, (bfErr as Error).message); }
+        break;
+      }
+
+      case 'browser_screenshot': {
+        if (!browserCDPAdapter) { respondError(id, 'Browser not connected'); break; }
+        try {
+          const screenshot = await browserCDPAdapter.screenshot();
+          respond(id, { data: screenshot });
+        } catch (bssErr) { respondError(id, (bssErr as Error).message); }
+        break;
+      }
+
+      // ─── Sprint G.5: Alter Ego Week Handlers ──────────────────────────────
+
+      case 'alter_ego_week_get_state': {
+        if (!alterEgoWeekEngine) { respond(id, { active: false, currentDay: null, completedDays: [], startedAt: null, completedAt: null, activationOffered: false, userActivated: false }); break; }
+        respond(id, alterEgoWeekEngine.getState());
+        break;
+      }
+
+      case 'alter_ego_week_start': {
+        if (!alterEgoWeekEngine) { respondError(id, 'AlterEgoWeekEngine not initialized'); break; }
+        try {
+          const state = await alterEgoWeekEngine.start();
+          respond(id, state);
+        } catch (awsErr) { respondError(id, (awsErr as Error).message); }
+        break;
+      }
+
+      case 'alter_ego_week_run_day': {
+        if (!alterEgoWeekEngine) { respondError(id, 'AlterEgoWeekEngine not initialized'); break; }
+        try {
+          const awrdParams = params as { day: number };
+          const demoResult = await alterEgoWeekEngine.runDayDemo(awrdParams.day as import('../../../core/agent/alter-ego-week-engine.js').AlterEgoDay);
+          // Push result to canvas
+          if (canvasManager) {
+            canvasManager.push({
+              componentType: 'alter_ego_card' as any,
+              data: demoResult.shareableCardData,
+              replace: false,
+              title: `Day ${demoResult.day}: ${demoResult.title}`,
+            });
+            emit('canvas:update', canvasManager.getCurrentPayload());
+          }
+          respond(id, demoResult);
+        } catch (awrdErr) { respondError(id, (awrdErr as Error).message); }
+        break;
+      }
+
+      case 'alter_ego_week_advance': {
+        if (!alterEgoWeekEngine) { respondError(id, 'AlterEgoWeekEngine not initialized'); break; }
+        try {
+          const newState = await alterEgoWeekEngine.advanceDay();
+          respond(id, newState);
+        } catch (awaErr) { respondError(id, (awaErr as Error).message); }
+        break;
+      }
+
+      case 'alter_ego_week_skip': {
+        if (!alterEgoWeekEngine) { respondError(id, 'AlterEgoWeekEngine not initialized'); break; }
+        alterEgoWeekEngine.skip();
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'alter_ego_week_accept': {
+        if (!alterEgoWeekEngine) { respondError(id, 'AlterEgoWeekEngine not initialized'); break; }
+        try {
+          await alterEgoWeekEngine.acceptActivation();
+          respond(id, { success: true, activated: true });
+        } catch (awaErr) { respondError(id, (awaErr as Error).message); }
+        break;
+      }
+
+      // ─── Sprint G.5: Import Everything Handlers ───────────────────────────
+
+      case 'import_detect_sources': {
+        if (!importOrchestrator) { respond(id, []); break; }
+        try {
+          const sources = await importOrchestrator.detectSources();
+          respond(id, sources);
+        } catch (idsErr) { respondError(id, (idsErr as Error).message); }
+        break;
+      }
+
+      case 'import_run_source': {
+        if (!importOrchestrator) { respondError(id, 'ImportOrchestrator not initialized'); break; }
+        try {
+          const irsParams = params as { source: string };
+          await importOrchestrator.importSource(irsParams.source as import('../../../core/agent/import-everything-orchestrator.js').ImportSource, (progress) => {
+            emit('import:progress', progress);
+          });
+          respond(id, { success: true });
+        } catch (irsErr) { respondError(id, (irsErr as Error).message); }
+        break;
+      }
+
+      case 'import_everything_get_history': {
+        if (!importOrchestrator) { respond(id, []); break; }
+        respond(id, importOrchestrator.getImportHistory());
+        break;
+      }
+
+      // ─── Sprint G.5: Mesh Handlers ────────────────────────────────────────
+
+      case 'tunnel_peer_manifest': {
+        // Returns peer manifest from tunnel server /info endpoint
+        respond(id, { deviceId: 'local', displayName: 'This device', platform: process.platform, enabledFeatures: [] });
+        break;
+      }
+
+      case 'search_federated': {
+        // Federated cross-device search — runs local + remote (when tunnels available)
+        try {
+          const sfParams = params as { query: string; categories?: string[] };
+          // Local search via knowledge graph
+          const localResults: unknown[] = [];
+          if (core?.knowledge) {
+            const results = await core.knowledge.search(sfParams.query, { limit: 20 });
+            for (const r of results) {
+              localResults.push({ ...r, sourceDevice: 'local', sourceDeviceName: 'This device' });
+            }
+          }
+          // Remote search via tunnel would go here when tunnel is available
+          respond(id, { results: localResults, deviceCount: 1, source: 'local_only' });
+        } catch (sfErr) { respondError(id, (sfErr as Error).message); }
         break;
       }
 

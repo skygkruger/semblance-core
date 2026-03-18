@@ -111,9 +111,10 @@ describe('TunnelGatewayServer', () => {
       await server.start();
 
       const resp = await fetch(`http://127.0.0.1:${port + 2}/info`);
-      const data = await resp.json() as { capabilities: string[] };
-      expect(data.capabilities).toContain('inference');
-      expect(data.capabilities).toContain('audit');
+      const data = await resp.json() as { enabledFeatures: string[]; deviceId: string };
+      expect(data.enabledFeatures).toContain('inference');
+      expect(data.enabledFeatures).toContain('audit');
+      expect(data.deviceId).toBeDefined();
       await server.stop();
     });
 
