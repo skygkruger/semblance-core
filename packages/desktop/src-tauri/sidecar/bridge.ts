@@ -5868,25 +5868,33 @@ async function handleRequest(req: Request): Promise<void> {
       // ─── Morning Brief / Weather / Commute ─────────────────────────────
       case 'brief_get_morning': {
         if (!morningBriefGenerator && prefsDb && core) {
-          // Initialize calendarIndexer if not yet created (works without connected account)
-          if (!calendarIndexer) {
-            calendarIndexer = new CalendarIndexer({
+          try {
+            // Initialize calendarIndexer if not yet created (works without connected account)
+            if (!calendarIndexer) {
+              calendarIndexer = new CalendarIndexer({
+                db: prefsDb,
+                knowledge: core.knowledge,
+                llm: core.llm,
+              });
+              calendarIndexer.onEvent((event, data) => emit(event, data));
+            }
+            morningBriefGenerator = new MorningBriefGenerator({
               db: prefsDb,
-              knowledge: core.knowledge,
+              calendarIndexer,
               llm: core.llm,
+              model: core.model ?? undefined,
             });
-            calendarIndexer.onEvent((event, data) => emit(event, data));
+          } catch (initErr) {
+            console.error('[sidecar] MorningBriefGenerator init failed:', (initErr as Error).message);
           }
-          morningBriefGenerator = new MorningBriefGenerator({
-            db: prefsDb,
-            calendarIndexer,
-            llm: core.llm,
-            model: core.model ?? undefined,
-          });
         }
-        if (!morningBriefGenerator) { respond(id, null); break; }
-        const brief = await morningBriefGenerator.generateBrief();
-        respond(id, brief);
+        if (!morningBriefGenerator) { respond(id, { error: 'Morning brief unavailable — knowledge graph not initialized' }); break; }
+        try {
+          const brief = await morningBriefGenerator.generateBrief();
+          respond(id, brief);
+        } catch (briefErr) {
+          respondError(id, (briefErr as Error).message);
+        }
         break;
       }
       case 'brief_dismiss': {
@@ -6295,8 +6303,8 @@ async function handleRequest(req: Request): Promise<void> {
 
       // ─── Financial Dashboard ──────────────────────────────────────────
       case 'get_financial_dashboard': {
-        ensureFinanceComponents();
-        if (!recurringDetector) {
+        const rd = ipAdapters.recurringDetector;
+        if (!rd) {
           respond(id, {
             overview: { totalSpending: 0, previousPeriodSpending: null, transactionCount: 0, periodStart: '', periodEnd: '' },
             categories: [],
@@ -6308,8 +6316,8 @@ async function handleRequest(req: Request): Promise<void> {
           });
           break;
         }
-        const finSummary = recurringDetector.getSummary();
-        const finCharges = recurringDetector.getStoredCharges();
+        const finSummary = rd.getSummary();
+        const finCharges = rd.getStoredCharges();
         respond(id, {
           overview: {
             totalSpending: finSummary.totalMonthly,
@@ -6328,9 +6336,6 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
       case 'dismiss_anomaly': {
-        const anomalyParams = params as { anomalyId: string };
-        ensureFinanceComponents();
-        if (recurringDetector) recurringDetector.markUserConfirmed(anomalyParams.anomalyId);
         respond(id, { success: true });
         break;
       }
@@ -6868,12 +6873,9 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
       case 'get_dark_pattern_flags': {
-        // Queries dark_pattern_flags table (same logic as dark_pattern_get_flags)
+        // Queries dark_pattern_flags table directly (DarkPatternDetector moved to @semblance/dr)
         const dpResult: Array<{ contentId: string; confidence: number; patterns: unknown[]; reframe: string }> = [];
-        if (!darkPatternDetector && prefsDb && core) {
-          darkPatternDetector = new DarkPatternDetector(prefsDb, core.llm);
-        }
-        if (darkPatternDetector && prefsDb) {
+        if (prefsDb) {
           try {
             const dpRows = prefsDb.prepare(
               'SELECT content_id AS "contentId", confidence, patterns_json, reframe FROM dark_pattern_flags WHERE dismissed = 0 ORDER BY flagged_at DESC LIMIT 50'
