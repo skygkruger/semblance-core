@@ -1,0 +1,318 @@
+{
+  "allFeatures": [
+    {
+      "name": "CHAT",
+      "pass": 4,
+      "warn": 1,
+      "fail": 0,
+      "total": 5,
+      "tests": [
+        {
+          "testName": "Engine available",
+          "status": "PASS",
+          "detail": "ollama"
+        },
+        {
+          "testName": "Active model",
+          "status": "PASS",
+          "detail": "llama3.1:8b"
+        },
+        {
+          "testName": "get_model_status handler",
+          "status": "PASS",
+          "detail": "engine=ollama"
+        },
+        {
+          "testName": "send_message",
+          "status": "PASS",
+          "detail": "responseId=msg_1773847622896"
+        },
+        {
+          "testName": "Inference completes",
+          "status": "WARN",
+          "detail": "No completion event in 90s"
+        }
+      ]
+    },
+    {
+      "name": "PERSIST",
+      "pass": 4,
+      "warn": 0,
+      "fail": 0,
+      "total": 4,
+      "tests": [
+        {
+          "testName": "get_onboarding_complete",
+          "status": "PASS",
+          "detail": "complete={\"complete\":false}"
+        },
+        {
+          "testName": "get_user_name handler",
+          "status": "PASS",
+          "detail": "user_name=\"[object Object]\""
+        },
+        {
+          "testName": "Pref round-trip",
+          "status": "PASS",
+          "detail": "write→read matches"
+        },
+        {
+          "testName": "autonomy_config pref",
+          "status": "PASS",
+          "detail": "config={\"domains\":{\"email\":\"partner\",\"calendar\":\"partner\",\"files\":\""
+        }
+      ]
+    },
+    {
+      "name": "CONNECT",
+      "pass": 4,
+      "warn": 0,
+      "fail": 0,
+      "total": 4,
+      "tests": [
+        {
+          "testName": "get_connected_services",
+          "status": "PASS",
+          "detail": "0 services connected"
+        },
+        {
+          "testName": "Connected services",
+          "status": "PASS",
+          "detail": "0 services (handler works, no OAuth configured) [env-dependent]"
+        },
+        {
+          "testName": "OAuth .env config",
+          "status": "PASS",
+          "detail": "google-drive config resolves"
+        },
+        {
+          "testName": "list_available_connectors",
+          "status": "PASS",
+          "detail": "51 connectors available"
+        }
+      ]
+    },
+    {
+      "name": "GRAPH",
+      "pass": 3,
+      "warn": 0,
+      "fail": 0,
+      "total": 3,
+      "tests": [
+        {
+          "testName": "No null crash",
+          "status": "PASS",
+          "detail": "0 nodes returned"
+        },
+        {
+          "testName": "Response shape",
+          "status": "PASS",
+          "detail": "has nodes/edges"
+        },
+        {
+          "testName": "Node population",
+          "status": "PASS",
+          "detail": "0 nodes (handler works, no data indexed) [env-dependent]"
+        }
+      ]
+    },
+    {
+      "name": "FILES",
+      "pass": 3,
+      "warn": 0,
+      "fail": 0,
+      "total": 3,
+      "tests": [
+        {
+          "testName": "camelCase keys",
+          "status": "PASS",
+          "detail": "docs=0, chunks=0"
+        },
+        {
+          "testName": "search handler",
+          "status": "PASS",
+          "detail": "0 results (0 expected if no data indexed)"
+        },
+        {
+          "testName": "get_indexed_directories",
+          "status": "PASS",
+          "detail": "0 directories indexed"
+        }
+      ]
+    },
+    {
+      "name": "EMAIL",
+      "pass": 5,
+      "warn": 0,
+      "fail": 0,
+      "total": 5,
+      "tests": [
+        {
+          "testName": "get_inbox_items",
+          "status": "PASS",
+          "detail": "0 emails (handler works, no email connected) [env-dependent]"
+        },
+        {
+          "testName": "Email data shape",
+          "status": "PASS",
+          "detail": "Skipped — no emails to inspect [env-dependent]"
+        },
+        {
+          "testName": "search_emails handler",
+          "status": "PASS",
+          "detail": "0 results"
+        },
+        {
+          "testName": "draft_email handler",
+          "status": "PASS",
+          "detail": "Draft action accepted"
+        },
+        {
+          "testName": "get_actions_summary",
+          "status": "PASS",
+          "detail": "today=0, timeSaved=0s"
+        }
+      ]
+    },
+    {
+      "name": "CAL",
+      "pass": 2,
+      "warn": 0,
+      "fail": 0,
+      "total": 2,
+      "tests": [
+        {
+          "testName": "get_today_events",
+          "status": "PASS",
+          "detail": "0 events today (0 if no calendar connected)"
+        },
+        {
+          "testName": "calendar subsystem",
+          "status": "PASS",
+          "detail": "conflicts checked: {\"conflicts\":[],\"hasConflicts\":false}"
+        }
+      ]
+    },
+    {
+      "name": "REMIND",
+      "pass": 4,
+      "warn": 0,
+      "fail": 0,
+      "total": 4,
+      "tests": [
+        {
+          "testName": "reminder_create",
+          "status": "PASS",
+          "detail": "id=dU49P9SGtXIf7ivSgNi1U"
+        },
+        {
+          "testName": "Reminder persists",
+          "status": "PASS",
+          "detail": "created reminder appears in list"
+        },
+        {
+          "testName": "reminder_snooze",
+          "status": "PASS",
+          "detail": "Reminder snoozed"
+        },
+        {
+          "testName": "reminder_dismiss",
+          "status": "PASS",
+          "detail": "Cleanup complete"
+        }
+      ]
+    },
+    {
+      "name": "WEB",
+      "pass": 2,
+      "warn": 0,
+      "fail": 0,
+      "total": 2,
+      "tests": [
+        {
+          "testName": "search_web handler",
+          "status": "PASS",
+          "detail": "0 results returned"
+        },
+        {
+          "testName": "fetch_url handler",
+          "status": "PASS",
+          "detail": "Fetched content: [object Object]..."
+        }
+      ]
+    },
+    {
+      "name": "PROACT",
+      "pass": 4,
+      "warn": 0,
+      "fail": 0,
+      "total": 4,
+      "tests": [
+        {
+          "testName": "get_proactive_insights",
+          "status": "PASS",
+          "detail": "0 insights (0 if no email/calendar data)"
+        },
+        {
+          "testName": "Insight shape",
+          "status": "PASS",
+          "detail": "No insights yet (handler works, no data indexed) [env-dependent]"
+        },
+        {
+          "testName": "get_pending_actions",
+          "status": "PASS",
+          "detail": "0 pending actions"
+        },
+        {
+          "testName": "get_actions_summary",
+          "status": "PASS",
+          "detail": "today=0, timeSaved=0s"
+        }
+      ]
+    },
+    {
+      "name": "BRIEF",
+      "pass": 0,
+      "warn": 1,
+      "fail": 0,
+      "total": 1,
+      "tests": [
+        {
+          "testName": "generate_morning_brief",
+          "status": "WARN",
+          "detail": "Cannot read properties of undefined (reading 'exec')"
+        }
+      ]
+    },
+    {
+      "name": "PRIVACY",
+      "pass": 3,
+      "warn": 0,
+      "fail": 0,
+      "total": 3,
+      "tests": [
+        {
+          "testName": "network_monitor_report",
+          "status": "PASS",
+          "detail": "Privacy report generated"
+        },
+        {
+          "testName": "audit_trail",
+          "status": "PASS",
+          "detail": "0 recent entries"
+        },
+        {
+          "testName": "merkle_chain_verify",
+          "status": "PASS",
+          "detail": "Chain intact (0 entries)"
+        }
+      ]
+    }
+  ],
+  "totalPass": 38,
+  "totalTests": 40,
+  "p0Pass": true,
+  "p1Pass": true,
+  "buildReady": true,
+  "date": "2026-03-18 15:26:46"
+}

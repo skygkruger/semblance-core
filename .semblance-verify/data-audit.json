@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-03-18T06:38:11.714Z",
+  "databases": {
+    "oauth": {
+      "exists": false
+    },
+    "documents": {
+      "exists": true
+    }
+  },
+  "connectedServices": [],
+  "documentSources": {},
+  "pipelineGaps": [],
+  "pipelineHealthy": [],
+  "handlerStubs": [],
+  "verdict": "healthy"
+}

@@ -49,13 +49,13 @@ import type { ActionType } from '../../../core/types/ipc.js';
 import { PremiumGate } from '../../../core/premium/index.js';
 import { extractLicenseKey } from '../../../core/premium/license-email-detector.js';
 
-// Step 7 imports
-import { StatementParser } from '../../../core/finance/statement-parser.js';
-import { MerchantNormalizer } from '../../../core/finance/merchant-normalizer.js';
-import { RecurringDetector } from '../../../core/finance/recurring-detector.js';
+// IP Adapter Registry — runtime access to @semblance/dr implementations
+import { ipAdapters } from '../../../core/extensions/ip-adapter-registry.js';
+
+// Step 7 imports (finance moved to @semblance/dr — access via ipAdapters)
 import { EscalationEngine } from '../../../core/agent/autonomy-escalation.js';
 import { KnowledgeMomentGenerator } from '../../../core/agent/knowledge-moment.js';
-import { WeeklyDigestGenerator } from '../../../core/digest/weekly-digest.js';
+// WeeklyDigestGenerator moved to @semblance/dr — access via ipAdapters
 
 // Step 8 imports
 import { ContactStore } from '../../../core/knowledge/contacts/contact-store.js';
@@ -103,7 +103,8 @@ import { SemblanceEventBus } from '../../../gateway/events/event-bus.js';
 
 // Sprint G.5: Browser CDP + Alter Ego Week + Import Everything
 import { BrowserCDPAdapter } from '../../../gateway/browser/browser-cdp-adapter.js';
-import { AlterEgoWeekEngine } from '../../../core/agent/alter-ego-week-engine.js';
+// AlterEgoWeekEngine moved to @semblance/dr — access via ipAdapters
+import type { AlterEgoDay } from '../../../core/agent/alter-ego-week-types.js';
 import { ImportEverythingOrchestrator } from '../../../core/agent/import-everything-orchestrator.js';
 
 // Sprint G: Multi-Account + Channels + Skills
@@ -174,7 +175,7 @@ import { DailyDigestGenerator } from '../../../core/agent/daily-digest.js';
 import { WeatherService } from '../../../core/weather/weather-service.js';
 import { LocationStore } from '../../../core/location/location-store.js';
 import { StyleProfileStore } from '../../../core/style/style-profile.js';
-import { DarkPatternDetector } from '../../../core/defense/dark-pattern-detector.js';
+// DarkPatternDetector moved to @semblance/dr — access via ipAdapters
 import { DocumentContextManager } from '../../../core/agent/document-context.js';
 import { HealthEntryStore } from '../../../core/health/health-entry-store.js';
 import { CloudStorageClient } from '../../../core/cloud-storage/cloud-storage-client.js';
@@ -280,13 +281,9 @@ let emailCategorizer: EmailCategorizer | null = null;
 let _refreshPromptConfig: () => void = () => {}; // set during initializeCore
 let proactiveEngine: ProactiveEngine | null = null;
 
-// Step 7 state
-let statementParser: StatementParser | null = null;
-let merchantNormalizer: MerchantNormalizer | null = null;
-let recurringDetector: RecurringDetector | null = null;
+// Step 7 state (finance/digest moved to @semblance/dr — access via ipAdapters)
 let escalationEngine: EscalationEngine | null = null;
 let knowledgeMomentGenerator: KnowledgeMomentGenerator | null = null;
-let weeklyDigestGenerator: WeeklyDigestGenerator | null = null;
 
 // Step 8 state
 let networkMonitor: NetworkMonitor | null = null;
@@ -356,7 +353,7 @@ let hardwareMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
 // Sprint G.5: Browser CDP + Alter Ego Week + Import
 let browserCDPAdapter: BrowserCDPAdapter | null = null;
-let alterEgoWeekEngine: AlterEgoWeekEngine | null = null;
+// alterEgoWeekEngine: access via ipAdapters.alterEgoWeekEngine
 let importOrchestrator: ImportEverythingOrchestrator | null = null;
 
 // Sprint G: Multi-Account + Channels + Skills
@@ -393,7 +390,7 @@ let dailyDigestGenerator: DailyDigestGenerator | null = null;
 let weatherService: WeatherService | null = null;
 let locationStore: LocationStore | null = null;
 let styleProfileStore: StyleProfileStore | null = null;
-let darkPatternDetector: DarkPatternDetector | null = null;
+// darkPatternDetector: access via ipAdapters.darkPatternDetector
 let documentContextManager: DocumentContextManager | null = null;
 let healthEntryStore: HealthEntryStore | null = null;
 let cloudStorageClient: CloudStorageClient | null = null;
@@ -1475,9 +1472,8 @@ async function handleInitialize(): Promise<unknown> {
     browserCDPAdapter = new BrowserCDPAdapter(gateway?.getAllowlist());
     console.error('[sidecar] BrowserCDPAdapter initialized (lazy connect)');
 
-    // Alter Ego Week engine
-    alterEgoWeekEngine = new AlterEgoWeekEngine(dbHandle);
-    console.error('[sidecar] AlterEgoWeekEngine initialized');
+    // Alter Ego Week engine — initialized by @semblance/dr via ipAdapters
+    console.error('[sidecar] AlterEgoWeekEngine: available via ipAdapters.alterEgoWeekEngine');
 
     // Import Everything orchestrator
     importOrchestrator = new ImportEverythingOrchestrator(dbHandle);
@@ -2791,42 +2787,33 @@ function handleGetApprovalThreshold(params: { action_type: string; payload: Reco
 
 // ─── Step 7: Subscription Detection Handlers ────────────────────────────────
 
-function ensureFinanceComponents(): void {
-  if (!prefsDb) throw new Error('Database not initialized');
-  if (!merchantNormalizer) {
-    merchantNormalizer = new MerchantNormalizer({ llm: core?.llm });
-  }
-  if (!statementParser) {
-    statementParser = new StatementParser({ llm: core?.llm });
-  }
-  if (!recurringDetector) {
-    recurringDetector = new RecurringDetector({ db: prefsDb, normalizer: merchantNormalizer });
-  }
-}
+// Finance components accessed via ipAdapters (moved to @semblance/dr)
 
 async function handleImportStatement(params: { file_path: string }): Promise<unknown> {
-  ensureFinanceComponents();
-  if (!statementParser || !merchantNormalizer || !recurringDetector) {
-    return { error: 'Finance components not initialized' };
+  const sp = ipAdapters.statementParser;
+  const mn = ipAdapters.merchantNormalizer;
+  const rd = ipAdapters.recurringDetector;
+  if (!sp || !mn || !rd) {
+    return { error: 'Financial intelligence requires Digital Representative' };
   }
 
-  const { transactions, import: importRecord } = await statementParser.parseStatement(params.file_path);
-  const normalized = merchantNormalizer.normalizeAll(transactions);
-  const charges = recurringDetector.detect(normalized);
+  const { transactions, import: importRecord } = await sp.parseStatement(params.file_path);
+  const normalized = mn.normalizeAll(transactions);
+  const charges = rd.detect(normalized);
 
   // Flag forgotten subscriptions using email index
   const emailSearchFn = (merchant: string) => {
     if (!emailIndexer) return [];
     return emailIndexer.searchEmails(merchant, { limit: 5 });
   };
-  const flaggedCharges = await recurringDetector.flagForgotten(charges, emailSearchFn);
+  const flaggedCharges = await rd.flagForgotten(charges, emailSearchFn);
 
   // Store
-  recurringDetector.storeImport(importRecord, normalized);
-  recurringDetector.storeCharges(flaggedCharges);
+  rd.storeImport(importRecord, normalized);
+  rd.storeCharges(flaggedCharges);
 
   const forgotten = flaggedCharges.filter(c => c.status === 'forgotten');
-  const summary = recurringDetector.getSummary();
+  const summary = rd.getSummary();
 
   return {
     transactionCount: importRecord.transactionCount,
@@ -2839,28 +2826,28 @@ async function handleImportStatement(params: { file_path: string }): Promise<unk
 }
 
 function handleGetSubscriptions(params: { status?: string }): unknown[] {
-  ensureFinanceComponents();
-  if (!recurringDetector) return [];
-  return recurringDetector.getStoredCharges(params.status);
+  const rd = ipAdapters.recurringDetector;
+  if (!rd) return [];
+  return rd.getStoredCharges(params.status);
 }
 
 function handleUpdateSubscriptionStatus(params: { charge_id: string; status: string }): unknown {
-  ensureFinanceComponents();
-  if (!recurringDetector) return { success: false };
-  recurringDetector.updateStatus(params.charge_id, params.status as 'active' | 'forgotten' | 'cancelled' | 'user_confirmed');
+  const rd = ipAdapters.recurringDetector;
+  if (!rd) return { success: false };
+  rd.updateStatus(params.charge_id, params.status as 'active' | 'forgotten' | 'cancelled' | 'user_confirmed');
   return { success: true };
 }
 
 function handleGetImportHistory(): unknown[] {
-  ensureFinanceComponents();
-  if (!recurringDetector) return [];
-  return recurringDetector.getImports();
+  const rd = ipAdapters.recurringDetector;
+  if (!rd) return [];
+  return rd.getImports();
 }
 
 function handleGetSubscriptionSummary(): unknown {
-  ensureFinanceComponents();
-  if (!recurringDetector) return { totalMonthly: 0, totalAnnual: 0, activeCount: 0, forgottenCount: 0, potentialSavings: 0 };
-  return recurringDetector.getSummary();
+  const rd = ipAdapters.recurringDetector;
+  if (!rd) return { totalMonthly: 0, totalAnnual: 0, activeCount: 0, forgottenCount: 0, potentialSavings: 0 };
+  return rd.getSummary();
 }
 
 // ─── Step 7: Autonomy Escalation Handlers ────────────────────────────────────
@@ -2920,35 +2907,24 @@ async function handleGenerateKnowledgeMoment(): Promise<unknown> {
 
 // ─── Step 7: Weekly Digest Handlers ──────────────────────────────────────────
 
-function ensureDigestGenerator(): void {
-  if (!prefsDb) throw new Error('Database not initialized');
-  if (!weeklyDigestGenerator) {
-    // The audit trail is in the same core.db (prefsDb)
-    weeklyDigestGenerator = new WeeklyDigestGenerator({
-      db: prefsDb,
-      auditDb: prefsDb,
-      llm: core?.llm,
-      aiName: getPref('ai_name') ?? 'Semblance',
-    });
-  }
-}
+// Digest accessed via ipAdapters (moved to @semblance/dr)
 
 async function handleGenerateDigest(params: { week_start: string; week_end: string }): Promise<unknown> {
-  ensureDigestGenerator();
-  if (!weeklyDigestGenerator) return null;
-  return await weeklyDigestGenerator.generate(params.week_start, params.week_end);
+  const dg = ipAdapters.weeklyDigestGenerator;
+  if (!dg) return { error: 'Weekly digest requires Digital Representative' };
+  return await dg.generate(params.week_start, params.week_end);
 }
 
 function handleGetLatestDigest(): unknown {
-  ensureDigestGenerator();
-  if (!weeklyDigestGenerator) return null;
-  return weeklyDigestGenerator.getLatest();
+  const dg = ipAdapters.weeklyDigestGenerator;
+  if (!dg) return null;
+  return dg.getLatest();
 }
 
 function handleListDigests(): unknown[] {
-  ensureDigestGenerator();
-  if (!weeklyDigestGenerator) return [];
-  return weeklyDigestGenerator.list();
+  const dg = ipAdapters.weeklyDigestGenerator;
+  if (!dg) return [];
+  return dg.list();
 }
 
 // ─── Step 8: Network Monitor Handlers ────────────────────────────────────────
@@ -4653,9 +4629,9 @@ async function handleImportRun(params: { sourcePath: string; sourceType: string 
   } else if (ext === 'xml' || ext === 'html') {
     items = [{ title: params.sourcePath.split(/[/\\]/).pop() ?? 'Import', content, timestamp: new Date().toISOString() }];
   } else if (ext === 'ofx' || ext === 'qfx') {
-    // Financial statement — delegate to StatementParser
-    if (statementParser) {
-      const result = statementParser.parseOFX(content);
+    // Financial statement — delegate to StatementParser via ipAdapters
+    if (ipAdapters.statementParser) {
+      const result = ipAdapters.statementParser.parseOFX(content);
       items = result.transactions.map(t => ({
         title: t.description ?? t.memo ?? 'Transaction',
         content: JSON.stringify(t),
@@ -6050,10 +6026,7 @@ async function handleRequest(req: Request): Promise<void> {
 
       // ─── Dark Pattern Detection ───────────────────────────────────────
       case 'dark_pattern_get_flags': {
-        if (!darkPatternDetector && prefsDb && core) {
-          darkPatternDetector = new DarkPatternDetector(prefsDb, core.llm);
-        }
-        if (!darkPatternDetector || !prefsDb) { respond(id, []); break; }
+        if (!prefsDb) { respond(id, []); break; }
         try {
           const flags = prefsDb.prepare(
             'SELECT * FROM dark_pattern_flags WHERE dismissed = 0 ORDER BY created_at DESC LIMIT 50'
@@ -8565,25 +8538,28 @@ async function handleRequest(req: Request): Promise<void> {
       // ─── Sprint G.5: Alter Ego Week Handlers ──────────────────────────────
 
       case 'alter_ego_week_get_state': {
-        if (!alterEgoWeekEngine) { respond(id, { active: false, currentDay: null, completedDays: [], startedAt: null, completedAt: null, activationOffered: false, userActivated: false }); break; }
-        respond(id, alterEgoWeekEngine.getState());
+        const aew = ipAdapters.alterEgoWeekEngine;
+        if (!aew) { respond(id, { active: false, currentDay: null, completedDays: [], startedAt: null, completedAt: null, activationOffered: false, userActivated: false }); break; }
+        respond(id, aew.getState());
         break;
       }
 
       case 'alter_ego_week_start': {
-        if (!alterEgoWeekEngine) { respondError(id, 'AlterEgoWeekEngine not initialized'); break; }
+        const aew = ipAdapters.alterEgoWeekEngine;
+        if (!aew) { respondError(id, 'Alter Ego Week requires Digital Representative'); break; }
         try {
-          const state = await alterEgoWeekEngine.start();
+          const state = await aew.start();
           respond(id, state);
         } catch (awsErr) { respondError(id, (awsErr as Error).message); }
         break;
       }
 
       case 'alter_ego_week_run_day': {
-        if (!alterEgoWeekEngine) { respondError(id, 'AlterEgoWeekEngine not initialized'); break; }
+        const aew = ipAdapters.alterEgoWeekEngine;
+        if (!aew) { respondError(id, 'Alter Ego Week requires Digital Representative'); break; }
         try {
           const awrdParams = params as { day: number };
-          const demoResult = await alterEgoWeekEngine.runDayDemo(awrdParams.day as import('../../../core/agent/alter-ego-week-engine.js').AlterEgoDay);
+          const demoResult = await aew.runDayDemo(awrdParams.day as AlterEgoDay);
           // Push result to canvas
           if (canvasManager) {
             canvasManager.push({
@@ -8600,25 +8576,28 @@ async function handleRequest(req: Request): Promise<void> {
       }
 
       case 'alter_ego_week_advance': {
-        if (!alterEgoWeekEngine) { respondError(id, 'AlterEgoWeekEngine not initialized'); break; }
+        const aew = ipAdapters.alterEgoWeekEngine;
+        if (!aew) { respondError(id, 'Alter Ego Week requires Digital Representative'); break; }
         try {
-          const newState = await alterEgoWeekEngine.advanceDay();
+          const newState = await aew.advanceDay();
           respond(id, newState);
         } catch (awaErr) { respondError(id, (awaErr as Error).message); }
         break;
       }
 
       case 'alter_ego_week_skip': {
-        if (!alterEgoWeekEngine) { respondError(id, 'AlterEgoWeekEngine not initialized'); break; }
-        alterEgoWeekEngine.skip();
+        const aew = ipAdapters.alterEgoWeekEngine;
+        if (!aew) { respondError(id, 'Alter Ego Week requires Digital Representative'); break; }
+        aew.skip();
         respond(id, { success: true });
         break;
       }
 
       case 'alter_ego_week_accept': {
-        if (!alterEgoWeekEngine) { respondError(id, 'AlterEgoWeekEngine not initialized'); break; }
+        const aew = ipAdapters.alterEgoWeekEngine;
+        if (!aew) { respondError(id, 'Alter Ego Week requires Digital Representative'); break; }
         try {
-          await alterEgoWeekEngine.acceptActivation();
+          await aew.acceptActivation();
           respond(id, { success: true, activated: true });
         } catch (awaErr) { respondError(id, (awaErr as Error).message); }
         break;

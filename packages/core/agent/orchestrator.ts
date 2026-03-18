@@ -27,8 +27,8 @@ import type {
 import type { ActionType, ActionResponse } from '../types/ipc.js';
 import { ApprovalPatternTracker, type ApprovalPattern } from './approval-patterns.js';
 import type { StyleProfileStore, StyleProfile } from '../style/style-profile.js';
-import { buildStylePrompt, buildInactiveStylePrompt, buildRetryPrompt, type DraftContext } from '../style/style-injector.js';
-import { scoreDraft, type StyleScore } from '../style/style-scorer.js';
+import type { StyleAdapter, StyleScore, DraftContext } from '../style/style-adapter.js';
+import { ipAdapters } from '../extensions/ip-adapter-registry.js';
 import type { DocumentContextManager } from './document-context.js';
 import type { ContactResolver } from '../knowledge/contacts/contact-resolver.js';
 import type { ResolvedContactResult } from '../knowledge/contacts/contact-types.js';
@@ -2575,9 +2575,15 @@ export class OrchestratorImpl implements Orchestrator {
       subject: (args['subject'] as string) ?? '',
     };
 
+    const style = ipAdapters.styleAdapter;
+    if (!style) {
+      // No style adapter loaded (free tier) — return original body unstyled
+      return { body: args['body'] as string, styleScore: null };
+    }
+
     const stylePrompt = profile.isActive
-      ? buildStylePrompt(profile, draftContext)
-      : buildInactiveStylePrompt();
+      ? style.buildStylePrompt(profile, draftContext)
+      : style.buildInactiveStylePrompt();
 
     const originalBody = args['body'] as string;
     let bestBody = originalBody;
@@ -2593,7 +2599,7 @@ export class OrchestratorImpl implements Orchestrator {
         const weakDimensions = Object.entries(bestScore.breakdown)
           .map(([name, score]) => ({ name, score }))
           .sort((a, b) => a.score - b.score);
-        const retryHint = buildRetryPrompt(weakDimensions, profile);
+        const retryHint = style.buildRetryPrompt(weakDimensions, profile);
         if (retryHint) {
           prompt += `\n\n${retryHint}`;
         }
@@ -2612,7 +2618,7 @@ export class OrchestratorImpl implements Orchestrator {
         const generatedBody = response.message.content.trim();
 
         if (profile.isActive) {
-          const score = scoreDraft(generatedBody, profile);
+          const score = style.scoreDraft(generatedBody, profile);
 
           if (!bestScore || score.overall > bestScore.overall) {
             bestBody = generatedBody;
