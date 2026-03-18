@@ -188,7 +188,7 @@ export function ContactsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#0B0E11' },
   searchInput: {
     margin: 16,
     paddingHorizontal: 12,

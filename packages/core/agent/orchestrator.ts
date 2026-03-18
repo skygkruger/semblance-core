@@ -1123,8 +1123,13 @@ export class OrchestratorImpl implements Orchestrator {
     this.storeTurn(convId, 'assistant', finalMessage, null, actions, 0, completionTokens);
 
     // Calibrate context budget with actual token data
+    // Include all prompt components: system prompt, history, context, documents, user message
     if (promptTokens > 0) {
-      const estimatedPromptChars = message.length + (context.reduce((s, r) => s + r.chunk.content.length, 0));
+      const systemPromptChars = buildSystemPrompt(this.promptConfig).length;
+      const historyChars = history.reduce((s, t) => s + t.content.length, 0);
+      const contextChars = context.reduce((s, r) => s + r.chunk.content.length, 0);
+      const documentChars = documentChunks?.reduce((s, r) => s + r.chunk.content.length, 0) ?? 0;
+      const estimatedPromptChars = systemPromptChars + historyChars + contextChars + documentChars + message.length;
       this.contextBudget.recordActualTokens(this.model, estimatedPromptChars, promptTokens);
     }
 
