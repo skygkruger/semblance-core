@@ -1,3 +1,4 @@
+// @i18n-pending — hardcoded English text, i18n keys in follow-up pass
 import { useTranslation } from 'react-i18next';
 import './Settings.css';
 import { ChevronRight } from './SettingsIcons';

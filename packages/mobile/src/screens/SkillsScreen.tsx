@@ -1,3 +1,4 @@
+// @i18n-pending — hardcoded English text, i18n keys in follow-up pass
 import React from 'react';
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 
