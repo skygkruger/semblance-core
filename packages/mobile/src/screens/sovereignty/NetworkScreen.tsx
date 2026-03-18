@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontBody,
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
-    color: '#FFFFFF',
+    color: '#EEF1F4',
   },
   declineButton: {
     flex: 1,

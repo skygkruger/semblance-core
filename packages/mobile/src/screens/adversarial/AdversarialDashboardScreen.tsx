@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   severityText: {
     fontFamily: typography.fontMono,
     fontSize: typography.size.xs,
-    color: '#FFFFFF',
+    color: '#EEF1F4',
     textTransform: 'uppercase',
   },
   alertInfo: { flex: 1 },

@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     lineHeight: typography.size.base * typography.lineHeight.normal,
   },
   messageTextUser: {
-    color: '#FFFFFF',
+    color: '#EEF1F4',
   },
   messageTime: {
     fontFamily: typography.fontBody,
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontBody,
     fontSize: typography.size.base,
     fontWeight: typography.weight.semibold,
-    color: '#FFFFFF',
+    color: '#EEF1F4',
   },
   documentBanner: {
     flexDirection: 'row',

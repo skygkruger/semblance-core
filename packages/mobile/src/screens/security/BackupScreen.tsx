@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontBody,
     fontSize: typography.size.base,
     fontWeight: typography.weight.semibold,
-    color: '#FFFFFF',
+    color: '#EEF1F4',
   },
   secondaryButton: {
     borderWidth: 1,

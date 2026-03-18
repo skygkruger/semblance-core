@@ -239,7 +239,7 @@ export function ContactDetailScreen({ route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#0B0E11' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   mutedText: { color: '#999', fontSize: 14 },
   header: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 16 },
