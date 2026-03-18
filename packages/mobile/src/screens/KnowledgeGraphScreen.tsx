@@ -11,6 +11,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 // @ts-expect-error — react-native-webview types installed at app level, not in this package
 import { WebView } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
+import { colors } from '../theme/tokens.js';
 import { styles } from './KnowledgeGraphScreen.styles';
 import { GraphFilterSheet } from './GraphFilterSheet';
 import type {
@@ -285,7 +286,7 @@ export const KnowledgeGraphScreen: React.FC<KnowledgeGraphScreenProps> = ({
           originWhitelist={['*']}
           javaScriptEnabled={true}
           scrollEnabled={false}
-          style={{ flex: 1, backgroundColor: '#1a1a2e' }}
+          style={{ flex: 1, backgroundColor: colors.bgDark }}
         />
       </View>
 

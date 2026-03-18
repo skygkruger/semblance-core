@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontBody,
     fontSize: typography.size.base,
     fontWeight: typography.weight.semibold,
-    color: '#EEF1F4',
+    color: colors.textPrimary,
   },
   emptyText: {
     fontFamily: typography.fontBody,

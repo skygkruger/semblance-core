@@ -185,7 +185,7 @@ export function ChatScreen({ onAttachDocument, onClearDocument, documentContext 
   if (semblance.initializing) {
     return (
       <View style={styles.initContainer}>
-        <ActivityIndicator size="large" color="#6ECFA3" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.initTitle}>{t('screen.chat.starting', { defaultValue: 'Starting Semblance' })}</Text>
         <Text style={styles.initProgress}>{semblance.progressLabel}</Text>
         <View style={styles.progressBar}>
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#6ECFA3',
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   initSubtext: {
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontFamily: typography.fontDisplay,
     fontSize: typography.size.xl,
-    color: '#B07A8A',
+    color: colors.attention,
     marginBottom: spacing.md,
   },
   errorText: {
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     lineHeight: typography.size.base * typography.lineHeight.normal,
   },
   messageTextUser: {
-    color: '#EEF1F4',
+    color: colors.textPrimary,
   },
   messageTime: {
     fontFamily: typography.fontBody,
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontFamily: typography.fontMono,
     fontSize: 10,
-    color: '#6ECFA3',
+    color: colors.primary,
   },
   typingIndicator: {
     paddingHorizontal: spacing.base,
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontBody,
     fontSize: typography.size.base,
     fontWeight: typography.weight.semibold,
-    color: '#EEF1F4',
+    color: colors.textPrimary,
   },
   documentBanner: {
     flexDirection: 'row',

@@ -52,16 +52,17 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
+const RELATIONSHIP_COLORS: Record<string, string> = {
+  colleague: '#D4A76A',
+  client: '#7EB8DA',
+  vendor: '#B8A5D6',
+  friend: '#7EC9A0',
+  family: '#F27A93',
+  acquaintance: '#8593A4',
+};
+
 function getRelationshipColor(type: string): string {
-  switch (type) {
-    case 'colleague': return '#D4A76A';
-    case 'client': return '#7EB8DA';
-    case 'vendor': return '#B8A5D6';
-    case 'friend': return '#7EC9A0';
-    case 'family': return '#F27A93';
-    case 'acquaintance': return '#8593A4';
-    default: return colors.muted;
-  }
+  return RELATIONSHIP_COLORS[type] ?? colors.muted;
 }
 
 function formatLastContact(date: string | null): string {

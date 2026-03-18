@@ -76,7 +76,7 @@ export function BriefScreen({
   if (semblance.initializing || loading) {
     return (
       <View style={styles.emptyContainer}>
-        <ActivityIndicator size="large" color="#6ECFA3" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>{t('screen.brief.loading', { defaultValue: 'Preparing your briefing...' })}</Text>
       </View>
     );
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: typography.fontBody,
     fontSize: typography.size.base,
-    color: '#8593A4',
+    color: colors.textTertiary,
     textAlign: 'center',
   },
   loadingText: {

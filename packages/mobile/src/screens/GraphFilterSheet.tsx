@@ -8,18 +8,19 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Switch, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { colors } from '../theme/tokens.js';
 import type { CategoryNode } from '../../../../packages/core/knowledge/graph-visualization';
 import type { VisualizationCategory } from '../../../../packages/core/knowledge/connector-category-map';
 
 // ─── Design Tokens (from packages/semblance-ui/tokens/tokens.css) ────────────
 
 const TOKEN = {
-  base: '#0B0E11',
+  base: colors.bgDark,
   b2: 'rgba(255, 255, 255, 0.09)',
-  sv3: '#A8B4C0',
-  white: '#EEF1F4',
-  v: '#6ECFA3',
-  s2: '#171B1F',
+  sv3: colors.textSecondary,
+  white: colors.textPrimary,
+  v: colors.primary,
+  s2: colors.surface2Dark,
 } as const;
 
 // ─── Types ───────────────────────────────────────────────────────────────────

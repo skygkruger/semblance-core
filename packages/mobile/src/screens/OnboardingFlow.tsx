@@ -18,6 +18,7 @@ import {
   LanguageSelect,
 } from '@semblance/ui';
 import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier } from '@semblance/ui';
+import { colors } from '../theme/tokens.js';
 import { detectOSLocale } from '../../../core/i18n/supported-languages';
 
 const PREFS_PATH = `${RNFS.DocumentDirectoryPath}/semblance-onboarding-prefs.json`;
@@ -292,7 +293,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0E11',
+    backgroundColor: colors.bgDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -308,9 +309,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   dotActive: {
-    backgroundColor: '#6ECFA3',
+    backgroundColor: colors.primary,
   },
   dotInactive: {
-    backgroundColor: '#2A2F35',
+    backgroundColor: colors.surface2Dark,
   },
 });

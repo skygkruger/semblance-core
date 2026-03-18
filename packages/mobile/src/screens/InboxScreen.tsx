@@ -59,13 +59,20 @@ function InboxCard({ item, onPress }: { item: InboxItem; onPress?: (item: InboxI
   );
 }
 
+const INBOX_CATEGORY_COLORS = {
+  reminder: '#2A2A3E',
+  action: '#2E3A2A',
+  digest: '#3A2E2A',
+  insight: '#2A303E',
+} as const;
+
 function badgeColor(type: InboxItem['type']): { backgroundColor: string } {
   switch (type) {
     case 'email': return { backgroundColor: colors.primarySubtleDark };
-    case 'reminder': return { backgroundColor: '#2A2A3E' };
-    case 'action': return { backgroundColor: '#2E3A2A' };
-    case 'digest': return { backgroundColor: '#3A2E2A' };
-    case 'insight': return { backgroundColor: '#2A303E' };
+    case 'reminder': return { backgroundColor: INBOX_CATEGORY_COLORS.reminder };
+    case 'action': return { backgroundColor: INBOX_CATEGORY_COLORS.action };
+    case 'digest': return { backgroundColor: INBOX_CATEGORY_COLORS.digest };
+    case 'insight': return { backgroundColor: INBOX_CATEGORY_COLORS.insight };
     default: return { backgroundColor: colors.surface2Dark };
   }
 }
