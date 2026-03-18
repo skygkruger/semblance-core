@@ -50,14 +50,14 @@ export function SettingsTunnelPairing({ onBack }: { onBack: () => void }) {
 
         {devices.length === 0 ? (
           <div className="settings-card" style={{ margin: '0 16px 8px', textAlign: 'center' }}>
-            <p style={{ fontSize: 14, color: '#EEF1F4', margin: '0 0 4px' }}>No devices paired yet</p>
-            <p style={{ fontSize: 12, color: '#8593A4', margin: '0 0 12px', lineHeight: 1.4 }}>
+            <p style={{ fontSize: 14, color: 'var(--white)', margin: '0 0 4px' }}>No devices paired yet</p>
+            <p style={{ fontSize: 12, color: 'var(--sv2)', margin: '0 0 12px', lineHeight: 1.4 }}>
               Pair your phone or another computer to enable remote inference and knowledge sync.
             </p>
             <button
               type="button"
               onClick={handleShowQR}
-              style={{ background: 'none', border: '1px solid rgba(110,207,163,0.4)', color: '#6ECFA3', borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13 }}
+              style={{ background: 'none', border: '1px solid var(--v-wire)', color: 'var(--v)', borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13 }}
             >
               Pair a device
             </button>
@@ -66,7 +66,7 @@ export function SettingsTunnelPairing({ onBack }: { onBack: () => void }) {
           <>
             {devices.map(device => (
               <button key={device.deviceId} type="button" className="settings-row">
-                <span className="settings-row__dot" style={{ background: device.isOnline ? '#6ECFA3' : '#5E6B7C' }} />
+                <span className="settings-row__dot" style={{ background: device.isOnline ? 'var(--v)' : 'var(--sv1)' }} />
                 <span className="settings-row__label">{device.deviceName}</span>
                 <span className="settings-row__value" style={{ fontFamily: 'var(--fm)', textTransform: 'uppercase', fontSize: 10 }}>{device.platform}</span>
               </button>
@@ -84,17 +84,17 @@ export function SettingsTunnelPairing({ onBack }: { onBack: () => void }) {
                 </div>
               </div>
               {pairingCode && (
-                <div style={{ fontFamily: 'var(--fm)', fontSize: 24, color: '#EEF1F4', letterSpacing: '0.2em', marginBottom: 8 }}>
+                <div style={{ fontFamily: 'var(--fm)', fontSize: 24, color: 'var(--white)', letterSpacing: '0.2em', marginBottom: 8 }}>
                   {pairingCode}
                 </div>
               )}
-              <div style={{ fontSize: 11, color: '#8593A4', fontFamily: 'var(--fm)' }}>Expires in 10 minutes</div>
+              <div style={{ fontSize: 11, color: 'var(--sv2)', fontFamily: 'var(--fm)' }}>Expires in 10 minutes</div>
             </>
           ) : (
             <button
               type="button"
               onClick={handleShowQR}
-              style={{ background: 'none', border: '1px solid rgba(110,207,163,0.4)', color: '#6ECFA3', borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, width: '100%' }}
+              style={{ background: 'none', border: '1px solid var(--v-wire)', color: 'var(--v)', borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, width: '100%' }}
             >
               Show pairing QR
             </button>

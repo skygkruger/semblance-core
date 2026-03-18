@@ -203,4 +203,45 @@ describe('AdaptiveContextBudget', () => {
       expect(afterOutlier).toBeLessThan(5);
     });
   });
+
+  describe('MODEL_CONTEXT_WINDOWS resolution — full catalog coverage', () => {
+    const expectedResolutions: Array<[string, number]> = [
+      // SmolLM2 fast tier
+      ['smollm2-1.7b-instruct-q4_k_m', 8192],
+      // Qwen3 family
+      ['qwen3-1.7b-instruct-q4_k_m', 32768],
+      ['qwen3-4b-instruct-q4_k_m', 32768],
+      ['qwen3-8b-instruct-q4_k_m', 32768],
+      ['qwen3-30b-a3b-q4_k_m', 32768],
+      // Qwen2.5 family
+      ['qwen2.5-1.5b-instruct-q4_k_m', 32768],
+      ['qwen2.5-3b-instruct-q4_k_m', 32768],
+      ['qwen2.5-vl-3b-instruct-q4_k_m', 32768],
+      // Vision
+      ['moondream2-q8_0', 2048],
+      // BitNet b1.58
+      ['bitnet-b1.58-2b4t', 4096],
+      // Falcon-E native 1-bit
+      ['falcon-e-1b', 2048],
+      ['falcon-e-3b', 2048],
+      // Falcon3 BitNet (1.58bit suffix)
+      ['falcon3-1b-instruct-1.58bit', 8192],
+      ['falcon3-3b-instruct-1.58bit', 8192],
+      ['falcon3-7b-instruct-1.58bit', 8192],
+      ['falcon3-10b-instruct-1.58bit', 8192],
+      // Standard Falcon3 (Ollama)
+      ['falcon3-7b', 8192],
+      // Llama
+      ['llama-3.1-8b-instruct-q4_k_m', 131072],
+      ['llama-3.2-3b-instruct-q4_k_m', 131072],
+      // Unknown model → default fallback
+      ['unknown-model-xyz', 4096],
+    ];
+
+    expectedResolutions.forEach(([modelId, expected]) => {
+      it(`resolves ${modelId} to ${expected}`, () => {
+        expect(budget.getContextWindow(modelId)).toBe(expected);
+      });
+    });
+  });
 });

@@ -12,7 +12,9 @@
  * Values are in tokens. Key is a prefix-matched family name (not exact model ID).
  */
 const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
+  // SmolLM2 fast tier
   'smollm2-1.7b': 8192,
+  // Qwen families
   'qwen3-1.7b': 32768,
   'qwen3-4b': 32768,
   'qwen3-8b': 32768,
@@ -20,19 +22,34 @@ const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
   'qwen2.5-1.5b': 32768,
   'qwen2.5-3b': 32768,
   'qwen2.5-7b': 32768,
+  'qwen2.5-vl-3b': 32768,
+  // Llama family
   'llama-3.1-8b': 131072,
   'llama-3.2-3b': 131072,
+  // Mistral / Gemma
   'mistral-7b': 32768,
   'gemma-2-2b': 8192,
+  // Falcon3 standard (Ollama GGUF)
   'falcon3-7b': 8192,
   'falcon3-3b': 8192,
   'falcon3-1b': 8192,
   'falcon3-10b': 8192,
+  // Falcon3 BitNet variants (1.58-bit suffix in ID)
+  'falcon3-1b-instruct': 8192,
+  'falcon3-3b-instruct': 8192,
+  'falcon3-7b-instruct': 8192,
+  'falcon3-10b-instruct': 8192,
+  // Falcon-E native 1-bit family
   'falcon-e-3b': 2048,
   'falcon-e-1b': 2048,
+  // BitNet b1.58 family — all variants share 4096 context
   'bitnet-b1.58-2b': 4096,
+  'bitnet': 4096,
+  // Vision
   'moondream2': 2048,
-  'qwen2.5-vl-3b': 32768,
+  // Embedding models don't pass through AdaptiveContextBudget — they use a fixed
+  // 8192-token context window handled by the embedding pipeline directly.
+  // 'nomic-bert' family intentionally omitted.
   'default': 4096,
 };
 

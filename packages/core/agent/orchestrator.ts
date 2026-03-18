@@ -86,7 +86,7 @@ const CREATE_TABLES = `
 const BASE_TOOLS: ToolDefinition[] = [
   {
     name: 'search_files',
-    description: 'Search the user\'s local files and documents for relevant information',
+    description: 'Searches indexed local files, documents, and notes. Faster than search_emails for file-specific queries.',
     parameters: {
       type: 'object',
       properties: {
@@ -97,7 +97,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'fetch_inbox',
-    description: 'Fetch recent emails from the user\'s inbox. Returns a summary of unread and recent messages with sender, subject, date, and AI-assigned priority.',
+    description: 'Returns the user\'s recent inbox — sender, subject, date, AI priority. For searching specific emails, use search_emails instead.',
     parameters: {
       type: 'object',
       properties: {
@@ -109,7 +109,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'search_emails',
-    description: 'Search the user\'s indexed emails by keyword, sender, date range, or semantic meaning.',
+    description: 'Finds emails matching a query — by keyword, sender, date, or meaning. Works across all indexed email accounts.',
     parameters: {
       type: 'object',
       properties: {
@@ -123,7 +123,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'send_email',
-    description: 'Send an email on behalf of the user.',
+    description: 'Sends an email. For Partner tier, prefer draft_email unless the user said "send it".',
     parameters: {
       type: 'object',
       properties: {
@@ -138,7 +138,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'draft_email',
-    description: 'Save an email draft without sending. Always available regardless of autonomy tier.',
+    description: 'Saves a draft without sending. Safe at any autonomy tier. Default for composing email unless the user says "send".',
     parameters: {
       type: 'object',
       properties: {
@@ -216,7 +216,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'create_reminder',
-    description: 'Create a reminder from natural language or structured input. In Guardian mode, shows preview and waits for approval. In Partner and Alter Ego mode, creates immediately.',
+    description: 'Creates a reminder with a time, date, or trigger. Parses natural language — "3pm tomorrow", "in two hours" all work.',
     parameters: {
       type: 'object',
       properties: {
@@ -262,7 +262,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'search_web',
-    description: 'Search the web for current information. Use for weather, news, prices, general knowledge, or any query the user\'s local data cannot answer. Available in all autonomy tiers (informational, not an action).',
+    description: 'Returns current web results. For time-sensitive or public-knowledge queries where local data won\'t help. For full content, use deep_search_web.',
     parameters: {
       type: 'object',
       properties: {
@@ -275,7 +275,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'deep_search_web',
-    description: 'Search the web AND fetch the actual content of the top results. Use this instead of search_web when you need to answer questions from web content, not just find links. Returns full page content for synthesis. Preferred for question-answering tasks.',
+    description: 'Searches the web and reads the top results. Returns full content for synthesis — better than search_web when the user needs an answer, not just links.',
     parameters: {
       type: 'object',
       properties: {
@@ -311,7 +311,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'get_weather',
-    description: 'Get current weather conditions and forecast. Use when the user asks about weather, temperature, rain, or needs weather context for planning. Available in all autonomy tiers (informational, not an action).',
+    description: 'Returns current conditions and forecast for a location. Defaults to current location. Call when weather is relevant — not just when asked, but when it informs a decision.',
     parameters: {
       type: 'object',
       properties: {
@@ -434,7 +434,7 @@ const BASE_TOOLS: ToolDefinition[] = [
   // ─── New Tools: Contacts ─────────────────────────────────────────────────
   {
     name: 'search_contacts',
-    description: 'Search the user\'s contacts by name, email, phone, organization, or relationship. Returns matching contacts with their details.',
+    description: 'Finds contacts by name, email, or phone across all accounts. Use before send_email to resolve a name to an address.',
     parameters: {
       type: 'object',
       properties: {
@@ -620,7 +620,7 @@ const BASE_LOCAL_TOOLS = new Set([
 
 // --- System Prompt ---
 
-const VOICE_MODE_CONTEXT = `The user is in voice conversation mode. Keep responses concise and conversational — they will be spoken aloud. Avoid long lists, code blocks, and complex formatting.`;
+const VOICE_MODE_CONTEXT = `The user is speaking to you. Respond in spoken English — short sentences, no markdown, no lists, no asterisks, no URLs, no file paths. Under 3 sentences for simple queries, under 6 for complex ones. Sound like a person talking, not a document being read.`;
 
 export interface SystemPromptConfig {
   aiName: string;
@@ -632,55 +632,51 @@ export interface SystemPromptConfig {
 
 function buildSystemPrompt(config: SystemPromptConfig, conversational?: boolean): string {
   const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
-  const userRef = userName ? userName : 'the user';
 
-  // For conversational messages (greetings, small talk), use a minimal prompt
-  // that gives the model NO operational context to fabricate from.
-  // Small models (7-8B) will invent "I archived 17 emails" or "you have a meeting at 2 PM"
-  // if they see service names or autonomy descriptions in the system prompt.
+  // CONVERSATIONAL VARIANT — minimal prompt prevents fabrication on small models
   if (conversational) {
-    const userNameLine = userName ? ` Your user's name is ${userName}.` : '';
-    return `You are ${aiName}, a personal AI assistant.${userNameLine} You run locally on ${userRef}'s device. All data stays private.
+    return `You are ${aiName}${userName ? `, and you're talking with ${userName}` : ''}. You run entirely on this device — nothing leaves it.
 
-You are warm, direct, and concise. Respond naturally like a helpful friend. Just chat back naturally. Do not make up any information about emails, meetings, schedules, or actions you have taken. Only discuss things you actually know.
-
-Your name is ${aiName}.${userName ? ` Your user's name is ${userName}.` : ' You do not know your user\'s name yet. You MUST ask them what their name is. Do NOT guess or make up a name.'}
+Be warm and direct. Don't invent facts about emails, meetings, or actions. If you don't know something, say so simply.${userName ? '' : ' Ask the user their name.'}
 
 ${INJECTION_CANARY}`;
   }
 
-  // Autonomy behavior — no specific action examples (small models parrot them as fabricated actions)
-  const autonomyBlock = autonomyTier === 'guardian'
-    ? `Autonomy: Guardian. All actions require ${userRef}'s explicit approval before execution. Always preview what you plan to do.`
+  // AUTONOMY — behavior description, not instruction list
+  const autonomyDescription = autonomyTier === 'guardian'
+    ? `You're in careful mode. Describe what you'd do before doing it, and wait for confirmation.`
     : autonomyTier === 'alter_ego'
-    ? `Autonomy: Alter Ego. Act on ${userRef}'s behalf for routine tasks. Only pause for genuinely high-stakes or novel actions. When you act autonomously, briefly state what you did and why.`
-    : `Autonomy: Partner. Routine actions execute automatically. Novel or sensitive actions require approval. When you act autonomously, briefly state what you did.`;
+    ? `You act. Handle the inbox, the calendar, the follow-ups. Pause only for genuinely high-stakes decisions. Report what you did, not what you plan to do.`
+    : `You handle routine tasks directly. For anything novel or sensitive, check first. When you act, mention it briefly.`;
 
-  // Dynamic context sections
-  const servicesLine = connectedServices && connectedServices.length > 0
-    ? `\nConnected services: ${connectedServices.join(', ')}.`
-    : '';
-  const knowledgeLine = indexedDocCount && indexedDocCount > 0
-    ? `\nKnowledge base: ${indexedDocCount} indexed documents. Search it first before using web search.`
-    : '';
+  // KNOWLEDGE CONTEXT
+  const knowledgeContext = [
+    connectedServices?.length ? `You have access to: ${connectedServices.join(', ')}.` : '',
+    indexedDocCount ? `Your knowledge base has ${indexedDocCount.toLocaleString()} indexed items — search it before reaching for the web.` : '',
+  ].filter(Boolean).join(' ');
 
-  // NOTE: Tool definitions with full parameters are injected separately by the LLM provider.
-  // This prompt gives behavioral guidance only — no tool listing to avoid duplication.
-  // System prompt optimized for small models (7-8B).
-  // Rules: no examples they can parrot, no meta-instructions they'll output verbatim.
-  // System prompt kept SHORT for small models (10B, 2048 context).
-  // Every extra token here is a token stolen from the actual conversation.
-  const nameLine = userName
-    ? `Your name is ${aiName}. The user's name is ${userName}.`
-    : `Your name is ${aiName}. Ask the user their name if you don't know it.`;
+  // IDENTITY
+  const identity = userName
+    ? `You are ${aiName}, ${userName}'s personal AI. You live on their device — all their data, none of it leaving.`
+    : `You are ${aiName}, a personal AI that runs entirely on this device. You don't know the user's name yet — ask them.`;
 
-  return `${nameLine} You are a personal AI running locally on the user's device. All data is private.${servicesLine}${knowledgeLine}
+  return `${identity}
 
-${autonomyBlock}
+${knowledgeContext}
 
-Be warm, direct, and concise. Never use emojis. Never invent data — if you don't have real data, say so. You have access to the user's email, calendar, files, and web search through your tools. If asked about yourself: you are Semblance, a local AI by VERIDIAN SYNTHETICS — all on-device.
+${autonomyDescription}
 
-IMPORTANT: Always respond in English unless the user writes in another language. When summarizing tool results (search results, emails, fetched web pages), always present the summary in English regardless of the source language.
+You have tools to search files and emails, check the calendar, send messages, search the web, manage reminders, and automate the device. Use them — don't describe using them. When you have real results, present them directly without preamble. When you don't have data, say so simply and offer to look.
+
+A few distinctions worth knowing:
+- search_files finds local documents; search_emails finds messages; search_web finds current public information
+- draft_email saves without sending; send_email sends immediately
+- fetch_inbox shows what's new; search_emails finds something specific
+- deep_search_web reads pages; search_web finds links
+
+Your voice is warm and direct. You never use emojis. You never say "Certainly!" or "Of course!". You get to the point. If the user writes in another language, match it.
+
+You are made by VERIDIAN SYNTHETICS. Your intelligence belongs to ${userName ?? 'your user'}. Their device. Their rules.
 
 ${ARTIFACT_SYSTEM_PROMPT}
 
