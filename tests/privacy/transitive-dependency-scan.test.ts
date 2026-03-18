@@ -7,10 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { execSync } from 'node:child_process';
-import { join } from 'node:path';
-
-const ROOT = join(__dirname, '..', '..');
+import { runPrivacyAudit } from '../helpers/run-privacy-audit.js';
 
 // ─── Forbidden package list (must match scripts/privacy-audit/index.js) ───
 
@@ -171,11 +168,7 @@ describe('Transitive Dependency Scanning', () => {
   // ─── Integration test ───
 
   it('transitive dependency scan passes clean for current packages/core/', () => {
-    const output = execSync('node scripts/privacy-audit/index.js', {
-      cwd: ROOT,
-      encoding: 'utf-8',
-      timeout: 60000,
-    });
+    const output = runPrivacyAudit();
     expect(output).toContain('RESULT: CLEAN');
     expect(output).toContain('No forbidden networking packages in dependency tree');
   });

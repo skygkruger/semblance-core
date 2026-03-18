@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { execSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { runPrivacyAudit } from '../helpers/run-privacy-audit.js';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const CORE_DIR = join(ROOT, 'packages', 'core');
@@ -13,21 +14,13 @@ const TEMP_SUFFIX = `_privacy_test_temp_${process.pid}_${Date.now()}`;
 
 describe('Privacy Audit', () => {
   it('passes with the current codebase (ollama in llm/ is allowed)', () => {
-    const result = execSync('node scripts/privacy-audit/index.js', {
-      cwd: ROOT,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    const result = runPrivacyAudit();
     expect(result).toContain('RESULT: CLEAN');
   });
 
   it('allows ollama import in packages/core/llm/', () => {
     // The actual ollama-provider.ts already imports 'ollama' — verify audit passes
-    const result = execSync('node scripts/privacy-audit/index.js', {
-      cwd: ROOT,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    const result = runPrivacyAudit();
     expect(result).toContain('Ollama localhost exception applied');
     expect(result).toContain('RESULT: CLEAN');
   });

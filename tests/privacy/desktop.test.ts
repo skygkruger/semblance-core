@@ -12,6 +12,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { runPrivacyAudit } from '../helpers/run-privacy-audit.js';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const DESKTOP_DIR = join(ROOT, 'packages', 'desktop');
@@ -243,12 +244,7 @@ describe('Desktop Privacy: fetch() Allowlist Enforcement', () => {
 
 describe('Desktop Privacy: Privacy audit script passes', () => {
   it('privacy audit exits clean with desktop checks', () => {
-    const { execSync } = require('node:child_process');
-    const result = execSync('node scripts/privacy-audit/index.js', {
-      cwd: ROOT,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    const result = runPrivacyAudit();
     expect(result).toContain('RESULT: CLEAN');
     expect(result).toContain('Desktop files scanned');
   });
