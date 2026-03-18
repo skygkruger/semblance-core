@@ -101,6 +101,15 @@ import { PairingManager } from '../../../gateway/channels/pairing-manager.js';
 import { CanvasManager } from '../../../gateway/canvas/canvas-manager.js';
 import { SemblanceEventBus } from '../../../gateway/events/event-bus.js';
 
+// Sprint G: Multi-Account + Channels + Skills
+import { SignalChannelAdapter } from '../../../gateway/channels/signal/signal-adapter.js';
+import { SlackChannelAdapter } from '../../../gateway/channels/slack/slack-channel-adapter.js';
+import { WhatsAppChannelAdapter } from '../../../gateway/channels/whatsapp/whatsapp-adapter.js';
+import { SkillRegistry } from '../../../core/skills/skill-registry.js';
+import { validateSkillDeclaration, ALL_CAPABILITIES, CAPABILITY_DESCRIPTIONS } from '../../../core/skills/skill-declaration.js';
+import type { SkillDeclaration, SkillCapability } from '../../../core/skills/skill-declaration.js';
+import { SubAgentCoordinator } from '../../../core/agent/sub-agent-coordinator.js';
+
 // Sprint F: Hardware Bridge
 import { BinaryAllowlist } from '../../../gateway/security/binary-allowlist.js';
 import { ArgumentValidator } from '../../../gateway/security/argument-validator.js';
@@ -339,6 +348,13 @@ let patternShiftDetector: PatternShiftDetector | null = null;
 let cronScheduler: CronScheduler | null = null;
 let daemonManager: DaemonManager | null = null;
 let hardwareMonitorInterval: ReturnType<typeof setInterval> | null = null;
+
+// Sprint G: Multi-Account + Channels + Skills
+let signalAdapter: SignalChannelAdapter | null = null;
+let slackChannelAdapter: SlackChannelAdapter | null = null;
+let whatsappAdapter: WhatsAppChannelAdapter | null = null;
+let skillRegistry: SkillRegistry | null = null;
+let subAgentCoordinator: SubAgentCoordinator | null = null;
 
 // Sprint F: Hardware Bridge
 let binaryAllowlist: BinaryAllowlist | null = null;
@@ -1397,6 +1413,48 @@ async function handleInitialize(): Promise<unknown> {
     console.error(`[sidecar] Hardware Bridge initialized — ${binaryAllowlist.list().length} binaries allowlisted`);
   } catch (sprintFErr) {
     console.error('[sidecar] Sprint F initialization failed (non-fatal):', sprintFErr);
+  }
+
+  // ──── STEP 8: Sprint G — Multi-Account + Channels + Skills ────
+  try {
+    const dbHandle = prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle;
+
+    // Multi-account migration (idempotent)
+    try {
+      const tokenMgr = ensureOAuthTokenManager();
+      tokenMgr.migrateToMultiAccount();
+      console.error('[sidecar] Multi-account OAuth migration checked');
+    } catch (migErr) {
+      console.error('[sidecar] OAuth migration skipped:', migErr);
+    }
+
+    // Channel adapters (Signal, Slack, WhatsApp)
+    signalAdapter = new SignalChannelAdapter({
+      systemGateway: systemCommandGateway ?? undefined,
+    });
+    slackChannelAdapter = new SlackChannelAdapter();
+    whatsappAdapter = new WhatsAppChannelAdapter();
+
+    // Register new channel adapters with registry
+    if (channelRegistry) {
+      channelRegistry.register(signalAdapter);
+      channelRegistry.register(slackChannelAdapter);
+      channelRegistry.register(whatsappAdapter);
+      console.error('[sidecar] Signal, Slack, WhatsApp channel adapters registered');
+    }
+
+    // Skill Registry
+    const skillsDir = join(homedir(), '.semblance', 'skills');
+    skillRegistry = new SkillRegistry(dbHandle, skillsDir);
+    console.error(`[sidecar] SkillRegistry initialized — ${skillRegistry.list().length} skills installed`);
+
+    // Sub-Agent Coordinator
+    subAgentCoordinator = new SubAgentCoordinator();
+    console.error('[sidecar] SubAgentCoordinator initialized');
+
+    console.error('[sidecar] Sprint G initialization complete');
+  } catch (sprintGErr) {
+    console.error('[sidecar] Sprint G initialization failed (non-fatal):', sprintGErr);
   }
 
   return {
@@ -8188,6 +8246,201 @@ async function handleRequest(req: Request): Promise<void> {
       case 'system_process_list': {
         if (!systemCommandGateway) { respond(id, []); break; }
         respond(id, systemCommandGateway.listProcesses());
+        break;
+      }
+
+      // ─── Sprint G: Multi-Account OAuth Handlers ───────────────────────────
+
+      case 'oauth_list_accounts': {
+        try {
+          const tokenMgr = ensureOAuthTokenManager();
+          respond(id, tokenMgr.listAllAccounts());
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'oauth_list_provider_accounts': {
+        try {
+          const olpaParams = params as { provider: string };
+          const tokenMgr = ensureOAuthTokenManager();
+          respond(id, tokenMgr.listAccounts(olpaParams.provider));
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'oauth_set_primary': {
+        try {
+          const ospParams = params as { account_id: string };
+          const tokenMgr = ensureOAuthTokenManager();
+          tokenMgr.setPrimary(ospParams.account_id);
+          respond(id, { success: true });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'oauth_remove_account': {
+        try {
+          const oraParams = params as { account_id: string };
+          const tokenMgr = ensureOAuthTokenManager();
+          tokenMgr.removeAccount(oraParams.account_id);
+          respond(id, { success: true });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'oauth_add_account': {
+        // Initiates OAuth flow for a new account — same as first-time flow
+        // The OAuth callback handler will call storeAccountTokens() with is_primary = false
+        try {
+          const oaaParams = params as { provider: string };
+          respond(id, { provider: oaaParams.provider, message: 'Initiate OAuth flow in browser for new account' });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      // ─── Sprint G: Channel Handlers ───────────────────────────────────────
+
+      case 'channel_whatsapp_get_qr': {
+        if (!whatsappAdapter) { respond(id, { qr: null }); break; }
+        respond(id, { qr: whatsappAdapter.getQRCode() });
+        break;
+      }
+
+      case 'channel_signal_check_install': {
+        // Check if signal-cli is on PATH and in binary allowlist
+        try {
+          const { execFileSync } = require('node:child_process');
+          const plat = require('node:os').platform();
+          const whichCmd = plat === 'win32' ? 'where' : 'which';
+          let signalCliPath: string | null = null;
+          try {
+            signalCliPath = execFileSync(whichCmd, ['signal-cli'], { encoding: 'utf-8', timeout: 5000 }).trim().split('\n')[0] ?? null;
+          } catch { /* not found */ }
+
+          const allowlisted = signalCliPath && binaryAllowlist ? binaryAllowlist.check(signalCliPath) === null : false;
+          respond(id, { installed: !!signalCliPath, path: signalCliPath, allowlisted });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'channel_slack_set_tokens': {
+        try {
+          const cstParams = params as { bot_token: string; app_token: string };
+          if (slackChannelAdapter) {
+            slackChannelAdapter.setTokens(cstParams.bot_token, cstParams.app_token);
+            respond(id, { success: true });
+          } else {
+            respondError(id, 'Slack channel adapter not initialized');
+          }
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      // ─── Sprint G: Skill Registry Handlers ────────────────────────────────
+
+      case 'skill_list': {
+        if (!skillRegistry) { respond(id, []); break; }
+        respond(id, skillRegistry.list());
+        break;
+      }
+
+      case 'skill_install': {
+        if (!skillRegistry) { respondError(id, 'SkillRegistry not initialized'); break; }
+        try {
+          const siParams = params as { declaration: SkillDeclaration; source_path: string; consented_capabilities?: SkillCapability[] };
+          const installResult = await skillRegistry.install(siParams.declaration, siParams.source_path, siParams.consented_capabilities);
+          respond(id, installResult);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'skill_uninstall': {
+        if (!skillRegistry) { respondError(id, 'SkillRegistry not initialized'); break; }
+        try {
+          const suParams = params as { skill_id: string };
+          await skillRegistry.uninstall(suParams.skill_id);
+          respond(id, { success: true });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'skill_enable': {
+        if (!skillRegistry) { respondError(id, 'SkillRegistry not initialized'); break; }
+        const seParams = params as { skill_id: string };
+        skillRegistry.enable(seParams.skill_id);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'skill_disable': {
+        if (!skillRegistry) { respondError(id, 'SkillRegistry not initialized'); break; }
+        const sdParams = params as { skill_id: string };
+        skillRegistry.disable(sdParams.skill_id);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'skill_get_declaration': {
+        if (!skillRegistry) { respond(id, null); break; }
+        const sgdParams = params as { skill_id: string };
+        const skill = skillRegistry.get(sgdParams.skill_id);
+        respond(id, skill?.declaration ?? null);
+        break;
+      }
+
+      case 'skill_list_capabilities': {
+        respond(id, CAPABILITY_DESCRIPTIONS);
+        break;
+      }
+
+      // ─── Sprint G: Sub-Agent Handlers ─────────────────────────────────────
+
+      case 'sub_agent_create': {
+        if (!subAgentCoordinator) { respondError(id, 'SubAgentCoordinator not initialized'); break; }
+        try {
+          const sacParams = params as { session_key: string; system_prompt_override?: string; allowed_tools: string[]; autonomy_overrides?: Record<string, string> };
+          const agentId = await subAgentCoordinator.createSubAgent({
+            sessionKey: sacParams.session_key,
+            systemPromptOverride: sacParams.system_prompt_override,
+            allowedTools: sacParams.allowed_tools,
+            autonomyOverrides: sacParams.autonomy_overrides,
+          });
+          respond(id, { agentId, sessionKey: sacParams.session_key });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sub_agent_list': {
+        if (!subAgentCoordinator) { respond(id, []); break; }
+        respond(id, subAgentCoordinator.listSubAgents());
+        break;
+      }
+
+      case 'sub_agent_terminate': {
+        if (!subAgentCoordinator) { respondError(id, 'SubAgentCoordinator not initialized'); break; }
+        const satParams = params as { session_key: string };
+        subAgentCoordinator.terminateSubAgent(satParams.session_key);
+        respond(id, { success: true });
         break;
       }
 
