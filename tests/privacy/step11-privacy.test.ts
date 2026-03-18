@@ -47,11 +47,9 @@ describe('Step 11 Privacy: Style files have no network imports', () => {
     expect(existsSync(STYLE_DIR)).toBe(true);
     const fileNames = styleFiles.map(f => relative(STYLE_DIR, f).replace(/\\/g, '/'));
     expect(fileNames).toContain('style-profile.ts');
-    expect(fileNames).toContain('style-extractor.ts');
-    expect(fileNames).toContain('style-injector.ts');
-    expect(fileNames).toContain('style-scorer.ts');
-    expect(fileNames).toContain('style-extraction-job.ts');
-    expect(fileNames).toContain('style-correction-processor.ts');
+    expect(fileNames).toContain('style-adapter.ts');
+    // Implementation files (style-injector, style-scorer, style-extractor, etc.)
+    // have been moved to @semblance/dr (private repo) as part of IP boundary separation.
   });
 
   it('no file in packages/core/style/ imports networking modules', () => {
@@ -152,23 +150,8 @@ describe('Step 11 Privacy: Style data never transits Gateway', () => {
   });
 });
 
-describe('Step 11 Privacy: Style scorer is pure heuristic (no LLM)', () => {
-  it('style-scorer.ts does not import LLMProvider', () => {
-    const scorerPath = join(STYLE_DIR, 'style-scorer.ts');
-    const content = readFileSync(scorerPath, 'utf-8');
-    expect(content).not.toContain('LLMProvider');
-    expect(content).not.toContain('llm');
-    expect(content).not.toContain('chat(');
-  });
-
-  it('style-scorer.ts has no async functions', () => {
-    const scorerPath = join(STYLE_DIR, 'style-scorer.ts');
-    const content = readFileSync(scorerPath, 'utf-8');
-    expect(content).not.toContain('async ');
-    expect(content).not.toContain('Promise');
-    expect(content).not.toContain('await ');
-  });
-});
+// Style scorer implementation tests moved to @semblance/dr (private repo) as part of IP boundary separation.
+// The StyleAdapter interface in style-adapter.ts guarantees the contract without exposing implementation.
 
 describe('Step 11 Privacy: Full privacy audit still passes', () => {
   it('privacy audit exits clean', () => {

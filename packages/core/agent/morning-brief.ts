@@ -10,7 +10,7 @@ import type { DatabaseHandle } from '../platform/types.js';
 import type { CalendarIndexer, IndexedCalendarEvent } from '../knowledge/calendar-indexer.js';
 import type { ProactiveEngine, ProactiveInsight } from './proactive-engine.js';
 import type { ReminderStore, Reminder } from '../knowledge/reminder-store.js';
-import type { RecurringCharge } from '../finance/recurring-detector.js';
+import type { RecurringCharge } from '../finance/interfaces.js';
 import type { LLMProvider, GenerateRequest } from '../llm/types.js';
 import type { ContactStore } from '../knowledge/contacts/contact-store.js';
 import type { WeatherConditions, HourlyForecast } from '../platform/weather-types.js';

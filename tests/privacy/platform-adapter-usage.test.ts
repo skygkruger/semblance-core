@@ -140,68 +140,7 @@ describe('model-storage.ts via PlatformAdapter', () => {
   });
 });
 
-describe('statement-parser.ts via PlatformAdapter', () => {
-  let testDir: string;
-
-  beforeEach(() => {
-    resetPlatform();
-    initDesktopPlatform();
-    testDir = join(tmpdir(), `semblance-test-${nanoid(8)}`);
-    mkdirSync(testDir, { recursive: true });
-  });
-
-  afterEach(() => {
-    resetPlatform();
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
-
-  it('parseStatement reads CSV via PlatformAdapter', async () => {
-    const { StatementParser } = await import('../../packages/core/finance/statement-parser.js');
-
-    const csvPath = join(testDir, 'test.csv');
-    writeFileSync(csvPath, 'Date,Amount,Description\n2026-01-15,-9.99,Netflix\n2026-01-16,-14.99,Spotify\n');
-
-    const parser = new StatementParser();
-    const result = await parser.parseStatement(csvPath);
-
-    expect(result.transactions).toHaveLength(2);
-    expect(result.transactions[0]!.description).toBe('Netflix');
-    expect(result.import.fileFormat).toBe('csv');
-  });
-
-  it('parseStatement reads OFX via PlatformAdapter', async () => {
-    const { StatementParser } = await import('../../packages/core/finance/statement-parser.js');
-
-    const ofxContent = `
-<OFX>
-<BANKMSGSRSV1>
-<STMTTRNRS>
-<STMTRS>
-<BANKTRANLIST>
-<STMTTRN>
-<DTPOSTED>20260115
-<TRNAMT>-9.99
-<NAME>NETFLIX
-</STMTTRN>
-</BANKTRANLIST>
-</STMTRS>
-</STMTTRNRS>
-</BANKMSGSRSV1>
-</OFX>`;
-
-    const ofxPath = join(testDir, 'test.ofx');
-    writeFileSync(ofxPath, ofxContent);
-
-    const parser = new StatementParser();
-    const result = await parser.parseStatement(ofxPath);
-
-    expect(result.transactions).toHaveLength(1);
-    expect(result.transactions[0]!.description).toContain('NETFLIX');
-    expect(result.import.fileFormat).toBe('ofx');
-  });
-});
+// StatementParser tests moved to @semblance/dr (private repo) as part of IP boundary separation.
 
 describe('file-scanner.ts via PlatformAdapter', () => {
   let testDir: string;
