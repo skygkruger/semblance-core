@@ -126,7 +126,7 @@ export class BinaryAllowlist {
    * Returns null if allowed, reason string if blocked.
    */
   check(binaryPath: string): string | null {
-    const name = basename(binaryPath).toLowerCase();
+    const name = binaryPath.split(/[/\\]/).pop()!.toLowerCase();
 
     // Layer 1: Permanent block list — always rejected
     if (BLOCK_SET.has(name)) {
@@ -154,7 +154,7 @@ export class BinaryAllowlist {
       }
       // Allow if the resolved binary name matches but path differs (e.g., symlinks)
       // but log the discrepancy
-      const requestedName = basename(binaryPath).toLowerCase();
+      const requestedName = binaryPath.split(/[/\\]/).pop()!.toLowerCase();
       if (requestedName !== name) {
         return `path substitution detected: expected '${row.binary_path}', got '${binaryPath}'`;
       }
@@ -173,7 +173,8 @@ export class BinaryAllowlist {
     maxExecutionSeconds?: number;
     allowStdin?: boolean;
   }): AllowedBinary {
-    const name = basename(params.binaryPath).toLowerCase();
+    // Handle both / and \ separators regardless of platform (Windows paths on Linux CI)
+    const name = params.binaryPath.split(/[/\\]/).pop()!.toLowerCase();
 
     if (BLOCK_SET.has(name)) {
       throw new Error(`Cannot add '${name}' to allowlist: it is on the permanent block list`);
