@@ -32,6 +32,9 @@ import {
   getStandardModels,
   downloadStandardModel,
   activateStandardModel,
+  prefResetAll,
+  prefClearSession,
+  prefDelete,
 } from '../ipc/commands';
 import type { NotificationSettings, BitNetModelIPC } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
@@ -447,10 +450,8 @@ export function SettingsScreen() {
                 request: { method: 'clear_all_data', params: {} },
               }).catch(() => {});
             }).catch(() => {});
-            // Clear localStorage
-            Object.keys(localStorage).forEach((key) => {
-              if (key.startsWith('semblance.')) localStorage.removeItem(key);
-            });
+            // Clear all preferences in SQLite
+            prefResetAll().catch(() => {});
             showToast('All data deleted. Please restart Semblance.');
           }}
           onResetSemblance={() => {
@@ -474,8 +475,8 @@ export function SettingsScreen() {
                 request: { method: 'clear_knowledge_data', params: {} },
               }).catch(() => {});
             }).catch(() => {});
-            // Clear ALL localStorage (not just semblance. prefix)
-            localStorage.clear();
+            // Clear ALL preferences in SQLite
+            prefResetAll().catch(() => {});
             // Reset license state in app
             dispatch({
               type: 'SET_LICENSE',
@@ -512,9 +513,8 @@ export function SettingsScreen() {
               'Sign out of this session? Your license key will remain stored in the OS keychain for easy re-activation.'
             );
             if (!confirmed) return;
-            // Clear session-specific state from localStorage
-            const sessionKeys = ['semblance.session', 'semblance.lastSync', 'semblance.activeConversation'];
-            sessionKeys.forEach((key) => localStorage.removeItem(key));
+            // Clear session-specific state from SQLite prefs
+            prefClearSession().catch(() => {});
             // Reset app state license to free tier (keychain retains the key)
             dispatch({
               type: 'SET_LICENSE',
@@ -527,10 +527,10 @@ export function SettingsScreen() {
               'Deactivate your license? Premium features (Digital Representative, Morning Brief, Visual Knowledge Graph, etc.) will be disabled immediately. You can re-activate later with your license key.'
             );
             if (!confirmed) return;
-            // Clear license from localStorage
-            Object.keys(localStorage).forEach((key) => {
-              if (key.startsWith('semblance.license')) localStorage.removeItem(key);
-            });
+            // Clear license from SQLite prefs
+            prefDelete('semblance.license.key').catch(() => {});
+            prefDelete('semblance.license.tier').catch(() => {});
+            prefDelete('semblance.license.activated').catch(() => {});
             // Reset license state in app
             dispatch({
               type: 'SET_LICENSE',

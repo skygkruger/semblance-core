@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getDarkPatternFlags, getFinancialDashboard } from '../ipc/commands';
+import { getDarkPatternFlags, getFinancialDashboard, prefGet } from '../ipc/commands';
 import './AdversarialDashboardScreen.css';
 
 interface DarkPatternAlert {
@@ -33,24 +33,24 @@ interface OptOutStatus {
 
 const STORAGE_KEY_OPT_OUT = 'semblance.adversarial.opt_out_status';
 
-function loadOptOutStatus(): OptOutStatus {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_OPT_OUT);
-    if (raw) return JSON.parse(raw) as OptOutStatus;
-  } catch { /* ignore */ }
-  return { totalOptOuts: 0, pendingOptOuts: 0, successRate: 0 };
-}
+const DEFAULT_OPT_OUT: OptOutStatus = { totalOptOuts: 0, pendingOptOuts: 0, successRate: 0 };
 
 export function AdversarialDashboardScreen() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<DarkPatternAlert[]>([]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionAssessment[]>([]);
-  const [optOutStatus] = useState<OptOutStatus>(loadOptOutStatus);
+  const [optOutStatus, setOptOutStatus] = useState<OptOutStatus>(DEFAULT_OPT_OUT);
 
   useEffect(() => {
     async function loadData() {
       try {
+        // Load opt-out status from SQLite prefs
+        try {
+          const raw = await prefGet(STORAGE_KEY_OPT_OUT);
+          if (raw) setOptOutStatus(JSON.parse(raw) as OptOutStatus);
+        } catch { /* ignore */ }
+
         // Load dark pattern flags from IPC
         const flags = await getDarkPatternFlags().catch((err) => {
           console.error('[AdversarialDashboard] Failed to load dark pattern flags:', err);

@@ -4814,6 +4814,43 @@ async function handleRequest(req: Request): Promise<void> {
         respond(id, result);
         break;
 
+      // ─── Generic Preference Handlers ──────────────────────────────────
+      case 'pref_get': {
+        const prefKey = (params as { key: string }).key;
+        respond(id, { value: getPref(prefKey) });
+        break;
+      }
+      case 'pref_set': {
+        const prefParams = params as { key: string; value: string };
+        setPref(prefParams.key, prefParams.value);
+        respond(id, { success: true });
+        break;
+      }
+      case 'pref_delete': {
+        const delKey = (params as { key: string }).key;
+        if (prefsDb) {
+          prefsDb.prepare('DELETE FROM preferences WHERE key = ?').run(delKey);
+        }
+        respond(id, { success: true });
+        break;
+      }
+      case 'pref_clear_session': {
+        // Clear all preferences with keys starting with 'session.'
+        if (prefsDb) {
+          prefsDb.prepare("DELETE FROM preferences WHERE key LIKE 'session.%'").run();
+        }
+        respond(id, { success: true });
+        break;
+      }
+      case 'pref_reset_all': {
+        // Clear all UI preferences (preserves onboarding, autonomy, and user identity)
+        if (prefsDb) {
+          prefsDb.prepare("DELETE FROM preferences WHERE key NOT IN ('onboarding_complete', 'user_name', 'ai_name', 'autonomy_config')").run();
+        }
+        respond(id, { success: true });
+        break;
+      }
+
       case 'set_autonomy_tier':
         result = handleSetAutonomyTier(params as { domain: string; tier: string });
         respond(id, result);
@@ -7744,6 +7781,68 @@ async function handleRequest(req: Request): Promise<void> {
       case 'tunnel_sync_status': {
         if (!tunnelKGSync) { respond(id, { lastSyncAt: null, deltasSent: 0, deltasReceived: 0, nextSyncAt: null }); break; }
         respond(id, tunnelKGSync.getSyncStatus());
+        break;
+      }
+
+      // ─── Semblance Network: Peer Sharing ─────────────────────────────────
+
+      case 'network_peers_list': {
+        if (!tunnelPairingCoordinator) { respond(id, []); break; }
+        try {
+          const allDevices = await tunnelPairingCoordinator.listPairedDevices();
+          // Filter to peer connections (type='peer'), not own devices
+          const peers = allDevices.filter((d: { type?: string }) => d.type === 'peer');
+          respond(id, peers);
+        } catch { respond(id, []); }
+        break;
+      }
+
+      case 'network_peer_connect': {
+        if (!tunnelPairingCoordinator) { respondError(id, 'Pairing coordinator not initialized'); break; }
+        try {
+          const connectParams = params as { code: string };
+          const result = await tunnelPairingCoordinator.verifyPairingCode(connectParams.code);
+          respond(id, result);
+        } catch (err) { respondError(id, (err as Error).message); }
+        break;
+      }
+
+      case 'network_peer_disconnect': {
+        if (!tunnelPairingCoordinator) { respondError(id, 'Pairing coordinator not initialized'); break; }
+        try {
+          const dcParams = params as { peerId: string };
+          await tunnelPairingCoordinator.unpairDevice(dcParams.peerId);
+          respond(id, { success: true });
+        } catch (err) { respondError(id, (err as Error).message); }
+        break;
+      }
+
+      case 'network_peer_sharing_config': {
+        // Get or set sharing preferences for a specific peer
+        const scParams = params as { peerId?: string; config?: Record<string, boolean> };
+        if (scParams.config && scParams.peerId) {
+          setPref(`peer_sharing.${scParams.peerId}`, JSON.stringify(scParams.config));
+          respond(id, { success: true });
+        } else if (scParams.peerId) {
+          const raw = getPref(`peer_sharing.${scParams.peerId}`);
+          respond(id, raw ? JSON.parse(raw) : {
+            calendarAvailability: false,
+            communicationStyle: false,
+            projectContext: false,
+            topicExpertise: false,
+          });
+        } else {
+          respond(id, { calendarAvailability: false, communicationStyle: false, projectContext: false, topicExpertise: false });
+        }
+        break;
+      }
+
+      case 'network_generate_connect_code': {
+        if (!tunnelPairingCoordinator) { respondError(id, 'Pairing coordinator not initialized'); break; }
+        try {
+          const code = await tunnelPairingCoordinator.generatePairingCode();
+          respond(id, { code });
+        } catch (err) { respondError(id, (err as Error).message); }
         break;
       }
 

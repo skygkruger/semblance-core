@@ -36,6 +36,7 @@ import { BackupScreen } from './screens/BackupScreen';
 import { VoiceSettingsScreen } from './screens/VoiceSettingsScreen';
 import { LocationSettingsScreen } from './screens/LocationSettingsScreen';
 import { CloudStorageSettingsScreen } from './screens/CloudStorageSettingsScreen';
+import { SemblanceNetworkScreen } from './screens/SemblanceNetworkScreen';
 import { CanvasPanel } from './components/CanvasPanel';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
@@ -510,7 +511,7 @@ function AppContent() {
           <Route path="/tunnel-pairing" element={<TunnelPairingPlaceholder />} />
           <Route path="/alter-ego-week" element={<AlterEgoWeekPlaceholder />} />
           <Route path="/import" element={<ImportPlaceholder />} />
-          <Route path="/semblance-network" element={<SemblanceNetworkPlaceholder />} />
+          <Route path="/semblance-network" element={<SemblanceNetworkScreen />} />
           <Route
             path="/upgrade"
             element={
@@ -567,10 +568,6 @@ function AlterEgoWeekPlaceholder() {
 function ImportPlaceholder() {
   return <PlaceholderScreen title="Import Everything" description="Import your browser history, notes, photos, and messaging archives into your local knowledge graph." />;
 }
-function SemblanceNetworkPlaceholder() {
-  return <PlaceholderScreen title="Semblance Network" description="Consent-first, granular, revocable peer-to-peer sharing with other Semblance users." />;
-}
-
 export function App() {
   return (
     <AppStateProvider>
