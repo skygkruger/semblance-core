@@ -124,6 +124,7 @@ const DYNAMIC_IMPORT_NAME = 'import() with non-literal argument — could load a
 // non-literal import() in packages/core/.
 const DYNAMIC_IMPORT_ALLOWED_FILES = [
   'extensions/loader.ts',
+  'skills/skill-registry.ts',  // Skill registry uses dynamic import to load installed skills
 ];
 
 // String concatenation patterns that assemble forbidden library names.
