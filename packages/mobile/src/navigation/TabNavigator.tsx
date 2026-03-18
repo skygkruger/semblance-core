@@ -75,6 +75,13 @@ import { DigestScreen } from '../screens/DigestScreen.js';
 import { NetworkMonitorScreen } from '../screens/NetworkMonitorScreen.js';
 import { RelationshipsScreen } from '../screens/RelationshipsScreen.js';
 import { SovereigntyReportScreen } from '../screens/SovereigntyReportScreen.js';
+// Sprint UI additions
+import { TunnelPairingScreen as TunnelPairingScreenMobile } from '../screens/TunnelPairingScreen.js';
+import { ChannelsScreen as ChannelsScreenMobile } from '../screens/ChannelsScreen.js';
+import { SessionsScreen as SessionsScreenMobile } from '../screens/SessionsScreen.js';
+import { LearnedPreferencesScreen as LearnedPreferencesScreenMobile } from '../screens/LearnedPreferencesScreen.js';
+import { SkillsScreen as SkillsScreenMobile } from '../screens/SkillsScreen.js';
+import { BinaryAllowlistScreen as BinaryAllowlistScreenMobile } from '../screens/BinaryAllowlistScreen.js';
 import { fetchKnowledgeGraph } from '../data/knowledge-graph-adapter.js';
 import type { KnowledgeGraphData } from '../data/knowledge-graph-adapter.js';
 
@@ -1397,6 +1404,12 @@ function SettingsTabStack() {
       <SettingsNavStack.Screen name="NetworkMonitor" component={NetworkMonitorScreen} />
       <SettingsNavStack.Screen name="Relationships" component={RelationshipsScreen} />
       <SettingsNavStack.Screen name="SovereigntyReport" component={SovereigntyReportScreen} />
+      <SettingsNavStack.Screen name="TunnelPairing" component={TunnelPairingScreenMobile} />
+      <SettingsNavStack.Screen name="Channels" component={ChannelsScreenMobile} />
+      <SettingsNavStack.Screen name="Sessions" component={SessionsScreenMobile} />
+      <SettingsNavStack.Screen name="LearnedPreferences" component={LearnedPreferencesScreenMobile} />
+      <SettingsNavStack.Screen name="Skills" component={SkillsScreenMobile} />
+      <SettingsNavStack.Screen name="BinaryAllowlist" component={BinaryAllowlistScreenMobile} />
     </SettingsNavStack.Navigator>
   );
 }

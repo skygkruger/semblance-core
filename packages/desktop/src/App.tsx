@@ -36,6 +36,7 @@ import { BackupScreen } from './screens/BackupScreen';
 import { VoiceSettingsScreen } from './screens/VoiceSettingsScreen';
 import { LocationSettingsScreen } from './screens/LocationSettingsScreen';
 import { CloudStorageSettingsScreen } from './screens/CloudStorageSettingsScreen';
+import { CanvasPanel } from './components/CanvasPanel';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
 import { UpgradeScreen as UpgradeScreenComponent, UpgradeEmailCapture } from '@semblance/ui';
@@ -169,6 +170,29 @@ function HeartIcon() {
     </svg>
   );
 }
+function ShieldAlertIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r="1" />
+    </svg>
+  );
+}
+function SparkleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+    </svg>
+  );
+}
+function DownloadIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
 
 const navSections: NavSection[] = [
   {
@@ -186,6 +210,7 @@ const navSections: NavSection[] = [
       { id: 'inbox', label: 'Inbox', icon: <InboxIcon /> },
       { id: 'relationships', label: 'Contacts', icon: <ContactsIcon /> },
       { id: 'connections', label: 'Connections', icon: <PlugIcon /> },
+      { id: 'import', label: 'Import', icon: <DownloadIcon /> },
     ],
   },
   {
@@ -194,6 +219,7 @@ const navSections: NavSection[] = [
       { id: 'finance', label: 'Finance', icon: <DollarIcon /> },
       { id: 'health', label: 'Health', icon: <HeartIcon /> },
       { id: 'digest', label: 'Digest', icon: <DigestIcon /> },
+      { id: 'alter-ego-week', label: 'Alter Ego Week', icon: <SparkleIcon /> },
     ],
   },
   {
@@ -203,6 +229,7 @@ const navSections: NavSection[] = [
       { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
       { id: 'sovereignty-report', label: 'Sovereignty', icon: <ScrollIcon /> },
       { id: 'network', label: 'Network', icon: <NetworkIcon /> },
+      { id: 'adversarial', label: 'Adversarial', icon: <ShieldAlertIcon /> },
     ],
   },
 ];
@@ -480,6 +507,10 @@ function AppContent() {
           <Route path="/settings/voice" element={<VoiceSettingsScreen />} />
           <Route path="/settings/location" element={<LocationSettingsScreen />} />
           <Route path="/settings/cloud-storage" element={<CloudStorageSettingsScreen />} />
+          <Route path="/tunnel-pairing" element={<TunnelPairingPlaceholder />} />
+          <Route path="/alter-ego-week" element={<AlterEgoWeekPlaceholder />} />
+          <Route path="/import" element={<ImportPlaceholder />} />
+          <Route path="/semblance-network" element={<SemblanceNetworkPlaceholder />} />
           <Route
             path="/upgrade"
             element={
@@ -509,9 +540,35 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/chat" replace />} />
         </Routes>
       </main>
+      <CanvasPanel />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
+}
+
+// Placeholder screens for new routes (real implementations in future sprints)
+function PlaceholderScreen({ title, description }: { title: string; description: string }) {
+  return (
+    <div style={{ padding: 32, maxWidth: 480, margin: '0 auto' }}>
+      <h1 style={{ fontFamily: 'var(--fd, Fraunces, serif)', fontSize: 21, fontWeight: 300, color: '#EEF1F4', marginBottom: 8 }}>{title}</h1>
+      <div style={{ background: '#111518', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, padding: 24 }}>
+        <p style={{ fontFamily: 'var(--fb, "DM Sans", sans-serif)', fontSize: 14, color: '#A8B4C0', margin: 0, lineHeight: 1.5 }}>{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function TunnelPairingPlaceholder() {
+  return <PlaceholderScreen title="Compute Mesh" description="Pair your devices to enable remote inference and knowledge graph sync over encrypted WireGuard tunnels." />;
+}
+function AlterEgoWeekPlaceholder() {
+  return <PlaceholderScreen title="Alter Ego Week" description="A 7-day trust-building sequence that demonstrates Semblance's autonomous capabilities. Coming soon." />;
+}
+function ImportPlaceholder() {
+  return <PlaceholderScreen title="Import Everything" description="Import your browser history, notes, photos, and messaging archives into your local knowledge graph." />;
+}
+function SemblanceNetworkPlaceholder() {
+  return <PlaceholderScreen title="Semblance Network" description="Consent-first, granular, revocable peer-to-peer sharing with other Semblance users." />;
 }
 
 export function App() {

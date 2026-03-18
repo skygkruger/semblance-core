@@ -79,6 +79,13 @@ export type SettingsStackParamList = {
   NetworkMonitor: undefined;
   Relationships: undefined;
   SovereigntyReport: undefined;
+  // Sprint G additions
+  TunnelPairing: undefined;
+  Channels: undefined;
+  Sessions: undefined;
+  LearnedPreferences: undefined;
+  Skills: undefined;
+  BinaryAllowlist: undefined;
 };
 
 /** Root stack navigator param list */

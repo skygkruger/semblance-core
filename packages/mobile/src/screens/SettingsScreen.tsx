@@ -327,6 +327,51 @@ export function SettingsScreen() {
         ],
       },
       {
+        title: 'Compute Mesh',
+        items: [
+          {
+            id: 'tunnel-pairing',
+            label: 'Device Pairing',
+            type: 'navigate' as const,
+            description: 'Pair devices for remote inference and sync',
+            onPress: () => navigation.navigate('TunnelPairing'),
+          },
+        ],
+      },
+      {
+        title: 'Intelligence',
+        items: [
+          {
+            id: 'channels',
+            label: 'Messaging Channels',
+            type: 'navigate' as const,
+            description: 'iMessage, Telegram, Signal, Slack, WhatsApp',
+            onPress: () => navigation.navigate('Channels'),
+          },
+          {
+            id: 'sessions',
+            label: 'Named Sessions',
+            type: 'navigate' as const,
+            description: 'Manage persistent conversation contexts',
+            onPress: () => navigation.navigate('Sessions'),
+          },
+          {
+            id: 'preferences',
+            label: 'Learned Preferences',
+            type: 'navigate' as const,
+            description: 'Review and confirm detected behavior patterns',
+            onPress: () => navigation.navigate('LearnedPreferences'),
+          },
+          {
+            id: 'skills',
+            label: 'Skills',
+            type: 'navigate' as const,
+            description: 'Install and manage third-party skill packages',
+            onPress: () => navigation.navigate('Skills'),
+          },
+        ],
+      },
+      {
         title: t('screen.settings.section_about'),
         items: [
           {
