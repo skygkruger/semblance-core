@@ -95,6 +95,22 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'insight.conflict': 180,       // Calendar conflict detection
   'escalation.prompt': 0,        // Autonomy escalation prompt — informational
   'health.entry': 30,            // Health metric entry
+  // System / Hardware Bridge (Sprint F)
+  'system.execute': 120,          // Automated binary execution
+  'system.hardware_stat': 0,      // Hardware read — informational
+  'system.app_launch': 5,         // Launch an application
+  'system.app_list': 0,           // List running apps — informational
+  'system.file_watch': 0,         // Start file watch — informational
+  'system.file_watch_stop': 0,    // Stop file watch — informational
+  'system.clipboard_read': 5,     // Read clipboard
+  'system.clipboard_write': 10,   // Write to clipboard
+  'system.notification': 5,       // Send notification
+  'system.accessibility_read': 30, // Read accessibility tree
+  'system.keypress': 10,          // Synthesize key input
+  'system.shortcut_run': 60,      // Run macOS Shortcut
+  'system.process_kill': 5,       // Kill process
+  'system.process_signal': 5,     // Signal process
+  'system.process_list': 0,       // List processes — informational
 };
 
 /**

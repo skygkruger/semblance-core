@@ -3,7 +3,7 @@
 // CRITICAL: No network calls. Local hardware inspection only.
 
 use serde::{Deserialize, Serialize};
-use sysinfo::System;
+use sysinfo::{Components, Disks, System};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -183,6 +183,142 @@ fn detect_gpu() -> Option<GpuInfo> {
     }
 
     None
+}
+
+// ─── Live Hardware Stats (Sprint F) ────────────────────────────────────────────
+// Real-time hardware monitoring via native OS APIs.
+// No shell commands. Uses sysinfo crate directly.
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DiskStat {
+    pub mount_point: String,
+    pub total_gb: f64,
+    pub available_gb: f64,
+    pub used_percent: f32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveHardwareStats {
+    pub cpu_usage_percent: f32,
+    pub memory_used_mb: u64,
+    pub memory_total_mb: u64,
+    pub memory_available_mb: u64,
+    pub disk_stats: Vec<DiskStat>,
+    pub cpu_temp_celsius: Option<f32>,
+    pub gpu_temp_celsius: Option<f32>,
+    pub gpu_usage_percent: Option<f32>,
+    pub sampled_at: String,
+}
+
+/// Get live hardware stats — CPU usage, memory, disk, temperature.
+/// All detection is local — no network calls, no shell commands.
+pub fn get_live_stats() -> LiveHardwareStats {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    // CPU usage (global average)
+    // Need a short sleep for accurate CPU measurement
+    std::thread::sleep(std::time::Duration::from_millis(200));
+    sys.refresh_cpu_all();
+    let cpu_usage_percent = sys.global_cpu_usage();
+
+    // Memory
+    let memory_total_mb = sys.total_memory() / (1024 * 1024);
+    let memory_available_mb = sys.available_memory() / (1024 * 1024);
+    let memory_used_mb = sys.used_memory() / (1024 * 1024);
+
+    // Disks
+    let disks = Disks::new_with_refreshed_list();
+    let disk_stats: Vec<DiskStat> = disks
+        .iter()
+        .map(|d| {
+            let total_bytes = d.total_space();
+            let available_bytes = d.available_space();
+            let total_gb = total_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
+            let available_gb = available_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
+            let used_percent = if total_bytes > 0 {
+                ((total_bytes - available_bytes) as f32 / total_bytes as f32) * 100.0
+            } else {
+                0.0
+            };
+            DiskStat {
+                mount_point: d.mount_point().to_string_lossy().to_string(),
+                total_gb: (total_gb * 100.0).round() / 100.0,
+                available_gb: (available_gb * 100.0).round() / 100.0,
+                used_percent: (used_percent * 10.0).round() / 10.0,
+            }
+        })
+        .collect();
+
+    // CPU temperature — from sysinfo components
+    let components = Components::new_with_refreshed_list();
+    let cpu_temp_celsius = components
+        .iter()
+        .find(|c| {
+            let label = c.label().to_lowercase();
+            label.contains("cpu") || label.contains("core") || label.contains("package")
+        })
+        .map(|c| c.temperature());
+
+    // GPU temperature — best-effort from components
+    let gpu_temp_celsius = components
+        .iter()
+        .find(|c| {
+            let label = c.label().to_lowercase();
+            label.contains("gpu") || label.contains("radeon") || label.contains("geforce")
+        })
+        .map(|c| c.temperature());
+
+    let sampled_at = chrono_iso_now();
+
+    LiveHardwareStats {
+        cpu_usage_percent,
+        memory_used_mb,
+        memory_total_mb,
+        memory_available_mb,
+        disk_stats,
+        cpu_temp_celsius,
+        gpu_temp_celsius,
+        gpu_usage_percent: None, // Future: platform-specific GPU utilization
+        sampled_at,
+    }
+}
+
+/// ISO 8601 timestamp without chrono dependency
+fn chrono_iso_now() -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default();
+    let secs = now.as_secs();
+    // Simple UTC format
+    let days = secs / 86400;
+    let time_of_day = secs % 86400;
+    let hours = time_of_day / 3600;
+    let minutes = (time_of_day % 3600) / 60;
+    let seconds = time_of_day % 60;
+
+    // Approximate date calculation (good enough for timestamps)
+    let mut year = 1970u64;
+    let mut remaining_days = days;
+    loop {
+        let days_in_year = if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) { 366 } else { 365 };
+        if remaining_days < days_in_year { break; }
+        remaining_days -= days_in_year;
+        year += 1;
+    }
+    let is_leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let month_days: [u64; 12] = [31, if is_leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let mut month = 0u64;
+    for (i, &md) in month_days.iter().enumerate() {
+        if remaining_days < md { month = i as u64 + 1; break; }
+        remaining_days -= md;
+    }
+    if month == 0 { month = 12; }
+    let day = remaining_days + 1;
+
+    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", year, month, day, hours, minutes, seconds)
 }
 
 #[cfg(test)]

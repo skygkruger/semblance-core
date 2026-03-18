@@ -1462,6 +1462,13 @@ async fn detect_hardware() -> Result<hardware::HardwareProfile, String> {
     Ok(hardware::detect_hardware())
 }
 
+/// Get live hardware stats — CPU usage, memory, disk, temperature.
+/// Uses native OS APIs via sysinfo crate. No shell commands.
+#[tauri::command]
+async fn get_live_hardware_stats() -> Result<hardware::LiveHardwareStats, String> {
+    Ok(hardware::get_live_stats())
+}
+
 // ─── Founding Member Activation (Deep Link) ─────────────────────────────────
 
 /// Activate a founding member token via the sidecar bridge.
@@ -2833,6 +2840,7 @@ pub fn run() {
             assess_task,
             // Hardware & Runtime (Step 9)
             detect_hardware,
+            get_live_hardware_stats,
             // Founding Member Activation
             activate_founding_token,
             activate_license_key,

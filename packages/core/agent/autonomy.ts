@@ -95,6 +95,22 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'insight.conflict': 'calendar',
   'escalation.prompt': 'system',
   'health.entry': 'health',
+  // System / Hardware Bridge (Sprint F)
+  'system.execute': 'system',
+  'system.hardware_stat': 'system',
+  'system.app_launch': 'system',
+  'system.app_list': 'system',
+  'system.file_watch': 'system',
+  'system.file_watch_stop': 'system',
+  'system.clipboard_read': 'clipboard',
+  'system.clipboard_write': 'clipboard',
+  'system.notification': 'system',
+  'system.accessibility_read': 'system',
+  'system.keypress': 'system',
+  'system.shortcut_run': 'system',
+  'system.process_kill': 'system',
+  'system.process_signal': 'system',
+  'system.process_list': 'system',
 };
 
 // Actions classified as read (safe), write (moderate), or execute (high-stakes)
@@ -176,6 +192,22 @@ export const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'insight.conflict': 'read',
   'escalation.prompt': 'write',
   'health.entry': 'write',
+  // System / Hardware Bridge (Sprint F)
+  'system.execute': 'execute',
+  'system.hardware_stat': 'read',
+  'system.app_launch': 'write',
+  'system.app_list': 'read',
+  'system.file_watch': 'read',
+  'system.file_watch_stop': 'read',
+  'system.clipboard_read': 'read',
+  'system.clipboard_write': 'write',
+  'system.notification': 'write',
+  'system.accessibility_read': 'read',
+  'system.keypress': 'execute',
+  'system.shortcut_run': 'execute',
+  'system.process_kill': 'execute',
+  'system.process_signal': 'execute',
+  'system.process_list': 'read',
 };
 
 export type AutonomyDecision = 'auto_approve' | 'requires_approval' | 'blocked';
