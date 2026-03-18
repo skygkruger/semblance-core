@@ -1,0 +1,318 @@
+{
+  "allFeatures": [
+    {
+      "name": "CHAT",
+      "pass": 4,
+      "warn": 1,
+      "fail": 0,
+      "total": 5,
+      "tests": [
+        {
+          "testName": "Engine available",
+          "status": "PASS",
+          "detail": "ollama"
+        },
+        {
+          "testName": "Active model",
+          "status": "PASS",
+          "detail": "llama3.1:8b"
+        },
+        {
+          "testName": "get_model_status handler",
+          "status": "PASS",
+          "detail": "engine=ollama"
+        },
+        {
+          "testName": "send_message",
+          "status": "PASS",
+          "detail": "responseId=msg_1773704903222"
+        },
+        {
+          "testName": "Inference completes",
+          "status": "WARN",
+          "detail": "No completion event in 90s"
+        }
+      ]
+    },
+    {
+      "name": "PERSIST",
+      "pass": 1,
+      "warn": 1,
+      "fail": 2,
+      "total": 4,
+      "tests": [
+        {
+          "testName": "get_onboarding_complete",
+          "status": "PASS",
+          "detail": "complete={\"complete\":true}"
+        },
+        {
+          "testName": "get_pref handler",
+          "status": "FAIL",
+          "detail": "Unknown method: get_pref"
+        },
+        {
+          "testName": "set_pref write",
+          "status": "FAIL",
+          "detail": "Unknown method: set_pref"
+        },
+        {
+          "testName": "user_name pref",
+          "status": "WARN",
+          "detail": "Unknown method: get_pref"
+        }
+      ]
+    },
+    {
+      "name": "CONNECT",
+      "pass": 3,
+      "warn": 1,
+      "fail": 0,
+      "total": 4,
+      "tests": [
+        {
+          "testName": "get_connected_services",
+          "status": "PASS",
+          "detail": "2 services connected"
+        },
+        {
+          "testName": "Connected services",
+          "status": "PASS",
+          "detail": "gmail, google-drive"
+        },
+        {
+          "testName": "OAuth .env config",
+          "status": "PASS",
+          "detail": "google-drive config resolves"
+        },
+        {
+          "testName": "list_available_connectors",
+          "status": "WARN",
+          "detail": "Unknown method: list_available_connectors"
+        }
+      ]
+    },
+    {
+      "name": "GRAPH",
+      "pass": 3,
+      "warn": 0,
+      "fail": 0,
+      "total": 3,
+      "tests": [
+        {
+          "testName": "No null crash",
+          "status": "PASS",
+          "detail": "8 nodes returned"
+        },
+        {
+          "testName": "Response shape",
+          "status": "PASS",
+          "detail": "has nodes/edges"
+        },
+        {
+          "testName": "Nodes have categories",
+          "status": "PASS",
+          "detail": "category labels present"
+        }
+      ]
+    },
+    {
+      "name": "FILES",
+      "pass": 1,
+      "warn": 1,
+      "fail": 1,
+      "total": 3,
+      "tests": [
+        {
+          "testName": "camelCase keys",
+          "status": "PASS",
+          "detail": "docs=9, chunks=62"
+        },
+        {
+          "testName": "search_files handler",
+          "status": "FAIL",
+          "detail": "Unknown method: search_files"
+        },
+        {
+          "testName": "list_indexed_directories",
+          "status": "WARN",
+          "detail": "Unknown method: list_indexed_directories"
+        }
+      ]
+    },
+    {
+      "name": "EMAIL",
+      "pass": 1,
+      "warn": 3,
+      "fail": 1,
+      "total": 5,
+      "tests": [
+        {
+          "testName": "get_inbox_items",
+          "status": "WARN",
+          "detail": "0 emails — connect Gmail/Outlook and sync to populate"
+        },
+        {
+          "testName": "Email data shape",
+          "status": "WARN",
+          "detail": "Skipped — no emails to inspect"
+        },
+        {
+          "testName": "search_emails handler",
+          "status": "FAIL",
+          "detail": "Unknown method: search_emails"
+        },
+        {
+          "testName": "draft_email handler",
+          "status": "WARN",
+          "detail": "Unknown method: draft_email_action"
+        },
+        {
+          "testName": "get_actions_summary",
+          "status": "PASS",
+          "detail": "today=0, timeSaved=0s"
+        }
+      ]
+    },
+    {
+      "name": "CAL",
+      "pass": 1,
+      "warn": 1,
+      "fail": 0,
+      "total": 2,
+      "tests": [
+        {
+          "testName": "get_today_events",
+          "status": "PASS",
+          "detail": "0 events today (0 if no calendar connected)"
+        },
+        {
+          "testName": "fetch_calendar_events",
+          "status": "WARN",
+          "detail": "Unknown method: fetch_calendar_events"
+        }
+      ]
+    },
+    {
+      "name": "REMIND",
+      "pass": 0,
+      "warn": 3,
+      "fail": 1,
+      "total": 4,
+      "tests": [
+        {
+          "testName": "create_reminder",
+          "status": "FAIL",
+          "detail": "Unknown method: create_reminder"
+        },
+        {
+          "testName": "Reminder persists",
+          "status": "WARN",
+          "detail": "Skipped — create failed"
+        },
+        {
+          "testName": "snooze_reminder",
+          "status": "WARN",
+          "detail": "Skipped"
+        },
+        {
+          "testName": "dismiss_reminder",
+          "status": "WARN",
+          "detail": "Skipped"
+        }
+      ]
+    },
+    {
+      "name": "WEB",
+      "pass": 0,
+      "warn": 1,
+      "fail": 1,
+      "total": 2,
+      "tests": [
+        {
+          "testName": "search_web handler",
+          "status": "FAIL",
+          "detail": "Unknown method: web_search"
+        },
+        {
+          "testName": "fetch_url handler",
+          "status": "WARN",
+          "detail": "Unknown method: fetch_url"
+        }
+      ]
+    },
+    {
+      "name": "PROACT",
+      "pass": 3,
+      "warn": 1,
+      "fail": 0,
+      "total": 4,
+      "tests": [
+        {
+          "testName": "get_proactive_insights",
+          "status": "PASS",
+          "detail": "0 insights (0 if no email/calendar data)"
+        },
+        {
+          "testName": "Insight shape",
+          "status": "WARN",
+          "detail": "No insights yet — connect email/calendar and sync"
+        },
+        {
+          "testName": "get_pending_actions",
+          "status": "PASS",
+          "detail": "0 pending actions"
+        },
+        {
+          "testName": "get_actions_summary",
+          "status": "PASS",
+          "detail": "today=0, timeSaved=0s"
+        }
+      ]
+    },
+    {
+      "name": "BRIEF",
+      "pass": 0,
+      "warn": 1,
+      "fail": 0,
+      "total": 1,
+      "tests": [
+        {
+          "testName": "generate_morning_brief",
+          "status": "WARN",
+          "detail": "Unknown method: get_morning_brief"
+        }
+      ]
+    },
+    {
+      "name": "PRIVACY",
+      "pass": 0,
+      "warn": 3,
+      "fail": 0,
+      "total": 3,
+      "tests": [
+        {
+          "testName": "network_monitor_report",
+          "status": "WARN",
+          "detail": "Unknown method: get_network_monitor_report"
+        },
+        {
+          "testName": "audit_trail",
+          "status": "WARN",
+          "detail": "Unknown method: get_audit_trail"
+        },
+        {
+          "testName": "merkle_chain_verify",
+          "status": "WARN",
+          "detail": "Unknown method: verify_merkle_chain"
+        }
+      ]
+    }
+  ],
+  "totalPass": 17,
+  "totalTests": 40,
+  "p0Pass": false,
+  "p1Pass": false,
+  "buildReady": false,
+  "date": "2026-03-16 23:46:07"
+}

@@ -1,6 +1,6 @@
 // Tests for Orchestrator style integration — style prompt injection, scoring, retries.
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { OrchestratorImpl } from '@semblance/core/agent/orchestrator.js';
 import { AutonomyManager } from '@semblance/core/agent/autonomy.js';
@@ -9,6 +9,8 @@ import type { LLMProvider, ChatResponse, ToolCall } from '@semblance/core/llm/ty
 import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index.js';
 import type { IPCClient } from '@semblance/core/agent/ipc-client.js';
 import type { DatabaseHandle } from '@semblance/core/platform/types.js';
+import { ipAdapters } from '@semblance/core/extensions/ip-adapter-registry.js';
+import type { StyleAdapter } from '@semblance/core/style/style-adapter.js';
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -111,6 +113,38 @@ describe('Orchestrator — Style Integration', () => {
     styleStore = new StyleProfileStore(styleDb as unknown as DatabaseHandle);
     autonomy = new AutonomyManager(db as unknown as DatabaseHandle);
     ipc = createMockIPC();
+
+    // Register a mock style adapter so the orchestrator can use style features
+    const mockStyleAdapter: StyleAdapter = {
+      buildStylePrompt: (_profile, _ctx) => 'Write in the user\'s personal writing style.',
+      buildInactiveStylePrompt: () => 'Write in a natural, professional tone.',
+      buildRetryPrompt: (weakDims, _profile) => {
+        if (weakDims.some(d => d.score < 70)) return 'Pay attention to style matching.';
+        return '';
+      },
+      scoreDraft: (draft, profile) => {
+        // Simple heuristic scorer for testing
+        const firstLine = draft.split('\n')[0]?.toLowerCase() ?? '';
+        const greetingMatch = profile.greetings.patterns.some(p => firstLine.includes(p.text.toLowerCase()));
+        const lastLines = draft.split('\n').filter(l => l.trim()).slice(-3);
+        const signoffMatch = profile.signoffs.patterns.some(p =>
+          lastLines.some(l => l.toLowerCase().includes(p.text.toLowerCase()))
+        );
+        const greetingScore = greetingMatch ? 100 : 30;
+        const signoffScore = signoffMatch ? 100 : 30;
+        const overall = Math.round(greetingScore * 0.5 + signoffScore * 0.5);
+        return {
+          overall,
+          breakdown: { greeting: greetingScore, signoff: signoffScore, sentenceLength: 80, formality: 80, vocabulary: 80 },
+        };
+      },
+    };
+    ipAdapters.registerStyleAdapter(mockStyleAdapter);
+  });
+
+  afterEach(() => {
+    // Deregister the mock style adapter
+    ipAdapters.registerStyleAdapter(null as any);
   });
 
   it('draft_email with active profile generates styled body via LLM', async () => {
