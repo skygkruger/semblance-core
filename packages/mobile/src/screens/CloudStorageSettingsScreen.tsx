@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { colors } from '../theme/tokens.js';
 
 interface CloudStorageSettingsScreenProps {
   onConnect?: (provider: string) => Promise<{ success: boolean; userEmail?: string }>;
@@ -140,30 +141,30 @@ export function CloudStorageSettingsScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  header: { fontSize: 18, fontWeight: '600', marginBottom: 16 },
+  container: { flex: 1, padding: 16, backgroundColor: colors.bgDark },
+  header: { fontSize: 18, fontWeight: '600', marginBottom: 16, color: colors.textPrimary },
   providerCard: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 12, borderRadius: 8, backgroundColor: '#f5f5f5', marginBottom: 8,
+    padding: 12, borderRadius: 8, backgroundColor: colors.surface1Dark, marginBottom: 8,
   },
   providerDisabled: { opacity: 0.5 },
   providerInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  statusConnected: { backgroundColor: '#22c55e' },
-  statusDisconnected: { backgroundColor: '#d1d5db' },
+  statusConnected: { backgroundColor: colors.primary },
+  statusDisconnected: { backgroundColor: colors.textTertiary },
   providerText: { flex: 1 },
-  providerName: { fontSize: 14, fontWeight: '500' },
-  providerStatus: { fontSize: 12, color: '#6b7280' },
-  button: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: '#e5e7eb' },
-  buttonText: { fontSize: 12, fontWeight: '500' },
-  section: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  sectionLabel: { fontSize: 11, fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 },
-  sectionValue: { fontSize: 14, marginTop: 4 },
+  providerName: { fontSize: 14, fontWeight: '500', color: colors.textPrimary },
+  providerStatus: { fontSize: 12, color: colors.textTertiary },
+  button: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: colors.borderDark },
+  buttonText: { fontSize: 12, fontWeight: '500', color: colors.textPrimary },
+  section: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.borderDark },
+  sectionLabel: { fontSize: 11, fontWeight: '600', color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionValue: { fontSize: 14, marginTop: 4, color: colors.textPrimary },
   intervalOptions: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  intervalButton: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 6, backgroundColor: '#f3f4f6' },
-  intervalButtonActive: { backgroundColor: '#3b82f6' },
-  intervalText: { fontSize: 13, color: '#374151' },
-  intervalTextActive: { color: '#fff', fontWeight: '600' },
-  syncButton: { marginTop: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: '#3b82f6', alignItems: 'center' },
-  syncButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  intervalButton: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 6, backgroundColor: colors.surface1Dark },
+  intervalButtonActive: { backgroundColor: colors.primary },
+  intervalText: { fontSize: 13, color: colors.textSecondary },
+  intervalTextActive: { color: colors.textPrimary, fontWeight: '600' },
+  syncButton: { marginTop: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: colors.primary, alignItems: 'center' },
+  syncButtonText: { color: colors.textPrimary, fontWeight: '600', fontSize: 14 },
 });

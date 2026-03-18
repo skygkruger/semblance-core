@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { createMobileContactsAdapter } from '../native/contacts-bridge.js';
 import { getRuntimeState } from '../runtime/mobile-runtime.js';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { colors } from '../theme/tokens.js';
 
 interface ContactDetail {
   id: string;
@@ -239,27 +240,27 @@ export function ContactDetailScreen({ route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E11' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  mutedText: { color: '#999', fontSize: 14 },
+  container: { flex: 1, backgroundColor: colors.bgDark },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgDark },
+  mutedText: { color: colors.textTertiary, fontSize: 14 },
   header: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 16 },
   avatarLarge: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.surface1Dark,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
-  avatarLargeText: { fontSize: 24, fontWeight: '600', color: '#666' },
-  name: { fontSize: 22, fontWeight: '700', color: '#1a1a1a' },
-  subtitle: { fontSize: 14, color: '#666', marginTop: 4 },
+  avatarLargeText: { fontSize: 24, fontWeight: '600', color: colors.textTertiary },
+  name: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
+  subtitle: { fontSize: 14, color: colors.textTertiary, marginTop: 4 },
   badgeContainer: { marginTop: 8 },
   badge: {
     fontSize: 12,
-    color: '#666',
-    backgroundColor: '#f0f0f0',
+    color: colors.textTertiary,
+    backgroundColor: colors.surface1Dark,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 12,
@@ -269,15 +270,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#e5e5e5',
+    borderTopColor: colors.borderDark,
   },
-  sectionTitle: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 12 },
+  sectionTitle: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 12 },
   infoRow: { flexDirection: 'row', paddingVertical: 6 },
-  infoLabel: { width: 100, fontSize: 13, color: '#999' },
-  infoValue: { flex: 1, fontSize: 14, color: '#333' },
+  infoLabel: { width: 100, fontSize: 13, color: colors.textTertiary },
+  infoValue: { flex: 1, fontSize: 14, color: colors.textPrimary },
   freqBarContainer: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
-  freqLabel: { width: 100, fontSize: 13, color: '#999' },
-  freqBarBg: { flex: 1, height: 6, borderRadius: 3, backgroundColor: '#f0f0f0' },
-  freqBarFill: { height: 6, borderRadius: 3, backgroundColor: '#4A9B7F' },
-  freqValue: { width: 40, textAlign: 'right', fontSize: 13, color: '#333' },
+  freqLabel: { width: 100, fontSize: 13, color: colors.textTertiary },
+  freqBarBg: { flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.surface1Dark },
+  freqBarFill: { height: 6, borderRadius: 3, backgroundColor: colors.primary },
+  freqValue: { width: 40, textAlign: 'right', fontSize: 13, color: colors.textPrimary },
 });

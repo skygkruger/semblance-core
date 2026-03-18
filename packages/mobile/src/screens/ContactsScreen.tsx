@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getRuntimeState } from '../runtime/mobile-runtime.js';
 import { useSemblance } from '../runtime/SemblanceProvider.js';
+import { colors } from '../theme/tokens.js';
 
 interface ContactSummary {
   id: string;
@@ -188,25 +189,26 @@ export function ContactsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0E11' },
+  container: { flex: 1, backgroundColor: colors.bgDark },
   searchInput: {
     margin: 16,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface1Dark,
     fontSize: 14,
+    color: colors.textPrimary,
   },
   birthdaySection: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fef9f0',
+    backgroundColor: colors.surface1Dark,
     marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#8b6914',
+    color: colors.accent,
     marginBottom: 8,
   },
   birthdayItem: {
@@ -218,36 +220,36 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#d4a76a',
+    backgroundColor: colors.accent,
     marginRight: 8,
   },
-  birthdayName: { flex: 1, fontSize: 14, color: '#333' },
-  birthdayDays: { fontSize: 12, color: '#8b6914', fontWeight: '500' },
+  birthdayName: { flex: 1, fontSize: 14, color: colors.textPrimary },
+  birthdayDays: { fontSize: 12, color: colors.accent, fontWeight: '500' },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: colors.borderDark,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.surface1Dark,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
-  avatarText: { fontSize: 14, fontWeight: '600', color: '#666' },
+  avatarText: { fontSize: 14, fontWeight: '600', color: colors.textTertiary },
   contactInfo: { flex: 1 },
-  contactName: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },
-  contactOrg: { fontSize: 12, color: '#999', marginTop: 2 },
+  contactName: { fontSize: 15, fontWeight: '500', color: colors.textPrimary },
+  contactOrg: { fontSize: 12, color: colors.textTertiary, marginTop: 2 },
   badge: {
     fontSize: 10,
-    color: '#666',
-    backgroundColor: '#f0f0f0',
+    color: colors.textTertiary,
+    backgroundColor: colors.surface1Dark,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
@@ -256,7 +258,7 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     padding: 40,
-    color: '#999',
+    color: colors.textTertiary,
     fontSize: 14,
   },
 });

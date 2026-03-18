@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { View, Text, Switch, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { colors } from '../theme/tokens.js';
 
 interface VoiceSettings {
   enabled: boolean;
@@ -84,13 +85,13 @@ export function VoiceSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.bgDark,
     padding: 16,
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#e8e3e3',
+    color: colors.textPrimary,
     marginBottom: 24,
   },
   row: {
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#374151',
+    borderBottomColor: colors.surface2Dark,
   },
   labelContainer: {
     flex: 1,
@@ -108,15 +109,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#e8e3e3',
+    color: colors.textPrimary,
   },
   description: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: colors.textTertiary,
     marginTop: 4,
   },
   value: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: colors.textTertiary,
   },
 });
