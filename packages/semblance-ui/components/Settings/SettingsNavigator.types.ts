@@ -102,4 +102,19 @@ export interface SettingsNavigatorProps {
   onSignOut: () => void;
   onDeactivateLicense: () => void;
   onNavigateIntents?: () => void;
+  onNavigateExternal?: (path: string) => void;
+
+  /* Sprint G badge counts */
+  channelCount?: number;
+  sessionCount?: number;
+  pairedDeviceCount?: number;
+  preferenceCount?: number;
+  installedSkillCount?: number;
+  livingWillLastBackup?: string | null;
+  witnessAttestationCount?: number;
+  inheritanceConfigured?: boolean;
+  biometricEnabled?: boolean;
+  lastBackupAt?: string | null;
+  binaryAllowlistCount?: number;
+  adversarialAlertCount?: number;
 }

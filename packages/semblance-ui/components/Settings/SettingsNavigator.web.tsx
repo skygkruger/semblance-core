@@ -6,11 +6,40 @@ import { SettingsNotifications } from './SettingsNotifications';
 import { SettingsAutonomy } from './SettingsAutonomy';
 import { SettingsPrivacy } from './SettingsPrivacy';
 import { SettingsAccount } from './SettingsAccount';
+import { SettingsChannels } from './SettingsChannels.web';
+import { SettingsSessions } from './SettingsSessions.web';
+import { SettingsPreferences } from './SettingsPreferences.web';
+import { SettingsSkills } from './SettingsSkills.web';
+import { SettingsBinaryAllowlist } from './SettingsBinaryAllowlist.web';
+import { SettingsTunnelPairing } from './SettingsTunnelPairing.web';
 import type { Screen, SettingsNavigatorProps } from './SettingsNavigator.types';
 
 export function SettingsNavigator(props: SettingsNavigatorProps) {
   const [currentScreen, setCurrentScreen] = useState<Screen>('root');
   const goBack = () => setCurrentScreen('root');
+
+  // Screens that navigate externally (full desktop screens)
+  const externalScreens: Record<string, string> = {
+    'living-will': '/living-will',
+    'witness': '/witness',
+    'inheritance': '/inheritance',
+    'adversarial': '/adversarial',
+    'biometric': '/settings/biometric',
+    'backup': '/settings/backup',
+    'voice': '/settings/voice',
+    'location': '/settings/location',
+    'cloud-storage': '/settings/cloud-storage',
+    'semblance-network': '/semblance-network',
+  };
+
+  const handleNavigate = (screen: Screen) => {
+    const externalPath = externalScreens[screen];
+    if (externalPath && props.onNavigateExternal) {
+      props.onNavigateExternal(externalPath);
+    } else {
+      setCurrentScreen(screen);
+    }
+  };
 
   switch (currentScreen) {
     case 'ai-engine':
@@ -117,6 +146,25 @@ export function SettingsNavigator(props: SettingsNavigatorProps) {
         />
       );
 
+    // Sprint-built in-settings panels
+    case 'channels':
+      return <SettingsChannels onBack={goBack} />;
+
+    case 'sessions':
+      return <SettingsSessions onBack={goBack} />;
+
+    case 'preferences':
+      return <SettingsPreferences onBack={goBack} />;
+
+    case 'skills':
+      return <SettingsSkills onBack={goBack} />;
+
+    case 'binary-allowlist':
+      return <SettingsBinaryAllowlist onBack={goBack} />;
+
+    case 'tunnel-pairing':
+      return <SettingsTunnelPairing onBack={goBack} />;
+
     default:
       return (
         <SettingsRoot
@@ -127,8 +175,21 @@ export function SettingsNavigator(props: SettingsNavigatorProps) {
           privacyStatus={props.privacyStatus}
           licenseStatus={props.licenseStatus}
           appVersion={props.appVersion}
-          onNavigate={(screen: Screen) => setCurrentScreen(screen)}
+          onNavigate={(screen) => handleNavigate(screen)}
           onNavigateIntents={props.onNavigateIntents}
+          onNavigateExternal={props.onNavigateExternal}
+          channelCount={props.channelCount}
+          sessionCount={props.sessionCount}
+          pairedDeviceCount={props.pairedDeviceCount}
+          preferenceCount={props.preferenceCount}
+          installedSkillCount={props.installedSkillCount}
+          livingWillLastBackup={props.livingWillLastBackup}
+          witnessAttestationCount={props.witnessAttestationCount}
+          inheritanceConfigured={props.inheritanceConfigured}
+          biometricEnabled={props.biometricEnabled}
+          lastBackupAt={props.lastBackupAt}
+          binaryAllowlistCount={props.binaryAllowlistCount}
+          adversarialAlertCount={props.adversarialAlertCount}
         />
       );
   }
