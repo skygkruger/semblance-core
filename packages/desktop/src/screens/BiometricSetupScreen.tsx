@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { prefGet, prefSet } from '../ipc/commands';
 import './BiometricSetupScreen.css';
 
 type LockTimeout = '1min' | '5min' | '15min' | '30min' | 'never';
@@ -23,19 +24,19 @@ async function invokeIPC<T>(method: string, params?: Record<string, unknown>): P
   return invoke<T>('sidecar_request', { request: { method, params: params ?? {} } });
 }
 
-/** Read a persisted biometric preference from localStorage. */
-function loadPref<T>(key: string, fallback: T): T {
+/** Read a persisted biometric preference from SQLite via IPC. */
+async function loadPref<T>(key: string, fallback: T): Promise<T> {
   try {
-    const raw = localStorage.getItem(`biometric.${key}`);
+    const raw = await prefGet(`biometric.${key}`);
     return raw !== null ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
   }
 }
 
-/** Persist a biometric preference to localStorage. */
+/** Persist a biometric preference to SQLite via IPC. */
 function savePref(key: string, value: unknown): void {
-  localStorage.setItem(`biometric.${key}`, JSON.stringify(value));
+  prefSet(`biometric.${key}`, JSON.stringify(value)).catch(() => {});
 }
 
 export function BiometricSetupScreen() {
@@ -69,9 +70,9 @@ export function BiometricSetupScreen() {
 
     checkAvailability();
 
-    // Hydrate persisted preferences
-    setBiometricEnabled(loadPref<boolean>('enabled', false));
-    setLockTimeout(loadPref<LockTimeout>('lockTimeout', '5min'));
+    // Hydrate persisted preferences from SQLite
+    loadPref<boolean>('enabled', false).then((v) => { if (!cancelled) setBiometricEnabled(v); });
+    loadPref<LockTimeout>('lockTimeout', '5min').then((v) => { if (!cancelled) setLockTimeout(v); });
 
     return () => { cancelled = true; };
   }, []);

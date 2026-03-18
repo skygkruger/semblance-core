@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getConnectedServices, cloudStorageConnect, cloudStorageDisconnect, cloudStorageBrowseFolders } from '../ipc/commands';
+import { getConnectedServices, cloudStorageConnect, cloudStorageDisconnect, cloudStorageBrowseFolders, prefGet, prefSet } from '../ipc/commands';
 import type { CloudFolder } from '../ipc/types';
 import './CloudStorageSettingsScreen.css';
 
@@ -45,17 +45,17 @@ export function CloudStorageSettingsScreen() {
         return [] as string[];
       });
 
-      // Load persisted folder selections and sync times from localStorage
-      const savedFolders = (() => {
+      // Load persisted folder selections and sync times from SQLite prefs
+      const savedFolders = await (async () => {
         try {
-          const raw = localStorage.getItem(STORAGE_KEY_CLOUD_FOLDERS);
+          const raw = await prefGet(STORAGE_KEY_CLOUD_FOLDERS);
           return raw ? (JSON.parse(raw) as Record<string, string[]>) : {};
         } catch { return {}; }
       })();
 
-      const savedSync = (() => {
+      const savedSync = await (async () => {
         try {
-          const raw = localStorage.getItem(STORAGE_KEY_CLOUD_SYNC);
+          const raw = await prefGet(STORAGE_KEY_CLOUD_SYNC);
           return raw ? (JSON.parse(raw) as Record<string, string>) : {};
         } catch { return {}; }
       })();
@@ -108,12 +108,14 @@ export function CloudStorageSettingsScreen() {
       await cloudStorageDisconnect(providerId);
       // Remove persisted data for this provider
       try {
-        const folders = JSON.parse(localStorage.getItem(STORAGE_KEY_CLOUD_FOLDERS) ?? '{}');
+        const foldersRaw = await prefGet(STORAGE_KEY_CLOUD_FOLDERS);
+        const folders = foldersRaw ? JSON.parse(foldersRaw) : {};
         delete folders[providerId];
-        localStorage.setItem(STORAGE_KEY_CLOUD_FOLDERS, JSON.stringify(folders));
-        const sync = JSON.parse(localStorage.getItem(STORAGE_KEY_CLOUD_SYNC) ?? '{}');
+        await prefSet(STORAGE_KEY_CLOUD_FOLDERS, JSON.stringify(folders));
+        const syncRaw = await prefGet(STORAGE_KEY_CLOUD_SYNC);
+        const sync = syncRaw ? JSON.parse(syncRaw) : {};
         delete sync[providerId];
-        localStorage.setItem(STORAGE_KEY_CLOUD_SYNC, JSON.stringify(sync));
+        await prefSet(STORAGE_KEY_CLOUD_SYNC, JSON.stringify(sync));
       } catch { /* ignore */ }
       await loadProviders(); // Refresh
     } catch (err) {
@@ -148,15 +150,13 @@ export function CloudStorageSettingsScreen() {
         return { ...p, syncedFolders: updatedFolders };
       })
     );
-    // Persist folder selections to localStorage
+    // Persist folder selections to SQLite prefs
     setProviders((current) => {
       const allFolders: Record<string, string[]> = {};
       for (const p of current) {
         allFolders[p.id] = p.syncedFolders;
       }
-      try {
-        localStorage.setItem(STORAGE_KEY_CLOUD_FOLDERS, JSON.stringify(allFolders));
-      } catch { /* ignore */ }
+      prefSet(STORAGE_KEY_CLOUD_FOLDERS, JSON.stringify(allFolders)).catch(() => {});
       return current;
     });
   }, []);

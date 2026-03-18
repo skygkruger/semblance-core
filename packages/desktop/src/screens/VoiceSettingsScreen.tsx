@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getVoiceModelStatus } from '../ipc/commands';
+import { getVoiceModelStatus, prefGet, prefSet } from '../ipc/commands';
 import './VoiceSettingsScreen.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -39,8 +39,8 @@ export function VoiceSettingsScreen() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Load persisted voice preferences
-        const saved = localStorage.getItem(STORAGE_KEY);
+        // Load persisted voice preferences from SQLite
+        const saved = await prefGet(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
           setVoiceSettings({ ...DEFAULT_VOICE_SETTINGS, ...parsed });
@@ -67,7 +67,7 @@ export function VoiceSettingsScreen() {
   const updateVoiceSettings = useCallback((changes: Partial<VoiceSettings>) => {
     setVoiceSettings((prev) => {
       const updated = { ...prev, ...changes };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      prefSet(STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
       return updated;
     });
   }, []);

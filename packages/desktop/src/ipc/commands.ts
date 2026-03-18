@@ -1131,3 +1131,83 @@ export function backupAddDestination(params: { name: string; path: string; type:
 export function backupRemoveDestination(id: string): Promise<void> {
   return invoke<void>('backup_remove_destination', { id });
 }
+
+// ─── Semblance Network (Peer Sharing) ───────────────────────────────────────
+
+export interface NetworkPeer {
+  id: string;
+  name: string;
+  type: string;
+  pairedAt: string;
+  lastSeen?: string;
+}
+
+export interface PeerSharingConfig {
+  calendarAvailability: boolean;
+  communicationStyle: boolean;
+  projectContext: boolean;
+  topicExpertise: boolean;
+}
+
+export function networkPeersList(): Promise<NetworkPeer[]> {
+  return invoke<NetworkPeer[]>('sidecar_request', {
+    request: { method: 'network_peers_list', params: {} },
+  });
+}
+
+export function networkPeerConnect(code: string): Promise<unknown> {
+  return invoke<unknown>('sidecar_request', {
+    request: { method: 'network_peer_connect', params: { code } },
+  });
+}
+
+export function networkPeerDisconnect(peerId: string): Promise<void> {
+  return invoke<void>('sidecar_request', {
+    request: { method: 'network_peer_disconnect', params: { peerId } },
+  });
+}
+
+export function networkPeerSharingConfig(peerId: string, config?: PeerSharingConfig): Promise<PeerSharingConfig> {
+  return invoke<PeerSharingConfig>('sidecar_request', {
+    request: { method: 'network_peer_sharing_config', params: { peerId, config } },
+  });
+}
+
+export function networkGenerateConnectCode(): Promise<{ code: string }> {
+  return invoke<{ code: string }>('sidecar_request', {
+    request: { method: 'network_generate_connect_code', params: {} },
+  });
+}
+
+// ─── Generic Preferences (SQLite-backed, replaces localStorage) ─────────────
+
+export async function prefGet(key: string): Promise<string | null> {
+  const res = await invoke<{ value: string | null }>('sidecar_request', {
+    request: { method: 'pref_get', params: { key } },
+  });
+  return res.value;
+}
+
+export function prefSet(key: string, value: string): Promise<void> {
+  return invoke<void>('sidecar_request', {
+    request: { method: 'pref_set', params: { key, value } },
+  });
+}
+
+export function prefDelete(key: string): Promise<void> {
+  return invoke<void>('sidecar_request', {
+    request: { method: 'pref_delete', params: { key } },
+  });
+}
+
+export function prefClearSession(): Promise<void> {
+  return invoke<void>('sidecar_request', {
+    request: { method: 'pref_clear_session', params: {} },
+  });
+}
+
+export function prefResetAll(): Promise<void> {
+  return invoke<void>('sidecar_request', {
+    request: { method: 'pref_reset_all', params: {} },
+  });
+}

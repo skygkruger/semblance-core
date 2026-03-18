@@ -25,7 +25,7 @@
         {
           "testName": "send_message",
           "status": "PASS",
-          "detail": "responseId=msg_1773851935569"
+          "detail": "responseId=msg_1773855013786"
         },
         {
           "testName": "Inference completes",
@@ -203,7 +203,7 @@
         {
           "testName": "reminder_create",
           "status": "PASS",
-          "detail": "id=8NB1So6SAHdZpt-kVfFjR"
+          "detail": "id=NWsW_wESUMrt9DKk7_K4H"
         },
         {
           "testName": "Reminder persists",
@@ -314,5 +314,5 @@
   "p0Pass": true,
   "p1Pass": true,
   "buildReady": true,
-  "date": "2026-03-18 16:38:39"
+  "date": "2026-03-18 17:29:57"
 }

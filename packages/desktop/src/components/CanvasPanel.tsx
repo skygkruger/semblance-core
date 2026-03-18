@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { prefGet, prefSet } from '../ipc/commands';
 
 interface CanvasUpdate {
   componentType: 'morning_brief' | 'knowledge_graph' | 'chart' | 'timeline' | 'form_preview' | 'alter_ego_card' | 'custom';
@@ -20,14 +21,26 @@ interface CanvasCard {
 }
 
 export function CanvasPanel() {
-  const [isOpen, setIsOpen] = useState(() => {
-    try { return localStorage.getItem('semblance.canvas.open') === 'true'; } catch { return false; }
-  });
+  const [isOpen, setIsOpen] = useState(false);
   const [cards, setCards] = useState<CanvasCard[]>([]);
 
+  // Hydrate isOpen from SQLite prefs on mount
   useEffect(() => {
-    try { localStorage.setItem('semblance.canvas.open', String(isOpen)); } catch { /* ignore */ }
-  }, [isOpen]);
+    let cancelled = false;
+    prefGet('semblance.canvas.open').then((val) => {
+      if (!cancelled && val === 'true') setIsOpen(true);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  // Persist isOpen to SQLite prefs
+  const setIsOpenPersisted = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
+    setIsOpen((prev) => {
+      const next = typeof value === 'function' ? value(prev) : value;
+      prefSet('semblance.canvas.open', String(next)).catch(() => {});
+      return next;
+    });
+  }, []);
 
   // Listen for canvas:update Tauri events
   useEffect(() => {
@@ -55,7 +68,7 @@ export function CanvasPanel() {
         } else {
           setCards(prev => [...prev, newCard]);
         }
-        setIsOpen(true); // Auto-expand when content arrives
+        setIsOpenPersisted(true); // Auto-expand when content arrives
       }).then((fn: () => void) => { unlisten = fn; });
     } catch { /* Tauri events not available */ }
 
@@ -94,7 +107,7 @@ export function CanvasPanel() {
         </span>
         <button
           type="button"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => setIsOpenPersisted(!isOpen)}
           style={{
             background: 'none',
             border: 'none',

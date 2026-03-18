@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { prefGet, prefSet } from '../ipc/commands';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -12,14 +13,24 @@ function applyTheme(mode: ThemeMode) {
 }
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<ThemeMode>(() => {
-    const stored = localStorage.getItem('semblance-theme');
-    return (stored as ThemeMode) || 'system';
-  });
+  const [theme, setThemeState] = useState<ThemeMode>('system');
+
+  // Hydrate theme from SQLite prefs on mount
+  useEffect(() => {
+    let cancelled = false;
+    prefGet('semblance-theme').then((stored) => {
+      if (!cancelled && stored) {
+        const mode = stored as ThemeMode;
+        setThemeState(mode);
+        applyTheme(mode);
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const setTheme = useCallback((mode: ThemeMode) => {
     setThemeState(mode);
-    localStorage.setItem('semblance-theme', mode);
+    prefSet('semblance-theme', mode).catch(() => {});
     applyTheme(mode);
   }, []);
 
