@@ -1,3 +1,4 @@
+// @i18n-pending — hardcoded English text, i18n keys in follow-up pass
 import { useState, useEffect } from 'react';
 import './Settings.css';
 import { BackArrow } from './SettingsIcons';
