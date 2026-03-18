@@ -4,7 +4,7 @@
 // the IPC boundary unsanitized. Sanitization happens HERE in the Gateway.
 // This is enforced structurally, not by convention.
 
-import { sanitizeRetrievedContent } from '@semblance/core/agent/content-sanitizer.js';
+import { sanitizeInboundContent } from '../security/content-sanitizer.js';
 import { sha256 } from '@semblance/core';
 import type { AuditTrail } from '../audit/trail.js';
 import type { InboundMessage } from './types.js';
@@ -49,7 +49,7 @@ export class InboundPipeline {
    */
   async process(message: InboundMessage): Promise<void> {
     // Step 1: MANDATORY sanitization — no exceptions
-    const sanitizedContent = sanitizeRetrievedContent(message.content);
+    const sanitizedContent = sanitizeInboundContent(message.content);
 
     // Step 2: Log to audit chain (sanitized content hash, never raw)
     const payloadHash = sha256(sanitizedContent);
