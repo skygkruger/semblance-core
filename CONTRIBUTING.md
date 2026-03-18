@@ -142,6 +142,26 @@ Use conventional commits:
 
 ---
 
+## Open/Private Boundary
+
+Semblance ships in two layers. This repository contains the sovereign architecture —
+the AI Core, Gateway, knowledge graph, privacy enforcement, and all free-tier features.
+
+The Digital Representative module (`@semblance/dr`) is a proprietary commercial extension
+that provides advanced autonomous agency features. It registers its capabilities at runtime
+through the adapter registry in `packages/core/extensions/ip-adapter-registry.ts`.
+
+Core contributions welcome. The DR module is not part of this repository.
+
+### For contributors:
+- Never import from `@semblance/dr` in this repository
+- Use the interfaces in `finance/interfaces.ts`, `defense/interfaces.ts`,
+  `style/style-adapter.ts`, `digest/interfaces.ts`, `agent/alter-ego-week-types.ts`
+- Features that depend on DR adapters should gracefully degrade when the adapter is null
+- Run `grep -rn "@semblance/dr" packages/core/` to verify no DR imports leaked
+
+---
+
 ## Code Standards
 
 - **TypeScript strict mode** — `"strict": true`, no `any` types

@@ -10,7 +10,7 @@ import type { DatabaseHandle } from '../../../packages/core/platform/types.js';
 import type { CalendarIndexer, IndexedCalendarEvent } from '../../../packages/core/knowledge/calendar-indexer.js';
 import type { ProactiveEngine, ProactiveInsight } from '../../../packages/core/agent/proactive-engine.js';
 import type { ReminderStore, Reminder } from '../../../packages/core/knowledge/reminder-store.js';
-import type { RecurringCharge } from '../../../packages/core/finance/recurring-detector.js';
+import type { RecurringCharge } from '../../../packages/core/finance/interfaces.js';
 import type { WeatherConditions, HourlyForecast } from '../../../packages/core/platform/weather-types.js';
 
 function wrapDatabase(dbPath: string): DatabaseHandle {
