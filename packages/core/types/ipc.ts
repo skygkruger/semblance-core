@@ -80,6 +80,22 @@ export const ActionType = z.enum([
   'insight.conflict',
   'escalation.prompt',
   'health.entry',
+  // System / Hardware Bridge (Sprint F)
+  'system.execute',
+  'system.hardware_stat',
+  'system.app_launch',
+  'system.app_list',
+  'system.file_watch',
+  'system.file_watch_stop',
+  'system.clipboard_read',
+  'system.clipboard_write',
+  'system.notification',
+  'system.accessibility_read',
+  'system.keypress',
+  'system.shortcut_run',
+  'system.process_kill',
+  'system.process_signal',
+  'system.process_list',
 ]);
 export type ActionType = z.infer<typeof ActionType>;
 
@@ -641,6 +657,22 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'insight.conflict': z.object({ title: z.string(), summary: z.string() }).passthrough(),
   'escalation.prompt': z.object({ domain: z.string(), message: z.string() }).passthrough(),
   'health.entry': z.object({ metric: z.string(), value: z.number() }).passthrough(),
+  // System / Hardware Bridge (Sprint F)
+  'system.execute': z.object({ binary: z.string(), args: z.array(z.string()), stdin: z.string().optional(), timeout: z.number().optional() }).passthrough(),
+  'system.hardware_stat': z.object({}).passthrough(),
+  'system.app_launch': z.object({ appPath: z.string(), args: z.array(z.string()).optional() }).passthrough(),
+  'system.app_list': z.object({}).passthrough(),
+  'system.file_watch': z.object({ directory: z.string() }).passthrough(),
+  'system.file_watch_stop': z.object({ watchId: z.string() }).passthrough(),
+  'system.clipboard_read': z.object({}).passthrough(),
+  'system.clipboard_write': z.object({ text: z.string() }).passthrough(),
+  'system.notification': z.object({ title: z.string(), body: z.string() }).passthrough(),
+  'system.accessibility_read': z.object({ appName: z.string() }).passthrough(),
+  'system.keypress': z.object({ keys: z.string(), modifiers: z.array(z.string()).optional() }).passthrough(),
+  'system.shortcut_run': z.object({ name: z.string() }).passthrough(),
+  'system.process_kill': z.object({ pid: z.number() }).passthrough(),
+  'system.process_signal': z.object({ pid: z.number(), signal: z.string() }).passthrough(),
+  'system.process_list': z.object({}).passthrough(),
 };
 
 // --- Core protocol schemas ---

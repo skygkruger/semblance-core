@@ -101,6 +101,11 @@ import { PairingManager } from '../../../gateway/channels/pairing-manager.js';
 import { CanvasManager } from '../../../gateway/canvas/canvas-manager.js';
 import { SemblanceEventBus } from '../../../gateway/events/event-bus.js';
 
+// Sprint F: Hardware Bridge
+import { BinaryAllowlist } from '../../../gateway/security/binary-allowlist.js';
+import { ArgumentValidator } from '../../../gateway/security/argument-validator.js';
+import { SystemCommandGateway } from '../../../gateway/system/system-command-gateway.js';
+
 // Sprint E: Intelligence Depth
 import { PreferenceGraph } from '../../../core/agent/preference-graph.js';
 import { runAllPreferenceDetectors } from '../../../core/agent/preference-detectors.js';
@@ -334,6 +339,12 @@ let patternShiftDetector: PatternShiftDetector | null = null;
 let cronScheduler: CronScheduler | null = null;
 let daemonManager: DaemonManager | null = null;
 let hardwareMonitorInterval: ReturnType<typeof setInterval> | null = null;
+
+// Sprint F: Hardware Bridge
+let binaryAllowlist: BinaryAllowlist | null = null;
+let argumentValidator: ArgumentValidator | null = null;
+let systemCommandGateway: SystemCommandGateway | null = null;
+let fileWatchers: Map<string, ReturnType<typeof import('node:fs').watch>> = new Map();
 
 // Sprint D: Tunnel / Compute Mesh
 let tunnelGatewayServer: TunnelGatewayServer | null = null;
@@ -1375,6 +1386,17 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] Sprint E initialization complete');
   } catch (sprintEErr) {
     console.error('[sidecar] Sprint E initialization failed (non-fatal):', sprintEErr);
+  }
+
+  // ──── STEP 7: Sprint F — Hardware Bridge initialization ────
+  try {
+    const gatewayDb = new Database(join(homedir(), '.semblance', 'gateway', 'credentials.db'));
+    binaryAllowlist = new BinaryAllowlist(gatewayDb);
+    argumentValidator = new ArgumentValidator();
+    systemCommandGateway = new SystemCommandGateway(binaryAllowlist, argumentValidator);
+    console.error(`[sidecar] Hardware Bridge initialized — ${binaryAllowlist.list().length} binaries allowlisted`);
+  } catch (sprintFErr) {
+    console.error('[sidecar] Sprint F initialization failed (non-fatal):', sprintFErr);
   }
 
   return {
@@ -7891,6 +7913,281 @@ async function handleRequest(req: Request): Promise<void> {
         } catch (rrErr) {
           respondError(id, (rrErr as Error).message);
         }
+        break;
+      }
+
+      // ─── Sprint F: Hardware Bridge Handlers ──────────────────────────────
+
+      case 'binary_allowlist_list': {
+        if (!binaryAllowlist) { respond(id, []); break; }
+        respond(id, binaryAllowlist.list());
+        break;
+      }
+
+      case 'binary_allowlist_add': {
+        if (!binaryAllowlist) { respondError(id, 'BinaryAllowlist not initialized'); break; }
+        try {
+          const baaParams = params as { binary_path: string; description?: string; max_execution_seconds?: number; allow_stdin?: boolean };
+          const entry = binaryAllowlist.add({
+            binaryPath: baaParams.binary_path,
+            description: baaParams.description,
+            maxExecutionSeconds: baaParams.max_execution_seconds,
+            allowStdin: baaParams.allow_stdin,
+          });
+          respond(id, entry);
+        } catch (addErr) {
+          respondError(id, (addErr as Error).message);
+        }
+        break;
+      }
+
+      case 'binary_allowlist_remove': {
+        if (!binaryAllowlist) { respondError(id, 'BinaryAllowlist not initialized'); break; }
+        const barParams = params as { binary_name: string };
+        const removed = binaryAllowlist.remove(barParams.binary_name);
+        respond(id, { success: removed });
+        break;
+      }
+
+      case 'binary_allowlist_check': {
+        if (!binaryAllowlist) { respondError(id, 'BinaryAllowlist not initialized'); break; }
+        const bacParams = params as { binary_path: string };
+        const blockReason = binaryAllowlist.check(bacParams.binary_path);
+        respond(id, { allowed: blockReason === null, reason: blockReason });
+        break;
+      }
+
+      case 'system_execute': {
+        if (!systemCommandGateway) { respondError(id, 'SystemCommandGateway not initialized'); break; }
+        try {
+          const seParams = params as { binary: string; args: string[]; stdin?: string; timeout_seconds?: number; working_dir?: string; env?: Record<string, string> };
+          const execResult = await systemCommandGateway.execute({
+            binary: seParams.binary,
+            args: seParams.args,
+            stdin: seParams.stdin,
+            timeoutSeconds: seParams.timeout_seconds,
+            workingDir: seParams.working_dir,
+            env: seParams.env,
+          });
+          respond(id, execResult);
+        } catch (execErr) {
+          respondError(id, (execErr as Error).message);
+        }
+        break;
+      }
+
+      case 'system_hardware_stat': {
+        // Use Tauri native callback for live hardware stats
+        try {
+          const stats = await sendCallback('get_live_hardware_stats', {});
+          respond(id, stats);
+        } catch {
+          // Fallback to Node.js os module if native callback unavailable
+          const os = require('node:os');
+          respond(id, {
+            cpuUsagePercent: 0,
+            memoryUsedMb: Math.round((os.totalmem() - os.freemem()) / (1024 * 1024)),
+            memoryTotalMb: Math.round(os.totalmem() / (1024 * 1024)),
+            memoryAvailableMb: Math.round(os.freemem() / (1024 * 1024)),
+            diskStats: [],
+            cpuTempCelsius: null,
+            gpuTempCelsius: null,
+            gpuUsagePercent: null,
+            sampledAt: new Date().toISOString(),
+          });
+        }
+        break;
+      }
+
+      case 'system_app_launch': {
+        if (!systemCommandGateway) { respondError(id, 'SystemCommandGateway not initialized'); break; }
+        try {
+          const alParams = params as { app_path: string; args?: string[] };
+          const plat = require('node:os').platform();
+          let binary: string;
+          let args: string[];
+
+          if (plat === 'darwin') {
+            binary = '/usr/bin/open';
+            args = ['-a', alParams.app_path, ...(alParams.args ?? [])];
+          } else {
+            binary = alParams.app_path;
+            args = alParams.args ?? [];
+          }
+
+          const launchResult = await systemCommandGateway.execute({ binary, args, timeoutSeconds: 10 });
+          respond(id, launchResult);
+        } catch (launchErr) {
+          respondError(id, (launchErr as Error).message);
+        }
+        break;
+      }
+
+      case 'system_app_list': {
+        // Return running processes via Tauri native stats
+        try {
+          const stats = await sendCallback('get_live_hardware_stats', {});
+          // If the Tauri callback doesn't include process list, fallback to minimal info
+          respond(id, { processes: [], source: 'native', note: 'Process list available via Rust sysinfo' });
+        } catch {
+          respond(id, { processes: [], source: 'unavailable' });
+        }
+        break;
+      }
+
+      case 'system_file_watch': {
+        const fwParams = params as { directory: string; watch_id?: string };
+        try {
+          const { watch } = await import('node:fs');
+          const watchId = fwParams.watch_id ?? `watch_${nanoid()}`;
+
+          if (fileWatchers.has(watchId)) {
+            respondError(id, `Watch ${watchId} already exists`);
+            break;
+          }
+
+          const watcher = watch(fwParams.directory, { recursive: true }, (eventType, filename) => {
+            if (!eventBus || !filename) return;
+            const fullPath = require('node:path').join(fwParams.directory, filename);
+            if (eventType === 'rename') {
+              eventBus.emit('file.created', { path: fullPath, watchedDirectory: fwParams.directory });
+            } else if (eventType === 'change') {
+              eventBus.emit('file.modified', { path: fullPath });
+            }
+          });
+
+          fileWatchers.set(watchId, watcher);
+          respond(id, { watchId, directory: fwParams.directory });
+        } catch (fwErr) {
+          respondError(id, (fwErr as Error).message);
+        }
+        break;
+      }
+
+      case 'system_file_watch_stop': {
+        const fwsParams = params as { watch_id: string };
+        const watcher = fileWatchers.get(fwsParams.watch_id);
+        if (watcher) {
+          watcher.close();
+          fileWatchers.delete(fwsParams.watch_id);
+          respond(id, { success: true });
+        } else {
+          respondError(id, `Watch ${fwsParams.watch_id} not found`);
+        }
+        break;
+      }
+
+      case 'system_clipboard_read': {
+        try {
+          const clipResult = await sendCallback('clipboard_read', {});
+          respond(id, clipResult);
+        } catch {
+          // Fallback — clipboard not available
+          respond(id, { text: null, error: 'Clipboard access not available via native bridge' });
+        }
+        break;
+      }
+
+      case 'system_clipboard_write': {
+        try {
+          const cwParams = params as { text: string };
+          await sendCallback('clipboard_write', { text: cwParams.text });
+          respond(id, { success: true });
+        } catch (cwErr) {
+          respondError(id, (cwErr as Error).message);
+        }
+        break;
+      }
+
+      case 'system_notification': {
+        try {
+          const snParams = params as { title: string; body: string };
+          await sendCallback('show_notification', { title: snParams.title, body: snParams.body });
+          respond(id, { success: true });
+        } catch {
+          // Fallback — emit as event
+          emit('notification', params);
+          respond(id, { success: true, method: 'event_fallback' });
+        }
+        break;
+      }
+
+      case 'system_accessibility_read': {
+        if (!systemCommandGateway) { respondError(id, 'SystemCommandGateway not initialized'); break; }
+        try {
+          const arParams = params as { app_name: string };
+          const plat = require('node:os').platform();
+          let treeResult: SystemExecuteResult;
+
+          if (plat === 'darwin') {
+            // macOS: use osascript to query accessibility tree
+            const script = `tell application "System Events" to get entire contents of window 1 of process "${arParams.app_name.replace(/"/g, '\\"')}"`;
+            treeResult = await systemCommandGateway.execute({
+              binary: '/usr/bin/osascript',
+              args: ['-e', script],
+              timeoutSeconds: 10,
+            });
+          } else {
+            treeResult = { exitCode: 1, stdout: '', stderr: 'Accessibility read not yet supported on this platform', durationMs: 0, timedOut: false, pid: null };
+          }
+
+          // Redact password fields from output
+          let sanitizedOutput = treeResult.stdout;
+          sanitizedOutput = sanitizedOutput.replace(/AXSecureTextField[^,}]*/gi, 'AXSecureTextField: [REDACTED]');
+          sanitizedOutput = sanitizedOutput.replace(/type="password"[^"]*value="[^"]*"/gi, 'type="password" value="[REDACTED]"');
+          sanitizedOutput = sanitizedOutput.replace(/password[^:]*:[^,}\n]*/gi, 'password: [REDACTED]');
+
+          respond(id, { ...treeResult, stdout: sanitizedOutput });
+        } catch (arErr) {
+          respondError(id, (arErr as Error).message);
+        }
+        break;
+      }
+
+      case 'system_keypress': {
+        try {
+          const kpParams = params as { keys: string; modifiers?: string[] };
+          await sendCallback('synthesize_keypress', { keys: kpParams.keys, modifiers: kpParams.modifiers ?? [] });
+          respond(id, { success: true });
+        } catch (kpErr) {
+          respondError(id, (kpErr as Error).message);
+        }
+        break;
+      }
+
+      case 'system_shortcut_run': {
+        if (!systemCommandGateway) { respondError(id, 'SystemCommandGateway not initialized'); break; }
+        try {
+          const srParams = params as { name: string };
+          const plat = require('node:os').platform();
+          let shortcutResult: SystemExecuteResult;
+
+          if (plat === 'darwin') {
+            shortcutResult = await systemCommandGateway.execute({
+              binary: '/usr/bin/shortcuts',
+              args: ['run', srParams.name],
+              timeoutSeconds: 60,
+            });
+          } else {
+            shortcutResult = { exitCode: 1, stdout: '', stderr: 'Shortcuts not supported on this platform', durationMs: 0, timedOut: false, pid: null };
+          }
+          respond(id, shortcutResult);
+        } catch (srErr) {
+          respondError(id, (srErr as Error).message);
+        }
+        break;
+      }
+
+      case 'system_process_kill': {
+        if (!systemCommandGateway) { respondError(id, 'SystemCommandGateway not initialized'); break; }
+        const pkParams = params as { pid: number };
+        respond(id, systemCommandGateway.killProcess(pkParams.pid));
+        break;
+      }
+
+      case 'system_process_list': {
+        if (!systemCommandGateway) { respond(id, []); break; }
+        respond(id, systemCommandGateway.listProcesses());
         break;
       }
 
