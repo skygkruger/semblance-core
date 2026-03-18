@@ -10,10 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { execSync } from 'node:child_process';
-import { join } from 'node:path';
-
-const ROOT = join(__dirname, '..', '..');
+import { runPrivacyAudit } from '../helpers/run-privacy-audit.js';
 
 // ─── Detection patterns (must match scripts/privacy-audit/index.js) ───
 
@@ -144,11 +141,7 @@ describe('Dynamic Import Protection', () => {
   // ─── Full audit integration check ───
 
   it('privacy audit passes clean (no dynamic code execution violations in core)', () => {
-    const output = execSync('node scripts/privacy-audit/index.js', {
-      cwd: ROOT,
-      encoding: 'utf-8',
-      timeout: 30000,
-    });
+    const output = runPrivacyAudit();
     expect(output).toContain('RESULT: CLEAN');
     expect(output).toContain('Dynamic code execution patterns checked: 0 violation(s) found');
   });

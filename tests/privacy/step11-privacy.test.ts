@@ -10,6 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { runPrivacyAudit } from '../helpers/run-privacy-audit.js';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const CORE_DIR = join(ROOT, 'packages', 'core');
@@ -171,13 +172,7 @@ describe('Step 11 Privacy: Style scorer is pure heuristic (no LLM)', () => {
 
 describe('Step 11 Privacy: Full privacy audit still passes', () => {
   it('privacy audit exits clean', () => {
-    const { execFileSync } = require('node:child_process');
-    const result = execFileSync(process.execPath, ['scripts/privacy-audit/index.js'], {
-      cwd: ROOT,
-      encoding: 'utf-8',
-      timeout: 30_000,
-      maxBuffer: 10 * 1024 * 1024,
-    });
+    const result = runPrivacyAudit();
     expect(result).toContain('RESULT: CLEAN');
   });
 });
