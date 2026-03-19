@@ -1330,6 +1330,14 @@ async function handleInitialize(): Promise<unknown> {
       } catch { /* calendar timer registration best-effort */ }
     }
 
+    // Initialize CanvasManager so event bus handlers can push to it
+    if (!canvasManager) {
+      canvasManager = new CanvasManager({
+        auditTrail: gateway?.getAuditTrail() ?? undefined,
+      });
+      console.error('[sidecar] CanvasManager initialized for event bus handlers');
+    }
+
     // Wire orchestrator event subscriptions
     if (core?.agent) {
       try {
@@ -1448,6 +1456,13 @@ async function handleInitialize(): Promise<unknown> {
       console.error('[sidecar] OAuth migration skipped:', migErr);
     }
 
+    // Initialize ChannelRegistry early so adapters can register
+    if (!channelRegistry) {
+      channelRegistry = new ChannelRegistry();
+      if (eventBus) channelRegistry.setEventBus(eventBus);
+      console.error('[sidecar] ChannelRegistry initialized with event bus');
+    }
+
     // Channel adapters (Signal, Slack, WhatsApp)
     signalAdapter = new SignalChannelAdapter({
       systemGateway: systemCommandGateway ?? undefined,
@@ -1455,18 +1470,33 @@ async function handleInitialize(): Promise<unknown> {
     slackChannelAdapter = new SlackChannelAdapter();
     whatsappAdapter = new WhatsAppChannelAdapter();
 
-    // Register new channel adapters with registry
-    if (channelRegistry) {
-      channelRegistry.register(signalAdapter);
-      channelRegistry.register(slackChannelAdapter);
-      channelRegistry.register(whatsappAdapter);
-      console.error('[sidecar] Signal, Slack, WhatsApp channel adapters registered');
-    }
+    // Register channel adapters with the early-initialized registry
+    channelRegistry.register(signalAdapter);
+    channelRegistry.register(slackChannelAdapter);
+    channelRegistry.register(whatsappAdapter);
+    console.error('[sidecar] Signal, Slack, WhatsApp channel adapters registered');
+
+    // Start all registered channel adapters (they'll listen for incoming messages)
+    channelRegistry.startAll().then(() => {
+      console.error('[sidecar] All channel adapters started');
+    }).catch((err: unknown) => {
+      console.error('[sidecar] Some channel adapters failed to start:', (err as Error).message);
+    });
 
     // Skill Registry
     const skillsDir = join(homedir(), '.semblance', 'skills');
     skillRegistry = new SkillRegistry(dbHandle, skillsDir);
-    console.error(`[sidecar] SkillRegistry initialized — ${skillRegistry.list().length} skills installed`);
+    const installedCount = skillRegistry.list().length;
+    console.error(`[sidecar] SkillRegistry initialized — ${installedCount} skills installed`);
+
+    // Load enabled skills at startup (dynamic import + initialize)
+    if (installedCount > 0) {
+      skillRegistry.loadAll(core?.agent ?? null).then(() => {
+        console.error('[sidecar] SkillRegistry loadAll complete');
+      }).catch((err: unknown) => {
+        console.error('[sidecar] SkillRegistry loadAll failed:', (err as Error).message);
+      });
+    }
 
     // Sub-Agent Coordinator
     subAgentCoordinator = new SubAgentCoordinator();
@@ -7593,9 +7623,7 @@ async function handleRequest(req: Request): Promise<void> {
       // ─── Sprint C: Channel Handlers ───────────────────────────────────────
 
       case 'channel_list': {
-        if (!channelRegistry) {
-          channelRegistry = new ChannelRegistry();
-        }
+        if (!channelRegistry) { respond(id, []); break; }
         respond(id, channelRegistry.listAll());
         break;
       }
