@@ -46,6 +46,16 @@ export interface NativeRuntimeBridge {
   generateFast?(params: NativeBridgeGenerateParams): Promise<NativeBridgeGenerateResult>;
 
   /**
+   * Load a vision model (main GGUF + mmproj GGUF). Both files must exist on disk.
+   */
+  loadVisionModel?(modelPath: string, mmProjPath: string): Promise<void>;
+
+  /**
+   * Generate text from an image + prompt using the vision model.
+   */
+  generateVision?(params: { prompt: string; imagePath: string; maxTokens?: number }): Promise<NativeBridgeGenerateResult>;
+
+  /**
    * Unload the currently loaded reasoning model.
    */
   unloadModel(): Promise<void>;
@@ -90,5 +100,6 @@ export interface NativeBridgeStatus {
   reasoningModel: string | null;
   embeddingModel: string | null;
   fastModel: string | null;
+  visionModel: string | null;
   error?: string;
 }

@@ -330,6 +330,12 @@ impl LlamaContext {
         }
     }
 
+    /// Get raw mutable pointer to the underlying llama_context.
+    /// Required for FFI calls like llava_eval_image_embed that need the raw C pointer.
+    pub fn as_mut_ptr(&mut self) -> *mut ffi::llama_context {
+        self.ptr
+    }
+
     /// Clear the KV cache (needed between embedding batches).
     pub fn clear_kv_cache(&mut self) {
         unsafe {
@@ -513,3 +519,17 @@ impl Drop for LlamaSampler {
         }
     }
 }
+
+// ─── Vision (CLIP + LLaVA) re-exports ───────────────────────────────────────
+
+// Re-export raw FFI types for vision. Native runtime manages these directly.
+pub use ffi::clip_ctx;
+pub use ffi::llava_image_embed;
+pub use ffi::clip_model_load;
+pub use ffi::clip_free;
+pub use ffi::clip_n_mmproj_embd;
+pub use ffi::llava_image_embed_make_with_filename;
+pub use ffi::llava_image_embed_make_with_bytes;
+pub use ffi::llava_eval_image_embed;
+pub use ffi::llava_image_embed_free;
+pub use ffi::llava_validate_embed_size;

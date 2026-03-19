@@ -217,3 +217,51 @@ extern "C" {
     pub fn llama_sampler_init_temp(t: c_float) -> *mut llama_sampler;
     pub fn llama_sampler_init_dist(seed: u32) -> *mut llama_sampler;
 }
+
+// ─── Vision FFI (clip.h + llava.h) ──────────────────────────────────────────
+
+/// Opaque CLIP model context handle.
+pub enum clip_ctx {}
+
+/// Image embedding produced by CLIP, ready for injection into llama context.
+#[repr(C)]
+pub struct llava_image_embed {
+    pub embed: *mut c_float,
+    pub n_image_pos: c_int,
+}
+
+extern "C" {
+    // clip.h — model lifecycle
+    pub fn clip_model_load(fname: *const c_char, verbosity: c_int) -> *mut clip_ctx;
+    pub fn clip_free(ctx: *mut clip_ctx);
+    pub fn clip_n_mmproj_embd(ctx: *const clip_ctx) -> c_int;
+
+    // llava.h — image embedding
+    pub fn llava_image_embed_make_with_filename(
+        ctx_clip: *mut clip_ctx,
+        n_threads: c_int,
+        image_path: *const c_char,
+    ) -> *mut llava_image_embed;
+
+    pub fn llava_image_embed_make_with_bytes(
+        ctx_clip: *mut clip_ctx,
+        n_threads: c_int,
+        image_bytes: *const u8,
+        image_bytes_length: c_int,
+    ) -> *mut llava_image_embed;
+
+    // llava.h — embed injection into llama context
+    pub fn llava_eval_image_embed(
+        ctx_llama: *mut llama_context,
+        embed: *const llava_image_embed,
+        n_batch: c_int,
+        n_past: *mut c_int,
+    ) -> bool;
+
+    pub fn llava_image_embed_free(embed: *mut llava_image_embed);
+
+    pub fn llava_validate_embed_size(
+        ctx_llama: *mut llama_context,
+        ctx_clip: *const clip_ctx,
+    ) -> bool;
+}

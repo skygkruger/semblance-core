@@ -151,7 +151,7 @@ import { generateSovereigntyReport, verifySovereigntyReport, renderSovereigntyRe
 import type { SovereigntyReport } from '../../../core/reporting/sovereignty-report.js';
 
 // Model download imports
-import { getModelsForTier, getEmbeddingModel, getRecommendedReasoningModel, getModelById, MODEL_CATALOG, BITNET_MODEL_CATALOG, getRecommendedBitNetModel, getBitNetModelsForTier, getAnyModelById, getFastTierModel } from '../../../core/llm/model-registry.js';
+import { getModelsForTier, getEmbeddingModel, getRecommendedReasoningModel, getModelById, MODEL_CATALOG, BITNET_MODEL_CATALOG, getRecommendedBitNetModel, getBitNetModelsForTier, getAnyModelById, getFastTierModel, getRecommendedVisionModel } from '../../../core/llm/model-registry.js';
 import type { ModelRegistryEntry } from '../../../core/llm/model-registry.js';
 import { getModelsDir, getModelPath, isModelDownloaded, getModelFileSize, getBitNetModelsDir, getBitNetModelPath, isBitNetModelDownloaded, listDownloadedBitNetModels } from '../../../core/llm/model-storage.js';
 import { WHISPER_MODELS } from '../../../core/voice/whisper-model-manager.js';
@@ -499,6 +499,23 @@ const nativeRuntimeBridge: NativeRuntimeBridge = {
     };
   },
 
+  async loadVisionModel(modelPath: string, mmProjPath: string) {
+    await sendCallback('native_load_model', { model_path: modelPath, model_type: 'vision', mmproj_path: mmProjPath });
+  },
+
+  async generateVision(params: { prompt: string; imagePath: string; maxTokens?: number }) {
+    const result = await sendCallback('native_generate_vision', {
+      prompt: params.prompt,
+      image_path: params.imagePath,
+      max_tokens: params.maxTokens ?? 512,
+    }) as { text: string; tokens_generated: number; duration_ms: number };
+    return {
+      text: result.text,
+      tokensGenerated: result.tokens_generated,
+      durationMs: result.duration_ms,
+    };
+  },
+
   async unloadModel() {
     // NativeRuntime doesn't have explicit unload yet — no-op
   },
@@ -512,7 +529,7 @@ const nativeRuntimeBridge: NativeRuntimeBridge = {
       reasoning_model: string | null;
       embedding_model: string | null;
     } | null;
-    if (!result) return { status: 'uninitialized' as const, reasoningModel: null, embeddingModel: null, fastModel: null };
+    if (!result) return { status: 'uninitialized' as const, reasoningModel: null, embeddingModel: null, fastModel: null, visionModel: null };
     const statusStr = result.status?.toLowerCase() ?? '';
     let status: 'uninitialized' | 'loading' | 'ready' | 'error' = 'uninitialized';
     if (statusStr.includes('ready')) status = 'ready';
@@ -523,6 +540,7 @@ const nativeRuntimeBridge: NativeRuntimeBridge = {
       reasoningModel: result.reasoning_model ?? null,
       embeddingModel: result.embedding_model ?? null,
       fastModel: (result as Record<string, unknown>).fast_model as string | null ?? null,
+      visionModel: (result as Record<string, unknown>).vision_model as string | null ?? null,
     };
   },
 
@@ -1128,6 +1146,31 @@ async function handleInitialize(): Promise<unknown> {
     }
   } catch {
     // getFastTierModel() may throw if no fast model in catalog — skip silently
+  }
+
+  // ── Step 3c: Load vision model (Moondream2) if available on disk ─────────
+  try {
+    const visionModel = getRecommendedVisionModel('standard');
+    if (visionModel && visionModel.mmProjectorFilename) {
+      const mmProjId = visionModel.id + '-mmproj';
+      if (isModelDownloaded(visionModel.id, modelsBaseDir) && isModelDownloaded(mmProjId, modelsBaseDir)) {
+        const visionPath = getModelPath(visionModel.id, modelsBaseDir);
+        const mmProjPath = getModelPath(mmProjId, modelsBaseDir);
+        try {
+          await sendCallback('native_load_model', {
+            model_path: visionPath,
+            model_type: 'vision',
+            mmproj_path: mmProjPath,
+          });
+          console.error(`[sidecar] Vision model "${visionModel.id}" loaded at startup`);
+          wireVisionProvider(visionModel.id);
+        } catch (err) {
+          console.error(`[sidecar] Vision model load failed at startup:`, err);
+        }
+      }
+    }
+  } catch {
+    // Vision model load is optional
   }
 
   // ── BitNet Fallback Activation ──────────────────────────────────────────────
@@ -3667,6 +3710,27 @@ function wireFastProvider(fastModelId: string): void {
   }
 }
 
+// Wire VisionProvider (Moondream2) into InferenceRouter after model loads
+function wireVisionProvider(visionModelId: string): void {
+  if (!core) return;
+  try {
+    const router = core.llm as { setVisionProvider?: (provider: unknown, fastModel: string, richModel?: string) => void };
+    if (router.setVisionProvider) {
+      // The VisionProvider needs the bridge for actual inference
+      // For now, register as a marker — the router will use it for routing decisions
+      const { FastNativeProvider } = require('../../../core/llm/fast-native-provider.js') as { FastNativeProvider: new (config: { bridge: typeof nativeRuntimeBridge; modelName: string }) => import('../../../core/llm/types.js').LLMProvider };
+      const visionAsProvider = new FastNativeProvider({
+        bridge: nativeRuntimeBridge,
+        modelName: visionModelId,
+      });
+      router.setVisionProvider(visionAsProvider, visionModelId);
+      console.error(`[sidecar] Vision provider wired into InferenceRouter (${visionModelId})`);
+    }
+  } catch (err) {
+    console.error('[sidecar] Failed to wire vision provider:', (err as Error).message);
+  }
+}
+
 async function handleStartModelDownloads(params: { tier: string }): Promise<unknown> {
   const tier = (params.tier || 'standard') as HardwareProfileTier;
   const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
@@ -3807,6 +3871,64 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
     }
   } catch {
     // Fast tier is optional — if getFastTierModel() throws, skip silently
+  }
+
+  // ── 4. Vision tier (Moondream2 — model GGUF + mmproj GGUF) ──
+  try {
+    const visionModel = getRecommendedVisionModel(tier);
+    if (visionModel && visionModel.mmProjectorFilename) {
+      const visionPath = getModelPath(visionModel.id, baseDir);
+      const mmProjId = visionModel.id + '-mmproj';
+      const mmProjPath = getModelPath(mmProjId, baseDir);
+
+      // Download main model if needed
+      if (!isModelDownloaded(visionModel.id, baseDir)) {
+        downloadHfFile(visionModel, visionPath, visionModel.id, visionModel.displayName)
+          .catch(err => console.error('[sidecar] Vision model download failed:', err));
+        results.push({ modelId: visionModel.id, status: 'started' });
+      } else {
+        results.push({ modelId: visionModel.id, status: 'already_downloaded' });
+      }
+
+      // Download mmproj file (separate GGUF from same HF repo)
+      if (!isModelDownloaded(mmProjId, baseDir)) {
+        const mmProjEntry = {
+          ...visionModel,
+          id: mmProjId,
+          hfFilename: visionModel.mmProjectorFilename!,
+          fileSizeBytes: visionModel.mmProjectorSizeBytes ?? 310_000_000,
+          displayName: `${visionModel.displayName} Projector`,
+        };
+        downloadHfFile(mmProjEntry, mmProjPath, mmProjId, mmProjEntry.displayName)
+          .then(() => {
+            // Both files ready — load vision model
+            if (isModelDownloaded(visionModel.id, baseDir)) {
+              sendCallback('native_load_model', {
+                model_path: visionPath,
+                model_type: 'vision',
+                mmproj_path: mmProjPath,
+              }).then(() => {
+                console.error(`[sidecar] Vision tier "${visionModel.id}" loaded after download`);
+                wireVisionProvider(visionModel.id);
+              }).catch(err => console.error('[sidecar] Vision load failed:', err));
+            }
+          })
+          .catch(err => console.error('[sidecar] Vision mmproj download failed:', err));
+        results.push({ modelId: mmProjId, status: 'started' });
+      } else if (isModelDownloaded(visionModel.id, baseDir)) {
+        // Both already on disk — load now
+        sendCallback('native_load_model', {
+          model_path: visionPath,
+          model_type: 'vision',
+          mmproj_path: mmProjPath,
+        }).then(() => {
+          console.error(`[sidecar] Vision tier "${visionModel.id}" loaded (already downloaded)`);
+          wireVisionProvider(visionModel.id);
+        }).catch(err => console.error('[sidecar] Vision load failed:', err));
+      }
+    }
+  } catch {
+    // Vision tier is optional
   }
 
   return { started: results };
