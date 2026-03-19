@@ -1501,7 +1501,32 @@ async function handleInitialize(): Promise<unknown> {
           }
         });
 
-        console.error('[sidecar] Orchestrator event subscriptions wired (6 handlers)');
+        // File system changes: incremental re-indexing
+        eventBus.subscribe(['file.created', 'file.modified'], async (event) => {
+          const payload = event.payload as { path: string; watchedDirectory?: string };
+          if (!payload.path || !core?.knowledge) return;
+          try {
+            const { readFileContent } = await import('../../../core/knowledge/file-scanner.js');
+            const content = await readFileContent(payload.path);
+            await core.knowledge.indexDocument({
+              content: content.content,
+              title: content.title,
+              source: 'local_file' as import('../../../core/knowledge/types.js').DocumentSource,
+              metadata: {
+                filePath: payload.path,
+                mimeType: content.mimeType,
+                watchedDirectory: payload.watchedDirectory,
+                indexedAt: new Date().toISOString(),
+                reindexed: event.type === 'file.modified',
+              },
+            });
+            console.error(`[sidecar] Auto-indexed ${event.type === 'file.modified' ? 'modified' : 'new'} file: ${payload.path}`);
+          } catch (err) {
+            console.error(`[sidecar] Auto-index failed for ${payload.path}:`, (err as Error).message);
+          }
+        });
+
+        console.error('[sidecar] Orchestrator event subscriptions wired (8 handlers)');
       } catch (subErr) {
         console.error('[sidecar] Event subscription wiring failed:', subErr);
       }
@@ -9028,6 +9053,162 @@ async function handleRequest(req: Request): Promise<void> {
           // Remote search via tunnel would go here when tunnel is available
           respond(id, { results: localResults, deviceCount: 1, source: 'local_only' });
         } catch (sfErr) { respondError(id, (sfErr as Error).message); }
+        break;
+      }
+
+      // ─── Cron Job Action Handlers ──────────────────────────────────────
+
+      case 'digest.generate': {
+        // Morning brief — generate and push to canvas
+        if (!morningBriefGenerator && prefsDb && core) {
+          try {
+            if (!calendarIndexer) {
+              calendarIndexer = new CalendarIndexer({
+                db: prefsDb, knowledge: core.knowledge, llm: core.llm,
+                eventBus: eventBus ?? undefined,
+              });
+              calendarIndexer.onEvent((event, data) => emit(event, data));
+            }
+            morningBriefGenerator = new MorningBriefGenerator({
+              db: prefsDb, calendarIndexer,
+              contactStore: contactStore ?? undefined,
+              relationshipAnalyzer: relationshipAnalyzer ?? undefined,
+              weatherService: weatherService ?? undefined,
+              proactiveEngine: proactiveEngine ?? undefined,
+              semanticSearch: core.knowledge?.semanticSearch ?? undefined,
+              intentManager: intentManager ?? undefined,
+              alterEgoStore: alterEgoStore ?? undefined,
+              recurringDetector: ipAdapters.recurringDetector ?? undefined,
+              llm: core.llm, model: core.model ?? undefined,
+            });
+          } catch { /* init failed — morningBriefGenerator stays null */ }
+        }
+        if (morningBriefGenerator) {
+          try {
+            const brief = await morningBriefGenerator.generateBrief();
+            if (canvasManager) {
+              canvasManager.push({ componentType: 'morning_brief' as any, data: { brief }, replace: true, title: 'Morning Brief' });
+              emit('canvas:update', canvasManager.getCurrentPayload());
+            }
+            emit('semblance://morning-brief', brief);
+            respond(id, brief);
+          } catch (err) { respondError(id, (err as Error).message); }
+        } else {
+          respond(id, { skipped: true, reason: 'MorningBriefGenerator not initialized' });
+        }
+        break;
+      }
+
+      case 'email.scan_follow_ups': {
+        try {
+          if (commitmentTracker) await commitmentTracker.detectCommitments();
+          if (proactiveEngine) await proactiveEngine.run();
+          respond(id, { success: true });
+        } catch (err) { respondError(id, (err as Error).message); }
+        break;
+      }
+
+      case 'finance.audit_subscriptions': {
+        try {
+          const detector = ipAdapters.recurringDetector;
+          if (detector) {
+            const charges = detector.getStoredCharges();
+            respond(id, { chargeCount: charges.length });
+          } else {
+            respond(id, { skipped: true, reason: 'RecurringDetector not loaded (requires DR)' });
+          }
+        } catch (err) { respondError(id, (err as Error).message); }
+        break;
+      }
+
+      case 'knowledge.maintenance': {
+        try {
+          // 1. Run preference detectors
+          if (preferenceGraph && prefsDb) {
+            const { runAllPreferenceDetectors } = await import('../../../core/agent/preference-detectors.js');
+            const signals = runAllPreferenceDetectors({
+              db: prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
+            });
+            for (const signal of signals) {
+              preferenceGraph.recordSignal(signal);
+            }
+          }
+          // 2. Run pattern shift detection
+          if (patternShiftDetector) patternShiftDetector.detectShifts();
+          respond(id, { success: true });
+        } catch (err) { respondError(id, (err as Error).message); }
+        break;
+      }
+
+      case 'license.scan_inbox': {
+        try {
+          if (prefsDb && premiumGate) {
+            let recentEmails: Array<{ message_id: string; snippet: string }> = [];
+            try {
+              recentEmails = prefsDb.prepare(
+                "SELECT message_id, snippet FROM indexed_emails WHERE received_at > datetime('now', '-1 day') LIMIT 100"
+              ).all() as Array<{ message_id: string; snippet: string }>;
+            } catch { /* table may not exist */ }
+            let found = false;
+            for (const email of recentEmails) {
+              const key = extractLicenseKey(email.snippet);
+              if (key) {
+                const result = premiumGate.activateLicense(key);
+                if (result.success) {
+                  console.error(`[sidecar] Cron license scan: auto-activated key from email ${email.message_id}`);
+                  emit('license-activated', result);
+                  found = true;
+                  break;
+                }
+              }
+            }
+            respond(id, { scanned: recentEmails.length, activated: found });
+          } else {
+            respond(id, { skipped: true, reason: 'PremiumGate not initialized' });
+          }
+        } catch (err) { respondError(id, (err as Error).message); }
+        break;
+      }
+
+      case 'network.sync_knowledge_delta': {
+        try {
+          if (tunnelKGSync) {
+            const syncStatus = tunnelKGSync.getSyncStatus();
+            respond(id, syncStatus);
+          } else {
+            respond(id, { skipped: true, reason: 'TunnelKGSync not initialized' });
+          }
+        } catch (err) { respondError(id, (err as Error).message); }
+        break;
+      }
+
+      case 'digest.preload': {
+        try {
+          if (speculativeLoader) {
+            await speculativeLoader.runPreloadPass({
+              getUpcomingMeetings: () => {
+                if (!calendarIndexer) return [];
+                try {
+                  const events = calendarIndexer.getUpcomingEvents({ daysAhead: 1, limit: 5 });
+                  return events.map((e: { uid: string; title: string; startTime: string; attendees?: string }) => ({
+                    eventId: e.uid, title: e.title, startTime: e.startTime,
+                    attendees: JSON.parse(e.attendees || '[]'),
+                  }));
+                } catch { return []; }
+              },
+              assembleMeetingBrief: async () => ({}),
+              assembleMorningBrief: async () => {
+                if (!morningBriefGenerator) return {};
+                try { return await morningBriefGenerator.generateBrief(); } catch { return {}; }
+              },
+              getHighRelationshipSenders: () => [],
+              assembleRelationshipContext: async () => ({}),
+            });
+            respond(id, { success: true });
+          } else {
+            respond(id, { skipped: true, reason: 'SpeculativeLoader not initialized' });
+          }
+        } catch (err) { respondError(id, (err as Error).message); }
         break;
       }
 
