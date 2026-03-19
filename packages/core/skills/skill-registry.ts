@@ -9,8 +9,10 @@
 
 import type { DatabaseHandle } from '../platform/types.js';
 import { nanoid } from 'nanoid';
-import type { SkillDeclaration, SkillCapability } from './skill-declaration.js';
+import type { SkillDeclaration, SkillCapability, SkillToolDeclaration } from './skill-declaration.js';
 import { validateSkillDeclaration, ALL_CAPABILITIES, CAPABILITY_DESCRIPTIONS } from './skill-declaration.js';
+import type { ExtensionTool, ToolHandler } from '../extensions/types.js';
+import type { ToolDefinition } from '../llm/types.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -116,8 +118,9 @@ export class SkillRegistry {
 
   /**
    * Load all enabled installed skills at daemon startup.
+   * If an orchestrator with registerTools() is provided, skill tools are registered for inference.
    */
-  async loadAll(_orchestrator: unknown): Promise<void> {
+  async loadAll(orchestrator?: { registerTools?: (tools: ExtensionTool[]) => void } | null): Promise<void> {
     const skills = this.list().filter(s => s.enabled);
     for (const skill of skills) {
       try {
@@ -134,6 +137,15 @@ export class SkillRegistry {
           loadedAt: new Date().toISOString(),
         });
 
+        // Extract and register tools with the orchestrator
+        if (orchestrator?.registerTools) {
+          const tools = this.extractTools(skill.declaration, mod);
+          if (tools.length > 0) {
+            orchestrator.registerTools(tools);
+            console.error(`[SkillRegistry] Registered ${tools.length} tools from skill: ${skill.declaration.name}`);
+          }
+        }
+
         // Update loaded_at
         this.db.prepare('UPDATE installed_skills SET loaded_at = ? WHERE skill_id = ?')
           .run(new Date().toISOString(), skill.declaration.id);
@@ -143,6 +155,38 @@ export class SkillRegistry {
         console.error(`[SkillRegistry] Failed to load skill ${skill.declaration.id}:`, err);
       }
     }
+  }
+
+  /**
+   * Extract ExtensionTool[] from a loaded skill module using its declaration.
+   * The module should export handler functions matching the tool names in the declaration.
+   */
+  private extractTools(declaration: SkillDeclaration, mod: Record<string, unknown>): ExtensionTool[] {
+    const tools: ExtensionTool[] = [];
+    const modDefault = mod['default'] as Record<string, unknown> | undefined;
+    const handlers = ((modDefault?.['tools'] ?? mod['tools'] ?? {}) as Record<string, ToolHandler>);
+
+    for (const toolDecl of declaration.tools) {
+      const handler = handlers[toolDecl.name];
+      if (typeof handler !== 'function') {
+        console.error(`[SkillRegistry] Skill '${declaration.id}' missing handler for tool '${toolDecl.name}'`);
+        continue;
+      }
+
+      const definition: ToolDefinition = {
+        name: `${declaration.id}:${toolDecl.name}`,
+        description: toolDecl.description,
+        parameters: toolDecl.parameters,
+      };
+
+      tools.push({
+        definition,
+        handler,
+        isLocal: true,
+      });
+    }
+
+    return tools;
   }
 
   /**
