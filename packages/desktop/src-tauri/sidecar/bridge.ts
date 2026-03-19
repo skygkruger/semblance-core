@@ -5918,6 +5918,14 @@ async function handleRequest(req: Request): Promise<void> {
             morningBriefGenerator = new MorningBriefGenerator({
               db: prefsDb,
               calendarIndexer,
+              contactStore: contactStore ?? undefined,
+              relationshipAnalyzer: relationshipAnalyzer ?? undefined,
+              weatherService: weatherService ?? undefined,
+              proactiveEngine: proactiveEngine ?? undefined,
+              semanticSearch: core.knowledge?.semanticSearch ?? undefined,
+              intentManager: intentManager ?? undefined,
+              alterEgoStore: alterEgoStore ?? undefined,
+              recurringDetector: ipAdapters.recurringDetector ?? undefined,
               llm: core.llm,
               model: core.model ?? undefined,
             });
@@ -6743,8 +6751,12 @@ async function handleRequest(req: Request): Promise<void> {
                 autonomy,
               });
               proactiveEngine.onEvent((event, data) => emit(event, data));
-              // Run once to generate initial insights
+              // Run once to generate initial insights, then start periodic background scans
               await proactiveEngine.run();
+              if (typeof proactiveEngine.startPeriodicRun === 'function') {
+                proactiveEngine.startPeriodicRun();
+                console.error('[sidecar] ProactiveEngine periodic run started (15min interval)');
+              }
               const insights = proactiveEngine.getActiveInsights();
               respond(id, insights.map(i => ({
                 id: i.id,
