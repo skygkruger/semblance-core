@@ -1249,7 +1249,20 @@ async function handleInitialize(): Promise<unknown> {
 
     // Cron Scheduler (with event bus)
     cronScheduler = new CronScheduler(undefined, eventBus);
-    console.error('[sidecar] CronScheduler initialized with event bus');
+    // Wire the fire handler — cron jobs route through the standard IPC dispatch pipeline
+    cronScheduler.setFireHandler(async (job) => {
+      console.error(`[sidecar] CronScheduler firing job: ${job.id} (${job.name})`);
+      try {
+        // Synthesize an internal request — uses the same handleRequest dispatch as user-initiated IPC
+        await handleRequest({ id: `cron_${job.id}_${Date.now()}`, method: job.actionType, params: job.payload ?? {} });
+        console.error(`[sidecar] Cron job ${job.id} completed`);
+      } catch (err) {
+        console.error(`[sidecar] Cron job ${job.id} failed:`, (err as Error).message);
+      }
+    });
+    // Start the tick loop — checks every 60 seconds for due jobs
+    cronScheduler.startTickLoop();
+    console.error('[sidecar] CronScheduler initialized + tick loop started');
 
     // Daemon Manager (with event bus + wake detection)
     daemonManager = new DaemonManager({ eventBus });
@@ -2454,6 +2467,7 @@ async function handleEmailStartIndex(
       db: prefsDb,
       knowledge: core.knowledge,
       llm: core.llm,
+      eventBus: eventBus ?? undefined,
     });
     emailIndexer.onEvent((event, data) => emit(event, data));
   }
@@ -2520,6 +2534,7 @@ async function handleCalendarStartIndex(
       db: prefsDb,
       knowledge: core.knowledge,
       llm: core.llm,
+      eventBus: eventBus ?? undefined,
     });
     calendarIndexer.onEvent((event, data) => emit(event, data));
   }
@@ -4444,6 +4459,7 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
             db: prefsDb!,
             knowledge: core!.knowledge,
             llm: core!.llm,
+            eventBus: eventBus ?? undefined,
           });
           emailIndexer.onEvent((event, data) => emit(event, data));
         }
@@ -4546,6 +4562,7 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
             db: prefsDb!,
             knowledge: core!.knowledge,
             llm: core!.llm,
+            eventBus: eventBus ?? undefined,
           });
           calendarIndexer.onEvent((event, data) => emit(event, data));
         }
@@ -5912,6 +5929,7 @@ async function handleRequest(req: Request): Promise<void> {
                 db: prefsDb,
                 knowledge: core.knowledge,
                 llm: core.llm,
+                eventBus: eventBus ?? undefined,
               });
               calendarIndexer.onEvent((event, data) => emit(event, data));
             }
@@ -6562,6 +6580,7 @@ async function handleRequest(req: Request): Promise<void> {
               db: prefsDb,
               knowledge: core.knowledge,
               llm: core.llm,
+              eventBus: eventBus ?? undefined,
             });
             emailIndexer.onEvent((event, data) => emit(event, data));
             const results = emailIndexer.searchEmails(searchParams.query, {
@@ -6698,6 +6717,7 @@ async function handleRequest(req: Request): Promise<void> {
               db: prefsDb,
               knowledge: core.knowledge,
               llm: core.llm,
+              eventBus: eventBus ?? undefined,
             });
             emailIndexer.onEvent((event, data) => emit(event, data));
             const indexed = emailIndexer.getIndexedEmails({
@@ -6805,6 +6825,7 @@ async function handleRequest(req: Request): Promise<void> {
               db: prefsDb,
               knowledge: core.knowledge,
               llm: core.llm,
+              eventBus: eventBus ?? undefined,
             });
             calendarIndexer.onEvent((event, data) => emit(event, data));
             const events = calendarIndexer.getUpcomingEvents({ daysAhead: 1, limit: 20 });
