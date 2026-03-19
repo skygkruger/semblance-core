@@ -102,8 +102,9 @@ export class VisionProvider implements LLMProvider {
     if (!model) throw new Error(`Vision ${tier} tier not configured`);
     if (model.loaded) return;
 
-    // In production: bridge.loadVisionModel(model.modelPath, model.mmProjectorPath)
-    // For now, mark as loaded — actual bridge wiring happens when Tauri vision_generate command exists
+    if (this.bridge?.loadVisionModel) {
+      await this.bridge.loadVisionModel(model.modelPath, model.mmProjectorPath);
+    }
     model.loaded = true;
     console.log(`[VisionProvider] ${tier} tier loaded: ${model.modelId}`);
   }
@@ -135,9 +136,23 @@ export class VisionProvider implements LLMProvider {
 
     const startMs = Date.now();
 
-    // Bridge to llama.cpp multimodal inference
-    // In production: bridge.visionGenerate({ modelPath, mmProjectorPath, imagePath/imageBase64, prompt })
-    // For now: return a structured placeholder that the Tauri command will replace
+    // Route through the real vision pipeline: CLIP encode → llava embed injection → text generation
+    if (this.bridge?.generateVision && request.imagePath) {
+      const result = await this.bridge.generateVision({
+        prompt: request.prompt,
+        imagePath: request.imagePath,
+        maxTokens: request.maxTokens ?? 512,
+      });
+
+      return {
+        text: result.text,
+        modelUsed: model.modelId,
+        tokensUsed: result.tokensGenerated,
+        processingMs: Date.now() - startMs,
+      };
+    }
+
+    // Fallback: text-only generation (no image path, or bridge lacks vision support)
     if (this.bridge) {
       const result = await this.bridge.generate({
         prompt: request.prompt,
