@@ -998,13 +998,17 @@ export class OrchestratorImpl implements Orchestrator {
       const messages = this.buildMessages(message, context, history, documentChunks, isConversational);
       const tools = isConversational ? undefined : this.allTools;
 
-      let response = await this.llm.chat({
+      // For conversational (no-tool) messages, use fast tier if available via routedChat
+      const chatRequest = {
         model: this.model,
         messages,
         tools,
         temperature: 0.7,
         maxTokens: 1024,
-      });
+      };
+      let response = (isConversational && this.llm.routedChat)
+        ? await this.llm.routedChat(chatRequest, 'classify')
+        : await this.llm.chat(chatRequest);
       if (response.tokensUsed) {
         this.lastLlmTokens = { prompt: response.tokensUsed.prompt, completion: response.tokensUsed.completion };
       }

@@ -83,6 +83,8 @@ pub struct NativeRuntime {
     reasoning_model_path: Option<PathBuf>,
     embedding_model: Option<LlamaModel>,
     embedding_model_path: Option<PathBuf>,
+    fast_model: Option<LlamaModel>,
+    fast_model_path: Option<PathBuf>,
 }
 
 #[allow(dead_code)] // Public API — callers wired in Step 2 (BitNetProvider)
@@ -108,6 +110,8 @@ impl NativeRuntime {
             reasoning_model_path: None,
             embedding_model: None,
             embedding_model_path: None,
+            fast_model: None,
+            fast_model_path: None,
         }
     }
 
@@ -181,6 +185,50 @@ impl NativeRuntime {
             }
             Err(e) => Err(format!("Failed to load embedding model: {}", e)),
         }
+    }
+
+    /// Load a fast-tier model (SmolLM2) from a GGUF file.
+    /// Runs concurrently with reasoning model — does NOT gate overall readiness.
+    /// Blocking — model loading reads the full file from disk.
+    pub fn load_fast_model(&mut self, model_path: PathBuf) -> Result<(), String> {
+        if !model_path.exists() {
+            return Err(format!("Fast model file not found: {:?}", model_path));
+        }
+
+        let backend = self
+            .backend
+            .as_ref()
+            .ok_or("BitNet.cpp backend not initialized")?;
+
+        let model_params = LlamaModelParams::default().with_n_gpu_layers(0);
+
+        match LlamaModel::load_from_file(backend, &model_path, &model_params) {
+            Ok(model) => {
+                eprintln!(
+                    "[NativeRuntime] Fast model loaded: {:?} ({} params, embd={})",
+                    model_path,
+                    model.n_params(),
+                    model.n_embd()
+                );
+                self.fast_model = Some(model);
+                self.fast_model_path = Some(model_path);
+                Ok(())
+            }
+            Err(e) => Err(format!("Failed to load fast model: {}", e)),
+        }
+    }
+
+    pub fn has_fast_model(&self) -> bool {
+        self.fast_model.is_some()
+    }
+
+    pub fn fast_model_path(&self) -> Option<&PathBuf> {
+        self.fast_model_path.as_ref()
+    }
+
+    pub fn unload_fast_model(&mut self) {
+        self.fast_model = None;
+        self.fast_model_path = None;
     }
 
     // File-based logging — eprintln goes nowhere on Windows GUI apps
@@ -398,6 +446,132 @@ impl NativeRuntime {
 
         let duration_ms = start.elapsed().as_millis() as u64;
         let output = String::from_utf8_lossy(&output_bytes).into_owned();
+
+        Ok(GenerateResponse {
+            text: output,
+            tokens_generated,
+            duration_ms,
+        })
+    }
+
+    /// Generate text from a prompt using the loaded fast-tier model (SmolLM2).
+    /// Does NOT check self.status — fast model availability is independent of primary.
+    /// SmolLM2 uses ChatML template (hardcoded).
+    pub fn generate_fast(&self, request: GenerateRequest) -> Result<GenerateResponse, String> {
+        Self::log("generate_fast() entered");
+
+        let backend = self
+            .backend
+            .as_ref()
+            .ok_or("BitNet.cpp backend not initialized")?;
+        let model = self
+            .fast_model
+            .as_ref()
+            .ok_or("No fast model loaded")?;
+
+        let start = std::time::Instant::now();
+        let max_tokens = request.max_tokens.unwrap_or(256);
+        let temperature = request.temperature.unwrap_or(0.3);
+
+        // SmolLM2 uses ChatML template (always)
+        let full_prompt = match &request.system_prompt {
+            Some(sys) if !sys.is_empty() => format!(
+                "<|im_start|>system\n{}<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
+                sys, request.prompt
+            ),
+            _ => format!(
+                "<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
+                request.prompt
+            ),
+        };
+
+        let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(4096));
+        let mut ctx = model
+            .new_context(backend, ctx_params)
+            .map_err(|e| format!("Failed to create fast context: {}", e))?;
+
+        let tokens = model
+            .str_to_token(&full_prompt, AddBos::Always)
+            .map_err(|e| format!("Fast tokenization failed: {}", e))?;
+
+        if tokens.is_empty() {
+            return Err("Empty prompt after tokenization".to_string());
+        }
+
+        let n_ctx: usize = 4096;
+        let max_prompt_tokens = n_ctx.saturating_sub(max_tokens as usize);
+        let tokens = if tokens.len() > max_prompt_tokens {
+            tokens[..max_prompt_tokens].to_vec()
+        } else {
+            tokens
+        };
+
+        // Chunked prefill
+        let chunk_size: usize = 512;
+        let total_prompt_tokens = tokens.len();
+        let mut pos: i32 = 0;
+        for (chunk_idx, chunk) in tokens.chunks(chunk_size).enumerate() {
+            let is_last_chunk = (chunk_idx + 1) * chunk_size >= total_prompt_tokens;
+            let mut batch = LlamaBatch::new(chunk.len().max(512), 1);
+            for (i, token) in chunk.iter().enumerate() {
+                let is_last_token = is_last_chunk && i == chunk.len() - 1;
+                batch
+                    .add(*token, pos, &[0], is_last_token)
+                    .map_err(|e| format!("Fast batch add failed: {}", e))?;
+                pos += 1;
+            }
+            ctx.decode(&mut batch)
+                .map_err(|e| format!("Fast prefill chunk {} failed: {}", chunk_idx, e))?;
+        }
+
+        // Sampler: more deterministic for fast tier (lower temp, tighter top-p)
+        let mut sampler = LlamaSampler::chain_simple([
+            LlamaSampler::top_p(0.9, 1),
+            LlamaSampler::min_p(0.05, 1),
+            LlamaSampler::temp(temperature),
+            LlamaSampler::dist(42),
+        ]);
+
+        let mut output_bytes: Vec<u8> = Vec::new();
+        let mut n_cur = pos;
+        let mut tokens_generated = 0u32;
+        let mut gen_batch = LlamaBatch::new(1, 1);
+
+        for _ in 0..max_tokens {
+            let token = sampler.sample(&ctx, -1);
+            sampler.accept(token);
+
+            if model.is_eog_token(token) {
+                break;
+            }
+
+            let piece = model.token_to_bytes(token);
+            output_bytes.extend_from_slice(&piece);
+            tokens_generated += 1;
+
+            let output_so_far = String::from_utf8_lossy(&output_bytes);
+            if let Some(ref stops) = request.stop {
+                if let Some(stop) = stops.iter().find(|s| output_so_far.ends_with(s.as_str())) {
+                    let stop_len = stop.len();
+                    let output_str_len = output_so_far.len();
+                    output_bytes.truncate(output_str_len - stop_len);
+                    break;
+                }
+            }
+
+            gen_batch.clear();
+            gen_batch
+                .add(token, n_cur, &[0], true)
+                .map_err(|e| format!("Fast decode failed: {}", e))?;
+            ctx.decode(&mut gen_batch)
+                .map_err(|e| format!("Fast decode failed: {}", e))?;
+            n_cur += 1;
+        }
+
+        let duration_ms = start.elapsed().as_millis() as u64;
+        let output = String::from_utf8_lossy(&output_bytes).into_owned();
+
+        Self::log(&format!("generate_fast: {} tokens in {}ms", tokens_generated, duration_ms));
 
         Ok(GenerateResponse {
             text: output,

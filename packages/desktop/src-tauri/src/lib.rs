@@ -1431,6 +1431,8 @@ async fn dispatch_native_callback(
             let mut rt = runtime.lock().await;
             if model_type == "embedding" {
                 rt.load_embedding_model(path)?;
+            } else if model_type == "fast" {
+                rt.load_fast_model(path)?;
             } else {
                 rt.load_reasoning_model(path)?;
             }
@@ -1448,7 +1450,25 @@ async fn dispatch_native_callback(
                 "status": status_str,
                 "reasoning_model": rt.reasoning_model_path().map(|p| p.display().to_string()),
                 "embedding_model": rt.embedding_model_path().map(|p| p.display().to_string()),
+                "fast_model": rt.fast_model_path().map(|p| p.display().to_string()),
             }))
+        }
+        "native_generate_fast" => {
+            log_to_file("native_generate_fast: parsing request...");
+            let request: native_runtime::GenerateRequest =
+                serde_json::from_value(params).map_err(|e| format!("Invalid generate params: {}", e))?;
+            let rt = runtime.lock().await;
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                rt.generate_fast(request)
+            }));
+            match result {
+                Ok(Ok(response)) => {
+                    log_to_file(&format!("native_generate_fast: {} tokens in {}ms", response.tokens_generated, response.duration_ms));
+                    serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+                }
+                Ok(Err(e)) => Err(format!("Fast generate error: {}", e)),
+                Err(_) => Err("Fast runtime panicked".to_string()),
+            }
         }
         _ => Err(format!("Unknown native callback method: {}", method)),
     }

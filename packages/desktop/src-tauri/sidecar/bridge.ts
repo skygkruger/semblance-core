@@ -151,7 +151,7 @@ import { generateSovereigntyReport, verifySovereigntyReport, renderSovereigntyRe
 import type { SovereigntyReport } from '../../../core/reporting/sovereignty-report.js';
 
 // Model download imports
-import { getModelsForTier, getEmbeddingModel, getRecommendedReasoningModel, getModelById, MODEL_CATALOG, BITNET_MODEL_CATALOG, getRecommendedBitNetModel, getBitNetModelsForTier, getAnyModelById } from '../../../core/llm/model-registry.js';
+import { getModelsForTier, getEmbeddingModel, getRecommendedReasoningModel, getModelById, MODEL_CATALOG, BITNET_MODEL_CATALOG, getRecommendedBitNetModel, getBitNetModelsForTier, getAnyModelById, getFastTierModel } from '../../../core/llm/model-registry.js';
 import type { ModelRegistryEntry } from '../../../core/llm/model-registry.js';
 import { getModelsDir, getModelPath, isModelDownloaded, getModelFileSize, getBitNetModelsDir, getBitNetModelPath, isBitNetModelDownloaded, listDownloadedBitNetModels } from '../../../core/llm/model-storage.js';
 import { WHISPER_MODELS } from '../../../core/voice/whisper-model-manager.js';
@@ -480,6 +480,25 @@ const nativeRuntimeBridge: NativeRuntimeBridge = {
     await sendCallback('native_load_model', { model_path: modelPath, model_type: 'embedding' });
   },
 
+  async loadFastModel(modelPath: string) {
+    await sendCallback('native_load_model', { model_path: modelPath, model_type: 'fast' });
+  },
+
+  async generateFast(params) {
+    const result = await sendCallback('native_generate_fast', {
+      prompt: params.prompt,
+      system_prompt: params.systemPrompt ?? '',
+      max_tokens: params.maxTokens ?? 256,
+      temperature: params.temperature ?? 0.3,
+      stop: params.stop ?? ['<|im_end|>', '<|endoftext|>'],
+    }) as { text: string; tokens_generated: number; duration_ms: number };
+    return {
+      text: result.text,
+      tokensGenerated: result.tokens_generated,
+      durationMs: result.duration_ms,
+    };
+  },
+
   async unloadModel() {
     // NativeRuntime doesn't have explicit unload yet — no-op
   },
@@ -493,7 +512,7 @@ const nativeRuntimeBridge: NativeRuntimeBridge = {
       reasoning_model: string | null;
       embedding_model: string | null;
     } | null;
-    if (!result) return { status: 'uninitialized' as const, reasoningModel: null, embeddingModel: null };
+    if (!result) return { status: 'uninitialized' as const, reasoningModel: null, embeddingModel: null, fastModel: null };
     const statusStr = result.status?.toLowerCase() ?? '';
     let status: 'uninitialized' | 'loading' | 'ready' | 'error' = 'uninitialized';
     if (statusStr.includes('ready')) status = 'ready';
@@ -503,6 +522,7 @@ const nativeRuntimeBridge: NativeRuntimeBridge = {
       status,
       reasoningModel: result.reasoning_model ?? null,
       embeddingModel: result.embedding_model ?? null,
+      fastModel: (result as Record<string, unknown>).fast_model as string | null ?? null,
     };
   },
 
@@ -1091,6 +1111,23 @@ async function handleInitialize(): Promise<unknown> {
     } catch {
       console.error('[sidecar] NativeRuntime not available');
     }
+  }
+
+  // ── Step 3b: Load fast tier model (SmolLM2) if available on disk ──────────
+  try {
+    const fastModel = getFastTierModel();
+    if (isModelDownloaded(fastModel.id, modelsBaseDir)) {
+      const fastPath = getModelPath(fastModel.id, modelsBaseDir);
+      try {
+        await sendCallback('native_load_model', { model_path: fastPath, model_type: 'fast' });
+        console.error(`[sidecar] Fast tier "${fastModel.id}" loaded at startup`);
+        wireFastProvider(fastModel.id);
+      } catch (err) {
+        console.error(`[sidecar] Fast tier load failed at startup:`, err);
+      }
+    }
+  } catch {
+    // getFastTierModel() may throw if no fast model in catalog — skip silently
   }
 
   // ── BitNet Fallback Activation ──────────────────────────────────────────────
@@ -3611,6 +3648,25 @@ async function downloadHfFile(
   }
 }
 
+// Wire FastNativeProvider into InferenceRouter after fast model is loaded
+function wireFastProvider(fastModelId: string): void {
+  if (!core) return;
+  try {
+    const { FastNativeProvider } = require('../../../core/llm/fast-native-provider.js') as { FastNativeProvider: new (config: { bridge: typeof nativeRuntimeBridge; modelName: string }) => import('../../../core/llm/types.js').LLMProvider };
+    const fastProvider = new FastNativeProvider({
+      bridge: nativeRuntimeBridge,
+      modelName: fastModelId,
+    });
+    const router = core.llm as { setFastProvider?: (provider: import('../../../core/llm/types.js').LLMProvider, model: string) => void };
+    if (router.setFastProvider) {
+      router.setFastProvider(fastProvider, fastModelId);
+      console.error(`[sidecar] Fast provider wired into InferenceRouter (${fastModelId})`);
+    }
+  } catch (err) {
+    console.error('[sidecar] Failed to wire fast provider:', (err as Error).message);
+  }
+}
+
 async function handleStartModelDownloads(params: { tier: string }): Promise<unknown> {
   const tier = (params.tier || 'standard') as HardwareProfileTier;
   const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
@@ -3722,6 +3778,35 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
       });
       results.push({ modelId: reasoningModel.id, status: 'started' });
     }
+  }
+
+  // ── 3. Fast tier (SmolLM2 1.7B — always-resident, ~1GB) ──
+  try {
+    const fastModel = getFastTierModel();
+    const fastPath = getModelPath(fastModel.id, baseDir);
+    if (isModelDownloaded(fastModel.id, baseDir)) {
+      results.push({ modelId: fastModel.id, status: 'already_downloaded' });
+      sendCallback('native_load_model', { model_path: fastPath, model_type: 'fast' })
+        .then(() => {
+          console.error(`[sidecar] Fast tier "${fastModel.id}" loaded into NativeRuntime`);
+          wireFastProvider(fastModel.id);
+        })
+        .catch((err) => console.error(`[sidecar] Fast tier load failed:`, err));
+    } else {
+      downloadHfFile(fastModel, fastPath, fastModel.id, fastModel.displayName)
+        .then(() => {
+          sendCallback('native_load_model', { model_path: fastPath, model_type: 'fast' })
+            .then(() => {
+              console.error(`[sidecar] Fast tier "${fastModel.id}" loaded after download`);
+              wireFastProvider(fastModel.id);
+            })
+            .catch((err) => console.error(`[sidecar] Fast tier load failed:`, err));
+        })
+        .catch((err) => console.error(`[sidecar] Fast tier download failed:`, err));
+      results.push({ modelId: fastModel.id, status: 'started' });
+    }
+  } catch {
+    // Fast tier is optional — if getFastTierModel() throws, skip silently
   }
 
   return { started: results };
