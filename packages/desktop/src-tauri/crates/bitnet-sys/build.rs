@@ -299,9 +299,59 @@ fn main() {
         eprintln!("[bitnet-sys] WARNING: bitnet-stubs.cpp not found at {:?}", stubs_file);
     }
 
+    // ── Compile Vision (CLIP + LLaVA) support ────────────────────────────
+    // clip.cpp provides CLIP model loading and image encoding.
+    // llava.cpp bridges CLIP embeddings into the llama context.
+    // Both expose extern "C" APIs declared in clip.h and llava.h.
+    let llava_dir = bitnet_dir
+        .join("3rdparty")
+        .join("llama.cpp")
+        .join("examples")
+        .join("llava");
+
+    let clip_cpp = llava_dir.join("clip.cpp");
+    let llava_cpp = llava_dir.join("llava.cpp");
+
+    if clip_cpp.exists() && llava_cpp.exists() {
+        let ggml_include = bitnet_dir
+            .join("3rdparty")
+            .join("llama.cpp")
+            .join("ggml")
+            .join("include");
+        let common_include = bitnet_dir
+            .join("3rdparty")
+            .join("llama.cpp")
+            .join("common");
+        // stb_image.h is in common/ — clip.cpp #defines STB_IMAGE_IMPLEMENTATION
+        let ggml_src_include = bitnet_dir
+            .join("3rdparty")
+            .join("llama.cpp")
+            .join("ggml")
+            .join("src");
+
+        cc::Build::new()
+            .cpp(true)
+            .file(&clip_cpp)
+            .file(&llava_cpp)
+            .include(&llama_include)
+            .include(&ggml_include)
+            .include(&common_include)       // stb_image.h lives here
+            .include(&ggml_src_include)     // ggml backend source headers
+            .include(&llava_dir)            // clip.h included by llava.cpp
+            .define("CLIP_STATIC", None)
+            .opt_level(2)
+            .warnings(false)               // clip.cpp has warnings we don't control
+            .compile("llava");
+        eprintln!("[bitnet-sys] Compiled clip.cpp + llava.cpp (vision support)");
+    } else {
+        eprintln!("[bitnet-sys] WARNING: clip.cpp or llava.cpp not found, vision support disabled");
+    }
+
     // Only rerun if the build script itself changes
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=../../3rdparty/bitnet-stubs.cpp");
+    println!("cargo:rerun-if-changed=../../3rdparty/BitNet/3rdparty/llama.cpp/examples/llava/clip.cpp");
+    println!("cargo:rerun-if-changed=../../3rdparty/BitNet/3rdparty/llama.cpp/examples/llava/llava.cpp");
 }
 
 /// Canonicalize a path, stripping the \\?\ prefix on Windows.

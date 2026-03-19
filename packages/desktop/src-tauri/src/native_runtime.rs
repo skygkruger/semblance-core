@@ -85,7 +85,15 @@ pub struct NativeRuntime {
     embedding_model_path: Option<PathBuf>,
     fast_model: Option<LlamaModel>,
     fast_model_path: Option<PathBuf>,
+    vision_model: Option<LlamaModel>,
+    vision_model_path: Option<PathBuf>,
+    vision_clip_ctx: Option<*mut bitnet_sys::clip_ctx>,
+    vision_mmproj_path: Option<PathBuf>,
 }
+
+// SAFETY: NativeRuntime is only accessed through a tokio::sync::Mutex, ensuring
+// exclusive access. The raw *mut clip_ctx pointer is only used while the lock is held.
+unsafe impl Send for NativeRuntime {}
 
 #[allow(dead_code)] // Public API — callers wired in Step 2 (BitNetProvider)
 impl NativeRuntime {
@@ -112,6 +120,10 @@ impl NativeRuntime {
             embedding_model_path: None,
             fast_model: None,
             fast_model_path: None,
+            vision_model: None,
+            vision_model_path: None,
+            vision_clip_ctx: None,
+            vision_mmproj_path: None,
         }
     }
 
@@ -229,6 +241,189 @@ impl NativeRuntime {
     pub fn unload_fast_model(&mut self) {
         self.fast_model = None;
         self.fast_model_path = None;
+    }
+
+    /// Load a vision model (Moondream2) and its multimodal projector.
+    /// Both the main GGUF and the mmproj GGUF must be provided.
+    pub fn load_vision_model(&mut self, model_path: PathBuf, mmproj_path: PathBuf) -> Result<(), String> {
+        if !model_path.exists() {
+            return Err(format!("Vision model file not found: {:?}", model_path));
+        }
+        if !mmproj_path.exists() {
+            return Err(format!("Vision mmproj file not found: {:?}", mmproj_path));
+        }
+
+        let backend = self.backend.as_ref().ok_or("Backend not initialized")?;
+
+        // Load the main vision model (same as any GGUF)
+        let model_params = LlamaModelParams::default().with_n_gpu_layers(0);
+        let model = LlamaModel::load_from_file(backend, &model_path, &model_params)
+            .map_err(|e| format!("Failed to load vision model: {}", e))?;
+
+        // Load the CLIP multimodal projector
+        let mmproj_cstr = std::ffi::CString::new(mmproj_path.to_string_lossy().as_bytes())
+            .map_err(|_| "Invalid mmproj path".to_string())?;
+        let clip_ctx = unsafe { bitnet_sys::clip_model_load(mmproj_cstr.as_ptr(), 0) };
+        if clip_ctx.is_null() {
+            return Err("Failed to load CLIP model from mmproj".to_string());
+        }
+
+        eprintln!(
+            "[NativeRuntime] Vision model loaded: {:?} + mmproj: {:?} (clip_embd={})",
+            model_path, mmproj_path,
+            unsafe { bitnet_sys::clip_n_mmproj_embd(clip_ctx) }
+        );
+        self.vision_model = Some(model);
+        self.vision_model_path = Some(model_path);
+        self.vision_clip_ctx = Some(clip_ctx);
+        self.vision_mmproj_path = Some(mmproj_path);
+        Ok(())
+    }
+
+    /// Generate text from an image + prompt using the vision model.
+    /// Image is processed through CLIP, embeddings injected into context,
+    /// then text generation continues with the Moondream2 chat template.
+    pub fn generate_vision(&self, prompt: String, image_path: String, max_tokens: u32) -> Result<GenerateResponse, String> {
+        let model = self.vision_model.as_ref().ok_or("No vision model loaded")?;
+        let clip_ctx = self.vision_clip_ctx.ok_or("No CLIP model loaded")?;
+        let backend = self.backend.as_ref().ok_or("Backend not initialized")?;
+
+        let start = std::time::Instant::now();
+
+        // Encode image through CLIP
+        let image_cstr = std::ffi::CString::new(image_path.as_bytes())
+            .map_err(|_| "Invalid image path".to_string())?;
+        let n_threads = std::thread::available_parallelism().map(|n| n.get() as i32).unwrap_or(4);
+
+        let image_embed = unsafe {
+            bitnet_sys::llava_image_embed_make_with_filename(clip_ctx, n_threads, image_cstr.as_ptr())
+        };
+        if image_embed.is_null() {
+            return Err("Failed to encode image through CLIP".to_string());
+        }
+
+        Self::log(&format!("generate_vision: image encoded, n_image_pos={}", unsafe { (*image_embed).n_image_pos }));
+
+        // Create context
+        let ctx_params = LlamaContextParams::default().with_n_ctx(std::num::NonZeroU32::new(4096));
+        let mut ctx = model.new_context(backend, ctx_params)
+            .map_err(|e| format!("Failed to create vision context: {}", e))?;
+
+        // Inject image embeddings into context at position 0
+        let mut n_past: i32 = 0;
+        let success = unsafe {
+            bitnet_sys::llava_eval_image_embed(
+                ctx.as_mut_ptr(),
+                image_embed,
+                512,
+                &mut n_past,
+            )
+        };
+
+        // Free image embed (no longer needed after injection)
+        unsafe { bitnet_sys::llava_image_embed_free(image_embed); }
+
+        if !success {
+            return Err("Failed to inject image embeddings into context".to_string());
+        }
+
+        Self::log(&format!("generate_vision: image embeddings injected, n_past={}", n_past));
+
+        // Tokenize the text prompt (comes after image in the context)
+        // Moondream2 uses a simple prompt format: <image>\nQuestion: {prompt}\n\nAnswer:
+        let text_prompt = format!("\nQuestion: {}\n\nAnswer:", prompt);
+        let tokens = model.str_to_token(&text_prompt, AddBos::Always)
+            .map_err(|e| format!("Vision tokenization failed: {}", e))?;
+
+        if tokens.is_empty() {
+            return Err("Empty prompt after tokenization".to_string());
+        }
+
+        // Decode text tokens after image embeddings (chunked prefill)
+        let chunk_size: usize = 512;
+        let total_prompt_tokens = tokens.len();
+        let mut pos = n_past;
+        for (chunk_idx, chunk) in tokens.chunks(chunk_size).enumerate() {
+            let is_last_chunk = (chunk_idx + 1) * chunk_size >= total_prompt_tokens;
+            let mut batch = LlamaBatch::new(chunk.len().max(512), 1);
+            for (i, token) in chunk.iter().enumerate() {
+                let is_last_token = is_last_chunk && i == chunk.len() - 1;
+                batch.add(*token, pos, &[0], is_last_token)
+                    .map_err(|e| format!("Vision batch add failed: {}", e))?;
+                pos += 1;
+            }
+            ctx.decode(&mut batch)
+                .map_err(|e| format!("Vision prefill chunk {} failed: {}", chunk_idx, e))?;
+        }
+
+        Self::log("generate_vision: text prefill complete, starting generation...");
+
+        // Sampler chain (same as generate_fast — deterministic for vision)
+        let mut sampler = LlamaSampler::chain_simple([
+            LlamaSampler::top_p(0.9, 1),
+            LlamaSampler::min_p(0.05, 1),
+            LlamaSampler::temp(0.3),
+            LlamaSampler::dist(42),
+        ]);
+
+        // Generation loop (identical to generate/generate_fast)
+        let mut output_bytes: Vec<u8> = Vec::new();
+        let mut n_cur = pos;
+        let mut tokens_generated = 0u32;
+        let mut gen_batch = LlamaBatch::new(1, 1);
+
+        for _ in 0..max_tokens {
+            let token = sampler.sample(&ctx, -1);
+            sampler.accept(token);
+
+            if model.is_eog_token(token) {
+                break;
+            }
+
+            let piece = model.token_to_bytes(token);
+            output_bytes.extend_from_slice(&piece);
+            tokens_generated += 1;
+
+            // Stop sequence check
+            let output_so_far = String::from_utf8_lossy(&output_bytes);
+            let stops = ["<|endoftext|>", "\nQuestion:"];
+            if let Some(stop) = stops.iter().find(|s| output_so_far.ends_with(*s)) {
+                let stop_len = stop.len();
+                let output_str_len = output_so_far.len();
+                output_bytes.truncate(output_str_len - stop_len);
+                break;
+            }
+
+            gen_batch.clear();
+            gen_batch.add(token, n_cur, &[0], true)
+                .map_err(|e| format!("Vision decode failed: {}", e))?;
+            ctx.decode(&mut gen_batch)
+                .map_err(|e| format!("Vision decode failed: {}", e))?;
+            n_cur += 1;
+        }
+
+        let duration_ms = start.elapsed().as_millis() as u64;
+        let output = String::from_utf8_lossy(&output_bytes).into_owned();
+
+        Self::log(&format!("generate_vision: {} tokens in {}ms", tokens_generated, duration_ms));
+
+        Ok(GenerateResponse {
+            text: output,
+            tokens_generated,
+            duration_ms,
+        })
+    }
+
+    pub fn has_vision_model(&self) -> bool { self.vision_model.is_some() }
+    pub fn vision_model_path(&self) -> Option<&PathBuf> { self.vision_model_path.as_ref() }
+
+    pub fn unload_vision_model(&mut self) {
+        self.vision_model = None;
+        self.vision_model_path = None;
+        if let Some(ctx) = self.vision_clip_ctx.take() {
+            unsafe { bitnet_sys::clip_free(ctx); }
+        }
+        self.vision_mmproj_path = None;
     }
 
     // File-based logging — eprintln goes nowhere on Windows GUI apps

@@ -1433,6 +1433,12 @@ async fn dispatch_native_callback(
                 rt.load_embedding_model(path)?;
             } else if model_type == "fast" {
                 rt.load_fast_model(path)?;
+            } else if model_type == "vision" {
+                let mmproj_path = params
+                    .get("mmproj_path")
+                    .and_then(|v| v.as_str())
+                    .ok_or("Missing mmproj_path for vision model")?;
+                rt.load_vision_model(path, PathBuf::from(mmproj_path))?;
             } else {
                 rt.load_reasoning_model(path)?;
             }
@@ -1451,6 +1457,7 @@ async fn dispatch_native_callback(
                 "reasoning_model": rt.reasoning_model_path().map(|p| p.display().to_string()),
                 "embedding_model": rt.embedding_model_path().map(|p| p.display().to_string()),
                 "fast_model": rt.fast_model_path().map(|p| p.display().to_string()),
+                "vision_model": rt.vision_model_path().map(|p| p.display().to_string()),
             }))
         }
         "native_generate_fast" => {
@@ -1468,6 +1475,27 @@ async fn dispatch_native_callback(
                 }
                 Ok(Err(e)) => Err(format!("Fast generate error: {}", e)),
                 Err(_) => Err("Fast runtime panicked".to_string()),
+            }
+        }
+        "native_generate_vision" => {
+            log_to_file("native_generate_vision: parsing request...");
+            let prompt = params.get("prompt").and_then(|v| v.as_str())
+                .ok_or("Missing prompt")?.to_string();
+            let image_path = params.get("image_path").and_then(|v| v.as_str())
+                .ok_or("Missing image_path")?.to_string();
+            let max_tokens = params.get("max_tokens").and_then(|v| v.as_u64()).unwrap_or(512) as u32;
+
+            let rt = runtime.lock().await;
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                rt.generate_vision(prompt, image_path, max_tokens)
+            }));
+            match result {
+                Ok(Ok(response)) => {
+                    log_to_file(&format!("native_generate_vision: {} tokens in {}ms", response.tokens_generated, response.duration_ms));
+                    serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
+                }
+                Ok(Err(e)) => Err(format!("Vision generate error: {}", e)),
+                Err(_) => Err("Vision runtime panicked".to_string()),
             }
         }
         _ => Err(format!("Unknown native callback method: {}", method)),
