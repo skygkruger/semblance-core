@@ -35,6 +35,17 @@ export interface NativeRuntimeBridge {
   loadEmbeddingModel(modelPath: string): Promise<void>;
 
   /**
+   * Load a fast-tier model (SmolLM2) from a GGUF file path.
+   * Runs concurrently with reasoning model — does not gate readiness.
+   */
+  loadFastModel?(modelPath: string): Promise<void>;
+
+  /**
+   * Generate text using the fast-tier model. Used for classify/extract tasks.
+   */
+  generateFast?(params: NativeBridgeGenerateParams): Promise<NativeBridgeGenerateResult>;
+
+  /**
    * Unload the currently loaded reasoning model.
    */
   unloadModel(): Promise<void>;
@@ -78,5 +89,6 @@ export interface NativeBridgeStatus {
   status: 'uninitialized' | 'loading' | 'ready' | 'error';
   reasoningModel: string | null;
   embeddingModel: string | null;
+  fastModel: string | null;
   error?: string;
 }
