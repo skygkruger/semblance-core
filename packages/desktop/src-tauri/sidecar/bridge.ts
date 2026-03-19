@@ -3714,17 +3714,21 @@ function wireFastProvider(fastModelId: string): void {
 function wireVisionProvider(visionModelId: string): void {
   if (!core) return;
   try {
-    const router = core.llm as { setVisionProvider?: (provider: unknown, fastModel: string, richModel?: string) => void };
+    const { VisionProvider } = require('../../../core/llm/vision-provider.js') as {
+      VisionProvider: new (config: { bridge: typeof nativeRuntimeBridge }) => import('../../../core/llm/types.js').LLMProvider & {
+        configure: (tier: string, config: Record<string, string>) => void;
+        fastModel: { loaded: boolean } | null;
+      };
+    };
+    const visionProv = new VisionProvider({ bridge: nativeRuntimeBridge });
+    // Configure + mark as loaded (model is already in NativeRuntime's vision slot)
+    visionProv.configure('fast', { modelId: visionModelId, modelPath: '', mmProjectorPath: '' });
+    if (visionProv.fastModel) visionProv.fastModel.loaded = true;
+
+    const router = core.llm as { setVisionProvider?: (provider: import('../../../core/llm/types.js').LLMProvider, fastModel: string, richModel?: string) => void };
     if (router.setVisionProvider) {
-      // The VisionProvider needs the bridge for actual inference
-      // For now, register as a marker — the router will use it for routing decisions
-      const { FastNativeProvider } = require('../../../core/llm/fast-native-provider.js') as { FastNativeProvider: new (config: { bridge: typeof nativeRuntimeBridge; modelName: string }) => import('../../../core/llm/types.js').LLMProvider };
-      const visionAsProvider = new FastNativeProvider({
-        bridge: nativeRuntimeBridge,
-        modelName: visionModelId,
-      });
-      router.setVisionProvider(visionAsProvider, visionModelId);
-      console.error(`[sidecar] Vision provider wired into InferenceRouter (${visionModelId})`);
+      router.setVisionProvider(visionProv, visionModelId);
+      console.error(`[sidecar] VisionProvider wired into InferenceRouter (${visionModelId})`);
     }
   } catch (err) {
     console.error('[sidecar] Failed to wire vision provider:', (err as Error).message);
