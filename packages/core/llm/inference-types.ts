@@ -49,7 +49,7 @@ export const TASK_TIER_MAP: Record<TaskType, InferenceTier> = {
 export const TIER_FALLBACK_CHAIN: Record<InferenceTier, InferenceTier[]> = {
   quality: ['quality', 'primary', 'fast'],
   primary: ['primary', 'fast'],
-  fast: ['fast'],
+  fast: ['fast', 'primary'],
   vision: ['vision'], // No fallback — vision models are required for vision tasks
   embedding: ['embedding'], // No fallback — embedding model is required
 };

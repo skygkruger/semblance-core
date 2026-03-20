@@ -185,10 +185,24 @@ export class InferenceRouter implements LLMProvider {
   async routedChat(request: ChatRequest, taskType: TaskType): Promise<ChatResponse> {
     const tier = TASK_TIER_MAP[taskType];
     const { provider, model } = this.resolveProviderAndModel(tier, taskType);
-    return provider.chat({
-      ...request,
-      model: request.model || model,
-    });
+    try {
+      return await provider.chat({
+        ...request,
+        model: request.model || model,
+      });
+    } catch (err) {
+      // Vision failures must NOT fall back — reasoning can't process images
+      if (tier === 'vision') throw err;
+      // Non-reasoning tier failed — fall back to reasoning provider silently
+      if (tier !== 'primary' && tier !== 'quality' && tier !== 'embedding') {
+        console.error(`[InferenceRouter] ${tier} tier failed for ${taskType}, falling back to reasoning:`, (err as Error).message);
+        return this.reasoningProvider.chat({
+          ...request,
+          model: request.model || this.reasoningModel,
+        });
+      }
+      throw err;
+    }
   }
 
   /**
@@ -197,10 +211,24 @@ export class InferenceRouter implements LLMProvider {
   async routedGenerate(request: GenerateRequest, taskType: TaskType): Promise<GenerateResponse> {
     const tier = TASK_TIER_MAP[taskType];
     const { provider, model } = this.resolveProviderAndModel(tier, taskType);
-    return provider.generate({
-      ...request,
-      model: request.model || model,
-    });
+    try {
+      return await provider.generate({
+        ...request,
+        model: request.model || model,
+      });
+    } catch (err) {
+      // Vision failures must NOT fall back — reasoning can't process images
+      if (tier === 'vision') throw err;
+      // Non-reasoning tier failed — fall back to reasoning provider silently
+      if (tier !== 'primary' && tier !== 'quality' && tier !== 'embedding') {
+        console.error(`[InferenceRouter] ${tier} tier failed for ${taskType}, falling back to reasoning:`, (err as Error).message);
+        return this.reasoningProvider.generate({
+          ...request,
+          model: request.model || this.reasoningModel,
+        });
+      }
+      throw err;
+    }
   }
 
   /**
@@ -371,9 +399,14 @@ export class InferenceRouter implements LLMProvider {
       return { provider: this.mobileProvider, model: this.mobileReasoningModel ?? this.reasoningModel };
     }
 
-    // Fast tier: use dedicated fast provider if available
-    if (tier === 'fast' && this.fastProvider && this.fastModel) {
-      return { provider: this.fastProvider, model: this.fastModel };
+    // Fast tier: use dedicated fast provider if available, fall back to reasoning
+    if (tier === 'fast') {
+      if (this.fastProvider && this.fastModel) {
+        return { provider: this.fastProvider, model: this.fastModel };
+      }
+      // Fast provider unavailable — fall back to reasoning
+      console.error('[InferenceRouter] Fast tier not loaded, falling back to reasoning');
+      return { provider: this.reasoningProvider, model: this.reasoningModel };
     }
 
     // Vision tier: route to vision provider
@@ -382,6 +415,11 @@ export class InferenceRouter implements LLMProvider {
         ? this.visionRichModel
         : (this.visionFastModel ?? this.reasoningModel);
       return { provider: this.visionProvider, model };
+    }
+
+    // Vision requested but no provider loaded — don't silently fall back to text-only model
+    if (tier === 'vision' && !this.visionProvider) {
+      throw new Error('Vision model not loaded. The image cannot be analyzed until vision models finish downloading.');
     }
 
     // Embedding tier

@@ -666,8 +666,10 @@ function buildSystemPrompt(config: SystemPromptConfig, conversational?: boolean)
   const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
 
   // CONVERSATIONAL VARIANT — minimal prompt prevents fabrication on small models
+  // Keeps identity (AI name, user name, date) but strips service/knowledge/autonomy context.
   if (conversational) {
-    return `You are ${aiName}${userName ? `, and you're talking with ${userName}` : ''}. You run entirely on this device — nothing leaves it.
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    return `You are ${aiName}${userName ? `, a personal AI assistant for ${userName}` : ''}. Today is ${today}. You run entirely on this device — nothing leaves it.
 
 Be warm and direct. Don't invent facts about emails, meetings, or actions. If you don't know something, say so simply.${userName ? '' : ' Ask the user their name.'}
 
@@ -998,7 +1000,9 @@ export class OrchestratorImpl implements Orchestrator {
       const messages = this.buildMessages(message, context, history, documentChunks, isConversational);
       const tools = isConversational ? undefined : this.allTools;
 
-      // For conversational (no-tool) messages, use fast tier if available via routedChat
+      // Conversational messages go to the reasoning model (primary tier).
+      // Fast tier (SmolLM2) is for background operations: classify, extract, triage.
+      // routedChat is for when the orchestrator has a specific task type, not conversation.
       const chatRequest = {
         model: this.model,
         messages,
@@ -1006,9 +1010,7 @@ export class OrchestratorImpl implements Orchestrator {
         temperature: 0.7,
         maxTokens: 1024,
       };
-      let response = (isConversational && this.llm.routedChat)
-        ? await this.llm.routedChat(chatRequest, 'classify')
-        : await this.llm.chat(chatRequest);
+      let response = await this.llm.chat(chatRequest);
       if (response.tokensUsed) {
         this.lastLlmTokens = { prompt: response.tokensUsed.prompt, completion: response.tokensUsed.completion };
       }
