@@ -7,7 +7,7 @@
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build && node ../../scripts/bundle-sidecar.js"
+    "beforeBuildCommand": "npx tsc --build && npm run build && node ../../scripts/bundle-sidecar.js"
   },
   "app": {
     "windows": [
