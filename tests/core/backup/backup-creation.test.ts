@@ -1,11 +1,11 @@
 // Backup Creation Tests — Encrypted .sbk backup file creation.
 
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
-import { BackupManager } from '@semblance/core/backup/backup-manager.js';
-import type { BackupManagerDeps, BackupDataSection } from '@semblance/core/backup/backup-manager.js';
-import { setPlatform } from '@semblance/core/platform/index.js';
-import { createDesktopAdapter } from '@semblance/core/platform/desktop-adapter.js';
-import type { SecureStorageAdapter, DatabaseHandle } from '@semblance/core/platform/types.js';
+import { BackupManager } from '@semblance/core/backup/backup-manager';
+import type { BackupManagerDeps, BackupDataSection } from '@semblance/core/backup/backup-manager';
+import { setPlatform } from '@semblance/core/platform/index';
+import { createDesktopAdapter } from '@semblance/core/platform/desktop-adapter';
+import type { SecureStorageAdapter, DatabaseHandle } from '@semblance/core/platform/types';
 
 // In-memory secure storage for tests
 function createMockSecureStorage(): SecureStorageAdapter {
@@ -165,7 +165,7 @@ describe('Backup Creation', () => {
     const payloadJson = rest.substring(0, rest.length - 128);
 
     const manifest = JSON.parse(manifestRaw);
-    const { getPlatform } = await import('@semblance/core/platform/index.js');
+    const { getPlatform } = await import('@semblance/core/platform/index');
     const computedHash = getPlatform().crypto.sha256(payloadJson);
 
     expect(manifest.integrityHash).toBe(computedHash);

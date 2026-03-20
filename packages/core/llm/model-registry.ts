@@ -224,15 +224,15 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
 
   // Vision — Fast: Moondream2 (always available on standard+, on-demand on constrained)
   {
-    id: 'moondream2-q8_0',
+    id: 'moondream2-f16',
     displayName: 'Moondream2',
     family: 'moondream',
     parameterCount: '1.9B',
-    quantization: 'Q8_0',
-    fileSizeBytes: 1_800_000_000,
-    ramRequiredMb: 2048,
+    quantization: 'F16',
+    fileSizeBytes: 2_840_000_000,
+    ramRequiredMb: 3072,
     hfRepo: 'ggml-org/moondream2-20250414-GGUF',
-    hfFilename: 'moondream2-20250414-model-q8_0.gguf',
+    hfFilename: 'moondream2-text-model-f16_ct-vicuna.gguf',
     sha256: '',
     isEmbedding: false,
     modality: 'vision',
@@ -246,8 +246,8 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       performance: 'always',
       workstation: 'always',
     },
-    mmProjectorFilename: 'moondream2-20250414-mmproj-f16.gguf',
-    mmProjectorSizeBytes: 310_000_000,
+    mmProjectorFilename: 'moondream2-mmproj-f16-20250414.gguf',
+    mmProjectorSizeBytes: 910_000_000,
   },
 
   // Vision — Document: Qwen2.5-VL 3B (on-demand, document OCR and rich visual tasks)

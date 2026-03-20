@@ -2,15 +2,15 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { OrchestratorImpl } from '@semblance/core/agent/orchestrator.js';
-import { AutonomyManager } from '@semblance/core/agent/autonomy.js';
-import { StyleProfileStore, createEmptyProfile, type StyleProfile } from '@semblance/core/style/style-profile.js';
-import type { LLMProvider, ChatResponse, ToolCall } from '@semblance/core/llm/types.js';
-import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index.js';
-import type { IPCClient } from '@semblance/core/agent/ipc-client.js';
-import type { DatabaseHandle } from '@semblance/core/platform/types.js';
-import { ipAdapters } from '@semblance/core/extensions/ip-adapter-registry.js';
-import type { StyleAdapter } from '@semblance/core/style/style-adapter.js';
+import { OrchestratorImpl } from '@semblance/core/agent/orchestrator';
+import { AutonomyManager } from '@semblance/core/agent/autonomy';
+import { StyleProfileStore, createEmptyProfile, type StyleProfile } from '@semblance/core/style/style-profile';
+import type { LLMProvider, ChatResponse, ToolCall } from '@semblance/core/llm/types';
+import type { KnowledgeGraph, SearchResult } from '@semblance/core/knowledge/index';
+import type { IPCClient } from '@semblance/core/agent/ipc-client';
+import type { DatabaseHandle } from '@semblance/core/platform/types';
+import { ipAdapters } from '@semblance/core/extensions/ip-adapter-registry';
+import type { StyleAdapter } from '@semblance/core/style/style-adapter';
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 

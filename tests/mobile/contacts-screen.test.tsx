@@ -2,20 +2,30 @@
 // Tests for mobile ContactsScreen — renders with mocked react-native, tests logic helpers.
 
 import React from 'react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { ContactsScreen, getInitials } from '@semblance/mobile/screens/ContactsScreen';
-import { SemblanceProvider } from '@semblance/mobile/runtime/SemblanceProvider';
+
+// Mock useSemblance — SemblanceProvider requires native mobile runtime
+// which is not available in jsdom. Provide minimal mock values.
+// Mock useSemblance — SemblanceProvider requires native mobile runtime
+// which is not available in jsdom. Provide minimal mock values.
+// ContactsScreen imports from '../runtime/SemblanceProvider.js' which
+// resolves through @semblance/mobile alias + preferTsOverJs plugin.
+vi.mock('@semblance/mobile/runtime/SemblanceProvider', () => ({
+  useSemblance: () => ({
+    ready: true,
+    searchKnowledge: vi.fn(async () => []),
+    sendMessage: vi.fn(async () => ({ role: 'assistant', content: '' })),
+  }),
+  SemblanceProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 const mockNavigation = {
   navigate: () => {},
   goBack: () => {},
   setOptions: () => {},
 } as any;
-
-function Wrapper({ children }: { children: React.ReactNode }) {
-  return <SemblanceProvider>{children}</SemblanceProvider>;
-}
 
 describe('ContactsScreen (mobile)', () => {
   it('getInitials extracts initials from two-word name', () => {
@@ -31,12 +41,12 @@ describe('ContactsScreen (mobile)', () => {
   });
 
   it('renders search placeholder', () => {
-    render(<ContactsScreen navigation={mockNavigation} />, { wrapper: Wrapper });
+    render(<ContactsScreen navigation={mockNavigation} />);
     expect(screen.getByPlaceholderText('Search contacts...')).toBeInTheDocument();
   });
 
   it('renders the component without crashing', () => {
-    const { container } = render(<ContactsScreen navigation={mockNavigation} />, { wrapper: Wrapper });
+    const { container } = render(<ContactsScreen navigation={mockNavigation} />);
     expect(container.innerHTML.length).toBeGreaterThan(0);
   });
 });

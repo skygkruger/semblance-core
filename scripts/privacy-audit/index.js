@@ -86,7 +86,9 @@ const OLLAMA_ALLOWED_DIR = 'llm';
 // We allow ONLY 'node:net' — NOT http, https, tls, dgram, dns.
 const IPC_NET_ALLOWED_FILES = [
   'agent/ipc-client.ts',         // Legacy IPC client (uses dynamic import of SocketTransport)
+  'agent/ipc-client.js',         // Compiled JS variant
   'ipc/socket-transport.ts',     // SocketTransport — desktop IPC transport via Unix socket / named pipe
+  'ipc/socket-transport.js',     // Compiled JS variant
 ];
 const IPC_NET_ALLOWED_PATTERN = /\bimport\b.*['"]node:net['"]/;
 
@@ -124,7 +126,9 @@ const DYNAMIC_IMPORT_NAME = 'import() with non-literal argument — could load a
 // non-literal import() in packages/core/.
 const DYNAMIC_IMPORT_ALLOWED_FILES = [
   'extensions/loader.ts',
+  'extensions/loader.js',      // Compiled JS variant
   'skills/skill-registry.ts',  // Skill registry uses dynamic import to load installed skills
+  'skills/skill-registry.js',  // Compiled JS variant
 ];
 
 // String concatenation patterns that assemble forbidden library names.
@@ -486,7 +490,9 @@ function run() {
   const DESKTOP_FETCH_PATTERN = /\bfetch\s*\(/;
   const DESKTOP_FETCH_ALLOWLIST = new Set([
     'contexts/LicenseContext.tsx', // User-initiated Stripe portal + license worker calls
+    'contexts/LicenseContext.js',  // Compiled JS variant
     'sound/desktop-sound-engine.ts', // Decodes bundled WAV assets from Vite/Tauri asset protocol (local only)
+    'sound/desktop-sound-engine.js', // Compiled JS variant
   ]);
 
   const desktopFiles = collectFiles(DESKTOP_SRC_DIR, ['.ts', '.tsx', '.js', '.jsx']);

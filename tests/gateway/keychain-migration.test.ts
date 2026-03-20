@@ -16,7 +16,7 @@ import { MIGRATED_SENTINEL } from '@semblance/core/credentials/keychain';
 import type { KeychainStore } from '@semblance/core/credentials/keychain';
 
 // Mock the decryptPassword function
-vi.mock('@semblance/gateway/credentials/encryption.js', () => ({
+vi.mock('@semblance/gateway/credentials/encryption', () => ({
   decryptPassword: vi.fn((_key: Buffer, encrypted: string) => {
     // Simple mock: return decrypted_<encrypted>
     return `decrypted_${encrypted}`;

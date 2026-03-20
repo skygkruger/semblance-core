@@ -1,11 +1,11 @@
 // Backup Restoration Tests — Decrypt and restore .sbk backup files.
 
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
-import { BackupManager } from '@semblance/core/backup/backup-manager.js';
-import type { BackupManagerDeps, BackupDataSection } from '@semblance/core/backup/backup-manager.js';
-import { setPlatform, getPlatform } from '@semblance/core/platform/index.js';
-import { createDesktopAdapter } from '@semblance/core/platform/desktop-adapter.js';
-import type { SecureStorageAdapter, DatabaseHandle } from '@semblance/core/platform/types.js';
+import { BackupManager } from '@semblance/core/backup/backup-manager';
+import type { BackupManagerDeps, BackupDataSection } from '@semblance/core/backup/backup-manager';
+import { setPlatform, getPlatform } from '@semblance/core/platform/index';
+import { createDesktopAdapter } from '@semblance/core/platform/desktop-adapter';
+import type { SecureStorageAdapter, DatabaseHandle } from '@semblance/core/platform/types';
 
 function createMockSecureStorage(): SecureStorageAdapter {
   const store = new Map<string, string>();
