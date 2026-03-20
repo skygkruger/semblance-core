@@ -3560,13 +3560,18 @@ async function downloadHfFile(
   modelId: string,
   displayName: string,
 ): Promise<void> {
+  console.error(`[sidecar] downloadHfFile START: modelId=${modelId}, displayName=${displayName}`);
+  console.error(`[sidecar]   targetPath=${targetPath}`);
+  console.error(`[sidecar]   hfRepo=${entry.hfRepo}, hfFilename=${entry.hfFilename}`);
   const totalBytes = entry.fileSizeBytes ?? ((entry.sizeMb ?? 0) * 1024 * 1024);
+  console.error(`[sidecar]   totalBytes=${totalBytes}`);
 
   // Disk space check — verify sufficient space before downloading
   if (totalBytes > 0) {
     try {
       const { statfsSync } = await import('node:fs');
-      const stats = statfsSync(targetPath.substring(0, targetPath.lastIndexOf('/')) || targetPath.substring(0, targetPath.lastIndexOf('\\')) || '.');
+      const { dirname } = await import('node:path');
+      const stats = statfsSync(dirname(targetPath));
       const availableBytes = stats.bavail * stats.bsize;
       const requiredBytes = totalBytes + 2_000_000_000; // model + 2GB buffer
       if (availableBytes < requiredBytes) {
@@ -3574,6 +3579,7 @@ async function downloadHfFile(
         const reqMb = Math.round(requiredBytes / (1024 * 1024));
         throw new Error(`Insufficient disk space: ${availMb}MB available, ${reqMb}MB required (model + 2GB buffer)`);
       }
+      console.error(`[sidecar] downloadHfFile DISK_CHECK_PASSED: ${modelId} (${Math.round(availableBytes / (1024 * 1024 * 1024))}GB free)`);
     } catch (diskErr) {
       // statfsSync may not be available on all platforms — log and continue
       if (diskErr instanceof Error && diskErr.message.includes('Insufficient disk space')) throw diskErr;
@@ -3594,6 +3600,7 @@ async function downloadHfFile(
   emit('model-download-progress', { ...download, abortController: undefined });
 
   const url = `https://huggingface.co/${entry.hfRepo}/resolve/main/${entry.hfFilename}`;
+  console.error(`[sidecar] downloadHfFile FETCHING: ${modelId} from ${url}`);
   const { createWriteStream } = await import('node:fs');
   const { pipeline } = await import('node:stream/promises');
 
@@ -3607,6 +3614,7 @@ async function downloadHfFile(
           signal: download.abortController!.signal,
           redirect: 'follow',
         });
+        console.error(`[sidecar] downloadHfFile RESPONSE: ${modelId} status=${response?.status}, ok=${response?.ok}, hasBody=${!!response?.body}`);
         if (response.ok && response.body) break;
         const statusErr = `HTTP ${response.status}: ${response.statusText}`;
         if (response.status >= 400 && response.status < 500) {
@@ -3687,24 +3695,17 @@ async function downloadHfFile(
       console.error(`[sidecar] SHA-256 verified for "${modelId}"`);
     }
 
-    // Load the downloaded GGUF into NativeRuntime (BitNet.cpp via Rust)
-    const modelType = modelId.includes('embed') ? 'embedding' : 'reasoning';
-    try {
-      await sendCallback('native_load_model', { model_path: targetPath, model_type: modelType });
-      console.error(`[sidecar] Loaded model "${modelId}" into NativeRuntime (${modelType})`);
-      emit('native-model-loaded', { modelId, modelType, path: targetPath });
-    } catch (loadErr) {
-      console.error(`[sidecar] NativeRuntime load failed for "${modelId}":`, loadErr);
-      // Fall back to Ollama if available
-      if (core && await core.llm.isAvailable()) {
-        console.error(`[sidecar] Ollama available as fallback for "${modelId}"`);
-      }
-    }
+    // Model loading is handled by the caller (downloadAndLoad's onLoaded callback),
+    // NOT here. downloadHfFile is responsible only for downloading the file to disk.
+    // Loading vision models requires both the main GGUF + mmproj, so loading
+    // inside downloadHfFile would block the sequential chain before mmproj downloads.
 
     download.status = 'complete';
     activeDownloads.set(modelId, download);
     emit('model-download-progress', { ...download, abortController: undefined });
   } catch (err) {
+    console.error(`[sidecar] downloadHfFile FAILED: ${modelId}`, err);
+    console.error(`[sidecar] downloadHfFile STACK: ${err instanceof Error ? err.stack : 'no stack'}`);
     download.status = 'error';
     download.error = err instanceof Error ? err.message : String(err);
     download.speedBytesPerSec = 0;
@@ -3764,39 +3765,56 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
   const tier = (params.tier || 'standard') as HardwareProfileTier;
   const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
 
-  const results: Array<{ modelId: string; status: string; backend?: string }> = [];
+  // ── Downloads run SEQUENTIALLY to avoid per-origin connection limits ──
+  // Node.js fetch (undici) has limited concurrent connections per origin.
+  // Parallel large downloads to huggingface.co causes later ones to stall
+  // at "0 KB" waiting for a connection slot. Sequential downloads are slower
+  // total but guarantee all models complete.
+  //
+  // The IPC call returns immediately with the model list. Downloads proceed
+  // in the background via an async IIFE. Progress is emitted per-model.
 
-  // ── 1. Embedding model (required for knowledge graph — always download) ──
-  const embeddingModel = getEmbeddingModel();
-  const embeddingPath = getModelPath(embeddingModel.id, baseDir);
+  // Helper: download a model file, or emit 'complete' if already on disk.
+  // Loading into NativeRuntime is the caller's responsibility via onComplete.
+  // This separation ensures vision models don't block the download chain
+  // (vision requires both main GGUF + mmproj before loading).
+  async function downloadAndLoad(
+    model: { id: string; displayName: string; fileSizeBytes: number; hfRepo: string; hfFilename: string; sha256?: string },
+    targetPath: string,
+    _modelType: string,
+    onComplete?: () => void,
+  ): Promise<void> {
+    if (isModelDownloaded(model.id, baseDir)) {
+      const existing: ActiveDownload = {
+        modelId: model.id,
+        modelName: model.displayName,
+        totalBytes: model.fileSizeBytes,
+        downloadedBytes: model.fileSizeBytes,
+        speedBytesPerSec: 0,
+        status: 'complete',
+      };
+      activeDownloads.set(model.id, existing);
+      emit('model-download-progress', existing);
+      console.error(`[sidecar] ${model.displayName} already downloaded, skipping`);
+      onComplete?.();
+      return;
+    }
 
-  if (isModelDownloaded(embeddingModel.id, baseDir)) {
-    const existing: ActiveDownload = {
-      modelId: embeddingModel.id,
-      modelName: embeddingModel.displayName,
-      totalBytes: embeddingModel.fileSizeBytes,
-      downloadedBytes: embeddingModel.fileSizeBytes,
-      speedBytesPerSec: 0,
-      status: 'complete',
-    };
-    activeDownloads.set(embeddingModel.id, existing);
-    emit('model-download-progress', existing);
-    results.push({ modelId: embeddingModel.id, status: 'already_downloaded' });
-
-    sendCallback('native_load_model', { model_path: embeddingPath, model_type: 'embedding' })
-      .then(() => console.error(`[sidecar] Loaded embedding model "${embeddingModel.id}" into NativeRuntime`))
-      .catch((err) => console.error(`[sidecar] NativeRuntime load failed for embedding "${embeddingModel.id}":`, err));
-  } else {
-    downloadHfFile(embeddingModel, embeddingPath, embeddingModel.id, embeddingModel.displayName).catch((err) => {
-      console.error(`[sidecar] Embedding model download failed: ${embeddingModel.id}`, err);
-    });
-    results.push({ modelId: embeddingModel.id, status: 'started' });
+    try {
+      console.error(`[sidecar] handleStartModelDownloads: starting ${model.displayName} download...`);
+      await downloadHfFile(model, targetPath, model.id, model.displayName);
+      onComplete?.();
+    } catch (err) {
+      console.error(`[sidecar] ${model.displayName} download failed:`, err);
+    }
   }
 
-  // ── 2. Reasoning model — skip download if Ollama already has one ──────────
-  // If Ollama is running with a model, the user already has GPU-accelerated
-  // inference. Don't make them wait for a 4GB CPU model download.
+  // Collect the model list to return immediately to the frontend
+  const planned: Array<{ modelId: string; status: string; backend?: string }> = [];
+
+  // ── Check Ollama (fast, synchronous-ish) ──
   let ollamaHasModel = false;
+  let ollamaModel = '';
   try {
     const { Ollama } = await import('ollama');
     const client = new Ollama({ host: 'http://localhost:11434' });
@@ -3804,12 +3822,9 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
     const reasoning = list.models.filter((m: { name: string }) => !m.name.includes('embed') && !m.name.includes('nomic'));
     if (reasoning.length > 0) {
       ollamaHasModel = true;
-      const ollamaModel = reasoning[0]!.name;
+      ollamaModel = reasoning[0]!.name;
       console.error(`[sidecar] Ollama detected with ${reasoning.length} models — skipping reasoning model download`);
 
-      // Wire OllamaProvider into the InferenceRouter so chat works immediately.
-      // The startup check (handleInitialize) may have missed Ollama due to timing.
-      // setReasoningProvider also clears the BitNet provider so the router uses Ollama.
       if (core) {
         try {
           const { OllamaProvider } = await import('../../../core/llm/ollama-provider.js');
@@ -3827,7 +3842,6 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
         }
       }
 
-      // Signal download "complete" so onboarding UI proceeds
       const fakeComplete: ActiveDownload = {
         modelId: 'ollama-detected',
         modelName: `Ollama: ${ollamaModel}`,
@@ -3839,128 +3853,118 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
       activeDownloads.set('ollama-detected', fakeComplete);
       emit('model-download-progress', fakeComplete);
       emit('native-model-loaded', { modelId: ollamaModel, modelType: 'reasoning', path: '', engine: 'ollama' });
-      results.push({ modelId: ollamaModel, status: 'already_downloaded', backend: 'ollama' });
+      planned.push({ modelId: ollamaModel, status: 'already_downloaded', backend: 'ollama' });
     }
   } catch {
     // Ollama not running — proceed with download
   }
 
+  // ── Build the download plan (what models we'll download) ──
+  const embeddingModel = getEmbeddingModel();
+  planned.push({ modelId: embeddingModel.id, status: isModelDownloaded(embeddingModel.id, baseDir) ? 'already_downloaded' : 'queued' });
+
   if (!ollamaHasModel) {
     const reasoningModel = getRecommendedReasoningModel(tier);
-    const reasoningTargetPath = getModelPath(reasoningModel.id, baseDir);
-
-    if (isModelDownloaded(reasoningModel.id, baseDir)) {
-      const existing: ActiveDownload = {
-        modelId: reasoningModel.id,
-        modelName: reasoningModel.displayName,
-        totalBytes: reasoningModel.fileSizeBytes,
-        downloadedBytes: reasoningModel.fileSizeBytes,
-        speedBytesPerSec: 0,
-        status: 'complete',
-      };
-      activeDownloads.set(reasoningModel.id, existing);
-      emit('model-download-progress', existing);
-      results.push({ modelId: reasoningModel.id, status: 'already_downloaded' });
-
-      sendCallback('native_load_model', { model_path: reasoningTargetPath, model_type: 'reasoning' })
-        .then(() => console.error(`[sidecar] Loaded reasoning model "${reasoningModel.id}" into NativeRuntime`))
-        .catch((err) => console.error(`[sidecar] NativeRuntime load failed for "${reasoningModel.id}":`, err));
-    } else {
-      downloadHfFile(reasoningModel, reasoningTargetPath, reasoningModel.id, reasoningModel.displayName).catch((err) => {
-        console.error(`[sidecar] Reasoning model download failed: ${reasoningModel.id}`, err);
-      });
-      results.push({ modelId: reasoningModel.id, status: 'started' });
-    }
+    planned.push({ modelId: reasoningModel.id, status: isModelDownloaded(reasoningModel.id, baseDir) ? 'already_downloaded' : 'queued' });
   }
 
-  // ── 3. Fast tier (SmolLM2 1.7B — always-resident, ~1GB) ──
   try {
     const fastModel = getFastTierModel();
-    const fastPath = getModelPath(fastModel.id, baseDir);
-    if (isModelDownloaded(fastModel.id, baseDir)) {
-      results.push({ modelId: fastModel.id, status: 'already_downloaded' });
-      sendCallback('native_load_model', { model_path: fastPath, model_type: 'fast' })
-        .then(() => {
-          console.error(`[sidecar] Fast tier "${fastModel.id}" loaded into NativeRuntime`);
-          wireFastProvider(fastModel.id);
-        })
-        .catch((err) => console.error(`[sidecar] Fast tier load failed:`, err));
-    } else {
-      downloadHfFile(fastModel, fastPath, fastModel.id, fastModel.displayName)
-        .then(() => {
+    planned.push({ modelId: fastModel.id, status: isModelDownloaded(fastModel.id, baseDir) ? 'already_downloaded' : 'queued' });
+  } catch { /* optional */ }
+
+  try {
+    const visionModel = getRecommendedVisionModel(tier);
+    if (visionModel?.mmProjectorFilename) {
+      planned.push({ modelId: visionModel.id, status: isModelDownloaded(visionModel.id, baseDir) ? 'already_downloaded' : 'queued' });
+      const mmProjId = visionModel.id + '-mmproj';
+      planned.push({ modelId: mmProjId, status: isModelDownloaded(mmProjId, baseDir) ? 'already_downloaded' : 'queued' });
+    }
+  } catch { /* optional */ }
+
+  console.error(`[sidecar] Download plan: ${planned.map(p => `${p.modelId}(${p.status})`).join(', ')}`);
+
+  // ── Kick off sequential downloads in the background ──
+  // Returns immediately so the IPC call doesn't block.
+  // Each download emits 'model-download-progress' events as it runs.
+  (async () => {
+    try {
+      // 1. Embedding (required, small, download first)
+      const embeddingPath = getModelPath(embeddingModel.id, baseDir);
+      await downloadAndLoad(embeddingModel, embeddingPath, 'embedding', () => {
+        sendCallback('native_load_model', { model_path: embeddingPath, model_type: 'embedding' })
+          .then(() => console.error(`[sidecar] Embedding model "${embeddingModel.id}" loaded`))
+          .catch((err) => console.error(`[sidecar] Embedding load failed:`, err));
+      });
+
+      // 2. Reasoning (skip if Ollama provides it)
+      if (!ollamaHasModel) {
+        const reasoningModel = getRecommendedReasoningModel(tier);
+        const reasoningTargetPath = getModelPath(reasoningModel.id, baseDir);
+        await downloadAndLoad(reasoningModel, reasoningTargetPath, 'reasoning', () => {
+          sendCallback('native_load_model', { model_path: reasoningTargetPath, model_type: 'reasoning' })
+            .then(() => console.error(`[sidecar] Reasoning model "${reasoningModel.id}" loaded`))
+            .catch((err) => console.error(`[sidecar] Reasoning load failed:`, err));
+        });
+      }
+
+      // 3. Fast tier (SmolLM2)
+      try {
+        const fastModel = getFastTierModel();
+        const fastPath = getModelPath(fastModel.id, baseDir);
+        await downloadAndLoad(fastModel, fastPath, 'fast', () => {
           sendCallback('native_load_model', { model_path: fastPath, model_type: 'fast' })
             .then(() => {
-              console.error(`[sidecar] Fast tier "${fastModel.id}" loaded after download`);
+              console.error(`[sidecar] Fast tier "${fastModel.id}" loaded`);
               wireFastProvider(fastModel.id);
             })
             .catch((err) => console.error(`[sidecar] Fast tier load failed:`, err));
-        })
-        .catch((err) => console.error(`[sidecar] Fast tier download failed:`, err));
-      results.push({ modelId: fastModel.id, status: 'started' });
-    }
-  } catch {
-    // Fast tier is optional — if getFastTierModel() throws, skip silently
-  }
+        });
+      } catch { /* optional */ }
 
-  // ── 4. Vision tier (Moondream2 — model GGUF + mmproj GGUF) ──
-  try {
-    const visionModel = getRecommendedVisionModel(tier);
-    if (visionModel && visionModel.mmProjectorFilename) {
-      const visionPath = getModelPath(visionModel.id, baseDir);
-      const mmProjId = visionModel.id + '-mmproj';
-      const mmProjPath = getModelPath(mmProjId, baseDir);
+      // 4. Vision tier (Moondream2 model + mmproj)
+      // Download BOTH files first, then load together. Do NOT load the main
+      // model alone — vision requires both GGUF + mmproj to function.
+      try {
+        const visionModel = getRecommendedVisionModel(tier);
+        if (visionModel?.mmProjectorFilename) {
+          const visionPath = getModelPath(visionModel.id, baseDir);
+          const mmProjId = visionModel.id + '-mmproj';
+          const mmProjPath = getModelPath(mmProjId, baseDir);
 
-      // Download main model if needed
-      if (!isModelDownloaded(visionModel.id, baseDir)) {
-        downloadHfFile(visionModel, visionPath, visionModel.id, visionModel.displayName)
-          .catch(err => console.error('[sidecar] Vision model download failed:', err));
-        results.push({ modelId: visionModel.id, status: 'started' });
-      } else {
-        results.push({ modelId: visionModel.id, status: 'already_downloaded' });
-      }
+          // Download main vision GGUF (no loading yet — need mmproj first)
+          await downloadAndLoad(visionModel, visionPath, 'vision');
 
-      // Download mmproj file (separate GGUF from same HF repo)
-      if (!isModelDownloaded(mmProjId, baseDir)) {
-        const mmProjEntry = {
-          ...visionModel,
-          id: mmProjId,
-          hfFilename: visionModel.mmProjectorFilename!,
-          fileSizeBytes: visionModel.mmProjectorSizeBytes ?? 310_000_000,
-          displayName: `${visionModel.displayName} Projector`,
-        };
-        downloadHfFile(mmProjEntry, mmProjPath, mmProjId, mmProjEntry.displayName)
-          .then(() => {
-            // Both files ready — load vision model
+          // Download mmproj, then load both together
+          const mmProjEntry = {
+            ...visionModel,
+            id: mmProjId,
+            hfFilename: visionModel.mmProjectorFilename!,
+            fileSizeBytes: visionModel.mmProjectorSizeBytes ?? 310_000_000,
+            displayName: `${visionModel.displayName} Projector`,
+          };
+          await downloadAndLoad(mmProjEntry, mmProjPath, 'vision', () => {
             if (isModelDownloaded(visionModel.id, baseDir)) {
               sendCallback('native_load_model', {
                 model_path: visionPath,
                 model_type: 'vision',
                 mmproj_path: mmProjPath,
               }).then(() => {
-                console.error(`[sidecar] Vision tier "${visionModel.id}" loaded after download`);
+                console.error(`[sidecar] Vision tier "${visionModel.id}" loaded with mmproj`);
                 wireVisionProvider(visionModel.id);
               }).catch(err => console.error('[sidecar] Vision load failed:', err));
             }
-          })
-          .catch(err => console.error('[sidecar] Vision mmproj download failed:', err));
-        results.push({ modelId: mmProjId, status: 'started' });
-      } else if (isModelDownloaded(visionModel.id, baseDir)) {
-        // Both already on disk — load now
-        sendCallback('native_load_model', {
-          model_path: visionPath,
-          model_type: 'vision',
-          mmproj_path: mmProjPath,
-        }).then(() => {
-          console.error(`[sidecar] Vision tier "${visionModel.id}" loaded (already downloaded)`);
-          wireVisionProvider(visionModel.id);
-        }).catch(err => console.error('[sidecar] Vision load failed:', err));
-      }
-    }
-  } catch {
-    // Vision tier is optional
-  }
+          });
+        }
+      } catch { /* optional */ }
 
-  return { started: results };
+      console.error('[sidecar] All sequential model downloads complete');
+    } catch (err) {
+      console.error('[sidecar] Sequential download chain error:', err);
+    }
+  })();
+
+  return { started: planned };
 }
 
 function handleModelGetDownloadStatus(): unknown {

@@ -65,8 +65,8 @@ describe('TIER_FALLBACK_CHAIN', () => {
     expect(TIER_FALLBACK_CHAIN.primary).toEqual(['primary', 'fast']);
   });
 
-  it('fast has no fallback beyond itself', () => {
-    expect(TIER_FALLBACK_CHAIN.fast).toEqual(['fast']);
+  it('fast falls back to primary when unavailable', () => {
+    expect(TIER_FALLBACK_CHAIN.fast).toEqual(['fast', 'primary']);
   });
 
   it('embedding has no fallback (required)', () => {
