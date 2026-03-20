@@ -218,7 +218,7 @@ describe('AdaptiveContextBudget', () => {
       ['qwen2.5-3b-instruct-q4_k_m', 32768],
       ['qwen2.5-vl-3b-instruct-q4_k_m', 32768],
       // Vision
-      ['moondream2-q8_0', 2048],
+      ['moondream2-f16', 2048],
       // BitNet b1.58
       ['bitnet-b1.58-2b4t', 4096],
       // Falcon-E native 1-bit

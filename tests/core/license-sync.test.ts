@@ -48,7 +48,7 @@ function makeLicenseSyncItem(overrides: Partial<LicenseSyncData> = {}): SyncItem
 }
 
 // Mock the license key verification module
-vi.mock('@semblance/core/premium/license-keys.js', () => ({
+vi.mock('@semblance/core/premium/license-keys', () => ({
   verifyLicenseKeySignature: (key: string) => {
     // Accept keys starting with 'sem_' as valid
     if (key.startsWith('sem_')) {

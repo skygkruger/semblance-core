@@ -1,7 +1,33 @@
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+
+// Vitest plugin: when a .js import resolves to a file that has a .ts sibling,
+// redirect to the .ts source. This prevents test/source module split when
+// compiled .js artifacts coexist with .ts source (tsc --build output).
+function preferTsOverJs() {
+  return {
+    name: 'prefer-ts-over-js',
+    enforce: 'pre' as const,
+    resolveId(source: string, importer: string | undefined) {
+      if (!importer || !source.endsWith('.js')) return null;
+      // Resolve relative .js imports to .ts/.tsx source when both exist
+      if (source.startsWith('.')) {
+        const dir = importer.substring(0, Math.max(importer.lastIndexOf('/'), importer.lastIndexOf('\\')));
+        const jsPath = resolve(dir, source);
+        // Try .ts first, then .tsx
+        const tsPath = jsPath.replace(/\.js$/, '.ts');
+        if (existsSync(tsPath)) return tsPath;
+        const tsxPath = jsPath.replace(/\.js$/, '.tsx');
+        if (existsSync(tsxPath)) return tsxPath;
+      }
+      return null;
+    },
+  };
+}
 
 export default defineConfig({
+  plugins: [preferTsOverJs()],
   test: {
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     testTimeout: 10000,

@@ -6,10 +6,10 @@ import {
   openEncryptedDatabase,
   migrateToEncrypted,
   isDatabaseEncrypted,
-} from '@semblance/core/crypto/database-encryption.js';
-import type { SecureStorageAdapter, DatabaseHandle } from '@semblance/core/platform/types.js';
-import { setPlatform, getPlatform } from '@semblance/core/platform/index.js';
-import { createDesktopAdapter } from '@semblance/core/platform/desktop-adapter.js';
+} from '@semblance/core/crypto/database-encryption';
+import type { SecureStorageAdapter, DatabaseHandle } from '@semblance/core/platform/types';
+import { setPlatform, getPlatform } from '@semblance/core/platform/index';
+import { createDesktopAdapter } from '@semblance/core/platform/desktop-adapter';
 
 beforeAll(() => {
   setPlatform(createDesktopAdapter());

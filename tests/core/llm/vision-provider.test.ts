@@ -18,7 +18,7 @@ describe('VisionProvider', () => {
 
     it('configure sets up a fast tier', () => {
       provider.configure('fast', {
-        modelId: 'moondream2-q8_0',
+        modelId: 'moondream2-f16',
         modelPath: '/models/moondream2.gguf',
         mmProjectorPath: '/models/moondream2-mmproj.gguf',
       });
@@ -37,7 +37,7 @@ describe('VisionProvider', () => {
 
     it('load marks tier as loaded', async () => {
       provider.configure('fast', {
-        modelId: 'moondream2-q8_0',
+        modelId: 'moondream2-f16',
         modelPath: '/models/moondream2.gguf',
         mmProjectorPath: '/models/moondream2-mmproj.gguf',
       });
@@ -47,7 +47,7 @@ describe('VisionProvider', () => {
 
     it('unload marks tier as unloaded', async () => {
       provider.configure('fast', {
-        modelId: 'moondream2-q8_0',
+        modelId: 'moondream2-f16',
         modelPath: '/models/moondream2.gguf',
         mmProjectorPath: '/models/moondream2-mmproj.gguf',
       });
@@ -64,7 +64,7 @@ describe('VisionProvider', () => {
   describe('analyzeImage', () => {
     it('returns response with model info when no bridge', async () => {
       provider.configure('fast', {
-        modelId: 'moondream2-q8_0',
+        modelId: 'moondream2-f16',
         modelPath: '/models/moondream2.gguf',
         mmProjectorPath: '/models/moondream2-mmproj.gguf',
       });
@@ -73,19 +73,19 @@ describe('VisionProvider', () => {
         prompt: 'What is this?',
         tier: 'fast',
       });
-      expect(response.modelUsed).toBe('moondream2-q8_0');
+      expect(response.modelUsed).toBe('moondream2-f16');
       expect(response.text).toContain('No inference bridge');
       expect(response.processingMs).toBeGreaterThanOrEqual(0);
     });
 
     it('analyzeFromPath delegates to analyzeImage', async () => {
       provider.configure('fast', {
-        modelId: 'moondream2-q8_0',
+        modelId: 'moondream2-f16',
         modelPath: '/m/m.gguf',
         mmProjectorPath: '/m/mmproj.gguf',
       });
       const response = await provider.analyzeFromPath('/test.png', 'Describe', 'fast');
-      expect(response.modelUsed).toBe('moondream2-q8_0');
+      expect(response.modelUsed).toBe('moondream2-f16');
     });
 
     it('ocrDocument uses rich tier', async () => {

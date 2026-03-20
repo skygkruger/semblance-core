@@ -25,7 +25,7 @@ const mockAdapter = {
   canStoreInKeychain: vi.fn().mockResolvedValue(true),
 };
 
-vi.mock('@semblance/mobile/adapters/mobile-biometric-adapter.js', () => ({
+vi.mock('@semblance/mobile/adapters/mobile-biometric-adapter', () => ({
   createMobileBiometricAdapter: vi.fn(() => mockAdapter),
 }));
 
