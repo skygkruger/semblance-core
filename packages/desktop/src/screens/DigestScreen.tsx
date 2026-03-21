@@ -172,9 +172,9 @@ export function DigestScreen() {
         )}
 
         {/* Highlights */}
-        {digest.highlights.length > 0 && (
+        {(digest.highlights ?? []).length > 0 && (
           <div className="grid grid-cols-3 gap-3">
-            {digest.highlights.map((hl, i) => (
+            {(digest.highlights ?? []).map((hl, i) => (
               <Card key={i} className="p-4 text-center">
                 <p className="text-lg font-semibold text-semblance-primary">
                   {hl.impact}

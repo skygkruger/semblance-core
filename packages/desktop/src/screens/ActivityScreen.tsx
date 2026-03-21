@@ -41,7 +41,7 @@ export function ActivityScreen() {
   const loadPendingBatch = useCallback(async () => {
     try {
       const result = await getPendingActions();
-      setPendingBatchItems(result.filter(a => a.status === 'pending_approval'));
+      setPendingBatchItems((result ?? []).filter(a => a.status === 'pending_approval'));
     } catch (err) {
       console.error('[ActivityScreen] loadPendingBatch failed:', err);
     }

@@ -87,13 +87,17 @@ console.log(`[bundle-sidecar] Copied ${copied} packages to sidecar/node_modules`
 // The installed app runs from a different directory than the repo,
 // so the sidecar can't find .env via __dirname relative paths.
 // This ensures OAuth credentials are available in the bundled build.
-const envSrc = join(ROOT, '.env');
+const envSrcSidecar = join(SIDECAR_DIR, '.env');
+const envSrcRoot = join(ROOT, '.env');
 const envDest = join(SIDECAR_DIR, '.env');
-if (existsSync(envSrc)) {
+const envSrc = existsSync(envSrcSidecar) ? envSrcSidecar : existsSync(envSrcRoot) ? envSrcRoot : null;
+if (envSrc && envSrc !== envDest) {
   cpSync(envSrc, envDest);
-  console.log('[bundle-sidecar] Copied .env into sidecar directory');
+  console.log(`[bundle-sidecar] Copied .env from ${envSrc} into sidecar directory`);
+} else if (envSrc) {
+  console.log('[bundle-sidecar] .env already in sidecar directory');
 } else {
-  console.warn('[bundle-sidecar] No .env found at repo root — OAuth credentials will need to be at ~/.semblance/.env');
+  console.warn('[bundle-sidecar] No .env found at sidecar dir or repo root — OAuth credentials will need to be at ~/.semblance/.env');
 }
 
 console.log('[bundle-sidecar] Done.');
