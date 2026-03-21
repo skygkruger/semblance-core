@@ -1,3 +1,22 @@
+// Load .env before any module reads process.env
+try {
+  const { config: dotenvConfig } = require('dotenv');
+  const { resolve: pathResolve, dirname: pathDirname } = require('node:path');
+  const { existsSync: envExists } = require('node:fs');
+  const envLocations = [
+    pathResolve(pathDirname(process.argv[1] || '.'), '.env'),
+    pathResolve(process.cwd(), '.env'),
+    pathResolve(process.env.HOME || process.env.USERPROFILE || '', '.semblance', '.env'),
+  ];
+  for (const loc of envLocations) {
+    if (envExists(loc)) {
+      dotenvConfig({ path: loc });
+      console.error('[sidecar] Loaded .env from:', loc);
+      break;
+    }
+  }
+} catch { /* dotenv not available — credentials from process.env only */ }
+
 // Semblance Desktop Sidecar Bridge
 //
 // Node.js sidecar process for Tauri integration.
@@ -1630,6 +1649,31 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] Sprint G.5 initialization complete');
   } catch (sprintG5Err) {
     console.error('[sidecar] Sprint G.5 initialization failed (non-fatal):', sprintG5Err);
+  }
+
+  // ── Auto-sync connected services on startup ──────────────────────────
+  // If the user connected Gmail, closed the app, and reopened — sync their
+  // data without requiring them to manually click Sync.
+  if (onboardingComplete) {
+    try {
+      const startupTokenMgr = ensureOAuthTokenManager();
+      const startupRegistry = createDefaultConnectorRegistry();
+      for (const connector of startupRegistry.listAll()) {
+        const oauthCfg = getOAuthConfigForConnector(connector.id);
+        if (oauthCfg) {
+          const accessToken = startupTokenMgr.getAccessToken(oauthCfg.providerKey);
+          if (accessToken) {
+            console.error(`[sidecar] Startup auto-sync: ${connector.id}`);
+            // Fire-and-forget — don't block startup
+            handleConnectorSync({ connectorId: connector.id }).catch(err => {
+              console.error(`[sidecar] Startup sync failed for ${connector.id}:`, err);
+            });
+          }
+        }
+      }
+    } catch (syncErr) {
+      console.error('[sidecar] Startup auto-sync error:', syncErr);
+    }
   }
 
   return {
@@ -4641,34 +4685,46 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
     console.error('[sidecar] ConnectorRouter initialized with adapters:', connectorRouter.listRegistered().join(', '));
   }
 
-  // Check if this connector has a registered adapter
-  if (!connectorRouter.hasAdapter(params.connectorId)) {
+  // These connectors have specialized sync logic below — don't early-return
+  const hasSpecializedSync = ['gmail', 'google-gmail', 'google-calendar', 'google-drive'].includes(params.connectorId);
+  const hasGenericAdapter = connectorRouter.hasAdapter(params.connectorId);
+
+  if (!hasGenericAdapter && !hasSpecializedSync) {
     return {
       success: false,
       error: `No sync adapter registered for connector: ${params.connectorId}. Adapter may not be implemented yet.`,
     };
   }
 
-  // Execute the actual sync via the adapter
-  console.error(`[sidecar] Syncing connector: ${params.connectorId}`);
-  const syncResult = await connectorRouter.execute('connector.sync' as import('../../../core/types/actions.js').ActionType, {
-    connectorId: params.connectorId,
-  });
-
-  if (!syncResult.success) {
-    console.error(`[sidecar] Connector sync failed for ${params.connectorId}:`, syncResult.error);
-    return {
-      success: false,
-      error: syncResult.error?.message ?? 'Sync failed',
-      code: syncResult.error?.code,
-    };
-  }
-
-  // Extract synced items from the adapter response
-  const syncData = syncResult.data as { items?: Array<{ id: string; title: string; content: string; timestamp: string; sourceType?: string; metadata?: Record<string, unknown> }>; totalItems?: number } | undefined;
-  const items = syncData?.items ?? [];
+  // Variables for generic sync results (in scope for both paths)
+  let items: Array<{ id: string; title: string; content: string; timestamp: string; sourceType?: string; metadata?: Record<string, unknown> }> = [];
   let indexedCount = 0;
   const indexErrors: string[] = [];
+
+  // Generic sync via connector router (for adapters that ARE registered)
+  if (hasGenericAdapter) {
+    console.error(`[sidecar] Syncing connector via router: ${params.connectorId}`);
+    const syncResult = await connectorRouter.execute('connector.sync' as import('../../../core/types/actions.js').ActionType, {
+      connectorId: params.connectorId,
+    });
+
+    if (!syncResult.success) {
+      console.error(`[sidecar] Connector sync failed for ${params.connectorId}:`, syncResult.error);
+      // Don't return if specialized sync exists — it may still succeed
+      if (!hasSpecializedSync) {
+        return {
+          success: false,
+          error: syncResult.error?.message ?? 'Sync failed',
+          code: syncResult.error?.code,
+        };
+      }
+    } else {
+      const syncData = syncResult.data as { items?: typeof items; totalItems?: number } | undefined;
+      items = syncData?.items ?? [];
+    }
+  } else {
+    console.error(`[sidecar] Connector ${params.connectorId} has no generic adapter — using specialized sync`);
+  }
 
   // Ingest synced items into the knowledge graph if core is available
   if (core?.knowledge && items.length > 0) {
@@ -6221,7 +6277,15 @@ async function handleRequest(req: Request): Promise<void> {
             console.error('[sidecar] MorningBriefGenerator init failed:', (initErr as Error).message);
           }
         }
-        if (!morningBriefGenerator) { respond(id, { error: 'Morning brief unavailable — knowledge graph not initialized' }); break; }
+        if (!morningBriefGenerator) {
+          respond(id, {
+            id: 'empty',
+            summary: 'No brief available yet. Connect your email and calendar to get started.',
+            sections: [],
+            estimatedReadTimeSeconds: 0,
+          });
+          break;
+        }
         try {
           const brief = await morningBriefGenerator.generateBrief();
           respond(id, brief);

@@ -84,7 +84,7 @@ export function MorningBriefScreen() {
   const briefingItems: BriefingItem[] = [];
   if (brief?.sections) {
     for (const section of brief.sections) {
-      for (const item of section.items) {
+      for (const item of (section.items ?? [])) {
         briefingItems.push({
           type: item.actionable ? 'action' : 'insight',
           text: item.text,
@@ -128,8 +128,8 @@ export function MorningBriefScreen() {
             brief={{
               id: brief.id,
               summary: brief.summary,
-              sections: brief.sections,
-              estimatedReadTimeSeconds: brief.estimatedReadTimeSeconds,
+              sections: brief.sections ?? [],
+              estimatedReadTimeSeconds: brief.estimatedReadTimeSeconds ?? 0,
               dismissed: false,
             }}
             onDismiss={handleDismissBrief}
@@ -142,11 +142,11 @@ export function MorningBriefScreen() {
             {weather && (
               <WeatherCard
                 currentConditions={weather.currentConditions}
-                eventForecasts={weather.eventForecasts}
+                eventForecasts={weather.eventForecasts ?? []}
               />
             )}
-            {commutes && commutes.commutes.length > 0 && (
-              <CommuteCard commutes={commutes.commutes} />
+            {commutes && (commutes.commutes ?? []).length > 0 && (
+              <CommuteCard commutes={commutes.commutes ?? []} />
             )}
           </div>
         )}

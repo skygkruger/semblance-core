@@ -148,6 +148,15 @@ export function ConnectionsScreen() {
           message: `${connectorId} connected successfully`,
           variant: 'success',
         }).catch(() => {});
+        // Auto-sync immediately after successful connection
+        try {
+          await ipcSend({
+            action: 'connector.sync',
+            payload: { connectorId },
+          });
+        } catch (syncErr) {
+          console.error(`Auto-sync failed for ${connectorId}:`, syncErr);
+        }
       }
     } catch (err) {
       console.error(`Failed to connect ${connectorId}:`, err);
