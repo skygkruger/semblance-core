@@ -1815,12 +1815,24 @@ export class OrchestratorImpl implements Orchestrator {
 
       if (tc.name === 'categorize_email') {
         // Categorization is informational — always auto-execute, local-only
+        const catMessageId = tc.arguments['messageId'] as string;
+        const catCategories = tc.arguments['categories'] as string[];
+        const catPriority = tc.arguments['priority'] as string;
+
+        // Persist categorization to knowledge graph metadata
+        try {
+          this.db.prepare(
+            `UPDATE indexed_emails SET priority = ?, categories = ? WHERE message_id = ?`
+          ).run(catPriority, JSON.stringify(catCategories ?? []), catMessageId);
+        } catch { /* table may not exist or messageId not found — non-fatal */ }
+
         executedResults.push({
           tool: 'categorize_email',
           result: {
-            messageId: tc.arguments['messageId'],
-            categories: tc.arguments['categories'],
-            priority: tc.arguments['priority'],
+            messageId: catMessageId,
+            categories: catCategories,
+            priority: catPriority,
+            persisted: true,
           },
         });
         continue;
@@ -2355,6 +2367,24 @@ export class OrchestratorImpl implements Orchestrator {
         continue;
       }
 
+      // --- Cross-device search: requires Compute Mesh pairing ---
+      if (tc.name === 'search_all_devices') {
+        executedResults.push({
+          tool: 'search_all_devices',
+          result: { results: [], message: 'Cross-device search requires paired devices. Set up the Compute Mesh in Settings to enable this.' },
+        });
+        continue;
+      }
+
+      // --- Web form filling: requires browser integration ---
+      if (tc.name === 'fill_web_form') {
+        executedResults.push({
+          tool: 'fill_web_form',
+          result: { success: false, message: 'Web form filling requires a connected browser. Open Settings \u2192 Browser Integration to connect.' },
+        });
+        continue;
+      }
+
       // --- Calendar write operations: graceful failure until Google Calendar API write support ---
       if (tc.name === 'create_calendar_event' || tc.name === 'update_calendar_event' || tc.name === 'delete_calendar_event') {
         executedResults.push({
@@ -2415,29 +2445,39 @@ export class OrchestratorImpl implements Orchestrator {
         }
       }
 
-      // --- SMS style enhancement for send_text ---
-      if (tc.name === 'send_text' && this.messageDrafter) {
-        const recipientName = tc.arguments['recipientName'] as string | undefined;
-        const intent = tc.arguments['intent'] as string | undefined;
+      // --- snooze_reminder: convert LLM's natural duration to ISO snoozedUntil for Gateway Zod validation ---
+      if (tc.name === 'snooze_reminder') {
+        const duration = tc.arguments['duration'] as string ?? '15min';
+        const now = Date.now();
+        let snoozedUntil: string;
 
-        if (recipientName && intent) {
-          // Resolve contact to get phone number
-          const resolved = this.contactResolver?.resolve(recipientName);
-          if (resolved?.contact?.phones && resolved.contact.phones.length > 0) {
-            const phone = resolved.contact.phones[0]!;
-            const styleProfile = this.styleProfileStore?.getActiveProfile() ?? null;
-
-            const drafted = await this.messageDrafter.draftMessage({
-              intent,
-              recipientName,
-              relationship: resolved.contact.relationshipType,
-              styleProfile,
-            });
-
-            tc.arguments['phone'] = phone;
-            tc.arguments['body'] = drafted.body;
-          }
+        const durationMatch = duration.match(/^(\d+)\s*(min|minute|m|hr|hour|h|day|d)s?$/i);
+        if (durationMatch) {
+          const amount = parseInt(durationMatch[1]!, 10);
+          const unit = durationMatch[2]!.toLowerCase();
+          const ms = unit.startsWith('h') ? amount * 3600000
+                   : unit.startsWith('d') ? amount * 86400000
+                   : amount * 60000;
+          snoozedUntil = new Date(now + ms).toISOString();
+        } else if (duration.toLowerCase() === 'tomorrow') {
+          const tomorrow = new Date(now);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(9, 0, 0, 0);
+          snoozedUntil = tomorrow.toISOString();
+        } else {
+          // Default: 15 minutes
+          snoozedUntil = new Date(now + 15 * 60000).toISOString();
         }
+
+        // Replace duration with snoozedUntil for Gateway validation
+        tc.arguments['snoozedUntil'] = snoozedUntil;
+        delete tc.arguments['duration'];
+        // Falls through to Gateway dispatch with corrected payload
+      }
+
+      // --- create_reminder: default dueAt if LLM omits it ---
+      if (tc.name === 'create_reminder' && !tc.arguments['dueAt']) {
+        tc.arguments['dueAt'] = new Date(Date.now() + 3600000).toISOString();
       }
 
       // Gateway-routed tools

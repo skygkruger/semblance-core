@@ -487,6 +487,11 @@ export function ChatScreen() {
   );
 
   const handleSend = useCallback(async (message: string) => {
+    // Clear stale web search results from previous message
+    setWebSearchResults([]);
+    setWebSearchQuery('');
+    setWebFetchResult(null);
+
     // Snapshot current attachments for this message
     const messageAttachments = state.chatAttachments
       .filter(a => a.status === 'ready')

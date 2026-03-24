@@ -984,15 +984,15 @@ export interface LivingWillSettings {
 }
 
 export function livingWillGetHistory(): Promise<LivingWillExportRecord[]> {
-  return invoke<LivingWillExportRecord[]>('living_will_get_history');
+  return sidecarCall<LivingWillExportRecord[]>('living_will_get_history');
 }
 
 export function livingWillGetSettings(): Promise<LivingWillSettings> {
-  return invoke<LivingWillSettings>('living_will_get_settings');
+  return sidecarCall<LivingWillSettings>('living_will_get_settings');
 }
 
 export function livingWillUpdateSettings(cadence: string): Promise<void> {
-  return invoke<void>('living_will_update_settings', { cadence });
+  return sidecarCall<void>('living_will_update_settings', { cadence });
 }
 
 export function livingWillExport(params: {
@@ -1000,14 +1000,14 @@ export function livingWillExport(params: {
   outputPath: string;
   sections: string[];
 }): Promise<LivingWillExportRecord> {
-  return invoke<LivingWillExportRecord>('living_will_export', params);
+  return sidecarCall<LivingWillExportRecord>('living_will_export', params as unknown as Record<string, unknown>);
 }
 
 export function livingWillImport(params: {
   archivePath: string;
   passphrase: string;
 }): Promise<{ imported: boolean }> {
-  return invoke<{ imported: boolean }>('living_will_import', params);
+  return sidecarCall<{ imported: boolean }>('living_will_import', params as unknown as Record<string, unknown>);
 }
 
 // ─── Witness / Attestation ─────────────────────────────────────────────────
@@ -1022,22 +1022,22 @@ export interface WitnessAttestation {
 }
 
 export function witnessGetAttestations(): Promise<WitnessAttestation[]> {
-  return invoke<WitnessAttestation[]>('witness_get_attestations');
+  return sidecarCall<WitnessAttestation[]>('witness_get_attestations');
 }
 
 export function witnessGenerateAttestation(params: {
   auditEntryId: string;
   actionSummary: string;
 }): Promise<WitnessAttestation> {
-  return invoke<WitnessAttestation>('witness_generate_attestation', params);
+  return sidecarCall<WitnessAttestation>('witness_generate_attestation', params as unknown as Record<string, unknown>);
 }
 
 export function witnessExportAttestation(attestationId: string): Promise<{ exported: boolean; path: string }> {
-  return invoke<{ exported: boolean; path: string }>('witness_export_attestation', { attestationId });
+  return sidecarCall<{ exported: boolean; path: string }>('witness_export_attestation', { attestationId });
 }
 
 export function witnessVerifyAttestation(attestationId: string): Promise<{ valid: boolean; message: string }> {
-  return invoke<{ valid: boolean; message: string }>('witness_verify_attestation', { attestationId });
+  return sidecarCall<{ valid: boolean; message: string }>('witness_verify_attestation', { attestationId });
 }
 
 // ─── Inheritance Protocol ──────────────────────────────────────────────────
@@ -1056,15 +1056,15 @@ export interface InheritanceTrustedParty {
 }
 
 export function inheritanceGetConfig(): Promise<InheritanceConfig> {
-  return invoke<InheritanceConfig>('inheritance_get_config');
+  return sidecarCall<InheritanceConfig>('inheritance_get_config');
 }
 
 export function inheritanceUpdateConfig(params: { enabled: boolean }): Promise<void> {
-  return invoke<void>('inheritance_update_config', params);
+  return sidecarCall<void>('inheritance_update_config', params as unknown as Record<string, unknown>);
 }
 
 export function inheritanceGetTrustedParties(): Promise<InheritanceTrustedParty[]> {
-  return invoke<InheritanceTrustedParty[]>('inheritance_get_trusted_parties');
+  return sidecarCall<InheritanceTrustedParty[]>('inheritance_get_trusted_parties');
 }
 
 export function inheritanceAddTrustedParty(params: {
@@ -1072,15 +1072,15 @@ export function inheritanceAddTrustedParty(params: {
   email: string;
   relationship: string;
 }): Promise<InheritanceTrustedParty> {
-  return invoke<InheritanceTrustedParty>('inheritance_add_trusted_party', params);
+  return sidecarCall<InheritanceTrustedParty>('inheritance_add_trusted_party', params as unknown as Record<string, unknown>);
 }
 
 export function inheritanceRemoveTrustedParty(id: string): Promise<void> {
-  return invoke<void>('inheritance_remove_trusted_party', { id });
+  return sidecarCall<void>('inheritance_remove_trusted_party', { id });
 }
 
 export function inheritanceRunTest(): Promise<{ success: boolean; message: string }> {
-  return invoke<{ success: boolean; message: string }>('inheritance_run_test');
+  return sidecarCall<{ success: boolean; message: string }>('inheritance_run_test');
 }
 
 // ─── Backup & Restore ──────────────────────────────────────────────────────
@@ -1110,31 +1110,31 @@ export interface BackupHistoryRecord {
 }
 
 export function backupGetConfig(): Promise<BackupConfig> {
-  return invoke<BackupConfig>('backup_get_config');
+  return sidecarCall<BackupConfig>('backup_get_config');
 }
 
 export function backupGetHistory(): Promise<BackupHistoryRecord[]> {
-  return invoke<BackupHistoryRecord[]>('backup_get_history');
+  return sidecarCall<BackupHistoryRecord[]>('backup_get_history');
 }
 
 export function backupUpdateConfig(params: Partial<BackupConfig>): Promise<void> {
-  return invoke<void>('backup_update_config', params);
+  return sidecarCall<void>('backup_update_config', params as unknown as Record<string, unknown>);
 }
 
 export function backupCreate(passphrase: string): Promise<BackupHistoryRecord> {
-  return invoke<BackupHistoryRecord>('backup_create', { passphrase });
+  return sidecarCall<BackupHistoryRecord>('backup_create', { passphrase });
 }
 
 export function backupRestore(params: { filePath: string; passphrase: string }): Promise<{ restored: boolean }> {
-  return invoke<{ restored: boolean }>('backup_restore', params);
+  return sidecarCall<{ restored: boolean }>('backup_restore', params as unknown as Record<string, unknown>);
 }
 
 export function backupAddDestination(params: { name: string; path: string; type: 'local' | 'usb' | 'network' }): Promise<BackupDestinationEntry> {
-  return invoke<BackupDestinationEntry>('backup_add_destination', params);
+  return sidecarCall<BackupDestinationEntry>('backup_add_destination', params as unknown as Record<string, unknown>);
 }
 
 export function backupRemoveDestination(id: string): Promise<void> {
-  return invoke<void>('backup_remove_destination', { id });
+  return sidecarCall<void>('backup_remove_destination', { id });
 }
 
 // ─── Semblance Network (Peer Sharing) ───────────────────────────────────────
@@ -1248,7 +1248,7 @@ export function getBinaryAllowlistList(): Promise<unknown[]> {
 }
 
 export function getBackupStatus(): Promise<{ lastBackupAt?: string } | null> {
-  return ipcSendGeneric<{ lastBackupAt?: string } | null>('backup_get_status');
+  return sidecarCall<{ lastBackupAt?: string } | null>('backup_get_status');
 }
 
 /** Clear knowledge data via sidecar */
