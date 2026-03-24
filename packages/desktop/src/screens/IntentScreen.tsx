@@ -161,7 +161,7 @@ export function IntentScreen() {
                 onChange={e => setGoalDraft(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSaveGoal(); }}
                 placeholder={t('screen.intent.placeholder_goal')}
-                style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#141820', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
+                style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#171B1F', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
                 autoFocus
               />
               <button type="button" className="btn btn--opal btn--sm" onClick={handleSaveGoal}><span className="btn__text">{t('button.save')}</span></button>
@@ -229,7 +229,7 @@ export function IntentScreen() {
             onChange={e => setNewLimit(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleAddLimit(); }}
             placeholder={t('screen.intent.placeholder_limit')}
-            style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#141820', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
+            style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#171B1F', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
           />
           <button type="button" className="btn btn--opal btn--sm" onClick={handleAddLimit} disabled={!newLimit.trim()}><span className="btn__text">{t('button.create')}</span></button>
         </div>
@@ -274,7 +274,7 @@ export function IntentScreen() {
             onChange={e => setNewValue(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleAddValue(); }}
             placeholder={t('screen.intent.placeholder_value')}
-            style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#141820', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
+            style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#171B1F', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
           />
           <button type="button" className="btn btn--opal btn--sm" onClick={handleAddValue} disabled={!newValue.trim()}><span className="btn__text">{t('button.create')}</span></button>
         </div>

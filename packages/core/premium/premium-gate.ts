@@ -1,7 +1,7 @@
 /**
  * Premium Gate -- Feature gating for Digital Representative tier.
  *
- * License key format: sem_<base64(JSON{tier,exp})>.<signature>
+ * License key format: sem_<base64url(header)>.<base64url(payload)>.<base64url(signature)>
  * Tiers: 'free', 'founding', 'digital-representative', 'lifetime'
  *
  * Gate checks happen at orchestrator/UI level, NOT inside analysis classes.
@@ -205,8 +205,8 @@ export class PremiumGate {
 
   /**
    * Activate a license key.
-   * Key format: sem_<base64(JSON{tier,exp})>.<signature>
-   * Three dot-separated segments where middle decodes to JSON with tier+exp.
+   * Key format: sem_<base64url(header)>.<base64url(payload)>.<base64url(signature)>
+   * Three dot-separated segments where the payload decodes to JSON with tier+exp.
    */
   activateLicense(key: string): ActivationResult {
     // Validate prefix

@@ -50,15 +50,14 @@ type RelationshipFilter = 'all' | 'colleague' | 'client' | 'vendor' | 'friend' |
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function getRelationshipBadgeColor(type: string): string {
+function getRelationshipBadgeStyle(type: string): { background: string; color: string } {
   switch (type) {
-    case 'colleague': return 'bg-amber-900/30 text-amber-300';
-    case 'client': return 'bg-blue-900/30 text-blue-300';
-    case 'vendor': return 'bg-purple-900/30 text-purple-300';
-    case 'friend': return 'bg-green-900/30 text-green-300';
-    case 'family': return 'bg-rose-900/30 text-rose-300';
-    case 'acquaintance': return 'bg-gray-800 text-gray-300';
-    default: return 'bg-gray-800 text-gray-400';
+    case 'family': return { background: 'rgba(176, 122, 138, 0.15)', color: '#B07A8A' };
+    case 'friend': return { background: 'rgba(110, 207, 163, 0.15)', color: '#6ECFA3' };
+    case 'colleague': return { background: 'rgba(176, 154, 138, 0.15)', color: '#B09A8A' };
+    case 'client': return { background: 'rgba(133, 147, 164, 0.15)', color: '#8593A4' };
+    case 'vendor': return { background: 'rgba(94, 107, 124, 0.15)', color: '#5E6B7C' };
+    default: return { background: 'rgba(82, 90, 100, 0.15)', color: '#525A64' };
   }
 }
 
@@ -181,6 +180,12 @@ export function RelationshipsScreen() {
     <div className="flex h-full">
       {/* Left panel — contact list */}
       <div className="w-80 border-r border-semblance-border dark:border-semblance-border-dark flex flex-col">
+        {/* Page heading */}
+        <div className="px-4 py-4 border-b border-semblance-border dark:border-semblance-border-dark">
+          <h1 style={{ fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif", fontSize: 28, fontWeight: 300, color: '#EEF1F4', letterSpacing: '-0.03em', margin: 0 }}>
+            {t('screen.relationships.title', 'Relationships')}
+          </h1>
+        </div>
         {/* Stats bar */}
         {stats && (
           <div className="px-4 py-3 border-b border-semblance-border dark:border-semblance-border-dark">
@@ -256,7 +261,7 @@ export function RelationshipsScreen() {
                       <span className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark truncate">
                         {contact.displayName}
                       </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getRelationshipBadgeColor(contact.relationshipType)}`}>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={getRelationshipBadgeStyle(contact.relationshipType)}>
                         {contact.relationshipType}
                       </span>
                     </div>
@@ -297,7 +302,7 @@ export function RelationshipsScreen() {
                     {selectedContact.jobTitle}{selectedContact.organization ? ` ${t('screen.relationships.at_org', { org: selectedContact.organization })}` : ''}
                   </p>
                 )}
-                <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${getRelationshipBadgeColor(selectedContact.relationshipType)}`}>
+                <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium" style={getRelationshipBadgeStyle(selectedContact.relationshipType)}>
                   {selectedContact.relationshipType}
                 </span>
               </div>

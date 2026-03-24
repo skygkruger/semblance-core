@@ -1922,7 +1922,10 @@ async function handleSendMessage(
         conversationManager.updateAfterTurn(convId, fullResponse, 'assistant');
       }
 
-      // Emit response in chunks with small delays for streaming UX
+      // NOTE: Token streaming is simulated — the orchestrator returns the full response,
+      // then we chunk it at 12 chars / 10ms to provide a typing animation in the UI.
+      // Real token-by-token streaming would require the LLM provider to yield tokens
+      // incrementally, which Ollama supports but NativeRuntime currently does not.
       const chunkSize = 12;
       for (let i = 0; i < fullResponse.length; i += chunkSize) {
         emit('chat-token', fullResponse.substring(i, i + chunkSize));
