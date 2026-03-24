@@ -292,6 +292,9 @@ let emailAdapter: EmailAdapter | null = null;
 let calendarAdapter: CalendarAdapter | null = null;
 let indexingInProgress = false;
 let currentConversationId: string | null = null;
+
+// Serialize message processing — prevent parallel orchestrator calls
+let messageProcessingLock: Promise<void> = Promise.resolve();
 let dataDir = '';
 let documentsDb: Database.Database | null = null;
 let emailIndexer: EmailIndexer | null = null;
@@ -1333,6 +1336,23 @@ async function handleInitialize(): Promise<unknown> {
             console.error(`[sidecar] Fell back to BitNet "${bitId}" after Ollama failure`);
             logProviderTransition('ollama', 'bitnet', bitId, 'Ollama health check failed — mid-session fallback');
           }
+          // If no BitNet model was loaded, try standard GGUF models from MODEL_CATALOG
+          if (!router.getReasoningModel() || router.getReasoningModel() === '') {
+            const stdBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+            for (const stdModel of MODEL_CATALOG.filter(m => !m.isEmbedding)) {
+              if (isModelDownloaded(stdModel.id, stdBaseDir)) {
+                const stdPath = getModelPath(stdModel.id, stdBaseDir);
+                try {
+                  await sendCallback('native_load_model', { model_path: stdPath, model_type: 'reasoning' });
+                  const { NativeProvider } = await import('../../../core/llm/native-provider.js');
+                  const stdProvider = new NativeProvider({ bridge: nativeRuntimeBridge, modelName: stdModel.id });
+                  router.setReasoningProvider(stdProvider, stdModel.id);
+                  console.error(`[sidecar] Health check: loaded standard model "${stdModel.id}" as Ollama fallback`);
+                  break;
+                } catch { /* continue to next model */ }
+              }
+            }
+          }
           // Emit status update so UI reflects the change
           emit('status-update', {
             ollamaStatus: 'disconnected',
@@ -1724,6 +1744,13 @@ async function handleSendMessage(
   id: number | string,
   params: { message: string; conversation_id?: string; attachments?: Array<{ id: string; fileName: string; filePath: string; mimeType: string }> },
 ): Promise<void> {
+  // Serialize message processing — wait for any previous message to finish
+  const previousLock = messageProcessingLock;
+  let releaseLock: () => void;
+  messageProcessingLock = new Promise<void>(resolve => { releaseLock = resolve; });
+  await previousLock;
+
+  try {
   // ─── ROUTE 1: Orchestrator (full agent loop with tools) ───────────────────
   // The orchestrator has 30+ tools, autonomy tiers, approval flows, intent
   // checking, and audit logging. Both native runtime and Ollama go through
@@ -1867,6 +1894,22 @@ async function handleSendMessage(
             const preview = buf.toString('utf-8', 0, bytesRead);
             const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
             attachmentSections.push(`[Attached file: ${att.fileName} (${sizeMB}MB — showing first 8KB)]\n${preview}\n...(truncated, full file is ${sizeMB}MB)`);
+          } else if (att.mimeType.startsWith('image/')) {
+            // Try vision model for image attachments
+            try {
+              const visionResult = await sendCallback('native_generate_vision', {
+                image_path: att.filePath,
+                prompt: 'Describe this image in detail.',
+                max_tokens: 512,
+              });
+              if (visionResult && typeof visionResult === 'string') {
+                attachmentSections.push(`[Image: ${att.fileName}]\nVision analysis: ${visionResult}`);
+              } else {
+                attachmentSections.push(`[Attached image: ${att.fileName} (${att.mimeType}) — vision model not available]`);
+              }
+            } catch {
+              attachmentSections.push(`[Attached image: ${att.fileName} (${att.mimeType}) — vision analysis failed]`);
+            }
           } else {
             attachmentSections.push(`[Attached file: ${att.fileName} (${att.mimeType}, binary — content not shown)]`);
           }
@@ -1996,6 +2039,9 @@ async function handleSendMessage(
     console.error('[sidecar] handleSendMessage error:', errMsg);
     emit('chat-token', `\n\nError: ${errMsg}`);
     emit('chat-complete', { id: responseId, content: `Error: ${errMsg}`, actions: [] });
+  }
+  } finally {
+    releaseLock!();
   }
 }
 

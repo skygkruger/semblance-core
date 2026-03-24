@@ -598,6 +598,19 @@ const BASE_TOOLS: ToolDefinition[] = [
       required: ['fields'],
     },
   },
+  // ─── Vision Tool ──────────────────────────────────────────────────────
+  {
+    name: 'analyze_image',
+    description: 'Analyze an image using the local vision model (Moondream2). Use when the user asks about an image, screenshot, or photo that has been attached to the conversation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        imagePath: { type: 'string', description: 'Absolute file path to the image' },
+        prompt: { type: 'string', description: 'What to analyze or describe about the image' },
+      },
+      required: ['imagePath', 'prompt'],
+    },
+  },
 ];
 
 // Map tool names to ActionTypes
@@ -649,6 +662,7 @@ const BASE_LOCAL_TOOLS = new Set([
   'snooze_reminder',
   'dismiss_reminder',
   'delete_reminder',
+  'analyze_image',
 ]);
 
 // --- System Prompt ---
@@ -890,6 +904,14 @@ export class OrchestratorImpl implements Orchestrator {
   }
 
   async processMessage(message: string, conversationId?: string): Promise<OrchestratorResponse> {
+    // Guard against excessively long messages that would overflow model context
+    const MAX_USER_MESSAGE_CHARS = 32000; // ~8000 tokens
+    if (message.length > MAX_USER_MESSAGE_CHARS) {
+      const originalLength = message.length;
+      message = message.slice(0, MAX_USER_MESSAGE_CHARS) + '\n\n[Message truncated — original was ' + originalLength + ' characters]';
+      console.error(`[Orchestrator] User message truncated from ${originalLength} to ${MAX_USER_MESSAGE_CHARS} chars`);
+    }
+
     // Get or create conversation
     const convId = conversationId ?? this.createConversation();
     // Ensure conversation row exists in OUR table — the caller (bridge.ts) may
@@ -2086,6 +2108,36 @@ export class OrchestratorImpl implements Orchestrator {
           } catch (err2) {
             executedResults.push({ tool: 'add_contact', result: { error: `Failed to add contact: ${err2 instanceof Error ? err2.message : String(err2)}` } });
           }
+        }
+        continue;
+      }
+
+      // --- Vision tool (local, routes to vision provider) ---
+
+      if (tc.name === 'analyze_image') {
+        const imagePath = tc.arguments['imagePath'] as string;
+        const prompt = (tc.arguments['prompt'] as string) ?? 'Describe this image in detail.';
+        try {
+          if (this.llm.routedChat) {
+            const response = await this.llm.routedChat({
+              model: '',
+              messages: [{ role: 'user', content: `[Image: ${imagePath}]\n${prompt}` }],
+            }, 'vision_fast');
+            executedResults.push({
+              tool: 'analyze_image',
+              result: { description: response.message.content, model: response.model },
+            });
+          } else {
+            executedResults.push({
+              tool: 'analyze_image',
+              result: { error: 'Vision model not available. Download Moondream2 in Settings → AI Engine.' },
+            });
+          }
+        } catch (err) {
+          executedResults.push({
+            tool: 'analyze_image',
+            result: { error: err instanceof Error ? err.message : 'Vision analysis failed' },
+          });
         }
         continue;
       }
