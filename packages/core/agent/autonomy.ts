@@ -274,8 +274,11 @@ export class AutonomyManager {
     const baseDecision = this.decideBase(action);
 
     // Preference graph integration: high-confidence learned preference can upgrade
-    // requires_approval → auto_approve (but never downgrade auto_approve)
-    if (baseDecision === 'requires_approval' && this.preferenceGraph) {
+    // requires_approval → auto_approve (but never downgrade auto_approve).
+    // CRITICAL: Guardian tier is an explicit user choice meaning "I want to approve everything" —
+    // a learned preference must NEVER override that. Only Partner/Alter Ego tiers are eligible.
+    const domain = ACTION_DOMAIN_MAP[action];
+    if (baseDecision === 'requires_approval' && this.preferenceGraph && this.getDomainTier(domain) !== 'guardian') {
       const pref = this.preferenceGraph.shouldAutoApprove(action, context ?? {});
       if (pref && pref.confidence >= 0.85 && pref.override !== true) {
         if (!(pref.overrideValue === false)) {
@@ -301,7 +304,10 @@ export class AutonomyManager {
         return 'requires_approval';
 
       case 'partner':
-        // Partner: Read = auto. Write = auto for routine. Execute = approval.
+        // Partner: Read = auto. Write = auto (BoundaryEnforcer catches high-stakes payloads).
+        // Execute = approval. Users chose Partner because they want routine task automation;
+        // novel-action gating is handled by BoundaryEnforcer and AlterEgoGuardrails at the
+        // payload level, not at the base autonomy tier.
         switch (risk) {
           case 'read':
             return 'auto_approve';
@@ -313,8 +319,15 @@ export class AutonomyManager {
         break; // unreachable, but satisfies TS
 
       case 'alter_ego':
-        // Alter Ego: Auto for almost everything. High-stakes execute = approval.
-        if (risk === 'execute' && (action === 'email.send')) {
+        // Alter Ego: Auto for almost everything. Certain high-stakes execute actions
+        // still require approval — sending messages on behalf of the user and arbitrary
+        // system command execution are too dangerous to auto-approve even at full autonomy.
+        if (risk === 'execute' && (
+          action === 'email.send' ||
+          action === 'messaging.send' ||
+          action === 'system.execute' ||
+          action === 'system.process_kill'
+        )) {
           return 'requires_approval';
         }
         return 'auto_approve';

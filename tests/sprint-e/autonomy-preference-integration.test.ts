@@ -84,12 +84,10 @@ describe('Sprint E — Autonomy + Preference Graph Integration', () => {
       evidence: {},
     });
 
-    // Guardian always requires approval — preference graph only affects 'requires_approval' decisions
-    // email.fetch at guardian = requires_approval, preference tries to upgrade
+    // Guardian is an explicit user choice meaning "I want to approve everything" —
+    // preference graph must NEVER override Guardian tier, even with high confidence.
     const decision = autonomy.decide('email.fetch');
-    // With preference graph, this CAN be upgraded even in guardian mode
-    // because the base decision is requires_approval and preference is high
-    expect(decision).toBe('auto_approve');
+    expect(decision).toBe('requires_approval');
   });
 
   it('works correctly without preference graph set', () => {

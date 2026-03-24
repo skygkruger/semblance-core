@@ -119,6 +119,15 @@ const BUILT_IN_JOBS: Omit<CronJob, 'lastFiredAt' | 'nextFireAt' | 'createdAt'>[]
     autonomyDomain: 'system',
     enabled: true,
   },
+  {
+    id: 'connector-resync',
+    name: 'Connector Re-Sync',
+    schedule: '*/10 * * * *',
+    actionType: 'connector.resync_all',
+    payload: {},
+    autonomyDomain: 'connectors',
+    enabled: true,
+  },
 ];
 
 /**
