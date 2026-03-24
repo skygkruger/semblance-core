@@ -7970,6 +7970,50 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      case 'backup_add_destination': {
+        const { path: destPath, name: destName, type: destType } = params as { path: string; name: string; type: string };
+        try {
+          const existing = JSON.parse(getPref('backup_destinations') ?? '[]') as Array<{ id: string; name: string; type: string; path: string; lastBackupAt: string | null; sizeBytes: number }>;
+          const newId = `dest_${Date.now()}`;
+          const entry = { id: newId, name: destName || destPath, type: destType || 'local', path: destPath, lastBackupAt: null, sizeBytes: 0 };
+          if (!existing.some((d: { path: string }) => d.path === destPath)) {
+            existing.push(entry);
+            setPref('backup_destinations', JSON.stringify(existing));
+          }
+          respond(id, entry);
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+
+      case 'backup_remove_destination': {
+        const { id: removeId } = params as { id: string };
+        try {
+          const existing = JSON.parse(getPref('backup_destinations') ?? '[]') as Array<{ id: string; path: string }>;
+          const filtered = existing.filter((d: { id: string }) => d.id !== removeId);
+          setPref('backup_destinations', JSON.stringify(filtered));
+          respond(id, { success: true });
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+
+      case 'backup_get_status': {
+        try {
+          const lastBackup = getPref('backup_last_completed_at');
+          const destinations = JSON.parse(getPref('backup_destinations') ?? '[]') as unknown[];
+          respond(id, {
+            lastBackupAt: lastBackup ?? null,
+            destinationCount: destinations.length,
+          });
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+
       // ─── Sprint C: Named Session Handlers ─────────────────────────────────
 
       case 'session_create': {

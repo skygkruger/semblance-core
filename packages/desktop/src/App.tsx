@@ -357,6 +357,23 @@ function AppContent() {
       if (status?.ollamaStatus) dispatch({ type: 'SET_OLLAMA_STATUS', status: status.ollamaStatus as 'connected' | 'disconnected' | 'checking' });
       if (status?.userName) dispatch({ type: 'SET_USER_NAME', name: status.userName });
     }).catch(() => {});
+
+    // Hydrate autonomy tiers from sidecar prefs
+    invoke<{ domains?: Record<string, string> }>('sidecar_request', {
+      request: { method: 'get_autonomy_config', params: {} },
+    }).then((result) => {
+      if (result?.domains) {
+        const config: Record<string, 'guardian' | 'partner' | 'alter_ego'> = {};
+        for (const [domain, tier] of Object.entries(result.domains)) {
+          if (tier === 'guardian' || tier === 'partner' || tier === 'alter_ego') {
+            config[domain] = tier;
+          }
+        }
+        if (Object.keys(config).length > 0) {
+          dispatch({ type: 'SET_AUTONOMY_CONFIG', config });
+        }
+      }
+    }).catch(() => {});
   }, [dispatch]);
 
   useEffect(() => {

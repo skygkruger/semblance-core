@@ -47,8 +47,8 @@ describe('IPC Typed Commands — Structure', () => {
     const exportedFns = content.match(/^export function (\w+)/gm);
     expect(exportedFns).not.toBeNull();
 
-    // Identify internal helper functions that call invoke (e.g., sidecarRequest)
-    const helperPattern = /^function (\w+)/gm;
+    // Identify helper functions (exported or not) that call invoke (e.g., sidecarRequest, sidecarCall)
+    const helperPattern = /^(?:export )?function (\w+)/gm;
     const helpers: string[] = [];
     let match;
     while ((match = helperPattern.exec(content)) !== null) {
