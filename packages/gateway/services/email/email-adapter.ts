@@ -238,28 +238,35 @@ export class EmailAdapter implements ServiceAdapter {
       return { success: true, data: { messages } };
     }
 
-    // 2. Fall back to Gmail OAuth XOAUTH2
-    console.error('[EmailAdapter] No IMAP credentials found, trying Gmail OAuth...');
+    // 2. Fall back to Gmail REST API (no IMAP required — just OAuth token)
+    console.error('[EmailAdapter] No IMAP credentials found, trying Gmail REST API...');
     const oauth = await this.getGmailOAuthToken();
     if (oauth) {
-      console.error(`[EmailAdapter] Using Gmail XOAUTH2 for ${oauth.userEmail}`);
+      console.error(`[EmailAdapter] Using Gmail REST API for ${oauth.userEmail}`);
       try {
-        const messages = await this.imap.fetchMessagesOAuth(
-          GMAIL_IMAP_HOST, GMAIL_IMAP_PORT,
-          oauth.userEmail, oauth.accessToken,
-          params,
-        );
-        console.error(`[EmailAdapter] Gmail XOAUTH2 fetch returned ${messages.length} messages`);
+        const messages = await this.fetchViaGmailApi(oauth.accessToken, params);
+        console.error(`[EmailAdapter] Gmail REST API returned ${messages.length} messages`);
         return { success: true, data: { messages } };
-      } catch (imapErr) {
-        console.error('[EmailAdapter] Gmail IMAP XOAUTH2 connection failed:', imapErr);
-        return {
-          success: false,
-          error: {
-            code: 'IMAP_XOAUTH2_FAILED',
-            message: `Gmail IMAP connection failed: ${imapErr instanceof Error ? imapErr.message : String(imapErr)}. Check that IMAP is enabled in Gmail Settings > Forwarding and POP/IMAP.`,
-          },
-        };
+      } catch (apiErr) {
+        console.error('[EmailAdapter] Gmail REST API fetch failed:', apiErr);
+        // Fall back to IMAP XOAUTH2 as last resort
+        try {
+          const imapMessages = await this.imap.fetchMessagesOAuth(
+            GMAIL_IMAP_HOST, GMAIL_IMAP_PORT,
+            oauth.userEmail, oauth.accessToken,
+            params,
+          );
+          return { success: true, data: { messages: imapMessages } };
+        } catch (imapErr) {
+          console.error('[EmailAdapter] Gmail IMAP XOAUTH2 also failed:', imapErr);
+          return {
+            success: false,
+            error: {
+              code: 'GMAIL_FETCH_FAILED',
+              message: `Gmail fetch failed: ${apiErr instanceof Error ? apiErr.message : String(apiErr)}`,
+            },
+          };
+        }
       }
     }
 
@@ -268,6 +275,111 @@ export class EmailAdapter implements ServiceAdapter {
       success: false,
       error: { code: 'NO_EMAIL_CREDENTIALS', message: 'No email credentials configured. Connect Gmail or add IMAP credentials in Settings.' },
     };
+  }
+
+  /**
+   * Fetch emails via Gmail REST API. No IMAP required.
+   * Uses: GET /gmail/v1/users/me/messages (list) + GET /gmail/v1/users/me/messages/{id} (detail)
+   */
+  private async fetchViaGmailApi(
+    accessToken: string,
+    params: EmailFetchParams,
+  ): Promise<Array<{
+    id: string; messageId: string; threadId: string;
+    from: string; fromName: string; to: string;
+    subject: string; snippet: string; body: string;
+    receivedAt: string; isRead: boolean; isStarred: boolean;
+    hasAttachments: boolean; labels: string[]; folder: string;
+  }>> {
+    const limit = params.limit ?? 50;
+    const folder = params.folder ?? 'INBOX';
+    const labelQuery = folder === 'INBOX' ? 'in:inbox' : `label:${folder.toLowerCase()}`;
+    const query = params.search ? `${labelQuery} ${params.search}` : labelQuery;
+
+    // 1. List message IDs
+    const listUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
+    listUrl.searchParams.set('maxResults', String(limit));
+    listUrl.searchParams.set('q', query);
+
+    const listResp = await globalThis.fetch(listUrl.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!listResp.ok) {
+      const errText = await listResp.text().catch(() => '');
+      throw new Error(`Gmail list failed (${listResp.status}): ${errText.slice(0, 200)}`);
+    }
+
+    const listData = await listResp.json() as {
+      messages?: Array<{ id: string; threadId: string }>;
+    };
+    const messageIds = listData.messages ?? [];
+    if (messageIds.length === 0) return [];
+
+    // 2. Fetch each message's metadata + snippet (batch, max 10 concurrent)
+    const BATCH_SIZE = 10;
+    const results: Array<{
+      id: string; messageId: string; threadId: string;
+      from: string; fromName: string; to: string;
+      subject: string; snippet: string; body: string;
+      receivedAt: string; isRead: boolean; isStarred: boolean;
+      hasAttachments: boolean; labels: string[]; folder: string;
+    }> = [];
+
+    for (let i = 0; i < messageIds.length; i += BATCH_SIZE) {
+      const batch = messageIds.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.allSettled(
+        batch.map(async (msg) => {
+          const detailUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`;
+          const detailResp = await globalThis.fetch(detailUrl, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (!detailResp.ok) return null;
+          return detailResp.json();
+        })
+      );
+
+      for (const result of batchResults) {
+        if (result.status !== 'fulfilled' || !result.value) continue;
+        const msg = result.value as {
+          id: string; threadId: string; labelIds?: string[];
+          snippet?: string; internalDate?: string;
+          payload?: {
+            headers?: Array<{ name: string; value: string }>;
+            parts?: Array<{ mimeType: string; filename?: string }>;
+          };
+        };
+
+        const headers = msg.payload?.headers ?? [];
+        const getHeader = (name: string) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value ?? '';
+        const fromRaw = getHeader('From');
+        const fromMatch = fromRaw.match(/^(.+?)\s*<(.+?)>$/);
+        const fromName = fromMatch ? fromMatch[1]!.replace(/^["']|["']$/g, '') : fromRaw;
+        const fromEmail = fromMatch ? fromMatch[2]! : fromRaw;
+        const labels = msg.labelIds ?? [];
+
+        results.push({
+          id: msg.id,
+          messageId: msg.id,
+          threadId: msg.threadId,
+          from: fromEmail,
+          fromName,
+          to: getHeader('To'),
+          subject: getHeader('Subject'),
+          snippet: msg.snippet ?? '',
+          body: msg.snippet ?? '',
+          receivedAt: msg.internalDate
+            ? new Date(parseInt(msg.internalDate, 10)).toISOString()
+            : new Date().toISOString(),
+          isRead: !labels.includes('UNREAD'),
+          isStarred: labels.includes('STARRED'),
+          hasAttachments: !!(msg.payload?.parts?.some(p => p.filename && p.filename.length > 0)),
+          labels,
+          folder,
+        });
+      }
+    }
+
+    return results;
   }
 
   private async handleSend(params: EmailSendParams): Promise<{

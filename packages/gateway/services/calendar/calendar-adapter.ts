@@ -4,15 +4,18 @@
 import type { ActionType } from '@semblance/core';
 import type { ServiceAdapter } from '../types.js';
 import type { CredentialStore } from '../../credentials/store.js';
+import type { OAuthTokenManager } from '../oauth-token-manager.js';
 import { CalDAVAdapter } from './caldav-adapter.js';
 import type { CalendarFetchParams, CalendarCreateParams, CalendarUpdateParams } from './types.js';
 
 export class CalendarAdapter implements ServiceAdapter {
   readonly caldav: CalDAVAdapter;
   private credentialStore: CredentialStore;
+  private oauthTokenManager: OAuthTokenManager | null;
 
-  constructor(credentialStore: CredentialStore) {
+  constructor(credentialStore: CredentialStore, oauthTokenManager?: OAuthTokenManager) {
     this.credentialStore = credentialStore;
+    this.oauthTokenManager = oauthTokenManager ?? null;
     this.caldav = new CalDAVAdapter(credentialStore);
   }
 

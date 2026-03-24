@@ -192,6 +192,24 @@ export class MorningBriefGenerator {
     // Sort sections by priority
     sections.sort((a, b) => a.priority - b.priority);
 
+    // Short-circuit: if no sections have data, return a static brief
+    if (sections.length === 0) {
+      const emptyBrief: MorningBrief = {
+        id: nanoid(),
+        date: dateStr,
+        generatedAt: new Date().toISOString(),
+        sections: [],
+        summary: 'Nothing on your schedule today. Connect services in Settings → Connections to build your daily brief.',
+        estimatedReadTimeSeconds: 5,
+        dismissed: false,
+      };
+      this.db.prepare(
+        `INSERT INTO morning_briefs (id, date, generated_at, sections_json, summary, estimated_read_time_seconds, dismissed)
+         VALUES (?, ?, ?, ?, ?, ?, 0)`
+      ).run(emptyBrief.id, emptyBrief.date, emptyBrief.generatedAt, '[]', emptyBrief.summary, emptyBrief.estimatedReadTimeSeconds);
+      return emptyBrief;
+    }
+
     // Synthesize summary
     const summary = await this.synthesizeSummary(sections);
     const estimatedReadTimeSeconds = this.computeReadTime(summary);
