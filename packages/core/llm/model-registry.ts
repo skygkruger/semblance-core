@@ -25,8 +25,8 @@ export interface ModelRegistryEntry {
   hfRepo: string;
   /** Filename within the HF repo */
   hfFilename: string;
-  /** SHA-256 hash for integrity verification */
-  sha256: string;
+  /** SHA-256 hash for integrity verification. Undefined = skip verification (hash not yet known). */
+  sha256?: string;
   /** Output dimensions (only for embedding models) */
   embeddingDimensions?: number;
   isEmbedding: boolean;
@@ -73,7 +73,7 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     ramRequiredMb: 1024,
     hfRepo: 'bartowski/SmolLM2-1.7B-Instruct-GGUF',
     hfFilename: 'SmolLM2-1.7B-Instruct-Q4_K_M.gguf',
-    sha256: '', // populate after first verified download
+    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
     isEmbedding: false,
     modality: 'text',
     inferenceTier: 'fast',
@@ -99,7 +99,7 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     ramRequiredMb: 512,
     hfRepo: 'nomic-ai/nomic-embed-text-v1.5-GGUF',
     hfFilename: 'nomic-embed-text-v1.5.Q8_0.gguf',
-    sha256: '', // Populated at build time or first verified download
+    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
     embeddingDimensions: 768,
     isEmbedding: true,
     minTier: 'constrained',
@@ -126,7 +126,7 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     ramRequiredMb: 2048,
     hfRepo: 'Qwen/Qwen3-1.7B-GGUF',
     hfFilename: 'Qwen3-1.7B-Q4_K_M.gguf',
-    sha256: '',
+    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
     isEmbedding: false,
     modality: 'text',
     inferenceTier: 'primary',
@@ -153,7 +153,7 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     ramRequiredMb: 4096,
     hfRepo: 'Qwen/Qwen3-4B-GGUF',
     hfFilename: 'Qwen3-4B-Q4_K_M.gguf',
-    sha256: '',
+    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
     isEmbedding: false,
     modality: 'text',
     inferenceTier: 'primary',
@@ -179,7 +179,7 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     ramRequiredMb: 8192,
     hfRepo: 'Qwen/Qwen3-8B-GGUF',
     hfFilename: 'Qwen3-8B-Q4_K_M.gguf',
-    sha256: '',
+    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
     isEmbedding: false,
     modality: 'text',
     inferenceTier: 'primary',
@@ -205,7 +205,7 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     ramRequiredMb: 20480,
     hfRepo: 'Qwen/Qwen3-30B-A3B-GGUF',
     hfFilename: 'Qwen3-30B-A3B-Q4_K_M.gguf',
-    sha256: '',
+    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
     isEmbedding: false,
     modality: 'text',
     inferenceTier: 'primary',
@@ -233,7 +233,7 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     ramRequiredMb: 3072,
     hfRepo: 'ggml-org/moondream2-20250414-GGUF',
     hfFilename: 'moondream2-text-model-f16_ct-vicuna.gguf',
-    sha256: '',
+    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
     isEmbedding: false,
     modality: 'vision',
     inferenceTier: 'vision',
@@ -261,7 +261,7 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     ramRequiredMb: 4096,
     hfRepo: 'Qwen/Qwen2.5-VL-3B-Instruct-GGUF',
     hfFilename: 'qwen2.5-vl-3b-instruct-q4_k_m.gguf',
-    sha256: '',
+    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
     isEmbedding: false,
     modality: 'vision',
     inferenceTier: 'vision',

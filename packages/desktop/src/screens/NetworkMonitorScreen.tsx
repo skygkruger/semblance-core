@@ -408,7 +408,7 @@ export function NetworkMonitorScreen() {
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
+          <h1 style={{ fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif", fontSize: 28, fontWeight: 300, color: '#EEF1F4', letterSpacing: '-0.03em' }}>
             {t('screen.network_monitor.title')}
           </h1>
           <div className="flex gap-1">

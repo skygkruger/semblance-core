@@ -272,7 +272,7 @@ export function SettingsScreen() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-6 py-8">
+      <div className="max-w-container-lg mx-auto px-6 py-8">
         <SettingsNavigator
           /* Root props */
           currentModel={state.activeModel || 'Loading...'}

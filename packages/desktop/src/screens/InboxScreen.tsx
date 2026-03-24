@@ -247,7 +247,7 @@ export function InboxScreen() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
-        <h1 className="text-xl font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
+        <h1 style={{ fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif", fontSize: 28, fontWeight: 300, color: '#EEF1F4', letterSpacing: '-0.03em' }}>
           {t('screen.inbox.title')}
         </h1>
 
@@ -491,7 +491,7 @@ export function InboxScreen() {
 
         {/* Undo Toast */}
         {undoToast && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-semblance-surface-2 dark:bg-semblance-surface-2-dark border border-semblance-border dark:border-semblance-border-dark">
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg bg-semblance-surface-2 dark:bg-semblance-surface-2-dark" style={{ border: '1px solid rgba(255,255,255,0.09)' }}>
             <span className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">
               {undoToast.message}
             </span>
