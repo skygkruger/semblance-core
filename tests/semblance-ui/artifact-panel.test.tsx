@@ -82,7 +82,9 @@ describe('ArtifactPanel', () => {
 
   it('renders markdown content', () => {
     render(<ArtifactPanel {...defaultProps} artifact={markdownArtifact} />);
-    expect(screen.getByText(/## Overview/)).toBeTruthy();
+    // Markdown is now rendered via renderMarkdown — ## Overview becomes <h2>Overview</h2>
+    expect(screen.getByText('Overview')).toBeTruthy();
+    expect(screen.getByText(/This is a summary/)).toBeTruthy();
   });
 
   it('renders CSV content', () => {

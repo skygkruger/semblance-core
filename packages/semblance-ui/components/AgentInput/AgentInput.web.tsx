@@ -19,6 +19,7 @@ export function AgentInput({
   onRemoveAttachment,
   onSend,
   onSubmit,
+  onCancel,
   autoFocus = false,
   className = '',
   voiceEnabled = false,
@@ -212,11 +213,32 @@ export function AgentInput({
           data-testid="agent-input-field"
         />
 
-        {/* Thinking overlay — green cursor + "Thinking" text */}
+        {/* Thinking overlay — green cursor + "Thinking" text + optional Stop button */}
         {thinking && (
           <div className="agent-input__thinking-overlay" data-testid="thinking-overlay">
             <span className="agent-input__thinking-cursor" />
             <span className="agent-input__thinking-text">{t('input.thinking_text')}</span>
+            {onCancel && (
+              <button
+                type="button"
+                className="agent-input__cancel"
+                onClick={onCancel}
+                data-testid="cancel-button"
+                style={{
+                  marginLeft: '8px',
+                  padding: '2px 10px',
+                  fontSize: '12px',
+                  color: '#8593A4',
+                  background: 'transparent',
+                  border: '1px solid #8593A433',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  lineHeight: '18px',
+                }}
+              >
+                Stop
+              </button>
+            )}
           </div>
         )}
 

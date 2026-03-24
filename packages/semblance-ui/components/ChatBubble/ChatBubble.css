@@ -20,7 +20,7 @@
   border-radius: 12px;
   border: 1px solid transparent;
   background:
-    linear-gradient(#121518, #121518) padding-box,
+    linear-gradient(#111518, #111518) padding-box,
     conic-gradient(from var(--opal-angle),
       rgba(97,88,128,0.35), rgba(119,110,162,0.45),
       rgba(154,168,184,0.55), rgba(216,221,232,0.6),
