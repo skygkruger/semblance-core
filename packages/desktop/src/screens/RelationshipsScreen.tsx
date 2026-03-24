@@ -312,18 +312,18 @@ export function RelationshipsScreen() {
             <Card>
               <div className="p-4 space-y-3">
                 <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">{t('screen.relationships.section_info')}</h3>
-                {selectedContact.emails.length > 0 && (
+                {(selectedContact.emails ?? []).length > 0 && (
                   <div>
                     <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_email')}</span>
-                    {selectedContact.emails.map(e => (
+                    {(selectedContact.emails ?? []).map(e => (
                       <p key={e} className="text-sm text-semblance-text dark:text-semblance-text-dark">{e}</p>
                     ))}
                   </div>
                 )}
-                {selectedContact.phones.length > 0 && (
+                {(selectedContact.phones ?? []).length > 0 && (
                   <div>
                     <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_phone')}</span>
-                    {selectedContact.phones.map(p => (
+                    {(selectedContact.phones ?? []).map(p => (
                       <p key={p} className="text-sm text-semblance-text dark:text-semblance-text-dark">{p}</p>
                     ))}
                   </div>

@@ -110,6 +110,15 @@ const BUILT_IN_JOBS: Omit<CronJob, 'lastFiredAt' | 'nextFireAt' | 'createdAt'>[]
     autonomyDomain: 'digest',
     enabled: true,
   },
+  {
+    id: 'reminder-check',
+    name: 'Reminder Due Check',
+    schedule: '*/5 * * * *',
+    actionType: 'reminder.check_due',
+    payload: {},
+    autonomyDomain: 'system',
+    enabled: true,
+  },
 ];
 
 /**

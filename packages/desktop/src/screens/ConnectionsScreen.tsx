@@ -155,14 +155,13 @@ export function ConnectionsScreen() {
           variant: 'attention',
         }).catch(() => {});
       } else {
-        // Auth succeeded — update connector state so UI shows "Connected"
-        // lastSyncedAt is undefined until sync actually completes (indexing-complete event)
+        // Auth succeeded — show "Syncing..." until indexing-complete fires
         dispatch({
           type: 'SET_CONNECTOR_STATE',
           connectorId,
           state: {
             connectorId,
-            status: 'connected',
+            status: 'syncing',
             lastSyncedAt: undefined,
           },
         });

@@ -104,7 +104,7 @@ export interface AppState {
   };
   connectorStates: Record<string, {
     connectorId: string;
-    status: 'connected' | 'disconnected' | 'error' | 'pending';
+    status: 'connected' | 'disconnected' | 'error' | 'pending' | 'syncing';
     userEmail?: string;
     lastSyncedAt?: string;
     errorMessage?: string;

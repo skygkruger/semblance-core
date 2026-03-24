@@ -318,8 +318,9 @@ describe('Step 10 Integration: Orchestrator tool registration', () => {
     // Check the map entries exist (with single quotes)
     expect(content).toContain("'search_web': 'web.search'");
     expect(content).toContain("'fetch_url': 'web.fetch'");
-    expect(content).toContain("'create_reminder': 'reminder.create'");
-    expect(content).toContain("'list_reminders': 'reminder.list'");
+    // Reminder tools are now local (write directly to prefsDb to avoid dual-database issue)
+    expect(content).toContain("'create_reminder'");
+    expect(content).toContain("'list_reminders'");
   });
 });
 

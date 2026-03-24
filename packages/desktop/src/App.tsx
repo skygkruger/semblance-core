@@ -322,6 +322,19 @@ function AppContent() {
     // notification sound removed
   }, []));
 
+  // Reminder due notifications
+  useTauriEvent<{ id: string; text: string; dueAt: string }>(
+    'semblance://reminder-due',
+    useCallback((payload) => {
+      setToasts(prev => [...prev, {
+        id: `reminder-${payload.id}`,
+        message: `Reminder: ${payload.text}`,
+        variant: 'attention' as const,
+      }]);
+      play('notification');
+    }, [play]),
+  );
+
   // Toast notifications from sidecar
   useTauriEvent<{ id: string; message: string; variant: 'info' | 'success' | 'attention' | 'action' }>(
     'semblance://toast',

@@ -178,6 +178,11 @@ export function ChatScreen() {
     }
   }, [refreshConversationList]);
 
+  // Clean up search debounce on unmount
+  useEffect(() => {
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, []);
+
   // Debounced search for conversations
   const handleHistorySearchChange = useCallback((query: string) => {
     setHistorySearch(query);

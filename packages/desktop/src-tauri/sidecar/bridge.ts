@@ -6319,13 +6319,26 @@ async function handleRequest(req: Request): Promise<void> {
       case 'report_generate_sovereignty': {
         if (!prefsDb) { respondError(id, 'Core database not initialized'); break; }
         const reportParams = params as { periodStart: string; periodEnd: string };
-        const signingKeyPair = ed25519GenerateKeyPair();
+        // Reuse persisted key pair if available; generate only on first use
+        let signingKeyPair: { privateKey: Buffer; publicKey: Buffer };
+        const existingPriv = getPref('sovereignty_signing_private_key');
+        const existingPub = getPref('sovereignty_signing_public_key');
+        if (existingPriv && existingPub) {
+          signingKeyPair = {
+            privateKey: Buffer.from(existingPriv, 'hex'),
+            publicKey: Buffer.from(existingPub, 'hex'),
+          };
+        } else {
+          signingKeyPair = ed25519GenerateKeyPair();
+          setPref('sovereignty_signing_private_key', signingKeyPair.privateKey.toString('hex'));
+          setPref('sovereignty_signing_public_key', signingKeyPair.publicKey.toString('hex'));
+        }
         const report: SovereigntyReport = generateSovereigntyReport(
           { coreDb: prefsDb, auditDb: merkleDb, deviceId: 'desktop', keyPair: signingKeyPair },
           reportParams.periodStart,
           reportParams.periodEnd,
         );
-        // Store the public key so verify can use it later
+        // Store the public key so verify can use it later (using the stable key)
         setPref('sovereignty_report_public_key', signingKeyPair.publicKey.toString('hex'));
         respond(id, report);
         break;
@@ -6637,6 +6650,33 @@ async function handleRequest(req: Request): Promise<void> {
           } catch { /* table may not exist yet */ }
         }
         respond(id, { success: true });
+        break;
+      }
+
+      // ─── Reminder Due Check (cron job) ─────────────────────────────────
+      case 'reminder.check_due': {
+        if (prefsDb) {
+          try {
+            const now = new Date().toISOString();
+            const dueReminders = prefsDb.prepare(
+              "SELECT id, text, due_at FROM reminders WHERE status IN ('pending', 'snoozed') AND due_at <= ?"
+            ).all(now) as Array<{ id: string; text: string; due_at: string }>;
+            for (const reminder of dueReminders) {
+              emit('semblance://reminder-due', {
+                id: reminder.id,
+                text: reminder.text,
+                dueAt: reminder.due_at,
+              });
+              console.error(`[sidecar] Reminder due: "${reminder.text}" (${reminder.id})`);
+            }
+            respond(id, { checked: dueReminders.length });
+          } catch (err) {
+            console.error('[sidecar] Reminder check failed:', err);
+            respond(id, { checked: 0 });
+          }
+        } else {
+          respond(id, { checked: 0 });
+        }
         break;
       }
 
@@ -9379,10 +9419,34 @@ async function handleRequest(req: Request): Promise<void> {
                 const result = premiumGate.activateLicense(key);
                 if (result.success) {
                   console.error(`[sidecar] Cron license scan: auto-activated key from email ${email.message_id}`);
-                  emit('license-activated', result);
+                  emit('semblance://license-auto-activated', result);
                   found = true;
                   break;
                 }
+              }
+            }
+            // Fallback: search knowledge graph email documents for license key pattern
+            // (snippet may be too short to contain SEMBLANCE_LICENSE_KEY)
+            if (!found && core) {
+              try {
+                const kgResults = await core.knowledge.search('SEMBLANCE_LICENSE_KEY', {
+                  limit: 10,
+                  source: 'email',
+                });
+                for (const r of kgResults) {
+                  const keyFromKG = extractLicenseKey(r.chunk.content);
+                  if (keyFromKG) {
+                    const result = premiumGate.activateLicense(keyFromKG);
+                    if (result.success) {
+                      console.error(`[sidecar] Cron license scan: auto-activated key from knowledge graph`);
+                      emit('semblance://license-auto-activated', result);
+                      found = true;
+                      break;
+                    }
+                  }
+                }
+              } catch {
+                // Knowledge graph may not be initialized yet
               }
             }
             respond(id, { scanned: recentEmails.length, activated: found });
