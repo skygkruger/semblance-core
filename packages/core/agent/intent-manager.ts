@@ -278,7 +278,9 @@ Example output: {"action":"never","scope":"finance.*","target":"crypto","categor
         maxTokens: 256,
       };
 
-      const response = await this.llm.generate(request);
+      const response = this.llm.routedGenerate
+        ? await this.llm.routedGenerate(request, 'extract')
+        : await this.llm.generate(request);
       const text = response.text.trim();
 
       // Extract JSON from response (may be wrapped in markdown code blocks)
@@ -327,7 +329,9 @@ Output only the theme word:`,
         maxTokens: 32,
       };
 
-      const response = await this.llm.generate(request);
+      const response = this.llm.routedGenerate
+        ? await this.llm.routedGenerate(request, 'extract')
+        : await this.llm.generate(request);
       return response.text.trim().toLowerCase().replace(/[^a-z-]/g, '').slice(0, 32) || '';
     } catch {
       return '';

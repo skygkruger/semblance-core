@@ -186,11 +186,14 @@ export class EmailCategorizer {
   private async categorizeSingle(email: IndexedEmail): Promise<CategorizationResult> {
     const prompt = this.buildPrompt(email);
 
-    const response = await this.llm.chat({
+    const chatRequest = {
       model: this.model,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user' as const, content: prompt }],
       temperature: 0.1,
-    });
+    };
+    const response = this.llm.routedChat
+      ? await this.llm.routedChat(chatRequest, 'classify')
+      : await this.llm.chat(chatRequest);
 
     const parsed = this.parseResponse(response.message.content, email.messageId);
     return parsed;
@@ -206,11 +209,14 @@ export class EmailCategorizer {
 
     const prompt = this.buildBatchPrompt(emails);
 
-    const response = await this.llm.chat({
+    const chatRequest = {
       model: this.model,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user' as const, content: prompt }],
       temperature: 0.1,
-    });
+    };
+    const response = this.llm.routedChat
+      ? await this.llm.routedChat(chatRequest, 'classify')
+      : await this.llm.chat(chatRequest);
 
     return this.parseBatchResponse(response.message.content, emails);
   }

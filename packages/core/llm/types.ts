@@ -15,6 +15,9 @@ export interface LLMProvider {
   /** Task-aware chat routing (optional — only InferenceRouter implements this). */
   routedChat?(request: ChatRequest, taskType: string): Promise<ChatResponse>;
 
+  /** Task-aware generate routing (optional — only InferenceRouter implements this). */
+  routedGenerate?(request: GenerateRequest, taskType: string): Promise<GenerateResponse>;
+
   /** Stream a chat completion token-by-token */
   chatStream?(request: ChatRequest): AsyncIterable<string>;
 
