@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, ApprovalCard } from '@semblance/ui';
 import {
@@ -26,6 +26,7 @@ import {
 } from '../ipc/commands';
 import type { PendingAction, ReminderData, DarkPatternResult, ClipboardInsightData } from '../ipc/types';
 import { useAppState } from '../state/AppState';
+import { useTauriEvent } from '../hooks/useTauriEvent';
 import { EmailCard } from '../components/EmailCard';
 import { InsightCard } from '../components/InsightCard';
 import { ReplyComposer } from '../components/ReplyComposer';
@@ -142,6 +143,7 @@ export function InboxScreen() {
   const [clipboardInsight, setClipboardInsight] = useState<ClipboardInsightData | null>(null);
   const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
+  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const loadInboxData = useCallback(async () => {
     try {
@@ -186,6 +188,14 @@ export function InboxScreen() {
     return () => clearInterval(interval);
   }, [loadInboxData, loadExtras]);
 
+  // Clean up undo toast timeout on unmount
+  useEffect(() => {
+    return () => { clearTimeout(undoTimeoutRef.current); };
+  }, []);
+
+  // Refresh inbox immediately when new data is indexed (don't wait for 60s poll)
+  useTauriEvent('semblance://indexing-complete', loadInboxData);
+
   const handleArchive = async (email: IndexedEmail) => {
     try {
       const actionId = await archiveEmails([email.messageId]);
@@ -198,7 +208,8 @@ export function InboxScreen() {
       });
 
       // Auto-dismiss after 8 seconds
-      setTimeout(() => {
+      if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+      undoTimeoutRef.current = setTimeout(() => {
         setUndoToast(prev => prev?.id === email.messageId ? null : prev);
       }, 8000);
     } catch (err) {

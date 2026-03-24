@@ -100,8 +100,12 @@ export function FinancialDashboardScreen() {
       if (filePath) {
         await importStatement(filePath);
         // Reload data after import
-        const updated = await getFinancialDashboard(period);
-        setData(updated);
+        try {
+          const updated = await getFinancialDashboard(period);
+          setData(updated);
+        } catch (err) {
+          console.error('[FinancialDashboard] Post-import refresh failed:', err);
+        }
       }
     } catch {
       // File dialog cancelled or import failed

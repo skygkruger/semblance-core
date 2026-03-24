@@ -137,7 +137,10 @@ export function DigestScreen() {
     );
   }
 
-  const totalAutonomy = digest.actionsAutoExecuted + digest.actionsApproved + digest.actionsRejected;
+  const autoExec = digest.actionsAutoExecuted ?? 0;
+  const approved = digest.actionsApproved ?? 0;
+  const rejected = digest.actionsRejected ?? 0;
+  const totalAutonomy = autoExec + approved + rejected;
   const maxActions = Math.max(
     digest.emailsArchived + digest.emailsDrafted + digest.emailsSent,
     digest.meetingPrepsGenerated + digest.conflictsResolved,
@@ -241,10 +244,10 @@ export function DigestScreen() {
                 {t('screen.digest.autonomy_accuracy', { percent: Math.round(digest.autonomyAccuracy * 100) })}
               </p>
               <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-0.5">
-                {t('screen.digest.autonomy_detail', { auto: digest.actionsAutoExecuted, approved: digest.actionsApproved, total: totalAutonomy })}
+                {t('screen.digest.autonomy_detail', { auto: autoExec, approved, total: totalAutonomy })}
               </p>
             </div>
-            {digest.actionsRejected === 0 && totalAutonomy > 0 && (
+            {rejected === 0 && totalAutonomy > 0 && (
               <span className="text-xs px-2 py-1 rounded bg-semblance-success/10 text-semblance-success">
                 {t('screen.digest.zero_rejected')}
               </span>

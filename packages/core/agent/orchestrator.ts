@@ -610,10 +610,7 @@ const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'search_web': 'web.search',
   'deep_search_web': 'web.deep_search',
   'fetch_url': 'web.fetch',
-  'create_reminder': 'reminder.create',
-  'list_reminders': 'reminder.list',
-  'snooze_reminder': 'reminder.update',
-  'dismiss_reminder': 'reminder.update',
+  // Reminder tools moved to BASE_LOCAL_TOOLS — write directly to prefsDb to avoid dual-database issue
   'send_text': 'messaging.send',
   'get_weather': 'location.weather_query',
   'save_file': 'file.write',
@@ -621,7 +618,6 @@ const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'delete_calendar_event': 'calendar.delete',
   'move_email': 'email.move',
   'mark_email_read': 'email.markRead',
-  'delete_reminder': 'reminder.delete',
   // Sprint WIRE: federated search + form automation
   'search_all_devices': 'search.federated',
   'fill_web_form': 'browser.fill',
@@ -648,6 +644,11 @@ const BASE_LOCAL_TOOLS = new Set([
   'get_financial_summary',
   'get_health_entries',
   'add_health_entry',
+  'create_reminder',
+  'list_reminders',
+  'snooze_reminder',
+  'dismiss_reminder',
+  'delete_reminder',
 ]);
 
 // --- System Prompt ---
@@ -2445,11 +2446,66 @@ export class OrchestratorImpl implements Orchestrator {
         }
       }
 
-      // --- snooze_reminder: convert LLM's natural duration to ISO snoozedUntil for Gateway Zod validation ---
+      // --- Reminder tools: handled locally to write directly to prefsDb (core.db) ---
+      // This ensures reminders created by the AI are visible in the UI which reads from the same DB.
+      if (tc.name === 'create_reminder') {
+        const text = tc.arguments['text'] as string;
+        const dueAt = tc.arguments['dueAt'] as string ?? new Date(Date.now() + 3600000).toISOString();
+        const recurrence = tc.arguments['recurrence'] as string | undefined;
+        try {
+          this.db.exec(`CREATE TABLE IF NOT EXISTS reminders (
+            id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL,
+            recurrence TEXT, status TEXT NOT NULL DEFAULT 'pending',
+            source TEXT DEFAULT 'user', created_at TEXT NOT NULL
+          )`);
+          const id = `rem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          this.db.prepare(
+            'INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+          ).run(id, text, dueAt, recurrence ?? null, 'pending', 'ai', new Date().toISOString());
+          executedResults.push({
+            tool: 'create_reminder',
+            result: { success: true, id, text, dueAt, recurrence },
+          });
+        } catch (err) {
+          executedResults.push({
+            tool: 'create_reminder',
+            result: { error: `Failed to create reminder: ${err instanceof Error ? err.message : String(err)}` },
+          });
+        }
+        continue;
+      }
+
+      if (tc.name === 'list_reminders') {
+        try {
+          this.db.exec(`CREATE TABLE IF NOT EXISTS reminders (
+            id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL,
+            recurrence TEXT, status TEXT NOT NULL DEFAULT 'pending',
+            source TEXT DEFAULT 'user', created_at TEXT NOT NULL
+          )`);
+          const reminders = this.db.prepare(
+            "SELECT * FROM reminders WHERE status IN ('pending', 'snoozed') ORDER BY due_at ASC LIMIT 50"
+          ).all() as Array<{ id: string; text: string; due_at: string; recurrence: string | null; status: string; source: string }>;
+          executedResults.push({
+            tool: 'list_reminders',
+            result: reminders.map(r => ({
+              id: r.id, text: r.text, dueAt: r.due_at,
+              recurrence: r.recurrence, status: r.status, source: r.source ?? 'user',
+            })),
+          });
+        } catch (err) {
+          executedResults.push({
+            tool: 'list_reminders',
+            result: { error: `Failed to list reminders: ${err instanceof Error ? err.message : String(err)}` },
+          });
+        }
+        continue;
+      }
+
       if (tc.name === 'snooze_reminder') {
+        const reminderId = tc.arguments['id'] as string;
         const duration = tc.arguments['duration'] as string ?? '15min';
         const now = Date.now();
-        let snoozedUntil: string;
+        let newDueAt: string;
 
         const durationMatch = duration.match(/^(\d+)\s*(min|minute|m|hr|hour|h|day|d)s?$/i);
         if (durationMatch) {
@@ -2458,26 +2514,65 @@ export class OrchestratorImpl implements Orchestrator {
           const ms = unit.startsWith('h') ? amount * 3600000
                    : unit.startsWith('d') ? amount * 86400000
                    : amount * 60000;
-          snoozedUntil = new Date(now + ms).toISOString();
+          newDueAt = new Date(now + ms).toISOString();
         } else if (duration.toLowerCase() === 'tomorrow') {
           const tomorrow = new Date(now);
           tomorrow.setDate(tomorrow.getDate() + 1);
           tomorrow.setHours(9, 0, 0, 0);
-          snoozedUntil = tomorrow.toISOString();
+          newDueAt = tomorrow.toISOString();
         } else {
-          // Default: 15 minutes
-          snoozedUntil = new Date(now + 15 * 60000).toISOString();
+          newDueAt = new Date(now + 15 * 60000).toISOString();
         }
 
-        // Replace duration with snoozedUntil for Gateway validation
-        tc.arguments['snoozedUntil'] = snoozedUntil;
-        delete tc.arguments['duration'];
-        // Falls through to Gateway dispatch with corrected payload
+        try {
+          this.db.prepare('UPDATE reminders SET status = ?, due_at = ? WHERE id = ?')
+            .run('snoozed', newDueAt, reminderId);
+          executedResults.push({
+            tool: 'snooze_reminder',
+            result: { success: true, id: reminderId, snoozedUntil: newDueAt },
+          });
+        } catch (err) {
+          executedResults.push({
+            tool: 'snooze_reminder',
+            result: { error: `Failed to snooze reminder: ${err instanceof Error ? err.message : String(err)}` },
+          });
+        }
+        continue;
       }
 
-      // --- create_reminder: default dueAt if LLM omits it ---
-      if (tc.name === 'create_reminder' && !tc.arguments['dueAt']) {
-        tc.arguments['dueAt'] = new Date(Date.now() + 3600000).toISOString();
+      if (tc.name === 'dismiss_reminder') {
+        const reminderId = tc.arguments['id'] as string;
+        try {
+          this.db.prepare('UPDATE reminders SET status = ? WHERE id = ?')
+            .run('dismissed', reminderId);
+          executedResults.push({
+            tool: 'dismiss_reminder',
+            result: { success: true, id: reminderId },
+          });
+        } catch (err) {
+          executedResults.push({
+            tool: 'dismiss_reminder',
+            result: { error: `Failed to dismiss reminder: ${err instanceof Error ? err.message : String(err)}` },
+          });
+        }
+        continue;
+      }
+
+      if (tc.name === 'delete_reminder') {
+        const reminderId = tc.arguments['id'] as string;
+        try {
+          this.db.prepare('DELETE FROM reminders WHERE id = ?').run(reminderId);
+          executedResults.push({
+            tool: 'delete_reminder',
+            result: { success: true, id: reminderId },
+          });
+        } catch (err) {
+          executedResults.push({
+            tool: 'delete_reminder',
+            result: { error: `Failed to delete reminder: ${err instanceof Error ? err.message : String(err)}` },
+          });
+        }
+        continue;
       }
 
       // Gateway-routed tools

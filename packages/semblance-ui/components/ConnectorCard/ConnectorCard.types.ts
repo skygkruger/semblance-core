@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type ConnectorCardStatus = 'connected' | 'disconnected' | 'error' | 'pending';
+export type ConnectorCardStatus = 'connected' | 'disconnected' | 'error' | 'pending' | 'syncing';
 
 export interface ConnectorCardProps {
   id: string;
@@ -36,6 +36,11 @@ export const statusConfig: Record<ConnectorCardStatus, { label: string; dotColor
   pending: {
     label: 'Connecting...',
     dotColor: '#B09A8A',
+    textColor: '#B09A8A',
+  },
+  syncing: {
+    label: 'Syncing...',
+    dotColor: '#6ECFA3',
     textColor: '#B09A8A',
   },
 };

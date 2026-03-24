@@ -7,7 +7,7 @@
  * CRITICAL: This file is in packages/core/. No network imports.
  */
 
-export type ConnectorStatus = 'connected' | 'disconnected' | 'error' | 'pending';
+export type ConnectorStatus = 'connected' | 'disconnected' | 'error' | 'pending' | 'syncing';
 
 export type ConnectorCategory =
   | 'cloud_storage'

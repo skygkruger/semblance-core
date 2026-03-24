@@ -253,7 +253,7 @@ export function ActivityScreen() {
                         <p className="text-semblance-text-tertiary italic">
                           &ldquo;{entry.reasoningContext.query}&rdquo;
                         </p>
-                        {entry.reasoningContext.chunks.map((chunk) => (
+                        {(entry.reasoningContext.chunks ?? []).map((chunk) => (
                           <div
                             key={chunk.chunkId}
                             className="flex items-start gap-2 py-1"
