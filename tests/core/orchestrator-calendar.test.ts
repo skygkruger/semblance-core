@@ -93,7 +93,7 @@ describe('Orchestrator — Calendar Tools', () => {
   });
 
   describe('create_calendar_event — Guardian mode', () => {
-    it('queues event creation for approval in guardian mode', async () => {
+    it('returns graceful failure for calendar creation (Google Calendar API write not yet supported)', async () => {
       autonomy.setDomainTier('calendar', 'guardian');
       const llm = createMockLLM({
         chat: vi.fn()
@@ -106,7 +106,7 @@ describe('Orchestrator — Calendar Tools', () => {
             },
           }]))
           .mockResolvedValue({
-            message: { role: 'assistant', content: 'Queued.' },
+            message: { role: 'assistant', content: 'Calendar event creation is not yet supported via Google Calendar API.' },
             model: 'llama3.2:8b',
             tokensUsed: { prompt: 200, completion: 30, total: 230 },
             durationMs: 300,
@@ -116,16 +116,14 @@ describe('Orchestrator — Calendar Tools', () => {
         llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       });
 
-      await orchestrator.processMessage('Schedule a team lunch tomorrow');
-      const pending = await orchestrator.getPendingActions();
-      expect(pending.length).toBeGreaterThanOrEqual(1);
-      expect(pending[0]!.action).toBe('calendar.create');
-      expect(pending[0]!.status).toBe('pending_approval');
+      const result = await orchestrator.processMessage('Schedule a team lunch tomorrow');
+      // create_calendar_event is handled locally with graceful failure — not sent to Gateway
+      expect(ipc.sendAction).not.toHaveBeenCalledWith('calendar.create', expect.any(Object));
     });
   });
 
   describe('create_calendar_event — Alter Ego mode', () => {
-    it('auto-executes event creation in alter_ego mode', async () => {
+    it('returns graceful failure regardless of autonomy tier', async () => {
       autonomy.setDomainTier('calendar', 'alter_ego');
       const llm = createMockLLM({
         chat: vi.fn()
@@ -138,7 +136,7 @@ describe('Orchestrator — Calendar Tools', () => {
             },
           }]))
           .mockResolvedValue({
-            message: { role: 'assistant', content: 'Event created.' },
+            message: { role: 'assistant', content: 'Calendar event creation is not yet supported.' },
             model: 'llama3.2:8b',
             tokensUsed: { prompt: 200, completion: 30, total: 230 },
             durationMs: 300,
@@ -149,12 +147,13 @@ describe('Orchestrator — Calendar Tools', () => {
       });
 
       await orchestrator.processMessage('Add a standup at 9am');
-      expect(ipc.sendAction).toHaveBeenCalledWith('calendar.create', expect.any(Object));
+      // Graceful failure — never reaches Gateway
+      expect(ipc.sendAction).not.toHaveBeenCalledWith('calendar.create', expect.any(Object));
     });
   });
 
   describe('fetch_calendar tool', () => {
-    it('auto-executes fetch_calendar as a read action in partner mode', async () => {
+    it('executes fetch_calendar as a local tool querying the local calendar index', async () => {
       autonomy.setDomainTier('calendar', 'partner');
       const llm = createMockLLM({
         chat: vi.fn()
@@ -174,8 +173,8 @@ describe('Orchestrator — Calendar Tools', () => {
       });
 
       await orchestrator.processMessage("What's on my calendar?");
-      // Read actions auto-execute in partner mode (calendar.fetch is 'read' risk)
-      expect(ipc.sendAction).toHaveBeenCalledWith('calendar.fetch', expect.any(Object));
+      // fetch_calendar is now a local tool — does NOT go through Gateway
+      expect(ipc.sendAction).not.toHaveBeenCalledWith('calendar.fetch', expect.any(Object));
     });
   });
 
@@ -211,7 +210,7 @@ describe('Orchestrator — Calendar Tools', () => {
   });
 
   describe('calendar autonomy across tiers', () => {
-    it('partner mode auto-approves routine scheduling', async () => {
+    it('partner mode returns graceful failure for calendar write operations', async () => {
       autonomy.setDomainTier('calendar', 'partner');
       const llm = createMockLLM({
         chat: vi.fn()
@@ -224,7 +223,7 @@ describe('Orchestrator — Calendar Tools', () => {
             },
           }]))
           .mockResolvedValue({
-            message: { role: 'assistant', content: 'Created.' },
+            message: { role: 'assistant', content: 'Calendar creation not yet supported.' },
             model: 'llama3.2:8b',
             tokensUsed: { prompt: 200, completion: 30, total: 230 },
             durationMs: 300,
@@ -234,10 +233,9 @@ describe('Orchestrator — Calendar Tools', () => {
         llm, knowledge: createMockKnowledge(), ipc, autonomy, db: db as unknown as DatabaseHandle, model: 'llama3.2:8b',
       });
 
-      const result = await orchestrator.processMessage('Schedule a quick sync');
-      // In partner mode, calendar.create may be auto-approved depending on action classification
-      expect(result.actions.length).toBeGreaterThanOrEqual(1);
-      expect(result.actions[0]!.action).toBe('calendar.create');
+      await orchestrator.processMessage('Schedule a quick sync');
+      // Calendar write ops are handled locally with graceful failure — not sent to Gateway
+      expect(ipc.sendAction).not.toHaveBeenCalledWith('calendar.create', expect.any(Object));
     });
   });
 });
