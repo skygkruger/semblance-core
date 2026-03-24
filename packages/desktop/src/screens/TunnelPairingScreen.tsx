@@ -27,6 +27,16 @@ export function TunnelPairingScreen() {
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
 
+  const loadPeers = useCallback(async () => {
+    try {
+      const devices = await sidecarCall<PeerDevice[]>('tunnel_list_paired_devices');
+      setPeers(Array.isArray(devices) ? devices : []);
+    } catch (err) {
+      console.error('[TunnelPairingScreen] Failed to load paired devices:', err);
+      setPeers([]);
+    }
+  }, []);
+
   const loadStatus = useCallback(async () => {
     try {
       const status = await sidecarCall<MeshStatus>('tunnel_wireguard_status');
@@ -41,7 +51,15 @@ export function TunnelPairingScreen() {
 
   useEffect(() => {
     loadStatus();
-  }, [loadStatus]);
+    loadPeers();
+  }, [loadStatus, loadPeers]);
+
+  // Reload peers when mesh status changes (e.g., after starting/stopping)
+  useEffect(() => {
+    if (meshStatus.running) {
+      loadPeers();
+    }
+  }, [meshStatus.running, loadPeers]);
 
   const handleStartMesh = useCallback(async () => {
     setStarting(true);

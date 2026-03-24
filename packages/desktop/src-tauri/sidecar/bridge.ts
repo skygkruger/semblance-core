@@ -117,7 +117,7 @@ import { NamedSessionManager } from '../../../core/agent/named-session-manager.j
 import { VisionProvider } from '../../../core/llm/vision-provider.js';
 import { ChannelRegistry } from '../../../gateway/channels/channel-registry.js';
 import { PairingManager } from '../../../gateway/channels/pairing-manager.js';
-import { CanvasManager } from '../../../gateway/canvas/canvas-manager.js';
+import { CanvasManager, type CanvasComponentType } from '../../../gateway/canvas/canvas-manager.js';
 import { SemblanceEventBus } from '../../../gateway/events/event-bus.js';
 
 // Sprint G.5: Browser CDP + Alter Ego Week + Import Everything
@@ -717,39 +717,50 @@ async function handleInitialize(): Promise<unknown> {
   // ──── STEP 1: Open preferences DB FIRST ────
   // Preferences (onboarding state, user name, autonomy tiers) are independent
   // of the knowledge graph and must be available even if core fails to init.
-  prefsDb = new Database(join(dataDir, 'core.db'));
-  prefsDb.pragma('journal_mode = WAL');
-  prefsDb.exec(PREFS_TABLE_SQL);
-  console.error('[sidecar] Preferences DB ready');
+  try {
+    prefsDb = new Database(join(dataDir, 'core.db'));
+    prefsDb.pragma('journal_mode = WAL');
+    prefsDb.exec(PREFS_TABLE_SQL);
+    console.error('[sidecar] Preferences DB ready');
+  } catch (prefsDbErr) {
+    console.error('[sidecar] CRITICAL: Failed to open core.db:', prefsDbErr);
+    prefsDb = null;
+    emit('semblance://database-error', { db: 'core.db', error: String(prefsDbErr) });
+    // The sidecar continues in degraded mode — handlers check if (!prefsDb)
+  }
 
-  // Initialize PremiumGate early (uses core.db)
-  premiumGate = new PremiumGate(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
+  // Initialize PremiumGate and ConversationManager only if prefsDb opened successfully
+  if (prefsDb) {
+    premiumGate = new PremiumGate(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
 
-  // Ensure conversation tables exist BEFORE ConversationManager.migrate()
-  // (The Orchestrator normally creates these, but core may not initialize.)
-  prefsDb.exec(`
-    CREATE TABLE IF NOT EXISTS conversations (
-      id TEXT PRIMARY KEY,
-      title TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS conversation_turns (
-      id TEXT PRIMARY KEY,
-      conversation_id TEXT NOT NULL,
-      role TEXT NOT NULL,
-      content TEXT NOT NULL,
-      timestamp TEXT NOT NULL,
-      FOREIGN KEY (conversation_id) REFERENCES conversations(id)
-    );
-  `);
+    // Ensure conversation tables exist BEFORE ConversationManager.migrate()
+    // (The Orchestrator normally creates these, but core may not initialize.)
+    prefsDb.exec(`
+      CREATE TABLE IF NOT EXISTS conversations (
+        id TEXT PRIMARY KEY,
+        title TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS conversation_turns (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        timestamp TEXT NOT NULL,
+        FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+      );
+    `);
 
-  // Initialize Conversation Manager early (uses core.db)
-  conversationManager = new ConversationManager(prefsDb);
-  conversationManager.migrate();
-  const prunedCount = conversationManager.pruneExpired();
-  if (prunedCount > 0) console.error(`[sidecar] Pruned ${prunedCount} expired conversations`);
-  console.error('[sidecar] ConversationManager ready');
+    // Initialize Conversation Manager early (uses core.db)
+    conversationManager = new ConversationManager(prefsDb);
+    conversationManager.migrate();
+    const prunedCount = conversationManager.pruneExpired();
+    if (prunedCount > 0) console.error(`[sidecar] Pruned ${prunedCount} expired conversations`);
+    console.error('[sidecar] ConversationManager ready');
+  } else {
+    console.error('[sidecar] Skipping PremiumGate and ConversationManager — core.db not available');
+  }
 
   // ──── STEP 2: Gateway ────
   console.error('[sidecar] Creating Gateway...');
@@ -785,7 +796,10 @@ async function handleInitialize(): Promise<unknown> {
     documentsDb.pragma('journal_mode = WAL');
     console.error('[sidecar] Documents DB ready (knowledge/documents.db)');
   } catch (docDbErr) {
-    console.error('[sidecar] Failed to open documents.db:', docDbErr);
+    console.error('[sidecar] CRITICAL: Failed to open documents.db:', docDbErr);
+    documentsDb = null;
+    emit('semblance://database-error', { db: 'documents.db', error: String(docDbErr) });
+    // The sidecar continues in degraded mode — handlers check if (!documentsDb)
   }
 
   // NativeRuntime channel check (non-blocking)
@@ -1463,7 +1477,7 @@ async function handleInitialize(): Promise<unknown> {
           if (payload.priority !== 'high') return;
           if (canvasManager) {
             canvasManager.push({
-              componentType: 'morning_brief' as any,
+              componentType: 'morning_brief' as CanvasComponentType,
               data: { urgentEmail: { messageId: payload.messageId, subject: payload.subject } },
               replace: false,
               title: 'Urgent email arrived',
@@ -1479,7 +1493,7 @@ async function handleInitialize(): Promise<unknown> {
           if (payload.minutesUntil > 15) return;
           if (canvasManager) {
             canvasManager.push({
-              componentType: 'morning_brief' as any,
+              componentType: 'morning_brief' as CanvasComponentType,
               data: { meetingPrep: { eventId: payload.eventId, title: payload.title, minutesUntil: payload.minutesUntil } },
               replace: false,
               title: `Meeting in ${payload.minutesUntil} minutes`,
@@ -1527,7 +1541,7 @@ async function handleInitialize(): Promise<unknown> {
           if (event.type !== 'financial.anomaly') return;
           if (canvasManager) {
             canvasManager.push({
-              componentType: 'chart' as any,
+              componentType: 'chart' as CanvasComponentType,
               data: { anomaly: event.payload },
               replace: false,
               title: 'Financial anomaly detected',
@@ -1671,6 +1685,10 @@ async function handleInitialize(): Promise<unknown> {
   // If the user connected Gmail, closed the app, and reopened — sync their
   // data without requiring them to manually click Sync.
   if (onboardingComplete) {
+    if (!core) {
+      console.error('[sidecar] Startup auto-sync skipped: core not initialized (LanceDB may have failed)');
+      emit('semblance://system-warning', { message: 'Some data may not sync — knowledge graph initialization failed. Try restarting.' });
+    }
     try {
       const startupTokenMgr = ensureOAuthTokenManager();
       const startupRegistry = createDefaultConnectorRegistry();
@@ -8311,7 +8329,7 @@ async function handleRequest(req: Request): Promise<void> {
         }
         const cpParams = params as { componentType: string; data: Record<string, unknown>; replace: boolean; title?: string };
         const pushResult = canvasManager.push({
-          componentType: cpParams.componentType as any,
+          componentType: cpParams.componentType as CanvasComponentType,
           data: cpParams.data,
           replace: cpParams.replace ?? true,
           title: cpParams.title,
@@ -9119,7 +9137,7 @@ async function handleRequest(req: Request): Promise<void> {
           // Push result to canvas
           if (canvasManager) {
             canvasManager.push({
-              componentType: 'alter_ego_card' as any,
+              componentType: 'alter_ego_card' as CanvasComponentType,
               data: demoResult.shareableCardData,
               replace: false,
               title: `Day ${demoResult.day}: ${demoResult.title}`,
@@ -9245,7 +9263,7 @@ async function handleRequest(req: Request): Promise<void> {
           try {
             const brief = await morningBriefGenerator.generateBrief();
             if (canvasManager) {
-              canvasManager.push({ componentType: 'morning_brief' as any, data: { brief }, replace: true, title: 'Morning Brief' });
+              canvasManager.push({ componentType: 'morning_brief' as CanvasComponentType, data: { brief }, replace: true, title: 'Morning Brief' });
               emit('canvas:update', canvasManager.getCurrentPayload());
             }
             emit('semblance://morning-brief', brief);

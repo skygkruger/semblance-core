@@ -1216,3 +1216,51 @@ export function prefResetAll(): Promise<void> {
     request: { method: 'pref_reset_all', params: {} },
   });
 }
+
+// ─── Settings Badge IPC Wrappers (via ipc_send) ─────────────────────────────
+
+function ipcSendGeneric<T>(method: string, params: Record<string, unknown> = {}): Promise<T> {
+  return invoke<T>('ipc_send', { method, params });
+}
+
+export function getChannelList(): Promise<Array<{ connected?: boolean }>> {
+  return ipcSendGeneric<Array<{ connected?: boolean }>>('channel_list');
+}
+
+export function getSessionList(): Promise<unknown[]> {
+  return ipcSendGeneric<unknown[]>('session_list');
+}
+
+export function getTunnelPairedDevices(): Promise<unknown[]> {
+  return ipcSendGeneric<unknown[]>('tunnel_list_paired_devices');
+}
+
+export function getHighConfidencePreferences(): Promise<unknown[]> {
+  return ipcSendGeneric<unknown[]>('preference_get_high_confidence');
+}
+
+export function getSkillList(): Promise<Array<{ enabled?: boolean }>> {
+  return ipcSendGeneric<Array<{ enabled?: boolean }>>('skill_list');
+}
+
+export function getBinaryAllowlistList(): Promise<unknown[]> {
+  return ipcSendGeneric<unknown[]>('binary_allowlist_list');
+}
+
+export function getBackupStatus(): Promise<{ lastBackupAt?: string } | null> {
+  return ipcSendGeneric<{ lastBackupAt?: string } | null>('backup_get_status');
+}
+
+/** Clear knowledge data via sidecar */
+export function clearKnowledgeData(): Promise<void> {
+  return invoke<void>('sidecar_request', {
+    request: { method: 'clear_knowledge_data', params: {} },
+  });
+}
+
+/** Clear all data via sidecar */
+export function clearAllData(): Promise<void> {
+  return invoke<void>('sidecar_request', {
+    request: { method: 'clear_all_data', params: {} },
+  });
+}

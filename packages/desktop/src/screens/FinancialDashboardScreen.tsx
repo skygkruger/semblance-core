@@ -9,6 +9,7 @@ import {
   dismissAnomaly as dismissAnomalyCmd,
   updateSubscriptionStatus,
   importStatement,
+  documentPickFile,
 } from '../ipc/commands';
 import type { FinancialDashboardData } from '../ipc/types';
 import { StatementImportDialog } from '../components/StatementImportDialog';
@@ -95,8 +96,7 @@ export function FinancialDashboardScreen() {
 
   const handleImportStatement = useCallback(async () => {
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const filePath = await invoke<string | null>('document_pick_file');
+      const filePath = await documentPickFile();
       if (filePath) {
         await importStatement(filePath);
         // Reload data after import
@@ -117,7 +117,7 @@ export function FinancialDashboardScreen() {
         alignItems: 'center',
         justifyContent: 'center',
         height: '100%',
-        fontFamily: 'var(--fb)',
+        fontFamily: "'DM Sans', system-ui, sans-serif",
         color: '#8593A4',
       }}>
         Authenticating...

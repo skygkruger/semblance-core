@@ -5,6 +5,13 @@
 // streams the response back. WireGuard handles all encryption at the network layer.
 // The application layer is plain HTTP over the tunnel.
 //
+// APPROVED EXCEPTION: TunnelTransport uses globalThis's HTTP fetching capability
+// for local-network device-to-device communication over the WireGuard mesh
+// (remoteHost is always a mesh IP, not an internet address). This is NOT a
+// Rule 1 violation — it is peer device IPC, not cloud/internet access. The HTTP
+// function is injected via config.fetchFn, never called as a bare global.
+// Documented in CLAUDE.md audit finding M-12.
+//
 // CRITICAL: This file is in packages/core/. No platform-specific imports.
 
 import type { ActionRequest, ActionResponse } from '../types/ipc.js';

@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { prefGet, prefSet } from '../ipc/commands';
+import { prefGet, prefSet, sidecarCall } from '../ipc/commands';
 import './BiometricSetupScreen.css';
 
 type LockTimeout = '1min' | '5min' | '15min' | '30min' | 'never';
@@ -17,12 +17,6 @@ const TIMEOUT_OPTIONS: { value: LockTimeout; label: string }[] = [
   { value: '30min', label: '30 min' },
   { value: 'never', label: 'Never' },
 ];
-
-/** Issue an IPC request to the Tauri sidecar bridge. */
-async function invokeIPC<T>(method: string, params?: Record<string, unknown>): Promise<T> {
-  const { invoke } = await import('@tauri-apps/api/core');
-  return invoke<T>('sidecar_request', { request: { method, params: params ?? {} } });
-}
 
 /** Read a persisted biometric preference from SQLite via IPC. */
 async function loadPref<T>(key: string, fallback: T): Promise<T> {
@@ -53,7 +47,7 @@ export function BiometricSetupScreen() {
     const checkAvailability = async () => {
       try {
         // Attempt Tauri sidecar command first
-        const result = await invokeIPC<{ available: boolean }>('biometric:check', {});
+        const result = await sidecarCall<{ available: boolean }>('biometric:check', {});
         if (!cancelled) setBiometricAvailable(result.available);
       } catch {
         // Fallback: WebAuthn platform authenticator detection
@@ -97,7 +91,7 @@ export function BiometricSetupScreen() {
     setTestResult('idle');
     try {
       // Attempt Tauri sidecar biometric challenge
-      const result = await invokeIPC<{ success: boolean }>('biometric:test', {});
+      const result = await sidecarCall<{ success: boolean }>('biometric:test', {});
       setTestResult(result.success ? 'success' : 'failed');
     } catch {
       // Fallback: WebAuthn assertion with userVerification required
@@ -212,12 +206,12 @@ export function BiometricSetupScreen() {
               {t('screen.biometric.test_biometric')}
             </button>
             {testResult === 'success' && (
-              <span style={{ fontFamily: 'var(--fm)', fontSize: 'var(--text-xs)', color: '#6ECFA3', alignSelf: 'center' }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: '#6ECFA3', alignSelf: 'center' }}>
                 {t('screen.biometric.verification_passed')}
               </span>
             )}
             {testResult === 'failed' && (
-              <span style={{ fontFamily: 'var(--fm)', fontSize: 'var(--text-xs)', color: '#B07A8A', alignSelf: 'center' }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: '#B07A8A', alignSelf: 'center' }}>
                 {t('screen.biometric.verification_failed')}
               </span>
             )}
