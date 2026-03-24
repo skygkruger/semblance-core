@@ -56,7 +56,7 @@ export function HealthDashboardScreen() {
         alignItems: 'center',
         justifyContent: 'center',
         height: '100%',
-        fontFamily: 'var(--fb)',
+        fontFamily: "'DM Sans', system-ui, sans-serif",
         color: '#8593A4',
       }}>
         Authenticating...

@@ -18,8 +18,6 @@ import {
   setAutonomyTier,
   selectModel,
   getAlterEgoSettings,
-  updateAlterEgoSettings,
-  getStyleProfile,
   getNotificationSettings,
   saveNotificationSettings,
   getActionLog,
@@ -35,7 +33,19 @@ import {
   prefResetAll,
   prefClearSession,
   prefDelete,
+  getChannelList,
+  getSessionList,
+  getTunnelPairedDevices,
+  getHighConfidencePreferences,
+  getSkillList,
+  getBinaryAllowlistList,
+  getDarkPatternFlags,
+  getBackupStatus,
+  clearKnowledgeData,
+  clearAllData,
+  sidecarCall,
 } from '../ipc/commands';
+import { confirm } from '@tauri-apps/plugin-dialog';
 import type { NotificationSettings, BitNetModelIPC } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useLicense } from '../contexts/LicenseContext';
@@ -117,34 +127,27 @@ export function SettingsScreen() {
       .catch(() => {});
 
     // Sprint WIRE: fetch badge counts for expanded settings sections
-    import('@tauri-apps/api/core').then(({ invoke }) => {
-      const ipc = (method: string, params: Record<string, unknown> = {}) =>
-        invoke('ipc_send', { method, params }) as Promise<unknown>;
-
-      ipc('channel_list').then((r) => { if (Array.isArray(r)) setChannelCount(r.filter((c: { connected?: boolean }) => c.connected).length); }).catch(() => {});
-      ipc('session_list').then((r) => { if (Array.isArray(r)) setSessionCount(r.length); }).catch(() => {});
-      ipc('tunnel_list_paired_devices').then((r) => { if (Array.isArray(r)) setPairedDeviceCount(r.length); }).catch(() => {});
-      ipc('preference_get_high_confidence').then((r) => { if (Array.isArray(r)) setPreferenceCount(r.length); }).catch(() => {});
-      ipc('skill_list').then((r) => { if (Array.isArray(r)) setInstalledSkillCount(r.filter((s: { enabled?: boolean }) => s.enabled).length); }).catch(() => {});
-      ipc('binary_allowlist_list').then((r) => { if (Array.isArray(r)) setBinaryAllowlistCount(r.length); }).catch(() => {});
-      ipc('dark_pattern_get_flags').then((r) => { if (Array.isArray(r)) setAdversarialAlertCount(r.filter((f: { dismissed?: boolean }) => !f.dismissed).length); }).catch(() => {});
-      ipc('audit_get_chain_status').then((r) => { const s = r as { entryCount?: number }; setWitnessAttestationCount(s?.entryCount ?? 0); }).catch(() => {});
-      ipc('hw_key_get_info').then((r) => { const s = r as { available?: boolean }; setBiometricEnabled(!!s?.available); }).catch(() => {});
-      ipc('living_will_get_history').then((r) => {
-        if (Array.isArray(r) && r.length > 0) {
-          const sorted = r.sort((a: { createdAt?: string }, b: { createdAt?: string }) =>
-            (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
-          setLivingWillLastBackup(sorted[0]?.createdAt ?? null);
-        }
-      }).catch(() => {});
-      ipc('inheritance_get_config').then((r) => {
-        const cfg = r as { enabled?: boolean } | null;
-        setInheritanceConfigured(!!cfg?.enabled);
-      }).catch(() => {});
-      ipc('backup_get_status').then((r) => {
-        const s = r as { lastBackupAt?: string } | null;
-        if (s?.lastBackupAt) setLastBackupAt(s.lastBackupAt);
-      }).catch(() => {});
+    getChannelList().then((r) => { if (Array.isArray(r)) setChannelCount(r.filter((c) => c.connected).length); }).catch(() => {});
+    getSessionList().then((r) => { if (Array.isArray(r)) setSessionCount(r.length); }).catch(() => {});
+    getTunnelPairedDevices().then((r) => { if (Array.isArray(r)) setPairedDeviceCount(r.length); }).catch(() => {});
+    getHighConfidencePreferences().then((r) => { if (Array.isArray(r)) setPreferenceCount(r.length); }).catch(() => {});
+    getSkillList().then((r) => { if (Array.isArray(r)) setInstalledSkillCount(r.filter((s) => s.enabled).length); }).catch(() => {});
+    getBinaryAllowlistList().then((r) => { if (Array.isArray(r)) setBinaryAllowlistCount(r.length); }).catch(() => {});
+    getDarkPatternFlags().then((r) => { if (Array.isArray(r)) setAdversarialAlertCount(r.filter((f) => !(f as unknown as { dismissed?: boolean }).dismissed).length); }).catch(() => {});
+    sidecarCall<{ entryCount?: number }>('audit_get_chain_status').then((s) => { setWitnessAttestationCount(s?.entryCount ?? 0); }).catch(() => {});
+    sidecarCall<{ available?: boolean }>('hw_key_get_info', { keyId: null }).then((s) => { setBiometricEnabled(!!s?.available); }).catch(() => {});
+    sidecarCall<Array<{ createdAt?: string }>>('living_will_get_history').then((r) => {
+      if (Array.isArray(r) && r.length > 0) {
+        const sorted = r.sort((a, b) =>
+          (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+        setLivingWillLastBackup(sorted[0]?.createdAt ?? null);
+      }
+    }).catch(() => {});
+    sidecarCall<{ enabled?: boolean } | null>('inheritance_get_config').then((cfg) => {
+      setInheritanceConfigured(!!cfg?.enabled);
+    }).catch(() => {});
+    getBackupStatus().then((s) => {
+      if (s?.lastBackupAt) setLastBackupAt(s.lastBackupAt);
     }).catch(() => {});
   }, [dispatch]);
 
@@ -212,28 +215,27 @@ export function SettingsScreen() {
     setBitnetDownloadProgress(0);
     try {
       await downloadBitNetModel(modelId);
-      // Refresh model list to pick up isDownloaded change
       const res = await getBitNetModels();
       setBitnetModels(res.models);
-      showToast('Model downloaded successfully');
+      showToast(t('screen.settings.toast_model_downloaded'));
     } catch {
-      showToast('Model download failed');
+      showToast(t('screen.settings.toast_model_download_failed'));
     } finally {
       setBitnetDownloadingModelId(null);
       setBitnetDownloadProgress(0);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   const handleBitNetActivate = useCallback(async (modelId: string) => {
     try {
       await activateBitNetModel(modelId);
       setBitnetActiveModelId(modelId);
-      setStandardActiveModelId(null); // Deselect standard model
-      showToast('Model activated');
+      setStandardActiveModelId(null);
+      showToast(t('screen.settings.toast_model_activated'));
     } catch {
-      showToast('Model activation failed');
+      showToast(t('screen.settings.toast_model_activation_failed'));
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   const handleStandardDownload = useCallback(async (modelId: string) => {
     setStandardDownloadingModelId(modelId);
@@ -242,25 +244,25 @@ export function SettingsScreen() {
       await downloadStandardModel(modelId);
       const res = await getStandardModels();
       setStandardModels(res.models);
-      showToast('Model downloaded successfully');
+      showToast(t('screen.settings.toast_model_downloaded'));
     } catch {
-      showToast('Model download failed');
+      showToast(t('screen.settings.toast_model_download_failed'));
     } finally {
       setStandardDownloadingModelId(null);
       setStandardDownloadProgress(0);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   const handleStandardActivate = useCallback(async (modelId: string) => {
     try {
       await activateStandardModel(modelId);
       setStandardActiveModelId(modelId);
-      setBitnetActiveModelId(null); // Deselect BitNet model
-      showToast('Model activated');
+      setBitnetActiveModelId(null);
+      showToast(t('screen.settings.toast_model_activated'));
     } catch {
-      showToast('Model activation failed');
+      showToast(t('screen.settings.toast_model_activation_failed'));
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   const licenseStatus = license.tier === 'founding'
     ? 'founding-member' as const
@@ -378,11 +380,9 @@ export function SettingsScreen() {
           onRunAudit={() => navigate('/privacy')}
           onExportData={async () => {
             try {
-              // Try the dedicated knowledge graph export IPC first
               await exportKnowledgeGraph();
-              showToast('Knowledge graph exported successfully');
+              showToast(t('screen.settings.toast_knowledge_exported'));
             } catch {
-              // Fallback: gather stats and export as JSON download
               try {
                 const stats = await getKnowledgeStats();
                 const exportPayload = {
@@ -398,9 +398,9 @@ export function SettingsScreen() {
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                showToast('Knowledge data exported as JSON');
+                showToast(t('screen.settings.toast_knowledge_exported_json'));
               } catch {
-                showToast('Export failed — no knowledge data available');
+                showToast(t('screen.settings.toast_export_failed'));
               }
             }
           }}
@@ -421,90 +421,75 @@ export function SettingsScreen() {
               a.click();
               document.body.removeChild(a);
               URL.revokeObjectURL(url);
-              showToast(`Exported ${entries.length} action log entries`);
+              showToast(t('screen.settings.toast_history_exported', { count: entries.length }));
             } catch {
-              showToast('History export failed — no action log entries available');
+              showToast(t('screen.settings.toast_history_export_failed'));
             }
           }}
-          onDeleteSourceData={() => {
-            const confirmed = window.confirm(
-              'Delete all indexed source data? This will remove all documents, embeddings, and knowledge graph entries. This cannot be undone.'
+          onDeleteSourceData={async () => {
+            const confirmed = await confirm(
+              t('screen.settings.confirm_delete_source'),
+              { title: t('button.confirm'), kind: 'warning' },
             );
             if (!confirmed) return;
             exportKnowledgeGraph()
               .catch(() => {})
               .finally(() => {
-                clearAllConversations(false)
-                  .catch(() => {});
-                // Clear knowledge via sidecar
-                import('@tauri-apps/api/core').then(({ invoke }) => {
-                  invoke('sidecar_request', {
-                    request: { method: 'clear_knowledge_data', params: {} },
-                  }).catch(() => {});
-                }).catch(() => {});
-                showToast('Source data deletion initiated. Restart recommended.');
+                clearAllConversations(false).catch(() => {});
+                clearKnowledgeData().catch(() => {});
+                showToast(t('screen.settings.toast_source_data_deleted'));
               });
           }}
-          onDeleteAllData={() => {
-            const confirmed = window.confirm(
-              'DELETE ALL DATA — This will erase your entire Semblance database including knowledge graph, conversations, action history, preferences, and all indexed content. This cannot be undone.'
+          onDeleteAllData={async () => {
+            const confirmed = await confirm(
+              t('screen.settings.confirm_delete_all'),
+              { title: t('button.confirm'), kind: 'warning' },
             );
             if (!confirmed) return;
-            const typed = window.prompt('Type DELETE to confirm permanent data deletion:');
-            if (typed !== 'DELETE') {
-              showToast('Deletion cancelled — confirmation text did not match');
+            // Second confirmation — use Tauri confirm with explicit text
+            const doubleConfirmed = await confirm(
+              t('screen.settings.confirm_delete_all_prompt'),
+              { title: t('button.confirm'), kind: 'warning' },
+            );
+            if (!doubleConfirmed) {
+              showToast(t('screen.settings.toast_deletion_cancelled'));
               return;
             }
-            // Clear conversations
             clearAllConversations(false).catch(() => {});
-            // Clear knowledge via sidecar
-            import('@tauri-apps/api/core').then(({ invoke }) => {
-              invoke('sidecar_request', {
-                request: { method: 'clear_knowledge_data', params: {} },
-              }).catch(() => {});
-              invoke('sidecar_request', {
-                request: { method: 'clear_all_data', params: {} },
-              }).catch(() => {});
-            }).catch(() => {});
-            // Clear all preferences in SQLite
+            clearKnowledgeData().catch(() => {});
+            clearAllData().catch(() => {});
             prefResetAll().catch(() => {});
-            showToast('All data deleted. Please restart Semblance.');
+            showToast(t('screen.settings.toast_all_data_deleted'));
           }}
-          onResetSemblance={() => {
-            const confirmed = window.confirm(
-              'FACTORY RESET — This will delete ALL data and restore Semblance to its initial state. All knowledge, conversations, preferences, connected accounts, and license data will be erased.'
+          onResetSemblance={async () => {
+            const confirmed = await confirm(
+              t('screen.settings.confirm_factory_reset'),
+              { title: t('button.confirm'), kind: 'warning' },
             );
             if (!confirmed) return;
-            const typed = window.prompt('Type RESET to confirm factory reset:');
-            if (typed !== 'RESET') {
-              showToast('Reset cancelled — confirmation text did not match');
+            const doubleConfirmed = await confirm(
+              t('screen.settings.confirm_factory_reset_prompt'),
+              { title: t('button.confirm'), kind: 'warning' },
+            );
+            if (!doubleConfirmed) {
+              showToast(t('screen.settings.toast_reset_cancelled'));
               return;
             }
-            // Clear all conversations
             clearAllConversations(false).catch(() => {});
-            // Clear all sidecar data
-            import('@tauri-apps/api/core').then(({ invoke }) => {
-              invoke('sidecar_request', {
-                request: { method: 'clear_all_data', params: {} },
-              }).catch(() => {});
-              invoke('sidecar_request', {
-                request: { method: 'clear_knowledge_data', params: {} },
-              }).catch(() => {});
-            }).catch(() => {});
-            // Clear ALL preferences in SQLite
+            clearAllData().catch(() => {});
+            clearKnowledgeData().catch(() => {});
             prefResetAll().catch(() => {});
-            // Reset license state in app
             dispatch({
               type: 'SET_LICENSE',
               license: { tier: 'free', isFoundingMember: false, foundingSeat: null, licenseKey: null },
             });
-            showToast('Factory reset complete. Semblance will restart.');
+            showToast(t('screen.settings.toast_factory_reset'));
             setTimeout(() => window.location.reload(), 1500);
           }}
           onRenewLicense={() => navigate('/upgrade')}
           onActivateDigitalRepresentative={() => navigate('/upgrade')}
-          onViewDRAgreement={() => {
-            window.alert(
+          onViewDRAgreement={async () => {
+            await confirm(
               'DIGITAL REPRESENTATIVE AGREEMENT\n\n' +
               'By activating Digital Representative features, you agree to the following:\n\n' +
               '1. AUTONOMY — Digital Representative operates under your configured autonomy tier ' +
@@ -517,42 +502,41 @@ export function SettingsScreen() {
               'decision-making happens locally. Network access is limited to authorized services only.\n\n' +
               '5. YOUR CONTROL — You can revoke Digital Representative access, adjust autonomy tiers, ' +
               'or deactivate entirely at any time from Settings.\n\n' +
-              'Semblance acts as your agent, not ours. Your intelligence. Your device. Your rules.'
+              'Semblance acts as your agent, not ours. Your intelligence. Your device. Your rules.',
+              { title: 'Digital Representative Agreement', kind: 'info' },
             );
           }}
           onRenameSemblance={async (name) => {
             dispatch({ type: 'SET_SEMBLANCE_NAME', name });
             await setAiName(name).catch(() => {});
           }}
-          onSignOut={() => {
-            const confirmed = window.confirm(
-              'Sign out of this session? Your license key will remain stored in the OS keychain for easy re-activation.'
+          onSignOut={async () => {
+            const confirmed = await confirm(
+              t('screen.settings.confirm_sign_out'),
+              { title: t('button.confirm'), kind: 'info' },
             );
             if (!confirmed) return;
-            // Clear session-specific state from SQLite prefs
             prefClearSession().catch(() => {});
-            // Reset app state license to free tier (keychain retains the key)
             dispatch({
               type: 'SET_LICENSE',
               license: { tier: 'free', isFoundingMember: false, foundingSeat: null, licenseKey: null },
             });
-            showToast('Signed out. License key remains in keychain.');
+            showToast(t('screen.settings.toast_signed_out'));
           }}
-          onDeactivateLicense={() => {
-            const confirmed = window.confirm(
-              'Deactivate your license? Premium features (Digital Representative, Morning Brief, Visual Knowledge Graph, etc.) will be disabled immediately. You can re-activate later with your license key.'
+          onDeactivateLicense={async () => {
+            const confirmed = await confirm(
+              t('screen.settings.confirm_deactivate_license'),
+              { title: t('button.confirm'), kind: 'warning' },
             );
             if (!confirmed) return;
-            // Clear license from SQLite prefs
             prefDelete('semblance.license.key').catch(() => {});
             prefDelete('semblance.license.tier').catch(() => {});
             prefDelete('semblance.license.activated').catch(() => {});
-            // Reset license state in app
             dispatch({
               type: 'SET_LICENSE',
               license: { tier: 'free', isFoundingMember: false, foundingSeat: null, licenseKey: null },
             });
-            showToast('License deactivated. Premium features disabled.');
+            showToast(t('screen.settings.toast_license_deactivated'));
           }}
           onNavigateIntents={() => navigate('/settings/intents')}
           onNavigateExternal={(path) => navigate(path)}
