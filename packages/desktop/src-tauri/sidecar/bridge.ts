@@ -975,7 +975,7 @@ async function handleInitialize(): Promise<unknown> {
   // Initialize service adapters (pass OAuthTokenManager so Gmail OAuth tokens bridge to IMAP/SMTP)
   const tokenMgrForEmail = ensureOAuthTokenManager();
   emailAdapter = new EmailAdapter(credentialStore, tokenMgrForEmail);
-  calendarAdapter = new CalendarAdapter(credentialStore);
+  calendarAdapter = new CalendarAdapter(credentialStore, tokenMgrForEmail);
 
   // Register email and calendar adapters with Gateway service registry
   // so the orchestrator's tool calls (email.send, email.fetch, calendar.create, etc.)
@@ -4420,6 +4420,7 @@ function getOAuthConfigForConnector(connectorId: string): {
       clientSecret: process.env['SEMBLANCE_SLACK_CLIENT_SECRET'],
       usePKCE: false,
     }),
+    'slack-oauth': () => configs['slack']!(), // Alias — UI uses 'slack-oauth', config uses 'slack'
   };
 
   const factory = configs[connectorId];
@@ -4879,8 +4880,9 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
     })();
   }
 
-  // ─── Fix #3b: After Google Calendar OAuth sync, index events ─────────────
-  if (isGoogleCalendar && calendarAdapter && core && prefsDb) {
+  // ─── Google Calendar sync via REST API ─────────────────────────────────
+  // CalendarAdapter is CalDAV-only. Google Calendar uses REST API directly.
+  if (isGoogleCalendar && core && prefsDb) {
     (async () => {
       try {
         if (!calendarIndexer) {
@@ -4893,25 +4895,88 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
           calendarIndexer.onEvent((event, data) => emit(event, data));
         }
 
-        console.error('[sidecar] Post-sync: fetching calendar events for local indexing...');
-        const calResult = await calendarAdapter!.execute('calendar.fetch', {
-          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-          endDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        // Get OAuth token — try google-calendar first, then shared google token
+        const calTokenMgr = ensureOAuthTokenManager();
+        let calAccessToken = calTokenMgr.getAccessToken('google-calendar');
+        if (!calAccessToken) {
+          calAccessToken = calTokenMgr.getAccessToken('google');
+        }
+        if (!calAccessToken) {
+          console.error('[sidecar] Google Calendar sync: no OAuth token available');
+          return;
+        }
+
+        console.error('[sidecar] Post-sync: fetching Google Calendar events via REST API...');
+
+        // Fetch events: past 7 days + next 60 days
+        const timeMin = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const timeMax = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+        const calUrl = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
+        calUrl.searchParams.set('timeMin', timeMin);
+        calUrl.searchParams.set('timeMax', timeMax);
+        calUrl.searchParams.set('maxResults', '250');
+        calUrl.searchParams.set('singleEvents', 'true');
+        calUrl.searchParams.set('orderBy', 'startTime');
+
+        const calResp = await globalThis.fetch(calUrl.toString(), {
+          headers: { Authorization: `Bearer ${calAccessToken}` },
         });
 
-        if (calResult.success && calResult.data) {
-          const events = ((calResult.data as { events?: unknown[] }).events ?? []) as Parameters<CalendarIndexer['indexEvents']>[0];
-          const calIndexed = await calendarIndexer.indexEvents(events, 'google-calendar');
-          console.error(`[sidecar] Post-sync: ${calIndexed} calendar events indexed`);
-          emit('semblance://indexing-complete', {
-            type: 'calendar',
-            connectorId: params.connectorId,
-            indexed: calIndexed,
-            total: events.length,
-          });
+        if (!calResp.ok) {
+          const errText = await calResp.text().catch(() => '');
+          console.error(`[sidecar] Google Calendar API error (${calResp.status}): ${errText.slice(0, 300)}`);
+          return;
         }
+
+        const calData = await calResp.json() as {
+          items?: Array<{
+            id: string; summary?: string; description?: string;
+            start?: { dateTime?: string; date?: string };
+            end?: { dateTime?: string; date?: string };
+            location?: string;
+            attendees?: Array<{ email: string; responseStatus?: string; displayName?: string }>;
+            status?: string; htmlLink?: string;
+            organizer?: { email: string; displayName?: string };
+            updated?: string;
+          }>;
+        };
+
+        const rawEvents = calData.items ?? [];
+        console.error(`[sidecar] Google Calendar API returned ${rawEvents.length} events`);
+
+        // Map to RawCalendarEvent shape expected by CalendarIndexer
+        const mappedEvents = rawEvents.map(ev => ({
+          id: ev.id,
+          calendarId: 'primary',
+          title: ev.summary ?? '(No title)',
+          description: ev.description ?? '',
+          startTime: ev.start?.dateTime ?? ev.start?.date ?? new Date().toISOString(),
+          endTime: ev.end?.dateTime ?? ev.end?.date ?? new Date().toISOString(),
+          location: ev.location ?? '',
+          attendees: (ev.attendees ?? []).map(a => ({
+            name: a.displayName ?? a.email,
+            email: a.email,
+            status: a.responseStatus ?? 'needsAction',
+          })),
+          organizer: {
+            name: ev.organizer?.displayName ?? ev.organizer?.email ?? '',
+            email: ev.organizer?.email ?? '',
+          },
+          status: (ev.status ?? 'confirmed') as 'confirmed' | 'tentative' | 'cancelled',
+          reminders: [],
+          lastModified: ev.updated ?? new Date().toISOString(),
+        }));
+
+        const calIndexed = await calendarIndexer.indexEvents(mappedEvents, 'google-calendar');
+        console.error(`[sidecar] Post-sync: ${calIndexed} calendar events indexed via REST API`);
+        emit('semblance://indexing-complete', {
+          type: 'calendar',
+          connectorId: params.connectorId,
+          indexed: calIndexed,
+          total: rawEvents.length,
+        });
       } catch (calSyncErr) {
-        console.error('[sidecar] Post-sync calendar indexing failed:', calSyncErr);
+        console.error('[sidecar] Google Calendar REST API sync failed:', calSyncErr);
       }
     })();
   }
