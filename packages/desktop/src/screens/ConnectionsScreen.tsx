@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { emit } from '@tauri-apps/api/event';
+import { emit, listen } from '@tauri-apps/api/event';
 import { ConnectionsScreen as ConnectionsScreenUI } from '@semblance/ui';
 import type { ConnectorEntry } from '@semblance/ui';
 import { ipcSend, getConnectedServices } from '../ipc/commands';
@@ -100,21 +100,43 @@ export function ConnectionsScreen() {
 
   // Hydrate connector states from stored OAuth tokens on mount
   useEffect(() => {
-    getConnectedServices().then((connectedIds) => {
-      if (connectedIds && Array.isArray(connectedIds)) {
-        for (const connectorId of connectedIds) {
+    getConnectedServices().then((connectedServices) => {
+      if (connectedServices && Array.isArray(connectedServices)) {
+        for (const svc of connectedServices) {
+          // Handle both old string[] and new object[] response shapes
+          const connectorId = typeof svc === 'string' ? svc : svc.connectorId;
+          const lastSyncedAt = typeof svc === 'string' ? undefined : (svc.lastSyncedAt ?? undefined);
           dispatch({
             type: 'SET_CONNECTOR_STATE',
             connectorId,
             state: {
               connectorId,
               status: 'connected',
-              lastSyncedAt: new Date().toISOString(),
+              lastSyncedAt,
             },
           });
         }
       }
     }).catch(() => {});
+  }, [dispatch]);
+
+  // Listen for indexing-complete events to update sync timestamps
+  useEffect(() => {
+    const unlisten = listen<{ connectorId: string }>('semblance://indexing-complete', (event) => {
+      const { connectorId } = event.payload;
+      if (connectorId) {
+        dispatch({
+          type: 'SET_CONNECTOR_STATE',
+          connectorId,
+          state: {
+            connectorId,
+            status: 'connected',
+            lastSyncedAt: new Date().toISOString(),
+          },
+        });
+      }
+    });
+    return () => { unlisten.then((fn) => fn()); };
   }, [dispatch]);
 
   const handleConnect = useCallback(async (connectorId: string) => {
@@ -134,13 +156,14 @@ export function ConnectionsScreen() {
         }).catch(() => {});
       } else {
         // Auth succeeded — update connector state so UI shows "Connected"
+        // lastSyncedAt is undefined until sync actually completes (indexing-complete event)
         dispatch({
           type: 'SET_CONNECTOR_STATE',
           connectorId,
           state: {
             connectorId,
             status: 'connected',
-            lastSyncedAt: new Date().toISOString(),
+            lastSyncedAt: undefined,
           },
         });
         emit('semblance://toast', {

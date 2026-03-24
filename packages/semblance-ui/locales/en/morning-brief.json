@@ -1,7 +1,10 @@
 {
   "card": {
     "default_title": "Morning Brief",
-    "loading": "Morning Brief loading..."
+    "loading": "Morning Brief loading...",
+    "empty_label": "YOUR BRIEFING",
+    "empty_body": "{{name}} will prepare your daily briefing once your data sources are connected. Email, calendar, and files are used to surface what matters today.",
+    "empty_hint": "Go to Settings > Connections to get started."
   },
   "greeting": {
     "morning": "Good morning",

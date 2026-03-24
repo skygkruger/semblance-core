@@ -130,6 +130,21 @@ export function SettingsScreen() {
       ipc('dark_pattern_get_flags').then((r) => { if (Array.isArray(r)) setAdversarialAlertCount(r.filter((f: { dismissed?: boolean }) => !f.dismissed).length); }).catch(() => {});
       ipc('audit_get_chain_status').then((r) => { const s = r as { entryCount?: number }; setWitnessAttestationCount(s?.entryCount ?? 0); }).catch(() => {});
       ipc('hw_key_get_info').then((r) => { const s = r as { available?: boolean }; setBiometricEnabled(!!s?.available); }).catch(() => {});
+      ipc('living_will_get_history').then((r) => {
+        if (Array.isArray(r) && r.length > 0) {
+          const sorted = r.sort((a: { createdAt?: string }, b: { createdAt?: string }) =>
+            (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+          setLivingWillLastBackup(sorted[0]?.createdAt ?? null);
+        }
+      }).catch(() => {});
+      ipc('inheritance_get_config').then((r) => {
+        const cfg = r as { enabled?: boolean } | null;
+        setInheritanceConfigured(!!cfg?.enabled);
+      }).catch(() => {});
+      ipc('backup_get_status').then((r) => {
+        const s = r as { lastBackupAt?: string } | null;
+        if (s?.lastBackupAt) setLastBackupAt(s.lastBackupAt);
+      }).catch(() => {});
     }).catch(() => {});
   }, [dispatch]);
 
@@ -161,6 +176,7 @@ export function SettingsScreen() {
       case 'semblanceName': {
         const name = value as string;
         dispatch({ type: 'SET_SEMBLANCE_NAME', name });
+        await setAiName(name).catch(() => {});
         break;
       }
       case 'activeModel': {

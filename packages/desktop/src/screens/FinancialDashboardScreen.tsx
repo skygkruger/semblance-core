@@ -48,7 +48,7 @@ export function FinancialDashboardScreen() {
     try {
       await dismissAnomalyCmd(anomalyId);
       setData((prev) =>
-        prev ? { ...prev, anomalies: prev.anomalies.filter((a) => a.id !== anomalyId) } : prev,
+        prev ? { ...prev, anomalies: (prev.anomalies ?? []).filter((a) => a.id !== anomalyId) } : prev,
       );
     } catch (err) {
       console.error('[FinancialDashboard] dismissAnomaly failed:', err);

@@ -177,10 +177,12 @@
       "section_email": "Email",
       "section_calendar": "Calendar Today",
       "section_actions": "Actions Taken",
+      "section_reminders": "Reminders",
       "empty_email": "No emails yet. Connect an email account in Settings to get started.",
       "empty_calendar": "No events today.",
       "empty_actions": "No actions taken today yet.",
       "actions_today": "Today: {{count}} action(s)",
+      "today_actions": "Today: {{count}} action(s)",
       "time_saved": "{{time}} saved",
       "archived_subject": "Archived \"{{subject}}\"",
       "all_clear": "All clear"
@@ -382,7 +384,9 @@
       "entities": "Entities",
       "connections": "Connections",
       "insights": "Insights",
-      "your_life_data": "Your Life Data"
+      "your_life_data": "Your Life Data",
+      "empty": "No data in your knowledge graph yet. Connect a data source to get started.",
+      "error": "Failed to load knowledge graph."
     },
     "credentials": {
       "title_email": "Email Setup",
@@ -613,7 +617,16 @@
       "share_coming_soon": "Sharing attestations will be available in a future update.",
       "verify_coming_soon": "Verification export will be available in a future update.",
       "signature": "Signature",
-      "chain": "Chain"
+      "chain": "Chain",
+      "attestation_created": "Attestation created successfully",
+      "create_failed": "Failed to create attestation",
+      "create_attestation": "Create Attestation",
+      "creating": "Creating...",
+      "share_success": "Exported {{count}} attestation(s)",
+      "share_failed": "Failed to export attestations",
+      "verify_success": "All {{count}} attestation(s) verified",
+      "verify_partial": "Some attestations failed verification",
+      "verify_failed": "Verification failed"
     },
     "biometric": {
       "title": "Biometric Security",
@@ -680,6 +693,7 @@
       "section_limits": "Hard Limits",
       "section_values": "Your Values",
       "section_alignment": "Recent Alignment",
+      "section_escalation": "Autonomy Escalation",
       "goal_empty": "No goal set.",
       "limits_empty": "No hard limits set.",
       "values_empty": "Tell Semblance what matters most.",

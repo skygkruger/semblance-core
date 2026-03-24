@@ -37,6 +37,9 @@ import { VoiceSettingsScreen } from './screens/VoiceSettingsScreen';
 import { LocationSettingsScreen } from './screens/LocationSettingsScreen';
 import { CloudStorageSettingsScreen } from './screens/CloudStorageSettingsScreen';
 import { SemblanceNetworkScreen } from './screens/SemblanceNetworkScreen';
+import { TunnelPairingScreen } from './screens/TunnelPairingScreen';
+import { AlterEgoWeekScreen } from './screens/AlterEgoWeekScreen';
+import { ImportEverythingScreen } from './screens/ImportEverythingScreen';
 import { CanvasPanel } from './components/CanvasPanel';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
@@ -194,6 +197,35 @@ function DownloadIcon() {
     </svg>
   );
 }
+function FileTextIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" />
+    </svg>
+  );
+}
+function EyeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+function KeyIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.3 9.3" /><path d="m18 5 3-3" />
+    </svg>
+  );
+}
+function GlobeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" />
+    </svg>
+  );
+}
 
 const navSections: NavSection[] = [
   {
@@ -231,6 +263,10 @@ const navSections: NavSection[] = [
       { id: 'sovereignty-report', label: 'Sovereignty', icon: <ScrollIcon /> },
       { id: 'network', label: 'Network', icon: <NetworkIcon /> },
       { id: 'adversarial', label: 'Adversarial', icon: <ShieldAlertIcon /> },
+      { id: 'living-will', label: 'Living Will', icon: <FileTextIcon /> },
+      { id: 'witness', label: 'Witness', icon: <EyeIcon /> },
+      { id: 'inheritance', label: 'Inheritance', icon: <KeyIcon /> },
+      { id: 'semblance-network', label: 'Mesh', icon: <GlobeIcon /> },
     ],
   },
 ];
@@ -508,9 +544,9 @@ function AppContent() {
           <Route path="/settings/voice" element={<VoiceSettingsScreen />} />
           <Route path="/settings/location" element={<LocationSettingsScreen />} />
           <Route path="/settings/cloud-storage" element={<CloudStorageSettingsScreen />} />
-          <Route path="/tunnel-pairing" element={<TunnelPairingPlaceholder />} />
-          <Route path="/alter-ego-week" element={<AlterEgoWeekPlaceholder />} />
-          <Route path="/import" element={<ImportPlaceholder />} />
+          <Route path="/tunnel-pairing" element={<TunnelPairingScreen />} />
+          <Route path="/alter-ego-week" element={<AlterEgoWeekScreen />} />
+          <Route path="/import" element={<ImportEverythingScreen />} />
           <Route path="/semblance-network" element={<SemblanceNetworkScreen />} />
           <Route
             path="/upgrade"
@@ -547,27 +583,7 @@ function AppContent() {
   );
 }
 
-// Minimal screens for routes pending full implementation
-function PlaceholderScreen({ title, description }: { title: string; description: string }) {
-  return (
-    <div style={{ padding: 32, maxWidth: 480, margin: '0 auto' }}>
-      <h1 style={{ fontFamily: 'var(--fd, Fraunces, serif)', fontSize: 21, fontWeight: 300, color: '#EEF1F4', marginBottom: 8 }}>{title}</h1>
-      <div style={{ background: '#111518', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, padding: 24 }}>
-        <p style={{ fontFamily: 'var(--fb, "DM Sans", sans-serif)', fontSize: 14, color: '#A8B4C0', margin: 0, lineHeight: 1.5 }}>{description}</p>
-      </div>
-    </div>
-  );
-}
 
-function TunnelPairingPlaceholder() {
-  return <PlaceholderScreen title="Compute Mesh" description="Pair your devices to enable remote inference and knowledge graph sync over encrypted WireGuard tunnels." />;
-}
-function AlterEgoWeekPlaceholder() {
-  return <PlaceholderScreen title="Alter Ego Week" description="A 7-day trust-building sequence that demonstrates Semblance's autonomous capabilities. Coming soon." />;
-}
-function ImportPlaceholder() {
-  return <PlaceholderScreen title="Import Everything" description="Import your browser history, notes, photos, and messaging archives into your local knowledge graph." />;
-}
 export function App() {
   return (
     <AppStateProvider>

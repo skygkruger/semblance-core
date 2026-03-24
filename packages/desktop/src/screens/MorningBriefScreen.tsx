@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { BriefingCard, SkeletonCard } from '@semblance/ui';
 import type { BriefingItem } from '@semblance/ui';
 import { MorningBriefCard } from '../components/MorningBriefCard';
@@ -35,6 +36,7 @@ import type {
 
 export function MorningBriefScreen() {
   const { t } = useTranslation('morning-brief');
+  const navigate = useNavigate();
   const state = useAppState();
   const license = useLicense();
   const aiName = state.semblanceName || 'Semblance';
@@ -158,7 +160,7 @@ export function MorningBriefScreen() {
             aiName={aiName}
             onContinue={() => {
               // Navigate to chat to continue the knowledge conversation
-              window.location.hash = '#/chat';
+              navigate('/chat');
             }}
           />
         )}

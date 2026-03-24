@@ -248,13 +248,16 @@ export function ChatScreen() {
     if (files.length === 0) return;
 
     for (const file of files) {
+      // In Tauri, the web File API's file.path contains the full filesystem path
+      // (Tauri patches the File object). Fall back to file.name if unavailable.
+      const fullPath: string = (file as unknown as { path?: string }).path || file.name;
       const tempId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       dispatch({
         type: 'ADD_ATTACHMENT',
         attachment: {
           id: tempId,
           fileName: file.name,
-          filePath: file.name, // Tauri resolves from drop event
+          filePath: fullPath,
           mimeType: file.type || '',
           sizeBytes: file.size,
           status: 'processing',
@@ -263,7 +266,7 @@ export function ChatScreen() {
       });
 
       try {
-        const result = await documentAddFile(file.name);
+        const result = await documentAddFile(fullPath);
         dispatch({
           type: 'UPDATE_ATTACHMENT',
           id: tempId,

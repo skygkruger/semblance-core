@@ -56,6 +56,21 @@ coverage/
 # Build Bible (canonical spec — private, not committed)
 SEMBLANCE_BUILD_BIBLE.md
 
+# TypeScript compiled output (tsc --build emits next to source)
+packages/core/**/*.js
+packages/core/**/*.js.map
+packages/core/**/*.d.ts
+packages/core/**/*.d.ts.map
+packages/gateway/**/*.js
+packages/gateway/**/*.js.map
+packages/gateway/**/*.d.ts
+packages/gateway/**/*.d.ts.map
+# Sidecar build artifacts
+packages/desktop/src-tauri/sidecar/ndjson-callback.js
+packages/desktop/src-tauri/sidecar/ndjson-callback.d.ts
+packages/desktop/src-tauri/sidecar/ndjson-callback.js.map
+packages/desktop/src-tauri/sidecar/ndjson-callback.d.ts.map
+
 # Misc
 *.log
 npm-debug.log*
