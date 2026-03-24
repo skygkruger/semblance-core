@@ -5,6 +5,7 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20%7C%20Apache--2.0-blue)](LICENSE)
 [![Privacy Audit](https://img.shields.io/badge/Privacy%20Audit-Passing-green)]()
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue)]()
+[![Hypercommit](https://img.shields.io/badge/Hypercommit-DB2475)](https://hypercommit.com/semblance-core)
 
 Semblance is a fully local, self-hosted sovereign personal AI. It ingests your emails, files, calendar, messages, health data, financial records, and browser history into a local knowledge graph. It reasons about your life using locally-running language models. It acts as your agent in the world.
 
