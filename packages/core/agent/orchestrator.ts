@@ -606,7 +606,6 @@ const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'fetch_inbox': 'email.fetch',
   'draft_email': 'email.draft',
   'archive_email': 'email.archive',
-  'fetch_calendar': 'calendar.fetch',
   'create_calendar_event': 'calendar.create',
   'search_web': 'web.search',
   'deep_search_web': 'web.deep_search',
@@ -635,6 +634,7 @@ const BASE_LOCAL_TOOLS = new Set([
   'search_emails',
   'categorize_email',
   'detect_calendar_conflicts',
+  'fetch_calendar',
   'search_cloud_files',
   'list_cloud_files',
   'list_indexed_documents',
@@ -1837,6 +1837,45 @@ export class OrchestratorImpl implements Orchestrator {
         continue;
       }
 
+      if (tc.name === 'fetch_calendar') {
+        // Query locally indexed calendar events (populated by Google Calendar REST API sync)
+        const daysAhead = (tc.arguments['daysAhead'] as number) ?? 7;
+        try {
+          const calResults = await this.knowledge.search('calendar event meeting', {
+            limit: 20,
+            source: 'calendar',
+          });
+          // Also query the indexed_calendar_events table directly for structured data
+          const cutoff = new Date().toISOString();
+          const future = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000).toISOString();
+          let events: Array<{ title: string; startTime: string; endTime: string; location?: string; attendees?: string }> = [];
+          try {
+            events = this.db.prepare(
+              `SELECT title, start_time as startTime, end_time as endTime, location, attendees
+               FROM indexed_calendar_events
+               WHERE start_time >= ? AND start_time <= ?
+               ORDER BY start_time ASC LIMIT 20`
+            ).all(cutoff, future) as typeof events;
+          } catch {
+            // Table may not exist yet — use knowledge graph results as fallback
+          }
+          executedResults.push({
+            tool: 'fetch_calendar',
+            result: events.length > 0
+              ? { events, source: 'local_index' }
+              : calResults.length > 0
+              ? { events: calResults.map(r => ({ title: r.document.title, metadata: r.document.metadata })), source: 'knowledge_graph' }
+              : { events: [], message: 'No calendar events found. Connect Google Calendar in Settings → Connections.' },
+          });
+        } catch {
+          executedResults.push({
+            tool: 'fetch_calendar',
+            result: { events: [], message: 'No calendar events available. Connect Google Calendar in Settings → Connections.' },
+          });
+        }
+        continue;
+      }
+
       if (tc.name === 'search_cloud_files') {
         // Search cloud-synced files in the local index — no IPC needed
         const results = await this.knowledge.search(tc.arguments['query'] as string, {
@@ -2305,6 +2344,18 @@ export class OrchestratorImpl implements Orchestrator {
         } catch (err) {
           executedResults.push({ tool: 'add_health_entry', result: { error: err instanceof Error ? err.message : 'Failed to log health entry' } });
         }
+        continue;
+      }
+
+      // --- Calendar write operations: graceful failure until Google Calendar API write support ---
+      if (tc.name === 'create_calendar_event' || tc.name === 'update_calendar_event' || tc.name === 'delete_calendar_event') {
+        executedResults.push({
+          tool: tc.name,
+          result: {
+            success: false,
+            message: 'Calendar event creation and editing will be supported via Google Calendar API in a future update. For now, please create or edit the event directly in Google Calendar.',
+          },
+        });
         continue;
       }
 
