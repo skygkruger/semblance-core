@@ -727,8 +727,6 @@ Your voice is warm and direct. You never use emojis. You never say "Certainly!" 
 
 You are made by VERIDIAN SYNTHETICS. Your intelligence belongs to ${userName ?? 'your user'}. Their device. Their rules.
 
-${ARTIFACT_SYSTEM_PROMPT}
-
 ${INJECTION_CANARY}`;
 }
 
@@ -994,7 +992,7 @@ export class OrchestratorImpl implements Orchestrator {
           {
             role: 'user' as const,
             content: wrapInDataBoundary(
-              `Here are the results for the user's request "${message}":\n\n${sanitizedToolResults}\n\nPresent ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in English.`,
+              `Here are the results for the user's request "${message}":\n\n${sanitizedToolResults}\n\nPresent ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in the same language the user used.`,
               'tool execution results',
             ),
           },
@@ -1134,7 +1132,7 @@ export class OrchestratorImpl implements Orchestrator {
             {
               role: 'user' as const,
               content: wrapInDataBoundary(
-                `Tool results:\n${sanitizedToolResults}\n\nPresent ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in English.`,
+                `Tool results:\n${sanitizedToolResults}\n\nPresent ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in the same language the user used.`,
                 'tool execution results',
               ),
             },
@@ -1176,6 +1174,11 @@ export class OrchestratorImpl implements Orchestrator {
       if (checkIn) {
         finalMessage += `\n\n---\n${checkIn}`;
       }
+    }
+
+    // Guard against empty responses — show a helpful fallback instead of blank bubble
+    if (!finalMessage || finalMessage.trim().length === 0) {
+      finalMessage = "I wasn't able to generate a response. Could you try rephrasing your question?";
     }
 
     // Step 8: Store conversation turns with token tracking
@@ -2629,7 +2632,13 @@ export class OrchestratorImpl implements Orchestrator {
 
       // Gateway-routed tools
       const actionType = this.allToolActionMap[tc.name];
-      if (!actionType) continue;
+      if (!actionType) {
+        executedResults.push({
+          tool: tc.name,
+          result: { error: `Tool "${tc.name}" is not available. This capability may not be implemented yet.` },
+        });
+        continue;
+      }
 
       const domain = this.autonomy.getDomainForAction(actionType);
       const tier = this.autonomy.getDomainTier(domain);

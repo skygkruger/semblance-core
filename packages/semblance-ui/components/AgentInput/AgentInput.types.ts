@@ -18,6 +18,7 @@ export interface AgentInputProps {
   onRemoveAttachment?: (id: string) => void;
   onSend?: (message: string) => void;
   onSubmit?: (message: string) => void;
+  onCancel?: () => void;
   autoFocus?: boolean;
   className?: string;
   voiceEnabled?: boolean;

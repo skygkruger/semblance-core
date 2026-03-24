@@ -157,6 +157,10 @@ export function sendMessage(
   return invoke<SendMessageResult>('send_message', { message, conversationId, attachments });
 }
 
+export function cancelMessage(): Promise<{ cancelled: boolean }> {
+  return sidecarCall<{ cancelled: boolean }>('cancel_message');
+}
+
 export function documentPickFile(): Promise<string | null> {
   return invoke<string | null>('document_pick_file');
 }

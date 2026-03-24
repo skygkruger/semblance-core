@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { WireframeSpinner } from '../WireframeSpinner/WireframeSpinner';
+import { renderMarkdown } from '../ChatBubble/markdown';
 import type { ArtifactPanelProps, ArtifactItem } from './ArtifactPanel.types';
 import './ArtifactPanel.css';
 
@@ -15,9 +16,10 @@ function ArtifactContent({ artifact }: { artifact: ArtifactItem }) {
     case 'markdown':
     case 'text':
       return (
-        <div className="artifact-panel__text">
-          <pre>{artifact.content}</pre>
-        </div>
+        <div
+          className="artifact-panel__text"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(artifact.content) }}
+        />
       );
     case 'csv':
       return (

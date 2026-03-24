@@ -21,6 +21,7 @@ import { useVoiceInput } from '../hooks/useVoiceInput';
 import { useSound } from '../sound/SoundEngineContext';
 import {
   sendMessage,
+  cancelMessage,
   documentPickFile,
   documentSetContext,
   documentClearContext,
@@ -1370,6 +1371,7 @@ export function ChatScreen() {
           <div className="flex-1">
           <AgentInput
             onSend={handleSend}
+            onCancel={() => { cancelMessage().catch(() => {}); }}
             thinking={state.isResponding}
             activeDocument={state.documentContext ? {
               name: state.documentContext.fileName,

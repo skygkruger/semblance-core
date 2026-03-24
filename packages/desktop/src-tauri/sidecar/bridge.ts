@@ -295,6 +295,8 @@ let currentConversationId: string | null = null;
 
 // Serialize message processing — prevent parallel orchestrator calls
 let messageProcessingLock: Promise<void> = Promise.resolve();
+// Abort controller for cancelling in-progress message generation
+let activeMessageAbortController: AbortController | null = null;
 let dataDir = '';
 let documentsDb: Database.Database | null = null;
 let emailIndexer: EmailIndexer | null = null;
@@ -1750,6 +1752,8 @@ async function handleSendMessage(
   messageProcessingLock = new Promise<void>(resolve => { releaseLock = resolve; });
   await previousLock;
 
+  activeMessageAbortController = new AbortController();
+
   try {
   // ─── ROUTE 1: Orchestrator (full agent loop with tools) ───────────────────
   // The orchestrator has 30+ tools, autonomy tiers, approval flows, intent
@@ -1946,6 +1950,12 @@ async function handleSendMessage(
         orchTimeout,
       ]);
 
+      // Check if cancelled while waiting for orchestrator
+      if (activeMessageAbortController?.signal.aborted) {
+        emit('chat-complete', { id: responseId, content: '[Response cancelled]', actions: [] });
+        return;
+      }
+
       fullResponse = orchResult.message;
       actions = orchResult.actions.map(a => ({
         id: a.id,
@@ -2041,6 +2051,7 @@ async function handleSendMessage(
     emit('chat-complete', { id: responseId, content: `Error: ${errMsg}`, actions: [] });
   }
   } finally {
+    activeMessageAbortController = null;
     releaseLock!();
   }
 }
@@ -5240,6 +5251,16 @@ async function handleRequest(req: Request): Promise<void> {
         // send_message responds and emits events internally
         await handleSendMessage(id, params as { message: string; conversation_id?: string; attachments?: Array<{ id: string; fileName: string; filePath: string; mimeType: string }> });
         break;
+
+      case 'cancel_message': {
+        if (activeMessageAbortController) {
+          activeMessageAbortController.abort();
+          activeMessageAbortController = null;
+          console.error('[sidecar] Message generation cancelled by user');
+        }
+        respond(id, { cancelled: true });
+        break;
+      }
 
       case 'get_ollama_status':
         result = await handleGetOllamaStatus();
