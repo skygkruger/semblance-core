@@ -745,6 +745,7 @@ export interface Orchestrator {
   /** Set the intent manager for values/limits context (optional) */
   setIntentManager?(manager: IntentManager): void;
   setAlterEgoGuardrails?(guardrails: AlterEgoGuardrails, store: AlterEgoStore): void;
+  setWeatherService?(service: { getCurrentWeather(location?: string): Promise<unknown> }): void;
 }
 
 export interface OrchestratorResponse {
@@ -780,6 +781,7 @@ export class OrchestratorImpl implements Orchestrator {
   private alterEgoGuardrails: AlterEgoGuardrails | null;
   private alterEgoStore: AlterEgoStore | null;
   private knowledgeCurator: KnowledgeCurator | null = null;
+  private weatherService: { getCurrentWeather(location?: string): Promise<unknown> } | null;
   private promptConfig: SystemPromptConfig;
   // Extension support
   private extensionToolHandlers: Map<string, ToolHandler> = new Map();
@@ -803,6 +805,7 @@ export class OrchestratorImpl implements Orchestrator {
     intentManager?: IntentManager;
     alterEgoGuardrails?: AlterEgoGuardrails;
     alterEgoStore?: AlterEgoStore;
+    weatherService?: { getCurrentWeather(location?: string): Promise<unknown> };
     aiName?: string;
     userName?: string;
     connectedServices?: string[];
@@ -826,6 +829,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.intentManager = config.intentManager ?? null;
     this.alterEgoGuardrails = config.alterEgoGuardrails ?? null;
     this.alterEgoStore = config.alterEgoStore ?? null;
+    this.weatherService = config.weatherService ?? null;
     // Use the 'email' domain as a representative autonomy tier for the prompt —
     // email is the most common action domain and Partner is the onboarding default
     const representativeTier = this.autonomy.getDomainTier('email');
@@ -1313,6 +1317,10 @@ export class OrchestratorImpl implements Orchestrator {
   setAlterEgoGuardrails(guardrails: AlterEgoGuardrails, store: AlterEgoStore): void {
     this.alterEgoGuardrails = guardrails;
     this.alterEgoStore = store;
+  }
+
+  setWeatherService(service: { getCurrentWeather(location?: string): Promise<unknown> }): void {
+    this.weatherService = service;
   }
 
   // ─── Tool Intent Extraction ──────────────────────────────────────────────
@@ -2354,6 +2362,45 @@ export class OrchestratorImpl implements Orchestrator {
           result: {
             success: false,
             message: 'Calendar event creation and editing will be supported via Google Calendar API in a future update. For now, please create or edit the event directly in Google Calendar.',
+          },
+        });
+        continue;
+      }
+
+      // --- Weather: handled locally via weatherService injected at construction ---
+      if (tc.name === 'get_weather') {
+        if (this.weatherService) {
+          try {
+            const location = tc.arguments['location'] as string | undefined;
+            const weatherResult = await this.weatherService.getCurrentWeather(location);
+            executedResults.push({
+              tool: 'get_weather',
+              result: weatherResult ?? { message: 'Weather data not available. Configure a default city in Settings > Location.' },
+            });
+          } catch (err) {
+            executedResults.push({
+              tool: 'get_weather',
+              result: { error: err instanceof Error ? err.message : 'Weather lookup failed' },
+            });
+          }
+        } else {
+          executedResults.push({
+            tool: 'get_weather',
+            result: { message: 'Weather service not available. Configure a default city in Settings > Location.' },
+          });
+        }
+        continue;
+      }
+
+      // --- SMS send: graceful failure until messaging adapter is wired ---
+      if (tc.name === 'send_text') {
+        executedResults.push({
+          tool: 'send_text',
+          result: {
+            success: false,
+            message: 'Text messaging will be supported in a future update. For now, please send the message manually.',
+            draftedBody: tc.arguments['body'] as string | undefined,
+            phone: tc.arguments['phone'] as string | undefined,
           },
         });
         continue;

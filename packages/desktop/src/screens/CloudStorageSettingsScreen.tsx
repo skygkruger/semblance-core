@@ -40,10 +40,12 @@ export function CloudStorageSettingsScreen() {
   // Load connected cloud storage providers from IPC
   const loadProviders = useCallback(async () => {
     try {
-      const connectedIds = await getConnectedServices().catch((err) => {
+      const connectedRaw = await getConnectedServices().catch((err) => {
         console.error('[CloudStorage] Failed to get connected services:', err);
-        return [] as string[];
+        return [] as Array<{ connectorId: string; lastSyncedAt: string | null }>;
       });
+      // Normalise: handle both old string[] and new object[] shapes
+      const connectedIds = connectedRaw.map((svc) => typeof svc === 'string' ? svc : svc.connectorId);
 
       // Load persisted folder selections and sync times from SQLite prefs
       const savedFolders = await (async () => {

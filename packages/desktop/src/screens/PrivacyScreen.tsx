@@ -96,7 +96,13 @@ export function PrivacyScreen() {
   }, []);
 
   if (!authorized) {
-    return null;
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+          {t('status.loading')}
+        </p>
+      </div>
+    );
   }
 
   const networkEntries: NetworkEntry[] = [

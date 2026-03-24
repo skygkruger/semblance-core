@@ -8,6 +8,7 @@ export function SovereigntyReportScreen() {
   const state = useAppState();
   const { knowledgeStats, privacyStatus } = state;
   const [report, setReport] = useState<SovereigntyReportData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const now = new Date();
   const periodEnd = now.toISOString().split('T')[0]!;
@@ -15,9 +16,11 @@ export function SovereigntyReportScreen() {
 
   // Fetch real report data on mount
   useEffect(() => {
+    setLoading(true);
     generateSovereigntyReport(periodStart, periodEnd)
       .then(setReport)
-      .catch((err) => console.error('[SovereigntyReportScreen] Failed to load report:', err));
+      .catch((err) => console.error('[SovereigntyReportScreen] Failed to load report:', err))
+      .finally(() => setLoading(false));
   }, [periodStart, periodEnd]);
 
   const handleExportPDF = useCallback(async () => {
@@ -32,6 +35,14 @@ export function SovereigntyReportScreen() {
       console.error('[SovereigntyReportScreen] PDF export failed:', err);
     }
   }, [periodStart, periodEnd, report]);
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">Generating sovereignty report...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-y-auto">

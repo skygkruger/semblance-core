@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { emit } from '@tauri-apps/api/event';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import {
   getIntent,
@@ -32,6 +33,10 @@ export function IntentScreen() {
   const [observations, setObservations] = useState<IntentObservationData[]>([]);
   const [escalationPrompts, setEscalationPrompts] = useState<EscalationPromptData[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const showError = useCallback((message: string) => {
+    emit('semblance://toast', { id: `toast_${Date.now()}`, message, variant: 'error' }).catch(() => {});
+  }, []);
 
   // Load intent on mount
   useEffect(() => {
@@ -69,10 +74,10 @@ export function IntentScreen() {
 
   const handleSaveGoal = useCallback(async () => {
     if (!goalDraft.trim()) return;
-    await setPrimaryGoal(goalDraft.trim()).catch(() => {});
+    await setPrimaryGoal(goalDraft.trim()).catch(() => showError('Failed to save goal'));
     dispatch({ type: 'SET_PRIMARY_GOAL', goal: goalDraft.trim() });
     setEditingGoal(false);
-  }, [goalDraft, dispatch]);
+  }, [goalDraft, dispatch, showError]);
 
   const handleAddLimit = useCallback(async () => {
     if (!newLimit.trim()) return;
@@ -87,14 +92,14 @@ export function IntentScreen() {
   }, [newLimit, dispatch]);
 
   const handleRemoveLimit = useCallback(async (id: string) => {
-    await removeHardLimit(id).catch(() => {});
+    await removeHardLimit(id).catch(() => showError('Failed to remove limit'));
     dispatch({ type: 'REMOVE_HARD_LIMIT', id });
-  }, [dispatch]);
+  }, [dispatch, showError]);
 
   const handleToggleLimit = useCallback(async (id: string, active: boolean) => {
-    await toggleHardLimit(id, active).catch(() => {});
+    await toggleHardLimit(id, active).catch(() => showError('Failed to update limit'));
     dispatch({ type: 'TOGGLE_HARD_LIMIT', id, active });
-  }, [dispatch]);
+  }, [dispatch, showError]);
 
   const handleAddValue = useCallback(async () => {
     if (!newValue.trim()) return;
@@ -109,14 +114,14 @@ export function IntentScreen() {
   }, [newValue, dispatch]);
 
   const handleRemoveValue = useCallback(async (id: string) => {
-    await removePersonalValue(id).catch(() => {});
+    await removePersonalValue(id).catch(() => showError('Failed to remove value'));
     dispatch({ type: 'REMOVE_PERSONAL_VALUE', id });
-  }, [dispatch]);
+  }, [dispatch, showError]);
 
   const handleDismissObservation = useCallback(async (id: string) => {
-    await dismissObservation(id).catch(() => {});
+    await dismissObservation(id).catch(() => showError('Failed to dismiss observation'));
     setObservations(prev => prev.filter(o => o.id !== id));
-  }, []);
+  }, [showError]);
 
   if (loading) {
     return (
@@ -283,11 +288,11 @@ export function IntentScreen() {
                 <EscalationPromptCard
                   prompt={prompt}
                   onAccepted={async () => {
-                    await respondToEscalation(prompt.id, true).catch(() => {});
+                    await respondToEscalation(prompt.id, true).catch(() => showError('Failed to accept escalation'));
                     setEscalationPrompts(prev => prev.filter(p => p.id !== prompt.id));
                   }}
                   onDismissed={async () => {
-                    await respondToEscalation(prompt.id, false).catch(() => {});
+                    await respondToEscalation(prompt.id, false).catch(() => showError('Failed to dismiss escalation'));
                     setEscalationPrompts(prev => prev.filter(p => p.id !== prompt.id));
                   }}
                 />

@@ -873,6 +873,22 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] AlterEgoGuardrails wiring skipped — orchestrator unavailable');
   }
 
+  // Wire weather service into orchestrator (lazy-init to avoid blocking startup)
+  try {
+    if (core?.agent?.setWeatherService && prefsDb) {
+      if (!locationStore) {
+        locationStore = new LocationStore(prefsDb);
+      }
+      if (!weatherService) {
+        weatherService = new WeatherService(getPlatform(), core.ipc, locationStore);
+      }
+      core.agent.setWeatherService(weatherService);
+      console.error('[sidecar] WeatherService wired into orchestrator');
+    }
+  } catch {
+    console.error('[sidecar] WeatherService wiring skipped — orchestrator unavailable');
+  }
+
   // Wire prompt config (AI name, user name, connected services, doc count) into orchestrator
   try {
     if (core?.agent?.updatePromptConfig) {
@@ -4984,6 +5000,9 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
   // ─── Fix #6: Refresh prompt config so orchestrator knows new services ────
   _refreshPromptConfig();
 
+  // Store sync completion timestamp
+  setPref(`connector_last_sync_${params.connectorId}`, new Date().toISOString());
+
   return {
     success: true,
     synced: true,
@@ -7379,10 +7398,10 @@ async function handleRequest(req: Request): Promise<void> {
 
       // ─── Connector Query Handlers ─────────────────────────────────────
       case 'get_connected_services': {
-        // Return list of connected connector IDs (those with stored OAuth tokens)
+        // Return list of connected connectors with sync timestamps.
         // Tokens are stored in OAuthTokenManager (gateway/oauth.db), NOT in prefs.
         // The token manager stores by providerKey, so we map connectorId → providerKey.
-        const connectedList: string[] = [];
+        const connectedList: Array<{ connectorId: string; lastSyncedAt: string | null }> = [];
         try {
           const tokenMgr = ensureOAuthTokenManager();
           const connectorRegistry = createDefaultConnectorRegistry();
@@ -7392,14 +7411,20 @@ async function handleRequest(req: Request): Promise<void> {
             if (oauthCfg) {
               const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
               if (accessToken) {
-                connectedList.push(connector.id);
+                connectedList.push({
+                  connectorId: connector.id,
+                  lastSyncedAt: getPref(`connector_last_sync_${connector.id}`) ?? null,
+                });
               }
             }
             // Also check for native connectors that store state in prefs
             if (connector.authType === 'native') {
               const nativeState = getPref(`connector_state_${connector.id}`);
               if (nativeState === 'connected') {
-                connectedList.push(connector.id);
+                connectedList.push({
+                  connectorId: connector.id,
+                  lastSyncedAt: getPref(`connector_last_sync_${connector.id}`) ?? null,
+                });
               }
             }
           }

@@ -221,7 +221,7 @@ export function DigestScreen() {
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">{t('screen.digest.breakdown_subscriptions')}</span>
                   <span className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-                    {t('screen.digest.breakdown_subs_detail', { forgotten: digest.forgottenSubscriptions, savings: digest.potentialSavings.toFixed(0) })}
+                    {t('screen.digest.breakdown_subs_detail', { forgotten: digest.forgottenSubscriptions ?? 0, savings: (digest.potentialSavings ?? 0).toFixed(0) })}
                   </span>
                 </div>
                 <ProgressBar value={digest.forgottenSubscriptions} max={digest.subscriptionsAnalyzed} />

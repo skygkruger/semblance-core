@@ -334,9 +334,9 @@ export function ipcSend(connectorAction: ConnectorAction): Promise<unknown> {
   });
 }
 
-/** Returns list of connector IDs that have stored OAuth tokens */
-export function getConnectedServices(): Promise<string[]> {
-  return invoke<string[]>('sidecar_request', {
+/** Returns list of connected connectors with sync timestamps */
+export function getConnectedServices(): Promise<Array<{ connectorId: string; lastSyncedAt: string | null }>> {
+  return invoke<Array<{ connectorId: string; lastSyncedAt: string | null }>>('sidecar_request', {
     request: { method: 'get_connected_services', params: {} },
   });
 }
@@ -345,6 +345,11 @@ export function getConnectedServices(): Promise<string[]> {
 
 function sidecarRequest<T>(request: SidecarRequest): Promise<T> {
   return invoke<T>('sidecar_request', { request });
+}
+
+/** Public wrapper for sidecar JSON-RPC requests from screens */
+export function sidecarCall<T>(method: string, params: Record<string, unknown> = {}): Promise<T> {
+  return invoke<T>('sidecar_request', { request: { method, params } });
 }
 
 export function listContacts(limit: number, sortBy: 'name' | 'lastInteraction' | 'strength'): Promise<{ contacts: ContactSummary[] }> {
