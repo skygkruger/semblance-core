@@ -996,6 +996,18 @@ async function handleInitialize(): Promise<unknown> {
     if ((stale as { changes: number }).changes > 0) {
       console.error(`[AlterEgo] Auto-rejected ${(stale as { changes: number }).changes} stale batch items`);
     }
+
+    // Expire standard pending actions older than 24 hours (all tiers)
+    const staleThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const staleActions = prefsDb.prepare(
+      "SELECT id FROM pending_actions WHERE status = 'pending_approval' AND created_at < ?"
+    ).all(staleThreshold) as Array<{ id: string }>;
+    for (const action of staleActions) {
+      prefsDb.prepare("UPDATE pending_actions SET status = 'expired' WHERE id = ?").run(action.id);
+    }
+    if (staleActions.length > 0) {
+      console.error(`[sidecar] Expired ${staleActions.length} stale pending actions (>24h old)`);
+    }
   }
   cleanupStaleBatchItems();
   setInterval(cleanupStaleBatchItems, 15 * 60 * 1000);
@@ -1381,9 +1393,36 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] PreferenceGraph initialized');
 
     // Wire preference graph into autonomy manager
-    if (core?.autonomy?.setPreferenceGraph) {
-      (core.autonomy as import('../../../core/agent/autonomy.js').AutonomyManager).setPreferenceGraph(preferenceGraph);
+    if (core?.agent?.autonomy?.setPreferenceGraph) {
+      (core.agent.autonomy as import('../../../core/agent/autonomy.js').AutonomyManager).setPreferenceGraph(preferenceGraph);
       console.error('[sidecar] PreferenceGraph wired into AutonomyManager');
+    }
+
+    // Hydrate autonomy tiers from prefs into AutonomyManager —
+    // Settings UI writes to prefs table, but AutonomyManager reads from its own autonomy_config table.
+    // This syncs user's saved preferences into the decision-making engine on startup.
+    try {
+      if (core?.agent?.autonomy?.setDomainTier) {
+        const autonomyDomains = ['email', 'calendar', 'files', 'finances', 'health', 'services',
+          'contacts', 'web', 'reminders', 'messaging', 'clipboard', 'location', 'voice',
+          'cloud-storage', 'network', 'system', 'connectors'] as const;
+        let hydratedCount = 0;
+        for (const domain of autonomyDomains) {
+          const tier = getPref(`autonomy_${domain}`);
+          if (tier) {
+            (core.agent.autonomy as import('../../../core/agent/autonomy.js').AutonomyManager).setDomainTier(
+              domain as import('../../../core/agent/types.js').AutonomyDomain,
+              tier as import('../../../core/agent/types.js').AutonomyTier,
+            );
+            hydratedCount++;
+          }
+        }
+        if (hydratedCount > 0) {
+          console.error(`[sidecar] Hydrated ${hydratedCount} autonomy tiers from prefs into AutonomyManager`);
+        }
+      }
+    } catch (err) {
+      console.error('[sidecar] Autonomy tier hydration failed:', err);
     }
 
     // Speculative Loader (in-memory cache)
@@ -1400,7 +1439,12 @@ async function handleInitialize(): Promise<unknown> {
 
     // Cron Scheduler (with event bus)
     cronScheduler = new CronScheduler(undefined, eventBus);
-    // Wire the fire handler — cron jobs route through the standard IPC dispatch pipeline
+    // Wire the fire handler — cron jobs dispatch through handleRequest directly.
+    // DESIGN DECISION: Built-in cron jobs intentionally bypass the autonomy framework because
+    // all current jobs are system maintenance operations (brief generation, license scan, KG
+    // maintenance, reminder checks, connector re-sync). None of them send emails, create events,
+    // or take user-visible actions on the user's behalf. If user-facing cron actions are added
+    // (e.g., auto-send daily digest email), they MUST check autonomy via core.agent before executing.
     cronScheduler.setFireHandler(async (job) => {
       console.error(`[sidecar] CronScheduler firing job: ${job.id} (${job.name})`);
       try {
@@ -1701,6 +1745,30 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] Sprint G.5 initialization complete');
   } catch (sprintG5Err) {
     console.error('[sidecar] Sprint G.5 initialization failed (non-fatal):', sprintG5Err);
+  }
+
+  // ── ProactiveEngine startup ────────────────────────────────────────────
+  // Create and start the proactive engine if dependencies are available from
+  // a previous session's data. This ensures background insights run without
+  // requiring the user to open the Insights panel first.
+  if (!proactiveEngine && emailIndexer && calendarIndexer && prefsDb && core) {
+    try {
+      const autonomyForProactive = new (await import('../../../core/agent/autonomy.js')).AutonomyManager(
+        prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
+      );
+      proactiveEngine = new ProactiveEngine({
+        db: prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
+        knowledge: core.knowledge,
+        emailIndexer,
+        calendarIndexer,
+        autonomy: autonomyForProactive,
+      });
+      proactiveEngine.onEvent((event, data) => emit(event, data));
+      proactiveEngine.startPeriodicRun();
+      console.error('[sidecar] ProactiveEngine initialized and periodic run started (15min interval)');
+    } catch (proactiveErr) {
+      console.error('[sidecar] ProactiveEngine startup init failed (non-fatal):', proactiveErr);
+    }
   }
 
   // ── Auto-sync connected services on startup ──────────────────────────
@@ -2492,11 +2560,26 @@ function handleGetOnboardingComplete(): unknown {
 
 function handleSetAutonomyTier(params: { domain: string; tier: string }): unknown {
   setPref(`autonomy_${params.domain}`, params.tier);
+  // Also update the actual AutonomyManager that makes decisions
+  // (prefs table is for UI hydration; AutonomyManager uses its own autonomy_config SQLite table)
+  try {
+    if (core?.agent?.autonomy?.setDomainTier) {
+      (core.agent.autonomy as import('../../../core/agent/autonomy.js').AutonomyManager).setDomainTier(
+        params.domain as import('../../../core/agent/types.js').AutonomyDomain,
+        params.tier as import('../../../core/agent/types.js').AutonomyTier,
+      );
+      console.error(`[sidecar] Autonomy tier updated: ${params.domain} → ${params.tier} (both prefs + AutonomyManager)`);
+    }
+  } catch (err) {
+    console.error(`[sidecar] Failed to update AutonomyManager for ${params.domain}:`, err);
+  }
   return { success: true };
 }
 
 function handleGetAutonomyConfig(): unknown {
-  const domains = ['email', 'calendar', 'files', 'finances', 'health', 'services'];
+  const domains = ['email', 'calendar', 'files', 'finances', 'health', 'services',
+    'contacts', 'web', 'reminders', 'messaging', 'clipboard', 'location', 'voice',
+    'cloud-storage', 'network', 'system', 'connectors'];
   const config: Record<string, string> = {};
   for (const domain of domains) {
     config[domain] = getPref(`autonomy_${domain}`) ?? (domain === 'finances' || domain === 'services' ? 'guardian' : 'partner');
@@ -6734,6 +6817,12 @@ async function handleRequest(req: Request): Promise<void> {
                 text: reminder.text,
                 dueAt: reminder.due_at,
               });
+              // Fire OS-level notification so user sees it even when app is minimized
+              emit('semblance://schedule-notification', {
+                id: `reminder-${reminder.id}`,
+                title: 'Reminder',
+                body: reminder.text,
+              });
               console.error(`[sidecar] Reminder due: "${reminder.text}" (${reminder.id})`);
             }
             respond(id, { checked: dueReminders.length });
@@ -7615,6 +7704,33 @@ async function handleRequest(req: Request): Promise<void> {
       case 'connector.sync': {
         const result = await handleConnectorSync(params as { connectorId: string });
         respond(id, result);
+        break;
+      }
+      case 'connector.resync_all': {
+        // Re-sync all connected services — triggered by cron job every 10 minutes
+        // to ensure the app always has a live feed of the user's data.
+        try {
+          const resyncTokenMgr = ensureOAuthTokenManager();
+          const resyncRegistry = createDefaultConnectorRegistry();
+          let syncCount = 0;
+          for (const connector of resyncRegistry.listAll()) {
+            const oauthCfg = getOAuthConfigForConnector(connector.id);
+            if (oauthCfg) {
+              const accessToken = resyncTokenMgr.getAccessToken(oauthCfg.providerKey);
+              if (accessToken) {
+                handleConnectorSync({ connectorId: connector.id }).catch(err => {
+                  console.error(`[sidecar] Re-sync failed for ${connector.id}:`, err);
+                });
+                syncCount++;
+              }
+            }
+          }
+          console.error(`[sidecar] Connector re-sync: ${syncCount} services queued`);
+          respond(id, { synced: syncCount });
+        } catch (err) {
+          console.error('[sidecar] Connector re-sync failed:', err);
+          respond(id, { synced: 0, error: (err as Error).message });
+        }
         break;
       }
       case 'connector.debug': {
@@ -9421,6 +9537,12 @@ async function handleRequest(req: Request): Promise<void> {
               emit('canvas:update', canvasManager.getCurrentPayload());
             }
             emit('semblance://morning-brief', brief);
+            // Fire OS-level notification so user sees morning brief even when app is minimized
+            emit('semblance://schedule-notification', {
+              id: `morning-brief-${Date.now()}`,
+              title: 'Morning Brief Ready',
+              body: (brief as { summary?: string }).summary ?? 'Your daily briefing is ready.',
+            });
             respond(id, brief);
           } catch (err) { respondError(id, (err as Error).message); }
         } else {

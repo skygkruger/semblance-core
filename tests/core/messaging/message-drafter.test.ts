@@ -139,11 +139,11 @@ describe('Messaging Autonomy', () => {
     expect(decision).toBe('requires_approval');
   });
 
-  it('Alter Ego: auto_approve for messaging.send', () => {
+  it('Alter Ego: requires_approval for messaging.send (high-stakes execute)', () => {
     const db = createTestDb();
     const manager = new AutonomyManager(db as unknown as DatabaseHandle, { defaultTier: 'alter_ego', domainOverrides: {} });
     const decision = manager.decide('messaging.send');
-    expect(decision).toBe('auto_approve');
+    expect(decision).toBe('requires_approval');
   });
 });
 
