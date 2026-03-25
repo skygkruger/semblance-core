@@ -1042,6 +1042,7 @@ async function handleInitialize(): Promise<unknown> {
     registry.register('calendar.fetch', calendarAdapter);
     registry.register('calendar.create', calendarAdapter);
     registry.register('calendar.update', calendarAdapter);
+    registry.register('calendar.delete', calendarAdapter);
     console.error('[sidecar] Email + Calendar adapters registered with Gateway');
 
     // Cloud storage — register GoogleDriveAdapter for cloud.list_files if Google credentials exist
@@ -4530,7 +4531,7 @@ function getOAuthConfigForConnector(connectorId: string): {
       providerKey: 'google',
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
-      scopes: 'openid email https://mail.google.com/ https://www.googleapis.com/auth/calendar.readonly',
+      scopes: 'openid email https://mail.google.com/ https://www.googleapis.com/auth/calendar',
       clientId: process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
       clientSecret: process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'],
       usePKCE: false,
@@ -4541,7 +4542,7 @@ function getOAuthConfigForConnector(connectorId: string): {
       providerKey: 'google-calendar',
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
-      scopes: 'https://www.googleapis.com/auth/calendar.readonly',
+      scopes: 'https://www.googleapis.com/auth/calendar',
       clientId: process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? UNCONFIGURED_CLIENT_ID,
       clientSecret: process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'],
       usePKCE: false,

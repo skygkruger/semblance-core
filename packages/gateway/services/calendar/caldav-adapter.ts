@@ -157,7 +157,11 @@ export function buildVEvent(params: CalendarCreateParams, uid: string): string {
 
   if (params.attendees) {
     for (const a of params.attendees) {
-      lines.push(`ATTENDEE;CN=${a.name}:mailto:${a.email}`);
+      if (typeof a === 'string') {
+        lines.push(`ATTENDEE:mailto:${a}`);
+      } else {
+        lines.push(`ATTENDEE;CN=${a.name}:mailto:${a.email}`);
+      }
     }
   }
 
@@ -294,7 +298,11 @@ export class CalDAVAdapter {
       startTime: params.startTime,
       endTime: params.endTime,
       location: params.location,
-      attendees: (params.attendees ?? []).map(a => ({ ...a, status: 'needs-action' as const })),
+      attendees: (params.attendees ?? []).map(a =>
+        typeof a === 'string'
+          ? { name: a, email: a, status: 'needs-action' as const }
+          : { ...a, status: 'needs-action' as const }
+      ),
       organizer: { name: '', email: '' },
       recurrence: undefined,
       status: 'confirmed',
@@ -326,7 +334,7 @@ export class CalDAVAdapter {
             startTime: params.updates.startTime ?? event.startTime,
             endTime: params.updates.endTime ?? event.endTime,
             location: params.updates.location ?? event.location,
-            attendees: params.updates.attendees ?? event.attendees.map(a => ({ name: a.name, email: a.email })),
+            attendees: params.updates.attendees ?? event.attendees.map(a => ({ name: a.name, email: a.email } as { name: string; email: string })),
           };
 
           const icalData = buildVEvent(updated, event.id);
@@ -342,7 +350,14 @@ export class CalDAVAdapter {
           return {
             ...event,
             ...updated,
-            attendees: (updated.attendees ?? []).map(a => ({ ...a, status: 'needs-action' as const })),
+            attendees: (updated.attendees ?? []).map(a =>
+              typeof a === 'string'
+                ? { name: a, email: a, status: 'needs-action' as const }
+                : { ...a, status: 'needs-action' as const }
+            ),
+            reminders: (updated.reminders ?? event.reminders ?? []).map(r =>
+              typeof r === 'number' ? { minutesBefore: r } : r
+            ),
             lastModified: new Date().toISOString(),
           };
         }

@@ -59,7 +59,11 @@ export const CalendarCreateParams = z.object({
   startTime: z.string(),
   endTime: z.string(),
   location: z.string().optional(),
-  attendees: z.array(z.object({ name: z.string(), email: z.string() })).optional(),
+  attendees: z.array(z.union([
+    z.object({ name: z.string(), email: z.string() }),
+    z.string(), // Accept plain email strings from the orchestrator
+  ])).optional(),
+  reminders: z.array(z.number()).optional(), // Minutes before event (e.g. [10, 30])
   calendarId: z.string().optional(),
 });
 export type CalendarCreateParams = z.infer<typeof CalendarCreateParams>;
@@ -69,3 +73,9 @@ export const CalendarUpdateParams = z.object({
   updates: CalendarCreateParams.partial(),
 });
 export type CalendarUpdateParams = z.infer<typeof CalendarUpdateParams>;
+
+export const CalendarDeleteParams = z.object({
+  eventId: z.string(),
+  calendarId: z.string().optional(),
+});
+export type CalendarDeleteParams = z.infer<typeof CalendarDeleteParams>;

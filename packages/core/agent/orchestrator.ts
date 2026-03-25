@@ -188,16 +188,17 @@ const BASE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'create_calendar_event',
-    description: 'Create a new calendar event.',
+    description: 'Create a new calendar event with full details. Set reminders, add attendees, specify location. When the user says "put X on my calendar" or "schedule Y", use this tool.',
     parameters: {
       type: 'object',
       properties: {
-        title: { type: 'string' },
-        startTime: { type: 'string', description: 'ISO 8601 start time' },
-        endTime: { type: 'string', description: 'ISO 8601 end time' },
-        description: { type: 'string' },
-        location: { type: 'string' },
+        title: { type: 'string', description: 'Event title/summary' },
+        startTime: { type: 'string', description: 'ISO 8601 start time (e.g. 2026-03-25T14:00:00-05:00)' },
+        endTime: { type: 'string', description: 'ISO 8601 end time (e.g. 2026-03-25T15:00:00-05:00)' },
+        description: { type: 'string', description: 'Event description or agenda' },
+        location: { type: 'string', description: 'Physical or virtual location' },
         attendees: { type: 'array', items: { type: 'string' }, description: 'Attendee email addresses' },
+        reminders: { type: 'array', items: { type: 'number' }, description: 'Reminder times in minutes before the event (e.g. [10, 30] for 10-min and 30-min reminders)' },
       },
       required: ['title', 'startTime', 'endTime'],
     },
@@ -2441,17 +2442,7 @@ export class OrchestratorImpl implements Orchestrator {
         continue;
       }
 
-      // --- Calendar write operations: graceful failure until Google Calendar API write support ---
-      if (tc.name === 'create_calendar_event' || tc.name === 'update_calendar_event' || tc.name === 'delete_calendar_event') {
-        executedResults.push({
-          tool: tc.name,
-          result: {
-            success: false,
-            message: 'Calendar event creation and editing will be supported via Google Calendar API in a future update. For now, please create or edit the event directly in Google Calendar.',
-          },
-        });
-        continue;
-      }
+      // Calendar write operations (create/update/delete) flow through Gateway → CalendarAdapter → Google Calendar REST API
 
       // --- Weather: handled locally via weatherService injected at construction ---
       if (tc.name === 'get_weather') {
