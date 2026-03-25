@@ -186,10 +186,11 @@ describe('Orchestrator prompt injection integration', () => {
     // Verify tool results are wrapped in data boundaries
     expect(src).toContain("wrapInDataBoundary");
 
-    // Verify web fetch results get full sanitization
-    expect(src).toContain('fetch_url');
-    expect(src).toContain('search_web');
-    expect(src).toContain('needsFullSanitization');
+    // Verify ALL tool results are sanitized (not just web tools)
+    // Previously only web tools (fetch_url, search_web) were sanitized;
+    // now all tool results go through sanitizeRetrievedContent
+    expect(src).toContain('// Sanitize ALL tool results');
+    expect(src).toContain('sanitizeRetrievedContent(resultStr)');
   });
 
   it('retrieved context uses user role not system role', async () => {

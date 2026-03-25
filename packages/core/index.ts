@@ -80,6 +80,14 @@ export type {
   ConversationWithTurns,
 } from './agent/conversation-manager.js';
 
+// Re-export content sanitizer (pure string utility — safe for Gateway to import)
+export {
+  sanitizeRetrievedContent,
+  stripInjectionPatterns,
+  wrapInDataBoundary,
+  INJECTION_CANARY,
+} from './agent/content-sanitizer.js';
+
 // Re-export IPC transport abstraction
 export type { IPCTransport, IPCHandler } from './ipc/transport.js';
 export { SocketTransport, type SocketTransportConfig } from './ipc/socket-transport.js';

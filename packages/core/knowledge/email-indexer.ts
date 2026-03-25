@@ -185,7 +185,7 @@ export class EmailIndexer {
           msg.from.address,
           msg.from.name,
           JSON.stringify(toEmails),
-          msg.subject,
+          sanitizedSubject,
           snippet,
           msg.date,
           flags.includes('\\Seen') ? 1 : 0,
@@ -200,7 +200,7 @@ export class EmailIndexer {
         // Index into knowledge graph for semantic search
         await this.knowledge.indexDocument({
           content: embeddingContent,
-          title: `Email: ${msg.subject}`,
+          title: `Email: ${sanitizedSubject}`,
           source: 'email',
           sourcePath: msg.messageId,
           mimeType: 'message/rfc822',

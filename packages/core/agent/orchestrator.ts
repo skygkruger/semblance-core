@@ -35,7 +35,7 @@ import type { ResolvedContactResult } from '../knowledge/contacts/contact-types.
 import type { MessageDrafter } from './messaging/message-drafter.js';
 import type { ExtensionTool, ToolHandler } from '../extensions/types.js';
 import { BoundaryEnforcer, type EscalationBoundary } from './escalation-boundaries.js';
-import { sanitizeRetrievedContent, wrapInDataBoundary, INJECTION_CANARY } from './content-sanitizer.js';
+import { sanitizeRetrievedContent, stripInjectionPatterns, wrapInDataBoundary, INJECTION_CANARY } from './content-sanitizer.js';
 import type { IntentManager } from './intent-manager.js';
 import type { AlterEgoGuardrails } from './alter-ego-guardrails.js';
 import { AdaptiveContextBudget } from './context-budget.js';
@@ -976,10 +976,8 @@ export class OrchestratorImpl implements Orchestrator {
         const headroomBudget = this.contextBudget.allocate(this.model).headroomTokens;
         const sanitizedToolResults = toolResults.executedResults.map(r => {
           const resultStr = JSON.stringify(r.result);
-          const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web' || r.tool === 'deep_search_web';
-          let sanitized = needsFullSanitization
-            ? sanitizeRetrievedContent(resultStr)
-            : resultStr;
+          // Sanitize ALL tool results — any external data could contain injection attempts
+          let sanitized = sanitizeRetrievedContent(resultStr);
           // Truncate large results to fit within headroom budget
           const truncated = this.contextBudget.truncateToFit(sanitized, headroomBudget);
           sanitized = truncated.content;
@@ -1118,10 +1116,8 @@ export class OrchestratorImpl implements Orchestrator {
           const headroomBudget2 = this.contextBudget.allocate(this.model).headroomTokens;
           const sanitizedToolResults = toolResults.executedResults.map(r => {
             const resultStr = JSON.stringify(r.result);
-            const needsFullSanitization = r.tool === 'fetch_url' || r.tool === 'search_web' || r.tool === 'deep_search_web';
-            let sanitized = needsFullSanitization
-              ? sanitizeRetrievedContent(resultStr)
-              : resultStr;
+            // Sanitize ALL tool results — any external data could contain injection attempts
+            let sanitized = sanitizeRetrievedContent(resultStr);
             // Truncate large results to fit within headroom budget
             const truncated = this.contextBudget.truncateToFit(sanitized, headroomBudget2);
             sanitized = truncated.content;
@@ -1609,8 +1605,8 @@ export class OrchestratorImpl implements Orchestrator {
       const docChunkMaxChars = this.contextBudget.calculateDocChunkSize(this.model, documentChunks.length);
       const activeDocs = this.documentContext?.getActiveDocuments() ?? [];
       const docLabel = activeDocs.length === 1
-        ? `'${activeDocs[0]?.fileName ?? 'document'}'`
-        : `${activeDocs.length} attached documents (${activeDocs.map(d => d.fileName).join(', ')})`;
+        ? `'${sanitizeRetrievedContent(activeDocs[0]?.fileName ?? 'document')}'`
+        : `${activeDocs.length} attached documents (${activeDocs.map(d => sanitizeRetrievedContent(d.fileName)).join(', ')})`;
       const docContextStr = documentChunks.map((r, i) =>
         `[${i + 1}] ${sanitizeRetrievedContent(r.chunk.content.slice(0, docChunkMaxChars))}`
       ).join('\n\n');
@@ -1635,7 +1631,7 @@ export class OrchestratorImpl implements Orchestrator {
         Math.floor(budget.knowledgeGraphTokens / Math.max(1, deduplicatedContext.length))
       );
       const contextStr = deduplicatedContext.map((r, i) =>
-        `[${i + 1}] ${r.document.title} (${r.document.source}): ${sanitizeRetrievedContent(r.chunk.content.slice(0, kgCharsPerResult))}`
+        `[${i + 1}] ${sanitizeRetrievedContent(r.document.title)} (${r.document.source}): ${sanitizeRetrievedContent(r.chunk.content.slice(0, kgCharsPerResult))}`
       ).join('\n\n');
       messages.push({
         role: 'user',
@@ -1651,7 +1647,9 @@ export class OrchestratorImpl implements Orchestrator {
     for (const turn of recentHistory) {
       messages.push({
         role: turn.role,
-        content: turn.content,
+        // Sanitize assistant turns to strip any control tokens that may have leaked
+        // into previous responses. User turns are NOT sanitized — they are the user's own input.
+        content: turn.role === 'assistant' ? stripInjectionPatterns(turn.content) : turn.content,
       });
     }
 

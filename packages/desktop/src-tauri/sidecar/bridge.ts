@@ -5147,8 +5147,8 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
       try {
         const docSource = (sourceTypeMap[item.sourceType ?? ''] ?? 'manual') as import('../../../core/knowledge/types.js').DocumentSource;
         await core.knowledge.indexDocument({
-          content: item.content,
-          title: item.title,
+          content: sanitizeRetrievedContent(item.content),
+          title: sanitizeRetrievedContent(item.title),
           source: docSource,
           metadata: {
             connectorId: params.connectorId,
@@ -5269,8 +5269,8 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
             try {
               // Index file metadata into knowledge graph with source: 'cloud_storage'
               await core!.knowledge.indexDocument({
-                content: `Google Drive file: ${file.name} (${file.mimeType})`,
-                title: file.name,
+                content: sanitizeRetrievedContent(`Google Drive file: ${file.name} (${file.mimeType})`),
+                title: sanitizeRetrievedContent(file.name),
                 source: 'cloud_storage' as import('../../../core/knowledge/types.js').DocumentSource,
                 sourcePath: file.id,
                 mimeType: file.mimeType,

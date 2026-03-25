@@ -165,7 +165,7 @@ export class CalendarIndexer {
         ).get(event.id) as { id: string } | undefined;
 
         if (existing) {
-          // Update existing entry
+          // Update existing entry — sanitize title/description at ingestion
           this.db.prepare(`
             UPDATE indexed_calendar_events SET
               title = ?, description = ?, start_time = ?, end_time = ?,
@@ -173,8 +173,8 @@ export class CalendarIndexer {
               status = ?, recurrence_rule = ?, indexed_at = ?
             WHERE uid = ?
           `).run(
-            event.title,
-            event.description ?? '',
+            sanitizeRetrievedContent(event.title),
+            sanitizeRetrievedContent(event.description ?? ''),
             event.startTime,
             event.endTime,
             this.isAllDayEvent(event.startTime, event.endTime) ? 1 : 0,
@@ -194,6 +194,9 @@ export class CalendarIndexer {
         const attendeeEmails = event.attendees.map(a => a.email);
         const isAllDay = this.isAllDayEvent(event.startTime, event.endTime);
 
+        const sanitizedTitle = sanitizeRetrievedContent(event.title);
+        const sanitizedDescription = sanitizeRetrievedContent(event.description ?? '');
+
         this.db.prepare(`
           INSERT INTO indexed_calendar_events (
             id, uid, calendar_id, title, description, start_time, end_time,
@@ -204,8 +207,8 @@ export class CalendarIndexer {
           id,
           event.id,
           event.calendarId,
-          event.title,
-          event.description ?? '',
+          sanitizedTitle,
+          sanitizedDescription,
           event.startTime,
           event.endTime,
           isAllDay ? 1 : 0,
@@ -222,7 +225,7 @@ export class CalendarIndexer {
         const embeddingContent = `Calendar: ${sanitizeRetrievedContent(event.title)} ${sanitizeRetrievedContent(event.description ?? '')} ${sanitizeRetrievedContent(event.location ?? '')}`;
         await this.knowledge.indexDocument({
           content: embeddingContent,
-          title: `Event: ${event.title}`,
+          title: `Event: ${sanitizedTitle}`,
           source: 'calendar',
           sourcePath: event.id,
           mimeType: 'text/calendar',
