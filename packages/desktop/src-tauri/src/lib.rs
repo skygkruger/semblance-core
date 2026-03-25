@@ -1066,18 +1066,19 @@ async fn get_provider_presets(
 
 // ─── Universal Inbox & AI Action Commands (Step 6) ───────────────────────
 
-/// Get inbox items (indexed emails) with pagination.
+/// Get inbox items (indexed emails) with pagination and optional account filter.
 #[tauri::command]
 async fn get_inbox_items(
     state: tauri::State<'_, AppBridge>,
     limit: u32,
     offset: u32,
+    account_id: Option<String>,
 ) -> Result<Value, String> {
     state
         .bridge
         .call(
             "inbox:getItems",
-            serde_json::json!({"limit": limit, "offset": offset}),
+            serde_json::json!({"limit": limit, "offset": offset, "accountId": account_id}),
         )
         .await
 }

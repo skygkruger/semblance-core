@@ -58,7 +58,7 @@ import {
   PROVIDER_PRESETS,
 } from '../../../gateway/index.js';
 import type { ServiceCredential } from '../../../gateway/credentials/types.js';
-import { EmailIndexer } from '../../../core/knowledge/email-indexer.js';
+import { EmailIndexer, type RawEmailMessage } from '../../../core/knowledge/email-indexer.js';
 import { CalendarIndexer } from '../../../core/knowledge/calendar-indexer.js';
 import { EmailCategorizer } from '../../../core/agent/email-categorizer.js';
 import { ProactiveEngine } from '../../../core/agent/proactive-engine.js';
@@ -2856,7 +2856,7 @@ async function handleEmailStartIndex(
 
     if (result.success && result.data) {
       const messages = (result.data as { messages: unknown[] }).messages ?? [];
-      const indexed = await emailIndexer.indexMessages(messages as Parameters<EmailIndexer['indexMessages']>[0], params.account_id);
+      const indexed = await emailIndexer.indexMessages(messages as RawEmailMessage[], params.account_id);
       emit('email-index-complete', { indexed, total: messages.length });
 
       // License auto-detection: scan email bodies for SEMBLANCE_LICENSE_KEY pattern
@@ -2930,12 +2930,13 @@ async function handleCalendarStartIndex(
   }
 }
 
-function handleInboxGetItems(params: { limit?: number; offset?: number; filter?: string }): unknown[] {
+function handleInboxGetItems(params: { limit?: number; offset?: number; filter?: string; accountId?: string }): unknown[] {
   if (!emailIndexer) return [];
   return emailIndexer.getIndexedEmails({
     limit: params.limit ?? 30,
     offset: params.offset ?? 0,
     priority: params.filter,
+    accountId: params.accountId,
   });
 }
 
@@ -5280,7 +5281,7 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
           const rawData = fetchResult.data as { messages?: unknown[] } | unknown[];
           const messages = Array.isArray(rawData) ? rawData : (rawData.messages ?? []);
           const emailIndexed = await emailIndexer.indexMessages(
-            messages as Parameters<EmailIndexer['indexMessages']>[0],
+            messages as RawEmailMessage[],
             syncAccountId,
           );
           console.error(`[sidecar] Post-sync: ${emailIndexed} emails indexed into local store (account: ${syncAccountId})`);
@@ -5860,7 +5861,7 @@ async function handleRequest(req: Request): Promise<void> {
         break;
 
       case 'inbox:getItems':
-        result = handleInboxGetItems(params as { limit?: number; offset?: number; filter?: string });
+        result = handleInboxGetItems(params as { limit?: number; offset?: number; filter?: string; accountId?: string });
         respond(id, result);
         break;
 

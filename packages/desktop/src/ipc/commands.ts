@@ -196,7 +196,7 @@ export function selectModel(modelId: string): Promise<void> {
 // ─── Email / Calendar / Inbox ───────────────────────────────────────────────
 
 export function getInboxItems(limit: number, offset: number, accountId?: string): Promise<IndexedEmail[]> {
-  return invoke<IndexedEmail[]>('get_inbox_items', { limit, offset, ...(accountId ? { accountId } : {}) });
+  return invoke<IndexedEmail[]>('get_inbox_items', { limit, offset, account_id: accountId ?? null });
 }
 
 export function getProactiveInsights(): Promise<ProactiveInsight[]> {

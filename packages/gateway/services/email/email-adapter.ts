@@ -16,6 +16,25 @@ const GMAIL_IMAP_PORT = 993;
 const GMAIL_SMTP_HOST = 'smtp.gmail.com';
 const GMAIL_SMTP_PORT = 465;
 
+// ─── Helpers: transform Gmail API shapes to RawEmailMessage ────────────────
+
+function parseRecipientList(header: string): Array<{ name: string; address: string }> {
+  if (!header) return [];
+  return header.split(',').map(r => {
+    const trimmed = r.trim();
+    const match = trimmed.match(/^(.+?)\s*<(.+?)>$/);
+    if (match) return { name: match[1]!.replace(/^["']|["']$/g, ''), address: match[2]! };
+    return { name: trimmed, address: trimmed };
+  });
+}
+
+function buildImapStyleFlags(isRead: boolean, isStarred: boolean): string[] {
+  const flags: string[] = [];
+  if (isRead) flags.push('\\Seen');
+  if (isStarred) flags.push('\\Flagged');
+  return flags;
+}
+
 export class EmailAdapter implements ServiceAdapter {
   readonly imap: IMAPAdapter;
   readonly smtp: SMTPAdapter;
@@ -283,16 +302,23 @@ export class EmailAdapter implements ServiceAdapter {
   /**
    * Fetch emails via Gmail REST API. No IMAP required.
    * Uses: GET /gmail/v1/users/me/messages (list) + GET /gmail/v1/users/me/messages/{id} (detail)
+   *
+   * Returns objects matching RawEmailMessage shape from EmailIndexer so that
+   * indexMessages() can consume them directly without force-casts.
    */
   private async fetchViaGmailApi(
     accessToken: string,
     params: EmailFetchParams,
   ): Promise<Array<{
     id: string; messageId: string; threadId: string;
-    from: string; fromName: string; to: string;
-    subject: string; snippet: string; body: string;
-    receivedAt: string; isRead: boolean; isStarred: boolean;
-    hasAttachments: boolean; labels: string[]; folder: string;
+    from: { name: string; address: string };
+    to: Array<{ name: string; address: string }>;
+    cc: Array<{ name: string; address: string }>;
+    subject: string; date: string;
+    body: { text: string; html?: string };
+    flags: string[];
+    attachments: Array<{ filename: string; contentType: string; size: number }>;
+    labels: string[]; folder: string;
   }>> {
     const limit = params.limit ?? 50;
     const folder = params.folder ?? 'INBOX';
@@ -322,10 +348,14 @@ export class EmailAdapter implements ServiceAdapter {
     const BATCH_SIZE = 10;
     const results: Array<{
       id: string; messageId: string; threadId: string;
-      from: string; fromName: string; to: string;
-      subject: string; snippet: string; body: string;
-      receivedAt: string; isRead: boolean; isStarred: boolean;
-      hasAttachments: boolean; labels: string[]; folder: string;
+      from: { name: string; address: string };
+      to: Array<{ name: string; address: string }>;
+      cc: Array<{ name: string; address: string }>;
+      subject: string; date: string;
+      body: { text: string; html?: string };
+      flags: string[];
+      attachments: Array<{ filename: string; contentType: string; size: number }>;
+      labels: string[]; folder: string;
     }> = [];
 
     for (let i = 0; i < messageIds.length; i += BATCH_SIZE) {
@@ -359,23 +389,31 @@ export class EmailAdapter implements ServiceAdapter {
         const fromName = fromMatch ? fromMatch[1]!.replace(/^["']|["']$/g, '') : fromRaw;
         const fromEmail = fromMatch ? fromMatch[2]! : fromRaw;
         const labels = msg.labelIds ?? [];
+        const isRead = !labels.includes('UNREAD');
+        const isStarred = labels.includes('STARRED');
+        const hasAttachments = !!(msg.payload?.parts?.some(p => p.filename && p.filename.length > 0));
+        const receivedAt = msg.internalDate
+          ? new Date(parseInt(msg.internalDate, 10)).toISOString()
+          : new Date().toISOString();
 
         results.push({
           id: msg.id,
           messageId: msg.id,
           threadId: msg.threadId,
-          from: fromEmail,
-          fromName,
-          to: getHeader('To'),
+          from: { name: fromName, address: fromEmail },
+          to: parseRecipientList(getHeader('To')),
+          cc: parseRecipientList(getHeader('Cc')),
           subject: getHeader('Subject'),
-          snippet: msg.snippet ?? '',
-          body: msg.snippet ?? '',
-          receivedAt: msg.internalDate
-            ? new Date(parseInt(msg.internalDate, 10)).toISOString()
-            : new Date().toISOString(),
-          isRead: !labels.includes('UNREAD'),
-          isStarred: labels.includes('STARRED'),
-          hasAttachments: !!(msg.payload?.parts?.some(p => p.filename && p.filename.length > 0)),
+          date: receivedAt,
+          body: { text: msg.snippet ?? '', html: undefined },
+          flags: buildImapStyleFlags(isRead, isStarred),
+          attachments: hasAttachments
+            ? (msg.payload?.parts?.filter(p => p.filename && p.filename.length > 0).map(p => ({
+                filename: p.filename ?? 'unknown',
+                contentType: p.mimeType ?? 'application/octet-stream',
+                size: 0,
+              })) ?? [])
+            : [],
           labels,
           folder,
         });
