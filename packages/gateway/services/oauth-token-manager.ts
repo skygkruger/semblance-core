@@ -298,7 +298,7 @@ export class OAuthTokenManager {
     `);
 
     for (const row of existingRows) {
-      const email = row.user_email ?? row.provider;
+      const email = row.user_email ?? `primary@${row.provider}`;
       const accountId = `${row.provider}:${email}`;
       insertV2.run(
         accountId, row.provider, email,

@@ -1,13 +1,21 @@
 /**
  * ConnectionsScreen — Uses the Storybook ConnectionsScreen component from @semblance/ui.
  * This is a thin wrapper that loads connector data and passes it to the Storybook component.
+ * Includes multi-account support: lists accounts per provider, set primary, remove, add another.
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { emit, listen } from '@tauri-apps/api/event';
 import { ConnectionsScreen as ConnectionsScreenUI } from '@semblance/ui';
 import type { ConnectorEntry } from '@semblance/ui';
-import { ipcSend, getConnectedServices } from '../ipc/commands';
+import {
+  ipcSend,
+  getConnectedServices,
+  listConnectorAccounts,
+  setConnectorPrimaryAccount,
+  removeConnectorAccount,
+} from '../ipc/commands';
+import type { OAuthAccount } from '../ipc/commands';
 import { useLicense } from '../contexts/LicenseContext';
 import {
   createDefaultConnectorRegistry,
@@ -36,6 +44,21 @@ const ENABLED_CONNECTORS = new Set([
   'spotify',
   'notion',
 ]);
+
+/**
+ * Map provider keys (from OAuthTokenManager) to connector IDs (used in UI).
+ * getOAuthConfigForConnector maps connectorId -> providerKey; this is the reverse.
+ */
+const PROVIDER_TO_CONNECTOR: Record<string, string> = {
+  'google': 'gmail',
+  'google-calendar': 'google-calendar',
+  'google-drive': 'google-drive',
+  'dropbox': 'dropbox',
+  'github': 'github',
+  'spotify': 'spotify',
+  'notion': 'notion',
+  'slack': 'slack-oauth',
+};
 
 function getCurrentPlatform(): 'macos' | 'windows' | 'linux' {
   const ua = navigator.userAgent.toLowerCase();
@@ -70,6 +93,32 @@ export function ConnectionsScreen() {
   const dispatch = useAppDispatch();
   const license = useLicense();
   const [connectors, setConnectors] = useState<ConnectorEntry[]>([]);
+  const [accountsByConnector, setAccountsByConnector] = useState<Record<string, OAuthAccount[]>>({});
+  const [accountsLoading, setAccountsLoading] = useState(false);
+
+  // Load all OAuth accounts and group by connector ID
+  const loadAccounts = useCallback(async () => {
+    setAccountsLoading(true);
+    try {
+      // Load accounts per enabled connector
+      const grouped: Record<string, OAuthAccount[]> = {};
+      for (const connectorId of ENABLED_CONNECTORS) {
+        try {
+          const accounts = await listConnectorAccounts(connectorId);
+          if (accounts && accounts.length > 0) {
+            grouped[connectorId] = accounts;
+          }
+        } catch {
+          // Connector may not have OAuth config — skip silently
+        }
+      }
+      setAccountsByConnector(grouped);
+    } catch {
+      // Graceful failure — account list is supplementary
+    } finally {
+      setAccountsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const platform = getCurrentPlatform();
@@ -119,6 +168,11 @@ export function ConnectionsScreen() {
       }
     }).catch(() => {});
   }, [dispatch]);
+
+  // Load multi-account data on mount
+  useEffect(() => {
+    loadAccounts();
+  }, [loadAccounts]);
 
   // Listen for indexing-complete events to update sync timestamps
   useEffect(() => {
@@ -179,6 +233,8 @@ export function ConnectionsScreen() {
         } catch (syncErr) {
           console.error(`Auto-sync failed for ${connectorId}:`, syncErr);
         }
+        // Refresh account list after new account connected
+        loadAccounts();
       }
     } catch (err) {
       console.error(`Failed to connect ${connectorId}:`, err);
@@ -188,7 +244,7 @@ export function ConnectionsScreen() {
         variant: 'attention',
       }).catch(() => {});
     }
-  }, [dispatch]);
+  }, [dispatch, loadAccounts]);
 
   const handleDisconnect = useCallback(async (connectorId: string) => {
     try {
@@ -202,10 +258,12 @@ export function ConnectionsScreen() {
         connectorId,
         state: { connectorId, status: 'disconnected' as ConnectorState['status'], lastSyncedAt: undefined },
       });
+      // Refresh accounts
+      loadAccounts();
     } catch (err) {
       console.error(`Failed to disconnect ${connectorId}:`, err);
     }
-  }, [dispatch]);
+  }, [dispatch, loadAccounts]);
 
   const handleSync = useCallback(async (connectorId: string) => {
     try {
@@ -218,6 +276,44 @@ export function ConnectionsScreen() {
     }
   }, []);
 
+  const handleSetPrimary = useCallback(async (accountId: string) => {
+    try {
+      await setConnectorPrimaryAccount(accountId);
+      loadAccounts();
+      emit('semblance://toast', {
+        id: `primary_ok_${Date.now()}`,
+        message: 'Primary account updated',
+        variant: 'success',
+      }).catch(() => {});
+    } catch (err) {
+      console.error('Failed to set primary account:', err);
+    }
+  }, [loadAccounts]);
+
+  const handleRemoveAccount = useCallback(async (accountId: string, connectorId: string) => {
+    try {
+      await removeConnectorAccount(accountId);
+      // Refresh account list
+      const updatedAccounts = await listConnectorAccounts(connectorId).catch(() => []);
+      // If no accounts remain, update connector status to disconnected
+      if (!updatedAccounts || updatedAccounts.length === 0) {
+        dispatch({
+          type: 'SET_CONNECTOR_STATE',
+          connectorId,
+          state: { connectorId, status: 'disconnected' as ConnectorState['status'], lastSyncedAt: undefined },
+        });
+      }
+      loadAccounts();
+      emit('semblance://toast', {
+        id: `remove_ok_${Date.now()}`,
+        message: 'Account removed',
+        variant: 'success',
+      }).catch(() => {});
+    } catch (err) {
+      console.error('Failed to remove account:', err);
+    }
+  }, [dispatch, loadAccounts]);
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8">
@@ -227,6 +323,139 @@ export function ConnectionsScreen() {
           onDisconnect={handleDisconnect}
           onSync={handleSync}
         />
+
+        {/* Multi-Account Section — shown below the connector cards */}
+        {Object.keys(accountsByConnector).length > 0 && (
+          <div style={{ marginTop: 32 }}>
+            <h2 style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase' as const,
+              color: '#5E6B7C',
+              marginBottom: 16,
+            }}>
+              CONNECTED ACCOUNTS
+            </h2>
+
+            {connectors
+              .filter((c) => c.status === 'connected' || c.status === 'syncing')
+              .map((connector) => {
+                const accounts = accountsByConnector[connector.id] ?? [];
+                if (accounts.length === 0) return null;
+
+                return (
+                  <div key={connector.id} style={{ marginBottom: 20 }}>
+                    <div style={{
+                      fontFamily: "'DM Sans', system-ui, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: '#EEF1F4',
+                      marginBottom: 8,
+                    }}>
+                      {connector.displayName}
+                    </div>
+
+                    {accounts.map((account) => (
+                      <div key={account.accountId} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        background: '#171B1F',
+                        borderRadius: 8,
+                        marginBottom: 6,
+                        border: '1px solid rgba(255,255,255,0.04)',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{
+                            fontFamily: "'DM Sans', system-ui, sans-serif",
+                            fontSize: 13,
+                            color: '#EEF1F4',
+                          }}>
+                            {account.userEmail}
+                          </span>
+                          {account.isPrimary && (
+                            <span style={{
+                              fontSize: 10,
+                              fontFamily: "'DM Mono', monospace",
+                              color: '#6ECFA3',
+                              padding: '2px 6px',
+                              background: 'rgba(110,207,163,0.08)',
+                              borderRadius: 4,
+                              letterSpacing: '0.05em',
+                            }}>
+                              PRIMARY
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {!account.isPrimary && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimary(account.accountId)}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid rgba(255,255,255,0.09)',
+                                borderRadius: 6,
+                                padding: '4px 10px',
+                                fontSize: 11,
+                                color: '#8593A4',
+                                cursor: 'pointer',
+                                fontFamily: "'DM Sans', system-ui, sans-serif",
+                              }}
+                            >
+                              Set Primary
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAccount(account.accountId, connector.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid rgba(176,122,138,0.3)',
+                              borderRadius: 6,
+                              padding: '4px 10px',
+                              fontSize: 11,
+                              color: '#B07A8A',
+                              cursor: 'pointer',
+                              fontFamily: "'DM Sans', system-ui, sans-serif",
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add another account button */}
+                    <button
+                      type="button"
+                      onClick={() => handleConnect(connector.id)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px dashed rgba(255,255,255,0.09)',
+                        borderRadius: 8,
+                        padding: '10px',
+                        width: '100%',
+                        marginTop: 4,
+                        fontSize: 13,
+                        color: '#5E6B7C',
+                        cursor: 'pointer',
+                        fontFamily: "'DM Sans', system-ui, sans-serif",
+                        transition: 'border-color 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.borderColor = 'rgba(110,207,163,0.3)'; }}
+                      onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.09)'; }}
+                    >
+                      + Add another account
+                    </button>
+                  </div>
+                );
+              })}
+          </div>
+        )}
       </div>
     </div>
   );

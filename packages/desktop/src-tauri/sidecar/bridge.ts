@@ -5012,13 +5012,24 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
     console.error(`[sidecar]   expiresIn: ${expiresIn}s`);
     console.error(`[sidecar]   userEmail: ${userEmail ?? 'unknown'}`);
 
-    tokenMgr.storeTokens({
+    // Use storeAccountTokens for multi-account support — stores with accountId key
+    // so connecting a second Google account doesn't overwrite the first.
+    const accountEmail = userEmail ?? config.providerKey;
+    const accountId = `${config.providerKey}:${accountEmail}`;
+
+    // Check if this is the first account for this provider (should be primary)
+    const existingAccounts = tokenMgr.listAccounts(config.providerKey);
+    const isFirstAccount = existingAccounts.length === 0;
+
+    tokenMgr.storeAccountTokens({
+      accountId,
       provider: config.providerKey,
       accessToken: tokenData.access_token as string,
       refreshToken: (tokenData.refresh_token as string) ?? '',
       expiresAt: Date.now() + expiresIn * 1000,
       scopes: config.scopes,
       userEmail,
+      isPrimary: isFirstAccount,
     });
 
     // Verify storage worked by reading back
@@ -7531,6 +7542,12 @@ async function handleRequest(req: Request): Promise<void> {
       case 'upgrade_submit_email': {
         const emailParams = params as { email: string };
         setPref('upgrade_email', emailParams.email);
+        // Send to waitlist endpoint (fire-and-forget — local storage is the primary record)
+        globalThis.fetch('https://semblance-license-worker.conduit-gw.workers.dev/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailParams.email }),
+        }).catch(() => {}); // Best-effort — prefs storage is authoritative
         respond(id, { success: true });
         break;
       }
@@ -8071,6 +8088,53 @@ async function handleRequest(req: Request): Promise<void> {
           respond(id, debugInfo);
         } catch (debugErr) {
           respond(id, { error: String(debugErr) });
+        }
+        break;
+      }
+
+      // ─── Multi-Account Handlers ──────────────────────────────────────
+      case 'connector_list_accounts': {
+        const listAccParams = params as { connectorId: string };
+        try {
+          const tokenMgr = ensureOAuthTokenManager();
+          const oauthCfg = getOAuthConfigForConnector(listAccParams.connectorId);
+          if (!oauthCfg) { respond(id, []); break; }
+          const accounts = tokenMgr.listAccounts(oauthCfg.providerKey);
+          respond(id, accounts);
+        } catch {
+          respond(id, []);
+        }
+        break;
+      }
+      case 'connector_list_all_accounts': {
+        try {
+          const tokenMgr = ensureOAuthTokenManager();
+          const accounts = tokenMgr.listAllAccounts();
+          respond(id, accounts);
+        } catch {
+          respond(id, []);
+        }
+        break;
+      }
+      case 'connector_set_primary_account': {
+        const primaryParams = params as { accountId: string };
+        try {
+          const tokenMgr = ensureOAuthTokenManager();
+          tokenMgr.setPrimary(primaryParams.accountId);
+          respond(id, { success: true });
+        } catch (err) {
+          respond(id, { success: false, error: (err as Error).message });
+        }
+        break;
+      }
+      case 'connector_remove_account': {
+        const removeAccParams = params as { accountId: string };
+        try {
+          const tokenMgr = ensureOAuthTokenManager();
+          tokenMgr.removeAccount(removeAccParams.accountId);
+          respond(id, { success: true });
+        } catch (err) {
+          respond(id, { success: false, error: (err as Error).message });
         }
         break;
       }

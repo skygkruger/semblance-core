@@ -44,6 +44,8 @@ import {
   clearKnowledgeData,
   clearAllData,
   sidecarCall,
+  getSearchSettings,
+  saveSearchSettings,
 } from '../ipc/commands';
 import { confirm } from '@tauri-apps/plugin-dialog';
 import type { NotificationSettings, BitNetModelIPC } from '../ipc/commands';
@@ -99,6 +101,12 @@ export function SettingsScreen() {
     usesExclamation: boolean;
     exclamationRate: number;
   } | null>(null);
+
+  // Search settings state
+  const [searchEngine, setSearchEngine] = useState<string>('searxng');
+  const [searchBraveApiKey, setSearchBraveApiKey] = useState<string>('');
+  const [searchSearxngUrl, setSearchSearxngUrl] = useState<string>('https://search.veridian.run');
+  const [searchSaving, setSearchSaving] = useState(false);
 
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     morningBriefEnabled: true,
@@ -166,6 +174,17 @@ export function SettingsScreen() {
     getBackupStatus().then((s) => {
       if (s?.lastBackupAt) setLastBackupAt(s.lastBackupAt);
     }).catch(() => {});
+    // Load search settings
+    getSearchSettings()
+      .then((s) => {
+        // Bridge returns { engine, braveApiKey, searxngUrl } — map to our state
+        const raw = s as unknown as { engine?: string; braveApiKey?: string; searxngUrl?: string; provider?: string };
+        setSearchEngine(raw.engine ?? raw.provider ?? 'searxng');
+        setSearchBraveApiKey(raw.braveApiKey ?? '');
+        setSearchSearxngUrl(raw.searxngUrl ?? 'https://search.veridian.run');
+      })
+      .catch(() => {});
+
     // Load style profile
     sidecarCall<{
       id: string;
@@ -309,6 +328,23 @@ export function SettingsScreen() {
       showToast(t('screen.settings.toast_model_activation_failed'));
     }
   }, [showToast, t]);
+
+  const handleSearchSave = useCallback(async (engine: string, braveApiKey: string, searxngUrl: string) => {
+    setSearchSaving(true);
+    try {
+      await saveSearchSettings({
+        provider: engine,
+        braveApiKey: engine === 'brave' ? braveApiKey : null,
+        searxngUrl: engine === 'searxng' ? searxngUrl : null,
+        rateLimit: 10,
+      });
+      showToast('Search settings saved');
+    } catch {
+      showToast('Failed to save search settings');
+    } finally {
+      setSearchSaving(false);
+    }
+  }, [showToast]);
 
   const licenseStatus = license.tier === 'founding'
     ? 'founding-member' as const
@@ -601,6 +637,107 @@ export function SettingsScreen() {
           binaryAllowlistCount={binaryAllowlistCount}
           adversarialAlertCount={adversarialAlertCount}
         />
+        {/* ─── Web Search Settings ──────────────────────────────────── */}
+        <div className="mt-6" style={{ background: '#111518', border: '1px solid #1E2227', borderRadius: 12, padding: 24 }}>
+          <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
+            Web Search
+          </h3>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8593A4', marginBottom: 20 }}>
+            Choose which search engine Semblance uses for web queries.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+            {([
+              { value: 'searxng', label: 'SearXNG', desc: 'Self-hosted, private meta-search' },
+              { value: 'duckduckgo', label: 'DuckDuckGo', desc: 'Zero-config privacy search' },
+              { value: 'brave', label: 'Brave Search', desc: 'Requires API key' },
+            ] as const).map((opt) => (
+              <label
+                key={opt.value}
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
+                  padding: '10px 12px', borderRadius: 8,
+                  background: searchEngine === opt.value ? '#1A1F24' : 'transparent',
+                  border: searchEngine === opt.value ? '1px solid #2A3038' : '1px solid transparent',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="searchEngine"
+                  value={opt.value}
+                  checked={searchEngine === opt.value}
+                  onChange={() => setSearchEngine(opt.value)}
+                  style={{ marginTop: 3, accentColor: '#6ECFA3' }}
+                />
+                <div>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, color: '#EEF1F4' }}>
+                    {opt.label}
+                  </div>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#5E6B7C', marginTop: 2 }}>
+                    {opt.desc}
+                  </div>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {/* SearXNG URL field */}
+          {searchEngine === 'searxng' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8593A4', display: 'block', marginBottom: 6 }}>
+                SearXNG Instance URL
+              </label>
+              <input
+                type="url"
+                value={searchSearxngUrl}
+                onChange={(e) => setSearchSearxngUrl(e.target.value)}
+                placeholder="https://search.veridian.run"
+                style={{
+                  width: '100%', padding: '8px 12px', borderRadius: 6,
+                  background: '#0B0E11', border: '1px solid #2A3038', color: '#EEF1F4',
+                  fontFamily: "'DM Mono', monospace", fontSize: 13, outline: 'none',
+                }}
+              />
+            </div>
+          )}
+
+          {/* Brave API key field */}
+          {searchEngine === 'brave' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8593A4', display: 'block', marginBottom: 6 }}>
+                Brave Search API Key
+              </label>
+              <input
+                type="password"
+                value={searchBraveApiKey}
+                onChange={(e) => setSearchBraveApiKey(e.target.value)}
+                placeholder="BSA..."
+                style={{
+                  width: '100%', padding: '8px 12px', borderRadius: 6,
+                  background: '#0B0E11', border: '1px solid #2A3038', color: '#EEF1F4',
+                  fontFamily: "'DM Mono', monospace", fontSize: 13, outline: 'none',
+                }}
+              />
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#5E6B7C', marginTop: 4 }}>
+                Get a key at brave.com/search/api
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={() => handleSearchSave(searchEngine, searchBraveApiKey, searchSearxngUrl)}
+            disabled={searchSaving}
+            style={{
+              padding: '8px 20px', borderRadius: 6, border: '1px solid #6ECFA3',
+              background: 'transparent', color: '#6ECFA3', cursor: searchSaving ? 'wait' : 'pointer',
+              fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500,
+              opacity: searchSaving ? 0.5 : 1,
+            }}
+          >
+            {searchSaving ? 'Saving...' : 'Save Search Settings'}
+          </button>
+        </div>
+
         <div className="mt-6">
           <StyleProfileCard
             profile={styleProfile}

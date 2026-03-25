@@ -349,6 +349,47 @@ export function getConnectedServices(): Promise<Array<{ connectorId: string; las
   });
 }
 
+// ─── Multi-Account Connector Management (via sidecar_request) ───────────────
+
+export interface OAuthAccount {
+  accountId: string;
+  provider: string;
+  userEmail: string;
+  displayName: string | null;
+  isPrimary: boolean;
+  scopes: string;
+  expiresAt: number;
+  createdAt: string;
+}
+
+/** List all OAuth accounts for a specific connector */
+export function listConnectorAccounts(connectorId: string): Promise<OAuthAccount[]> {
+  return invoke<OAuthAccount[]>('sidecar_request', {
+    request: { method: 'connector_list_accounts', params: { connectorId } },
+  });
+}
+
+/** List all OAuth accounts across all providers */
+export function listAllAccounts(): Promise<OAuthAccount[]> {
+  return invoke<OAuthAccount[]>('sidecar_request', {
+    request: { method: 'connector_list_all_accounts', params: {} },
+  });
+}
+
+/** Set a specific account as the primary for its provider */
+export function setConnectorPrimaryAccount(accountId: string): Promise<{ success: boolean }> {
+  return invoke<{ success: boolean }>('sidecar_request', {
+    request: { method: 'connector_set_primary_account', params: { accountId } },
+  });
+}
+
+/** Remove a specific OAuth account */
+export function removeConnectorAccount(accountId: string): Promise<{ success: boolean }> {
+  return invoke<{ success: boolean }>('sidecar_request', {
+    request: { method: 'connector_remove_account', params: { accountId } },
+  });
+}
+
 // ─── Contacts (via sidecar_request) ─────────────────────────────────────────
 
 function sidecarRequest<T>(request: SidecarRequest): Promise<T> {
