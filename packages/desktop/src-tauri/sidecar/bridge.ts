@@ -1790,13 +1790,24 @@ async function handleInitialize(): Promise<unknown> {
       for (const connector of startupRegistry.listAll()) {
         const oauthCfg = getOAuthConfigForConnector(connector.id);
         if (oauthCfg) {
-          const accessToken = startupTokenMgr.getAccessToken(oauthCfg.providerKey);
-          if (accessToken) {
-            console.error(`[sidecar] Startup auto-sync: ${connector.id}`);
-            // Fire-and-forget — don't block startup
-            handleConnectorSync({ connectorId: connector.id }).catch(err => {
-              console.error(`[sidecar] Startup sync failed for ${connector.id}:`, err);
-            });
+          // Multi-account: sync ALL accounts for each connector, not just primary
+          const accounts = startupTokenMgr.listAccounts(oauthCfg.providerKey);
+          if (accounts.length > 0) {
+            for (const account of accounts) {
+              console.error(`[sidecar] Startup auto-sync: ${connector.id} (${account.userEmail})`);
+              handleConnectorSync({ connectorId: connector.id, accountId: account.accountId }).catch(err => {
+                console.error(`[sidecar] Startup sync failed for ${connector.id}/${account.userEmail}:`, err);
+              });
+            }
+          } else {
+            // Fallback for legacy single-account (pre-migration)
+            const accessToken = startupTokenMgr.getAccessToken(oauthCfg.providerKey);
+            if (accessToken) {
+              console.error(`[sidecar] Startup auto-sync (legacy): ${connector.id}`);
+              handleConnectorSync({ connectorId: connector.id }).catch(err => {
+                console.error(`[sidecar] Startup sync failed for ${connector.id}:`, err);
+              });
+            }
           }
         }
       }
@@ -5079,17 +5090,57 @@ async function handleConnectorDisconnect(params: { connectorId: string }): Promi
   return { success: true, disconnected: true, connectorId: params.connectorId };
 }
 
-async function handleConnectorSync(params: { connectorId: string }): Promise<unknown> {
+async function handleConnectorSync(params: { connectorId: string; accountId?: string }): Promise<unknown> {
   const config = getOAuthConfigForConnector(params.connectorId);
   if (!config) {
     return { success: false, error: `No OAuth config for connector: ${params.connectorId}` };
   }
 
   const tokenMgr = ensureOAuthTokenManager();
-  const hasTokens = tokenMgr.hasValidTokens(config.providerKey);
 
-  if (!hasTokens) {
-    return { success: false, error: 'Not authenticated. Please connect first.' };
+  // Multi-account: check specific account or fall back to provider-level check
+  if (params.accountId) {
+    if (tokenMgr.isAccountTokenExpired(params.accountId)) {
+      // Try to refresh the account token before giving up
+      const refreshToken = await tokenMgr.getAccountRefreshTokenAsync(params.accountId);
+      if (refreshToken) {
+        const clientId = process.env['SEMBLANCE_GOOGLE_CLIENT_ID'] ?? '';
+        const clientSecret = process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'] ?? '';
+        if (clientId) {
+          try {
+            const resp = await globalThis.fetch('https://oauth2.googleapis.com/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                grant_type: 'refresh_token',
+                refresh_token: refreshToken,
+                client_id: clientId,
+                ...(clientSecret ? { client_secret: clientSecret } : {}),
+              }),
+            });
+            if (resp.ok) {
+              const data = await resp.json() as { access_token?: string; expires_in?: number; refresh_token?: string };
+              if (data.access_token) {
+                const newExpiresAt = Date.now() + (data.expires_in ?? 3600) * 1000;
+                tokenMgr.refreshAccountAccessToken(params.accountId, data.access_token, newExpiresAt, data.refresh_token);
+                console.error(`[sidecar] Refreshed token for account ${params.accountId}`);
+              }
+            }
+          } catch (refreshErr) {
+            console.error(`[sidecar] Token refresh failed for ${params.accountId}:`, refreshErr);
+          }
+        }
+      }
+      // Re-check after refresh attempt
+      if (tokenMgr.isAccountTokenExpired(params.accountId)) {
+        return { success: false, error: `Token expired for account ${params.accountId}` };
+      }
+    }
+  } else {
+    const hasTokens = tokenMgr.hasValidTokens(config.providerKey);
+    if (!hasTokens) {
+      return { success: false, error: 'Not authenticated. Please connect first.' };
+    }
   }
 
   // Lazy-initialize the connector router with all registered adapters
@@ -5203,11 +5254,26 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
           emailIndexer.onEvent((event, data) => emit(event, data));
         }
 
-        console.error('[sidecar] Post-sync: fetching Gmail messages for local indexing...');
+        // Multi-account: if accountId is specified, get that account's token and pass as override
+        let fetchOverrides: { accessTokenOverride?: string; userEmailOverride?: string } = {};
+        let syncAccountId = 'gmail'; // default account label for indexing
+        if (params.accountId) {
+          const acctTokenMgr = ensureOAuthTokenManager();
+          const acctToken = await acctTokenMgr.getAccountAccessTokenAsync(params.accountId);
+          const acctInfo = acctTokenMgr.getAccountTokens(params.accountId);
+          if (acctToken && acctInfo?.userEmail) {
+            fetchOverrides = { accessTokenOverride: acctToken, userEmailOverride: acctInfo.userEmail };
+            syncAccountId = params.accountId;
+            console.error(`[sidecar] Post-sync: using account-specific token for ${acctInfo.userEmail}`);
+          }
+        }
+
+        console.error(`[sidecar] Post-sync: fetching Gmail messages for local indexing (account: ${syncAccountId})...`);
         const fetchResult = await emailAdapter!.execute('email.fetch', {
           folder: 'INBOX',
           limit: 200,
           sort: 'date_desc',
+          ...fetchOverrides,
         });
 
         if (fetchResult.success && fetchResult.data) {
@@ -5215,12 +5281,13 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
           const messages = Array.isArray(rawData) ? rawData : (rawData.messages ?? []);
           const emailIndexed = await emailIndexer.indexMessages(
             messages as Parameters<EmailIndexer['indexMessages']>[0],
-            'gmail',
+            syncAccountId,
           );
-          console.error(`[sidecar] Post-sync: ${emailIndexed} emails indexed into local store`);
+          console.error(`[sidecar] Post-sync: ${emailIndexed} emails indexed into local store (account: ${syncAccountId})`);
           emit('semblance://indexing-complete', {
             type: 'email',
             connectorId: params.connectorId,
+            accountId: syncAccountId,
             indexed: emailIndexed,
             total: messages.length,
           });
@@ -5232,7 +5299,9 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
               styleProfileStore = new StyleProfileStore(prefsDb!);
             }
             const styleTokenMgr = ensureOAuthTokenManager();
-            const styleUserEmail = styleTokenMgr.getUserEmail('google') ?? '';
+            const styleUserEmail = params.accountId
+              ? (styleTokenMgr.getAccountTokens(params.accountId)?.userEmail ?? styleTokenMgr.getUserEmail('google') ?? '')
+              : (styleTokenMgr.getUserEmail('google') ?? '');
             if (styleUserEmail && styleProfileStore && core) {
               const profile = styleProfileStore.getActiveProfile();
               // Run extraction if no profile exists, or if significantly more emails are available
@@ -5328,9 +5397,17 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
           calendarIndexer.onEvent((event, data) => emit(event, data));
         }
 
-        // Get OAuth token — try google-calendar first, then shared google token
+        // Get OAuth token — multi-account: use specific account if provided
         const calTokenMgr = ensureOAuthTokenManager();
-        let calAccessToken = calTokenMgr.getAccessToken('google-calendar');
+        let calAccessToken: string | null = null;
+        let calSyncAccountId = 'google-calendar';
+        if (params.accountId) {
+          calAccessToken = await calTokenMgr.getAccountAccessTokenAsync(params.accountId);
+          calSyncAccountId = params.accountId;
+        }
+        if (!calAccessToken) {
+          calAccessToken = calTokenMgr.getAccessToken('google-calendar');
+        }
         if (!calAccessToken) {
           calAccessToken = calTokenMgr.getAccessToken('google');
         }
@@ -5400,11 +5477,12 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
           lastModified: ev.updated ?? new Date().toISOString(),
         }));
 
-        const calIndexed = await calendarIndexer.indexEvents(mappedEvents, 'google-calendar');
-        console.error(`[sidecar] Post-sync: ${calIndexed} calendar events indexed via REST API`);
+        const calIndexed = await calendarIndexer.indexEvents(mappedEvents, calSyncAccountId);
+        console.error(`[sidecar] Post-sync: ${calIndexed} calendar events indexed via REST API (account: ${calSyncAccountId})`);
         emit('semblance://indexing-complete', {
           type: 'calendar',
           connectorId: params.connectorId,
+          accountId: calSyncAccountId,
           indexed: calIndexed,
           total: rawEvents.length,
         });
@@ -7623,9 +7701,11 @@ async function handleRequest(req: Request): Promise<void> {
       case 'get_inbox_items': {
         // Fix #2: Query from local indexed_emails table instead of live Gmail API.
         // The local store is populated by connector sync (Fix #1) and email_start_index.
-        const inboxParams = params as { limit?: number; offset?: number };
+        // Multi-account: optional accountId filter — null/undefined = all accounts.
+        const inboxParams = params as { limit?: number; offset?: number; accountId?: string };
         const limit = inboxParams.limit ?? 30;
         const offset = inboxParams.offset ?? 0;
+        const accountFilter = inboxParams.accountId ?? undefined;
 
         // Try local index first (fast, no network)
         if (emailIndexer) {
@@ -7634,8 +7714,9 @@ async function handleRequest(req: Request): Promise<void> {
               folder: 'INBOX',
               limit,
               offset,
+              accountId: accountFilter,
             });
-            console.error(`[sidecar] get_inbox_items: ${indexed.length} emails from local index`);
+            console.error(`[sidecar] get_inbox_items: ${indexed.length} emails from local index (account: ${accountFilter ?? 'all'})`);
             respond(id, indexed);
             break;
           } catch (indexErr) {
@@ -7657,8 +7738,9 @@ async function handleRequest(req: Request): Promise<void> {
               folder: 'INBOX',
               limit,
               offset,
+              accountId: accountFilter,
             });
-            console.error(`[sidecar] get_inbox_items: ${indexed.length} emails from freshly-init index`);
+            console.error(`[sidecar] get_inbox_items: ${indexed.length} emails from freshly-init index (account: ${accountFilter ?? 'all'})`);
             respond(id, indexed);
             break;
           } catch {
@@ -8000,13 +8082,14 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
       case 'connector.sync': {
-        const result = await handleConnectorSync(params as { connectorId: string });
+        const result = await handleConnectorSync(params as { connectorId: string; accountId?: string });
         respond(id, result);
         break;
       }
       case 'connector.resync_all': {
         // Re-sync all connected services — triggered by cron job every 10 minutes
         // to ensure the app always has a live feed of the user's data.
+        // Multi-account: iterates ALL accounts per connector, not just primary.
         try {
           const resyncTokenMgr = ensureOAuthTokenManager();
           const resyncRegistry = createDefaultConnectorRegistry();
@@ -8014,16 +8097,27 @@ async function handleRequest(req: Request): Promise<void> {
           for (const connector of resyncRegistry.listAll()) {
             const oauthCfg = getOAuthConfigForConnector(connector.id);
             if (oauthCfg) {
-              const accessToken = resyncTokenMgr.getAccessToken(oauthCfg.providerKey);
-              if (accessToken) {
-                handleConnectorSync({ connectorId: connector.id }).catch(err => {
-                  console.error(`[sidecar] Re-sync failed for ${connector.id}:`, err);
-                });
-                syncCount++;
+              const accounts = resyncTokenMgr.listAccounts(oauthCfg.providerKey);
+              if (accounts.length > 0) {
+                for (const account of accounts) {
+                  handleConnectorSync({ connectorId: connector.id, accountId: account.accountId }).catch(err => {
+                    console.error(`[sidecar] Re-sync failed for ${connector.id}/${account.userEmail}:`, err);
+                  });
+                  syncCount++;
+                }
+              } else {
+                // Legacy fallback
+                const accessToken = resyncTokenMgr.getAccessToken(oauthCfg.providerKey);
+                if (accessToken) {
+                  handleConnectorSync({ connectorId: connector.id }).catch(err => {
+                    console.error(`[sidecar] Re-sync failed for ${connector.id}:`, err);
+                  });
+                  syncCount++;
+                }
               }
             }
           }
-          console.error(`[sidecar] Connector re-sync: ${syncCount} services queued`);
+          console.error(`[sidecar] Connector re-sync: ${syncCount} account syncs queued`);
           respond(id, { synced: syncCount });
         } catch (err) {
           console.error('[sidecar] Connector re-sync failed:', err);

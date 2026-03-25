@@ -40,6 +40,11 @@ export const EmailFetchParams = z.object({
   search: z.string().optional(),
   messageIds: z.array(z.string()).optional(),
   unreadOnly: z.boolean().optional(),
+  sort: z.string().optional(),
+  // Multi-account overrides: when syncing a specific account, pass its token directly
+  // so the adapter doesn't need to look up the primary account.
+  accessTokenOverride: z.string().optional(),
+  userEmailOverride: z.string().optional(),
 });
 export type EmailFetchParams = z.infer<typeof EmailFetchParams>;
 

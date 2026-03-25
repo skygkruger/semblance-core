@@ -240,7 +240,10 @@ export class EmailAdapter implements ServiceAdapter {
 
     // 2. Fall back to Gmail REST API (no IMAP required — just OAuth token)
     console.error('[EmailAdapter] No IMAP credentials found, trying Gmail REST API...');
-    const oauth = await this.getGmailOAuthToken();
+    // Multi-account: use token override if provided (for syncing specific accounts)
+    const oauth = (params.accessTokenOverride && params.userEmailOverride)
+      ? { accessToken: params.accessTokenOverride, userEmail: params.userEmailOverride }
+      : await this.getGmailOAuthToken();
     if (oauth) {
       console.error(`[EmailAdapter] Using Gmail REST API for ${oauth.userEmail}`);
       try {

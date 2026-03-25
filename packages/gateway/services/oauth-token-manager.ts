@@ -363,6 +363,75 @@ export class OAuthTokenManager {
     );
   }
 
+  /** Get access token for a specific account ID (async, keychain-aware). */
+  async getAccountAccessTokenAsync(accountId: string): Promise<string | null> {
+    if (this.keychain) {
+      const service = keychainOAuthServiceName(accountId);
+      const fromKeychain = await this.keychain.get(service, 'access_token');
+      if (fromKeychain) return fromKeychain;
+    }
+    const row = this.db.prepare(
+      'SELECT access_token_encrypted FROM oauth_tokens WHERE account_id = ?'
+    ).get(accountId) as { access_token_encrypted: string } | undefined;
+    if (!row) return null;
+    if (row.access_token_encrypted === MIGRATED_SENTINEL) return null;
+    return decryptPassword(this.encryptionKey, row.access_token_encrypted);
+  }
+
+  /** Get refresh token for a specific account ID (async, keychain-aware). */
+  async getAccountRefreshTokenAsync(accountId: string): Promise<string | null> {
+    if (this.keychain) {
+      const service = keychainOAuthServiceName(accountId);
+      const fromKeychain = await this.keychain.get(service, 'refresh_token');
+      if (fromKeychain) return fromKeychain;
+    }
+    const row = this.db.prepare(
+      'SELECT refresh_token_encrypted FROM oauth_tokens WHERE account_id = ?'
+    ).get(accountId) as { refresh_token_encrypted: string } | undefined;
+    if (!row) return null;
+    if (row.refresh_token_encrypted === MIGRATED_SENTINEL) return null;
+    return decryptPassword(this.encryptionKey, row.refresh_token_encrypted);
+  }
+
+  /** Refresh access token for a specific account (by account_id). */
+  refreshAccountAccessToken(accountId: string, newAccessToken: string, newExpiresAt: number, newRefreshToken?: string): void {
+    if (this.keychain) {
+      const service = keychainOAuthServiceName(accountId);
+      this.keychain.set(service, 'access_token', newAccessToken).catch(() => {});
+      if (newRefreshToken) {
+        this.keychain.set(service, 'refresh_token', newRefreshToken).catch(() => {});
+        this.db.prepare(`
+          UPDATE oauth_tokens SET access_token_encrypted = ?, refresh_token_encrypted = ?, expires_at = ?, updated_at = datetime('now') WHERE account_id = ?
+        `).run(MIGRATED_SENTINEL, MIGRATED_SENTINEL, newExpiresAt, accountId);
+      } else {
+        this.db.prepare(`
+          UPDATE oauth_tokens SET access_token_encrypted = ?, expires_at = ?, updated_at = datetime('now') WHERE account_id = ?
+        `).run(MIGRATED_SENTINEL, newExpiresAt, accountId);
+      }
+    } else {
+      const encryptedAccess = encryptPassword(this.encryptionKey, newAccessToken);
+      if (newRefreshToken) {
+        const encryptedRefresh = encryptPassword(this.encryptionKey, newRefreshToken);
+        this.db.prepare(`
+          UPDATE oauth_tokens SET access_token_encrypted = ?, refresh_token_encrypted = ?, expires_at = ?, updated_at = datetime('now') WHERE account_id = ?
+        `).run(encryptedAccess, encryptedRefresh, newExpiresAt, accountId);
+      } else {
+        this.db.prepare(`
+          UPDATE oauth_tokens SET access_token_encrypted = ?, expires_at = ?, updated_at = datetime('now') WHERE account_id = ?
+        `).run(encryptedAccess, newExpiresAt, accountId);
+      }
+    }
+  }
+
+  /** Check if a specific account's token is expired. */
+  isAccountTokenExpired(accountId: string, bufferMs: number = 60000): boolean {
+    const row = this.db.prepare(
+      'SELECT expires_at FROM oauth_tokens WHERE account_id = ?'
+    ).get(accountId) as { expires_at: number } | undefined;
+    if (!row) return true;
+    return Date.now() + bufferMs >= row.expires_at;
+  }
+
   /** Get tokens for a specific account ID. */
   getAccountTokens(accountId: string): OAuthTokens | null {
     const row = this.db.prepare(

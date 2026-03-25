@@ -23,7 +23,9 @@ import {
   getClipboardInsights,
   executeClipboardAction,
   dismissClipboardInsight,
+  listConnectorAccounts,
 } from '../ipc/commands';
+import type { OAuthAccount } from '../ipc/commands';
 import type { PendingAction, ReminderData, DarkPatternResult, ClipboardInsightData } from '../ipc/types';
 import { useAppState } from '../state/AppState';
 import { useTauriEvent } from '../hooks/useTauriEvent';
@@ -143,12 +145,14 @@ export function InboxScreen() {
   const [clipboardInsight, setClipboardInsight] = useState<ClipboardInsightData | null>(null);
   const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
+  const [emailAccounts, setEmailAccounts] = useState<OAuthAccount[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState<string | null>(null); // null = all accounts
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const loadInboxData = useCallback(async () => {
     try {
       const [emailResult, insightResult, calendarResult, actionsResult] = await Promise.allSettled([
-        getInboxItems(30, 0),
+        getInboxItems(30, 0, selectedAccount ?? undefined),
         getProactiveInsights(),
         getTodayEvents(),
         getActionsSummary(),
@@ -161,7 +165,7 @@ export function InboxScreen() {
     } catch (err) {
       console.error('[InboxScreen] loadInboxData failed:', err);
     }
-  }, []);
+  }, [selectedAccount]);
 
   const loadExtras = useCallback(async () => {
     try {
@@ -178,6 +182,13 @@ export function InboxScreen() {
     } catch (err) {
       console.error('[InboxScreen] loadExtras failed:', err);
     }
+  }, []);
+
+  // Load email accounts for the account filter tabs
+  useEffect(() => {
+    listConnectorAccounts('gmail')
+      .then(accounts => setEmailAccounts(accounts))
+      .catch(() => setEmailAccounts([]));
   }, []);
 
   useEffect(() => {
@@ -261,6 +272,49 @@ export function InboxScreen() {
         <h1 style={{ fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif", fontSize: 28, fontWeight: 300, color: '#EEF1F4', letterSpacing: '-0.03em' }}>
           {t('screen.inbox.title')}
         </h1>
+
+        {/* Account Filter Tabs — only show when multiple accounts exist */}
+        {emailAccounts.length > 1 && (
+          <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2 }}>
+            <button
+              type="button"
+              onClick={() => setSelectedAccount(null)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 6,
+                border: 'none',
+                background: selectedAccount === null ? 'rgba(110,207,163,0.15)' : '#171B1F',
+                color: selectedAccount === null ? '#6ECFA3' : '#8593A4',
+                fontFamily: "'DM Sans', system-ui, sans-serif",
+                fontSize: 13,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t('screen.inbox.all_accounts', 'All Accounts')}
+            </button>
+            {emailAccounts.map(acc => (
+              <button
+                type="button"
+                key={acc.accountId}
+                onClick={() => setSelectedAccount(acc.accountId)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: selectedAccount === acc.accountId ? 'rgba(110,207,163,0.15)' : '#171B1F',
+                  color: selectedAccount === acc.accountId ? '#6ECFA3' : '#8593A4',
+                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {acc.userEmail}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Quick Capture */}
         <QuickCaptureInput
