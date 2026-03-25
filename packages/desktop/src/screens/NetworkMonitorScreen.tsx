@@ -130,7 +130,7 @@ function TrustStatusCard({ unauthorizedAttempts, onGenerateReport }: {
   const { t } = useTranslation();
   const isClean = unauthorizedAttempts === 0;
   return (
-    <Card className={`p-6 border-l-[3px] ${isClean ? 'border-l-semblance-success' : 'border-l-semblance-attention'}`}>
+    <Card className={`p-6 border-l-[3px] surface-void opal-wireframe ${isClean ? 'border-l-semblance-success' : 'border-l-semblance-attention'}`}>
       <div className="flex items-start gap-4">
         <div className={`w-4 h-4 rounded-full mt-0.5 ${isClean ? 'bg-semblance-success' : 'bg-semblance-attention'}`} />
         <div className="flex-1">
@@ -156,7 +156,7 @@ function ActiveConnectionsCard({ connections }: { connections: ActiveConnection[
   const { t } = useTranslation();
   if (connections.length === 0) {
     return (
-      <Card className="p-4">
+      <Card className="p-4 surface-void opal-wireframe">
         <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
           {t('screen.network_monitor.section_active')}
         </h2>
@@ -167,7 +167,7 @@ function ActiveConnectionsCard({ connections }: { connections: ActiveConnection[
     );
   }
   return (
-    <Card className="p-4">
+    <Card className="p-4 surface-void opal-wireframe">
       <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
         {t('screen.network_monitor.section_active')}
       </h2>
@@ -203,7 +203,7 @@ function ActivityChart({ timeline, stats, period }: {
   const { t } = useTranslation();
   const maxConnections = Math.max(1, ...timeline.map(tp => tp.connections));
   return (
-    <Card className="p-4">
+    <Card className="p-4 surface-void opal-wireframe">
       <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
         {period === 'today' ? t('screen.network_monitor.activity_today') : period === 'week' ? t('screen.network_monitor.activity_week') : t('screen.network_monitor.activity_month')}
       </h2>
@@ -255,7 +255,7 @@ function AuthorizedServicesCard({ services }: { services: AllowlistEntry[] }) {
   const { t } = useTranslation();
   const activeServices = services.filter(s => s.isActive);
   return (
-    <Card className="p-4">
+    <Card className="p-4 surface-void opal-wireframe">
       <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
         {t('screen.network_monitor.section_services')}
       </h2>
@@ -301,7 +301,7 @@ function AuthorizedServicesCard({ services }: { services: AllowlistEntry[] }) {
 function ConnectionLogCard({ history }: { history: ConnectionRecord[] }) {
   const { t } = useTranslation();
   return (
-    <Card className="p-4">
+    <Card className="p-4 surface-void opal-wireframe">
       <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
         {t('screen.network_monitor.section_log')}
       </h2>
@@ -435,7 +435,7 @@ export function NetworkMonitorScreen() {
         />
 
         {reportGenerated && (
-          <Card className="p-3 border border-semblance-success/30 bg-semblance-success/5">
+          <Card className="p-3 border border-semblance-success/30 bg-semblance-success/5 surface-void opal-wireframe">
             <p className="text-sm text-semblance-success">
               {t('screen.network_monitor.proof_success')}
             </p>

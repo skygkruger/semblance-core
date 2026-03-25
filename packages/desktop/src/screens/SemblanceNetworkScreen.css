@@ -13,7 +13,7 @@
 .semblance-network-screen__title {
   font-family: var(--fd), serif;
   font-size: 1.75rem;
-  font-weight: 600;
+  font-weight: 300;
   color: var(--white-pure);
   margin: 0 0 0.25rem;
 }
@@ -43,8 +43,8 @@
 .semblance-network-screen__section-title {
   font-family: var(--fb), sans-serif;
   font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--slate5);
+  font-weight: 500;
+  color: var(--sv2);
   margin: 0 0 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -133,7 +133,7 @@
 
 .semblance-network-screen__btn--secondary {
   background: var(--s1);
-  color: var(--slate5);
+  color: var(--sv2);
 }
 
 .semblance-network-screen__btn--secondary:hover {
@@ -170,7 +170,7 @@
   font-size: 1.5rem;
   color: var(--v);
   letter-spacing: 0.15em;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .semblance-network-screen__code-hint {
@@ -181,7 +181,7 @@
 .semblance-network-screen__empty {
   padding: 2rem;
   text-align: center;
-  color: var(--slate4);
+  color: var(--sv1);
   font-size: 0.875rem;
 }
 
@@ -291,7 +291,7 @@
 
 .semblance-network-screen__gate-text {
   font-size: 1rem;
-  color: var(--slate5);
+  color: var(--sv2);
   margin-bottom: 0.5rem;
 }
 

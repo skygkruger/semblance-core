@@ -80,7 +80,7 @@ export function AdversarialDashboardScreen() {
             id: charge.id,
             name: charge.merchantName,
             monthlyCost: charge.amount,
-            valueScore: charge.confidence,
+            valueScore: Math.min(100, Math.round((charge.estimatedAnnualCost ?? charge.amount * 12) / 10)),
             recommendation: charge.status === 'cancelled'
               ? 'Cancelled'
               : charge.status === 'forgotten'

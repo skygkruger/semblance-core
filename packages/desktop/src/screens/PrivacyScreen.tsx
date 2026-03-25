@@ -9,6 +9,7 @@ import {
   getAuditChainStatus,
   getHardwareKeyBackend,
   getHardwareKeyInfo,
+  getPrivacyStatus,
 } from '../ipc/commands';
 
 export function PrivacyScreen() {
@@ -27,6 +28,11 @@ export function PrivacyScreen() {
     hardwareBacked: boolean; backend: string; publicKeyFingerprint: string; loading: boolean;
   }>({ hardwareBacked: false, backend: '', publicKeyFingerprint: '', loading: true });
 
+  const [realPrivacy, setRealPrivacy] = useState<{
+    actionsLogged: number; timeSavedSeconds: number;
+    connectionCount: number; allLocal: boolean;
+  }>({ actionsLogged: 0, timeSavedSeconds: 0, connectionCount: 0, allLocal: true });
+
   useEffect(() => {
     let cancelled = false;
     requireAuth('privacy_dashboard').then((result) => {
@@ -40,6 +46,21 @@ export function PrivacyScreen() {
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load real privacy metrics from IPC (actions logged, time saved, connections)
+  useEffect(() => {
+    if (!authorized) return;
+    getPrivacyStatus().then(status => {
+      setRealPrivacy({
+        actionsLogged: status.actionsLogged,
+        timeSavedSeconds: status.timeSavedSeconds,
+        connectionCount: status.connectionCount,
+        allLocal: status.allLocal,
+      });
+    }).catch(() => {
+      // IPC may not be ready yet — keep defaults
+    });
+  }, [authorized]);
 
   // Load chain integrity from IPC
   useEffect(() => {
@@ -105,11 +126,14 @@ export function PrivacyScreen() {
     );
   }
 
+  const effectiveConnectionCount = realPrivacy.connectionCount || privacyStatus.connectionCount;
+  const effectiveAllLocal = realPrivacy.allLocal && privacyStatus.allLocal;
+
   const networkEntries: NetworkEntry[] = [
     {
       label: t('screen.privacy.total_connections'),
-      value: String(privacyStatus.connectionCount),
-      isZero: privacyStatus.connectionCount === 0,
+      value: String(effectiveConnectionCount),
+      isZero: effectiveConnectionCount === 0,
     },
     {
       label: t('screen.privacy.local_inference'),
@@ -129,8 +153,8 @@ export function PrivacyScreen() {
       domain: 'knowledge',
     },
     {
-      status: privacyStatus.allLocal ? 'completed' : 'failed',
-      text: privacyStatus.allLocal
+      status: effectiveAllLocal ? 'completed' : 'failed',
+      text: effectiveAllLocal
         ? t('screen.privacy.all_local')
         : t('screen.privacy.anomaly_detected'),
       domain: 'network',
@@ -142,21 +166,64 @@ export function PrivacyScreen() {
     },
   ];
 
+  const sourceBreakdown = knowledgeStats.sources ?? {};
+  const sourceKeys = Object.keys(sourceBreakdown);
+
+  const linkBtnStyle: React.CSSProperties = {
+    background: 'transparent',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 8,
+    padding: '10px 16px',
+    color: '#6ECFA3',
+    fontFamily: "'DM Sans', system-ui, sans-serif",
+    fontSize: 13,
+    cursor: 'pointer',
+    textAlign: 'left' as const,
+    width: '100%',
+  };
+
   return (
     <div className="h-full overflow-y-auto">
     <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
       <PrivacyDashboard
         dataSources={knowledgeStats.documentCount}
         cloudConnections={0}
-        actionsLogged={0}
-        timeSavedHours={0}
+        actionsLogged={realPrivacy.actionsLogged}
+        timeSavedHours={Math.round((realPrivacy.timeSavedSeconds / 3600) * 10) / 10}
         networkEntries={networkEntries}
         auditEntries={auditEntries}
-        proofVerified={privacyStatus.allLocal && !privacyStatus.anomalyDetected}
+        proofVerified={effectiveAllLocal && !privacyStatus.anomalyDetected}
         chainIntegrity={chainIntegrity}
         keySecurity={keySecurity}
         onExportReceipt={handleExportPDF}
       />
+
+      {/* M8: Per-source data breakdown */}
+      {sourceKeys.length > 0 && (
+        <div style={{ background: '#111518', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, padding: 20 }}>
+          <h3 style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#8593A4', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {t('screen.privacy.data_by_source', 'Data by Source')}
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {sourceKeys.map(source => (
+              <div key={source} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
+                <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, color: '#EEF1F4', textTransform: 'capitalize' }}>{source}</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#6ECFA3' }}>{sourceBreakdown[source]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* M7 + M9: Links to detailed network activity and gateway permissions */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <button type="button" onClick={() => navigate('/network')} style={linkBtnStyle}>
+          {t('screen.privacy.view_network_activity', 'View Detailed Network Activity')} &rarr;
+        </button>
+        <button type="button" onClick={() => navigate('/network')} style={linkBtnStyle}>
+          {t('screen.privacy.view_gateway_permissions', 'View Gateway Permissions')} &rarr;
+        </button>
+      </div>
     </div>
     </div>
   );

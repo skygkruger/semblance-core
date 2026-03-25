@@ -19,11 +19,16 @@ export function ActivityScreen() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [escalationPrompts, setEscalationPrompts] = useState<EscalationPromptData[]>([]);
   const [weekProgress, setWeekProgress] = useState<AlterEgoWeekProgressData | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
   const loadEntries = useCallback(async () => {
     try {
       const result = await getActionLog(50, 0);
       setEntries(result);
+      setOffset(0);
+      setHasMore(result.length >= 50);
     } catch (err) {
       console.error('[ActivityScreen] loadEntries failed:', err);
     }
@@ -85,6 +90,18 @@ export function ActivityScreen() {
     loadAlterEgoReceipts();
   }, [loadAlterEgoReceipts]);
 
+  const loadMore = useCallback(async () => {
+    try {
+      const nextOffset = offset + 50;
+      const more = await getActionLog(50, nextOffset);
+      if (more.length < 50) setHasMore(false);
+      setEntries(prev => [...prev, ...more]);
+      setOffset(nextOffset);
+    } catch (err) {
+      console.error('[ActivityScreen] loadMore failed:', err);
+    }
+  }, [offset]);
+
   useEffect(() => {
     loadEntries();
     loadAlterEgoReceipts();
@@ -93,11 +110,17 @@ export function ActivityScreen() {
     getAlterEgoWeekProgress().then(setWeekProgress).catch(() => {});
   }, [loadEntries, loadAlterEgoReceipts, loadPendingBatch, loadEscalations]);
 
+  const searchFiltered = searchQuery.trim()
+    ? entries.filter(e =>
+        e.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    : entries;
+
   const filtered = filterStatus === 'all'
-    ? entries
+    ? searchFiltered
     : filterStatus === 'alter_ego'
       ? [] // Alter Ego mode uses separate receipt list
-      : entries.filter((e) => e.status === filterStatus);
+      : searchFiltered.filter((e) => e.status === filterStatus);
 
   // Group alter ego receipts by weekGroup
   const receiptsByWeek = alterEgoReceipts.reduce<Record<string, AlterEgoReceiptData[]>>((acc, r) => {
@@ -112,14 +135,37 @@ export function ActivityScreen() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
+      <h1 style={{
+        fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif",
+        fontSize: 28, fontWeight: 300, color: '#EEF1F4',
+        letterSpacing: '-0.03em', marginBottom: 16,
+      }}>
+        Activity Log
+      </h1>
+
+      {/* Search */}
+      <input
+        type="text"
+        placeholder="Search actions..."
+        value={searchQuery}
+        onChange={e => setSearchQuery(e.target.value)}
+        style={{
+          width: '100%', padding: '8px 12px', marginBottom: 12,
+          background: '#171B1F', border: '1px solid rgba(255,255,255,0.09)',
+          borderRadius: 8, color: '#EEF1F4', fontSize: 13,
+          fontFamily: "'DM Sans', system-ui, sans-serif", outline: 'none',
+        }}
+      />
+
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, padding: '0 16px' }}>
-        {(['all', 'success', 'pending', 'error', 'alter_ego'] as const).map((status) => {
+        {(['all', 'success', 'pending', 'error', 'rejected', 'alter_ego'] as const).map((status) => {
           const filterLabels: Record<string, string> = {
             all: t('screen.activity.filter_all'),
             success: t('screen.activity.filter_success'),
             pending: t('screen.activity.filter_pending'),
             error: t('screen.activity.filter_error'),
+            rejected: t('screen.activity.filter_rejected', 'Rejected'),
             alter_ego: t('screen.alter_ego.filter_alter_ego'),
           };
           const isActive = filterStatus === status;
@@ -245,6 +291,11 @@ export function ActivityScreen() {
                   <div className="space-y-2 font-mono text-xs">
                     <p>{t('screen.activity.payload_hash', { hash: entry.payload_hash })}</p>
                     <p>{t('screen.activity.audit_reference', { ref: entry.audit_ref })}</p>
+                    {entry.estimatedTimeSaved > 0 && (
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6ECFA3' }}>
+                        ~{Math.round(entry.estimatedTimeSaved / 60)}min saved
+                      </span>
+                    )}
                     {entry.reasoningContext && (
                       <div className="mt-3 pt-3 border-t border-semblance-border dark:border-semblance-border-dark space-y-2">
                         <p className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark font-medium">
@@ -272,6 +323,20 @@ export function ActivityScreen() {
                 }
               />
             ))}
+            {hasMore && filterStatus !== 'alter_ego' && (
+              <button
+                type="button"
+                onClick={loadMore}
+                style={{
+                  padding: '10px 20px', margin: '12px auto', display: 'block',
+                  background: '#171B1F', border: '1px solid rgba(255,255,255,0.09)',
+                  borderRadius: 8, color: '#8593A4', fontSize: 13,
+                  fontFamily: "'DM Sans', system-ui, sans-serif", cursor: 'pointer',
+                }}
+              >
+                Load More
+              </button>
+            )}
           </div>
         )
       )}

@@ -24,6 +24,7 @@ export interface AppState {
     chunkCount: number;
     indexSizeBytes: number;
     lastIndexedAt: string | null;
+    sources?: Record<string, number>;
   };
   autonomyConfig: Record<string, 'guardian' | 'partner' | 'alter_ego'>;
   theme: 'light' | 'dark' | 'system';

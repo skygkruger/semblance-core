@@ -34,6 +34,7 @@ export function InheritanceScreen() {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newRelationship, setNewRelationship] = useState('');
+  const [newPartyPassphrase, setNewPartyPassphrase] = useState('');
 
   useEffect(() => {
     async function loadData() {
@@ -67,15 +68,28 @@ export function InheritanceScreen() {
   const handleAddTrustedParty = useCallback(async () => {
     if (!newName.trim() || !newEmail.trim()) return;
     try {
+      // Hash the passphrase if provided
+      let passphraseHash = '';
+      if (newPartyPassphrase.trim()) {
+        const buf = await crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode(newPartyPassphrase.trim()),
+        );
+        passphraseHash = Array.from(new Uint8Array(buf))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+      }
       const party = await inheritanceAddTrustedParty({
         name: newName.trim(),
         email: newEmail.trim(),
         relationship: newRelationship.trim() || 'primary',
+        passphraseHash,
       });
       setTrustedParties((prev) => [...prev, party]);
       setNewName('');
       setNewEmail('');
       setNewRelationship('');
+      setNewPartyPassphrase('');
       setShowAddForm(false);
       setStatusMessage(t('screen.inheritance.party_added', 'Trusted party added.'));
       setTimeout(() => setStatusMessage(null), 3000);
@@ -84,7 +98,7 @@ export function InheritanceScreen() {
       setStatusMessage(t('screen.inheritance.add_failed', 'Failed to add trusted party.'));
       setTimeout(() => setStatusMessage(null), 3000);
     }
-  }, [newName, newEmail, newRelationship, t]);
+  }, [newName, newEmail, newRelationship, newPartyPassphrase, t]);
 
   const handleRemoveParty = useCallback(async (id: string) => {
     try {
@@ -137,6 +151,18 @@ export function InheritanceScreen() {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="inheritance h-full overflow-y-auto">
+        <div className="inheritance__container">
+          <p className="inheritance__empty" style={{ color: '#8593A4', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+            {t('common.loading', 'Loading...')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="inheritance h-full overflow-y-auto">
       <div className="inheritance__container">
@@ -144,10 +170,6 @@ export function InheritanceScreen() {
         <p className="inheritance__subtitle">
           {t('screen.inheritance.subtitle')}
         </p>
-
-        {loading && (
-          <p className="inheritance__empty">{t('common.loading', 'Loading...')}</p>
-        )}
 
         {/* Protocol toggle */}
         <div className="inheritance__card surface-void opal-wireframe">
@@ -226,6 +248,13 @@ export function InheritanceScreen() {
                 value={newRelationship}
                 onChange={(e) => setNewRelationship(e.target.value)}
               />
+              <input
+                type="password"
+                className="inheritance__input"
+                placeholder={t('screen.inheritance.passphrase_placeholder', 'Activation passphrase (required for recovery)')}
+                value={newPartyPassphrase}
+                onChange={(e) => setNewPartyPassphrase(e.target.value)}
+              />
               <div className="inheritance__add-form-actions">
                 <button
                   type="button"
@@ -243,6 +272,7 @@ export function InheritanceScreen() {
                     setNewName('');
                     setNewEmail('');
                     setNewRelationship('');
+                    setNewPartyPassphrase('');
                   }}
                 >
                   {t('common.cancel', 'Cancel')}

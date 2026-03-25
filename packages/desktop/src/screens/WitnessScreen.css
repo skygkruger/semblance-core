@@ -173,3 +173,11 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.witness__status-message {
+  font-family: var(--fb);
+  font-size: 13px;
+  color: var(--sv3);
+  margin-top: var(--sp-2);
+  min-height: 20px;
+}

@@ -162,3 +162,51 @@
   transform: translateX(18px);
   background: #6ECFA3;
 }
+
+.living-will__status-message {
+  font-family: var(--fb);
+  font-size: 13px;
+  color: var(--sv3);
+  margin-top: var(--sp-2);
+  min-height: 20px;
+}
+
+.living-will__passphrase-prompt {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid rgba(110, 207, 163, 0.06);
+}
+
+.living-will__passphrase-label {
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  color: var(--sv2);
+  margin: 0 0 var(--sp-2);
+}
+
+.living-will__passphrase-actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+
+.living-will__input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--s1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-md);
+  color: var(--white);
+  font-family: var(--fb);
+  font-size: var(--text-sm);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.living-will__input::placeholder {
+  color: var(--sv3);
+}
+
+.living-will__input:focus {
+  border-color: rgba(110, 207, 163, 0.4);
+}

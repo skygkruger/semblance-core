@@ -209,6 +209,7 @@ import { WitnessVerifier } from '../../../core/witness/witness-verifier.js';
 import { WitnessExporter } from '../../../core/witness/witness-exporter.js';
 import { AttestationSigner } from '../../../core/attestation/attestation-signer.js';
 import { InheritanceConfigStore } from '../../../core/inheritance/inheritance-config-store.js';
+import { TestRunEngine } from '../../../core/inheritance/test-run-engine.js';
 import { BackupManager } from '../../../core/backup/backup-manager.js';
 
 // ─── Process-level crash guards ──────────────────────────────────────────────
@@ -726,6 +727,17 @@ async function handleInitialize(): Promise<unknown> {
     prefsDb = new Database(join(dataDir, 'core.db'));
     prefsDb.pragma('journal_mode = WAL');
     prefsDb.exec(PREFS_TABLE_SQL);
+    // Ensure dark_pattern_flags table exists (used by AdversarialDashboardScreen)
+    prefsDb.exec(`CREATE TABLE IF NOT EXISTS dark_pattern_flags (
+      id TEXT PRIMARY KEY,
+      content_id TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      flagged_at TEXT NOT NULL,
+      confidence REAL NOT NULL DEFAULT 0.5,
+      patterns_json TEXT NOT NULL DEFAULT '[]',
+      reframe TEXT NOT NULL DEFAULT '',
+      dismissed INTEGER NOT NULL DEFAULT 0
+    )`);
     console.error('[sidecar] Preferences DB ready');
   } catch (prefsDbErr) {
     console.error('[sidecar] CRITICAL: Failed to open core.db:', prefsDbErr);
@@ -2488,9 +2500,10 @@ async function handleGetKnowledgeStats(): Promise<unknown> {
       chunkCount: stats.totalChunks,
       indexSizeBytes: 0,
       lastIndexedAt: getPref('last_indexed_at'),
+      sources: stats.sources ?? {},
     };
   } catch {
-    return { documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null };
+    return { documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null, sources: {} };
   }
 }
 
@@ -2507,17 +2520,29 @@ async function handleGetActionLog(params: { limit: number; offset: number }): Pr
     const entries = trail.getRecent(params.limit + params.offset);
 
     // Map audit entries to frontend format
-    return entries.slice(params.offset, params.offset + params.limit).map(entry => ({
-      id: entry.id,
-      timestamp: entry.timestamp,
-      action: entry.action,
-      status: entry.status,
-      description: formatAuditDescription(entry.action, entry.metadata),
-      autonomy_tier: 'partner',
-      payload_hash: entry.payloadHash,
-      audit_ref: entry.id,
-      estimated_time_saved_seconds: entry.estimatedTimeSavedSeconds ?? 0,
-    }));
+    return entries.slice(params.offset, params.offset + params.limit).map(entry => {
+      // Derive autonomy tier from action type via AutonomyManager if available
+      let tier = 'partner';
+      if (core?.agent?.autonomy) {
+        try {
+          const am = core.agent.autonomy as import('../../../core/agent/autonomy.js').AutonomyManager;
+          const domain = am.getDomainForAction(entry.action);
+          if (domain) tier = am.getDomainTier(domain);
+        } catch { /* fallback to partner */ }
+      }
+      return {
+        id: entry.id,
+        timestamp: entry.timestamp,
+        action: entry.action,
+        status: entry.status,
+        description: formatAuditDescription(entry.action, entry.metadata),
+        autonomy_tier: tier,
+        payload_hash: entry.payloadHash,
+        audit_ref: entry.id,
+        estimatedTimeSaved: entry.estimatedTimeSavedSeconds ?? 0,
+        reasoningContext: entry.metadata?.reasoningContext ?? undefined,
+      };
+    });
   } catch {
     return [];
   }
@@ -2536,24 +2561,54 @@ function formatAuditDescription(
 }
 
 async function handleGetPrivacyStatus(): Promise<unknown> {
+  const fallback = { all_local: true, connection_count: 0, last_audit_entry: null, anomaly_detected: false, actions_logged: 0, time_saved_seconds: 0 };
   if (!gateway) {
-    return { all_local: true, connection_count: 0, last_audit_entry: null, anomaly_detected: false };
+    return fallback;
   }
 
   try {
     const trail = gateway.getAuditTrail();
-    const count = trail.count();
+    const actionsLogged = trail.count();
     const recent = trail.getRecent(1);
     const lastEntry = recent.length > 0 ? recent[0]!.timestamp : null;
 
+    // Sum estimated_time_saved_seconds via AuditQuery aggregation
+    let timeSavedSeconds = 0;
+    try {
+      ensureNetworkMonitor();
+      if (auditQuery) {
+        const aggregates = auditQuery.aggregateByService('all');
+        timeSavedSeconds = aggregates.reduce((sum, a) => sum + a.totalTimeSavedSeconds, 0);
+      }
+    } catch {
+      // auditQuery may not be initialized yet
+    }
+
+    // Query real connection data from NetworkMonitor
+    let connectionCount = 0;
+    let allLocal = true;
+    try {
+      ensureNetworkMonitor();
+      if (networkMonitor) {
+        const stats = networkMonitor.getStatistics('all');
+        connectionCount = stats.totalConnections ?? 0;
+        // All local if there are no unauthorized attempts
+        allLocal = stats.unauthorizedAttempts === 0;
+      }
+    } catch {
+      // network monitor may not be initialized
+    }
+
     return {
-      all_local: true,
-      connection_count: 0,
+      all_local: allLocal,
+      connection_count: connectionCount,
       last_audit_entry: lastEntry,
-      anomaly_detected: false,
+      anomaly_detected: !allLocal,
+      actions_logged: actionsLogged,
+      time_saved_seconds: timeSavedSeconds,
     };
   } catch {
-    return { all_local: true, connection_count: 0, last_audit_entry: null, anomaly_detected: false };
+    return fallback;
   }
 }
 
@@ -3374,7 +3429,21 @@ function ensureDeviceRegistry(): void {
 function handleGetActiveConnections(): unknown[] {
   ensureNetworkMonitor();
   if (!networkMonitor) return [];
-  return networkMonitor.getActiveConnections();
+  // The in-memory activeConnections map is not populated by adapters yet.
+  // Fall back to recent audit trail entries (last 5 minutes) to show recent activity.
+  const inMemory = networkMonitor.getActiveConnections();
+  if (inMemory.length > 0) return inMemory;
+  // Derive "active" connections from recent audit trail entries
+  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const recentHistory = networkMonitor.getConnectionHistory({ after: fiveMinAgo, limit: 20 });
+  return recentHistory.map(record => ({
+    id: record.id,
+    service: record.service,
+    protocol: 'HTTPS',
+    connectedSince: record.timestamp,
+    status: record.status === 'success' ? 'active' : 'idle',
+    lastActivity: record.timestamp,
+  }));
 }
 
 function handleGetNetworkStatistics(params: { period: string }): unknown {
@@ -7169,10 +7238,16 @@ async function handleRequest(req: Request): Promise<void> {
       case 'dark_pattern_get_flags': {
         if (!prefsDb) { respond(id, []); break; }
         try {
-          const flags = prefsDb.prepare(
-            'SELECT * FROM dark_pattern_flags WHERE dismissed = 0 ORDER BY created_at DESC LIMIT 50'
-          ).all();
-          respond(id, flags);
+          const dpfRows = prefsDb.prepare(
+            'SELECT * FROM dark_pattern_flags WHERE dismissed = 0 ORDER BY flagged_at DESC LIMIT 50'
+          ).all() as Array<{ id: string; content_id: string; content_type: string; confidence: number; patterns_json: string; reframe: string; flagged_at: string }>;
+          const dpfMapped = dpfRows.map(f => ({
+            contentId: f.content_id,
+            confidence: f.confidence,
+            patterns: JSON.parse(f.patterns_json ?? '[]'),
+            reframe: f.reframe ?? '',
+          }));
+          respond(id, dpfMapped);
         } catch {
           respond(id, []);
         }
@@ -8524,13 +8599,40 @@ async function handleRequest(req: Request): Promise<void> {
           if (!witnessVerifier) {
             witnessVerifier = new WitnessVerifier();
           }
-          // For HMAC verification we need the signing key — for now report signature presence
-          respond(id, {
-            id: attestation.id,
-            hasSignature: !!attestation.signature,
-            algorithm: attestation.algorithm,
-            signedAt: attestation.signedAt,
-          });
+          // Verify using the current attestation signer's key
+          if (attestationSigner && attestation.proof?.proofValue) {
+            // We have the signing key — perform real cryptographic verification
+            const verificationKey = (attestationSigner as unknown as { signingKey?: Buffer; ed25519PrivateKey?: Buffer }).signingKey
+              ?? (attestationSigner as unknown as { signingKey?: Buffer; ed25519PrivateKey?: Buffer }).ed25519PrivateKey;
+            if (verificationKey) {
+              const result = witnessVerifier.verify(attestation, verificationKey);
+              respond(id, {
+                id: attestation.id,
+                valid: result.valid,
+                hasSignature: true,
+                algorithm: attestation.proof.type,
+                signedAt: attestation.proof.created,
+              });
+            } else {
+              respond(id, {
+                id: attestation.id,
+                valid: false,
+                hasSignature: !!attestation.proof?.proofValue,
+                algorithm: attestation.proof?.type,
+                signedAt: attestation.proof?.created,
+                reason: 'No verification key available',
+              });
+            }
+          } else {
+            respond(id, {
+              id: attestation.id,
+              valid: false,
+              hasSignature: !!attestation.proof?.proofValue,
+              algorithm: attestation.proof?.type,
+              signedAt: attestation.proof?.created,
+              reason: !attestationSigner ? 'Signer not initialized' : 'No signature on attestation',
+            });
+          }
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));
         }
@@ -8561,7 +8663,9 @@ async function handleRequest(req: Request): Promise<void> {
             inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
             inheritanceConfigStore.initSchema();
           }
-          respond(id, inheritanceConfigStore.getConfig());
+          const config = inheritanceConfigStore.getConfig();
+          const enabled = getPref('inheritance_enabled') === 'true';
+          respond(id, { ...config, enabled });
         } catch {
           respond(id, { enabled: false });
         }
@@ -8575,15 +8679,24 @@ async function handleRequest(req: Request): Promise<void> {
             inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
             inheritanceConfigStore.initSchema();
           }
-          const updated = inheritanceConfigStore.updateConfig(icParams);
-          respond(id, updated);
+          // Persist the 'enabled' toggle separately (not part of core InheritanceConfig schema)
+          if ('enabled' in icParams) {
+            setPref('inheritance_enabled', icParams.enabled ? 'true' : 'false');
+          }
+          // Forward remaining config fields to the store
+          const { enabled: _enabled, ...storeUpdates } = icParams;
+          const updated = Object.keys(storeUpdates).length > 0
+            ? inheritanceConfigStore.updateConfig(storeUpdates)
+            : inheritanceConfigStore.getConfig();
+          const enabledVal = getPref('inheritance_enabled') === 'true';
+          respond(id, { ...updated, enabled: enabledVal });
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));
         }
         break;
       }
       case 'inheritance_add_trusted_party': {
-        const ipParams = params as { name: string; email: string; relationship: string };
+        const ipParams = params as { name: string; email: string; relationship: string; passphraseHash?: string };
         if (!prefsDb) { respondError(id, 'Core not initialized'); break; }
         try {
           if (!inheritanceConfigStore) {
@@ -8596,12 +8709,17 @@ async function handleRequest(req: Request): Promise<void> {
             name: ipParams.name,
             email: ipParams.email,
             relationship: ipParams.relationship,
-            passphraseHash: '',
+            passphraseHash: ipParams.passphraseHash ?? '',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
           inheritanceConfigStore.insertParty(party);
-          respond(id, party);
+          // Derive role from relationship and status from passphrase for frontend display
+          respond(id, {
+            ...party,
+            role: party.relationship || 'trustee',
+            status: party.passphraseHash ? 'active' : 'pending_setup',
+          });
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));
         }
@@ -8614,7 +8732,12 @@ async function handleRequest(req: Request): Promise<void> {
             inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
             inheritanceConfigStore.initSchema();
           }
-          respond(id, inheritanceConfigStore.getAllParties());
+          const parties = inheritanceConfigStore.getAllParties().map(p => ({
+            ...p,
+            role: p.relationship || 'trustee',
+            status: p.passphraseHash ? 'active' : 'pending_setup',
+          }));
+          respond(id, parties);
         } catch {
           respond(id, []);
         }
@@ -8636,24 +8759,54 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
       case 'inheritance_run_test': {
-        if (!prefsDb) { respondError(id, 'Core not initialized'); break; }
+        if (!prefsDb || !premiumGate) { respondError(id, 'Core not initialized'); break; }
         try {
           if (!inheritanceConfigStore) {
             inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
             inheritanceConfigStore.initSchema();
           }
-          // Test run: validate config, check all parties reachable, simulate actions without executing
-          const config = inheritanceConfigStore.getConfig();
           const parties = inheritanceConfigStore.getAllParties();
-          const actions = inheritanceConfigStore.getAllActions();
-          respond(id, {
-            success: true,
-            mode: 'dry_run',
-            configValid: config.enabled !== undefined,
-            trustedPartyCount: parties.length,
-            actionCount: actions.length,
-            message: `Test complete: ${parties.length} trusted parties, ${actions.length} pre-authorized actions. No real actions executed.`,
+          // Use TestRunEngine for real simulation with audit logging
+          const testEngine = new TestRunEngine({
+            store: inheritanceConfigStore,
+            premiumGate,
+            auditLogger: {
+              log: (entry) => {
+                console.error(`[sidecar] [inheritance-test-run] ${entry.action}: ${JSON.stringify(entry.payload)}`);
+              },
+            },
           });
+          if (parties.length === 0) {
+            respond(id, {
+              success: true,
+              mode: 'dry_run',
+              configValid: true,
+              trustedPartyCount: 0,
+              actionCount: 0,
+              message: 'Test complete: 0 trusted parties configured. Add trusted parties to run a full simulation.',
+            });
+          } else {
+            // Simulate for the first party (primary drill target)
+            const simResult = testEngine.simulate(parties[0].id);
+            if ('error' in simResult && !simResult.success) {
+              respond(id, {
+                success: false,
+                message: (simResult as { error: string }).error,
+              });
+            } else {
+              const trResult = simResult as { partyName: string; totalActions: number; wouldExecute: number; blockedByConsensus: number };
+              respond(id, {
+                success: true,
+                mode: 'dry_run',
+                configValid: true,
+                trustedPartyCount: parties.length,
+                actionCount: trResult.totalActions,
+                wouldExecute: trResult.wouldExecute,
+                blockedByConsensus: trResult.blockedByConsensus,
+                message: `Test complete: ${parties.length} trusted parties, ${trResult.totalActions} pre-authorized actions. ${trResult.wouldExecute} would execute, ${trResult.blockedByConsensus} blocked by consensus. No real actions executed.`,
+              });
+            }
+          }
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));
         }
@@ -9098,9 +9251,16 @@ async function handleRequest(req: Request): Promise<void> {
         if (!tunnelPairingCoordinator) { respond(id, []); break; }
         try {
           const allDevices = await tunnelPairingCoordinator.listPairedDevices();
-          // Filter to peer connections (type='peer'), not own devices
-          const peers = allDevices.filter((d: { type?: string }) => d.type === 'peer');
-          respond(id, peers);
+          // Map PairedDevice fields to NetworkPeer shape expected by the frontend
+          const mappedPeers = allDevices.map(d => ({
+            id: d.deviceId,
+            name: d.displayName,
+            type: d.platform,
+            pairedAt: d.pairedAt,
+            lastSeen: d.lastSeenAt,
+            online: d.online ?? false,
+          }));
+          respond(id, mappedPeers);
         } catch { respond(id, []); }
         break;
       }
@@ -9109,8 +9269,20 @@ async function handleRequest(req: Request): Promise<void> {
         if (!tunnelPairingCoordinator) { respondError(id, 'Pairing coordinator not initialized'); break; }
         try {
           const connectParams = params as { code: string };
-          const result = await tunnelPairingCoordinator.verifyPairingCode(connectParams.code);
-          respond(id, result);
+          const verified = await tunnelPairingCoordinator.verifyPairingCode(connectParams.code);
+          if (verified) {
+            // Complete the pairing — register the verified device as a paired peer
+            await tunnelPairingCoordinator.completePairing({
+              deviceId: verified.deviceId,
+              displayName: verified.displayName,
+              platform: verified.platform,
+              meshIp: '0.0.0.0', // Will be assigned by Headscale when tunnel infra is deployed
+              publicKey: verified.publicKey,
+            });
+            respond(id, { success: true, peer: verified });
+          } else {
+            respond(id, { success: false, error: 'Invalid or expired pairing code' });
+          }
         } catch (err) { respondError(id, (err as Error).message); }
         break;
       }
@@ -9146,11 +9318,25 @@ async function handleRequest(req: Request): Promise<void> {
       }
 
       case 'network_generate_connect_code': {
-        if (!tunnelPairingCoordinator) { respondError(id, 'Pairing coordinator not initialized'); break; }
-        try {
-          const code = await tunnelPairingCoordinator.generatePairingCode();
-          respond(id, { code });
-        } catch (err) { respondError(id, (err as Error).message); }
+        // Tunnel infrastructure (Headscale) not yet deployed — generate a local-only
+        // pairing code stored in prefs for verification. When tunnel infra is deployed,
+        // this will call tunnelPairingCoordinator.generatePairingCode() with full params.
+        if (tunnelPairingCoordinator && prefsDb) {
+          try {
+            const pairingCode = Math.floor(100000 + Math.random() * 900000).toString();
+            setPref('pending_pairing_code', pairingCode);
+            setPref('pending_pairing_code_expires', new Date(Date.now() + 600000).toISOString());
+            respond(id, { code: pairingCode });
+          } catch (err) { respondError(id, (err as Error).message); }
+        } else if (prefsDb) {
+          // No pairing coordinator but we can still generate a local code
+          const pairingCode = Math.floor(100000 + Math.random() * 900000).toString();
+          setPref('pending_pairing_code', pairingCode);
+          setPref('pending_pairing_code_expires', new Date(Date.now() + 600000).toISOString());
+          respond(id, { code: pairingCode });
+        } else {
+          respondError(id, 'Database not available');
+        }
         break;
       }
 

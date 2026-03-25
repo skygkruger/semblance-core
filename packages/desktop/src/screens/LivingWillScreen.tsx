@@ -30,6 +30,8 @@ export function LivingWillScreen() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [showPassphrasePrompt, setShowPassphrasePrompt] = useState<'export' | 'import' | null>(null);
+  const [passphrase, setPassphrase] = useState('');
 
   useEffect(() => {
     async function loadData() {
@@ -63,7 +65,18 @@ export function LivingWillScreen() {
     }
   }, []);
 
-  const handleExport = useCallback(async () => {
+  const handleExportStart = useCallback(() => {
+    setPassphrase('');
+    setShowPassphrasePrompt('export');
+  }, []);
+
+  const handleExportConfirm = useCallback(async () => {
+    if (!passphrase.trim()) {
+      setStatusMessage(t('screen.living_will.passphrase_required', 'Passphrase is required for encryption.'));
+      setTimeout(() => setStatusMessage(null), 3000);
+      return;
+    }
+    setShowPassphrasePrompt(null);
     setExporting(true);
     setStatusMessage(null);
     try {
@@ -82,14 +95,27 @@ export function LivingWillScreen() {
         return;
       }
 
-      const record = await livingWillExport({
-        passphrase: '',
+      const result = await livingWillExport({
+        passphrase: passphrase.trim(),
         outputPath,
         sections: ['knowledge', 'preferences', 'audit'],
       });
 
+      if (!result.success) {
+        throw new Error(result.error ?? 'Export failed');
+      }
+
+      // Map export result to display record
+      const record: LivingWillExportRecord = {
+        id: `export_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        path: result.archivePath ?? outputPath,
+        sizeBytes: 0,
+        encrypted: true,
+      };
       setExports((prev) => [record, ...prev]);
       setLastExport(record.timestamp);
+      setPassphrase('');
       setStatusMessage(t('screen.living_will.export_success', 'Export completed successfully'));
     } catch (err) {
       console.error('[LivingWillScreen] export failed:', err);
@@ -97,9 +123,20 @@ export function LivingWillScreen() {
     } finally {
       setExporting(false);
     }
-  }, [t]);
+  }, [passphrase, t]);
 
-  const handleImport = useCallback(async () => {
+  const handleImportStart = useCallback(() => {
+    setPassphrase('');
+    setShowPassphrasePrompt('import');
+  }, []);
+
+  const handleImportConfirm = useCallback(async () => {
+    if (!passphrase.trim()) {
+      setStatusMessage(t('screen.living_will.passphrase_required', 'Passphrase is required for decryption.'));
+      setTimeout(() => setStatusMessage(null), 3000);
+      return;
+    }
+    setShowPassphrasePrompt(null);
     setImporting(true);
     setStatusMessage(null);
     try {
@@ -115,7 +152,7 @@ export function LivingWillScreen() {
       }
 
       const filePath = typeof archivePath === 'string' ? archivePath : String(archivePath);
-      await livingWillImport({ archivePath: filePath, passphrase: '' });
+      await livingWillImport({ archivePath: filePath, passphrase: passphrase.trim() });
 
       // Refresh history after import
       const refreshed = await livingWillGetHistory();
@@ -124,6 +161,7 @@ export function LivingWillScreen() {
       if (newest) {
         setLastExport(newest.timestamp);
       }
+      setPassphrase('');
       setStatusMessage(t('screen.living_will.import_success', 'Archive imported successfully'));
     } catch (err) {
       console.error('[LivingWillScreen] import failed:', err);
@@ -131,7 +169,7 @@ export function LivingWillScreen() {
     } finally {
       setImporting(false);
     }
-  }, [t]);
+  }, [passphrase, t]);
 
   if (!license.isPremium) {
     return (
@@ -194,20 +232,62 @@ export function LivingWillScreen() {
             <span className="living-will__status-value">AES-256-GCM</span>
           </div>
 
+          {/* Passphrase prompt */}
+          {showPassphrasePrompt && (
+            <div className="living-will__passphrase-prompt">
+              <p className="living-will__passphrase-label">
+                {showPassphrasePrompt === 'export'
+                  ? t('screen.living_will.enter_passphrase_export', 'Enter a passphrase to encrypt the archive:')
+                  : t('screen.living_will.enter_passphrase_import', 'Enter the passphrase used to encrypt this archive:')}
+              </p>
+              <input
+                type="password"
+                className="living-will__input"
+                placeholder={t('screen.living_will.passphrase_placeholder', 'Passphrase')}
+                value={passphrase}
+                onChange={(e) => setPassphrase(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (showPassphrasePrompt === 'export') handleExportConfirm();
+                    else handleImportConfirm();
+                  }
+                }}
+                autoFocus
+              />
+              <div className="living-will__passphrase-actions">
+                <button
+                  type="button"
+                  className="living-will__btn living-will__btn--primary"
+                  onClick={showPassphrasePrompt === 'export' ? handleExportConfirm : handleImportConfirm}
+                  disabled={!passphrase.trim()}
+                >
+                  {t('common.confirm', 'Confirm')}
+                </button>
+                <button
+                  type="button"
+                  className="living-will__btn living-will__btn--secondary"
+                  onClick={() => { setShowPassphrasePrompt(null); setPassphrase(''); }}
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="living-will__actions">
             <button
               type="button"
               className="living-will__btn living-will__btn--primary"
-              onClick={handleExport}
-              disabled={exporting}
+              onClick={handleExportStart}
+              disabled={exporting || showPassphrasePrompt !== null}
             >
               {exporting ? t('screen.living_will.exporting', 'Exporting...') : t('screen.living_will.export_now')}
             </button>
             <button
               type="button"
               className="living-will__btn living-will__btn--secondary"
-              onClick={handleImport}
-              disabled={importing}
+              onClick={handleImportStart}
+              disabled={importing || showPassphrasePrompt !== null}
             >
               {importing ? t('screen.living_will.importing', 'Importing...') : t('screen.living_will.import_archive')}
             </button>

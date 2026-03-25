@@ -96,11 +96,11 @@
 }
 
 .adversarial-dashboard__alert-severity--critical {
-  background: var(--b2);
+  background: var(--critical);
 }
 
 .adversarial-dashboard__alert-severity--warning {
-  background: #B09A8A;
+  background: var(--caution);
 }
 
 .adversarial-dashboard__alert-text {

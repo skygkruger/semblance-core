@@ -75,6 +75,7 @@ import type {
   HardwareVerifyResult,
   SovereigntyReportData,
   SovereigntyReportVerifyResult,
+  PrivacyStatusData,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -297,6 +298,26 @@ export function activateFoundingToken(token: string): Promise<ActivationResult> 
 
 export function disconnectLicense(): Promise<{ success: boolean }> {
   return invoke<{ success: boolean }>('disconnect_license');
+}
+
+// ─── Privacy Status ─────────────────────────────────────────────────────────
+
+export function getPrivacyStatus(): Promise<PrivacyStatusData> {
+  return invoke<{
+    all_local: boolean;
+    connection_count: number;
+    last_audit_entry: string | null;
+    anomaly_detected: boolean;
+    actions_logged: number;
+    time_saved_seconds: number;
+  }>('get_privacy_status').then(raw => ({
+    allLocal: raw.all_local,
+    connectionCount: raw.connection_count,
+    lastAuditEntry: raw.last_audit_entry,
+    anomalyDetected: raw.anomaly_detected,
+    actionsLogged: raw.actions_logged,
+    timeSavedSeconds: raw.time_saved_seconds,
+  }));
 }
 
 // ─── Network Monitor ────────────────────────────────────────────────────────
@@ -1103,7 +1124,15 @@ export interface LivingWillSettings {
 }
 
 export function livingWillGetHistory(): Promise<LivingWillExportRecord[]> {
-  return sidecarCall<LivingWillExportRecord[]>('living_will_get_history');
+  return sidecarCall<Array<Record<string, unknown>>>('living_will_get_history').then(raw =>
+    (raw ?? []).map(r => ({
+      id: (r.id as string) ?? '',
+      timestamp: (r.exportedAt as string) ?? (r.exported_at as string) ?? '',
+      path: (r.archivePath as string) ?? (r.archive_path as string) ?? '',
+      sizeBytes: (r.sizeBytes as number) ?? 0,
+      encrypted: true,
+    })),
+  );
 }
 
 export function livingWillGetSettings(): Promise<LivingWillSettings> {
@@ -1114,12 +1143,19 @@ export function livingWillUpdateSettings(cadence: string): Promise<void> {
   return sidecarCall<void>('living_will_update_settings', { cadence });
 }
 
+export interface LivingWillExportResult {
+  success: boolean;
+  archivePath?: string;
+  error?: string;
+  sectionCounts?: Record<string, number>;
+}
+
 export function livingWillExport(params: {
   passphrase: string;
   outputPath: string;
   sections: string[];
-}): Promise<LivingWillExportRecord> {
-  return sidecarCall<LivingWillExportRecord>('living_will_export', params as unknown as Record<string, unknown>);
+}): Promise<LivingWillExportResult> {
+  return sidecarCall<LivingWillExportResult>('living_will_export', params as unknown as Record<string, unknown>);
 }
 
 export function livingWillImport(params: {
@@ -1131,6 +1167,26 @@ export function livingWillImport(params: {
 
 // ─── Witness / Attestation ─────────────────────────────────────────────────
 
+/**
+ * Raw backend JSON-LD attestation shape returned by the sidecar.
+ * Maps to core WitnessAttestation type from packages/core/witness/types.ts.
+ */
+export interface RawWitnessAttestation {
+  '@context'?: string;
+  '@type'?: string;
+  id: string;
+  action?: string;
+  autonomyTier?: string;
+  device?: { id?: string; platform?: string };
+  createdAt?: string;
+  auditEntryId?: string;
+  proof?: { type?: string; created?: string; verificationMethod?: string; proofPurpose?: string; proofValue?: string };
+  vti?: Record<string, unknown> | null;
+}
+
+/**
+ * Frontend display shape for witness attestations.
+ */
 export interface WitnessAttestation {
   id: string;
   actionType: string;
@@ -1140,29 +1196,55 @@ export interface WitnessAttestation {
   verified: boolean;
 }
 
-export function witnessGetAttestations(): Promise<WitnessAttestation[]> {
-  return sidecarCall<WitnessAttestation[]>('witness_get_attestations');
+/**
+ * Map backend JSON-LD attestation to frontend display format.
+ */
+function mapRawAttestation(raw: RawWitnessAttestation): WitnessAttestation {
+  return {
+    id: raw.id ?? 'unknown',
+    actionType: raw['@type'] ?? 'SemblanceWitnessAttestation',
+    description: raw.action ?? 'Attestation',
+    timestamp: raw.createdAt ?? new Date().toISOString(),
+    hash: raw.proof?.proofValue ?? raw.id ?? '',
+    verified: !!raw.proof?.proofValue,
+  };
 }
 
-export function witnessGenerateAttestation(params: {
+export async function witnessGetAttestations(): Promise<WitnessAttestation[]> {
+  const raw = await sidecarCall<RawWitnessAttestation[]>('witness_get_attestations');
+  return raw.map(mapRawAttestation);
+}
+
+export async function witnessGenerateAttestation(params: {
   auditEntryId: string;
   actionSummary: string;
 }): Promise<WitnessAttestation> {
-  return sidecarCall<WitnessAttestation>('witness_generate_attestation', params as unknown as Record<string, unknown>);
+  const result = await sidecarCall<{ success: boolean; attestation?: RawWitnessAttestation; error?: string }>(
+    'witness_generate_attestation',
+    params as unknown as Record<string, unknown>,
+  );
+  if (!result.success || !result.attestation) {
+    throw new Error(result.error ?? 'Failed to generate attestation');
+  }
+  return mapRawAttestation(result.attestation);
 }
 
-export function witnessExportAttestation(attestationId: string): Promise<{ exported: boolean; path: string }> {
-  return sidecarCall<{ exported: boolean; path: string }>('witness_export_attestation', { attestationId });
+export function witnessExportAttestation(attestationId: string): Promise<{ json: string; attestation: RawWitnessAttestation }> {
+  return sidecarCall<{ json: string; attestation: RawWitnessAttestation }>('witness_export_attestation', { attestationId });
 }
 
-export function witnessVerifyAttestation(attestationId: string): Promise<{ valid: boolean; message: string }> {
-  return sidecarCall<{ valid: boolean; message: string }>('witness_verify_attestation', { attestationId });
+export function witnessVerifyAttestation(attestationId: string): Promise<{ id: string; valid: boolean; hasSignature?: boolean; algorithm?: string; signedAt?: string; reason?: string }> {
+  return sidecarCall<{ id: string; valid: boolean; hasSignature?: boolean; algorithm?: string; signedAt?: string; reason?: string }>('witness_verify_attestation', { attestationId });
 }
 
 // ─── Inheritance Protocol ──────────────────────────────────────────────────
 
 export interface InheritanceConfig {
   enabled: boolean;
+  timeLockHours?: number;
+  requireStepConfirmation?: boolean;
+  requireAllPartiesForDeletion?: boolean;
+  lastReviewedAt?: string | null;
 }
 
 export interface InheritanceTrustedParty {
@@ -1170,16 +1252,16 @@ export interface InheritanceTrustedParty {
   name: string;
   email: string;
   relationship: string;
-  role: 'primary' | 'secondary' | 'backup';
-  status: 'active' | 'pending';
+  role: string;
+  status: string;
 }
 
 export function inheritanceGetConfig(): Promise<InheritanceConfig> {
   return sidecarCall<InheritanceConfig>('inheritance_get_config');
 }
 
-export function inheritanceUpdateConfig(params: { enabled: boolean }): Promise<void> {
-  return sidecarCall<void>('inheritance_update_config', params as unknown as Record<string, unknown>);
+export function inheritanceUpdateConfig(params: Partial<InheritanceConfig>): Promise<InheritanceConfig> {
+  return sidecarCall<InheritanceConfig>('inheritance_update_config', params as unknown as Record<string, unknown>);
 }
 
 export function inheritanceGetTrustedParties(): Promise<InheritanceTrustedParty[]> {
@@ -1190,16 +1272,31 @@ export function inheritanceAddTrustedParty(params: {
   name: string;
   email: string;
   relationship: string;
+  passphraseHash?: string;
 }): Promise<InheritanceTrustedParty> {
   return sidecarCall<InheritanceTrustedParty>('inheritance_add_trusted_party', params as unknown as Record<string, unknown>);
 }
 
-export function inheritanceRemoveTrustedParty(id: string): Promise<void> {
-  return sidecarCall<void>('inheritance_remove_trusted_party', { id });
+export function inheritanceRemoveTrustedParty(id: string): Promise<{ success: boolean }> {
+  return sidecarCall<{ success: boolean }>('inheritance_remove_trusted_party', { id });
 }
 
-export function inheritanceRunTest(): Promise<{ success: boolean; message: string }> {
-  return sidecarCall<{ success: boolean; message: string }>('inheritance_run_test');
+export function inheritanceRunTest(): Promise<{
+  success: boolean;
+  message: string;
+  mode?: string;
+  configValid?: boolean;
+  trustedPartyCount?: number;
+  actionCount?: number;
+}> {
+  return sidecarCall<{
+    success: boolean;
+    message: string;
+    mode?: string;
+    configValid?: boolean;
+    trustedPartyCount?: number;
+    actionCount?: number;
+  }>('inheritance_run_test');
 }
 
 // ─── Backup & Restore ──────────────────────────────────────────────────────

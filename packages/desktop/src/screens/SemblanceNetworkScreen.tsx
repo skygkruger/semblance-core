@@ -83,9 +83,9 @@ export function SemblanceNetworkScreen() {
     try {
       const result = await networkGenerateConnectCode();
       setConnectCode(result.code);
-      setStatusMessage('Share this code with the other Semblance user.');
+      setStatusMessage(t('semblanceNetwork.shareCode', 'Share this code with the other Semblance user.'));
     } catch (err) {
-      setStatusMessage(`Failed to generate code: ${(err as Error).message}`);
+      setStatusMessage(t('semblanceNetwork.codeGenFailed', 'Failed to generate code: {{message}}', { message: (err as Error).message }));
     }
   }, []);
 
@@ -95,11 +95,11 @@ export function SemblanceNetworkScreen() {
     setStatusMessage(null);
     try {
       await networkPeerConnect(inputCode.trim());
-      setStatusMessage('Connected successfully.');
+      setStatusMessage(t('semblanceNetwork.connected', 'Connected successfully.'));
       setInputCode('');
       await loadPeers();
     } catch (err) {
-      setStatusMessage(`Connection failed: ${(err as Error).message}`);
+      setStatusMessage(t('semblanceNetwork.connectFailed', 'Connection failed: {{message}}', { message: (err as Error).message }));
     } finally {
       setConnecting(false);
     }
@@ -108,14 +108,14 @@ export function SemblanceNetworkScreen() {
   const handleDisconnect = useCallback(async (peerId: string) => {
     try {
       await networkPeerDisconnect(peerId);
-      setStatusMessage('Peer disconnected. All shared context deleted.');
+      setStatusMessage(t('semblanceNetwork.disconnected', 'Peer disconnected. All shared context deleted.'));
       setPeers(prev => prev.filter(p => p.id !== peerId));
       if (selectedPeer === peerId) {
         setSelectedPeer(null);
         setSharingConfig(DEFAULT_SHARING);
       }
     } catch (err) {
-      setStatusMessage(`Disconnect failed: ${(err as Error).message}`);
+      setStatusMessage(t('semblanceNetwork.disconnectFailed', 'Disconnect failed: {{message}}', { message: (err as Error).message }));
     }
   }, [selectedPeer]);
 
@@ -138,11 +138,10 @@ export function SemblanceNetworkScreen() {
         </div>
         <div className="semblance-network-screen__gate">
           <p className="semblance-network-screen__gate-text">
-            Semblance Network requires Digital Representative.
+            {t('semblanceNetwork.requiresDR', 'Semblance Network requires Digital Representative.')}
           </p>
           <p className="semblance-network-screen__gate-subtext">
-            Share context with other Semblance users — calendar availability, communication style,
-            project context, and topic expertise. Never financial data, health data, or raw documents.
+            {t('semblanceNetwork.gateDescription', 'Share context with other Semblance users — calendar availability, communication style, project context, and topic expertise. Never financial data, health data, or raw documents.')}
           </p>
         </div>
       </div>
@@ -154,7 +153,7 @@ export function SemblanceNetworkScreen() {
       <div className="semblance-network-screen__header">
         <h1 className="semblance-network-screen__title">{t('semblanceNetwork.title', 'Semblance Network')}</h1>
         <p className="semblance-network-screen__subtitle">
-          Consent-first peer-to-peer sharing with other Semblance users.
+          {t('semblanceNetwork.subtitle', 'Consent-first peer-to-peer sharing with other Semblance users.')}
         </p>
       </div>
 
@@ -164,13 +163,13 @@ export function SemblanceNetworkScreen() {
 
       {/* ── Connect Section ──────────────────────────────────────────── */}
       <section className="semblance-network-screen__section">
-        <h2 className="semblance-network-screen__section-title">Connect</h2>
+        <h2 className="semblance-network-screen__section-title">{t('semblanceNetwork.connect', 'Connect')}</h2>
         <div className="semblance-network-screen__connect-row">
           <div className="semblance-network-screen__connect-input-group">
             <input
               className="semblance-network-screen__input"
               type="text"
-              placeholder="Enter connection code"
+              placeholder={t('semblanceNetwork.enterCode', 'Enter connection code')}
               value={inputCode}
               onChange={e => setInputCode(e.target.value)}
               maxLength={12}
@@ -180,21 +179,21 @@ export function SemblanceNetworkScreen() {
               onClick={handleConnect}
               disabled={connecting || !inputCode.trim()}
             >
-              {connecting ? 'Connecting...' : 'Connect'}
+              {connecting ? t('semblanceNetwork.connecting', 'Connecting...') : t('semblanceNetwork.connect', 'Connect')}
             </button>
           </div>
-          <span className="semblance-network-screen__or">or</span>
+          <span className="semblance-network-screen__or">{t('semblanceNetwork.or', 'or')}</span>
           <button
             className="semblance-network-screen__btn semblance-network-screen__btn--secondary"
             onClick={handleGenerateCode}
           >
-            Generate My Code
+            {t('semblanceNetwork.generateCode', 'Generate My Code')}
           </button>
         </div>
         {connectCode && (
           <div className="semblance-network-screen__code-display">
             <span className="semblance-network-screen__code">{connectCode}</span>
-            <span className="semblance-network-screen__code-hint">Share this with the other user</span>
+            <span className="semblance-network-screen__code-hint">{t('semblanceNetwork.codeHint', 'Share this with the other user')}</span>
           </div>
         )}
       </section>
@@ -202,10 +201,10 @@ export function SemblanceNetworkScreen() {
       {/* ── Peer List ────────────────────────────────────────────────── */}
       <section className="semblance-network-screen__section">
         <h2 className="semblance-network-screen__section-title">
-          Connected Peers {peers.length > 0 && <span className="semblance-network-screen__count">{peers.length}</span>}
+          {t('semblanceNetwork.connectedPeers', 'Connected Peers')} {peers.length > 0 && <span className="semblance-network-screen__count">{peers.length}</span>}
         </h2>
         {loading ? (
-          <p className="semblance-network-screen__muted">Loading...</p>
+          <p className="semblance-network-screen__muted">{t('common.loading', 'Loading...')}</p>
         ) : peers.length === 0 ? (
           <div className="semblance-network-screen__empty">
             <p>{t('semblanceNetwork.noPeers', 'No peer connections yet.')}</p>
@@ -224,14 +223,14 @@ export function SemblanceNetworkScreen() {
                 <div className="semblance-network-screen__peer-info">
                   <span className="semblance-network-screen__peer-name">{peer.name}</span>
                   <span className="semblance-network-screen__peer-meta">
-                    Paired {new Date(peer.pairedAt).toLocaleDateString()}
+                    {t('semblanceNetwork.paired', 'Paired')} {new Date(peer.pairedAt).toLocaleDateString()}
                   </span>
                 </div>
                 <button
                   className="semblance-network-screen__btn semblance-network-screen__btn--danger"
                   onClick={e => { e.stopPropagation(); handleDisconnect(peer.id); }}
                 >
-                  Disconnect
+                  {t('button.disconnect', 'Disconnect')}
                 </button>
               </li>
             ))}
@@ -243,10 +242,10 @@ export function SemblanceNetworkScreen() {
       {selectedPeer && (
         <section className="semblance-network-screen__section">
           <h2 className="semblance-network-screen__section-title">
-            Sharing Controls — {peers.find(p => p.id === selectedPeer)?.name}
+            {t('semblanceNetwork.sharingControls', 'Sharing Controls')} — {peers.find(p => p.id === selectedPeer)?.name}
           </h2>
           <p className="semblance-network-screen__muted">
-            Financial data, health data, raw documents, and credentials are never shareable.
+            {t('semblanceNetwork.neverShareable', 'Financial data, health data, raw documents, and credentials are never shareable.')}
           </p>
           <div className="semblance-network-screen__sharing-list">
             {(Object.keys(SHARING_LABELS) as Array<keyof PeerSharingConfig>).map(key => (
@@ -257,8 +256,8 @@ export function SemblanceNetworkScreen() {
                   onChange={() => handleToggleSharing(key)}
                 />
                 <div className="semblance-network-screen__sharing-text">
-                  <span className="semblance-network-screen__sharing-label">{SHARING_LABELS[key].label}</span>
-                  <span className="semblance-network-screen__sharing-desc">{SHARING_LABELS[key].description}</span>
+                  <span className="semblance-network-screen__sharing-label">{t(`semblanceNetwork.sharing.${key}.label`, SHARING_LABELS[key].label)}</span>
+                  <span className="semblance-network-screen__sharing-desc">{t(`semblanceNetwork.sharing.${key}.description`, SHARING_LABELS[key].description)}</span>
                 </div>
               </label>
             ))}

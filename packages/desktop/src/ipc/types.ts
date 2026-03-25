@@ -175,6 +175,7 @@ export interface LogEntry {
   autonomy_tier: string;
   payload_hash: string;
   audit_ref: string;
+  estimatedTimeSaved: number;
   reasoningContext?: ReasoningContext;
 }
 
@@ -855,6 +856,15 @@ export interface SovereigntyReportData {
 
 export interface SovereigntyReportVerifyResult {
   valid: boolean;
+}
+
+export interface PrivacyStatusData {
+  allLocal: boolean;
+  connectionCount: number;
+  lastAuditEntry: string | null;
+  anomalyDetected: boolean;
+  actionsLogged: number;
+  timeSavedSeconds: number;
 }
 
 // ─── Morning Brief Types ────────────────────────────────────────────────────

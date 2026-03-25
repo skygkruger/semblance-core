@@ -278,7 +278,10 @@
       "documents_indexed": "{{count}} documents indexed",
       "all_local": "All data local — your knowledge graph lives on this device only.",
       "anomaly_detected": "Anomaly detected: unexpected connection attempt blocked.",
-      "index_size": "Index size:"
+      "index_size": "Index size:",
+      "data_by_source": "Data by Source",
+      "view_network_activity": "View Detailed Network Activity",
+      "view_gateway_permissions": "View Gateway Permissions"
     },
     "network_monitor": {
       "title": "Network Monitor",
@@ -541,6 +544,7 @@
       "name_placeholder": "Name",
       "email_placeholder": "Email",
       "relationship_placeholder": "Relationship (e.g. spouse, sibling)",
+      "passphrase_placeholder": "Activation passphrase (required for recovery)",
       "confirm_add": "Add",
       "running_drill": "Running..."
     },
@@ -838,8 +842,45 @@
   },
   "semblanceNetwork": {
     "title": "Semblance Network",
+    "subtitle": "Consent-first peer-to-peer sharing with other Semblance users.",
+    "requiresDR": "Semblance Network requires Digital Representative.",
+    "gateDescription": "Share context with other Semblance users — calendar availability, communication style, project context, and topic expertise. Never financial data, health data, or raw documents.",
+    "connect": "Connect",
+    "connecting": "Connecting...",
+    "enterCode": "Enter connection code",
+    "or": "or",
+    "generateCode": "Generate My Code",
+    "codeHint": "Share this with the other user",
+    "shareCode": "Share this code with the other Semblance user.",
+    "codeGenFailed": "Failed to generate code: {{message}}",
+    "connected": "Connected successfully.",
+    "connectFailed": "Connection failed: {{message}}",
+    "disconnected": "Peer disconnected. All shared context deleted.",
+    "disconnectFailed": "Disconnect failed: {{message}}",
+    "connectedPeers": "Connected Peers",
+    "paired": "Paired",
+    "sharingControls": "Sharing Controls",
+    "neverShareable": "Financial data, health data, raw documents, and credentials are never shareable.",
     "noPeers": "No peer connections yet.",
-    "noPeersHint": "Connect with other Semblance users on your local network or via connection codes."
+    "noPeersHint": "Connect with other Semblance users on your local network or via connection codes.",
+    "sharing": {
+      "calendarAvailability": {
+        "label": "Calendar Availability",
+        "description": "Share free/busy status (not event details)"
+      },
+      "communicationStyle": {
+        "label": "Communication Style",
+        "description": "Share writing style preferences for collaborative drafting"
+      },
+      "projectContext": {
+        "label": "Project Context",
+        "description": "Share project-level knowledge graph nodes (not raw documents)"
+      },
+      "topicExpertise": {
+        "label": "Topic Expertise",
+        "description": "Share expertise areas derived from knowledge graph"
+      }
+    }
   },
   "upgrade": {
     "founding_bonus": "Founding Member badge & seat number"

@@ -13,6 +13,7 @@ import {
   witnessGenerateAttestation,
   witnessExportAttestation,
   witnessVerifyAttestation,
+  getActionLog,
 } from '../ipc/commands';
 import type { WitnessAttestation } from '../ipc/commands';
 import './WitnessScreen.css';
@@ -45,8 +46,11 @@ export function WitnessScreen() {
     setCreating(true);
     setStatusMessage(null);
     try {
+      // Get the actual latest audit entry ID
+      const log = await getActionLog(1, 0).catch(() => []);
+      const latestId = log?.[0]?.id ?? `manual_${Date.now()}`;
       const attestation = await witnessGenerateAttestation({
-        auditEntryId: 'latest',
+        auditEntryId: latestId,
         actionSummary: 'Knowledge graph state attestation',
       });
       setAttestations((prev) => [attestation, ...prev]);
@@ -64,8 +68,18 @@ export function WitnessScreen() {
     setStatusMessage(null);
     try {
       const ids = Array.from(selectedIds);
-      for (const id of ids) {
-        await witnessExportAttestation(id);
+      for (const attId of ids) {
+        const result = await witnessExportAttestation(attId);
+        if (result.json) {
+          // Download via blob — writes attestation JSON to user's disk
+          const blob = new Blob([result.json], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `attestation-${attId}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
       }
       setStatusMessage(
         t('screen.witness.share_success', 'Exported {{count}} attestation(s)', { count: ids.length }),
@@ -209,7 +223,7 @@ export function WitnessScreen() {
                     <div className="witness__attestation-time">{att.timestamp}</div>
                   </div>
                   <span className="witness__attestation-hash">
-                    {att.hash.slice(0, 8)}...
+                    {(att.hash ?? '').slice(0, 8)}...
                   </span>
                 </div>
               ))}
