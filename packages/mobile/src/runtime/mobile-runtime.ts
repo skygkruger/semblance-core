@@ -298,6 +298,10 @@ async function doInitialize(onProgress?: ProgressCallback): Promise<MobileRuntim
         );
         await Promise.race([core.initialize(), initTimeout]);
 
+        // Wire core reference into gateway so local knowledge queries
+        // (email.fetch, calendar.fetch) resolve from the local index
+        mobileGateway.setCore(core);
+
         runtimeState.core = core;
         console.log('[MobileRuntime] SemblanceCore initialized');
       } catch (err) {

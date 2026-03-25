@@ -1,15 +1,23 @@
 // Mobile TaskRouter — Routes inference requests: local or tunnel offload.
 //
-// When the mobile device has a tunnel connection to the desktop, the TaskRouter
-// decides whether to execute locally or offload. Mobile Semblance becomes
-// dramatically smarter when connectivity is available. Fallback is always local.
+// Uses core's assessTaskComplexity() and shouldOffload() for routing LOGIC.
+// Mobile-specific code handles EXECUTION: local inference bridge + tunnel transport.
 //
-// Routing decision:
+// Routing decision (delegated to core/agent/task-router.ts):
 //   - tunnel !ready → local
-//   - classify/extract → always local (SmolLM2 handles these)
+//   - classify/extract/vision_fast → always local (SmolLM2 handles these)
 //   - tokens ≤ threshold → local
 //   - tokens > threshold AND tunnel ready → offload to desktop
 //   - offload fails → fallback to local silently
+
+import {
+  assessTaskComplexity,
+  shouldOffload as coreDecideOffload,
+  type TaskRoutingDecision,
+  type TaskType,
+} from '@semblance/core/agent/task-router';
+
+export { type TaskRoutingDecision, type TaskType };
 
 export interface TaskRouterConfig {
   /** Estimated complexity threshold for tunnel offload (tokens). Default: 2048 */
@@ -26,10 +34,12 @@ export interface RoutingStatus {
 }
 
 export interface InferenceRequest {
-  taskType: 'classify' | 'extract' | 'generate' | 'reason' | 'draft' | 'vision_fast' | 'vision_rich';
+  taskType: TaskType;
   prompt: string;
   estimatedTokens?: number;
   sessionKey?: string;
+  /** Tool names available for this task (used for complexity assessment). */
+  tools?: string[];
 }
 
 export interface InferenceResponse {
@@ -57,6 +67,9 @@ interface LocalInferenceBridge {
 
 /**
  * TaskRouter decides whether to execute inference locally or offload to desktop.
+ *
+ * Routing logic is delegated to core's assessTaskComplexity() and shouldOffload().
+ * Execution (local bridge, tunnel transport) is mobile-specific.
  */
 export class TaskRouter {
   private tunnelTransport: TunnelTransportLike | null;
@@ -75,18 +88,33 @@ export class TaskRouter {
 
   /**
    * Route an inference request: local or tunnel offload.
+   * Uses core's assessTaskComplexity + shouldOffload for the decision.
    */
   async route(request: InferenceRequest): Promise<InferenceResponse> {
     const startMs = Date.now();
-    const estimatedTokens = request.estimatedTokens ?? Math.ceil(request.prompt.length / 3.5);
 
-    // Always-local task types: fast-tier tasks handled by SmolLM2 on device
-    if (request.taskType === 'classify' || request.taskType === 'extract') {
-      return this.executeLocal(request, startMs);
+    // Delegate complexity assessment to core
+    const complexity = assessTaskComplexity(
+      request.prompt,
+      request.taskType,
+      request.tools ?? [],
+    );
+
+    // Override estimatedTokens if caller provided a manual estimate
+    if (request.estimatedTokens !== undefined) {
+      complexity.estimatedTokens = request.estimatedTokens;
     }
 
-    // Check if tunnel offload is available and beneficial
-    if (this.shouldOffload(estimatedTokens)) {
+    // Delegate routing decision to core
+    const tunnelAvailable = this.isTunnelAvailable();
+    const decision: TaskRoutingDecision = coreDecideOffload(
+      complexity,
+      tunnelAvailable,
+      true, // localModelCapable — mobile always has a local model loaded
+      this.offloadThreshold,
+    );
+
+    if (decision === 'offload') {
       try {
         return await this.executeRemote(request, startMs);
       } catch (error) {
@@ -96,6 +124,7 @@ export class TaskRouter {
       }
     }
 
+    // 'local' or 'degraded' — both execute locally on mobile
     return this.executeLocal(request, startMs);
   }
 
@@ -146,12 +175,6 @@ export class TaskRouter {
   }
 
   // ─── Private ──────────────────────────────────────────────────────────────
-
-  private shouldOffload(estimatedTokens: number): boolean {
-    if (!this.tunnelTransport) return false;
-    if (!this.tunnelTransport.isReady()) return false;
-    return estimatedTokens > this.offloadThreshold;
-  }
 
   private async executeLocal(request: InferenceRequest, startMs: number): Promise<InferenceResponse> {
     const result = await this.localBridge.generate({

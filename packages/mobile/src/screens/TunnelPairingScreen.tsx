@@ -1,5 +1,5 @@
 // @i18n-pending — hardcoded English text, i18n keys in follow-up pass
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { colors } from '../theme/tokens.js';
 import { useSemblance } from '../runtime/SemblanceProvider';
+import { HandoffProtocol } from '@semblance/core/agent/device-handoff';
+import type { DeviceCapability } from '@semblance/core/agent/device-handoff';
 
 interface PairedDevice {
   id: string;
@@ -25,12 +27,15 @@ export function TunnelPairingScreen({ navigation }: { navigation: { goBack: () =
   const [pairingCode, setPairingCode] = useState('');
   const [isPairing, setIsPairing] = useState(false);
   const [pairingError, setPairingError] = useState<string | null>(null);
+  const [pairedDevices, setPairedDevices] = useState<PairedDevice[]>([]);
 
-  // TODO: Sprint where tunnel pairing is wired — currently reads from local state only.
-  // Desktop discovery uses mDNS/Bonjour. Pairing code entry initiates mutual TLS handshake.
-  const [pairedDevices] = useState<PairedDevice[]>([]);
+  // HandoffProtocol instance — when tunnel infrastructure is deployed, wire transport:
+  // handoffRef.current.setTransport(tunnelTransport);
+  const handoffRef = useRef(
+    new HandoffProtocol({ deviceId: 'mobile-device', platform: 'mobile' }),
+  );
 
-  const handlePair = () => {
+  const handlePair = async () => {
     if (!pairingCode.trim() || pairingCode.trim().length < 6) {
       setPairingError('Pairing code must be at least 6 characters.');
       return;
@@ -38,12 +43,30 @@ export function TunnelPairingScreen({ navigation }: { navigation: { goBack: () =
     setPairingError(null);
     setIsPairing(true);
 
-    // TODO: Wire to actual tunnel pairing via device-handoff.ts
-    // This would call the Gateway to initiate local network discovery and mutual TLS auth.
-    setTimeout(() => {
+    try {
+      const peers: DeviceCapability[] = handoffRef.current.discoverPeers();
+      if (peers.length === 0) {
+        setPairingError(
+          'No devices found. Ensure both devices are on the same network and tunneling is enabled in Settings.',
+        );
+      } else {
+        setPairedDevices(
+          peers.map((p) => ({
+            id: p.deviceId,
+            name: p.deviceId,
+            type: p.platform === 'desktop' ? 'desktop' as const : 'mobile' as const,
+            lastSeen: p.lastSeenAt,
+            status: p.online ? 'online' as const : 'offline' as const,
+          })),
+        );
+      }
+    } catch {
+      setPairingError(
+        'Discovery failed. Tunnel infrastructure may not be available yet.',
+      );
+    } finally {
       setIsPairing(false);
-      setPairingError('Desktop not found on local network. Ensure both devices are on the same WiFi network and the desktop app is running.');
-    }, 3000);
+    }
   };
 
   if (!semblance.ready) {

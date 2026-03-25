@@ -15,6 +15,7 @@
 
 import type { IPCTransport } from '@semblance/core/ipc/transport';
 import type { ActionRequest, ActionResponse } from '@semblance/core/types/ipc';
+import type { SemblanceCore } from '@semblance/core';
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
@@ -422,9 +423,20 @@ export class MobileGatewayTransport implements IPCTransport {
   private fetchLimiter = new SimpleRateLimiter(FETCH_RATE_LIMIT);
   private getApiKey: () => Promise<string | null>;
   private tunnelTransport: TunnelTransportLike | null = null;
+  private core: SemblanceCore | null = null;
 
   constructor(getApiKey: () => Promise<string | null>) {
     this.getApiKey = getApiKey;
+  }
+
+  /**
+   * Set the SemblanceCore reference for answering local knowledge queries.
+   * Call this after core initialization so that email.fetch, calendar.fetch,
+   * and reminder actions can be resolved from the local knowledge graph
+   * without requiring a tunnel to desktop.
+   */
+  setCore(core: SemblanceCore | null): void {
+    this.core = core;
   }
 
   /**
@@ -460,44 +472,63 @@ export class MobileGatewayTransport implements IPCTransport {
       auditRef: `mobile-${request.id}`,
     };
 
-    switch (action) {
-      case 'web.search': {
-        if (!this.searchLimiter.check()) {
-          return { ...baseResponse, status: 'rate_limited', error: { code: 'RATE_LIMITED', message: 'Too many searches. Try again in a moment.' } };
-        }
-        const result = await handleWebSearch(payload, this.getApiKey);
-        return { ...result, ...baseResponse };
+    // ─── Locally handled actions (return immediately) ──────────────────────
+
+    if (action === 'web.search') {
+      if (!this.searchLimiter.check()) {
+        return { ...baseResponse, status: 'rate_limited', error: { code: 'RATE_LIMITED', message: 'Too many searches. Try again in a moment.' } };
       }
-
-      case 'web.fetch': {
-        if (!this.fetchLimiter.check()) {
-          return { ...baseResponse, status: 'rate_limited', error: { code: 'RATE_LIMITED', message: 'Too many fetch requests. Try again in a moment.' } };
-        }
-        const result = await handleWebFetch(payload);
-        return { ...result, ...baseResponse };
-      }
-
-      default:
-        // Action not handled locally on mobile.
-        // If a tunnel to desktop is available, forward the request there.
-        if (this.tunnelTransport?.isReady()) {
-          try {
-            const tunnelResponse = await this.tunnelTransport.send(request) as ActionResponse;
-            return { ...tunnelResponse, ...baseResponse };
-          } catch {
-            // Tunnel failed — fall through to UNSUPPORTED_ACTION
-          }
-        }
-
-        // No tunnel or tunnel failed — return informative error
-        return {
-          ...baseResponse,
-          status: 'error',
-          error: {
-            code: 'UNSUPPORTED_ACTION',
-            message: `Action '${action}' is not available on mobile. Connect to desktop for full Gateway access.`,
-          },
-        };
+      const result = await handleWebSearch(payload, this.getApiKey);
+      return { ...result, ...baseResponse };
     }
+
+    if (action === 'web.fetch') {
+      if (!this.fetchLimiter.check()) {
+        return { ...baseResponse, status: 'rate_limited', error: { code: 'RATE_LIMITED', message: 'Too many fetch requests. Try again in a moment.' } };
+      }
+      const result = await handleWebFetch(payload);
+      return { ...result, ...baseResponse };
+    }
+
+    // ─── Local knowledge queries (attempt, then fall through to tunnel) ──
+
+    if (action === 'email.fetch' && this.core?.knowledge) {
+      try {
+        const results = await this.core.knowledge.search('email', { limit: 50, source: 'email' });
+        return { ...baseResponse, status: 'success', data: { messages: results } };
+      } catch {
+        // Local query failed — fall through to tunnel/unsupported
+      }
+    }
+
+    if (action === 'calendar.fetch' && this.core?.knowledge) {
+      try {
+        const results = await this.core.knowledge.search('calendar event', { limit: 50, source: 'calendar' });
+        return { ...baseResponse, status: 'success', data: { events: results } };
+      } catch {
+        // Local query failed — fall through to tunnel/unsupported
+      }
+    }
+
+    // ─── Tunnel fallback: forward to desktop Gateway ─────────────────────
+
+    if (this.tunnelTransport?.isReady()) {
+      try {
+        const tunnelResponse = await this.tunnelTransport.send(request) as ActionResponse;
+        return { ...tunnelResponse, ...baseResponse };
+      } catch {
+        // Tunnel failed — fall through to UNSUPPORTED_ACTION
+      }
+    }
+
+    // No local handler, no tunnel, or tunnel failed — return informative error
+    return {
+      ...baseResponse,
+      status: 'error',
+      error: {
+        code: 'UNSUPPORTED_ACTION',
+        message: `Action '${action}' is not available on mobile. Connect to desktop for full Gateway access.`,
+      },
+    };
   }
 }
