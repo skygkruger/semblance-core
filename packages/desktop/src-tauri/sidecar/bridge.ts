@@ -736,6 +736,10 @@ async function handleInitialize(): Promise<unknown> {
 
   // Initialize PremiumGate and ConversationManager only if prefsDb opened successfully
   if (prefsDb) {
+    // keyStorage omitted intentionally: the sidecar is a standalone Node.js process and cannot
+    // access Tauri's keychain plugins (stronghold/keychain are webview-context only). License key
+    // storage in OS keychain is a frontend concern. PremiumGate falls back to SQLite metadata only;
+    // getLicenseKey() returns null, which license:status handles gracefully.
     premiumGate = new PremiumGate(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
 
     // Ensure conversation tables exist BEFORE ConversationManager.migrate()
@@ -2853,7 +2857,7 @@ async function handleEmailStartIndex(
             const activationResult = premiumGate.activateLicense(detectedKey);
             if (activationResult.success) {
               console.error(`[sidecar] License auto-detected and activated: tier=${activationResult.tier}`);
-              emit('license-auto-activated', {
+              emit('semblance://license-auto-activated', {
                 tier: activationResult.tier,
                 expiresAt: activationResult.expiresAt,
               });
@@ -5873,7 +5877,7 @@ async function handleRequest(req: Request): Promise<void> {
             isPremium: premiumGate.isPremium(),
             isFoundingMember: premiumGate.isFoundingMember(),
             foundingSeat: premiumGate.getFoundingSeat(),
-            licenseKey: premiumGate.getLicenseKey(),
+            licenseKey: await premiumGate.getLicenseKey(),
           };
         }
         respond(id, result);

@@ -15,7 +15,7 @@
 import { createContext, useContext, useCallback, useMemo, type ReactNode } from 'react';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import type { AppState } from '../state/AppState';
-import { getLicenseStatus, activateLicenseKey, activateFoundingToken } from '../ipc/commands';
+import { getLicenseStatus, activateLicenseKey, activateFoundingToken as activateFoundingTokenIPC } from '../ipc/commands';
 import type { ActivationResult } from '../ipc/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
 
   const activateFoundingToken = useCallback(async (token: string): Promise<ActivationResult> => {
     try {
-      const result = await activateFoundingToken(token);
+      const result = await activateFoundingTokenIPC(token);
       if (result.success) {
         await refresh();
       }

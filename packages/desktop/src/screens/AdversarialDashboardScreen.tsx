@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getDarkPatternFlags, getFinancialDashboard, prefGet } from '../ipc/commands';
+import { useLicense } from '../contexts/LicenseContext';
 import './AdversarialDashboardScreen.css';
 
 interface DarkPatternAlert {
@@ -37,6 +38,7 @@ const DEFAULT_OPT_OUT: OptOutStatus = { totalOptOuts: 0, pendingOptOuts: 0, succ
 
 export function AdversarialDashboardScreen() {
   const { t } = useTranslation();
+  const license = useLicense();
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<DarkPatternAlert[]>([]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionAssessment[]>([]);
@@ -95,6 +97,40 @@ export function AdversarialDashboardScreen() {
     }
     loadData();
   }, []);
+
+  if (!license.isPremium) {
+    return (
+      <div style={{ padding: 32, maxWidth: 480, margin: '0 auto' }}>
+        <h1 style={{
+          fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif",
+          fontSize: 28,
+          fontWeight: 300,
+          color: '#EEF1F4',
+          margin: 0,
+          marginBottom: 6,
+        }}>
+          {t('screen.adversarial.title')}
+        </h1>
+        <div style={{
+          background: '#111518',
+          border: '1px solid rgba(255,255,255,0.09)',
+          borderRadius: 12,
+          padding: 24,
+          marginTop: 24,
+        }}>
+          <p style={{
+            fontFamily: "'DM Sans', system-ui, sans-serif",
+            fontSize: 14,
+            color: '#A8B4C0',
+            margin: 0,
+            lineHeight: 1.6,
+          }}>
+            Dark pattern detection and financial advocacy require a Digital Representative license.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="adversarial-dashboard h-full overflow-y-auto">

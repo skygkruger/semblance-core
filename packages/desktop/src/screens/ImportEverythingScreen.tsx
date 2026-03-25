@@ -108,7 +108,7 @@ export function ImportEverythingScreen() {
   }, []);
 
   // Premium gate
-  if (license.tier === 'free') {
+  if (!license.isPremium) {
     return (
       <div style={{ padding: 32, maxWidth: 640, margin: '0 auto' }}>
         <h1 style={{

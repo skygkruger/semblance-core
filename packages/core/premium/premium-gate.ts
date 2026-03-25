@@ -258,6 +258,14 @@ export class PremiumGate {
       return { success: false, error: 'License key has expired' };
     }
 
+    // Prevent downgrade — don't overwrite a higher-tier license with a lower one
+    const currentTier = this.getLicenseTier();
+    const currentRank = TIER_RANK[currentTier] ?? 0;
+    const newRank = TIER_RANK[tier as LicenseTier] ?? 0;
+    if (newRank < currentRank) {
+      return { success: false, error: `Cannot downgrade from ${currentTier} to ${tier}. Your current license has higher privileges.` };
+    }
+
     const now = new Date().toISOString();
     const seat = tier === 'founding' && payload.seat ? payload.seat : null;
 
@@ -295,6 +303,14 @@ export class PremiumGate {
 
     if (!result.valid || !result.payload) {
       return { success: false, error: result.error ?? 'Invalid founding member token' };
+    }
+
+    // Prevent downgrade — don't overwrite a higher-tier license with a lower one
+    const currentTier = this.getLicenseTier();
+    const currentRank = TIER_RANK[currentTier] ?? 0;
+    const newRank = TIER_RANK['founding'] ?? 0;
+    if (newRank < currentRank) {
+      return { success: false, error: `Cannot downgrade from ${currentTier} to founding. Your current license has higher privileges.` };
     }
 
     const now = new Date().toISOString();
