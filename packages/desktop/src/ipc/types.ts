@@ -329,7 +329,7 @@ export type ConnectorAction =
 
 // ─── Contacts (via sidecar_request) ─────────────────────────────────────────
 
-export type ContactSortField = 'name' | 'lastInteraction' | 'strength';
+export type ContactSortField = 'display_name' | 'last_contact_date' | 'interaction_count';
 
 export interface ContactSummary {
   id: string;
@@ -372,6 +372,13 @@ export type SidecarRequest =
   | { method: 'contacts:getUpcomingBirthdays'; params: Record<string, never> }
   | { method: 'contacts:get'; params: { id: string } }
   | { method: 'contacts:search'; params: { query: string; limit: number } }
+  | { method: 'contacts:create'; params: { displayName: string; email?: string; phone?: string; organization?: string; relationshipType?: string } }
+  | { method: 'contacts:update'; params: { id: string; updates: Record<string, unknown> } }
+  | { method: 'contacts:delete'; params: { id: string } }
+  | { method: 'contacts:getEmailHistory'; params: { contactEmail: string } }
+  | { method: 'contacts:getCalendarHistory'; params: { contactEmail: string } }
+  | { method: 'contacts:getRelationshipGraph'; params: Record<string, never> }
+  | { method: 'contacts:getFrequencyAlerts'; params: Record<string, never> }
   | { method: 'sync:trigger'; params: Record<string, never> };
 
 // ─── Finance / Subscriptions ────────────────────────────────────────────────

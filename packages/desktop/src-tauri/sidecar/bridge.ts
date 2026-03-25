@@ -1743,8 +1743,8 @@ async function handleInitialize(): Promise<unknown> {
     // Alter Ego Week engine — initialized by @semblance/dr via ipAdapters
     console.error('[sidecar] AlterEgoWeekEngine: available via ipAdapters.alterEgoWeekEngine');
 
-    // Import Everything orchestrator
-    importOrchestrator = new ImportEverythingOrchestrator(dbHandle);
+    // Import Everything orchestrator — pass knowledge graph for real indexing
+    importOrchestrator = new ImportEverythingOrchestrator(dbHandle, core?.knowledge ?? null);
     console.error('[sidecar] ImportEverythingOrchestrator initialized');
 
     console.error('[sidecar] Sprint G.5 initialization complete');
@@ -3683,6 +3683,73 @@ function handleContactsGetFrequencyAlerts(): unknown {
   ensureContactStore();
   if (!contactFrequencyMonitor) throw new Error('Frequency monitor not initialized');
   return { alerts: contactFrequencyMonitor.getDecreasingContacts() };
+}
+
+function handleContactsCreate(params: { displayName: string; email?: string; phone?: string; organization?: string; relationshipType?: string }): unknown {
+  if (!params.displayName?.trim()) {
+    return { success: false, error: 'Display name is required.' };
+  }
+  const store = ensureContactStore();
+  const result = store.insertContact({
+    displayName: params.displayName.trim(),
+    emails: params.email ? [params.email.trim()] : undefined,
+    phones: params.phone ? [params.phone.trim()] : undefined,
+    organization: params.organization?.trim() || undefined,
+    source: 'imported',
+  });
+  // If a relationship type was provided, update it separately since insertContact doesn't accept it
+  if (params.relationshipType && result.id) {
+    store.updateContact(result.id, { relationshipType: params.relationshipType as any });
+  }
+  return { success: true, id: result.id };
+}
+
+function handleContactsUpdate(params: { id: string; updates: Record<string, unknown> }): unknown {
+  if (!params.id) throw new Error('Contact ID is required');
+  const store = ensureContactStore();
+  const success = store.updateContact(params.id, params.updates as any);
+  if (!success) throw new Error(`Contact not found: ${params.id}`);
+  return { success: true };
+}
+
+function handleContactsDelete(params: { id: string }): unknown {
+  if (!params.id) throw new Error('Contact ID is required');
+  const store = ensureContactStore();
+  const success = store.deleteContact(params.id);
+  if (!success) throw new Error(`Contact not found: ${params.id}`);
+  return { success: true };
+}
+
+function handleContactsGetEmailHistory(params: { contactEmail: string }): unknown {
+  const { contactEmail } = params;
+  if (!contactEmail || !prefsDb) return [];
+  try {
+    const emails = prefsDb.prepare(
+      `SELECT message_id, subject, "from", from_name, snippet, received_at, priority
+       FROM indexed_emails
+       WHERE "from" LIKE ? OR to_addresses LIKE ?
+       ORDER BY received_at DESC LIMIT 20`
+    ).all(`%${contactEmail}%`, `%${contactEmail}%`);
+    return emails;
+  } catch {
+    return [];
+  }
+}
+
+function handleContactsGetCalendarHistory(params: { contactEmail: string }): unknown {
+  const { contactEmail } = params;
+  if (!contactEmail || !prefsDb) return [];
+  try {
+    const events = prefsDb.prepare(
+      `SELECT uid, title, start_time, end_time, attendees
+       FROM indexed_calendar_events
+       WHERE attendees LIKE ?
+       ORDER BY start_time DESC LIMIT 20`
+    ).all(`%${contactEmail}%`);
+    return events;
+  } catch {
+    return [];
+  }
 }
 
 // ─── Step 15: Messaging + Clipboard Handlers ─────────────────────────────────
@@ -6138,6 +6205,31 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'contacts:getFrequencyAlerts':
         result = handleContactsGetFrequencyAlerts();
+        respond(id, result);
+        break;
+
+      case 'contacts:create':
+        result = handleContactsCreate(params as { displayName: string; email?: string; phone?: string; organization?: string; relationshipType?: string });
+        respond(id, result);
+        break;
+
+      case 'contacts:update':
+        result = handleContactsUpdate(params as { id: string; updates: Record<string, unknown> });
+        respond(id, result);
+        break;
+
+      case 'contacts:delete':
+        result = handleContactsDelete(params as { id: string });
+        respond(id, result);
+        break;
+
+      case 'contacts:getEmailHistory':
+        result = handleContactsGetEmailHistory(params as { contactEmail: string });
+        respond(id, result);
+        break;
+
+      case 'contacts:getCalendarHistory':
+        result = handleContactsGetCalendarHistory(params as { contactEmail: string });
         respond(id, result);
         break;
 

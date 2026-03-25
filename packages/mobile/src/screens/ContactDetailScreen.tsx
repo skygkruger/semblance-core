@@ -34,8 +34,18 @@ interface ContactDetail {
   } | null;
 }
 
-// Route params for ContactDetail
-type ContactDetailParams = { ContactDetail: { contactId: string } };
+// Route params for ContactDetail — accepts optional contactData to avoid ID mismatch
+// when navigating from knowledge graph results (contact-N IDs) vs device contacts (recordID).
+interface ContactSummaryParam {
+  id: string;
+  displayName: string;
+  organization: string;
+  relationshipType: string;
+  lastContactDate: string | null;
+  interactionCount: number;
+  birthday: string;
+}
+type ContactDetailParams = { ContactDetail: { contactId: string; contactData?: ContactSummaryParam } };
 type Props = NativeStackScreenProps<ContactDetailParams, 'ContactDetail'>;
 
 function getInitials(name: string): string {
@@ -73,7 +83,7 @@ function FrequencyBar({ value, max, label }: { value: number; max: number; label
 
 export function ContactDetailScreen({ route }: Props) {
   const { t } = useTranslation();
-  const { contactId } = route.params;
+  const { contactId, contactData } = route.params;
   const [contact, setContact] = useState<ContactDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -82,44 +92,66 @@ export function ContactDetailScreen({ route }: Props) {
 
     async function fetchContact() {
       try {
+        let detail: ContactDetail | null = null;
+
+        // First try device contacts (native bridge)
         const adapter = createMobileContactsAdapter();
         const allContacts = await adapter.getAllContacts();
         const match = allContacts.find(c => c.deviceContactId === contactId);
 
         if (cancelled) return;
 
-        if (!match) {
-          setLoading(false);
-          return;
+        if (match) {
+          // Found via device contacts — use native data
+          detail = {
+            id: match.deviceContactId,
+            displayName: match.displayName,
+            givenName: match.givenName,
+            familyName: match.familyName,
+            emails: match.emails.map(e => e.value),
+            phones: match.phones.map(p => p.value),
+            organization: match.organization,
+            jobTitle: match.jobTitle,
+            birthday: match.birthday,
+            relationshipType: 'contact',
+            lastContactDate: null,
+            interactionCount: 0,
+            communicationFrequency: null,
+          };
+        } else if (contactData) {
+          // Not a device contact — use data passed from ContactsScreen (knowledge graph result)
+          detail = {
+            id: contactData.id,
+            displayName: contactData.displayName,
+            givenName: contactData.displayName.split(' ')[0] || '',
+            familyName: contactData.displayName.split(' ').slice(1).join(' ') || '',
+            emails: [],
+            phones: [],
+            organization: contactData.organization,
+            jobTitle: '',
+            birthday: contactData.birthday,
+            relationshipType: contactData.relationshipType,
+            lastContactDate: contactData.lastContactDate,
+            interactionCount: contactData.interactionCount,
+            communicationFrequency: null,
+          };
         }
 
-        // Map DeviceContact to ContactDetail
-        const detail: ContactDetail = {
-          id: match.deviceContactId,
-          displayName: match.displayName,
-          givenName: match.givenName,
-          familyName: match.familyName,
-          emails: match.emails.map(e => e.value),
-          phones: match.phones.map(p => p.value),
-          organization: match.organization,
-          jobTitle: match.jobTitle,
-          birthday: match.birthday,
-          relationshipType: 'contact',
-          lastContactDate: null,
-          interactionCount: 0,
-          communicationFrequency: null,
-        };
+        if (!detail) {
+          if (!cancelled) setLoading(false);
+          return;
+        }
 
         // Attempt knowledge graph enrichment for communication frequency
         try {
           const state = getRuntimeState();
           if (state.core?.knowledge?.search) {
             const emailResults = await state.core.knowledge.search(
-              `email from:${match.displayName}`,
+              `email from:${detail.displayName}`,
               { limit: 20 },
             );
             const meetingResults = await state.core.knowledge.search(
-              `meeting with:${match.displayName}`,
+              `meeting with:${detail.displayName}`,
               { limit: 20 },
             );
 

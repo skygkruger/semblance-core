@@ -401,8 +401,78 @@ export function sidecarCall<T>(method: string, params: Record<string, unknown> =
   return invoke<T>('sidecar_request', { request: { method, params } });
 }
 
-export function listContacts(limit: number, sortBy: 'name' | 'lastInteraction' | 'strength'): Promise<{ contacts: ContactSummary[] }> {
+export function listContacts(limit: number, sortBy: 'display_name' | 'last_contact_date' | 'interaction_count'): Promise<{ contacts: ContactSummary[] }> {
   return sidecarRequest<{ contacts: ContactSummary[] }>({ method: 'contacts:list', params: { limit, sortBy } });
+}
+
+export function createContact(params: {
+  displayName: string;
+  email?: string;
+  phone?: string;
+  organization?: string;
+  relationshipType?: string;
+}): Promise<{ success: boolean; id?: string }> {
+  return sidecarCall<{ success: boolean; id?: string }>('contacts:create', params);
+}
+
+export function updateContact(id: string, updates: {
+  displayName?: string;
+  givenName?: string;
+  familyName?: string;
+  emails?: string[];
+  phones?: string[];
+  organization?: string;
+  jobTitle?: string;
+  birthday?: string;
+  relationshipType?: string;
+  tags?: string[];
+}): Promise<{ success: boolean }> {
+  return sidecarCall<{ success: boolean }>('contacts:update', { id, updates });
+}
+
+export function deleteContact(id: string): Promise<{ success: boolean }> {
+  return sidecarCall<{ success: boolean }>('contacts:delete', { id });
+}
+
+export function importContacts(filePath: string): Promise<{ success: boolean; imported: number; error?: string }> {
+  return sidecarCall<{ success: boolean; imported: number; error?: string }>('contacts:import', { filePath });
+}
+
+export function getContactEmailHistory(contactEmail: string): Promise<Array<{
+  message_id: string;
+  subject: string;
+  from: string;
+  from_name: string;
+  snippet: string;
+  received_at: string;
+  priority: string;
+}>> {
+  return sidecarCall('contacts:getEmailHistory', { contactEmail });
+}
+
+export function getContactCalendarHistory(contactEmail: string): Promise<Array<{
+  uid: string;
+  title: string;
+  start_time: string;
+  end_time: string;
+  attendees: string;
+}>> {
+  return sidecarCall('contacts:getCalendarHistory', { contactEmail });
+}
+
+export function getRelationshipGraph(): Promise<unknown> {
+  return sidecarCall('contacts:getRelationshipGraph', {});
+}
+
+export function getFrequencyAlerts(): Promise<{ alerts: Array<{
+  contactId: string;
+  displayName: string;
+  lastContactDate: string;
+  previousFrequency: string;
+  currentFrequency: string;
+  trend: string;
+}> }> {
+  return sidecarCall('contacts:getFrequencyAlerts', {});
 }
 
 export function getContactStats(): Promise<ContactStats> {

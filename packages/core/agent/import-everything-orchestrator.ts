@@ -7,7 +7,9 @@
 // All data stays local. Import reads local database files only.
 
 import type { DatabaseHandle } from '../platform/types.js';
+import type { KnowledgeGraph } from '../knowledge/index.js';
 import { getPlatform } from '../platform/index.js';
+import type { ImportParser } from '../importers/types.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -81,10 +83,17 @@ function getBrowserHistoryPaths(): Array<{ browser: string; path: string }> {
 
 export class ImportEverythingOrchestrator {
   private db: DatabaseHandle;
+  private knowledgeGraph: KnowledgeGraph | null;
 
-  constructor(db: DatabaseHandle) {
+  constructor(db: DatabaseHandle, knowledgeGraph?: KnowledgeGraph | null) {
     this.db = db;
+    this.knowledgeGraph = knowledgeGraph ?? null;
     this.db.exec(CREATE_TABLE);
+  }
+
+  /** Set the knowledge graph reference (may be wired after construction). */
+  setKnowledgeGraph(kg: KnowledgeGraph): void {
+    this.knowledgeGraph = kg;
   }
 
   /** Detect which sources are available on this device */
@@ -219,24 +228,115 @@ export class ImportEverythingOrchestrator {
   // ─── Private import methods ───────────────────────────────────────────────
 
   private async importBrowserHistory(onProgress: (p: ImportProgress) => void): Promise<number> {
-    // Read Chrome/Firefox/Safari history SQLite databases
-    // For now: detect available paths and report counts
     const browserPaths = getBrowserHistoryPaths();
-    let totalItems = 0;
+    let totalImported = 0;
+
+    // Dynamically import browser history parsers.
+    // Chrome/Edge/Arc all use the same Chromium SQLite schema (urls + visits tables).
+    // The Edge parser works for any Chromium-based SQLite History file.
+    // Chrome's dedicated parser is for Takeout JSON exports, not the live DB.
+    const { FirefoxHistoryParser } = await import('../importers/browser/firefox-history-parser.js');
+    const { SafariHistoryParser } = await import('../importers/browser/safari-history-parser.js');
+    const { EdgeHistoryParser } = await import('../importers/browser/edge-history-parser.js');
+    const { ArcHistoryParser } = await import('../importers/browser/arc-history-parser.js');
+
+    // Map browser names to their parsers
+    const chromiumParser = new EdgeHistoryParser();
+    const sqliteParsers: Record<string, ImportParser> = {
+      Chrome: chromiumParser,   // Same Chromium schema as Edge
+      Edge: chromiumParser,
+      Arc: new ArcHistoryParser(),
+      Firefox: new FirefoxHistoryParser(),
+      Safari: new SafariHistoryParser(),
+    };
 
     for (const bp of browserPaths) {
       try {
         const p = getPlatform();
         await p.fs.stat(bp.path);
-        // Browser history databases are SQLite — read URL, title, visit_count, last_visit_time
-        // Actual SQLite reading would require opening the file as a separate database
-        // For this sprint: count as detected but not yet read (requires Database copy due to lock)
-        totalItems += 1; // Placeholder count per detected browser
-        onProgress({ source: 'browser_history', phase: 'indexing', itemsProcessed: totalItems, totalItems: totalItems + 1 });
-      } catch { /* skip unavailable */ }
+
+        onProgress({ source: 'browser_history', phase: 'reading', itemsProcessed: totalImported, totalItems: 0 });
+
+        let dbPath = bp.path;
+
+        // Firefox path points to Profiles directory — find the default profile's places.sqlite
+        if (bp.browser === 'Firefox') {
+          const resolvedPath = await this.findFirefoxPlacesDb(bp.path);
+          if (!resolvedPath) continue;
+          dbPath = resolvedPath;
+        }
+
+        // Select the appropriate parser
+        const parser = sqliteParsers[bp.browser];
+        if (!parser) continue;
+
+        const result = await parser.parse(dbPath, { limit: 5000 });
+        if (result.items.length === 0) continue;
+
+        // Index each item into the knowledge graph
+        if (this.knowledgeGraph) {
+          for (const item of result.items) {
+            try {
+              await this.knowledgeGraph.indexDocument({
+                content: item.content,
+                title: item.title,
+                source: 'browser_history',
+                mimeType: 'text/x-browser-history',
+                metadata: {
+                  ...item.metadata,
+                  browser: bp.browser,
+                  importedAt: new Date().toISOString(),
+                },
+              });
+              totalImported++;
+              if (totalImported % 100 === 0) {
+                onProgress({
+                  source: 'browser_history',
+                  phase: 'indexing',
+                  itemsProcessed: totalImported,
+                  totalItems: result.items.length,
+                });
+              }
+            } catch {
+              // Skip individual items that fail to index
+            }
+          }
+        } else {
+          // No knowledge graph — count items as detected but not indexed
+          totalImported += result.items.length;
+        }
+      } catch { /* skip unavailable browsers */ }
     }
 
-    return totalItems;
+    return totalImported;
+  }
+
+  /** Find the default Firefox profile's places.sqlite within the Profiles directory. */
+  private async findFirefoxPlacesDb(profilesDir: string): Promise<string | null> {
+    const p = getPlatform();
+    try {
+      const entries = await p.fs.readdir(profilesDir, { withFileTypes: true });
+      // Look for default profile directories (e.g., "xxxxxxxx.default-release", "xxxxxxxx.default")
+      const profileDirs = entries
+        .filter(e => e.isDirectory() && (e.name.includes('.default') || e.name.includes('.default-release')))
+        .map(e => e.name);
+
+      // Prefer .default-release over .default
+      const sorted = profileDirs.sort((a, b) => {
+        if (a.includes('default-release') && !b.includes('default-release')) return -1;
+        if (!a.includes('default-release') && b.includes('default-release')) return 1;
+        return 0;
+      });
+
+      for (const dirName of sorted) {
+        const placesPath = p.path.join(profilesDir, dirName, 'places.sqlite');
+        try {
+          await p.fs.stat(placesPath);
+          return placesPath;
+        } catch { /* not in this profile */ }
+      }
+    } catch { /* cannot read profiles dir */ }
+    return null;
   }
 
   private async importNotes(_onProgress: (p: ImportProgress) => void): Promise<number> {

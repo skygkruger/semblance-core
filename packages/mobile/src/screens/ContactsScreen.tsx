@@ -36,8 +36,9 @@ interface BirthdayInfo {
   isToday: boolean;
 }
 
-// Contact navigation params
-type ContactsParamList = { ContactDetail: { contactId: string } };
+// Contact navigation params — pass full contact data to avoid ID mismatch
+// between knowledge graph results (contact-N) and device contacts (recordID).
+type ContactsParamList = { ContactDetail: { contactId: string; contactData?: ContactSummary } };
 
 interface Props {
   navigation: NativeStackNavigationProp<ContactsParamList>;
@@ -143,8 +144,9 @@ export function ContactsScreen({ navigation }: Props) {
   }, [ready, searchKnowledge]);
 
   const handleContactPress = useCallback((id: string) => {
-    navigation.navigate('ContactDetail', { contactId: id });
-  }, [navigation]);
+    const contactData = contacts.find(c => c.id === id);
+    navigation.navigate('ContactDetail', { contactId: id, contactData });
+  }, [navigation, contacts]);
 
   const renderContact = useCallback(({ item }: ListRenderItemInfo<ContactSummary>) => (
     <TouchableOpacity style={styles.contactRow} onPress={() => handleContactPress(item.id)}>

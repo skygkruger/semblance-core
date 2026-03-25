@@ -1,13 +1,13 @@
 import { StyleSheet } from 'react-native';
 
 const colors = {
-  bgDark: '#0A0A0F',
+  bgDark: '#0B0E11',
   textPrimary: '#F0EDE8',
   textSecondary: '#A8A4B0',
   textMuted: '#6B6777',
-  surface1: '#14141F',
+  surface1: '#111518',
   surface2: '#1C1C2A',
-  accent: '#7EB8DA',
+  accent: '#6ECFA3',
   border: '#2A2A3A',
 };
 
