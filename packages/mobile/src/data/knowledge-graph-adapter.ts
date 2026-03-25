@@ -12,7 +12,7 @@ import type {
   VisualizationEdge,
   VisualizationCluster,
   GraphStats,
-} from '../../../../packages/core/knowledge/graph-visualization';
+} from '@semblance/core/knowledge/graph-visualization';
 import { getRuntimeState } from '../runtime/mobile-runtime';
 
 // ─── Adapter Interface ──────────────────────────────────────────────────────

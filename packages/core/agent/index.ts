@@ -25,6 +25,16 @@ export { DocumentContextManager } from './document-context.js';
 export type { DocumentContextInfo } from './document-context.js';
 export { DailyDigestGenerator } from './daily-digest.js';
 export type { DailyDigest, DailyDigestPreferences } from './daily-digest.js';
+export { assessTaskComplexity, shouldOffload, estimateTokenCount } from './task-router.js';
+export type { TaskRoutingDecision, TaskComplexity, TaskType, DeviceCapabilitySummary } from './task-router.js';
+export { HandoffProtocol } from './device-handoff.js';
+export type {
+  HandoffRequest,
+  HandoffResponse,
+  DeviceCapability,
+  HandoffTransport,
+  IncomingTaskHandler,
+} from './device-handoff.js';
 
 import type { LLMProvider } from '../llm/types.js';
 import type { KnowledgeGraph } from '../knowledge/index.js';

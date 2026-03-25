@@ -410,14 +410,31 @@ async function handleWebFetch(
 
 // ─── Mobile Gateway Transport ───────────────────────────────────────────────
 
+// Tunnel transport interface for forwarding unsupported actions to desktop Gateway
+interface TunnelTransportLike {
+  isReady(): boolean;
+  send(request: unknown): Promise<unknown>;
+}
+
 export class MobileGatewayTransport implements IPCTransport {
   private ready = false;
   private searchLimiter = new SimpleRateLimiter(SEARCH_RATE_LIMIT);
   private fetchLimiter = new SimpleRateLimiter(FETCH_RATE_LIMIT);
   private getApiKey: () => Promise<string | null>;
+  private tunnelTransport: TunnelTransportLike | null = null;
 
   constructor(getApiKey: () => Promise<string | null>) {
     this.getApiKey = getApiKey;
+  }
+
+  /**
+   * Set the tunnel transport for forwarding actions to the desktop Gateway.
+   * When a tunnel is available, actions that mobile can't handle locally
+   * (email, calendar, file operations, etc.) are forwarded to desktop.
+   * When no tunnel is set, those actions return UNSUPPORTED_ACTION as before.
+   */
+  setTunnelTransport(transport: TunnelTransportLike | null): void {
+    this.tunnelTransport = transport;
   }
 
   async start(): Promise<void> {
@@ -461,7 +478,18 @@ export class MobileGatewayTransport implements IPCTransport {
       }
 
       default:
-        // Other actions not available on mobile — return informative error
+        // Action not handled locally on mobile.
+        // If a tunnel to desktop is available, forward the request there.
+        if (this.tunnelTransport?.isReady()) {
+          try {
+            const tunnelResponse = await this.tunnelTransport.send(request) as ActionResponse;
+            return { ...tunnelResponse, ...baseResponse };
+          } catch {
+            // Tunnel failed — fall through to UNSUPPORTED_ACTION
+          }
+        }
+
+        // No tunnel or tunnel failed — return informative error
         return {
           ...baseResponse,
           status: 'error',

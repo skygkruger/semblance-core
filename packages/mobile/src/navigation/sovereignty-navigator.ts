@@ -63,6 +63,13 @@ export const SOVEREIGNTY_ROUTES: SovereigntyRoute[] = [
     category: 'adversarial',
     deferLoad: true,
   },
+  {
+    name: 'AlterEgoWeek',
+    screenKey: 'AlterEgoWeek',
+    deepLink: 'semblance://adversarial/alter-ego-week',
+    category: 'adversarial',
+    deferLoad: true,
+  },
 
   // Privacy screens
   {

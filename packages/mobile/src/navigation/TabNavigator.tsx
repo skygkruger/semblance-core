@@ -54,6 +54,7 @@ import { SearchSettingsScreen } from '../screens/SearchSettingsScreen.js';
 import type { SearchSettingsState } from '../screens/SearchSettingsScreen.js';
 import { AdversarialDashboardScreen } from '../screens/adversarial/AdversarialDashboardScreen.js';
 import type { DarkPatternAlert, SubscriptionAssessment, OptOutStatus } from '../screens/adversarial/AdversarialDashboardScreen.js';
+import { AlterEgoWeekScreen } from '../screens/AlterEgoWeekScreen.js';
 import { NetworkScreen } from '../screens/sovereignty/NetworkScreen.js';
 import type { NetworkPeer, SharingOffer } from '../screens/sovereignty/NetworkScreen.js';
 import { LivingWillScreen } from '../screens/sovereignty/LivingWillScreen.js';
@@ -815,6 +816,11 @@ function AdversarialDashboardScreenWrapper() {
   );
 }
 
+function AlterEgoWeekScreenWrapper() {
+  const isPremium = useIsPremium();
+  return <AlterEgoWeekScreen isPremium={isPremium} />;
+}
+
 function BiometricSetupScreenWrapper() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
@@ -1396,6 +1402,7 @@ function SettingsTabStack() {
       <SettingsNavStack.Screen name="BiometricSetup" component={BiometricSetupScreenWrapper} />
       <SettingsNavStack.Screen name="Backup" component={BackupScreenWrapper} />
       <SettingsNavStack.Screen name="AdversarialDashboard" component={AdversarialDashboardScreenWrapper} />
+      <SettingsNavStack.Screen name="AlterEgoWeek" component={AlterEgoWeekScreenWrapper} />
       <SettingsNavStack.Screen name="Connections" component={ConnectionsScreen} />
       <SettingsNavStack.Screen name="Files" component={FilesScreen} />
       <SettingsNavStack.Screen name="Activity" component={ActivityScreen} />

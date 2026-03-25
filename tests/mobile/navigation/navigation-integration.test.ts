@@ -17,19 +17,20 @@ describe('Sovereignty Navigator', () => {
   it('registers all routes', () => {
     const names = getRouteNames();
 
-    // Must register all 10 sovereignty/privacy/security routes
+    // Must register all 11 sovereignty/privacy/security/adversarial routes
     expect(names).toContain('LivingWill');
     expect(names).toContain('Witness');
     expect(names).toContain('Inheritance');
     expect(names).toContain('InheritanceActivation');
     expect(names).toContain('Network');
     expect(names).toContain('AdversarialDashboard');
+    expect(names).toContain('AlterEgoWeek');
     expect(names).toContain('PrivacyDashboard');
     expect(names).toContain('ProofOfPrivacy');
     expect(names).toContain('BiometricSetup');
     expect(names).toContain('Backup');
 
-    expect(names.length).toBe(10);
+    expect(names.length).toBe(11);
   });
 
   it('deep link to Witness attestation opens correct screen', () => {

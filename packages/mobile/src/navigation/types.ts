@@ -71,6 +71,7 @@ export type SettingsStackParamList = {
   BiometricSetup: undefined;
   Backup: undefined;
   AdversarialDashboard: undefined;
+  AlterEgoWeek: undefined;
   Connections: undefined;
   Files: undefined;
   Activity: undefined;

@@ -12,6 +12,113 @@ import type { SemblanceEventBus } from '../events/event-bus.js';
 
 export type KGSyncCategory = 'contacts' | 'calendar' | 'preferences' | 'named_sessions';
 
+// ─── Merkle Tree Utilities ──────────────────────────────────────────────────
+
+/**
+ * Compute a Merkle root from an array of document/entity IDs.
+ * Produces a single SHA-256 hash that represents the complete set of IDs.
+ * If the set changes by even one ID, the root changes — enabling cheap diff detection.
+ *
+ * Algorithm: binary Merkle tree. Leaf nodes are sha256(id). If odd count,
+ * the last leaf is duplicated. Internal nodes are sha256(left + right).
+ */
+export function computeMerkleRoot(documentIds: string[]): string {
+  if (documentIds.length === 0) {
+    return sha256('empty');
+  }
+
+  // Sort for deterministic ordering
+  const sorted = [...documentIds].sort();
+
+  // Compute leaf hashes
+  let level: string[] = sorted.map((id) => sha256(id));
+
+  // Build tree bottom-up
+  while (level.length > 1) {
+    const next: string[] = [];
+    for (let i = 0; i < level.length; i += 2) {
+      const left = level[i]!;
+      const right = level[i + 1] ?? left; // Duplicate last if odd
+      next.push(sha256(left + right));
+    }
+    level = next;
+  }
+
+  return level[0]!;
+}
+
+/**
+ * Compute the delta between local and remote document sets.
+ * Returns which document IDs need to be added, removed, or updated
+ * on the local side to match the remote.
+ *
+ * @param localRoot - Merkle root of local document IDs.
+ * @param remoteRoot - Merkle root of remote document IDs.
+ * @param localDocIds - All local document IDs.
+ * @param remoteDocIds - All remote document IDs.
+ * @returns A delta describing what changed, or null if roots match (no sync needed).
+ */
+export function computeDelta(
+  localRoot: string,
+  remoteRoot: string,
+  localDocIds: string[],
+  remoteDocIds: string[],
+): KGSyncDeltaSet | null {
+  // Fast path: roots match, no sync needed
+  if (localRoot === remoteRoot) {
+    return null;
+  }
+
+  const localSet = new Set(localDocIds);
+  const remoteSet = new Set(remoteDocIds);
+
+  const addedDocIds: string[] = [];
+  const removedDocIds: string[] = [];
+  const commonDocIds: string[] = [];
+
+  // IDs present remotely but not locally → need to add
+  for (const id of remoteDocIds) {
+    if (!localSet.has(id)) {
+      addedDocIds.push(id);
+    } else {
+      commonDocIds.push(id);
+    }
+  }
+
+  // IDs present locally but not remotely → were removed on remote
+  for (const id of localDocIds) {
+    if (!remoteSet.has(id)) {
+      removedDocIds.push(id);
+    }
+  }
+
+  return {
+    addedDocIds,
+    removedDocIds,
+    // Common IDs may have updated content — caller should compare per-doc hashes
+    updatedDocIds: commonDocIds,
+    merkleRoot: remoteRoot,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * The set-level delta between two document collections.
+ * Used by the sync protocol to determine what needs fetching/pruning.
+ */
+export interface KGSyncDeltaSet {
+  /** Document IDs present on remote but missing locally. */
+  addedDocIds: string[];
+  /** Document IDs present locally but removed on remote. */
+  removedDocIds: string[];
+  /** Document IDs present on both — may need content-level comparison. */
+  updatedDocIds: string[];
+  /** The remote Merkle root that this delta brings us to. */
+  merkleRoot: string;
+  /** When this delta was computed. */
+  timestamp: string;
+}
+
 export interface KGSyncRequest {
   deviceId: string;
   localMerkleRoot: string;
