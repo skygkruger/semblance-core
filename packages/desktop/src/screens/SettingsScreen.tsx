@@ -7,7 +7,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { getVersion } from '@tauri-apps/api/app';
-import { emit } from '@tauri-apps/api/event';
+import { emit, listen } from '@tauri-apps/api/event';
 import { SettingsNavigator } from '@semblance/ui';
 import type { AutonomyTier } from '@semblance/ui';
 import {
@@ -53,6 +53,14 @@ import { useAppState, useAppDispatch } from '../state/AppState';
 import { useLicense } from '../contexts/LicenseContext';
 import type { AccountStatus } from '../ipc/types';
 import { StyleProfileCard } from '../components/StyleProfileCard';
+
+/** Model IDs from the BitNet catalog — used to route download progress events */
+const BITNET_MODEL_CATALOG_IDS = new Set([
+  'bitnet-b1.58-2b4t',
+  'falcon-e-1b', 'falcon-e-3b',
+  'falcon3-1b-instruct-1.58bit', 'falcon3-3b-instruct-1.58bit',
+  'falcon3-7b-instruct-1.58bit', 'falcon3-10b-instruct-1.58bit',
+]);
 
 export function SettingsScreen() {
   const { t } = useTranslation();
@@ -107,6 +115,8 @@ export function SettingsScreen() {
   const [searchBraveApiKey, setSearchBraveApiKey] = useState<string>('');
   const [searchSearxngUrl, setSearchSearxngUrl] = useState<string>('https://search.veridian.run');
   const [searchSaving, setSearchSaving] = useState(false);
+
+  const [privacyStatus, setPrivacyStatus] = useState<'clean' | 'review-needed'>('clean');
 
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     morningBriefEnabled: true,
@@ -174,6 +184,12 @@ export function SettingsScreen() {
     getBackupStatus().then((s) => {
       if (s?.lastBackupAt) setLastBackupAt(s.lastBackupAt);
     }).catch(() => {});
+    // Load privacy audit status — defaults to 'clean' since all data is local-only
+    sidecarCall<{ violations?: unknown[] } | null>('privacy_get_audit_status').then((s) => {
+      if (s?.violations && (s.violations as unknown[]).length > 0) {
+        setPrivacyStatus('review-needed');
+      }
+    }).catch(() => {});
     // Load search settings
     getSearchSettings()
       .then((s) => {
@@ -215,6 +231,60 @@ export function SettingsScreen() {
       }
     }).catch(() => {});
   }, [dispatch]);
+
+  // Listen for model download progress events from the sidecar
+  useEffect(() => {
+    const unlisten = listen<{
+      modelId: string;
+      totalBytes: number;
+      downloadedBytes: number;
+      status: string;
+    }>('semblance://model-download-progress', (event) => {
+      const { modelId, totalBytes, downloadedBytes, status } = event.payload;
+      const progress = totalBytes > 0 ? Math.round((downloadedBytes / totalBytes) * 100) : 0;
+      // Update whichever catalog this model belongs to
+      if (BITNET_MODEL_CATALOG_IDS.has(modelId)) {
+        setBitnetDownloadingModelId(modelId);
+        setBitnetDownloadProgress(progress);
+        if (status === 'complete' || status === 'verified') {
+          setBitnetDownloadingModelId(null);
+          setBitnetDownloadProgress(0);
+          // Refresh catalog to show isDownloaded: true
+          getBitNetModels().then((res) => setBitnetModels(res.models)).catch(() => {});
+        }
+      } else {
+        setStandardDownloadingModelId(modelId);
+        setStandardDownloadProgress(progress);
+        if (status === 'complete' || status === 'verified') {
+          setStandardDownloadingModelId(null);
+          setStandardDownloadProgress(0);
+          getStandardModels().then((res) => setStandardModels(res.models)).catch(() => {});
+        }
+      }
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, []);
+
+  // Retry model catalog load when sidecar reports ready
+  // (handles race condition where Settings mounts before sidecar finishes init)
+  useEffect(() => {
+    const unlisten = listen('semblance://status-update', () => {
+      // Sidecar emits status-update after initialization — reload model catalogs
+      if (bitnetModels.length === 0) {
+        getBitNetModels().then((res) => {
+          setBitnetModels(res.models);
+          if (res.activeModelId) setBitnetActiveModelId(res.activeModelId);
+        }).catch(() => {});
+      }
+      if (standardModels.length === 0) {
+        getStandardModels().then((res) => {
+          setStandardModels(res.models);
+          if (res.activeModelId) setStandardActiveModelId(res.activeModelId);
+        }).catch(() => {});
+      }
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, [bitnetModels.length, standardModels.length]);
 
   // Toast helper for features not yet wired
   const showToast = useCallback((message: string) => {
@@ -338,6 +408,14 @@ export function SettingsScreen() {
         searxngUrl: engine === 'searxng' ? searxngUrl : null,
         rateLimit: 10,
       });
+      // Refresh from bridge to confirm what was actually saved
+      const saved = await getSearchSettings().catch(() => null);
+      if (saved) {
+        const raw = saved as unknown as { engine?: string; braveApiKey?: string; searxngUrl?: string; provider?: string };
+        setSearchEngine(raw.engine ?? raw.provider ?? 'searxng');
+        setSearchBraveApiKey(raw.braveApiKey ?? '');
+        setSearchSearxngUrl(raw.searxngUrl ?? 'https://search.veridian.run');
+      }
       showToast('Search settings saved');
     } catch {
       showToast('Failed to save search settings');
@@ -361,7 +439,7 @@ export function SettingsScreen() {
           activeConnections={connectedAccounts}
           notificationSummary={t('screen.settings.notifications_default')}
           autonomyTier={autonomyTier}
-          privacyStatus="clean"
+          privacyStatus={privacyStatus}
           licenseStatus={licenseStatus}
           appVersion={appVersion}
 
@@ -422,8 +500,8 @@ export function SettingsScreen() {
             category: a.serviceType,
             categoryColor: '#6ECFA3',
             isConnected: a.connected,
-            lastSync: null,
-            entityCount: 0,
+            lastSync: a.lastSyncedAt ?? null,
+            entityCount: a.indexedCount ?? 0,
           }))}
 
           /* Notifications props — loaded from sidecar via IPC */

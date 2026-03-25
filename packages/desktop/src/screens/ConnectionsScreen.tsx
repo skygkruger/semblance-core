@@ -266,15 +266,33 @@ export function ConnectionsScreen() {
   }, [dispatch, loadAccounts]);
 
   const handleSync = useCallback(async (connectorId: string) => {
+    // Show syncing state
+    dispatch({
+      type: 'SET_CONNECTOR_STATE',
+      connectorId,
+      state: { connectorId, status: 'syncing' as ConnectorState['status'] },
+    });
     try {
       await ipcSend({
         action: 'connector.sync',
         payload: { connectorId },
       });
+      // indexing-complete event will update status to 'connected' with timestamp
     } catch (err) {
       console.error(`Failed to sync ${connectorId}:`, err);
+      // Revert to connected (not stuck on syncing) and show error
+      dispatch({
+        type: 'SET_CONNECTOR_STATE',
+        connectorId,
+        state: { connectorId, status: 'connected' as ConnectorState['status'] },
+      });
+      emit('semblance://toast', {
+        id: `sync_err_${Date.now()}`,
+        message: `Sync failed for ${connectorId}`,
+        variant: 'attention',
+      }).catch(() => {});
     }
-  }, []);
+  }, [dispatch]);
 
   const handleSetPrimary = useCallback(async (accountId: string) => {
     try {
@@ -287,6 +305,11 @@ export function ConnectionsScreen() {
       }).catch(() => {});
     } catch (err) {
       console.error('Failed to set primary account:', err);
+      emit('semblance://toast', {
+        id: `primary_err_${Date.now()}`,
+        message: 'Failed to set primary account',
+        variant: 'attention',
+      }).catch(() => {});
     }
   }, [loadAccounts]);
 
@@ -311,6 +334,11 @@ export function ConnectionsScreen() {
       }).catch(() => {});
     } catch (err) {
       console.error('Failed to remove account:', err);
+      emit('semblance://toast', {
+        id: `remove_err_${Date.now()}`,
+        message: 'Failed to remove account',
+        variant: 'attention',
+      }).catch(() => {});
     }
   }, [dispatch, loadAccounts]);
 

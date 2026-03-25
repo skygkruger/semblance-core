@@ -170,7 +170,7 @@ import { generateSovereigntyReport, verifySovereigntyReport, renderSovereigntyRe
 import type { SovereigntyReport } from '../../../core/reporting/sovereignty-report.js';
 
 // Model download imports
-import { getModelsForTier, getEmbeddingModel, getRecommendedReasoningModel, getModelById, MODEL_CATALOG, BITNET_MODEL_CATALOG, getRecommendedBitNetModel, getBitNetModelsForTier, getAnyModelById, getFastTierModel, getRecommendedVisionModel } from '../../../core/llm/model-registry.js';
+import { getModelsForTier, getEmbeddingModel, getRecommendedReasoningModel, getModelById, MODEL_CATALOG, BITNET_MODEL_CATALOG, getRecommendedBitNetModel, getBitNetModels, getBitNetModelsForTier, getAnyModelById, getFastTierModel, getRecommendedVisionModel } from '../../../core/llm/model-registry.js';
 import type { ModelRegistryEntry } from '../../../core/llm/model-registry.js';
 import { getModelsDir, getModelPath, isModelDownloaded, getModelFileSize, getBitNetModelsDir, getBitNetModelPath, isBitNetModelDownloaded, listDownloadedBitNetModels } from '../../../core/llm/model-storage.js';
 import { WHISPER_MODELS } from '../../../core/voice/whisper-model-manager.js';

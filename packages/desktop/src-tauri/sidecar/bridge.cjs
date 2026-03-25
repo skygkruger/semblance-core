@@ -243835,6 +243835,9 @@ function getRecommendedVisionModel(tier) {
   const models = getVisionModelsForTier(tier);
   return models.find((m) => m.family === "moondream") ?? models[0] ?? null;
 }
+function getBitNetModels() {
+  return BITNET_MODEL_CATALOG;
+}
 function getRecommendedBitNetModel(tier) {
   switch (tier) {
     case "workstation":
@@ -280279,6 +280282,74 @@ var InheritanceConfigStore = class {
   }
 };
 
+// packages/core/inheritance/test-run-engine.js
+init_nanoid();
+var TestRunEngine = class {
+  store;
+  premiumGate;
+  auditLogger;
+  constructor(deps) {
+    this.store = deps.store;
+    this.premiumGate = deps.premiumGate;
+    this.auditLogger = deps.auditLogger;
+  }
+  /**
+   * Simulate protocol execution for a party.
+   */
+  simulate(partyId) {
+    if (!this.premiumGate.isPremium()) {
+      return { success: false, error: "Inheritance Protocol requires Digital Representative tier" };
+    }
+    const party = this.store.getParty(partyId);
+    if (!party) {
+      return { success: false, error: `Trusted party not found: ${partyId}` };
+    }
+    const actions = this.store.getActionsForParty(partyId);
+    const config = this.store.getConfig();
+    const allParties = this.store.getAllParties();
+    const allPartiesActivated = allParties.length <= 1;
+    const results = [];
+    let wouldExecute = 0;
+    let blockedByConsensus = 0;
+    for (const action of actions) {
+      const blocked = action.requiresDeletionConsensus && config.requireAllPartiesForDeletion && !allPartiesActivated;
+      if (blocked) {
+        blockedByConsensus++;
+      } else {
+        wouldExecute++;
+      }
+      results.push({
+        actionId: action.id,
+        label: action.label,
+        category: action.category,
+        wouldExecute: !blocked,
+        blockedByConsensus: blocked
+      });
+    }
+    this.auditLogger.log({
+      id: `sim_${nanoid()}`,
+      action: "inheritance.test-run",
+      payload: {
+        partyId,
+        partyName: party.name,
+        totalActions: actions.length,
+        wouldExecute,
+        blockedByConsensus
+      },
+      estimatedTimeSavedSeconds: 0
+    });
+    return {
+      partyId,
+      partyName: party.name,
+      simulatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      actions: results,
+      totalActions: actions.length,
+      wouldExecute,
+      blockedByConsensus
+    };
+  }
+};
+
 // packages/core/backup/backup-manager.js
 init_platform();
 
@@ -281028,6 +281099,16 @@ async function handleInitialize() {
     prefsDb = new import_better_sqlite34.default((0, import_node_path14.join)(dataDir, "core.db"));
     prefsDb.pragma("journal_mode = WAL");
     prefsDb.exec(PREFS_TABLE_SQL);
+    prefsDb.exec(`CREATE TABLE IF NOT EXISTS dark_pattern_flags (
+      id TEXT PRIMARY KEY,
+      content_id TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      flagged_at TEXT NOT NULL,
+      confidence REAL NOT NULL DEFAULT 0.5,
+      patterns_json TEXT NOT NULL DEFAULT '[]',
+      reframe TEXT NOT NULL DEFAULT '',
+      dismissed INTEGER NOT NULL DEFAULT 0
+    )`);
     console.error("[sidecar] Preferences DB ready");
   } catch (prefsDbErr) {
     console.error("[sidecar] CRITICAL: Failed to open core.db:", prefsDbErr);
@@ -281851,7 +281932,7 @@ async function handleInitialize() {
     browserCDPAdapter = new BrowserCDPAdapter(gateway?.getAllowlist());
     console.error("[sidecar] BrowserCDPAdapter initialized (lazy connect)");
     console.error("[sidecar] AlterEgoWeekEngine: available via ipAdapters.alterEgoWeekEngine");
-    importOrchestrator = new ImportEverythingOrchestrator(dbHandle);
+    importOrchestrator = new ImportEverythingOrchestrator(dbHandle, core?.knowledge ?? null);
     console.error("[sidecar] ImportEverythingOrchestrator initialized");
     console.error("[sidecar] Sprint G.5 initialization complete");
   } catch (sprintG5Err) {
@@ -282380,6 +282461,12 @@ async function handleStartIndexing(id, params) {
       const allDirs = [.../* @__PURE__ */ new Set([...existingDirs, ...params.directories])];
       setPref("indexed_directories", JSON.stringify(allDirs));
       const stats = core?.knowledge ? await core.knowledge.getStats() : { totalDocuments: totalFilesScanned, totalChunks: totalChunksCreated };
+      if (graphVisualizationProvider) {
+        try {
+          graphVisualizationProvider.invalidateCache();
+        } catch {
+        }
+      }
       emit("indexing-complete", {
         filesScanned: totalFilesScanned,
         filesTotal,
@@ -282422,10 +282509,11 @@ async function handleGetKnowledgeStats() {
       documentCount: stats.totalDocuments,
       chunkCount: stats.totalChunks,
       indexSizeBytes: 0,
-      lastIndexedAt: getPref("last_indexed_at")
+      lastIndexedAt: getPref("last_indexed_at"),
+      sources: stats.sources ?? {}
     };
   } catch {
-    return { documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null };
+    return { documentCount: 0, chunkCount: 0, indexSizeBytes: 0, lastIndexedAt: null, sources: {} };
   }
 }
 async function handleGetIndexedDirectories() {
@@ -282437,17 +282525,29 @@ async function handleGetActionLog(params) {
   try {
     const trail = gateway.getAuditTrail();
     const entries = trail.getRecent(params.limit + params.offset);
-    return entries.slice(params.offset, params.offset + params.limit).map((entry) => ({
-      id: entry.id,
-      timestamp: entry.timestamp,
-      action: entry.action,
-      status: entry.status,
-      description: formatAuditDescription(entry.action, entry.metadata),
-      autonomy_tier: "partner",
-      payload_hash: entry.payloadHash,
-      audit_ref: entry.id,
-      estimated_time_saved_seconds: entry.estimatedTimeSavedSeconds ?? 0
-    }));
+    return entries.slice(params.offset, params.offset + params.limit).map((entry) => {
+      let tier = "partner";
+      if (core?.agent?.autonomy) {
+        try {
+          const am = core.agent.autonomy;
+          const domain = am.getDomainForAction(entry.action);
+          if (domain) tier = am.getDomainTier(domain);
+        } catch {
+        }
+      }
+      return {
+        id: entry.id,
+        timestamp: entry.timestamp,
+        action: entry.action,
+        status: entry.status,
+        description: formatAuditDescription(entry.action, entry.metadata),
+        autonomy_tier: tier,
+        payload_hash: entry.payloadHash,
+        audit_ref: entry.id,
+        estimatedTimeSaved: entry.estimatedTimeSavedSeconds ?? 0,
+        reasoningContext: entry.metadata?.reasoningContext ?? void 0
+      };
+    });
   } catch {
     return [];
   }
@@ -282461,22 +282561,45 @@ function formatAuditDescription(action, metadata) {
   return `Action: ${action}`;
 }
 async function handleGetPrivacyStatus() {
+  const fallback = { all_local: true, connection_count: 0, last_audit_entry: null, anomaly_detected: false, actions_logged: 0, time_saved_seconds: 0 };
   if (!gateway) {
-    return { all_local: true, connection_count: 0, last_audit_entry: null, anomaly_detected: false };
+    return fallback;
   }
   try {
     const trail = gateway.getAuditTrail();
-    const count = trail.count();
+    const actionsLogged = trail.count();
     const recent = trail.getRecent(1);
     const lastEntry = recent.length > 0 ? recent[0].timestamp : null;
+    let timeSavedSeconds = 0;
+    try {
+      ensureNetworkMonitor();
+      if (auditQuery) {
+        const aggregates = auditQuery.aggregateByService("all");
+        timeSavedSeconds = aggregates.reduce((sum, a) => sum + a.totalTimeSavedSeconds, 0);
+      }
+    } catch {
+    }
+    let connectionCount = 0;
+    let allLocal = true;
+    try {
+      ensureNetworkMonitor();
+      if (networkMonitor) {
+        const stats = networkMonitor.getStatistics("all");
+        connectionCount = stats.totalConnections ?? 0;
+        allLocal = stats.unauthorizedAttempts === 0;
+      }
+    } catch {
+    }
     return {
-      all_local: true,
-      connection_count: 0,
+      all_local: allLocal,
+      connection_count: connectionCount,
       last_audit_entry: lastEntry,
-      anomaly_detected: false
+      anomaly_detected: !allLocal,
+      actions_logged: actionsLogged,
+      time_saved_seconds: timeSavedSeconds
     };
   } catch {
-    return { all_local: true, connection_count: 0, last_audit_entry: null, anomaly_detected: false };
+    return fallback;
   }
 }
 function handleSetUserName(params) {
@@ -283124,7 +283247,18 @@ function ensureDeviceRegistry() {
 function handleGetActiveConnections() {
   ensureNetworkMonitor();
   if (!networkMonitor) return [];
-  return networkMonitor.getActiveConnections();
+  const inMemory = networkMonitor.getActiveConnections();
+  if (inMemory.length > 0) return inMemory;
+  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1e3).toISOString();
+  const recentHistory = networkMonitor.getConnectionHistory({ after: fiveMinAgo, limit: 20 });
+  return recentHistory.map((record) => ({
+    id: record.id,
+    service: record.service,
+    protocol: "HTTPS",
+    connectedSince: record.timestamp,
+    status: record.status === "success" ? "active" : "idle",
+    lastActivity: record.timestamp
+  }));
 }
 function handleGetNetworkStatistics(params) {
   ensureNetworkMonitor();
@@ -283382,6 +283516,67 @@ function handleContactsGetFrequencyAlerts() {
   ensureContactStore();
   if (!contactFrequencyMonitor) throw new Error("Frequency monitor not initialized");
   return { alerts: contactFrequencyMonitor.getDecreasingContacts() };
+}
+function handleContactsCreate(params) {
+  if (!params.displayName?.trim()) {
+    return { success: false, error: "Display name is required." };
+  }
+  const store = ensureContactStore();
+  const result2 = store.insertContact({
+    displayName: params.displayName.trim(),
+    emails: params.email ? [params.email.trim()] : void 0,
+    phones: params.phone ? [params.phone.trim()] : void 0,
+    organization: params.organization?.trim() || void 0,
+    source: "imported"
+  });
+  if (params.relationshipType && result2.id) {
+    store.updateContact(result2.id, { relationshipType: params.relationshipType });
+  }
+  return { success: true, id: result2.id };
+}
+function handleContactsUpdate(params) {
+  if (!params.id) throw new Error("Contact ID is required");
+  const store = ensureContactStore();
+  const success = store.updateContact(params.id, params.updates);
+  if (!success) throw new Error(`Contact not found: ${params.id}`);
+  return { success: true };
+}
+function handleContactsDelete(params) {
+  if (!params.id) throw new Error("Contact ID is required");
+  const store = ensureContactStore();
+  const success = store.deleteContact(params.id);
+  if (!success) throw new Error(`Contact not found: ${params.id}`);
+  return { success: true };
+}
+function handleContactsGetEmailHistory(params) {
+  const { contactEmail } = params;
+  if (!contactEmail || !prefsDb) return [];
+  try {
+    const emails = prefsDb.prepare(
+      `SELECT message_id, subject, "from", from_name, snippet, received_at, priority
+       FROM indexed_emails
+       WHERE "from" LIKE ? OR to_addresses LIKE ?
+       ORDER BY received_at DESC LIMIT 20`
+    ).all(`%${contactEmail}%`, `%${contactEmail}%`);
+    return emails;
+  } catch {
+    return [];
+  }
+}
+function handleContactsGetCalendarHistory(params) {
+  const { contactEmail } = params;
+  if (!contactEmail || !prefsDb) return [];
+  try {
+    const events = prefsDb.prepare(
+      `SELECT uid, title, start_time, end_time, attendees
+       FROM indexed_calendar_events
+       WHERE attendees LIKE ?
+       ORDER BY start_time DESC LIMIT 20`
+    ).all(`%${contactEmail}%`);
+    return events;
+  } catch {
+    return [];
+  }
 }
 function ensureMessageDrafter() {
   if (!messageDrafter && core) {
@@ -285315,6 +285510,26 @@ async function handleRequest(req) {
         result2 = handleContactsGetFrequencyAlerts();
         respond(id, result2);
         break;
+      case "contacts:create":
+        result2 = handleContactsCreate(params);
+        respond(id, result2);
+        break;
+      case "contacts:update":
+        result2 = handleContactsUpdate(params);
+        respond(id, result2);
+        break;
+      case "contacts:delete":
+        result2 = handleContactsDelete(params);
+        respond(id, result2);
+        break;
+      case "contacts:getEmailHistory":
+        result2 = handleContactsGetEmailHistory(params);
+        respond(id, result2);
+        break;
+      case "contacts:getCalendarHistory":
+        result2 = handleContactsGetCalendarHistory(params);
+        respond(id, result2);
+        break;
       // ── Messaging (Step 15) ──
       case "messaging:draft":
         result2 = await handleMessagingDraft(params);
@@ -286239,10 +286454,16 @@ async function handleRequest(req) {
           break;
         }
         try {
-          const flags = prefsDb.prepare(
-            "SELECT * FROM dark_pattern_flags WHERE dismissed = 0 ORDER BY created_at DESC LIMIT 50"
+          const dpfRows = prefsDb.prepare(
+            "SELECT * FROM dark_pattern_flags WHERE dismissed = 0 ORDER BY flagged_at DESC LIMIT 50"
           ).all();
-          respond(id, flags);
+          const dpfMapped = dpfRows.map((f) => ({
+            contentId: f.content_id,
+            confidence: f.confidence,
+            patterns: JSON.parse(f.patterns_json ?? "[]"),
+            reframe: f.reframe ?? ""
+          }));
+          respond(id, dpfMapped);
         } catch {
           respond(id, []);
         }
@@ -286399,6 +286620,10 @@ async function handleRequest(req) {
           if (!graphVisualizationProvider) {
             respond(id, { nodes: [], edges: [], clusters: [], categoryNodes: [], categoryEdges: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
             break;
+          }
+          const graphParams = params;
+          if (graphParams?.force) {
+            graphVisualizationProvider.invalidateCache();
           }
           const graph = graphVisualizationProvider.getCategoryGraph();
           respond(id, graph);
@@ -287599,12 +287824,37 @@ async function handleRequest(req) {
           if (!witnessVerifier) {
             witnessVerifier = new WitnessVerifier();
           }
-          respond(id, {
-            id: attestation.id,
-            hasSignature: !!attestation.signature,
-            algorithm: attestation.algorithm,
-            signedAt: attestation.signedAt
-          });
+          if (attestationSigner && attestation.proof?.proofValue) {
+            const verificationKey = attestationSigner.signingKey ?? attestationSigner.ed25519PrivateKey;
+            if (verificationKey) {
+              const result3 = witnessVerifier.verify(attestation, verificationKey);
+              respond(id, {
+                id: attestation.id,
+                valid: result3.valid,
+                hasSignature: true,
+                algorithm: attestation.proof.type,
+                signedAt: attestation.proof.created
+              });
+            } else {
+              respond(id, {
+                id: attestation.id,
+                valid: false,
+                hasSignature: !!attestation.proof?.proofValue,
+                algorithm: attestation.proof?.type,
+                signedAt: attestation.proof?.created,
+                reason: "No verification key available"
+              });
+            }
+          } else {
+            respond(id, {
+              id: attestation.id,
+              valid: false,
+              hasSignature: !!attestation.proof?.proofValue,
+              algorithm: attestation.proof?.type,
+              signedAt: attestation.proof?.created,
+              reason: !attestationSigner ? "Signer not initialized" : "No signature on attestation"
+            });
+          }
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));
         }
@@ -287643,7 +287893,9 @@ async function handleRequest(req) {
             inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
             inheritanceConfigStore.initSchema();
           }
-          respond(id, inheritanceConfigStore.getConfig());
+          const config = inheritanceConfigStore.getConfig();
+          const enabled = getPref("inheritance_enabled") === "true";
+          respond(id, { ...config, enabled });
         } catch {
           respond(id, { enabled: false });
         }
@@ -287660,8 +287912,13 @@ async function handleRequest(req) {
             inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
             inheritanceConfigStore.initSchema();
           }
-          const updated = inheritanceConfigStore.updateConfig(icParams);
-          respond(id, updated);
+          if ("enabled" in icParams) {
+            setPref("inheritance_enabled", icParams.enabled ? "true" : "false");
+          }
+          const { enabled: _enabled, ...storeUpdates } = icParams;
+          const updated = Object.keys(storeUpdates).length > 0 ? inheritanceConfigStore.updateConfig(storeUpdates) : inheritanceConfigStore.getConfig();
+          const enabledVal = getPref("inheritance_enabled") === "true";
+          respond(id, { ...updated, enabled: enabledVal });
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));
         }
@@ -287684,12 +287941,16 @@ async function handleRequest(req) {
             name: ipParams.name,
             email: ipParams.email,
             relationship: ipParams.relationship,
-            passphraseHash: "",
+            passphraseHash: ipParams.passphraseHash ?? "",
             createdAt: (/* @__PURE__ */ new Date()).toISOString(),
             updatedAt: (/* @__PURE__ */ new Date()).toISOString()
           };
           inheritanceConfigStore.insertParty(party);
-          respond(id, party);
+          respond(id, {
+            ...party,
+            role: party.relationship || "trustee",
+            status: party.passphraseHash ? "active" : "pending_setup"
+          });
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));
         }
@@ -287705,7 +287966,12 @@ async function handleRequest(req) {
             inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
             inheritanceConfigStore.initSchema();
           }
-          respond(id, inheritanceConfigStore.getAllParties());
+          const parties = inheritanceConfigStore.getAllParties().map((p) => ({
+            ...p,
+            role: p.relationship || "trustee",
+            status: p.passphraseHash ? "active" : "pending_setup"
+          }));
+          respond(id, parties);
         } catch {
           respond(id, []);
         }
@@ -287730,7 +287996,7 @@ async function handleRequest(req) {
         break;
       }
       case "inheritance_run_test": {
-        if (!prefsDb) {
+        if (!prefsDb || !premiumGate) {
           respondError(id, "Core not initialized");
           break;
         }
@@ -287739,17 +288005,46 @@ async function handleRequest(req) {
             inheritanceConfigStore = new InheritanceConfigStore(prefsDb);
             inheritanceConfigStore.initSchema();
           }
-          const config = inheritanceConfigStore.getConfig();
           const parties = inheritanceConfigStore.getAllParties();
-          const actions = inheritanceConfigStore.getAllActions();
-          respond(id, {
-            success: true,
-            mode: "dry_run",
-            configValid: config.enabled !== void 0,
-            trustedPartyCount: parties.length,
-            actionCount: actions.length,
-            message: `Test complete: ${parties.length} trusted parties, ${actions.length} pre-authorized actions. No real actions executed.`
+          const testEngine = new TestRunEngine({
+            store: inheritanceConfigStore,
+            premiumGate,
+            auditLogger: {
+              log: (entry) => {
+                console.error(`[sidecar] [inheritance-test-run] ${entry.action}: ${JSON.stringify(entry.payload)}`);
+              }
+            }
           });
+          if (parties.length === 0) {
+            respond(id, {
+              success: true,
+              mode: "dry_run",
+              configValid: true,
+              trustedPartyCount: 0,
+              actionCount: 0,
+              message: "Test complete: 0 trusted parties configured. Add trusted parties to run a full simulation."
+            });
+          } else {
+            const simResult = testEngine.simulate(parties[0].id);
+            if ("error" in simResult && !simResult.success) {
+              respond(id, {
+                success: false,
+                message: simResult.error
+              });
+            } else {
+              const trResult = simResult;
+              respond(id, {
+                success: true,
+                mode: "dry_run",
+                configValid: true,
+                trustedPartyCount: parties.length,
+                actionCount: trResult.totalActions,
+                wouldExecute: trResult.wouldExecute,
+                blockedByConsensus: trResult.blockedByConsensus,
+                message: `Test complete: ${parties.length} trusted parties, ${trResult.totalActions} pre-authorized actions. ${trResult.wouldExecute} would execute, ${trResult.blockedByConsensus} blocked by consensus. No real actions executed.`
+              });
+            }
+          }
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));
         }
@@ -288263,8 +288558,15 @@ async function handleRequest(req) {
         }
         try {
           const allDevices = await tunnelPairingCoordinator.listPairedDevices();
-          const peers = allDevices.filter((d) => d.type === "peer");
-          respond(id, peers);
+          const mappedPeers = allDevices.map((d) => ({
+            id: d.deviceId,
+            name: d.displayName,
+            type: d.platform,
+            pairedAt: d.pairedAt,
+            lastSeen: d.lastSeenAt,
+            online: d.online ?? false
+          }));
+          respond(id, mappedPeers);
         } catch {
           respond(id, []);
         }
@@ -288277,8 +288579,20 @@ async function handleRequest(req) {
         }
         try {
           const connectParams = params;
-          const result3 = await tunnelPairingCoordinator.verifyPairingCode(connectParams.code);
-          respond(id, result3);
+          const verified = await tunnelPairingCoordinator.verifyPairingCode(connectParams.code);
+          if (verified) {
+            await tunnelPairingCoordinator.completePairing({
+              deviceId: verified.deviceId,
+              displayName: verified.displayName,
+              platform: verified.platform,
+              meshIp: "0.0.0.0",
+              // Will be assigned by Headscale when tunnel infra is deployed
+              publicKey: verified.publicKey
+            });
+            respond(id, { success: true, peer: verified });
+          } else {
+            respond(id, { success: false, error: "Invalid or expired pairing code" });
+          }
         } catch (err) {
           respondError(id, err.message);
         }
@@ -288317,15 +288631,22 @@ async function handleRequest(req) {
         break;
       }
       case "network_generate_connect_code": {
-        if (!tunnelPairingCoordinator) {
-          respondError(id, "Pairing coordinator not initialized");
-          break;
-        }
-        try {
-          const code = await tunnelPairingCoordinator.generatePairingCode();
-          respond(id, { code });
-        } catch (err) {
-          respondError(id, err.message);
+        if (tunnelPairingCoordinator && prefsDb) {
+          try {
+            const pairingCode = Math.floor(1e5 + Math.random() * 9e5).toString();
+            setPref("pending_pairing_code", pairingCode);
+            setPref("pending_pairing_code_expires", new Date(Date.now() + 6e5).toISOString());
+            respond(id, { code: pairingCode });
+          } catch (err) {
+            respondError(id, err.message);
+          }
+        } else if (prefsDb) {
+          const pairingCode = Math.floor(1e5 + Math.random() * 9e5).toString();
+          setPref("pending_pairing_code", pairingCode);
+          setPref("pending_pairing_code_expires", new Date(Date.now() + 6e5).toISOString());
+          respond(id, { code: pairingCode });
+        } else {
+          respondError(id, "Database not available");
         }
         break;
       }

@@ -83,6 +83,8 @@ export interface AccountStatus {
   username: string;
   protocols: string[];
   connected: boolean;
+  lastSyncedAt?: string | null;
+  indexedCount?: number;
 }
 
 // ─── Chat / LLM ────────────────────────────────────────────────────────────
