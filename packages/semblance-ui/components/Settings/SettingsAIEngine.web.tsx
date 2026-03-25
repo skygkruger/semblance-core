@@ -16,6 +16,7 @@ function ModelCard({
   downloadProgress,
   onDownload,
   onActivate,
+  onDelete,
 }: {
   model: BitNetModelInfo;
   isActive: boolean;
@@ -23,6 +24,7 @@ function ModelCard({
   downloadProgress: number;
   onDownload: () => void;
   onActivate: () => void;
+  onDelete?: () => void;
 }) {
   const cardClass = [
     'settings-model-card',
@@ -64,6 +66,8 @@ function ModelCard({
     );
   }
 
+  const showDelete = model.isDownloaded && !isActive && !isDownloading;
+
   return (
     <div className={cardClass}>
       <div className="settings-model-card__info">
@@ -103,6 +107,16 @@ function ModelCard({
         )}
       </div>
       {actionButton}
+      {showDelete && onDelete && (
+        <button
+          type="button"
+          className="settings-model-card__action"
+          onClick={onDelete}
+          style={{ color: '#B07A8A', fontSize: 12, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+        >
+          Delete
+        </button>
+      )}
     </div>
   );
 }
@@ -130,6 +144,8 @@ export function SettingsAIEngine({
   standardDownloadProgress,
   onStandardDownload,
   onStandardActivate,
+  onBitNetDelete,
+  onStandardDelete,
 }: SettingsAIEngineProps) {
   const { t } = useTranslation('settings');
 
@@ -175,6 +191,7 @@ export function SettingsAIEngine({
               downloadProgress={bitnetDownloadingModelId === model.id ? bitnetDownloadProgress : 0}
               onDownload={() => onBitNetDownload(model.id)}
               onActivate={() => onBitNetActivate(model.id)}
+              onDelete={onBitNetDelete ? () => onBitNetDelete(model.id) : undefined}
             />
           ))}
         </div>
@@ -195,8 +212,27 @@ export function SettingsAIEngine({
               downloadProgress={standardDownloadingModelId === model.id ? standardDownloadProgress : 0}
               onDownload={() => onStandardDownload(model.id)}
               onActivate={() => onStandardActivate(model.id)}
+              onDelete={onStandardDelete ? () => onStandardDelete(model.id) : undefined}
             />
           ))}
+        </div>
+
+        {/* Ollama Configuration */}
+        <div className="settings-section-header">Ollama</div>
+        <div className="settings-bitnet-explainer">
+          External inference server for GPU-accelerated models. Required for Standard models.
+        </div>
+        <div className="settings-row settings-row--static">
+          <span className="settings-row__label">Server URL</span>
+          <span className="settings-row__value" style={{ fontFamily: "'DM Mono', monospace", fontSize: 12 }}>
+            localhost:11434
+          </span>
+        </div>
+        <div className="settings-row settings-row--static">
+          <span className="settings-row__label">Status</span>
+          <span className={isModelRunning ? 'settings-badge settings-badge--veridian' : 'settings-badge settings-badge--muted'}>
+            {isModelRunning ? 'Connected' : 'Not detected'}
+          </span>
         </div>
 
         {/* Hardware Profile */}

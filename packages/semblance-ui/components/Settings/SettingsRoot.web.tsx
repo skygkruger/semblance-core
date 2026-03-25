@@ -35,6 +35,8 @@ export function SettingsRoot({
   lastBackupAt,
   binaryAllowlistCount = 0,
   adversarialAlertCount = 0,
+  cronJobCount = 0,
+  knowledgeDocCount = 0,
 }: SettingsRootProps) {
   const { t } = useTranslation('settings');
 
@@ -46,6 +48,7 @@ export function SettingsRoot({
         { screen: 'connections', label: t('root.rows.connections'), value: t('root.row_values.connections_active', { n: activeConnections }) },
         { screen: 'notifications', label: t('root.rows.notifications'), value: notificationSummary },
         { screen: 'autonomy', label: t('root.rows.autonomy'), value: tierLabels[autonomyTier] || autonomyTier },
+        { screen: 'scheduled-jobs', label: 'Scheduled Jobs', value: `${cronJobCount} active` },
         { screen: '__intents', label: t('root.rows.intents', 'Intents & Hard Limits'), value: '' },
       ],
     },
@@ -67,6 +70,12 @@ export function SettingsRoot({
       header: 'COMPUTE MESH',
       rows: [
         { screen: 'tunnel-pairing', label: 'Device Pairing', value: pairedDeviceCount > 0 ? `${pairedDeviceCount} paired` : 'Not set up' },
+      ],
+    },
+    {
+      header: 'KNOWLEDGE',
+      rows: [
+        { screen: 'knowledge', label: 'Knowledge Graph', value: knowledgeDocCount > 0 ? `${knowledgeDocCount} documents` : 'Empty' },
       ],
     },
     {
@@ -105,6 +114,7 @@ export function SettingsRoot({
       header: 'ACCOUNT',
       rows: [
         { screen: 'account', label: t('root.rows.account'), value: licenseLabels[licenseStatus] || licenseStatus },
+        { screen: 'about', label: 'About Semblance', value: appVersion },
       ],
     },
   ];

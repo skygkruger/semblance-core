@@ -88,6 +88,7 @@
     "section_domain_overrides": "Domain Overrides",
     "section_safety": "Safety",
     "domain_overrides_explanation": "Override the default tier for specific areas. Useful if you want Alter Ego everywhere except Finance.",
+    "override_default": "Default ({{tier}})",
     "label_require_confirmation": "Require confirmation for irreversible actions",
     "label_action_review_window": "Action review window",
     "irreversible_actions_explanation": "Irreversible actions include sent emails, deleted files, cancelled subscriptions, and calendar changes affecting others.",

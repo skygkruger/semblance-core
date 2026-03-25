@@ -287105,6 +287105,184 @@ async function handleRequest(req) {
         respond(id, result3);
         break;
       }
+      // ─── Model Deletion ─────────────────────────────────────────────────
+      case "bitnet_delete_model": {
+        const { modelId } = params;
+        const baseDir = dataDir ? (0, import_node_path14.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+        const modelPath = getBitNetModelPath(modelId, baseDir);
+        try {
+          if ((0, import_node_fs13.existsSync)(modelPath)) {
+            (await import("node:fs")).unlinkSync(modelPath);
+          }
+          console.error(`[sidecar] Deleted BitNet model: ${modelId}`);
+          respond(id, { success: true, modelId });
+        } catch (err) {
+          respond(id, { success: false, error: err.message });
+        }
+        break;
+      }
+      case "standard_delete_model": {
+        const { modelId } = params;
+        const baseDir = dataDir ? (0, import_node_path14.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
+        const modelPath = getModelPath(modelId, baseDir);
+        try {
+          if ((0, import_node_fs13.existsSync)(modelPath)) {
+            (await import("node:fs")).unlinkSync(modelPath);
+          }
+          console.error(`[sidecar] Deleted standard model: ${modelId}`);
+          respond(id, { success: true, modelId });
+        } catch (err) {
+          respond(id, { success: false, error: err.message });
+        }
+        break;
+      }
+      // ─── Cron Job Management ──────────────────────────────────────────────
+      case "cron_list_jobs": {
+        if (!cronScheduler) {
+          respond(id, []);
+          break;
+        }
+        const jobs = cronScheduler.listJobs();
+        respond(id, jobs.map((j) => ({
+          id: j.id,
+          name: j.name,
+          schedule: j.schedule,
+          enabled: j.enabled,
+          lastFiredAt: j.lastFiredAt,
+          nextFireAt: j.nextFireAt
+        })));
+        break;
+      }
+      case "cron_enable_job": {
+        const { jobId } = params;
+        if (!cronScheduler) {
+          respond(id, { success: false });
+          break;
+        }
+        cronScheduler.enableJob(jobId);
+        respond(id, { success: true });
+        break;
+      }
+      case "cron_disable_job": {
+        const { jobId } = params;
+        if (!cronScheduler) {
+          respond(id, { success: false });
+          break;
+        }
+        cronScheduler.disableJob(jobId);
+        respond(id, { success: true });
+        break;
+      }
+      case "cron_update_schedule": {
+        const { jobId, schedule } = params;
+        if (!cronScheduler) {
+          respond(id, { success: false });
+          break;
+        }
+        cronScheduler.updateSchedule(jobId, schedule);
+        respond(id, { success: true });
+        break;
+      }
+      // ─── Knowledge Graph Management ───────────────────────────────────────
+      case "knowledge_get_stats": {
+        if (!core?.knowledge) {
+          respond(id, { totalDocuments: 0, totalEntities: 0, totalRelationships: 0, sourceBreakdown: [] });
+          break;
+        }
+        try {
+          const stats = await core.knowledge.getStats();
+          const sourceBreakdown = Object.entries(stats.sources).map(([source, count]) => ({
+            source,
+            count,
+            lastIndexed: null
+          }));
+          respond(id, {
+            totalDocuments: stats.totalDocuments,
+            totalEntities: stats.totalChunks,
+            // chunks ≈ entities for display
+            totalRelationships: 0,
+            // not tracked at this level
+            sourceBreakdown
+          });
+        } catch {
+          respond(id, { totalDocuments: 0, totalEntities: 0, totalRelationships: 0, sourceBreakdown: [] });
+        }
+        break;
+      }
+      case "knowledge_get_source_breakdown": {
+        if (!core?.knowledge) {
+          respond(id, []);
+          break;
+        }
+        try {
+          const stats = await core.knowledge.getStats();
+          const breakdown = Object.entries(stats.sources).map(([source, count]) => ({
+            source,
+            count,
+            lastIndexed: null
+          }));
+          respond(id, breakdown);
+        } catch {
+          respond(id, []);
+        }
+        break;
+      }
+      case "knowledge_reindex": {
+        if (!core?.knowledge) {
+          respond(id, { success: false });
+          break;
+        }
+        try {
+          emit("semblance://status-update", { type: "reindex_started" });
+          respond(id, { success: true });
+        } catch {
+          respond(id, { success: false });
+        }
+        break;
+      }
+      case "knowledge_clear_source": {
+        const { source } = params;
+        if (!prefsDb) {
+          respond(id, { success: false });
+          break;
+        }
+        try {
+          const coreDbPath = (0, import_node_path14.join)(dataDir ?? (0, import_node_path14.join)((0, import_node_os12.homedir)(), ".semblance", "data"), "core.db");
+          if ((0, import_node_fs13.existsSync)(coreDbPath)) {
+            const coreDb = new import_better_sqlite34.default(coreDbPath);
+            const result3 = coreDb.prepare("DELETE FROM documents WHERE source = ?").run(source);
+            console.error(`[sidecar] Cleared ${result3.changes} documents from source: ${source}`);
+            coreDb.close();
+          }
+          respond(id, { success: true });
+        } catch (err) {
+          console.error(`[sidecar] Failed to clear source ${source}:`, err);
+          respond(id, { success: false });
+        }
+        break;
+      }
+      // ─── Autonomy Configuration ───────────────────────────────────────────
+      case "autonomy_get_config": {
+        const domains = ["email", "calendar", "files", "finances", "health", "services"];
+        const config = {};
+        for (const domain of domains) {
+          config[domain] = getPref(`autonomy_${domain}`) ?? "partner";
+        }
+        respond(id, config);
+        break;
+      }
+      case "autonomy_set_review_window": {
+        const { window: win } = params;
+        setPref("autonomy_review_window", win);
+        respond(id, { success: true });
+        break;
+      }
+      case "autonomy_set_require_confirmation": {
+        const { required } = params;
+        setPref("autonomy_require_confirmation", required ? "true" : "false");
+        respond(id, { success: true });
+        break;
+      }
       case "voice_get_model_status": {
         const result3 = handleVoiceGetModelStatus();
         respond(id, result3);

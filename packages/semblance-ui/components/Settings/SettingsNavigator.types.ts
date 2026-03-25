@@ -104,6 +104,20 @@ export interface SettingsNavigatorProps {
   onNavigateIntents?: () => void;
   onNavigateExternal?: (path: string) => void;
 
+  /* Scheduled Jobs */
+  cronJobs?: Array<{ id: string; name: string; schedule: string; enabled: boolean; lastFiredAt: string | null; nextFireAt: string }>;
+  onToggleCronJob?: (jobId: string, enabled: boolean) => void;
+
+  /* Knowledge Graph */
+  knowledgeStats?: { totalDocuments: number; totalEntities: number; totalRelationships: number; sourceBreakdown: Array<{ source: string; count: number; lastIndexed: string | null }> } | null;
+  isReindexing?: boolean;
+  onReindex?: () => void;
+  onClearKnowledgeSource?: (source: string) => void;
+
+  /* Model management */
+  onBitNetDelete?: (modelId: string) => void;
+  onStandardDelete?: (modelId: string) => void;
+
   /* Sprint G badge counts */
   channelCount?: number;
   sessionCount?: number;
@@ -117,4 +131,6 @@ export interface SettingsNavigatorProps {
   lastBackupAt?: string | null;
   binaryAllowlistCount?: number;
   adversarialAlertCount?: number;
+  cronJobCount?: number;
+  knowledgeDocCount?: number;
 }

@@ -49,7 +49,16 @@ export function SettingsNotifications({
 
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">{t('notifications.label_delivery_time')}</span>
-          <span className="settings-row__value">{morningBriefTime}</span>
+          <input
+            type="time"
+            value={morningBriefTime}
+            onChange={(e) => onChange('morningBriefTime', e.target.value)}
+            style={{
+              background: '#0B0E11', border: '1px solid #2A3038', borderRadius: 6,
+              color: '#EEF1F4', fontFamily: "'DM Mono', monospace", fontSize: 13,
+              padding: '4px 8px', outline: 'none',
+            }}
+          />
         </div>
 
         <div className="settings-row" onClick={() => onChange('includeWeather', !includeWeather)}>
@@ -72,7 +81,19 @@ export function SettingsNotifications({
 
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">{t('notifications.label_default_snooze')}</span>
-          <span className="settings-row__value">{snoozeLabels[defaultSnoozeDuration]}</span>
+          <select
+            value={defaultSnoozeDuration}
+            onChange={(e) => onChange('defaultSnoozeDuration', e.target.value)}
+            style={{
+              background: '#0B0E11', border: '1px solid #2A3038', borderRadius: 6,
+              color: '#EEF1F4', fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+              padding: '4px 8px', outline: 'none', cursor: 'pointer',
+            }}
+          >
+            {Object.entries(snoozeLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Autonomous Actions */}
@@ -90,7 +111,19 @@ export function SettingsNotifications({
 
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">{t('notifications.label_action_digest')}</span>
-          <span className="settings-row__value">{digestLabels[actionDigest]}</span>
+          <select
+            value={actionDigest}
+            onChange={(e) => onChange('actionDigest', e.target.value)}
+            style={{
+              background: '#0B0E11', border: '1px solid #2A3038', borderRadius: 6,
+              color: '#EEF1F4', fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+              padding: '4px 8px', outline: 'none', cursor: 'pointer',
+            }}
+          >
+            {Object.entries(digestLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
         </div>
 
         {/* System */}

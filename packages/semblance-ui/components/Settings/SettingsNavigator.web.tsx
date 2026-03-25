@@ -12,6 +12,9 @@ import { SettingsPreferences } from './SettingsPreferences.web';
 import { SettingsSkills } from './SettingsSkills.web';
 import { SettingsBinaryAllowlist } from './SettingsBinaryAllowlist.web';
 import { SettingsTunnelPairing } from './SettingsTunnelPairing.web';
+import { SettingsScheduledJobs } from './SettingsScheduledJobs.web';
+import { SettingsKnowledge } from './SettingsKnowledge.web';
+import { SettingsAbout } from './SettingsAbout.web';
 import type { Screen, SettingsNavigatorProps } from './SettingsNavigator.types';
 
 export function SettingsNavigator(props: SettingsNavigatorProps) {
@@ -67,6 +70,8 @@ export function SettingsNavigator(props: SettingsNavigatorProps) {
           standardDownloadProgress={props.standardDownloadProgress}
           onStandardDownload={props.onStandardDownload}
           onStandardActivate={props.onStandardActivate}
+          onBitNetDelete={props.onBitNetDelete}
+          onStandardDelete={props.onStandardDelete}
         />
       );
 
@@ -165,6 +170,37 @@ export function SettingsNavigator(props: SettingsNavigatorProps) {
     case 'tunnel-pairing':
       return <SettingsTunnelPairing onBack={goBack} />;
 
+    case 'scheduled-jobs':
+      return (
+        <SettingsScheduledJobs
+          jobs={props.cronJobs ?? []}
+          onToggleJob={props.onToggleCronJob ?? (() => {})}
+          onBack={goBack}
+        />
+      );
+
+    case 'knowledge':
+      return (
+        <SettingsKnowledge
+          stats={props.knowledgeStats ?? null}
+          isReindexing={props.isReindexing ?? false}
+          onReindex={props.onReindex ?? (() => {})}
+          onClearSource={props.onClearKnowledgeSource ?? (() => {})}
+          onBack={goBack}
+        />
+      );
+
+    case 'about':
+      return (
+        <SettingsAbout
+          appVersion={props.appVersion}
+          hardwareProfile={props.hardwareProfile}
+          activeModel={props.modelName}
+          knowledgeDocCount={props.knowledgeDocCount ?? 0}
+          onBack={goBack}
+        />
+      );
+
     default:
       return (
         <SettingsRoot
@@ -190,6 +226,8 @@ export function SettingsNavigator(props: SettingsNavigatorProps) {
           lastBackupAt={props.lastBackupAt}
           binaryAllowlistCount={props.binaryAllowlistCount}
           adversarialAlertCount={props.adversarialAlertCount}
+          cronJobCount={props.cronJobCount}
+          knowledgeDocCount={props.knowledgeDocCount}
         />
       );
   }

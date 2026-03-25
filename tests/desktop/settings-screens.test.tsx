@@ -69,7 +69,9 @@ describe('SettingsRoot', () => {
 
   it('shows version footer', () => {
     render(<SettingsRoot {...defaultProps} />);
-    expect(screen.getByText('Semblance v0.1.0')).toBeInTheDocument();
+    // Version appears in both footer and About row
+    const versionElements = screen.getAllByText('Semblance v0.1.0');
+    expect(versionElements.length).toBeGreaterThanOrEqual(1);
   });
 
   it('calls onNavigate when a row is clicked', async () => {
@@ -227,7 +229,9 @@ describe('SettingsNotifications', () => {
 
   it('shows delivery time', () => {
     render(<SettingsNotifications {...defaultProps} />);
-    expect(screen.getByText('08:00')).toBeInTheDocument();
+    // Time is now an editable input, not static text
+    const timeInput = screen.getByDisplayValue('08:00');
+    expect(timeInput).toBeInTheDocument();
   });
 
   it('shows snooze duration label', () => {
@@ -263,9 +267,10 @@ describe('SettingsAutonomy', () => {
 
   it('renders all three tier cards', () => {
     render(<SettingsAutonomy {...defaultProps} />);
-    expect(screen.getByText('Guardian')).toBeInTheDocument();
-    expect(screen.getByText('Partner')).toBeInTheDocument();
-    expect(screen.getByText('Alter Ego')).toBeInTheDocument();
+    // Tier names appear in both cards and domain override dropdowns
+    expect(screen.getAllByText('Guardian').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Partner').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Alter Ego').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows ACTIVE badge on current tier', () => {
@@ -306,7 +311,9 @@ describe('SettingsAutonomy', () => {
   it('calls onChange when tier card is clicked', async () => {
     const onChange = vi.fn();
     render(<SettingsAutonomy {...defaultProps} onChange={onChange} />);
-    await userEvent.click(screen.getByText('Alter Ego'));
+    // "Alter Ego" appears in tier cards and dropdowns — click the first (tier card)
+    const alterEgoElements = screen.getAllByText('Alter Ego');
+    await userEvent.click(alterEgoElements[0]!);
     expect(onChange).toHaveBeenCalledWith('currentTier', 'alter-ego');
   });
 });
@@ -537,9 +544,10 @@ describe('SettingsNavigator', () => {
   it('navigates to Autonomy screen', async () => {
     render(<SettingsNavigator {...defaultProps} />);
     await userEvent.click(screen.getByText('Autonomy'));
-    expect(screen.getByText('Guardian')).toBeInTheDocument();
-    expect(screen.getByText('Partner')).toBeInTheDocument();
-    expect(screen.getByText('Alter Ego')).toBeInTheDocument();
+    // Tier names appear in both cards and domain override dropdowns
+    expect(screen.getAllByText('Guardian').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Partner').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Alter Ego').length).toBeGreaterThanOrEqual(1);
   });
 
   it('navigates to Account screen', async () => {

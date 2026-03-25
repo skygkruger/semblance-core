@@ -25,7 +25,10 @@ export type SettingsScreen =
   | 'skills'
   | 'preferences'
   | 'binary-allowlist'
-  | 'tunnel-pairing';
+  | 'tunnel-pairing'
+  | 'scheduled-jobs'
+  | 'knowledge'
+  | 'about';
 
 export interface SettingsRootProps {
   currentModel: string;
@@ -51,6 +54,8 @@ export interface SettingsRootProps {
   lastBackupAt?: string | null;
   binaryAllowlistCount?: number;
   adversarialAlertCount?: number;
+  cronJobCount?: number;
+  knowledgeDocCount?: number;
 }
 
 export const tierLabels: Record<string, string> = {

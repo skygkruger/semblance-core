@@ -118,6 +118,26 @@ export function SettingsScreen() {
 
   const [privacyStatus, setPrivacyStatus] = useState<'clean' | 'review-needed'>('clean');
 
+  // Cron job state
+  const [cronJobs, setCronJobs] = useState<Array<{ id: string; name: string; schedule: string; enabled: boolean; lastFiredAt: string | null; nextFireAt: string }>>([]);
+
+  // Knowledge graph state
+  const [knowledgeStats, setKnowledgeStats] = useState<{
+    totalDocuments: number;
+    totalEntities: number;
+    totalRelationships: number;
+    sourceBreakdown: Array<{ source: string; count: number; lastIndexed: string | null }>;
+  } | null>(null);
+  const [isReindexing, setIsReindexing] = useState(false);
+
+  // Autonomy domain overrides (real data)
+  const [domainOverrides, setDomainOverrides] = useState<Record<string, 'guardian' | 'partner' | 'alter-ego' | 'default'>>({});
+  const [actionReviewWindow, setActionReviewWindow] = useState<'30s' | '1m' | '5m'>('5m');
+  const [requireConfirmation, setRequireConfirmation] = useState(true);
+
+  // Privacy data sources
+  const [dataSources, setDataSources] = useState<Array<{ id: string; name: string; entityCount: number; lastIndexed: string }>>([]);
+
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     morningBriefEnabled: true,
     morningBriefTime: '07:00',
@@ -198,6 +218,47 @@ export function SettingsScreen() {
         setSearchEngine(raw.engine ?? raw.provider ?? 'searxng');
         setSearchBraveApiKey(raw.braveApiKey ?? '');
         setSearchSearxngUrl(raw.searxngUrl ?? 'https://search.veridian.run');
+      })
+      .catch(() => {});
+
+    // Load cron jobs
+    sidecarCall<Array<{ id: string; name: string; schedule: string; enabled: boolean; lastFiredAt: string | null; nextFireAt: string }>>('cron_list_jobs')
+      .then((jobs) => { if (Array.isArray(jobs)) setCronJobs(jobs); })
+      .catch(() => {});
+
+    // Load knowledge graph stats
+    sidecarCall<{
+      totalDocuments: number; totalEntities: number; totalRelationships: number;
+      sourceBreakdown: Array<{ source: string; count: number; lastIndexed: string | null }>;
+    }>('knowledge_get_stats')
+      .then((s) => { if (s) setKnowledgeStats(s); })
+      .catch(() => {});
+
+    // Load real autonomy domain overrides
+    sidecarCall<Record<string, string>>('autonomy_get_config')
+      .then((cfg) => {
+        if (cfg && typeof cfg === 'object') {
+          const overrides: Record<string, 'guardian' | 'partner' | 'alter-ego' | 'default'> = {};
+          for (const [domain, tier] of Object.entries(cfg)) {
+            const t = (tier as string).replace('_', '-') as 'guardian' | 'partner' | 'alter-ego' | 'default';
+            overrides[domain] = t;
+          }
+          setDomainOverrides(overrides);
+        }
+      })
+      .catch(() => {});
+
+    // Load data sources for privacy
+    sidecarCall<Array<{ source: string; count: number; lastIndexed: string | null }>>('knowledge_get_source_breakdown')
+      .then((sources) => {
+        if (Array.isArray(sources)) {
+          setDataSources(sources.map(s => ({
+            id: s.source,
+            name: s.source.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+            entityCount: s.count,
+            lastIndexed: s.lastIndexed ?? '',
+          })));
+        }
       })
       .catch(() => {});
 
@@ -301,6 +362,21 @@ export function SettingsScreen() {
   const connectedAccounts = accounts.filter(a => a.connected).length;
 
   const handleChange = useCallback(async (key: string, value: unknown) => {
+    // Handle domain override changes
+    if (key.startsWith('domainOverride.')) {
+      const domain = key.split('.')[1]!;
+      const tier = (value as string).replace('-', '_');
+      const updated = { ...domainOverrides, [domain]: value as 'guardian' | 'partner' | 'alter-ego' | 'default' };
+      setDomainOverrides(updated);
+      if (value === 'default') {
+        // Remove override — use global tier
+        await setAutonomyTier(domain, (state.autonomyConfig['email'] || 'partner').replace('-', '_') as AutonomyTier).catch(() => {});
+      } else {
+        await setAutonomyTier(domain, tier as AutonomyTier).catch(() => {});
+      }
+      return; // Early return since this isn't in the switch
+    }
+
     switch (key) {
       case 'autonomyTier': {
         const tier = (value as string).replace('-', '_') as AutonomyTier;
@@ -325,14 +401,11 @@ export function SettingsScreen() {
       }
       // Notification settings — persist via IPC
       case 'morningBriefEnabled':
-      case 'morningBriefTime':
       case 'includeWeather':
       case 'includeCalendar':
       case 'remindersEnabled':
-      case 'defaultSnoozeDuration':
       case 'notifyOnAction':
       case 'notifyOnApproval':
-      case 'actionDigest':
       case 'badgeCount':
       case 'soundEffects': {
         const updated = { ...notifSettings, [key]: value };
@@ -340,10 +413,46 @@ export function SettingsScreen() {
         await saveNotificationSettings(updated).catch(() => {});
         break;
       }
+      case 'morningBriefTime': {
+        const time = value as string;
+        const updated = { ...notifSettings, morningBriefTime: time };
+        setNotifSettings(updated);
+        await saveNotificationSettings(updated).catch(() => {});
+        // Also update the cron job schedule
+        const [hour, minute] = time.split(':');
+        sidecarCall('cron_update_schedule', { jobId: 'morning-brief', schedule: `${minute} ${hour} * * *` }).catch(() => {});
+        break;
+      }
+      case 'defaultSnoozeDuration': {
+        const dur = value as string;
+        const updated = { ...notifSettings, defaultSnoozeDuration: dur as '5m' | '15m' | '1h' | '1d' };
+        setNotifSettings(updated);
+        await saveNotificationSettings(updated).catch(() => {});
+        break;
+      }
+      case 'actionDigest': {
+        const digest = value as string;
+        const updated = { ...notifSettings, actionDigest: digest as 'immediate' | 'hourly' | 'daily' };
+        setNotifSettings(updated);
+        await saveNotificationSettings(updated).catch(() => {});
+        break;
+      }
+      case 'actionReviewWindow': {
+        const window = value as '30s' | '1m' | '5m';
+        setActionReviewWindow(window);
+        sidecarCall('autonomy_set_review_window', { window }).catch(() => {});
+        break;
+      }
+      case 'requireConfirmationForIrreversible': {
+        const req = value as boolean;
+        setRequireConfirmation(req);
+        sidecarCall('autonomy_set_require_confirmation', { required: req }).catch(() => {});
+        break;
+      }
       default:
         break;
     }
-  }, [dispatch, notifSettings]);
+  }, [dispatch, notifSettings, domainOverrides, state.autonomyConfig]);
 
   const handleBitNetDownload = useCallback(async (modelId: string) => {
     setBitnetDownloadingModelId(modelId);
@@ -424,6 +533,71 @@ export function SettingsScreen() {
     }
   }, [showToast]);
 
+  const handleToggleCronJob = useCallback(async (jobId: string, enabled: boolean) => {
+    try {
+      await sidecarCall(enabled ? 'cron_enable_job' : 'cron_disable_job', { jobId });
+      setCronJobs(prev => prev.map(j => j.id === jobId ? { ...j, enabled } : j));
+    } catch {
+      showToast('Failed to update scheduled job');
+    }
+  }, [showToast]);
+
+  const handleReindex = useCallback(async () => {
+    setIsReindexing(true);
+    try {
+      await sidecarCall('knowledge_reindex');
+      showToast('Re-indexing started');
+      // Refresh stats after a delay
+      setTimeout(() => {
+        sidecarCall<typeof knowledgeStats>('knowledge_get_stats')
+          .then((s) => { if (s) setKnowledgeStats(s); })
+          .catch(() => {});
+        setIsReindexing(false);
+      }, 3000);
+    } catch {
+      showToast('Re-indexing failed');
+      setIsReindexing(false);
+    }
+  }, [showToast, knowledgeStats]);
+
+  const handleClearKnowledgeSource = useCallback(async (source: string) => {
+    try {
+      await sidecarCall('knowledge_clear_source', { source });
+      setDataSources(prev => prev.filter(s => s.id !== source));
+      // Refresh stats
+      sidecarCall<typeof knowledgeStats>('knowledge_get_stats')
+        .then((s) => { if (s) setKnowledgeStats(s); })
+        .catch(() => {});
+      showToast(`Cleared ${source} data`);
+    } catch {
+      showToast('Failed to clear source');
+    }
+  }, [showToast, knowledgeStats]);
+
+  const handleBitNetDelete = useCallback(async (modelId: string) => {
+    try {
+      await sidecarCall('bitnet_delete_model', { modelId });
+      const res = await getBitNetModels();
+      setBitnetModels(res.models);
+      if (bitnetActiveModelId === modelId) setBitnetActiveModelId(null);
+      showToast('Model deleted');
+    } catch {
+      showToast('Failed to delete model');
+    }
+  }, [showToast, bitnetActiveModelId]);
+
+  const handleStandardDelete = useCallback(async (modelId: string) => {
+    try {
+      await sidecarCall('standard_delete_model', { modelId });
+      const res = await getStandardModels();
+      setStandardModels(res.models);
+      if (standardActiveModelId === modelId) setStandardActiveModelId(null);
+      showToast('Model deleted');
+    } catch {
+      showToast('Failed to delete model');
+    }
+  }, [showToast, standardActiveModelId]);
+
   const licenseStatus = license.tier === 'founding'
     ? 'founding-member' as const
     : license.isPremium
@@ -472,6 +646,7 @@ export function SettingsScreen() {
           bitnetDownloadProgress={bitnetDownloadProgress}
           onBitNetDownload={handleBitNetDownload}
           onBitNetActivate={handleBitNetActivate}
+          onBitNetDelete={handleBitNetDelete}
 
           /* Standard Model Management */
           standardModels={standardModels.map(m => ({
@@ -492,6 +667,7 @@ export function SettingsScreen() {
           standardDownloadProgress={standardDownloadProgress}
           onStandardDownload={handleStandardDownload}
           onStandardActivate={handleStandardActivate}
+          onStandardDelete={handleStandardDelete}
 
           /* Connections props */
           connections={accounts.map(a => ({
@@ -518,14 +694,14 @@ export function SettingsScreen() {
           soundEffects={notifSettings.soundEffects}
 
           /* Autonomy props */
-          domainOverrides={{}}
-          requireConfirmationForIrreversible
-          actionReviewWindow="5m"
+          domainOverrides={domainOverrides}
+          requireConfirmationForIrreversible={requireConfirmation}
+          actionReviewWindow={actionReviewWindow}
 
           /* Privacy props */
           lastAuditTime={null}
-          auditStatus="never-run"
-          dataSources={[]}
+          auditStatus={privacyStatus === 'review-needed' ? 'review-needed' : 'never-run'}
+          dataSources={dataSources}
 
           /* Account props */
           licenseActivationDate={new Date().toISOString().split('T')[0]!}
@@ -714,6 +890,16 @@ export function SettingsScreen() {
           lastBackupAt={lastBackupAt}
           binaryAllowlistCount={binaryAllowlistCount}
           adversarialAlertCount={adversarialAlertCount}
+
+          cronJobs={cronJobs}
+          onToggleCronJob={handleToggleCronJob}
+          cronJobCount={cronJobs.filter(j => j.enabled).length}
+
+          knowledgeStats={knowledgeStats}
+          knowledgeDocCount={knowledgeStats?.totalDocuments ?? 0}
+          isReindexing={isReindexing}
+          onReindex={handleReindex}
+          onClearKnowledgeSource={handleClearKnowledgeSource}
         />
         {/* ─── Web Search Settings ──────────────────────────────────── */}
         <div className="mt-6" style={{ background: '#111518', border: '1px solid #1E2227', borderRadius: 12, padding: 24 }}>
