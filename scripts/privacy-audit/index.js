@@ -550,9 +550,18 @@ function run() {
         violation: 'Content Security Policy must be configured to block external resource loading',
       });
     } else {
-      // CSP must NOT contain http: or https: origins (except localhost and *.localhost like ipc.localhost)
+      // CSP must NOT contain http: or https: origins except:
+      // - localhost and *.localhost (e.g. ipc.localhost)
+      // - semblance-license-worker.conduit-gw.workers.dev (license activation endpoint)
+      const allowlistedOrigins = [
+        'semblance-license-worker.conduit-gw.workers.dev',
+      ];
+      let cspStripped = csp;
+      for (const origin of allowlistedOrigins) {
+        cspStripped = cspStripped.replace(new RegExp('https?://' + origin.replace(/\./g, '\\.'), 'g'), '');
+      }
       const externalOriginPattern = /https?:\/\/(?!(?:\w+\.)?localhost\b)/;
-      if (externalOriginPattern.test(csp)) {
+      if (externalOriginPattern.test(cspStripped)) {
         allViolations.push({
           file: TAURI_CONF_JSON,
           line: 0,

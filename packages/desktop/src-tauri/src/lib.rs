@@ -145,6 +145,7 @@ struct SidecarBridge {
     pending: Arc<Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>>,
     next_id: Arc<Mutex<u64>>,
     child: Arc<Mutex<Child>>,
+    init_params: Arc<Mutex<Option<Value>>>,
 }
 
 impl SidecarBridge {
@@ -226,17 +227,94 @@ impl SidecarBridge {
         let pending: Arc<Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>> =
             Arc::new(Mutex::new(HashMap::new()));
 
+        let init_params: Arc<Mutex<Option<Value>>> = Arc::new(Mutex::new(None));
+
         let bridge = SidecarBridge {
             stdin: Arc::new(Mutex::new(stdin)),
             pending: pending.clone(),
             next_id: Arc::new(Mutex::new(1)),
             child: Arc::new(Mutex::new(child)),
+            init_params: init_params.clone(),
         };
 
-        // Background task: read stdout lines from sidecar, dispatch events, responses, and callbacks
+        // Background task: read stdout lines from sidecar, dispatch events, responses, and callbacks.
+        // On sidecar crash, attempts automatic restart with re-initialization.
+        let stdin_shared = bridge.stdin.clone();
+        let child_shared = bridge.child.clone();
+        let init_params_shared = bridge.init_params.clone();
+        Self::start_stdout_reader(
+            stdout,
+            pending.clone(),
+            stdin_shared,
+            child_shared,
+            init_params_shared,
+            app_handle.clone(),
+            runtime.clone(),
+            node_path,
+            script_path,
+            working_dir,
+        );
+
+        // Background task: read stderr from sidecar (logging + file)
+        let log_dir = {
+            let home = std::env::var("USERPROFILE")
+                .or_else(|_| std::env::var("HOME"))
+                .unwrap_or_else(|_| ".".to_string());
+            PathBuf::from(home).join(".semblance").join("data")
+        };
+        let _ = std::fs::create_dir_all(&log_dir);
+        let log_path = log_dir.join("sidecar.log");
+
+        tauri::async_runtime::spawn(async move {
+            use std::io::Write;
+            // Append mode — File::create was truncating on every restart,
+            // destroying all diagnostic history. Append preserves all sessions.
+            let mut log_file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&log_path)
+                .ok();
+            // Session separator so multiple restarts are distinguishable
+            if let Some(ref mut f) = log_file {
+                let ts = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                let _ = writeln!(f, "\n=== SESSION START unix={} ===", ts);
+                let _ = f.flush();
+            }
+
+            let reader = BufReader::new(stderr);
+            let mut lines = reader.lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                eprintln!("[sidecar] {}", line);
+                if let Some(ref mut f) = log_file {
+                    let _ = writeln!(f, "{}", line);
+                    let _ = f.flush();
+                }
+            }
+        });
+
+        Ok(bridge)
+    }
+
+    /// Start the background stdout reader task for a sidecar process.
+    /// On sidecar crash (stdout closes), attempts automatic restart once.
+    fn start_stdout_reader(
+        stdout: tokio::process::ChildStdout,
+        pending: Arc<Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>>,
+        stdin_shared: Arc<Mutex<tokio::process::ChildStdin>>,
+        child_shared: Arc<Mutex<Child>>,
+        init_params: Arc<Mutex<Option<Value>>>,
+        app_handle: tauri::AppHandle,
+        runtime: native_runtime::SharedNativeRuntime,
+        node_path: PathBuf,
+        script_path: PathBuf,
+        working_dir: PathBuf,
+    ) {
         let pending_for_stdout = pending.clone();
         let app_for_stdout = app_handle.clone();
-        let stdin_for_callbacks = bridge.stdin.clone();
+        let stdin_for_callbacks = stdin_shared.clone();
         let runtime_for_callbacks = runtime.clone();
         tauri::async_runtime::spawn(async move {
             let reader = BufReader::new(stdout);
@@ -292,58 +370,195 @@ impl SidecarBridge {
                     }
                 }
             }
-            // stdout closed — sidecar died
+
+            // stdout closed — sidecar died, attempt automatic restart
+            eprintln!("[tauri] Sidecar process exited — attempting restart...");
             let _ = app_for_stdout.emit(
                 "semblance://status-update",
-                serde_json::json!({"ollamaStatus": "disconnected", "gatewayStatus": "disconnected", "error": "Sidecar process exited unexpectedly"}),
+                serde_json::json!({"status": "restarting", "message": "Reconnecting..."}),
             );
-        });
 
-        // Background task: read stderr from sidecar (logging + file)
-        let log_dir = {
-            let home = std::env::var("USERPROFILE")
-                .or_else(|_| std::env::var("HOME"))
-                .unwrap_or_else(|_| ".".to_string());
-            PathBuf::from(home).join(".semblance").join("data")
-        };
-        let _ = std::fs::create_dir_all(&log_dir);
-        let log_path = log_dir.join("sidecar.log");
-
-        tauri::async_runtime::spawn(async move {
-            use std::io::Write;
-            // Append mode — File::create was truncating on every restart,
-            // destroying all diagnostic history. Append preserves all sessions.
-            let mut log_file = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&log_path)
-                .ok();
-            // Session separator so multiple restarts are distinguishable
-            if let Some(ref mut f) = log_file {
-                let ts = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_secs())
-                    .unwrap_or(0);
-                let _ = writeln!(f, "\n=== SESSION START unix={} ===", ts);
-                let _ = f.flush();
+            // Clear pending requests — their channels will report errors
+            {
+                let mut pending_map = pending_for_stdout.lock().await;
+                for (_, sender) in pending_map.drain() {
+                    let _ = sender.send(Err("Sidecar process exited — restarting".to_string()));
+                }
             }
 
-            let reader = BufReader::new(stderr);
-            let mut lines = reader.lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                eprintln!("[sidecar] {}", line);
-                if let Some(ref mut f) = log_file {
-                    let _ = writeln!(f, "{}", line);
-                    let _ = f.flush();
+            // Wait briefly before restart attempt
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
+            // Respawn the sidecar process
+            let mut cmd = Command::new(&node_path);
+            cmd.arg("--max-old-space-size=4096")
+                .arg("--expose-gc")
+                .arg(&script_path)
+                .current_dir(&working_dir)
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped())
+                .kill_on_drop(true);
+
+            #[cfg(target_os = "windows")]
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+            match cmd.spawn() {
+                Ok(mut new_child) => {
+                    let new_stdin = match new_child.stdin.take() {
+                        Some(s) => s,
+                        None => {
+                            eprintln!("[tauri] Sidecar restart failed: could not take stdin");
+                            let _ = app_for_stdout.emit(
+                                "semblance://status-update",
+                                serde_json::json!({"ollamaStatus": "disconnected", "error": "Sidecar restart failed. Please restart the app."}),
+                            );
+                            return;
+                        }
+                    };
+                    let new_stdout = match new_child.stdout.take() {
+                        Some(s) => s,
+                        None => {
+                            eprintln!("[tauri] Sidecar restart failed: could not take stdout");
+                            let _ = app_for_stdout.emit(
+                                "semblance://status-update",
+                                serde_json::json!({"ollamaStatus": "disconnected", "error": "Sidecar restart failed. Please restart the app."}),
+                            );
+                            return;
+                        }
+                    };
+                    let new_stderr = new_child.stderr.take();
+
+                    // Swap the shared stdin and child so existing command functions use the new process
+                    {
+                        let mut stdin_guard = stdin_shared.lock().await;
+                        *stdin_guard = new_stdin;
+                    }
+                    {
+                        let mut child_guard = child_shared.lock().await;
+                        *child_guard = new_child;
+                    }
+
+                    eprintln!("[tauri] Sidecar process respawned — re-initializing...");
+
+                    // Start stderr reader for the new process
+                    if let Some(stderr) = new_stderr {
+                        tauri::async_runtime::spawn(async move {
+                            let reader = BufReader::new(stderr);
+                            let mut lines = reader.lines();
+                            while let Ok(Some(line)) = lines.next_line().await {
+                                eprintln!("[sidecar-restart] {}", line);
+                            }
+                        });
+                    }
+
+                    // Re-initialize with stored params
+                    let stored = init_params.lock().await.clone();
+                    if let Some(params) = stored {
+                        // Write initialize request directly to stdin
+                        let init_request = serde_json::json!({
+                            "id": 999999,
+                            "method": "initialize",
+                            "params": params,
+                        });
+                        let line = format!("{}\n", serde_json::to_string(&init_request).unwrap());
+                        {
+                            let mut stdin_guard = stdin_shared.lock().await;
+                            if let Err(e) = stdin_guard.write_all(line.as_bytes()).await {
+                                eprintln!("[tauri] Sidecar re-init write failed: {}", e);
+                            }
+                            let _ = stdin_guard.flush().await;
+                        }
+                    }
+
+                    // Start a new stdout reader loop for the restarted process.
+                    // This recursively calls the same function but will NOT attempt
+                    // another restart (the second crash emits an error and exits).
+                    // To prevent infinite restart loops, we use a simple flag via
+                    // a modified node_path that signals "already restarted".
+                    // Actually, simpler: just emit success and start reading.
+                    // If it crashes again, the user gets the error message.
+                    let _ = app_for_stdout.emit(
+                        "semblance://status-update",
+                        serde_json::json!({"status": "connected", "message": "Reconnected"}),
+                    );
+
+                    // Read the new stdout in this same task (no recursion)
+                    let reader = BufReader::new(new_stdout);
+                    let mut lines = reader.lines();
+                    while let Ok(Some(line)) = lines.next_line().await {
+                        if let Ok(msg) = serde_json::from_str::<Value>(&line) {
+                            if msg.get("type").and_then(|v| v.as_str()) == Some("callback") {
+                                let callback_id = msg.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                                let method = msg.get("method").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                                let params = msg.get("params").cloned().unwrap_or(Value::Null);
+
+                                let stdin_ref = stdin_for_callbacks.clone();
+                                let runtime_ref = runtime_for_callbacks.clone();
+                                tauri::async_runtime::spawn(async move {
+                                    let response = dispatch_native_callback(runtime_ref, &method, params).await;
+                                    let response_msg = match response {
+                                        Ok(result) => serde_json::json!({
+                                            "type": "callback_response",
+                                            "id": callback_id,
+                                            "result": result,
+                                        }),
+                                        Err(error) => serde_json::json!({
+                                            "type": "callback_response",
+                                            "id": callback_id,
+                                            "error": error,
+                                        }),
+                                    };
+
+                                    let line = format!("{}\n", serde_json::to_string(&response_msg).unwrap());
+                                    let mut stdin = stdin_ref.lock().await;
+                                    let _ = stdin.write_all(line.as_bytes()).await;
+                                    let _ = stdin.flush().await;
+                                });
+                            } else if let Some(event_name) = msg.get("event").and_then(|v| v.as_str()) {
+                                let data = msg.get("data").cloned().unwrap_or(Value::Null);
+                                let full_event = format!("semblance://{}", event_name);
+                                let _ = app_for_stdout.emit(&full_event, &data);
+                            } else if let Some(id) = msg.get("id").and_then(|v| v.as_u64()) {
+                                let mut pending_map = pending_for_stdout.lock().await;
+                                if let Some(sender) = pending_map.remove(&id) {
+                                    if let Some(error) = msg.get("error").and_then(|v| v.as_str()) {
+                                        let _ = sender.send(Err(error.to_string()));
+                                    } else {
+                                        let result = msg.get("result").cloned().unwrap_or(Value::Null);
+                                        let _ = sender.send(Ok(result));
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // If the restarted sidecar also dies, emit final error (no second restart)
+                    eprintln!("[tauri] Restarted sidecar also exited — giving up");
+                    let _ = app_for_stdout.emit(
+                        "semblance://status-update",
+                        serde_json::json!({"ollamaStatus": "disconnected", "gatewayStatus": "disconnected", "error": "Sidecar process exited after restart. Please restart the app."}),
+                    );
+                }
+                Err(e) => {
+                    eprintln!("[tauri] Sidecar respawn failed: {}", e);
+                    let _ = app_for_stdout.emit(
+                        "semblance://status-update",
+                        serde_json::json!({"ollamaStatus": "disconnected", "gatewayStatus": "disconnected", "error": format!("Sidecar restart failed: {}. Please restart the app.", e)}),
+                    );
                 }
             }
         });
-
-        Ok(bridge)
     }
 
     /// Send a JSON-RPC request to the sidecar and wait for the response.
     async fn call(&self, method: &str, params: Value) -> Result<Value, String> {
+        // Store initialize params for replay on sidecar restart
+        if method == "initialize" {
+            let mut stored = self.init_params.lock().await;
+            *stored = Some(params.clone());
+        }
+
         let id = {
             let mut next = self.next_id.lock().await;
             let id = *next;

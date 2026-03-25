@@ -1417,21 +1417,8 @@ export function ChatScreen() {
         open={activePanel === 'artifact'}
         onClose={closePanel}
         onDownload={async (artifact) => {
-          try {
-            const { save } = await import('@tauri-apps/plugin-dialog');
-            const chosen = await save({
-              defaultPath: `${artifact.title}.${artifact.language ?? 'txt'}`,
-              filters: [{ name: 'All Files', extensions: ['*'] }],
-            });
-            if (chosen) {
-              const fsModName = '@tauri-apps/plugin-fs';
-              const { writeTextFile } = await import(/* @vite-ignore */ fsModName) as { writeTextFile(path: string, contents: string): Promise<void> };
-              await writeTextFile(chosen, artifact.content);
-              return;
-            }
-          } catch {
-            // Tauri dialog unavailable (dev mode) — fall back to browser download
-          }
+          // Browser download — works in both Tauri and dev mode
+          // (Tauri fs plugin is not installed; dialog alone cannot write files)
           const blob = new Blob([artifact.content], { type: 'text/plain' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');

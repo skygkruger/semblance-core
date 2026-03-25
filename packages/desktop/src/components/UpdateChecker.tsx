@@ -31,14 +31,31 @@ async function checkForUpdates(): Promise<UpdateResult | null> {
 }
 
 async function relaunchApp(): Promise<void> {
+  // Try Tauri process plugin first (if installed), then core API, then give up gracefully
   try {
-    const mod = await import('@tauri-apps/plugin-shell' as string);
+    const mod = await import('@tauri-apps/plugin-process' as string);
     if (typeof mod.relaunch === 'function') {
       await mod.relaunch();
+      return;
     }
   } catch {
-    // Relaunch not available — user will need to restart manually
+    // plugin-process not installed — try core API
   }
+  try {
+    const mod = await import('@tauri-apps/api/process' as string);
+    if (typeof mod.relaunch === 'function') {
+      await mod.relaunch();
+      return;
+    }
+    if (typeof mod.exit === 'function') {
+      // Exit and let OS updater handle relaunch
+      await mod.exit(0);
+      return;
+    }
+  } catch {
+    // core process API not available
+  }
+  // Last resort — tell the user via the UI (no-op here, the banner stays showing "Restart Now")
 }
 
 export function UpdateChecker() {

@@ -58,10 +58,20 @@ describe('Desktop Privacy: CSP', () => {
     expect(csp).toContain("default-src 'self'");
   });
 
-  it('CSP does not allow external HTTP/HTTPS origins', () => {
-    // Should not contain any http:// or https:// URLs (except localhost and *.localhost like ipc.localhost)
+  it('CSP does not allow external HTTP/HTTPS origins (except allowlisted workers)', () => {
+    // Should not contain any http:// or https:// URLs except:
+    // - localhost and *.localhost (e.g. ipc.localhost)
+    // - semblance-license-worker.conduit-gw.workers.dev (license activation)
+    const allowedOrigins = [
+      'semblance-license-worker.conduit-gw.workers.dev',
+    ];
+    // Strip allowed origins from CSP before checking for external URLs
+    let stripped = csp;
+    for (const origin of allowedOrigins) {
+      stripped = stripped.replace(new RegExp(`https?://${origin.replace(/\./g, '\\.')}`, 'g'), '');
+    }
     const externalPattern = /https?:\/\/(?!(?:\w+\.)?localhost\b)/;
-    expect(externalPattern.test(csp)).toBe(false);
+    expect(externalPattern.test(stripped)).toBe(false);
   });
 
   it('CSP blocks frames', () => {
