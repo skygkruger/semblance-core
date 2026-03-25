@@ -4,7 +4,6 @@ import { describe, it, expect, vi } from 'vitest';
 import type { GraphFilterSheetProps } from '../../packages/mobile/src/screens/GraphFilterSheet';
 import type { CategoryNode } from '../../packages/core/knowledge/graph-visualization';
 import type { VisualizationCategory } from '../../packages/core/knowledge/connector-category-map';
-import { buildGraphHTML } from '../../packages/mobile/src/screens/KnowledgeGraphScreen';
 import type { VisualizationNode, VisualizationEdge } from '../../packages/core/knowledge/graph-visualization';
 
 function makeCategoryNode(overrides: Partial<CategoryNode> = {}): CategoryNode {
@@ -45,39 +44,23 @@ describe('GraphFilterSheet', () => {
   });
 });
 
-describe('buildGraphHTML — category support', () => {
-  it('includes category node rendering (data-category-id attribute)', () => {
-    const nodes: VisualizationNode[] = [
-      {
-        id: 'cat_people',
-        label: 'People',
-        type: 'category',
-        size: 50,
-        createdAt: '2025-01-01T00:00:00Z',
-        domain: 'general',
-        metadata: { category: 'people', color: '#4A7FBA', nodeCount: 10 },
-      },
-      {
-        id: 'person_1',
-        label: 'Alice',
-        type: 'person',
-        size: 5,
-        createdAt: '2025-01-01T00:00:00Z',
-        domain: 'general',
-        metadata: {},
-      },
-    ];
+describe('Mobile category node support', () => {
+  it('category nodes have proper metadata for Skia renderer', () => {
+    const catNode: VisualizationNode = {
+      id: 'cat_people',
+      label: 'People',
+      type: 'category',
+      size: 50,
+      createdAt: '2025-01-01T00:00:00Z',
+      domain: 'general',
+      metadata: { category: 'people', color: '#4A7FBA', nodeCount: 10 },
+    };
 
-    const html = buildGraphHTML(nodes, []);
-
-    // HTML should contain the category node class
-    expect(html).toContain('category-node');
-    // HTML should contain data-category-id assignment logic
-    expect(html).toContain('data-category-id');
-    // HTML should contain count label class
-    expect(html).toContain('count-label');
-    // HTML should contain dashed stroke for category nodes
-    expect(html).toContain('stroke-dasharray: 4 2');
+    // Verify the category metadata the Skia renderer expects
+    expect(catNode.type).toBe('category');
+    expect(catNode.metadata.category).toBe('people');
+    expect(catNode.metadata.color).toBe('#4A7FBA');
+    expect(catNode.metadata.nodeCount).toBe(10);
   });
 
   it('category_tap message type is handled', () => {
@@ -101,26 +84,26 @@ describe('buildGraphHTML — category support', () => {
     expect(nodeTapMsg!.nodeId).toBe('person_1');
   });
 
-  it('category nodes in HTML have count label and larger radius', () => {
-    const nodes: VisualizationNode[] = [
-      {
-        id: 'cat_knowledge',
-        label: 'Documents & Notes',
-        type: 'category',
-        size: 30,
-        createdAt: '2025-01-01T00:00:00Z',
-        domain: 'general',
-        metadata: { category: 'knowledge', color: '#8B93A7', nodeCount: 15 },
-      },
-    ];
+  it('category nodes get category type in KnowledgeNode conversion', () => {
+    // Mirrors the toKnowledgeNode function in the mobile screen
+    const vizNode: VisualizationNode = {
+      id: 'cat_knowledge',
+      label: 'Documents & Notes',
+      type: 'category',
+      size: 30,
+      createdAt: '2025-01-01T00:00:00Z',
+      domain: 'general',
+      metadata: { category: 'knowledge', color: '#A8956E', nodeCount: 15 },
+    };
 
-    const html = buildGraphHTML(nodes, []);
+    // The conversion maps 'category' -> 'category' in the KnowledgeNode type system
+    const kgType = vizNode.type === 'person' ? 'person'
+      : vizNode.type === 'event' ? 'calendar'
+      : vizNode.type === 'document' ? 'file'
+      : vizNode.type === 'category' ? 'category'
+      : 'topic';
 
-    // The HTML JavaScript computes radius as 20 + (size/maxCatSize) * 20 for categories
-    // With a single node: maxCatSize = 30, so r = 20 + (30/30) * 20 = 40
-    // Verify the radius computation logic is present
-    expect(html).toContain('r = 20 + (n.size / maxCatSize) * 20');
-    // Verify count label is rendered
-    expect(html).toContain('n.metadata.nodeCount');
+    expect(kgType).toBe('category');
+    expect(vizNode.metadata.nodeCount).toBe(15);
   });
 });

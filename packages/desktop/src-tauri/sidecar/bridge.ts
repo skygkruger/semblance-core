@@ -2437,6 +2437,11 @@ async function handleStartIndexing(
         ? await core.knowledge.getStats()
         : { totalDocuments: totalFilesScanned, totalChunks: totalChunksCreated };
 
+      // Invalidate graph cache so next graph request reflects newly indexed data
+      if (graphVisualizationProvider) {
+        try { graphVisualizationProvider.invalidateCache(); } catch { /* best-effort */ }
+      }
+
       // Step 5: Emit completion
       emit('indexing-complete', {
         filesScanned: totalFilesScanned,
@@ -7223,6 +7228,10 @@ async function handleRequest(req: Request): Promise<void> {
           if (!graphVisualizationProvider) {
             respond(id, { nodes: [], edges: [], clusters: [], categoryNodes: [], categoryEdges: [], stats: { totalNodes: 0, totalEdges: 0, nodesByType: {}, averageConnections: 0, mostConnectedNode: null, graphDensity: 0, growthRate: 0 } });
             break;
+          }
+          const graphParams = params as { force?: boolean } | undefined;
+          if (graphParams?.force) {
+            graphVisualizationProvider.invalidateCache();
           }
           const graph = graphVisualizationProvider.getCategoryGraph();
           respond(id, graph);

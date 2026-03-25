@@ -158,7 +158,7 @@ function makeCatGraph(): VisualizationGraphV2 {
     },
     {
       id: 'cat_knowledge', category: 'knowledge', label: 'Documents & Notes',
-      color: '#8B93A7', icon: '[D]', nodeCount: 2, totalSize: 8,
+      color: '#A8956E', icon: '[D]', nodeCount: 2, totalSize: 8,
       nodeIds: ['doc_1', 'topic_1'],
     },
   ];

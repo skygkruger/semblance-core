@@ -128,9 +128,10 @@ describe('Lifecycle: Graceful Shutdown', () => {
 });
 
 describe('Lifecycle: Sidecar Crash Recovery', () => {
-  it('detects sidecar stdout close', () => {
-    // When stdout stream ends, the sidecar has died
-    expect(libContent).toContain('Sidecar process exited unexpectedly');
+  it('detects sidecar stdout close and attempts restart', () => {
+    // When stdout stream ends, the sidecar has died — auto-restart is attempted
+    expect(libContent).toContain('Sidecar process exited');
+    expect(libContent).toContain('attempting restart');
   });
 
   it('emits error status on sidecar crash', () => {

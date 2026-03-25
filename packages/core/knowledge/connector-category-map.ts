@@ -58,9 +58,10 @@ export const CONNECTOR_TO_CATEGORY: Record<string, VisualizationCategory> = {
   'whatsapp-export': 'social',
   'telegram-export': 'social',
 
-  // Email & Calendar
-  'gmail': 'work',
-  'google-calendar': 'work',
+  // Email & Calendar — default to knowledge (spans all categories);
+  // entity resolution and topic analysis provide more specific categorization
+  'gmail': 'knowledge',
+  'google-calendar': 'knowledge',
 
   // Work & Productivity (reclassified: toggl/rescuetime from health_fitness)
   'github': 'work',
@@ -128,13 +129,13 @@ export const CATEGORY_META: Record<VisualizationCategory, CategoryMeta> = {
   work: {
     id: 'work',
     displayName: 'Work & Productivity',
-    color: '#4A7FBA',
+    color: '#5B8FB9',
     icon: '[>]',
   },
   reading: {
     id: 'reading',
     displayName: 'Reading & Research',
-    color: '#B07A8A',
+    color: '#9B8FBE',
     icon: '[R]',
   },
   music: {
@@ -146,7 +147,7 @@ export const CATEGORY_META: Record<VisualizationCategory, CategoryMeta> = {
   cloud: {
     id: 'cloud',
     displayName: 'Cloud Storage',
-    color: '#8B93A7',
+    color: '#7A8BA0',
     icon: '[C]',
   },
   browser: {
@@ -164,7 +165,7 @@ export const CATEGORY_META: Record<VisualizationCategory, CategoryMeta> = {
   knowledge: {
     id: 'knowledge',
     displayName: 'Documents & Notes',
-    color: '#8B93A7',
+    color: '#A8956E',
     icon: '[D]',
   },
 };
@@ -179,9 +180,9 @@ export function getVisualizationCategory(connectorId: string): VisualizationCate
 /**
  * Map an entity type (+ optional metadata) to a visualization category.
  *
- * Note: event/reminder → work is a v1 simplification. A personal birthday
- * event gets categorized as "work." Acceptable for v1 — the existing domain
- * classification handles some disambiguation. Flag for revisit post-launch.
+ * Events and reminders use heuristics to distinguish personal vs work:
+ * personal-sounding titles (birthday, dinner, vacation, etc.) → people,
+ * otherwise → work. Email threads → people (centered on who you talk to).
  */
 export function getCategoryForEntityType(
   type: VisualizationEntityType,
@@ -207,8 +208,17 @@ export function getCategoryForEntityType(
       return 'knowledge';
 
     case 'event':
-    case 'reminder':
+    case 'reminder': {
+      // Heuristic: personal-sounding event titles go to 'people', rest to 'work'
+      const title = (metadata?.title as string | undefined ?? '').toLowerCase();
+      const personalKeywords = [
+        'birthday', 'dinner', 'lunch with', 'coffee with', 'vacation',
+        'holiday', 'anniversary', 'family', 'brunch', 'date night',
+        'doctor', 'dentist', 'vet', 'pickup', 'drop-off', 'school',
+      ];
+      if (personalKeywords.some(kw => title.includes(kw))) return 'people';
       return 'work';
+    }
 
     case 'location':
       return 'people';

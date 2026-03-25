@@ -50,21 +50,23 @@ describe('Network Screen', () => {
 });
 
 describe('Knowledge Graph — Mobile Enhancements', () => {
-  it('renders with touch gesture support (existing screen)', () => {
+  it('renders with Skia-based KnowledgeGraph component', () => {
     const filePath = path.join(SCREENS_DIR, 'KnowledgeGraphScreen.tsx');
     const content = fs.readFileSync(filePath, 'utf-8');
 
-    // Existing screen supports touch via postMessage
-    expect(content).toContain('touch-action');
-    expect(content).toContain('postMessage');
-    expect(content).toContain('node_tap');
+    // Uses the production Skia renderer from @semblance/ui
+    expect(content).toContain("import { KnowledgeGraph } from '@semblance/ui'");
+    expect(content).toContain('KnowledgeGraph');
 
-    // Has pinch-to-zoom via viewport meta
-    expect(content).toContain('user-scalable=yes');
+    // Converts VisualizationNode to KnowledgeNode for the Skia renderer
+    expect(content).toContain('toKnowledgeNode');
+    expect(content).toContain('toKnowledgeEdge');
+
+    // Sets isMobile flag for the Skia renderer
+    expect(content).toContain('isMobile={true}');
   });
 
   it('falls back to list view on low memory (design verified)', () => {
-    // The Knowledge Graph screen renders in a WebView.
     // On low memory, the memory manager releases the graph cache.
     // Verify the memory manager exists and handles graph feature.
     const memManagerPath = path.join(ROOT, 'packages/mobile/src/performance/memory-manager.ts');
@@ -75,18 +77,19 @@ describe('Knowledge Graph — Mobile Enhancements', () => {
     expect(content).toContain('essential');
   });
 
-  it('limits visible nodes on mobile', () => {
-    // Verified by graph HTML builder — nodes array can be pre-sliced by caller.
-    // The buildGraphHTML function accepts a nodes array, so mobile passes a limited set.
+  it('passes nodes to Skia renderer (caller controls count)', () => {
+    // The Skia KnowledgeGraph component accepts nodes/edges arrays.
+    // The caller controls the count — the component renders what it receives.
     const graphPath = path.join(SCREENS_DIR, 'KnowledgeGraphScreen.tsx');
     const content = fs.readFileSync(graphPath, 'utf-8');
 
-    // HTML builder accepts nodes array (caller controls count)
-    expect(content).toContain('buildGraphHTML');
-    expect(content).toContain('nodes: VisualizationNode[]');
+    // Screen converts graph data to KnowledgeNode format for the Skia component
+    expect(content).toContain('graph.nodes.map(toKnowledgeNode)');
+    expect(content).toContain('graph.edges.map(toKnowledgeEdge)');
 
-    // Graph renders the nodes array it receives (no internal limit needed — caller limits)
-    expect(content).toContain('DATA.nodes.forEach');
+    // Passes converted nodes/edges to the Skia renderer
+    expect(content).toContain('nodes={kgNodes}');
+    expect(content).toContain('edges={kgEdges}');
   });
 });
 

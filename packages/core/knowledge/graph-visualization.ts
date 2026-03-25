@@ -74,10 +74,19 @@ export interface GrowthDataPoint {
   newCount: number;
 }
 
+export interface NodeContent {
+  type: 'document' | 'email' | 'event' | 'person' | 'reminder' | 'location' | 'topic';
+  title: string;
+  body?: string;
+  metadata: Record<string, unknown>;
+  chunks?: Array<{ content: string; chunkIndex: number }>;
+}
+
 export interface NodeContext {
   node: VisualizationNode;
   connections: Array<{ node: VisualizationNode; edge: VisualizationEdge }>;
   recentActivity: string[];
+  content?: NodeContent;
 }
 
 export interface GraphOptions {
@@ -204,6 +213,12 @@ export class GraphVisualizationProvider {
    * or rely on the 1-hour TTL expiry for eventual freshness.
    */
   getGraphData(options?: GraphOptions): VisualizationGraph {
+    // Check cache first (only when using default options — custom options bypass cache)
+    if (!options || Object.keys(options).length === 0) {
+      const cached = this.getCachedGraph();
+      if (cached) return cached;
+    }
+
     const maxNodes = options?.maxNodes ?? 200;
     const edgeCap = maxNodes * (options?.edgeCapMultiplier ?? 3);
     const daysBack = options?.daysBack ?? 90;
@@ -307,12 +322,19 @@ export class GraphVisualizationProvider {
 
     const stats = this.computeStats(cappedNodes, cappedEdges);
 
-    return {
+    const result: VisualizationGraph = {
       nodes: cappedNodes,
       edges: cappedEdges,
       clusters: clusters.filter(c => c.nodeIds.some(nid => cappedNodeIds.has(nid))),
       stats,
     };
+
+    // Cache the result for subsequent calls (only when using default options)
+    if (!options || Object.keys(options).length === 0) {
+      try { this.setCachedGraph(result); } catch { /* cache write is best-effort */ }
+    }
+
+    return result;
   }
 
   /**
@@ -324,7 +346,7 @@ export class GraphVisualizationProvider {
       const categoryKey = nodeId.slice(4) as VisualizationCategory;
       const catMeta = CATEGORY_META[categoryKey];
       if (catMeta) {
-        const { nodes: catNodes, edges: catEdges } = this.getNodesForCategory(categoryKey);
+        const { nodes: catNodes } = this.getNodesForCategory(categoryKey);
         const syntheticNode: VisualizationNode = {
           id: nodeId,
           label: catMeta.displayName,
@@ -413,7 +435,10 @@ export class GraphVisualizationProvider {
       recentActivity.push(`Connected to ${conn.node.label} (${conn.edge.label})`);
     }
 
-    return { node, connections, recentActivity };
+    // Fetch actual content based on node type
+    const content = this.getNodeContent(node);
+
+    return { node, connections, recentActivity, content };
   }
 
   /**
@@ -648,6 +673,304 @@ export class GraphVisualizationProvider {
       e => catNodeIds.has(e.sourceId) && catNodeIds.has(e.targetId),
     );
     return { nodes: catNodes, edges: catEdges };
+  }
+
+  /**
+   * Invalidate the graph cache. Call after indexing completes or when force-refreshing.
+   */
+  invalidateCache(): void {
+    try {
+      this.db.prepare('DELETE FROM graph_cache WHERE id = ?').run('default');
+    } catch {
+      // Cache table may not exist yet — safe to ignore
+    }
+  }
+
+  // ─── Private: Content Fetchers ──────────────────────────────────────────────
+
+  private getNodeContent(node: VisualizationNode): NodeContent | undefined {
+    try {
+      switch (node.type) {
+        case 'person':
+          return this.getPersonContent(node);
+        case 'email_thread':
+          return this.getEmailThreadContent(node);
+        case 'event':
+          return this.getEventContent(node);
+        case 'reminder':
+          return this.getReminderContent(node);
+        case 'topic':
+          return this.getTopicContent(node);
+        case 'location':
+          return this.getLocationContent(node);
+        case 'document':
+        case 'directory':
+          return this.getDocumentContent(node);
+        default:
+          return undefined;
+      }
+    } catch {
+      return undefined;
+    }
+  }
+
+  private getPersonContent(node: VisualizationNode): NodeContent | undefined {
+    // Try ContactStore first (richer data)
+    const contactId = node.metadata.contactId as string | undefined;
+    if (contactId && this.contactStore) {
+      const contact = this.contactStore.getContact(contactId);
+      if (contact) {
+        const bodyParts: string[] = [];
+        if (contact.organization) bodyParts.push(`Organization: ${contact.organization}`);
+        if (contact.jobTitle) bodyParts.push(`Title: ${contact.jobTitle}`);
+        if (contact.emails.length > 0) bodyParts.push(`Emails: ${contact.emails.join(', ')}`);
+        if (contact.phones.length > 0) bodyParts.push(`Phones: ${contact.phones.join(', ')}`);
+        if (contact.birthday) bodyParts.push(`Birthday: ${contact.birthday}`);
+        if (contact.tags.length > 0) bodyParts.push(`Tags: ${contact.tags.join(', ')}`);
+
+        return {
+          type: 'person',
+          title: contact.displayName,
+          body: bodyParts.join('\n'),
+          metadata: {
+            relationshipType: contact.relationshipType,
+            communicationFrequency: contact.communicationFrequency,
+            lastContactDate: contact.lastContactDate,
+            firstContactDate: contact.firstContactDate,
+            interactionCount: contact.interactionCount,
+            organization: contact.organization,
+            jobTitle: contact.jobTitle,
+            emails: contact.emails,
+            phones: contact.phones,
+          },
+        };
+      }
+    }
+
+    // Fallback: entity from entities table
+    const entityId = node.metadata.entityId as string | undefined;
+    if (entityId) {
+      try {
+        const entity = this.db.prepare(
+          'SELECT name, type, aliases, metadata FROM entities WHERE id = ?'
+        ).get(entityId) as { name: string; type: string; aliases: string | null; metadata: string | null } | undefined;
+        if (entity) {
+          let meta: Record<string, unknown> = {};
+          try { meta = entity.metadata ? JSON.parse(entity.metadata) : {}; } catch { /* ignore */ }
+          return {
+            type: 'person',
+            title: entity.name,
+            body: entity.aliases ? `Also known as: ${entity.aliases}` : undefined,
+            metadata: meta,
+          };
+        }
+      } catch { /* ignore */ }
+    }
+    return undefined;
+  }
+
+  private getEmailThreadContent(node: VisualizationNode): NodeContent | undefined {
+    const threadId = node.metadata.threadId as string | undefined;
+    if (!threadId) return undefined;
+
+    try {
+      const emails = this.db.prepare(
+        'SELECT subject, "from", from_name, snippet, received_at, priority FROM indexed_emails WHERE thread_id = ? ORDER BY received_at DESC LIMIT 20'
+      ).all(threadId) as Array<{
+        subject: string; from: string; from_name: string | null;
+        snippet: string; received_at: string; priority: string | null;
+      }>;
+
+      if (emails.length === 0) return undefined;
+
+      const body = emails.map(e =>
+        `From: ${e.from_name || e.from}\nSubject: ${e.subject}\n${e.snippet}`
+      ).join('\n---\n');
+
+      return {
+        type: 'email',
+        title: node.label,
+        body,
+        metadata: {
+          messageCount: emails.length,
+          latestDate: emails[0]?.received_at,
+          latestFrom: emails[0]?.from_name || emails[0]?.from,
+        },
+        chunks: emails.map((e, i) => ({
+          content: `${e.from_name || e.from}: ${e.subject}\n${e.snippet}`,
+          chunkIndex: i,
+        })),
+      };
+    } catch { return undefined; }
+  }
+
+  private getEventContent(node: VisualizationNode): NodeContent | undefined {
+    const eventId = node.metadata.calendarEventId as string | undefined;
+    if (!eventId) return undefined;
+
+    try {
+      const event = this.db.prepare(
+        'SELECT title, description, start_time, end_time, location, attendees, calendar_id FROM indexed_calendar_events WHERE id = ?'
+      ).get(eventId) as {
+        title: string; description: string | null; start_time: string;
+        end_time: string | null; location: string | null;
+        attendees: string; calendar_id: string | null;
+      } | undefined;
+
+      if (!event) return undefined;
+
+      const bodyParts: string[] = [];
+      bodyParts.push(`When: ${event.start_time}${event.end_time ? ` - ${event.end_time}` : ''}`);
+      if (event.location) bodyParts.push(`Where: ${event.location}`);
+      if (event.description) bodyParts.push(`\n${event.description}`);
+
+      let attendeeList: string[] = [];
+      try { attendeeList = JSON.parse(event.attendees) as string[]; } catch { /* ignore */ }
+      if (attendeeList.length > 0) bodyParts.push(`Attendees: ${attendeeList.join(', ')}`);
+
+      return {
+        type: 'event',
+        title: event.title,
+        body: bodyParts.join('\n'),
+        metadata: {
+          startTime: event.start_time,
+          endTime: event.end_time,
+          location: event.location,
+          attendeeCount: attendeeList.length,
+          calendarId: event.calendar_id,
+        },
+      };
+    } catch { return undefined; }
+  }
+
+  private getReminderContent(node: VisualizationNode): NodeContent | undefined {
+    if (!this.reminderStore) return undefined;
+
+    const reminderId = node.metadata.reminderId as string | undefined;
+    if (!reminderId) return undefined;
+
+    try {
+      const reminder = this.reminderStore.findByStatus('pending')
+        .find(r => r.id === reminderId);
+
+      if (!reminder) return undefined;
+
+      return {
+        type: 'reminder',
+        title: reminder.text,
+        body: `Due: ${reminder.dueAt}\nStatus: ${reminder.status}\nRecurrence: ${reminder.recurrence}\nSource: ${reminder.source}`,
+        metadata: {
+          dueAt: reminder.dueAt,
+          status: reminder.status,
+          recurrence: reminder.recurrence,
+          source: reminder.source,
+          snoozedUntil: reminder.snoozedUntil,
+        },
+      };
+    } catch { return undefined; }
+  }
+
+  private getTopicContent(node: VisualizationNode): NodeContent | undefined {
+    const entityId = node.metadata.entityId as string | undefined;
+    if (!entityId) return undefined;
+
+    try {
+      const mentions = this.db.prepare(
+        'SELECT m.document_id, m.context, m.mentioned_at, d.title as doc_title FROM entity_mentions m LEFT JOIN documents d ON m.document_id = d.id WHERE m.entity_id = ? ORDER BY m.mentioned_at DESC LIMIT 20'
+      ).all(entityId) as Array<{
+        document_id: string; context: string | null;
+        mentioned_at: string; doc_title: string | null;
+      }>;
+
+      if (mentions.length === 0) return undefined;
+
+      const body = mentions
+        .filter(m => m.doc_title || m.context)
+        .map(m => `In "${m.doc_title || m.document_id}": ${m.context || '(no context)'}`)
+        .join('\n');
+
+      return {
+        type: 'topic',
+        title: node.label,
+        body,
+        metadata: { mentionCount: mentions.length },
+        chunks: mentions.map((m, i) => ({
+          content: `[${m.doc_title || m.document_id}] ${m.context || ''}`,
+          chunkIndex: i,
+        })),
+      };
+    } catch { return undefined; }
+  }
+
+  private getLocationContent(node: VisualizationNode): NodeContent | undefined {
+    const lat = node.metadata.latitude as number | undefined;
+    const lon = node.metadata.longitude as number | undefined;
+    if (lat == null || lon == null) return undefined;
+
+    try {
+      const visits = this.db.prepare(
+        'SELECT timestamp, accuracy FROM location_history WHERE ROUND(latitude, 2) = ? AND ROUND(longitude, 2) = ? ORDER BY timestamp DESC LIMIT 20'
+      ).all(lat, lon) as Array<{ timestamp: string; accuracy: number | null }>;
+
+      if (visits.length === 0) return undefined;
+
+      return {
+        type: 'location',
+        title: node.label,
+        body: `${visits.length} visits recorded\nFirst: ${visits[visits.length - 1]?.timestamp}\nLatest: ${visits[0]?.timestamp}`,
+        metadata: {
+          latitude: lat,
+          longitude: lon,
+          visitCount: visits.length,
+          firstVisit: visits[visits.length - 1]?.timestamp,
+          latestVisit: visits[0]?.timestamp,
+        },
+      };
+    } catch { return undefined; }
+  }
+
+  private getDocumentContent(node: VisualizationNode): NodeContent | undefined {
+    const documentId = node.metadata.documentId as string | undefined;
+    if (!documentId) return undefined;
+
+    try {
+      const doc = this.db.prepare(
+        'SELECT id, title, content, source, source_path, metadata, created_at FROM documents WHERE id = ?'
+      ).get(documentId) as {
+        id: string; title: string; content: string | null;
+        source: string; source_path: string | null;
+        metadata: string | null; created_at: string;
+      } | undefined;
+
+      if (!doc) return undefined;
+
+      let meta: Record<string, unknown> = {};
+      try { meta = doc.metadata ? JSON.parse(doc.metadata) : {}; } catch { /* ignore */ }
+
+      // Also try to get chunks for richer content
+      let chunks: Array<{ content: string; chunkIndex: number }> | undefined;
+      try {
+        const docChunks = this.db.prepare(
+          'SELECT content, chunk_index FROM document_chunks WHERE document_id = ? ORDER BY chunk_index ASC LIMIT 50'
+        ).all(documentId) as Array<{ content: string; chunk_index: number }>;
+        if (docChunks.length > 0) {
+          chunks = docChunks.map(c => ({ content: c.content, chunkIndex: c.chunk_index }));
+        }
+      } catch { /* document_chunks table may not exist */ }
+
+      return {
+        type: 'document',
+        title: doc.title,
+        body: doc.content?.slice(0, 2000) ?? undefined,
+        metadata: {
+          ...meta,
+          source: doc.source,
+          sourcePath: doc.source_path,
+          createdAt: doc.created_at,
+        },
+        chunks,
+      };
+    } catch { return undefined; }
   }
 
   // ─── Private: Node Builders ────────────────────────────────────────────────
@@ -977,9 +1300,14 @@ export class GraphVisualizationProvider {
         if (nodeIds.has(id)) continue;
         nodeIds.add(id);
 
+        // Format human-readable label from coordinates
+        const latDir = loc.lat >= 0 ? 'N' : 'S';
+        const lonDir = loc.lon >= 0 ? 'E' : 'W';
+        const locLabel = `Area near ${Math.abs(loc.lat).toFixed(1)}\u00B0${latDir}, ${Math.abs(loc.lon).toFixed(1)}\u00B0${lonDir}`;
+
         nodes.push({
           id,
-          label: `${loc.lat}, ${loc.lon}`,
+          label: locLabel,
           type: 'location',
           size: loc.visit_count,
           createdAt: loc.first_visit,

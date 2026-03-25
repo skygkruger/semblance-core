@@ -1,11 +1,14 @@
 // Knowledge Graph Screen Styles — React Native StyleSheet for mobile graph view.
+// Design tokens from Design Bible: bg #0B0E11, text #EEF1F4, secondary #A8B4C0/#8593A4,
+// borders rgba(255,255,255,0.09), cards #111518, elevated #171B1F.
+// Fonts: DM Sans for body, DM Mono for metadata only.
 
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#0B0E11',
   },
   header: {
     flexDirection: 'row',
@@ -14,13 +17,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#3a3a5e',
+    borderBottomColor: 'rgba(255, 255, 255, 0.09)',
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#E2E4E9',
-    fontFamily: 'monospace',
+    color: '#EEF1F4',
+    fontFamily: 'DM Sans',
   },
   headerActions: {
     flexDirection: 'row',
@@ -30,22 +33,24 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: '#3a3a5e',
-    borderRadius: 2,
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 8,
   },
   headerButtonText: {
     fontSize: 11,
-    color: '#E2E4E9',
-    fontFamily: 'monospace',
+    color: '#A8B4C0',
+    fontFamily: 'DM Mono',
   },
-  webviewContainer: {
+  graphContainer: {
     flex: 1,
+    backgroundColor: '#0B0E11',
   },
   statsCollapsed: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#3a3a5e',
+    borderBottomColor: 'rgba(255, 255, 255, 0.09)',
+    backgroundColor: '#111518',
   },
   statsRow: {
     flexDirection: 'row',
@@ -57,22 +62,22 @@ export const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#E2E4E9',
-    fontFamily: 'monospace',
+    color: '#EEF1F4',
+    fontFamily: 'DM Sans',
   },
   statLabel: {
     fontSize: 10,
-    color: '#6e6a86',
-    fontFamily: 'monospace',
+    color: '#8593A4',
+    fontFamily: 'DM Mono',
   },
   bottomSheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(26, 26, 46, 0.95)',
+    backgroundColor: 'rgba(17, 21, 24, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: '#3a3a5e',
+    borderTopColor: 'rgba(255, 255, 255, 0.09)',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     padding: 16,
@@ -81,7 +86,7 @@ export const styles = StyleSheet.create({
   bottomSheetHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#3a3a5e',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 12,
@@ -89,14 +94,14 @@ export const styles = StyleSheet.create({
   nodeTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#E2E4E9',
-    fontFamily: 'monospace',
+    color: '#EEF1F4',
+    fontFamily: 'DM Sans',
     marginBottom: 4,
   },
   nodeType: {
     fontSize: 11,
-    color: '#6e6a86',
-    fontFamily: 'monospace',
+    color: '#8593A4',
+    fontFamily: 'DM Mono',
     marginBottom: 12,
   },
   connectionItem: {
@@ -105,12 +110,12 @@ export const styles = StyleSheet.create({
   },
   connectionText: {
     fontSize: 12,
-    color: '#E2E4E9',
-    fontFamily: 'monospace',
+    color: '#A8B4C0',
+    fontFamily: 'DM Sans',
   },
   connectionLabel: {
     fontSize: 10,
-    color: '#6e6a86',
-    fontFamily: 'monospace',
+    color: '#8593A4',
+    fontFamily: 'DM Mono',
   },
 });

@@ -13,6 +13,7 @@ import {
   exportKnowledgeGraph,
 } from '../ipc/commands';
 import { useTauriEvent } from '../hooks/useTauriEvent';
+import { emit } from '@tauri-apps/api/event';
 
 export function KnowledgeGraphScreen() {
   const { t } = useTranslation();
@@ -65,8 +66,13 @@ export function KnowledgeGraphScreen() {
   const handleExport = useCallback(async () => {
     try {
       await exportKnowledgeGraph();
-    } catch {
-      // Export failed — silently handle
+    } catch (err) {
+      emit('semblance://toast', {
+        id: `export_err_${Date.now()}`,
+        message: 'Failed to export knowledge graph',
+        variant: 'attention',
+      }).catch(() => {});
+      console.error('[KnowledgeGraphScreen] export failed:', err);
     }
   }, []);
 

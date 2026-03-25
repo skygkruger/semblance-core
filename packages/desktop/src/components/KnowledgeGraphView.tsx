@@ -14,6 +14,7 @@ import type {
   VisualizationEdge,
   GraphStats,
   NodeContext,
+  NodeContent,
   CategoryNode,
   CategoryEdge,
 } from '../../../core/knowledge/graph-visualization';
@@ -90,6 +91,7 @@ interface NodeDetailPanelProps {
 }
 
 export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({ context, onClose }) => {
+  const content = context.content;
   return (
     <div data-testid="node-detail-panel" className="kg-view__detail">
       <div className="kg-view__detail-header">
@@ -98,6 +100,18 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({ context, onClo
       </div>
       <div className="kg-view__detail-meta">Type: {context.node.type}</div>
       <div className="kg-view__detail-meta">Domain: {context.node.domain}</div>
+      {content?.body && (
+        <>
+          <div className="kg-view__detail-section">Content:</div>
+          <div className="kg-view__detail-content" style={{
+            whiteSpace: 'pre-wrap', fontSize: '12px', lineHeight: '1.4',
+            maxHeight: '200px', overflowY: 'auto', opacity: 0.85,
+            fontFamily: 'var(--font-mono, monospace)',
+          }}>
+            {content.body.slice(0, 1000)}
+          </div>
+        </>
+      )}
       <div>Connections: {context.connections.length}</div>
       <div className="kg-view__detail-section">Connected To:</div>
       {context.connections.slice(0, 15).map(conn => (
@@ -123,6 +137,14 @@ interface TimeSliderProps {
   onChange: (range: [string, string]) => void;
 }
 
+function formatSliderDate(iso: string): string {
+  if (!iso) return '---';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '---';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
 export const TimeSlider: React.FC<TimeSliderProps> = ({ nodes, range, onChange }) => {
   const [minDate, maxDate] = useMemo(() => {
     if (nodes.length === 0) return ['', ''];
@@ -146,11 +168,23 @@ export const TimeSlider: React.FC<TimeSliderProps> = ({ nodes, range, onChange }
     onChange([range[0], date]);
   }, [minDate, maxDate, range, onChange]);
 
+  // Compute display dates for labels
+  const startLabel = formatSliderDate(range[0] || minDate);
+  const endLabel = formatSliderDate(range[1] || maxDate);
+
   return (
     <div data-testid="time-slider" className="kg-view__time-slider">
       <span>Time range:</span>
-      <input type="range" min={0} max={100} defaultValue={0} onChange={handleMinChange} data-testid="time-slider-min" />
-      <input type="range" min={0} max={100} defaultValue={100} onChange={handleMaxChange} data-testid="time-slider-max" />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input type="range" min={0} max={100} defaultValue={0} onChange={handleMinChange} data-testid="time-slider-min" style={{ flex: 1 }} />
+          <input type="range" min={0} max={100} defaultValue={100} onChange={handleMaxChange} data-testid="time-slider-max" style={{ flex: 1 }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#525A64', fontFamily: "'DM Mono', monospace" }}>
+          <span>{startLabel}</span>
+          <span>{endLabel}</span>
+        </div>
+      </div>
     </div>
   );
 };
@@ -203,7 +237,11 @@ function toKnowledgeNode(n: VisualizationNode): KnowledgeNode {
     id: n.id,
     type: n.type === 'person' ? 'person'
       : n.type === 'event' ? 'calendar'
+      : n.type === 'reminder' ? 'calendar'
       : n.type === 'document' ? 'file'
+      : n.type === 'directory' ? 'file'
+      : n.type === 'email_thread' ? 'email'
+      : n.type === 'location' ? 'topic'
       : n.type === 'category' ? 'category'
       : 'topic',
     label: n.label,
@@ -351,6 +389,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   const [showFilter, setShowFilter] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<[string, string]>(['', '']);
+  const [searchQuery, setSearchQuery] = useState('');
   const [enabledCategories, setEnabledCategories] = useState<Set<VisualizationCategory>>(
     () => new Set(getAllCategories()),
   );
@@ -381,13 +420,22 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   }, [categoryGraph, graph, enabledCategories, expandedCategories]);
 
   const filteredNodes = useMemo(() => {
-    if (!timeRange[0] && !timeRange[1]) return displayGraph.nodes;
-    return displayGraph.nodes.filter(n => {
-      if (timeRange[0] && n.createdAt < timeRange[0]) return false;
-      if (timeRange[1] && n.createdAt > timeRange[1]) return false;
-      return true;
-    });
-  }, [displayGraph.nodes, timeRange]);
+    let nodes = displayGraph.nodes;
+    // Apply time range filter
+    if (timeRange[0] || timeRange[1]) {
+      nodes = nodes.filter(n => {
+        if (timeRange[0] && n.createdAt < timeRange[0]) return false;
+        if (timeRange[1] && n.createdAt > timeRange[1]) return false;
+        return true;
+      });
+    }
+    // Apply text search filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      nodes = nodes.filter(n => n.label.toLowerCase().includes(q));
+    }
+    return nodes;
+  }, [displayGraph.nodes, timeRange, searchQuery]);
 
   const filteredNodeIds = useMemo(
     () => new Set(filteredNodes.map(n => n.id)),
@@ -430,20 +478,40 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   }, [selectedNodeId, filteredNodes]);
 
   const drillDown = useMemo<DrillDownConfig | undefined>(() => {
-    // Only show drill-down for category nodes (matches Storybook detail-panel.web.tsx behavior)
-    if (!nodeContext || !selectedNode || selectedNode.type !== 'category') return undefined;
+    if (!nodeContext || !selectedNode) return undefined;
 
-    const allItems: DrillDownItem[] = nodeContext.connections.map((conn) => ({
-      chunkId: conn.node.id,
-      title: conn.node.label,
-      preview: conn.edge.label
-        ? `${conn.edge.label} (weight: ${conn.edge.weight})`
-        : `Connected with weight ${conn.edge.weight}`,
-      source: mapNodeTypeToSource(conn.node.type),
-      category: conn.node.domain ?? 'general',
-      indexedAt: conn.node.createdAt ?? new Date().toISOString(),
-      mimeType: (conn.node as VisualizationNode).metadata?.mimeType as string | undefined,
-    }));
+    let allItems: DrillDownItem[];
+
+    // For category nodes: show items within the category (connections)
+    // For entity nodes with content chunks: show content chunks
+    // For entity nodes without chunks: show connections
+    const contentChunks = nodeContext.content?.chunks;
+
+    if (selectedNode.type === 'category' || !contentChunks || contentChunks.length === 0) {
+      // Use connections as drill-down items
+      allItems = nodeContext.connections.map((conn) => ({
+        chunkId: conn.node.id,
+        title: conn.node.label,
+        preview: conn.edge.label
+          ? `${conn.edge.label} (weight: ${conn.edge.weight})`
+          : `Connected with weight ${conn.edge.weight}`,
+        source: mapNodeTypeToSource(conn.node.type),
+        category: conn.node.domain ?? 'general',
+        indexedAt: conn.node.createdAt ?? new Date().toISOString(),
+        mimeType: (conn.node as VisualizationNode).metadata?.mimeType as string | undefined,
+      }));
+    } else {
+      // Use content chunks as drill-down items (richer data)
+      const contentType = nodeContext.content?.type ?? selectedNode.type;
+      allItems = contentChunks.map((chunk) => ({
+        chunkId: `${selectedNode.id}_chunk_${chunk.chunkIndex}`,
+        title: chunk.content.split('\n')[0]?.slice(0, 80) ?? `Item ${chunk.chunkIndex + 1}`,
+        preview: chunk.content.slice(0, 200),
+        source: mapNodeTypeToSource(contentType),
+        category: selectedNode.domain ?? 'general',
+        indexedAt: selectedNode.createdAt ?? new Date().toISOString(),
+      }));
+    }
 
     const items = drillDownSearch
       ? allItems.filter(i =>
@@ -516,6 +584,28 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
             </button>
           )}
         </div>
+      </div>
+
+      {/* Search bar */}
+      <div style={{ padding: '8px 16px 0 16px' }}>
+        <input
+          type="text"
+          placeholder="Search nodes..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          data-testid="node-search-input"
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            background: '#171B1F',
+            border: '1px solid rgba(255,255,255,0.09)',
+            borderRadius: 8,
+            color: '#EEF1F4',
+            fontSize: 13,
+            fontFamily: "'DM Sans', system-ui, sans-serif",
+            outline: 'none',
+          }}
+        />
       </div>
 
       <div className="kg-view__body" style={{ flex: 1, minHeight: 0 }}>
