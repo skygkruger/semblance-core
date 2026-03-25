@@ -1,106 +1,166 @@
 {
   "splash": {
-    "headline": "[FR] This is your Semblance.",
-    "subtext": "[FR] A digital representation that understands your world, acts on your behalf, and is architecturally incapable of betraying your trust.",
-    "begin_button": "[FR] Begin"
+    "headline": "This is your Semblance.",
+    "tagline": "Your intelligence. Your device. Your rules.",
+    "subtext": "A digital representation that understands your world, acts on your behalf, and is architecturally incapable of betraying your trust.",
+    "begin_button": "Begin Setup"
   },
   "hardware": {
-    "headline": "[FR] Detecting your hardware...",
-    "subtext": "[FR] Semblance will recommend the best model for your machine.",
-    "continue_button": "[FR] Continue",
-    "tier_label": "[FR] Tier",
-    "ram_label": "[FR] RAM",
-    "cpu_label": "[FR] CPU",
-    "gpu_label": "[FR] GPU",
-    "os_label": "[FR] OS",
-    "cpu_cores": "[FR] {{count}} cores",
-    "tier_capable": "[FR] High Performance",
-    "tier_standard": "[FR] Standard",
-    "tier_constrained": "[FR] Constrained"
+    "headline": "Checking your hardware",
+    "checking": "Checking your hardware",
+    "subtext": "Semblance will recommend the best model for your machine.",
+    "continue_button": "Continue",
+    "tier_label": "Tier",
+    "ram_label": "RAM",
+    "cpu_label": "CPU",
+    "cpu_cores": "{{count}} cores",
+    "memory": "Memory",
+    "gpu_label": "GPU",
+    "os_label": "Operating System",
+    "min_met": "Minimum requirements met",
+    "below_min": "Below minimum requirements",
+    "tier_capable": "High Performance",
+    "tier_standard": "Standard",
+    "tier_constrained": "Constrained"
   },
   "data_sources": {
-    "headline": "[FR] Connect your world",
-    "subtext": "[FR] Everything stays on this device. Semblance connects to your accounts through the Gateway, fetches your data, and stores it locally.",
-    "more_sources": "[FR] + 42 more sources available in Connections after setup",
-    "privacy_notice": "[FR] Your data never leaves this device. Connections are encrypted and revocable at any time.",
-    "nudge": "[FR] Connecting at least one source helps Semblance understand your world. You can always add more later.",
-    "skip_button": "[FR] Skip for now",
-    "continue_button": "[FR] Continue",
-    "connect_button": "[FR] Connect",
-    "connected_status": "[FR] Connected",
+    "headline": "Connect your world",
+    "subtext": "Everything stays on this device. Semblance connects to your accounts through the Gateway, fetches your data, and stores it locally.",
+    "more_sources": "+ 42 more sources available in Connections after setup",
+    "privacy_notice": "Your data never leaves this device. Connections are encrypted and revocable at any time.",
+    "nudge": "Connecting at least one source helps Semblance understand your world. You can always add more later.",
+    "skip_button": "Skip for now",
+    "continue_button": "Continue",
+    "connect_button": "Connect",
+    "connected_status": "Selected",
+    "connected_label": "Connected",
+    "connecting_label": "Connecting...",
+    "retry_button": "Retry",
+    "back_button": "Back",
     "sources": {
       "email": {
-        "name": "[FR] Email",
-        "description": "[FR] Gmail, Outlook, IMAP"
+        "name": "Email",
+        "description": "Gmail, Outlook, IMAP"
       },
       "calendar": {
-        "name": "[FR] Calendar",
-        "description": "[FR] Google, Apple, Outlook"
+        "name": "Calendar",
+        "description": "Google, Apple, Outlook"
       },
       "files": {
-        "name": "[FR] Files & Documents",
-        "description": "[FR] Local folders, iCloud"
+        "name": "Files & Documents",
+        "description": "Local folders, iCloud"
       },
       "contacts": {
-        "name": "[FR] Contacts",
-        "description": "[FR] Phone, Google, CardDAV"
+        "name": "Contacts",
+        "description": "Phone, Google, CardDAV"
       },
       "health": {
-        "name": "[FR] Health",
-        "description": "[FR] Apple Health, Google Fit"
+        "name": "Health",
+        "description": "Apple Health, Google Fit"
       },
       "slack": {
-        "name": "[FR] Slack",
-        "description": "[FR] Workspace messages"
+        "name": "Slack",
+        "description": "Workspace messages"
       }
     }
   },
   "autonomy": {
-    "headline": "[FR] How much should it do on its own?",
-    "subtext": "[FR] You can change this anytime in Settings. Most users start with Partner.",
-    "continue_button": "[FR] Continue",
-    "selector_label": "[FR] Autonomy tier selection",
-    "recommended_badge": "[FR] Recommended",
+    "headline": "How much should Semblance do on its own?",
+    "subtext": "You can change this anytime in Settings. Most users start with Partner.",
+    "continue_button": "Continue",
+    "selector_label": "Autonomy tier selection",
+    "recommended_badge": "Recommended",
+    "alter_ego_note": "Alter Ego mode is available after you build trust with Partner. You can upgrade anytime in Settings.",
+    "back_button": "Back",
     "tiers": {
       "guardian": {
-        "name": "[FR] Guardian",
-        "description": "[FR] I'll show you everything before I act",
-        "detail": "[FR] Every action requires your explicit approval. Full control."
+        "name": "Guardian",
+        "description": "Shows everything, asks before acting. You approve every action."
       },
       "partner": {
-        "name": "[FR] Partner",
-        "description": "[FR] I'll handle the routine, check on the important stuff",
-        "detail": "[FR] Routine tasks run autonomously. Novel or high-stakes actions need approval."
+        "name": "Partner",
+        "description": "Handles routine tasks autonomously. Asks for anything new or high-stakes."
       },
       "alter_ego": {
-        "name": "[FR] Alter Ego",
-        "description": "[FR] Acts as you across your digital life. Confirms before irreversible actions, high-stakes decisions, and anything above your financial threshold. Everything else: handled.",
-        "detail": "[FR] Most users start with Partner and move here within a few weeks."
+        "name": "Alter Ego",
+        "description": "Acts as you across your digital life. Confirms before irreversible actions, high-stakes decisions, and anything above your financial threshold. Everything else: handled."
       }
     }
   },
   "naming_moment": {
-    "headline": "[FR] What should it call you?",
-    "placeholder": "[FR] Your name or nickname",
-    "confirmation": "[FR] Your Semblance will address you as {{name}}. You can change this in Settings.",
-    "continue_button": "[FR] Continue"
+    "headline": "What should it call you?",
+    "placeholder": "Your name",
+    "privacy_notice": "Stored only on your device. Never transmitted.",
+    "confirmation": "Your Semblance will address you as {{name}}. You can change this in Settings.",
+    "continue_button": "Continue"
   },
   "naming_ai": {
-    "headline": "[FR] What will you call it?",
-    "placeholder": "[FR] Give it a name",
-    "subtext": "[FR] This is what your AI will be called. You can change it in Settings.",
-    "start_button": "[FR] Run Semblance"
+    "headline": "What will you call it?",
+    "placeholder": "Give it a name",
+    "subtext": "This is what your AI will be called. You can change it in Settings.",
+    "start_button": "Run Semblance"
+  },
+  "intent": {
+    "goal_headline": "What\u2019s your primary reason for using Semblance?",
+    "goal_subtext": "This helps it understand how to prioritize on your behalf.",
+    "goal_placeholder": "e.g. Get on top of my work so I have more time for family",
+    "limit_headline": "Is there anything you\u2019d never want Semblance to do without asking first?",
+    "limit_subtext": "You can add more limits anytime in Settings.",
+    "limit_placeholder": "e.g. Never send emails on my behalf without showing me first",
+    "value_headline": "What matters most to you that most people wouldn\u2019t know?",
+    "value_subtext": "Semblance uses this to make better decisions on your behalf.",
+    "value_placeholder": "e.g. I always prioritize my kids' schedules over work commitments",
+    "continue": "Continue",
+    "skip_for_now": "Skip for now",
+    "back": "Back",
+    "skip_all": "Skip all intent questions"
   },
   "initialize": {
-    "downloading_headline": "[FR] Initializing your Semblance...",
-    "downloading_subtext": "[FR] Downloading models and preparing your knowledge graph. This may take a few minutes.",
-    "building_headline": "[FR] Building your knowledge graph...",
-    "building_subtext": "[FR] Cross-referencing your connected data sources.",
-    "knowledge_moment_headline": "[FR] Your Semblance already knows something.",
-    "ready_headline": "[FR] Ready to go.",
-    "ready_subtext": "[FR] Connect more data sources later to unlock deeper insights.",
-    "start_button": "[FR] Run Semblance",
-    "download_complete_status": "[FR] Complete",
-    "knowledge_moment_suffix": " already knows something about you"
+    "downloading_headline": "Initializing your Semblance...",
+    "downloading_subtext": "Downloading models and preparing your knowledge graph. This may take a few minutes.",
+    "building_headline": "Building your knowledge graph...",
+    "building_subtext": "Cross-referencing your connected data sources.",
+    "knowledge_moment_headline": "Your Semblance already knows something.",
+    "ready_headline": "Ready to go.",
+    "ready_subtext": "Connect more data sources later to unlock deeper insights.",
+    "start_button": "Run Semblance",
+    "download_complete_status": "Complete",
+    "knowledge_moment_suffix": " already knows something about you",
+    "retry": "Retry",
+    "download_error": "Download failed",
+    "continue_with_warnings": "Continue with warnings",
+    "continue_warnings_detail": "Some models failed to download. You can continue, but features requiring {{models}} won't work until you download them in Settings \u2192 AI Engine.",
+    "initializing": "Initializing",
+    "no_data_message": "Connect a data source to see your Knowledge Moment \u2014 your first taste of compound intelligence."
+  },
+  "alter_ego_week_offer": {
+    "headline": "Unlock Alter Ego Week?",
+    "description": "Alter Ego Week is a 7-day trust-building sequence. Each day, Semblance demonstrates a new autonomous capability \u2014 email triage, calendar intelligence, file organization, and more. At the end, you decide whether to grant full autonomy.",
+    "day_label": "Day {{day}}",
+    "days": {
+      "1": "Email Triage",
+      "2": "Calendar Intelligence",
+      "3": "File Organization",
+      "4": "Contact Insights",
+      "5": "Financial Awareness",
+      "6": "Health Patterns",
+      "7": "Full Autonomy Demo"
+    },
+    "settings_note": "You can always enable Alter Ego Week later in Settings \u2192 Alter Ego Week.",
+    "start_button": "Start Alter Ego Week",
+    "skip_button": "Skip \u2014 I'll explore on my own",
+    "back_button": "Back"
+  },
+  "initial_index": {
+    "headline": "Indexing your data...",
+    "subtext": "Semblance is building your knowledge graph from your connected sources. This runs in the background.",
+    "complete_headline": "Your data is indexed.",
+    "complete_subtext": "{{count}} items indexed across your connected sources.",
+    "source_complete": "{{count}} items",
+    "source_indexing": "Indexing...",
+    "source_pending": "Pending",
+    "continue_button": "Continue",
+    "continue_background_button": "Continue (indexing continues in background)",
+    "back_button": "Back"
   }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Wordmark } from '../../components/Wordmark/Wordmark';
 import { Button } from '../../components/Button/Button';
@@ -6,6 +7,7 @@ import type { SplashScreenProps } from './SplashScreen.types';
 import './Onboarding.css';
 
 export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) {
+  const { t } = useTranslation('onboarding');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) 
       <LogoMark size={200} />
       <Wordmark size="hero" />
       <p className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-sm)', whiteSpace: 'nowrap' }}>
-        Your intelligence. Your device. Your rules.
+        {t('splash.tagline')}
       </p>
       <div style={{ marginTop: 32 }}>
         <Button
@@ -39,7 +41,7 @@ export function SplashScreen({ onBegin, autoAdvanceMs = 0 }: SplashScreenProps) 
             onBegin?.();
           }}
         >
-          <span className="btn__text">Begin Setup</span>
+          <span className="btn__text">{t('splash.begin_button')}</span>
         </Button>
       </div>
     </div>

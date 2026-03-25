@@ -1,4 +1,4 @@
-// OnboardingFlow — 10-step onboarding sequence using semblance-ui components.
+// OnboardingFlow — Multi-step onboarding sequence using semblance-ui components.
 // Container that manages step state and IPC, delegates presentation to library pages.
 
 import { useState, useCallback, useEffect } from 'react';
@@ -15,10 +15,12 @@ import {
   IntentCapture,
   LanguageSelect,
   DotMatrix,
+  AlterEgoWeekOffer,
+  InitialIndexStep,
 } from '@semblance/ui';
-import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier } from '@semblance/ui';
+import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier, DataSourceStatus, IndexingSource } from '@semblance/ui';
 import { detectOSLocale } from '@semblance/core/i18n/supported-languages';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { listen, emit, type UnlistenFn } from '@tauri-apps/api/event';
 import { useAppDispatch } from '../state/AppState';
 
 import {
@@ -31,6 +33,11 @@ import {
   setOnboardingComplete,
   setIntentOnboarding,
   setLanguagePreference,
+  ipcSend,
+  sidecarCall,
+  retryModelDownload,
+  prefGet,
+  prefSet,
 } from '../ipc/commands';
 import type { HardwareDisplayInfo, KnowledgeMoment } from '../ipc/types';
 
@@ -39,7 +46,9 @@ type OnboardingStep =
   | 'splash'
   | 'hardware'
   | 'data-sources'
+  | 'initial-index'
   | 'autonomy'
+  | 'alter-ego-offer'
   | 'intent-capture'
   | 'naming-moment'
   | 'naming-ai'
@@ -51,13 +60,22 @@ const STEP_ORDER: OnboardingStep[] = [
   'splash',
   'hardware',
   'data-sources',
+  'initial-index',
   'autonomy',
   'intent-capture',
   'naming-moment',
   'naming-ai',
   'initialize',
+  'alter-ego-offer',
   'terms',
 ];
+
+/** Map data source IDs to connector IDs for OAuth */
+const SOURCE_TO_CONNECTOR: Record<string, string> = {
+  email: 'gmail',
+  calendar: 'google-calendar',
+  slack: 'slack-oauth',
+};
 
 /** Map IPC HardwareDisplayInfo to semblance-ui HardwareInfo */
 function toHardwareInfo(hw: HardwareDisplayInfo): HardwareInfo {
@@ -110,13 +128,43 @@ export function OnboardingFlow() {
   const [knowledgeMoment, setKnowledgeMoment] = useState<KnowledgeMomentData | null>(null);
   const [momentLoading, setMomentLoading] = useState(false);
 
+  // Data sources state — tracks OAuth status per source
+  const [sourceStatuses, setSourceStatuses] = useState<Record<string, DataSourceStatus>>({});
+
+  // Indexing state
+  const [indexingSources, setIndexingSources] = useState<IndexingSource[]>([]);
+  const [indexingComplete, setIndexingComplete] = useState(false);
+
+  // Whether any data has been indexed (drives knowledge moment)
+  const [hasIndexedData, setHasIndexedData] = useState(false);
+
+  // Resume onboarding on mount if app was force-closed mid-flow
+  useEffect(() => {
+    prefGet('onboarding_current_step').then(savedStep => {
+      if (savedStep && STEP_ORDER.includes(savedStep as OnboardingStep)) {
+        setStep(savedStep as OnboardingStep);
+      }
+    }).catch(() => {});
+  }, []);
+
   const currentIndex = STEP_ORDER.indexOf(step);
 
   const goNext = useCallback(() => {
     const nextIndex = currentIndex + 1;
     if (nextIndex < STEP_ORDER.length) {
       const nextStep = STEP_ORDER[nextIndex];
-      if (nextStep) setStep(nextStep);
+      if (nextStep) {
+        setStep(nextStep);
+        // Persist progress for resume on force-close
+        prefSet('onboarding_current_step', nextStep).catch(() => {});
+      }
+    }
+  }, [currentIndex]);
+
+  const goBack = useCallback(() => {
+    if (currentIndex > 0) {
+      const prevStep = STEP_ORDER[currentIndex - 1];
+      if (prevStep) setStep(prevStep);
     }
   }, [currentIndex]);
 
@@ -149,6 +197,109 @@ export function OnboardingFlow() {
       })
       .finally(() => setDetecting(false));
   }, [step, hardwareInfo]);
+
+  // Handle connecting a data source via OAuth
+  const handleConnectSource = useCallback(async (sourceId: string, connectorId: string) => {
+    setSourceStatuses(prev => ({ ...prev, [sourceId]: 'connecting' }));
+    try {
+      const result = await ipcSend({
+        action: 'connector.auth',
+        payload: { connectorId },
+      });
+      if (result && typeof result === 'object' && (result as Record<string, unknown>).success === false) {
+        setSourceStatuses(prev => ({ ...prev, [sourceId]: 'error' }));
+        emit('semblance://toast', {
+          id: `conn_err_${Date.now()}`,
+          message: (result as Record<string, unknown>).error as string || 'Connection failed',
+          variant: 'attention',
+        }).catch(() => {});
+      } else {
+        setSourceStatuses(prev => ({ ...prev, [sourceId]: 'connected' }));
+        // Trigger sync
+        ipcSend({
+          action: 'connector.sync',
+          payload: { connectorId },
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.error(`[OnboardingFlow] Failed to connect ${connectorId}:`, err);
+      setSourceStatuses(prev => ({ ...prev, [sourceId]: 'error' }));
+    }
+  }, []);
+
+  // Listen for indexing events
+  useEffect(() => {
+    if (step !== 'initial-index') return;
+
+    // Set up initial indexing sources from connected data sources
+    const connectedSources: IndexingSource[] = [];
+    for (const [sourceId, status] of Object.entries(sourceStatuses)) {
+      if (status === 'connected') {
+        const nameMap: Record<string, string> = {
+          email: 'Email',
+          calendar: 'Calendar',
+          slack: 'Slack',
+        };
+        connectedSources.push({
+          id: sourceId,
+          name: nameMap[sourceId] ?? sourceId,
+          count: 0,
+          status: 'indexing',
+        });
+      }
+    }
+    setIndexingSources(connectedSources);
+
+    if (connectedSources.length === 0) {
+      setIndexingComplete(true);
+      return;
+    }
+
+    let unlisten: UnlistenFn | undefined;
+    listen<{ connectorId: string; count?: number }>(
+      'semblance://indexing-complete',
+      (event) => {
+        const { connectorId, count } = event.payload;
+        // Map connector IDs back to source IDs
+        const sourceId = Object.entries(SOURCE_TO_CONNECTOR).find(
+          ([, cId]) => cId === connectorId
+        )?.[0] ?? connectorId;
+
+        setIndexingSources(prev => {
+          const updated = prev.map(s =>
+            s.id === sourceId
+              ? { ...s, status: 'complete' as const, count: count ?? s.count }
+              : s
+          );
+          const allDone = updated.every(s => s.status === 'complete');
+          if (allDone) {
+            setIndexingComplete(true);
+            const total = updated.reduce((sum, s) => sum + s.count, 0);
+            if (total > 0) setHasIndexedData(true);
+          }
+          return updated;
+        });
+      }
+    ).then((fn) => { unlisten = fn; });
+
+    // Auto-complete after 30s timeout regardless
+    const timeout = setTimeout(() => {
+      setIndexingComplete(true);
+      setIndexingSources(prev => {
+        const completed = prev.map(s =>
+          s.status !== 'complete' ? { ...s, status: 'complete' as const } : s
+        );
+        const total = completed.reduce((sum, s) => sum + s.count, 0);
+        if (total > 0) setHasIndexedData(true);
+        return completed;
+      });
+    }, 30_000);
+
+    return () => {
+      unlisten?.();
+      clearTimeout(timeout);
+    };
+  }, [step, sourceStatuses]);
 
   // Start model downloads + knowledge moment on initialize step
   useEffect(() => {
@@ -217,17 +368,19 @@ export function OnboardingFlow() {
         }]);
       });
 
-    // Start knowledge moment generation
-    setMomentLoading(true);
-    generateKnowledgeMoment()
-      .then((result) => setKnowledgeMoment(toKnowledgeMomentData(result)))
-      .catch(() => {})
-      .finally(() => {
-        setMomentLoading(false);
-      });
+    // Start knowledge moment generation — only if data has been indexed
+    if (hasIndexedData) {
+      setMomentLoading(true);
+      generateKnowledgeMoment()
+        .then((result) => setKnowledgeMoment(toKnowledgeMomentData(result)))
+        .catch(() => {})
+        .finally(() => {
+          setMomentLoading(false);
+        });
+    }
 
     return () => { unlisten?.(); unlistenModelLoaded?.(); };
-  }, [step, hardwareInfo]);
+  }, [step, hardwareInfo, hasIndexedData]);
 
   // Timeout fallback: if all downloads complete but runtime never reports ready,
   // allow proceeding after 3s (Ollama users get instant readiness via the
@@ -271,8 +424,27 @@ export function OnboardingFlow() {
     goNext();
   }, [goNext]);
 
+  // Handle Alter Ego Week acceptance
+  const handleAlterEgoAccept = useCallback(async () => {
+    try {
+      await sidecarCall('alter_ego_week_start');
+    } catch {
+      // Backend may not be ready — acceptance still proceeds
+    }
+    goNext();
+  }, [goNext]);
+
+  // Handle model download retry
+  const handleRetryModel = useCallback((modelName: string) => {
+    retryModelDownload(modelName).catch((err) => {
+      console.error('[OnboardingFlow] retryModelDownload failed:', err);
+    });
+  }, []);
+
   // Handle final completion
   const handleComplete = useCallback(async () => {
+    // Clear saved step so resume doesn't trigger after completion
+    prefSet('onboarding_current_step', '').catch(() => {});
     try {
       await setOnboardingComplete();
     } catch {
@@ -308,8 +480,20 @@ export function OnboardingFlow() {
 
       {step === 'data-sources' && (
         <DataSourcesStep
+          sourceStatuses={sourceStatuses}
+          onConnectSource={handleConnectSource}
           onContinue={() => goNext()}
           onSkip={goNext}
+          onBack={goBack}
+        />
+      )}
+
+      {step === 'initial-index' && (
+        <InitialIndexStep
+          sources={indexingSources}
+          complete={indexingComplete}
+          onContinue={goNext}
+          onBack={goBack}
         />
       )}
 
@@ -318,6 +502,7 @@ export function OnboardingFlow() {
           value={autonomy}
           onChange={setAutonomy}
           onContinue={handleAutonomyContinue}
+          onBack={goBack}
         />
       )}
 
@@ -336,11 +521,20 @@ export function OnboardingFlow() {
       {step === 'initialize' && (
         <InitializeStep
           downloads={downloads}
-          knowledgeMoment={knowledgeMoment}
-          loading={momentLoading}
+          knowledgeMoment={hasIndexedData ? knowledgeMoment : null}
+          loading={hasIndexedData ? momentLoading : false}
           onComplete={goNext}
           aiName={aiName}
           runtimeReady={runtimeReady}
+          onRetryModel={handleRetryModel}
+        />
+      )}
+
+      {step === 'alter-ego-offer' && (
+        <AlterEgoWeekOffer
+          onAccept={handleAlterEgoAccept}
+          onSkip={goNext}
+          onBack={goBack}
         />
       )}
 

@@ -6,4 +6,5 @@ export interface AutonomyTierProps {
   value: AutonomyTier;
   onChange: (tier: AutonomyTier) => void;
   onContinue?: () => void;
+  onBack?: () => void;
 }

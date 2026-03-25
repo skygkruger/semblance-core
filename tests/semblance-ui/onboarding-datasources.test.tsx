@@ -42,11 +42,13 @@ describe('DataSourcesStep', () => {
 
   it('toggles a source to connected when Connect is clicked', () => {
     render(<DataSourcesStep />);
-    // Get the first Connect button (Email)
+    // Get the first Connect button — files/contacts/health are non-OAuth, toggle locally
+    // Email/Calendar/Slack are OAuth and require onConnectSource
     const connectButtons = screen.getAllByText('Connect');
-    fireEvent.click(connectButtons[0]!);
-    // Now Email should show "Selected" text
-    expect(screen.getByText('Selected')).toBeTruthy();
+    // Click Files (index 2) which is non-OAuth and toggles locally
+    fireEvent.click(connectButtons[2]!);
+    // Now Files should show "Connected" text
+    expect(screen.getByText('Connected')).toBeTruthy();
     // And only 5 Connect buttons remain
     expect(screen.getAllByText('Connect').length).toBe(5);
   });
@@ -73,7 +75,7 @@ describe('DataSourcesStep', () => {
 
   it('shows Connected status for pre-connected sources', () => {
     render(<DataSourcesStep initialConnected={new Set(['email', 'health'])} />);
-    const connectedLabels = screen.getAllByText('Selected');
+    const connectedLabels = screen.getAllByText('Connected');
     expect(connectedLabels.length).toBe(2);
     expect(screen.getAllByText('Connect').length).toBe(4);
   });
@@ -83,9 +85,9 @@ describe('DataSourcesStep', () => {
     // Trigger nudge
     fireEvent.click(screen.getByText('Continue'));
     expect(screen.getByText(/Connecting at least one source/)).toBeTruthy();
-    // Connect a source
+    // Connect a non-OAuth source (Files is index 2)
     const connectButtons = screen.getAllByText('Connect');
-    fireEvent.click(connectButtons[0]!);
+    fireEvent.click(connectButtons[2]!);
     // Nudge should be gone
     expect(screen.queryByText(/Connecting at least one source/)).toBeNull();
   });

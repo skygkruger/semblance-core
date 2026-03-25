@@ -253,6 +253,7 @@ const navSections: NavSection[] = [
       { id: 'health', label: 'Health', icon: <HeartIcon /> },
       { id: 'digest', label: 'Digest', icon: <DigestIcon /> },
       { id: 'alter-ego-week', label: 'Alter Ego Week', icon: <SparkleIcon /> },
+      { id: 'tunnel-pairing', label: 'Tunnel Pairing', icon: <GlobeIcon /> },
     ],
   },
   {

@@ -9,3 +9,5 @@ export { NamingMoment } from '../../pages/Onboarding/NamingMoment';
 export { NamingYourAI } from '../../pages/Onboarding/NamingYourAI';
 export { SplashScreen } from '../../pages/Onboarding/SplashScreen';
 export { TermsAcceptanceStep } from '../../pages/Onboarding/TermsAcceptanceStep';
+export { AlterEgoWeekOffer } from '../../pages/Onboarding/AlterEgoWeekOffer';
+export { InitialIndexStep } from '../../pages/Onboarding/InitialIndexStep';

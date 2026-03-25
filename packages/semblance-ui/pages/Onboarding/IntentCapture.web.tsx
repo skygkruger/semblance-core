@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button/Button';
 import { Input } from '../../components/Input/Input';
 import type { IntentCaptureProps } from './IntentCapture.types';
@@ -8,33 +9,14 @@ type SubStep = 'goal' | 'limit' | 'value';
 
 const SUB_STEPS: SubStep[] = ['goal', 'limit', 'value'];
 
-const CONFIG: Record<SubStep, {
-  headline: string;
-  subtext: string;
-  placeholder: string;
-  skippable: boolean;
-}> = {
-  goal: {
-    headline: 'What\u2019s your primary reason for using Semblance?',
-    subtext: 'This helps it understand how to prioritize on your behalf.',
-    placeholder: 'e.g. Get on top of my work so I have more time for family',
-    skippable: false,
-  },
-  limit: {
-    headline: 'Is there anything you\u2019d never want Semblance to do without asking first?',
-    subtext: 'You can add more limits anytime in Settings.',
-    placeholder: 'e.g. Never send emails on my behalf without showing me first',
-    skippable: true,
-  },
-  value: {
-    headline: 'What matters most to you that most people wouldn\u2019t know?',
-    subtext: 'Semblance uses this to make better decisions on your behalf.',
-    placeholder: "e.g. I always prioritize my kids' schedules over work commitments",
-    skippable: true,
-  },
+const SKIPPABLE: Record<SubStep, boolean> = {
+  goal: false,
+  limit: true,
+  value: true,
 };
 
 export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
+  const { t } = useTranslation('onboarding');
   const [subStep, setSubStep] = useState<SubStep>('goal');
   const [responses, setResponses] = useState({
     primaryGoal: '',
@@ -43,7 +25,7 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
   });
 
   const currentIndex = SUB_STEPS.indexOf(subStep);
-  const config = CONFIG[subStep];
+  const skippable = SKIPPABLE[subStep];
 
   const currentValue = subStep === 'goal'
     ? responses.primaryGoal
@@ -128,17 +110,17 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
       </div>
 
       <h1 className="naming__headline" style={{ fontSize: 'clamp(22px, 4vw, 32px)' }}>
-        {config.headline}
+        {t(`intent.${subStep}_headline`)}
       </h1>
 
       <div className="onboarding-content-frame" style={{ width: '100%' }}>
         <p className="naming__subtext" style={{ maxWidth: 380, margin: 0 }}>
-          {config.subtext}
+          {t(`intent.${subStep}_subtext`)}
         </p>
 
         <div style={{ width: '100%' }}>
           <Input
-            placeholder={config.placeholder}
+            placeholder={t(`intent.${subStep}_placeholder`)}
             value={currentValue}
             onChange={handleChange}
             onKeyDown={(e: React.KeyboardEvent) => {
@@ -151,16 +133,16 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>
         {!isFirstStep && (
           <Button variant="ghost" size="md" onClick={handleBack}>
-            Back
+            {t('intent.back')}
           </Button>
         )}
         <Button
           variant="opal"
           size="lg"
-          disabled={!hasValue && !config.skippable}
+          disabled={!hasValue && !skippable}
           onClick={hasValue ? handleContinue : handleSkip}
         >
-          <span className="btn__text">{hasValue ? 'Continue' : 'Skip for now'}</span>
+          <span className="btn__text">{hasValue ? t('intent.continue') : t('intent.skip_for_now')}</span>
         </Button>
       </div>
 
@@ -181,7 +163,7 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
             textUnderlineOffset: 3,
           }}
         >
-          Skip all intent questions
+          {t('intent.skip_all')}
         </button>
       )}
     </div>

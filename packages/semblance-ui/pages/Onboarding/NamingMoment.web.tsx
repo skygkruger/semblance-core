@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LogoMark } from '../../components/LogoMark/LogoMark';
 import { Button } from '../../components/Button/Button';
 import { Input } from '../../components/Input/Input';
@@ -7,6 +8,7 @@ import type { NamingMomentProps } from './NamingMoment.types';
 import './Onboarding.css';
 
 export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProps) {
+  const { t } = useTranslation('onboarding');
   const [userName, setUserName] = useState(defaultValue);
   const hasValue = userName.trim().length > 0;
 
@@ -23,16 +25,16 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
       <LogoMark size={120} />
 
       <h1 className="onboarding-shimmer-headline" style={{ fontSize: 'clamp(28px, 5vw, 48px)', lineHeight: 1.25, marginBottom: 16 }}>
-        What should it call you?
+        {t('naming_moment.headline')}
       </h1>
       <div className="onboarding-content-frame" style={{ width: '100%' }}>
         <p className="naming__subtext" style={{ margin: 0 }}>
-          Stored only on your device. Never transmitted.
+          {t('naming_moment.privacy_notice')}
         </p>
 
         <div style={{ width: '100%' }}>
           <Input
-            placeholder="Your name"
+            placeholder={t('naming_moment.placeholder')}
             value={userName}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
           />
@@ -48,7 +50,7 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
           disabled={!hasValue}
           onClick={() => onComplete?.(userName.trim())}
         >
-          <span className="btn__text">Continue</span>
+          <span className="btn__text">{t('naming_moment.continue_button')}</span>
         </Button>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
 import { Button } from '../../components/Button/Button';
 import type { HardwareDetectionProps } from './HardwareDetection.types';
@@ -13,23 +14,25 @@ interface HardwareRow {
   ok: boolean;
 }
 
-function buildRows(info: NonNullable<HardwareDetectionProps['hardwareInfo']>): HardwareRow[] {
+function buildRows(info: NonNullable<HardwareDetectionProps['hardwareInfo']>, t: (key: string, opts?: Record<string, unknown>) => string): HardwareRow[] {
   const rows: HardwareRow[] = [
-    { label: 'CPU', value: `${info.cpuCores} cores`, ok: info.cpuCores >= 4 },
-    { label: 'RAM', value: formatRam(info.totalRamMb), ok: info.totalRamMb >= 8192 },
+    { label: t('hardware.cpu_label'), value: t('hardware.cpu_cores', { count: info.cpuCores }), ok: info.cpuCores >= 4 },
+    { label: t('hardware.memory'), value: formatRam(info.totalRamMb), ok: info.totalRamMb >= 8192 },
   ];
   if (info.gpuName) {
     rows.push({
-      label: 'GPU',
+      label: t('hardware.gpu_label'),
       value: info.gpuVramMb ? `${info.gpuName} (${formatRam(info.gpuVramMb)})` : info.gpuName,
       ok: true,
     });
   }
-  rows.push({ label: 'OS', value: `${info.os} (${info.arch})`, ok: true });
+  rows.push({ label: t('hardware.os_label'), value: `${info.os} (${info.arch})`, ok: true });
   return rows;
 }
 
 export function HardwareDetection({ hardwareInfo, detecting, onContinue }: HardwareDetectionProps) {
+  const { t } = useTranslation('onboarding');
+
   return (
     <div style={{
       display: 'flex',
@@ -40,7 +43,7 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
       animation: 'dissolve 700ms var(--eo) both',
     }}>
       <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
-        Checking your hardware
+        {t('hardware.checking')}
       </h2>
 
       {detecting && (
@@ -51,7 +54,7 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
 
       {hardwareInfo && !detecting && (
         <div className="onboarding-content-frame" style={{ width: '100%', marginTop: 16 }}>
-          {buildRows(hardwareInfo).map((item, i) => (
+          {buildRows(hardwareInfo, t).map((item, i) => (
             <div key={i} className="onboarding-content-frame__item" style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -72,7 +75,7 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
 
       {hardwareInfo && !detecting && (
         <div style={{ marginTop: 16 }}>
-          <Button variant="opal" size="md" onClick={onContinue}><span className="btn__text">Continue</span></Button>
+          <Button variant="opal" size="md" onClick={onContinue}><span className="btn__text">{t('hardware.continue_button')}</span></Button>
         </div>
       )}
     </div>

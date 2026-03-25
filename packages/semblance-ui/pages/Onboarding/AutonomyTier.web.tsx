@@ -1,15 +1,17 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button/Button';
 import type { AutonomyTierProps } from './AutonomyTier.types';
 import type { AutonomyTier as AutonomyTierType } from '../../components/AutonomySelector/AutonomySelector.types';
 import './Onboarding.css';
 
-const tiers: Array<{ id: AutonomyTierType; name: string; desc: string; recommended: boolean }> = [
-  { id: 'guardian', name: 'Guardian', desc: 'Shows everything, asks before acting. You approve every action.', recommended: false },
-  { id: 'partner', name: 'Partner', desc: 'Handles routine tasks autonomously. Asks for anything new or high-stakes.', recommended: true },
-  { id: 'alter_ego', name: 'Alter Ego', desc: 'Acts as you across your digital life. Confirms before irreversible actions, high-stakes decisions, and anything above your financial threshold. Everything else: handled.', recommended: false },
+const tierIds: Array<{ id: AutonomyTierType; recommended: boolean }> = [
+  { id: 'guardian', recommended: false },
+  { id: 'partner', recommended: true },
 ];
 
-export function AutonomyTier({ value, onChange, onContinue }: AutonomyTierProps) {
+export function AutonomyTier({ value, onChange, onContinue, onBack }: AutonomyTierProps) {
+  const { t } = useTranslation('onboarding');
+
   return (
     <div style={{
       display: 'flex',
@@ -20,10 +22,10 @@ export function AutonomyTier({ value, onChange, onContinue }: AutonomyTierProps)
       animation: 'dissolve 700ms var(--eo) both',
     }}>
       <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
-        How much should Semblance do on its own?
+        {t('autonomy.headline')}
       </h2>
       <div className="onboarding-content-frame">
-        {tiers.map((tier, i) => (
+        {tierIds.map((tier, i) => (
           <div
             key={tier.id}
             onClick={() => onChange(tier.id)}
@@ -35,7 +37,7 @@ export function AutonomyTier({ value, onChange, onContinue }: AutonomyTierProps)
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-lg)', fontWeight: 400, color: '#EEF1F4' }}>
-                {tier.name}
+                {t(`autonomy.tiers.${tier.id}.name`)}
               </span>
               {tier.recommended && (
                 <span style={{
@@ -48,18 +50,47 @@ export function AutonomyTier({ value, onChange, onContinue }: AutonomyTierProps)
                   padding: '2px 8px',
                   borderRadius: 'var(--r-sm)',
                 }}>
-                  Recommended
+                  {t('autonomy.recommended_badge')}
                 </span>
               )}
             </div>
             <p style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-sm)', color: '#8593A4', marginTop: 6, lineHeight: 1.5 }}>
-              {tier.desc}
+              {t(`autonomy.tiers.${tier.id}.description`)}
             </p>
           </div>
         ))}
+
+        {/* Alter Ego note */}
+        <p style={{
+          fontFamily: "'DM Sans', system-ui, sans-serif",
+          fontSize: 12,
+          color: '#5E6B7C',
+          margin: 0,
+          padding: '8px 12px',
+          lineHeight: 1.5,
+        }}>
+          {t('autonomy.alter_ego_note')}
+        </p>
       </div>
-      <div style={{ marginTop: 8 }}>
-        <Button variant="opal" onClick={onContinue}><span className="btn__text">Continue</span></Button>
+      <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'center' }}>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+              fontSize: 13,
+              color: '#5E6B7C',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px 12px',
+            }}
+          >
+            {t('autonomy.back_button')}
+          </button>
+        )}
+        <Button variant="opal" onClick={onContinue}><span className="btn__text">{t('autonomy.continue_button')}</span></Button>
       </div>
     </div>
   );

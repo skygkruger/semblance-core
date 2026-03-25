@@ -9,4 +9,5 @@ export type {
   CalendarFetchParams,
   CalendarCreateParams,
   CalendarUpdateParams,
+  CalendarDeleteParams,
 } from './types.js';
