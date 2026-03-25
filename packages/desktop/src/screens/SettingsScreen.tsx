@@ -50,6 +50,7 @@ import type { NotificationSettings, BitNetModelIPC } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useLicense } from '../contexts/LicenseContext';
 import type { AccountStatus } from '../ipc/types';
+import { StyleProfileCard } from '../components/StyleProfileCard';
 
 export function SettingsScreen() {
   const { t } = useTranslation();
@@ -82,6 +83,22 @@ export function SettingsScreen() {
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [binaryAllowlistCount, setBinaryAllowlistCount] = useState(0);
   const [adversarialAlertCount, setAdversarialAlertCount] = useState(0);
+  const [styleProfile, setStyleProfile] = useState<{
+    id: string;
+    isActive: boolean;
+    emailsAnalyzed: number;
+    greetingPatterns: Array<{ text: string; frequency: number }>;
+    signoffPatterns: Array<{ text: string; frequency: number }>;
+    formalityScore: number;
+    directnessScore: number;
+    warmthScore: number;
+    usesContractions: boolean;
+    contractionRate: number;
+    usesEmoji: boolean;
+    emojiFrequency: number;
+    usesExclamation: boolean;
+    exclamationRate: number;
+  } | null>(null);
 
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     morningBriefEnabled: true,
@@ -148,6 +165,35 @@ export function SettingsScreen() {
     }).catch(() => {});
     getBackupStatus().then((s) => {
       if (s?.lastBackupAt) setLastBackupAt(s.lastBackupAt);
+    }).catch(() => {});
+    // Load style profile
+    sidecarCall<{
+      id: string;
+      isActive: boolean;
+      emailsAnalyzed: number;
+      greetings: { patterns: Array<{ text: string; frequency: number }> };
+      signoffs: { patterns: Array<{ text: string; frequency: number }> };
+      tone: { formalityScore: number; directnessScore: number; warmthScore: number };
+      vocabulary: { usesContractions: boolean; contractionRate: number; usesEmoji: boolean; emojiFrequency: number; usesExclamation: boolean; exclamationRate: number };
+    } | null>('style_get_profile').then((p) => {
+      if (p) {
+        setStyleProfile({
+          id: p.id,
+          isActive: p.isActive,
+          emailsAnalyzed: p.emailsAnalyzed,
+          greetingPatterns: p.greetings?.patterns ?? [],
+          signoffPatterns: p.signoffs?.patterns ?? [],
+          formalityScore: p.tone?.formalityScore ?? 50,
+          directnessScore: p.tone?.directnessScore ?? 50,
+          warmthScore: p.tone?.warmthScore ?? 50,
+          usesContractions: p.vocabulary?.usesContractions ?? false,
+          contractionRate: p.vocabulary?.contractionRate ?? 0,
+          usesEmoji: p.vocabulary?.usesEmoji ?? false,
+          emojiFrequency: p.vocabulary?.emojiFrequency ?? 0,
+          usesExclamation: p.vocabulary?.usesExclamation ?? false,
+          exclamationRate: p.vocabulary?.exclamationRate ?? 0,
+        });
+      }
     }).catch(() => {});
   }, [dispatch]);
 
@@ -555,6 +601,42 @@ export function SettingsScreen() {
           binaryAllowlistCount={binaryAllowlistCount}
           adversarialAlertCount={adversarialAlertCount}
         />
+        <div className="mt-6">
+          <StyleProfileCard
+            profile={styleProfile}
+            onReanalyze={() => {
+              sidecarCall('style_reanalyze').then(() => {
+                // Reload profile after re-analysis
+                sidecarCall<{
+                  id: string; isActive: boolean; emailsAnalyzed: number;
+                  greetings: { patterns: Array<{ text: string; frequency: number }> };
+                  signoffs: { patterns: Array<{ text: string; frequency: number }> };
+                  tone: { formalityScore: number; directnessScore: number; warmthScore: number };
+                  vocabulary: { usesContractions: boolean; contractionRate: number; usesEmoji: boolean; emojiFrequency: number; usesExclamation: boolean; exclamationRate: number };
+                } | null>('style_get_profile').then((p) => {
+                  if (p) {
+                    setStyleProfile({
+                      id: p.id, isActive: p.isActive, emailsAnalyzed: p.emailsAnalyzed,
+                      greetingPatterns: p.greetings?.patterns ?? [], signoffPatterns: p.signoffs?.patterns ?? [],
+                      formalityScore: p.tone?.formalityScore ?? 50, directnessScore: p.tone?.directnessScore ?? 50,
+                      warmthScore: p.tone?.warmthScore ?? 50, usesContractions: p.vocabulary?.usesContractions ?? false,
+                      contractionRate: p.vocabulary?.contractionRate ?? 0, usesEmoji: p.vocabulary?.usesEmoji ?? false,
+                      emojiFrequency: p.vocabulary?.emojiFrequency ?? 0, usesExclamation: p.vocabulary?.usesExclamation ?? false,
+                      exclamationRate: p.vocabulary?.exclamationRate ?? 0,
+                    });
+                  }
+                }).catch(() => {});
+                showToast('Style profile re-analyzed');
+              }).catch(() => { showToast('Re-analysis failed'); });
+            }}
+            onReset={() => {
+              sidecarCall('style_reset').then(() => {
+                setStyleProfile(null);
+                showToast('Style profile reset');
+              }).catch(() => { showToast('Reset failed'); });
+            }}
+          />
+        </div>
       </div>
     </div>
   );

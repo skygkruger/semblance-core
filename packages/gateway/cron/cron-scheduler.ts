@@ -137,6 +137,15 @@ const BUILT_IN_JOBS: Omit<CronJob, 'lastFiredAt' | 'nextFireAt' | 'createdAt'>[]
     autonomyDomain: 'connectors',
     enabled: true,
   },
+  {
+    id: 'style-extraction',
+    name: 'Style Profile Extraction',
+    schedule: '0 3 * * 0',
+    actionType: 'style.extract',
+    payload: {},
+    autonomyDomain: 'email',
+    enabled: true,
+  },
 ];
 
 /**

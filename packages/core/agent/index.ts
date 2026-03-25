@@ -35,6 +35,7 @@ import { OrchestratorImpl } from './orchestrator.js';
 import { AutonomyManager } from './autonomy.js';
 import { getPlatform } from '../platform/index.js';
 import type { SemblanceExtension } from '../extensions/types.js';
+import type { StyleProfileStore } from '../style/style-profile.js';
 
 /**
  * Create an Orchestrator instance.
@@ -52,6 +53,7 @@ export function createOrchestrator(config: {
   userName?: string;
   connectedServices?: string[];
   indexedDocCount?: number;
+  styleProfileStore?: StyleProfileStore;
 }): Orchestrator {
   const p = getPlatform();
   const db = p.sqlite.openDatabase(p.path.join(config.dataDir, 'agent.db'));
@@ -70,6 +72,7 @@ export function createOrchestrator(config: {
     userName: config.userName,
     connectedServices: config.connectedServices,
     indexedDocCount: config.indexedDocCount,
+    styleProfileStore: config.styleProfileStore,
   });
 
   // Wire extension tools

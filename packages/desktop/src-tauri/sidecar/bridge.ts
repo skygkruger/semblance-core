@@ -4498,6 +4498,224 @@ async function handleVoiceDownloadModel(params: { model: string }): Promise<unkn
   throw new Error(`Unknown voice model type: ${params.model}`);
 }
 
+// ─── Style Extraction ────────────────────────────────────────────────────────
+
+/**
+ * Run style extraction from the user's sent emails in indexed_emails.
+ * Analyzes writing patterns (greetings, signoffs, tone, vocabulary, structure)
+ * using the locally-indexed sent emails. All processing is local — no network.
+ */
+async function runStyleExtraction(
+  userEmail: string,
+  db: Database.default,
+  semblanceCore: import('../../../core/index.js').SemblanceCore,
+  store: StyleProfileStore,
+): Promise<{ emailsAnalyzed: number; profileId: string | null }> {
+  // Query sent emails from the local index — the "from" column matches user's email
+  let sentEmails: Array<{
+    message_id: string;
+    subject: string;
+    snippet: string;
+    received_at: string;
+    /* eslint-disable-next-line @typescript-eslint/naming-convention */
+    from: string;
+  }> = [];
+  try {
+    sentEmails = db.prepare(
+      `SELECT message_id, subject, snippet, received_at, "from"
+       FROM indexed_emails WHERE "from" LIKE ?
+       ORDER BY received_at DESC LIMIT 100`
+    ).all(`%${userEmail}%`) as typeof sentEmails;
+  } catch {
+    // Table may not exist yet
+    return { emailsAnalyzed: 0, profileId: null };
+  }
+
+  if (sentEmails.length < 5) {
+    console.error(`[sidecar] Style extraction: only ${sentEmails.length} sent emails found (need 5+)`);
+    return { emailsAnalyzed: sentEmails.length, profileId: null };
+  }
+
+  console.error(`[sidecar] Style extraction: analyzing ${sentEmails.length} sent emails for ${userEmail}`);
+
+  // Analyze patterns statistically from snippets (no LLM needed for basic extraction)
+  const greetingCounts: Record<string, number> = {};
+  const signoffCounts: Record<string, number> = {};
+  let totalSentences = 0;
+  let totalWords = 0;
+  let totalParagraphs = 0;
+  let contractionCount = 0;
+  let emojiCount = 0;
+  let exclamationCount = 0;
+  let totalSnippetLength = 0;
+  const commonPhrases: Record<string, number> = {};
+
+  const GREETING_PATTERNS = /^(hi|hey|hello|dear|good morning|good afternoon|good evening|yo)\b[^.!?\n]*/i;
+  const SIGNOFF_PATTERNS = /(best|regards|thanks|cheers|sincerely|take care|talk soon|best wishes|warm regards|kind regards|thank you|many thanks)[,.\s]*$/im;
+  const CONTRACTION_PATTERN = /\b(i'm|i've|i'll|i'd|we're|we've|we'll|we'd|they're|they've|they'll|they'd|you're|you've|you'll|you'd|he's|she's|it's|that's|there's|here's|what's|who's|can't|won't|don't|doesn't|didn't|isn't|aren't|wasn't|weren't|hasn't|haven't|hadn't|couldn't|wouldn't|shouldn't|mustn't|let's)\b/gi;
+  const EMOJI_PATTERN = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
+
+  for (const email of sentEmails) {
+    const text = email.snippet || '';
+    totalSnippetLength += text.length;
+
+    // Greeting detection
+    const greetMatch = text.match(GREETING_PATTERNS);
+    if (greetMatch) {
+      const greeting = greetMatch[0]!.trim();
+      greetingCounts[greeting] = (greetingCounts[greeting] ?? 0) + 1;
+    }
+
+    // Signoff detection
+    const signoffMatch = text.match(SIGNOFF_PATTERNS);
+    if (signoffMatch) {
+      const signoff = signoffMatch[0]!.trim();
+      signoffCounts[signoff] = (signoffCounts[signoff] ?? 0) + 1;
+    }
+
+    // Sentence/word/paragraph counting
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    totalSentences += sentences.length;
+    for (const s of sentences) {
+      totalWords += s.trim().split(/\s+/).filter(w => w.length > 0).length;
+    }
+    totalParagraphs += text.split(/\n\s*\n/).filter(p => p.trim().length > 0).length || 1;
+
+    // Contractions
+    const contractions = text.match(CONTRACTION_PATTERN);
+    if (contractions) contractionCount += contractions.length;
+
+    // Emoji
+    const emojis = text.match(EMOJI_PATTERN);
+    if (emojis) emojiCount += emojis.length;
+
+    // Exclamation marks
+    exclamationCount += (text.match(/!/g) ?? []).length;
+
+    // Common phrase extraction (2-3 word phrases)
+    const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    for (let i = 0; i < words.length - 1; i++) {
+      const bigram = `${words[i]} ${words[i + 1]}`;
+      commonPhrases[bigram] = (commonPhrases[bigram] ?? 0) + 1;
+    }
+  }
+
+  const emailCount = sentEmails.length;
+  const avgSentenceLength = totalSentences > 0 ? totalWords / totalSentences : 0;
+  const avgParagraphLength = totalParagraphs > 0 ? totalSentences / totalParagraphs : 0;
+  const avgEmailLength = totalSnippetLength / emailCount;
+  const contractionRate = totalWords > 0 ? contractionCount / (totalWords / 10) : 0; // per 10 words
+  const emojiFrequency = emojiCount / emailCount;
+  const exclamationRate = totalSentences > 0 ? exclamationCount / totalSentences : 0;
+
+  // Sort patterns by frequency
+  const sortedGreetings = Object.entries(greetingCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([text, count]) => ({
+      text,
+      frequency: count / emailCount,
+      contexts: ['general'],
+    }));
+
+  const sortedSignoffs = Object.entries(signoffCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([text, count]) => ({
+      text,
+      frequency: count / emailCount,
+      contexts: ['general'],
+    }));
+
+  const topPhrases = Object.entries(commonPhrases)
+    .filter(([, count]) => count >= 3)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([phrase]) => phrase);
+
+  // Derive formality score (0-100): higher = more formal
+  // Indicators: fewer contractions, longer sentences, formal greetings
+  let formalityScore = 50;
+  if (contractionRate < 0.1) formalityScore += 15;
+  else if (contractionRate > 0.5) formalityScore -= 15;
+  if (avgSentenceLength > 15) formalityScore += 10;
+  else if (avgSentenceLength < 8) formalityScore -= 10;
+  const hasInformalGreetings = sortedGreetings.some(g => /^(hey|yo)/i.test(g.text));
+  const hasFormalGreetings = sortedGreetings.some(g => /^(dear|good)/i.test(g.text));
+  if (hasFormalGreetings) formalityScore += 10;
+  if (hasInformalGreetings) formalityScore -= 10;
+  formalityScore = Math.max(0, Math.min(100, formalityScore));
+
+  // Derive directness (0-100): fewer hedging words = more direct
+  const directnessScore = Math.max(0, Math.min(100, 60 + (avgSentenceLength < 12 ? 15 : -10)));
+
+  // Derive warmth (0-100): exclamations, emoji, warm signoffs
+  let warmthScore = 50;
+  if (exclamationRate > 0.15) warmthScore += 15;
+  if (emojiFrequency > 0.3) warmthScore += 10;
+  const warmSignoffs = sortedSignoffs.some(s => /cheers|take care|warmly/i.test(s.text));
+  if (warmSignoffs) warmthScore += 10;
+  warmthScore = Math.max(0, Math.min(100, warmthScore));
+
+  const usesRecipientName = sortedGreetings.some(g => /\b[A-Z][a-z]+\b/.test(g.text.replace(/^(hi|hey|hello|dear)\s*/i, '')));
+
+  const profileData: import('../../../core/style/style-profile.js').StyleProfile = {
+    id: '',
+    version: 1,
+    emailsAnalyzed: emailCount,
+    isActive: emailCount >= 20,
+    lastUpdatedAt: new Date().toISOString(),
+    greetings: {
+      patterns: sortedGreetings,
+      usesRecipientName,
+      usesNameVariant: usesRecipientName ? 'first' : 'none',
+    },
+    signoffs: {
+      patterns: sortedSignoffs,
+      includesName: false,
+    },
+    tone: {
+      formalityScore,
+      directnessScore,
+      warmthScore,
+    },
+    structure: {
+      avgSentenceLength: Math.round(avgSentenceLength * 10) / 10,
+      avgParagraphLength: Math.round(avgParagraphLength * 10) / 10,
+      avgEmailLength: Math.round(avgEmailLength),
+      usesListsOrBullets: false, // Can't detect well from snippets
+      listFrequency: 0,
+    },
+    vocabulary: {
+      commonPhrases: topPhrases,
+      avoidedWords: [],
+      usesContractions: contractionRate > 0.1,
+      contractionRate: Math.round(contractionRate * 100) / 100,
+      usesEmoji: emojiFrequency > 0.05,
+      emojiFrequency: Math.round(emojiFrequency * 100) / 100,
+      commonEmoji: [],
+      usesExclamation: exclamationRate > 0.05,
+      exclamationRate: Math.round(exclamationRate * 100) / 100,
+    },
+    contextVariations: [],
+  };
+
+  // Create or update the profile
+  const existingProfile = store.getActiveProfile();
+  let profileId: string;
+  if (existingProfile) {
+    const updated = store.updateProfile(existingProfile.id, profileData);
+    profileId = updated?.id ?? existingProfile.id;
+    console.error(`[sidecar] Style extraction: updated profile ${profileId} (${emailCount} emails analyzed)`);
+  } else {
+    const created = store.createProfile(profileData);
+    profileId = created.id;
+    console.error(`[sidecar] Style extraction: created profile ${profileId} (${emailCount} emails analyzed)`);
+  }
+
+  return { emailsAnalyzed: emailCount, profileId };
+}
+
 // ─── Connector Auth Handlers ────────────────────────────────────────────────
 
 function ensureOAuthTokenManager(): OAuthTokenManager {
@@ -4995,6 +5213,27 @@ async function handleConnectorSync(params: { connectorId: string }): Promise<unk
             indexed: emailIndexed,
             total: messages.length,
           });
+        }
+        // After indexing emails, check if style extraction should run
+        if (styleProfileStore || prefsDb) {
+          try {
+            if (!styleProfileStore && prefsDb) {
+              styleProfileStore = new StyleProfileStore(prefsDb!);
+            }
+            const styleTokenMgr = ensureOAuthTokenManager();
+            const styleUserEmail = styleTokenMgr.getUserEmail('google') ?? '';
+            if (styleUserEmail && styleProfileStore && core) {
+              const profile = styleProfileStore.getActiveProfile();
+              // Run extraction if no profile exists, or if significantly more emails are available
+              const needsExtraction = !profile || profile.emailsAnalyzed < 20 || emailIndexed > profile.emailsAnalyzed + 10;
+              if (needsExtraction) {
+                const extractResult = await runStyleExtraction(styleUserEmail, prefsDb!, core!, styleProfileStore);
+                console.error(`[sidecar] Post-sync style extraction: ${extractResult.emailsAnalyzed} emails analyzed, profile ${extractResult.profileId}`);
+              }
+            }
+          } catch (styleErr) {
+            console.error('[sidecar] Post-sync style extraction failed (non-fatal):', styleErr);
+          }
         }
       } catch (emailSyncErr) {
         console.error('[sidecar] Post-sync email indexing failed:', emailSyncErr);
@@ -6711,13 +6950,24 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
       case 'style_reanalyze': {
-        if (!styleProfileStore) { respond(id, { success: false }); break; }
-        // Trigger re-analysis — creates a new profile version
-        const existing = styleProfileStore.getActiveProfile();
-        if (existing) {
-          styleProfileStore.updateProfile(existing.id, { lastUpdatedAt: new Date().toISOString() });
+        if (!styleProfileStore && prefsDb) {
+          styleProfileStore = new StyleProfileStore(prefsDb);
         }
-        respond(id, { success: true });
+        if (!styleProfileStore || !prefsDb || !core) { respond(id, { success: false }); break; }
+        // Trigger real style extraction from sent emails
+        try {
+          const tokenMgr = ensureOAuthTokenManager();
+          const userEmail = tokenMgr.getUserEmail('google') ?? '';
+          if (userEmail) {
+            const extractionResult = await runStyleExtraction(userEmail, prefsDb, core, styleProfileStore);
+            respond(id, { success: true, ...extractionResult });
+          } else {
+            respond(id, { success: false, reason: 'No connected email account' });
+          }
+        } catch (extErr) {
+          console.error('[sidecar] style_reanalyze failed:', extErr);
+          respond(id, { success: false, error: (extErr as Error).message });
+        }
         break;
       }
       case 'style_reset': {
@@ -7761,6 +8011,30 @@ async function handleRequest(req: Request): Promise<void> {
         } catch (err) {
           console.error('[sidecar] Connector re-sync failed:', err);
           respond(id, { synced: 0, error: (err as Error).message });
+        }
+        break;
+      }
+      case 'style.extract': {
+        // Cron-triggered style extraction — analyze sent emails weekly
+        if (!prefsDb || !core) { respond(id, { success: false, reason: 'Core not initialized' }); break; }
+        try {
+          if (!styleProfileStore) {
+            styleProfileStore = new StyleProfileStore(prefsDb);
+          }
+          const tokenMgr = ensureOAuthTokenManager();
+          const userEmail = tokenMgr.getUserEmail('google') ?? '';
+          if (!userEmail) {
+            respond(id, { success: false, reason: 'No connected email account' });
+            break;
+          }
+          const extractionResult = await runStyleExtraction(userEmail, prefsDb, core, styleProfileStore);
+          if (extractionResult.emailsAnalyzed >= 20) {
+            console.error(`[sidecar] Cron style extraction: profile ${extractionResult.profileId} updated (${extractionResult.emailsAnalyzed} emails)`);
+          }
+          respond(id, { success: true, ...extractionResult });
+        } catch (err) {
+          console.error('[sidecar] Cron style extraction failed:', err);
+          respond(id, { success: false, error: (err as Error).message });
         }
         break;
       }

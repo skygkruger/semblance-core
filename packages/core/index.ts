@@ -386,6 +386,8 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
 
       // Step 5: Create the orchestrator (requires knowledge graph)
       console.error('[SemblanceCore] Creating orchestrator...');
+      // Create StyleProfileStore early so it can be shared with both orchestrator and extensions
+      const styleProfileStore = new StyleProfileStore(coreDb);
       if (knowledge) {
         agent = createOrchestrator({
           llmProvider: llm,
@@ -394,6 +396,7 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
           autonomyConfig: config?.autonomyConfig,
           dataDir,
           model: chatModel,
+          styleProfileStore,
         });
         console.error('[SemblanceCore] Orchestrator initialized');
 
@@ -404,7 +407,6 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
         console.error(`[SemblanceCore] Extensions loaded in ${Date.now() - extStart}ms`);
         if (extensions.length > 0) {
           const premiumGate = new PremiumGate(coreDb);
-          const styleProfileStore = new StyleProfileStore(coreDb);
           const extCtx: ExtensionInitContext = {
             db: coreDb,
             llm,

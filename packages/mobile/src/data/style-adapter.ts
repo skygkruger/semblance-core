@@ -170,11 +170,11 @@ function coreProfileToMobileProfile(profile: StyleProfile): MobileStyleProfile {
   // Derive avgWordLength from contraction rate + formality (no direct metric in Core)
   const estimatedAvgWordLength = profile.vocabulary.usesContractions ? 4.2 : 5.0;
 
-  // Map Core's warmthScore (0-1) to enthusiasm
-  const enthusiasm = profile.tone.warmthScore;
+  // Map Core's warmthScore (0-100) to enthusiasm (0-1)
+  const enthusiasm = profile.tone.warmthScore / 100;
 
-  // Map Core's formalityScore to formality
-  const formality = profile.tone.formalityScore;
+  // Map Core's formalityScore (0-100) to formality (0-1)
+  const formality = profile.tone.formalityScore / 100;
 
   // Derive verbosity from average email/paragraph length
   const verbosity = Math.min(1, profile.structure.avgEmailLength / 500);
