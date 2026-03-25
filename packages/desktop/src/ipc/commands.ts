@@ -295,6 +295,10 @@ export function activateFoundingToken(token: string): Promise<ActivationResult> 
   return invoke<ActivationResult>('activate_founding_token', { token });
 }
 
+export function disconnectLicense(): Promise<{ success: boolean }> {
+  return invoke<{ success: boolean }>('disconnect_license');
+}
+
 // ─── Network Monitor ────────────────────────────────────────────────────────
 
 export function getNetworkStatistics(period: NetworkPeriod): Promise<NetworkStatistics> {

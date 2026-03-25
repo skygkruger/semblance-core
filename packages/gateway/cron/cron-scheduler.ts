@@ -93,6 +93,15 @@ const BUILT_IN_JOBS: Omit<CronJob, 'lastFiredAt' | 'nextFireAt' | 'createdAt'>[]
     enabled: true,
   },
   {
+    id: 'license-renew-check',
+    name: 'License Renewal Check',
+    schedule: '0 6 * * *',
+    actionType: 'license.check_renewal',
+    payload: {},
+    autonomyDomain: 'system',
+    enabled: true,
+  },
+  {
     id: 'tunnel-sync',
     name: 'Tunnel Knowledge Sync',
     schedule: '*/15 * * * *',

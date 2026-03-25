@@ -1554,6 +1554,15 @@ async fn get_license_status(state: tauri::State<'_, AppBridge>) -> Result<Value,
         .await
 }
 
+/// Disconnect / deactivate the current license.
+#[tauri::command]
+async fn disconnect_license(state: tauri::State<'_, AppBridge>) -> Result<Value, String> {
+    state
+        .bridge
+        .call("license:disconnect", serde_json::json!({}))
+        .await
+}
+
 // ─── Conversation Management Commands ────────────────────────────────────────
 
 #[tauri::command]
@@ -2893,6 +2902,7 @@ pub fn run() {
             activate_founding_token,
             activate_license_key,
             get_license_status,
+            disconnect_license,
             // Conversation Management
             list_conversations,
             get_conversation,

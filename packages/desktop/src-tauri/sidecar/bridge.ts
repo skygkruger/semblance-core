@@ -2856,6 +2856,7 @@ async function handleEmailStartIndex(
           if (detectedKey) {
             const activationResult = premiumGate.activateLicense(detectedKey);
             if (activationResult.success) {
+              setPref('active_license_key', detectedKey);
               console.error(`[sidecar] License auto-detected and activated: tier=${activationResult.tier}`);
               emit('semblance://license-auto-activated', {
                 tier: activationResult.tier,
@@ -5853,6 +5854,10 @@ async function handleRequest(req: Request): Promise<void> {
         }
         const { token } = params as { token: string };
         result = premiumGate.activateFoundingMember(token);
+        // Store founding token in prefs for portal access
+        if (result.success) {
+          setPref('active_license_key', token);
+        }
         respond(id, result);
         break;
       }
@@ -5864,6 +5869,11 @@ async function handleRequest(req: Request): Promise<void> {
         }
         const { key } = params as { key: string };
         result = premiumGate.activateLicense(key);
+        // Store the key in prefs for portal access and renewal verification.
+        // License keys are signed public credentials (like JWTs), not secrets.
+        if (result.success) {
+          setPref('active_license_key', key);
+        }
         respond(id, result);
         break;
       }
@@ -5872,15 +5882,31 @@ async function handleRequest(req: Request): Promise<void> {
         if (!premiumGate) {
           result = { tier: 'free', isPremium: false, isFoundingMember: false, foundingSeat: null, licenseKey: null };
         } else {
+          // Return the license key from prefs (stored at activation time).
+          // The sidecar can't access the OS keychain (webview-only), so we
+          // persist the key in SQLite prefs. License keys are signed public
+          // credentials (like JWTs), not secrets — safe in SQLite.
           result = {
             tier: premiumGate.getLicenseTier(),
             isPremium: premiumGate.isPremium(),
             isFoundingMember: premiumGate.isFoundingMember(),
             foundingSeat: premiumGate.getFoundingSeat(),
-            licenseKey: await premiumGate.getLicenseKey(),
+            licenseKey: getPref('active_license_key') ?? null,
           };
         }
         respond(id, result);
+        break;
+      }
+
+      case 'license:disconnect': {
+        if (!premiumGate) {
+          respondError(id, 'PremiumGate not initialized');
+          break;
+        }
+        await premiumGate.disconnect();
+        // Clear the stored key from prefs
+        setPref('active_license_key', '');
+        respond(id, { success: true });
         break;
       }
 
@@ -9611,6 +9637,7 @@ async function handleRequest(req: Request): Promise<void> {
               if (key) {
                 const result = premiumGate.activateLicense(key);
                 if (result.success) {
+                  setPref('active_license_key', key);
                   console.error(`[sidecar] Cron license scan: auto-activated key from email ${email.message_id}`);
                   emit('semblance://license-auto-activated', result);
                   found = true;
@@ -9631,6 +9658,7 @@ async function handleRequest(req: Request): Promise<void> {
                   if (keyFromKG) {
                     const result = premiumGate.activateLicense(keyFromKG);
                     if (result.success) {
+                      setPref('active_license_key', keyFromKG);
                       console.error(`[sidecar] Cron license scan: auto-activated key from knowledge graph`);
                       emit('semblance://license-auto-activated', result);
                       found = true;
@@ -9647,6 +9675,64 @@ async function handleRequest(req: Request): Promise<void> {
             respond(id, { skipped: true, reason: 'PremiumGate not initialized' });
           }
         } catch (err) { respondError(id, (err as Error).message); }
+        break;
+      }
+
+      case 'license.check_renewal':
+      case 'license_check_renewal': {
+        // Daily cron: check if the license Worker has a newer key for this customer.
+        // Handles renewal when Gmail isn't connected (renewal emails not detected).
+        try {
+          const currentKey = getPref('active_license_key');
+          const currentTier = premiumGate?.getLicenseTier();
+
+          if (!currentKey || currentTier !== 'digital-representative') {
+            // Only monthly subscribers need renewal checks
+            respond(id, { checked: false, reason: 'Not a monthly subscriber' });
+            break;
+          }
+
+          const verifyResp = await globalThis.fetch(
+            'https://semblance-license-worker.conduit-gw.workers.dev/latest-key',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ licenseKey: currentKey }),
+              signal: AbortSignal.timeout(10000),
+            }
+          );
+
+          if (verifyResp.ok) {
+            const data = await verifyResp.json() as {
+              valid: boolean;
+              key?: string;
+              tier?: string;
+              expiresAt?: string | null;
+              isNewer?: boolean;
+              revoked?: boolean;
+            };
+
+            if (data.valid && data.isNewer && data.key && data.key !== currentKey) {
+              // Worker has a newer key — activate it
+              const activationResult = premiumGate!.activateLicense(data.key);
+              if (activationResult.success) {
+                setPref('active_license_key', data.key);
+                emit('semblance://license-auto-activated', activationResult);
+                console.error('[sidecar] License renewed via Worker check');
+              }
+            } else if (!data.valid && data.revoked) {
+              // License was revoked — clear it
+              await premiumGate!.disconnect();
+              setPref('active_license_key', '');
+              console.error('[sidecar] License revoked detected via Worker check');
+            }
+          }
+          respond(id, { checked: true });
+        } catch (err) {
+          // Network unavailable — that's fine, license has 35-day grace period
+          console.error('[sidecar] License renewal check failed (offline):', err);
+          respond(id, { checked: false, reason: 'offline' });
+        }
         break;
       }
 
