@@ -130,16 +130,29 @@ export function InheritanceScreen() {
     }
   }, [t]);
 
+  if (!license.isPremium) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        padding: 24,
+      }}>
+        <FeatureGate
+          feature="inheritance-protocol"
+          isPremium={false}
+          onLearnMore={() => navigate('/upgrade')}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="inheritance h-full overflow-y-auto">
       <div className="inheritance__container">
         <h1 className="inheritance__title">{t('screen.inheritance.title')}</h1>
 
-        <FeatureGate
-          feature="inheritance-protocol"
-          isPremium={license.isPremium}
-          onLearnMore={() => navigate('/upgrade')}
-        >
           <p className="inheritance__subtitle">
             {t('screen.inheritance.subtitle')}
           </p>
@@ -290,7 +303,6 @@ export function InheritanceScreen() {
               </Card>
             </>
           )}
-        </FeatureGate>
       </div>
     </div>
   );

@@ -49,6 +49,7 @@ export function SettingsRoot({
         { screen: 'notifications', label: t('root.rows.notifications'), value: notificationSummary },
         { screen: 'autonomy', label: t('root.rows.autonomy'), value: tierLabels[autonomyTier] || autonomyTier },
         { screen: 'scheduled-jobs', label: 'Scheduled Jobs', value: `${cronJobCount} active` },
+        { screen: 'search', label: 'Web Search', value: '' },
         { screen: '__intents', label: t('root.rows.intents', 'Intents & Hard Limits'), value: '' },
       ],
     },

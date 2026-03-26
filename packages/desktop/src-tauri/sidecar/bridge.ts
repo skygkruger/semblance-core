@@ -2456,6 +2456,9 @@ async function handleStartIndexing(
 
       // Step 5: Emit completion
       emit('indexing-complete', {
+        type: 'files',
+        connectorId: 'files',
+        count: stats.totalDocuments,
         filesScanned: totalFilesScanned,
         filesTotal,
         chunksCreated: totalChunksCreated,
@@ -5426,10 +5429,11 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
             syncAccountId,
           );
           console.error(`[sidecar] Post-sync: ${emailIndexed} emails indexed into local store (account: ${syncAccountId})`);
-          emit('semblance://indexing-complete', {
+          emit('indexing-complete', {
             type: 'email',
             connectorId: params.connectorId,
             accountId: syncAccountId,
+            count: emailIndexed,
             indexed: emailIndexed,
             total: messages.length,
           });
@@ -5511,9 +5515,10 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
             }
           }
           console.error(`[sidecar] Post-sync: ${driveIndexed}/${files.length} Drive files indexed into knowledge graph`);
-          emit('semblance://indexing-complete', {
+          emit('indexing-complete', {
             type: 'drive',
             connectorId: params.connectorId,
+            count: driveIndexed,
             indexed: driveIndexed,
             total: files.length,
           });
@@ -5621,10 +5626,11 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
 
         const calIndexed = await calendarIndexer.indexEvents(mappedEvents, calSyncAccountId);
         console.error(`[sidecar] Post-sync: ${calIndexed} calendar events indexed via REST API (account: ${calSyncAccountId})`);
-        emit('semblance://indexing-complete', {
+        emit('indexing-complete', {
           type: 'calendar',
           connectorId: params.connectorId,
           accountId: calSyncAccountId,
+          count: calIndexed,
           indexed: calIndexed,
           total: rawEvents.length,
         });

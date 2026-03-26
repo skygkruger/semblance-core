@@ -11,10 +11,11 @@
 }
 
 .semblance-network-screen__title {
-  font-family: var(--fd), serif;
+  font-family: var(--fb), sans-serif;
   font-size: 1.75rem;
   font-weight: 300;
-  color: var(--white-pure);
+  letter-spacing: 0.08em;
+  color: #6ECFA3;
   margin: 0 0 0.25rem;
 }
 

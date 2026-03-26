@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { getDarkPatternFlags, dismissDarkPatternFlag, getFinancialDashboard, prefGet } from '../ipc/commands';
 import { useLicense } from '../contexts/LicenseContext';
 import { Card, SkeletonCard, FeatureGate } from '@semblance/ui';
@@ -34,6 +35,7 @@ const DEFAULT_OPT_OUT: OptOutStatus = { totalOptOuts: 0, pendingOptOuts: 0, succ
 export function AdversarialDashboardScreen() {
   const { t } = useTranslation();
   const license = useLicense();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [flags, setFlags] = useState<DarkPatternFlag[]>([]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionAssessment[]>([]);
@@ -84,8 +86,25 @@ export function AdversarialDashboardScreen() {
     loadData();
   }, []);
 
+  if (!license.isPremium) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        padding: 24,
+      }}>
+        <FeatureGate
+          feature="dark-pattern-detection"
+          isPremium={false}
+          onLearnMore={() => navigate('/upgrade')}
+        />
+      </div>
+    );
+  }
+
   return (
-    <FeatureGate feature="dark-pattern-detection" isPremium={license.isPremium}>
       <div className="adversarial-dashboard h-full overflow-y-auto">
         <div className="adversarial-dashboard__container">
           <h1 className="adversarial-dashboard__title">{t('screen.adversarial.title')}</h1>
@@ -171,6 +190,5 @@ export function AdversarialDashboardScreen() {
           )}
         </div>
       </div>
-    </FeatureGate>
   );
 }

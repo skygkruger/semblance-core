@@ -174,11 +174,18 @@ export function LivingWillScreen() {
 
   if (!license.isPremium) {
     return (
-      <div className="living-will h-full overflow-y-auto">
-        <div className="living-will__container">
-          <h1 className="living-will__title">{t('screen.living_will.title')}</h1>
-          <FeatureGate feature="living-will" isPremium={false} onLearnMore={() => navigate('/upgrade')} />
-        </div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        padding: 24,
+      }}>
+        <FeatureGate
+          feature="living-will"
+          isPremium={false}
+          onLearnMore={() => navigate('/upgrade')}
+        />
       </div>
     );
   }

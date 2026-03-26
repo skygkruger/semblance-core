@@ -52,7 +52,7 @@ import type { NotificationSettings, BitNetModelIPC } from '../ipc/commands';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useLicense } from '../contexts/LicenseContext';
 import type { AccountStatus } from '../ipc/types';
-import { StyleProfileCard } from '../components/StyleProfileCard';
+// StyleProfileCard removed — will be re-added as a proper Settings screen later
 
 /** Model IDs from the BitNet catalog — used to route download progress events */
 const BITNET_MODEL_CATALOG_IDS = new Set([
@@ -93,23 +93,6 @@ export function SettingsScreen() {
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [binaryAllowlistCount, setBinaryAllowlistCount] = useState(0);
   const [adversarialAlertCount, setAdversarialAlertCount] = useState(0);
-  const [styleProfile, setStyleProfile] = useState<{
-    id: string;
-    isActive: boolean;
-    emailsAnalyzed: number;
-    greetingPatterns: Array<{ text: string; frequency: number }>;
-    signoffPatterns: Array<{ text: string; frequency: number }>;
-    formalityScore: number;
-    directnessScore: number;
-    warmthScore: number;
-    usesContractions: boolean;
-    contractionRate: number;
-    usesEmoji: boolean;
-    emojiFrequency: number;
-    usesExclamation: boolean;
-    exclamationRate: number;
-  } | null>(null);
-
   // Search settings state
   const [searchEngine, setSearchEngine] = useState<string>('searxng');
   const [searchBraveApiKey, setSearchBraveApiKey] = useState<string>('');
@@ -262,35 +245,6 @@ export function SettingsScreen() {
       })
       .catch(() => {});
 
-    // Load style profile
-    sidecarCall<{
-      id: string;
-      isActive: boolean;
-      emailsAnalyzed: number;
-      greetings: { patterns: Array<{ text: string; frequency: number }> };
-      signoffs: { patterns: Array<{ text: string; frequency: number }> };
-      tone: { formalityScore: number; directnessScore: number; warmthScore: number };
-      vocabulary: { usesContractions: boolean; contractionRate: number; usesEmoji: boolean; emojiFrequency: number; usesExclamation: boolean; exclamationRate: number };
-    } | null>('style_get_profile').then((p) => {
-      if (p) {
-        setStyleProfile({
-          id: p.id,
-          isActive: p.isActive,
-          emailsAnalyzed: p.emailsAnalyzed,
-          greetingPatterns: p.greetings?.patterns ?? [],
-          signoffPatterns: p.signoffs?.patterns ?? [],
-          formalityScore: p.tone?.formalityScore ?? 50,
-          directnessScore: p.tone?.directnessScore ?? 50,
-          warmthScore: p.tone?.warmthScore ?? 50,
-          usesContractions: p.vocabulary?.usesContractions ?? false,
-          contractionRate: p.vocabulary?.contractionRate ?? 0,
-          usesEmoji: p.vocabulary?.usesEmoji ?? false,
-          emojiFrequency: p.vocabulary?.emojiFrequency ?? 0,
-          usesExclamation: p.vocabulary?.usesExclamation ?? false,
-          exclamationRate: p.vocabulary?.exclamationRate ?? 0,
-        });
-      }
-    }).catch(() => {});
   }, [dispatch]);
 
   // Listen for model download progress events from the sidecar
@@ -895,149 +849,19 @@ export function SettingsScreen() {
           onToggleCronJob={handleToggleCronJob}
           cronJobCount={cronJobs.filter(j => j.enabled).length}
 
+          /* Web Search */
+          searchEngine={searchEngine}
+          searchBraveApiKey={searchBraveApiKey}
+          searchSearxngUrl={searchSearxngUrl}
+          searchSaving={searchSaving}
+          onSearchSave={handleSearchSave}
+
           knowledgeStats={knowledgeStats}
           knowledgeDocCount={knowledgeStats?.totalDocuments ?? 0}
           isReindexing={isReindexing}
           onReindex={handleReindex}
           onClearKnowledgeSource={handleClearKnowledgeSource}
         />
-        {/* ─── Web Search Settings ──────────────────────────────────── */}
-        <div className="mt-6" style={{ background: '#111518', border: '1px solid #1E2227', borderRadius: 12, padding: 24 }}>
-          <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
-            Web Search
-          </h3>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8593A4', marginBottom: 20 }}>
-            Choose which search engine Semblance uses for web queries.
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-            {([
-              { value: 'searxng', label: 'SearXNG', desc: 'Self-hosted, private meta-search' },
-              { value: 'duckduckgo', label: 'DuckDuckGo', desc: 'Zero-config privacy search' },
-              { value: 'brave', label: 'Brave Search', desc: 'Requires API key' },
-            ] as const).map((opt) => (
-              <label
-                key={opt.value}
-                style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
-                  padding: '10px 12px', borderRadius: 8,
-                  background: searchEngine === opt.value ? '#1A1F24' : 'transparent',
-                  border: searchEngine === opt.value ? '1px solid #2A3038' : '1px solid transparent',
-                }}
-              >
-                <input
-                  type="radio"
-                  name="searchEngine"
-                  value={opt.value}
-                  checked={searchEngine === opt.value}
-                  onChange={() => setSearchEngine(opt.value)}
-                  style={{ marginTop: 3, accentColor: '#6ECFA3' }}
-                />
-                <div>
-                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, color: '#EEF1F4' }}>
-                    {opt.label}
-                  </div>
-                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#5E6B7C', marginTop: 2 }}>
-                    {opt.desc}
-                  </div>
-                </div>
-              </label>
-            ))}
-          </div>
-
-          {/* SearXNG URL field */}
-          {searchEngine === 'searxng' && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8593A4', display: 'block', marginBottom: 6 }}>
-                SearXNG Instance URL
-              </label>
-              <input
-                type="url"
-                value={searchSearxngUrl}
-                onChange={(e) => setSearchSearxngUrl(e.target.value)}
-                placeholder="https://search.veridian.run"
-                style={{
-                  width: '100%', padding: '8px 12px', borderRadius: 6,
-                  background: '#0B0E11', border: '1px solid #2A3038', color: '#EEF1F4',
-                  fontFamily: "'DM Mono', monospace", fontSize: 13, outline: 'none',
-                }}
-              />
-            </div>
-          )}
-
-          {/* Brave API key field */}
-          {searchEngine === 'brave' && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8593A4', display: 'block', marginBottom: 6 }}>
-                Brave Search API Key
-              </label>
-              <input
-                type="password"
-                value={searchBraveApiKey}
-                onChange={(e) => setSearchBraveApiKey(e.target.value)}
-                placeholder="BSA..."
-                style={{
-                  width: '100%', padding: '8px 12px', borderRadius: 6,
-                  background: '#0B0E11', border: '1px solid #2A3038', color: '#EEF1F4',
-                  fontFamily: "'DM Mono', monospace", fontSize: 13, outline: 'none',
-                }}
-              />
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#5E6B7C', marginTop: 4 }}>
-                Get a key at brave.com/search/api
-              </p>
-            </div>
-          )}
-
-          <button
-            onClick={() => handleSearchSave(searchEngine, searchBraveApiKey, searchSearxngUrl)}
-            disabled={searchSaving}
-            style={{
-              padding: '8px 20px', borderRadius: 6, border: '1px solid #6ECFA3',
-              background: 'transparent', color: '#6ECFA3', cursor: searchSaving ? 'wait' : 'pointer',
-              fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500,
-              opacity: searchSaving ? 0.5 : 1,
-            }}
-          >
-            {searchSaving ? 'Saving...' : 'Save Search Settings'}
-          </button>
-        </div>
-
-        <div className="mt-6">
-          <StyleProfileCard
-            profile={styleProfile}
-            onReanalyze={() => {
-              sidecarCall('style_reanalyze').then(() => {
-                // Reload profile after re-analysis
-                sidecarCall<{
-                  id: string; isActive: boolean; emailsAnalyzed: number;
-                  greetings: { patterns: Array<{ text: string; frequency: number }> };
-                  signoffs: { patterns: Array<{ text: string; frequency: number }> };
-                  tone: { formalityScore: number; directnessScore: number; warmthScore: number };
-                  vocabulary: { usesContractions: boolean; contractionRate: number; usesEmoji: boolean; emojiFrequency: number; usesExclamation: boolean; exclamationRate: number };
-                } | null>('style_get_profile').then((p) => {
-                  if (p) {
-                    setStyleProfile({
-                      id: p.id, isActive: p.isActive, emailsAnalyzed: p.emailsAnalyzed,
-                      greetingPatterns: p.greetings?.patterns ?? [], signoffPatterns: p.signoffs?.patterns ?? [],
-                      formalityScore: p.tone?.formalityScore ?? 50, directnessScore: p.tone?.directnessScore ?? 50,
-                      warmthScore: p.tone?.warmthScore ?? 50, usesContractions: p.vocabulary?.usesContractions ?? false,
-                      contractionRate: p.vocabulary?.contractionRate ?? 0, usesEmoji: p.vocabulary?.usesEmoji ?? false,
-                      emojiFrequency: p.vocabulary?.emojiFrequency ?? 0, usesExclamation: p.vocabulary?.usesExclamation ?? false,
-                      exclamationRate: p.vocabulary?.exclamationRate ?? 0,
-                    });
-                  }
-                }).catch(() => {});
-                showToast('Style profile re-analyzed');
-              }).catch(() => { showToast('Re-analysis failed'); });
-            }}
-            onReset={() => {
-              sidecarCall('style_reset').then(() => {
-                setStyleProfile(null);
-                showToast('Style profile reset');
-              }).catch(() => { showToast('Reset failed'); });
-            }}
-          />
-        </div>
       </div>
     </div>
   );

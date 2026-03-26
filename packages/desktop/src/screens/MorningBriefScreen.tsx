@@ -99,10 +99,11 @@ export function MorningBriefScreen() {
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
         <h1 style={{
-          fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif",
+          fontFamily: "'DM Sans', sans-serif",
           fontSize: 28,
-          fontWeight: 400,
-          color: '#EEF1F4',
+          fontWeight: 300,
+          letterSpacing: '0.08em',
+          color: '#6ECFA3',
           margin: 0,
         }}>
           {(() => {
@@ -184,9 +185,7 @@ export function MorningBriefScreen() {
 
         {/* Empty state — polished card matching app design */}
         {!brief && !weather && !commutes && !knowledgeMoment && !activationPrompt && !dailyDigest && (
-          <div style={{
-            background: 'linear-gradient(135deg, #171B1F, #111518)',
-            border: '1px solid rgba(255,255,255,0.05)',
+          <div className="surface-void opal-wireframe" style={{
             borderRadius: 12,
             padding: 32,
             maxWidth: 520,

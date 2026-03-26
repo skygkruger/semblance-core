@@ -198,9 +198,23 @@ export function getCategoryForEntityType(
 
     case 'document': {
       const source = metadata?.source as string | undefined;
+      if (source === 'email') return 'people';
+      if (source === 'calendar') return 'work';
+      if (source === 'contact') return 'people';
+      if (source === 'messaging') return 'social';
+      if (source === 'social') return 'social';
       if (source === 'financial') return 'finance';
       if (source === 'health') return 'health';
       if (source === 'browser_history') return 'browser';
+      if (source === 'cloud_storage') return 'cloud';
+      if (source === 'photos_metadata') return 'cloud';
+      if (source === 'local_file') return 'knowledge';
+      if (source === 'note') return 'knowledge';
+      // Connector-based classification for documents ingested via connectors
+      if (source) {
+        const connectorCat = CONNECTOR_TO_CATEGORY[source];
+        if (connectorCat) return connectorCat;
+      }
       return 'knowledge';
     }
 

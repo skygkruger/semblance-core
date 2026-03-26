@@ -118,6 +118,13 @@ export interface SettingsNavigatorProps {
   onBitNetDelete?: (modelId: string) => void;
   onStandardDelete?: (modelId: string) => void;
 
+  /* Web Search */
+  searchEngine?: string;
+  searchBraveApiKey?: string;
+  searchSearxngUrl?: string;
+  searchSaving?: boolean;
+  onSearchSave?: (engine: string, braveApiKey: string, searxngUrl: string) => void;
+
   /* Sprint G badge counts */
   channelCount?: number;
   sessionCount?: number;

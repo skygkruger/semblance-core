@@ -934,12 +934,15 @@ export class GraphVisualizationProvider {
     if (!documentId) return undefined;
 
     try {
+      // Note: the documents table does NOT have a 'content' column — content is
+      // stored in the vector store (LanceDB). We query only the metadata columns.
       const doc = this.db.prepare(
-        'SELECT id, title, content, source, source_path, metadata, created_at FROM documents WHERE id = ?'
+        'SELECT id, title, source, source_path, mime_type, metadata, created_at, updated_at, indexed_at FROM documents WHERE id = ?'
       ).get(documentId) as {
-        id: string; title: string; content: string | null;
+        id: string; title: string;
         source: string; source_path: string | null;
-        metadata: string | null; created_at: string;
+        mime_type: string; metadata: string | null;
+        created_at: string; updated_at: string; indexed_at: string;
       } | undefined;
 
       if (!doc) return undefined;
@@ -947,28 +950,45 @@ export class GraphVisualizationProvider {
       let meta: Record<string, unknown> = {};
       try { meta = doc.metadata ? JSON.parse(doc.metadata) : {}; } catch { /* ignore */ }
 
-      // Also try to get chunks for richer content
-      let chunks: Array<{ content: string; chunkIndex: number }> | undefined;
+      // Build a human-readable body from available metadata
+      const bodyParts: string[] = [];
+      bodyParts.push(`Source: ${doc.source.replace(/_/g, ' ')}`);
+      if (doc.source_path) bodyParts.push(`Path: ${doc.source_path}`);
+      bodyParts.push(`Type: ${doc.mime_type}`);
+      bodyParts.push(`Created: ${doc.created_at}`);
+      bodyParts.push(`Indexed: ${doc.indexed_at}`);
+
+      // Extract useful fields from metadata
+      if (meta.subject) bodyParts.push(`Subject: ${meta.subject as string}`);
+      if (meta.from) bodyParts.push(`From: ${meta.from as string}`);
+      if (meta.to) bodyParts.push(`To: ${meta.to as string}`);
+      if (meta.snippet) bodyParts.push(`\n${meta.snippet as string}`);
+      if (meta.summary) bodyParts.push(`\n${meta.summary as string}`);
+      if (meta.description) bodyParts.push(`\n${meta.description as string}`);
+
+      // Try to get entity mentions for this document (provides context about content)
       try {
-        const docChunks = this.db.prepare(
-          'SELECT content, chunk_index FROM document_chunks WHERE document_id = ? ORDER BY chunk_index ASC LIMIT 50'
-        ).all(documentId) as Array<{ content: string; chunk_index: number }>;
-        if (docChunks.length > 0) {
-          chunks = docChunks.map(c => ({ content: c.content, chunkIndex: c.chunk_index }));
+        const mentions = this.db.prepare(
+          'SELECT e.name, e.type FROM entity_mentions m JOIN entities e ON m.entity_id = e.id WHERE m.document_id = ? LIMIT 20'
+        ).all(documentId) as Array<{ name: string; type: string }>;
+        if (mentions.length > 0) {
+          bodyParts.push(`\nMentioned entities: ${mentions.map(m => `${m.name} (${m.type})`).join(', ')}`);
         }
-      } catch { /* document_chunks table may not exist */ }
+      } catch { /* entity tables may not exist */ }
 
       return {
         type: 'document',
         title: doc.title,
-        body: doc.content?.slice(0, 2000) ?? undefined,
+        body: bodyParts.join('\n'),
         metadata: {
           ...meta,
           source: doc.source,
           sourcePath: doc.source_path,
+          mimeType: doc.mime_type,
           createdAt: doc.created_at,
+          updatedAt: doc.updated_at,
+          indexedAt: doc.indexed_at,
         },
-        chunks,
       };
     } catch { return undefined; }
   }

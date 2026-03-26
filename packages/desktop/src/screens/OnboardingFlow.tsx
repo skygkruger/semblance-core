@@ -38,6 +38,8 @@ import {
   retryModelDownload,
   prefGet,
   prefSet,
+  startIndexing,
+  getKnowledgeStats,
 } from '../ipc/commands';
 import type { HardwareDisplayInfo, KnowledgeMoment } from '../ipc/types';
 
@@ -138,6 +140,9 @@ export function OnboardingFlow() {
   // Whether any data has been indexed (drives knowledge moment)
   const [hasIndexedData, setHasIndexedData] = useState(false);
 
+  // Directories selected via Files connector in data-sources step
+  const [selectedDirectories, setSelectedDirectories] = useState<string[]>([]);
+
   // Resume onboarding on mount if app was force-closed mid-flow
   useEffect(() => {
     prefGet('onboarding_current_step').then(savedStep => {
@@ -198,8 +203,32 @@ export function OnboardingFlow() {
       .finally(() => setDetecting(false));
   }, [step, hardwareInfo]);
 
-  // Handle connecting a data source via OAuth
+  // Handle connecting a data source via OAuth or native flow
   const handleConnectSource = useCallback(async (sourceId: string, connectorId: string) => {
+    // ── Files: open directory picker ──────────────────────────────────────────
+    if (sourceId === 'files') {
+      try {
+        const { open } = await import('@tauri-apps/plugin-dialog');
+        const selected = await open({ directory: true, multiple: false });
+        if (selected && typeof selected === 'string') {
+          setSelectedDirectories(prev => [...prev, selected]);
+          setSourceStatuses(prev => ({ ...prev, files: 'connected' }));
+        }
+        // If user cancelled the dialog, don't change status
+      } catch (err) {
+        console.error('[OnboardingFlow] Directory picker failed:', err);
+        setSourceStatuses(prev => ({ ...prev, files: 'error' }));
+      }
+      return;
+    }
+
+    // ── Contacts: extracted from email, mark connected immediately ────────────
+    if (sourceId === 'contacts') {
+      setSourceStatuses(prev => ({ ...prev, contacts: 'connected' }));
+      return;
+    }
+
+    // ── OAuth sources (email, calendar, slack) ───────────────────────────────
     setSourceStatuses(prev => ({ ...prev, [sourceId]: 'connecting' }));
     try {
       const result = await ipcSend({
@@ -233,13 +262,17 @@ export function OnboardingFlow() {
 
     // Set up initial indexing sources from connected data sources
     const connectedSources: IndexingSource[] = [];
+    const nameMap: Record<string, string> = {
+      email: 'Email',
+      calendar: 'Calendar',
+      slack: 'Slack',
+      files: 'Files',
+      contacts: 'Contacts',
+    };
     for (const [sourceId, status] of Object.entries(sourceStatuses)) {
       if (status === 'connected') {
-        const nameMap: Record<string, string> = {
-          email: 'Email',
-          calendar: 'Calendar',
-          slack: 'Slack',
-        };
+        // Contacts don't have their own indexing — they come from email
+        if (sourceId === 'contacts') continue;
         connectedSources.push({
           id: sourceId,
           name: nameMap[sourceId] ?? sourceId,
@@ -255,20 +288,44 @@ export function OnboardingFlow() {
       return;
     }
 
-    let unlisten: UnlistenFn | undefined;
-    listen<{ connectorId: string; count?: number }>(
+    // Kick off file indexing if directories were selected
+    if (selectedDirectories.length > 0 && sourceStatuses['files'] === 'connected') {
+      startIndexing(selectedDirectories).catch((err) => {
+        console.error('[OnboardingFlow] startIndexing failed:', err);
+      });
+    }
+
+    // ── Listen for indexing-complete events ───────────────────────────────────
+    // The sidecar emits 'indexing-complete' (no prefix) for both file indexing
+    // and connector sync. The Rust bridge adds 'semblance://' prefix automatically.
+    let unlistenComplete: UnlistenFn | undefined;
+    listen<{ connectorId?: string; type?: string; count?: number; documentCount?: number }>(
       'semblance://indexing-complete',
       (event) => {
-        const { connectorId, count } = event.payload;
-        // Map connector IDs back to source IDs
-        const sourceId = Object.entries(SOURCE_TO_CONNECTOR).find(
-          ([, cId]) => cId === connectorId
-        )?.[0] ?? connectorId;
+        const p = event.payload;
+        // Determine source ID from event payload
+        let sourceId: string | undefined;
+        if (p.type === 'files' || p.connectorId === 'files') {
+          sourceId = 'files';
+        } else if (p.type === 'email') {
+          sourceId = 'email';
+        } else if (p.type === 'calendar') {
+          sourceId = 'calendar';
+        } else if (p.type === 'drive') {
+          sourceId = 'files'; // Drive files map to files source
+        } else if (p.connectorId) {
+          // Map connector IDs back to source IDs
+          sourceId = Object.entries(SOURCE_TO_CONNECTOR).find(
+            ([, cId]) => cId === p.connectorId
+          )?.[0] ?? p.connectorId;
+        }
+
+        const itemCount = p.count ?? p.documentCount ?? 0;
 
         setIndexingSources(prev => {
           const updated = prev.map(s =>
             s.id === sourceId
-              ? { ...s, status: 'complete' as const, count: count ?? s.count }
+              ? { ...s, status: 'complete' as const, count: itemCount || s.count }
               : s
           );
           const allDone = updated.every(s => s.status === 'complete');
@@ -280,26 +337,85 @@ export function OnboardingFlow() {
           return updated;
         });
       }
-    ).then((fn) => { unlisten = fn; });
+    ).then((fn) => { unlistenComplete = fn; });
 
-    // Auto-complete after 30s timeout regardless
-    const timeout = setTimeout(() => {
-      setIndexingComplete(true);
-      setIndexingSources(prev => {
-        const completed = prev.map(s =>
-          s.status !== 'complete' ? { ...s, status: 'complete' as const } : s
+    // ── Listen for indexing-progress events (file indexer real-time updates) ──
+    let unlistenProgress: UnlistenFn | undefined;
+    listen<{ filesScanned?: number; chunksCreated?: number }>(
+      'semblance://indexing-progress',
+      (event) => {
+        const p = event.payload;
+        if (typeof p.filesScanned === 'number') {
+          setIndexingSources(prev =>
+            prev.map(s =>
+              s.id === 'files'
+                ? { ...s, count: p.filesScanned ?? s.count }
+                : s
+            )
+          );
+        }
+      }
+    ).then((fn) => { unlistenProgress = fn; });
+
+    // ── Fallback: poll getKnowledgeStats every 5s to catch missed events ─────
+    const pollInterval = setInterval(async () => {
+      try {
+        const stats = await getKnowledgeStats();
+        if (stats.documentCount > 0) {
+          setHasIndexedData(true);
+          // Update total count on sources that haven't completed yet
+          setIndexingSources(prev => {
+            const anyStillIndexing = prev.some(s => s.status === 'indexing');
+            if (!anyStillIndexing) return prev;
+            // If we have documents but sources show 0, distribute the count
+            const totalShown = prev.reduce((sum, s) => sum + s.count, 0);
+            if (totalShown === 0 && prev.length > 0) {
+              return prev.map(s =>
+                s.count === 0
+                  ? { ...s, count: Math.floor(stats.documentCount / prev.length) }
+                  : s
+              );
+            }
+            return prev;
+          });
+        }
+      } catch {
+        // Stats not available yet — ignore
+      }
+    }, 5_000);
+
+    // Auto-complete after 45s timeout regardless, then poll final stats
+    const timeout = setTimeout(async () => {
+      // Poll final stats before marking complete
+      try {
+        const stats = await getKnowledgeStats();
+        if (stats.documentCount > 0) setHasIndexedData(true);
+        setIndexingSources(prev => {
+          const completed = prev.map(s => {
+            if (s.status === 'complete') return s;
+            // Use stats to fill in missing counts
+            const finalCount = s.count > 0 ? s.count : stats.documentCount;
+            return { ...s, status: 'complete' as const, count: finalCount };
+          });
+          return completed;
+        });
+      } catch {
+        setIndexingSources(prev =>
+          prev.map(s =>
+            s.status !== 'complete' ? { ...s, status: 'complete' as const } : s
+          )
         );
-        const total = completed.reduce((sum, s) => sum + s.count, 0);
-        if (total > 0) setHasIndexedData(true);
-        return completed;
-      });
-    }, 30_000);
+      }
+      setIndexingComplete(true);
+    }, 45_000);
 
     return () => {
-      unlisten?.();
+      unlistenComplete?.();
+      unlistenProgress?.();
+      clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [step, sourceStatuses]);
+  }, [step, sourceStatuses, selectedDirectories]);
 
   // Start model downloads + knowledge moment on initialize step
   useEffect(() => {
@@ -368,16 +484,34 @@ export function OnboardingFlow() {
         }]);
       });
 
-    // Start knowledge moment generation — only if data has been indexed
-    if (hasIndexedData) {
-      setMomentLoading(true);
-      generateKnowledgeMoment()
-        .then((result) => setKnowledgeMoment(toKnowledgeMomentData(result)))
-        .catch(() => {})
-        .finally(() => {
+    // Start knowledge moment generation — check if data exists even if hasIndexedData
+    // wasn't set (e.g., events missed during indexing step)
+    const tryGenerateKnowledgeMoment = async () => {
+      let dataExists = hasIndexedData;
+      if (!dataExists) {
+        try {
+          const stats = await getKnowledgeStats();
+          if (stats.documentCount > 0) {
+            dataExists = true;
+            setHasIndexedData(true);
+          }
+        } catch {
+          // Stats not available
+        }
+      }
+      if (dataExists) {
+        setMomentLoading(true);
+        try {
+          const result = await generateKnowledgeMoment();
+          setKnowledgeMoment(toKnowledgeMomentData(result));
+        } catch {
+          // Knowledge moment generation failed — not critical
+        } finally {
           setMomentLoading(false);
-        });
-    }
+        }
+      }
+    };
+    tryGenerateKnowledgeMoment();
 
     return () => { unlisten?.(); unlistenModelLoaded?.(); };
   }, [step, hardwareInfo, hasIndexedData]);

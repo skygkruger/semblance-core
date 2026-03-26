@@ -134,16 +134,29 @@ export function WitnessScreen() {
 
   const hasSelection = selectedIds.size > 0;
 
+  if (!license.isPremium) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        padding: 24,
+      }}>
+        <FeatureGate
+          feature="witness-attestation"
+          isPremium={false}
+          onLearnMore={() => navigate('/upgrade')}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="witness h-full overflow-y-auto">
       <div className="witness__container">
         <h1 className="witness__title">{t('screen.witness.title')}</h1>
 
-        <FeatureGate
-          feature="witness-attestation"
-          isPremium={license.isPremium}
-          onLearnMore={() => navigate('/upgrade')}
-        >
           <p className="witness__subtitle">
             {t('screen.witness.subtitle')}
           </p>
@@ -235,7 +248,6 @@ export function WitnessScreen() {
               )}
             </Card>
           )}
-        </FeatureGate>
       </div>
     </div>
   );

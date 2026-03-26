@@ -133,17 +133,30 @@ export function SemblanceNetworkScreen() {
     }
   }, [selectedPeer, sharingConfig]);
 
+  if (!license.isPremium) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        padding: 24,
+      }}>
+        <FeatureGate
+          feature="semblance-network"
+          isPremium={false}
+          onLearnMore={() => navigate('/upgrade')}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="semblance-network-screen">
       <div className="semblance-network-screen__header">
         <h1 className="semblance-network-screen__title">{t('semblanceNetwork.title', 'Semblance Network')}</h1>
       </div>
 
-      <FeatureGate
-        feature="semblance-network"
-        isPremium={license.isPremium}
-        onLearnMore={() => navigate('/upgrade')}
-      >
         <p className="semblance-network-screen__subtitle">
           {t('semblanceNetwork.subtitle', 'Consent-first peer-to-peer sharing with other Semblance users.')}
         </p>
@@ -280,7 +293,6 @@ export function SemblanceNetworkScreen() {
             )}
           </>
         )}
-      </FeatureGate>
     </div>
   );
 }

@@ -136,9 +136,9 @@ export function ActivityScreen() {
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
       <h1 style={{
-        fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif",
-        fontSize: 28, fontWeight: 300, color: '#EEF1F4',
-        letterSpacing: '-0.03em', marginBottom: 16,
+        fontFamily: "'DM Sans', sans-serif",
+        fontSize: 28, fontWeight: 300, color: '#6ECFA3',
+        letterSpacing: '0.08em', marginBottom: 16,
       }}>
         Activity Log
       </h1>
@@ -151,7 +151,7 @@ export function ActivityScreen() {
         onChange={e => setSearchQuery(e.target.value)}
         style={{
           width: '100%', padding: '8px 12px', marginBottom: 12,
-          background: '#171B1F', border: '1px solid rgba(255,255,255,0.09)',
+          background: '#111518', border: '1px solid #1E2227',
           borderRadius: 8, color: '#EEF1F4', fontSize: 13,
           fontFamily: "'DM Sans', system-ui, sans-serif", outline: 'none',
         }}
@@ -329,7 +329,7 @@ export function ActivityScreen() {
                 onClick={loadMore}
                 style={{
                   padding: '10px 20px', margin: '12px auto', display: 'block',
-                  background: '#171B1F', border: '1px solid rgba(255,255,255,0.09)',
+                  background: '#111518', border: '1px solid #1E2227',
                   borderRadius: 8, color: '#8593A4', fontSize: 13,
                   fontFamily: "'DM Sans', system-ui, sans-serif", cursor: 'pointer',
                 }}

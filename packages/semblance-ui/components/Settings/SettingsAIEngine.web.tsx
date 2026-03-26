@@ -176,10 +176,9 @@ export function SettingsAIEngine({
         </div>
 
         {/* BitNet Models */}
-        <div className="settings-section-header">Local Models</div>
+        <div className="settings-section-header">Built-in Models</div>
         <div className="settings-bitnet-explainer">
-          1-bit quantized models that run entirely on CPU. No GPU required, no external tools.
-          Managed within Semblance.
+          1-bit and quantized models managed entirely by Semblance. Run on CPU — no GPU, no Ollama, no setup required.
         </div>
         <div className="settings-model-grid">
           {bitnetModels.map((model) => (

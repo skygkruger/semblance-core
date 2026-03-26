@@ -477,18 +477,25 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
     return filteredNodes.find(n => n.id === selectedNodeId) ?? null;
   }, [selectedNodeId, filteredNodes]);
 
+  // Use nodeContext.node as fallback when selectedNode is not in filteredNodes
+  // (e.g., when drilling into an item inside a collapsed category node)
+  const effectiveNode = useMemo(() => {
+    return selectedNode ?? nodeContext?.node ?? null;
+  }, [selectedNode, nodeContext]);
+
   const drillDown = useMemo<DrillDownConfig | undefined>(() => {
-    if (!nodeContext || !selectedNode) return undefined;
+    if (!nodeContext || !effectiveNode) return undefined;
 
     let allItems: DrillDownItem[];
 
     // For category nodes: show items within the category (connections)
-    // For entity nodes with content chunks: show content chunks
-    // For entity nodes without chunks: show connections
+    // For entity nodes with content: show content detail + connections
+    // For entity nodes without content: show connections
     const contentChunks = nodeContext.content?.chunks;
+    const contentBody = nodeContext.content?.body;
 
-    if (selectedNode.type === 'category' || !contentChunks || contentChunks.length === 0) {
-      // Use connections as drill-down items
+    if (effectiveNode.type === 'category') {
+      // Category drill-down: show all items in this category
       allItems = nodeContext.connections.map((conn) => ({
         chunkId: conn.node.id,
         title: conn.node.label,
@@ -500,16 +507,53 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
         indexedAt: conn.node.createdAt ?? new Date().toISOString(),
         mimeType: (conn.node as VisualizationNode).metadata?.mimeType as string | undefined,
       }));
-    } else {
-      // Use content chunks as drill-down items (richer data)
-      const contentType = nodeContext.content?.type ?? selectedNode.type;
+    } else if (contentChunks && contentChunks.length > 0) {
+      // Entity with chunks: show content chunks as drill-down items
+      const contentType = nodeContext.content?.type ?? effectiveNode.type;
       allItems = contentChunks.map((chunk) => ({
-        chunkId: `${selectedNode.id}_chunk_${chunk.chunkIndex}`,
+        chunkId: `${effectiveNode.id}_chunk_${chunk.chunkIndex}`,
         title: chunk.content.split('\n')[0]?.slice(0, 80) ?? `Item ${chunk.chunkIndex + 1}`,
         preview: chunk.content.slice(0, 200),
         source: mapNodeTypeToSource(contentType),
-        category: selectedNode.domain ?? 'general',
-        indexedAt: selectedNode.createdAt ?? new Date().toISOString(),
+        category: effectiveNode.domain ?? 'general',
+        indexedAt: effectiveNode.createdAt ?? new Date().toISOString(),
+      }));
+    } else if (contentBody) {
+      // Entity with body content but no chunks: show body as a single item + connections
+      allItems = [{
+        chunkId: `${effectiveNode.id}_body`,
+        title: nodeContext.content?.title ?? effectiveNode.label,
+        preview: contentBody.slice(0, 300),
+        source: mapNodeTypeToSource(nodeContext.content?.type ?? effectiveNode.type),
+        category: effectiveNode.domain ?? 'general',
+        indexedAt: effectiveNode.createdAt ?? new Date().toISOString(),
+      }];
+      // Also add connections as additional items
+      for (const conn of nodeContext.connections) {
+        allItems.push({
+          chunkId: conn.node.id,
+          title: conn.node.label,
+          preview: conn.edge.label
+            ? `${conn.edge.label} (weight: ${conn.edge.weight})`
+            : `Connected with weight ${conn.edge.weight}`,
+          source: mapNodeTypeToSource(conn.node.type),
+          category: conn.node.domain ?? 'general',
+          indexedAt: conn.node.createdAt ?? new Date().toISOString(),
+          mimeType: (conn.node as VisualizationNode).metadata?.mimeType as string | undefined,
+        });
+      }
+    } else {
+      // No content at all: show connections
+      allItems = nodeContext.connections.map((conn) => ({
+        chunkId: conn.node.id,
+        title: conn.node.label,
+        preview: conn.edge.label
+          ? `${conn.edge.label} (weight: ${conn.edge.weight})`
+          : `Connected with weight ${conn.edge.weight}`,
+        source: mapNodeTypeToSource(conn.node.type),
+        category: conn.node.domain ?? 'general',
+        indexedAt: conn.node.createdAt ?? new Date().toISOString(),
+        mimeType: (conn.node as VisualizationNode).metadata?.mimeType as string | undefined,
       }));
     }
 
@@ -530,7 +574,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
         handleNodeClick(item.chunkId);
       },
     };
-  }, [nodeContext, selectedNode, drillDownSearch, handleNodeClick, mapNodeTypeToSource]);
+  }, [nodeContext, effectiveNode, drillDownSearch, handleNodeClick, mapNodeTypeToSource]);
 
   // Build stats for the KnowledgeGraph component
   const graphStats = useMemo(() => {

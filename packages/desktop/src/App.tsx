@@ -37,7 +37,7 @@ import { VoiceSettingsScreen } from './screens/VoiceSettingsScreen';
 import { LocationSettingsScreen } from './screens/LocationSettingsScreen';
 import { CloudStorageSettingsScreen } from './screens/CloudStorageSettingsScreen';
 import { SemblanceNetworkScreen } from './screens/SemblanceNetworkScreen';
-import { TunnelPairingScreen } from './screens/TunnelPairingScreen';
+
 import { AlterEgoWeekScreen } from './screens/AlterEgoWeekScreen';
 import { ImportEverythingScreen } from './screens/ImportEverythingScreen';
 import { CanvasPanel } from './components/CanvasPanel';
@@ -253,7 +253,11 @@ const navSections: NavSection[] = [
       { id: 'health', label: 'Health', icon: <HeartIcon /> },
       { id: 'digest', label: 'Digest', icon: <DigestIcon /> },
       { id: 'alter-ego-week', label: 'Alter Ego Week', icon: <SparkleIcon /> },
-      { id: 'tunnel-pairing', label: 'Tunnel Pairing', icon: <GlobeIcon /> },
+      { id: 'adversarial', label: 'Adversarial', icon: <ShieldAlertIcon /> },
+      { id: 'living-will', label: 'Living Will', icon: <FileTextIcon /> },
+      { id: 'witness', label: 'Witness', icon: <EyeIcon /> },
+      { id: 'inheritance', label: 'Inheritance', icon: <KeyIcon /> },
+      { id: 'semblance-network', label: 'Compute Mesh', icon: <GlobeIcon /> },
     ],
   },
   {
@@ -263,11 +267,6 @@ const navSections: NavSection[] = [
       { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
       { id: 'sovereignty-report', label: 'Sovereignty', icon: <ScrollIcon /> },
       { id: 'network', label: 'Network', icon: <NetworkIcon /> },
-      { id: 'adversarial', label: 'Adversarial', icon: <ShieldAlertIcon /> },
-      { id: 'living-will', label: 'Living Will', icon: <FileTextIcon /> },
-      { id: 'witness', label: 'Witness', icon: <EyeIcon /> },
-      { id: 'inheritance', label: 'Inheritance', icon: <KeyIcon /> },
-      { id: 'semblance-network', label: 'Mesh', icon: <GlobeIcon /> },
     ],
   },
 ];
@@ -575,7 +574,7 @@ function AppContent() {
           <Route path="/settings/voice" element={<VoiceSettingsScreen />} />
           <Route path="/settings/location" element={<LocationSettingsScreen />} />
           <Route path="/settings/cloud-storage" element={<CloudStorageSettingsScreen />} />
-          <Route path="/tunnel-pairing" element={<TunnelPairingScreen />} />
+
           <Route path="/alter-ego-week" element={<AlterEgoWeekScreen />} />
           <Route path="/import" element={<ImportEverythingScreen />} />
           <Route path="/semblance-network" element={<SemblanceNetworkScreen />} />

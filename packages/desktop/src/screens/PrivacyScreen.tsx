@@ -200,7 +200,7 @@ export function PrivacyScreen() {
 
       {/* M8: Per-source data breakdown */}
       {sourceKeys.length > 0 && (
-        <div style={{ background: '#111518', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, padding: 20 }}>
+        <div className="surface-slate" style={{ borderRadius: 12, padding: 20 }}>
           <h3 style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#8593A4', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             {t('screen.privacy.data_by_source', 'Data by Source')}
           </h3>

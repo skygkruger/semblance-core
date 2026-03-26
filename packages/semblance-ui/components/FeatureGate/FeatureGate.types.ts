@@ -20,7 +20,8 @@ export type PremiumFeature =
   | 'witness-attestation'
   | 'inheritance-protocol'
   | 'semblance-network'
-  | 'proof-of-privacy';
+  | 'proof-of-privacy'
+  | 'alter-ego-week';
 
 export interface FeatureGateProps {
   /** The premium feature being gated */

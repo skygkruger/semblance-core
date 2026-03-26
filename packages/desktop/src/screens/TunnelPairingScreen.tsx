@@ -112,10 +112,11 @@ export function TunnelPairingScreen() {
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
         {/* Header */}
         <h1 style={{
-          fontFamily: "'Fraunces', serif",
+          fontFamily: "'DM Sans', sans-serif",
           fontSize: 28,
           fontWeight: 300,
-          color: '#EEF1F4',
+          letterSpacing: '0.08em',
+          color: '#6ECFA3',
           margin: 0,
           marginBottom: 6,
         }}>

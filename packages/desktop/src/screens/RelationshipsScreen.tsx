@@ -448,7 +448,7 @@ export function RelationshipsScreen() {
       <div className="w-80 border-r border-semblance-border dark:border-semblance-border-dark flex flex-col">
         {/* Page heading */}
         <div className="px-4 py-4 border-b border-semblance-border dark:border-semblance-border-dark flex items-center justify-between">
-          <h1 style={{ fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif", fontSize: 28, fontWeight: 300, color: '#EEF1F4', letterSpacing: '-0.03em', margin: 0 }}>
+          <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 28, fontWeight: 300, color: '#6ECFA3', letterSpacing: '0.08em', margin: 0 }}>
             {t('screen.relationships.title', 'Relationships')}
           </h1>
           <div className="flex gap-1">

@@ -44,8 +44,8 @@ export function DataSourcesStep({
   const SOURCES: DataSource[] = [
     { id: 'email',    name: t('data_sources.sources.email.name'),    description: t('data_sources.sources.email.description'),    icon: EnvelopeIcon, connectorId: 'gmail' },
     { id: 'calendar', name: t('data_sources.sources.calendar.name'), description: t('data_sources.sources.calendar.description'), icon: CalendarIcon, connectorId: 'google-calendar' },
-    { id: 'files',    name: t('data_sources.sources.files.name'),    description: t('data_sources.sources.files.description'),    icon: FolderIcon, connectorId: null },
-    { id: 'contacts', name: t('data_sources.sources.contacts.name'), description: t('data_sources.sources.contacts.description'), icon: PersonIcon, connectorId: null },
+    { id: 'files',    name: t('data_sources.sources.files.name'),    description: t('data_sources.sources.files.description'),    icon: FolderIcon, connectorId: 'files' },
+    { id: 'contacts', name: t('data_sources.sources.contacts.name'), description: t('data_sources.sources.contacts.description'), icon: PersonIcon, connectorId: 'contacts' },
     { id: 'health',   name: t('data_sources.sources.health.name'),   description: t('data_sources.sources.health.description'),   icon: HeartIcon, connectorId: null },
     { id: 'slack',    name: t('data_sources.sources.slack.name'),    description: t('data_sources.sources.slack.description'),    icon: ChatIcon, connectorId: 'slack-oauth' },
   ];

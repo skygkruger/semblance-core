@@ -13,6 +13,7 @@ import { SettingsSkills } from './SettingsSkills.web';
 import { SettingsBinaryAllowlist } from './SettingsBinaryAllowlist.web';
 import { SettingsTunnelPairing } from './SettingsTunnelPairing.web';
 import { SettingsScheduledJobs } from './SettingsScheduledJobs.web';
+import { SettingsSearch } from './SettingsSearch.web';
 import { SettingsKnowledge } from './SettingsKnowledge.web';
 import { SettingsAbout } from './SettingsAbout.web';
 import type { Screen, SettingsNavigatorProps } from './SettingsNavigator.types';
@@ -175,6 +176,18 @@ export function SettingsNavigator(props: SettingsNavigatorProps) {
         <SettingsScheduledJobs
           jobs={props.cronJobs ?? []}
           onToggleJob={props.onToggleCronJob ?? (() => {})}
+          onBack={goBack}
+        />
+      );
+
+    case 'search':
+      return (
+        <SettingsSearch
+          searchEngine={props.searchEngine ?? 'searxng'}
+          searchBraveApiKey={props.searchBraveApiKey ?? ''}
+          searchSearxngUrl={props.searchSearxngUrl ?? 'https://search.veridian.run'}
+          searchSaving={props.searchSaving ?? false}
+          onSearchSave={props.onSearchSave ?? (() => {})}
           onBack={goBack}
         />
       );

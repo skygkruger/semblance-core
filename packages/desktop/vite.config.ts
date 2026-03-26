@@ -23,5 +23,15 @@ export default defineConfig({
     target: 'esnext',
     minify: !process.env['TAURI_DEBUG'] ? 'esbuild' : false,
     sourcemap: !!process.env['TAURI_DEBUG'],
+    rollupOptions: {
+      // Tauri plugins are resolved at runtime by the Tauri webview, not bundled by Vite.
+      // Dynamic imports of optional plugins (e.g. plugin-process) fail Rollup resolution
+      // but work fine at runtime — externalize them to prevent build errors.
+      external: [
+        '@tauri-apps/plugin-process',
+        '@tauri-apps/plugin-updater',
+        '@tauri-apps/api/process',
+      ],
+    },
   },
 });

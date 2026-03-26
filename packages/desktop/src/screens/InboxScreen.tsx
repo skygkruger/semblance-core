@@ -269,7 +269,7 @@ export function InboxScreen() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
-        <h1 style={{ fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif", fontSize: 28, fontWeight: 300, color: '#EEF1F4', letterSpacing: '-0.03em' }}>
+        <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 28, fontWeight: 300, color: '#6ECFA3', letterSpacing: '0.08em' }}>
           {t('screen.inbox.title')}
         </h1>
 

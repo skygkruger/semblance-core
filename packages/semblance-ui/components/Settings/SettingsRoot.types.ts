@@ -27,6 +27,7 @@ export type SettingsScreen =
   | 'binary-allowlist'
   | 'tunnel-pairing'
   | 'scheduled-jobs'
+  | 'search'
   | 'knowledge'
   | 'about';
 

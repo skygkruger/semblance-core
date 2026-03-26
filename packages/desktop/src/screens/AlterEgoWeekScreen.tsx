@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Button, FeatureGate, SkeletonCard, StatusIndicator } from '@semblance/ui';
 import { sidecarCall } from '../ipc/commands';
 import { useLicense } from '../contexts/LicenseContext';
@@ -45,6 +46,7 @@ const DAY_LABELS: Record<number, { title: string; description: string }> = {
 
 export function AlterEgoWeekScreen() {
   const license = useLicense();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [weekState, setWeekState] = useState<AlterEgoWeekState>({
     active: false,
@@ -106,26 +108,18 @@ export function AlterEgoWeekScreen() {
   // Premium gate
   if (!license.isPremium) {
     return (
-      <div className="h-full overflow-y-auto">
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
-          <h1 style={{
-            fontFamily: "'Fraunces', serif",
-            fontSize: 28,
-            fontWeight: 300,
-            color: '#EEF1F4',
-            margin: 0,
-            marginBottom: 24,
-          }}>
-            Alter Ego Week
-          </h1>
-          <FeatureGate
-            feature="representative-drafting"
-            isPremium={license.isPremium}
-            onLearnMore={() => license.openCheckout?.('monthly')}
-          >
-            <div />
-          </FeatureGate>
-        </div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        padding: 24,
+      }}>
+        <FeatureGate
+          feature="alter-ego-week"
+          isPremium={false}
+          onLearnMore={() => navigate('/upgrade')}
+        />
       </div>
     );
   }
@@ -205,10 +199,11 @@ export function AlterEgoWeekScreen() {
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
         {/* Header */}
         <h1 style={{
-          fontFamily: "'Fraunces', serif",
+          fontFamily: "'DM Sans', sans-serif",
           fontSize: 28,
           fontWeight: 300,
-          color: '#EEF1F4',
+          letterSpacing: '0.08em',
+          color: '#6ECFA3',
           margin: 0,
           marginBottom: 6,
         }}>
