@@ -6,18 +6,12 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getDarkPatternFlags, getFinancialDashboard, prefGet } from '../ipc/commands';
+import { getDarkPatternFlags, dismissDarkPatternFlag, getFinancialDashboard, prefGet } from '../ipc/commands';
 import { useLicense } from '../contexts/LicenseContext';
-import { Card, Button, StatusIndicator, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { Card, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { DarkPatternBadge } from '../components/DarkPatternBadge';
+import type { DarkPatternFlag } from '../components/DarkPatternBadge';
 import './AdversarialDashboardScreen.css';
-
-interface DarkPatternAlert {
-  id: string;
-  severity: 'critical' | 'warning';
-  source: string;
-  description: string;
-  detectedAt: string;
-}
 
 interface SubscriptionAssessment {
   id: string;
@@ -41,7 +35,7 @@ export function AdversarialDashboardScreen() {
   const { t } = useTranslation();
   const license = useLicense();
   const [loading, setLoading] = useState(true);
-  const [alerts, setAlerts] = useState<DarkPatternAlert[]>([]);
+  const [flags, setFlags] = useState<DarkPatternFlag[]>([]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionAssessment[]>([]);
   const [optOutStatus, setOptOutStatus] = useState<OptOutStatus>(DEFAULT_OPT_OUT);
 
@@ -55,20 +49,11 @@ export function AdversarialDashboardScreen() {
         } catch { /* ignore */ }
 
         // Load dark pattern flags from IPC
-        const flags = await getDarkPatternFlags().catch((err) => {
+        const loadedFlags = await getDarkPatternFlags().catch((err) => {
           console.error('[AdversarialDashboard] Failed to load dark pattern flags:', err);
           return [];
         });
-
-        // Map dark pattern results to alert format
-        const mappedAlerts: DarkPatternAlert[] = flags.map((flag) => ({
-          id: flag.contentId,
-          severity: flag.confidence >= 0.8 ? 'critical' as const : 'warning' as const,
-          source: (flag.patterns.length > 0 ? flag.patterns[0]?.category : undefined) ?? 'unknown',
-          description: flag.reframe,
-          detectedAt: new Date().toISOString(),
-        }));
-        setAlerts(mappedAlerts);
+        setFlags(loadedFlags);
 
         // Load subscription data from financial dashboard for value assessments
         const financialData = await getFinancialDashboard('30d').catch((err) => {
@@ -138,28 +123,29 @@ export function AdversarialDashboardScreen() {
               </div>
 
               {/* Dark pattern alerts */}
-              <Card className="adversarial-dashboard__card">
+              <div className="adversarial-dashboard__card">
                 <h2 className="adversarial-dashboard__section-title">{t('screen.adversarial.dark_pattern_alerts')}</h2>
-                {alerts.length === 0 ? (
+                {flags.length === 0 ? (
                   <p className="adversarial-dashboard__empty">
                     {t('screen.adversarial.no_threats')}
                   </p>
                 ) : (
-                  <ul className="adversarial-dashboard__alert-list">
-                    {alerts.map((alert) => (
-                      <li key={alert.id} className="adversarial-dashboard__alert-item">
-                        <StatusIndicator
-                          status={alert.severity === 'critical' ? 'attention' : 'muted'}
-                          pulse={alert.severity === 'critical'}
-                        />
-                        <span className="adversarial-dashboard__alert-text">
-                          {alert.source}: {alert.description}
-                        </span>
-                      </li>
+                  <div className="adversarial-dashboard__alert-list" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {flags.map((flag) => (
+                      <DarkPatternBadge
+                        key={flag.contentId}
+                        flag={flag}
+                        onDismiss={(contentId) => {
+                          dismissDarkPatternFlag(contentId).catch((err) =>
+                            console.error('[AdversarialDashboard] Failed to dismiss flag:', err)
+                          );
+                          setFlags((prev) => prev.filter((f) => f.contentId !== contentId));
+                        }}
+                      />
                     ))}
-                  </ul>
+                  </div>
                 )}
-              </Card>
+              </div>
 
               {/* Subscription assessments */}
               <Card className="adversarial-dashboard__card">
