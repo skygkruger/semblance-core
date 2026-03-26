@@ -245545,13 +245545,13 @@ var CATEGORY_META = {
   email: {
     id: "email",
     displayName: "Email",
-    color: "#5B8FB9",
+    color: "#4A90D9",
     icon: "[@]"
   },
   calendar: {
     id: "calendar",
     displayName: "Calendar",
-    color: "#7EB8DA",
+    color: "#E6A347",
     icon: "[#]"
   },
   health: {
@@ -245605,7 +245605,7 @@ var CATEGORY_META = {
   people: {
     id: "people",
     displayName: "People",
-    color: "#4A7FBA",
+    color: "#9B6BCD",
     icon: "[P]"
   },
   knowledge: {
@@ -247587,7 +247587,7 @@ var OrchestratorImpl = class {
 
 ${sanitizedToolResults}
 
-Present ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in the same language the user used.`, "tool execution results")
+Present ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Never include internal identifiers like message IDs, thread IDs, or document IDs in your response. Respond in the same language the user used.`, "tool execution results")
           }
         ];
         const synthesis = await this.llm.chat({
@@ -247596,7 +247596,10 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
           temperature: 0.7,
           maxTokens: 2048
         });
-        finalMessage = synthesis.message.content;
+        finalMessage = synthesis.message.content ?? "";
+        if (finalMessage) {
+          finalMessage = finalMessage.replace(/\b(?:Message\s+)?ID:\s*[0-9a-f]{10,}\b/gi, "").replace(/\b(?:thread_?id|message_?id)\s*[:=]\s*["']?[0-9a-f]{10,}["']?\b/gi, "").replace(/\n{3,}/g, "\n\n").trim();
+        }
         if (synthesis.tokensUsed) {
           this.lastLlmTokens = { prompt: synthesis.tokensUsed.prompt, completion: synthesis.tokensUsed.completion };
         }
@@ -247618,7 +247621,7 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
       if (response.tokensUsed) {
         this.lastLlmTokens = { prompt: response.tokensUsed.prompt, completion: response.tokensUsed.completion };
       }
-      finalMessage = response.message.content;
+      finalMessage = response.message.content ?? "";
       if (!response.toolCalls?.length) {
         const textExtracted = this.extractToolIntent(message, finalMessage);
         if (textExtracted.length > 0) {
@@ -247695,7 +247698,7 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
               content: wrapInDataBoundary(`Tool results:
 ${sanitizedToolResults}
 
-Present ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in the same language the user used.`, "tool execution results")
+Present ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Never include internal identifiers like message IDs, thread IDs, or document IDs in your response. Respond in the same language the user used.`, "tool execution results")
             }
           ];
           const followUp = await this.llm.chat({
@@ -247704,8 +247707,8 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
             temperature: 0.7,
             maxTokens: 2048
           });
-          finalMessage = followUp.message.content;
-          finalMessage = finalMessage.replace(/\b(?:Here are |The )?(?:tool (?:results|execution results) are|tool results):\s*/gi, "").replace(/\b(?:search_files|search_emails|fetch_inbox|list_indexed_documents|read_document|add_contact|search_contacts|list_cloud_files|save_file|search_cloud_files)\s*[:.]?\s*(?:\[.*?\]|\{.*?\})/gs, "").replace(/\n{3,}/g, "\n\n").trim();
+          finalMessage = followUp.message.content ?? "";
+          finalMessage = finalMessage.replace(/\b(?:Here are |The )?(?:tool (?:results|execution results) are|tool results):\s*/gi, "").replace(/\b(?:search_files|search_emails|fetch_inbox|list_indexed_documents|read_document|add_contact|search_contacts|list_cloud_files|save_file|search_cloud_files)\s*[:.]?\s*(?:\[.*?\]|\{.*?\})/gs, "").replace(/\b(?:Message\s+)?ID:\s*[0-9a-f]{10,}\b/gi, "").replace(/\b(?:thread_?id|message_?id)\s*[:=]\s*["']?[0-9a-f]{10,}["']?\b/gi, "").replace(/\n{3,}/g, "\n\n").trim();
         }
         const pendingCount = actions.filter((a) => a.status === "pending_approval").length;
         if (pendingCount > 0 && toolResults.executedResults.length === 0) {
@@ -248191,12 +248194,20 @@ ${docContextStr}`, "document context")
         });
         executedResults.push({
           tool: "search_emails",
-          result: results.map((r) => ({
-            title: r.document.title,
-            content: r.chunk.content.slice(0, 300),
-            score: r.score,
-            metadata: r.document.metadata
-          }))
+          result: results.map((r) => {
+            const meta = r.document.metadata ? { ...r.document.metadata } : {};
+            delete meta["messageId"];
+            delete meta["id"];
+            delete meta["threadId"];
+            return {
+              title: r.document.title,
+              content: r.chunk.content.slice(0, 300),
+              score: r.score,
+              from: meta["from"] ?? meta["fromName"] ?? void 0,
+              date: meta["receivedAt"] ?? meta["date"] ?? void 0,
+              subject: meta["subject"] ?? void 0
+            };
+          })
         });
         continue;
       }
