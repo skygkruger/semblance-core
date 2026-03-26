@@ -1,6 +1,6 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DirectoryPicker, ProgressBar } from '@semblance/ui';
+import { DirectoryPicker, ProgressBar, Card, StatusIndicator, SkeletonCard } from '@semblance/ui';
 import { startIndexing, getKnowledgeStats } from '../ipc/commands';
 import { useTauriEvent } from '../hooks/useTauriEvent';
 import { useAppState, useAppDispatch } from '../state/AppState';
@@ -9,14 +9,16 @@ export function FilesScreen() {
   const { t } = useTranslation();
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const [loading, setLoading] = useState(true);
 
   // Fetch knowledge stats on mount
   useEffect(() => {
+    setLoading(true);
     getKnowledgeStats().then((stats) => {
       dispatch({ type: 'SET_KNOWLEDGE_STATS', stats });
     }).catch((err) => {
       console.error('[FilesScreen] failed to get knowledge stats:', err);
-    });
+    }).finally(() => setLoading(false));
   }, [dispatch]);
 
   // Listen for indexing progress events to update UI in real-time
@@ -133,23 +135,31 @@ export function FilesScreen() {
         <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.files.section_indexing')}</div>
         <div className="settings-row settings-row--static">
           {indexingStatus.state === 'idle' || indexingStatus.state === 'complete' ? (
-            <span className="settings-row__label" style={{ color: '#8593A4', fontSize: 13 }}>
-              {t('screen.files.indexing_up_to_date')}
-            </span>
+            <div className="flex items-center gap-2">
+              <StatusIndicator status="success" />
+              <span className="settings-row__label" style={{ color: '#8593A4', fontSize: 13 }}>
+                {t('screen.files.indexing_up_to_date')}
+              </span>
+            </div>
+          ) : indexingStatus.state === 'error' ? (
+            <div className="flex items-center gap-2">
+              <StatusIndicator status="attention" />
+              <span style={{ color: '#B07A8A', fontSize: 13 }}>{t('screen.files.indexing_error', { error: indexingStatus.error })}</span>
+            </div>
           ) : (
             <div style={{ width: '100%' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <StatusIndicator status="accent" pulse />
+                <span className="settings-row__label" style={{ color: '#8593A4', fontSize: 13 }}>
+                  {indexingStatus.state === 'scanning' && t('screen.files.indexing_scanning')}
+                  {indexingStatus.state === 'indexing' && t('screen.files.indexing_progress', { scanned: indexingStatus.filesScanned, total: indexingStatus.filesTotal })}
+                </span>
+              </div>
               <ProgressBar
                 value={indexingStatus.filesScanned}
                 max={indexingStatus.filesTotal || 1}
                 indeterminate={indexingStatus.state === 'scanning'}
               />
-              <span className="settings-row__label" style={{ color: '#8593A4', fontSize: 13, marginTop: 8, display: 'block' }}>
-                {indexingStatus.state === 'scanning' && t('screen.files.indexing_scanning')}
-                {indexingStatus.state === 'indexing' && t('screen.files.indexing_progress', { scanned: indexingStatus.filesScanned, total: indexingStatus.filesTotal })}
-                {indexingStatus.state === 'error' && (
-                  <span style={{ color: '#B07A8A' }}>{t('screen.files.indexing_error', { error: indexingStatus.error })}</span>
-                )}
-              </span>
               {indexingStatus.state === 'indexing' && (indexingStatus as { currentFile?: string | null }).currentFile && (
                 <span style={{ color: '#5E6B7C', fontSize: 11, display: 'block', marginTop: 4, fontFamily: "'DM Mono', monospace" }}>
                   {(indexingStatus as { currentFile?: string | null }).currentFile}
@@ -161,24 +171,38 @@ export function FilesScreen() {
 
         {/* Knowledge Stats */}
         <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.files.section_stats')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, padding: '0 16px' }}>
-          <div>
-            <span style={{ fontSize: 24, fontWeight: 700, color: '#6ECFA3', fontFamily: "'DM Mono', monospace" }}>{knowledgeStats.documentCount}</span>
-            <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_documents')}</span>
+        {loading ? (
+          <div style={{ padding: '0 16px' }}>
+            <SkeletonCard variant="generic" message="Loading file index" subMessage="Scanning your document library" showSpinner />
           </div>
-          <div>
-            <span style={{ fontSize: 24, fontWeight: 700, color: '#6ECFA3', fontFamily: "'DM Mono', monospace" }}>{knowledgeStats.chunkCount}</span>
-            <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_chunks')}</span>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, padding: '0 16px' }}>
+            <Card>
+              <div style={{ padding: 16 }}>
+                <span style={{ fontSize: 20, fontWeight: 700, color: '#6ECFA3', fontFamily: "'DM Mono', monospace" }}>{knowledgeStats.documentCount}</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_documents')}</span>
+              </div>
+            </Card>
+            <Card>
+              <div style={{ padding: 16 }}>
+                <span style={{ fontSize: 20, fontWeight: 700, color: '#6ECFA3', fontFamily: "'DM Mono', monospace" }}>{knowledgeStats.chunkCount}</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_chunks')}</span>
+              </div>
+            </Card>
+            <Card>
+              <div style={{ padding: 16 }}>
+                <span style={{ fontSize: 20, fontWeight: 700, color: '#6ECFA3', fontFamily: "'DM Mono', monospace" }}>{(knowledgeStats.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_index_size')}</span>
+              </div>
+            </Card>
+            <Card>
+              <div style={{ padding: 16 }}>
+                <span style={{ fontSize: 20, fontWeight: 700, color: '#6ECFA3', fontFamily: "'DM Mono', monospace" }}>.txt, .md, .pdf, .docx</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_supported_types')}</span>
+              </div>
+            </Card>
           </div>
-          <div>
-            <span style={{ fontSize: 14, fontWeight: 500, color: '#CDD4DB' }}>{(knowledgeStats.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB</span>
-            <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_index_size')}</span>
-          </div>
-          <div>
-            <span style={{ fontSize: 14, color: '#8593A4' }}>.txt, .md, .pdf, .docx</span>
-            <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_supported_types')}</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
   livingWillImport,
 } from '../ipc/commands';
 import type { LivingWillExportRecord } from '../ipc/commands';
+import { Card, Button, Input, SkeletonCard, FeatureGate } from '@semblance/ui';
 import './LivingWillScreen.css';
 
 export function LivingWillScreen() {
@@ -176,18 +177,7 @@ export function LivingWillScreen() {
       <div className="living-will h-full overflow-y-auto">
         <div className="living-will__container">
           <h1 className="living-will__title">{t('screen.living_will.title')}</h1>
-          <div className="living-will__card surface-void opal-wireframe">
-            <p className="living-will__gate-message">
-              {t('screen.living_will.requires_dr')}
-            </p>
-            <button
-              type="button"
-              className="living-will__gate-btn"
-              onClick={() => navigate('/upgrade')}
-            >
-              {t('screen.living_will.activate_dr')}
-            </button>
-          </div>
+          <FeatureGate feature="living-will" isPremium={false} onLearnMore={() => navigate('/upgrade')} />
         </div>
       </div>
     );
@@ -198,9 +188,7 @@ export function LivingWillScreen() {
       <div className="living-will h-full overflow-y-auto">
         <div className="living-will__container">
           <h1 className="living-will__title">{t('screen.living_will.title')}</h1>
-          <div className="living-will__card surface-void opal-wireframe">
-            <p className="living-will__status-value">Loading...</p>
-          </div>
+          <SkeletonCard variant="generic" message="Loading Living Will" subMessage="Retrieving export configuration" showSpinner />
         </div>
       </div>
     );
@@ -215,7 +203,7 @@ export function LivingWillScreen() {
         </p>
 
         {/* Export status */}
-        <div className="living-will__card surface-void opal-wireframe">
+        <Card variant="elevated">
           <h2 className="living-will__section-title">{t('screen.living_will.export_status')}</h2>
           <div className="living-will__status-row">
             <span className="living-will__status-label">{t('screen.living_will.last_export')}</span>
@@ -240,9 +228,8 @@ export function LivingWillScreen() {
                   ? t('screen.living_will.enter_passphrase_export', 'Enter a passphrase to encrypt the archive:')
                   : t('screen.living_will.enter_passphrase_import', 'Enter the passphrase used to encrypt this archive:')}
               </p>
-              <input
+              <Input
                 type="password"
-                className="living-will__input"
                 placeholder={t('screen.living_will.passphrase_placeholder', 'Passphrase')}
                 value={passphrase}
                 onChange={(e) => setPassphrase(e.target.value)}
@@ -255,50 +242,48 @@ export function LivingWillScreen() {
                 autoFocus
               />
               <div className="living-will__passphrase-actions">
-                <button
-                  type="button"
-                  className="living-will__btn living-will__btn--primary"
+                <Button
+                  variant="opal"
+                  size="sm"
                   onClick={showPassphrasePrompt === 'export' ? handleExportConfirm : handleImportConfirm}
                   disabled={!passphrase.trim()}
                 >
                   {t('common.confirm', 'Confirm')}
-                </button>
-                <button
-                  type="button"
-                  className="living-will__btn living-will__btn--secondary"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => { setShowPassphrasePrompt(null); setPassphrase(''); }}
                 >
                   {t('common.cancel', 'Cancel')}
-                </button>
+                </Button>
               </div>
             </div>
           )}
 
           <div className="living-will__actions">
-            <button
-              type="button"
-              className="living-will__btn living-will__btn--primary"
+            <Button
+              variant="opal"
               onClick={handleExportStart}
               disabled={exporting || showPassphrasePrompt !== null}
             >
               {exporting ? t('screen.living_will.exporting', 'Exporting...') : t('screen.living_will.export_now')}
-            </button>
-            <button
-              type="button"
-              className="living-will__btn living-will__btn--secondary"
+            </Button>
+            <Button
+              variant="ghost"
               onClick={handleImportStart}
               disabled={importing || showPassphrasePrompt !== null}
             >
               {importing ? t('screen.living_will.importing', 'Importing...') : t('screen.living_will.import_archive')}
-            </button>
+            </Button>
           </div>
           {statusMessage && (
             <p className="living-will__status-message">{statusMessage}</p>
           )}
-        </div>
+        </Card>
 
         {/* Auto-export toggle */}
-        <div className="living-will__card surface-void opal-wireframe">
+        <Card variant="elevated">
           <h2 className="living-will__section-title">{t('screen.living_will.automatic_export')}</h2>
           <div className="living-will__toggle-row">
             <span className="living-will__toggle-label">
@@ -319,7 +304,7 @@ export function LivingWillScreen() {
               {t('screen.living_will.configure_exports')}
             </p>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

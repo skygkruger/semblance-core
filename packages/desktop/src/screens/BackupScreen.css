@@ -21,8 +21,6 @@
 }
 
 .backup-screen__card {
-  padding: var(--sp-6);
-  border-radius: var(--r-lg);
   margin-bottom: var(--sp-4);
 }
 
@@ -77,26 +75,7 @@
   flex-wrap: wrap;
 }
 
-.backup-screen__schedule-btn {
-  font-family: var(--fm);
-  font-size: var(--text-xs);
-  color: var(--sv2);
-  background: var(--s1);
-  border: 1px solid var(--b2);
-  border-radius: var(--r-md);
-  padding: var(--sp-2) var(--sp-3);
-  cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
-}
-
-.backup-screen__schedule-btn:hover {
-  border-color: var(--sv3);
-}
-
-.backup-screen__schedule-btn--active {
-  border-color: var(--v);
-  color: var(--v);
-}
+/* Schedule buttons now use <Button> component */
 
 .backup-screen__empty {
   padding: var(--sp-6) var(--sp-4);
@@ -153,62 +132,14 @@
   color: var(--sv3);
 }
 
-.backup-screen__list-item-status {
-  font-family: var(--fm);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.backup-screen__list-item-status--success {
-  color: var(--v);
-}
-
-.backup-screen__list-item-status--failed {
-  color: #B07A8A;
-}
-
-.backup-screen__list-item-status--partial {
-  color: #B09A8A;
-}
+/* History status now uses <StatusIndicator> component */
 
 .backup-screen__actions {
   display: flex;
   gap: var(--sp-3);
 }
 
-.backup-screen__action-btn {
-  font-family: var(--fm);
-  font-size: var(--text-xs);
-  color: var(--sv2);
-  background: var(--s1);
-  border: 1px solid var(--b2);
-  border-radius: var(--r-md);
-  padding: var(--sp-2) var(--sp-4);
-  cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
-}
-
-.backup-screen__action-btn:hover:not(:disabled) {
-  border-color: var(--sv3);
-  color: var(--white);
-}
-
-.backup-screen__action-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.backup-screen__action-btn--primary {
-  border-color: var(--v);
-  color: var(--v);
-}
-
-.backup-screen__action-btn--primary:hover:not(:disabled) {
-  border-color: var(--v);
-  color: var(--white);
-  background: rgba(110, 207, 163, 0.1);
-}
+/* Action buttons now use <Button> component */
 
 .backup-screen__status-message {
   font-family: var(--fb);

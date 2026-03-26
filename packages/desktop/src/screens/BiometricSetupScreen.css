@@ -21,8 +21,6 @@
 }
 
 .biometric-setup__card {
-  padding: var(--sp-6);
-  border-radius: var(--r-lg);
   margin-bottom: var(--sp-4);
 }
 
@@ -136,27 +134,7 @@
   margin-top: var(--sp-3);
 }
 
-.biometric-setup__timeout-option {
-  padding: 6px 14px;
-  border-radius: var(--r-md);
-  font-family: var(--fm);
-  font-size: var(--text-xs);
-  cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: var(--s1);
-  color: var(--sv2);
-  transition: all 0.15s ease;
-}
-
-.biometric-setup__timeout-option--selected {
-  background: rgba(110, 207, 163, 0.1);
-  border-color: rgba(110, 207, 163, 0.3);
-  color: #6ECFA3;
-}
-
-.biometric-setup__timeout-option:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-}
+/* Timeout options now use <Button> component */
 
 .biometric-setup__actions {
   display: flex;
@@ -164,33 +142,28 @@
   margin-top: var(--sp-4);
 }
 
-.biometric-setup__btn {
-  padding: 8px 16px;
-  border-radius: var(--r-md);
-  font-family: var(--fb);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  border: none;
-  transition: opacity 0.15s ease;
+/* Buttons now use <Button> component */
+
+.biometric-setup__status-indicator-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
 }
 
-.biometric-setup__btn:hover {
-  opacity: 0.85;
+.biometric-setup__test-indicator {
+  align-self: center;
 }
 
-.biometric-setup__btn--primary {
-  background: rgba(110, 207, 163, 0.1);
-  border: 1px solid rgba(110, 207, 163, 0.3);
+.biometric-setup__test-label {
+  font-family: var(--fm);
+  font-size: 11px;
+  align-self: center;
+}
+
+.biometric-setup__test-label--success {
   color: #6ECFA3;
 }
 
-.biometric-setup__btn--secondary {
-  background: var(--s1);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: var(--sv2);
-}
-
-.biometric-setup__btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.biometric-setup__test-label--failed {
+  color: #B07A8A;
 }

@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { Card, Button, FeatureGate, SkeletonCard, StatusIndicator } from '@semblance/ui';
 import { sidecarCall } from '../ipc/commands';
 import { useLicense } from '../contexts/LicenseContext';
 
@@ -129,33 +130,25 @@ export function AlterEgoWeekScreen() {
   // Premium gate
   if (!license.isPremium) {
     return (
-      <div style={{ padding: 32, maxWidth: 640, margin: '0 auto' }}>
-        <h1 style={{
-          fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif",
-          fontSize: 28,
-          fontWeight: 300,
-          color: '#EEF1F4',
-          margin: 0,
-          marginBottom: 6,
-        }}>
-          Alter Ego Week
-        </h1>
-        <div style={{
-          background: '#111518',
-          border: '1px solid rgba(255,255,255,0.09)',
-          borderRadius: 12,
-          padding: 24,
-          marginTop: 24,
-        }}>
-          <p style={{
-            fontFamily: "'DM Sans', system-ui, sans-serif",
-            fontSize: 14,
-            color: '#A8B4C0',
+      <div className="h-full overflow-y-auto">
+        <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
+          <h1 style={{
+            fontFamily: "'Fraunces', serif",
+            fontSize: 28,
+            fontWeight: 300,
+            color: '#EEF1F4',
             margin: 0,
-            lineHeight: 1.6,
+            marginBottom: 24,
           }}>
-            Alter Ego Week is a 7-day trust-building sequence that demonstrates autonomous capabilities. This feature requires the Digital Representative tier.
-          </p>
+            Alter Ego Week
+          </h1>
+          <FeatureGate
+            feature="representative-drafting"
+            isPremium={license.isPremium}
+            onLearnMore={() => license.openCheckout?.('monthly')}
+          >
+            <div />
+          </FeatureGate>
         </div>
       </div>
     );
@@ -163,9 +156,14 @@ export function AlterEgoWeekScreen() {
 
   if (loading) {
     return (
-      <div style={{ padding: 32, maxWidth: 640, margin: '0 auto' }}>
-        <div style={{ color: '#8593A4', fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14 }}>
-          Loading...
+      <div className="h-full overflow-y-auto">
+        <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
+          <SkeletonCard
+            variant="generic"
+            message="Preparing Alter Ego Week"
+            subMessage="Loading your trust-building challenges"
+            showSpinner
+          />
         </div>
       </div>
     );
@@ -175,288 +173,207 @@ export function AlterEgoWeekScreen() {
   const isComplete = weekState.completedAt !== null;
 
   return (
-    <div style={{ padding: 32, maxWidth: 640, margin: '0 auto' }}>
-      {/* Header */}
-      <h1 style={{
-        fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif",
-        fontSize: 28,
-        fontWeight: 300,
-        color: '#EEF1F4',
-        margin: 0,
-        marginBottom: 6,
-      }}>
-        Alter Ego Week
-      </h1>
-      <p style={{
-        fontFamily: "'DM Sans', system-ui, sans-serif",
-        fontSize: 14,
-        color: '#A8B4C0',
-        margin: 0,
-        marginBottom: 32,
-        lineHeight: 1.5,
-      }}>
-        Build trust through 7 days of autonomous demonstrations.
-      </p>
-
-      {/* Error */}
-      {error && (
-        <div style={{
-          background: 'rgba(176, 122, 138, 0.12)',
-          border: '1px solid rgba(176, 122, 138, 0.3)',
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 20,
+    <div className="h-full overflow-y-auto">
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
+        {/* Header */}
+        <h1 style={{
+          fontFamily: "'Fraunces', serif",
+          fontSize: 28,
+          fontWeight: 300,
+          color: '#EEF1F4',
+          margin: 0,
+          marginBottom: 6,
         }}>
-          <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, color: '#B07A8A', margin: 0 }}>
-            {error}
-          </p>
-        </div>
-      )}
-
-      {/* 7-Day Timeline */}
-      <div style={{
-        display: 'flex',
-        gap: 6,
-        marginBottom: 24,
-      }}>
-        {allDays.map((day) => {
-          const isCompleted = weekState.completedDays.includes(day);
-          const isCurrent = weekState.currentDay === day;
-          let bg = 'rgba(255,255,255,0.04)';
-          let color = '#5E6B7C';
-          if (isCompleted) { bg = 'rgba(110, 207, 163, 0.15)'; color = '#6ECFA3'; }
-          else if (isCurrent) { bg = 'rgba(110, 207, 163, 0.08)'; color = '#CDD4DB'; }
-          return (
-            <div key={day} style={{
-              flex: 1,
-              textAlign: 'center',
-              padding: '8px 0',
-              borderRadius: 8,
-              background: bg,
-              border: isCurrent ? '1px solid rgba(110, 207, 163, 0.3)' : '1px solid transparent',
-            }}>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color }}>{day}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Not started */}
-      {!weekState.active && !isComplete && (
-        <div style={{
-          background: '#111518',
-          border: '1px solid rgba(255,255,255,0.09)',
-          borderRadius: 12,
-          padding: 24,
-          marginBottom: 20,
+          Alter Ego Week
+        </h1>
+        <p style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 14,
+          color: '#8593A4',
+          margin: 0,
+          marginBottom: 32,
+          lineHeight: 1.5,
         }}>
-          <p style={{
-            fontFamily: "'DM Sans', system-ui, sans-serif",
-            fontSize: 14,
-            color: '#A8B4C0',
-            margin: 0,
-            marginBottom: 20,
-            lineHeight: 1.6,
-          }}>
-            Over 7 days, Semblance will demonstrate autonomous capabilities across email, calendar, files, contacts, finances, health, and full agent mode. Each day builds on the last.
-          </p>
-          <button onClick={handleStart} style={{
-            fontFamily: "'DM Sans', system-ui, sans-serif",
-            fontSize: 13,
-            fontWeight: 500,
-            color: '#0B0E11',
-            background: '#6ECFA3',
-            border: 'none',
-            borderRadius: 8,
-            padding: '8px 20px',
-            cursor: 'pointer',
-          }}>
-            Start Week
-          </button>
-        </div>
-      )}
+          Build trust through 7 days of autonomous demonstrations.
+        </p>
 
-      {/* Current Day Card */}
-      {weekState.active && weekState.currentDay !== null && !isComplete && (
-        <div style={{
-          background: '#111518',
-          border: '1px solid rgba(255,255,255,0.09)',
-          borderRadius: 12,
-          padding: 24,
-          marginBottom: 20,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <span style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 12,
-              color: '#6ECFA3',
-              background: 'rgba(110, 207, 163, 0.1)',
-              padding: '2px 8px',
-              borderRadius: 4,
-            }}>
-              Day {weekState.currentDay}
-            </span>
-            <h2 style={{
-              fontFamily: "'DM Sans', system-ui, sans-serif",
-              fontSize: 16,
-              fontWeight: 500,
-              color: '#CDD4DB',
-              margin: 0,
-            }}>
-              {DAY_LABELS[weekState.currentDay]?.title ?? `Day ${weekState.currentDay}`}
-            </h2>
-          </div>
-          <p style={{
-            fontFamily: "'DM Sans', system-ui, sans-serif",
-            fontSize: 13,
-            color: '#A8B4C0',
-            margin: 0,
-            marginBottom: 20,
-            lineHeight: 1.6,
-          }}>
-            {DAY_LABELS[weekState.currentDay]?.description ?? ''}
-          </p>
+        {/* Error */}
+        {error && (
+          <Card style={{ marginBottom: 20, borderColor: 'rgba(176, 122, 138, 0.3)', background: 'rgba(176, 122, 138, 0.12)' }}>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#B07A8A', margin: 0 }}>
+              {error}
+            </p>
+          </Card>
+        )}
 
-          {/* Day Result */}
-          {dayResult && (
-            <div style={{
-              background: '#171B1F',
-              borderRadius: 8,
-              padding: 16,
-              marginBottom: 16,
-            }}>
-              <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14, color: '#CDD4DB', marginBottom: 8 }}>
-                {dayResult.title}
-              </div>
-              {dayResult.description && (
-                <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, color: '#A8B4C0', margin: 0, lineHeight: 1.5 }}>
-                  {dayResult.description}
-                </p>
-              )}
-              {dayResult.actions && dayResult.actions.length > 0 && (
-                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {dayResult.actions.map((action, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 12, color: '#8593A4' }}>{action.label}</span>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6ECFA3' }}>{action.result}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              onClick={handleRunDay}
-              disabled={runningDay}
-              style={{
-                fontFamily: "'DM Sans', system-ui, sans-serif",
-                fontSize: 13,
-                fontWeight: 500,
-                color: '#0B0E11',
-                background: '#6ECFA3',
-                border: 'none',
+        {/* 7-Day Timeline */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
+          {allDays.map((day) => {
+            const isCompleted = weekState.completedDays.includes(day);
+            const isCurrent = weekState.currentDay === day;
+            let bg = 'rgba(255,255,255,0.04)';
+            let color = '#5E6B7C';
+            if (isCompleted) { bg = 'rgba(110, 207, 163, 0.15)'; color = '#6ECFA3'; }
+            else if (isCurrent) { bg = 'rgba(110, 207, 163, 0.08)'; color = '#CDD4DB'; }
+            return (
+              <div key={day} style={{
+                flex: 1,
+                textAlign: 'center',
+                padding: '8px 0',
                 borderRadius: 8,
-                padding: '8px 20px',
-                cursor: runningDay ? 'not-allowed' : 'pointer',
-                opacity: runningDay ? 0.6 : 1,
-              }}
-            >
-              {runningDay ? 'Running...' : "Run Today's Challenge"}
-            </button>
-            {dayResult && (
-              <button onClick={handleAdvance} style={{
-                fontFamily: "'DM Sans', system-ui, sans-serif",
-                fontSize: 13,
-                fontWeight: 500,
-                color: '#EEF1F4',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.09)',
-                borderRadius: 8,
-                padding: '8px 20px',
-                cursor: 'pointer',
+                background: bg,
+                border: isCurrent ? '1px solid rgba(110, 207, 163, 0.3)' : '1px solid transparent',
               }}>
-                Advance
-              </button>
-            )}
-            <button onClick={handleSkip} style={{
-              fontFamily: "'DM Sans', system-ui, sans-serif",
-              fontSize: 13,
-              fontWeight: 500,
-              color: '#5E6B7C',
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 8,
-              padding: '8px 20px',
-              cursor: 'pointer',
-            }}>
-              Skip
-            </button>
-          </div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color }}>{day}</div>
+              </div>
+            );
+          })}
         </div>
-      )}
 
-      {/* Completion State */}
-      {isComplete && (
-        <div style={{
-          background: '#111518',
-          border: '1px solid rgba(110, 207, 163, 0.2)',
-          borderRadius: 12,
-          padding: 24,
-        }}>
-          <h2 style={{
-            fontFamily: "'DM Sans', system-ui, sans-serif",
-            fontSize: 16,
-            fontWeight: 500,
-            color: '#CDD4DB',
-            margin: 0,
-            marginBottom: 12,
-          }}>
-            Week Complete
-          </h2>
-          <p style={{
-            fontFamily: "'DM Sans', system-ui, sans-serif",
-            fontSize: 14,
-            color: '#A8B4C0',
-            margin: 0,
-            marginBottom: 20,
-            lineHeight: 1.6,
-          }}>
-            {weekState.userActivated
-              ? 'Alter Ego tier is active. Semblance is operating with full autonomous capabilities.'
-              : 'You\'ve completed all 7 days. Would you like to activate Alter Ego tier? Semblance will act on your behalf for nearly everything, interrupting only for high-stakes decisions.'}
-          </p>
-          {weekState.activationOffered && !weekState.userActivated && (
-            <button onClick={handleAccept} style={{
-              fontFamily: "'DM Sans', system-ui, sans-serif",
-              fontSize: 13,
-              fontWeight: 500,
-              color: '#0B0E11',
-              background: '#6ECFA3',
-              border: 'none',
-              borderRadius: 8,
-              padding: '8px 20px',
-              cursor: 'pointer',
+        {/* Not started */}
+        {!weekState.active && !isComplete && (
+          <Card style={{ marginBottom: 20 }}>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: 14,
+              color: '#8593A4',
+              margin: 0,
+              marginBottom: 20,
+              lineHeight: 1.6,
             }}>
-              Activate Alter Ego
-            </button>
-          )}
-          {weekState.userActivated && (
-            <div style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 12,
-              color: '#6ECFA3',
-              background: 'rgba(110, 207, 163, 0.08)',
-              padding: '6px 12px',
-              borderRadius: 6,
-              display: 'inline-block',
-            }}>
-              Alter Ego Active
+              Over 7 days, Semblance will demonstrate autonomous capabilities across email, calendar, files, contacts, finances, health, and full agent mode. Each day builds on the last.
+            </p>
+            <Button variant="opal" onClick={handleStart}>
+              Start Week
+            </Button>
+          </Card>
+        )}
+
+        {/* Current Day Card */}
+        {weekState.active && weekState.currentDay !== null && !isComplete && (
+          <Card style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <span style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 12,
+                color: '#6ECFA3',
+                background: 'rgba(110, 207, 163, 0.1)',
+                padding: '2px 8px',
+                borderRadius: 4,
+              }}>
+                Day {weekState.currentDay}
+              </span>
+              <h2 style={{
+                fontFamily: "'Fraunces', serif",
+                fontSize: 18,
+                fontWeight: 300,
+                color: '#EEF1F4',
+                margin: 0,
+              }}>
+                {DAY_LABELS[weekState.currentDay]?.title ?? `Day ${weekState.currentDay}`}
+              </h2>
             </div>
-          )}
-        </div>
-      )}
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: 13,
+              color: '#8593A4',
+              margin: 0,
+              marginBottom: 20,
+              lineHeight: 1.6,
+            }}>
+              {DAY_LABELS[weekState.currentDay]?.description ?? ''}
+            </p>
+
+            {/* Day Result */}
+            {dayResult && (
+              <div style={{
+                background: '#171B1F',
+                borderRadius: 8,
+                padding: 16,
+                marginBottom: 16,
+              }}>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#EEF1F4', marginBottom: 8 }}>
+                  {dayResult.title}
+                </div>
+                {dayResult.description && (
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8593A4', margin: 0, lineHeight: 1.5 }}>
+                    {dayResult.description}
+                  </p>
+                )}
+                {dayResult.actions && dayResult.actions.length > 0 && (
+                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {dayResult.actions.map((action, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#8593A4' }}>{action.label}</span>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6ECFA3' }}>{action.result}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Button variant="solid" disabled={runningDay} onClick={handleRunDay}>
+                {runningDay ? 'Running...' : "Run Today's Challenge"}
+              </Button>
+              {dayResult && (
+                <Button variant="ghost" onClick={handleAdvance}>
+                  Advance
+                </Button>
+              )}
+              <Button variant="ghost" onClick={handleSkip}>
+                Skip
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Completion State */}
+        {isComplete && (
+          <Card style={{ borderColor: 'rgba(110, 207, 163, 0.2)' }}>
+            <h2 style={{
+              fontFamily: "'Fraunces', serif",
+              fontSize: 18,
+              fontWeight: 300,
+              color: '#EEF1F4',
+              margin: 0,
+              marginBottom: 12,
+            }}>
+              Week Complete
+            </h2>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: 14,
+              color: '#8593A4',
+              margin: 0,
+              marginBottom: 20,
+              lineHeight: 1.6,
+            }}>
+              {weekState.userActivated
+                ? 'Alter Ego tier is active. Semblance is operating with full autonomous capabilities.'
+                : 'You\'ve completed all 7 days. Would you like to activate Alter Ego tier? Semblance will act on your behalf for nearly everything, interrupting only for high-stakes decisions.'}
+            </p>
+            {weekState.activationOffered && !weekState.userActivated && (
+              <Button variant="opal" onClick={handleAccept}>
+                Activate Alter Ego
+              </Button>
+            )}
+            {weekState.userActivated && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <StatusIndicator status="success" pulse />
+                <span style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 12,
+                  color: '#6ECFA3',
+                }}>
+                  Alter Ego Active
+                </span>
+              </div>
+            )}
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

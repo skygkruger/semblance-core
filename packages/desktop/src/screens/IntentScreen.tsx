@@ -20,6 +20,7 @@ import {
 } from '../ipc/commands';
 import type { IntentObservationData, EscalationPromptData } from '../ipc/types';
 import { EscalationPromptCard } from '../components/EscalationPromptCard';
+import { Card, Button, Input, SkeletonCard, StatusIndicator } from '@semblance/ui';
 
 export function IntentScreen() {
   const { t } = useTranslation();
@@ -127,13 +128,13 @@ export function IntentScreen() {
     return (
       <div className="settings-screen">
         <div className="settings-header">
-          <button type="button" className="settings-header__back" onClick={() => navigate('/settings')} aria-label="Back to settings">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </button>
+          </Button>
           <h1 className="settings-header__title">{t('screen.intent.title')}</h1>
         </div>
         <div className="settings-content">
-          <span style={{ color: '#8593A4', fontSize: 13 }}>{t('screen.intent.loading')}</span>
+          <SkeletonCard variant="generic" message="Loading intents" subMessage="Retrieving your preferences and limits" showSpinner />
         </div>
       </div>
     );
@@ -144,147 +145,132 @@ export function IntentScreen() {
   return (
     <div className="settings-screen">
       <div className="settings-header">
-        <button type="button" className="settings-header__back" onClick={() => navigate('/settings')} aria-label="Back to settings">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
+        </Button>
         <h1 className="settings-header__title">{t('screen.intent.title')}</h1>
       </div>
       <div className="settings-content">
         {/* Primary Goal */}
-        <div className="settings-section-header">{t('screen.intent.section_goal')}</div>
-        <div className="settings-row settings-row--static">
+        <Card variant="default">
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>{t('screen.intent.section_goal')}</h2>
           {editingGoal ? (
-            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-              <input
-                type="text"
-                value={goalDraft}
-                onChange={e => setGoalDraft(e.target.value)}
+            <div style={{ display: 'flex', gap: 8, width: '100%', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <Input
+                  value={goalDraft}
+                  onChange={e => setGoalDraft(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSaveGoal(); }}
-                placeholder={t('screen.intent.placeholder_goal')}
-                style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#171B1F', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
-                autoFocus
-              />
-              <button type="button" className="btn btn--opal btn--sm" onClick={handleSaveGoal}><span className="btn__text">{t('button.save')}</span></button>
-              <button type="button" onClick={() => setEditingGoal(false)} style={{ background: 'none', border: 'none', color: '#8593A4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}>{t('button.cancel')}</button>
+                  placeholder={t('screen.intent.placeholder_goal')}
+                  autoFocus
+                />
+              </div>
+              <Button variant="opal" size="sm" onClick={handleSaveGoal}>{t('button.save')}</Button>
+              <Button variant="ghost" size="sm" onClick={() => setEditingGoal(false)}>{t('button.cancel')}</Button>
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-              <span className="settings-row__label" style={{ flex: 1, color: primaryGoal ? '#EEF1F4' : '#8593A4', fontSize: 14 }}>
+              <span style={{ flex: 1, fontFamily: "'DM Sans', sans-serif", color: primaryGoal ? '#EEF1F4' : '#8593A4', fontSize: 14 }}>
                 {primaryGoal || t('screen.intent.goal_empty')}
               </span>
-              <button
-                type="button"
-                onClick={() => { setGoalDraft(primaryGoal || ''); setEditingGoal(true); }}
-                style={{ background: 'none', border: 'none', color: '#8593A4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}
-              >
-                {t('button.edit')}
-              </button>
+              <Button variant="ghost" size="sm" onClick={() => { setGoalDraft(primaryGoal || ''); setEditingGoal(true); }}>{t('button.edit')}</Button>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Hard Limits */}
-        <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.intent.section_limits')}</div>
-        {hardLimits.length === 0 && (
-          <div className="settings-row settings-row--static">
-            <span className="settings-row__label" style={{ color: '#5E6B7C', fontSize: 13 }}>{t('screen.intent.limits_empty')}</span>
+        <Card variant="default" className="mt-4">
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>{t('screen.intent.section_limits')}</h2>
+          {hardLimits.length === 0 && (
+            <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#5E6B7C', fontSize: 13, margin: 0 }}>{t('screen.intent.limits_empty')}</p>
+          )}
+          {hardLimits.map(limit => (
+            <div key={limit.id} className="settings-row">
+              <button
+                type="button"
+                onClick={() => handleToggleLimit(limit.id, !limit.active)}
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 4,
+                  border: `1.5px solid ${limit.active ? '#6ECFA3' : '#3A3F47'}`,
+                  backgroundColor: limit.active ? '#6ECFA320' : 'transparent',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+                title={limit.active ? t('screen.intent.limit_active_title') : t('screen.intent.limit_inactive_title')}
+              />
+              <span className="settings-row__label" style={{
+                flex: 1,
+                color: limit.active ? '#EEF1F4' : '#8593A4',
+                textDecoration: limit.active ? 'none' : 'line-through',
+              }}>
+                {limit.rawText}
+              </span>
+              <Button variant="destructive" size="sm" onClick={() => handleRemoveLimit(limit.id)}>{t('button.remove')}</Button>
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
+            <div style={{ flex: 1 }}>
+              <Input
+                value={newLimit}
+                onChange={e => setNewLimit(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddLimit(); }}
+                placeholder={t('screen.intent.placeholder_limit')}
+              />
+            </div>
+            <Button variant="opal" size="sm" onClick={handleAddLimit} disabled={!newLimit.trim()}>{t('button.create')}</Button>
           </div>
-        )}
-        {hardLimits.map(limit => (
-          <div key={limit.id} className="settings-row">
-            <button
-              type="button"
-              onClick={() => handleToggleLimit(limit.id, !limit.active)}
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: 4,
-                border: `1.5px solid ${limit.active ? '#6ECFA3' : '#3A3F47'}`,
-                backgroundColor: limit.active ? '#6ECFA320' : 'transparent',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-              title={limit.active ? t('screen.intent.limit_active_title') : t('screen.intent.limit_inactive_title')}
-            />
-            <span className="settings-row__label" style={{
-              flex: 1,
-              color: limit.active ? '#EEF1F4' : '#8593A4',
-              textDecoration: limit.active ? 'none' : 'line-through',
-            }}>
-              {limit.rawText}
-            </span>
-            <button
-              type="button"
-              onClick={() => handleRemoveLimit(limit.id)}
-              style={{ background: 'none', border: 'none', color: '#B07A8A', fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}
-            >
-              {t('button.remove')}
-            </button>
-          </div>
-        ))}
-        <div className="settings-row settings-row--static" style={{ gap: 8 }}>
-          <input
-            type="text"
-            value={newLimit}
-            onChange={e => setNewLimit(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleAddLimit(); }}
-            placeholder={t('screen.intent.placeholder_limit')}
-            style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#171B1F', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
-          />
-          <button type="button" className="btn btn--opal btn--sm" onClick={handleAddLimit} disabled={!newLimit.trim()}><span className="btn__text">{t('button.create')}</span></button>
-        </div>
+        </Card>
 
         {/* Personal Values */}
-        <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.intent.section_values')}</div>
-        {personalValues.length === 0 && (
-          <div className="settings-row settings-row--static">
-            <span className="settings-row__label" style={{ color: '#5E6B7C', fontSize: 13 }}>{t('screen.intent.values_empty')}</span>
-          </div>
-        )}
-        {personalValues.map(value => (
-          <div key={value.id} className="settings-row">
-            <span className="settings-row__label" style={{ flex: 1 }}>
-              {value.rawText}
-            </span>
-            {value.theme && (
-              <span style={{
-                fontSize: 11,
-                color: '#6ECFA3',
-                backgroundColor: '#6ECFA315',
-                padding: '2px 8px',
-                borderRadius: 9999,
-                fontFamily: "'DM Mono', monospace",
-              }}>
-                {value.theme}
+        <Card variant="default" className="mt-4">
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>{t('screen.intent.section_values')}</h2>
+          {personalValues.length === 0 && (
+            <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#5E6B7C', fontSize: 13, margin: 0 }}>{t('screen.intent.values_empty')}</p>
+          )}
+          {personalValues.map(value => (
+            <div key={value.id} className="settings-row">
+              <span className="settings-row__label" style={{ flex: 1 }}>
+                {value.rawText}
               </span>
-            )}
-            <button
-              type="button"
-              onClick={() => handleRemoveValue(value.id)}
-              style={{ background: 'none', border: 'none', color: '#B07A8A', fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}
-            >
-              {t('button.remove')}
-            </button>
+              {value.theme && (
+                <StatusIndicator status="success" />
+              )}
+              {value.theme && (
+                <span style={{
+                  fontSize: 11,
+                  color: '#6ECFA3',
+                  backgroundColor: '#6ECFA315',
+                  padding: '2px 8px',
+                  borderRadius: 9999,
+                  fontFamily: "'DM Mono', monospace",
+                }}>
+                  {value.theme}
+                </span>
+              )}
+              <Button variant="destructive" size="sm" onClick={() => handleRemoveValue(value.id)}>{t('button.remove')}</Button>
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
+            <div style={{ flex: 1 }}>
+              <Input
+                value={newValue}
+                onChange={e => setNewValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddValue(); }}
+                placeholder={t('screen.intent.placeholder_value')}
+              />
+            </div>
+            <Button variant="opal" size="sm" onClick={handleAddValue} disabled={!newValue.trim()}>{t('button.create')}</Button>
           </div>
-        ))}
-        <div className="settings-row settings-row--static" style={{ gap: 8 }}>
-          <input
-            type="text"
-            value={newValue}
-            onChange={e => setNewValue(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleAddValue(); }}
-            placeholder={t('screen.intent.placeholder_value')}
-            style={{ flex: 1, height: 36, padding: '0 12px', border: '1px solid #2A2F35', borderRadius: 6, backgroundColor: '#171B1F', color: '#EEF1F4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
-          />
-          <button type="button" className="btn btn--opal btn--sm" onClick={handleAddValue} disabled={!newValue.trim()}><span className="btn__text">{t('button.create')}</span></button>
-        </div>
+        </Card>
 
         {/* Escalation Prompts */}
         {escalationPrompts.length > 0 && (
-          <>
-            <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.intent.section_escalation', 'Autonomy Escalation')}</div>
+          <Card variant="default" className="mt-4">
+            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>{t('screen.intent.section_escalation', 'Autonomy Escalation')}</h2>
             {escalationPrompts.map(prompt => (
-              <div key={prompt.id} style={{ padding: '0 16px', marginBottom: 12 }}>
+              <div key={prompt.id} style={{ marginBottom: 12 }}>
                 <EscalationPromptCard
                   prompt={prompt}
                   onAccepted={async () => {
@@ -298,15 +284,18 @@ export function IntentScreen() {
                 />
               </div>
             ))}
-          </>
+          </Card>
         )}
 
         {/* Recent Alignment Observations */}
         {observations.length > 0 && (
-          <>
-            <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.intent.section_alignment')}</div>
+          <Card variant="default" className="mt-4">
+            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>{t('screen.intent.section_alignment')}</h2>
             {observations.slice(0, 10).map(obs => (
               <div key={obs.id} className="settings-row" style={{ alignItems: 'flex-start' }}>
+                <StatusIndicator
+                  status={obs.type === 'drift' ? 'attention' : obs.type === 'conflict' ? 'attention' : 'success'}
+                />
                 <span style={{
                   fontSize: 10,
                   fontFamily: "'DM Mono', monospace",
@@ -320,21 +309,15 @@ export function IntentScreen() {
                   {obs.type}
                 </span>
                 <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 13, color: '#EEF1F4' }}>{obs.description}</p>
-                  <p style={{ margin: '4px 0 0', fontSize: 11, color: '#8593A4' }}>
+                  <p style={{ margin: 0, fontSize: 13, color: '#EEF1F4', fontFamily: "'DM Sans', sans-serif" }}>{obs.description}</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 11, color: '#8593A4', fontFamily: "'DM Mono', monospace" }}>
                     {new Date(obs.observedAt).toLocaleDateString()}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDismissObservation(obs.id)}
-                  style={{ background: 'none', border: 'none', color: '#8593A4', fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px' }}
-                >
-                  {t('button.dismiss')}
-                </button>
+                <Button variant="ghost" size="sm" onClick={() => handleDismissObservation(obs.id)}>{t('button.dismiss')}</Button>
               </div>
             ))}
-          </>
+          </Card>
         )}
       </div>
     </div>

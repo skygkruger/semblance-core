@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
+import { Card, Button, Input, SkeletonCard, FeatureGate } from '@semblance/ui';
 import {
   inheritanceGetConfig,
   inheritanceUpdateConfig,
@@ -129,183 +130,167 @@ export function InheritanceScreen() {
     }
   }, [t]);
 
-  if (!license.isPremium) {
-    return (
-      <div className="inheritance h-full overflow-y-auto">
-        <div className="inheritance__container">
-          <h1 className="inheritance__title">{t('screen.inheritance.title')}</h1>
-          <div className="inheritance__card surface-void opal-wireframe">
-            <p className="inheritance__gate-message">
-              {t('screen.inheritance.requires_dr')}
-            </p>
-            <button
-              type="button"
-              className="inheritance__gate-btn"
-              onClick={() => navigate('/upgrade')}
-            >
-              {t('screen.inheritance.activate_dr')}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="inheritance h-full overflow-y-auto">
-        <div className="inheritance__container">
-          <p className="inheritance__empty" style={{ color: '#8593A4', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-            {t('common.loading', 'Loading...')}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="inheritance h-full overflow-y-auto">
       <div className="inheritance__container">
         <h1 className="inheritance__title">{t('screen.inheritance.title')}</h1>
-        <p className="inheritance__subtitle">
-          {t('screen.inheritance.subtitle')}
-        </p>
 
-        {/* Protocol toggle */}
-        <div className="inheritance__card surface-void opal-wireframe">
-          <h2 className="inheritance__section-title">{t('screen.inheritance.protocol_status')}</h2>
-          <div className="inheritance__toggle-row">
-            <span className="inheritance__toggle-label">
-              {t('screen.inheritance.enable_protocol')}
-            </span>
-            <button
-              type="button"
-              className={`inheritance__toggle ${protocolEnabled ? 'inheritance__toggle--active' : ''}`}
-              onClick={handleToggleProtocol}
-              aria-pressed={protocolEnabled}
-              aria-label="Toggle inheritance protocol"
-            >
-              <span className="inheritance__toggle-knob" />
-            </button>
-          </div>
-        </div>
+        <FeatureGate
+          feature="inheritance-protocol"
+          isPremium={license.isPremium}
+          onLearnMore={() => navigate('/upgrade')}
+        >
+          <p className="inheritance__subtitle">
+            {t('screen.inheritance.subtitle')}
+          </p>
 
-        {/* Trusted parties */}
-        <div className="inheritance__card surface-void opal-wireframe">
-          <h2 className="inheritance__section-title">{t('screen.inheritance.trusted_parties')}</h2>
-          {trustedParties.length === 0 ? (
-            <p className="inheritance__empty">
-              {t('screen.inheritance.empty')}
-            </p>
+          {loading ? (
+            <SkeletonCard
+              variant="generic"
+              message="Loading Inheritance Protocol"
+              subMessage="Retrieving trusted parties"
+              showSpinner
+            />
           ) : (
-            <div className="inheritance__party-list">
-              {trustedParties.map((party) => (
-                <div key={party.id} className="inheritance__party-item">
-                  <div className="inheritance__party-info">
-                    <span className="inheritance__party-name">{party.name}</span>
-                    <span className="inheritance__party-role">{party.role}</span>
-                  </div>
-                  <div className="inheritance__party-actions">
-                    <span
-                      className={`inheritance__party-status inheritance__party-status--${party.status}`}
-                    >
-                      {party.status}
-                    </span>
-                    <button
-                      type="button"
-                      className="inheritance__btn inheritance__btn--secondary"
-                      onClick={() => handleRemoveParty(party.id)}
-                    >
-                      {t('common.remove', 'Remove')}
-                    </button>
-                  </div>
+            <>
+              {/* Protocol toggle */}
+              <Card className="inheritance__card">
+                <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 12 }}>
+                  {t('screen.inheritance.protocol_status')}
+                </h2>
+                <div className="inheritance__toggle-row">
+                  <span className="inheritance__toggle-label">
+                    {t('screen.inheritance.enable_protocol')}
+                  </span>
+                  <button
+                    type="button"
+                    className={`inheritance__toggle ${protocolEnabled ? 'inheritance__toggle--active' : ''}`}
+                    onClick={handleToggleProtocol}
+                    aria-pressed={protocolEnabled}
+                    aria-label="Toggle inheritance protocol"
+                  >
+                    <span className="inheritance__toggle-knob" />
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
+              </Card>
 
-          {/* Inline add-party form */}
-          {showAddForm && (
-            <div className="inheritance__add-form">
-              <input
-                type="text"
-                className="inheritance__input"
-                placeholder={t('screen.inheritance.name_placeholder', 'Name')}
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-              />
-              <input
-                type="email"
-                className="inheritance__input"
-                placeholder={t('screen.inheritance.email_placeholder', 'Email')}
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-              />
-              <input
-                type="text"
-                className="inheritance__input"
-                placeholder={t('screen.inheritance.relationship_placeholder', 'Relationship (e.g. spouse, sibling)')}
-                value={newRelationship}
-                onChange={(e) => setNewRelationship(e.target.value)}
-              />
-              <input
-                type="password"
-                className="inheritance__input"
-                placeholder={t('screen.inheritance.passphrase_placeholder', 'Activation passphrase (required for recovery)')}
-                value={newPartyPassphrase}
-                onChange={(e) => setNewPartyPassphrase(e.target.value)}
-              />
-              <div className="inheritance__add-form-actions">
-                <button
-                  type="button"
-                  className="inheritance__btn inheritance__btn--primary"
-                  onClick={handleAddTrustedParty}
-                  disabled={!newName.trim() || !newEmail.trim()}
-                >
-                  {t('screen.inheritance.confirm_add', 'Add')}
-                </button>
-                <button
-                  type="button"
-                  className="inheritance__btn inheritance__btn--secondary"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setNewName('');
-                    setNewEmail('');
-                    setNewRelationship('');
-                    setNewPartyPassphrase('');
-                  }}
-                >
-                  {t('common.cancel', 'Cancel')}
-                </button>
-              </div>
-            </div>
-          )}
+              {/* Trusted parties */}
+              <Card className="inheritance__card">
+                <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 12 }}>
+                  {t('screen.inheritance.trusted_parties')}
+                </h2>
+                {trustedParties.length === 0 ? (
+                  <p className="inheritance__empty">
+                    {t('screen.inheritance.empty')}
+                  </p>
+                ) : (
+                  <div className="inheritance__party-list">
+                    {trustedParties.map((party) => (
+                      <div key={party.id} className="inheritance__party-item">
+                        <div className="inheritance__party-info">
+                          <span className="inheritance__party-name">{party.name}</span>
+                          <span className="inheritance__party-role">{party.role}</span>
+                        </div>
+                        <div className="inheritance__party-actions">
+                          <span
+                            className={`inheritance__party-status inheritance__party-status--${party.status}`}
+                          >
+                            {party.status}
+                          </span>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRemoveParty(party.id)}
+                          >
+                            {t('common.remove', 'Remove')}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-          <div className="inheritance__actions">
-            {!showAddForm && (
-              <button
-                type="button"
-                className="inheritance__btn inheritance__btn--primary"
-                onClick={() => setShowAddForm(true)}
-              >
-                {t('screen.inheritance.add_trusted_party')}
-              </button>
-            )}
-            <button
-              type="button"
-              className="inheritance__btn inheritance__btn--secondary"
-              disabled={trustedParties.length === 0 || runningDrill}
-              onClick={handleRunDrill}
-            >
-              {runningDrill
-                ? t('screen.inheritance.running_drill', 'Running...')
-                : t('screen.inheritance.run_drill_test')}
-            </button>
-          </div>
-          {statusMessage && (
-            <p className="inheritance__status-message">{statusMessage}</p>
+                {/* Inline add-party form */}
+                {showAddForm && (
+                  <div className="inheritance__add-form">
+                    <Input
+                      type="text"
+                      placeholder={t('screen.inheritance.name_placeholder', 'Name')}
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                    />
+                    <Input
+                      type="email"
+                      placeholder={t('screen.inheritance.email_placeholder', 'Email')}
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                    />
+                    <Input
+                      type="text"
+                      placeholder={t('screen.inheritance.relationship_placeholder', 'Relationship (e.g. spouse, sibling)')}
+                      value={newRelationship}
+                      onChange={(e) => setNewRelationship(e.target.value)}
+                    />
+                    <Input
+                      type="password"
+                      placeholder={t('screen.inheritance.passphrase_placeholder', 'Activation passphrase (required for recovery)')}
+                      value={newPartyPassphrase}
+                      onChange={(e) => setNewPartyPassphrase(e.target.value)}
+                    />
+                    <div className="inheritance__add-form-actions">
+                      <Button
+                        variant="opal"
+                        size="sm"
+                        onClick={handleAddTrustedParty}
+                        disabled={!newName.trim() || !newEmail.trim()}
+                      >
+                        {t('screen.inheritance.confirm_add', 'Add')}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddForm(false);
+                          setNewName('');
+                          setNewEmail('');
+                          setNewRelationship('');
+                          setNewPartyPassphrase('');
+                        }}
+                      >
+                        {t('common.cancel', 'Cancel')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="inheritance__actions">
+                  {!showAddForm && (
+                    <Button
+                      variant="opal"
+                      size="sm"
+                      onClick={() => setShowAddForm(true)}
+                    >
+                      {t('screen.inheritance.add_trusted_party')}
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={trustedParties.length === 0 || runningDrill}
+                    onClick={handleRunDrill}
+                  >
+                    {runningDrill
+                      ? t('screen.inheritance.running_drill', 'Running...')
+                      : t('screen.inheritance.run_drill_test')}
+                  </Button>
+                </div>
+                {statusMessage && (
+                  <p className="inheritance__status-message">{statusMessage}</p>
+                )}
+              </Card>
+            </>
           )}
-        </div>
+        </FeatureGate>
       </div>
     </div>
   );

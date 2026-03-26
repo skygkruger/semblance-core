@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Card, Button } from '@semblance/ui';
+import { Card, Button, Input, StatusIndicator, SkeletonCard } from '@semblance/ui';
 import {
   listContacts,
   getContactStats,
@@ -113,23 +113,9 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-function FrequencyDots({ count }: { count: number }) {
-  const maxDots = 5;
-  const filled = Math.min(count, maxDots);
-  return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: maxDots }).map((_, i) => (
-        <div
-          key={i}
-          className={`w-1.5 h-1.5 rounded-full ${
-            i < filled
-              ? 'bg-semblance-primary'
-              : 'bg-semblance-text-muted/20 dark:bg-semblance-text-muted-dark/20'
-          }`}
-        />
-      ))}
-    </div>
-  );
+function FrequencyIndicator({ count }: { count: number }) {
+  const status = count >= 4 ? 'success' : count >= 2 ? 'accent' : count >= 1 ? 'attention' : 'muted';
+  return <StatusIndicator status={status} pulse={count >= 4} />;
 }
 
 function formatLastContact(date: string | null, t: TFunction): string {
@@ -192,41 +178,36 @@ function AddContactForm({ onSave, onCancel }: {
     }
   };
 
-  const inputStyle = "w-full px-3 py-1.5 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-[#111518] text-semblance-text dark:text-semblance-text-dark focus:outline-none focus:ring-1 focus:ring-[#6ECFA3]";
-
   return (
     <div className="px-4 py-3 border-b border-semblance-border dark:border-semblance-border-dark space-y-2" style={{ background: '#111518' }}>
       <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">
         {t('screen.relationships.add_contact', 'Add Contact')}
       </h3>
-      <input
+      <Input
         type="text"
         placeholder={t('screen.relationships.placeholder_name', 'Name *')}
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className={inputStyle}
+        error={!!error && !name.trim()}
         autoFocus
       />
-      <input
+      <Input
         type="email"
         placeholder={t('screen.relationships.placeholder_email', 'Email')}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className={inputStyle}
       />
-      <input
+      <Input
         type="tel"
         placeholder={t('screen.relationships.placeholder_phone', 'Phone')}
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
-        className={inputStyle}
       />
-      <input
+      <Input
         type="text"
         placeholder={t('screen.relationships.placeholder_org', 'Organization')}
         value={organization}
         onChange={(e) => setOrganization(e.target.value)}
-        className={inputStyle}
       />
       <select
         value={relationshipType}
@@ -239,22 +220,12 @@ function AddContactForm({ onSave, onCancel }: {
       </select>
       {error && <p className="text-xs" style={{ color: '#B07A8A' }}>{error}</p>}
       <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="flex-1 px-3 py-1.5 text-sm rounded-md font-medium text-[#0B0E11]"
-          style={{ background: '#6ECFA3', opacity: saving ? 0.6 : 1 }}
-        >
+        <Button variant="solid" size="sm" onClick={handleSave} disabled={saving} className="flex-1">
           {saving ? t('screen.relationships.saving', 'Saving...') : t('screen.relationships.save', 'Save')}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 px-3 py-1.5 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
-        >
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onCancel} className="flex-1">
           {t('screen.relationships.cancel', 'Cancel')}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -471,8 +442,6 @@ export function RelationshipsScreen() {
     ? contacts
     : contacts.filter(c => c.relationshipType === filterType);
 
-  const editInputStyle = "w-full px-3 py-1.5 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-[#111518] text-semblance-text dark:text-semblance-text-dark focus:outline-none focus:ring-1 focus:ring-[#6ECFA3]";
-
   return (
     <div className="flex h-full">
       {/* Left panel -- contact list */}
@@ -483,23 +452,12 @@ export function RelationshipsScreen() {
             {t('screen.relationships.title', 'Relationships')}
           </h1>
           <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={() => setShowAddForm(!showAddForm)}
-              title={t('screen.relationships.add_contact', 'Add Contact')}
-              className="w-7 h-7 flex items-center justify-center rounded text-sm hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
-              style={{ color: '#6ECFA3' }}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setShowAddForm(!showAddForm)}>
               +
-            </button>
-            <button
-              type="button"
-              onClick={handleImport}
-              title={t('screen.relationships.import', 'Import VCF/CSV')}
-              className="w-7 h-7 flex items-center justify-center rounded text-xs hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
-            >
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleImport}>
               &#8593;
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -524,12 +482,10 @@ export function RelationshipsScreen() {
 
         {/* Search + filters */}
         <div className="px-4 py-3 space-y-2 border-b border-semblance-border dark:border-semblance-border-dark">
-          <input
-            type="text"
+          <Input
             placeholder={t('placeholder.search_contacts')}
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface dark:bg-semblance-surface-dark text-semblance-text dark:text-semblance-text-dark focus:outline-none focus:ring-1 focus:ring-semblance-primary"
           />
           <div className="flex gap-2">
             <select
@@ -569,8 +525,8 @@ export function RelationshipsScreen() {
         {/* Contact list */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="p-4 text-center text-semblance-text-muted dark:text-semblance-text-muted-dark text-sm">
-              {t('screen.relationships.loading')}
+            <div className="p-4">
+              <SkeletonCard variant="generic" message="Loading relationships" subMessage="Retrieving your contacts and communication patterns" showSpinner />
             </div>
           ) : filteredContacts.length === 0 ? (
             <div className="p-4 text-center text-semblance-text-muted dark:text-semblance-text-muted-dark text-sm">
@@ -578,41 +534,40 @@ export function RelationshipsScreen() {
             </div>
           ) : (
             filteredContacts.map(contact => (
-              <button
-                key={contact.id}
-                type="button"
-                onClick={() => handleSelectContact(contact.id)}
-                className={`w-full text-left px-4 py-3 border-b border-semblance-border/50 dark:border-semblance-border-dark/50 hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors ${
-                  selectedContact?.id === contact.id ? 'bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-semblance-surface-2 dark:bg-semblance-surface-2-dark flex items-center justify-center text-xs font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-                    {getInitials(contact.displayName)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark truncate">
-                        {contact.displayName}
-                      </span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={getRelationshipBadgeStyle(contact.relationshipType)}>
-                        {contact.relationshipType}
-                      </span>
+              <Card key={contact.id} className={selectedContact?.id === contact.id ? 'bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark' : ''}>
+                <button
+                  type="button"
+                  onClick={() => handleSelectContact(contact.id)}
+                  className="w-full text-left px-4 py-3 hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-semblance-surface-2 dark:bg-semblance-surface-2-dark flex items-center justify-center text-xs font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                      {getInitials(contact.displayName)}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {contact.organization && (
-                        <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark truncate">
-                          {contact.organization}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark truncate">
+                          {contact.displayName}
                         </span>
-                      )}
-                      <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">
-                        {formatLastContact(contact.lastContactDate, t)}
-                      </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={getRelationshipBadgeStyle(contact.relationshipType)}>
+                          {contact.relationshipType}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {contact.organization && (
+                          <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark truncate">
+                            {contact.organization}
+                          </span>
+                        )}
+                        <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">
+                          {formatLastContact(contact.lastContactDate, t)}
+                        </span>
+                      </div>
                     </div>
+                    <FrequencyIndicator count={Math.min(Math.ceil(contact.interactionCount / 5), 5)} />
                   </div>
-                  <FrequencyDots count={Math.min(Math.ceil(contact.interactionCount / 5), 5)} />
-                </div>
-              </button>
+                </button>
+              </Card>
             ))
           )}
         </div>
@@ -643,40 +598,22 @@ export function RelationshipsScreen() {
               {/* FIX 2: Edit + Delete buttons */}
               <div className="flex gap-2">
                 {!editMode && (
-                  <button
-                    type="button"
-                    onClick={startEdit}
-                    className="px-3 py-1.5 text-xs rounded-md border border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
-                  >
+                  <Button variant="ghost" size="sm" onClick={startEdit}>
                     {t('screen.relationships.edit', 'Edit')}
-                  </button>
+                  </Button>
                 )}
                 {!deleteConfirm ? (
-                  <button
-                    type="button"
-                    onClick={() => setDeleteConfirm(true)}
-                    className="px-3 py-1.5 text-xs rounded-md border transition-colors"
-                    style={{ borderColor: 'rgba(176, 122, 138, 0.3)', color: '#B07A8A' }}
-                  >
+                  <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
                     {t('screen.relationships.delete', 'Delete')}
-                  </button>
+                  </Button>
                 ) : (
                   <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      className="px-3 py-1.5 text-xs rounded-md font-medium text-white"
-                      style={{ background: '#B07A8A' }}
-                    >
+                    <Button variant="destructive" size="sm" onClick={handleDelete}>
                       {t('screen.relationships.confirm_delete', 'Confirm')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirm(false)}
-                      className="px-3 py-1.5 text-xs rounded-md border border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
-                    >
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(false)}>
                       {t('screen.relationships.cancel', 'Cancel')}
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -690,56 +627,50 @@ export function RelationshipsScreen() {
                   <div className="space-y-2">
                     <div>
                       <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_name', 'Name')}</label>
-                      <input
+                      <Input
                         type="text"
                         value={editFields.displayName ?? ''}
                         onChange={(e) => setEditFields(f => ({ ...f, displayName: e.target.value }))}
-                        className={editInputStyle}
                       />
                     </div>
                     <div>
                       <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_email')}</label>
-                      <input
+                      <Input
                         type="email"
                         value={editFields.email ?? ''}
                         onChange={(e) => setEditFields(f => ({ ...f, email: e.target.value }))}
-                        className={editInputStyle}
                       />
                     </div>
                     <div>
                       <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_phone')}</label>
-                      <input
+                      <Input
                         type="tel"
                         value={editFields.phone ?? ''}
                         onChange={(e) => setEditFields(f => ({ ...f, phone: e.target.value }))}
-                        className={editInputStyle}
                       />
                     </div>
                     <div>
                       <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_organization', 'Organization')}</label>
-                      <input
+                      <Input
                         type="text"
                         value={editFields.organization ?? ''}
                         onChange={(e) => setEditFields(f => ({ ...f, organization: e.target.value }))}
-                        className={editInputStyle}
                       />
                     </div>
                     <div>
                       <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_job_title', 'Job Title')}</label>
-                      <input
+                      <Input
                         type="text"
                         value={editFields.jobTitle ?? ''}
                         onChange={(e) => setEditFields(f => ({ ...f, jobTitle: e.target.value }))}
-                        className={editInputStyle}
                       />
                     </div>
                     <div>
                       <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_birthday')}</label>
-                      <input
+                      <Input
                         type="date"
                         value={editFields.birthday ?? ''}
                         onChange={(e) => setEditFields(f => ({ ...f, birthday: e.target.value }))}
-                        className={editInputStyle}
                       />
                     </div>
                     <div>
@@ -755,21 +686,12 @@ export function RelationshipsScreen() {
                       </select>
                     </div>
                     <div className="flex gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={handleSaveEdit}
-                        className="px-4 py-1.5 text-sm rounded-md font-medium text-[#0B0E11]"
-                        style={{ background: '#6ECFA3' }}
-                      >
+                      <Button variant="solid" size="sm" onClick={handleSaveEdit}>
                         {t('screen.relationships.save', 'Save')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditMode(false)}
-                        className="px-4 py-1.5 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
-                      >
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setEditMode(false)}>
                         {t('screen.relationships.cancel', 'Cancel')}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : (

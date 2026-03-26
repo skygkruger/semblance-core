@@ -15,6 +15,7 @@ import {
   backupRemoveDestination,
 } from '../ipc/commands';
 import type { BackupDestinationEntry, BackupHistoryRecord } from '../ipc/commands';
+import { Card, Button, StatusIndicator, SkeletonCard } from '@semblance/ui';
 import './BackupScreen.css';
 
 type BackupSchedule = 'manual' | 'daily' | 'weekly' | 'monthly';
@@ -148,6 +149,23 @@ export function BackupScreen() {
     { value: 'monthly', label: t('screen.backup.schedule_monthly') },
   ];
 
+  if (loading) {
+    return (
+      <div className="backup-screen h-full overflow-y-auto">
+        <div className="backup-screen__container">
+          <h1 className="backup-screen__title">{t('screen.backup.title')}</h1>
+          <p className="backup-screen__subtitle">{t('screen.backup.subtitle')}</p>
+          <SkeletonCard
+            variant="generic"
+            message="Loading backup settings"
+            subMessage="Checking backup destinations"
+            showSpinner
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="backup-screen h-full overflow-y-auto">
       <div className="backup-screen__container">
@@ -156,12 +174,8 @@ export function BackupScreen() {
           {t('screen.backup.subtitle')}
         </p>
 
-        {loading && (
-          <p className="backup-screen__empty-text">{t('common.loading', 'Loading...')}</p>
-        )}
-
         {/* Status card */}
-        <div className="backup-screen__card surface-void opal-wireframe">
+        <Card className="backup-screen__card">
           <div className="backup-screen__card-header">
             <h2 className="backup-screen__card-title">{t('screen.backup.status')}</h2>
           </div>
@@ -177,33 +191,34 @@ export function BackupScreen() {
               {schedule}
             </span>
           </div>
-        </div>
+        </Card>
 
         {/* Schedule card */}
-        <div className="backup-screen__card surface-void opal-wireframe">
+        <Card className="backup-screen__card">
           <div className="backup-screen__card-header">
             <h2 className="backup-screen__card-title">{t('screen.backup.schedule')}</h2>
           </div>
           <div className="backup-screen__schedule-options">
             {scheduleOptions.map((opt) => (
-              <button
+              <Button
                 key={opt.value}
-                className={`backup-screen__schedule-btn ${schedule === opt.value ? 'backup-screen__schedule-btn--active' : ''}`}
+                variant={schedule === opt.value ? 'opal' : 'ghost'}
+                size="sm"
                 onClick={() => handleSetSchedule(opt.value)}
               >
                 {opt.label}
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Destinations card */}
-        <div className="backup-screen__card surface-void opal-wireframe">
+        <Card className="backup-screen__card">
           <div className="backup-screen__card-header">
             <h2 className="backup-screen__card-title">{t('screen.backup.destinations')}</h2>
-            <button className="backup-screen__action-btn" onClick={handleAddDestination}>
+            <Button variant="ghost" size="sm" onClick={handleAddDestination}>
               {t('screen.backup.add_destination')}
-            </button>
+            </Button>
           </div>
           {destinations.length === 0 ? (
             <div className="backup-screen__empty">
@@ -223,47 +238,50 @@ export function BackupScreen() {
                     <span className="backup-screen__list-item-meta">
                       {dest.lastBackupAt ?? t('screen.backup.never_backed_up')}
                     </span>
-                    <button
-                      className="backup-screen__action-btn"
+                    <Button
+                      variant="destructive"
+                      size="sm"
                       onClick={() => handleRemoveDestination(dest.id)}
                     >
                       {t('common.remove', 'Remove')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Actions card */}
-        <div className="backup-screen__card surface-void opal-wireframe">
+        <Card className="backup-screen__card">
           <div className="backup-screen__card-header">
             <h2 className="backup-screen__card-title">{t('screen.backup.actions')}</h2>
           </div>
           <div className="backup-screen__actions">
-            <button
-              className="backup-screen__action-btn backup-screen__action-btn--primary"
+            <Button
+              variant="opal"
+              size="md"
               disabled={destinations.length === 0 || isBackingUp}
               onClick={handleBackupNow}
             >
               {isBackingUp ? t('screen.backup.backing_up') : t('screen.backup.backup_now')}
-            </button>
-            <button
-              className="backup-screen__action-btn"
+            </Button>
+            <Button
+              variant="ghost"
+              size="md"
               disabled={history.length === 0}
               onClick={handleRestore}
             >
               {t('screen.backup.restore')}
-            </button>
+            </Button>
           </div>
           {statusMessage && (
             <p className="backup-screen__status-message">{statusMessage}</p>
           )}
-        </div>
+        </Card>
 
         {/* History card */}
-        <div className="backup-screen__card surface-void opal-wireframe">
+        <Card className="backup-screen__card">
           <div className="backup-screen__card-header">
             <h2 className="backup-screen__card-title">{t('screen.backup.history')}</h2>
           </div>
@@ -285,14 +303,14 @@ export function BackupScreen() {
                       {entry.timestamp}
                     </span>
                   </div>
-                  <span className={`backup-screen__list-item-status backup-screen__list-item-status--${entry.status}`}>
-                    {entry.status}
-                  </span>
+                  <StatusIndicator
+                    status={entry.status === 'success' ? 'success' : entry.status === 'failed' ? 'attention' : 'muted'}
+                  />
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

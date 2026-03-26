@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 export type CardVariant = 'default' | 'elevated' | 'briefing';
 
@@ -9,4 +9,5 @@ export interface CardProps {
   onPress?: () => void;
   onClick?: () => void;
   className?: string;
+  style?: CSSProperties;
 }

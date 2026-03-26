@@ -6,10 +6,8 @@ import {
   View,
   Text,
   FlatList,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   type ListRenderItemInfo,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getRuntimeState } from '../runtime/mobile-runtime.js';
 import { useSemblance } from '../runtime/SemblanceProvider.js';
 import { colors } from '../theme/tokens.js';
+import { Card, Button, Input, SkeletonCard } from '@semblance/ui';
 
 interface ContactSummary {
   id: string;
@@ -59,7 +58,7 @@ function BirthdaySection({ birthdays, onPress }: { birthdays: BirthdayInfo[]; on
   if (birthdays.length === 0) return null;
 
   return (
-    <View style={styles.birthdaySection}>
+    <Card variant="default">
       <Text style={styles.sectionTitle}>{t('screen.contacts.upcoming_birthdays')}</Text>
       {birthdays.map(b => (
         <TouchableOpacity key={b.contactId} style={styles.birthdayItem} onPress={() => onPress(b.contactId)}>
@@ -72,7 +71,7 @@ function BirthdaySection({ birthdays, onPress }: { birthdays: BirthdayInfo[]; on
           </Text>
         </TouchableOpacity>
       ))}
-    </View>
+    </Card>
   );
 }
 
@@ -149,28 +148,31 @@ export function ContactsScreen({ navigation }: Props) {
   }, [navigation, contacts]);
 
   const renderContact = useCallback(({ item }: ListRenderItemInfo<ContactSummary>) => (
-    <TouchableOpacity style={styles.contactRow} onPress={() => handleContactPress(item.id)}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{getInitials(item.displayName)}</Text>
+    <Card variant="default" onClick={() => handleContactPress(item.id)}>
+      <View style={styles.contactRow}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{getInitials(item.displayName)}</Text>
+        </View>
+        <View style={styles.contactInfo}>
+          <Text style={styles.contactName}>{item.displayName}</Text>
+          {item.organization ? (
+            <Text style={styles.contactOrg}>{item.organization}</Text>
+          ) : null}
+        </View>
+        <Text style={styles.badge}>{item.relationshipType}</Text>
       </View>
-      <View style={styles.contactInfo}>
-        <Text style={styles.contactName}>{item.displayName}</Text>
-        {item.organization ? (
-          <Text style={styles.contactOrg}>{item.organization}</Text>
-        ) : null}
-      </View>
-      <Text style={styles.badge}>{item.relationshipType}</Text>
-    </TouchableOpacity>
+    </Card>
   ), [handleContactPress]);
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.searchInput}
-        placeholder={t('placeholder.search_contacts')}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
+      <View style={styles.searchWrapper}>
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t('placeholder.search_contacts')}
+        />
+      </View>
       <FlatList
         data={contacts}
         keyExtractor={item => item.id}
@@ -180,7 +182,12 @@ export function ContactsScreen({ navigation }: Props) {
         }
         ListEmptyComponent={
           loading ? (
-            <Text style={styles.emptyText}>{t('status.loading')}</Text>
+            <SkeletonCard
+              variant="generic"
+              message="Loading contacts"
+              subMessage="Retrieving your address book"
+              showSpinner
+            />
           ) : (
             <Text style={styles.emptyText}>{t('screen.contacts.no_contacts')}</Text>
           )
@@ -192,20 +199,9 @@ export function ContactsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgDark },
-  searchInput: {
-    margin: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: colors.surface1Dark,
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  birthdaySection: {
+  searchWrapper: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.surface1Dark,
-    marginBottom: 8,
+    paddingVertical: 8,
   },
   sectionTitle: {
     fontSize: 13,
@@ -230,10 +226,6 @@ const styles = StyleSheet.create({
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderDark,
   },
   avatar: {
     width: 40,

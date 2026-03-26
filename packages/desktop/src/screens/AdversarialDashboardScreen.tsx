@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getDarkPatternFlags, getFinancialDashboard, prefGet } from '../ipc/commands';
 import { useLicense } from '../contexts/LicenseContext';
+import { Card, Button, StatusIndicator, SkeletonCard, FeatureGate } from '@semblance/ui';
 import './AdversarialDashboardScreen.css';
 
 interface DarkPatternAlert {
@@ -98,114 +99,92 @@ export function AdversarialDashboardScreen() {
     loadData();
   }, []);
 
-  if (!license.isPremium) {
-    return (
-      <div style={{ padding: 32, maxWidth: 480, margin: '0 auto' }}>
-        <h1 style={{
-          fontFamily: "'Fraunces Variable', 'Fraunces', Georgia, serif",
-          fontSize: 28,
-          fontWeight: 300,
-          color: '#EEF1F4',
-          margin: 0,
-          marginBottom: 6,
-        }}>
-          {t('screen.adversarial.title')}
-        </h1>
-        <div style={{
-          background: '#111518',
-          border: '1px solid rgba(255,255,255,0.09)',
-          borderRadius: 12,
-          padding: 24,
-          marginTop: 24,
-        }}>
-          <p style={{
-            fontFamily: "'DM Sans', system-ui, sans-serif",
-            fontSize: 14,
-            color: '#A8B4C0',
-            margin: 0,
-            lineHeight: 1.6,
-          }}>
-            Dark pattern detection and financial advocacy require a Digital Representative license.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="adversarial-dashboard h-full overflow-y-auto">
-      <div className="adversarial-dashboard__container">
-        <h1 className="adversarial-dashboard__title">{t('screen.adversarial.title')}</h1>
-        <p className="adversarial-dashboard__subtitle">
-          {t('screen.adversarial.subtitle')}
-        </p>
+    <FeatureGate feature="dark-pattern-detection" isPremium={license.isPremium}>
+      <div className="adversarial-dashboard h-full overflow-y-auto">
+        <div className="adversarial-dashboard__container">
+          <h1 className="adversarial-dashboard__title">{t('screen.adversarial.title')}</h1>
+          <p className="adversarial-dashboard__subtitle">
+            {t('screen.adversarial.subtitle')}
+          </p>
 
-        {loading && (
-          <p className="adversarial-dashboard__empty">{t('common.loading', 'Loading...')}</p>
-        )}
-
-        {/* Opt-out stats */}
-        <div className="adversarial-dashboard__stats">
-          <div className="adversarial-dashboard__stat">
-            <p className="adversarial-dashboard__stat-value">{optOutStatus.totalOptOuts}</p>
-            <p className="adversarial-dashboard__stat-label">{t('screen.adversarial.total_opt_outs')}</p>
-          </div>
-          <div className="adversarial-dashboard__stat">
-            <p className="adversarial-dashboard__stat-value">{optOutStatus.pendingOptOuts}</p>
-            <p className="adversarial-dashboard__stat-label">{t('screen.adversarial.pending')}</p>
-          </div>
-          <div className="adversarial-dashboard__stat">
-            <p className="adversarial-dashboard__stat-value">
-              {optOutStatus.successRate > 0 ? `${optOutStatus.successRate}%` : '—'}
-            </p>
-            <p className="adversarial-dashboard__stat-label">{t('screen.adversarial.success_rate')}</p>
-          </div>
-        </div>
-
-        {/* Dark pattern alerts */}
-        <div className="adversarial-dashboard__card surface-void opal-wireframe">
-          <h2 className="adversarial-dashboard__section-title">{t('screen.adversarial.dark_pattern_alerts')}</h2>
-          {alerts.length === 0 ? (
-            <p className="adversarial-dashboard__empty">
-              {t('screen.adversarial.no_threats')}
-            </p>
-          ) : (
-            <ul className="adversarial-dashboard__alert-list">
-              {alerts.map((alert) => (
-                <li key={alert.id} className="adversarial-dashboard__alert-item">
-                  <span
-                    className={`adversarial-dashboard__alert-severity adversarial-dashboard__alert-severity--${alert.severity}`}
-                  />
-                  <span className="adversarial-dashboard__alert-text">
-                    {alert.source}: {alert.description}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          {loading && (
+            <SkeletonCard
+              variant="generic"
+              message="Loading Adversarial Shield"
+              subMessage="Scanning for dark patterns"
+              showSpinner
+            />
           )}
-        </div>
 
-        {/* Subscription assessments */}
-        <div className="adversarial-dashboard__card surface-void opal-wireframe">
-          <h2 className="adversarial-dashboard__section-title">{t('screen.adversarial.subscription_value')}</h2>
-          {subscriptions.length === 0 ? (
-            <p className="adversarial-dashboard__empty">
-              {t('screen.adversarial.no_subscriptions')}
-            </p>
-          ) : (
-            <div className="adversarial-dashboard__subscription-list">
-              {subscriptions.map((sub) => (
-                <div key={sub.id} className="adversarial-dashboard__subscription-item">
-                  <span className="adversarial-dashboard__subscription-name">{sub.name}</span>
-                  <span className="adversarial-dashboard__subscription-cost">
-                    ${sub.monthlyCost.toFixed(2)}/mo
-                  </span>
-                </div>
-              ))}
-            </div>
+          {!loading && (
+            <>
+              {/* Opt-out stats */}
+              <div className="adversarial-dashboard__stats">
+                <Card className="adversarial-dashboard__stat">
+                  <p className="adversarial-dashboard__stat-value">{optOutStatus.totalOptOuts}</p>
+                  <p className="adversarial-dashboard__stat-label">{t('screen.adversarial.total_opt_outs')}</p>
+                </Card>
+                <Card className="adversarial-dashboard__stat">
+                  <p className="adversarial-dashboard__stat-value">{optOutStatus.pendingOptOuts}</p>
+                  <p className="adversarial-dashboard__stat-label">{t('screen.adversarial.pending')}</p>
+                </Card>
+                <Card className="adversarial-dashboard__stat">
+                  <p className="adversarial-dashboard__stat-value">
+                    {optOutStatus.successRate > 0 ? `${optOutStatus.successRate}%` : '\u2014'}
+                  </p>
+                  <p className="adversarial-dashboard__stat-label">{t('screen.adversarial.success_rate')}</p>
+                </Card>
+              </div>
+
+              {/* Dark pattern alerts */}
+              <Card className="adversarial-dashboard__card">
+                <h2 className="adversarial-dashboard__section-title">{t('screen.adversarial.dark_pattern_alerts')}</h2>
+                {alerts.length === 0 ? (
+                  <p className="adversarial-dashboard__empty">
+                    {t('screen.adversarial.no_threats')}
+                  </p>
+                ) : (
+                  <ul className="adversarial-dashboard__alert-list">
+                    {alerts.map((alert) => (
+                      <li key={alert.id} className="adversarial-dashboard__alert-item">
+                        <StatusIndicator
+                          status={alert.severity === 'critical' ? 'attention' : 'muted'}
+                          pulse={alert.severity === 'critical'}
+                        />
+                        <span className="adversarial-dashboard__alert-text">
+                          {alert.source}: {alert.description}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+
+              {/* Subscription assessments */}
+              <Card className="adversarial-dashboard__card">
+                <h2 className="adversarial-dashboard__section-title">{t('screen.adversarial.subscription_value')}</h2>
+                {subscriptions.length === 0 ? (
+                  <p className="adversarial-dashboard__empty">
+                    {t('screen.adversarial.no_subscriptions')}
+                  </p>
+                ) : (
+                  <div className="adversarial-dashboard__subscription-list">
+                    {subscriptions.map((sub) => (
+                      <div key={sub.id} className="adversarial-dashboard__subscription-item">
+                        <span className="adversarial-dashboard__subscription-name">{sub.name}</span>
+                        <span className="adversarial-dashboard__subscription-cost">
+                          ${sub.monthlyCost.toFixed(2)}/mo
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </>
           )}
         </div>
       </div>
-    </div>
+    </FeatureGate>
   );
 }

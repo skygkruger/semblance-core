@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { prefGet, prefSet, sidecarCall } from '../ipc/commands';
+import { Card, Button, StatusIndicator, SkeletonCard } from '@semblance/ui';
 import './BiometricSetupScreen.css';
 
 type LockTimeout = '1min' | '5min' | '15min' | '30min' | 'never';
@@ -35,6 +36,7 @@ function savePref(key: string, value: unknown): void {
 
 export function BiometricSetupScreen() {
   const { t } = useTranslation();
+  const [loading, setLoading] = useState(true);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [lockTimeout, setLockTimeout] = useState<LockTimeout>('5min');
@@ -44,7 +46,7 @@ export function BiometricSetupScreen() {
   useEffect(() => {
     let cancelled = false;
 
-    const checkAvailability = async () => {
+    const init = async () => {
       try {
         // Attempt Tauri sidecar command first
         const result = await sidecarCall<{ available: boolean }>('biometric:check', {});
@@ -60,14 +62,20 @@ export function BiometricSetupScreen() {
           }
         }
       }
+
+      // Hydrate persisted preferences from SQLite
+      const [enabled, timeout] = await Promise.all([
+        loadPref<boolean>('enabled', false),
+        loadPref<LockTimeout>('lockTimeout', '5min'),
+      ]);
+      if (!cancelled) {
+        setBiometricEnabled(enabled);
+        setLockTimeout(timeout);
+        setLoading(false);
+      }
     };
 
-    checkAvailability();
-
-    // Hydrate persisted preferences from SQLite
-    loadPref<boolean>('enabled', false).then((v) => { if (!cancelled) setBiometricEnabled(v); });
-    loadPref<LockTimeout>('lockTimeout', '5min').then((v) => { if (!cancelled) setLockTimeout(v); });
-
+    init();
     return () => { cancelled = true; };
   }, []);
 
@@ -112,6 +120,23 @@ export function BiometricSetupScreen() {
     }
   }, []);
 
+  if (loading) {
+    return (
+      <div className="biometric-setup h-full overflow-y-auto">
+        <div className="biometric-setup__container">
+          <h1 className="biometric-setup__title">{t('screen.biometric.title')}</h1>
+          <p className="biometric-setup__subtitle">{t('screen.biometric.subtitle')}</p>
+          <SkeletonCard
+            variant="generic"
+            message="Loading biometric settings"
+            subMessage="Detecting security hardware"
+            showSpinner
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="biometric-setup h-full overflow-y-auto">
       <div className="biometric-setup__container">
@@ -121,36 +146,42 @@ export function BiometricSetupScreen() {
         </p>
 
         {/* Availability status */}
-        <div className="biometric-setup__card surface-void opal-wireframe">
+        <Card className="biometric-setup__card">
           <h2 className="biometric-setup__section-title">{t('screen.biometric.system_status')}</h2>
           <div className="biometric-setup__status-row">
             <span className="biometric-setup__status-label">{t('screen.biometric.hardware')}</span>
-            <span
-              className={`biometric-setup__status-value ${
-                biometricAvailable
-                  ? 'biometric-setup__status-value--available'
-                  : 'biometric-setup__status-value--unavailable'
-              }`}
-            >
-              {biometricAvailable ? t('screen.biometric.available') : t('screen.biometric.not_detected')}
-            </span>
+            <div className="biometric-setup__status-indicator-row">
+              <StatusIndicator status={biometricAvailable ? 'success' : 'muted'} />
+              <span
+                className={`biometric-setup__status-value ${
+                  biometricAvailable
+                    ? 'biometric-setup__status-value--available'
+                    : 'biometric-setup__status-value--unavailable'
+                }`}
+              >
+                {biometricAvailable ? t('screen.biometric.available') : t('screen.biometric.not_detected')}
+              </span>
+            </div>
           </div>
           <div className="biometric-setup__status-row">
             <span className="biometric-setup__status-label">{t('screen.biometric.enrollment')}</span>
-            <span
-              className={`biometric-setup__status-value ${
-                biometricEnabled
-                  ? 'biometric-setup__status-value--available'
-                  : 'biometric-setup__status-value--unavailable'
-              }`}
-            >
-              {biometricEnabled ? t('screen.biometric.enrolled') : t('screen.biometric.not_enrolled')}
-            </span>
+            <div className="biometric-setup__status-indicator-row">
+              <StatusIndicator status={biometricEnabled ? 'success' : 'muted'} />
+              <span
+                className={`biometric-setup__status-value ${
+                  biometricEnabled
+                    ? 'biometric-setup__status-value--available'
+                    : 'biometric-setup__status-value--unavailable'
+                }`}
+              >
+                {biometricEnabled ? t('screen.biometric.enrolled') : t('screen.biometric.not_enrolled')}
+              </span>
+            </div>
           </div>
-        </div>
+        </Card>
 
         {/* Enable/disable toggle */}
-        <div className="biometric-setup__card surface-void opal-wireframe">
+        <Card className="biometric-setup__card">
           <h2 className="biometric-setup__section-title">{t('screen.biometric.settings')}</h2>
           <div className="biometric-setup__toggle-row">
             <div className="biometric-setup__toggle-info">
@@ -178,45 +209,49 @@ export function BiometricSetupScreen() {
             <span className="biometric-setup__toggle-label">{t('screen.biometric.lock_timeout')}</span>
             <div className="biometric-setup__timeout-selector">
               {TIMEOUT_OPTIONS.map((opt) => (
-                <button
+                <Button
                   key={opt.value}
-                  type="button"
-                  className={`biometric-setup__timeout-option ${
-                    lockTimeout === opt.value ? 'biometric-setup__timeout-option--selected' : ''
-                  }`}
+                  variant={lockTimeout === opt.value ? 'opal' : 'ghost'}
+                  size="sm"
                   onClick={() => handleSetTimeout(opt.value)}
                 >
                   {opt.label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Test */}
-        <div className="biometric-setup__card surface-void opal-wireframe">
+        <Card className="biometric-setup__card">
           <h2 className="biometric-setup__section-title">{t('screen.biometric.verification_test')}</h2>
           <div className="biometric-setup__actions">
-            <button
-              type="button"
-              className="biometric-setup__btn biometric-setup__btn--primary"
+            <Button
+              variant="opal"
+              size="md"
               disabled={!biometricEnabled}
               onClick={handleTest}
             >
               {t('screen.biometric.test_biometric')}
-            </button>
+            </Button>
             {testResult === 'success' && (
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: '#6ECFA3', alignSelf: 'center' }}>
+              <StatusIndicator status="success" className="biometric-setup__test-indicator" />
+            )}
+            {testResult === 'failed' && (
+              <StatusIndicator status="attention" className="biometric-setup__test-indicator" />
+            )}
+            {testResult === 'success' && (
+              <span className="biometric-setup__test-label biometric-setup__test-label--success">
                 {t('screen.biometric.verification_passed')}
               </span>
             )}
             {testResult === 'failed' && (
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: '#B07A8A', alignSelf: 'center' }}>
+              <span className="biometric-setup__test-label biometric-setup__test-label--failed">
                 {t('screen.biometric.verification_failed')}
               </span>
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
