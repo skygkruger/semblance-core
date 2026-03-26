@@ -49,6 +49,7 @@ type OnboardingStep =
   | 'hardware'
   | 'data-sources'
   | 'initial-index'
+  | 'knowledge-moment'
   | 'autonomy'
   | 'alter-ego-offer'
   | 'intent-capture'
@@ -63,6 +64,7 @@ const STEP_ORDER: OnboardingStep[] = [
   'hardware',
   'data-sources',
   'initial-index',
+  'knowledge-moment',
   'autonomy',
   'intent-capture',
   'naming-moment',
@@ -222,9 +224,13 @@ export function OnboardingFlow() {
       return;
     }
 
-    // ── Contacts: extracted from email, mark connected immediately ────────────
+    // ── Contacts: extracted from email — show explanation, don't auto-connect ──
     if (sourceId === 'contacts') {
-      setSourceStatuses(prev => ({ ...prev, contacts: 'connected' }));
+      emit('semblance://toast', {
+        id: `contacts_info_${Date.now()}`,
+        message: 'Contacts are automatically extracted from your connected email accounts.',
+        variant: 'info',
+      }).catch(() => {});
       return;
     }
 
@@ -417,7 +423,39 @@ export function OnboardingFlow() {
     };
   }, [step, sourceStatuses, selectedDirectories]);
 
-  // Start model downloads + knowledge moment on initialize step
+  // Generate knowledge moment when entering the knowledge-moment step
+  useEffect(() => {
+    if (step !== 'knowledge-moment') return;
+
+    const tryGenerateKnowledgeMoment = async () => {
+      let dataExists = hasIndexedData;
+      if (!dataExists) {
+        try {
+          const stats = await getKnowledgeStats();
+          if (stats.documentCount > 0) {
+            dataExists = true;
+            setHasIndexedData(true);
+          }
+        } catch {
+          // Stats not available
+        }
+      }
+      if (dataExists) {
+        setMomentLoading(true);
+        try {
+          const result = await generateKnowledgeMoment();
+          setKnowledgeMoment(toKnowledgeMomentData(result));
+        } catch {
+          // Knowledge moment generation failed — not critical
+        } finally {
+          setMomentLoading(false);
+        }
+      }
+    };
+    tryGenerateKnowledgeMoment();
+  }, [step, hasIndexedData]);
+
+  // Start model downloads on initialize step
   useEffect(() => {
     if (step !== 'initialize') return;
 
@@ -484,37 +522,8 @@ export function OnboardingFlow() {
         }]);
       });
 
-    // Start knowledge moment generation — check if data exists even if hasIndexedData
-    // wasn't set (e.g., events missed during indexing step)
-    const tryGenerateKnowledgeMoment = async () => {
-      let dataExists = hasIndexedData;
-      if (!dataExists) {
-        try {
-          const stats = await getKnowledgeStats();
-          if (stats.documentCount > 0) {
-            dataExists = true;
-            setHasIndexedData(true);
-          }
-        } catch {
-          // Stats not available
-        }
-      }
-      if (dataExists) {
-        setMomentLoading(true);
-        try {
-          const result = await generateKnowledgeMoment();
-          setKnowledgeMoment(toKnowledgeMomentData(result));
-        } catch {
-          // Knowledge moment generation failed — not critical
-        } finally {
-          setMomentLoading(false);
-        }
-      }
-    };
-    tryGenerateKnowledgeMoment();
-
     return () => { unlisten?.(); unlistenModelLoaded?.(); };
-  }, [step, hardwareInfo, hasIndexedData]);
+  }, [step, hardwareInfo]);
 
   // Timeout fallback: if all downloads complete but runtime never reports ready,
   // allow proceeding after 3s (Ollama users get instant readiness via the
@@ -631,6 +640,141 @@ export function OnboardingFlow() {
         />
       )}
 
+      {step === 'knowledge-moment' && (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 24,
+          maxWidth: 480,
+          width: '100%',
+          animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        }}>
+          {momentLoading && (
+            <>
+              <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
+                Discovering connections...
+              </h2>
+              <div className="onboarding-content-frame" style={{ width: '100%' }}>
+                <div style={{
+                  padding: 24,
+                  borderRadius: 8,
+                  backgroundColor: '#111518',
+                  border: '1px solid rgba(107,95,168,0.15)',
+                  minHeight: 120,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, color: '#5E6B7C' }}>
+                    Analyzing your data...
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+
+          {!momentLoading && knowledgeMoment && (
+            <>
+              <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
+                {aiName || 'Semblance'} already sees patterns
+              </h2>
+              <div className="onboarding-content-frame" style={{ width: '100%' }}>
+                <div className="knowledge-moment-card surface-opal opal-surface" style={{ padding: 24 }}>
+                  <h3 style={{
+                    fontFamily: "'Fraunces', serif",
+                    fontSize: 18,
+                    fontWeight: 400,
+                    color: '#EEF1F4',
+                    margin: '0 0 8px 0',
+                  }}>
+                    {knowledgeMoment.title}
+                  </h3>
+                  <p style={{
+                    fontFamily: "'DM Sans', system-ui, sans-serif",
+                    fontSize: 14,
+                    color: '#A8B4C0',
+                    margin: 0,
+                    lineHeight: 1.6,
+                  }}>
+                    {knowledgeMoment.summary}
+                  </p>
+                  {knowledgeMoment.connections.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+                      {knowledgeMoment.connections.map((conn) => (
+                        <span key={conn} style={{
+                          fontFamily: "'DM Mono', monospace",
+                          fontSize: 11,
+                          color: '#6ECFA3',
+                          background: 'rgba(110, 207, 163, 0.1)',
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                        }}>
+                          {conn}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {!momentLoading && !knowledgeMoment && (
+            <>
+              <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
+                Ready to learn
+              </h2>
+              <p style={{
+                fontFamily: "'DM Sans', system-ui, sans-serif",
+                fontSize: 13,
+                color: '#8593A4',
+                textAlign: 'center',
+                margin: 0,
+                maxWidth: 360,
+                lineHeight: 1.5,
+              }}>
+                {aiName || 'Semblance'} will discover patterns in your data as it builds your knowledge graph over time.
+              </p>
+            </>
+          )}
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={goBack}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
+                color: '#5E6B7C', transition: 'color 150ms ease',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 15l-5-5 5-5" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              style={{
+                fontFamily: "'DM Sans', system-ui, sans-serif",
+                fontSize: 14,
+                fontWeight: 500,
+                color: '#0B0E11',
+                background: 'linear-gradient(135deg, #6ECFA3 0%, #5BB990 100%)',
+                border: 'none',
+                borderRadius: 8,
+                padding: '10px 24px',
+                cursor: 'pointer',
+              }}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
       {step === 'autonomy' && (
         <AutonomyTierStep
           value={autonomy}
@@ -677,13 +821,27 @@ export function OnboardingFlow() {
       )}
 
       {/* Step indicator */}
-      <div className="absolute bottom-8 flex gap-2">
+      <div style={{
+        position: 'fixed',
+        bottom: 24,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: 6,
+        zIndex: 10,
+        padding: '6px 12px',
+        borderRadius: 12,
+        background: 'rgba(11, 14, 17, 0.85)',
+      }}>
         {STEP_ORDER.map((s, i) => (
           <div
             key={s}
-            className="w-2 h-2 rounded-full"
             style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
               backgroundColor: i <= currentIndex ? '#6ECFA3' : '#2A2F35',
+              transition: 'background-color 300ms ease',
             }}
           />
         ))}

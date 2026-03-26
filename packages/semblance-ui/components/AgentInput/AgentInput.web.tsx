@@ -224,6 +224,8 @@ export function AgentInput({
                 className="agent-input__cancel"
                 onClick={onCancel}
                 data-testid="cancel-button"
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255, 255, 255, 0.06)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                 style={{
                   marginLeft: '8px',
                   padding: '2px 10px',
@@ -234,6 +236,7 @@ export function AgentInput({
                   borderRadius: '4px',
                   cursor: 'pointer',
                   lineHeight: '18px',
+                  transition: 'background 150ms ease',
                 }}
               >
                 Stop

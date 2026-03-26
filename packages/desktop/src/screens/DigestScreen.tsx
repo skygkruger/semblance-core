@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Button, ProgressBar } from '@semblance/ui';
+import { Card, Button, ProgressBar, FeatureGate } from '@semblance/ui';
 import { getLatestDigest, listDigests, generateDigest, getDailyDigest, dismissDailyDigest } from '../ipc/commands';
 import { DailyDigestCard } from '../components/DailyDigestCard';
+import { useLicense } from '../contexts/LicenseContext';
 import type { DailyDigestResult } from '../ipc/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -65,6 +66,7 @@ export function formatDateRange(start: string, end: string): string {
 
 export function DigestScreen() {
   const { t } = useTranslation();
+  const license = useLicense();
   const [digest, setDigest] = useState<WeeklyDigest | null>(null);
   const [pastDigests, setPastDigests] = useState<DigestSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,6 +109,14 @@ export function DigestScreen() {
     }
   };
 
+  if (!license.isPremium) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 24 }}>
+        <FeatureGate feature="representative-dashboard" isPremium={false} onLearnMore={() => license.openCheckout?.('monthly')} />
+      </div>
+    );
+  }
+
   if (loading && !digest) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -121,7 +131,7 @@ export function DigestScreen() {
     return (
       <div className="h-full overflow-y-auto">
         <div className="max-w-container-lg mx-auto px-6 py-8">
-          <h1 className="mb-6" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 28, fontWeight: 300, color: '#6ECFA3', letterSpacing: '0.08em' }}>
+          <h1 className="page-title mb-6" style={{ fontSize: 28 }}>
             {t('screen.digest.title')}
           </h1>
           <Card className="p-8 text-center">
@@ -150,7 +160,7 @@ export function DigestScreen() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
-        <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 28, fontWeight: 300, color: '#6ECFA3', letterSpacing: '0.08em' }}>
+        <h1 className="page-title" style={{ fontSize: 28 }}>
           {t('screen.digest.title')} · {formatDateRange(digest.weekStart, digest.weekEnd)}
         </h1>
 

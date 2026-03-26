@@ -91,34 +91,20 @@ export function AlterEgoWeekOffer({ onAccept, onSkip, onBack }: AlterEgoWeekOffe
             type="button"
             onClick={onBack}
             style={{
-              fontFamily: "'DM Sans', system-ui, sans-serif",
-              fontSize: 13,
-              color: '#5E6B7C',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '8px 12px',
+              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
+              color: '#5E6B7C', transition: 'color 150ms ease',
             }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
           >
-            {t('alter_ego_week_offer.back_button')}
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 15l-5-5 5-5" />
+            </svg>
           </button>
         )}
-        <button
-          type="button"
-          onClick={onSkip}
-          style={{
-            fontFamily: "'DM Sans', system-ui, sans-serif",
-            fontSize: 13,
-            color: '#8593A4',
-            background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 8,
-            padding: '8px 16px',
-            cursor: 'pointer',
-          }}
-        >
-          {t('alter_ego_week_offer.skip_button')}
-        </button>
+        <Button variant="ghost" size="md" onClick={onSkip}>
+          <span className="btn__text">{t('alter_ego_week_offer.skip_button')}</span>
+        </Button>
         <Button variant="opal" size="md" onClick={onAccept}>
           <span className="btn__text">{t('alter_ego_week_offer.start_button')}</span>
         </Button>

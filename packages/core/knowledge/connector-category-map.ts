@@ -113,13 +113,13 @@ export const CATEGORY_META: Record<VisualizationCategory, CategoryMeta> = {
   email: {
     id: 'email',
     displayName: 'Email',
-    color: '#5B8FB9',
+    color: '#4A90D9',
     icon: '[@]',
   },
   calendar: {
     id: 'calendar',
     displayName: 'Calendar',
-    color: '#7EB8DA',
+    color: '#E6A347',
     icon: '[#]',
   },
   health: {
@@ -173,7 +173,7 @@ export const CATEGORY_META: Record<VisualizationCategory, CategoryMeta> = {
   people: {
     id: 'people',
     displayName: 'People',
-    color: '#4A7FBA',
+    color: '#9B6BCD',
     icon: '[P]',
   },
   knowledge: {

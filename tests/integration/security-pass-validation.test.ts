@@ -249,7 +249,7 @@ describe('Security Pass — Phase 4: Pre-Launch Infrastructure', () => {
     expect(source).toContain('TermsAcceptanceStep');
   });
 
-  it('Desktop STEP_ORDER has 12 entries', () => {
+  it('Desktop STEP_ORDER has 13 entries', () => {
     const source = readFileSync(
       join(ROOT, 'packages/desktop/src/screens/OnboardingFlow.tsx'),
       'utf-8',
@@ -258,8 +258,8 @@ describe('Security Pass — Phase 4: Pre-Launch Infrastructure', () => {
     const stepOrderMatch = source.match(/const STEP_ORDER[\s\S]*?\];/);
     expect(stepOrderMatch).not.toBeNull();
     const steps = stepOrderMatch![0].match(/'/g);
-    // 12 steps, each quoted = 24 quote marks (12 pairs)
-    expect(steps!.length).toBe(24);
+    // 13 steps, each quoted = 26 quote marks (13 pairs)
+    expect(steps!.length).toBe(26);
   });
 
   it('Terms step is the last in STEP_ORDER', () => {

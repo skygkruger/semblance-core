@@ -56,18 +56,18 @@ describe('OnboardingFlow', () => {
     expect(screen.getByText(/Choose your language/i)).toBeInTheDocument();
   });
 
-  it('defines a 12-step sequence via STEP_ORDER (includes initial-index and alter-ego-offer)', async () => {
-    // The OnboardingFlow uses STEP_ORDER with 12 steps:
-    // language-select → splash → hardware → data-sources → initial-index → autonomy → intent-capture → naming-moment → naming-ai → initialize → alter-ego-offer → terms
+  it('defines a 13-step sequence via STEP_ORDER (includes initial-index, knowledge-moment, and alter-ego-offer)', async () => {
+    // The OnboardingFlow uses STEP_ORDER with 13 steps:
+    // language-select → splash → hardware → data-sources → initial-index → knowledge-moment → autonomy → intent-capture → naming-moment → naming-ai → initialize → alter-ego-offer → terms
     renderOnboarding();
-    // Step indicator dots: 12 small circles at the bottom
-    const dots = document.querySelectorAll('.w-2.h-2.rounded-full');
-    expect(dots.length).toBe(12);
+    // Step indicator dots: 13 small circles rendered with inline border-radius: 50%
+    const dots = document.querySelectorAll('div[style*="border-radius: 50%"]');
+    expect(dots.length).toBe(13);
   });
 
   it('first step indicator is active (veridian color)', () => {
     renderOnboarding();
-    const dots = document.querySelectorAll('.w-2.h-2.rounded-full');
+    const dots = document.querySelectorAll('div[style*="border-radius: 50%"]');
     // First dot should be veridian (#6ECFA3), rest should be inactive (#2A2F35)
     expect(dots[0]).toHaveStyle({ backgroundColor: '#6ECFA3' });
     expect(dots[1]).toHaveStyle({ backgroundColor: '#2A2F35' });

@@ -132,9 +132,20 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>
         {!isFirstStep && (
-          <Button variant="ghost" size="md" onClick={handleBack}>
-            {t('intent.back')}
-          </Button>
+          <button
+            type="button"
+            onClick={handleBack}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
+              color: '#5E6B7C', transition: 'color 150ms ease',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 15l-5-5 5-5" />
+            </svg>
+          </button>
         )}
         <Button
           variant="opal"

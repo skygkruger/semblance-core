@@ -78,16 +78,15 @@ export function AutonomyTier({ value, onChange, onContinue, onBack }: AutonomyTi
             type="button"
             onClick={onBack}
             style={{
-              fontFamily: "'DM Sans', system-ui, sans-serif",
-              fontSize: 13,
-              color: '#5E6B7C',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '8px 12px',
+              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
+              color: '#5E6B7C', transition: 'color 150ms ease',
             }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
           >
-            {t('autonomy.back_button')}
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 15l-5-5 5-5" />
+            </svg>
           </button>
         )}
         <Button variant="opal" onClick={onContinue}><span className="btn__text">{t('autonomy.continue_button')}</span></Button>

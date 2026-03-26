@@ -1069,8 +1069,8 @@ export class GraphRenderer {
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
 
     // Max opacity across all edge types — used as material opacity
-    // Cat-to-cat: 0.7, cross-category: 0.6, same: 0.25, fallback: 0.12
-    const maxOpacity = 0.7;
+    // Cat-to-cat: 0.7, cross-category: 0.8, same: 0.45, fallback: 0.12
+    const maxOpacity = 0.8;
 
     for (let i = 0; i < edges.length; i++) {
       const edge = edges[i]!;
@@ -1112,13 +1112,13 @@ export class GraphRenderer {
       let scale: number;
       if (bothCategory) {
         // Category-to-category: always full brightness at 0.7 opacity
-        scale = 1.0 * weightFactor;
+        scale = (0.7 / maxOpacity) * weightFactor;
       } else if (sameColor) {
-        // Same category: flat color, 0.25 effective opacity
-        scale = (0.25 / maxOpacity) * weightFactor;
+        // Same category: flat color, 0.45 effective opacity
+        scale = (0.45 / maxOpacity) * weightFactor;
       } else {
-        // Cross-category: gradient, 0.6 effective opacity
-        scale = (0.6 / maxOpacity) * weightFactor;
+        // Cross-category: gradient, 0.8 effective opacity
+        scale = (0.8 / maxOpacity) * weightFactor;
       }
 
       colors[cOff] = srcRgb[0] * scale;

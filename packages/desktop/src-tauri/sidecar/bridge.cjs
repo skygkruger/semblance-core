@@ -245477,7 +245477,83 @@ var EmbeddingPipeline = class {
 init_nanoid();
 
 // packages/core/knowledge/connector-category-map.js
+var CONNECTOR_TO_CATEGORY = {
+  // Health & Fitness
+  "oura": "health",
+  "whoop": "health",
+  "fitbit": "health",
+  "strava": "health",
+  "garmin": "health",
+  "apple-health-export": "health",
+  "strava-export": "health",
+  // Finance
+  "ynab-export": "finance",
+  "mint-export": "finance",
+  // Social & Messaging
+  "slack": "social",
+  "slack-oauth": "social",
+  "facebook-export": "social",
+  "instagram-export": "social",
+  "twitter-export": "social",
+  "linkedin-export": "social",
+  "discord-export": "social",
+  "imessage": "social",
+  "signal-export": "social",
+  "whatsapp-export": "social",
+  "telegram-export": "social",
+  // Email & Calendar — default to knowledge (spans all categories);
+  // entity resolution and topic analysis provide more specific categorization
+  "gmail": "email",
+  "google-calendar": "calendar",
+  // Work & Productivity (reclassified: toggl/rescuetime from health_fitness)
+  "github": "work",
+  "notion": "work",
+  "todoist": "work",
+  "things": "work",
+  "harvest": "work",
+  "slack-export": "work",
+  "toggl": "work",
+  "rescuetime": "work",
+  // Reading & Research
+  "readwise": "reading",
+  "pocket": "reading",
+  "instapaper": "reading",
+  "zotero": "reading",
+  "mendeley": "reading",
+  "goodreads-export": "reading",
+  "letterboxd": "reading",
+  // Music & Entertainment
+  "spotify": "music",
+  "lastfm": "music",
+  // Cloud Storage
+  "google-drive": "cloud",
+  "dropbox": "cloud",
+  "onedrive": "cloud",
+  "box": "cloud",
+  // Browsing (reclassified from productivity)
+  "safari-history": "browser",
+  "edge-history": "browser",
+  "arc-history": "browser",
+  // Documents & Notes (reclassified from productivity)
+  "obsidian": "knowledge",
+  "google-takeout": "knowledge",
+  "notion-export": "knowledge",
+  "bear-export": "knowledge",
+  "evernote-export": "knowledge"
+};
 var CATEGORY_META = {
+  email: {
+    id: "email",
+    displayName: "Email",
+    color: "#5B8FB9",
+    icon: "[@]"
+  },
+  calendar: {
+    id: "calendar",
+    displayName: "Calendar",
+    color: "#7EB8DA",
+    icon: "[#]"
+  },
   health: {
     id: "health",
     displayName: "Health & Fitness",
@@ -245542,47 +245618,50 @@ var CATEGORY_META = {
 function getCategoryForEntityType(type, metadata) {
   switch (type) {
     case "person":
-    case "email_thread":
       return "people";
+    case "email_thread":
+      return "email";
     case "topic":
       return "knowledge";
     case "document": {
       const source = metadata?.source;
+      if (source === "email")
+        return "email";
+      if (source === "calendar")
+        return "calendar";
+      if (source === "contact")
+        return "people";
+      if (source === "messaging")
+        return "social";
+      if (source === "social")
+        return "social";
       if (source === "financial")
         return "finance";
       if (source === "health")
         return "health";
       if (source === "browser_history")
         return "browser";
+      if (source === "cloud_storage")
+        return "cloud";
+      if (source === "photos_metadata")
+        return "cloud";
+      if (source === "local_file")
+        return "knowledge";
+      if (source === "note")
+        return "knowledge";
+      if (source) {
+        const connectorCat = CONNECTOR_TO_CATEGORY[source];
+        if (connectorCat)
+          return connectorCat;
+      }
       return "knowledge";
     }
     case "directory":
       return "knowledge";
     case "event":
-    case "reminder": {
-      const title = (metadata?.title ?? "").toLowerCase();
-      const personalKeywords = [
-        "birthday",
-        "dinner",
-        "lunch with",
-        "coffee with",
-        "vacation",
-        "holiday",
-        "anniversary",
-        "family",
-        "brunch",
-        "date night",
-        "doctor",
-        "dentist",
-        "vet",
-        "pickup",
-        "drop-off",
-        "school"
-      ];
-      if (personalKeywords.some((kw) => title.includes(kw)))
-        return "people";
-      return "work";
-    }
+      return "calendar";
+    case "reminder":
+      return "calendar";
     case "location":
       return "people";
     case "category":
@@ -245593,6 +245672,8 @@ function getCategoryForEntityType(type, metadata) {
 }
 function getAllCategories() {
   return [
+    "email",
+    "calendar",
     "health",
     "finance",
     "social",
@@ -279807,7 +279888,7 @@ Latest: ${visits[0]?.timestamp}`,
     if (!documentId)
       return void 0;
     try {
-      const doc = this.db.prepare("SELECT id, title, content, source, source_path, metadata, created_at FROM documents WHERE id = ?").get(documentId);
+      const doc = this.db.prepare("SELECT id, title, source, source_path, mime_type, metadata, created_at, updated_at, indexed_at FROM documents WHERE id = ?").get(documentId);
       if (!doc)
         return void 0;
       let meta = {};
@@ -279815,25 +279896,49 @@ Latest: ${visits[0]?.timestamp}`,
         meta = doc.metadata ? JSON.parse(doc.metadata) : {};
       } catch {
       }
-      let chunks;
+      const bodyParts = [];
+      bodyParts.push(`Source: ${doc.source.replace(/_/g, " ")}`);
+      if (doc.source_path)
+        bodyParts.push(`Path: ${doc.source_path}`);
+      bodyParts.push(`Type: ${doc.mime_type}`);
+      bodyParts.push(`Created: ${doc.created_at}`);
+      bodyParts.push(`Indexed: ${doc.indexed_at}`);
+      if (meta.subject)
+        bodyParts.push(`Subject: ${meta.subject}`);
+      if (meta.from)
+        bodyParts.push(`From: ${meta.from}`);
+      if (meta.to)
+        bodyParts.push(`To: ${meta.to}`);
+      if (meta.snippet)
+        bodyParts.push(`
+${meta.snippet}`);
+      if (meta.summary)
+        bodyParts.push(`
+${meta.summary}`);
+      if (meta.description)
+        bodyParts.push(`
+${meta.description}`);
       try {
-        const docChunks = this.db.prepare("SELECT content, chunk_index FROM document_chunks WHERE document_id = ? ORDER BY chunk_index ASC LIMIT 50").all(documentId);
-        if (docChunks.length > 0) {
-          chunks = docChunks.map((c) => ({ content: c.content, chunkIndex: c.chunk_index }));
+        const mentions = this.db.prepare("SELECT e.name, e.type FROM entity_mentions m JOIN entities e ON m.entity_id = e.id WHERE m.document_id = ? LIMIT 20").all(documentId);
+        if (mentions.length > 0) {
+          bodyParts.push(`
+Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`);
         }
       } catch {
       }
       return {
         type: "document",
         title: doc.title,
-        body: doc.content?.slice(0, 2e3) ?? void 0,
+        body: bodyParts.join("\n"),
         metadata: {
           ...meta,
           source: doc.source,
           sourcePath: doc.source_path,
-          createdAt: doc.created_at
-        },
-        chunks
+          mimeType: doc.mime_type,
+          createdAt: doc.created_at,
+          updatedAt: doc.updated_at,
+          indexedAt: doc.indexed_at
+        }
       };
     } catch {
       return void 0;

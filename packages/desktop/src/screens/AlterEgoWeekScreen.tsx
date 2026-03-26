@@ -198,15 +198,7 @@ export function AlterEgoWeekScreen() {
     <div className="h-full overflow-y-auto">
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
         {/* Header */}
-        <h1 style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 28,
-          fontWeight: 300,
-          letterSpacing: '0.08em',
-          color: '#6ECFA3',
-          margin: 0,
-          marginBottom: 6,
-        }}>
+        <h1 className="page-title" style={{ fontSize: 28, marginBottom: 6 }}>
           Alter Ego Week
         </h1>
         <p style={{

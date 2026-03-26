@@ -5,6 +5,7 @@
 import './tokens/tokens.css';
 import './tokens/opal.css';
 import './tokens/surfaces.css';
+import './tokens/page-title.css';
 
 // Design Tokens
 export { colors, colorTokens } from './tokens/colors.js';

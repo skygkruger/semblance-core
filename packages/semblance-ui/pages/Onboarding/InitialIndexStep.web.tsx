@@ -62,7 +62,7 @@ export function InitialIndexStep({ sources, complete, onContinue, onBack }: Init
         lineHeight: 1.5,
       }}>
         {complete
-          ? t('initial_index.complete_subtext', { count: totalCount })
+          ? `Complete \u00B7 ${totalCount} items`
           : t('initial_index.subtext')}
       </p>
 
@@ -92,9 +92,9 @@ export function InitialIndexStep({ sources, complete, onContinue, onBack }: Init
                 color: source.status === 'complete' ? '#6ECFA3' : '#8593A4',
               }}>
                 {source.status === 'complete'
-                  ? t('initial_index.source_complete', { count: source.count })
+                  ? `${source.count} items`
                   : source.status === 'indexing'
-                    ? `${t('initial_index.source_indexing')}${source.count > 0 ? ` · ${source.count} items` : ''}${eta ? ` · ${eta}` : ''}`
+                    ? (source.count > 0 ? `${source.count} items indexed` : 'Estimating...')
                     : t('initial_index.source_pending')}
               </span>
             </div>
@@ -112,16 +112,15 @@ export function InitialIndexStep({ sources, complete, onContinue, onBack }: Init
             type="button"
             onClick={onBack}
             style={{
-              fontFamily: "'DM Sans', system-ui, sans-serif",
-              fontSize: 13,
-              color: '#5E6B7C',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '8px 12px',
+              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
+              color: '#5E6B7C', transition: 'color 150ms ease',
             }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
           >
-            {t('initial_index.back_button')}
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 15l-5-5 5-5" />
+            </svg>
           </button>
         )}
         <Button variant="opal" size="md" onClick={onContinue}>

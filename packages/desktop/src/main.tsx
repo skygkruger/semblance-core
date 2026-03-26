@@ -17,6 +17,7 @@ import '@semblance/ui/tokens/tokens.css';
 import '@semblance/ui/tokens/fonts.css';
 import '@semblance/ui/tokens/opal.css';
 import '@semblance/ui/tokens/surfaces.css';
+import '@semblance/ui/tokens/page-title.css';
 
 import './styles.css';
 

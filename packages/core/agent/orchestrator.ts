@@ -991,7 +991,7 @@ export class OrchestratorImpl implements Orchestrator {
           {
             role: 'user' as const,
             content: wrapInDataBoundary(
-              `Here are the results for the user's request "${message}":\n\n${sanitizedToolResults}\n\nPresent ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in the same language the user used.`,
+              `Here are the results for the user's request "${message}":\n\n${sanitizedToolResults}\n\nPresent ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Never include internal identifiers like message IDs, thread IDs, or document IDs in your response. Respond in the same language the user used.`,
               'tool execution results',
             ),
           },
@@ -1003,7 +1003,15 @@ export class OrchestratorImpl implements Orchestrator {
           temperature: 0.7,
           maxTokens: 2048,
         });
-        finalMessage = synthesis.message.content;
+        finalMessage = synthesis.message.content ?? '';
+        // Clean up leaked internal IDs from synthesis output
+        if (finalMessage) {
+          finalMessage = finalMessage
+            .replace(/\b(?:Message\s+)?ID:\s*[0-9a-f]{10,}\b/gi, '')
+            .replace(/\b(?:thread_?id|message_?id)\s*[:=]\s*["']?[0-9a-f]{10,}["']?\b/gi, '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+        }
         if (synthesis.tokensUsed) {
           this.lastLlmTokens = { prompt: synthesis.tokensUsed.prompt, completion: synthesis.tokensUsed.completion };
         }
@@ -1039,7 +1047,7 @@ export class OrchestratorImpl implements Orchestrator {
         this.lastLlmTokens = { prompt: response.tokensUsed.prompt, completion: response.tokensUsed.completion };
       }
 
-      finalMessage = response.message.content;
+      finalMessage = response.message.content ?? '';
 
       // Check if model output tool calls (formatted correctly)
       if (!response.toolCalls?.length) {
@@ -1129,7 +1137,7 @@ export class OrchestratorImpl implements Orchestrator {
             {
               role: 'user' as const,
               content: wrapInDataBoundary(
-                `Tool results:\n${sanitizedToolResults}\n\nPresent ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Respond in the same language the user used.`,
+                `Tool results:\n${sanitizedToolResults}\n\nPresent ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Never include internal identifiers like message IDs, thread IDs, or document IDs in your response. Respond in the same language the user used.`,
                 'tool execution results',
               ),
             },
@@ -1141,11 +1149,14 @@ export class OrchestratorImpl implements Orchestrator {
             temperature: 0.7,
             maxTokens: 2048,
           });
-          finalMessage = followUp.message.content;
+          finalMessage = followUp.message.content ?? '';
           // Clean up any leaked tool narration from synthesis output
           finalMessage = finalMessage
             .replace(/\b(?:Here are |The )?(?:tool (?:results|execution results) are|tool results):\s*/gi, '')
             .replace(/\b(?:search_files|search_emails|fetch_inbox|list_indexed_documents|read_document|add_contact|search_contacts|list_cloud_files|save_file|search_cloud_files)\s*[:.]?\s*(?:\[.*?\]|\{.*?\})/gs, '')
+            // Strip leaked message/thread IDs (hex strings from Gmail API)
+            .replace(/\b(?:Message\s+)?ID:\s*[0-9a-f]{10,}\b/gi, '')
+            .replace(/\b(?:thread_?id|message_?id)\s*[:=]\s*["']?[0-9a-f]{10,}["']?\b/gi, '')
             .replace(/\n{3,}/g, '\n\n')
             .trim();
         }
@@ -1828,12 +1839,22 @@ export class OrchestratorImpl implements Orchestrator {
         });
         executedResults.push({
           tool: 'search_emails',
-          result: results.map(r => ({
-            title: r.document.title,
-            content: r.chunk.content.slice(0, 300),
-            score: r.score,
-            metadata: r.document.metadata,
-          })),
+          result: results.map(r => {
+            // Strip raw IDs from metadata before they reach the LLM — prevents
+            // message IDs like "19d286405fcdb850" from leaking into chat responses.
+            const meta = r.document.metadata ? { ...r.document.metadata } : {};
+            delete meta['messageId'];
+            delete meta['id'];
+            delete meta['threadId'];
+            return {
+              title: r.document.title,
+              content: r.chunk.content.slice(0, 300),
+              score: r.score,
+              from: meta['from'] ?? meta['fromName'] ?? undefined,
+              date: meta['receivedAt'] ?? meta['date'] ?? undefined,
+              subject: meta['subject'] ?? undefined,
+            };
+          }),
         });
         continue;
       }

@@ -1,11 +1,15 @@
 // @vitest-environment jsdom
 // Tests for Weekly Digest UI — renders real DigestScreen component.
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DigestScreen, formatDateRange } from '@semblance/desktop/screens/DigestScreen';
 import { invoke, clearInvokeMocks } from '../helpers/mock-tauri';
+
+vi.mock('../../packages/desktop/src/contexts/LicenseContext', () => ({
+  useLicense: () => ({ isPremium: true, tier: 'founding', openCheckout: vi.fn() }),
+}));
 
 const sampleDigest = {
   id: 'digest-1',

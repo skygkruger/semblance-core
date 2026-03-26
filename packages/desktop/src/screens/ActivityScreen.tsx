@@ -135,11 +135,7 @@ export function ActivityScreen() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
-      <h1 style={{
-        fontFamily: "'DM Sans', sans-serif",
-        fontSize: 28, fontWeight: 300, color: '#6ECFA3',
-        letterSpacing: '0.08em', marginBottom: 16,
-      }}>
+      <h1 className="page-title" style={{ fontSize: 28, marginBottom: 16 }}>
         Activity Log
       </h1>
 

@@ -71,9 +71,9 @@ describe('Connector Category Map', () => {
     expect(getVisualizationCategory('evernote-export')).toBe('knowledge');
   });
 
-  it('getCategoryForEntityType("person") returns "people"', () => {
+  it('getCategoryForEntityType("person") returns "people", email_thread returns "email"', () => {
     expect(getCategoryForEntityType('person')).toBe('people');
-    expect(getCategoryForEntityType('email_thread')).toBe('people');
+    expect(getCategoryForEntityType('email_thread')).toBe('email');
     expect(getCategoryForEntityType('location')).toBe('people');
   });
 
@@ -85,12 +85,14 @@ describe('Connector Category Map', () => {
     expect(getCategoryForEntityType('document')).toBe('knowledge');
   });
 
-  it('getAllCategories returns exactly 10 categories', () => {
+  it('getAllCategories returns exactly 12 categories', () => {
     const categories = getAllCategories();
-    expect(categories).toHaveLength(10);
-    expect(new Set(categories).size).toBe(10);
+    expect(categories).toHaveLength(12);
+    expect(new Set(categories).size).toBe(12);
 
     // Verify all expected categories present
+    expect(categories).toContain('email');
+    expect(categories).toContain('calendar');
     expect(categories).toContain('health');
     expect(categories).toContain('finance');
     expect(categories).toContain('social');

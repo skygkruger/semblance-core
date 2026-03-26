@@ -1,3 +1,4 @@
+// @i18n-pending — email detail labels (From/To) need i18n pass
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, ApprovalCard } from '@semblance/ui';
@@ -145,6 +146,7 @@ export function InboxScreen() {
   const [clipboardInsight, setClipboardInsight] = useState<ClipboardInsightData | null>(null);
   const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
+  const [snoozeToast, setSnoozeToast] = useState<{ id: string; message: string } | null>(null);
   const [emailAccounts, setEmailAccounts] = useState<OAuthAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null); // null = all accounts
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -262,6 +264,20 @@ export function InboxScreen() {
     }
   };
 
+  const handleSnooze = (email: IndexedEmail) => {
+    // Hide the email for 1 hour (local only — remove from list, show toast)
+    setEmails(prev => prev.filter(e => e.messageId !== email.messageId));
+    setSnoozeToast({ id: email.messageId, message: `Snoozed "${email.subject}" for 1 hour` });
+    // Auto-dismiss the toast after 5 seconds
+    setTimeout(() => {
+      setSnoozeToast(prev => prev?.id === email.messageId ? null : prev);
+    }, 5000);
+  };
+
+  const handleExpand = (email: IndexedEmail) => {
+    setExpandedEmailId(expandedEmailId === email.messageId ? null : email.messageId);
+  };
+
   const highPriorityEmails = emails.filter(e => e.priority === 'high');
   const normalEmails = emails.filter(e => e.priority === 'normal');
   const lowEmails = emails.filter(e => e.priority === 'low');
@@ -269,7 +285,7 @@ export function InboxScreen() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
-        <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 28, fontWeight: 300, color: '#6ECFA3', letterSpacing: '0.08em' }}>
+        <h1 className="page-title" style={{ fontSize: 28 }}>
           {t('screen.inbox.title')}
         </h1>
 
@@ -424,19 +440,41 @@ export function InboxScreen() {
           ) : (
             <div className="space-y-2">
               {[...highPriorityEmails, ...normalEmails, ...lowEmails].map(email => (
-                <EmailCard
-                  key={email.messageId}
-                  email={email}
-                  aiCategory={(() => {
-                    try { return JSON.parse(email.labels) as string[]; } catch { return []; }
-                  })()}
-                  aiPriority={email.priority}
-                  actionTaken={null}
-                  onReply={() => handleReply(email)}
-                  onArchive={() => handleArchive(email)}
-                  onSnooze={() => handleArchive(email)}
-                  onExpand={() => setExpandedEmailId(expandedEmailId === email.messageId ? null : email.messageId)}
-                />
+                <div key={email.messageId}>
+                  <EmailCard
+                    email={email}
+                    aiCategory={(() => {
+                      try { return JSON.parse(email.labels) as string[]; } catch { return []; }
+                    })()}
+                    aiPriority={email.priority}
+                    actionTaken={null}
+                    onReply={() => handleReply(email)}
+                    onArchive={() => handleArchive(email)}
+                    onSnooze={() => handleSnooze(email)}
+                    onExpand={() => handleExpand(email)}
+                  />
+                  {/* Expanded email view */}
+                  {expandedEmailId === email.messageId && (
+                    <div style={{
+                      padding: '12px 16px',
+                      margin: '-2px 0 0 0',
+                      background: '#0F1215',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderTop: 'none',
+                      borderRadius: '0 0 8px 8px',
+                      fontFamily: "'DM Sans', system-ui, sans-serif",
+                      fontSize: 13,
+                      color: '#A8B4C0',
+                      lineHeight: 1.6,
+                    }}>
+                      <div style={{ display: 'flex', gap: 16, marginBottom: 8, fontSize: 12, color: '#5E6B7C' }}>
+                        <span>From: {email.fromName || email.from}</span>
+                        <span>To: {email.to || 'me'}</span>
+                      </div>
+                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{email.snippet}</p>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -552,6 +590,15 @@ export function InboxScreen() {
               setClipboardInsight(null);
             }}
           />
+        )}
+
+        {/* Snooze Toast */}
+        {snoozeToast && (
+          <div className="fixed bottom-16 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg bg-semblance-surface-2 dark:bg-semblance-surface-2-dark" style={{ border: '1px solid rgba(255,255,255,0.09)' }}>
+            <span className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">
+              {snoozeToast.message}
+            </span>
+          </div>
         )}
 
         {/* Undo Toast */}

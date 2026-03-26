@@ -1,0 +1,22 @@
+/* Page Title — global shimmer gradient for all page-level h1 headers.
+   Uses the sovereignty identity blue-steel/silver/sage palette.
+   Import after tokens.css (requires @keyframes shimmer). */
+
+.page-title {
+  font-family: var(--fm);
+  font-weight: 200;
+  letter-spacing: 0.04em;
+  margin: 0;
+  background: linear-gradient(
+    105deg,
+    #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%,
+    #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%,
+    #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
+}

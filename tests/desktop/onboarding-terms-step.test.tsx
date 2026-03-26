@@ -55,19 +55,19 @@ describe('OnboardingFlow — Terms Step Integration', () => {
     mockOnboardingInvoke();
   });
 
-  it('renders 12 step indicator dots (includes initial-index and alter-ego-offer)', () => {
+  it('renders 13 step indicator dots (includes initial-index, knowledge-moment, and alter-ego-offer)', () => {
     renderOnboarding();
-    const dots = document.querySelectorAll('.w-2.h-2.rounded-full');
-    expect(dots.length).toBe(12);
+    const dots = document.querySelectorAll('div[style*="border-radius: 50%"]');
+    expect(dots.length).toBe(13);
   });
 
-  it('starts on language-select step (first of 12)', () => {
+  it('starts on language-select step (first of 13)', () => {
     renderOnboarding();
     // LanguageSelect is the first step
     expect(screen.getByText(/Choose your language/i)).toBeInTheDocument();
     // First dot active, rest inactive
-    const dots = document.querySelectorAll('.w-2.h-2.rounded-full');
+    const dots = document.querySelectorAll('div[style*="border-radius: 50%"]');
     expect(dots[0]).toHaveStyle({ backgroundColor: '#6ECFA3' });
-    expect(dots[11]).toHaveStyle({ backgroundColor: '#2A2F35' });
+    expect(dots[12]).toHaveStyle({ backgroundColor: '#2A2F35' });
   });
 });

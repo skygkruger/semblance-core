@@ -97,24 +97,7 @@ export function MorningBriefScreen() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
-        <h1 style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 28,
-          fontWeight: 300,
-          letterSpacing: '0.08em',
-          color: '#6ECFA3',
-          margin: 0,
-        }}>
-          {(() => {
-            const hour = new Date().getHours();
-            const period = hour < 12 ? t('greeting.morning') : hour < 17 ? t('greeting.afternoon') : t('greeting.evening');
-            return state.userName
-              ? t('greeting.with_name', { period, name: state.userName })
-              : t('greeting.anonymous', { period });
-          })()}
-        </h1>
-
+      <div className="max-w-container-lg mx-auto px-6 py-6 space-y-6">
         {/* Briefing summary card */}
         {briefingItems.length > 0 && (
           <BriefingCard
