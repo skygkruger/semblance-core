@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button/Button';
 import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
@@ -5,9 +6,36 @@ import { SkeletonCard } from '../../components/SkeletonCard/SkeletonCard';
 import type { InitialIndexStepProps } from './InitialIndexStep.types';
 import './Onboarding.css';
 
+function formatEta(seconds: number): string {
+  if (seconds < 5) return 'Almost done';
+  if (seconds < 60) return `~${Math.ceil(seconds / 5) * 5}s remaining`;
+  const mins = Math.ceil(seconds / 60);
+  return `~${mins}m remaining`;
+}
+
 export function InitialIndexStep({ sources, complete, onContinue, onBack }: InitialIndexStepProps) {
   const { t } = useTranslation('onboarding');
   const totalCount = sources.reduce((sum, s) => sum + s.count, 0);
+  const startTimeRef = useRef<number>(Date.now());
+  const [eta, setEta] = useState<string | null>(null);
+
+  // Track indexing rate and compute ETA
+  useEffect(() => {
+    const indexing = sources.filter(s => s.status === 'indexing');
+    if (indexing.length === 0 || complete) { setEta(null); return; }
+
+    const elapsedSec = (Date.now() - startTimeRef.current) / 1000;
+    if (totalCount > 0 && elapsedSec > 2) {
+      const rate = totalCount / elapsedSec; // items per second
+      // Estimate ~200 items per source as a rough total (we don't know exact total)
+      const estimatedTotal = sources.length * 200;
+      const remaining = Math.max(0, estimatedTotal - totalCount);
+      const etaSec = rate > 0 ? remaining / rate : 0;
+      setEta(formatEta(etaSec));
+    } else if (totalCount === 0) {
+      setEta('Estimating...');
+    }
+  }, [sources, totalCount, complete]);
 
   return (
     <div style={{
@@ -66,7 +94,7 @@ export function InitialIndexStep({ sources, complete, onContinue, onBack }: Init
                 {source.status === 'complete'
                   ? t('initial_index.source_complete', { count: source.count })
                   : source.status === 'indexing'
-                    ? t('initial_index.source_indexing')
+                    ? `${t('initial_index.source_indexing')}${source.count > 0 ? ` · ${source.count} items` : ''}${eta ? ` · ${eta}` : ''}`
                     : t('initial_index.source_pending')}
               </span>
             </div>

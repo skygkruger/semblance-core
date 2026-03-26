@@ -11,6 +11,8 @@ import type { VisualizationEntityType } from './graph-visualization.js';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type VisualizationCategory =
+  | 'email'
+  | 'calendar'
   | 'health'
   | 'finance'
   | 'social'
@@ -60,8 +62,8 @@ export const CONNECTOR_TO_CATEGORY: Record<string, VisualizationCategory> = {
 
   // Email & Calendar — default to knowledge (spans all categories);
   // entity resolution and topic analysis provide more specific categorization
-  'gmail': 'knowledge',
-  'google-calendar': 'knowledge',
+  'gmail': 'email',
+  'google-calendar': 'calendar',
 
   // Work & Productivity (reclassified: toggl/rescuetime from health_fitness)
   'github': 'work',
@@ -108,6 +110,18 @@ export const CONNECTOR_TO_CATEGORY: Record<string, VisualizationCategory> = {
 // ─── Category Metadata (10 categories) ───────────────────────────────────────
 
 export const CATEGORY_META: Record<VisualizationCategory, CategoryMeta> = {
+  email: {
+    id: 'email',
+    displayName: 'Email',
+    color: '#5B8FB9',
+    icon: '[@]',
+  },
+  calendar: {
+    id: 'calendar',
+    displayName: 'Calendar',
+    color: '#7EB8DA',
+    icon: '[#]',
+  },
   health: {
     id: 'health',
     displayName: 'Health & Fitness',
@@ -190,16 +204,18 @@ export function getCategoryForEntityType(
 ): VisualizationCategory {
   switch (type) {
     case 'person':
-    case 'email_thread':
       return 'people';
+
+    case 'email_thread':
+      return 'email';
 
     case 'topic':
       return 'knowledge';
 
     case 'document': {
       const source = metadata?.source as string | undefined;
-      if (source === 'email') return 'people';
-      if (source === 'calendar') return 'work';
+      if (source === 'email') return 'email';
+      if (source === 'calendar') return 'calendar';
       if (source === 'contact') return 'people';
       if (source === 'messaging') return 'social';
       if (source === 'social') return 'social';
@@ -222,17 +238,10 @@ export function getCategoryForEntityType(
       return 'knowledge';
 
     case 'event':
-    case 'reminder': {
-      // Heuristic: personal-sounding event titles go to 'people', rest to 'work'
-      const title = (metadata?.title as string | undefined ?? '').toLowerCase();
-      const personalKeywords = [
-        'birthday', 'dinner', 'lunch with', 'coffee with', 'vacation',
-        'holiday', 'anniversary', 'family', 'brunch', 'date night',
-        'doctor', 'dentist', 'vet', 'pickup', 'drop-off', 'school',
-      ];
-      if (personalKeywords.some(kw => title.includes(kw))) return 'people';
-      return 'work';
-    }
+      return 'calendar';
+
+    case 'reminder':
+      return 'calendar';
 
     case 'location':
       return 'people';
@@ -249,7 +258,7 @@ export function getCategoryForEntityType(
 /** Get all 10 visualization categories in stable order. */
 export function getAllCategories(): VisualizationCategory[] {
   return [
-    'health', 'finance', 'social', 'work', 'reading',
-    'music', 'cloud', 'browser', 'people', 'knowledge',
+    'email', 'calendar', 'health', 'finance', 'social', 'work',
+    'reading', 'music', 'cloud', 'browser', 'people', 'knowledge',
   ];
 }
