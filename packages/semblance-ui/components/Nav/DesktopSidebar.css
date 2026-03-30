@@ -306,11 +306,12 @@
 
 /* ─── Section labels fade out while scrolling ─── */
 .desktop-sidebar__section-label {
-  transition: opacity 700ms var(--eio);
+  transition: opacity 700ms var(--eio); /* slow reappear */
 }
 
 .desktop-sidebar__nav--scrolling .desktop-sidebar__section-label {
   opacity: 0;
+  transition: opacity 350ms var(--eo); /* fast disappear */
 }
 
 /* ─── Active item ambient glow bleeds onto sidebar ─── */
