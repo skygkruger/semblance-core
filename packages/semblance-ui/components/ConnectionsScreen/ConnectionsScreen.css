@@ -13,10 +13,7 @@
 }
 
 .connections-screen__title {
-  font-family: var(--fd);
-  font-weight: 300;
   font-size: 28px;
-  color: #E8EDF2;
   margin: 0 0 8px 0;
 }
 

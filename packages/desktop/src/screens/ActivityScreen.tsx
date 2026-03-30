@@ -26,9 +26,10 @@ export function ActivityScreen() {
   const loadEntries = useCallback(async () => {
     try {
       const result = await getActionLog(50, 0);
-      setEntries(result);
+      const entries = result ?? [];
+      setEntries(entries);
       setOffset(0);
-      setHasMore(result.length >= 50);
+      setHasMore(entries.length >= 50);
     } catch (err) {
       console.error('[ActivityScreen] loadEntries failed:', err);
     }
@@ -68,7 +69,7 @@ export function ActivityScreen() {
   const loadEscalations = useCallback(async () => {
     try {
       const result = await getEscalationPrompts();
-      setEscalationPrompts(result);
+      setEscalationPrompts(result ?? []);
     } catch (err) {
       console.error('[ActivityScreen] loadEscalations failed:', err);
     }
@@ -93,7 +94,7 @@ export function ActivityScreen() {
   const loadMore = useCallback(async () => {
     try {
       const nextOffset = offset + 50;
-      const more = await getActionLog(50, nextOffset);
+      const more = await getActionLog(50, nextOffset) ?? [];
       if (more.length < 50) setHasMore(false);
       setEntries(prev => [...prev, ...more]);
       setOffset(nextOffset);
@@ -145,10 +146,10 @@ export function ActivityScreen() {
         placeholder="Search actions..."
         value={searchQuery}
         onChange={e => setSearchQuery(e.target.value)}
+        className="surface-slate"
         style={{
           width: '100%', padding: '8px 12px', marginBottom: 12,
-          background: '#111518', border: '1px solid #1E2227',
-          borderRadius: 8, color: '#EEF1F4', fontSize: 13,
+          color: '#EEF1F4', fontSize: 13,
           fontFamily: "'DM Sans', system-ui, sans-serif", outline: 'none',
         }}
       />
@@ -170,15 +171,17 @@ export function ActivityScreen() {
               key={status}
               type="button"
               onClick={() => setFilterStatus(status)}
+              className={isActive ? 'surface-pill' : ''}
               style={{
                 padding: '6px 12px',
-                fontSize: 13,
-                borderRadius: 6,
-                border: isActive ? '1px solid rgba(110, 207, 163, 0.4)' : '1px solid rgba(255, 255, 255, 0.06)',
-                background: isActive ? 'rgba(110, 207, 163, 0.06)' : 'none',
+                fontSize: 12,
+                borderRadius: 8,
+                border: isActive ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
+                background: isActive ? undefined : 'transparent',
                 color: isActive ? '#6ECFA3' : '#8593A4',
                 fontFamily: "'DM Mono', monospace",
                 cursor: 'pointer',
+                letterSpacing: '0.04em',
               }}
             >
               {filterLabels[status]}
@@ -233,8 +236,8 @@ export function ActivityScreen() {
       {/* Alter Ego receipt view */}
       {filterStatus === 'alter_ego' ? (
         alterEgoReceipts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '64px 0' }}>
-            <p style={{ color: '#8593A4', fontSize: 14 }}>
+          <div className="surface-slate" style={{ textAlign: 'center', padding: '48px 24px' }}>
+            <p style={{ color: '#8593A4', fontSize: 14, fontFamily: "'DM Sans', system-ui, sans-serif", margin: 0 }}>
               {t('screen.activity.empty', { name })}
             </p>
           </div>
@@ -267,8 +270,8 @@ export function ActivityScreen() {
       ) : (
         /* Standard action log */
         filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '64px 0' }}>
-            <p style={{ color: '#8593A4', fontSize: 14 }}>
+          <div className="surface-slate" style={{ textAlign: 'center', padding: '48px 24px' }}>
+            <p style={{ color: '#8593A4', fontSize: 14, fontFamily: "'DM Sans', system-ui, sans-serif", margin: 0 }}>
               {t('screen.activity.empty', { name })}
             </p>
           </div>

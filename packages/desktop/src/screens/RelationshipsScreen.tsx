@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Card, Button, Input, StatusIndicator, SkeletonCard } from '@semblance/ui';
+import { WireframeSpinner } from '@semblance/ui/components/WireframeSpinner/WireframeSpinner';
 import {
   listContacts,
   getContactStats,
@@ -212,7 +213,7 @@ function AddContactForm({ onSave, onCancel }: {
       <select
         value={relationshipType}
         onChange={(e) => setRelationshipType(e.target.value)}
-        className="w-full px-3 py-1.5 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-[#111518] text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
+        className="w-full px-3 py-1.5 text-sm rounded-md border border-[rgba(255,255,255,0.06)] bg-[#111518] text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
       >
         {RELATIONSHIP_TYPES.map(rt => (
           <option key={rt} value={rt}>{rt.charAt(0).toUpperCase() + rt.slice(1)}</option>
@@ -445,19 +446,69 @@ export function RelationshipsScreen() {
   return (
     <div className="flex h-full">
       {/* Left panel -- contact list */}
-      <div className="w-80 border-r border-semblance-border dark:border-semblance-border-dark flex flex-col">
+      <div className="surface-opal opal-wireframe" style={{
+        width: 300, display: 'flex', flexDirection: 'column', flexShrink: 0,
+        padding: '16px 8px',
+        overflow: 'hidden',
+      }}>
         {/* Page heading */}
-        <div className="px-4 py-4 border-b border-semblance-border dark:border-semblance-border-dark flex items-center justify-between">
-          <h1 className="page-title" style={{ fontSize: 28 }}>
+        <div style={{ padding: '4px 12px 8px' }}>
+          <h1 className="page-title" style={{ fontSize: 20 }}>
             {t('screen.relationships.title', 'Relationships')}
           </h1>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm" onClick={() => setShowAddForm(!showAddForm)}>
-              +
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleImport}>
-              &#8593;
-            </Button>
+          {stats && (
+            <div style={{ display: 'flex', gap: 10, fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#525A64', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 4 }}>
+              <span>{t('screen.relationships.contacts_count', { count: stats.totalContacts })}</span>
+              <span>{t('screen.relationships.active_count', { count: Object.values(stats.byRelationshipType ?? {}).reduce((a, b) => a + b, 0) - ((stats.byRelationshipType ?? {})['unknown'] ?? 0) })}</span>
+              {birthdays.length > 0 && <span>{t('screen.relationships.birthdays_count', { count: birthdays.length })}</span>}
+            </div>
+          )}
+        </div>
+
+        {/* Search + filters + actions */}
+        <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+          <Input
+            placeholder={t('placeholder.search_contacts')}
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
+          <div style={{ display: 'flex', gap: 6 }}>
+            <select
+              value={sortField}
+              onChange={(e) => setSortField(e.target.value as SortField)}
+              style={{
+                flex: 1, fontSize: 11, padding: '5px 8px', borderRadius: 6,
+                border: '1px solid rgba(255,255,255,0.09)', background: 'linear-gradient(160deg, #1E2227, #111518)',
+                color: '#8593A4', fontFamily: "'DM Mono', monospace",
+                letterSpacing: '0.04em', outline: 'none', cursor: 'pointer',
+              }}
+            >
+              <option value="display_name">{t('screen.relationships.sort_name')}</option>
+              <option value="last_contact_date">{t('screen.relationships.sort_last_contact')}</option>
+              <option value="interaction_count">{t('screen.relationships.sort_frequency')}</option>
+            </select>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as RelationshipFilter)}
+              style={{
+                flex: 1, fontSize: 11, padding: '5px 8px', borderRadius: 6,
+                border: '1px solid rgba(255,255,255,0.09)', background: 'linear-gradient(160deg, #1E2227, #111518)',
+                color: '#8593A4', fontFamily: "'DM Mono', monospace",
+                letterSpacing: '0.04em', outline: 'none', cursor: 'pointer',
+              }}
+            >
+              <option value="all">{t('screen.relationships.filter_all')}</option>
+              <option value="colleague">{t('screen.relationships.filter_colleague')}</option>
+              <option value="client">{t('screen.relationships.filter_client')}</option>
+              <option value="vendor">{t('screen.relationships.filter_vendor')}</option>
+              <option value="friend">{t('screen.relationships.filter_friend')}</option>
+              <option value="family">{t('screen.relationships.filter_family')}</option>
+              <option value="acquaintance">{t('screen.relationships.filter_acquaintance')}</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button variant="ghost" size="sm" onClick={() => setShowAddForm(!showAddForm)} style={{ flex: 1 }}>+ Add Contact</Button>
+            <Button variant="ghost" size="sm" onClick={handleImport} style={{ flex: 1 }}>Import</Button>
           </div>
         </div>
 
@@ -469,97 +520,60 @@ export function RelationshipsScreen() {
           />
         )}
 
-        {/* Stats bar */}
-        {stats && (
-          <div className="px-4 py-3 border-b border-semblance-border dark:border-semblance-border-dark">
-            <div className="flex items-center gap-4 text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
-              <span>{t('screen.relationships.contacts_count', { count: stats.totalContacts })}</span>
-              <span>{t('screen.relationships.active_count', { count: Object.values(stats.byRelationshipType).reduce((a, b) => a + b, 0) - (stats.byRelationshipType['unknown'] ?? 0) })}</span>
-              {birthdays.length > 0 && <span>{t('screen.relationships.birthdays_count', { count: birthdays.length })}</span>}
-            </div>
-          </div>
-        )}
-
-        {/* Search + filters */}
-        <div className="px-4 py-3 space-y-2 border-b border-semblance-border dark:border-semblance-border-dark">
-          <Input
-            placeholder={t('placeholder.search_contacts')}
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-          />
-          <div className="flex gap-2">
-            <select
-              value={sortField}
-              onChange={(e) => setSortField(e.target.value as SortField)}
-              className="text-xs px-2 py-1 rounded border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface dark:bg-semblance-surface-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
-            >
-              <option value="display_name">{t('screen.relationships.sort_name')}</option>
-              <option value="last_contact_date">{t('screen.relationships.sort_last_contact')}</option>
-              <option value="interaction_count">{t('screen.relationships.sort_frequency')}</option>
-            </select>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as RelationshipFilter)}
-              className="text-xs px-2 py-1 rounded border border-semblance-border dark:border-semblance-border-dark bg-semblance-surface dark:bg-semblance-surface-dark text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
-            >
-              <option value="all">{t('screen.relationships.filter_all')}</option>
-              <option value="colleague">{t('screen.relationships.filter_colleague')}</option>
-              <option value="client">{t('screen.relationships.filter_client')}</option>
-              <option value="vendor">{t('screen.relationships.filter_vendor')}</option>
-              <option value="friend">{t('screen.relationships.filter_friend')}</option>
-              <option value="family">{t('screen.relationships.filter_family')}</option>
-              <option value="acquaintance">{t('screen.relationships.filter_acquaintance')}</option>
-            </select>
-          </div>
-        </div>
-
         {/* Frequency alerts banner */}
         {frequencyAlerts.length > 0 && (
-          <div className="px-4 py-2 border-b border-semblance-border dark:border-semblance-border-dark" style={{ background: 'rgba(176, 154, 138, 0.08)' }}>
-            <p className="text-xs" style={{ color: '#B09A8A' }}>
+          <div style={{ padding: '8px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(176, 154, 138, 0.08)' }}>
+            <p style={{ fontSize: 11, color: '#B09A8A', fontFamily: "'DM Mono', monospace", margin: 0, letterSpacing: '0.04em' }}>
               {t('screen.relationships.frequency_alert_count', { count: frequencyAlerts.length, defaultValue: '{{count}} contacts need attention' })}
             </p>
           </div>
         )}
 
         {/* Contact list */}
-        <div className="flex-1 overflow-y-auto">
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {loading ? (
-            <div className="p-4">
+            <div style={{ padding: 16 }}>
               <SkeletonCard variant="generic" message="Loading relationships" subMessage="Retrieving your contacts and communication patterns" showSpinner />
             </div>
           ) : filteredContacts.length === 0 ? (
-            <div className="p-4 text-center text-semblance-text-muted dark:text-semblance-text-muted-dark text-sm">
+            <div style={{ height: '64vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>
               {t('screen.relationships.empty')}
             </div>
           ) : (
             filteredContacts.map(contact => (
-              <Card key={contact.id} className={selectedContact?.id === contact.id ? 'bg-semblance-primary-subtle dark:bg-semblance-primary-subtle-dark' : ''}>
                 <button
+                  key={contact.id}
                   type="button"
                   onClick={() => handleSelectContact(contact.id)}
-                  className="w-full text-left px-4 py-3 hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
+                  style={{
+                    width: '100%', textAlign: 'left', padding: '10px 16px',
+                    background: selectedContact?.id === contact.id ? 'rgba(110, 207, 163, 0.06)' : 'transparent',
+                    border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    cursor: 'pointer', transition: 'background 150ms ease',
+                  }}
+                  onMouseEnter={(e) => { if (selectedContact?.id !== contact.id) (e.currentTarget.style.background = 'rgba(255,255,255,0.03)'); }}
+                  onMouseLeave={(e) => { if (selectedContact?.id !== contact.id) (e.currentTarget.style.background = 'transparent'); }}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-semblance-surface-2 dark:bg-semblance-surface-2-dark flex items-center justify-center text-xs font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#282E36', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 500, color: '#8593A4', flexShrink: 0 }}>
                       {getInitials(contact.displayName)}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark truncate">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: '#CDD4DB', fontFamily: "'DM Sans', system-ui, sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {contact.displayName}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={getRelationshipBadgeStyle(contact.relationshipType)}>
+                        <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, fontWeight: 500, ...getRelationshipBadgeStyle(contact.relationshipType) }}>
                           {contact.relationshipType}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
                         {contact.organization && (
-                          <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark truncate">
+                          <span style={{ fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Sans', system-ui, sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {contact.organization}
                           </span>
                         )}
-                        <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">
+                        <span style={{ fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace" }}>
                           {formatLastContact(contact.lastContactDate, t)}
                         </span>
                       </div>
@@ -567,7 +581,6 @@ export function RelationshipsScreen() {
                     <FrequencyIndicator count={Math.min(Math.ceil(contact.interactionCount / 5), 5)} />
                   </div>
                 </button>
-              </Card>
             ))
           )}
         </div>
@@ -678,7 +691,7 @@ export function RelationshipsScreen() {
                       <select
                         value={editFields.relationshipType ?? 'unknown'}
                         onChange={(e) => setEditFields(f => ({ ...f, relationshipType: e.target.value }))}
-                        className="w-full px-3 py-1.5 text-sm rounded-md border border-semblance-border dark:border-semblance-border-dark bg-[#111518] text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
+                        className="w-full px-3 py-1.5 text-sm rounded-md border border-[rgba(255,255,255,0.06)] bg-[#111518] text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
                       >
                         {RELATIONSHIP_TYPES.map(rt => (
                           <option key={rt} value={rt}>{rt.charAt(0).toUpperCase() + rt.slice(1)}</option>
@@ -831,8 +844,17 @@ export function RelationshipsScreen() {
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-semblance-text-muted dark:text-semblance-text-muted-dark">
-            {t('screen.relationships.empty_detail')}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
+            <WireframeSpinner size={100} />
+            <span style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 11,
+              color: '#A8B4C0',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}>
+              {t('screen.relationships.empty_detail', 'Select a contact')}
+            </span>
           </div>
         )}
       </div>

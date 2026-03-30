@@ -62,7 +62,7 @@ export function ConnectionsScreen({
   if (!hasAny) {
     return (
       <div className="connections-screen">
-        <h1 className="connections-screen__title">{t('title')}</h1>
+        <h1 className="connections-screen__title page-title">{t('title')}</h1>
         <p className="connections-screen__subtitle">
           {t('subtitle_empty')}
         </p>
@@ -95,7 +95,7 @@ export function ConnectionsScreen({
 
   return (
     <div className="connections-screen">
-      <h1 className="connections-screen__title">{t('title')}</h1>
+      <h1 className="connections-screen__title page-title">{t('title')}</h1>
       <p className="connections-screen__subtitle">
         {t('subtitle_count', { connected: connectedCount, total: connectors.length })}
       </p>

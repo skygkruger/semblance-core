@@ -163,7 +163,14 @@ export function InboxScreen() {
       if (emailResult.status === 'fulfilled' && Array.isArray(emailResult.value)) setEmails(emailResult.value as unknown as IndexedEmail[]);
       if (insightResult.status === 'fulfilled' && Array.isArray(insightResult.value)) setInsights(insightResult.value as unknown as ProactiveInsight[]);
       if (calendarResult.status === 'fulfilled' && Array.isArray(calendarResult.value)) setTodayEvents(calendarResult.value as unknown as CalendarEvent[]);
-      if (actionsResult.status === 'fulfilled') setActionsSummary(actionsResult.value as unknown as ActionsSummary);
+      if (actionsResult.status === 'fulfilled') {
+        const raw = actionsResult.value as unknown as ActionsSummary | null;
+        setActionsSummary({
+          todayCount: raw?.todayCount ?? 0,
+          todayTimeSavedSeconds: raw?.todayTimeSavedSeconds ?? 0,
+          recentActions: raw?.recentActions ?? [],
+        });
+      }
     } catch (err) {
       console.error('[InboxScreen] loadInboxData failed:', err);
     }

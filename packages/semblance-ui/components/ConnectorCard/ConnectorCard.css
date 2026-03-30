@@ -1,13 +1,18 @@
 /* ConnectorCard — Individual connector display with status and actions */
 
 .connector-card {
-  padding: 16px;
-  transition: background var(--duration-base) var(--eo),
-              border-color var(--duration-base) var(--eo),
-              box-shadow var(--duration-base) var(--eo);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 140px;
+  padding: var(--sp-4);
+  border-radius: var(--r-lg);
+  background: linear-gradient(160deg, #282E36 0%, #181C21 50%, #0E1114 100%);
+  border: 1px solid var(--b2);
+  transition: box-shadow var(--duration-base) var(--eo),
+              border-color var(--duration-base) var(--eo);
   box-sizing: border-box;
   overflow: hidden;
-  max-width: 100%;
 }
 
 .connector-card:hover {
@@ -19,7 +24,7 @@
 }
 
 .connector-card--connected {
-  border-left: 2px solid #6ECFA3;
+  border-left: 2px solid var(--v);
 }
 
 /* ─── Layout ─── */
@@ -28,15 +33,15 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: var(--sp-3);
 }
 
 .connector-card__info {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--sp-3);
   min-width: 0;
+  flex: 1;
 }
 
 .connector-card__icon {
@@ -46,26 +51,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.05);
-  color: #8593A4;
+  color: var(--sv2);
 }
 
 .connector-card__text {
   min-width: 0;
+  flex: 1;
 }
 
 .connector-card__name-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 
 .connector-card__name {
   font-family: var(--fb);
   font-size: 14px;
   font-weight: 500;
-  color: #C8D4E0;
+  color: var(--w-dim);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -78,9 +84,9 @@
   font-size: 11px;
   font-weight: 400;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   background: rgba(176, 154, 138, 0.13);
-  color: #B09A8A;
+  color: var(--caution);
   letter-spacing: 0.04em;
 }
 
@@ -88,7 +94,7 @@
   font-family: var(--fb);
   font-size: 13px;
   font-weight: 300;
-  color: #5E6B7C;
+  color: var(--sv1);
   margin: 2px 0 0 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -96,7 +102,7 @@
   overflow: hidden;
 }
 
-/* ─── Actions ─── */
+/* ─── Actions — always top-right ─── */
 
 .connector-card__actions {
   flex-shrink: 0;
@@ -110,10 +116,11 @@
   font-size: 13px;
   font-weight: 400;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-md);
   border: none;
   cursor: pointer;
-  transition: background 220ms ease, opacity 220ms ease;
+  transition: background var(--duration-fast) var(--eo),
+              opacity var(--duration-fast) var(--eo);
   white-space: nowrap;
 }
 
@@ -123,43 +130,43 @@
 
 .connector-card__btn--connect {
   background: transparent;
-  color: #6ECFA3;
-  border: 1px solid rgba(110, 207, 163, 0.32);
+  color: var(--v);
+  border: 1px solid var(--v-wire);
 }
 
 .connector-card__btn--connect:hover {
-  background: rgba(110, 207, 163, 0.08);
+  background: var(--v-dim);
 }
 
 .connector-card__btn--sync {
   background: rgba(133, 147, 164, 0.1);
-  color: #8593A4;
+  color: var(--sv2);
 }
 
 .connector-card__btn--disconnect {
   background: transparent;
-  color: #5E6B7C;
+  color: var(--sv1);
   font-size: 11px;
   padding: 4px 8px;
 }
 
 .connector-card__btn--disconnect:hover {
-  color: #B07A8A;
+  color: var(--critical);
 }
 
 .connector-card__pending-text {
   font-family: var(--fm);
   font-size: 11px;
-  color: #B09A8A;
+  color: var(--caution);
   letter-spacing: 0.04em;
 }
 
-/* ─── Status bar ─── */
+/* ─── Status bar — pinned to bottom ─── */
 
 .connector-card__status {
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  margin-top: auto;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--b1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -180,18 +187,18 @@
   display: inline-block;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--r-full);
 }
 
 .connector-card__status-email {
   font-family: var(--fm);
   font-size: 11px;
-  color: #5E6B7C;
+  color: var(--sv1);
   margin-left: 4px;
 }
 
 .connector-card__status-sync {
   font-family: var(--fm);
   font-size: 11px;
-  color: #5E6B7C;
+  color: var(--sv1);
 }

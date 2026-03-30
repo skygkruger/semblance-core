@@ -174,18 +174,23 @@
 
 .surface-slate {
   border-radius: var(--r-lg);
-  background: linear-gradient(135deg, var(--s2), var(--s1));
-  border: 1px solid var(--b2);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(160deg, #282E36 0%, #181C21 50%, #0E1114 100%) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(104,112,120,0.3), rgba(128,136,144,0.4),
+      rgba(152,160,168,0.5), rgba(184,192,200,0.55),
+      rgba(152,160,168,0.5), rgba(128,136,144,0.4),
+      rgba(104,112,120,0.3)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: box-shadow var(--duration-base) var(--eo);
 }
 
-.surface-slate--hoverable {
-  transition: background var(--duration-base) var(--eo),
-              border-color var(--duration-base) var(--eo);
-}
-
-.surface-slate--hoverable:hover {
-  background: var(--s2);
-  border-color: var(--b3);
+.surface-slate:hover {
+  box-shadow:
+    0 0 15px rgba(255, 255, 255, 0.06),
+    0 0 35px rgba(255, 255, 255, 0.04),
+    0 0 60px rgba(110, 207, 163, 0.05);
 }
 
 

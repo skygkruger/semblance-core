@@ -21,7 +21,7 @@ export function ConnectorCard({
   const isConnected = status === 'connected';
   const isPending = status === 'pending';
 
-  const rootClass = `connector-card surface-slate${isConnected ? ' connector-card--connected' : ''}`;
+  const rootClass = `connector-card${isConnected ? ' connector-card--connected' : ''}`;
 
   return (
     <div className={rootClass} data-testid={`connector-card-${id}`}>

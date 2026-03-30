@@ -230,9 +230,9 @@ function ActivityChart({ timeline, stats, period }: {
           </>
         )}
       </div>
-      {stats && Object.entries(stats.connectionsByService).length > 0 && (
+      {stats && Object.entries(stats.connectionsByService ?? {}).length > 0 && (
         <div className="mt-3 space-y-1">
-          {Object.entries(stats.connectionsByService)
+          {Object.entries(stats.connectionsByService ?? {})
             .sort(([, a], [, b]) => b - a)
             .map(([service, count]) => (
               <div key={service} className="flex items-center gap-2">
@@ -358,12 +358,12 @@ export function NetworkMonitorScreen() {
         getConnectionTimeline(period, period === 'today' ? 'hour' : 'day'),
         getConnectionHistory(20),
       ]);
-      if (results[0]!.status === 'fulfilled') setStats(results[0]!.value as unknown as NetworkStatistics);
-      if (results[1]!.status === 'fulfilled') setConnections(results[1]!.value as unknown as ActiveConnection[]);
-      if (results[2]!.status === 'fulfilled') setAllowlist(results[2]!.value as unknown as AllowlistEntry[]);
-      if (results[3]!.status === 'fulfilled') setUnauthorized(results[3]!.value as unknown as UnauthorizedAttempt[]);
-      if (results[4]!.status === 'fulfilled') setTimeline(results[4]!.value as unknown as TimelinePoint[]);
-      if (results[5]!.status === 'fulfilled') setHistory(results[5]!.value as unknown as ConnectionRecord[]);
+      if (results[0]!.status === 'fulfilled' && results[0]!.value) setStats(results[0]!.value as unknown as NetworkStatistics);
+      if (results[1]!.status === 'fulfilled') setConnections((results[1]!.value ?? []) as unknown as ActiveConnection[]);
+      if (results[2]!.status === 'fulfilled') setAllowlist((results[2]!.value ?? []) as unknown as AllowlistEntry[]);
+      if (results[3]!.status === 'fulfilled') setUnauthorized((results[3]!.value ?? []) as unknown as UnauthorizedAttempt[]);
+      if (results[4]!.status === 'fulfilled') setTimeline((results[4]!.value ?? []) as unknown as TimelinePoint[]);
+      if (results[5]!.status === 'fulfilled') setHistory((results[5]!.value ?? []) as unknown as ConnectionRecord[]);
     } catch (err) {
       console.error('[NetworkMonitor] loadData failed:', err);
     } finally {
