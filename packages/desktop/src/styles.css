@@ -61,3 +61,21 @@
 }
 
 /* ai-name-shimmer is defined in tokens.css — no duplicate needed here */
+
+/* ─── Page dissolve-in transition ─── */
+@keyframes page-dissolve {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.975);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.page-enter {
+  opacity: 0;
+  will-change: opacity, transform;
+  animation: page-dissolve 1000ms var(--eo) 80ms both;
+}

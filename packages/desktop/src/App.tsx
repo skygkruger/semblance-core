@@ -550,6 +550,7 @@ function AppContent() {
         }
       />
       <main className="flex-1 overflow-hidden">
+        <div key={location.pathname} className="page-enter h-full">
         <Routes>
           <Route path="/chat" element={<ChatScreen />} />
           <Route path="/inbox" element={<InboxScreen />} />
@@ -610,6 +611,7 @@ function AppContent() {
           <Route path="/" element={<Navigate to="/chat" replace />} />
           <Route path="*" element={<Navigate to="/chat" replace />} />
         </Routes>
+        </div>
       </main>
       <CanvasPanel />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
