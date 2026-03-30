@@ -282,6 +282,7 @@ function AppContent() {
   const { play } = useSound();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [sidecarReady, setSidecarReady] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const dismissToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -537,6 +538,8 @@ function AppContent() {
           return sections;
         })()}
         activeId={activeId}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
         onNavigate={(id) => navigate('/' + id)}
         bottomItems={[settingsItem]}
         footer={

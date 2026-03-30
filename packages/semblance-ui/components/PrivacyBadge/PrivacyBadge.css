@@ -19,6 +19,7 @@
 .privacy-badge__dot--active {
   background: var(--v);
   animation: pulse 2s ease-in-out infinite;
+  animation-delay: -1000s; /* epoch anchor — syncs with network status dot */
 }
 
 .privacy-badge__dot--syncing {

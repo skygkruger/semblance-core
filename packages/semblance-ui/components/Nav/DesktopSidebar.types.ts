@@ -21,6 +21,8 @@ export interface DesktopSidebarProps {
   items: NavItem[] | NavSection[];
   activeId?: string;
   collapsed?: boolean;
+  /** Callback when user toggles the collapse state */
+  onToggleCollapse?: () => void;
   onNavigate?: (id: string) => void;
   footer?: ReactNode;
   /** Items pinned to the bottom, above footer */

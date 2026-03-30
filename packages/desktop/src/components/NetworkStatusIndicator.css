@@ -33,6 +33,8 @@
 
 .network-status__dot--clean {
   background: var(--v);
+  animation: pulse 2s ease-in-out infinite;
+  animation-delay: -1000s; /* epoch anchor — syncs with any other -1000s pulse */
 }
 
 .network-status__dot--alert {

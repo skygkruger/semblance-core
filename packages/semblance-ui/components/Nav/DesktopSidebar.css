@@ -4,17 +4,18 @@
   width: 240px;
   display: flex;
   flex-direction: column;
-  padding: var(--sp-6) var(--sp-4);
+  padding: 0 var(--sp-4) var(--sp-4);
   border-radius: var(--r-lg);
-  border-left: 1px solid transparent; /* restore left border (surface-void removes it) */
-  overflow: visible; /* override surface-void overflow:hidden so bottom radius renders */
+  border-left: 1px solid transparent;
+  overflow: hidden;
   position: relative;
+  transition: width 300ms var(--eo);
 }
 
 .desktop-sidebar--collapsed {
-  width: 56px;
+  width: 64px;
   align-items: center;
-  padding: var(--sp-6) var(--sp-2);
+  padding: 0 var(--sp-2) var(--sp-4);
 }
 
 /* Subtle sovereignty tint gradient — fades from top */
@@ -28,7 +29,41 @@
   z-index: 0;
 }
 
-/* Brand area */
+/* ─── Frosted glass brand header ───
+   Position absolute over the scroll area. Nav items scroll behind it.
+   backdrop-filter blurs the nav items as they pass underneath. */
+.desktop-sidebar__brand-glass {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  /* Extra tall so the blur zone extends well past the visible content */
+  padding: var(--sp-6) var(--sp-4) 80px;
+  background: linear-gradient(180deg,
+    #0B0E11 0%,
+    #0B0E11 40%,
+    rgba(11, 14, 17, 0.7) 58%,
+    rgba(11, 14, 17, 0.35) 74%,
+    rgba(11, 14, 17, 0) 100%);
+  /* Mask fades the element itself so backdrop-filter has no hard edge */
+  mask-image: linear-gradient(180deg, black 0%, black 55%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, black 0%, black 55%, transparent 100%);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+
+/* Re-enable pointer events on interactive children */
+.desktop-sidebar__brand-glass > * {
+  pointer-events: auto;
+}
+
+/* Brand area inside glass */
 .desktop-sidebar__brand {
   position: relative;
   z-index: 1;
@@ -36,19 +71,34 @@
   flex-direction: column;
   align-items: center;
   gap: var(--sp-3);
-  padding: var(--sp-4) 0 var(--sp-6);
-  margin-bottom: var(--sp-4);
-}
-
-.desktop-sidebar--collapsed .desktop-sidebar__brand {
-  padding: var(--sp-4) 0 var(--sp-6);
 }
 
 .desktop-sidebar__wordmark {
   font-size: 18px;
 }
 
-/* Nav item list */
+/* ─── Collapse toggle ─── */
+.desktop-sidebar__collapse-btn {
+  position: relative;
+  z-index: 1;
+  margin-top: var(--sp-2);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--sv2);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--eo);
+}
+
+.desktop-sidebar__collapse-btn:hover {
+  color: var(--white);
+}
+
+/* ─── Nav item list — scrolls behind frosted brand ─── */
 .desktop-sidebar__nav {
   position: relative;
   z-index: 1;
@@ -57,11 +107,19 @@
   flex-direction: column;
   gap: var(--sp-2);
   overflow-y: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Top/bottom padding pushes items clear of frosted glass zones */
+  padding-top: 200px;
+  padding-bottom: 200px;
 }
 .desktop-sidebar__nav::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+  display: none;
+}
+
+.desktop-sidebar--collapsed .desktop-sidebar__nav {
+  padding-top: 130px;
+  padding-bottom: 140px;
 }
 
 /* Nav item — dark void card with opal conic border, Veridian hover */
@@ -92,6 +150,7 @@
       rgba(104,112,120,0.35)) border-box;
   animation: opal-border-sweep 8s linear infinite;
   transition: all var(--duration-slow) var(--eo);
+  flex-shrink: 0;
 }
 
 .desktop-sidebar--collapsed .desktop-sidebar__item {
@@ -155,10 +214,47 @@
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--slate3);
   padding: var(--sp-1) var(--sp-3);
   margin-bottom: 2px;
   user-select: none;
+  /* Sage/blue/silver shimmer — synced with nav border via shared 8s timing */
+  background: linear-gradient(
+    105deg,
+    #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%,
+    #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%,
+    #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 19s linear infinite;
+}
+
+/* ─── Frosted glass footer — mirrors brand glass ─── */
+.desktop-sidebar__footer-glass {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 80px var(--sp-4) var(--sp-6);
+  background: linear-gradient(0deg,
+    #0B0E11 0%,
+    #0B0E11 40%,
+    rgba(11, 14, 17, 0.7) 58%,
+    rgba(11, 14, 17, 0.35) 74%,
+    rgba(11, 14, 17, 0) 100%);
+  mask-image: linear-gradient(0deg, black 0%, black 55%, transparent 100%);
+  -webkit-mask-image: linear-gradient(0deg, black 0%, black 55%, transparent 100%);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  pointer-events: none;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+}
+
+.desktop-sidebar__footer-glass > * {
+  pointer-events: auto;
 }
 
 /* Bottom pinned items (settings etc.) */
@@ -167,7 +263,6 @@
   z-index: 1;
   flex-shrink: 0;
   padding-top: var(--sp-2);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
   margin-top: var(--sp-2);
 }
 
@@ -192,15 +287,68 @@
 .desktop-sidebar__footer {
   position: relative;
   z-index: 1;
-  margin-top: auto;
   padding-top: var(--sp-3);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
   flex-shrink: 0;
   display: flex;
   justify-content: center;
 }
 
-/* Collapsed: hide privacy badge label */
-.desktop-sidebar--collapsed .desktop-sidebar__footer .privacy-badge__label {
+/* Collapsed: hide text labels in footer */
+.desktop-sidebar--collapsed .desktop-sidebar__footer .privacy-badge__label,
+.desktop-sidebar--collapsed .desktop-sidebar__footer .network-status__text {
   display: none;
+}
+
+.desktop-sidebar--collapsed .desktop-sidebar__footer {
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* ─── Section labels fade out while scrolling ─── */
+.desktop-sidebar__section-label {
+  transition: opacity 700ms var(--eio);
+}
+
+.desktop-sidebar__nav--scrolling .desktop-sidebar__section-label {
+  opacity: 0;
+}
+
+/* ─── Active item ambient glow bleeds onto sidebar ─── */
+.desktop-sidebar:has(.desktop-sidebar__item--active)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow: inset 0 0 80px rgba(110, 207, 163, 0.03);
+}
+
+/* ─── Collapsed tooltip ─── */
+.desktop-sidebar--collapsed .desktop-sidebar__item {
+  position: relative;
+}
+
+.desktop-sidebar--collapsed .desktop-sidebar__item::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  background: #1E2227;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--sv3);
+  font-family: var(--fb);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--eo);
+  z-index: 100;
+}
+
+.desktop-sidebar--collapsed .desktop-sidebar__item:hover::after {
+  opacity: 1;
 }
