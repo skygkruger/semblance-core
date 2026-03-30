@@ -179,7 +179,7 @@ function AddContactForm({ onSave, onCancel }: {
   };
 
   return (
-    <div className="px-4 py-3 border-b border-semblance-border dark:border-semblance-border-dark space-y-2" style={{ background: '#111518' }}>
+    <div className="surface-slate px-4 py-3 space-y-2">
       <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">
         {t('screen.relationships.add_contact', 'Add Contact')}
       </h3>

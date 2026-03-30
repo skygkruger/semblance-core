@@ -8,16 +8,21 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="error-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:#0B0E11;overflow:auto"></div>
     <script>
       window.addEventListener('error', function(e) {
-        document.getElementById('root').innerHTML =
-          '<pre style="color:red;padding:20px;font-size:14px;white-space:pre-wrap;">FATAL: ' +
+        var el = document.getElementById('error-overlay');
+        el.style.display = 'block';
+        el.innerHTML =
+          '<pre style="color:#B07A8A;padding:20px;font-size:14px;white-space:pre-wrap;">FATAL: ' +
           e.message + '\n\nFile: ' + e.filename + ':' + e.lineno + ':' + e.colno +
           '\n\nStack: ' + (e.error && e.error.stack || 'N/A') + '</pre>';
       });
       window.addEventListener('unhandledrejection', function(e) {
-        document.getElementById('root').innerHTML =
-          '<pre style="color:red;padding:20px;font-size:14px;white-space:pre-wrap;">FATAL (Promise): ' +
+        var el = document.getElementById('error-overlay');
+        el.style.display = 'block';
+        el.innerHTML =
+          '<pre style="color:#B07A8A;padding:20px;font-size:14px;white-space:pre-wrap;">FATAL (Promise): ' +
           (e.reason && e.reason.message || e.reason || 'Unknown') +
           '\n\nStack: ' + (e.reason && e.reason.stack || 'N/A') + '</pre>';
       });

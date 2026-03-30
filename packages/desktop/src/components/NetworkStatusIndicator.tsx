@@ -20,7 +20,7 @@ export function NetworkStatusIndicator({ onClick }: { onClick: () => void }) {
   const loadStatus = useCallback(async () => {
     try {
       const result = await getNetworkTrustStatus();
-      setStatus(result);
+      if (result) setStatus(result);
     } catch (err) {
       console.error('[NetworkStatusIndicator] loadStatus failed:', err);
     }

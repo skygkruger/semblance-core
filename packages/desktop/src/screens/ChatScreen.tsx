@@ -1276,7 +1276,8 @@ export function ChatScreen() {
                       key={suggestion.key}
                       type="button"
                       onClick={() => handleSend(suggestion.label)}
-                      className="block w-full text-left px-4 py-3 rounded-lg text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark bg-semblance-surface-2 dark:bg-semblance-surface-2-dark hover:bg-semblance-primary-subtle dark:hover:bg-semblance-primary-subtle-dark transition-colors duration-fast"
+                      className="surface-pill block w-full text-left px-4 py-3 text-sm"
+                      style={{ color: '#A8B4C0', fontFamily: "'DM Sans', system-ui, sans-serif", cursor: 'pointer' }}
                     >
                       {suggestion.label}
                     </button>
@@ -1294,10 +1295,8 @@ export function ChatScreen() {
                       {msg.attachments.map(att => (
                         <div
                           key={att.id}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
+                          className="surface-slate flex items-center gap-2 px-3 py-1.5 text-xs"
                           style={{
-                            background: '#171B1F',
-                            border: '1px solid rgba(255,255,255,0.09)',
                             color: '#A8B4C0',
                             fontFamily: "'DM Mono', monospace",
                           }}

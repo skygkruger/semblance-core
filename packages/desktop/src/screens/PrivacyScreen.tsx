@@ -169,10 +169,8 @@ export function PrivacyScreen() {
   const sourceBreakdown = knowledgeStats.sources ?? {};
   const sourceKeys = Object.keys(sourceBreakdown);
 
+  const linkBtnClass = 'surface-pill';
   const linkBtnStyle: React.CSSProperties = {
-    background: 'transparent',
-    border: '1px solid rgba(255,255,255,0.09)',
-    borderRadius: 8,
     padding: '10px 16px',
     color: '#6ECFA3',
     fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -217,10 +215,10 @@ export function PrivacyScreen() {
 
       {/* M7 + M9: Links to detailed network activity and gateway permissions */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => navigate('/network')} style={linkBtnStyle}>
+        <button type="button" onClick={() => navigate('/network')} className={linkBtnClass} style={linkBtnStyle}>
           {t('screen.privacy.view_network_activity', 'View Detailed Network Activity')} &rarr;
         </button>
-        <button type="button" onClick={() => navigate('/network')} style={linkBtnStyle}>
+        <button type="button" onClick={() => navigate('/network')} className={linkBtnClass} style={linkBtnStyle}>
           {t('screen.privacy.view_gateway_permissions', 'View Gateway Permissions')} &rarr;
         </button>
       </div>

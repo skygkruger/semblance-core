@@ -497,9 +497,10 @@ function AppContent() {
             <WireframeSpinner size={100} />
             <p style={{
               color: '#8593A4',
-              fontFamily: "'DM Sans', system-ui, sans-serif",
-              fontSize: 14,
-              letterSpacing: '0.04em',
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 11,
+              textTransform: 'uppercase' as const,
+              letterSpacing: '0.08em',
               margin: 0,
             }}>Initializing...</p>
           </div>

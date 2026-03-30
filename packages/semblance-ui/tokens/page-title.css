@@ -4,8 +4,9 @@
 
 .page-title {
   font-family: var(--fm);
-  font-weight: 200;
-  letter-spacing: 0.04em;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   margin: 0;
   background: linear-gradient(
     105deg,

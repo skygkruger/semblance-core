@@ -1,19 +1,21 @@
 /* ConnectorCard — Individual connector display with status and actions */
 
 .connector-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
   padding: 16px;
-  transition: background 220ms ease, border-color 220ms ease;
+  transition: background var(--duration-base) var(--eo),
+              border-color var(--duration-base) var(--eo),
+              box-shadow var(--duration-base) var(--eo);
   box-sizing: border-box;
   overflow: hidden;
   max-width: 100%;
 }
 
 .connector-card:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 0 15px rgba(255, 255, 255, 0.06),
+    0 0 35px rgba(255, 255, 255, 0.04),
+    0 0 60px rgba(110, 207, 163, 0.05);
 }
 
 .connector-card--connected {

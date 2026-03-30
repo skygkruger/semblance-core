@@ -37,7 +37,7 @@ export function ActivityScreen() {
   const loadAlterEgoReceipts = useCallback(async () => {
     try {
       const result = await getAlterEgoReceipts();
-      setAlterEgoReceipts(result);
+      if (result) setAlterEgoReceipts(result);
     } catch (err) {
       console.error('[ActivityScreen] loadAlterEgoReceipts failed:', err);
     }
@@ -323,10 +323,10 @@ export function ActivityScreen() {
               <button
                 type="button"
                 onClick={loadMore}
+                className="surface-slate surface-slate--hoverable"
                 style={{
                   padding: '10px 20px', margin: '12px auto', display: 'block',
-                  background: '#111518', border: '1px solid #1E2227',
-                  borderRadius: 8, color: '#8593A4', fontSize: 13,
+                  color: '#8593A4', fontSize: 13,
                   fontFamily: "'DM Sans', system-ui, sans-serif", cursor: 'pointer',
                 }}
               >

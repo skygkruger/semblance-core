@@ -221,9 +221,7 @@ export function TunnelPairingScreen() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {peers.map((peer) => (
-                <div key={peer.deviceId} style={{
-                  background: '#171B1F',
-                  borderRadius: 8,
+                <div key={peer.deviceId} className="surface-slate" style={{
                   padding: 14,
                   display: 'flex',
                   justifyContent: 'space-between',

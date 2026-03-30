@@ -189,7 +189,7 @@ export function InboxScreen() {
   // Load email accounts for the account filter tabs
   useEffect(() => {
     listConnectorAccounts('gmail')
-      .then(accounts => setEmailAccounts(accounts))
+      .then(accounts => setEmailAccounts(accounts ?? []))
       .catch(() => setEmailAccounts([]));
   }, []);
 
@@ -455,11 +455,9 @@ export function InboxScreen() {
                   />
                   {/* Expanded email view */}
                   {expandedEmailId === email.messageId && (
-                    <div style={{
+                    <div className="surface-slate" style={{
                       padding: '12px 16px',
                       margin: '-2px 0 0 0',
-                      background: '#0F1215',
-                      border: '1px solid rgba(255,255,255,0.06)',
                       borderTop: 'none',
                       borderRadius: '0 0 8px 8px',
                       fontFamily: "'DM Sans', system-ui, sans-serif",

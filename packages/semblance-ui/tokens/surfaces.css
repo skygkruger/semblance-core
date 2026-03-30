@@ -190,6 +190,36 @@
 
 
 /* ═══════════════════════════════════════════════════
+   Surface: Pill
+   ═══════════════════════════════════════════════════
+   ActionCard-style gradient fill + silver conic shimmer border.
+   Used by: Suggestion pills, navigation link buttons — interactive prompts. */
+
+.surface-pill {
+  border-radius: var(--r-lg);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(160deg, #282E36 0%, #181C21 50%, #0E1114 100%) padding-box,
+    conic-gradient(from var(--opal-angle),
+      rgba(104,112,120,0.35), rgba(128,136,144,0.45),
+      rgba(152,160,168,0.55), rgba(184,192,200,0.6),
+      rgba(152,160,168,0.55), rgba(128,136,144,0.45),
+      rgba(104,112,120,0.35)) border-box;
+  animation: opal-border-sweep 8s linear infinite;
+  transition: box-shadow var(--duration-base) var(--eo),
+              border-color var(--duration-base) var(--eo);
+}
+
+.surface-pill:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 0 15px rgba(255, 255, 255, 0.06),
+    0 0 35px rgba(255, 255, 255, 0.04),
+    0 0 60px rgba(110, 207, 163, 0.05);
+}
+
+
+/* ═══════════════════════════════════════════════════
    Surface: Compose
    ═══════════════════════════════════════════════════
    Opal left bar + opal-bordered textarea.

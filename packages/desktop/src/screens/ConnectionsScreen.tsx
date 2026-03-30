@@ -386,15 +386,12 @@ export function ConnectionsScreen() {
                     </div>
 
                     {accounts.map((account) => (
-                      <div key={account.accountId} style={{
+                      <div key={account.accountId} className="surface-slate" style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '8px 12px',
-                        background: '#171B1F',
-                        borderRadius: 8,
                         marginBottom: 6,
-                        border: '1px solid rgba(255,255,255,0.04)',
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{
@@ -461,10 +458,8 @@ export function ConnectionsScreen() {
                     <button
                       type="button"
                       onClick={() => handleConnect(connector.id)}
+                      className="surface-slate surface-slate--hoverable"
                       style={{
-                        background: 'transparent',
-                        border: '1px dashed rgba(255,255,255,0.09)',
-                        borderRadius: 8,
                         padding: '10px',
                         width: '100%',
                         marginTop: 4,
@@ -472,10 +467,8 @@ export function ConnectionsScreen() {
                         color: '#5E6B7C',
                         cursor: 'pointer',
                         fontFamily: "'DM Sans', system-ui, sans-serif",
-                        transition: 'border-color 0.15s ease',
+                        borderStyle: 'dashed',
                       }}
-                      onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.borderColor = 'rgba(110,207,163,0.3)'; }}
-                      onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.09)'; }}
                     >
                       + Add another account
                     </button>
