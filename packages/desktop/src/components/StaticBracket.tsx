@@ -26,6 +26,9 @@ export function StaticBracket({
   const [bottomY, setBottomY] = useState(0);
   const animFrameRef = useRef(0);
   const [drawProgress, setDrawProgress] = useState(0);
+  const [initialDrawDone, setInitialDrawDone] = useState(false);
+  const [measuring, setMeasuring] = useState(false);
+  const measureTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const measure = useCallback(() => {
     const content = contentRef.current;
@@ -70,23 +73,30 @@ export function StaticBracket({
 
     // Animate bracket drawing in sync with page dissolve (1.58s total)
     setDrawProgress(0);
+    setInitialDrawDone(false);
     const start = performance.now();
-    const duration = 2500; // matches ContentBracket
+    const duration = 2500;
     const tick = () => {
       measure();
       const elapsed = performance.now() - start;
       const p = Math.min(1, elapsed / duration);
-      // Ease-out curve matching page dissolve
       const eased = 1 - Math.pow(1 - p, 3);
       setDrawProgress(eased);
       if (p < 1) {
         animFrameRef.current = requestAnimationFrame(tick);
+      } else {
+        setInitialDrawDone(true);
       }
     };
     animFrameRef.current = requestAnimationFrame(tick);
 
     const hasResizeObserver = typeof ResizeObserver !== 'undefined';
-    const observer = hasResizeObserver ? new ResizeObserver(() => requestAnimationFrame(measure)) : null;
+    const observer = hasResizeObserver ? new ResizeObserver(() => {
+      requestAnimationFrame(measure);
+      setMeasuring(true);
+      if (measureTimerRef.current) clearTimeout(measureTimerRef.current);
+      measureTimerRef.current = setTimeout(() => setMeasuring(false), 2000);
+    }) : null;
     if (observer) observer.observe(content);
 
     window.addEventListener('resize', measure);
@@ -145,7 +155,44 @@ export function StaticBracket({
             {/* Bottom cap — draws in last 20% */}
             {capProgress > 0 && <line x1={spineX} y1={animBottom} x2={spineX + capLen * capProgress} y2={animBottom} />}
           </g>
-        </svg>
+
+          {/* Total measurement — counts up as spine draws, fade on resize */}
+          {(() => {
+            const totalHeight = Math.round(bottomY - topY);
+            if (totalHeight <= 0) return null;
+            const currentSpan = animBottom - animTop;
+            const displayValue = Math.round(currentSpan);
+            const labelMidY = (animTop + animBottom) / 2;
+
+            let labelOpacity: number;
+            if (!initialDrawDone) {
+              labelOpacity = p > 0.05 ? Math.min(1, p * 2) : 0;
+            } else {
+              labelOpacity = measuring ? 1 : 0;
+            }
+
+            return (
+              <text
+                x={spineX - 8}
+                y={initialDrawDone ? fullMidY : labelMidY}
+                textAnchor="end"
+                dominantBaseline="central"
+                fill={color}
+                fontSize={9}
+                fontFamily="'DM Mono', monospace"
+                letterSpacing="0.04em"
+                opacity={Math.max(0, labelOpacity) * 0.5}
+                style={{
+                  transition: initialDrawDone
+                    ? measuring ? 'opacity 350ms ease' : 'opacity 700ms ease'
+                    : 'none',
+                }}
+              >
+                {initialDrawDone ? totalHeight : displayValue}px
+              </text>
+            );
+          })()}
+          </svg>
       )}
 
       <div ref={contentRef}>

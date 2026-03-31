@@ -30,6 +30,9 @@ export function ContentBracket({
   const [spineX, setSpineX] = useState(0);
   const animFrameRef = useRef(0);
   const [drawProgress, setDrawProgress] = useState(0);
+  const [initialDrawDone, setInitialDrawDone] = useState(false);
+  const [measuring, setMeasuring] = useState(false);
+  const measureTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const measure = useCallback(() => {
     const content = contentRef.current;
@@ -74,14 +77,16 @@ export function ContentBracket({
     if (!content) return;
 
     setDrawProgress(0);
+    setInitialDrawDone(false);
     const start = performance.now();
-    const duration = 2500; // longer than page dissolve so brackets draw slowly
+    const duration = 2500;
     const tick = () => {
       measure();
       const elapsed = performance.now() - start;
       const p = Math.min(1, elapsed / duration);
       const eased = 1 - Math.pow(1 - p, 3);
       setDrawProgress(eased);
+      if (p >= 1 && !initialDrawDone) setInitialDrawDone(true);
       if (p < 1) {
         animFrameRef.current = requestAnimationFrame(tick);
       }
@@ -89,7 +94,13 @@ export function ContentBracket({
     animFrameRef.current = requestAnimationFrame(tick);
 
     const hasResizeObserver = typeof ResizeObserver !== 'undefined';
-    const observer = hasResizeObserver ? new ResizeObserver(() => requestAnimationFrame(measure)) : null;
+    const observer = hasResizeObserver ? new ResizeObserver(() => {
+      requestAnimationFrame(measure);
+      // Show measurements during adjustment
+      setMeasuring(true);
+      if (measureTimerRef.current) clearTimeout(measureTimerRef.current);
+      measureTimerRef.current = setTimeout(() => setMeasuring(false), 2000);
+    }) : null;
     if (observer) observer.observe(content);
     if (observer) {
       for (const child of Array.from(content.children)) {
@@ -168,7 +179,60 @@ export function ContentBracket({
               return <line key={tick.i} x1={spineX} y1={tick.y} x2={spineX + tickLen * easedTickP} y2={tick.y} />;
             })}
           </g>
-        </svg>
+
+          {/* Segment measurements — count up as spine draws, fade on resize */}
+          {ticks.length > 1 && ticks.map((tick, i) => {
+            if (i === 0) return null;
+            const prevTick = ticks[i - 1]!;
+            const segTop = prevTick.y;
+            const segBottom = tick.y;
+            const segHeight = Math.round(segBottom - segTop);
+            if (segHeight <= 0) return null;
+
+            // How much of this segment has the spine covered?
+            const coveredTop = Math.max(segTop, animSpineTop);
+            const coveredBottom = Math.min(segBottom, animSpineBottom);
+            const coveredHeight = Math.max(0, coveredBottom - coveredTop);
+            const segProgress = coveredHeight / (segBottom - segTop);
+
+            // Current displayed value counts up
+            const displayValue = Math.round(segHeight * segProgress);
+            const segMidY = (coveredTop + coveredBottom) / 2;
+
+            let labelOpacity: number;
+            if (!initialDrawDone) {
+              labelOpacity = segProgress > 0.05 ? Math.min(1, segProgress * 2) : 0;
+            } else {
+              labelOpacity = measuring ? 1 : 0;
+            }
+
+            if (labelOpacity <= 0 && initialDrawDone && !measuring) {
+              // Keep element in DOM for transition
+            }
+
+            return (
+              <text
+                key={`m-${i}`}
+                x={spineX - 8}
+                y={initialDrawDone ? (segTop + segBottom) / 2 : segMidY}
+                textAnchor="end"
+                dominantBaseline="central"
+                fill={color}
+                fontSize={9}
+                fontFamily="'DM Mono', monospace"
+                letterSpacing="0.04em"
+                opacity={labelOpacity * 0.5}
+                style={{
+                  transition: initialDrawDone
+                    ? measuring ? 'opacity 350ms ease' : 'opacity 700ms ease'
+                    : 'none',
+                }}
+              >
+                {initialDrawDone ? segHeight : displayValue}px
+              </text>
+            );
+          })}
+          </svg>
       )}
 
       <div ref={contentRef} style={{ display: 'flex', flexDirection: 'column', gap }}>
