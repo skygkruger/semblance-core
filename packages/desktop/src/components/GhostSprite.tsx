@@ -163,6 +163,10 @@ export function GhostSprite({
   const [showBubble, setShowBubble] = useState(false);
   const [pulsing, setPulsing] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [spawned, setSpawned] = useState(false);
+  const [idleFaded, setIdleFaded] = useState(false);
+  const [gutterHover, setGutterHover] = useState(false);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const measure = useCallback(() => {
     const content = contentRef.current;
@@ -203,18 +207,46 @@ export function GhostSprite({
     };
   }, [children, measure]);
 
-  // Track mouse globally for eye following
+  // Track mouse globally for eye following + gutter detection
   useEffect(() => {
-    const handleMouse = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY });
+    const handleMouse = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+      // Detect if cursor is in the right gutter area
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const mainEl = wrapper.closest('main');
+      if (!mainEl) return;
+      const mainRect = mainEl.getBoundingClientRect();
+      const contentRect = contentRef.current?.getBoundingClientRect();
+      if (!contentRect) return;
+      const inRightGutter = e.clientX > contentRect.right && e.clientX < mainRect.right;
+      setGutterHover(inRightGutter);
+    };
     window.addEventListener('mousemove', handleMouse, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouse);
   }, []);
 
-  // Hide bubble on page change
+  // Spawn after 5s delay on page load, reset on page change
   useEffect(() => {
+    setSpawned(false);
+    setIdleFaded(false);
     setShowBubble(false);
     setPulsing(false);
+    const spawnTimer = setTimeout(() => setSpawned(true), 5000);
+    return () => clearTimeout(spawnTimer);
   }, [insight]);
+
+  // Idle fade after 10s of being visible (reset on interaction)
+  useEffect(() => {
+    if (!spawned || showBubble || hovering || gutterHover) {
+      // Active — cancel idle timer and stay visible
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      if (idleFaded) setIdleFaded(false);
+      return;
+    }
+    idleTimerRef.current = setTimeout(() => setIdleFaded(true), 10000);
+    return () => { if (idleTimerRef.current) clearTimeout(idleTimerRef.current); };
+  }, [spawned, showBubble, hovering, gutterHover, idleFaded]);
 
   // Auto-dismiss bubble after 8s
   useEffect(() => {
@@ -250,9 +282,10 @@ export function GhostSprite({
           left: spriteX,
           top: spriteY,
           zIndex: 5,
-          pointerEvents: 'auto',
+          pointerEvents: spawned ? 'auto' : 'none',
           cursor: 'pointer',
-          transition: 'top 500ms ease-out',
+          transition: 'top 500ms ease-out, opacity 2s ease',
+          opacity: !spawned ? 0 : (idleFaded && !gutterHover && !hovering) ? 0 : 1,
         }}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
