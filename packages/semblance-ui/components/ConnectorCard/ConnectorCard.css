@@ -1,26 +1,14 @@
 /* ConnectorCard — Individual connector display with status and actions */
 
+/* Inherits surface-slate: gradient fill + silver conic shimmer border + hover glow */
 .connector-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   min-height: 140px;
   padding: var(--sp-4);
-  border-radius: var(--r-lg);
-  background: linear-gradient(160deg, #282E36 0%, #181C21 50%, #0E1114 100%);
-  border: 1px solid var(--b2);
-  transition: box-shadow var(--duration-base) var(--eo),
-              border-color var(--duration-base) var(--eo);
   box-sizing: border-box;
   overflow: hidden;
-}
-
-.connector-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow:
-    0 0 15px rgba(255, 255, 255, 0.06),
-    0 0 35px rgba(255, 255, 255, 0.04),
-    0 0 60px rgba(110, 207, 163, 0.05);
 }
 
 .connector-card--connected {
