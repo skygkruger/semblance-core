@@ -9,6 +9,7 @@
   overflow: hidden;
   max-width: 100%;
   box-sizing: border-box;
+  border-left: 1px solid transparent;
 }
 
 /* Light-top / dark-bottom directional fill */
@@ -41,6 +42,7 @@
   font-size: 28px;
   color: var(--white);
   margin: 0;
+  margin-top: var(--sp-8);
   font-weight: 300;
   background: linear-gradient(
     105deg,

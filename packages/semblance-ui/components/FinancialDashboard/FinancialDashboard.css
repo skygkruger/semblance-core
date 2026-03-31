@@ -9,6 +9,7 @@
   gap: var(--sp-6);
   overflow: hidden;
   position: relative;
+  border-left: 1px solid transparent;
 }
 
 /* Light-top / dark-bottom directional fill */
@@ -42,6 +43,7 @@
   font-weight: 300;
   font-size: 28px;
   margin: 0;
+  margin-top: var(--sp-8);
   line-height: 1.2;
   /* Pewter/rose-gold shimmer text */
   background: linear-gradient(

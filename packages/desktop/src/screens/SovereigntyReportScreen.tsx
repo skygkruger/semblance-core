@@ -51,7 +51,7 @@ export function SovereigntyReportScreen() {
     return (
       <div className="page-scroll">
         <div className="page-layout" style={{ textAlign: 'center', paddingTop: 64 }}>
-          <p style={{ color: '#B07A8A', fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14, marginBottom: 16 }}>
+          <p style={{ color: '#B07A8A', fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: '0.04em', marginBottom: 16 }}>
             {error}
           </p>
           <button
@@ -60,7 +60,7 @@ export function SovereigntyReportScreen() {
             style={{
               padding: '8px 20px', background: 'rgba(110,207,163,0.1)',
               border: '1px solid rgba(110,207,163,0.3)', borderRadius: 8,
-              color: '#6ECFA3', fontFamily: "'DM Sans', system-ui, sans-serif",
+              color: '#6ECFA3', fontFamily: "'DM Mono', monospace",
               fontSize: 13, cursor: 'pointer',
             }}
           >
@@ -75,22 +75,32 @@ export function SovereigntyReportScreen() {
     <div className="page-scroll">
     <div className="page-layout">
       {/* Period selector */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {[7, 30, 90, 365].map(days => (
-          <button
-            key={days}
-            type="button"
-            onClick={() => setPeriodDays(days)}
-            style={{
-              padding: '6px 14px', borderRadius: 6, border: 'none',
-              background: periodDays === days ? 'rgba(110,207,163,0.15)' : '#171B1F',
-              color: periodDays === days ? '#6ECFA3' : '#8593A4',
-              fontFamily: "'DM Mono', monospace", fontSize: 12, cursor: 'pointer',
-            }}
-          >
-            {days === 7 ? '7 days' : days === 30 ? '30 days' : days === 90 ? '90 days' : '1 year'}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {[7, 30, 90, 365].map(days => {
+          const isActive = periodDays === days;
+          const label = days === 7 ? '7 days' : days === 30 ? '30 days' : days === 90 ? '90 days' : '1 year';
+          return (
+            <button
+              key={days}
+              type="button"
+              onClick={() => setPeriodDays(days)}
+              className="btn btn--opal btn--sm"
+              style={isActive ? {
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 11,
+                letterSpacing: '0.04em',
+                borderColor: 'rgba(110, 207, 163, 0.45)',
+                boxShadow: '0 0 12px rgba(110, 207, 163, 0.18), inset 0 0 8px rgba(110, 207, 163, 0.08)',
+              } : {
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 11,
+                letterSpacing: '0.04em',
+              }}
+            >
+              <span className="btn__text">{label}</span>
+            </button>
+          );
+        })}
       </div>
 
       <SovereigntyReportCard
