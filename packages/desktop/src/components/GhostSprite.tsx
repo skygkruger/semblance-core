@@ -114,7 +114,6 @@ function GhostCanvas({ hover, mouseX, mouseY }: { hover: boolean; mouseX: number
             const distFade = Math.max(0, 1 - distFromBody * 0.12);
             alpha = wave > 0 ? (0.15 + 0.2 * wave) * distFade : 0.02 * distFade;
           } else {
-            // Body breathes
             const breath = 0.3 + 0.08 * Math.sin(time * 1.5 + y * 0.3 + x * 0.2);
             alpha = hover ? breath + 0.15 : breath;
           }
@@ -132,7 +131,11 @@ function GhostCanvas({ hover, mouseX, mouseY }: { hover: boolean; mouseX: number
             cg = Math.round(168 * (1 - tealMix) + 207 * tealMix);
             cb = Math.round(184 * (1 - tealMix) + 163 * tealMix);
           } else {
-            cr = 154; cg = 168; cb = 184;
+            // Slow opal wash — whole body shifts together
+            const wash = Math.sin(time * 0.3) * 0.5 + 0.5;
+            cr = Math.round(140 + 30 * wash);
+            cg = Math.round(150 + 30 * wash);
+            cb = Math.round(175 + 20 * wash);
           }
 
           drawCube(ctx, x, y, cr, cg, cb, alpha);
