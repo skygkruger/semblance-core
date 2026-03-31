@@ -38,9 +38,10 @@
 .action-log-item__text {
   flex: 1;
   min-width: 0;
-  font-family: var(--fb);
-  font-size: var(--text-base);
-  color: var(--sv3);
+  font-family: var(--fm);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: #A8B4C0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

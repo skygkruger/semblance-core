@@ -8,6 +8,7 @@
   flex-direction: column;
   gap: var(--sp-6);
   position: relative;
+  border-left: 1px solid transparent;
 }
 
 /* ─── Header — centered, silver tint ─── */
@@ -118,7 +119,7 @@
 }
 
 .privacy-dashboard__network-label {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv3);
 }
@@ -135,7 +136,7 @@
 
 /* ─── Chain integrity + Key security ─── */
 .privacy-dashboard__loading-text {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv1);
   font-style: italic;
@@ -149,7 +150,7 @@
 }
 
 .privacy-dashboard__status-label {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv3);
 }
@@ -239,7 +240,7 @@
 }
 
 .privacy-dashboard__proof-text {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv3);
 }
@@ -250,7 +251,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--sp-8) 0;
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv1);
   font-style: italic;

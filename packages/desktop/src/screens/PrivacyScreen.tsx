@@ -169,16 +169,10 @@ export function PrivacyScreen() {
   const sourceBreakdown = knowledgeStats.sources ?? {};
   const sourceKeys = Object.keys(sourceBreakdown);
 
-  const linkBtnClass = 'surface-pill';
   const linkBtnStyle: React.CSSProperties = {
-    padding: '10px 16px',
-    color: '#6ECFA3',
     fontFamily: "'DM Mono', monospace",
-    fontSize: 12,
+    fontSize: 11,
     letterSpacing: '0.04em',
-    cursor: 'pointer',
-    textAlign: 'left' as const,
-    width: '100%',
   };
 
   return (
@@ -215,13 +209,15 @@ export function PrivacyScreen() {
       )}
 
       {/* M7 + M9: Links to detailed network activity and gateway permissions */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => navigate('/network')} className={linkBtnClass} style={linkBtnStyle}>
-          {t('screen.privacy.view_network_activity', 'View Detailed Network Activity')} &rarr;
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <button type="button" onClick={() => navigate('/network')} className="btn btn--opal btn--sm" style={{ ...linkBtnStyle, width: '100%' }}>
+          <span className="btn__text">{t('screen.privacy.view_network_activity', 'View Detailed Network Activity')} &rarr;</span>
         </button>
-        <button type="button" onClick={() => navigate('/network')} className={linkBtnClass} style={linkBtnStyle}>
-          {t('screen.privacy.view_gateway_permissions', 'View Gateway Permissions')} &rarr;
-        </button>
+        <div style={{ padding: '0 24px' }}>
+          <button type="button" onClick={() => navigate('/network')} className="btn btn--opal btn--sm" style={{ ...linkBtnStyle, width: '100%' }}>
+            <span className="btn__text">{t('screen.privacy.view_gateway_permissions', 'View Gateway Permissions')} &rarr;</span>
+          </button>
+        </div>
       </div>
     </div>
     </div>
