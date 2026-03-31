@@ -124,7 +124,7 @@ export function ImportDigitalLifeView({
       {/* Import source cards */}
       <div className="import-life__sources">
         {importSources.map(source => (
-          <Card key={source.id}>
+          <Card key={source.id} className="surface-void opal-wireframe">
             <div className={`import-life__source${!isPremium ? ' import-life__source--locked' : ''}`}>
               <div style={{ flex: 1 }}>
                 <h3 className="import-life__source-name">{source.name}</h3>

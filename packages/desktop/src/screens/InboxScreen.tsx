@@ -441,7 +441,7 @@ export function InboxScreen() {
           </h2>
 
           {emails.length === 0 ? (
-            <Card>
+            <Card className="surface-void opal-wireframe">
               <p style={{ textAlign: 'center', fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', paddingTop: 32, paddingBottom: 32 }}>
                 {t('screen.inbox.empty_email')}
               </p>
@@ -510,13 +510,13 @@ export function InboxScreen() {
           </h2>
 
           {todayEvents.length === 0 ? (
-            <Card>
+            <Card className="surface-void opal-wireframe">
               <p style={{ textAlign: 'center', fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', paddingTop: 16, paddingBottom: 16 }}>
                 {t('screen.inbox.empty_calendar')}
               </p>
             </Card>
           ) : (
-            <Card>
+            <Card className="surface-void opal-wireframe">
               <div className="space-y-3">
                 {todayEvents.map(event => (
                   <div
@@ -553,7 +553,7 @@ export function InboxScreen() {
           <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {t('screen.inbox.section_actions')}
           </h2>
-          <Card>
+          <Card className="surface-void opal-wireframe">
             {actionsSummary.todayCount === 0 ? (
               <p style={{ textAlign: 'center', fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', paddingTop: 16, paddingBottom: 16 }}>
                 {t('screen.inbox.empty_actions')}
