@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DirectoryPicker, ProgressBar, Card, StatusIndicator, SkeletonCard } from '@semblance/ui';
 import { startIndexing, getKnowledgeStats } from '../ipc/commands';
+import { StaticBracket } from '../components/StaticBracket';
 import { useTauriEvent } from '../hooks/useTauriEvent';
 import { useAppState, useAppDispatch } from '../state/AppState';
 
@@ -113,6 +114,7 @@ export function FilesScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', margin: '0 auto' }}>{t('screen.files.title')}</h1>
+        <StaticBracket>
         <div className="settings-screen" style={{ minHeight: 'auto' }}>
           <div className="settings-content">
         {/* Indexed Directories */}
@@ -204,6 +206,7 @@ export function FilesScreen() {
         )}
           </div>
         </div>
+        </StaticBracket>
       </div>
     </div>
   );
