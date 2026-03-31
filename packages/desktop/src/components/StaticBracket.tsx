@@ -28,6 +28,7 @@ export function StaticBracket({
   const [drawProgress, setDrawProgress] = useState(0);
   const [initialDrawDone, setInitialDrawDone] = useState(false);
   const [measuring, setMeasuring] = useState(false);
+  const [postDrawHold, setPostDrawHold] = useState(false);
   const measureTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const measure = useCallback(() => {
@@ -80,12 +81,14 @@ export function StaticBracket({
       measure();
       const elapsed = performance.now() - start;
       const p = Math.min(1, elapsed / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
+      const eased = 1 - Math.pow(1 - p, 2);
       setDrawProgress(eased);
       if (p < 1) {
         animFrameRef.current = requestAnimationFrame(tick);
       } else {
         setInitialDrawDone(true);
+        setPostDrawHold(true);
+        setTimeout(() => setPostDrawHold(false), 1000);
       }
     };
     animFrameRef.current = requestAnimationFrame(tick);
@@ -168,7 +171,7 @@ export function StaticBracket({
             if (!initialDrawDone) {
               labelOpacity = p > 0.05 ? Math.min(1, p * 2) : 0;
             } else {
-              labelOpacity = measuring ? 1 : 0;
+              labelOpacity = (measuring || postDrawHold) ? 1 : 0;
             }
 
             return (

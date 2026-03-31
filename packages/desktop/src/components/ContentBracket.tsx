@@ -32,6 +32,7 @@ export function ContentBracket({
   const [drawProgress, setDrawProgress] = useState(0);
   const [initialDrawDone, setInitialDrawDone] = useState(false);
   const [measuring, setMeasuring] = useState(false);
+  const [postDrawHold, setPostDrawHold] = useState(false);
   const measureTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const measure = useCallback(() => {
@@ -84,9 +85,13 @@ export function ContentBracket({
       measure();
       const elapsed = performance.now() - start;
       const p = Math.min(1, elapsed / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
+      const eased = 1 - Math.pow(1 - p, 2);
       setDrawProgress(eased);
-      if (p >= 1 && !initialDrawDone) setInitialDrawDone(true);
+      if (p >= 1 && !initialDrawDone) {
+        setInitialDrawDone(true);
+        setPostDrawHold(true);
+        setTimeout(() => setPostDrawHold(false), 1000);
+      }
       if (p < 1) {
         animFrameRef.current = requestAnimationFrame(tick);
       }
@@ -127,11 +132,10 @@ export function ContentBracket({
   const tickLen = 16;
   const p = drawProgress;
 
-  // Spine: 0-70%, leaving 30% for outermost ticks to extend
-  const spineP = Math.min(1, p / 0.7);
+  // Spine: full duration, same as StaticBracket
   const spineMid = spineTop + spineHeight / 2;
-  const animSpineTop = spineMid - (spineHeight / 2) * spineP;
-  const animSpineBottom = spineMid + (spineHeight / 2) * spineP;
+  const animSpineTop = spineMid - (spineHeight / 2) * p;
+  const animSpineBottom = spineMid + (spineHeight / 2) * p;
 
   // Caps: last 20% (same as StaticBracket)
   const capP = Math.max(0, (p - 0.8) / 0.2);
@@ -169,10 +173,10 @@ export function ContentBracket({
             {/* Horizontal ticks — draw sequentially from center outward */}
             {sortedTicks.map((tick) => {
               if (tick.y < animSpineTop || tick.y > animSpineBottom) return null;
-              // Tick starts when spine reaches it (at p * 0.7), takes 0.3 to fully extend
+              // Tick starts when spine reaches it, takes 0.3 to fully extend
               const halfSpine = spineHeight / 2;
               const reachFraction = halfSpine > 0 ? tick.distFromCenter / halfSpine : 0;
-              const tickStartP = reachFraction * 0.7; // spine finishes at p=0.7
+              const tickStartP = reachFraction; // spine grows linearly with p
               const tickLocalP = Math.max(0, Math.min(1, (p - tickStartP) / 0.3));
               if (tickLocalP <= 0) return null;
               const easedTickP = 1 - Math.pow(1 - tickLocalP, 3);
@@ -203,7 +207,7 @@ export function ContentBracket({
             if (!initialDrawDone) {
               labelOpacity = segProgress > 0.05 ? Math.min(1, segProgress * 2) : 0;
             } else {
-              labelOpacity = measuring ? 1 : 0;
+              labelOpacity = (measuring || postDrawHold) ? 1 : 0;
             }
 
             if (labelOpacity <= 0 && initialDrawDone && !measuring) {
