@@ -76,21 +76,26 @@ export function ContentBracket({
       requestAnimationFrame(measure);
     });
 
-    const observer = new ResizeObserver(() => requestAnimationFrame(measure));
-    observer.observe(content);
-    for (const child of Array.from(content.children)) {
-      observer.observe(child);
+    const hasResizeObserver = typeof ResizeObserver !== 'undefined';
+    const observer = hasResizeObserver ? new ResizeObserver(() => requestAnimationFrame(measure)) : null;
+    if (observer) observer.observe(content);
+    if (observer) {
+      for (const child of Array.from(content.children)) {
+        observer.observe(child);
+      }
     }
 
-    const mutationObserver = new MutationObserver(() => requestAnimationFrame(measure));
-    mutationObserver.observe(content, { childList: true, subtree: true });
+    const mutationObserver = typeof MutationObserver !== 'undefined'
+      ? new MutationObserver(() => requestAnimationFrame(measure))
+      : null;
+    if (mutationObserver) mutationObserver.observe(content, { childList: true, subtree: true });
 
     window.addEventListener('resize', measure);
 
     return () => {
       cancelAnimationFrame(raf);
-      observer.disconnect();
-      mutationObserver.disconnect();
+      if (observer) observer.disconnect();
+      if (mutationObserver) mutationObserver.disconnect();
       window.removeEventListener('resize', measure);
     };
   }, [children, measure]);

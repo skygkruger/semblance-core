@@ -70,14 +70,15 @@ export function StaticBracket({
       requestAnimationFrame(measure);
     });
 
-    const observer = new ResizeObserver(() => requestAnimationFrame(measure));
-    observer.observe(content);
+    const hasResizeObserver = typeof ResizeObserver !== 'undefined';
+    const observer = hasResizeObserver ? new ResizeObserver(() => requestAnimationFrame(measure)) : null;
+    if (observer) observer.observe(content);
 
     window.addEventListener('resize', measure);
 
     return () => {
       cancelAnimationFrame(raf);
-      observer.disconnect();
+      if (observer) observer.disconnect();
       window.removeEventListener('resize', measure);
     };
   }, [children, measure]);
