@@ -40,9 +40,33 @@ const GHOST_PIXELS = [
   '00000100000100',  // 21 - fading
 ];
 
-const PIXEL_SIZE = 3.5;
-const GHOST_W = 14 * PIXEL_SIZE;
-const GHOST_H = 22 * PIXEL_SIZE;
+const PX = 4; // pixel size
+const DEPTH = 1.5; // 3D depth offset
+const GHOST_W = 14 * PX + DEPTH + 2;
+const GHOST_H = 22 * PX + DEPTH + 2;
+const PIXEL_SIZE = PX; // keep for pupil/glow calculations
+
+// Draw a raised pixel cube — flat front face + right edge + bottom edge
+function drawCube(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number,
+  r: number, g: number, b: number, a: number,
+) {
+  const sx = x * PX + 1;
+  const sy = y * PX + 1;
+
+  // Front face (main color)
+  ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
+  ctx.fillRect(sx, sy, PX, PX);
+
+  // Right edge (lighter — catch light)
+  ctx.fillStyle = `rgba(${Math.min(255, r + 40)}, ${Math.min(255, g + 40)}, ${Math.min(255, b + 40)}, ${a * 0.5})`;
+  ctx.fillRect(sx + PX, sy + DEPTH, DEPTH, PX);
+
+  // Bottom edge (darker — shadow)
+  ctx.fillStyle = `rgba(${Math.round(r * 0.4)}, ${Math.round(g * 0.4)}, ${Math.round(b * 0.4)}, ${a * 0.4})`;
+  ctx.fillRect(sx + DEPTH, sy + PX, PX, DEPTH);
+}
 
 function GhostCanvas({ hover, mouseX, mouseY }: { hover: boolean; mouseX: number; mouseY: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -97,20 +121,21 @@ function GhostCanvas({ hover, mouseX, mouseY }: { hover: boolean; mouseX: number
 
           if (alpha <= 0) continue;
 
+          // Calculate color
+          let cr: number, cg: number, cb: number;
           if (isEye) {
-            // Dim socket glow
-            ctx.fillStyle = `rgba(110, 207, 163, ${alpha * 0.6})`;
+            cr = 110; cg = 207; cb = 163;
+            alpha *= 0.6;
           } else if (isWisp) {
-            // Wisps shift between teal and silver
             const tealMix = 0.3 + 0.3 * Math.sin(time * 2 + x);
-            const r = Math.round(154 * (1 - tealMix) + 110 * tealMix);
-            const g = Math.round(168 * (1 - tealMix) + 207 * tealMix);
-            const b = Math.round(184 * (1 - tealMix) + 163 * tealMix);
-            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            cr = Math.round(154 * (1 - tealMix) + 110 * tealMix);
+            cg = Math.round(168 * (1 - tealMix) + 207 * tealMix);
+            cb = Math.round(184 * (1 - tealMix) + 163 * tealMix);
           } else {
-            ctx.fillStyle = `rgba(154, 168, 184, ${alpha})`;
+            cr = 154; cg = 168; cb = 184;
           }
-          ctx.fillRect(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+
+          drawCube(ctx, x, y, cr, cg, cb, alpha);
         }
       }
     }
@@ -126,8 +151,7 @@ function GhostCanvas({ hover, mouseX, mouseY }: { hover: boolean; mouseX: number
     ];
     for (const p of pupils) {
       if (p.x >= 0 && p.x < 14 && p.y >= 0 && p.y < 22) {
-        ctx.fillStyle = `rgba(110, 207, 163, ${pupilAlpha})`;
-        ctx.fillRect(p.x * PIXEL_SIZE, p.y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+        drawCube(ctx, p.x, p.y, 110, 207, 163, pupilAlpha);
       }
     }
 
@@ -284,7 +308,7 @@ export function GhostSprite({
           zIndex: 5,
           pointerEvents: spawned ? 'auto' : 'none',
           cursor: 'pointer',
-          transition: 'top 500ms ease-out, opacity 2s ease',
+          transition: 'top 500ms ease-out, opacity 3s ease',
           opacity: !spawned ? 0 : (idleFaded && !gutterHover && !hovering) ? 0 : 1,
         }}
         onMouseEnter={() => setHovering(true)}
