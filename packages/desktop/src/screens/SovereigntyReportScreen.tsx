@@ -3,6 +3,7 @@ import { SovereigntyReportCard } from '@semblance/ui';
 import { useAppState } from '../state/AppState';
 import { generateSovereigntyReport, renderSovereigntyReportPDF } from '../ipc/commands';
 import type { SovereigntyReportData } from '../ipc/types';
+import { StaticBracket } from '../components/StaticBracket';
 
 export function SovereigntyReportScreen() {
   const state = useAppState();
@@ -103,6 +104,7 @@ export function SovereigntyReportScreen() {
         })}
       </div>
 
+      <StaticBracket>
       <SovereigntyReportCard
         periodStart={periodStart}
         periodEnd={periodEnd}
@@ -129,6 +131,7 @@ export function SovereigntyReportScreen() {
         comparisonStatement={report?.comparisonStatement}
         onExportPDF={handleExportPDF}
       />
+      </StaticBracket>
     </div>
     </div>
   );

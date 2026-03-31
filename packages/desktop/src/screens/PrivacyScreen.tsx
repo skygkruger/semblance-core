@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { PrivacyDashboard, useFeatureAuth } from '@semblance/ui';
 import type { NetworkEntry, AuditEntry } from '@semblance/ui';
 import { useAppState } from '../state/AppState';
+import { StaticBracket } from '../components/StaticBracket';
 import {
   renderSovereigntyReportPDF,
   getAuditChainStatus,
@@ -178,6 +179,7 @@ export function PrivacyScreen() {
   return (
     <div className="page-scroll">
     <div className="page-layout">
+      <StaticBracket>
       <PrivacyDashboard
         dataSources={knowledgeStats.documentCount}
         cloudConnections={0}
@@ -207,6 +209,8 @@ export function PrivacyScreen() {
           </div>
         </div>
       )}
+
+      </StaticBracket>
 
       {/* M7 + M9: Links to detailed network activity and gateway permissions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
