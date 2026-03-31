@@ -439,7 +439,7 @@ export function InboxScreen() {
 
         <ContentBracket>
         {/* Email Section */}
-        <section className="space-y-3">
+        <section className="space-y-3" style={{ marginTop: 24 }}>
           <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {t('screen.inbox.section_email')}
           </h2>
