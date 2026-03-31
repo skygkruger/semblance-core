@@ -115,7 +115,7 @@ export function FilesScreen() {
       <div className="page-layout">
         <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', margin: '0 auto' }}>{t('screen.files.title')}</h1>
         <StaticBracket>
-        <div className="settings-screen" style={{ minHeight: 'auto' }}>
+        <div className="settings-screen surface-void" style={{ minHeight: 'auto' }}>
           <div className="settings-content">
         {/* Indexed Directories */}
         <div className="settings-section-header">{t('screen.files.section_directories')}</div>

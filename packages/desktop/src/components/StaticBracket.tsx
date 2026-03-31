@@ -35,7 +35,7 @@ export function StaticBracket({
     const mainLeft = mainEl ? mainEl.getBoundingClientRect().left : contentRect.left;
 
     // Find card-like elements for bracket extent and gutter calculation
-    const cards = Array.from(content.querySelectorAll('.card, .surface-void, .surface-slate, .skeleton-card, .settings-screen')) as HTMLElement[];
+    const cards = Array.from(content.querySelectorAll('.card, .surface-void, .surface-slate, .skeleton-card')) as HTMLElement[];
     const topCards = cards.filter(card => !cards.some(other => other !== card && other.contains(card)));
 
     // Center spine between main left edge and the actual card's left edge
