@@ -131,23 +131,28 @@ function TrustStatusCard({ unauthorizedAttempts, onGenerateReport }: {
   const { t } = useTranslation();
   const isClean = unauthorizedAttempts === 0;
   return (
-    <Card className={`p-6 border-l-[3px] surface-void opal-wireframe ${isClean ? 'border-l-semblance-success' : 'border-l-semblance-attention'}`}>
-      <div className="flex items-start gap-4">
-        <div className={`w-4 h-4 rounded-full mt-0.5 ${isClean ? 'bg-semblance-success' : 'bg-semblance-attention'}`} />
-        <div className="flex-1">
-          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#EEF1F4', letterSpacing: '0.04em' }}>
+    <Card className={`surface-void opal-wireframe`}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#EEF1F4', letterSpacing: '0.04em', margin: 0 }}>
             {isClean ? t('screen.network_monitor.zero_connections') : t('screen.network_monitor.blocked_attempts', { count: unauthorizedAttempts })}
           </h2>
+          <div style={{
+            width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+            background: isClean ? '#6ECFA3' : '#B09A8A',
+            animation: 'pulse 2s ease-in-out infinite',
+            animationDelay: '-1000s',
+          }} />
+        </div>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', marginTop: 4 }}>
             {isClean
               ? t('screen.network_monitor.trust_clean_desc')
               : t('screen.network_monitor.trust_blocked_desc', { count: unauthorizedAttempts })
             }
           </p>
-          <Button size="sm" className="mt-3" onClick={onGenerateReport}>
-            {t('screen.network_monitor.btn_proof_report')}
-          </Button>
-        </div>
+        <button type="button" className="btn btn--opal btn--sm" style={{ marginTop: 12 }} onClick={onGenerateReport}>
+          <span className="btn__text">{t('screen.network_monitor.btn_proof_report')}</span>
+        </button>
       </div>
     </Card>
   );
@@ -413,28 +418,30 @@ export function NetworkMonitorScreen() {
             {t('screen.network_monitor.title')}
           </h1>
           <div className="flex gap-1">
-            {(['today', 'week', 'month'] as const).map(p => (
-              <button
-                type="button"
-                key={p}
-                onClick={() => setPeriod(p)}
-                style={{
-                  padding: '4px 12px',
-                  borderRadius: 4,
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 11,
-                  fontWeight: 400,
-                  letterSpacing: '0.04em',
-                  cursor: 'pointer',
-                  border: 'none',
-                  transition: 'all 150ms ease',
-                  background: period === p ? '#6ECFA3' : 'transparent',
-                  color: period === p ? '#0B0E11' : '#5E6B7C',
-                }}
-              >
-                {t(`screen.network_monitor.period_${p}`)}
-              </button>
-            ))}
+            {(['today', 'week', 'month'] as const).map(pd => {
+              const isActive = period === pd;
+              return (
+                <button
+                  type="button"
+                  key={pd}
+                  onClick={() => setPeriod(pd)}
+                  className="btn btn--opal btn--sm"
+                  style={isActive ? {
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: 11,
+                    letterSpacing: '0.04em',
+                    borderColor: 'rgba(110, 207, 163, 0.45)',
+                    boxShadow: '0 0 12px rgba(110, 207, 163, 0.18), inset 0 0 8px rgba(110, 207, 163, 0.08)',
+                  } : {
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: 11,
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  <span className="btn__text">{t(`screen.network_monitor.period_${pd}`)}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
