@@ -80,7 +80,7 @@ export function ContentBracket({
     setDrawProgress(0);
     setInitialDrawDone(false);
     const start = performance.now();
-    const duration = 2500;
+    const duration = 3200;
     const tick = () => {
       measure();
       const elapsed = performance.now() - start;
@@ -172,14 +172,12 @@ export function ContentBracket({
 
             {/* Horizontal ticks — draw sequentially from center outward */}
             {sortedTicks.map((tick) => {
-              if (tick.y < animSpineTop || tick.y > animSpineBottom) return null;
-              // Tick starts when spine reaches it, takes 0.3 to fully extend
               const halfSpine = spineHeight / 2;
               const reachFraction = halfSpine > 0 ? tick.distFromCenter / halfSpine : 0;
-              const tickStartP = reachFraction; // spine grows linearly with p
+              const tickStartP = reachFraction * 0.7;
               const tickLocalP = Math.max(0, Math.min(1, (p - tickStartP) / 0.3));
               if (tickLocalP <= 0) return null;
-              const easedTickP = 1 - Math.pow(1 - tickLocalP, 3);
+              const easedTickP = 1 - Math.pow(1 - tickLocalP, 2);
               return <line key={tick.i} x1={spineX} y1={tick.y} x2={spineX + tickLen * easedTickP} y2={tick.y} />;
             })}
           </g>
