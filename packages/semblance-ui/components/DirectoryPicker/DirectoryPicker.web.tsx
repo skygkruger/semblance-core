@@ -53,7 +53,7 @@ export function DirectoryPicker({ directories, onAdd, onRemove, onRescan, classN
           </li>
         ))}
       </ul>
-      <button type="button" className="btn btn--opal btn--sm" style={{ width: '100%' }} onClick={onAdd}>
+      <button type="button" className="btn btn--opal btn--sm" style={{ width: 'calc(100% - 32px)', margin: '0 16px' }} onClick={onAdd}>
         <span className="btn__text">+ {t('button.add_folder')}</span>
       </button>
     </div>

@@ -183,7 +183,7 @@ export function FilesScreen() {
               { value: knowledgeStats.documentCount, label: t('screen.files.stat_documents') },
               { value: knowledgeStats.chunkCount, label: t('screen.files.stat_chunks') },
               { value: `${(knowledgeStats.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB`, label: t('screen.files.stat_index_size') },
-              { value: '.txt, .md, .pdf, .docx', label: t('screen.files.stat_supported_types') },
+              { value: '.txt  .md  .pdf  .docx', label: t('screen.files.stat_supported_types') },
             ].map((stat) => (
               <Card key={stat.label}>
                 <div style={{
