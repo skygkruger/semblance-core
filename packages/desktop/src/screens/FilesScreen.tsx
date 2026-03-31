@@ -177,30 +177,29 @@ export function FilesScreen() {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, padding: '0 16px' }}>
-            <Card>
-              <div style={{ padding: 16 }}>
-                <span style={{ fontSize: 20, fontWeight: 400, color: '#6ECFA3', fontFamily: "'DM Mono', monospace", letterSpacing: '0.02em' }}>{knowledgeStats.documentCount}</span>
-                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_documents')}</span>
-              </div>
-            </Card>
-            <Card>
-              <div style={{ padding: 16 }}>
-                <span style={{ fontSize: 20, fontWeight: 400, color: '#6ECFA3', fontFamily: "'DM Mono', monospace", letterSpacing: '0.02em' }}>{knowledgeStats.chunkCount}</span>
-                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_chunks')}</span>
-              </div>
-            </Card>
-            <Card>
-              <div style={{ padding: 16 }}>
-                <span style={{ fontSize: 20, fontWeight: 400, color: '#6ECFA3', fontFamily: "'DM Mono', monospace", letterSpacing: '0.02em' }}>{(knowledgeStats.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB</span>
-                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_index_size')}</span>
-              </div>
-            </Card>
-            <Card>
-              <div style={{ padding: 16 }}>
-                <span style={{ fontSize: 20, fontWeight: 400, color: '#6ECFA3', fontFamily: "'DM Mono', monospace", letterSpacing: '0.02em' }}>.txt, .md, .pdf, .docx</span>
-                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_supported_types')}</span>
-              </div>
-            </Card>
+            {[
+              { value: knowledgeStats.documentCount, label: t('screen.files.stat_documents') },
+              { value: knowledgeStats.chunkCount, label: t('screen.files.stat_chunks') },
+              { value: `${(knowledgeStats.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB`, label: t('screen.files.stat_index_size') },
+              { value: '.txt, .md, .pdf, .docx', label: t('screen.files.stat_supported_types') },
+            ].map((stat) => (
+              <Card key={stat.label}>
+                <div style={{
+                  display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+                  textAlign: 'center', minHeight: 80,
+                }}>
+                  <span style={{
+                    fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace",
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    marginBottom: 6,
+                  }}>{stat.label}</span>
+                  <span style={{
+                    fontSize: 18, fontWeight: 400, color: '#6ECFA3', fontFamily: "'DM Mono', monospace",
+                    letterSpacing: '0.02em',
+                  }}>{stat.value}</span>
+                </div>
+              </Card>
+            ))}
           </div>
         )}
       </div>
