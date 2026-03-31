@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActionCard, AlterEgoBatchReview, ActionLogItem, AlterEgoReceipt, AlterEgoDraftReview, Input } from '@semblance/ui';
+import { ActionCard, AlterEgoBatchReview, ActionLogItem, AlterEgoReceipt, AlterEgoDraftReview, Input, Card } from '@semblance/ui';
 import { getActionLog, getAlterEgoReceipts, approveAlterEgoBatch, rejectAlterEgoBatch, getPendingActions, getEscalationPrompts, respondToEscalation, undoAlterEgoReceipt, getAlterEgoWeekProgress, completeAlterEgoDay, skipAlterEgoDay } from '../ipc/commands';
 import type { LogEntry, AlterEgoReceiptData, PendingAction, EscalationPromptData, AlterEgoWeekProgressData } from '../ipc/types';
 import { EscalationPromptCard } from '../components/EscalationPromptCard';
@@ -151,7 +151,7 @@ export function ActivityScreen() {
       </div>
 
       {/* Filter bar */}
-      <div style={{ display: 'flex', gap: 8, padding: '0 16px' }}>
+      <div style={{ display: 'flex', gap: 6 }}>
         {(['all', 'success', 'pending', 'error', 'rejected', 'alter_ego'] as const).map((status) => {
           const filterLabels: Record<string, string> = {
             all: t('screen.activity.filter_all'),
@@ -167,20 +167,20 @@ export function ActivityScreen() {
               key={status}
               type="button"
               onClick={() => setFilterStatus(status)}
-              className={isActive ? 'surface-pill' : ''}
-              style={{
-                padding: '6px 12px',
-                fontSize: 12,
-                borderRadius: 8,
-                border: isActive ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
-                background: isActive ? undefined : 'transparent',
-                color: isActive ? '#6ECFA3' : '#5E6B7C',
+              className="btn btn--opal btn--sm"
+              style={isActive ? {
                 fontFamily: "'DM Mono', monospace",
-                cursor: 'pointer',
+                fontSize: 11,
+                letterSpacing: '0.04em',
+                borderColor: 'rgba(110, 207, 163, 0.45)',
+                boxShadow: '0 0 12px rgba(110, 207, 163, 0.18), inset 0 0 8px rgba(110, 207, 163, 0.08)',
+              } : {
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 11,
                 letterSpacing: '0.04em',
               }}
             >
-              {filterLabels[status]}
+              <span className="btn__text">{filterLabels[status]}</span>
             </button>
           );
         })}
@@ -233,11 +233,11 @@ export function ActivityScreen() {
       {/* Alter Ego receipt view */}
       {filterStatus === 'alter_ego' ? (
         alterEgoReceipts.length === 0 ? (
-          <div className="surface-slate" style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <p style={{ color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em', margin: 0 }}>
+          <Card className="surface-void opal-wireframe">
+            <p style={{ textAlign: 'center', color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em', margin: 0, paddingTop: 32, paddingBottom: 32 }}>
               {t('screen.activity.empty', { name })}
             </p>
-          </div>
+          </Card>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '0 16px' }}>
             {weekGroups.map((week) => (
@@ -267,11 +267,11 @@ export function ActivityScreen() {
       ) : (
         /* Standard action log */
         filtered.length === 0 ? (
-          <div className="surface-slate" style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <p style={{ color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em', margin: 0 }}>
+          <Card className="surface-void opal-wireframe">
+            <p style={{ textAlign: 'center', color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em', margin: 0, paddingTop: 32, paddingBottom: 32 }}>
               {t('screen.activity.empty', { name })}
             </p>
-          </div>
+          </Card>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px' }}>
             {filtered.map((entry) => (
