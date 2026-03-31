@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { getVersion } from '@tauri-apps/api/app';
 import { emit, listen } from '@tauri-apps/api/event';
 import { SettingsNavigator } from '@semblance/ui';
+import { StaticBracket } from '../components/StaticBracket';
 import type { AutonomyTier } from '@semblance/ui';
 import {
   getAccountsStatus,
@@ -149,7 +150,7 @@ export function SettingsScreen() {
       .then(setAppVersion)
       .catch(() => {});
     getNotificationSettings()
-      .then(setNotifSettings)
+      .then(r => { if (r) setNotifSettings(r); })
       .catch(() => {});
     getBitNetModels()
       .then((res) => {
@@ -559,8 +560,11 @@ export function SettingsScreen() {
       : 'free' as const;
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8">
+    <div className="page-scroll">
+      <div className="page-layout">
+        <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', margin: '0 auto' }}>{t('screen.settings.title', 'Settings')}</h1>
+        <style>{`.settings-header { display: none; }`}</style>
+        <StaticBracket>
         <SettingsNavigator
           /* Root props */
           currentModel={state.activeModel || 'Loading...'}
@@ -862,6 +866,7 @@ export function SettingsScreen() {
           onReindex={handleReindex}
           onClearKnowledgeSource={handleClearKnowledgeSource}
         />
+        </StaticBracket>
       </div>
     </div>
   );

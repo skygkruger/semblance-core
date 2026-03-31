@@ -16,7 +16,7 @@
   max-width: 720px;
   margin: 0 auto;
   color: var(--white);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-weight: 300;
   overflow-x: hidden;
   border: 1px solid transparent;
@@ -100,7 +100,7 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-weight: 400;
   font-size: 16px;
   color: var(--white);
@@ -156,7 +156,7 @@
   border-top: none;
   width: 100%;
   text-align: left;
-  font-family: inherit;
+  font-family: var(--fm);
   gap: 8px;
 }
 
@@ -414,7 +414,7 @@
   background: none;
   border: 1px solid rgba(110, 207, 163, 0.3);
   color: var(--v);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: 14px;
   font-weight: 400;
   padding: 8px 16px;
@@ -441,7 +441,7 @@
   border-radius: 12px;
   cursor: pointer;
   text-align: left;
-  font-family: inherit;
+  font-family: var(--fm);
   transition: background 180ms, border-color 180ms, box-shadow 180ms;
 }
 
@@ -512,7 +512,7 @@
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 15px;
-  font-family: var(--fb);
+  font-family: var(--fm);
   color: var(--white);
   outline: none;
   transition: border-color 180ms;
@@ -591,7 +591,7 @@
 }
 
 .settings-model-card__name {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: 14px;
   font-weight: 400;
   color: var(--white);
@@ -727,7 +727,7 @@
 /* Section explanation for BitNet */
 .settings-bitnet-explainer {
   padding: 8px 20px 12px;
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: 12px;
   font-weight: 300;
   color: var(--sv1);
