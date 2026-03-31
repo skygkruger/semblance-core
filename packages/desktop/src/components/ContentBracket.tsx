@@ -35,7 +35,7 @@ export function ContentBracket({
     if (!content || !wrapper) return;
 
     // Find all card-like elements anywhere inside, not just direct children
-    const cards = Array.from(content.querySelectorAll('.card, .surface-void, .surface-slate, .skeleton-card, section')) as HTMLElement[];
+    const cards = Array.from(content.querySelectorAll('.card, .surface-void, .surface-slate, .skeleton-card')) as HTMLElement[];
     // Deduplicate: only keep outermost cards (skip cards nested inside other cards)
     const topCards = cards.filter(card => !cards.some(other => other !== card && other.contains(card)));
 
