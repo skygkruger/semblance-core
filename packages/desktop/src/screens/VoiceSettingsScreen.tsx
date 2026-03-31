@@ -56,8 +56,8 @@ export function VoiceSettingsScreen() {
 
   if (isLoading) {
     return (
-      <div className="h-full overflow-y-auto">
-        <div className="max-w-container-lg mx-auto px-6 py-8">
+      <div className="page-scroll">
+        <div className="page-layout">
           <SkeletonCard variant="generic" message="Loading voice settings" subMessage="Checking audio capabilities" showSpinner />
         </div>
       </div>
@@ -65,8 +65,8 @@ export function VoiceSettingsScreen() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8">
+    <div className="page-scroll">
+      <div className="page-layout">
         <VoiceSettingsSection />
       </div>
     </div>

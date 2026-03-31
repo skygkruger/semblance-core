@@ -66,8 +66,8 @@ export function CloudStorageSettingsScreen() {
 
   if (isLoading) {
     return (
-      <div className="h-full overflow-y-auto">
-        <div className="max-w-container-lg mx-auto px-6 py-8">
+      <div className="page-scroll">
+        <div className="page-layout">
           <SkeletonCard variant="generic" message="Loading cloud storage" subMessage="Checking connected providers" showSpinner />
         </div>
       </div>
@@ -75,8 +75,8 @@ export function CloudStorageSettingsScreen() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8">
+    <div className="page-scroll">
+      <div className="page-layout">
         <CloudStorageSettingsSection />
       </div>
     </div>

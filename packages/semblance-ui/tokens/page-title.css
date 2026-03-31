@@ -1,3 +1,20 @@
+/* Page Layout — standard page wrapper for consistent spacing across all screens.
+   Golden standard: InboxScreen. Every screen uses this for uniform positioning. */
+
+.page-layout {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.page-scroll {
+  height: 100%;
+  overflow-y: auto;
+}
+
 /* Page Title — global shimmer gradient for all page-level h1 headers.
    Uses the sovereignty identity blue-steel/silver/sage palette.
    Import after tokens.css (requires @keyframes shimmer). */

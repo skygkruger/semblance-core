@@ -152,7 +152,8 @@ export function SemblanceNetworkScreen() {
   }
 
   return (
-    <div className="semblance-network-screen">
+    <div className="semblance-network-screen page-scroll">
+      <div className="page-layout">
       <div className="semblance-network-screen__header">
         <h1 className="semblance-network-screen__title">{t('semblanceNetwork.title', 'Semblance Network')}</h1>
       </div>
@@ -293,6 +294,7 @@ export function SemblanceNetworkScreen() {
             )}
           </>
         )}
+      </div>
     </div>
   );
 }

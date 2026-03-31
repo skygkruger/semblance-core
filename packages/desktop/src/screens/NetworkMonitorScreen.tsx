@@ -405,8 +405,8 @@ export function NetworkMonitorScreen() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
+    <div className="page-scroll">
+      <div className="page-layout">
         <div className="flex items-center justify-between">
           <h1 className="page-title" style={{ fontSize: 28 }}>
             {t('screen.network_monitor.title')}

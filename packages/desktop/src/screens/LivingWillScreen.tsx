@@ -192,8 +192,8 @@ export function LivingWillScreen() {
 
   if (loading) {
     return (
-      <div className="living-will h-full overflow-y-auto">
-        <div className="living-will__container">
+      <div className="living-will page-scroll">
+        <div className="living-will__container page-layout">
           <h1 className="living-will__title">{t('screen.living_will.title')}</h1>
           <SkeletonCard variant="generic" message="Loading Living Will" subMessage="Retrieving export configuration" showSpinner />
         </div>
@@ -202,8 +202,8 @@ export function LivingWillScreen() {
   }
 
   return (
-    <div className="living-will h-full overflow-y-auto">
-      <div className="living-will__container">
+    <div className="living-will page-scroll">
+      <div className="living-will__container page-layout">
         <h1 className="living-will__title">{t('screen.living_will.title')}</h1>
         <p className="living-will__subtitle">
           {t('screen.living_will.subtitle')}

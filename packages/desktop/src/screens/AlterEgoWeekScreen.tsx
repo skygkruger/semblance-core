@@ -126,8 +126,8 @@ export function AlterEgoWeekScreen() {
 
   if (loading) {
     return (
-      <div className="h-full overflow-y-auto">
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
+      <div className="page-scroll">
+        <div className="page-layout">
           <SkeletonCard
             variant="generic"
             message="Preparing Alter Ego Week"
@@ -195,8 +195,8 @@ export function AlterEgoWeekScreen() {
   }, [loadState]);
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
+    <div className="page-scroll">
+      <div className="page-layout">
         {/* Header */}
         <h1 className="page-title" style={{ fontSize: 28, marginBottom: 6 }}>
           Alter Ego Week

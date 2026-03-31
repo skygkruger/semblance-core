@@ -144,8 +144,8 @@ export function ImportEverythingScreen() {
 
   if (loading) {
     return (
-      <div className="h-full overflow-y-auto">
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
+      <div className="page-scroll">
+        <div className="page-layout">
           <SkeletonCard
             variant="generic"
             message="Scanning your digital life"
@@ -161,8 +161,8 @@ export function ImportEverythingScreen() {
   const viewSources = sources.length > 0 ? mapSources(sources) : DEFAULT_IMPORT_SOURCES;
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px' }}>
+    <div className="page-scroll">
+      <div className="page-layout">
         <ImportDigitalLifeView
           isPremium={license.isPremium}
           importSources={viewSources}

@@ -122,8 +122,8 @@ export function BiometricSetupScreen() {
 
   if (loading) {
     return (
-      <div className="biometric-setup h-full overflow-y-auto">
-        <div className="biometric-setup__container">
+      <div className="biometric-setup page-scroll">
+        <div className="biometric-setup__container page-layout">
           <h1 className="biometric-setup__title">{t('screen.biometric.title')}</h1>
           <p className="biometric-setup__subtitle">{t('screen.biometric.subtitle')}</p>
           <SkeletonCard
@@ -138,8 +138,8 @@ export function BiometricSetupScreen() {
   }
 
   return (
-    <div className="biometric-setup h-full overflow-y-auto">
-      <div className="biometric-setup__container">
+    <div className="biometric-setup page-scroll">
+      <div className="biometric-setup__container page-layout">
         <h1 className="biometric-setup__title">{t('screen.biometric.title')}</h1>
         <p className="biometric-setup__subtitle">
           {t('screen.biometric.subtitle')}

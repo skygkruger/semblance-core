@@ -126,15 +126,17 @@ export function IntentScreen() {
 
   if (loading) {
     return (
-      <div className="settings-screen">
-        <div className="settings-header">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </Button>
-          <h1 className="settings-header__title">{t('screen.intent.title')}</h1>
-        </div>
-        <div className="settings-content">
-          <SkeletonCard variant="generic" message="Loading intents" subMessage="Retrieving your preferences and limits" showSpinner />
+      <div className="page-scroll">
+        <div className="page-layout settings-screen">
+          <div className="settings-header">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </Button>
+            <h1 className="settings-header__title">{t('screen.intent.title')}</h1>
+          </div>
+          <div className="settings-content">
+            <SkeletonCard variant="generic" message="Loading intents" subMessage="Retrieving your preferences and limits" showSpinner />
+          </div>
         </div>
       </div>
     );
@@ -143,7 +145,8 @@ export function IntentScreen() {
   const { primaryGoal, hardLimits, personalValues } = state.intentProfile;
 
   return (
-    <div className="settings-screen">
+    <div className="page-scroll">
+    <div className="page-layout settings-screen">
       <div className="settings-header">
         <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -320,6 +323,7 @@ export function IntentScreen() {
           </Card>
         )}
       </div>
+    </div>
     </div>
   );
 }

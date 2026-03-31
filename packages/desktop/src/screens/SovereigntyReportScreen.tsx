@@ -49,8 +49,8 @@ export function SovereigntyReportScreen() {
 
   if (error) {
     return (
-      <div className="h-full overflow-y-auto">
-        <div className="max-w-container-lg mx-auto px-6 py-8" style={{ textAlign: 'center', paddingTop: 64 }}>
+      <div className="page-scroll">
+        <div className="page-layout" style={{ textAlign: 'center', paddingTop: 64 }}>
           <p style={{ color: '#B07A8A', fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14, marginBottom: 16 }}>
             {error}
           </p>
@@ -72,8 +72,8 @@ export function SovereigntyReportScreen() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-    <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
+    <div className="page-scroll">
+    <div className="page-layout">
       {/* Period selector */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {[7, 30, 90, 365].map(days => (

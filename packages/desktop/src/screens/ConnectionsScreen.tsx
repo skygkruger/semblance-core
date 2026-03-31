@@ -344,8 +344,8 @@ export function ConnectionsScreen() {
   }, [dispatch, loadAccounts]);
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8">
+    <div className="page-scroll">
+      <div className="page-layout">
         <ConnectionsScreenUI
           connectors={connectors}
           onConnect={handleConnect}

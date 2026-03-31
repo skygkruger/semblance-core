@@ -110,11 +110,11 @@ export function FilesScreen() {
   const { indexingStatus, knowledgeStats } = state;
 
   return (
-    <div className="settings-screen">
-      <div className="settings-header">
-        <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.files.title')}</h1>
-      </div>
-      <div className="settings-content">
+    <div className="page-scroll">
+      <div className="page-layout">
+        <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', margin: '0 auto' }}>{t('screen.files.title')}</h1>
+        <div className="settings-screen" style={{ minHeight: 'auto' }}>
+          <div className="settings-content">
         {/* Indexed Directories */}
         <div className="settings-section-header">{t('screen.files.section_directories')}</div>
         <div className="settings-row settings-row--static">
@@ -202,6 +202,8 @@ export function FilesScreen() {
             ))}
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

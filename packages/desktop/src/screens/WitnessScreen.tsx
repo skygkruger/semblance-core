@@ -153,8 +153,8 @@ export function WitnessScreen() {
   }
 
   return (
-    <div className="witness h-full overflow-y-auto">
-      <div className="witness__container">
+    <div className="witness page-scroll">
+      <div className="witness__container page-layout">
         <h1 className="witness__title">{t('screen.witness.title')}</h1>
 
           <p className="witness__subtitle">

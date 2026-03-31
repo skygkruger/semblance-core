@@ -291,8 +291,8 @@ export function InboxScreen() {
   const lowEmails = emails.filter(e => e.priority === 'low');
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
+    <div className="page-scroll">
+      <div className="page-layout">
         <h1 className="page-title" style={{ fontSize: 28 }}>
           {t('screen.inbox.title')}
         </h1>

@@ -105,8 +105,8 @@ export function AdversarialDashboardScreen() {
   }
 
   return (
-      <div className="adversarial-dashboard h-full overflow-y-auto">
-        <div className="adversarial-dashboard__container">
+      <div className="adversarial-dashboard page-scroll">
+        <div className="adversarial-dashboard__container page-layout">
           <h1 className="adversarial-dashboard__title">{t('screen.adversarial.title')}</h1>
           <p className="adversarial-dashboard__subtitle">
             {t('screen.adversarial.subtitle')}

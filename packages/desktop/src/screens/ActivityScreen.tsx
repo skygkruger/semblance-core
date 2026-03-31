@@ -134,8 +134,8 @@ export function ActivityScreen() {
   const weekGroups = Object.keys(receiptsByWeek).sort().reverse();
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
+    <div className="page-scroll">
+      <div className="page-layout">
       <h1 className="page-title" style={{ fontSize: 28, marginBottom: 16 }}>
         Activity Log
       </h1>

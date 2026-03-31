@@ -129,9 +129,9 @@ export function DigestScreen() {
 
   if (!digest) {
     return (
-      <div className="h-full overflow-y-auto">
-        <div className="max-w-container-lg mx-auto px-6 py-8">
-          <h1 className="page-title mb-6" style={{ fontSize: 28 }}>
+      <div className="page-scroll">
+        <div className="page-layout">
+          <h1 className="page-title" style={{ fontSize: 28 }}>
             {t('screen.digest.title')}
           </h1>
           <Card className="p-8 text-center">
@@ -158,8 +158,8 @@ export function DigestScreen() {
   );
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
+    <div className="page-scroll">
+      <div className="page-layout">
         <h1 className="page-title" style={{ fontSize: 28 }}>
           {t('screen.digest.title')} · {formatDateRange(digest.weekStart, digest.weekEnd)}
         </h1>

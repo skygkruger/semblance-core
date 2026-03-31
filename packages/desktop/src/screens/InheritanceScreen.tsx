@@ -149,8 +149,8 @@ export function InheritanceScreen() {
   }
 
   return (
-    <div className="inheritance h-full overflow-y-auto">
-      <div className="inheritance__container">
+    <div className="inheritance page-scroll">
+      <div className="inheritance__container page-layout">
         <h1 className="inheritance__title">{t('screen.inheritance.title')}</h1>
 
           <p className="inheritance__subtitle">

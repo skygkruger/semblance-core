@@ -182,8 +182,8 @@ export function PrivacyScreen() {
   };
 
   return (
-    <div className="h-full overflow-y-auto">
-    <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
+    <div className="page-scroll">
+    <div className="page-layout">
       <PrivacyDashboard
         dataSources={knowledgeStats.documentCount}
         cloudConnections={0}

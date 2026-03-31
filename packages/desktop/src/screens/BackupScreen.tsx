@@ -151,8 +151,8 @@ export function BackupScreen() {
 
   if (loading) {
     return (
-      <div className="backup-screen h-full overflow-y-auto">
-        <div className="backup-screen__container">
+      <div className="backup-screen page-scroll">
+        <div className="backup-screen__container page-layout">
           <h1 className="backup-screen__title">{t('screen.backup.title')}</h1>
           <p className="backup-screen__subtitle">{t('screen.backup.subtitle')}</p>
           <SkeletonCard
@@ -167,8 +167,8 @@ export function BackupScreen() {
   }
 
   return (
-    <div className="backup-screen h-full overflow-y-auto">
-      <div className="backup-screen__container">
+    <div className="backup-screen page-scroll">
+      <div className="backup-screen__container page-layout">
         <h1 className="backup-screen__title">{t('screen.backup.title')}</h1>
         <p className="backup-screen__subtitle">
           {t('screen.backup.subtitle')}

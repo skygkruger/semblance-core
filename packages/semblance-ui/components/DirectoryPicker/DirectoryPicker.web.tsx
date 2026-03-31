@@ -53,11 +53,8 @@ export function DirectoryPicker({ directories, onAdd, onRemove, onRescan, classN
           </li>
         ))}
       </ul>
-      <button type="button" className="dir-picker__add" onClick={onAdd}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12h14" /><path d="M12 5v14" />
-        </svg>
-        {t('button.add_folder')}
+      <button type="button" className="btn btn--opal btn--sm" style={{ width: '100%' }} onClick={onAdd}>
+        <span className="btn__text">+ {t('button.add_folder')}</span>
       </button>
     </div>
   );

@@ -2,12 +2,8 @@
 
 .connections-screen {
   width: 100%;
-  min-height: 100vh;
   background: transparent;
-  padding: 48px 40px;
   box-sizing: border-box;
-  max-width: 960px;
-  margin: 0 auto;
   container-type: inline-size;
   overflow-x: hidden;
 }

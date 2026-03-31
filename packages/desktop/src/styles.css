@@ -78,5 +78,5 @@
 .page-enter {
   opacity: 0;
   will-change: opacity, transform;
-  animation: page-dissolve 1000ms var(--eo) 80ms both;
+  animation: page-dissolve 1500ms var(--eo) 80ms both;
 }
