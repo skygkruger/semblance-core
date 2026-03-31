@@ -28,6 +28,8 @@ export function ContentBracket({
   const [spineHeight, setSpineHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [spineX, setSpineX] = useState(0);
+  const animFrameRef = useRef(0);
+  const [drawProgress, setDrawProgress] = useState(0);
 
   const measure = useCallback(() => {
     const content = contentRef.current;
@@ -71,10 +73,20 @@ export function ContentBracket({
     const content = contentRef.current;
     if (!content) return;
 
-    // Delay first measure to let layout settle
-    const raf = requestAnimationFrame(() => {
-      requestAnimationFrame(measure);
-    });
+    setDrawProgress(0);
+    const start = performance.now();
+    const duration = 2500; // longer than page dissolve so brackets draw slowly
+    const tick = () => {
+      measure();
+      const elapsed = performance.now() - start;
+      const p = Math.min(1, elapsed / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDrawProgress(eased);
+      if (p < 1) {
+        animFrameRef.current = requestAnimationFrame(tick);
+      }
+    };
+    animFrameRef.current = requestAnimationFrame(tick);
 
     const hasResizeObserver = typeof ResizeObserver !== 'undefined';
     const observer = hasResizeObserver ? new ResizeObserver(() => requestAnimationFrame(measure)) : null;
@@ -93,7 +105,7 @@ export function ContentBracket({
     window.addEventListener('resize', measure);
 
     return () => {
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(animFrameRef.current);
       if (observer) observer.disconnect();
       if (mutationObserver) mutationObserver.disconnect();
       window.removeEventListener('resize', measure);
@@ -102,10 +114,25 @@ export function ContentBracket({
 
   const capLen = 6;
   const tickLen = 16;
+  const p = drawProgress;
+
+  // Spine: 0-70%, leaving 30% for outermost ticks to extend
+  const spineP = Math.min(1, p / 0.7);
+  const spineMid = spineTop + spineHeight / 2;
+  const animSpineTop = spineMid - (spineHeight / 2) * spineP;
+  const animSpineBottom = spineMid + (spineHeight / 2) * spineP;
+
+  // Caps: last 20% (same as StaticBracket)
+  const capP = Math.max(0, (p - 0.8) / 0.2);
+
+  // Ticks: staggered from center outward, each takes 20% to extend
+  const sortedTicks = ticks.map((tick, i) => ({
+    ...tick, i, distFromCenter: Math.abs(tick.y - spineMid),
+  })).sort((a, b) => a.distFromCenter - b.distFromCenter);
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative' }}>
-      {ticks.length > 1 && spineHeight > 0 && (
+      {ticks.length > 1 && spineHeight > 0 && p > 0 && (
         <svg
           style={{
             position: 'absolute',
@@ -118,20 +145,28 @@ export function ContentBracket({
             zIndex: 0,
           }}
         >
-          <g stroke={color} strokeWidth={1} opacity={0.4}>
-            {/* Vertical spine */}
-            <line x1={spineX} y1={spineTop} x2={spineX} y2={spineTop + spineHeight} />
+          <g stroke={color} strokeWidth={1} opacity={0.4 * Math.min(1, p * 2)}>
+            {/* Vertical spine — grows from center outward */}
+            <line x1={spineX} y1={animSpineTop} x2={spineX} y2={animSpineBottom} />
 
             {/* Top cap */}
-            <line x1={spineX} y1={spineTop} x2={spineX + capLen} y2={spineTop} />
+            {capP > 0 && <line x1={spineX} y1={animSpineTop} x2={spineX + capLen * capP} y2={animSpineTop} />}
 
             {/* Bottom cap */}
-            <line x1={spineX} y1={spineTop + spineHeight} x2={spineX + capLen} y2={spineTop + spineHeight} />
+            {capP > 0 && <line x1={spineX} y1={animSpineBottom} x2={spineX + capLen * capP} y2={animSpineBottom} />}
 
-            {/* Horizontal ticks */}
-            {ticks.map((tick, i) => (
-              <line key={i} x1={spineX} y1={tick.y} x2={spineX + tickLen} y2={tick.y} />
-            ))}
+            {/* Horizontal ticks — draw sequentially from center outward */}
+            {sortedTicks.map((tick) => {
+              if (tick.y < animSpineTop || tick.y > animSpineBottom) return null;
+              // Tick starts when spine reaches it (at p * 0.7), takes 0.3 to fully extend
+              const halfSpine = spineHeight / 2;
+              const reachFraction = halfSpine > 0 ? tick.distFromCenter / halfSpine : 0;
+              const tickStartP = reachFraction * 0.7; // spine finishes at p=0.7
+              const tickLocalP = Math.max(0, Math.min(1, (p - tickStartP) / 0.3));
+              if (tickLocalP <= 0) return null;
+              const easedTickP = 1 - Math.pow(1 - tickLocalP, 3);
+              return <line key={tick.i} x1={spineX} y1={tick.y} x2={spineX + tickLen * easedTickP} y2={tick.y} />;
+            })}
           </g>
         </svg>
       )}

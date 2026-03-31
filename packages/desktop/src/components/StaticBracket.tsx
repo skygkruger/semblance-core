@@ -24,6 +24,8 @@ export function StaticBracket({
   const [contentHeight, setContentHeight] = useState(0);
   const [topY, setTopY] = useState(0);
   const [bottomY, setBottomY] = useState(0);
+  const animFrameRef = useRef(0);
+  const [drawProgress, setDrawProgress] = useState(0);
 
   const measure = useCallback(() => {
     const content = contentRef.current;
@@ -66,9 +68,22 @@ export function StaticBracket({
     const content = contentRef.current;
     if (!content) return;
 
-    const raf = requestAnimationFrame(() => {
-      requestAnimationFrame(measure);
-    });
+    // Animate bracket drawing in sync with page dissolve (1.58s total)
+    setDrawProgress(0);
+    const start = performance.now();
+    const duration = 2500; // matches ContentBracket
+    const tick = () => {
+      measure();
+      const elapsed = performance.now() - start;
+      const p = Math.min(1, elapsed / duration);
+      // Ease-out curve matching page dissolve
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDrawProgress(eased);
+      if (p < 1) {
+        animFrameRef.current = requestAnimationFrame(tick);
+      }
+    };
+    animFrameRef.current = requestAnimationFrame(tick);
 
     const hasResizeObserver = typeof ResizeObserver !== 'undefined';
     const observer = hasResizeObserver ? new ResizeObserver(() => requestAnimationFrame(measure)) : null;
@@ -77,19 +92,28 @@ export function StaticBracket({
     window.addEventListener('resize', measure);
 
     return () => {
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(animFrameRef.current);
       if (observer) observer.disconnect();
       window.removeEventListener('resize', measure);
     };
   }, [children, measure]);
 
-  const midY = (topY + bottomY) / 2;
+  const fullMidY = (topY + bottomY) / 2;
   const capLen = 16;
   const indentLen = 10;
 
+  // Animated bracket: grows from midpoint outward
+  const p = drawProgress;
+  const halfSpan = (bottomY - topY) / 2;
+  const animTop = fullMidY - halfSpan * p;
+  const animBottom = fullMidY + halfSpan * p;
+  const midY = fullMidY;
+  const capProgress = Math.max(0, (p - 0.8) / 0.2); // caps draw in last 20%
+  const indentProgress = Math.max(0, Math.min(1, (p - 0.3) / 0.4)); // indent draws 30-70%
+
   return (
     <div ref={wrapperRef} style={{ position: 'relative' }}>
-      {contentHeight > 0 && (
+      {contentHeight > 0 && p > 0 && (
         <svg
           style={{
             position: 'absolute',
@@ -102,22 +126,24 @@ export function StaticBracket({
             zIndex: 0,
           }}
         >
-          <g stroke={color} strokeWidth={1} fill="none" opacity={0.4}>
-            {/* Top cap — horizontal tick pointing toward content */}
-            <line x1={spineX} y1={topY} x2={spineX + capLen} y2={topY} />
+          <g stroke={color} strokeWidth={1} fill="none" opacity={0.4 * Math.min(1, p * 2)}>
+            {/* Top cap — draws in last 20% */}
+            {capProgress > 0 && <line x1={spineX} y1={animTop} x2={spineX + capLen * capProgress} y2={animTop} />}
 
-            {/* Top arm — vertical line down to midpoint indent */}
-            <line x1={spineX} y1={topY} x2={spineX} y2={midY - indentLen} />
+            {/* Top arm — grows from mid upward */}
+            <line x1={spineX} y1={animTop} x2={spineX} y2={midY - indentLen * indentProgress} />
 
-            {/* Indent tip — points toward content (right) */}
-            <line x1={spineX} y1={midY - indentLen} x2={spineX + indentLen} y2={midY} />
-            <line x1={spineX + indentLen} y1={midY} x2={spineX} y2={midY + indentLen} />
+            {/* Indent tip — draws 30-70% */}
+            {indentProgress > 0 && <>
+              <line x1={spineX} y1={midY - indentLen * indentProgress} x2={spineX + indentLen * indentProgress} y2={midY} />
+              <line x1={spineX + indentLen * indentProgress} y1={midY} x2={spineX} y2={midY + indentLen * indentProgress} />
+            </>}
 
-            {/* Bottom arm — vertical line from indent to bottom */}
-            <line x1={spineX} y1={midY + indentLen} x2={spineX} y2={bottomY} />
+            {/* Bottom arm — grows from mid downward */}
+            <line x1={spineX} y1={midY + indentLen * indentProgress} x2={spineX} y2={animBottom} />
 
-            {/* Bottom cap — horizontal tick pointing toward content */}
-            <line x1={spineX} y1={bottomY} x2={spineX + capLen} y2={bottomY} />
+            {/* Bottom cap — draws in last 20% */}
+            {capProgress > 0 && <line x1={spineX} y1={animBottom} x2={spineX + capLen * capProgress} y2={animBottom} />}
           </g>
         </svg>
       )}
