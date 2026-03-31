@@ -161,7 +161,7 @@ export function GhostSprite({
   const [contentHeight, setContentHeight] = useState(0);
   const [hovering, setHovering] = useState(false);
   const [showBubble, setShowBubble] = useState(false);
-  const [bubbleDismissed, setBubbleDismissed] = useState(false);
+  const [pulsing, setPulsing] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const measure = useCallback(() => {
@@ -210,30 +210,34 @@ export function GhostSprite({
     return () => window.removeEventListener('mousemove', handleMouse);
   }, []);
 
-  // Show bubble after page dissolve completes
+  // Hide bubble on page change
   useEffect(() => {
-    if (!insight || bubbleDismissed) {
-      setShowBubble(false);
-      return;
-    }
-    const timer = setTimeout(() => setShowBubble(true), 2000);
-    return () => clearTimeout(timer);
-  }, [insight, bubbleDismissed]);
+    setShowBubble(false);
+    setPulsing(false);
+  }, [insight]);
 
-  // Auto-dismiss bubble after 10s
+  // Auto-dismiss bubble after 8s
   useEffect(() => {
     if (!showBubble) return;
-    const timer = setTimeout(() => {
-      setShowBubble(false);
-      setBubbleDismissed(true);
-    }, 10000);
+    const timer = setTimeout(() => setShowBubble(false), 8000);
     return () => clearTimeout(timer);
   }, [showBubble]);
 
-  // Reset dismissed state on insight change
-  useEffect(() => {
-    setBubbleDismissed(false);
-  }, [insight]);
+  // Click handler — pulse then show bubble
+  const handleClick = useCallback(() => {
+    if (showBubble) {
+      // Click again to dismiss
+      setShowBubble(false);
+      return;
+    }
+    // Trigger sonar pulse
+    setPulsing(true);
+    setTimeout(() => setPulsing(false), 600);
+    // Show bubble after pulse completes
+    if (insight) {
+      setTimeout(() => setShowBubble(true), 400);
+    }
+  }, [insight, showBubble]);
 
   if (!visible) return <div ref={contentRef}>{children}</div>;
 
@@ -247,12 +251,12 @@ export function GhostSprite({
           top: spriteY,
           zIndex: 5,
           pointerEvents: 'auto',
-          cursor: 'default',
+          cursor: 'pointer',
           transition: 'top 500ms ease-out',
         }}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
-        onClick={() => { setShowBubble(false); setBubbleDismissed(true); }}
+        onClick={handleClick}
       >
         {/* Speech bubble */}
         {showBubble && insight && (
@@ -271,8 +275,8 @@ export function GhostSprite({
             letterSpacing: '0.04em',
             color: '#A8B4C0',
             lineHeight: 1.4,
-            opacity: showBubble ? 1 : 0,
-            transition: 'opacity 600ms ease',
+            opacity: 1,
+            animation: 'ghost-bubble-in 400ms ease-out',
             pointerEvents: 'none',
           }}>
             {/* Bubble tail */}
@@ -288,6 +292,23 @@ export function GhostSprite({
             }} />
             {insight}
           </div>
+        )}
+
+        {/* Sonar pulse ring on click */}
+        {pulsing && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: GHOST_W,
+            height: GHOST_W,
+            borderRadius: '50%',
+            border: '2px solid rgba(110, 207, 163, 0.6)',
+            boxShadow: '0 0 8px rgba(110, 207, 163, 0.3)',
+            animation: 'ghost-sonar 600ms ease-out forwards',
+            pointerEvents: 'none',
+          }} />
         )}
 
         {/* Floating animation wrapper with Veridian glow */}
@@ -319,6 +340,24 @@ export function GhostSprite({
         @keyframes ghost-float {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-6px); }
+        }
+        @keyframes ghost-bubble-in {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes ghost-sonar {
+          0% {
+            width: ${GHOST_W}px;
+            height: ${GHOST_W}px;
+            opacity: 0.6;
+            border-color: rgba(110, 207, 163, 0.5);
+          }
+          100% {
+            width: ${GHOST_W * 4}px;
+            height: ${GHOST_W * 4}px;
+            opacity: 0;
+            border-color: rgba(110, 207, 163, 0);
+          }
         }
       `}</style>
     </div>
