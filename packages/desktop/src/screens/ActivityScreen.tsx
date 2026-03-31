@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActionCard, AlterEgoBatchReview, ActionLogItem, AlterEgoReceipt, AlterEgoDraftReview } from '@semblance/ui';
+import { ActionCard, AlterEgoBatchReview, ActionLogItem, AlterEgoReceipt, AlterEgoDraftReview, Input } from '@semblance/ui';
 import { getActionLog, getAlterEgoReceipts, approveAlterEgoBatch, rejectAlterEgoBatch, getPendingActions, getEscalationPrompts, respondToEscalation, undoAlterEgoReceipt, getAlterEgoWeekProgress, completeAlterEgoDay, skipAlterEgoDay } from '../ipc/commands';
 import type { LogEntry, AlterEgoReceiptData, PendingAction, EscalationPromptData, AlterEgoWeekProgressData } from '../ipc/types';
 import { EscalationPromptCard } from '../components/EscalationPromptCard';
@@ -141,18 +141,13 @@ export function ActivityScreen() {
       </h1>
 
       {/* Search */}
-      <input
-        type="text"
-        placeholder="Search actions..."
-        value={searchQuery}
-        onChange={e => setSearchQuery(e.target.value)}
-        className="surface-slate"
-        style={{
-          width: '100%', padding: '8px 12px', marginBottom: 12,
-          color: '#EEF1F4', fontSize: 12,
-          fontFamily: "'DM Mono', monospace", outline: 'none', letterSpacing: '0.04em',
-        }}
-      />
+      <div style={{ marginBottom: 12 }}>
+        <Input
+          placeholder="Search actions..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+        />
+      </div>
 
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, padding: '0 16px' }}>

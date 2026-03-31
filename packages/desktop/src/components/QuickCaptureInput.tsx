@@ -77,7 +77,7 @@ export function QuickCaptureInput({
 
   return (
     <div className={`quick-capture${text.trim() ? ' quick-capture--active' : ''}`} data-testid="quick-capture">
-      <div className="quick-capture__row">
+      <div className="quick-capture__container">
         <input
           ref={inputRef}
           type="text"
@@ -86,27 +86,10 @@ export function QuickCaptureInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled || feedback.type === 'submitting'}
-          className="quick-capture__input"
+          className="quick-capture__field"
           data-testid="quick-capture-input"
         />
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!text.trim() || disabled || feedback.type === 'submitting'}
-          className={`quick-capture__submit${text.trim() ? ' quick-capture__submit--active' : ''}`}
-          data-testid="quick-capture-submit"
-          aria-label="Send"
-        >
-          {feedback.type === 'submitting' ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          )}
-        </button>
+        <span className={`quick-capture__enter${text.trim() ? ' quick-capture__enter--active' : ''}`}>↵</span>
       </div>
 
       {feedback.type === 'success' && (

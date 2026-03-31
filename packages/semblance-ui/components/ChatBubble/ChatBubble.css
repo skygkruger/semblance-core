@@ -80,9 +80,10 @@
 }
 
 .chat-bubble__content {
-  font-family: var(--fb);
-  font-size: var(--text-base);
-  color: #EEF1F4;
+  font-family: var(--fm);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: #A8B4C0;
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.5;
@@ -123,9 +124,9 @@
 .chat-bubble__markdown h3,
 .chat-bubble__markdown h4,
 .chat-bubble__markdown h5 {
-  font-family: var(--fb);
+  font-family: var(--fm);
   color: #EEF1F4;
-  font-weight: 600;
+  font-weight: 400;
   margin: 8px 0 4px;
   line-height: 1.3;
 }
