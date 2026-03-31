@@ -452,12 +452,12 @@ export function RelationshipsScreen() {
         overflow: 'hidden',
       }}>
         {/* Page heading */}
-        <div style={{ padding: '4px 12px 8px' }}>
+        <div style={{ padding: '4px 12px 8px', textAlign: 'center' }}>
           <h1 className="page-title" style={{ fontSize: 20 }}>
             {t('screen.relationships.title', 'Relationships')}
           </h1>
           {stats && (
-            <div style={{ display: 'flex', gap: 10, fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 4 }}>
               <span>{t('screen.relationships.contacts_count', { count: stats.totalContacts })}</span>
               <span>{t('screen.relationships.active_count', { count: Object.values(stats.byRelationshipType ?? {}).reduce((a, b) => a + b, 0) - ((stats.byRelationshipType ?? {})['unknown'] ?? 0) })}</span>
               {birthdays.length > 0 && <span>{t('screen.relationships.birthdays_count', { count: birthdays.length })}</span>}
