@@ -7,6 +7,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { emit, listen } from '@tauri-apps/api/event';
 import { ConnectionsScreen as ConnectionsScreenUI } from '@semblance/ui';
+import './ConnectionsScreen.css';
 import type { ConnectorEntry } from '@semblance/ui';
 import {
   ipcSend,

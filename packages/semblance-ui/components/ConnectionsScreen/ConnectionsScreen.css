@@ -21,7 +21,7 @@
   font-family: var(--fm);
   font-weight: 300;
   font-size: 15px;
-  color: #5E6B7C;
+  color: #B8C0C8;
   margin: 0 0 40px 0;
 }
 
@@ -37,7 +37,7 @@
   font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #B8C0C8;
+  color: #5E6B7C;
   margin: 0 0 16px 0;
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
