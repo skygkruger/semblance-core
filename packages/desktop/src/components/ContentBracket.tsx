@@ -177,8 +177,15 @@ export function ContentBracket({
               const tickStartP = reachFraction * 0.7;
               const tickLocalP = Math.max(0, Math.min(1, (p - tickStartP) / 0.3));
               if (tickLocalP <= 0) return null;
+              // Fade in: 0 opacity until spine is near, then ramp up smoothly
+              const spineDistToTick = Math.min(
+                Math.abs(tick.y - animSpineTop),
+                Math.abs(tick.y - animSpineBottom)
+              );
+              const nearSpine = tick.y >= animSpineTop && tick.y <= animSpineBottom;
+              const tickOpacity = nearSpine ? 1 : Math.max(0, 1 - spineDistToTick / 20);
               const easedTickP = 1 - Math.pow(1 - tickLocalP, 2);
-              return <line key={tick.i} x1={spineX} y1={tick.y} x2={spineX + tickLen * easedTickP} y2={tick.y} />;
+              return <line key={tick.i} x1={spineX} y1={tick.y} x2={spineX + tickLen * easedTickP} y2={tick.y} opacity={tickOpacity} />;
             })}
           </g>
 
