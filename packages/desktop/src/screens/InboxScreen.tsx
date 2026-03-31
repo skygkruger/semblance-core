@@ -39,6 +39,7 @@ import { MessageDraftCard } from '../components/MessageDraftCard';
 import { DarkPatternBadge } from '../components/DarkPatternBadge';
 import { QuickCaptureInput } from '../components/QuickCaptureInput';
 import { ClipboardInsightToast } from '../components/ClipboardInsightToast';
+import { ContentBracket } from '../components/ContentBracket';
 
 // ─── Types (mirror core types for the desktop boundary) ─────────────────────
 
@@ -434,6 +435,7 @@ export function InboxScreen() {
           </section>
         )}
 
+        <ContentBracket>
         {/* Email Section */}
         <section className="space-y-3">
           <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -583,6 +585,8 @@ export function InboxScreen() {
             )}
           </Card>
         </section>
+
+        </ContentBracket>
 
         {/* Clipboard Insight Toast */}
         {clipboardInsight && (
