@@ -40,6 +40,7 @@ import { DarkPatternBadge } from '../components/DarkPatternBadge';
 import { QuickCaptureInput } from '../components/QuickCaptureInput';
 import { ClipboardInsightToast } from '../components/ClipboardInsightToast';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 
 // ─── Types (mirror core types for the desktop boundary) ─────────────────────
 
@@ -293,6 +294,7 @@ export function InboxScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+        <GhostSprite insight="Your inbox is empty. Connect an email account to get started.">
         <h1 className="page-title" style={{ fontSize: 28 }}>
           {t('screen.inbox.title')}
         </h1>
@@ -628,6 +630,7 @@ export function InboxScreen() {
             </button>
           </div>
         )}
+      </GhostSprite>
       </div>
     </div>
   );
