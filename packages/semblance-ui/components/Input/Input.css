@@ -44,6 +44,11 @@
   z-index: 0;
 }
 
+/* Focus-within — standard focus ring */
+.input-wrapper:focus-within {
+  border-color: rgba(110, 207, 163, 0.25);
+}
+
 /* Veridian focus — activates when input has content */
 .input-wrapper--has-value {
   border-color: rgba(110, 207, 163, 0.4);

@@ -30,9 +30,9 @@ describe('QuickCaptureInput component', () => {
     expect(content).toContain('data-testid="quick-capture-input"');
   });
 
-  it('renders submit button', () => {
+  it('renders enter symbol', () => {
     const content = fs.readFileSync(COMPONENT_PATH, 'utf-8');
-    expect(content).toContain('data-testid="quick-capture-submit"');
+    expect(content).toContain('quick-capture__enter');
   });
 
   it('shows feedback on successful capture', () => {
@@ -49,8 +49,8 @@ describe('QuickCaptureInput component', () => {
   it('follows design system styling', () => {
     const content = fs.readFileSync(COMPONENT_PATH, 'utf-8');
     // BEM migration: uses BEM CSS classes + CSS custom properties instead of Tailwind
-    expect(content).toContain('quick-capture__input');
-    expect(content).toContain('quick-capture__submit');
+    expect(content).toContain('quick-capture__field');
+    expect(content).toContain('quick-capture__enter');
     expect(content).toContain('quick-capture__feedback');
   });
 });
