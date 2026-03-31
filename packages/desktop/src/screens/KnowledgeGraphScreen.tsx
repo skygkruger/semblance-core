@@ -87,10 +87,10 @@ export function KnowledgeGraphScreen() {
   if (error) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8">
-        <p style={{ color: '#B07A8A', fontSize: 14, marginBottom: 12 }}>
+        <p style={{ color: '#B07A8A', fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: '0.04em', marginBottom: 12 }}>
           {t('screen.knowledge_graph.error', 'Failed to load knowledge graph.')}
         </p>
-        <p style={{ color: '#5E6B7C', fontSize: 12, marginBottom: 16 }}>{error}</p>
+        <p style={{ color: '#5E6B7C', fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: '0.04em', marginBottom: 16 }}>{error}</p>
         <button
           onClick={fetchGraph}
           style={{
@@ -99,7 +99,9 @@ export function KnowledgeGraphScreen() {
             border: 'none',
             borderRadius: 4,
             padding: '8px 16px',
-            fontSize: 13,
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 12,
+            letterSpacing: '0.04em',
             cursor: 'pointer',
           }}
         >
@@ -112,7 +114,7 @@ export function KnowledgeGraphScreen() {
   if (!graph || !graph.nodes || !graph.edges || (graph.nodes.length === 0 && graph.edges.length === 0)) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8">
-        <p style={{ color: '#8593A4', fontSize: 14, marginBottom: 12 }}>
+        <p style={{ color: '#A8B4C0', fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: '0.04em', marginBottom: 12 }}>
           {t('screen.knowledge_graph.empty', 'No knowledge graph data yet. Connect data sources or index files to build your graph.')}
         </p>
         <button
@@ -123,7 +125,9 @@ export function KnowledgeGraphScreen() {
             border: '1px solid #6ECFA3',
             borderRadius: 4,
             padding: '8px 16px',
-            fontSize: 13,
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 12,
+            letterSpacing: '0.04em',
             cursor: 'pointer',
           }}
         >

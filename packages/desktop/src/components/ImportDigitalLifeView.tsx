@@ -129,7 +129,10 @@ export function ImportDigitalLifeView({
               <div style={{ flex: 1 }}>
                 <h3 className="import-life__source-name">{source.name}</h3>
                 <p className="import-life__source-desc">{source.description}</p>
-                <p className="import-life__source-formats">Formats: {source.formats}</p>
+                <p className="import-life__source-formats">
+                  <span>Formats: </span>
+                  <span className="import-life__formats-value">{source.formats}</span>
+                </p>
                 <p className="import-life__source-consent">{source.consentText}</p>
               </div>
               <div className="import-life__source-side">

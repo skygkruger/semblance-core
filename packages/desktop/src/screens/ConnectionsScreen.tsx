@@ -358,10 +358,10 @@ export function ConnectionsScreen() {
             <h2 style={{
               fontFamily: "'DM Mono', monospace",
               fontSize: 11,
-              fontWeight: 500,
+              fontWeight: 400,
               letterSpacing: '0.08em',
               textTransform: 'uppercase' as const,
-              color: '#5E6B7C',
+              color: '#B8C0C8',
               marginBottom: 16,
             }}>
               CONNECTED ACCOUNTS
@@ -376,10 +376,11 @@ export function ConnectionsScreen() {
                 return (
                   <div key={connector.id} style={{ marginBottom: 20 }}>
                     <div style={{
-                      fontFamily: "'DM Sans', system-ui, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
+                      fontFamily: "'DM Mono', monospace",
+                      fontSize: 12,
+                      fontWeight: 400,
                       color: '#EEF1F4',
+                      letterSpacing: '0.04em',
                       marginBottom: 8,
                     }}>
                       {connector.displayName}
@@ -395,9 +396,10 @@ export function ConnectionsScreen() {
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{
-                            fontFamily: "'DM Sans', system-ui, sans-serif",
-                            fontSize: 13,
+                            fontFamily: "'DM Mono', monospace",
+                            fontSize: 12,
                             color: '#EEF1F4',
+                            letterSpacing: '0.04em',
                           }}>
                             {account.userEmail}
                           </span>
@@ -426,9 +428,9 @@ export function ConnectionsScreen() {
                                 borderRadius: 6,
                                 padding: '4px 10px',
                                 fontSize: 11,
-                                color: '#8593A4',
+                                color: '#5E6B7C',
                                 cursor: 'pointer',
-                                fontFamily: "'DM Sans', system-ui, sans-serif",
+                                fontFamily: "'DM Mono', monospace",
                               }}
                             >
                               Set Primary
@@ -445,7 +447,7 @@ export function ConnectionsScreen() {
                               fontSize: 11,
                               color: '#B07A8A',
                               cursor: 'pointer',
-                              fontFamily: "'DM Sans', system-ui, sans-serif",
+                              fontFamily: "'DM Mono', monospace",
                             }}
                           >
                             Remove
@@ -463,10 +465,11 @@ export function ConnectionsScreen() {
                         padding: '10px',
                         width: '100%',
                         marginTop: 4,
-                        fontSize: 13,
+                        fontSize: 11,
                         color: '#5E6B7C',
                         cursor: 'pointer',
-                        fontFamily: "'DM Sans', system-ui, sans-serif",
+                        fontFamily: "'DM Mono', monospace",
+                        letterSpacing: '0.04em',
                         borderStyle: 'dashed',
                       }}
                     >

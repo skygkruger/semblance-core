@@ -98,9 +98,9 @@ function getRelationshipBadgeStyle(type: string): { background: string; color: s
     case 'family': return { background: 'rgba(176, 122, 138, 0.15)', color: '#B07A8A' };
     case 'friend': return { background: 'rgba(110, 207, 163, 0.15)', color: '#6ECFA3' };
     case 'colleague': return { background: 'rgba(176, 154, 138, 0.15)', color: '#B09A8A' };
-    case 'client': return { background: 'rgba(133, 147, 164, 0.15)', color: '#8593A4' };
+    case 'client': return { background: 'rgba(168, 180, 192, 0.15)', color: '#A8B4C0' };
     case 'vendor': return { background: 'rgba(94, 107, 124, 0.15)', color: '#5E6B7C' };
-    default: return { background: 'rgba(82, 90, 100, 0.15)', color: '#525A64' };
+    default: return { background: 'rgba(94, 107, 124, 0.15)', color: '#5E6B7C' };
   }
 }
 
@@ -181,7 +181,7 @@ function AddContactForm({ onSave, onCancel }: {
 
   return (
     <div className="surface-slate px-4 py-3 space-y-2">
-      <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">
+      <h3 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>
         {t('screen.relationships.add_contact', 'Add Contact')}
       </h3>
       <Input
@@ -213,7 +213,7 @@ function AddContactForm({ onSave, onCancel }: {
       <select
         value={relationshipType}
         onChange={(e) => setRelationshipType(e.target.value)}
-        className="w-full px-3 py-1.5 text-sm rounded-md border border-[rgba(255,255,255,0.06)] bg-[#111518] text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
+        style={{ width: '100%', padding: '6px 12px', fontFamily: "'DM Mono', monospace", fontSize: 12, borderRadius: 6, border: '1px solid rgba(255,255,255,0.06)', background: '#111518', color: '#A8B4C0', letterSpacing: '0.04em', outline: 'none' }}
       >
         {RELATIONSHIP_TYPES.map(rt => (
           <option key={rt} value={rt}>{rt.charAt(0).toUpperCase() + rt.slice(1)}</option>
@@ -457,7 +457,7 @@ export function RelationshipsScreen() {
             {t('screen.relationships.title', 'Relationships')}
           </h1>
           {stats && (
-            <div style={{ display: 'flex', gap: 10, fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#525A64', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 4 }}>
+            <div style={{ display: 'flex', gap: 10, fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 4 }}>
               <span>{t('screen.relationships.contacts_count', { count: stats.totalContacts })}</span>
               <span>{t('screen.relationships.active_count', { count: Object.values(stats.byRelationshipType ?? {}).reduce((a, b) => a + b, 0) - ((stats.byRelationshipType ?? {})['unknown'] ?? 0) })}</span>
               {birthdays.length > 0 && <span>{t('screen.relationships.birthdays_count', { count: birthdays.length })}</span>}
@@ -479,7 +479,7 @@ export function RelationshipsScreen() {
               style={{
                 flex: 1, fontSize: 11, padding: '5px 8px', borderRadius: 6,
                 border: '1px solid rgba(255,255,255,0.09)', background: 'linear-gradient(160deg, #1E2227, #111518)',
-                color: '#8593A4', fontFamily: "'DM Mono', monospace",
+                color: '#A8B4C0', fontFamily: "'DM Mono', monospace",
                 letterSpacing: '0.04em', outline: 'none', cursor: 'pointer',
               }}
             >
@@ -493,7 +493,7 @@ export function RelationshipsScreen() {
               style={{
                 flex: 1, fontSize: 11, padding: '5px 8px', borderRadius: 6,
                 border: '1px solid rgba(255,255,255,0.09)', background: 'linear-gradient(160deg, #1E2227, #111518)',
-                color: '#8593A4', fontFamily: "'DM Mono', monospace",
+                color: '#A8B4C0', fontFamily: "'DM Mono', monospace",
                 letterSpacing: '0.04em', outline: 'none', cursor: 'pointer',
               }}
             >
@@ -506,9 +506,29 @@ export function RelationshipsScreen() {
               <option value="acquaintance">{t('screen.relationships.filter_acquaintance')}</option>
             </select>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <Button variant="ghost" size="sm" onClick={() => setShowAddForm(!showAddForm)} style={{ flex: 1 }}>+ Add Contact</Button>
-            <Button variant="ghost" size="sm" onClick={handleImport} style={{ flex: 1 }}>Import</Button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className="surface-slate"
+              onClick={() => setShowAddForm(!showAddForm)}
+              title="Add Contact"
+              style={{
+                flex: 1, padding: '5px 8px',
+                color: '#A8B4C0', fontFamily: "'DM Mono', monospace", fontSize: 13,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >+</button>
+            <button
+              type="button"
+              className="surface-slate"
+              onClick={handleImport}
+              title="Import"
+              style={{
+                flex: 1, padding: '5px 8px',
+                color: '#A8B4C0', fontFamily: "'DM Mono', monospace", fontSize: 13,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >&#8593;</button>
           </div>
         </div>
 
@@ -555,12 +575,12 @@ export function RelationshipsScreen() {
                   onMouseLeave={(e) => { if (selectedContact?.id !== contact.id) (e.currentTarget.style.background = 'transparent'); }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#282E36', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 500, color: '#8593A4', flexShrink: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#282E36', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 500, color: '#5E6B7C', flexShrink: 0 }}>
                       {getInitials(contact.displayName)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: '#CDD4DB', fontFamily: "'DM Sans', system-ui, sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 12, fontWeight: 400, color: '#EEF1F4', fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {contact.displayName}
                         </span>
                         <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, fontWeight: 500, ...getRelationshipBadgeStyle(contact.relationshipType) }}>
@@ -569,7 +589,7 @@ export function RelationshipsScreen() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
                         {contact.organization && (
-                          <span style={{ fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Sans', system-ui, sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {contact.organization}
                           </span>
                         )}
@@ -592,15 +612,15 @@ export function RelationshipsScreen() {
           <div className="max-w-2xl space-y-6">
             {/* Header */}
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-full bg-semblance-surface-2 dark:bg-semblance-surface-2-dark flex items-center justify-center text-xl font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#1E2227', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 400, color: '#5E6B7C' }}>
                 {getInitials(selectedContact.displayName)}
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-semibold text-semblance-text dark:text-semblance-text-dark">
+                <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 400, color: '#EEF1F4', letterSpacing: '0.04em' }}>
                   {selectedContact.displayName}
                 </h2>
                 {selectedContact.jobTitle && (
-                  <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em' }}>
                     {selectedContact.jobTitle}{selectedContact.organization ? ` ${t('screen.relationships.at_org', { org: selectedContact.organization })}` : ''}
                   </p>
                 )}
@@ -635,11 +655,11 @@ export function RelationshipsScreen() {
             {/* Contact info -- view or edit mode */}
             <Card>
               <div className="p-4 space-y-3">
-                <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">{t('screen.relationships.section_info')}</h3>
+                <h3 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>{t('screen.relationships.section_info')}</h3>
                 {editMode ? (
                   <div className="space-y-2">
                     <div>
-                      <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_name', 'Name')}</label>
+                      <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_name', 'Name')}</label>
                       <Input
                         type="text"
                         value={editFields.displayName ?? ''}
@@ -647,7 +667,7 @@ export function RelationshipsScreen() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_email')}</label>
+                      <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_email')}</label>
                       <Input
                         type="email"
                         value={editFields.email ?? ''}
@@ -655,7 +675,7 @@ export function RelationshipsScreen() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_phone')}</label>
+                      <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_phone')}</label>
                       <Input
                         type="tel"
                         value={editFields.phone ?? ''}
@@ -663,7 +683,7 @@ export function RelationshipsScreen() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_organization', 'Organization')}</label>
+                      <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_organization', 'Organization')}</label>
                       <Input
                         type="text"
                         value={editFields.organization ?? ''}
@@ -671,7 +691,7 @@ export function RelationshipsScreen() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_job_title', 'Job Title')}</label>
+                      <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_job_title', 'Job Title')}</label>
                       <Input
                         type="text"
                         value={editFields.jobTitle ?? ''}
@@ -679,7 +699,7 @@ export function RelationshipsScreen() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_birthday')}</label>
+                      <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_birthday')}</label>
                       <Input
                         type="date"
                         value={editFields.birthday ?? ''}
@@ -687,11 +707,11 @@ export function RelationshipsScreen() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_relationship_type', 'Relationship Type')}</label>
+                      <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_relationship_type', 'Relationship Type')}</label>
                       <select
                         value={editFields.relationshipType ?? 'unknown'}
                         onChange={(e) => setEditFields(f => ({ ...f, relationshipType: e.target.value }))}
-                        className="w-full px-3 py-1.5 text-sm rounded-md border border-[rgba(255,255,255,0.06)] bg-[#111518] text-semblance-text-secondary dark:text-semblance-text-secondary-dark"
+                        style={{ width: '100%', padding: '6px 12px', fontFamily: "'DM Mono', monospace", fontSize: 12, borderRadius: 6, border: '1px solid rgba(255,255,255,0.06)', background: '#111518', color: '#A8B4C0', letterSpacing: '0.04em', outline: 'none' }}
                       >
                         {RELATIONSHIP_TYPES.map(rt => (
                           <option key={rt} value={rt}>{rt.charAt(0).toUpperCase() + rt.slice(1)}</option>
@@ -711,24 +731,24 @@ export function RelationshipsScreen() {
                   <>
                     {(selectedContact.emails ?? []).length > 0 && (
                       <div>
-                        <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_email')}</span>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_email')}</span>
                         {(selectedContact.emails ?? []).map(e => (
-                          <p key={e} className="text-sm text-semblance-text dark:text-semblance-text-dark">{e}</p>
+                          <p key={e} style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{e}</p>
                         ))}
                       </div>
                     )}
                     {(selectedContact.phones ?? []).length > 0 && (
                       <div>
-                        <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_phone')}</span>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_phone')}</span>
                         {(selectedContact.phones ?? []).map(p => (
-                          <p key={p} className="text-sm text-semblance-text dark:text-semblance-text-dark">{p}</p>
+                          <p key={p} style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{p}</p>
                         ))}
                       </div>
                     )}
                     {selectedContact.birthday && (
                       <div>
-                        <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_birthday')}</span>
-                        <p className="text-sm text-semblance-text dark:text-semblance-text-dark">{selectedContact.birthday}</p>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_birthday')}</span>
+                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{selectedContact.birthday}</p>
                       </div>
                     )}
                   </>
@@ -740,23 +760,23 @@ export function RelationshipsScreen() {
             {selectedContact.communicationFrequency && (
               <Card>
                 <div className="p-4 space-y-3">
-                  <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">{t('screen.relationships.section_communication')}</h3>
+                  <h3 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>{t('screen.relationships.section_communication')}</h3>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_emails_week')}</span>
-                      <p className="text-lg font-semibold text-semblance-text dark:text-semblance-text-dark">
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_emails_week')}</span>
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 400, color: '#EEF1F4' }}>
                         {selectedContact.communicationFrequency.emailsPerWeek}
                       </p>
                     </div>
                     <div>
-                      <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_meetings_month')}</span>
-                      <p className="text-lg font-semibold text-semblance-text dark:text-semblance-text-dark">
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_meetings_month')}</span>
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 400, color: '#EEF1F4' }}>
                         {selectedContact.communicationFrequency.meetingsPerMonth}
                       </p>
                     </div>
                     <div>
-                      <span className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark">{t('screen.relationships.label_trend')}</span>
-                      <p className="text-lg font-semibold text-semblance-text dark:text-semblance-text-dark capitalize">
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>{t('screen.relationships.label_trend')}</span>
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 400, color: '#EEF1F4', textTransform: 'capitalize' as const }}>
                         {selectedContact.communicationFrequency.trend}
                       </p>
                     </div>
@@ -769,7 +789,7 @@ export function RelationshipsScreen() {
             {(emailHistory.length > 0 || calendarHistory.length > 0) && (
               <Card>
                 <div className="p-4 space-y-3">
-                  <h3 className="text-sm font-medium text-semblance-text dark:text-semblance-text-dark">
+                  <h3 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>
                     {t('screen.relationships.section_interactions', 'Recent Interactions')}
                   </h3>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -800,22 +820,22 @@ export function RelationshipsScreen() {
                           <div
                             className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-medium flex-shrink-0 mt-0.5"
                             style={{
-                              background: item.type === 'email' ? 'rgba(110, 207, 163, 0.12)' : 'rgba(133, 147, 164, 0.12)',
-                              color: item.type === 'email' ? '#6ECFA3' : '#8593A4',
+                              background: item.type === 'email' ? 'rgba(110, 207, 163, 0.12)' : 'rgba(168, 180, 192, 0.12)',
+                              color: item.type === 'email' ? '#6ECFA3' : '#A8B4C0',
                             }}
                           >
                             {item.type === 'email' ? '@' : '#'}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-semblance-text dark:text-semblance-text-dark truncate">
+                            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {item.title}
                             </p>
                             {item.detail && (
-                              <p className="text-xs text-semblance-text-muted dark:text-semblance-text-muted-dark truncate mt-0.5">
+                              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
                                 {item.detail}
                               </p>
                             )}
-                            <p className="text-[10px] text-semblance-text-muted dark:text-semblance-text-muted-dark mt-0.5">
+                            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#5E6B7C', letterSpacing: '0.04em', marginTop: 2 }}>
                               {formatDateTime(item.date)}
                               {item.from ? ` -- ${item.from}` : ''}
                             </p>

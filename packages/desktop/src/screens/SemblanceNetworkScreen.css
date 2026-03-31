@@ -26,7 +26,7 @@
 }
 
 .semblance-network-screen__subtitle {
-  font-family: var(--fb), sans-serif;
+  font-family: var(--fm), monospace;
   font-size: 0.875rem;
   color: var(--slate3);
   margin: 0;
@@ -48,7 +48,7 @@
 }
 
 .semblance-network-screen__section-title {
-  font-family: var(--fb), sans-serif;
+  font-family: var(--fm), monospace;
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--sv2);
@@ -115,7 +115,7 @@
   padding: 0.5rem 1rem;
   border: 1px solid var(--b1);
   border-radius: 4px;
-  font-family: var(--fb), sans-serif;
+  font-family: var(--fm), monospace;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;

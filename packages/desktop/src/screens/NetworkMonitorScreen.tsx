@@ -134,10 +134,10 @@ function TrustStatusCard({ unauthorizedAttempts, onGenerateReport }: {
       <div className="flex items-start gap-4">
         <div className={`w-4 h-4 rounded-full mt-0.5 ${isClean ? 'bg-semblance-success' : 'bg-semblance-attention'}`} />
         <div className="flex-1">
-          <h2 className="text-base font-semibold text-semblance-text-primary dark:text-semblance-text-primary-dark">
+          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#EEF1F4', letterSpacing: '0.04em' }}>
             {isClean ? t('screen.network_monitor.zero_connections') : t('screen.network_monitor.blocked_attempts', { count: unauthorizedAttempts })}
           </h2>
-          <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-1">
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', marginTop: 4 }}>
             {isClean
               ? t('screen.network_monitor.trust_clean_desc')
               : t('screen.network_monitor.trust_blocked_desc', { count: unauthorizedAttempts })
@@ -157,10 +157,10 @@ function ActiveConnectionsCard({ connections }: { connections: ActiveConnection[
   if (connections.length === 0) {
     return (
       <Card className="p-4 surface-void opal-wireframe">
-        <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
+        <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>
           {t('screen.network_monitor.section_active')}
         </h2>
-        <p className="text-sm text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark">
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
           {t('screen.network_monitor.empty_active')}
         </p>
       </Card>
@@ -168,24 +168,24 @@ function ActiveConnectionsCard({ connections }: { connections: ActiveConnection[
   }
   return (
     <Card className="p-4 surface-void opal-wireframe">
-      <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
+      <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
         {t('screen.network_monitor.section_active')}
       </h2>
       <div className="space-y-3">
         {connections.map(conn => (
           <div key={conn.id} className="flex items-center justify-between">
             <div>
-              <span className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>
                 {conn.service} ({conn.protocol})
               </span>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className={`w-2 h-2 rounded-full ${conn.status === 'active' ? 'bg-semblance-success' : conn.status === 'idle' ? 'bg-semblance-text-tertiary' : 'bg-semblance-attention'}`} />
-                <span className="text-xs text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark capitalize">
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', textTransform: 'capitalize' as const }}>
                   {conn.status}
                 </span>
               </div>
             </div>
-            <span className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
               {timeAgo(conn.lastActivity, t)}
             </span>
           </div>
@@ -204,7 +204,7 @@ function ActivityChart({ timeline, stats, period }: {
   const maxConnections = Math.max(1, ...timeline.map(tp => tp.connections));
   return (
     <Card className="p-4 surface-void opal-wireframe">
-      <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
+      <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
         {period === 'today' ? t('screen.network_monitor.activity_today') : period === 'week' ? t('screen.network_monitor.activity_week') : t('screen.network_monitor.activity_month')}
       </h2>
       {timeline.length > 0 ? (
@@ -219,11 +219,11 @@ function ActivityChart({ timeline, stats, period }: {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark mb-2">
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', marginBottom: 8 }}>
           {t('screen.network_monitor.empty_activity')}
         </p>
       )}
-      <div className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
         {stats && (
           <>
             {t('screen.network_monitor.connections_summary', { connections: stats.totalConnections, services: stats.uniqueServicesContacted })}
@@ -240,7 +240,7 @@ function ActivityChart({ timeline, stats, period }: {
                   className="h-2 bg-semblance-primary rounded-full"
                   style={{ width: `${Math.max(8, (count / stats.totalConnections) * 100)}%` }}
                 />
-                <span className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark whitespace-nowrap">
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', whiteSpace: 'nowrap' as const }}>
                   {service} · {count}
                 </span>
               </div>
@@ -256,7 +256,7 @@ function AuthorizedServicesCard({ services }: { services: AllowlistEntry[] }) {
   const activeServices = services.filter(s => s.isActive);
   return (
     <Card className="p-4 surface-void opal-wireframe">
-      <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
+      <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
         {t('screen.network_monitor.section_services')}
       </h2>
       <div className="space-y-3">
@@ -264,20 +264,20 @@ function AuthorizedServicesCard({ services }: { services: AllowlistEntry[] }) {
           <div key={i} className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-semblance-success">&#10003;</span>
-                <span className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#6ECFA3' }}>&#10003;</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>
                   {svc.service}
                 </span>
               </div>
-              <p className="text-xs text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark ml-5">
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', marginLeft: 20 }}>
                 {svc.domain}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
                 {t('screen.network_monitor.connections_count', { count: svc.connectionCount })}
               </p>
-              <p className="text-xs text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark">
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
                 {svc.addedBy === 'onboarding' ? t('screen.network_monitor.added_during_onboarding') : t('screen.network_monitor.added_by_user')}
               </p>
             </div>
@@ -285,12 +285,12 @@ function AuthorizedServicesCard({ services }: { services: AllowlistEntry[] }) {
         ))}
       </div>
       {activeServices.length > 0 && (
-        <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mt-4">
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#EEF1F4', letterSpacing: '0.04em', marginTop: 16 }}>
           {t('screen.network_monitor.services_footer')}
         </p>
       )}
       {activeServices.length === 0 && (
-        <p className="text-sm text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark">
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
           {t('screen.network_monitor.empty_services')}
         </p>
       )}
@@ -302,30 +302,30 @@ function ConnectionLogCard({ history }: { history: ConnectionRecord[] }) {
   const { t } = useTranslation();
   return (
     <Card className="p-4 surface-void opal-wireframe">
-      <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
+      <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
         {t('screen.network_monitor.section_log')}
       </h2>
       {history.length > 0 ? (
         <div className="space-y-1">
           {history.map(record => (
             <div key={record.id} className="flex items-center gap-3 py-1 text-xs font-mono">
-              <span className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark w-16 text-right">
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', width: 64, textAlign: 'right' as const }}>
                 {formatTime(record.timestamp)}
               </span>
-              <span className="text-semblance-text-primary dark:text-semblance-text-primary-dark w-28 truncate">
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em', width: 112, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                 {record.action}
               </span>
-              <span className="text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark flex-1 truncate">
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                 {record.service}
               </span>
-              <span className={record.status === 'success' ? 'text-semblance-success' : 'text-semblance-attention'}>
+              <span style={{ color: record.status === 'success' ? '#6ECFA3' : '#B09A8A' }}>
                 {record.status === 'success' ? '\u2713' : '\u2717'}
               </span>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-semblance-text-tertiary dark:text-semblance-text-tertiary-dark">
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
           {t('screen.network_monitor.empty_log')}
         </p>
       )}
@@ -397,7 +397,7 @@ export function NetworkMonitorScreen() {
   if (loading && !stats) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em' }}>
           {t('screen.network_monitor.loading')}
         </p>
       </div>
@@ -417,11 +417,19 @@ export function NetworkMonitorScreen() {
                 type="button"
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  period === p
-                    ? 'bg-semblance-primary text-white'
-                    : 'text-semblance-text-secondary dark:text-semblance-text-secondary-dark hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark'
-                }`}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: 4,
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 11,
+                  fontWeight: 400,
+                  letterSpacing: '0.04em',
+                  cursor: 'pointer',
+                  border: 'none',
+                  transition: 'all 150ms ease',
+                  background: period === p ? '#6ECFA3' : 'transparent',
+                  color: period === p ? '#0B0E11' : '#5E6B7C',
+                }}
               >
                 {t(`screen.network_monitor.period_${p}`)}
               </button>
@@ -436,7 +444,7 @@ export function NetworkMonitorScreen() {
 
         {reportGenerated && (
           <Card className="p-3 border border-semblance-success/30 bg-semblance-success/5 surface-void opal-wireframe">
-            <p className="text-sm text-semblance-success">
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#6ECFA3', letterSpacing: '0.04em' }}>
               {t('screen.network_monitor.proof_success')}
             </p>
           </Card>

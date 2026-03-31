@@ -3,7 +3,7 @@
 .connections-screen {
   width: 100%;
   min-height: 100vh;
-  background: #0B0E11;
+  background: transparent;
   padding: 48px 40px;
   box-sizing: border-box;
   max-width: 960px;
@@ -18,7 +18,7 @@
 }
 
 .connections-screen__subtitle {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-weight: 300;
   font-size: 15px;
   color: #5E6B7C;
@@ -37,7 +37,7 @@
   font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #8593A4;
+  color: #B8C0C8;
   margin: 0 0 16px 0;
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -71,12 +71,12 @@
   font-family: var(--fd);
   font-weight: 300;
   font-size: 21px;
-  color: #CDD4DB;
+  color: #EEF1F4;
   margin: 0 0 8px 0;
 }
 
 .connections-empty__body {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-weight: 300;
   font-size: 15px;
   color: #5E6B7C;
@@ -91,7 +91,7 @@
 }
 
 .connections-empty__btn {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: 14px;
   font-weight: 400;
   padding: 10px 20px;

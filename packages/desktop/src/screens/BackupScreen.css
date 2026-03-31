@@ -22,7 +22,7 @@
 }
 
 .backup-screen__subtitle {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv2);
   margin: 0 0 var(--sp-6);
@@ -40,7 +40,7 @@
 }
 
 .backup-screen__card-title {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--white);
@@ -68,7 +68,7 @@
 }
 
 .backup-screen__value {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv2);
 }
@@ -91,7 +91,7 @@
 }
 
 .backup-screen__empty-text {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv3);
   margin: 0;
@@ -123,7 +123,7 @@
 }
 
 .backup-screen__list-item-name {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--white);
 }
@@ -150,7 +150,7 @@
 /* Action buttons now use <Button> component */
 
 .backup-screen__status-message {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: #6ECFA3;
   margin-top: var(--sp-3);

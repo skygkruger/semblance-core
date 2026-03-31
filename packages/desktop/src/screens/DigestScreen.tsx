@@ -120,7 +120,7 @@ export function DigestScreen() {
   if (loading && !digest) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em' }}>
           {t('screen.digest.loading')}
         </p>
       </div>
@@ -135,7 +135,7 @@ export function DigestScreen() {
             {t('screen.digest.title')}
           </h1>
           <Card className="p-8 text-center">
-            <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark mb-4">
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', marginBottom: 16 }}>
               {t('screen.digest.empty')}
             </p>
             <Button onClick={handleGenerate}>
@@ -178,7 +178,7 @@ export function DigestScreen() {
         {/* Narrative */}
         {digest.narrative && (
           <Card className="p-4 border border-semblance-border dark:border-semblance-border-dark">
-            <p className="text-sm italic text-semblance-text-primary dark:text-semblance-text-primary-dark leading-relaxed">
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontStyle: 'italic', color: '#EEF1F4', letterSpacing: '0.04em', lineHeight: 1.6 }}>
               &ldquo;{digest.narrative}&rdquo;
             </p>
           </Card>
@@ -189,10 +189,10 @@ export function DigestScreen() {
           <div className="grid grid-cols-3 gap-3">
             {(digest.highlights ?? []).map((hl, i) => (
               <Card key={i} className="p-4 text-center">
-                <p className="text-lg font-semibold text-semblance-primary">
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 400, color: '#6ECFA3' }}>
                   {hl.impact}
                 </p>
-                <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-1">
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', marginTop: 4 }}>
                   {hl.title}
                 </p>
               </Card>
@@ -202,15 +202,15 @@ export function DigestScreen() {
 
         {/* Actions Breakdown */}
         <Card className="p-4">
-          <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-4">
+          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 16 }}>
             {t('screen.digest.section_breakdown')}
           </h2>
           <div className="space-y-4">
             {/* Email */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">{t('screen.digest.breakdown_email')}</span>
-                <span className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{t('screen.digest.breakdown_email')}</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
                   {t('screen.digest.breakdown_email_detail', { archived: digest.emailsArchived, drafted: digest.emailsDrafted, sent: digest.emailsSent })}
                 </span>
               </div>
@@ -220,8 +220,8 @@ export function DigestScreen() {
             {/* Calendar */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">{t('screen.digest.breakdown_calendar')}</span>
-                <span className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{t('screen.digest.breakdown_calendar')}</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
                   {t('screen.digest.breakdown_calendar_detail', { preps: digest.meetingPrepsGenerated, resolved: digest.conflictsResolved })}
                 </span>
               </div>
@@ -232,8 +232,8 @@ export function DigestScreen() {
             {digest.subscriptionsAnalyzed > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">{t('screen.digest.breakdown_subscriptions')}</span>
-                  <span className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{t('screen.digest.breakdown_subscriptions')}</span>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
                     {t('screen.digest.breakdown_subs_detail', { forgotten: digest.forgottenSubscriptions ?? 0, savings: (digest.potentialSavings ?? 0).toFixed(0) })}
                   </span>
                 </div>
@@ -245,20 +245,20 @@ export function DigestScreen() {
 
         {/* Autonomy Health */}
         <Card className="p-4">
-          <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
+          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
             {t('screen.digest.section_autonomy')}
           </h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>
                 {t('screen.digest.autonomy_accuracy', { percent: Math.round(digest.autonomyAccuracy * 100) })}
               </p>
-              <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark mt-0.5">
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', marginTop: 2 }}>
                 {t('screen.digest.autonomy_detail', { auto: autoExec, approved, total: totalAutonomy })}
               </p>
             </div>
             {rejected === 0 && totalAutonomy > 0 && (
-              <span className="text-xs px-2 py-1 rounded bg-semblance-success/10 text-semblance-success">
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, padding: '4px 8px', borderRadius: 4, background: 'rgba(110, 207, 163, 0.1)', color: '#6ECFA3', letterSpacing: '0.04em' }}>
                 {t('screen.digest.zero_rejected')}
               </span>
             )}
@@ -268,7 +268,7 @@ export function DigestScreen() {
         {/* Past Digests */}
         {pastDigests.length > 1 && (
           <Card className="p-4">
-            <h2 className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark mb-3">
+            <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
               {t('screen.digest.section_past')}
             </h2>
             <div className="space-y-2">
@@ -277,10 +277,10 @@ export function DigestScreen() {
                   key={pd.id}
                   className="flex items-center justify-between py-2 border-b last:border-b-0 border-semblance-border/50 dark:border-semblance-border-dark/50"
                 >
-                  <span className="text-xs text-semblance-text-primary dark:text-semblance-text-primary-dark">
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#EEF1F4', letterSpacing: '0.04em' }}>
                     {formatDateRange(pd.weekStart, pd.weekEnd)}
                   </span>
-                  <span className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
                     {t('screen.digest.past_summary', { count: pd.totalActions, time: pd.timeSavedFormatted })}
                   </span>
                 </div>

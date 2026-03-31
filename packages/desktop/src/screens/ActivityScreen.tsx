@@ -149,8 +149,8 @@ export function ActivityScreen() {
         className="surface-slate"
         style={{
           width: '100%', padding: '8px 12px', marginBottom: 12,
-          color: '#EEF1F4', fontSize: 13,
-          fontFamily: "'DM Sans', system-ui, sans-serif", outline: 'none',
+          color: '#EEF1F4', fontSize: 12,
+          fontFamily: "'DM Mono', monospace", outline: 'none', letterSpacing: '0.04em',
         }}
       />
 
@@ -178,7 +178,7 @@ export function ActivityScreen() {
                 borderRadius: 8,
                 border: isActive ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
                 background: isActive ? undefined : 'transparent',
-                color: isActive ? '#6ECFA3' : '#8593A4',
+                color: isActive ? '#6ECFA3' : '#5E6B7C',
                 fontFamily: "'DM Mono', monospace",
                 cursor: 'pointer',
                 letterSpacing: '0.04em',
@@ -237,7 +237,7 @@ export function ActivityScreen() {
       {filterStatus === 'alter_ego' ? (
         alterEgoReceipts.length === 0 ? (
           <div className="surface-slate" style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <p style={{ color: '#8593A4', fontSize: 14, fontFamily: "'DM Sans', system-ui, sans-serif", margin: 0 }}>
+            <p style={{ color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em', margin: 0 }}>
               {t('screen.activity.empty', { name })}
             </p>
           </div>
@@ -247,7 +247,7 @@ export function ActivityScreen() {
               <div key={week} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div className="settings-section-header">
                   {t('screen.alter_ego.week_header', { week })}
-                  <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400 }}>({receiptsByWeek[week]!.length} actions)</span>
+                  <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 400, color: '#5E6B7C', fontFamily: "'DM Mono', monospace" }}>({receiptsByWeek[week]!.length} actions)</span>
                 </div>
                 {receiptsByWeek[week]!.map((receipt) => (
                   <AlterEgoReceipt
@@ -271,7 +271,7 @@ export function ActivityScreen() {
         /* Standard action log */
         filtered.length === 0 ? (
           <div className="surface-slate" style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <p style={{ color: '#8593A4', fontSize: 14, fontFamily: "'DM Sans', system-ui, sans-serif", margin: 0 }}>
+            <p style={{ color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em', margin: 0 }}>
               {t('screen.activity.empty', { name })}
             </p>
           </div>
@@ -287,31 +287,31 @@ export function ActivityScreen() {
                 status={entry.status as 'success' | 'error' | 'pending' | 'rejected'}
                 autonomyTier={entry.autonomy_tier}
                 detail={
-                  <div className="space-y-2 font-mono text-xs">
-                    <p>{t('screen.activity.payload_hash', { hash: entry.payload_hash })}</p>
-                    <p>{t('screen.activity.audit_reference', { ref: entry.audit_ref })}</p>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <p style={{ margin: 0 }}>{t('screen.activity.payload_hash', { hash: entry.payload_hash })}</p>
+                    <p style={{ margin: 0 }}>{t('screen.activity.audit_reference', { ref: entry.audit_ref })}</p>
                     {entry.estimatedTimeSaved > 0 && (
                       <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6ECFA3' }}>
                         ~{Math.round(entry.estimatedTimeSaved / 60)}min saved
                       </span>
                     )}
                     {entry.reasoningContext && (
-                      <div className="mt-3 pt-3 border-t border-semblance-border dark:border-semblance-border-dark space-y-2">
-                        <p className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark font-medium">
+                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <p style={{ margin: 0, fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                           {t('screen.activity.reasoning_based_on')}
                         </p>
-                        <p className="text-semblance-text-tertiary italic">
+                        <p style={{ margin: 0, fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#5E6B7C', letterSpacing: '0.04em', fontStyle: 'italic' }}>
                           &ldquo;{entry.reasoningContext.query}&rdquo;
                         </p>
                         {(entry.reasoningContext.chunks ?? []).map((chunk) => (
                           <div
                             key={chunk.chunkId}
-                            className="flex items-start gap-2 py-1"
+                            style={{ display: 'flex', alignItems: 'flex-start', gap: 8, paddingTop: 4, paddingBottom: 4 }}
                           >
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-semblance-surface-2 dark:bg-semblance-surface-2-dark text-semblance-text-tertiary text-[10px] uppercase tracking-wider shrink-0">
+                            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 6px', borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.04)', fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#5E6B7C', textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0 }}>
                               {chunk.source}
                             </span>
-                            <span className="text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em' }}>
                               {chunk.title}
                             </span>
                           </div>
@@ -329,8 +329,8 @@ export function ActivityScreen() {
                 className="surface-slate surface-slate--hoverable"
                 style={{
                   padding: '10px 20px', margin: '12px auto', display: 'block',
-                  color: '#8593A4', fontSize: 13,
-                  fontFamily: "'DM Sans', system-ui, sans-serif", cursor: 'pointer',
+                  color: '#5E6B7C', fontSize: 11,
+                  fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em', cursor: 'pointer',
                 }}
               >
                 Load More

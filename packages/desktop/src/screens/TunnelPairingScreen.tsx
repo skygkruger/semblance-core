@@ -115,9 +115,10 @@ export function TunnelPairingScreen() {
           Compute Mesh
         </h1>
         <p style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 14,
-          color: '#8593A4',
+          fontFamily: "'DM Mono', monospace",
+          fontSize: 12,
+          color: '#A8B4C0',
+          letterSpacing: '0.04em',
           margin: 0,
           marginBottom: 32,
           lineHeight: 1.5,
@@ -129,9 +130,10 @@ export function TunnelPairingScreen() {
         {error && (
           <Card style={{ marginBottom: 20, borderColor: 'rgba(176, 122, 138, 0.3)', background: 'rgba(176, 122, 138, 0.12)' }}>
             <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 13,
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 12,
               color: '#B07A8A',
+              letterSpacing: '0.04em',
               margin: 0,
             }}>
               {error}
@@ -165,18 +167,18 @@ export function TunnelPairingScreen() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#5E6B7C' }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
                 Mesh IP
               </span>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#8593A4' }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em' }}>
                 {meshStatus.meshIp ?? 'Not assigned'}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#5E6B7C' }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
                 Process
               </span>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: meshStatus.processAlive ? '#6ECFA3' : '#5E6B7C' }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: meshStatus.processAlive ? '#6ECFA3' : '#5E6B7C', letterSpacing: '0.04em' }}>
                 {meshStatus.processAlive ? 'Alive' : 'Inactive'}
               </span>
             </div>
@@ -210,9 +212,10 @@ export function TunnelPairingScreen() {
 
           {peers.length === 0 ? (
             <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 13,
-              color: '#5E6B7C',
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 12,
+              color: '#A8B4C0',
+              letterSpacing: '0.04em',
               margin: 0,
               lineHeight: 1.5,
             }}>
@@ -228,7 +231,7 @@ export function TunnelPairingScreen() {
                   alignItems: 'center',
                 }}>
                   <div>
-                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#EEF1F4' }}>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>
                       {peer.displayName}
                     </div>
                     <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#5E6B7C', marginTop: 2 }}>
@@ -261,9 +264,10 @@ export function TunnelPairingScreen() {
             Pair a New Device
           </h2>
           <p style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 13,
-            color: '#5E6B7C',
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 12,
+            color: '#A8B4C0',
+            letterSpacing: '0.04em',
             margin: 0,
             lineHeight: 1.5,
           }}>

@@ -112,14 +112,14 @@ export function FilesScreen() {
   return (
     <div className="settings-screen">
       <div className="settings-header">
-        <h1 className="settings-header__title">{t('screen.files.title')}</h1>
+        <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.files.title')}</h1>
       </div>
       <div className="settings-content">
         {/* Indexed Directories */}
         <div className="settings-section-header">{t('screen.files.section_directories')}</div>
         <div className="settings-row settings-row--static">
           {dirs.length === 0 && indexingStatus.state !== 'indexing' && indexingStatus.state !== 'scanning' ? (
-            <span className="settings-row__label" style={{ color: '#5E6B7C', fontSize: 13 }}>
+            <span className="settings-row__label" style={{ color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>
               {t('screen.files.empty_directories')}
             </span>
           ) : null}
@@ -137,20 +137,20 @@ export function FilesScreen() {
           {indexingStatus.state === 'idle' || indexingStatus.state === 'complete' ? (
             <div className="flex items-center gap-2">
               <StatusIndicator status="success" />
-              <span className="settings-row__label" style={{ color: '#8593A4', fontSize: 13 }}>
+              <span className="settings-row__label" style={{ color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>
                 {t('screen.files.indexing_up_to_date')}
               </span>
             </div>
           ) : indexingStatus.state === 'error' ? (
             <div className="flex items-center gap-2">
               <StatusIndicator status="attention" />
-              <span style={{ color: '#B07A8A', fontSize: 13 }}>{t('screen.files.indexing_error', { error: indexingStatus.error })}</span>
+              <span style={{ color: '#B07A8A', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>{t('screen.files.indexing_error', { error: indexingStatus.error })}</span>
             </div>
           ) : (
             <div style={{ width: '100%' }}>
               <div className="flex items-center gap-2 mb-2">
                 <StatusIndicator status="accent" pulse />
-                <span className="settings-row__label" style={{ color: '#8593A4', fontSize: 13 }}>
+                <span className="settings-row__label" style={{ color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>
                   {indexingStatus.state === 'scanning' && t('screen.files.indexing_scanning')}
                   {indexingStatus.state === 'indexing' && t('screen.files.indexing_progress', { scanned: indexingStatus.filesScanned, total: indexingStatus.filesTotal })}
                 </span>
@@ -179,26 +179,26 @@ export function FilesScreen() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, padding: '0 16px' }}>
             <Card>
               <div style={{ padding: 16 }}>
-                <span style={{ fontSize: 20, fontWeight: 700, color: '#6ECFA3', fontFamily: "'DM Mono', monospace" }}>{knowledgeStats.documentCount}</span>
-                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_documents')}</span>
+                <span style={{ fontSize: 20, fontWeight: 400, color: '#6ECFA3', fontFamily: "'DM Mono', monospace", letterSpacing: '0.02em' }}>{knowledgeStats.documentCount}</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_documents')}</span>
               </div>
             </Card>
             <Card>
               <div style={{ padding: 16 }}>
-                <span style={{ fontSize: 20, fontWeight: 700, color: '#6ECFA3', fontFamily: "'DM Mono', monospace" }}>{knowledgeStats.chunkCount}</span>
-                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_chunks')}</span>
+                <span style={{ fontSize: 20, fontWeight: 400, color: '#6ECFA3', fontFamily: "'DM Mono', monospace", letterSpacing: '0.02em' }}>{knowledgeStats.chunkCount}</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_chunks')}</span>
               </div>
             </Card>
             <Card>
               <div style={{ padding: 16 }}>
-                <span style={{ fontSize: 20, fontWeight: 700, color: '#6ECFA3', fontFamily: "'DM Mono', monospace" }}>{(knowledgeStats.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB</span>
-                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_index_size')}</span>
+                <span style={{ fontSize: 20, fontWeight: 400, color: '#6ECFA3', fontFamily: "'DM Mono', monospace", letterSpacing: '0.02em' }}>{(knowledgeStats.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_index_size')}</span>
               </div>
             </Card>
             <Card>
               <div style={{ padding: 16 }}>
-                <span style={{ fontSize: 20, fontWeight: 700, color: '#6ECFA3', fontFamily: "'DM Mono', monospace" }}>.txt, .md, .pdf, .docx</span>
-                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_supported_types')}</span>
+                <span style={{ fontSize: 20, fontWeight: 400, color: '#6ECFA3', fontFamily: "'DM Mono', monospace", letterSpacing: '0.02em' }}>.txt, .md, .pdf, .docx</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{t('screen.files.stat_supported_types')}</span>
               </div>
             </Card>
           </div>

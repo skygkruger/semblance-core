@@ -2,7 +2,7 @@
 
 .living-will__gate-message {
   color: var(--sv2);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   margin: 0;
 }
@@ -14,7 +14,7 @@
   border: 1px solid rgba(110, 207, 163, 0.3);
   border-radius: var(--r-md);
   color: var(--v);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   cursor: pointer;
 }
@@ -41,7 +41,7 @@
 }
 
 .living-will__subtitle {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv2);
   margin: 0 0 var(--sp-6);
@@ -54,7 +54,7 @@
 }
 
 .living-will__section-title {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--white);
@@ -62,7 +62,7 @@
 }
 
 .living-will__empty {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv3);
   padding: var(--sp-4) 0;
@@ -89,7 +89,7 @@
 }
 
 .living-will__status-value {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--white);
 }
@@ -103,7 +103,7 @@
 .living-will__btn {
   padding: 8px 16px;
   border-radius: var(--r-md);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   cursor: pointer;
   border: none;
@@ -134,7 +134,7 @@
 }
 
 .living-will__toggle-label {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv2);
 }
@@ -172,7 +172,7 @@
 }
 
 .living-will__status-message {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: 13px;
   color: var(--sv3);
   margin-top: var(--sp-2);
@@ -186,7 +186,7 @@
 }
 
 .living-will__passphrase-label {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv2);
   margin: 0 0 var(--sp-2);
@@ -205,7 +205,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--r-md);
   color: var(--white);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   outline: none;
   transition: border-color 0.15s ease;

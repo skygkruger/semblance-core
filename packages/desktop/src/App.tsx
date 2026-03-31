@@ -241,7 +241,7 @@ const navSections: NavSection[] = [
     label: 'YOUR LIFE',
     items: [
       { id: 'inbox', label: 'Inbox', icon: <InboxIcon /> },
-      { id: 'relationships', label: 'Contacts', icon: <ContactsIcon /> },
+      { id: 'relationships', label: 'Relationships', icon: <ContactsIcon /> },
       { id: 'connections', label: 'Connections', icon: <PlugIcon /> },
       { id: 'import', label: 'Import', icon: <DownloadIcon /> },
     ],

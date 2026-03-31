@@ -119,7 +119,7 @@ export function PrivacyScreen() {
   if (!authorized) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em' }}>
           {t('status.loading')}
         </p>
       </div>
@@ -173,8 +173,9 @@ export function PrivacyScreen() {
   const linkBtnStyle: React.CSSProperties = {
     padding: '10px 16px',
     color: '#6ECFA3',
-    fontFamily: "'DM Sans', system-ui, sans-serif",
-    fontSize: 13,
+    fontFamily: "'DM Mono', monospace",
+    fontSize: 12,
+    letterSpacing: '0.04em',
     cursor: 'pointer',
     textAlign: 'left' as const,
     width: '100%',
@@ -199,14 +200,14 @@ export function PrivacyScreen() {
       {/* M8: Per-source data breakdown */}
       {sourceKeys.length > 0 && (
         <div className="surface-slate" style={{ borderRadius: 12, padding: 20 }}>
-          <h3 style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14, fontWeight: 500, color: '#8593A4', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <h3 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             {t('screen.privacy.data_by_source', 'Data by Source')}
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {sourceKeys.map(source => (
               <div key={source} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
-                <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, color: '#EEF1F4', textTransform: 'capitalize' }}>{source}</span>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#6ECFA3' }}>{sourceBreakdown[source]}</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em', textTransform: 'capitalize' }}>{source}</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#6ECFA3', letterSpacing: '0.04em' }}>{sourceBreakdown[source]}</span>
               </div>
             ))}
           </div>

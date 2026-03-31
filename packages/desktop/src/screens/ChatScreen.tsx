@@ -887,7 +887,7 @@ export function ChatScreen() {
           description={describeAction(act.type, act.payload)}
           status={actionCardStatus}
           autonomyTier={tier}
-          detail={act.reasoning ? <p style={{ color: '#8593A4', fontSize: '0.8125rem', margin: 0 }}>{act.reasoning}</p> : undefined}
+          detail={act.reasoning ? <p style={{ color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em', margin: 0 }}>{act.reasoning}</p> : undefined}
         />
       );
     }
@@ -1174,7 +1174,7 @@ export function ChatScreen() {
         {/* Drag overlay */}
         {isDragging && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-semblance-primary-subtle/50 dark:bg-semblance-primary-subtle-dark/50 border-2 border-dashed border-semblance-primary rounded-lg pointer-events-none">
-            <p className="text-semblance-primary font-semibold text-lg">{t('screen.chat.drop_overlay')}</p>
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#6ECFA3', letterSpacing: '0.04em' }}>{t('screen.chat.drop_overlay')}</p>
           </div>
         )}
 
@@ -1188,7 +1188,7 @@ export function ChatScreen() {
             title="History (Ctrl+H)"
             data-testid="toggle-history-panel"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-text-tertiary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#5E6B7C' }}>
               <path d="M3 12h18M3 6h18M3 18h18" />
             </svg>
           </button>
@@ -1196,7 +1196,7 @@ export function ChatScreen() {
           {state.activeModel && (
             <div className="flex items-center gap-2">
               <StatusIndicator status="success" />
-              <span className="text-xs text-semblance-text-tertiary">
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
                 {state.activeModel}{state.inferenceEngine === 'native' ? ' (built-in)' : ''}
               </span>
             </div>
@@ -1204,7 +1204,7 @@ export function ChatScreen() {
           {state.indexingStatus.state !== 'idle' && state.indexingStatus.state !== 'complete' && (
             <div className="flex items-center gap-2">
               <StatusIndicator status="accent" pulse />
-              <span className="text-xs text-semblance-text-tertiary">
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
                 {t('screen.chat.status_indexing', { scanned: state.indexingStatus.filesScanned, total: state.indexingStatus.filesTotal })}
               </span>
             </div>
@@ -1214,7 +1214,7 @@ export function ChatScreen() {
             <button
               type="button"
               onClick={activePanel === 'documents' ? closePanel : openDocumentPanel}
-              className="text-xs text-semblance-text-tertiary hover:text-semblance-text-primary transition-colors"
+              style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', background: 'none', border: 'none', cursor: 'pointer' }}
               data-testid="toggle-document-panel"
             >
               {t('screen.chat.documents_count', { count: state.chatAttachments.length })}
@@ -1228,7 +1228,7 @@ export function ChatScreen() {
             title="New conversation (Ctrl+N)"
             data-testid="new-conversation-btn"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-text-tertiary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#5E6B7C' }}>
               <path d="M12 5v14M5 12h14" />
             </svg>
           </button>
@@ -1241,7 +1241,7 @@ export function ChatScreen() {
               <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
-            <span className="flex-1 text-sm text-semblance-text-secondary dark:text-semblance-text-secondary-dark truncate">
+            <span className="flex-1 truncate" style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em' }}>
               {state.documentContext.fileName}
             </span>
             <button
@@ -1250,7 +1250,7 @@ export function ChatScreen() {
               className="flex-shrink-0 p-1 rounded hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
               aria-label={t('a11y.clear_document_context')}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-text-tertiary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#5E6B7C' }}>
                 <path d="M18 6 6 18" /><path d="m6 6 12 12" />
               </svg>
             </button>
@@ -1262,7 +1262,7 @@ export function ChatScreen() {
         <div className="max-w-[720px] mx-auto px-6 space-y-4">
           {state.chatMessages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <p className="text-lg text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+              <p style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: '#A8B4C0', letterSpacing: '0.04em' }}>
                 {t('screen.chat.ask_anything', { name })}
               </p>
               <div className="mt-6 space-y-2">
@@ -1276,8 +1276,8 @@ export function ChatScreen() {
                       key={suggestion.key}
                       type="button"
                       onClick={() => handleSend(suggestion.label)}
-                      className="surface-pill block w-full text-left px-4 py-3 text-sm"
-                      style={{ color: '#A8B4C0', fontFamily: "'DM Sans', system-ui, sans-serif", cursor: 'pointer' }}
+                      className="surface-pill block w-full text-left px-4 py-3"
+                      style={{ color: '#A8B4C0', fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: '0.04em', cursor: 'pointer' }}
                     >
                       {suggestion.label}
                     </button>

@@ -307,9 +307,10 @@ export function InboxScreen() {
                 borderRadius: 6,
                 border: 'none',
                 background: selectedAccount === null ? 'rgba(110,207,163,0.15)' : '#171B1F',
-                color: selectedAccount === null ? '#6ECFA3' : '#8593A4',
-                fontFamily: "'DM Sans', system-ui, sans-serif",
-                fontSize: 13,
+                color: selectedAccount === null ? '#6ECFA3' : '#5E6B7C',
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 11,
+                letterSpacing: '0.04em',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
               }}
@@ -326,8 +327,8 @@ export function InboxScreen() {
                   borderRadius: 6,
                   border: 'none',
                   background: selectedAccount === acc.accountId ? 'rgba(110,207,163,0.15)' : '#171B1F',
-                  color: selectedAccount === acc.accountId ? '#6ECFA3' : '#8593A4',
-                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                  color: selectedAccount === acc.accountId ? '#6ECFA3' : '#5E6B7C',
+                  fontFamily: "'DM Mono', monospace",
                   fontSize: 13,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -341,6 +342,7 @@ export function InboxScreen() {
 
         {/* Quick Capture */}
         <QuickCaptureInput
+          placeholder="Search inbox, draft an email, or ask about your messages..."
           onCapture={async (text) => {
             const result = await quickCapture(text);
             return result;
@@ -370,7 +372,7 @@ export function InboxScreen() {
         {/* Reminders */}
         {reminders.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark uppercase tracking-wide">
+            <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               {t('screen.inbox.section_reminders', 'Reminders')}
             </h2>
             {reminders.map(reminder => (
@@ -409,7 +411,7 @@ export function InboxScreen() {
         {/* Priority / Proactive Section */}
         {insights.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark uppercase tracking-wide">
+            <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               {t('screen.inbox.section_priority')}
             </h2>
             <div className="space-y-2">
@@ -434,13 +436,13 @@ export function InboxScreen() {
 
         {/* Email Section */}
         <section className="space-y-3">
-          <h2 className="text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark uppercase tracking-wide">
+          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {t('screen.inbox.section_email')}
           </h2>
 
           {emails.length === 0 ? (
             <Card>
-              <p className="text-center text-semblance-text-secondary dark:text-semblance-text-secondary-dark py-8">
+              <p style={{ textAlign: 'center', fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', paddingTop: 32, paddingBottom: 32 }}>
                 {t('screen.inbox.empty_email')}
               </p>
             </Card>
@@ -467,9 +469,10 @@ export function InboxScreen() {
                       margin: '-2px 0 0 0',
                       borderTop: 'none',
                       borderRadius: '0 0 8px 8px',
-                      fontFamily: "'DM Sans', system-ui, sans-serif",
-                      fontSize: 13,
+                      fontFamily: "'DM Mono', monospace",
+                      fontSize: 12,
                       color: '#A8B4C0',
+                      letterSpacing: '0.04em',
                       lineHeight: 1.6,
                     }}>
                       <div style={{ display: 'flex', gap: 16, marginBottom: 8, fontSize: 12, color: '#5E6B7C' }}>
@@ -502,13 +505,13 @@ export function InboxScreen() {
 
         {/* Calendar Today Section */}
         <section className="space-y-3">
-          <h2 className="text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark uppercase tracking-wide">
+          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {t('screen.inbox.section_calendar')}
           </h2>
 
           {todayEvents.length === 0 ? (
             <Card>
-              <p className="text-center text-semblance-text-secondary dark:text-semblance-text-secondary-dark py-4">
+              <p style={{ textAlign: 'center', fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', paddingTop: 16, paddingBottom: 16 }}>
                 {t('screen.inbox.empty_calendar')}
               </p>
             </Card>
@@ -520,15 +523,15 @@ export function InboxScreen() {
                     key={event.uid}
                     className="flex items-start gap-3 py-2 border-b last:border-b-0 border-semblance-border dark:border-semblance-border-dark"
                   >
-                    <span className="text-sm font-mono text-semblance-text-secondary dark:text-semblance-text-secondary-dark whitespace-nowrap min-w-[70px]">
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', whiteSpace: 'nowrap', minWidth: 70 }}>
                       {event.isAllDay ? t('time.all_day') : formatTime(event.startTime)}
                     </span>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#EEF1F4', letterSpacing: '0.04em', margin: 0 }}>
                         {event.title}
                       </p>
                       {event.location && (
-                        <p className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark">
+                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', margin: '2px 0 0' }}>
                           {event.location}
                         </p>
                       )}
@@ -547,21 +550,21 @@ export function InboxScreen() {
 
         {/* Actions Taken Section */}
         <section className="space-y-3">
-          <h2 className="text-sm font-medium text-semblance-text-secondary dark:text-semblance-text-secondary-dark uppercase tracking-wide">
+          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {t('screen.inbox.section_actions')}
           </h2>
           <Card>
             {actionsSummary.todayCount === 0 ? (
-              <p className="text-center text-semblance-text-secondary dark:text-semblance-text-secondary-dark py-4">
+              <p style={{ textAlign: 'center', fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', paddingTop: 16, paddingBottom: 16 }}>
                 {t('screen.inbox.empty_actions')}
               </p>
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-semblance-text-primary dark:text-semblance-text-primary-dark">
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#EEF1F4', letterSpacing: '0.04em' }}>
                     {t('screen.inbox.today_actions', { count: actionsSummary.todayCount })}
                   </span>
-                  <span className="text-sm text-semblance-success">
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6ECFA3', letterSpacing: '0.04em' }}>
                     {t('screen.inbox.time_saved', { time: formatTimeSaved(actionsSummary.todayTimeSavedSeconds) })}
                   </span>
                 </div>
@@ -569,7 +572,7 @@ export function InboxScreen() {
                   {actionsSummary.recentActions.slice(0, 5).map((action, i) => (
                     <li
                       key={i}
-                      className="text-xs text-semblance-text-secondary dark:text-semblance-text-secondary-dark flex items-center gap-2"
+                      style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#A8B4C0', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 8 }}
                     >
                       <span className="w-1 h-1 rounded-full bg-semblance-success flex-shrink-0" />
                       {action.description}
@@ -600,7 +603,7 @@ export function InboxScreen() {
         {/* Snooze Toast */}
         {snoozeToast && (
           <div className="fixed bottom-16 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg bg-semblance-surface-2 dark:bg-semblance-surface-2-dark" style={{ border: '1px solid rgba(255,255,255,0.09)' }}>
-            <span className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>
               {snoozeToast.message}
             </span>
           </div>
@@ -609,13 +612,13 @@ export function InboxScreen() {
         {/* Undo Toast */}
         {undoToast && (
           <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg bg-semblance-surface-2 dark:bg-semblance-surface-2-dark" style={{ border: '1px solid rgba(255,255,255,0.09)' }}>
-            <span className="text-sm text-semblance-text-primary dark:text-semblance-text-primary-dark">
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>
               {undoToast.message}
             </span>
             <button
               type="button"
               onClick={handleUndo}
-              className="text-sm font-medium text-semblance-accent hover:underline"
+              style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#6ECFA3', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.04em' }}
             >
               {t('button.undo')}
             </button>

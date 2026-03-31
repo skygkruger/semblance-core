@@ -170,7 +170,7 @@ export function IntentScreen() {
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-              <span style={{ flex: 1, fontFamily: "'DM Sans', sans-serif", color: primaryGoal ? '#EEF1F4' : '#8593A4', fontSize: 14 }}>
+              <span style={{ flex: 1, fontFamily: "'DM Mono', monospace", color: primaryGoal ? '#EEF1F4' : '#5E6B7C', fontSize: 12, letterSpacing: '0.04em' }}>
                 {primaryGoal || t('screen.intent.goal_empty')}
               </span>
               <Button variant="ghost" size="sm" onClick={() => { setGoalDraft(primaryGoal || ''); setEditingGoal(true); }}>{t('button.edit')}</Button>
@@ -182,7 +182,7 @@ export function IntentScreen() {
         <Card variant="default" className="mt-4">
           <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>{t('screen.intent.section_limits')}</h2>
           {hardLimits.length === 0 && (
-            <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#5E6B7C', fontSize: 13, margin: 0 }}>{t('screen.intent.limits_empty')}</p>
+            <p style={{ fontFamily: "'DM Mono', monospace", color: '#5E6B7C', fontSize: 11, letterSpacing: '0.04em', margin: 0 }}>{t('screen.intent.limits_empty')}</p>
           )}
           {hardLimits.map(limit => (
             <div key={limit.id} className="settings-row">
@@ -202,7 +202,7 @@ export function IntentScreen() {
               />
               <span className="settings-row__label" style={{
                 flex: 1,
-                color: limit.active ? '#EEF1F4' : '#8593A4',
+                color: limit.active ? '#EEF1F4' : '#5E6B7C',
                 textDecoration: limit.active ? 'none' : 'line-through',
               }}>
                 {limit.rawText}
@@ -227,7 +227,7 @@ export function IntentScreen() {
         <Card variant="default" className="mt-4">
           <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>{t('screen.intent.section_values')}</h2>
           {personalValues.length === 0 && (
-            <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#5E6B7C', fontSize: 13, margin: 0 }}>{t('screen.intent.values_empty')}</p>
+            <p style={{ fontFamily: "'DM Mono', monospace", color: '#5E6B7C', fontSize: 11, letterSpacing: '0.04em', margin: 0 }}>{t('screen.intent.values_empty')}</p>
           )}
           {personalValues.map(value => (
             <div key={value.id} className="settings-row">
@@ -309,8 +309,8 @@ export function IntentScreen() {
                   {obs.type}
                 </span>
                 <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 13, color: '#EEF1F4', fontFamily: "'DM Sans', sans-serif" }}>{obs.description}</p>
-                  <p style={{ margin: '4px 0 0', fontSize: 11, color: '#8593A4', fontFamily: "'DM Mono', monospace" }}>
+                  <p style={{ margin: 0, fontSize: 12, color: '#EEF1F4', fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>{obs.description}</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 11, color: '#5E6B7C', fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>
                     {new Date(obs.observedAt).toLocaleDateString()}
                   </p>
                 </div>

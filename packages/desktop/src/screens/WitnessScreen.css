@@ -2,7 +2,7 @@
 
 .witness__gate-message {
   color: var(--sv2);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   margin: 0;
 }
@@ -14,7 +14,7 @@
   border: 1px solid rgba(110, 207, 163, 0.3);
   border-radius: var(--r-md);
   color: var(--v);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   cursor: pointer;
 }
@@ -41,7 +41,7 @@
 }
 
 .witness__subtitle {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv2);
   margin: 0 0 var(--sp-6);
@@ -61,7 +61,7 @@
 }
 
 .witness__section-title {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--white);
@@ -69,7 +69,7 @@
 }
 
 .witness__empty {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv3);
   padding: var(--sp-4) 0;
@@ -123,7 +123,7 @@
 }
 
 .witness__attestation-action {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--white);
   white-space: nowrap;
@@ -154,7 +154,7 @@
 .witness__btn {
   padding: 8px 16px;
   border-radius: var(--r-md);
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   cursor: pointer;
   border: none;
@@ -183,7 +183,7 @@
 }
 
 .witness__status-message {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: 13px;
   color: var(--sv3);
   margin-top: var(--sp-2);

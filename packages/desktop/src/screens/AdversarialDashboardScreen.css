@@ -22,7 +22,7 @@
 }
 
 .adversarial-dashboard__subtitle {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv2);
   margin: 0 0 var(--sp-6);
@@ -33,7 +33,7 @@
 }
 
 .adversarial-dashboard__section-title {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--white);
@@ -41,7 +41,7 @@
 }
 
 .adversarial-dashboard__empty {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv3);
   padding: var(--sp-4) 0;
@@ -95,7 +95,7 @@
 /* Severity indicators now use <StatusIndicator> component */
 
 .adversarial-dashboard__alert-text {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv2);
 }
@@ -116,7 +116,7 @@
 }
 
 .adversarial-dashboard__subscription-name {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--white);
 }

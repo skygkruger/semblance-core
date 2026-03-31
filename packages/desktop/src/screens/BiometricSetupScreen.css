@@ -22,7 +22,7 @@
 }
 
 .biometric-setup__subtitle {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv2);
   margin: 0 0 var(--sp-6);
@@ -33,7 +33,7 @@
 }
 
 .biometric-setup__section-title {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--white);
@@ -61,7 +61,7 @@
 }
 
 .biometric-setup__status-value {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--white);
 }
@@ -93,7 +93,7 @@
 }
 
 .biometric-setup__toggle-label {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: var(--text-sm);
   color: var(--sv2);
 }

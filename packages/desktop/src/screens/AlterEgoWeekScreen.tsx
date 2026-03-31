@@ -202,9 +202,10 @@ export function AlterEgoWeekScreen() {
           Alter Ego Week
         </h1>
         <p style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 14,
-          color: '#8593A4',
+          fontFamily: "'DM Mono', monospace",
+          fontSize: 12,
+          color: '#A8B4C0',
+          letterSpacing: '0.04em',
           margin: 0,
           marginBottom: 32,
           lineHeight: 1.5,
@@ -215,7 +216,7 @@ export function AlterEgoWeekScreen() {
         {/* Error */}
         {error && (
           <Card style={{ marginBottom: 20, borderColor: 'rgba(176, 122, 138, 0.3)', background: 'rgba(176, 122, 138, 0.12)' }}>
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#B07A8A', margin: 0 }}>
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#B07A8A', letterSpacing: '0.04em', margin: 0 }}>
               {error}
             </p>
           </Card>
@@ -225,9 +226,9 @@ export function AlterEgoWeekScreen() {
         {!weekState.active && !isComplete && (
           <Card style={{ marginBottom: 20 }}>
             <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              color: '#8593A4',
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 12,
+              color: '#A8B4C0', letterSpacing: '0.04em',
               margin: 0,
               marginBottom: 20,
               lineHeight: 1.6,
@@ -272,9 +273,9 @@ export function AlterEgoWeekScreen() {
               Week Complete
             </h2>
             <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              color: '#8593A4',
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 12,
+              color: '#A8B4C0', letterSpacing: '0.04em',
               margin: 0,
               marginBottom: 20,
               lineHeight: 1.6,
@@ -307,9 +308,9 @@ export function AlterEgoWeekScreen() {
               Week Complete
             </h2>
             <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              color: '#8593A4',
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 12,
+              color: '#A8B4C0', letterSpacing: '0.04em',
               margin: 0,
               marginBottom: 20,
               lineHeight: 1.6,

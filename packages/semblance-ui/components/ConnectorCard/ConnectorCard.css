@@ -68,7 +68,7 @@
 }
 
 .connector-card__name {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: 14px;
   font-weight: 500;
   color: var(--w-dim);
@@ -85,13 +85,13 @@
   font-weight: 400;
   padding: 1px 6px;
   border-radius: var(--r-sm);
-  background: rgba(176, 154, 138, 0.13);
-  color: var(--caution);
+  background: rgba(110, 207, 163, 0.1);
+  color: var(--v);
   letter-spacing: 0.04em;
 }
 
 .connector-card__description {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: 13px;
   font-weight: 300;
   color: var(--sv1);
@@ -112,7 +112,7 @@
 }
 
 .connector-card__btn {
-  font-family: var(--fb);
+  font-family: var(--fm);
   font-size: 13px;
   font-weight: 400;
   padding: 6px 12px;
@@ -139,7 +139,7 @@
 }
 
 .connector-card__btn--sync {
-  background: rgba(133, 147, 164, 0.1);
+  background: rgba(94, 107, 124, 0.1);
   color: var(--sv2);
 }
 

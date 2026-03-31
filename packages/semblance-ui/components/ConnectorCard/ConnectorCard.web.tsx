@@ -47,10 +47,10 @@ export function ConnectorCard({
           {!isConnected && !isPending && (
             <button
               type="button"
-              className="connector-card__btn connector-card__btn--connect"
+              className="btn btn--opal btn--sm"
               onClick={() => onConnect(id)}
             >
-              {t('card.btn_connect')}
+              <span className="btn__text">{t('card.btn_connect')}</span>
             </button>
           )}
           {isConnected && (

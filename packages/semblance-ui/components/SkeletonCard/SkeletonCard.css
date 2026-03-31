@@ -66,13 +66,13 @@
 .skeleton-card__status {
   font-family: var(--fb);
   font-size: 14px;
-  color: #8593A4;
+  color: #5E6B7C;
   text-align: center;
 }
 
 .skeleton-card__sub {
   font-family: var(--fb);
   font-size: 12px;
-  color: rgba(133, 147, 164, 0.6);
+  color: rgba(94, 107, 124, 0.6);
   text-align: center;
 }
