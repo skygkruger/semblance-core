@@ -11,6 +11,7 @@ import {
   getConnectionHistory,
   generatePrivacyReport,
 } from '../ipc/commands';
+import { ContentBracket } from '../components/ContentBracket';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -437,26 +438,32 @@ export function NetworkMonitorScreen() {
           </div>
         </div>
 
-        <TrustStatusCard
-          unauthorizedAttempts={unauthorized.length}
-          onGenerateReport={handleGenerateReport}
-        />
+        <ContentBracket>
+        <section>
+          <TrustStatusCard
+            unauthorizedAttempts={unauthorized.length}
+            onGenerateReport={handleGenerateReport}
+          />
+        </section>
 
         {reportGenerated && (
-          <Card className="p-3 border border-semblance-success/30 bg-semblance-success/5 surface-void opal-wireframe">
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#6ECFA3', letterSpacing: '0.04em' }}>
-              {t('screen.network_monitor.proof_success')}
-            </p>
-          </Card>
+          <section>
+            <Card className="p-3 border border-semblance-success/30 bg-semblance-success/5 surface-void opal-wireframe">
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#6ECFA3', letterSpacing: '0.04em' }}>
+                {t('screen.network_monitor.proof_success')}
+              </p>
+            </Card>
+          </section>
         )}
 
-        <ActiveConnectionsCard connections={connections} />
+        <section><ActiveConnectionsCard connections={connections} /></section>
 
-        <ActivityChart timeline={timeline} stats={stats} period={period} />
+        <section><ActivityChart timeline={timeline} stats={stats} period={period} /></section>
 
-        <AuthorizedServicesCard services={allowlist} />
+        <section><AuthorizedServicesCard services={allowlist} /></section>
 
-        <ConnectionLogCard history={history} />
+        <section><ConnectionLogCard history={history} /></section>
+        </ContentBracket>
       </div>
     </div>
   );

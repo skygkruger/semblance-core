@@ -18,6 +18,7 @@ import {
   type ImportProgress as ViewImportProgress,
   DEFAULT_IMPORT_SOURCES,
 } from '../components/ImportDigitalLifeView';
+import { ContentBracket } from '../components/ContentBracket';
 
 // ─── IPC response shapes ────────────────────────────────────────────────────
 
@@ -163,13 +164,15 @@ export function ImportEverythingScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
-        <ImportDigitalLifeView
-          isPremium={license.isPremium}
-          importSources={viewSources}
-          importHistory={mapHistory(history)}
-          progress={mapProgress(progressEvent, importingSource !== null)}
-          onImport={handleImport}
-        />
+        <ContentBracket>
+          <ImportDigitalLifeView
+            isPremium={license.isPremium}
+            importSources={viewSources}
+            importHistory={mapHistory(history)}
+            progress={mapProgress(progressEvent, importingSource !== null)}
+            onImport={handleImport}
+          />
+        </ContentBracket>
       </div>
     </div>
   );

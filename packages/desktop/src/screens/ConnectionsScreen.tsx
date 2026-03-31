@@ -26,6 +26,7 @@ import type {
   ConnectorState,
 } from '@semblance/core/importers/connector-status';
 import { useAppState, useAppDispatch } from '../state/AppState';
+import { ContentBracket } from '../components/ContentBracket';
 
 const registry = createDefaultConnectorRegistry();
 
@@ -346,6 +347,7 @@ export function ConnectionsScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+        <ContentBracket>
         <ConnectionsScreenUI
           connectors={connectors}
           onConnect={handleConnect}
@@ -481,6 +483,7 @@ export function ConnectionsScreen() {
               })}
           </div>
         )}
+        </ContentBracket>
       </div>
     </div>
   );

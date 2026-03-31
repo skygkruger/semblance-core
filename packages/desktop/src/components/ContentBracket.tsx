@@ -34,8 +34,12 @@ export function ContentBracket({
     const wrapper = wrapperRef.current;
     if (!content || !wrapper) return;
 
-    const kids = Array.from(content.children) as HTMLElement[];
-    if (kids.length === 0) {
+    // Find all card-like elements anywhere inside, not just direct children
+    const cards = Array.from(content.querySelectorAll('.card, .surface-void, .surface-slate, .skeleton-card, section')) as HTMLElement[];
+    // Deduplicate: only keep outermost cards (skip cards nested inside other cards)
+    const topCards = cards.filter(card => !cards.some(other => other !== card && other.contains(card)));
+
+    if (topCards.length === 0) {
       setTicks([]);
       setSpineHeight(0);
       return;
@@ -49,12 +53,9 @@ export function ContentBracket({
     setContentHeight(contentRect.height);
 
     const positions: TickPosition[] = [];
-    for (const child of kids) {
-      // Target the card element inside, not the section wrapper
-      const card = child.querySelector('.card, .surface-void, .surface-slate, .skeleton-card') as HTMLElement | null;
-      const target = card || child;
-      const targetRect = target.getBoundingClientRect();
-      const centerY = targetRect.top - contentRect.top + targetRect.height / 2;
+    for (const card of topCards) {
+      const cardRect = card.getBoundingClientRect();
+      const centerY = cardRect.top - contentRect.top + cardRect.height / 2;
       positions.push({ y: centerY });
     }
 
@@ -99,7 +100,7 @@ export function ContentBracket({
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative' }}>
-      {ticks.length > 1 && (
+      {ticks.length > 1 && spineHeight > 0 && (
         <svg
           style={{
             position: 'absolute',

@@ -7,6 +7,7 @@ import { EscalationPromptCard } from '../components/EscalationPromptCard';
 import { AlterEgoWeekCard } from '../components/AlterEgoWeekCard';
 import { useAppState } from '../state/AppState';
 import { useSound } from '../sound/SoundEngineContext';
+import { ContentBracket } from '../components/ContentBracket';
 
 export function ActivityScreen() {
   const { t } = useTranslation();
@@ -185,6 +186,7 @@ export function ActivityScreen() {
         })}
       </div>
 
+      <ContentBracket>
       {/* Alter Ego Week Progress */}
       {weekProgress?.isActive && (
         <AlterEgoWeekCard
@@ -334,6 +336,7 @@ export function ActivityScreen() {
           </div>
         )
       )}
+      </ContentBracket>
       </div>
     </div>
   );
