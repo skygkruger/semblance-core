@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
 import { Card, Button, Input, StatusIndicator, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { ContentBracket } from '../components/ContentBracket';
 import { useNavigate } from 'react-router-dom';
 import {
   networkPeersList,
@@ -155,7 +156,7 @@ export function SemblanceNetworkScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <h1 className="page-title" style={{ fontSize: 28 }}>{t('semblanceNetwork.title', 'Semblance Network')}</h1>
-
+        <ContentBracket>
         <p className="semblance-network-screen__subtitle">
           {t('semblanceNetwork.subtitle', 'Consent-first peer-to-peer sharing with other Semblance users.')}
         </p>
@@ -292,6 +293,7 @@ export function SemblanceNetworkScreen() {
             )}
           </>
         )}
+        </ContentBracket>
       </div>
     </div>
   );

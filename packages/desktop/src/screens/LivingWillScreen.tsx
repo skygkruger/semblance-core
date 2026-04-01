@@ -18,6 +18,7 @@ import {
 } from '../ipc/commands';
 import type { LivingWillExportRecord } from '../ipc/commands';
 import { Card, Input, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { ContentBracket } from '../components/ContentBracket';
 import './LivingWillScreen.css';
 
 export function LivingWillScreen() {
@@ -205,6 +206,7 @@ export function LivingWillScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.living_will.title')}</h1>
+        <ContentBracket>
         <p className="living-will__subtitle">
           {t('screen.living_will.subtitle')}
         </p>
@@ -314,6 +316,7 @@ export function LivingWillScreen() {
             </p>
           )}
         </Card>
+        </ContentBracket>
       </div>
     </div>
   );

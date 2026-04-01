@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
 import { Card, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { StaticBracket } from '../components/StaticBracket';
 import {
   witnessGetAttestations,
   witnessGenerateAttestation,
@@ -156,7 +157,7 @@ export function WitnessScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.witness.title')}</h1>
-
+        <StaticBracket>
           <p className="witness__subtitle">
             {t('screen.witness.subtitle')}
           </p>
@@ -248,6 +249,7 @@ export function WitnessScreen() {
               )}
             </Card>
           )}
+        </StaticBracket>
       </div>
     </div>
   );

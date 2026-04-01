@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, FeatureGate, SkeletonCard, StatusIndicator } from '@semblance/ui';
+import { StaticBracket } from '../components/StaticBracket';
 import { sidecarCall } from '../ipc/commands';
 import { useLicense } from '../contexts/LicenseContext';
 import { AlterEgoWeekCard } from '../components/AlterEgoWeekCard';
@@ -223,7 +224,7 @@ export function AlterEgoWeekScreen() {
         }}>
           Build trust through 7 days of autonomous demonstrations.
         </p>
-
+        <StaticBracket>
         {/* Error */}
         {error && (
           <Card className="surface-void opal-wireframe" style={{ marginBottom: 20, borderColor: 'rgba(176, 122, 138, 0.3)', background: 'rgba(176, 122, 138, 0.12)' }}>
@@ -330,6 +331,7 @@ export function AlterEgoWeekScreen() {
             </p>
           </Card>
         )}
+        </StaticBracket>
       </div>
     </div>
   );

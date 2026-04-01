@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
 import { Card, Button, Input, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { ContentBracket } from '../components/ContentBracket';
 import {
   inheritanceGetConfig,
   inheritanceUpdateConfig,
@@ -152,7 +153,7 @@ export function InheritanceScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.inheritance.title')}</h1>
-
+        <ContentBracket>
           <p className="inheritance__subtitle">
             {t('screen.inheritance.subtitle')}
           </p>
@@ -303,6 +304,7 @@ export function InheritanceScreen() {
               </Card>
             </>
           )}
+        </ContentBracket>
       </div>
     </div>
   );

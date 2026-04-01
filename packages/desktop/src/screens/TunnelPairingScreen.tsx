@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, SkeletonCard, StatusIndicator } from '@semblance/ui';
+import { ContentBracket } from '../components/ContentBracket';
 import { sidecarCall } from '../ipc/commands';
 
 interface MeshStatus {
@@ -114,6 +115,7 @@ export function TunnelPairingScreen() {
         <h1 className="page-title" style={{ fontSize: 28 }}>
           Compute Mesh
         </h1>
+        <ContentBracket>
         <p style={{
           fontFamily: "'DM Mono', monospace",
           fontSize: 12,
@@ -273,6 +275,7 @@ export function TunnelPairingScreen() {
             Open Semblance on your other device and navigate to Compute Mesh. Both devices must be on the same local network. Pairing uses mutual TLS authentication over encrypted WireGuard tunnels.
           </p>
         </Card>
+        </ContentBracket>
       </div>
     </div>
   );

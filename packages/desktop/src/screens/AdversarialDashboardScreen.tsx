@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { getDarkPatternFlags, dismissDarkPatternFlag, getFinancialDashboard, prefGet } from '../ipc/commands';
 import { useLicense } from '../contexts/LicenseContext';
 import { Card, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { ContentBracket } from '../components/ContentBracket';
 import { DarkPatternBadge } from '../components/DarkPatternBadge';
 import type { DarkPatternFlag } from '../components/DarkPatternBadge';
 import './AdversarialDashboardScreen.css';
@@ -112,6 +113,7 @@ export function AdversarialDashboardScreen() {
             {t('screen.adversarial.subtitle')}
           </p>
 
+          <ContentBracket>
           {loading && (
             <SkeletonCard
               variant="generic"
@@ -188,6 +190,7 @@ export function AdversarialDashboardScreen() {
               </Card>
             </>
           )}
+          </ContentBracket>
         </div>
       </div>
   );

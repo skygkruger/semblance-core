@@ -8,6 +8,7 @@ import {
   saveHealthEntry as saveHealthEntryCmd,
 } from '../ipc/commands';
 import type { HealthDashboardData, HealthEntry } from '../ipc/types';
+import { StaticBracket } from '../components/StaticBracket';
 
 export function HealthDashboardScreen() {
   const navigate = useNavigate();
@@ -85,16 +86,18 @@ export function HealthDashboardScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
-        <HealthDashboard
-          todayEntry={data?.todayEntry ?? null}
-          trends={data?.trends ?? []}
-          insights={data?.insights ?? []}
-          symptomsHistory={data?.symptomsHistory ?? []}
-          medicationsHistory={data?.medicationsHistory ?? []}
-          hasHealthKit={false}
-          onSaveEntry={handleSaveEntry}
-          loading={loading}
-        />
+        <StaticBracket>
+          <HealthDashboard
+            todayEntry={data?.todayEntry ?? null}
+            trends={data?.trends ?? []}
+            insights={data?.insights ?? []}
+            symptomsHistory={data?.symptomsHistory ?? []}
+            medicationsHistory={data?.medicationsHistory ?? []}
+            hasHealthKit={false}
+            onSaveEntry={handleSaveEntry}
+            loading={loading}
+          />
+        </StaticBracket>
       </div>
     </div>
   );

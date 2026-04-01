@@ -321,7 +321,7 @@ export function GhostSprite({
       >
         {/* Speech bubble */}
         {showBubble && insight && (
-          <div style={{
+          <div className="opal-surface" style={{
             position: 'absolute',
             bottom: GHOST_H + 8,
             right: 0,
@@ -329,15 +329,15 @@ export function GhostSprite({
             maxWidth: 200,
             padding: '8px 10px',
             borderRadius: 8,
-            background: 'linear-gradient(160deg, #282E36, #181C21)',
-            border: '1px solid rgba(154, 168, 184, 0.25)',
+            border: '1px solid transparent',
+            background: 'linear-gradient(#121518, #121518) padding-box, conic-gradient(from var(--opal-angle), rgba(97,88,128,0.35), rgba(119,110,162,0.45), rgba(154,168,184,0.55), rgba(216,221,232,0.6), rgba(154,168,184,0.55), rgba(119,110,162,0.45), rgba(97,88,128,0.35)) border-box',
+            animation: 'ghost-bubble-in 400ms ease-out, opal-border-sweep 8s linear infinite',
             fontFamily: "'DM Mono', monospace",
             fontSize: 10,
             letterSpacing: '0.04em',
             color: '#A8B4C0',
             lineHeight: 1.4,
-            opacity: 1,
-            animation: 'ghost-bubble-in 400ms ease-out',
+            overflow: 'hidden',
             pointerEvents: 'none',
           }}>
             {/* Bubble tail */}
@@ -349,7 +349,7 @@ export function GhostSprite({
               height: 0,
               borderLeft: '5px solid transparent',
               borderRight: '5px solid transparent',
-              borderTop: '5px solid rgba(154, 168, 184, 0.25)',
+              borderTop: '5px solid rgba(119, 110, 162, 0.45)',
             }} />
             {insight}
           </div>

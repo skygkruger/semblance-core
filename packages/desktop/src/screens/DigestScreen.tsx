@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, ProgressBar, FeatureGate } from '@semblance/ui';
+import { ContentBracket } from '../components/ContentBracket';
 import { getLatestDigest, listDigests, generateDigest, getDailyDigest, dismissDailyDigest } from '../ipc/commands';
 import { DailyDigestCard } from '../components/DailyDigestCard';
 import { useLicense } from '../contexts/LicenseContext';
@@ -165,7 +166,7 @@ export function DigestScreen() {
         <h1 className="page-title" style={{ fontSize: 28 }}>
           {t('screen.digest.title')} · {formatDateRange(digest.weekStart, digest.weekEnd)}
         </h1>
-
+        <ContentBracket>
         {/* Daily Digest */}
         {dailyDigest && (
           <DailyDigestCard
@@ -290,6 +291,7 @@ export function DigestScreen() {
             </div>
           </Card>
         )}
+        </ContentBracket>
       </div>
     </div>
   );
