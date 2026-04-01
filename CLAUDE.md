@@ -27,6 +27,56 @@ This is the canonical product specification. It supersedes all prior build maps,
 
 ---
 
+## ZERO DEAD CODE — WIRING IS MANDATORY
+
+**This rule is absolute and non-negotiable. It survives compaction.**
+
+### RULE 1: Zero Callers = Not Done
+
+A function, class, or module that is exported but never called from the running application is **dead code**. Dead code is not a feature. It is not progress. It is not "done."
+
+Before reporting any implementation as complete, you MUST grep for every new public function/class and confirm it has at least one caller OUTSIDE its own file and test file. Show the grep output.
+
+### RULE 2: The Live Path Test
+
+For every new system you build, trace the path from user action to your new code:
+- User sends a message → where does it enter your code?
+- A cron job fires → where does it invoke your code?
+- The app starts → where does your code get initialized?
+
+If you cannot show this path with actual line numbers in actual files, the implementation is not wired.
+
+### RULE 3: Tests Must Test Integration, Not Just Units
+
+Unit tests that instantiate a class directly and test its methods are necessary but NOT sufficient. You must also have at least one test that:
+- Calls the same factory function the application uses
+- Passes through the same code path a real user message would take
+- Verifies side effects (EventBus events, audit trail entries, state changes) that only happen when the full chain is connected
+
+### RULE 4: Show Terminal Output, Not Self-Reports
+
+When you say "TypeScript clean, tests passing," you MUST paste the actual terminal output. Not a summary. Not "0 errors." The raw output. If you can't show it, you didn't run it.
+
+### RULE 5: One Fix, One Verification, Then Next
+
+Do not batch multiple changes and verify at the end. Make one change, verify it, show the output, then proceed to the next change. If a verification fails, fix it before moving on.
+
+### RULE 6: Never Report "Done" Without Answering These Questions
+
+Before saying "Phase N complete," answer all of these:
+
+1. **What new public functions/classes did you create?** (list them)
+2. **Where is each one called from in the running application?** (file:line for each)
+3. **What happens when a user sends a message — does it hit your new code?** (trace the path)
+4. **What happens when the app starts — is your new code initialized?** (show the bootstrap)
+5. **Paste the grep output showing callers for every new export.**
+6. **Paste the raw TypeScript compiler output.**
+7. **Paste the raw test runner output.**
+
+If any answer is "it's exported but not called yet" — the implementation is NOT complete.
+
+---
+
 ## MANDATORY RUNTIME VERIFICATION WORKFLOW — NON-NEGOTIABLE
 
 **This rule is equal in importance to the NO STUBS rule. It survives compaction.**

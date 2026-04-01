@@ -83,7 +83,8 @@ const CREATE_TABLES = `
 
 // --- Tool Definitions (map to ActionTypes) ---
 
-const BASE_TOOLS: ToolDefinition[] = [
+/** @internal Exported for CoordinatorAgent tool metadata sharing. */
+export const BASE_TOOLS: ToolDefinition[] = [
   {
     name: 'search_files',
     description: 'Searches indexed local files, documents, and notes. Faster than search_emails for file-specific queries.',
@@ -615,7 +616,8 @@ const BASE_TOOLS: ToolDefinition[] = [
 ];
 
 // Map tool names to ActionTypes
-const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
+/** @internal Exported for CoordinatorAgent tool metadata sharing. */
+export const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'send_email': 'email.send',
   'fetch_inbox': 'email.fetch',
   'draft_email': 'email.draft',
@@ -639,7 +641,8 @@ const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
 };
 
 // Tools that are handled locally (no IPC needed)
-const BASE_LOCAL_TOOLS = new Set([
+/** @internal Exported for CoordinatorAgent tool metadata sharing. */
+export const BASE_LOCAL_TOOLS = new Set([
   'search_files',
   'search_emails',
   'categorize_email',

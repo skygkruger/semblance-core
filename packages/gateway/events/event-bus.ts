@@ -24,7 +24,19 @@ export type SemblanceEventType =
   | 'tunnel.disconnected'
   | 'channel.message_received'
   | 'cron.fired'
-  | 'preference.pattern_detected';
+  | 'preference.pattern_detected'
+  // Orchestrator v2 — multi-agent lifecycle events
+  | 'orchestrator.decomposition'
+  | 'orchestrator.subagent_spawned'
+  | 'orchestrator.subagent_completed'
+  | 'orchestrator.subagent_failed'
+  | 'orchestrator.subagent_escalated'
+  | 'orchestrator.synthesis_started'
+  | 'orchestrator.synthesis_completed'
+  | 'orchestrator.compaction_performed'
+  | 'orchestrator.hook_denied'
+  | 'orchestrator.hook_mutated'
+  | 'orchestrator.hook_redirected';
 
 export interface SemblanceEventMap {
   'email.arrived': { accountId: string; messageId: string; subject: string; priority: 'high' | 'normal' | 'low' };
@@ -45,6 +57,18 @@ export interface SemblanceEventMap {
   'channel.message_received': { channelId: string; senderId: string; sessionKey: string };
   'cron.fired': { jobId: string; actionType: string };
   'preference.pattern_detected': { domain: string; pattern: string; confidence: number };
+  // Orchestrator v2 — multi-agent lifecycle event payloads
+  'orchestrator.decomposition': { sessionId: string; complexity: string; subtaskCount: number; domains: string[] };
+  'orchestrator.subagent_spawned': { sessionId: string; subagentId: string; subtaskId: string; modelTier: string; tools: string[] };
+  'orchestrator.subagent_completed': { sessionId: string; subagentId: string; subtaskId: string; tokensConsumed: number; executionTimeMs: number };
+  'orchestrator.subagent_failed': { sessionId: string; subagentId: string; subtaskId: string; error: string };
+  'orchestrator.subagent_escalated': { sessionId: string; subagentId: string; subtaskId: string; requiredTool: string; reason: string };
+  'orchestrator.synthesis_started': { sessionId: string; subtaskCount: number };
+  'orchestrator.synthesis_completed': { sessionId: string; tokensConsumed: number };
+  'orchestrator.compaction_performed': { sessionId: string; messagesCompacted: number; tokensBefore: number; tokensAfter: number };
+  'orchestrator.hook_denied': { sessionId: string; hookId: string; toolName: string; reason: string };
+  'orchestrator.hook_mutated': { sessionId: string; hookId: string; toolName: string };
+  'orchestrator.hook_redirected': { sessionId: string; hookId: string; originalTool: string; targetTool: string };
 }
 
 export interface SemblanceEvent<T extends SemblanceEventType = SemblanceEventType> {

@@ -13,7 +13,8 @@ import { createLLMProvider } from './llm/index.js';
 import { ModelManager } from './llm/model-manager.js';
 import { createKnowledgeGraph } from './knowledge/index.js';
 import { CoreIPCClient } from './agent/ipc-client.js';
-import { createOrchestrator } from './agent/index.js';
+import { createOrchestrator, createCoordinatorAgent } from './agent/index.js';
+import { classifyHardware } from './llm/hardware-types.js';
 import { loadExtensions } from './extensions/loader.js';
 import { PremiumGate } from './premium/premium-gate.js';
 import { StyleProfileStore } from './style/style-profile.js';
@@ -68,7 +69,7 @@ export type {
 export type { Orchestrator, OrchestratorResponse } from './agent/orchestrator.js';
 export type { IPCClient, IPCClientConfig, IPCClientTransportConfig } from './agent/ipc-client.js';
 export { CoreIPCClient } from './agent/ipc-client.js';
-export { createOrchestrator } from './agent/index.js';
+export { createOrchestrator, createCoordinatorAgent } from './agent/index.js';
 export { ConversationManager } from './agent/conversation-manager.js';
 export { NamedSessionManager } from './agent/named-session-manager.js';
 export type { NamedSession } from './agent/named-session-manager.js';
@@ -392,12 +393,19 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
       }
       console.error('[SemblanceCore] IPC step complete, creating orchestrator...');
 
-      // Step 5: Create the orchestrator (requires knowledge graph)
-      console.error('[SemblanceCore] Creating orchestrator...');
+      // Step 5: Create the v2 coordinator agent (requires knowledge graph)
+      // The coordinator wraps the v1 orchestrator — simple/compound requests pass
+      // through unchanged, complex multi-domain requests get subagent decomposition.
+      console.error('[SemblanceCore] Creating v2 coordinator agent...');
       // Create StyleProfileStore early so it can be shared with both orchestrator and extensions
       const styleProfileStore = new StyleProfileStore(coreDb);
       if (knowledge) {
-        agent = createOrchestrator({
+        // Detect hardware tier for parallel execution mode selection
+        const totalRamMb = Math.round(p.hardware.totalmem() / (1024 * 1024));
+        const hardwareTier = classifyHardware(totalRamMb, null);
+        console.error(`[SemblanceCore] Hardware tier: ${hardwareTier} (${totalRamMb}MB RAM)`);
+
+        agent = createCoordinatorAgent({
           llmProvider: llm,
           knowledgeGraph: knowledge,
           ipcClient: ipc,
@@ -405,8 +413,9 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
           dataDir,
           model: chatModel,
           styleProfileStore,
+          hardwareTier,
         });
-        console.error('[SemblanceCore] Orchestrator initialized');
+        console.error('[SemblanceCore] v2 Coordinator agent initialized');
 
         // Step 6: Load and initialize extensions (e.g. @semblance/dr)
         console.error('[SemblanceCore] Loading extensions...');
