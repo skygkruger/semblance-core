@@ -117,7 +117,7 @@ export function FilesScreen() {
       <div className="page-layout">
         <ContentBracket>
         <GhostSprite insight="Your local knowledge base grows with every file indexed.">
-        <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', margin: '0 auto' }}>{t('screen.files.title')}</h1>
+        <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>{t('screen.files.title')}</h1>
         <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
           <ShimmerDescription text="Your local knowledge base" />
         </div>

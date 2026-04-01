@@ -404,7 +404,7 @@ export function GhostSprite({
         </div>
       </div>
 
-      <div ref={contentRef}>
+      <div ref={contentRef} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {children}
       </div>
 

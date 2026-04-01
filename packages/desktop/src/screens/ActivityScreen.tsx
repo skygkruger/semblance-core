@@ -141,7 +141,7 @@ export function ActivityScreen() {
       <div className="page-layout">
       <ContentBracket>
       <GhostSprite insight="Your activity log tracks every action Semblance takes on your behalf.">
-      <h1 className="page-title" style={{ fontSize: 28, marginBottom: 16 }}>
+      <h1 className="page-title" style={{ fontSize: 28 }}>
         Activity Log
       </h1>
       <ShimmerDescription text="Every action logged, audited, and reversible" />

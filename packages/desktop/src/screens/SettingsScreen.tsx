@@ -566,7 +566,7 @@ export function SettingsScreen() {
       <div className="page-layout">
         <ContentBracket>
         <GhostSprite insight="Configure your sovereign AI to work exactly how you want.">
-        <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', margin: '0 auto' }}>{t('screen.settings.title', 'Settings')}</h1>
+        <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>{t('screen.settings.title', 'Settings')}</h1>
         <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
           <ShimmerDescription text="Configure your sovereign AI" />
         </div>

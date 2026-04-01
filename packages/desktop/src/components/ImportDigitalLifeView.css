@@ -29,9 +29,24 @@
 
 .import-life__subtitle {
   font-family: var(--fm);
-  font-size: var(--text-sm);
-  color: #A8B4C0;
-  margin-top: var(--sp-1);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  margin: 0;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background: linear-gradient(
+    105deg,
+    #7a94b0 0%, #9ab4c8 12%, #b8cdd8 24%,
+    #c8dce6 36%, #a0c0b0 48%, #8ab8a0 54%, #a0c0b0 62%,
+    #c8dce6 74%, #b8cdd8 82%, #9ab4c8 90%, #7a94b0 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
 }
 
 /* Progress */
