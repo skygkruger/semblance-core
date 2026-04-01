@@ -131,10 +131,10 @@ describe('Cloud Bridge Types', () => {
     expect(google).not.toBeNull();
   });
 
-  it('default routing policy has Cloud Bridge OFF', () => {
-    const { DEFAULT_ROUTING_POLICY } = require('@semblance/core/types/cloud-bridge.js');
-    expect(DEFAULT_ROUTING_POLICY.mode).toBe('off');
-    expect(DEFAULT_ROUTING_POLICY.excludedCategories).toContain('financial');
-    expect(DEFAULT_ROUTING_POLICY.excludedCategories).toContain('health');
+  it('default routing policy has Cloud Bridge OFF', async () => {
+    const mod = await import('@semblance/core/types/cloud-bridge.js');
+    expect(mod.DEFAULT_ROUTING_POLICY.mode).toBe('off');
+    expect(mod.DEFAULT_ROUTING_POLICY.excludedCategories).toContain('financial');
+    expect(mod.DEFAULT_ROUTING_POLICY.excludedCategories).toContain('health');
   });
 });

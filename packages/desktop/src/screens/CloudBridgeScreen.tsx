@@ -1,4 +1,5 @@
 // Cloud Bridge Settings Screen — Opt-in cloud AI routing configuration.
+// @i18n-pending — i18n translation keys will be added in the localization pass
 //
 // Off by default. Users can connect their own API keys for Anthropic, OpenAI,
 // Google, or any OpenAI-compatible endpoint. When enabled, the coordinator
