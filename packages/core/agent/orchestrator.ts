@@ -35,6 +35,7 @@ import type { ResolvedContactResult } from '../knowledge/contacts/contact-types.
 import type { MessageDrafter } from './messaging/message-drafter.js';
 import type { ExtensionTool, ToolHandler } from '../extensions/types.js';
 import { BoundaryEnforcer, type EscalationBoundary } from './escalation-boundaries.js';
+import { ALL_PLATFORM_TOOLS, FILESYSTEM_TOOL_ACTION_MAP } from './filesystem-tools.js';
 import { sanitizeRetrievedContent, stripInjectionPatterns, wrapInDataBoundary, INJECTION_CANARY } from './content-sanitizer.js';
 import type { IntentManager } from './intent-manager.js';
 import type { AlterEgoGuardrails } from './alter-ego-guardrails.js';
@@ -613,6 +614,8 @@ export const BASE_TOOLS: ToolDefinition[] = [
       required: ['imagePath', 'prompt'],
     },
   },
+  // Filesystem + terminal tools (local platform)
+  ...ALL_PLATFORM_TOOLS,
 ];
 
 // Map tool names to ActionTypes
@@ -638,6 +641,8 @@ export const BASE_TOOL_ACTION_MAP: Record<string, ActionType> = {
   'search_all_devices': 'search.federated',
   'fill_web_form': 'browser.fill',
   // list_cloud_files moved to LOCAL_TOOLS — queries local knowledge index, not cloud API
+  // Filesystem + terminal tools (local platform)
+  ...FILESYSTEM_TOOL_ACTION_MAP,
 };
 
 // Tools that are handled locally (no IPC needed)

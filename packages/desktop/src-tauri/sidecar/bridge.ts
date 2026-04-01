@@ -1899,6 +1899,47 @@ async function handleInitialize(): Promise<unknown> {
       }
     }
 
+    // ──── Filesystem + Terminal Tools ────
+    // Register filesystem and terminal executors as tool handlers.
+    // Tool definitions are already in BASE_TOOLS (orchestrator.ts). These handlers
+    // execute the actual filesystem/terminal operations in the Gateway layer.
+    try {
+      const { FilesystemExecutor } = require('../../../gateway/tools/filesystem-executor.js');
+      const { TerminalExecutor } = require('../../../gateway/tools/terminal-executor.js');
+      const fsExec = new FilesystemExecutor();
+      const termExec = new TerminalExecutor();
+
+      // Register as extension tools with the orchestrator (same pattern as browser CDP)
+      if (core?.agent) {
+        const { ALL_PLATFORM_TOOLS, FILESYSTEM_TOOL_ACTION_MAP } = require('../../../core/agent/filesystem-tools.js');
+        const platformToolHandlers = (ALL_PLATFORM_TOOLS as any[]).map((def: any) => ({
+          definition: def,
+          handler: async (params: Record<string, unknown>) => {
+            switch (def.name) {
+              case 'read_file': return fsExec.readFile(params);
+              case 'write_file': return fsExec.writeFile(params);
+              case 'edit_file': return fsExec.editFile(params);
+              case 'list_directory': return fsExec.listDirectory(params);
+              case 'create_directory': return fsExec.createDirectory(params);
+              case 'move_file': return fsExec.moveFile(params);
+              case 'copy_file': return fsExec.copyFile(params);
+              case 'search_file_contents': return fsExec.searchFileContents(params);
+              case 'glob_search': return fsExec.globSearch(params);
+              case 'file_info': return fsExec.fileInfo(params);
+              case 'execute_command': return termExec.execute(params);
+              default: return { error: `Unknown platform tool: ${def.name}` };
+            }
+          },
+          isLocal: true,
+          actionType: FILESYSTEM_TOOL_ACTION_MAP[def.name],
+        }));
+        core.agent.registerTools(platformToolHandlers);
+        console.error(`[sidecar] Registered ${platformToolHandlers.length} filesystem + terminal tools with orchestrator`);
+      }
+    } catch (fsErr) {
+      console.error('[sidecar] Filesystem/terminal tool registration failed (non-fatal):', (fsErr as Error).message);
+    }
+
     // Alter Ego Week engine — initialized by @semblance/dr via ipAdapters
     console.error('[sidecar] AlterEgoWeekEngine: available via ipAdapters.alterEgoWeekEngine');
 

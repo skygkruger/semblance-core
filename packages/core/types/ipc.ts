@@ -108,6 +108,19 @@ export const ActionType = z.enum([
   'browser.disconnect',
   // Federated search (Sprint G.5)
   'search.federated',
+  // Filesystem tools (local platform)
+  'fs.read',
+  'fs.write',
+  'fs.edit',
+  'fs.list',
+  'fs.mkdir',
+  'fs.move',
+  'fs.copy',
+  'fs.search',
+  'fs.glob',
+  'fs.info',
+  // Terminal execution (local platform)
+  'terminal.execute',
 ]);
 export type ActionType = z.infer<typeof ActionType>;
 
@@ -697,6 +710,19 @@ export const ActionPayloadMap: Record<ActionType, z.ZodTypeAny> = {
   'browser.disconnect': z.object({}).passthrough(),
   // Federated search (Sprint G.5)
   'search.federated': z.object({ query: z.string(), categories: z.array(z.string()).optional() }).passthrough(),
+  // Filesystem tools (local platform)
+  'fs.read': z.object({ path: z.string(), encoding: z.string().optional(), maxBytes: z.number().optional(), lineRange: z.object({ start: z.number(), end: z.number() }).optional() }).passthrough(),
+  'fs.write': z.object({ path: z.string(), content: z.string(), createDirectories: z.boolean().optional(), overwrite: z.boolean().optional() }).passthrough(),
+  'fs.edit': z.object({ path: z.string(), edits: z.array(z.object({ oldText: z.string(), newText: z.string() })), dryRun: z.boolean().optional() }).passthrough(),
+  'fs.list': z.object({ path: z.string(), recursive: z.boolean().optional(), maxDepth: z.number().optional(), includeHidden: z.boolean().optional(), pattern: z.string().optional() }).passthrough(),
+  'fs.mkdir': z.object({ path: z.string() }).passthrough(),
+  'fs.move': z.object({ source: z.string(), destination: z.string() }).passthrough(),
+  'fs.copy': z.object({ source: z.string(), destination: z.string(), overwrite: z.boolean().optional() }).passthrough(),
+  'fs.search': z.object({ path: z.string(), pattern: z.string(), filePattern: z.string().optional(), maxResults: z.number().optional(), caseSensitive: z.boolean().optional() }).passthrough(),
+  'fs.glob': z.object({ path: z.string(), pattern: z.string(), maxResults: z.number().optional() }).passthrough(),
+  'fs.info': z.object({ path: z.string() }).passthrough(),
+  // Terminal execution (local platform)
+  'terminal.execute': z.object({ command: z.string(), workingDirectory: z.string().optional(), timeout: z.number().optional(), shell: z.string().optional() }).passthrough(),
 };
 
 // --- Core protocol schemas ---

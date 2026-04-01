@@ -123,6 +123,19 @@ export const TIME_SAVED_DEFAULTS: Record<ActionType, number> = {
   'browser.disconnect': 0,        // Disconnect — cleanup
   // Federated search
   'search.federated': 60,         // Cross-device search
+  // Filesystem tools (local platform)
+  'fs.read': 10,
+  'fs.write': 30,
+  'fs.edit': 45,
+  'fs.list': 5,
+  'fs.mkdir': 10,
+  'fs.move': 15,
+  'fs.copy': 15,
+  'fs.search': 30,
+  'fs.glob': 15,
+  'fs.info': 5,
+  // Terminal execution
+  'terminal.execute': 60,
 };
 
 /**

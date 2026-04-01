@@ -20,6 +20,6 @@
       "@semblance/core/*": ["core/*"]
     }
   },
-  "include": ["ipc/**/*.ts", "services/**/*.ts", "security/**/*.ts", "audit/**/*.ts", "monitor/**/*.ts", "credentials/**/*.ts", "cloud-bridge/**/*.ts", "events/**/*.ts", "canvas/**/*.ts", "index.ts"],
+  "include": ["ipc/**/*.ts", "services/**/*.ts", "security/**/*.ts", "audit/**/*.ts", "monitor/**/*.ts", "credentials/**/*.ts", "cloud-bridge/**/*.ts", "events/**/*.ts", "canvas/**/*.ts", "tools/**/*.ts", "index.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -38,6 +38,7 @@ import { InMemorySessionMemory } from './session-memory.js';
 import { ContextCompactionEngine } from './context-compaction.js';
 import { HierarchicalPermissionResolver } from './hierarchical-permissions.js';
 import { ToolHookRegistryImpl, createAutonomyEnforcementHook, createGuardianRedirectHook } from './tool-hooks.js';
+import { createTerminalSafetyHook, createFilesystemPermissionHook } from './filesystem-tools.js';
 import type {
   CoordinatorConfig,
   SubtaskDefinition,
@@ -129,6 +130,8 @@ export class CoordinatorAgent implements Orchestrator {
       }),
     );
     this.hookRegistry.registerPreHook(createGuardianRedirectHook());
+    this.hookRegistry.registerPreHook(createTerminalSafetyHook());
+    this.hookRegistry.registerPreHook(createFilesystemPermissionHook());
   }
 
   // ─── Orchestrator Interface (backward compatible) ──────────────────────────

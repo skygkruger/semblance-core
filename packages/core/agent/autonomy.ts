@@ -123,6 +123,19 @@ const ACTION_DOMAIN_MAP: Record<ActionType, AutonomyDomain> = {
   'browser.disconnect': 'web',
   // Federated search
   'search.federated': 'network',
+  // Filesystem tools (local platform)
+  'fs.read': 'files',
+  'fs.write': 'files',
+  'fs.edit': 'files',
+  'fs.list': 'files',
+  'fs.mkdir': 'files',
+  'fs.move': 'files',
+  'fs.copy': 'files',
+  'fs.search': 'files',
+  'fs.glob': 'files',
+  'fs.info': 'files',
+  // Terminal execution (local platform)
+  'terminal.execute': 'system',
 };
 
 // Actions classified as read (safe), write (moderate), or execute (high-stakes)
@@ -232,6 +245,19 @@ export const ACTION_RISK_MAP: Record<ActionType, ActionRisk> = {
   'browser.disconnect': 'read',
   // Federated search
   'search.federated': 'read',
+  // Filesystem tools (local platform)
+  'fs.read': 'read',
+  'fs.write': 'write',
+  'fs.edit': 'write',
+  'fs.list': 'read',
+  'fs.mkdir': 'write',
+  'fs.move': 'execute',    // destructive — original disappears
+  'fs.copy': 'read',       // non-destructive
+  'fs.search': 'read',
+  'fs.glob': 'read',
+  'fs.info': 'read',
+  // Terminal execution (local platform)
+  'terminal.execute': 'execute',
 };
 
 export type AutonomyDecision = 'auto_approve' | 'requires_approval' | 'blocked';
