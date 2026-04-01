@@ -4,6 +4,7 @@ import { getVoiceModelStatus, prefGet } from '../ipc/commands';
 import { useAppDispatch } from '../state/AppState';
 import { VoiceSettingsSection } from '../components/VoiceSettingsSection';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 
 const STORAGE_KEY = 'semblance.voice_settings';
 
@@ -60,7 +61,9 @@ export function VoiceSettingsScreen() {
       <div className="page-scroll">
         <div className="page-layout">
           <ContentBracket>
+          <GhostSprite insight="Voice processing happens entirely on your device.">
           <SkeletonCard variant="generic" message="Loading voice settings" subMessage="Checking audio capabilities" showSpinner />
+          </GhostSprite>
           </ContentBracket>
         </div>
       </div>
@@ -71,7 +74,9 @@ export function VoiceSettingsScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Voice processing happens entirely on your device.">
         <VoiceSettingsSection />
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

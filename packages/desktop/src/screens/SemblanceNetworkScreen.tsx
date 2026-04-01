@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
 import { Button, Input, StatusIndicator, SkeletonCard, FeatureGate } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
 import { SectionDivider } from '../components/SectionDivider';
 import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
@@ -162,6 +163,7 @@ export function SemblanceNetworkScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Share securely with other Semblance users via peer-to-peer.">
         <h1 className="page-title" style={{ fontSize: 28 }}>{t('semblanceNetwork.title', 'Semblance Network')}</h1>
         <ShimmerDescription text="Peer-to-peer sharing with other Semblance users" />
         <WireframeGlobe size={280} state={peers.length > 0 ? 'connected' : 'idle'} target={peers.length > 0 ? [51.5074, -0.1278] : null} />
@@ -205,7 +207,7 @@ export function SemblanceNetworkScreen() {
                 className="btn btn--opal btn--sm"
                 onClick={handleGenerateCode}
               >
-                <span className="btn__text">{t('semblanceNetwork.generateCode', 'Generate My Code')}</span>
+                <span className="btn__text">{t('semblanceNetwork.generateCode', 'Generate')}</span>
               </button>
             </div>
             {connectCode && (
@@ -285,6 +287,7 @@ export function SemblanceNetworkScreen() {
             )}
           </PageContainer>
         )}
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

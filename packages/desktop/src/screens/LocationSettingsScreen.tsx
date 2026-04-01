@@ -4,6 +4,7 @@ import { getLocationSettings, type LocationSettings } from '../ipc/commands';
 import { useAppDispatch } from '../state/AppState';
 import { LocationSettingsSection } from '../components/LocationSettingsSection';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 
 const DEFAULT_SETTINGS: LocationSettings = {
   enabled: false,
@@ -50,7 +51,9 @@ export function LocationSettingsScreen() {
       <div className="page-scroll">
         <div className="page-layout">
           <ContentBracket>
+          <GhostSprite insight="Location data is processed locally. Never transmitted.">
           <SkeletonCard variant="generic" message="Loading location settings" subMessage="Checking location services" showSpinner />
+          </GhostSprite>
           </ContentBracket>
         </div>
       </div>
@@ -61,7 +64,9 @@ export function LocationSettingsScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Location data is processed locally. Never transmitted.">
         <LocationSettingsSection />
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

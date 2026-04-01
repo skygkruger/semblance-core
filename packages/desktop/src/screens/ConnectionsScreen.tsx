@@ -27,6 +27,7 @@ import type {
 } from '@semblance/core/importers/connector-status';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 
 const registry = createDefaultConnectorRegistry();
 
@@ -348,6 +349,7 @@ export function ConnectionsScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Connect your services. Everything stays on your device.">
         <ConnectionsScreenUI
           connectors={connectors}
           onConnect={handleConnect}
@@ -483,6 +485,7 @@ export function ConnectionsScreen() {
               })}
           </div>
         )}
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

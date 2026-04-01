@@ -11,6 +11,7 @@ import { getDarkPatternFlags, dismissDarkPatternFlag, getFinancialDashboard, pre
 import { useLicense } from '../contexts/LicenseContext';
 import { Card, SkeletonCard, FeatureGate } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
 import { SectionDivider } from '../components/SectionDivider';
 import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
@@ -114,6 +115,7 @@ export function AdversarialDashboardScreen() {
       <div className="page-scroll">
         <div className="page-layout">
           <ContentBracket>
+          <GhostSprite insight="No dark patterns detected. Your digital environment is clean.">
           <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.adversarial.title')}</h1>
           <ShimmerDescription text="Protecting you from dark patterns, manipulation, and unfair practices" />
 
@@ -190,6 +192,7 @@ export function AdversarialDashboardScreen() {
               )}
             </PageContainer>
           )}
+          </GhostSprite>
           </ContentBracket>
         </div>
       </div>

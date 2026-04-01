@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, FeatureGate, SkeletonCard, StatusIndicator } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
 import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
 import { ShimmerDescription } from '../components/ShimmerDescription';
@@ -214,6 +215,7 @@ export function AlterEgoWeekScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Build trust through 7 days of autonomous demonstrations.">
         {/* Header */}
         <h1 className="page-title" style={{ fontSize: 28 }}>
           Alter Ego Week
@@ -323,6 +325,7 @@ export function AlterEgoWeekScreen() {
           </div>
         )}
         </PageContainer>
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

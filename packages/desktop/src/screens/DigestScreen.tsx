@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, ProgressBar, FeatureGate } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
 import { SectionDivider } from '../components/SectionDivider';
 import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
@@ -140,6 +141,7 @@ export function DigestScreen() {
       <div className="page-scroll">
         <div className="page-layout">
           <ContentBracket>
+          <GhostSprite insight="Your weekly intelligence summary, generated locally.">
           <h1 className="page-title" style={{ fontSize: 28 }}>
             {t('screen.digest.title')}
           </h1>
@@ -152,6 +154,7 @@ export function DigestScreen() {
                 onAction={handleGenerate}
               />
             </PageContainer>
+          </GhostSprite>
           </ContentBracket>
         </div>
       </div>
@@ -172,6 +175,7 @@ export function DigestScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Your weekly intelligence summary, generated locally.">
         <h1 className="page-title" style={{ fontSize: 28 }}>
           {t('screen.digest.title')} · {formatDateRange(digest.weekStart, digest.weekEnd)}
         </h1>
@@ -304,6 +308,7 @@ export function DigestScreen() {
           </>
         )}
         </PageContainer>
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

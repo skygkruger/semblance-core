@@ -42,3 +42,23 @@ export {
   signRequest,
   verifySignature,
 } from './signing.js';
+
+// Cloud Bridge types (zero network imports — pure data shapes)
+export type {
+  CloudBridgeProvider,
+  CloudBridgeModel,
+  CloudBridgeRequest,
+  CloudBridgeResponse,
+  CloudBridgeRoutingPolicy,
+  CloudBridgeRoutingMode,
+  CloudBridgeDomainRule,
+  CloudBridgeAuditEntry,
+  DataCategory,
+  KnownProviderConfig,
+} from './cloud-bridge.js';
+
+export {
+  DEFAULT_ROUTING_POLICY,
+  KNOWN_PROVIDERS,
+  getKnownProvider,
+} from './cloud-bridge.js';

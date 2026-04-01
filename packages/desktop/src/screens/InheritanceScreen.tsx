@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
 import { Button, Input, SkeletonCard, FeatureGate } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
 import { SectionDivider } from '../components/SectionDivider';
 import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
@@ -158,6 +159,7 @@ export function InheritanceScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Configure posthumous data access for trusted parties.">
         <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.inheritance.title')}</h1>
         <ShimmerDescription text="Configure trusted parties and posthumous data access" />
           {loading ? (
@@ -306,6 +308,7 @@ export function InheritanceScreen() {
               )}
             </PageContainer>
           )}
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { PrivacyDashboard, useFeatureAuth } from '@semblance/ui';
 import type { NetworkEntry, AuditEntry } from '@semblance/ui';
 import { useAppState } from '../state/AppState';
 import { StaticBracket } from '../components/StaticBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import {
   renderSovereigntyReportPDF,
   getAuditChainStatus,
@@ -180,6 +181,7 @@ export function PrivacyScreen() {
     <div className="page-scroll">
     <div className="page-layout">
       <StaticBracket>
+      <GhostSprite insight="All data local. Your knowledge graph lives on this device only.">
       <PrivacyDashboard
         dataSources={knowledgeStats.documentCount}
         cloudConnections={0}
@@ -210,6 +212,7 @@ export function PrivacyScreen() {
         </div>
       )}
 
+      </GhostSprite>
       </StaticBracket>
 
       {/* M7 + M9: Links to detailed network activity and gateway permissions */}

@@ -12,6 +12,7 @@ import {
   generatePrivacyReport,
 } from '../ipc/commands';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import { ShimmerDescription } from '../components/ShimmerDescription';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -415,6 +416,7 @@ export function NetworkMonitorScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Real-time monitoring of every network connection.">
         <div className="flex items-center justify-between">
           <h1 className="page-title" style={{ fontSize: 28 }}>
             {t('screen.network_monitor.title')}
@@ -472,6 +474,7 @@ export function NetworkMonitorScreen() {
         <section><AuthorizedServicesCard services={allowlist} /></section>
 
         <section><ConnectionLogCard history={history} /></section>
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

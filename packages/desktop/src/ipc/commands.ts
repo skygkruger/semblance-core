@@ -1480,3 +1480,63 @@ export function clearAllData(): Promise<void> {
     request: { method: 'clear_all_data', params: {} },
   });
 }
+
+// ─── Cloud Bridge ──────────────────────────────────────────────────────────
+
+export interface CloudBridgeProviderIPC {
+  id: string;
+  name: string;
+  status: 'connected' | 'disconnected' | 'error' | 'rate_limited';
+  models: Array<{ id: string; displayName: string; contextWindow: number }>;
+  usageThisMonth: { requests: number; tokensIn: number; tokensOut: number; estimatedCost: number | null };
+  lastValidatedAt: string | null;
+  errorMessage: string | null;
+}
+
+export interface CloudBridgePolicyIPC {
+  mode: 'off' | 'manual' | 'smart' | 'always';
+  domainRules: Record<string, { routing: 'local' | 'cloud' | 'never_cloud'; preferredProvider?: string; preferredModel?: string }>;
+  excludedCategories: string[];
+  spendingCap: { enabled: boolean; monthlyLimit: number; currentSpend: number };
+  previewBeforeSend: boolean;
+}
+
+export function cloudBridgeGetProviders(): Promise<CloudBridgeProviderIPC[]> {
+  return sidecarCall<CloudBridgeProviderIPC[]>('cloud_bridge_get_providers');
+}
+
+export function cloudBridgeAddProvider(params: {
+  providerId: string;
+  apiKey: string;
+  baseUrl?: string;
+}): Promise<{ success: boolean; provider?: CloudBridgeProviderIPC; error?: string }> {
+  return sidecarCall('cloud_bridge_add_provider', params as unknown as Record<string, unknown>);
+}
+
+export function cloudBridgeRemoveProvider(providerId: string): Promise<{ success: boolean }> {
+  return sidecarCall<{ success: boolean }>('cloud_bridge_remove_provider', { providerId });
+}
+
+export function cloudBridgeValidateKey(params: {
+  providerId: string;
+  apiKey: string;
+  baseUrl?: string;
+}): Promise<{ valid: boolean; models?: Array<{ id: string; displayName: string }>; error?: string }> {
+  return sidecarCall('cloud_bridge_validate_key', params as unknown as Record<string, unknown>);
+}
+
+export function cloudBridgeGetPolicy(): Promise<CloudBridgePolicyIPC> {
+  return sidecarCall<CloudBridgePolicyIPC>('cloud_bridge_get_policy');
+}
+
+export function cloudBridgeSetPolicy(policy: CloudBridgePolicyIPC): Promise<{ success: boolean }> {
+  return sidecarCall<{ success: boolean }>('cloud_bridge_set_policy', policy as unknown as Record<string, unknown>);
+}
+
+export function cloudBridgeGetUsage(): Promise<{
+  providers: Array<{ id: string; name: string; requests: number; tokensIn: number; tokensOut: number; estimatedCost: number | null }>;
+  totalRequests: number;
+  totalCost: number | null;
+}> {
+  return sidecarCall('cloud_bridge_get_usage');
+}

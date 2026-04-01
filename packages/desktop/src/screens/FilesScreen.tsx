@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { DirectoryPicker, ProgressBar, Card, StatusIndicator, SkeletonCard } from '@semblance/ui';
 import { startIndexing, getKnowledgeStats } from '../ipc/commands';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import { ShimmerDescription } from '../components/ShimmerDescription';
 import { useTauriEvent } from '../hooks/useTauriEvent';
 import { useAppState, useAppDispatch } from '../state/AppState';
@@ -115,6 +116,7 @@ export function FilesScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Your local knowledge base grows with every file indexed.">
         <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', margin: '0 auto' }}>{t('screen.files.title')}</h1>
         <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
           <ShimmerDescription text="Your local knowledge base" />
@@ -210,6 +212,7 @@ export function FilesScreen() {
         )}
           </div>
         </div>
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

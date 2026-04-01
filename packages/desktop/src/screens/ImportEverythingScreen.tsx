@@ -19,6 +19,7 @@ import {
   DEFAULT_IMPORT_SOURCES,
 } from '../components/ImportDigitalLifeView';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 
 // ─── IPC response shapes ────────────────────────────────────────────────────
 
@@ -165,6 +166,7 @@ export function ImportEverythingScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+          <GhostSprite insight="Import your digital life from other platforms.">
           <ImportDigitalLifeView
             isPremium={license.isPremium}
             importSources={viewSources}
@@ -172,6 +174,7 @@ export function ImportEverythingScreen() {
             progress={mapProgress(progressEvent, importingSource !== null)}
             onImport={handleImport}
           />
+          </GhostSprite>
         </ContentBracket>
       </div>
     </div>

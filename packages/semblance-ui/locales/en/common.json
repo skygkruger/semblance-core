@@ -849,7 +849,7 @@
     "connecting": "Connecting...",
     "enterCode": "Enter connection code",
     "or": "or",
-    "generateCode": "Generate My Code",
+    "generateCode": "Generate",
     "codeHint": "Share this with the other user",
     "shareCode": "Share this code with the other Semblance user.",
     "codeGenFailed": "Failed to generate code: {{message}}",

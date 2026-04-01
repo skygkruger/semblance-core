@@ -4,6 +4,7 @@ import { useAppState } from '../state/AppState';
 import { generateSovereigntyReport, renderSovereigntyReportPDF } from '../ipc/commands';
 import type { SovereigntyReportData } from '../ipc/types';
 import { StaticBracket } from '../components/StaticBracket';
+import { GhostSprite } from '../components/GhostSprite';
 
 export function SovereigntyReportScreen() {
   const state = useAppState();
@@ -105,6 +106,7 @@ export function SovereigntyReportScreen() {
       </div>
 
       <StaticBracket>
+      <GhostSprite insight="Cryptographic proof of everything Semblance has ever done.">
       <SovereigntyReportCard
         periodStart={periodStart}
         periodEnd={periodEnd}
@@ -131,6 +133,7 @@ export function SovereigntyReportScreen() {
         comparisonStatement={report?.comparisonStatement}
         onExportPDF={handleExportPDF}
       />
+      </GhostSprite>
       </StaticBracket>
     </div>
     </div>

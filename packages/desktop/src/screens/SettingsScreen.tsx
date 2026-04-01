@@ -10,6 +10,7 @@ import { getVersion } from '@tauri-apps/api/app';
 import { emit, listen } from '@tauri-apps/api/event';
 import { SettingsNavigator } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import { ShimmerDescription } from '../components/ShimmerDescription';
 import type { AutonomyTier } from '@semblance/ui';
 import {
@@ -564,6 +565,7 @@ export function SettingsScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Configure your sovereign AI to work exactly how you want.">
         <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', margin: '0 auto' }}>{t('screen.settings.title', 'Settings')}</h1>
         <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
           <ShimmerDescription text="Configure your sovereign AI" />
@@ -870,6 +872,7 @@ export function SettingsScreen() {
           onReindex={handleReindex}
           onClearKnowledgeSource={handleClearKnowledgeSource}
         />
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

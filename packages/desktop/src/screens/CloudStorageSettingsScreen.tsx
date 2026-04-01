@@ -4,6 +4,7 @@ import { getConnectedServices, prefGet } from '../ipc/commands';
 import { useAppDispatch } from '../state/AppState';
 import { CloudStorageSettingsSection } from '../components/CloudStorageSettingsSection';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 
 const STORAGE_KEY_CLOUD_FOLDERS = 'semblance.cloud_storage.synced_folders';
 const STORAGE_KEY_CLOUD_SYNC = 'semblance.cloud_storage.last_sync';
@@ -70,7 +71,9 @@ export function CloudStorageSettingsScreen() {
       <div className="page-scroll">
         <div className="page-layout">
           <ContentBracket>
+          <GhostSprite insight="Cloud storage settings for your connected services.">
           <SkeletonCard variant="generic" message="Loading cloud storage" subMessage="Checking connected providers" showSpinner />
+          </GhostSprite>
           </ContentBracket>
         </div>
       </div>
@@ -81,7 +84,9 @@ export function CloudStorageSettingsScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Cloud storage settings for your connected services.">
         <CloudStorageSettingsSection />
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

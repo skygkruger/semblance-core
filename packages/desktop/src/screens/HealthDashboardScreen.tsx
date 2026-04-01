@@ -9,6 +9,7 @@ import {
 } from '../ipc/commands';
 import type { HealthDashboardData, HealthEntry } from '../ipc/types';
 import { StaticBracket } from '../components/StaticBracket';
+import { GhostSprite } from '../components/GhostSprite';
 
 export function HealthDashboardScreen() {
   const navigate = useNavigate();
@@ -87,6 +88,7 @@ export function HealthDashboardScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <StaticBracket>
+          <GhostSprite insight="Your wellness data stays private. Always.">
           <HealthDashboard
             todayEntry={data?.todayEntry ?? null}
             trends={data?.trends ?? []}
@@ -97,6 +99,7 @@ export function HealthDashboardScreen() {
             onSaveEntry={handleSaveEntry}
             loading={loading}
           />
+        </GhostSprite>
         </StaticBracket>
       </div>
     </div>

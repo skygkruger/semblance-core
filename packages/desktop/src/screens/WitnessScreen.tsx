@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
 import { SkeletonCard, FeatureGate } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
 import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
 import { EmptyFeatureState } from '../components/EmptyFeatureState';
@@ -161,6 +162,7 @@ export function WitnessScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Cryptographic attestations of every autonomous action.">
         <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.witness.title')}</h1>
         <ShimmerDescription text="Cryptographic attestations of autonomous actions" />
           {loading ? (
@@ -253,6 +255,7 @@ export function WitnessScreen() {
               )}
             </PageContainer>
           )}
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

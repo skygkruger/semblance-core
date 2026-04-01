@@ -19,6 +19,7 @@ import {
 import type { LivingWillExportRecord } from '../ipc/commands';
 import { Input, SkeletonCard, FeatureGate } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
 import { SectionDivider } from '../components/SectionDivider';
 import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
@@ -210,6 +211,7 @@ export function LivingWillScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <ContentBracket>
+        <GhostSprite insight="Your encrypted digital twin, ready for sovereignty and recovery.">
         <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.living_will.title')}</h1>
         <ShimmerDescription text="Encrypted digital twin exports for sovereignty and recovery" />
           <PageContainer>
@@ -315,6 +317,7 @@ export function LivingWillScreen() {
               </p>
             )}
           </PageContainer>
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>

@@ -1859,6 +1859,95 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] Sprint G.5 initialization failed (non-fatal):', sprintG5Err);
   }
 
+  // ──── STEP 10: Cloud Bridge initialization (off by default) ────
+  try {
+    const { ProviderRegistry, CloudBridgeAdapter, CloudBridgeRoutingEngine } = require('../../../gateway/cloud-bridge/index.js');
+    const { CloudBridgeCredentialStore } = require('../../../core/security/cloud-bridge-credentials.js');
+
+    const cloudProviderRegistry = new ProviderRegistry();
+    // The sidecar can't access the OS keychain directly (Tauri keychain plugins
+    // are webview-context only). Use a SQLite-backed store in prefsDb instead.
+    // The frontend migrates credentials to OS keychain on launch; sidecar reads
+    // from prefsDb for Cloud Bridge API keys.
+    const sidecarKeychainStore = {
+      async set(service: string, account: string, value: string) {
+        if (!prefsDb) throw new Error('prefsDb not available');
+        prefsDb.prepare(
+          'INSERT OR REPLACE INTO cloud_bridge_credentials (service, account, value) VALUES (?, ?, ?)'
+        ).run(service, account, value);
+      },
+      async get(service: string, account: string): Promise<string | null> {
+        if (!prefsDb) return null;
+        try {
+          prefsDb.exec('CREATE TABLE IF NOT EXISTS cloud_bridge_credentials (service TEXT, account TEXT, value TEXT, PRIMARY KEY (service, account))');
+        } catch { /* table exists */ }
+        const row = prefsDb.prepare(
+          'SELECT value FROM cloud_bridge_credentials WHERE service = ? AND account = ?'
+        ).get(service, account) as { value: string } | undefined;
+        return row?.value ?? null;
+      },
+      async delete(service: string, account: string) {
+        if (!prefsDb) return;
+        prefsDb.prepare('DELETE FROM cloud_bridge_credentials WHERE service = ? AND account = ?').run(service, account);
+      },
+      async clear(servicePrefix: string) {
+        if (!prefsDb) return;
+        prefsDb.prepare('DELETE FROM cloud_bridge_credentials WHERE service LIKE ?').run(`${servicePrefix}%`);
+      },
+    };
+    const cloudCredentialStore = new CloudBridgeCredentialStore(sidecarKeychainStore);
+    const cloudAdapter = new CloudBridgeAdapter({
+      getApiKey: async (providerId: string) => cloudCredentialStore.getApiKey(providerId),
+      getBaseUrl: (providerId: string) => {
+        const provider = cloudProviderRegistry.getProvider(providerId);
+        return provider?.baseUrl ?? null;
+      },
+    });
+    const cloudRoutingEngine = new CloudBridgeRoutingEngine({
+      providerRegistry: cloudProviderRegistry,
+      adapter: cloudAdapter,
+      logAuditEntry: (entry: any) => {
+        // Log to Merkle audit chain via Gateway's audit trail
+        if (gateway?.getAuditTrail()) {
+          gateway.getAuditTrail().append({
+            requestId: `cb_${entry.provider}_${entry.timestamp}`,
+            timestamp: new Date(entry.timestamp).toISOString(),
+            action: 'cloud_bridge.request' as any,
+            direction: 'request' as const,
+            status: 'success',
+            payloadHash: entry.promptContentHash,
+            signature: entry.responseContentHash,
+            metadata: {
+              provider: entry.provider,
+              model: entry.model,
+              tokensIn: entry.tokensIn,
+              tokensOut: entry.tokensOut,
+              estimatedCost: entry.estimatedCost,
+              contentCategories: entry.contentCategoriesDetected,
+              routingMode: entry.routingMode,
+              latencyMs: entry.latencyMs,
+            },
+          });
+        }
+      },
+      onNotify: (message: string, level: string) => {
+        emit('cloud-bridge:notification', { message, level });
+      },
+    });
+
+    // Store references for IPC handlers
+    (globalThis as any).__cloudBridge = {
+      registry: cloudProviderRegistry,
+      credentials: cloudCredentialStore,
+      adapter: cloudAdapter,
+      engine: cloudRoutingEngine,
+    };
+
+    console.error('[sidecar] Cloud Bridge initialized (mode: off — user must enable in Settings)');
+  } catch (cloudBridgeErr) {
+    console.error('[sidecar] Cloud Bridge initialization failed (non-fatal):', cloudBridgeErr);
+  }
+
   // ── ProactiveEngine startup ────────────────────────────────────────────
   // Create and start the proactive engine if dependencies are available from
   // a previous session's data. This ensures background insights run without
@@ -10748,6 +10837,108 @@ async function handleRequest(req: Request): Promise<void> {
             respond(id, { skipped: true, reason: 'SpeculativeLoader not initialized' });
           }
         } catch (err) { respondError(id, (err as Error).message); }
+        break;
+      }
+
+      // ─── Cloud Bridge IPC Handlers ─────────────────────────────────────
+      case 'cloud_bridge_get_providers': {
+        const cb = (globalThis as any).__cloudBridge;
+        if (!cb) { respond(id, []); break; }
+        respond(id, cb.registry.listProviders());
+        break;
+      }
+
+      case 'cloud_bridge_add_provider': {
+        const cb = (globalThis as any).__cloudBridge;
+        if (!cb) { respondError(id, 'Cloud Bridge not initialized'); break; }
+        try {
+          const addParams = params as { providerId: string; apiKey: string; baseUrl?: string };
+          // Validate first
+          const { validateApiKey: cbValidate } = require('../../../gateway/cloud-bridge/api-key-validator.js');
+          const validation = await cbValidate(addParams.providerId, addParams.apiKey, addParams.baseUrl);
+          if (!validation.valid) {
+            respond(id, { success: false, error: validation.error });
+            break;
+          }
+          // Store credential
+          await cb.credentials.storeApiKey(addParams.providerId, addParams.apiKey, addParams.baseUrl);
+          // Register provider
+          const { getKnownProvider: cbGetKnown } = require('../../../core/types/cloud-bridge.js');
+          const known = cbGetKnown(addParams.providerId);
+          const provider = cb.registry.registerProvider({
+            id: addParams.providerId,
+            name: known?.name ?? addParams.providerId,
+            models: validation.models,
+            storageKey: `semblance.cloud-bridge.${addParams.providerId}`,
+            baseUrl: addParams.baseUrl,
+          });
+          respond(id, { success: true, provider });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'cloud_bridge_remove_provider': {
+        const cb = (globalThis as any).__cloudBridge;
+        if (!cb) { respondError(id, 'Cloud Bridge not initialized'); break; }
+        const rmParams = params as { providerId: string };
+        await cb.credentials.removeCredential(rmParams.providerId);
+        cb.registry.unregisterProvider(rmParams.providerId);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'cloud_bridge_validate_key': {
+        const cb = (globalThis as any).__cloudBridge;
+        if (!cb) { respondError(id, 'Cloud Bridge not initialized'); break; }
+        try {
+          const valParams = params as { providerId: string; apiKey: string; baseUrl?: string };
+          const { validateApiKey: cbVal } = require('../../../gateway/cloud-bridge/api-key-validator.js');
+          const result = await cbVal(valParams.providerId, valParams.apiKey, valParams.baseUrl);
+          respond(id, result);
+        } catch (err) {
+          respond(id, { valid: false, error: (err as Error).message });
+        }
+        break;
+      }
+
+      case 'cloud_bridge_get_policy': {
+        const cb = (globalThis as any).__cloudBridge;
+        if (!cb) {
+          const { DEFAULT_ROUTING_POLICY } = require('../../../core/types/cloud-bridge.js');
+          respond(id, DEFAULT_ROUTING_POLICY);
+          break;
+        }
+        respond(id, cb.engine.getPolicy());
+        break;
+      }
+
+      case 'cloud_bridge_set_policy': {
+        const cb = (globalThis as any).__cloudBridge;
+        if (!cb) { respondError(id, 'Cloud Bridge not initialized'); break; }
+        cb.engine.setPolicy(params);
+        respond(id, { success: true });
+        break;
+      }
+
+      case 'cloud_bridge_get_usage': {
+        const cb = (globalThis as any).__cloudBridge;
+        if (!cb) { respond(id, { providers: [], totalRequests: 0, totalCost: null }); break; }
+        const providers = cb.registry.listProviders().map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          requests: p.usageThisMonth.requests,
+          tokensIn: p.usageThisMonth.tokensIn,
+          tokensOut: p.usageThisMonth.tokensOut,
+          estimatedCost: p.usageThisMonth.estimatedCost,
+        }));
+        const totalRequests = providers.reduce((s: number, p: any) => s + p.requests, 0);
+        const totalCost = providers.reduce((s: number | null, p: any) => {
+          if (p.estimatedCost === null) return s;
+          return (s ?? 0) + p.estimatedCost;
+        }, null as number | null);
+        respond(id, { providers, totalRequests, totalCost });
         break;
       }
 

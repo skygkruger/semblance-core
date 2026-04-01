@@ -44,9 +44,29 @@ function rotateX(x: number, y: number, z: number, a: number): [number, number, n
   return [x, y * c - z * s, y * s + z * c];
 }
 
+function rotateZ(x: number, y: number, z: number, a: number): [number, number, number] {
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  return [x * c - y * s, x * s + y * c, z];
+}
+
 function project(x: number, y: number, z: number, cx: number, cy: number, fov: number): { sx: number; sy: number; depth: number } {
   const scale = fov / (fov + z);
   return { sx: cx + x * scale, sy: cy - y * scale, depth: z };
+}
+
+/** Calculate line brightness from depth + edge proximity.
+ *  Returns alpha value. Edges (silhouette) glow, front face visible, back face dim. */
+function calcBrightness(x: number, y: number, z: number, r: number): number {
+  const depthNorm = (z + r) / (2 * r); // 0=back, 1=front
+  // Facing ratio: 1=facing camera, 0=edge/silhouette
+  const len = Math.sqrt(x * x + y * y + z * z);
+  const facing = len > 0 ? z / len : 0; // dot(normal, viewDir)
+  // Edge glow: inverse of facing, strongest at silhouette
+  const edge = 1 - Math.abs(facing);
+  // Blend: edges are bright, front face moderate, back face dim
+  const backFade = depthNorm > 0.3 ? 1 : depthNorm / 0.3; // fade out back hemisphere
+  return (0.08 + edge * 0.22 + depthNorm * 0.08) * backFade;
 }
 
 // ─── Component ───
@@ -97,8 +117,12 @@ export function WireframeGlobe({
       rotSpeed = 0.02; // slow after connected
     }
 
-    const rotY = elapsed * rotSpeed;
-    const tiltX = -0.3; // slight tilt to show north pole
+    const rotY = -elapsed * rotSpeed; // counterclockwise from north pole (Earth's direction)
+    // Earth-accurate axial tilt (23.44°) with precession wobble
+    const axialTilt = 0.4091; // 23.44° in radians
+    const wobble = Math.sin(elapsed * 0.21) * 0.015; // slow precession wobble (~30s cycle)
+    const tiltX = -(axialTilt + wobble);
+    const tiltZ = axialTilt + Math.cos(elapsed * 0.21) * 0.015;
 
     // ─── Opal color breathing ───
     const breath = Math.sin(elapsed * 0.4) * 0.5 + 0.5;
@@ -118,11 +142,12 @@ export function WireframeGlobe({
         let [x, y, z] = latLngToXYZ(lat, lng, r);
         [x, y, z] = rotateY(x, y, z, rotY);
         [x, y, z] = rotateX(x, y, z, tiltX);
+        [x, y, z] = rotateZ(x, y, z, tiltZ);
 
         const { sx, sy, depth } = project(x, y, z, cx, cy, fov);
         // Depth-based opacity: front face bright, back face dim
-        const depthNorm = (depth + r) / (2 * r); // 0 = back, 1 = front
-        const alpha = 0.06 + depthNorm * 0.25;
+        const depthNorm = (depth + r) / (2 * r);
+        const alpha = calcBrightness(x, y, z, r);
 
         if (!started) {
           ctx.moveTo(sx, sy);
@@ -151,10 +176,11 @@ export function WireframeGlobe({
         let [x, y, z] = latLngToXYZ(lat, lng, r);
         [x, y, z] = rotateY(x, y, z, rotY);
         [x, y, z] = rotateX(x, y, z, tiltX);
+        [x, y, z] = rotateZ(x, y, z, tiltZ);
 
         const { sx, sy, depth } = project(x, y, z, cx, cy, fov);
         const depthNorm = (depth + r) / (2 * r);
-        const alpha = 0.06 + depthNorm * 0.25;
+        const alpha = calcBrightness(x, y, z, r);
 
         if (!started) {
           ctx.moveTo(sx, sy);
@@ -175,6 +201,7 @@ export function WireframeGlobe({
         let [x, y, z] = latLngToXYZ(lat, lng, r);
         [x, y, z] = rotateY(x, y, z, rotY);
         [x, y, z] = rotateX(x, y, z, tiltX);
+        [x, y, z] = rotateZ(x, y, z, tiltZ);
 
         const { sx, sy, depth } = project(x, y, z, cx, cy, fov);
         const depthNorm = (depth + r) / (2 * r);
@@ -234,6 +261,7 @@ export function WireframeGlobe({
       let [tx, ty, tz] = latLngToXYZ(target[0], target[1], r);
       [tx, ty, tz] = rotateY(tx, ty, tz, rotY);
       [tx, ty, tz] = rotateX(tx, ty, tz, tiltX);
+      [tx, ty, tz] = rotateZ(tx, ty, tz, tiltZ);
       const tProj = project(tx, ty, tz, cx, cy, fov);
       const tDepth = (tz + r) / (2 * r);
 
@@ -279,6 +307,7 @@ export function WireframeGlobe({
       let [ox, oy, oz] = latLngToXYZ(origin[0], origin[1], r);
       [ox, oy, oz] = rotateY(ox, oy, oz, rotY);
       [ox, oy, oz] = rotateX(ox, oy, oz, tiltX);
+      [ox, oy, oz] = rotateZ(ox, oy, oz, tiltZ);
       const oProj = project(ox, oy, oz, cx, cy, fov);
       const oDepth = (oz + r) / (2 * r);
 
@@ -292,8 +321,8 @@ export function WireframeGlobe({
 
     // ─── Ambient glow around globe ───
     const gradient = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 1.3);
-    gradient.addColorStop(0, 'rgba(110, 207, 163, 0.02)');
-    gradient.addColorStop(0.5, 'rgba(154, 168, 184, 0.01)');
+    gradient.addColorStop(0, 'rgba(110, 207, 163, 0.012)');
+    gradient.addColorStop(0.5, 'rgba(154, 168, 184, 0.006)');
     gradient.addColorStop(1, 'transparent');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, size, size);

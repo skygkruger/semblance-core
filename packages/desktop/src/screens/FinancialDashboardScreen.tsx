@@ -15,6 +15,7 @@ import type { FinancialDashboardData } from '../ipc/types';
 import { StatementImportDialog } from '../components/StatementImportDialog';
 import { SubscriptionInsightCard } from '../components/SubscriptionInsightCard';
 import { StaticBracket } from '../components/StaticBracket';
+import { GhostSprite } from '../components/GhostSprite';
 
 export function FinancialDashboardScreen() {
   const navigate = useNavigate();
@@ -152,6 +153,7 @@ export function FinancialDashboardScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <StaticBracket>
+          <GhostSprite insight="Track spending patterns and detect anomalies automatically.">
           <FinancialDashboard
             overview={data?.overview ?? null}
             categories={data?.categories ?? []}
@@ -193,6 +195,7 @@ export function FinancialDashboardScreen() {
               }}
             />
           )}
+        </GhostSprite>
         </StaticBracket>
       </div>
     </div>

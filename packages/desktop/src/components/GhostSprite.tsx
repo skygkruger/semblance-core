@@ -205,15 +205,26 @@ export function GhostSprite({
     if (!mainEl) return;
 
     const mainRect = mainEl.getBoundingClientRect();
-    const rightEdge = contentRect.right - wrapperRef.current!.getBoundingClientRect().left;
-    const mainRight = mainRect.right - wrapperRef.current!.getBoundingClientRect().left;
+    const wrapperBounds = wrapperRef.current!.getBoundingClientRect();
+
+    // Find the rightmost visible content element for accurate gutter measurement
+    const visibleElements = Array.from(content.querySelectorAll('.page-title, .surface-opal, .surface-void, .surface-slate, .settings-screen, .card, .connections-screen')) as HTMLElement[];
+    let contentRightEdge = contentRect.right;
+    for (const el of visibleElements) {
+      const elRight = el.getBoundingClientRect().right;
+      if (elRight > contentRightEdge - 100 && elRight < mainRect.right) {
+        contentRightEdge = Math.max(contentRightEdge, elRight);
+      }
+    }
+    // If no elements found wider, use the page-layout content area
+    const rightEdge = Math.min(contentRightEdge, contentRect.right) - wrapperBounds.left;
+    const mainRight = mainRect.right - wrapperBounds.left;
     const gutterCenter = rightEdge + (mainRight - rightEdge) / 2;
 
     setSpriteX(gutterCenter - GHOST_W / 2);
     // Vertically center in the viewport midpoint of the main area
     const mainMidY = mainRect.top + mainRect.height / 2;
-    const wrapperTop = wrapperRef.current!.getBoundingClientRect().top;
-    setSpriteY(mainMidY - wrapperTop - GHOST_H / 2);
+    setSpriteY(mainMidY - wrapperBounds.top - GHOST_H / 2);
     setContentHeight(Math.max(contentRect.height, mainRect.height));
   }, []);
 

@@ -220,6 +220,13 @@ function KeyIcon() {
     </svg>
   );
 }
+function MeshIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6" cy="6" r="2" /><circle cx="18" cy="6" r="2" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /><circle cx="12" cy="12" r="2" /><path d="M7.5 7.5 10.5 10.5" /><path d="M13.5 10.5 16.5 7.5" /><path d="M7.5 16.5 10.5 13.5" /><path d="M13.5 13.5 16.5 16.5" />
+    </svg>
+  );
+}
 function GlobeIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -258,7 +265,7 @@ const navSections: NavSection[] = [
       { id: 'living-will', label: 'Living Will', icon: <FileTextIcon /> },
       { id: 'witness', label: 'Witness', icon: <EyeIcon /> },
       { id: 'inheritance', label: 'Inheritance', icon: <KeyIcon /> },
-      { id: 'semblance-network', label: 'Compute Mesh', icon: <GlobeIcon /> },
+      { id: 'semblance-network', label: 'Compute Mesh', icon: <MeshIcon /> },
       { id: 'tunnel-pairing', label: 'Tunneling', icon: <GlobeIcon /> },
     ],
   },

@@ -9,6 +9,7 @@ import { useAppState } from '../state/AppState';
 import { useSound } from '../sound/SoundEngineContext';
 import { ContentBracket } from '../components/ContentBracket';
 import { ShimmerDescription } from '../components/ShimmerDescription';
+import { GhostSprite } from '../components/GhostSprite';
 
 export function ActivityScreen() {
   const { t } = useTranslation();
@@ -139,6 +140,7 @@ export function ActivityScreen() {
     <div className="page-scroll">
       <div className="page-layout">
       <ContentBracket>
+      <GhostSprite insight="Your activity log tracks every action Semblance takes on your behalf.">
       <h1 className="page-title" style={{ fontSize: 28, marginBottom: 16 }}>
         Activity Log
       </h1>
@@ -338,6 +340,7 @@ export function ActivityScreen() {
           </div>
         )
       )}
+      </GhostSprite>
       </ContentBracket>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { prefGet, prefSet, sidecarCall } from '../ipc/commands';
 import { Card, Button, StatusIndicator, SkeletonCard } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
 import './BiometricSetupScreen.css';
 
 type LockTimeout = '1min' | '5min' | '15min' | '30min' | 'never';
@@ -126,6 +127,7 @@ export function BiometricSetupScreen() {
       <div className="biometric-setup page-scroll">
         <div className="biometric-setup__container page-layout">
           <ContentBracket>
+          <GhostSprite insight="Biometric authentication adds a layer of physical security.">
           <h1 className="biometric-setup__title">{t('screen.biometric.title')}</h1>
           <p className="biometric-setup__subtitle">{t('screen.biometric.subtitle')}</p>
           <SkeletonCard
@@ -134,6 +136,7 @@ export function BiometricSetupScreen() {
             subMessage="Detecting security hardware"
             showSpinner
           />
+          </GhostSprite>
           </ContentBracket>
         </div>
       </div>
@@ -144,6 +147,7 @@ export function BiometricSetupScreen() {
     <div className="biometric-setup page-scroll">
       <div className="biometric-setup__container page-layout">
         <ContentBracket>
+        <GhostSprite insight="Biometric authentication adds a layer of physical security.">
         <h1 className="biometric-setup__title">{t('screen.biometric.title')}</h1>
         <p className="biometric-setup__subtitle">
           {t('screen.biometric.subtitle')}
@@ -256,6 +260,7 @@ export function BiometricSetupScreen() {
             )}
           </div>
         </Card>
+        </GhostSprite>
         </ContentBracket>
       </div>
     </div>
