@@ -17,6 +17,7 @@ import { SectionDivider } from '../components/SectionDivider';
 import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
 import { EmptyFeatureState } from '../components/EmptyFeatureState';
 import { ShimmerDescription } from '../components/ShimmerDescription';
+import { WireframeGlobe } from '../components/WireframeGlobe';
 import { useNavigate } from 'react-router-dom';
 import {
   networkPeersList,
@@ -163,6 +164,7 @@ export function SemblanceNetworkScreen() {
         <ContentBracket>
         <h1 className="page-title" style={{ fontSize: 28 }}>{t('semblanceNetwork.title', 'Semblance Network')}</h1>
         <ShimmerDescription text="Peer-to-peer sharing with other Semblance users" />
+        <WireframeGlobe size={280} state={peers.length > 0 ? 'connected' : 'idle'} target={peers.length > 0 ? [51.5074, -0.1278] : null} />
         {statusMessage && (
           <div className="semblance-network-screen__status">{statusMessage}</div>
         )}

@@ -11,6 +11,7 @@ import { SectionDivider } from '../components/SectionDivider';
 import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
 import { EmptyFeatureState } from '../components/EmptyFeatureState';
 import { ShimmerDescription } from '../components/ShimmerDescription';
+import { WireframeGlobe } from '../components/WireframeGlobe';
 import { sidecarCall } from '../ipc/commands';
 
 interface MeshStatus {
@@ -122,6 +123,7 @@ export function TunnelPairingScreen() {
           Compute Mesh
         </h1>
         <ShimmerDescription text="Pair devices to share inference power over encrypted tunnels" />
+        <WireframeGlobe size={280} state={peers.length > 0 ? 'connected' : 'idle'} target={peers.length > 0 ? [48.8566, 2.3522] : null} />
           <PageContainer>
             {/* Error banner */}
             {error && (
