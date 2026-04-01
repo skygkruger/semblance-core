@@ -101,7 +101,7 @@ export function SettingsAccount({
         </div>
 
         {/* Digital Representative */}
-        <div className="settings-section-header">{t('account.section_digital_representative')}</div>
+        <div className="settings-section-header bracket-section">{t('account.section_digital_representative')}</div>
 
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">{t('account.dr_status_label')}</span>
@@ -139,7 +139,7 @@ export function SettingsAccount({
         )}
 
         {/* Semblance Identity */}
-        <div className="settings-section-header">{t('account.section_semblance_identity')}</div>
+        <div className="settings-section-header bracket-section">{t('account.section_semblance_identity')}</div>
 
         {editing ? (
           <div className="settings-inline-edit">
@@ -166,7 +166,7 @@ export function SettingsAccount({
         )}
 
         {/* Danger Zone */}
-        <div className="settings-section-header settings-section-header--danger">{t('account.section_danger')}</div>
+        <div className="settings-section-header settings-section-header--danger bracket-section">{t('account.section_danger')}</div>
 
         <button type="button" className="settings-row" onClick={onSignOut}>
           <span className="settings-row__label" style={{ color: '#8593A4' }}>{t('account.btn_sign_out')}</span>

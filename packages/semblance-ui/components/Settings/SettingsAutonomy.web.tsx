@@ -93,7 +93,7 @@ export function SettingsAutonomy({
         </div>
 
         {/* Domain Overrides */}
-        <div className="settings-section-header">{t('autonomy.section_domain_overrides')}</div>
+        <div className="settings-section-header bracket-section">{t('autonomy.section_domain_overrides')}</div>
         <p className="settings-explanation" style={{ marginBottom: 12 }}>
           {t('autonomy.domain_overrides_explanation')}
         </p>
@@ -123,7 +123,7 @@ export function SettingsAutonomy({
         })}
 
         {/* Safety */}
-        <div className="settings-section-header">{t('autonomy.section_safety')}</div>
+        <div className="settings-section-header bracket-section">{t('autonomy.section_safety')}</div>
 
         <div
           className="settings-row"

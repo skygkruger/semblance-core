@@ -92,8 +92,8 @@ export function ImportDigitalLifeView({
   return (
     <div className="import-life">
       <div>
-        <h2 className="import-life__title">Import Digital Life</h2>
-        <p className="import-life__subtitle">
+        <h2 className="import-life__title page-title">Import Digital Life</h2>
+        <p className="import-life__subtitle shimmer-desc">
           Expand what Semblance knows by importing data from other sources.
           Everything stays on your device.
         </p>
@@ -127,7 +127,7 @@ export function ImportDigitalLifeView({
           <Card key={source.id} className="surface-void opal-wireframe">
             <div className={`import-life__source${!isPremium ? ' import-life__source--locked' : ''}`}>
               <div style={{ flex: 1 }}>
-                <h3 className="import-life__source-name">{source.name}</h3>
+                <h3 className="import-life__source-name bracket-section">{source.name}</h3>
                 <p className="import-life__source-desc">{source.description}</p>
                 <p className="import-life__source-formats">
                   <span>Formats: </span>
@@ -159,7 +159,7 @@ export function ImportDigitalLifeView({
       {/* Import history */}
       {importHistory && importHistory.length > 0 && (
         <div>
-          <h3 className="import-life__history-title">Import History</h3>
+          <h3 className="import-life__history-title bracket-section">Import History</h3>
           <div className="import-life__history-list">
             {importHistory.map(entry => (
               <div key={entry.id} className="import-life__history-row">

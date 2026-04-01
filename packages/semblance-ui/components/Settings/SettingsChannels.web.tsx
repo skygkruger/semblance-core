@@ -61,7 +61,7 @@ export function SettingsChannels({ onBack }: { onBack: () => void }) {
       <div className="settings-content">
         {connected.length > 0 && (
           <>
-            <div className="settings-section-header">CONNECTED</div>
+            <div className="settings-section-header bracket-section">CONNECTED</div>
             {connected.map(ch => (
               <button key={ch.channelId} type="button" className="settings-row" onClick={() => setExpanded(expanded === ch.channelId ? null : ch.channelId)}>
                 <span className="settings-row__dot settings-row__dot--connected" />
@@ -72,7 +72,7 @@ export function SettingsChannels({ onBack }: { onBack: () => void }) {
           </>
         )}
 
-        <div className="settings-section-header">CONFIGURE</div>
+        <div className="settings-section-header bracket-section">CONFIGURE</div>
         {disconnected.map(ch => (
           <div key={ch.channelId}>
             <button type="button" className="settings-row" onClick={() => setExpanded(expanded === ch.channelId ? null : ch.channelId)}>

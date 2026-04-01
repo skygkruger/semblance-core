@@ -8,6 +8,7 @@ import { AlterEgoWeekCard } from '../components/AlterEgoWeekCard';
 import { useAppState } from '../state/AppState';
 import { useSound } from '../sound/SoundEngineContext';
 import { ContentBracket } from '../components/ContentBracket';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 
 export function ActivityScreen() {
   const { t } = useTranslation();
@@ -137,9 +138,11 @@ export function ActivityScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+      <ContentBracket>
       <h1 className="page-title" style={{ fontSize: 28, marginBottom: 16 }}>
         Activity Log
       </h1>
+      <ShimmerDescription text="Every action logged, audited, and reversible" />
 
       {/* Search */}
       <div style={{ marginBottom: 12 }}>
@@ -151,7 +154,7 @@ export function ActivityScreen() {
       </div>
 
       {/* Filter bar */}
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div className="bracket-section" style={{ display: 'flex', gap: 6 }}>
         {(['all', 'success', 'pending', 'error', 'rejected', 'alter_ego'] as const).map((status) => {
           const filterLabels: Record<string, string> = {
             all: t('screen.activity.filter_all'),
@@ -186,7 +189,6 @@ export function ActivityScreen() {
         })}
       </div>
 
-      <ContentBracket>
       {/* Alter Ego Week Progress */}
       {weekProgress?.isActive && (
         <AlterEgoWeekCard
@@ -242,7 +244,7 @@ export function ActivityScreen() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '0 16px' }}>
             {weekGroups.map((week) => (
               <div key={week} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div className="settings-section-header">
+                <div className="settings-section-header bracket-section">
                   {t('screen.alter_ego.week_header', { week })}
                   <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 400, color: '#5E6B7C', fontFamily: "'DM Mono', monospace" }}>({receiptsByWeek[week]!.length} actions)</span>
                 </div>
@@ -341,3 +343,4 @@ export function ActivityScreen() {
     </div>
   );
 }
+

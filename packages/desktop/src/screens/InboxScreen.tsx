@@ -40,6 +40,7 @@ import { DarkPatternBadge } from '../components/DarkPatternBadge';
 import { QuickCaptureInput } from '../components/QuickCaptureInput';
 import { ClipboardInsightToast } from '../components/ClipboardInsightToast';
 import { ContentBracket } from '../components/ContentBracket';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 import { GhostSprite } from '../components/GhostSprite';
 
 // ─── Types (mirror core types for the desktop boundary) ─────────────────────
@@ -295,9 +296,11 @@ export function InboxScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         <GhostSprite insight="Your inbox is empty. Connect an email account to get started.">
+        <ContentBracket>
         <h1 className="page-title" style={{ fontSize: 28 }}>
           {t('screen.inbox.title')}
         </h1>
+        <ShimmerDescription text="Your unified command center for email, calendar, and actions" />
 
         {/* Account Filter Tabs — only show when multiple accounts exist */}
         {emailAccounts.length > 1 && (
@@ -375,7 +378,7 @@ export function InboxScreen() {
         {/* Reminders */}
         {reminders.length > 0 && (
           <section className="space-y-2">
-            <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               {t('screen.inbox.section_reminders', 'Reminders')}
             </h2>
             {reminders.map(reminder => (
@@ -414,7 +417,7 @@ export function InboxScreen() {
         {/* Priority / Proactive Section */}
         {insights.length > 0 && (
           <section className="space-y-3">
-            <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               {t('screen.inbox.section_priority')}
             </h2>
             <div className="space-y-2">
@@ -437,10 +440,9 @@ export function InboxScreen() {
           </section>
         )}
 
-        <ContentBracket>
         {/* Email Section */}
-        <section className="space-y-3" style={{ marginTop: 24 }}>
-          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        <section className="space-y-3">
+          <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {t('screen.inbox.section_email')}
           </h2>
 
@@ -509,7 +511,7 @@ export function InboxScreen() {
 
         {/* Calendar Today Section */}
         <section className="space-y-3">
-          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {t('screen.inbox.section_calendar')}
           </h2>
 
@@ -554,7 +556,7 @@ export function InboxScreen() {
 
         {/* Actions Taken Section */}
         <section className="space-y-3">
-          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {t('screen.inbox.section_actions')}
           </h2>
           <Card className="surface-void opal-wireframe">
@@ -587,8 +589,6 @@ export function InboxScreen() {
             )}
           </Card>
         </section>
-
-        </ContentBracket>
 
         {/* Clipboard Insight Toast */}
         {clipboardInsight && (
@@ -630,6 +630,7 @@ export function InboxScreen() {
             </button>
           </div>
         )}
+      </ContentBracket>
       </GhostSprite>
       </div>
     </div>

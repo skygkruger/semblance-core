@@ -3,6 +3,7 @@ import { SkeletonCard } from '@semblance/ui';
 import { getLocationSettings, type LocationSettings } from '../ipc/commands';
 import { useAppDispatch } from '../state/AppState';
 import { LocationSettingsSection } from '../components/LocationSettingsSection';
+import { ContentBracket } from '../components/ContentBracket';
 
 const DEFAULT_SETTINGS: LocationSettings = {
   enabled: false,
@@ -48,7 +49,9 @@ export function LocationSettingsScreen() {
     return (
       <div className="page-scroll">
         <div className="page-layout">
+          <ContentBracket>
           <SkeletonCard variant="generic" message="Loading location settings" subMessage="Checking location services" showSpinner />
+          </ContentBracket>
         </div>
       </div>
     );
@@ -57,7 +60,9 @@ export function LocationSettingsScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+        <ContentBracket>
         <LocationSettingsSection />
+        </ContentBracket>
       </div>
     </div>
   );

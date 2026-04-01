@@ -33,7 +33,7 @@ export function SettingsKnowledge({ stats, isReindexing, onReindex, onClearSourc
         </p>
 
         {/* Stats */}
-        <div className="settings-section-header">Overview</div>
+        <div className="settings-section-header bracket-section">Overview</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, padding: '0 0 16px' }}>
           {[
             { label: 'Documents', value: stats?.totalDocuments ?? 0 },
@@ -57,7 +57,7 @@ export function SettingsKnowledge({ stats, isReindexing, onReindex, onClearSourc
         {/* Sources */}
         {stats && stats.sourceBreakdown.length > 0 && (
           <>
-            <div className="settings-section-header">Sources</div>
+            <div className="settings-section-header bracket-section">Sources</div>
             {stats.sourceBreakdown.map((src) => (
               <div key={src.source} className="settings-row">
                 <div style={{ flex: 1 }}>
@@ -84,7 +84,7 @@ export function SettingsKnowledge({ stats, isReindexing, onReindex, onClearSourc
         )}
 
         {/* Actions */}
-        <div className="settings-section-header">Actions</div>
+        <div className="settings-section-header bracket-section">Actions</div>
         <button
           type="button"
           className="settings-row"

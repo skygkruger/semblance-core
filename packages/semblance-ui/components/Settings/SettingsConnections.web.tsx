@@ -26,7 +26,7 @@ export function SettingsConnections({
       <div className="settings-content">
         {connected.length > 0 && (
           <>
-            <div className="settings-section-header">{t('connections.section_connected')}</div>
+            <div className="settings-section-header bracket-section">{t('connections.section_connected')}</div>
             {connected.map((conn) => (
               <button
                 key={conn.id}
@@ -50,7 +50,7 @@ export function SettingsConnections({
 
         {disconnected.length > 0 && (
           <>
-            <div className="settings-section-header">{t('connections.section_not_connected')}</div>
+            <div className="settings-section-header bracket-section">{t('connections.section_not_connected')}</div>
             {disconnected.map((conn) => (
               <div key={conn.id} className="settings-row settings-row--static">
                 <span className="settings-row__dot settings-row__dot--disconnected" />

@@ -9,7 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { getVersion } from '@tauri-apps/api/app';
 import { emit, listen } from '@tauri-apps/api/event';
 import { SettingsNavigator } from '@semblance/ui';
-import { StaticBracket } from '../components/StaticBracket';
+import { ContentBracket } from '../components/ContentBracket';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 import type { AutonomyTier } from '@semblance/ui';
 import {
   getAccountsStatus,
@@ -562,9 +563,12 @@ export function SettingsScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+        <ContentBracket>
         <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', margin: '0 auto' }}>{t('screen.settings.title', 'Settings')}</h1>
+        <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
+          <ShimmerDescription text="Configure your sovereign AI" />
+        </div>
         <style>{`.settings-header { display: none; }`}</style>
-        <StaticBracket>
         <SettingsNavigator
           /* Root props */
           currentModel={state.activeModel || 'Loading...'}
@@ -866,7 +870,7 @@ export function SettingsScreen() {
           onReindex={handleReindex}
           onClearKnowledgeSource={handleClearKnowledgeSource}
         />
-        </StaticBracket>
+        </ContentBracket>
       </div>
     </div>
   );

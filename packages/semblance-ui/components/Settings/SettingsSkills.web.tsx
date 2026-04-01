@@ -65,7 +65,7 @@ export function SettingsSkills({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="settings-content">
-        <div className="settings-section-header">INSTALLED <span className="settings-badge">{skills.length} installed</span></div>
+        <div className="settings-section-header bracket-section">INSTALLED <span className="settings-badge">{skills.length} installed</span></div>
 
         {skills.map(skill => (
           <div key={skill.declaration.id} className="settings-card" style={{ margin: '0 16px 8px' }}>
@@ -96,7 +96,7 @@ export function SettingsSkills({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        <div className="settings-section-header">DISCOVER</div>
+        <div className="settings-section-header bracket-section">DISCOVER</div>
         <div className="settings-card" style={{ margin: '0 16px 8px' }}>
           <button type="button" className="settings-row" style={{ border: '1px solid var(--b2)', borderRadius: 8 }}>
             <span className="settings-row__label">Install from folder...</span>

@@ -12,6 +12,7 @@ import {
   generatePrivacyReport,
 } from '../ipc/commands';
 import { ContentBracket } from '../components/ContentBracket';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ function TrustStatusCard({ unauthorizedAttempts, onGenerateReport }: {
     <Card className={`surface-void opal-wireframe`}>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#EEF1F4', letterSpacing: '0.04em', margin: 0 }}>
+          <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#EEF1F4', letterSpacing: '0.04em', margin: 0 }}>
             {isClean ? t('screen.network_monitor.zero_connections') : t('screen.network_monitor.blocked_attempts', { count: unauthorizedAttempts })}
           </h2>
           <div style={{
@@ -163,7 +164,7 @@ function ActiveConnectionsCard({ connections }: { connections: ActiveConnection[
   if (connections.length === 0) {
     return (
       <Card className="p-4 surface-void opal-wireframe">
-        <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>
+        <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>
           {t('screen.network_monitor.section_active')}
         </h2>
         <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
@@ -174,7 +175,7 @@ function ActiveConnectionsCard({ connections }: { connections: ActiveConnection[
   }
   return (
     <Card className="p-4 surface-void opal-wireframe">
-      <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
+      <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
         {t('screen.network_monitor.section_active')}
       </h2>
       <div className="space-y-3">
@@ -210,7 +211,7 @@ function ActivityChart({ timeline, stats, period }: {
   const maxConnections = Math.max(1, ...timeline.map(tp => tp.connections));
   return (
     <Card className="p-4 surface-void opal-wireframe">
-      <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
+      <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
         {period === 'today' ? t('screen.network_monitor.activity_today') : period === 'week' ? t('screen.network_monitor.activity_week') : t('screen.network_monitor.activity_month')}
       </h2>
       {timeline.length > 0 ? (
@@ -262,7 +263,7 @@ function AuthorizedServicesCard({ services }: { services: AllowlistEntry[] }) {
   const activeServices = services.filter(s => s.isActive);
   return (
     <Card className="p-4 surface-void opal-wireframe">
-      <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
+      <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
         {t('screen.network_monitor.section_services')}
       </h2>
       <div className="space-y-3">
@@ -308,7 +309,7 @@ function ConnectionLogCard({ history }: { history: ConnectionRecord[] }) {
   const { t } = useTranslation();
   return (
     <Card className="p-4 surface-void opal-wireframe">
-      <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
+      <h2 className="bracket-section" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
         {t('screen.network_monitor.section_log')}
       </h2>
       {history.length > 0 ? (
@@ -413,6 +414,7 @@ export function NetworkMonitorScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+        <ContentBracket>
         <div className="flex items-center justify-between">
           <h1 className="page-title" style={{ fontSize: 28 }}>
             {t('screen.network_monitor.title')}
@@ -444,8 +446,8 @@ export function NetworkMonitorScreen() {
             })}
           </div>
         </div>
+        <ShimmerDescription text="Real-time network sovereignty monitoring" />
 
-        <ContentBracket>
         <section>
           <TrustStatusCard
             unauthorizedAttempts={unauthorized.length}

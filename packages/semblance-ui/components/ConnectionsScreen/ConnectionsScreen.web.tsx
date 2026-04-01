@@ -63,7 +63,7 @@ export function ConnectionsScreen({
     return (
       <div className="connections-screen">
         <h1 className="connections-screen__title page-title">{t('title')}</h1>
-        <p className="connections-screen__subtitle">
+        <p className="connections-screen__subtitle shimmer-desc">
           {t('subtitle_empty')}
         </p>
         <div className="connections-empty">
@@ -96,7 +96,7 @@ export function ConnectionsScreen({
   return (
     <div className="connections-screen">
       <h1 className="connections-screen__title page-title">{t('title')}</h1>
-      <p className="connections-screen__subtitle">
+      <p className="connections-screen__subtitle shimmer-desc">
         {t('subtitle_count', { connected: connectedCount, total: connectors.length })}
       </p>
 
@@ -106,7 +106,7 @@ export function ConnectionsScreen({
 
         return (
           <div key={key} className="connections-section">
-            <h2 className="connections-section__header">{t(`section_headers.${key}`)}</h2>
+            <h2 className="connections-section__header bracket-section">{t(`section_headers.${key}`)}</h2>
             <div className="connections-section__grid">
               {sectionConnectors.map((connector) => (
                 <ConnectorCard

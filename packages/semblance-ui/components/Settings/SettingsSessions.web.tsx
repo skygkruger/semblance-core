@@ -44,7 +44,7 @@ export function SettingsSessions({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="settings-content">
-        <div className="settings-section-header">ACTIVE SESSIONS</div>
+        <div className="settings-section-header bracket-section">ACTIVE SESSIONS</div>
 
         {sessions.length === 0 && (
           <div className="settings-card" style={{ textAlign: 'center' }}>

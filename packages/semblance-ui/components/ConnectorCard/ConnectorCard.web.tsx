@@ -82,7 +82,7 @@ export function ConnectorCard({
           <span
             className={`connector-card__status-dot connector-card__status-dot--${status}`}
           />
-          <span className={`connector-card__status-text connector-card__status-text--${status}${status === 'disconnected' ? ' page-title' : ''}`} style={status !== 'disconnected' ? { color: textColor } : { fontSize: 'inherit', fontWeight: 'inherit', textTransform: 'none' as const, letterSpacing: 'inherit' }}>{t(`status.${status}`)}</span>
+          <span className={`connector-card__status-text connector-card__status-text--${status}`} style={status !== 'disconnected' ? { color: textColor } : { fontSize: 'inherit', fontWeight: 'inherit', textTransform: 'none' as const, letterSpacing: 'inherit' }}>{t(`status.${status}`)}</span>
           {isConnected && userEmail && (
             <span className="connector-card__status-email">{userEmail}</span>
           )}

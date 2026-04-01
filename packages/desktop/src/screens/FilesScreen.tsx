@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DirectoryPicker, ProgressBar, Card, StatusIndicator, SkeletonCard } from '@semblance/ui';
 import { startIndexing, getKnowledgeStats } from '../ipc/commands';
-import { StaticBracket } from '../components/StaticBracket';
+import { ContentBracket } from '../components/ContentBracket';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 import { useTauriEvent } from '../hooks/useTauriEvent';
 import { useAppState, useAppDispatch } from '../state/AppState';
 
@@ -113,12 +114,15 @@ export function FilesScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+        <ContentBracket>
         <h1 className="page-title" style={{ fontSize: 28, maxWidth: 720, width: '100%', margin: '0 auto' }}>{t('screen.files.title')}</h1>
-        <StaticBracket>
+        <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
+          <ShimmerDescription text="Your local knowledge base" />
+        </div>
         <div className="settings-screen surface-void" style={{ minHeight: 'auto' }}>
           <div className="settings-content">
         {/* Indexed Directories */}
-        <div className="settings-section-header">{t('screen.files.section_directories')}</div>
+        <div className="settings-section-header bracket-section">{t('screen.files.section_directories')}</div>
         <div className="settings-row settings-row--static">
           {dirs.length === 0 && indexingStatus.state !== 'indexing' && indexingStatus.state !== 'scanning' ? (
             <span className="settings-row__label" style={{ color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>
@@ -134,7 +138,7 @@ export function FilesScreen() {
         />
 
         {/* Indexing Status */}
-        <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.files.section_indexing')}</div>
+        <div className="settings-section-header bracket-section" style={{ marginTop: 24 }}>{t('screen.files.section_indexing')}</div>
         <div className="settings-row settings-row--static">
           {indexingStatus.state === 'idle' || indexingStatus.state === 'complete' ? (
             <div className="flex items-center gap-2">
@@ -172,7 +176,7 @@ export function FilesScreen() {
         </div>
 
         {/* Knowledge Stats */}
-        <div className="settings-section-header" style={{ marginTop: 24 }}>{t('screen.files.section_stats')}</div>
+        <div className="settings-section-header bracket-section" style={{ marginTop: 24 }}>{t('screen.files.section_stats')}</div>
         {loading ? (
           <div style={{ padding: '0 16px' }}>
             <SkeletonCard variant="generic" message="Loading file index" subMessage="Scanning your document library" showSpinner />
@@ -206,7 +210,7 @@ export function FilesScreen() {
         )}
           </div>
         </div>
-        </StaticBracket>
+        </ContentBracket>
       </div>
     </div>
   );

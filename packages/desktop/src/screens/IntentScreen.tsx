@@ -20,6 +20,7 @@ import {
 } from '../ipc/commands';
 import type { IntentObservationData, EscalationPromptData } from '../ipc/types';
 import { EscalationPromptCard } from '../components/EscalationPromptCard';
+import { ContentBracket } from '../components/ContentBracket';
 import { Card, Button, Input, SkeletonCard, StatusIndicator } from '@semblance/ui';
 
 export function IntentScreen() {
@@ -128,6 +129,7 @@ export function IntentScreen() {
     return (
       <div className="page-scroll">
         <div className="page-layout settings-screen">
+          <ContentBracket>
           <div className="settings-header">
             <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -137,6 +139,7 @@ export function IntentScreen() {
           <div className="settings-content">
             <SkeletonCard variant="generic" message="Loading intents" subMessage="Retrieving your preferences and limits" showSpinner />
           </div>
+          </ContentBracket>
         </div>
       </div>
     );
@@ -147,6 +150,7 @@ export function IntentScreen() {
   return (
     <div className="page-scroll">
     <div className="page-layout settings-screen">
+      <ContentBracket>
       <div className="settings-header">
         <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -323,6 +327,7 @@ export function IntentScreen() {
           </Card>
         )}
       </div>
+      </ContentBracket>
     </div>
     </div>
   );

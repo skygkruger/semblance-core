@@ -18,12 +18,12 @@ interface TickPosition {
 }
 
 const TIER_TICK_LENGTHS: Record<number, number> = {
-  1: 24, // page title
-  2: 18, // shimmer description
-  3: 14, // container edges
-  4: 10, // section banners
-  5: 8,  // inputs
-  6: 8,  // cards
+  1: 48, // page title — longest, reaches toward the heading
+  2: 32, // shimmer description + sub headers (h2/h3)
+  3: 18, // container edges
+  4: 32, // section banners (bracket-section) — same as sub headers
+  5: 10, // inputs
+  6: 10, // cards
 };
 
 // Hierarchy selectors — order matters for tier assignment
@@ -32,12 +32,14 @@ const HIERARCHY = [
   { selector: '.shimmer-desc', tier: 2 },
   { selector: '.surface-opal', tier: 3 },
   { selector: '.surface-void:not([data-identity])', tier: 3 },
+  { selector: '.settings-screen', tier: 3 },
+  // connections-screen excluded — tracked via individual cards + section headers
   { selector: '.bracket-section', tier: 4 },
   { selector: '.input-wrapper', tier: 5 },
   { selector: '.quick-capture__container', tier: 5 },
-  { selector: '.card', tier: 6 },
-  { selector: '.surface-slate', tier: 6 },
-  { selector: '.skeleton-card', tier: 6 },
+  { selector: '.card', tier: 3 },
+  { selector: '.surface-slate', tier: 3 },
+  { selector: '.skeleton-card', tier: 3 },
 ];
 
 export function ContentBracket({
@@ -95,7 +97,10 @@ export function ContentBracket({
     const wrapperRect = wrapper.getBoundingClientRect();
     const mainEl = wrapper.closest('main');
     const mainLeft = mainEl ? mainEl.getBoundingClientRect().left : wrapperRect.left;
-    const gutterCenter = (wrapperRect.left - mainLeft) / 2 || (contentRect.left - mainLeft) / 2;
+    // Find the leftmost visible content edge for gutter calculation
+    const firstVisible = elements.length > 0 ? elements[0]![0] : null;
+    const contentLeftEdge = firstVisible ? firstVisible.getBoundingClientRect().left : contentRect.left;
+    const gutterCenter = (contentLeftEdge - mainLeft) / 2;
     setSpineX(mainLeft - wrapperRect.left + gutterCenter);
     setContentHeight(wrapperRect.height);
 
@@ -178,7 +183,7 @@ export function ContentBracket({
       if (mutationObserver) mutationObserver.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [children, measure]);
+  }, [measure]); // eslint-disable-line react-hooks/exhaustive-deps — only restart on mount, not re-renders
 
   const capLen = 6;
   const p = drawProgress;

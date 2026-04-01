@@ -32,7 +32,7 @@ export function SettingsAbout({ appVersion, hardwareProfile, activeModel, knowle
           </div>
         </div>
 
-        <div className="settings-section-header">System</div>
+        <div className="settings-section-header bracket-section">System</div>
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">Hardware</span>
           <span className="settings-row__value">{hardwareProfile}</span>
@@ -46,7 +46,7 @@ export function SettingsAbout({ appVersion, hardwareProfile, activeModel, knowle
           <span className="settings-row__value">{knowledgeDocCount.toLocaleString()} documents</span>
         </div>
 
-        <div className="settings-section-header">Privacy</div>
+        <div className="settings-section-header bracket-section">Privacy</div>
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">Data Storage</span>
           <span className="settings-row__value" style={{ color: '#6ECFA3' }}>Local only</span>
@@ -60,7 +60,7 @@ export function SettingsAbout({ appVersion, hardwareProfile, activeModel, knowle
           <span className="settings-row__value">Gateway only</span>
         </div>
 
-        <div className="settings-section-header">Legal</div>
+        <div className="settings-section-header bracket-section">Legal</div>
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">Built by</span>
           <span className="settings-row__value">VERIDIAN SYNTHETICS</span>

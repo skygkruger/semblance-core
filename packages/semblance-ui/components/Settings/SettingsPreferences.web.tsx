@@ -58,7 +58,7 @@ export function SettingsPreferences({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="settings-content">
-        <div className="settings-section-header">HIGH CONFIDENCE <span className="settings-badge">{highConfidence.length} patterns</span></div>
+        <div className="settings-section-header bracket-section">HIGH CONFIDENCE <span className="settings-badge">{highConfidence.length} patterns</span></div>
         <p style={{ fontSize: 12, color: 'var(--sv2)', margin: '0 16px 8px', lineHeight: 1.4 }}>
           These preferences actively influence autonomous decisions.
         </p>
@@ -91,7 +91,7 @@ export function SettingsPreferences({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        <div className="settings-section-header">DETECTED <span className="settings-badge">{detected.length} patterns</span></div>
+        <div className="settings-section-header bracket-section">DETECTED <span className="settings-badge">{detected.length} patterns</span></div>
         {detected.map(pref => (
           <button key={pref.id} type="button" className="settings-row">
             <span className="settings-row__label">{pref.domain} &middot; {pref.pattern}</span>
@@ -101,7 +101,7 @@ export function SettingsPreferences({ onBack }: { onBack: () => void }) {
 
         {denied.length > 0 && (
           <>
-            <div className="settings-section-header">DENIED</div>
+            <div className="settings-section-header bracket-section">DENIED</div>
             {denied.map(pref => (
               <button key={pref.id} type="button" className="settings-row" style={{ opacity: 0.5 }}>
                 <span className="settings-row__label">{pref.domain} &middot; {pref.pattern}</span>

@@ -109,7 +109,7 @@ export function StaticBracket({
       if (observer) observer.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [children, measure]);
+  }, [measure]); // eslint-disable-line react-hooks/exhaustive-deps — only restart on mount
 
   const fullMidY = (topY + bottomY) / 2;
   const capLen = 16;

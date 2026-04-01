@@ -39,7 +39,7 @@ export function SettingsSearch({
       </div>
 
       <div className="settings-content">
-        <div className="settings-section-header">SEARCH ENGINE</div>
+        <div className="settings-section-header bracket-section">SEARCH ENGINE</div>
         <p className="settings-explanation" style={{ marginBottom: 16 }}>
           Choose which search engine Semblance uses for web queries.
         </p>
@@ -70,7 +70,7 @@ export function SettingsSearch({
         {/* SearXNG URL field */}
         {engine === 'searxng' && (
           <>
-            <div className="settings-section-header">SEARXNG INSTANCE</div>
+            <div className="settings-section-header bracket-section">SEARXNG INSTANCE</div>
             <div style={{ padding: '8px 20px 16px' }}>
               <input
                 type="url"
@@ -87,7 +87,7 @@ export function SettingsSearch({
         {/* Brave API key field */}
         {engine === 'brave' && (
           <>
-            <div className="settings-section-header">API KEY</div>
+            <div className="settings-section-header bracket-section">API KEY</div>
             <div style={{ padding: '8px 20px 16px' }}>
               <input
                 type="password"

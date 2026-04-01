@@ -50,7 +50,7 @@ export function SettingsBinaryAllowlist({ onBack }: { onBack: () => void }) {
           Shells, interpreters, and network tools are permanently blocked.
         </p>
 
-        <div className="settings-section-header">ALLOWED BINARIES <span className="settings-badge">{binaries.length} binaries</span></div>
+        <div className="settings-section-header bracket-section">ALLOWED BINARIES <span className="settings-badge">{binaries.length} binaries</span></div>
 
         {binaries.map(bin => (
           <div key={bin.id}>
@@ -83,7 +83,7 @@ export function SettingsBinaryAllowlist({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        <div className="settings-section-header">ADD BINARY</div>
+        <div className="settings-section-header bracket-section">ADD BINARY</div>
         <div className="settings-card" style={{ margin: '0 16px 8px' }}>
           <button type="button" className="settings-row" style={{ border: '1px solid var(--b2)', borderRadius: 8 }}>
             <span className="settings-row__label">Add binary...</span>

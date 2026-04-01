@@ -139,7 +139,7 @@ export function SettingsRoot({
       <div className="settings-content">
         {sections.map((section) => (
           <div key={section.header}>
-            <div className="settings-section-header">{section.header}</div>
+            <div className="settings-section-header bracket-section">{section.header}</div>
             {section.rows.map((row) => (
               <button
                 key={row.screen + (row.externalPath ?? '')}

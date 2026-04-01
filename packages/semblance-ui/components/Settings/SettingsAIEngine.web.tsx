@@ -160,7 +160,7 @@ export function SettingsAIEngine({
 
       <div className="settings-content">
         {/* Active Model */}
-        <div className="settings-section-header">{t('ai_engine.section_model')}</div>
+        <div className="settings-section-header bracket-section">{t('ai_engine.section_model')}</div>
         <div className="settings-card" style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 400, color: '#EEF1F4' }}>
@@ -176,7 +176,7 @@ export function SettingsAIEngine({
         </div>
 
         {/* BitNet Models */}
-        <div className="settings-section-header">Built-in Models</div>
+        <div className="settings-section-header bracket-section">Built-in Models</div>
         <div className="settings-bitnet-explainer">
           1-bit and quantized models managed entirely by Semblance. Run on CPU — no GPU, no Ollama, no setup required.
         </div>
@@ -196,7 +196,7 @@ export function SettingsAIEngine({
         </div>
 
         {/* Standard Models (Qwen — for power users) */}
-        <div className="settings-section-header">Standard Models</div>
+        <div className="settings-section-header bracket-section">Standard Models</div>
         <div className="settings-bitnet-explainer">
           Higher-quality GGUF models for users with more RAM or GPU acceleration via Ollama.
           Larger sizes, longer context, better reasoning.
@@ -217,7 +217,7 @@ export function SettingsAIEngine({
         </div>
 
         {/* Ollama Configuration */}
-        <div className="settings-section-header">Ollama</div>
+        <div className="settings-section-header bracket-section">Ollama</div>
         <div className="settings-bitnet-explainer">
           External inference server for GPU-accelerated models. Required for Standard models.
         </div>
@@ -235,13 +235,13 @@ export function SettingsAIEngine({
         </div>
 
         {/* Hardware Profile */}
-        <div className="settings-section-header">{t('ai_engine.section_hardware')}</div>
+        <div className="settings-section-header bracket-section">{t('ai_engine.section_hardware')}</div>
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">{hardwareProfile}</span>
         </div>
 
         {/* Performance Settings */}
-        <div className="settings-section-header">{t('ai_engine.section_performance')}</div>
+        <div className="settings-section-header bracket-section">{t('ai_engine.section_performance')}</div>
 
         <div style={{ padding: '12px 20px' }}>
           <div style={{ fontSize: 13, color: '#A8B4C0', marginBottom: 8 }}>{t('ai_engine.label_inference_threads')}</div>
@@ -288,7 +288,7 @@ export function SettingsAIEngine({
         </div>
 
         {/* Advanced */}
-        <div className="settings-section-header">{t('ai_engine.section_advanced')}</div>
+        <div className="settings-section-header bracket-section">{t('ai_engine.section_advanced')}</div>
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">{t('ai_engine.label_custom_model_path')}</span>
           <span className="settings-row__value">{customModelPath || t('ai_engine.value_custom_model_none')}</span>

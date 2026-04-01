@@ -58,7 +58,7 @@ export function SettingsPrivacy({
         {/* Data Sources */}
         {dataSources.length > 0 && (
           <>
-            <div className="settings-section-header">{t('privacy.section_data_sources')}</div>
+            <div className="settings-section-header bracket-section">{t('privacy.section_data_sources')}</div>
             {dataSources.map((source) => (
               <div key={source.id} className="settings-row">
                 <span className="settings-row__label">{source.name}</span>
@@ -86,7 +86,7 @@ export function SettingsPrivacy({
         )}
 
         {/* Export & Portability */}
-        <div className="settings-section-header">{t('privacy.section_export')}</div>
+        <div className="settings-section-header bracket-section">{t('privacy.section_export')}</div>
         <button type="button" className="settings-row" onClick={onExportData}>
           <span className="settings-row__label">{t('privacy.btn_export_data')}</span>
         </button>
@@ -95,7 +95,7 @@ export function SettingsPrivacy({
         </button>
 
         {/* Danger Zone */}
-        <div className="settings-section-header settings-section-header--danger">{t('privacy.section_danger')}</div>
+        <div className="settings-section-header settings-section-header--danger bracket-section">{t('privacy.section_danger')}</div>
 
         <button
           type="button"

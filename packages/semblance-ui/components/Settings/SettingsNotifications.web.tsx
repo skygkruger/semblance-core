@@ -40,7 +40,7 @@ export function SettingsNotifications({
 
       <div className="settings-content">
         {/* Morning Brief */}
-        <div className="settings-section-header">{t('notifications.section_morning_brief')}</div>
+        <div className="settings-section-header bracket-section">{t('notifications.section_morning_brief')}</div>
 
         <div className="settings-row" onClick={() => onChange('morningBriefEnabled', !morningBriefEnabled)}>
           <span className="settings-row__label">{t('notifications.label_morning_brief_enabled')}</span>
@@ -72,7 +72,7 @@ export function SettingsNotifications({
         </div>
 
         {/* Reminders */}
-        <div className="settings-section-header">{t('notifications.section_reminders')}</div>
+        <div className="settings-section-header bracket-section">{t('notifications.section_reminders')}</div>
 
         <div className="settings-row" onClick={() => onChange('remindersEnabled', !remindersEnabled)}>
           <span className="settings-row__label">{t('notifications.label_reminder_notifications')}</span>
@@ -97,7 +97,7 @@ export function SettingsNotifications({
         </div>
 
         {/* Autonomous Actions */}
-        <div className="settings-section-header">{t('notifications.section_autonomous_actions')}</div>
+        <div className="settings-section-header bracket-section">{t('notifications.section_autonomous_actions')}</div>
 
         <div className="settings-row" onClick={() => onChange('notifyOnAction', !notifyOnAction)}>
           <span className="settings-row__label">{t('notifications.label_notify_on_action')}</span>
@@ -127,7 +127,7 @@ export function SettingsNotifications({
         </div>
 
         {/* System */}
-        <div className="settings-section-header">{t('notifications.section_system')}</div>
+        <div className="settings-section-header bracket-section">{t('notifications.section_system')}</div>
 
         <div className="settings-row" onClick={() => onChange('badgeCount', !badgeCount)}>
           <span className="settings-row__label">{t('notifications.label_badge_count')}</span>

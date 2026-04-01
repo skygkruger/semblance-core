@@ -3,6 +3,7 @@ import { SkeletonCard } from '@semblance/ui';
 import { getConnectedServices, prefGet } from '../ipc/commands';
 import { useAppDispatch } from '../state/AppState';
 import { CloudStorageSettingsSection } from '../components/CloudStorageSettingsSection';
+import { ContentBracket } from '../components/ContentBracket';
 
 const STORAGE_KEY_CLOUD_FOLDERS = 'semblance.cloud_storage.synced_folders';
 const STORAGE_KEY_CLOUD_SYNC = 'semblance.cloud_storage.last_sync';
@@ -68,7 +69,9 @@ export function CloudStorageSettingsScreen() {
     return (
       <div className="page-scroll">
         <div className="page-layout">
+          <ContentBracket>
           <SkeletonCard variant="generic" message="Loading cloud storage" subMessage="Checking connected providers" showSpinner />
+          </ContentBracket>
         </div>
       </div>
     );
@@ -77,7 +80,9 @@ export function CloudStorageSettingsScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+        <ContentBracket>
         <CloudStorageSettingsSection />
+        </ContentBracket>
       </div>
     </div>
   );

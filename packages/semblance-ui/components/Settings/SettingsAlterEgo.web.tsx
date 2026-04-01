@@ -72,7 +72,7 @@ export function SettingsAlterEgo({
 
       <div className="settings-content">
         {/* Financial threshold */}
-        <div className="settings-section-header">{t('alter_ego.section_financial')}</div>
+        <div className="settings-section-header bracket-section">{t('alter_ego.section_financial')}</div>
 
         <div className="settings-row settings-row--static">
           <label
@@ -111,7 +111,7 @@ export function SettingsAlterEgo({
         </p>
 
         {/* Category confirmation toggles */}
-        <div className="settings-section-header">{t('alter_ego.section_categories')}</div>
+        <div className="settings-section-header bracket-section">{t('alter_ego.section_categories')}</div>
 
         <p className="settings-explanation" style={{ marginBottom: 12 }}>
           {t('alter_ego.categories_explanation')}

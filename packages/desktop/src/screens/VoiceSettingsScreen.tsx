@@ -3,6 +3,7 @@ import { SkeletonCard } from '@semblance/ui';
 import { getVoiceModelStatus, prefGet } from '../ipc/commands';
 import { useAppDispatch } from '../state/AppState';
 import { VoiceSettingsSection } from '../components/VoiceSettingsSection';
+import { ContentBracket } from '../components/ContentBracket';
 
 const STORAGE_KEY = 'semblance.voice_settings';
 
@@ -58,7 +59,9 @@ export function VoiceSettingsScreen() {
     return (
       <div className="page-scroll">
         <div className="page-layout">
+          <ContentBracket>
           <SkeletonCard variant="generic" message="Loading voice settings" subMessage="Checking audio capabilities" showSpinner />
+          </ContentBracket>
         </div>
       </div>
     );
@@ -67,7 +70,9 @@ export function VoiceSettingsScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+        <ContentBracket>
         <VoiceSettingsSection />
+        </ContentBracket>
       </div>
     </div>
   );

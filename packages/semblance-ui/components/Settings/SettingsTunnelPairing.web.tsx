@@ -46,7 +46,7 @@ export function SettingsTunnelPairing({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="settings-content">
-        <div className="settings-section-header">MESH STATUS</div>
+        <div className="settings-section-header bracket-section">MESH STATUS</div>
 
         {devices.length === 0 ? (
           <div className="settings-card" style={{ margin: '0 16px 8px', textAlign: 'center' }}>
@@ -74,7 +74,7 @@ export function SettingsTunnelPairing({ onBack }: { onBack: () => void }) {
           </>
         )}
 
-        <div className="settings-section-header">PAIR A NEW DEVICE</div>
+        <div className="settings-section-header bracket-section">PAIR A NEW DEVICE</div>
         <div className="settings-card" style={{ margin: '0 16px 8px', textAlign: 'center' }}>
           {qrCode ? (
             <>

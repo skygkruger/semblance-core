@@ -16,6 +16,7 @@ import {
 } from '../ipc/commands';
 import type { BackupDestinationEntry, BackupHistoryRecord } from '../ipc/commands';
 import { Card, Button, StatusIndicator, SkeletonCard } from '@semblance/ui';
+import { ContentBracket } from '../components/ContentBracket';
 import './BackupScreen.css';
 
 type BackupSchedule = 'manual' | 'daily' | 'weekly' | 'monthly';
@@ -153,6 +154,7 @@ export function BackupScreen() {
     return (
       <div className="backup-screen page-scroll">
         <div className="backup-screen__container page-layout">
+          <ContentBracket>
           <h1 className="backup-screen__title">{t('screen.backup.title')}</h1>
           <p className="backup-screen__subtitle">{t('screen.backup.subtitle')}</p>
           <SkeletonCard
@@ -161,6 +163,7 @@ export function BackupScreen() {
             subMessage="Checking backup destinations"
             showSpinner
           />
+          </ContentBracket>
         </div>
       </div>
     );
@@ -169,6 +172,7 @@ export function BackupScreen() {
   return (
     <div className="backup-screen page-scroll">
       <div className="backup-screen__container page-layout">
+        <ContentBracket>
         <h1 className="backup-screen__title">{t('screen.backup.title')}</h1>
         <p className="backup-screen__subtitle">
           {t('screen.backup.subtitle')}
@@ -311,6 +315,7 @@ export function BackupScreen() {
             </div>
           )}
         </Card>
+        </ContentBracket>
       </div>
     </div>
   );
