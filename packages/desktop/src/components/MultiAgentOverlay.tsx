@@ -1,16 +1,24 @@
 /**
- * MultiAgentOverlay — ContentBracket-style reactive bracket for multi-agent
- * orchestration in chat. Spine grows downward with spring physics as nodes
- * append. Ticks draw independently with their own ease-out after the spine
- * arrives. Content reveals in staggered beats: dot → tick → text.
+ * MultiAgentOverlay — Living bracket for multi-agent orchestration in chat.
+ *
+ * Visual behaviors:
+ *   1. Spring physics spine — accelerates, overshoots, settles
+ *   2. Independent tick draw — 350ms cubic ease-out per tick
+ *   3. Staggered reveal — dot → tick → text (150ms offset)
+ *   4. Spine breathing — slow opacity oscillation when idle between events
+ *   5. Tick state flash — 200ms brightness pulse when a node completes
+ *   6. Arrival ripple — 2x-length line that fades on new node arrival
+ *   7. Spine tension — brighter segments near active nodes, dimmer near completed
+ *   8. Completion cascade — sequential flash top→bottom, then bottom cap draws
+ *   9. Parallel connectors — dashed lines between simultaneously running agents
  *
  * Dot color system:
- *   #38BDF8 Electric Cyan  — agent spawned / decomposition / cloud bridge
- *   #818CF8 Soft Indigo    — tool calling (in progress)
- *   #6ECFA3 Veridian       — task completed (ONLY completion)
- *   #E8657A Signal Rose    — failure / error
+ *   #38BDF8 Electric Cyan   — agent spawned / decomposition / cloud bridge
+ *   #818CF8 Soft Indigo     — tool calling (in progress)
+ *   #6ECFA3 Veridian        — task completed (ONLY completion)
+ *   #E8657A Signal Rose     — failure / error
  *   #EDDD52 Electric Cadmium — synthesis phase
- *   #5E6B7C Muted          — idle / waiting
+ *   #5E6B7C Muted           — idle / waiting
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react';
@@ -25,9 +33,9 @@ interface AgentNode {
   status: 'active' | 'complete' | 'error' | 'waiting';
   isCloud?: boolean;
   tokenCount?: number;
+  parentAgent?: string; // subagentId this node belongs to
+  eventTime?: number;   // timestamp from the source event
 }
-
-// ─── Dot colors ──────────────────────────────────────────────────────────────
 
 const DOT_COLORS: Record<string, string> = {
   decomposing: '#38BDF8',
@@ -64,17 +72,22 @@ function CloudIcon({ size = 12 }: { size?: number }) {
 function buildNodes(events: SubagentStreamEvent[]): {
   nodes: AgentNode[];
   phase: 'idle' | 'decomposing' | 'executing' | 'synthesizing' | 'complete';
+  parallelGroups: number[][]; // groups of node indices that run in parallel
 } {
   const nodes: AgentNode[] = [];
   let phase: 'idle' | 'decomposing' | 'executing' | 'synthesizing' | 'complete' = 'idle';
   const agentStatus = new Map<string, 'active' | 'complete' | 'error'>();
   const toolComplete = new Set<string>();
+  const agentStartTimes = new Map<string, number>(); // subagentId → start timestamp
 
   for (const e of events) {
     switch (e.type) {
       case 'decomposition_started': phase = 'decomposing'; break;
       case 'decomposition_complete': phase = 'executing'; break;
-      case 'subagent_started': agentStatus.set(e.subagentId, 'active'); break;
+      case 'subagent_started':
+        agentStatus.set(e.subagentId, 'active');
+        agentStartTimes.set(e.subagentId, e.timestamp);
+        break;
       case 'subagent_completed': agentStatus.set(e.subagentId, 'complete'); break;
       case 'subagent_failed': agentStatus.set(e.subagentId, 'error'); break;
       case 'subagent_tool_result': toolComplete.add(`${e.subagentId}-${e.data.toolName}`); break;
@@ -92,13 +105,19 @@ function buildNodes(events: SubagentStreamEvent[]): {
     });
   }
 
+  // Track which node indices are agent-start nodes for parallel detection
+  const agentStartIndices: { index: number; subagentId: string; time: number }[] = [];
+
   for (const e of events) {
     if (e.type === 'subagent_started') {
+      agentStartIndices.push({ index: nodes.length, subagentId: e.subagentId, time: e.timestamp });
       nodes.push({
         id: e.subagentId,
         label: e.data.text ?? e.subagentId,
         tier: 1, status: agentStatus.get(e.subagentId) ?? 'active',
         isCloud: e.data.modelTier === 'cloud_bridge',
+        parentAgent: e.subagentId,
+        eventTime: e.timestamp,
       });
     }
     if (e.type === 'subagent_tool_call') {
@@ -112,6 +131,8 @@ function buildNodes(events: SubagentStreamEvent[]): {
         id: `tool-${e.subagentId}-${e.data.toolName}-${e.timestamp}`,
         label: e.data.toolName ?? 'tool',
         tier: 2, status: isError ? 'error' : isDone ? 'complete' : 'active',
+        parentAgent: e.subagentId,
+        eventTime: e.timestamp,
       });
     }
     if (e.type === 'subagent_tool_result' && e.data.toolResult) {
@@ -119,6 +140,8 @@ function buildNodes(events: SubagentStreamEvent[]): {
         id: `result-${e.subagentId}-${e.data.toolName}-${e.timestamp}`,
         label: e.data.toolResult,
         tier: 3, status: e.data.toolStatus === 'error' ? 'error' : 'complete',
+        parentAgent: e.subagentId,
+        eventTime: e.timestamp,
       });
     }
     if (e.type === 'subagent_completed' || e.type === 'subagent_failed') {
@@ -127,6 +150,8 @@ function buildNodes(events: SubagentStreamEvent[]): {
         label: e.data.text ?? (e.type === 'subagent_failed' ? 'Failed' : 'Complete'),
         tier: 1, status: e.type === 'subagent_failed' ? 'error' : 'complete',
         tokenCount: e.data.tokensConsumed,
+        parentAgent: e.subagentId,
+        eventTime: e.timestamp,
       });
     }
   }
@@ -139,7 +164,24 @@ function buildNodes(events: SubagentStreamEvent[]): {
     });
   }
 
-  return { nodes, phase };
+  // Detect parallel agent groups — agents that started within 500ms of each other
+  const parallelGroups: number[][] = [];
+  const used = new Set<number>();
+  for (let i = 0; i < agentStartIndices.length; i++) {
+    if (used.has(i)) continue;
+    const group = [agentStartIndices[i]!.index];
+    used.add(i);
+    for (let j = i + 1; j < agentStartIndices.length; j++) {
+      if (used.has(j)) continue;
+      if (Math.abs(agentStartIndices[j]!.time - agentStartIndices[i]!.time) < 500) {
+        group.push(agentStartIndices[j]!.index);
+        used.add(j);
+      }
+    }
+    if (group.length > 1) parallelGroups.push(group);
+  }
+
+  return { nodes, phase, parallelGroups };
 }
 
 // ─── Dot color resolver ──────────────────────────────────────────────────────
@@ -155,32 +197,36 @@ function dotColor(node: AgentNode): string {
   return DOT_COLORS.waiting!;
 }
 
-// ─── Spring physics for spine ────────────────────────────────────────────────
+// ─── Spring physics ──────────────────────────────────────────────────────────
 
-interface SpringState {
-  position: number;
-  velocity: number;
-}
+interface SpringState { position: number; velocity: number; }
 
 function springStep(state: SpringState, target: number, dt: number): SpringState {
-  const stiffness = 120;  // how hard it pulls toward target
-  const damping = 14;     // how quickly oscillation dies
+  const stiffness = 120;
+  const damping = 14;
   const force = stiffness * (target - state.position);
   const dampForce = -damping * state.velocity;
   const acceleration = force + dampForce;
-  const velocity = state.velocity + acceleration * dt;
-  const position = state.position + velocity * dt;
-  return { position, velocity };
+  return {
+    velocity: state.velocity + acceleration * dt,
+    position: state.position + (state.velocity + acceleration * dt) * dt,
+  };
 }
 
-// ─── Per-tick animation state ────────────────────────────────────────────────
+// ─── Per-tick state ──────────────────────────────────────────────────────────
 
-interface TickAnimState {
-  arrivedAt: number;  // timestamp when spine first reached this node's Y
-  tickProgress: number; // 0→1 ease-out for the tick extension
+interface TickState {
+  arrivedAt: number;
+  tickProgress: number;  // 0→1 tick extension
+  prevStatus: string;    // for detecting status transitions
+  flashStart: number;    // timestamp of last status-change flash
+  flashProgress: number; // 0→1 flash fade
+  rippleStart: number;   // timestamp of arrival ripple
+  rippleProgress: number;
+  cascadeFlash: number;  // 0→1 for completion cascade
 }
 
-// ─── Main component ──────────────────────────────────────────────────────────
+// ─── Component ───────────────────────────────────────────────────────────────
 
 interface MultiAgentOverlayProps {
   events: SubagentStreamEvent[];
@@ -190,18 +236,22 @@ interface MultiAgentOverlayProps {
 export function MultiAgentOverlay({ events, active }: MultiAgentOverlayProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const animFrameRef = useRef(0);
-
-  // Spring state for spine bottom position
   const springRef = useRef<SpringState>({ position: 0, velocity: 0 });
   const [spineBottom, setSpineBottom] = useState(0);
+  const tickStatesRef = useRef<Map<number, TickState>>(new Map());
+  const [, setFrame] = useState(0); // force re-render
+  const lastTimeRef = useRef(0);
+  const lastNodeCountRef = useRef(0);
 
-  // Per-tick animation tracking
-  const tickAnimRef = useRef<Map<number, TickAnimState>>(new Map());
+  // Completion cascade state
+  const cascadeStartRef = useRef<number | null>(null);
+  const [cascadeActive, setCascadeActive] = useState(false);
+  const [capVisible, setCapVisible] = useState(false);
 
-  // Force re-render for tick animations
-  const [, setTickFrame] = useState(0);
+  // Breathing phase — sine wave for idle periods
+  const breathRef = useRef(0);
 
-  const { nodes, phase } = buildNodes(events);
+  const { nodes, phase, parallelGroups } = buildNodes(events);
 
   const lineHeight = 26;
   const spineX = 14;
@@ -211,59 +261,139 @@ export function MultiAgentOverlay({ events, active }: MultiAgentOverlayProps) {
   const spineTop = 13;
   const targetBottom = spineTop + Math.max(0, nodes.length - 1) * lineHeight;
 
-  // Initialize spring position on first render
+  // Init spring
   useEffect(() => {
     if (springRef.current.position === 0 && nodes.length > 0) {
       springRef.current.position = spineTop;
     }
   }, [nodes.length, spineTop]);
 
-  // Main animation loop — spring physics for spine + per-tick ease-out
-  const lastTimeRef = useRef(0);
+  // Trigger completion cascade
+  useEffect(() => {
+    if (phase === 'complete' && !cascadeStartRef.current) {
+      // Delay cascade slightly so the last node settles first
+      const timer = setTimeout(() => {
+        cascadeStartRef.current = performance.now();
+        setCascadeActive(true);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [phase]);
+
+  // Detect when node count increases to know spine is idle vs extending
+  const lastEventTimeRef = useRef(performance.now());
+  useEffect(() => {
+    if (nodes.length > lastNodeCountRef.current) {
+      lastEventTimeRef.current = performance.now();
+    }
+    lastNodeCountRef.current = nodes.length;
+  }, [nodes.length]);
+
+  // ─── Main animation loop ────────────────────────────────────────────────
   const animate = useCallback((now: number) => {
     const dt = lastTimeRef.current ? Math.min((now - lastTimeRef.current) / 1000, 0.05) : 0.016;
     lastTimeRef.current = now;
 
-    // Step spine spring toward target
-    const spring = springRef.current;
-    const newSpring = springStep(spring, targetBottom, dt);
+    // Spring physics for spine
+    const newSpring = springStep(springRef.current, targetBottom, dt);
     springRef.current = newSpring;
     setSpineBottom(newSpring.position);
 
-    // Update per-tick animations
-    let anyTickActive = false;
+    // Breathing — sine wave, only when spine is settled and not complete
+    const timeSinceLastEvent = now - lastEventTimeRef.current;
+    if (timeSinceLastEvent > 800 && phase !== 'complete') {
+      breathRef.current = Math.sin(now / 1200) * 0.12; // ±12% opacity oscillation
+    } else {
+      breathRef.current *= 0.9; // decay breathing when events are active
+    }
+
+    // Per-tick animations
     const currentBottom = newSpring.position;
+    let needsRender = false;
 
     for (let i = 0; i < nodes.length; i++) {
       const tickY = spineTop + i * lineHeight;
-      const state = tickAnimRef.current.get(i);
+      let state = tickStatesRef.current.get(i);
+      const node = nodes[i]!;
 
       if (currentBottom >= tickY - 1) {
-        // Spine has reached this tick
         if (!state) {
-          // First arrival — record timestamp
-          tickAnimRef.current.set(i, { arrivedAt: now, tickProgress: 0 });
-          anyTickActive = true;
-        } else if (state.tickProgress < 1) {
-          // Animate tick extension: 350ms ease-out
+          // First arrival
+          state = {
+            arrivedAt: now,
+            tickProgress: 0,
+            prevStatus: node.status,
+            flashStart: 0,
+            flashProgress: 0,
+            rippleStart: now,
+            rippleProgress: 0,
+            cascadeFlash: 0,
+          };
+          tickStatesRef.current.set(i, state);
+          needsRender = true;
+        }
+
+        // Tick extension: 350ms cubic ease-out
+        if (state.tickProgress < 1) {
           const elapsed = now - state.arrivedAt;
-          const p = Math.min(1, elapsed / 350);
-          state.tickProgress = 1 - Math.pow(1 - p, 3); // cubic ease-out — snappier
-          anyTickActive = true;
+          state.tickProgress = Math.min(1, elapsed / 350);
+          state.tickProgress = 1 - Math.pow(1 - state.tickProgress, 3);
+          needsRender = true;
+        }
+
+        // Arrival ripple: 500ms fade-out
+        if (state.rippleProgress < 1) {
+          const elapsed = now - state.rippleStart;
+          state.rippleProgress = Math.min(1, elapsed / 500);
+          needsRender = true;
+        }
+
+        // Status change flash detection
+        if (state.prevStatus !== node.status) {
+          state.flashStart = now;
+          state.prevStatus = node.status;
+          needsRender = true;
+        }
+
+        // Flash decay: 300ms
+        if (state.flashStart > 0 && state.flashProgress < 1) {
+          const elapsed = now - state.flashStart;
+          state.flashProgress = Math.min(1, elapsed / 300);
+          needsRender = true;
+        } else if (state.flashStart > 0 && state.flashProgress >= 1) {
+          state.flashStart = 0;
+          state.flashProgress = 0;
+        }
+      }
+
+      // Completion cascade
+      if (cascadeActive && cascadeStartRef.current && state) {
+        const cascadeDelay = i * 60; // 60ms stagger per node
+        const elapsed = now - cascadeStartRef.current - cascadeDelay;
+        if (elapsed > 0 && elapsed < 400) {
+          state.cascadeFlash = 1 - Math.min(1, elapsed / 400);
+          needsRender = true;
+        } else if (elapsed >= 400) {
+          state.cascadeFlash = 0;
+        }
+
+        // Show bottom cap after cascade finishes all nodes
+        const totalCascadeTime = nodes.length * 60 + 400;
+        if (now - cascadeStartRef.current > totalCascadeTime && !capVisible) {
+          setCapVisible(true);
         }
       }
     }
 
-    if (anyTickActive) {
-      setTickFrame(f => f + 1);
+    if (needsRender || breathRef.current !== 0) {
+      setFrame(f => f + 1);
     }
 
-    // Keep loop alive while there's motion or orchestration is active
     const isMoving = Math.abs(newSpring.velocity) > 0.1 || Math.abs(targetBottom - newSpring.position) > 0.5;
-    if (isMoving || active || anyTickActive) {
+    if (isMoving || active || needsRender || (phase !== 'complete') || cascadeActive) {
       animFrameRef.current = requestAnimationFrame(animate);
     }
-  }, [targetBottom, active, nodes.length, spineTop, lineHeight]);
+  }, [targetBottom, active, nodes, phase, spineTop, lineHeight, cascadeActive, capVisible]);
 
   useEffect(() => {
     if (nodes.length === 0) return;
@@ -281,8 +411,9 @@ export function MultiAgentOverlay({ events, active }: MultiAgentOverlayProps) {
   const totalHeight = nodes.length * lineHeight + 20;
   const bracketColor = '#5E6B7C';
   const currentSpineBottom = Math.max(spineTop, spineBottom);
+  const breath = breathRef.current;
 
-  // Find the most recently active node for glow effect
+  // Find most recently active node
   let activeNodeIndex = -1;
   for (let i = nodes.length - 1; i >= 0; i--) {
     if (nodes[i]!.status === 'active') { activeNodeIndex = i; break; }
@@ -306,83 +437,180 @@ export function MultiAgentOverlay({ events, active }: MultiAgentOverlayProps) {
           position: 'absolute',
           top: 0,
           left: 0,
-          width: contentLeft,
+          width: contentLeft + 30, // extra for ripples
           height: totalHeight,
           overflow: 'visible',
           pointerEvents: 'none',
           zIndex: 0,
         }}
       >
-        {/* Active node glow — brighter segment near the most recent active node */}
-        {activeNodeIndex >= 0 && (
+        {/* ── Spine tension segments ── */}
+        {/* Draw spine in segments with varying opacity based on nearby node status */}
+        {nodes.map((node, i) => {
+          if (i === 0) return null;
+          const segTop = spineTop + (i - 1) * lineHeight;
+          const segBottom = spineTop + i * lineHeight;
+          if (currentSpineBottom < segTop) return null;
+          const clippedBottom = Math.min(segBottom, currentSpineBottom);
+          if (clippedBottom <= segTop) return null;
+
+          // Tension: active segments brighter, completed dimmer
+          const topNode = nodes[i - 1]!;
+          const botNode = nodes[i]!;
+          const hasActive = topNode.status === 'active' || botNode.status === 'active';
+          const bothComplete = topNode.status === 'complete' && botNode.status === 'complete';
+          const segOpacity = hasActive ? 0.55 + breath : bothComplete ? 0.25 : 0.4 + breath * 0.5;
+
+          return (
+            <line
+              key={`seg-${i}`}
+              x1={spineX} y1={segTop}
+              x2={spineX} y2={clippedBottom}
+              stroke={bracketColor}
+              strokeWidth={1}
+              opacity={segOpacity}
+            />
+          );
+        })}
+
+        {/* First segment from spineTop to first node (if only 1 node, draw full) */}
+        {nodes.length === 1 && currentSpineBottom > spineTop && (
           <line
-            x1={spineX}
-            y1={Math.max(spineTop, spineTop + activeNodeIndex * lineHeight - 15)}
-            x2={spineX}
-            y2={Math.min(currentSpineBottom, spineTop + activeNodeIndex * lineHeight + 15)}
-            stroke={dotColor(nodes[activeNodeIndex]!)}
-            strokeWidth={1}
-            opacity={0.25}
+            x1={spineX} y1={spineTop} x2={spineX} y2={currentSpineBottom}
+            stroke={bracketColor} strokeWidth={1} opacity={0.4 + breath}
           />
         )}
 
-        <g stroke={bracketColor} strokeWidth={1} opacity={0.4}>
-          {/* Vertical spine */}
-          {currentSpineBottom > spineTop && (
-            <line x1={spineX} y1={spineTop} x2={spineX} y2={currentSpineBottom} />
-          )}
+        {/* Active node glow segment */}
+        {activeNodeIndex >= 0 && (
+          <line
+            x1={spineX}
+            y1={Math.max(spineTop, spineTop + activeNodeIndex * lineHeight - 18)}
+            x2={spineX}
+            y2={Math.min(currentSpineBottom, spineTop + activeNodeIndex * lineHeight + 18)}
+            stroke={dotColor(nodes[activeNodeIndex]!)}
+            strokeWidth={1.5}
+            opacity={0.2 + Math.abs(breath) * 0.5}
+          />
+        )}
 
+        <g stroke={bracketColor} strokeWidth={1}>
           {/* Top cap */}
           {currentSpineBottom > spineTop && (
-            <line x1={spineX} y1={spineTop} x2={spineX + capLen} y2={spineTop} />
+            <line x1={spineX} y1={spineTop} x2={spineX + capLen} y2={spineTop} opacity={0.4} />
           )}
 
-          {/* Bottom cap — only on completion, fades in */}
-          {phase === 'complete' && Math.abs(currentSpineBottom - targetBottom) < 2 && (
-            <line
-              x1={spineX} y1={currentSpineBottom}
-              x2={spineX + capLen} y2={currentSpineBottom}
-              opacity={1}
-            />
+          {/* Bottom cap — only after completion cascade */}
+          {capVisible && (
+            <line x1={spineX} y1={currentSpineBottom} x2={spineX + capLen} y2={currentSpineBottom} opacity={0.4} />
           )}
 
-          {/* Horizontal ticks — each draws independently after spine arrives */}
-          {nodes.map((_, i) => {
-            const tickY = spineTop + i * lineHeight;
-            const state = tickAnimRef.current.get(i);
+          {/* Ticks */}
+          {nodes.map((node, i) => {
+            const state = tickStatesRef.current.get(i);
             if (!state || state.tickProgress <= 0) return null;
+            const tickY = spineTop + i * lineHeight;
+
+            // Base tick opacity + cascade flash + status-change flash
+            const flashBrightness = state.flashStart > 0 ? (1 - state.flashProgress) * 0.6 : 0;
+            const cascadeBrightness = state.cascadeFlash * 0.5;
+            const tickOpacity = 0.4 + flashBrightness + cascadeBrightness;
 
             return (
               <line
                 key={`tick-${i}`}
-                x1={spineX}
-                y1={tickY}
-                x2={spineX + tickLen * state.tickProgress}
-                y2={tickY}
+                x1={spineX} y1={tickY}
+                x2={spineX + tickLen * state.tickProgress} y2={tickY}
+                opacity={tickOpacity}
+                stroke={flashBrightness > 0.1 || cascadeBrightness > 0.1
+                  ? dotColor(node)
+                  : bracketColor}
               />
             );
           })}
         </g>
+
+        {/* ── Arrival ripples ── */}
+        {nodes.map((_, i) => {
+          const state = tickStatesRef.current.get(i);
+          if (!state || state.rippleProgress >= 1) return null;
+          const tickY = spineTop + i * lineHeight;
+          const rippleLen = tickLen * 2.5;
+          const rippleOpacity = (1 - state.rippleProgress) * 0.3;
+          const rippleExtend = state.rippleProgress;
+
+          return (
+            <line
+              key={`ripple-${i}`}
+              x1={spineX + tickLen}
+              y1={tickY}
+              x2={spineX + tickLen + (rippleLen - tickLen) * rippleExtend}
+              y2={tickY}
+              stroke={bracketColor}
+              strokeWidth={1}
+              opacity={rippleOpacity}
+            />
+          );
+        })}
+
+        {/* ── Parallel connector lines ── */}
+        {parallelGroups.map((group, gi) => {
+          const firstIdx = group[0]!;
+          const lastIdx = group[group.length - 1]!;
+          const firstState = tickStatesRef.current.get(firstIdx);
+          const lastState = tickStatesRef.current.get(lastIdx);
+          if (!firstState || !lastState || firstState.tickProgress < 0.5) return null;
+
+          const y1 = spineTop + firstIdx * lineHeight;
+          const y2 = spineTop + lastIdx * lineHeight;
+          const x = spineX + tickLen + 6;
+          const connectorOpacity = Math.min(firstState.tickProgress, lastState.tickProgress) * 0.25;
+
+          return (
+            <g key={`par-${gi}`} opacity={connectorOpacity}>
+              {/* Vertical dashed connector */}
+              <line
+                x1={x} y1={y1} x2={x} y2={y2}
+                stroke={bracketColor}
+                strokeWidth={1}
+                strokeDasharray="3 3"
+              />
+              {/* Small horizontal hooks at each end */}
+              {group.map(idx => {
+                const y = spineTop + idx * lineHeight;
+                return (
+                  <line
+                    key={`hook-${idx}`}
+                    x1={spineX + tickLen} y1={y}
+                    x2={x} y2={y}
+                    stroke={bracketColor} strokeWidth={1}
+                  />
+                );
+              })}
+            </g>
+          );
+        })}
       </svg>
 
-      {/* Content nodes — staggered reveal: dot appears with tick, text 150ms later */}
+      {/* Content nodes */}
       <div style={{ display: 'flex', flexDirection: 'column', paddingLeft: contentLeft }}>
         {nodes.map((node, i) => {
-          const tickY = spineTop + i * lineHeight;
-          const state = tickAnimRef.current.get(i);
+          const state = tickStatesRef.current.get(i);
           const tickProgress = state?.tickProgress ?? 0;
           const arrivedAt = state?.arrivedAt ?? 0;
+          const flashBrightness = state?.flashStart
+            ? (1 - (state.flashProgress ?? 0)) : 0;
+          const cascadeBrightness = state?.cascadeFlash ?? 0;
 
-          // Dot appears as soon as tick starts drawing
           const dotOpacity = tickProgress > 0 ? Math.min(1, tickProgress * 3) : 0;
-
-          // Text fades in 150ms after tick starts — staggered beat
           const now = performance.now();
           const textDelay = arrivedAt > 0 ? Math.min(1, Math.max(0, (now - arrivedAt - 150) / 250)) : 0;
           const textOpacity = tickProgress > 0.3 ? textDelay : 0;
 
-          // Active node gets full brightness, completed nodes dim
           const isActiveNode = i === activeNodeIndex;
+
+          // Flash glow on status change or cascade
+          const glowIntensity = Math.max(flashBrightness, cascadeBrightness);
 
           return (
             <div
@@ -406,10 +634,10 @@ export function MultiAgentOverlay({ events, active }: MultiAgentOverlayProps) {
                   opacity: dotOpacity,
                   animation: node.status === 'active' ? 'pulse 1.5s ease-in-out infinite' : 'none',
                   animationDelay: '-1000s',
-                  boxShadow: isActiveNode && node.status === 'active'
-                    ? `0 0 6px ${dotColor(node)}40, 0 0 12px ${dotColor(node)}20`
+                  boxShadow: (isActiveNode && node.status === 'active') || glowIntensity > 0.1
+                    ? `0 0 ${6 + glowIntensity * 8}px ${dotColor(node)}${Math.round((0.25 + glowIntensity * 0.4) * 255).toString(16).padStart(2, '0')}, 0 0 ${12 + glowIntensity * 12}px ${dotColor(node)}${Math.round((0.12 + glowIntensity * 0.2) * 255).toString(16).padStart(2, '0')}`
                     : 'none',
-                  transition: 'box-shadow 300ms ease',
+                  transition: 'box-shadow 200ms ease',
                 }}
               />
 
@@ -420,7 +648,7 @@ export function MultiAgentOverlay({ events, active }: MultiAgentOverlayProps) {
                 </span>
               )}
 
-              {/* Label — fades in after dot */}
+              {/* Label */}
               <span
                 style={{
                   color: node.status === 'complete' ? '#5E6B7C'
