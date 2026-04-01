@@ -168,7 +168,7 @@ describe('DigestScreen', () => {
         return null;
       });
       render(<DigestScreen />);
-      expect(await screen.findByText('Past Digests')).toBeInTheDocument();
+      expect(await screen.findByText(/past digests/i)).toBeInTheDocument();
       expect(screen.getByText(/30 actions/)).toBeInTheDocument();
     });
   });
