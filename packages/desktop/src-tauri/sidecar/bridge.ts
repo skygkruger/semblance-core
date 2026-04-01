@@ -1773,9 +1773,14 @@ async function handleInitialize(): Promise<unknown> {
       const browserExtTools = BROWSER_TOOL_DEFINITIONS.map((def: any) => ({
         definition: def,
         handler: async (params: Record<string, unknown>) => {
-          if (!browserCDPAdapter) throw new Error('Browser CDP adapter not initialized');
-          const method = def.name.replace('browser_', '');
-          return (browserCDPAdapter as any)[method]?.(params) ?? { error: `Unknown browser method: ${method}` };
+          try {
+            if (!browserCDPAdapter) throw new Error('Browser CDP adapter not initialized');
+            const method = def.name.replace('browser_', '');
+            const rawResult = await (browserCDPAdapter as any)[method]?.(params);
+            return { result: rawResult ?? {} };
+          } catch (err: unknown) {
+            return { error: (err as Error).message };
+          }
         },
         isLocal: true,
         actionType: BROWSER_TOOL_ACTION_MAP[def.name],
@@ -1915,19 +1920,25 @@ async function handleInitialize(): Promise<unknown> {
         const platformToolHandlers = (ALL_PLATFORM_TOOLS as any[]).map((def: any) => ({
           definition: def,
           handler: async (params: Record<string, unknown>) => {
-            switch (def.name) {
-              case 'read_file': return fsExec.readFile(params);
-              case 'write_file': return fsExec.writeFile(params);
-              case 'edit_file': return fsExec.editFile(params);
-              case 'list_directory': return fsExec.listDirectory(params);
-              case 'create_directory': return fsExec.createDirectory(params);
-              case 'move_file': return fsExec.moveFile(params);
-              case 'copy_file': return fsExec.copyFile(params);
-              case 'search_file_contents': return fsExec.searchFileContents(params);
-              case 'glob_search': return fsExec.globSearch(params);
-              case 'file_info': return fsExec.fileInfo(params);
-              case 'execute_command': return termExec.execute(params);
-              default: return { error: `Unknown platform tool: ${def.name}` };
+            try {
+              let result: unknown;
+              switch (def.name) {
+                case 'read_file': result = fsExec.readFile(params); break;
+                case 'write_file': result = fsExec.writeFile(params); break;
+                case 'edit_file': result = fsExec.editFile(params); break;
+                case 'list_directory': result = fsExec.listDirectory(params); break;
+                case 'create_directory': result = fsExec.createDirectory(params); break;
+                case 'move_file': result = fsExec.moveFile(params); break;
+                case 'copy_file': result = fsExec.copyFile(params); break;
+                case 'search_file_contents': result = fsExec.searchFileContents(params); break;
+                case 'glob_search': result = fsExec.globSearch(params); break;
+                case 'file_info': result = fsExec.fileInfo(params); break;
+                case 'execute_command': result = await termExec.execute(params); break;
+                default: return { error: `Unknown platform tool: ${def.name}` };
+              }
+              return { result };
+            } catch (err: unknown) {
+              return { error: (err as Error).message };
             }
           },
           isLocal: true,
