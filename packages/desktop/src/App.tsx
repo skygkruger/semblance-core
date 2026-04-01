@@ -37,6 +37,7 @@ import { VoiceSettingsScreen } from './screens/VoiceSettingsScreen';
 import { LocationSettingsScreen } from './screens/LocationSettingsScreen';
 import { CloudStorageSettingsScreen } from './screens/CloudStorageSettingsScreen';
 import { SemblanceNetworkScreen } from './screens/SemblanceNetworkScreen';
+import { TunnelPairingScreen } from './screens/TunnelPairingScreen';
 
 import { AlterEgoWeekScreen } from './screens/AlterEgoWeekScreen';
 import { ImportEverythingScreen } from './screens/ImportEverythingScreen';
@@ -258,6 +259,7 @@ const navSections: NavSection[] = [
       { id: 'witness', label: 'Witness', icon: <EyeIcon /> },
       { id: 'inheritance', label: 'Inheritance', icon: <KeyIcon /> },
       { id: 'semblance-network', label: 'Compute Mesh', icon: <GlobeIcon /> },
+      { id: 'tunnel-pairing', label: 'Tunneling', icon: <GlobeIcon /> },
     ],
   },
   {
@@ -583,6 +585,7 @@ function AppContent() {
           <Route path="/alter-ego-week" element={<AlterEgoWeekScreen />} />
           <Route path="/import" element={<ImportEverythingScreen />} />
           <Route path="/semblance-network" element={<SemblanceNetworkScreen />} />
+          <Route path="/tunnel-pairing" element={<TunnelPairingScreen />} />
           <Route
             path="/upgrade"
             element={

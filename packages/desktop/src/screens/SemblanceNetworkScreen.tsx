@@ -152,11 +152,9 @@ export function SemblanceNetworkScreen() {
   }
 
   return (
-    <div className="semblance-network-screen page-scroll">
+    <div className="page-scroll">
       <div className="page-layout">
-      <div className="semblance-network-screen__header">
-        <h1 className="semblance-network-screen__title">{t('semblanceNetwork.title', 'Semblance Network')}</h1>
-      </div>
+        <h1 className="page-title" style={{ fontSize: 28 }}>{t('semblanceNetwork.title', 'Semblance Network')}</h1>
 
         <p className="semblance-network-screen__subtitle">
           {t('semblanceNetwork.subtitle', 'Consent-first peer-to-peer sharing with other Semblance users.')}
@@ -176,8 +174,8 @@ export function SemblanceNetworkScreen() {
         ) : (
           <>
             {/* -- Connect Section -- */}
-            <Card className="semblance-network-screen__section-card">
-              <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
+            <Card className="semblance-network-screen__section-card surface-void opal-wireframe">
+              <h2 style={{ fontFamily: "'DM Mono', monospace", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
                 {t('semblanceNetwork.connect', 'Connect')}
               </h2>
               <div className="semblance-network-screen__connect-row">
@@ -190,23 +188,23 @@ export function SemblanceNetworkScreen() {
                     maxLength={12}
                     className="semblance-network-screen__input-wrapper"
                   />
-                  <Button
-                    variant="opal"
-                    size="sm"
+                  <button
+                    type="button"
+                    className="btn btn--opal btn--sm"
                     onClick={handleConnect}
                     disabled={connecting || !inputCode.trim()}
                   >
-                    {connecting ? t('semblanceNetwork.connecting', 'Connecting...') : t('semblanceNetwork.connect', 'Connect')}
-                  </Button>
+                    <span className="btn__text">{connecting ? t('semblanceNetwork.connecting', 'Connecting...') : t('semblanceNetwork.connect', 'Connect')}</span>
+                  </button>
                 </div>
                 <span className="semblance-network-screen__or">{t('semblanceNetwork.or', 'or')}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
+                  type="button"
+                  className="btn btn--opal btn--sm"
                   onClick={handleGenerateCode}
                 >
-                  {t('semblanceNetwork.generateCode', 'Generate My Code')}
-                </Button>
+                  <span className="btn__text">{t('semblanceNetwork.generateCode', 'Generate My Code')}</span>
+                </button>
               </div>
               {connectCode && (
                 <div className="semblance-network-screen__code-display">
@@ -217,8 +215,8 @@ export function SemblanceNetworkScreen() {
             </Card>
 
             {/* -- Peer List -- */}
-            <Card className="semblance-network-screen__section-card">
-              <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
+            <Card className="semblance-network-screen__section-card surface-void opal-wireframe">
+              <h2 style={{ fontFamily: "'DM Mono', monospace", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
                 {t('semblanceNetwork.connectedPeers', 'Connected Peers')} {peers.length > 0 && <span className="semblance-network-screen__count">{peers.length}</span>}
               </h2>
               {peers.length === 0 ? (
@@ -259,8 +257,8 @@ export function SemblanceNetworkScreen() {
 
             {/* -- Sharing Controls -- */}
             {selectedPeer && (
-              <Card className="semblance-network-screen__section-card">
-                <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
+              <Card className="semblance-network-screen__section-card surface-void opal-wireframe">
+                <h2 style={{ fontFamily: "'DM Mono', monospace", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
                   {t('semblanceNetwork.sharingControls', 'Sharing Controls')} — {peers.find(p => p.id === selectedPeer)?.name}
                 </h2>
                 <p className="semblance-network-screen__muted">

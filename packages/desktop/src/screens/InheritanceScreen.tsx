@@ -149,9 +149,9 @@ export function InheritanceScreen() {
   }
 
   return (
-    <div className="inheritance page-scroll">
-      <div className="inheritance__container page-layout">
-        <h1 className="inheritance__title">{t('screen.inheritance.title')}</h1>
+    <div className="page-scroll">
+      <div className="page-layout">
+        <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.inheritance.title')}</h1>
 
           <p className="inheritance__subtitle">
             {t('screen.inheritance.subtitle')}
@@ -167,8 +167,8 @@ export function InheritanceScreen() {
           ) : (
             <>
               {/* Protocol toggle */}
-              <Card className="inheritance__card">
-                <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 12 }}>
+              <Card className="inheritance__card surface-void opal-wireframe">
+                <h2 style={{ fontFamily: "'DM Mono', monospace", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 12 }}>
                   {t('screen.inheritance.protocol_status')}
                 </h2>
                 <div className="inheritance__toggle-row">
@@ -188,8 +188,8 @@ export function InheritanceScreen() {
               </Card>
 
               {/* Trusted parties */}
-              <Card className="inheritance__card">
-                <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 12 }}>
+              <Card className="inheritance__card surface-void opal-wireframe">
+                <h2 style={{ fontFamily: "'DM Mono', monospace", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 12 }}>
                   {t('screen.inheritance.trusted_parties')}
                 </h2>
                 {trustedParties.length === 0 ? (
@@ -251,17 +251,17 @@ export function InheritanceScreen() {
                       onChange={(e) => setNewPartyPassphrase(e.target.value)}
                     />
                     <div className="inheritance__add-form-actions">
-                      <Button
-                        variant="opal"
-                        size="sm"
+                      <button
+                        type="button"
+                        className="btn btn--opal btn--sm"
                         onClick={handleAddTrustedParty}
                         disabled={!newName.trim() || !newEmail.trim()}
                       >
-                        {t('screen.inheritance.confirm_add', 'Add')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                        <span className="btn__text">{t('screen.inheritance.confirm_add', 'Add')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
                         onClick={() => {
                           setShowAddForm(false);
                           setNewName('');
@@ -270,32 +270,32 @@ export function InheritanceScreen() {
                           setNewPartyPassphrase('');
                         }}
                       >
-                        {t('common.cancel', 'Cancel')}
-                      </Button>
+                        <span className="btn__text">{t('common.cancel', 'Cancel')}</span>
+                      </button>
                     </div>
                   </div>
                 )}
 
                 <div className="inheritance__actions">
                   {!showAddForm && (
-                    <Button
-                      variant="opal"
-                      size="sm"
+                    <button
+                      type="button"
+                      className="btn btn--opal btn--sm"
                       onClick={() => setShowAddForm(true)}
                     >
-                      {t('screen.inheritance.add_trusted_party')}
-                    </Button>
+                      <span className="btn__text">{t('screen.inheritance.add_trusted_party')}</span>
+                    </button>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
                     disabled={trustedParties.length === 0 || runningDrill}
                     onClick={handleRunDrill}
                   >
-                    {runningDrill
+                    <span className="btn__text">{runningDrill
                       ? t('screen.inheritance.running_drill', 'Running...')
-                      : t('screen.inheritance.run_drill_test')}
-                  </Button>
+                      : t('screen.inheritance.run_drill_test')}</span>
+                  </button>
                 </div>
                 {statusMessage && (
                   <p className="inheritance__status-message">{statusMessage}</p>

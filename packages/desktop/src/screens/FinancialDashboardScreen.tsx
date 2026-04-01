@@ -121,7 +121,7 @@ export function FinancialDashboardScreen() {
         alignItems: 'center',
         justifyContent: 'center',
         height: '100%',
-        fontFamily: "'DM Sans', system-ui, sans-serif",
+        fontFamily: "'DM Mono', monospace",
         color: '#8593A4',
       }}>
         Authenticating...
@@ -148,8 +148,8 @@ export function FinancialDashboardScreen() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
+    <div className="page-scroll">
+      <div className="page-layout">
         <FinancialDashboard
           overview={data?.overview ?? null}
           categories={data?.categories ?? []}

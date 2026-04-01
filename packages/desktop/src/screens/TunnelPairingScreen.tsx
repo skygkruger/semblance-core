@@ -111,7 +111,7 @@ export function TunnelPairingScreen() {
     <div className="page-scroll">
       <div className="page-layout">
         {/* Header */}
-        <h1 className="page-title" style={{ fontSize: 28, marginBottom: 6 }}>
+        <h1 className="page-title" style={{ fontSize: 28 }}>
           Compute Mesh
         </h1>
         <p style={{
@@ -120,7 +120,6 @@ export function TunnelPairingScreen() {
           color: '#A8B4C0',
           letterSpacing: '0.04em',
           margin: 0,
-          marginBottom: 32,
           lineHeight: 1.5,
         }}>
           Pair devices to share inference power over encrypted tunnels.
@@ -145,7 +144,7 @@ export function TunnelPairingScreen() {
         <Card style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{
-              fontFamily: "'Fraunces', serif",
+              fontFamily: "'DM Mono', monospace",
               fontWeight: 300,
               fontSize: 18,
               color: '#EEF1F4',
@@ -200,7 +199,7 @@ export function TunnelPairingScreen() {
         {/* Paired Devices */}
         <Card style={{ marginBottom: 20 }}>
           <h2 style={{
-            fontFamily: "'Fraunces', serif",
+            fontFamily: "'DM Mono', monospace",
             fontWeight: 300,
             fontSize: 18,
             color: '#EEF1F4',
@@ -254,7 +253,7 @@ export function TunnelPairingScreen() {
         {/* Pairing Section */}
         <Card>
           <h2 style={{
-            fontFamily: "'Fraunces', serif",
+            fontFamily: "'DM Mono', monospace",
             fontWeight: 300,
             fontSize: 18,
             color: '#EEF1F4',

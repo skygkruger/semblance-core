@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Button, ProgressBar, FeatureGate } from '@semblance/ui';
+import { Card, ProgressBar, FeatureGate } from '@semblance/ui';
 import { getLatestDigest, listDigests, generateDigest, getDailyDigest, dismissDailyDigest } from '../ipc/commands';
 import { DailyDigestCard } from '../components/DailyDigestCard';
 import { useLicense } from '../contexts/LicenseContext';
@@ -56,8 +56,10 @@ interface DigestSummary {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 export function formatDateRange(start: string, end: string): string {
+  if (!start || !end) return 'Date unavailable';
   const s = new Date(start);
   const e = new Date(end);
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return 'Date unavailable';
   return `${s.toLocaleDateString([], { month: 'short', day: 'numeric' })}–${e.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
 
@@ -134,13 +136,13 @@ export function DigestScreen() {
           <h1 className="page-title" style={{ fontSize: 28 }}>
             {t('screen.digest.title')}
           </h1>
-          <Card className="p-8 text-center">
+          <Card className="p-8 text-center surface-void opal-wireframe">
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', marginBottom: 16 }}>
               {t('screen.digest.empty')}
             </p>
-            <Button onClick={handleGenerate}>
-              {t('screen.digest.btn_generate')}
-            </Button>
+            <button type="button" className="btn btn--opal btn--sm" onClick={handleGenerate}>
+              <span className="btn__text">{t('screen.digest.btn_generate')}</span>
+            </button>
           </Card>
         </div>
       </div>
@@ -177,7 +179,7 @@ export function DigestScreen() {
 
         {/* Narrative */}
         {digest.narrative && (
-          <Card className="p-4 border border-semblance-border dark:border-semblance-border-dark">
+          <Card className="p-4 border border-semblance-border dark:border-semblance-border-dark surface-void opal-wireframe">
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontStyle: 'italic', color: '#EEF1F4', letterSpacing: '0.04em', lineHeight: 1.6 }}>
               &ldquo;{digest.narrative}&rdquo;
             </p>
@@ -188,7 +190,7 @@ export function DigestScreen() {
         {(digest.highlights ?? []).length > 0 && (
           <div className="grid grid-cols-3 gap-3">
             {(digest.highlights ?? []).map((hl, i) => (
-              <Card key={i} className="p-4 text-center">
+              <Card key={i} className="p-4 text-center surface-void opal-wireframe">
                 <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 400, color: '#6ECFA3' }}>
                   {hl.impact}
                 </p>
@@ -201,7 +203,7 @@ export function DigestScreen() {
         )}
 
         {/* Actions Breakdown */}
-        <Card className="p-4">
+        <Card className="p-4 surface-void opal-wireframe">
           <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 16 }}>
             {t('screen.digest.section_breakdown')}
           </h2>
@@ -244,7 +246,7 @@ export function DigestScreen() {
         </Card>
 
         {/* Autonomy Health */}
-        <Card className="p-4">
+        <Card className="p-4 surface-void opal-wireframe">
           <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
             {t('screen.digest.section_autonomy')}
           </h2>
@@ -267,7 +269,7 @@ export function DigestScreen() {
 
         {/* Past Digests */}
         {pastDigests.length > 1 && (
-          <Card className="p-4">
+          <Card className="p-4 surface-void opal-wireframe">
             <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
               {t('screen.digest.section_past')}
             </h2>

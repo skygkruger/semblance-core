@@ -83,8 +83,8 @@ export function HealthDashboardScreen() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-container-lg mx-auto px-6 py-8 space-y-6">
+    <div className="page-scroll">
+      <div className="page-layout">
         <HealthDashboard
           todayEntry={data?.todayEntry ?? null}
           trends={data?.trends ?? []}

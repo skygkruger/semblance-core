@@ -17,7 +17,7 @@ import {
   livingWillImport,
 } from '../ipc/commands';
 import type { LivingWillExportRecord } from '../ipc/commands';
-import { Card, Button, Input, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { Card, Input, SkeletonCard, FeatureGate } from '@semblance/ui';
 import './LivingWillScreen.css';
 
 export function LivingWillScreen() {
@@ -192,9 +192,9 @@ export function LivingWillScreen() {
 
   if (loading) {
     return (
-      <div className="living-will page-scroll">
-        <div className="living-will__container page-layout">
-          <h1 className="living-will__title">{t('screen.living_will.title')}</h1>
+      <div className="page-scroll">
+        <div className="page-layout">
+          <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.living_will.title')}</h1>
           <SkeletonCard variant="generic" message="Loading Living Will" subMessage="Retrieving export configuration" showSpinner />
         </div>
       </div>
@@ -202,15 +202,15 @@ export function LivingWillScreen() {
   }
 
   return (
-    <div className="living-will page-scroll">
-      <div className="living-will__container page-layout">
-        <h1 className="living-will__title">{t('screen.living_will.title')}</h1>
+    <div className="page-scroll">
+      <div className="page-layout">
+        <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.living_will.title')}</h1>
         <p className="living-will__subtitle">
           {t('screen.living_will.subtitle')}
         </p>
 
         {/* Export status */}
-        <Card variant="elevated">
+        <Card className="surface-void opal-wireframe">
           <h2 className="living-will__section-title">{t('screen.living_will.export_status')}</h2>
           <div className="living-will__status-row">
             <span className="living-will__status-label">{t('screen.living_will.last_export')}</span>
@@ -249,40 +249,42 @@ export function LivingWillScreen() {
                 autoFocus
               />
               <div className="living-will__passphrase-actions">
-                <Button
-                  variant="opal"
-                  size="sm"
+                <button
+                  type="button"
+                  className="btn btn--opal btn--sm"
                   onClick={showPassphrasePrompt === 'export' ? handleExportConfirm : handleImportConfirm}
                   disabled={!passphrase.trim()}
                 >
-                  {t('common.confirm', 'Confirm')}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                  <span className="btn__text">{t('common.confirm', 'Confirm')}</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
                   onClick={() => { setShowPassphrasePrompt(null); setPassphrase(''); }}
                 >
-                  {t('common.cancel', 'Cancel')}
-                </Button>
+                  <span className="btn__text">{t('common.cancel', 'Cancel')}</span>
+                </button>
               </div>
             </div>
           )}
 
           <div className="living-will__actions">
-            <Button
-              variant="opal"
+            <button
+              type="button"
+              className="btn btn--opal btn--sm"
               onClick={handleExportStart}
               disabled={exporting || showPassphrasePrompt !== null}
             >
-              {exporting ? t('screen.living_will.exporting', 'Exporting...') : t('screen.living_will.export_now')}
-            </Button>
-            <Button
-              variant="ghost"
+              <span className="btn__text">{exporting ? t('screen.living_will.exporting', 'Exporting...') : t('screen.living_will.export_now')}</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
               onClick={handleImportStart}
               disabled={importing || showPassphrasePrompt !== null}
             >
-              {importing ? t('screen.living_will.importing', 'Importing...') : t('screen.living_will.import_archive')}
-            </Button>
+              <span className="btn__text">{importing ? t('screen.living_will.importing', 'Importing...') : t('screen.living_will.import_archive')}</span>
+            </button>
           </div>
           {statusMessage && (
             <p className="living-will__status-message">{statusMessage}</p>
@@ -290,7 +292,7 @@ export function LivingWillScreen() {
         </Card>
 
         {/* Auto-export toggle */}
-        <Card variant="elevated">
+        <Card className="surface-void opal-wireframe">
           <h2 className="living-will__section-title">{t('screen.living_will.automatic_export')}</h2>
           <div className="living-will__toggle-row">
             <span className="living-will__toggle-label">

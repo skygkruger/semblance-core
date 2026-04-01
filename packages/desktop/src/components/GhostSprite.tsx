@@ -210,10 +210,11 @@ export function GhostSprite({
     const gutterCenter = rightEdge + (mainRight - rightEdge) / 2;
 
     setSpriteX(gutterCenter - GHOST_W / 2);
-    // Vertically center relative to the visible viewport, not the content
-    const mainHeight = mainRect.height;
-    setSpriteY((mainHeight / 2) - GHOST_H / 2);
-    setContentHeight(Math.max(contentRect.height, mainHeight));
+    // Vertically center in the viewport midpoint of the main area
+    const mainMidY = mainRect.top + mainRect.height / 2;
+    const wrapperTop = wrapperRef.current!.getBoundingClientRect().top;
+    setSpriteY(mainMidY - wrapperTop - GHOST_H / 2);
+    setContentHeight(Math.max(contentRect.height, mainRect.height));
   }, []);
 
   useEffect(() => {

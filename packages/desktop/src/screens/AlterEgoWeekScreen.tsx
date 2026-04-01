@@ -63,7 +63,12 @@ export function AlterEgoWeekScreen() {
   const loadState = useCallback(async () => {
     try {
       const state = await sidecarCall<AlterEgoWeekState>('alter_ego_week_get_state');
-      setWeekState(state);
+      if (state) {
+        setWeekState({
+          ...state,
+          completedDays: state.completedDays ?? [],
+        });
+      }
     } catch (err) {
       console.error('[AlterEgoWeekScreen] Failed to load state:', err);
     } finally {
@@ -79,7 +84,12 @@ export function AlterEgoWeekScreen() {
     setError(null);
     try {
       const state = await sidecarCall<AlterEgoWeekState>('alter_ego_week_start');
-      setWeekState(state);
+      if (state) {
+        setWeekState({
+          ...state,
+          completedDays: state.completedDays ?? [],
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -102,6 +112,20 @@ export function AlterEgoWeekScreen() {
       await loadState();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    }
+  }, [loadState]);
+
+  const handleComplete = useCallback(async (day: number) => {
+    setRunningDay(true);
+    setError(null);
+    try {
+      await sidecarCall<DayDemoResult>('alter_ego_week_run_day', { day });
+      await sidecarCall<AlterEgoWeekState>('alter_ego_week_advance');
+      await loadState();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRunningDay(false);
     }
   }, [loadState]);
 
@@ -142,10 +166,12 @@ export function AlterEgoWeekScreen() {
   const isComplete = weekState.completedAt !== null;
 
   // Map state to AlterEgoWeekCard props
+  const completedDays = weekState.completedDays ?? [];
+
   const progress: AlterEgoWeekProgress = {
     isActive: weekState.active,
     currentDay: weekState.currentDay ?? 1,
-    completedDays: weekState.completedDays,
+    completedDays,
     totalDays: 7,
   };
 
@@ -162,11 +188,11 @@ export function AlterEgoWeekScreen() {
 
   // Build activation prompt data from week state for AlterEgoActivationCard
   const activationPrompt: ActivationPromptData = {
-    totalActions: weekState.completedDays.length * 5, // approximate actions per day
-    successRate: weekState.completedDays.length > 0 ? Math.round((weekState.completedDays.length / 7) * 100) : 0,
-    domainsCovered: weekState.completedDays.map((d) => DAY_LABELS[d]?.title ?? `Day ${d}`),
-    estimatedTimeSavedSeconds: weekState.completedDays.length * 300, // ~5 min per day
-    differences: weekState.completedDays.map((d) => ({
+    totalActions: completedDays.length * 5, // approximate actions per day
+    successRate: completedDays.length > 0 ? Math.round((completedDays.length / 7) * 100) : 0,
+    domainsCovered: completedDays.map((d) => DAY_LABELS[d]?.title ?? `Day ${d}`),
+    estimatedTimeSavedSeconds: completedDays.length * 300, // ~5 min per day
+    differences: completedDays.map((d) => ({
       domain: DAY_LABELS[d]?.title ?? `Day ${d}`,
       currentTier: 'Partner',
       description: DAY_LABELS[d]?.description ?? '',
@@ -180,25 +206,11 @@ export function AlterEgoWeekScreen() {
     ],
   };
 
-  const handleComplete = useCallback(async (day: number) => {
-    setRunningDay(true);
-    setError(null);
-    try {
-      await sidecarCall<DayDemoResult>('alter_ego_week_run_day', { day });
-      await sidecarCall<AlterEgoWeekState>('alter_ego_week_advance');
-      await loadState();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setRunningDay(false);
-    }
-  }, [loadState]);
-
   return (
     <div className="page-scroll">
       <div className="page-layout">
         {/* Header */}
-        <h1 className="page-title" style={{ fontSize: 28, marginBottom: 6 }}>
+        <h1 className="page-title" style={{ fontSize: 28 }}>
           Alter Ego Week
         </h1>
         <p style={{
@@ -207,7 +219,6 @@ export function AlterEgoWeekScreen() {
           color: '#A8B4C0',
           letterSpacing: '0.04em',
           margin: 0,
-          marginBottom: 32,
           lineHeight: 1.5,
         }}>
           Build trust through 7 days of autonomous demonstrations.
@@ -215,7 +226,7 @@ export function AlterEgoWeekScreen() {
 
         {/* Error */}
         {error && (
-          <Card style={{ marginBottom: 20, borderColor: 'rgba(176, 122, 138, 0.3)', background: 'rgba(176, 122, 138, 0.12)' }}>
+          <Card className="surface-void opal-wireframe" style={{ marginBottom: 20, borderColor: 'rgba(176, 122, 138, 0.3)', background: 'rgba(176, 122, 138, 0.12)' }}>
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#B07A8A', letterSpacing: '0.04em', margin: 0 }}>
               {error}
             </p>
@@ -224,7 +235,7 @@ export function AlterEgoWeekScreen() {
 
         {/* Not started */}
         {!weekState.active && !isComplete && (
-          <Card style={{ marginBottom: 20 }}>
+          <Card className="surface-void opal-wireframe" style={{ marginBottom: 20 }}>
             <p style={{
               fontFamily: "'DM Mono', monospace",
               fontSize: 12,
@@ -235,9 +246,9 @@ export function AlterEgoWeekScreen() {
             }}>
               Over 7 days, Semblance will demonstrate autonomous capabilities across email, calendar, files, contacts, finances, health, and full agent mode. Each day builds on the last.
             </p>
-            <Button variant="opal" onClick={handleStart}>
-              Start Week
-            </Button>
+            <button type="button" className="btn btn--opal btn--sm" onClick={handleStart}>
+              <span className="btn__text">Start Week</span>
+            </button>
           </Card>
         )}
 
@@ -261,9 +272,9 @@ export function AlterEgoWeekScreen() {
         )}
 
         {isComplete && weekState.userActivated && (
-          <Card style={{ borderColor: 'rgba(110, 207, 163, 0.2)' }}>
+          <Card className="surface-void opal-wireframe" style={{ borderColor: 'rgba(110, 207, 163, 0.2)' }}>
             <h2 style={{
-              fontFamily: "'Fraunces', serif",
+              fontFamily: "'DM Mono', monospace",
               fontSize: 18,
               fontWeight: 300,
               color: '#EEF1F4',
@@ -296,9 +307,9 @@ export function AlterEgoWeekScreen() {
         )}
 
         {isComplete && !weekState.activationOffered && !weekState.userActivated && (
-          <Card style={{ borderColor: 'rgba(110, 207, 163, 0.2)' }}>
+          <Card className="surface-void opal-wireframe" style={{ borderColor: 'rgba(110, 207, 163, 0.2)' }}>
             <h2 style={{
-              fontFamily: "'Fraunces', serif",
+              fontFamily: "'DM Mono', monospace",
               fontSize: 18,
               fontWeight: 300,
               color: '#EEF1F4',

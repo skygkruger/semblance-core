@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
-import { Card, Button, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { Card, SkeletonCard, FeatureGate } from '@semblance/ui';
 import {
   witnessGetAttestations,
   witnessGenerateAttestation,
@@ -153,9 +153,9 @@ export function WitnessScreen() {
   }
 
   return (
-    <div className="witness page-scroll">
-      <div className="witness__container page-layout">
-        <h1 className="witness__title">{t('screen.witness.title')}</h1>
+    <div className="page-scroll">
+      <div className="page-layout">
+        <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.witness.title')}</h1>
 
           <p className="witness__subtitle">
             {t('screen.witness.subtitle')}
@@ -169,19 +169,19 @@ export function WitnessScreen() {
               showSpinner
             />
           ) : (
-            <Card className="witness__card">
+            <Card className="witness__card surface-void opal-wireframe">
               <div className="witness__section-header">
-                <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 0 }}>
+                <h2 style={{ fontFamily: "'DM Mono', monospace", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 0 }}>
                   {t('screen.witness.attestations')}
                 </h2>
-                <Button
-                  variant="opal"
-                  size="sm"
+                <button
+                  type="button"
+                  className="btn btn--opal btn--sm"
                   onClick={handleCreateAttestation}
                   disabled={creating}
                 >
-                  {creating ? t('screen.witness.creating', 'Creating...') : t('screen.witness.create_attestation', 'Create Attestation')}
-                </Button>
+                  <span className="btn__text">{creating ? t('screen.witness.creating', 'Creating...') : t('screen.witness.create_attestation', 'Create Attestation')}</span>
+                </button>
               </div>
 
               {attestations.length === 0 ? (
@@ -226,22 +226,22 @@ export function WitnessScreen() {
               )}
 
               <div className="witness__actions">
-                <Button
-                  variant="opal"
-                  size="sm"
+                <button
+                  type="button"
+                  className="btn btn--opal btn--sm"
                   disabled={!hasSelection}
                   onClick={handleShareSelected}
                 >
-                  {t('screen.witness.share_selected')}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                  <span className="btn__text">{t('screen.witness.share_selected')}</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
                   disabled={!hasSelection}
                   onClick={handleVerifySelected}
                 >
-                  {t('screen.witness.verify_selected')}
-                </Button>
+                  <span className="btn__text">{t('screen.witness.verify_selected')}</span>
+                </button>
               </div>
               {statusMessage && (
                 <p className="witness__status-message">{statusMessage}</p>

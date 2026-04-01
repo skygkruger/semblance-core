@@ -55,7 +55,7 @@ export function AdversarialDashboardScreen() {
           console.error('[AdversarialDashboard] Failed to load dark pattern flags:', err);
           return [];
         });
-        setFlags(loadedFlags);
+        setFlags(loadedFlags ?? []);
 
         // Load subscription data from financial dashboard for value assessments
         const financialData = await getFinancialDashboard('30d').catch((err) => {
@@ -63,7 +63,7 @@ export function AdversarialDashboardScreen() {
           return null;
         });
 
-        if (financialData?.subscriptions?.charges) {
+        if (financialData?.subscriptions?.charges && Array.isArray(financialData.subscriptions.charges)) {
           const mappedSubs: SubscriptionAssessment[] = financialData.subscriptions.charges.map((charge) => ({
             id: charge.id,
             name: charge.merchantName,
@@ -105,9 +105,9 @@ export function AdversarialDashboardScreen() {
   }
 
   return (
-      <div className="adversarial-dashboard page-scroll">
-        <div className="adversarial-dashboard__container page-layout">
-          <h1 className="adversarial-dashboard__title">{t('screen.adversarial.title')}</h1>
+      <div className="page-scroll">
+        <div className="page-layout">
+          <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.adversarial.title')}</h1>
           <p className="adversarial-dashboard__subtitle">
             {t('screen.adversarial.subtitle')}
           </p>
@@ -125,17 +125,17 @@ export function AdversarialDashboardScreen() {
             <>
               {/* Opt-out stats */}
               <div className="adversarial-dashboard__stats">
-                <Card className="adversarial-dashboard__stat">
-                  <p className="adversarial-dashboard__stat-value">{optOutStatus.totalOptOuts}</p>
+                <Card className="adversarial-dashboard__stat surface-void opal-wireframe">
+                  <p className="adversarial-dashboard__stat-value">{optOutStatus?.totalOptOuts ?? 0}</p>
                   <p className="adversarial-dashboard__stat-label">{t('screen.adversarial.total_opt_outs')}</p>
                 </Card>
-                <Card className="adversarial-dashboard__stat">
-                  <p className="adversarial-dashboard__stat-value">{optOutStatus.pendingOptOuts}</p>
+                <Card className="adversarial-dashboard__stat surface-void opal-wireframe">
+                  <p className="adversarial-dashboard__stat-value">{optOutStatus?.pendingOptOuts ?? 0}</p>
                   <p className="adversarial-dashboard__stat-label">{t('screen.adversarial.pending')}</p>
                 </Card>
-                <Card className="adversarial-dashboard__stat">
+                <Card className="adversarial-dashboard__stat surface-void opal-wireframe">
                   <p className="adversarial-dashboard__stat-value">
-                    {optOutStatus.successRate > 0 ? `${optOutStatus.successRate}%` : '\u2014'}
+                    {(optOutStatus?.successRate ?? 0) > 0 ? `${optOutStatus.successRate}%` : '\u2014'}
                   </p>
                   <p className="adversarial-dashboard__stat-label">{t('screen.adversarial.success_rate')}</p>
                 </Card>
@@ -167,7 +167,7 @@ export function AdversarialDashboardScreen() {
               </div>
 
               {/* Subscription assessments */}
-              <Card className="adversarial-dashboard__card">
+              <Card className="adversarial-dashboard__card surface-void opal-wireframe">
                 <h2 className="adversarial-dashboard__section-title">{t('screen.adversarial.subscription_value')}</h2>
                 {subscriptions.length === 0 ? (
                   <p className="adversarial-dashboard__empty">

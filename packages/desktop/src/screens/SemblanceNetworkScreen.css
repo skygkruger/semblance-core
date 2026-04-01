@@ -1,29 +1,10 @@
 /* SemblanceNetworkScreen — peer-to-peer context sharing */
 
-.semblance-network-screen {
-  padding: 2rem;
-  max-width: 720px;
-  margin: 0 auto;
-}
+/* .semblance-network-screen — layout handled by .page-scroll */
 
-.semblance-network-screen__header {
-  margin-bottom: 1.5rem;
-}
+/* .semblance-network-screen__header — removed, title uses .page-title */
 
-.semblance-network-screen__title {
-  font-family: var(--fm);
-  font-size: 1.75rem;
-  font-weight: 200;
-  letter-spacing: 0.04em;
-  margin: 0 0 0.25rem;
-  background: linear-gradient(105deg, #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%, #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%, #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%);
-  background-size: 300% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: shimmer 19s linear infinite;
-  animation-delay: -6s;
-}
+/* .semblance-network-screen__title — handled by .page-title */
 
 .semblance-network-screen__subtitle {
   font-family: var(--fm), monospace;
@@ -43,9 +24,7 @@
   margin-bottom: 1.25rem;
 }
 
-.semblance-network-screen__section {
-  margin-bottom: 2rem;
-}
+/* .semblance-network-screen__section margin handled by page-layout gap */
 
 .semblance-network-screen__section-title {
   font-family: var(--fm), monospace;
@@ -293,9 +272,7 @@
   border-color: rgba(110, 207, 163, 0.4);
 }
 
-.semblance-network-screen__section-card {
-  margin-bottom: 1.5rem;
-}
+/* .semblance-network-screen__section-card margin handled by page-layout gap */
 
 .semblance-network-screen__input-wrapper {
   flex: 1;
