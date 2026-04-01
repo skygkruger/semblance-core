@@ -307,7 +307,7 @@ export function WireframeGlobe({
   }, [draw]);
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
+    <div className="wireframe-globe" style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
       <canvas
         ref={canvasRef}
         width={size}

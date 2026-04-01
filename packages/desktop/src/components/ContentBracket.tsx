@@ -18,6 +18,7 @@ interface TickPosition {
 }
 
 const TIER_TICK_LENGTHS: Record<number, number> = {
+  0: 192, // globe — 4x page title, reaches across the gutter
   1: 48, // page title — longest, reaches toward the heading
   2: 32, // shimmer description + sub headers (h2/h3)
   3: 18, // container edges
@@ -28,6 +29,7 @@ const TIER_TICK_LENGTHS: Record<number, number> = {
 
 // Hierarchy selectors — order matters for tier assignment
 const HIERARCHY = [
+  { selector: '.wireframe-globe', tier: 0 },
   { selector: '.page-title', tier: 1 },
   { selector: '.shimmer-desc', tier: 2 },
   { selector: '.surface-opal', tier: 3 },
@@ -231,7 +233,10 @@ export function ContentBracket({
               const halfSpine = spineHeight / 2;
               const reachFraction = halfSpine > 0 ? tick.distFromCenter / halfSpine : 0;
               const tickStartP = reachFraction * 0.7;
-              const tickLocalP = Math.max(0, Math.min(1, (p - tickStartP) / 0.3));
+              // Longer ticks take proportionally more time to extend
+              const tickLength = TIER_TICK_LENGTHS[tick.tier] ?? 8;
+              const extensionDuration = 0.3 + (tickLength / 192) * 0.4; // 0.3 for shortest, 0.7 for globe
+              const tickLocalP = Math.max(0, Math.min(1, (p - tickStartP) / extensionDuration));
               if (tickLocalP <= 0) return null;
               // Fade in: 0 opacity until spine is near, then ramp up smoothly
               const spineDistToTick = Math.min(
