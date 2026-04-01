@@ -1845,6 +1845,58 @@ async function handleInitialize(): Promise<unknown> {
         });
         console.error('[sidecar] Subagent stream events wired to canvas + NDJSON');
       }
+
+      // Wire Cloud Bridge chat handler for hybrid local+cloud execution.
+      // When a subtask has modelTier 'cloud_bridge', the executor calls this
+      // handler which routes through the Gateway's Cloud Bridge routing engine.
+      if ('setCloudBridgeChatHandler' in core.agent) {
+        (core.agent as any).setCloudBridgeChatHandler(async (params: any) => {
+          const cb = (globalThis as any).__cloudBridge;
+          if (!cb) throw new Error('Cloud Bridge not initialized');
+          const engine = cb.engine;
+          const policy = engine.getPolicy();
+
+          // Check if Cloud Bridge is enabled
+          if (policy.mode === 'off') {
+            throw new Error('Cloud Bridge is disabled');
+          }
+
+          // Use cost optimizer to select provider+model
+          const estimate = engine.costOptimizer.estimate(
+            params.messages,
+            params.maxTokens,
+            params.domain,
+            policy,
+          );
+
+          if (!estimate || !estimate.canAfford) {
+            throw new Error('No affordable Cloud Bridge option available');
+          }
+
+          // Build and minimize the request
+          const request = engine.buildRequest(
+            { route: 'cloud_bridge', reason: 'hybrid execution', provider: estimate.provider, model: estimate.model },
+            params.messages,
+            { subagentId: params.subagentId, taskType: params.taskType, domain: params.domain, maxTokens: params.maxTokens, temperature: params.temperature },
+          );
+
+          // Minimize prompt before sending
+          const minimized = engine.promptMinimizer.minimize(request.messages, policy.excludedCategories);
+          request.messages = minimized.messages;
+
+          // Execute through Cloud Bridge
+          const response = await engine.executeCloudRequest(request);
+          if (!response) throw new Error('Cloud Bridge request failed');
+
+          return {
+            content: response.message.content,
+            tokensUsed: response.tokensUsed,
+            model: response.model,
+            provider: response.provider,
+          };
+        });
+        console.error('[sidecar] Cloud Bridge chat handler wired for hybrid execution');
+      }
     }
 
     // Alter Ego Week engine — initialized by @semblance/dr via ipAdapters

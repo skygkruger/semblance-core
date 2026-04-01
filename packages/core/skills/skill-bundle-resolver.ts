@@ -33,7 +33,7 @@ const CAPABILITY_MODEL_TIER: Record<SkillCapability, ModelTier> = {
 export function skillToBundle(declaration: SkillDeclaration): SkillBundle {
   // Determine the highest model tier required by any capability
   let highestTier: ModelTier = 'fast';
-  const tierOrder: Record<ModelTier, number> = { fast: 0, primary: 1, vision: 2, embedding: 3 };
+  const tierOrder: Record<ModelTier, number> = { fast: 0, primary: 1, vision: 2, embedding: 3, cloud_bridge: 4 };
 
   for (const cap of declaration.capabilities) {
     const tier = CAPABILITY_MODEL_TIER[cap] ?? 'primary';

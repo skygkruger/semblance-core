@@ -28,6 +28,7 @@ import type {
   SubagentPermissionScope,
   ToolHookContext,
   SessionMemoryStore,
+  CloudBridgeChatHandler,
 } from './orchestrator-v2-types.js';
 import type { ToolHookRegistry } from './orchestrator-v2-types.js';
 import { executePreToolHooks, executePostToolHooks } from './tool-hooks.js';
@@ -70,6 +71,7 @@ export class SubagentExecutor {
   private hardwareTier: HardwareProfileTier;
   private activeSubagents: Map<string, SubagentInstance> = new Map();
   private onStreamEvent: StreamEventCallback | null = null;
+  private cloudBridgeChatHandler: CloudBridgeChatHandler | null = null;
 
   constructor(config: {
     llm: LLMProvider;
@@ -100,6 +102,11 @@ export class SubagentExecutor {
   /** Set the stream event callback for UI updates. */
   setStreamCallback(callback: StreamEventCallback): void {
     this.onStreamEvent = callback;
+  }
+
+  /** Set the Cloud Bridge chat handler for routing cloud_bridge tier subtasks. */
+  setCloudBridgeChatHandler(handler: CloudBridgeChatHandler): void {
+    this.cloudBridgeChatHandler = handler;
   }
 
   /**
@@ -330,14 +337,45 @@ If you need a tool you don't have, explain what you need and why.${sessionContex
           };
         }
 
-        // LLM call
-        const chatResponse = await this.llm.chat({
-          model: this.getModelForTier(subtask.modelTier),
-          messages,
-          tools: scopedTools.length > 0 ? scopedTools : undefined,
-          temperature: 0.5,
-          maxTokens: subtask.maxTokens,
-        });
+        // LLM call — route through Cloud Bridge for cloud_bridge tier if handler available
+        let chatResponse;
+        if (subtask.modelTier === 'cloud_bridge' && this.cloudBridgeChatHandler) {
+          try {
+            const cloudResult = await this.cloudBridgeChatHandler({
+              messages: messages.map(m => ({ role: m.role, content: m.content })),
+              maxTokens: subtask.maxTokens,
+              temperature: 0.5,
+              subagentId,
+              domain: ComplexityClassifier.getToolDomain(subtask.allowedTools[0] ?? '') ?? 'general',
+              taskType: subtask.description.slice(0, 50),
+            });
+            chatResponse = {
+              message: { role: 'assistant' as const, content: cloudResult.content },
+              model: cloudResult.model,
+              tokensUsed: cloudResult.tokensUsed,
+              durationMs: 0,
+            };
+          } catch {
+            // Cloud Bridge failed — fall back to local primary model
+            chatResponse = await this.llm.chat({
+              model: this.getModelForTier('primary'),
+              messages,
+              tools: scopedTools.length > 0 ? scopedTools : undefined,
+              temperature: 0.5,
+              maxTokens: subtask.maxTokens,
+            });
+          }
+        } else {
+          // Local model (or cloud_bridge tier without handler = fallback to primary)
+          const effectiveTier = subtask.modelTier === 'cloud_bridge' ? 'primary' : subtask.modelTier;
+          chatResponse = await this.llm.chat({
+            model: this.getModelForTier(effectiveTier),
+            messages,
+            tools: scopedTools.length > 0 ? scopedTools : undefined,
+            temperature: 0.5,
+            maxTokens: subtask.maxTokens,
+          });
+        }
 
         totalTokens += chatResponse.tokensUsed?.total ?? 0;
         turnsUsed++;

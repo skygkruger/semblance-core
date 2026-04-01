@@ -26,6 +26,9 @@ import { DEFAULT_ROUTING_POLICY } from '@semblance/core';
 import { ProviderRegistry } from './provider-registry.js';
 import { CloudBridgeAdapter } from './cloud-bridge-adapter.js';
 import { classifyContent, checkExclusions } from './content-classifier.js';
+import { ConfidenceDetector, type ConfidenceResult, type ConfidenceThresholds } from './confidence-detector.js';
+import { CostOptimizer, type CostEstimate } from './cost-optimizer.js';
+import { PromptMinimizer, type MinimizationResult } from './prompt-minimizer.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +57,9 @@ export class CloudBridgeRoutingEngine {
   private adapter: CloudBridgeAdapter;
   private logAuditEntry: (entry: CloudBridgeAuditEntry) => void;
   private onNotify: (message: string, level: 'info' | 'warning') => void;
+  readonly confidenceDetector: ConfidenceDetector;
+  readonly costOptimizer: CostOptimizer;
+  readonly promptMinimizer: PromptMinimizer;
 
   constructor(config: RoutingEngineConfig) {
     this.policy = { ...DEFAULT_ROUTING_POLICY };
@@ -61,6 +67,9 @@ export class CloudBridgeRoutingEngine {
     this.adapter = config.adapter;
     this.logAuditEntry = config.logAuditEntry;
     this.onNotify = config.onNotify ?? (() => {});
+    this.confidenceDetector = new ConfidenceDetector();
+    this.costOptimizer = new CostOptimizer(this.registry);
+    this.promptMinimizer = new PromptMinimizer();
   }
 
   /** Update the routing policy. */
@@ -273,6 +282,111 @@ export class CloudBridgeRoutingEngine {
       // Return null — caller falls back to local inference
       return null;
     }
+  }
+
+  /**
+   * Evaluate a local model response for confidence. If below threshold and
+   * Cloud Bridge is available, escalate to cloud and return the cloud response.
+   *
+   * Returns the original response if no escalation needed, or the cloud response
+   * if escalation happened, or null if escalation was attempted but failed.
+   *
+   * @param localResponse The local model's response text
+   * @param domain The request domain
+   * @param messages The original messages (for re-routing to cloud)
+   * @param options Routing options
+   * @returns { response: string, escalated: boolean, confidence: ConfidenceResult }
+   */
+  async evaluateAndEscalate(
+    localResponse: string,
+    domain: string,
+    messages: Array<{ role: string; content: string }>,
+    options?: {
+      subagentId?: string;
+      taskType?: string;
+      maxTokens?: number;
+      temperature?: number;
+      queryComplexity?: number;
+    },
+  ): Promise<{ response: string; escalated: boolean; confidence: ConfidenceResult }> {
+    const confidence = this.confidenceDetector.evaluate(
+      localResponse,
+      domain,
+      options?.queryComplexity,
+    );
+
+    // No escalation needed
+    if (!confidence.shouldEscalate) {
+      return { response: localResponse, escalated: false, confidence };
+    }
+
+    // Check if escalation is possible
+    if (this.policy.mode === 'off') {
+      return { response: localResponse, escalated: false, confidence };
+    }
+
+    // Check domain allows cloud
+    const domainRule = this.policy.domainRules[domain];
+    if (domainRule?.routing === 'never_cloud') {
+      return { response: localResponse, escalated: false, confidence };
+    }
+
+    // Check spending cap
+    if (this.policy.spendingCap.enabled &&
+        this.policy.spendingCap.currentSpend >= this.policy.spendingCap.monthlyLimit) {
+      return { response: localResponse, escalated: false, confidence };
+    }
+
+    // Attempt Cloud Bridge routing
+    const promptText = messages.map(m => m.content).join(' ');
+    const decision = this.decide(domain, promptText, { forceCloud: true });
+    if (decision.route !== 'cloud_bridge') {
+      return { response: localResponse, escalated: false, confidence };
+    }
+
+    // Use cost optimizer to select best model
+    const costEstimate = this.costOptimizer.estimate(
+      messages,
+      options?.maxTokens ?? 2048,
+      domain,
+      this.policy,
+    );
+
+    const request = this.buildRequest(
+      {
+        route: 'cloud_bridge',
+        reason: `Confidence escalation (score: ${confidence.score.toFixed(2)})`,
+        provider: costEstimate?.provider ?? decision.provider,
+        model: costEstimate?.model ?? decision.model,
+      },
+      messages,
+      {
+        subagentId: options?.subagentId,
+        taskType: options?.taskType ?? 'escalation',
+        domain,
+        maxTokens: options?.maxTokens,
+        temperature: options?.temperature,
+      },
+    );
+
+    // Apply prompt minimization before sending
+    const minimized = this.promptMinimizer.minimize(
+      request.messages,
+      this.policy.excludedCategories,
+    );
+    request.messages = minimized.messages;
+
+    const cloudResponse = await this.executeCloudRequest(request);
+    if (cloudResponse) {
+      return {
+        response: cloudResponse.message.content,
+        escalated: true,
+        confidence,
+      };
+    }
+
+    // Cloud Bridge failed — return local response as fallback
+    return { response: localResponse, escalated: false, confidence };
   }
 
   /**

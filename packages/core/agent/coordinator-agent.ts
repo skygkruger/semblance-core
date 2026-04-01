@@ -229,6 +229,11 @@ export class CoordinatorAgent implements Orchestrator {
     this.getOrCreateExecutor().setStreamCallback(callback);
   }
 
+  /** Set the Cloud Bridge chat handler for hybrid local+cloud execution. */
+  setCloudBridgeChatHandler(handler: import('./orchestrator-v2-types.js').CloudBridgeChatHandler): void {
+    this.getOrCreateExecutor().setCloudBridgeChatHandler(handler);
+  }
+
   /** Set the event bus for orchestrator lifecycle events. */
   setEventBus(eventBus: OrchestratorEventEmitter): void {
     this.eventBus = eventBus;

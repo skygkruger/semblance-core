@@ -13,3 +13,7 @@ export {
   type RoutingDecision,
   type RoutingEngineConfig,
 } from './routing-engine.js';
+// Phase 4 — Advanced Routing Intelligence
+export { ConfidenceDetector, type ConfidenceResult, type ConfidenceThresholds, type ConfidenceSignal } from './confidence-detector.js';
+export { CostOptimizer, type CostEstimate, type ProviderRanking } from './cost-optimizer.js';
+export { PromptMinimizer, type MinimizationResult } from './prompt-minimizer.js';

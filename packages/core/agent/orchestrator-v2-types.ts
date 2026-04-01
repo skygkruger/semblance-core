@@ -25,7 +25,7 @@ export interface ComplexityAssessment {
 // ─── Model Tiers ──────────────────────────────────────────────────────────────
 
 /** Model tier for subagent assignment. 'cloud_bridge' reserved for Phase 3. */
-export type ModelTier = 'fast' | 'primary' | 'vision' | 'embedding';
+export type ModelTier = 'fast' | 'primary' | 'vision' | 'embedding' | 'cloud_bridge';
 
 // ─── Subtask Definition ───────────────────────────────────────────────────────
 
@@ -258,6 +258,31 @@ export interface OrchestratorV2Event {
   timestamp: number;
   details: Record<string, unknown>;
 }
+
+// ─── Cloud Bridge Chat Handler ────────────────────────────────────────────────
+
+/**
+ * Callback for routing chat requests through Cloud Bridge.
+ * Provided by the Gateway wiring layer (bridge.ts). The executor calls this
+ * for subtasks with modelTier 'cloud_bridge'. The handler makes the actual
+ * API call through the Gateway's Cloud Bridge adapter.
+ *
+ * CRITICAL: This is a callback type, not a network import. The actual network
+ * call happens in packages/gateway/cloud-bridge/, not in packages/core/.
+ */
+export type CloudBridgeChatHandler = (params: {
+  messages: Array<{ role: string; content: string }>;
+  maxTokens: number;
+  temperature: number;
+  subagentId: string;
+  domain: string;
+  taskType: string;
+}) => Promise<{
+  content: string;
+  tokensUsed: { prompt: number; completion: number; total: number };
+  model: string;
+  provider: string;
+}>;
 
 // ─── Session Context Provider ─────────────────────────────────────────────────
 
