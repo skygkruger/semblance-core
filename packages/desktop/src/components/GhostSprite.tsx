@@ -330,37 +330,45 @@ export function GhostSprite({
         onMouseLeave={() => setHovering(false)}
         onClick={handleClick}
       >
-        {/* Speech bubble */}
-        {showBubble && insight && (
-          <div className="opal-surface" style={{
-            position: 'absolute',
-            bottom: GHOST_H + 8,
-            right: 0,
-            minWidth: 140,
-            maxWidth: 200,
-            padding: '8px 10px',
-            borderRadius: 8,
-            border: '1px solid transparent',
-            background: 'linear-gradient(#121518, #121518) padding-box, conic-gradient(from var(--opal-angle), rgba(97,88,128,0.35), rgba(119,110,162,0.45), rgba(154,168,184,0.55), rgba(216,221,232,0.6), rgba(154,168,184,0.55), rgba(119,110,162,0.45), rgba(97,88,128,0.35)) border-box',
-            animation: 'ghost-bubble-in 400ms ease-out, opal-border-sweep 8s linear infinite',
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 10,
-            letterSpacing: '0.04em',
-            color: '#A8B4C0',
-            lineHeight: 1.4,
-            overflow: 'hidden',
-            pointerEvents: 'none',
-          }}>
-            {/* Bubble tail */}
-            <div style={{
+        {/* Floating animation wrapper with Veridian glow — bubble lives here so it bobs */}
+        <div style={{
+          animation: 'ghost-float 4s ease-in-out infinite',
+          position: 'relative',
+        }}>
+          {/* Speech bubble — centered over ghost */}
+          {showBubble && insight && (
+            <div className="opal-surface" style={{
               position: 'absolute',
-              bottom: -5,
-              right: 12,
-              width: 0,
+              bottom: GHOST_H + 8,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              minWidth: 140,
+              maxWidth: 200,
+              padding: '8px 10px',
+              borderRadius: 8,
+              border: '1px solid transparent',
+              background: 'linear-gradient(#121518, #121518) padding-box, conic-gradient(from var(--opal-angle), rgba(110,207,163,0.25), rgba(110,207,163,0.4), rgba(110,207,163,0.55), rgba(110,207,163,0.4), rgba(110,207,163,0.25)) border-box',
+              animation: 'ghost-bubble-in 400ms ease-out, opal-border-sweep 8s linear infinite',
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 10,
+              letterSpacing: '0.04em',
+              color: '#A8B4C0',
+              lineHeight: 1.4,
+              textAlign: 'center',
+              overflow: 'hidden',
+              pointerEvents: 'none',
+            }}>
+              {/* Bubble tail */}
+              <div style={{
+                position: 'absolute',
+                bottom: -5,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 0,
               height: 0,
               borderLeft: '5px solid transparent',
               borderRight: '5px solid transparent',
-              borderTop: '5px solid rgba(119, 110, 162, 0.45)',
+              borderTop: '5px solid rgba(110, 207, 163, 0.4)',
             }} />
             {insight}
           </div>
@@ -383,11 +391,6 @@ export function GhostSprite({
           }} />
         )}
 
-        {/* Floating animation wrapper with Veridian glow */}
-        <div style={{
-          animation: 'ghost-float 4s ease-in-out infinite',
-          position: 'relative',
-        }}>
           {/* Glow */}
           <div style={{
             position: 'absolute',
@@ -414,8 +417,8 @@ export function GhostSprite({
           50% { transform: translateY(-6px); }
         }
         @keyframes ghost-bubble-in {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; margin-bottom: -4px; }
+          to { opacity: 1; margin-bottom: 0; }
         }
         @keyframes ghost-sonar {
           0% {
