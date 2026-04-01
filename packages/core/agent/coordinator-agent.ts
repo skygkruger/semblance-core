@@ -48,6 +48,8 @@ import type {
   ModelTier,
   OrchestratorV2EventType,
   OrchestratorEventEmitter,
+  SessionContextProvider,
+  SkillBundle,
 } from './orchestrator-v2-types.js';
 import { DEFAULT_COORDINATOR_CONFIG } from './orchestrator-v2-types.js';
 import type { HardwareProfileTier } from '../llm/hardware-types.js';
@@ -71,6 +73,8 @@ export class CoordinatorAgent implements Orchestrator {
   private executor: SubagentExecutor | null = null;
   private eventBus: OrchestratorEventEmitter | null = null;
   private hardwareTier: HardwareProfileTier;
+  private sessionContextProvider: SessionContextProvider | null = null;
+  private skillBundles: Map<string, SkillBundle> = new Map();
 
   // Extension tool tracking (mirrors v1)
   private extensionToolHandlers: Map<string, ToolHandler> = new Map();
@@ -230,6 +234,22 @@ export class CoordinatorAgent implements Orchestrator {
     this.eventBus = eventBus;
   }
 
+  /** Set the session context provider for named session overrides. */
+  setSessionContextProvider(provider: SessionContextProvider): void {
+    this.sessionContextProvider = provider;
+  }
+
+  /** Register a skill bundle for subtask assignment during decomposition. */
+  registerSkillBundle(bundle: SkillBundle): void {
+    this.skillBundles.set(bundle.skillId, bundle);
+    console.error(`[CoordinatorAgent] Registered skill bundle: ${bundle.name} (${bundle.tools.length} tools)`);
+  }
+
+  /** Get all registered skill bundles. */
+  getSkillBundles(): SkillBundle[] {
+    return Array.from(this.skillBundles.values());
+  }
+
   /** Get the hook registry for external hook registration. */
   getHookRegistry(): ToolHookRegistryImpl {
     return this.hookRegistry;
@@ -248,6 +268,35 @@ export class CoordinatorAgent implements Orchestrator {
     conversationId?: string,
   ): Promise<OrchestratorResponse> {
     const sessionId = conversationId ?? `session_${nanoid(12)}`;
+
+    // Step 0: Look up named session context if available
+    let sessionModelOverride: string | null = null;
+    if (conversationId && this.sessionContextProvider) {
+      try {
+        const sessionCtx = await this.sessionContextProvider.getSessionOverrides(conversationId);
+        if (sessionCtx) {
+          sessionModelOverride = sessionCtx.modelOverride;
+          // Store session context in session memory for subagent access
+          this.sessionMemory.set(
+            'session:key',
+            sessionCtx.sessionKey ?? '',
+            'critical',
+            'coordinator',
+          );
+          if (Object.keys(sessionCtx.autonomyOverrides).length > 0) {
+            this.sessionMemory.set(
+              'session:autonomy_overrides',
+              JSON.stringify(sessionCtx.autonomyOverrides),
+              'critical',
+              'coordinator',
+            );
+          }
+          console.error(`[CoordinatorAgent] Named session context loaded: ${sessionCtx.sessionKey}`);
+        }
+      } catch {
+        // Session lookup failed — proceed with global settings
+      }
+    }
 
     // Step 1: Decompose into subtasks
     const decomposition = await this.decompose(message, assessment);

@@ -259,6 +259,36 @@ export interface OrchestratorV2Event {
   details: Record<string, unknown>;
 }
 
+// ─── Session Context Provider ─────────────────────────────────────────────────
+
+/**
+ * Provides named session context to the coordinator for decomposition.
+ * Bridge.ts wires a NamedSessionManager-backed implementation.
+ */
+export interface SessionContextProvider {
+  /** Look up session-specific autonomy overrides for a conversation ID. */
+  getSessionOverrides(conversationId: string): Promise<{
+    autonomyOverrides: Record<string, string>;
+    modelOverride: string | null;
+    sessionKey: string | null;
+  } | null>;
+}
+
+// ─── Skill Bundle ─────────────────────────────────────────────────────────────
+
+/**
+ * A skill bundle maps a skill's tool set to a SubtaskDefinition template.
+ * The coordinator can assign skill bundles as coherent subtasks during decomposition.
+ */
+export interface SkillBundle {
+  skillId: string;
+  name: string;
+  description: string;
+  tools: string[];
+  defaultModelTier: ModelTier;
+  defaultTurnBudget: number;
+}
+
 // ─── Event Emitter Interface ──────────────────────────────────────────────────
 
 /**

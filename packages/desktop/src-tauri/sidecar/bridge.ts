@@ -1730,6 +1730,20 @@ async function handleInitialize(): Promise<unknown> {
     if (installedCount > 0) {
       skillRegistry.loadAll(core?.agent ?? null).then(() => {
         console.error('[sidecar] SkillRegistry loadAll complete');
+        // Register skill bundles with v2 coordinator for subtask assignment
+        if (core?.agent && 'registerSkillBundle' in core.agent) {
+          try {
+            const { skillToBundle } = require('../../../core/skills/skill-bundle-resolver.js');
+            for (const installed of skillRegistry.list()) {
+              if (installed.enabled && installed.declaration) {
+                const bundle = skillToBundle(installed.declaration);
+                (core.agent as any).registerSkillBundle(bundle);
+              }
+            }
+          } catch (bundleErr) {
+            console.error('[sidecar] Skill bundle registration failed (non-fatal):', (bundleErr as Error).message);
+          }
+        }
       }).catch((err: unknown) => {
         console.error('[sidecar] SkillRegistry loadAll failed:', (err as Error).message);
       });
@@ -1751,6 +1765,87 @@ async function handleInitialize(): Promise<unknown> {
     // Browser CDP adapter (lazy — connects on first use)
     browserCDPAdapter = new BrowserCDPAdapter(gateway?.getAllowlist());
     console.error('[sidecar] BrowserCDPAdapter initialized (lazy connect)');
+
+    // Register browser CDP tools with the orchestrator so subagents can use them.
+    // The tools route through IPC to the Gateway's BrowserCDPAdapter.
+    if (core?.agent) {
+      const { BROWSER_TOOL_DEFINITIONS, BROWSER_TOOL_ACTION_MAP } = require('../../../core/agent/browser-tools.js');
+      const browserExtTools = BROWSER_TOOL_DEFINITIONS.map((def: any) => ({
+        definition: def,
+        handler: async (params: Record<string, unknown>) => {
+          if (!browserCDPAdapter) throw new Error('Browser CDP adapter not initialized');
+          const method = def.name.replace('browser_', '');
+          return (browserCDPAdapter as any)[method]?.(params) ?? { error: `Unknown browser method: ${method}` };
+        },
+        isLocal: true,
+        actionType: BROWSER_TOOL_ACTION_MAP[def.name],
+      }));
+      core.agent.registerTools(browserExtTools);
+      console.error(`[sidecar] Registered ${browserExtTools.length} browser CDP tools with orchestrator`);
+
+      // Wire named session context provider into v2 coordinator.
+      // This lets the coordinator look up session-specific autonomy overrides
+      // and model overrides when decomposing complex requests.
+      if ('setSessionContextProvider' in core.agent) {
+        (core.agent as any).setSessionContextProvider({
+          async getSessionOverrides(conversationId: string) {
+            if (!namedSessionManager && prefsDb) {
+              namedSessionManager = new NamedSessionManager(prefsDb as any);
+            }
+            if (!namedSessionManager) return null;
+            // Look up session by conversation ID across all sessions
+            const sessions = await namedSessionManager.listSessions();
+            const match = sessions.find((s: any) => s.conversationId === conversationId);
+            if (!match) return null;
+            return {
+              autonomyOverrides: match.autonomyOverrides ?? {},
+              modelOverride: match.modelOverride ?? null,
+              sessionKey: match.key,
+            };
+          },
+        });
+        console.error('[sidecar] Session context provider wired into v2 coordinator');
+      }
+
+      // Wire subagent stream events to canvas + NDJSON event stream.
+      // When subagents execute in parallel, the frontend sees real-time progress.
+      if ('setStreamCallback' in core.agent) {
+        (core.agent as any).setStreamCallback((event: any) => {
+          // Emit to NDJSON event stream for frontend consumption
+          emit('orchestrator:subagent', {
+            type: event.type,
+            subagentId: event.subagentId,
+            subtaskId: event.subtaskId,
+            timestamp: event.timestamp,
+            ...event.data,
+          });
+
+          // Push multi-agent progress to canvas for visual tracking
+          if (canvasManager && (
+            event.type === 'subagent_started' ||
+            event.type === 'subagent_completed' ||
+            event.type === 'subagent_failed' ||
+            event.type === 'synthesis_started' ||
+            event.type === 'synthesis_completed'
+          )) {
+            canvasManager.push({
+              componentType: 'custom' as any,
+              data: {
+                type: 'multi_agent_progress',
+                event: event.type,
+                subagentId: event.subagentId,
+                subtaskId: event.subtaskId,
+                ...event.data,
+              },
+              replace: true,
+              title: 'Multi-agent execution',
+            });
+            emit('canvas:update', canvasManager.getCurrentPayload());
+          }
+        });
+        console.error('[sidecar] Subagent stream events wired to canvas + NDJSON');
+      }
+    }
 
     // Alter Ego Week engine — initialized by @semblance/dr via ipAdapters
     console.error('[sidecar] AlterEgoWeekEngine: available via ipAdapters.alterEgoWeekEngine');
