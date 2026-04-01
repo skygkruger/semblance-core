@@ -231,9 +231,79 @@ interface TickState {
 interface MultiAgentOverlayProps {
   events: SubagentStreamEvent[];
   active: boolean;
+  /** Collapsed mode for historical messages — single-line summary, no animation */
+  collapsed?: boolean;
+  /** Toggle collapsed state */
+  onToggleCollapsed?: () => void;
 }
 
-export function MultiAgentOverlay({ events, active }: MultiAgentOverlayProps) {
+// ─── Collapsed summary view ──────────────────────────────────────────────────
+
+function CollapsedBracket({ events, onExpand }: { events: SubagentStreamEvent[]; onExpand?: () => void }) {
+  const { nodes } = buildNodes(events);
+  const agentCount = nodes.filter(n => n.tier === 1 && !n.tokenCount).length;
+  const toolCount = nodes.filter(n => n.tier === 2).length;
+  const totalTokens = nodes.reduce((sum, n) => sum + (n.tokenCount ?? 0), 0);
+  const hadError = nodes.some(n => n.status === 'error');
+  const hadCloud = nodes.some(n => n.isCloud);
+
+  const bracketColor = '#5E6B7C';
+  const spineX = 14;
+
+  return (
+    <div
+      onClick={onExpand}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '6px 0 6px 48px',
+        cursor: onExpand ? 'pointer' : 'default',
+        fontFamily: "'DM Mono', monospace",
+        fontSize: 10,
+        letterSpacing: '0.04em',
+        color: '#5E6B7C',
+        transition: 'color 200ms ease',
+      }}
+      onMouseEnter={e => { if (onExpand) e.currentTarget.style.color = '#A8B4C0'; }}
+      onMouseLeave={e => { if (onExpand) e.currentTarget.style.color = '#5E6B7C'; }}
+    >
+      {/* Mini bracket glyph */}
+      <svg
+        width={48}
+        height={28}
+        style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}
+      >
+        <g stroke={bracketColor} strokeWidth={1} opacity={0.3}>
+          <line x1={spineX} y1={4} x2={spineX} y2={24} />
+          <line x1={spineX} y1={4} x2={spineX + 5} y2={4} />
+          <line x1={spineX} y1={24} x2={spineX + 5} y2={24} />
+          <line x1={spineX} y1={14} x2={spineX + 12} y2={14} />
+        </g>
+      </svg>
+
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{
+          width: 4, height: 4, borderRadius: '50%',
+          background: hadError ? '#E8657A' : '#6ECFA3',
+          flexShrink: 0,
+        }} />
+        {agentCount > 0 && <span>{agentCount} agent{agentCount !== 1 ? 's' : ''}</span>}
+        {toolCount > 0 && <span style={{ color: '#818CF8' }}>{toolCount} tool{toolCount !== 1 ? 's' : ''}</span>}
+        {totalTokens > 0 && <span>{(totalTokens / 1000).toFixed(1)}k tok</span>}
+        {hadCloud && <CloudIcon size={10} />}
+        {hadError && <span style={{ color: '#E8657A' }}>partial</span>}
+      </span>
+    </div>
+  );
+}
+
+export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed }: MultiAgentOverlayProps) {
+  // Collapsed mode — render summary
+  if (collapsed && events.length > 0) {
+    return <CollapsedBracket events={events} onExpand={onToggleCollapsed} />;
+  }
   const wrapperRef = useRef<HTMLDivElement>(null);
   const animFrameRef = useRef(0);
   const springRef = useRef<SpringState>({ position: 0, velocity: 0 });

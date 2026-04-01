@@ -11,6 +11,8 @@ export interface AttachmentPill {
 export interface AgentInputProps {
   placeholder?: string;
   thinking?: boolean;
+  /** Contextual thinking status — replaces generic "Thinking..." text */
+  thinkingText?: string;
   /** @deprecated Use `attachments` instead. Kept for backward compat. */
   activeDocument?: { name: string; onDismiss: () => void } | null;
   attachments?: AttachmentPill[];

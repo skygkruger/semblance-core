@@ -70,25 +70,77 @@ export function ChatScreen() {
   const [webFetchResult, setWebFetchResult] = useState<{ url: string; title: string; content: string; bytesFetched: number; contentType: string } | null>(null);
 
   // ─── Multi-Agent Orchestration ───────────────────────────────────────────
-  const [orchestrationEvents, setOrchestrationEvents] = useState<SubagentStreamEvent[]>([]);
+  // Events are persisted on the assistant message via APPEND_ORCHESTRATION_EVENT.
+  // orchestrationActive tracks whether the bracket is still animating.
   const [orchestrationActive, setOrchestrationActive] = useState(false);
+  // Track which messages the user has manually collapsed
+  const [collapsedOrchestrations, setCollapsedOrchestrations] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     registerMultiAgentCallback((event: SubagentStreamEvent) => {
       setOrchestrationActive(true);
-      setOrchestrationEvents(prev => [...prev, event]);
+      // Persist event on the last assistant message
+      dispatch({ type: 'APPEND_ORCHESTRATION_EVENT', event: event as unknown as import('../state/AppState').OrchestrationEvent });
       if (event.type === 'synthesis_completed') {
-        // Keep active for a moment after completion for the finish animation
-        setTimeout(() => setOrchestrationActive(false), 2000);
+        // Keep active for cascade animation, then deactivate
+        setTimeout(() => setOrchestrationActive(false), 2500);
       }
     });
     return () => unregisterMultiAgentCallback();
-  }, []);
+  }, [dispatch]);
+
+  // Auto-collapse historical brackets once response has content and orchestration is done
+  const lastMsg = state.chatMessages[state.chatMessages.length - 1];
+  useEffect(() => {
+    if (
+      !orchestrationActive &&
+      lastMsg?.role === 'assistant' &&
+      lastMsg.orchestration &&
+      lastMsg.orchestration.length > 0 &&
+      lastMsg.content.length > 20 // response is well underway
+    ) {
+      const timer = setTimeout(() => {
+        setCollapsedOrchestrations(prev => new Set(prev).add(lastMsg.id));
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [orchestrationActive, lastMsg?.id, lastMsg?.role, lastMsg?.orchestration?.length, lastMsg?.content.length]);
 
   const handleDemoComplete = useCallback(() => {
-    // After demo finishes, clear events after a delay so the user can see the final state
-    setTimeout(() => setOrchestrationEvents([]), 5000);
+    // Events persist on the message — no cleanup needed
   }, []);
+
+  // ─── Contextual thinking text ────────────────────────────────────────────
+  // Derives what to show in the input area based on current agent activity
+  const thinkingText = useMemo(() => {
+    if (!state.isResponding) return undefined;
+
+    // Check orchestration on the last assistant message
+    const lastAssistant = state.chatMessages.filter(m => m.role === 'assistant').at(-1);
+    const orch = lastAssistant?.orchestration;
+    if (orch && orch.length > 0 && orchestrationActive) {
+      const lastEvent = orch[orch.length - 1]!;
+      const eventType = lastEvent.type as string;
+      if (eventType === 'decomposition_started') return 'Analyzing request complexity...';
+      if (eventType === 'decomposition_complete') return 'Decomposing into subtasks...';
+      if (eventType === 'subagent_started') return `Working: ${(lastEvent.data as Record<string, unknown>).text ?? 'spawning agent'}`;
+      if (eventType === 'subagent_tool_call') return `Using ${(lastEvent.data as Record<string, unknown>).toolName ?? 'tool'}...`;
+      if (eventType === 'subagent_tool_result') return 'Processing results...';
+      if (eventType === 'subagent_completed') return 'Agent task complete';
+      if (eventType === 'subagent_failed') return 'Agent encountered an issue';
+      if (eventType === 'synthesis_started' || eventType === 'synthesis_progress') return 'Synthesizing findings...';
+      if (eventType === 'synthesis_completed') return 'Composing response...';
+    }
+
+    // Web search in progress
+    if (webSearchResults.length > 0 && !lastAssistant?.content) return `Searched: "${webSearchQuery}"`;
+
+    // Streaming has started
+    if (lastAssistant?.content && lastAssistant.content.length > 0) return 'Responding...';
+
+    // Default — waiting for first token
+    return 'Thinking...';
+  }, [state.isResponding, state.chatMessages, orchestrationActive, webSearchResults.length, webSearchQuery]);
 
   // Sound effects
   const { play } = useSound();
@@ -249,12 +301,19 @@ export function ChatScreen() {
 
   // ─── Existing handlers ───────────────────────────────────────────────────
 
-  // Auto-scroll to bottom on new messages
+  // Smart auto-scroll — only snap to bottom if user is near the bottom (within 150px)
+  // Always smooth-scroll on new message send (userJustSent flag)
+  const userJustSentRef = useRef(false);
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const isNearBottom = distanceFromBottom < 150;
+    if (isNearBottom || userJustSentRef.current) {
+      el.scrollTo({ top: el.scrollHeight, behavior: userJustSentRef.current ? 'smooth' : 'auto' });
+      userJustSentRef.current = false;
     }
-  }, [state.chatMessages]);
+  }, [state.chatMessages, state.chatMessages.length > 0 ? state.chatMessages[state.chatMessages.length - 1]?.content : '']);
 
   // Drag-and-drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -473,10 +532,11 @@ export function ChatScreen() {
   useTauriEvent<{ id: string; content: string; actions?: Array<{ id: string; type: string; status: string; payload: unknown; reasoning?: string }> }>('semblance://chat-complete', useCallback((payload) => {
     dispatch({ type: 'SET_IS_RESPONDING', value: false });
     refreshConversationList();
-    // Surface actions from orchestrator inline in chat
+    // Surface actions from orchestrator inline in chat — target specific message by ID
     if (payload.actions && payload.actions.length > 0) {
       dispatch({
         type: 'SET_LAST_MESSAGE_ACTIONS',
+        messageId: payload.id || undefined,
         actions: payload.actions.map(a => ({
           id: a.id,
           type: a.type,
@@ -517,10 +577,12 @@ export function ChatScreen() {
   );
 
   const handleSend = useCallback(async (message: string) => {
-    // Clear stale web search results from previous message
+    // Clear stale results from previous message
     setWebSearchResults([]);
     setWebSearchQuery('');
     setWebFetchResult(null);
+    setOrchestrationActive(false);
+    userJustSentRef.current = true;
 
     // Snapshot current attachments for this message
     const messageAttachments = state.chatAttachments
@@ -1197,18 +1259,24 @@ export function ChatScreen() {
       >
         {/* Drag overlay */}
         {isDragging && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-semblance-primary-subtle/50 dark:bg-semblance-primary-subtle-dark/50 border-2 border-dashed border-semblance-primary rounded-lg pointer-events-none">
+          <div
+            className="absolute inset-0 z-50 flex items-center justify-center rounded-lg pointer-events-none"
+            style={{ background: 'rgba(110, 207, 163, 0.04)', border: '2px dashed rgba(110, 207, 163, 0.3)' }}
+          >
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 400, color: '#6ECFA3', letterSpacing: '0.04em' }}>{t('screen.chat.drop_overlay')}</p>
           </div>
         )}
 
         {/* Connection status bar */}
-        <div className="flex items-center gap-4 px-6 py-2 border-b border-semblance-border dark:border-semblance-border-dark">
+        <div className="flex items-center gap-4 px-6 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           {/* History toggle button */}
           <button
             type="button"
             onClick={() => dispatch({ type: 'TOGGLE_HISTORY_PANEL' })}
-            className="p-1 rounded hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
+            className="p-1 rounded transition-colors"
+            style={{ background: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             title="History (Ctrl+H)"
             data-testid="toggle-history-panel"
           >
@@ -1248,7 +1316,10 @@ export function ChatScreen() {
           <button
             type="button"
             onClick={handleNewConversation}
-            className="ml-auto p-1 rounded hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
+            className="ml-auto p-1 rounded transition-colors"
+            style={{ background: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             title="New conversation (Ctrl+N)"
             data-testid="new-conversation-btn"
           >
@@ -1260,8 +1331,8 @@ export function ChatScreen() {
 
         {/* Document context banner */}
         {state.documentContext && (
-          <div className="flex items-center gap-3 px-6 py-2 bg-semblance-accent-subtle dark:bg-semblance-accent-subtle border-b border-semblance-border dark:border-semblance-border-dark">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-semblance-accent flex-shrink-0">
+          <div className="flex items-center gap-3 px-6 py-2" style={{ background: 'rgba(110, 207, 163, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ECFA3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
               <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
@@ -1271,7 +1342,10 @@ export function ChatScreen() {
             <button
               type="button"
               onClick={handleClearDocument}
-              className="flex-shrink-0 p-1 rounded hover:bg-semblance-surface-2 dark:hover:bg-semblance-surface-2-dark transition-colors"
+              className="flex-shrink-0 p-1 rounded transition-colors"
+              style={{ background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               aria-label={t('a11y.clear_document_context')}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#5E6B7C' }}>
@@ -1311,11 +1385,18 @@ export function ChatScreen() {
             </div>
           ) : (
             <>
-              {state.chatMessages.map((msg, i) => (
+              {state.chatMessages.map((msg, i) => {
+                const isLastAssistant = msg.role === 'assistant' && i === state.chatMessages.length - 1;
+                const isStreaming = state.isResponding && isLastAssistant;
+                const hasOrchestration = msg.orchestration && msg.orchestration.length > 0;
+                const isOrchestrationLive = hasOrchestration && isLastAssistant && orchestrationActive;
+                const isCollapsed = collapsedOrchestrations.has(msg.id);
+
+                return (
                 <div key={msg.id}>
-                  {/* Attachments render above the user bubble (like Claude) */}
+                  {/* Attachments render above the user bubble */}
                   {msg.role === 'user' && msg.attachments && msg.attachments.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-2 justify-end max-w-[720px] ml-auto">
+                    <div className="flex flex-wrap gap-2 mb-2 justify-center max-w-[80%] ml-auto">
                       {msg.attachments.map(att => (
                         <div
                           key={att.id}
@@ -1334,24 +1415,52 @@ export function ChatScreen() {
                       ))}
                     </div>
                   )}
-                  <ChatBubble
-                    role={msg.role}
-                    content={msg.role === 'assistant'
-                      ? msg.content
-                          .replace(/<artifact\s+[^>]*>[\s\S]*?<\/artifact>/g, '')
-                          .replace(/<\/?artifact[^>]*>/g, '')
-                          .trim()
-                      : msg.content}
-                    timestamp={msg.timestamp}
-                    streaming={state.isResponding && msg.role === 'assistant' && i === state.chatMessages.length - 1}
-                  />
-                  {msg.actions && msg.actions.length > 0 && (
+
+                  {/* Multi-agent bracket — on assistant messages that have orchestration data */}
+                  {msg.role === 'assistant' && hasOrchestration && (
+                    <div className="chat-bubble chat-bubble--assistant" style={{ marginBottom: isCollapsed ? 4 : 8 }}>
+                      <div style={{ maxWidth: '80%' }}>
+                        <MultiAgentOverlay
+                          events={msg.orchestration as unknown as SubagentStreamEvent[]}
+                          active={isOrchestrationLive ?? false}
+                          collapsed={isCollapsed && !isOrchestrationLive}
+                          onToggleCollapsed={() => {
+                            setCollapsedOrchestrations(prev => {
+                              const next = new Set(prev);
+                              if (next.has(msg.id)) next.delete(msg.id);
+                              else next.add(msg.id);
+                              return next;
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chat bubble — hide empty streaming bubble while bracket is actively animating */}
+                  {!(isStreaming && !msg.content && isOrchestrationLive) && (
+                    <ChatBubble
+                      role={msg.role}
+                      content={msg.role === 'assistant'
+                        ? msg.content
+                            .replace(/<artifact\s+[^>]*>[\s\S]*?<\/artifact>/g, '')
+                            .replace(/<\/?artifact[^>]*>/g, '')
+                            .trim()
+                        : msg.content}
+                      timestamp={msg.timestamp}
+                      streaming={isStreaming}
+                    />
+                  )}
+
+                  {/* Inline actions — only show after orchestration completes for the active message */}
+                  {msg.actions && msg.actions.length > 0 && !(isLastAssistant && orchestrationActive) && (
                     <div className="mt-2 space-y-2 max-w-[720px]">
                       {msg.actions.map(act => renderInlineAction(act))}
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
               {/* Web search results — shown inline after relevant assistant messages */}
               {webSearchResults.length > 0 && (
                 <WebSearchResult
@@ -1372,10 +1481,7 @@ export function ChatScreen() {
               )}
             </>
           )}
-          {/* Multi-agent orchestration — renders inline in message flow */}
-          {orchestrationEvents.length > 0 && (
-            <MultiAgentOverlay events={orchestrationEvents} active={orchestrationActive} />
-          )}
+          {/* Orchestration brackets render inline with each assistant message above */}
         </div>
         </div>
 
@@ -1400,6 +1506,7 @@ export function ChatScreen() {
             onSend={handleSend}
             onCancel={() => { cancelMessage().catch(() => {}); }}
             thinking={state.isResponding}
+            thinkingText={thinkingText}
             activeDocument={state.documentContext ? {
               name: state.documentContext.fileName,
               onDismiss: handleClearDocument,

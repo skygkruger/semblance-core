@@ -190,6 +190,14 @@ export interface ChatMessageAttachment {
   sizeBytes: number;
 }
 
+export interface OrchestrationEvent {
+  type: string;
+  subagentId: string;
+  subtaskId: string;
+  timestamp: number;
+  data: Record<string, unknown>;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -197,6 +205,8 @@ export interface ChatMessage {
   timestamp: string;
   actions?: ChatActionItem[];
   attachments?: ChatMessageAttachment[];
+  /** Multi-agent orchestration events — persisted with the message for history */
+  orchestration?: OrchestrationEvent[];
 }
 
 // ─── Actions ───────────────────────────────────────────────────────────────
@@ -251,7 +261,8 @@ export type AppAction =
   | { type: 'TOGGLE_HISTORY_PANEL' }
   | { type: 'SET_HISTORY_PANEL'; open: boolean }
   | { type: 'REPLACE_CHAT_MESSAGES'; messages: ChatMessage[] }
-  | { type: 'SET_LAST_MESSAGE_ACTIONS'; actions: ChatActionItem[] }
+  | { type: 'SET_LAST_MESSAGE_ACTIONS'; actions: ChatActionItem[]; messageId?: string }
+  | { type: 'APPEND_ORCHESTRATION_EVENT'; event: OrchestrationEvent }
   | { type: 'SET_CONVERSATION_SETTINGS'; settings: AppState['conversationSettings'] }
   | { type: 'SET_INTENT_PROFILE'; profile: AppState['intentProfile'] }
   | { type: 'SET_PRIMARY_GOAL'; goal: string }
@@ -521,9 +532,26 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, chatMessages: action.messages };
     case 'SET_LAST_MESSAGE_ACTIONS': {
       const msgs = [...state.chatMessages];
+      // Target specific message by ID if provided, otherwise fall back to last assistant
+      if (action.messageId) {
+        const idx = msgs.findIndex(m => m.id === action.messageId);
+        if (idx >= 0) {
+          msgs[idx] = { ...msgs[idx]!, actions: action.actions };
+        }
+      } else {
+        const lastIdx = msgs.length - 1;
+        if (lastIdx >= 0 && msgs[lastIdx]!.role === 'assistant') {
+          msgs[lastIdx] = { ...msgs[lastIdx]!, actions: action.actions };
+        }
+      }
+      return { ...state, chatMessages: msgs };
+    }
+    case 'APPEND_ORCHESTRATION_EVENT': {
+      const msgs = [...state.chatMessages];
       const lastIdx = msgs.length - 1;
       if (lastIdx >= 0 && msgs[lastIdx]!.role === 'assistant') {
-        msgs[lastIdx] = { ...msgs[lastIdx]!, actions: action.actions };
+        const prev = msgs[lastIdx]!.orchestration ?? [];
+        msgs[lastIdx] = { ...msgs[lastIdx]!, orchestration: [...prev, action.event] };
       }
       return { ...state, chatMessages: msgs };
     }

@@ -13,6 +13,7 @@ import './AgentInput.css';
 export function AgentInput({
   placeholder,
   thinking = false,
+  thinkingText,
   activeDocument,
   attachments = [],
   onAttach,
@@ -217,7 +218,7 @@ export function AgentInput({
         {thinking && (
           <div className="agent-input__thinking-overlay" data-testid="thinking-overlay">
             <span className="agent-input__thinking-cursor" />
-            <span className="agent-input__thinking-text">{t('input.thinking_text')}</span>
+            <span className="agent-input__thinking-text">{thinkingText || t('input.thinking_text')}</span>
             {onCancel && (
               <button
                 type="button"
