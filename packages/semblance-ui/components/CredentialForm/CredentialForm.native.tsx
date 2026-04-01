@@ -318,9 +318,9 @@ const styles = StyleSheet.create({
     fontFamily: nativeFontFamily.uiMedium,
   },
   noteBox: {
-    backgroundColor: 'rgba(176, 154, 138, 0.08)',
+    backgroundColor: 'rgba(237, 221, 82, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(176, 154, 138, 0.12)',
+    borderColor: 'rgba(237, 221, 82, 0.12)',
     borderRadius: nativeRadius.md,
     padding: nativeSpacing.s3,
   },
@@ -400,8 +400,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(110, 207, 163, 0.12)',
   },
   resultError: {
-    backgroundColor: 'rgba(176, 122, 138, 0.08)',
-    borderColor: 'rgba(176, 122, 138, 0.12)',
+    backgroundColor: 'rgba(232, 101, 122, 0.08)',
+    borderColor: 'rgba(232, 101, 122, 0.12)',
   },
   resultText: {
     fontFamily: nativeFontFamily.ui,

@@ -231,6 +231,46 @@
   animation: shimmer 19s linear infinite;
 }
 
+/* ─── Cloud Connectivity — Electric Cyan hover/active ─── */
+
+.desktop-sidebar__item--cloud:hover {
+  color: var(--w-dim);
+  background:
+    linear-gradient(var(--s1), var(--s1)) padding-box,
+    linear-gradient(rgba(56, 189, 248, 0.32), rgba(56, 189, 248, 0.32)) border-box;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.18), inset 0 0 8px rgba(56, 189, 248, 0.08);
+  animation: none;
+}
+
+.desktop-sidebar__item--cloud:hover .desktop-sidebar__icon {
+  color: #38BDF8;
+}
+
+.desktop-sidebar__item--cloud.desktop-sidebar__item--active {
+  color: var(--white);
+  border-color: rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.08);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.18), inset 0 0 8px rgba(56, 189, 248, 0.08);
+  animation: none;
+}
+
+.desktop-sidebar__item--cloud.desktop-sidebar__item--active .desktop-sidebar__icon {
+  color: #38BDF8;
+}
+
+/* Cloud Connectivity section — Electric Cyan shimmer */
+.desktop-sidebar__section-label--cloud {
+  background: linear-gradient(
+    105deg,
+    #2563EB 0%, #3B82F6 12%, #38BDF8 24%,
+    #7DD3FC 36%, #818CF8 48%, #6366F1 54%, #818CF8 62%,
+    #38BDF8 74%, #3B82F6 82%, #2563EB 90%, #1E40AF 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
 /* ─── Frosted glass footer — mirrors brand glass ─── */
 .desktop-sidebar__footer-glass {
   position: absolute;

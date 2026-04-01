@@ -152,7 +152,7 @@ export function FilesScreen() {
           ) : indexingStatus.state === 'error' ? (
             <div className="flex items-center gap-2">
               <StatusIndicator status="attention" />
-              <span style={{ color: '#B07A8A', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>{t('screen.files.indexing_error', { error: indexingStatus.error })}</span>
+              <span style={{ color: '#E8657A', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>{t('screen.files.indexing_error', { error: indexingStatus.error })}</span>
             </div>
           ) : (
             <div style={{ width: '100%' }}>

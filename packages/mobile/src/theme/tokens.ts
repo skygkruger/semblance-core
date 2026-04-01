@@ -36,7 +36,7 @@ export const colors = {
   // Aliases for screens that reference light-mode names in dark context
   primarySubtle: brandColors.veridianDim,
   successSubtle: 'rgba(61, 184, 122, 0.10)',
-  attentionSubtle: 'rgba(176, 122, 138, 0.10)',
+  attentionSubtle: 'rgba(232, 101, 122, 0.10)',
   surface1: brandColors.s1,
   border: brandColors.b2,
   textPrimary: brandColors.white,

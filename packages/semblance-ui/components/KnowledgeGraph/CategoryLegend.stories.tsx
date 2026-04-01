@@ -27,7 +27,7 @@ const sampleCategories = [
   { id: 'cat-files', label: 'Files', color: '#C8CAD0', nodeCount: 156, category: 'files' },
   { id: 'cat-people', label: 'People', color: '#F5E6C8', nodeCount: 47, category: 'people' },
   { id: 'cat-health', label: 'Health', color: '#6ECFA3', nodeCount: 32, category: 'health' },
-  { id: 'cat-finance', label: 'Finance', color: '#B07A8A', nodeCount: 0, category: 'finance' },
+  { id: 'cat-finance', label: 'Finance', color: '#E8657A', nodeCount: 0, category: 'finance' },
 ];
 
 export const Desktop: Story = {

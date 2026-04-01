@@ -136,7 +136,7 @@
 }
 
 .semblance-network-screen__btn--danger:hover {
-  background: rgba(176, 122, 138, 0.1);
+  background: rgba(232, 101, 122, 0.1);
   border-color: var(--critical);
 }
 

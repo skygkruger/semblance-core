@@ -184,9 +184,9 @@
 /* Status text — per-status colors */
 .connector-card__status-text { color: #5E6B7C; }
 .connector-card__status-text--connected { color: #6ECFA3; }
-.connector-card__status-text--error { color: #B07A8A; }
+.connector-card__status-text--error { color: #E8657A; }
 .connector-card__status-text--pending,
-.connector-card__status-text--syncing { color: #B09A8A; }
+.connector-card__status-text--syncing { color: #EDDD52; }
 
 .connector-card__status-text--disconnected {
   display: inline;
@@ -227,12 +227,12 @@
 }
 
 .connector-card__status-dot--error {
-  background: #B07A8A;
+  background: #E8657A;
 }
 
 .connector-card__status-dot--pending,
 .connector-card__status-dot--syncing {
-  background: #B09A8A;
+  background: #EDDD52;
   animation: pulse 1s ease-in-out infinite;
 }
 

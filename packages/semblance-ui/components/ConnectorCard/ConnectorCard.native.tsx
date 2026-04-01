@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   drBadgeText: {
     fontFamily: nativeFontFamily.mono,
     fontSize: nativeFontSize.xs,
-    color: '#B09A8A',
+    color: '#EDDD52',
     letterSpacing: 0.44,
   },
   description: {

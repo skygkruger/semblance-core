@@ -15,18 +15,20 @@ function NavItemButton({
   activeId,
   collapsed,
   onNavigate,
+  cloud,
 }: {
   item: NavItem;
   activeId?: string;
   collapsed: boolean;
   onNavigate?: (id: string) => void;
+  cloud?: boolean;
 }) {
   if (item.hidden) return null;
   return (
     <button
       key={item.id}
       type="button"
-      className={`desktop-sidebar__item ${activeId === item.id ? 'desktop-sidebar__item--active' : ''} ${item.className || ''}`}
+      className={`desktop-sidebar__item ${activeId === item.id ? 'desktop-sidebar__item--active' : ''} ${cloud ? 'desktop-sidebar__item--cloud' : ''} ${item.className || ''}`}
       onClick={() => onNavigate?.(item.id)}
       title={collapsed ? item.label : undefined}
     >
@@ -106,10 +108,10 @@ export function DesktopSidebar({
           (items as NavSection[]).map((section, idx) => (
             <div key={section.label} className={`desktop-sidebar__section ${idx > 0 ? 'desktop-sidebar__section--gap' : ''}`}>
               {!collapsed && (
-                <div className="desktop-sidebar__section-label">{section.label}</div>
+                <div className={`desktop-sidebar__section-label${section.label === 'CLOUD CONNECTIVITY' ? ' desktop-sidebar__section-label--cloud' : ''}`}>{section.label}</div>
               )}
               {section.items.map(item => (
-                <NavItemButton key={item.id} item={item} activeId={activeId} collapsed={collapsed} onNavigate={onNavigate} />
+                <NavItemButton key={item.id} item={item} activeId={activeId} collapsed={collapsed} onNavigate={onNavigate} cloud={section.label === 'CLOUD CONNECTIVITY'} />
               ))}
             </div>
           ))

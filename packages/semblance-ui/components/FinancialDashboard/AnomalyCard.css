@@ -21,9 +21,9 @@
 
 .anomaly-card:hover {
   box-shadow:
-    0 0 15px rgba(176, 154, 138, 0.06),
-    0 0 35px rgba(176, 154, 138, 0.04),
-    0 0 60px rgba(176, 154, 138, 0.03);
+    0 0 15px rgba(237, 221, 82, 0.06),
+    0 0 35px rgba(237, 221, 82, 0.04),
+    0 0 60px rgba(237, 221, 82, 0.03);
 }
 
 .anomaly-card--high {

@@ -87,7 +87,7 @@ export function KnowledgeGraphScreen() {
   if (error) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8">
-        <p style={{ color: '#B07A8A', fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: '0.04em', marginBottom: 12 }}>
+        <p style={{ color: '#E8657A', fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: '0.04em', marginBottom: 12 }}>
           {t('screen.knowledge_graph.error', 'Failed to load knowledge graph.')}
         </p>
         <p style={{ color: '#5E6B7C', fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: '0.04em', marginBottom: 16 }}>{error}</p>

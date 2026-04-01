@@ -274,11 +274,11 @@
 }
 
 .settings-card--caution {
-  border-color: rgba(176, 154, 138, 0.4);
+  border-color: rgba(237, 221, 82, 0.4);
 }
 
 .settings-card--critical {
-  border-color: rgba(176, 122, 138, 0.4);
+  border-color: rgba(232, 101, 122, 0.4);
 }
 
 /* Segmented control */
@@ -353,12 +353,12 @@
 
 .settings-badge--caution {
   color: var(--caution);
-  background: rgba(176, 154, 138, 0.1);
+  background: rgba(237, 221, 82, 0.1);
 }
 
 .settings-badge--critical {
   color: var(--critical);
-  background: rgba(176, 122, 138, 0.1);
+  background: rgba(232, 101, 122, 0.1);
 }
 
 .settings-badge--muted {

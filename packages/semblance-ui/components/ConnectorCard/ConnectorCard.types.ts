@@ -30,18 +30,18 @@ export const statusConfig: Record<ConnectorCardStatus, { label: string; dotColor
   },
   error: {
     label: 'Error',
-    dotColor: '#B07A8A',
-    textColor: '#B07A8A',
+    dotColor: '#E8657A',
+    textColor: '#E8657A',
   },
   pending: {
     label: 'Connecting...',
-    dotColor: '#B09A8A',
-    textColor: '#B09A8A',
+    dotColor: '#EDDD52',
+    textColor: '#EDDD52',
   },
   syncing: {
     label: 'Syncing...',
     dotColor: '#6ECFA3',
-    textColor: '#B09A8A',
+    textColor: '#EDDD52',
   },
 };
 

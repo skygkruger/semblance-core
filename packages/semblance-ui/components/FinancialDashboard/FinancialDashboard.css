@@ -166,8 +166,8 @@
 
 .fin-dash__trend--up {
   color: var(--critical);
-  background: rgba(176, 122, 138, 0.08);
-  border: 1px solid rgba(176, 122, 138, 0.15);
+  background: rgba(232, 101, 122, 0.08);
+  border: 1px solid rgba(232, 101, 122, 0.15);
 }
 
 .fin-dash__trend--stable {
@@ -206,7 +206,7 @@
   background:
     linear-gradient(180deg, #161A1E 0%, #111518 100%) padding-box,
     linear-gradient(rgba(176,154,138,0.35), rgba(176,154,138,0.35)) border-box;
-  box-shadow: 0 0 12px rgba(176, 154, 138, 0.06), 0 0 30px rgba(176, 154, 138, 0.04);
+  box-shadow: 0 0 12px rgba(237, 221, 82, 0.06), 0 0 30px rgba(237, 221, 82, 0.04);
 }
 
 .fin-dash__row-label {

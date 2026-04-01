@@ -186,7 +186,7 @@ function CanvasCardContent({ componentType, data }: { componentType: string; dat
       const anomaly = data.anomaly as { description?: string } | undefined;
       return (
         <div style={{ fontSize: 12, color: '#A8B4C0' }}>
-          {anomaly ? <div style={{ color: '#B07A8A' }}>Anomaly: {anomaly.description}</div> : <div>Chart data available.</div>}
+          {anomaly ? <div style={{ color: '#E8657A' }}>Anomaly: {anomaly.description}</div> : <div>Chart data available.</div>}
         </div>
       );
     }

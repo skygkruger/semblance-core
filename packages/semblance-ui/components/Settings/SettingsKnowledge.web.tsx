@@ -72,7 +72,7 @@ export function SettingsKnowledge({ stats, isReindexing, onReindex, onClearSourc
                   type="button"
                   onClick={() => onClearSource(src.source)}
                   style={{
-                    background: 'none', border: 'none', color: '#B07A8A',
+                    background: 'none', border: 'none', color: '#E8657A',
                     fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', padding: '4px 8px',
                   }}
                 >

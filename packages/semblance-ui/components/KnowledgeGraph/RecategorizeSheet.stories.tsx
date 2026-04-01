@@ -41,7 +41,7 @@ const allCategories: CategoryInfo[] = [
   { category: 'people', count: 24, color: '#F5E6C8' },
   { category: 'social', count: 10, color: '#8B5CF6' },
   { category: 'finance', count: 8, color: '#B0A090' },
-  { category: 'reading', count: 7, color: '#B07A8A' },
+  { category: 'reading', count: 7, color: '#E8657A' },
   { category: 'music', count: 4, color: '#EC4899' },
   { category: 'cloud', count: 6, color: '#8B93A7' },
   { category: 'browser', count: 9, color: '#6ECFA3' },

@@ -450,7 +450,7 @@ export function ConnectionsScreen() {
                               borderRadius: 6,
                               padding: '4px 10px',
                               fontSize: 11,
-                              color: '#B07A8A',
+                              color: '#E8657A',
                               cursor: 'pointer',
                               fontFamily: "'DM Mono', monospace",
                             }}

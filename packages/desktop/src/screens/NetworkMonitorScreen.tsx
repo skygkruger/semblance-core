@@ -141,7 +141,7 @@ function TrustStatusCard({ unauthorizedAttempts, onGenerateReport }: {
           </h2>
           <div style={{
             width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-            background: isClean ? '#6ECFA3' : '#B09A8A',
+            background: isClean ? '#6ECFA3' : '#EDDD52',
             animation: 'pulse 2s ease-in-out infinite',
             animationDelay: '-1000s',
           }} />
@@ -326,7 +326,7 @@ function ConnectionLogCard({ history }: { history: ConnectionRecord[] }) {
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                 {record.service}
               </span>
-              <span style={{ color: record.status === 'success' ? '#6ECFA3' : '#B09A8A' }}>
+              <span style={{ color: record.status === 'success' ? '#6ECFA3' : '#EDDD52' }}>
                 {record.status === 'success' ? '\u2713' : '\u2717'}
               </span>
             </div>

@@ -13,7 +13,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Entertainment': '#A8B4C0',  // Platinum
   'Health & Fitness': '#8ABAB0', // Patina silver-teal
   'Health': '#8ABAB0',         // Patina silver-teal
-  'Personal': '#B09A8A',       // Pewter rose
+  'Personal': '#EDDD52',       // Pewter rose
   'Financial': '#9AA08A',      // Aged brass
   'Subscriptions': '#CDD4DB',  // Bright silver
   'Income': '#D4C896',         // Champagne gold

@@ -16,9 +16,9 @@ interface FeatureStatusBannerProps {
 
 const STATUS_COLORS = {
   active: '#6ECFA3',
-  waiting: '#B09A8A',
+  waiting: '#EDDD52',
   inactive: '#5E6B7C',
-  error: '#B07A8A',
+  error: '#E8657A',
 };
 
 export function FeatureStatusBanner({

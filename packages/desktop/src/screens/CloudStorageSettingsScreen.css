@@ -123,11 +123,11 @@
 }
 
 .cloud-storage__provider-status--syncing {
-  color: #B09A8A;
+  color: #EDDD52;
 }
 
 .cloud-storage__provider-status--error {
-  color: #B07A8A;
+  color: #E8657A;
 }
 
 .cloud-storage__provider-status--disconnected {
@@ -137,9 +137,9 @@
 .cloud-storage__disconnect-btn {
   font-family: var(--fm);
   font-size: var(--text-xs);
-  color: #B07A8A;
+  color: #E8657A;
   background: none;
-  border: 1px solid rgba(176, 122, 138, 0.3);
+  border: 1px solid rgba(232, 101, 122, 0.3);
   border-radius: var(--r-md);
   padding: var(--sp-2) var(--sp-3);
   cursor: pointer;
@@ -147,8 +147,8 @@
 }
 
 .cloud-storage__disconnect-btn:hover {
-  border-color: #B07A8A;
-  background: rgba(176, 122, 138, 0.1);
+  border-color: #E8657A;
+  background: rgba(232, 101, 122, 0.1);
 }
 
 /* Available providers */

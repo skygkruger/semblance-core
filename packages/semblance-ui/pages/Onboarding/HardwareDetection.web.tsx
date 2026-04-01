@@ -65,7 +65,7 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
               <span style={{ fontFamily: 'var(--fm)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--sv1)' }}>
                 {item.label}
               </span>
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-sm)', color: item.ok ? '#6ECFA3' : '#B07A8A' }}>
+              <span style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-sm)', color: item.ok ? '#6ECFA3' : '#E8657A' }}>
                 {item.value}
               </span>
             </div>

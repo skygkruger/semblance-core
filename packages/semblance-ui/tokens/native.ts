@@ -30,8 +30,8 @@ export const brandColors = {
   veridianGlowMd: 'rgba(110, 207, 163, 0.18)',
   veridianGlowLg: 'rgba(110, 207, 163, 0.28)',
   veridianWire: 'rgba(110, 207, 163, 0.32)',
-  caution: '#B09A8A',
-  critical: '#B07A8A',
+  caution: '#EDDD52',
+  critical: '#E8657A',
   // Shimmer — static midpoint of the onboarding shimmer gradient (web animates this)
   shimmerText: '#b8cdd8',
   // Semantic aliases used by native components

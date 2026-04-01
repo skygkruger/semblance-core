@@ -372,9 +372,9 @@ const styles = StyleSheet.create({
 
   // Error
   errorCard: {
-    backgroundColor: 'rgba(176, 122, 138, 0.12)',
+    backgroundColor: 'rgba(232, 101, 122, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(176, 122, 138, 0.3)',
+    borderColor: 'rgba(232, 101, 122, 0.3)',
     borderRadius: radius.lg,
     padding: spacing.base,
     marginBottom: spacing.md,

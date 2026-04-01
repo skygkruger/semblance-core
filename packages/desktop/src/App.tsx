@@ -38,6 +38,7 @@ import { LocationSettingsScreen } from './screens/LocationSettingsScreen';
 import { CloudStorageSettingsScreen } from './screens/CloudStorageSettingsScreen';
 import { SemblanceNetworkScreen } from './screens/SemblanceNetworkScreen';
 import { TunnelPairingScreen } from './screens/TunnelPairingScreen';
+import { CloudBridgeScreen } from './screens/CloudBridgeScreen';
 
 import { AlterEgoWeekScreen } from './screens/AlterEgoWeekScreen';
 import { ImportEverythingScreen } from './screens/ImportEverythingScreen';
@@ -234,6 +235,13 @@ function GlobeIcon() {
     </svg>
   );
 }
+function CloudBridgeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6.5 19a4.5 4.5 0 0 1-.42-8.98A7 7 0 0 1 19.5 10a4.5 4.5 0 0 1 .5 8.97" /><path d="M12 13v8" /><path d="m8 17 4-4 4 4" />
+    </svg>
+  );
+}
 
 const navSections: NavSection[] = [
   {
@@ -276,6 +284,12 @@ const navSections: NavSection[] = [
       { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
       { id: 'sovereignty-report', label: 'Sovereignty', icon: <ScrollIcon /> },
       { id: 'network', label: 'Network', icon: <NetworkIcon /> },
+    ],
+  },
+  {
+    label: 'CLOUD CONNECTIVITY',
+    items: [
+      { id: 'cloud-bridge', label: 'Cloud Bridge', icon: <CloudBridgeIcon /> },
     ],
   },
 ];
@@ -593,6 +607,7 @@ function AppContent() {
           <Route path="/import" element={<ImportEverythingScreen />} />
           <Route path="/semblance-network" element={<SemblanceNetworkScreen />} />
           <Route path="/tunnel-pairing" element={<TunnelPairingScreen />} />
+          <Route path="/cloud-bridge" element={<CloudBridgeScreen />} />
           <Route
             path="/upgrade"
             element={

@@ -99,8 +99,8 @@
 }
 
 .inheritance__party-status--pending {
-  background: rgba(176, 154, 138, 0.15);
-  color: #B09A8A;
+  background: rgba(237, 221, 82, 0.15);
+  color: #EDDD52;
 }
 
 .inheritance__toggle-row {
@@ -186,9 +186,9 @@
 }
 
 .inheritance__btn--danger {
-  background: rgba(176, 122, 138, 0.1);
-  border: 1px solid rgba(176, 122, 138, 0.3);
-  color: #B07A8A;
+  background: rgba(232, 101, 122, 0.1);
+  border: 1px solid rgba(232, 101, 122, 0.3);
+  color: #E8657A;
 }
 
 .inheritance__btn:disabled {

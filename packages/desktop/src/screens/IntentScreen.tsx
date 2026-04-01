@@ -312,8 +312,8 @@ export function IntentScreen() {
                   fontFamily: "'DM Mono', monospace",
                   padding: '2px 6px',
                   borderRadius: 4,
-                  backgroundColor: obs.type === 'drift' ? '#B09A8A20' : obs.type === 'conflict' ? '#B07A8A20' : '#6ECFA320',
-                  color: obs.type === 'drift' ? '#B09A8A' : obs.type === 'conflict' ? '#B07A8A' : '#6ECFA3',
+                  backgroundColor: obs.type === 'drift' ? '#EDDD5220' : obs.type === 'conflict' ? '#E8657A20' : '#6ECFA320',
+                  color: obs.type === 'drift' ? '#EDDD52' : obs.type === 'conflict' ? '#E8657A' : '#6ECFA3',
                   flexShrink: 0,
                   marginTop: 2,
                 }}>

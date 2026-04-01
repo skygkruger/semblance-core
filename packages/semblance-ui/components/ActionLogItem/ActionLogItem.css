@@ -85,5 +85,5 @@
 
 .action-log-item__undo:hover {
   color: var(--critical);
-  background: rgba(176, 122, 138, 0.06);
+  background: rgba(232, 101, 122, 0.06);
 }

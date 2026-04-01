@@ -647,7 +647,7 @@ export function MultiAgentDemo({ onComplete }: MultiAgentDemoProps) {
       {expanded && !running && (
         <div style={{
           background: '#121518',
-          border: '1px solid rgba(196, 168, 98, 0.2)',
+          border: '1px solid rgba(56, 189, 248, 0.2)',
           borderRadius: 8,
           padding: 12,
           display: 'flex',
@@ -658,7 +658,7 @@ export function MultiAgentDemo({ onComplete }: MultiAgentDemoProps) {
           <span style={{
             fontFamily: "'DM Mono', monospace",
             fontSize: 10,
-            color: '#C4A862',
+            color: '#38BDF8',
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
             marginBottom: 4,
@@ -670,8 +670,8 @@ export function MultiAgentDemo({ onComplete }: MultiAgentDemoProps) {
               key={s.id}
               onClick={() => runScenario(s.id)}
               style={{
-                background: 'rgba(196, 168, 98, 0.06)',
-                border: '1px solid rgba(196, 168, 98, 0.12)',
+                background: 'rgba(56, 189, 248, 0.06)',
+                border: '1px solid rgba(56, 189, 248, 0.12)',
                 borderRadius: 4,
                 padding: '8px 12px',
                 cursor: 'pointer',
@@ -682,8 +682,8 @@ export function MultiAgentDemo({ onComplete }: MultiAgentDemoProps) {
                 letterSpacing: '0.04em',
                 transition: 'background 150ms ease',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(196, 168, 98, 0.12)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(196, 168, 98, 0.06)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.06)')}
             >
               {s.label}
             </button>
@@ -695,7 +695,7 @@ export function MultiAgentDemo({ onComplete }: MultiAgentDemoProps) {
       {running && activeScenario && (
         <div style={{
           background: '#121518',
-          border: '1px solid rgba(196, 168, 98, 0.2)',
+          border: '1px solid rgba(56, 189, 248, 0.2)',
           borderRadius: 8,
           padding: '8px 14px',
           display: 'flex',
@@ -706,13 +706,13 @@ export function MultiAgentDemo({ onComplete }: MultiAgentDemoProps) {
             width: 6,
             height: 6,
             borderRadius: '50%',
-            background: '#C4A862',
+            background: '#38BDF8',
             animation: 'pulse 1.5s ease-in-out infinite',
           }} />
           <span style={{
             fontFamily: "'DM Mono', monospace",
             fontSize: 11,
-            color: '#C4A862',
+            color: '#38BDF8',
             letterSpacing: '0.04em',
           }}>
             {SCENARIOS.find(s => s.id === activeScenario)?.label}
@@ -720,14 +720,14 @@ export function MultiAgentDemo({ onComplete }: MultiAgentDemoProps) {
           <button
             onClick={stopScenario}
             style={{
-              background: 'rgba(176, 122, 138, 0.12)',
-              border: '1px solid rgba(176, 122, 138, 0.2)',
+              background: 'rgba(232, 101, 122, 0.12)',
+              border: '1px solid rgba(232, 101, 122, 0.2)',
               borderRadius: 4,
               padding: '2px 8px',
               cursor: 'pointer',
               fontFamily: "'DM Mono', monospace",
               fontSize: 10,
-              color: '#B07A8A',
+              color: '#E8657A',
               letterSpacing: '0.04em',
             }}
           >
@@ -743,8 +743,8 @@ export function MultiAgentDemo({ onComplete }: MultiAgentDemoProps) {
           width: 40,
           height: 40,
           borderRadius: '50%',
-          background: running ? 'rgba(196, 168, 98, 0.15)' : 'rgba(196, 168, 98, 0.08)',
-          border: `1px solid rgba(196, 168, 98, ${running ? '0.4' : '0.2'})`,
+          background: running ? 'rgba(56, 189, 248, 0.15)' : 'rgba(56, 189, 248, 0.08)',
+          border: `1px solid rgba(56, 189, 248, ${running ? '0.4' : '0.2'})`,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -754,7 +754,7 @@ export function MultiAgentDemo({ onComplete }: MultiAgentDemoProps) {
         }}
         title="Multi-Agent Demo (Dev Only)"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4A862" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="3" />
           <circle cx="5" cy="6" r="2" />
           <circle cx="19" cy="6" r="2" />

@@ -177,7 +177,7 @@ export function buildSignablePayload(report: SovereigntyReport): string {
 const C = {
   bg:      rgb(11 / 255, 14 / 255, 17 / 255),         // #0B0E11
   veridian: rgb(110 / 255, 207 / 255, 163 / 255),      // #6ECFA3
-  caution: rgb(176 / 255, 154 / 255, 138 / 255),       // #B09A8A
+  caution: rgb(237 / 255, 221 / 255, 82 / 255),        // #EDDD52
   silver:  rgb(133 / 255, 147 / 255, 164 / 255),       // #8593A4
   white:   rgb(232 / 255, 227 / 255, 227 / 255),       // #E8E3E3
   muted:   rgb(110 / 255, 106 / 255, 134 / 255),       // #6E6A86

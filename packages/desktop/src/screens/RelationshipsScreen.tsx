@@ -95,9 +95,9 @@ const RELATIONSHIP_TYPES = ['colleague', 'client', 'vendor', 'friend', 'family',
 
 function getRelationshipBadgeStyle(type: string): { background: string; color: string } {
   switch (type) {
-    case 'family': return { background: 'rgba(176, 122, 138, 0.15)', color: '#B07A8A' };
+    case 'family': return { background: 'rgba(232, 101, 122, 0.15)', color: '#E8657A' };
     case 'friend': return { background: 'rgba(110, 207, 163, 0.15)', color: '#6ECFA3' };
-    case 'colleague': return { background: 'rgba(176, 154, 138, 0.15)', color: '#B09A8A' };
+    case 'colleague': return { background: 'rgba(237, 221, 82, 0.15)', color: '#EDDD52' };
     case 'client': return { background: 'rgba(168, 180, 192, 0.15)', color: '#A8B4C0' };
     case 'vendor': return { background: 'rgba(94, 107, 124, 0.15)', color: '#5E6B7C' };
     default: return { background: 'rgba(94, 107, 124, 0.15)', color: '#5E6B7C' };
@@ -219,7 +219,7 @@ function AddContactForm({ onSave, onCancel }: {
           <option key={rt} value={rt}>{rt.charAt(0).toUpperCase() + rt.slice(1)}</option>
         ))}
       </select>
-      {error && <p className="text-xs" style={{ color: '#B07A8A' }}>{error}</p>}
+      {error && <p className="text-xs" style={{ color: '#E8657A' }}>{error}</p>}
       <div className="flex gap-2">
         <Button variant="solid" size="sm" onClick={handleSave} disabled={saving} className="flex-1">
           {saving ? t('screen.relationships.saving', 'Saving...') : t('screen.relationships.save', 'Save')}
@@ -542,8 +542,8 @@ export function RelationshipsScreen() {
 
         {/* Frequency alerts banner */}
         {frequencyAlerts.length > 0 && (
-          <div style={{ padding: '8px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(176, 154, 138, 0.08)' }}>
-            <p style={{ fontSize: 11, color: '#B09A8A', fontFamily: "'DM Mono', monospace", margin: 0, letterSpacing: '0.04em' }}>
+          <div style={{ padding: '8px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(237, 221, 82, 0.08)' }}>
+            <p style={{ fontSize: 11, color: '#EDDD52', fontFamily: "'DM Mono', monospace", margin: 0, letterSpacing: '0.04em' }}>
               {t('screen.relationships.frequency_alert_count', { count: frequencyAlerts.length, defaultValue: '{{count}} contacts need attention' })}
             </p>
           </div>
@@ -851,8 +851,8 @@ export function RelationshipsScreen() {
             {/* FIX 4: Frequency alerts for this contact */}
             {frequencyAlerts.filter(a => a.contactId === selectedContact.id).map(alert => (
               <Card key={alert.contactId}>
-                <div className="p-4" style={{ background: 'rgba(176, 154, 138, 0.06)' }}>
-                  <p className="text-sm" style={{ color: '#B09A8A' }}>
+                <div className="p-4" style={{ background: 'rgba(237, 221, 82, 0.06)' }}>
+                  <p className="text-sm" style={{ color: '#EDDD52' }}>
                     {t('screen.relationships.frequency_alert_detail', {
                       name: alert.displayName,
                       date: formatLastContact(alert.lastContactDate, t),

@@ -131,7 +131,7 @@ export const CATEGORY_META: Record<VisualizationCategory, CategoryMeta> = {
   finance: {
     id: 'finance',
     displayName: 'Finance',
-    color: '#B09A8A',
+    color: '#EDDD52',
     icon: '[$]',
   },
   social: {

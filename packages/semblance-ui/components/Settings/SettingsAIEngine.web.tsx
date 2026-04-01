@@ -112,7 +112,7 @@ function ModelCard({
           type="button"
           className="settings-model-card__action"
           onClick={onDelete}
-          style={{ color: '#B07A8A', fontSize: 12, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+          style={{ color: '#E8657A', fontSize: 12, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
         >
           Delete
         </button>

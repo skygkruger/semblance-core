@@ -139,7 +139,7 @@ export function SettingsAlterEgo({
                   style={{
                     paddingTop: 4,
                     paddingBottom: 8,
-                    color: '#B09A8A',
+                    color: '#EDDD52',
                   }}
                 >
                   {t('alter_ego.warning_no_confirmation')}

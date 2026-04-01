@@ -44,7 +44,7 @@ export function SettingsPrivacy({
             !auditClean && !neverRun && styles.cardAmber,
           ]}>
             <View style={styles.cardStatusRow}>
-              {auditClean ? <ShieldCheck color="#6ECFA3" /> : <ShieldAlert color="#B09A8A" />}
+              {auditClean ? <ShieldCheck color="#6ECFA3" /> : <ShieldAlert color="#EDDD52" />}
               <View style={[
                 styles.badge,
                 auditClean ? styles.badgeVeridian : neverRun ? styles.badgeMuted : styles.badgeAmber,
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     backgroundColor: brandColors.s1,
   },
   cardAmber: {
-    borderColor: 'rgba(176, 154, 138, 0.4)',
+    borderColor: 'rgba(237, 221, 82, 0.4)',
   },
   cardStatusRow: {
     flexDirection: 'row',
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(110, 207, 163, 0.1)',
   },
   badgeAmber: {
-    backgroundColor: 'rgba(176, 154, 138, 0.1)',
+    backgroundColor: 'rgba(237, 221, 82, 0.1)',
   },
   badgeMuted: {
     backgroundColor: 'rgba(133, 147, 164, 0.1)',

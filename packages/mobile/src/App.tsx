@@ -65,7 +65,7 @@ const navTheme = {
     card: colors.surface1Dark,
     text: colors.textPrimaryDark,
     border: colors.borderDark,
-    notification: '#B07A8A',
+    notification: '#E8657A',
   },
   fonts: {
     regular: { fontFamily: 'System', fontWeight: '400' as const },

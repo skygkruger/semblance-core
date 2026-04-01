@@ -14,6 +14,9 @@ import { VoiceWaveform } from '../components/VoiceWaveform';
 import { WebFetchSummary } from '../components/WebFetchSummary';
 import { WebSearchResult } from '../components/WebSearchResult';
 import { parseArtifacts } from '@semblance/core/agent/artifact-parser';
+import { MultiAgentDemo, registerMultiAgentCallback, unregisterMultiAgentCallback } from '../components/MultiAgentDemo';
+import type { SubagentStreamEvent } from '../components/MultiAgentDemo';
+import { MultiAgentOverlay } from '../components/MultiAgentOverlay';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useTauriEvent } from '../hooks/useTauriEvent';
 import { useHardwareTier } from '../hooks/useHardwareTier';
@@ -65,6 +68,27 @@ export function ChatScreen() {
   const [webSearchQuery, setWebSearchQuery] = useState('');
   const [webSearchProvider, setWebSearchProvider] = useState<'brave' | 'searxng'>('brave');
   const [webFetchResult, setWebFetchResult] = useState<{ url: string; title: string; content: string; bytesFetched: number; contentType: string } | null>(null);
+
+  // ─── Multi-Agent Orchestration ───────────────────────────────────────────
+  const [orchestrationEvents, setOrchestrationEvents] = useState<SubagentStreamEvent[]>([]);
+  const [orchestrationActive, setOrchestrationActive] = useState(false);
+
+  useEffect(() => {
+    registerMultiAgentCallback((event: SubagentStreamEvent) => {
+      setOrchestrationActive(true);
+      setOrchestrationEvents(prev => [...prev, event]);
+      if (event.type === 'synthesis_completed') {
+        // Keep active for a moment after completion for the finish animation
+        setTimeout(() => setOrchestrationActive(false), 2000);
+      }
+    });
+    return () => unregisterMultiAgentCallback();
+  }, []);
+
+  const handleDemoComplete = useCallback(() => {
+    // After demo finishes, clear events after a delay so the user can see the final state
+    setTimeout(() => setOrchestrationEvents([]), 5000);
+  }, []);
 
   // Sound effects
   const { play } = useSound();
@@ -1351,6 +1375,11 @@ export function ChatScreen() {
         </div>
         </div>
 
+        {/* Multi-agent orchestration overlay */}
+        {orchestrationEvents.length > 0 && (
+          <MultiAgentOverlay events={orchestrationEvents} active={orchestrationActive} />
+        )}
+
         {/* Voice waveform — shown when recording */}
         {voiceCapable && voice.voiceEnabled && voice.voiceState === 'listening' && (
           <div className="px-6 py-2 flex items-center gap-3">
@@ -1427,6 +1456,9 @@ export function ChatScreen() {
           URL.revokeObjectURL(url);
         }}
       />
+
+      {/* Dev-only multi-agent demo trigger */}
+      <MultiAgentDemo onComplete={handleDemoComplete} />
     </div>
   );
 }

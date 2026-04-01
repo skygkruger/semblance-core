@@ -53,7 +53,7 @@ export function SovereigntyReportScreen() {
     return (
       <div className="page-scroll">
         <div className="page-layout" style={{ textAlign: 'center', paddingTop: 64 }}>
-          <p style={{ color: '#B07A8A', fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: '0.04em', marginBottom: 16 }}>
+          <p style={{ color: '#E8657A', fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: '0.04em', marginBottom: 16 }}>
             {error}
           </p>
           <button

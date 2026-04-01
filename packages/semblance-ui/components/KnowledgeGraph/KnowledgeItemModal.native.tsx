@@ -354,9 +354,9 @@ const styles = StyleSheet.create({
   },
   confirmBox: {
     padding: 12,
-    backgroundColor: 'rgba(176, 122, 138, 0.06)',
+    backgroundColor: 'rgba(232, 101, 122, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(176, 122, 138, 0.15)',
+    borderColor: 'rgba(232, 101, 122, 0.15)',
     borderRadius: 8,
     gap: 8,
   },
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
-    backgroundColor: 'rgba(176, 122, 138, 0.15)',
+    backgroundColor: 'rgba(232, 101, 122, 0.15)',
     alignItems: 'center',
   },
   confirmBtnDeleteText: {

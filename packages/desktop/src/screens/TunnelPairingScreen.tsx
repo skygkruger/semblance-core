@@ -129,11 +129,11 @@ export function TunnelPairingScreen() {
           <PageContainer>
             {/* Error banner */}
             {error && (
-              <div style={{ marginBottom: 16, padding: 12, borderRadius: 8, borderColor: 'rgba(176, 122, 138, 0.3)', background: 'rgba(176, 122, 138, 0.12)' }}>
+              <div style={{ marginBottom: 16, padding: 12, borderRadius: 8, borderColor: 'rgba(232, 101, 122, 0.3)', background: 'rgba(232, 101, 122, 0.12)' }}>
                 <p style={{
                   fontFamily: "'DM Mono', monospace",
                   fontSize: 12,
-                  color: '#B07A8A',
+                  color: '#E8657A',
                   letterSpacing: '0.04em',
                   margin: 0,
                 }}>

@@ -14,7 +14,7 @@
         var el = document.getElementById('error-overlay');
         el.style.display = 'block';
         el.innerHTML =
-          '<pre style="color:#B07A8A;padding:20px;font-size:14px;white-space:pre-wrap;">FATAL: ' +
+          '<pre style="color:#E8657A;padding:20px;font-size:14px;white-space:pre-wrap;">FATAL: ' +
           e.message + '\n\nFile: ' + e.filename + ':' + e.lineno + ':' + e.colno +
           '\n\nStack: ' + (e.error && e.error.stack || 'N/A') + '</pre>';
       });
@@ -22,7 +22,7 @@
         var el = document.getElementById('error-overlay');
         el.style.display = 'block';
         el.innerHTML =
-          '<pre style="color:#B07A8A;padding:20px;font-size:14px;white-space:pre-wrap;">FATAL (Promise): ' +
+          '<pre style="color:#E8657A;padding:20px;font-size:14px;white-space:pre-wrap;">FATAL (Promise): ' +
           (e.reason && e.reason.message || e.reason || 'Unknown') +
           '\n\nStack: ' + (e.reason && e.reason.stack || 'N/A') + '</pre>';
       });

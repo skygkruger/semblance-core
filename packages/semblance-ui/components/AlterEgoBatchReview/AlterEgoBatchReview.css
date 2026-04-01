@@ -109,13 +109,13 @@
 
 /* Reject All — mirrors high-risk dismiss (rust glow) */
 .batch-review__shortcut-btn--reject {
-  color: #B07A8A;
-  border-color: #B07A8A;
+  color: #E8657A;
+  border-color: #E8657A;
 }
 
 .batch-review__shortcut-btn--reject:hover {
-  background: rgba(176, 122, 138, 0.10);
-  box-shadow: 0 0 12px rgba(176, 122, 138, 0.18), inset 0 0 8px rgba(176, 122, 138, 0.08);
+  background: rgba(232, 101, 122, 0.10);
+  box-shadow: 0 0 12px rgba(232, 101, 122, 0.18), inset 0 0 8px rgba(232, 101, 122, 0.08);
 }
 
 /* ─── Items list ─── */

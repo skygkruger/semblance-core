@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(110, 207, 163, 0.15)',
   },
   micButtonError: {
-    backgroundColor: 'rgba(176, 122, 138, 0.15)',
+    backgroundColor: 'rgba(232, 101, 122, 0.15)',
   },
   micIcon: {
     fontFamily: nativeFontFamily.mono,

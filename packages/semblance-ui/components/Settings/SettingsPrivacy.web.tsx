@@ -39,7 +39,7 @@ export function SettingsPrivacy({
         <div style={{ padding: '16px 0 0' }}>
           <div className={`settings-card ${cardBorderClass}`}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <span style={{ color: auditClean ? '#6ECFA3' : '#B09A8A' }}>{auditClean ? <ShieldCheck /> : <ShieldAlert />}</span>
+              <span style={{ color: auditClean ? '#6ECFA3' : '#EDDD52' }}>{auditClean ? <ShieldCheck /> : <ShieldAlert />}</span>
               <span
                 className={auditClean ? 'settings-badge settings-badge--veridian' : neverRun ? 'settings-badge settings-badge--muted' : 'settings-badge settings-badge--caution'}
               >
@@ -70,7 +70,7 @@ export function SettingsPrivacy({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#B07A8A',
+                    color: '#E8657A',
                     fontSize: 12,
                     fontFamily: 'var(--fm)',
                     cursor: 'pointer',
@@ -107,7 +107,7 @@ export function SettingsPrivacy({
 
         {showDeleteAll && (
           <div style={{ padding: '12px 20px' }}>
-            <p style={{ fontSize: 13, color: '#B07A8A', marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: '#E8657A', marginBottom: 8 }}>
               {t('privacy.delete_confirm_prompt')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -122,7 +122,7 @@ export function SettingsPrivacy({
               <button
                 type="button"
                 className="settings-inline-edit__btn settings-inline-edit__btn--save"
-                style={{ color: deleteConfirm === 'delete' ? '#B07A8A' : '#5E6B7C' }}
+                style={{ color: deleteConfirm === 'delete' ? '#E8657A' : '#5E6B7C' }}
                 onClick={() => {
                   if (deleteConfirm === 'delete') {
                     onDeleteAllData();
@@ -154,14 +154,14 @@ export function SettingsPrivacy({
 
         {showReset && (
           <div style={{ padding: '12px 20px' }}>
-            <p style={{ fontSize: 13, color: '#B07A8A', marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: '#E8657A', marginBottom: 8 }}>
               {t('privacy.reset_confirm_body')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
                 style={{
-                  background: '#B07A8A',
+                  background: '#E8657A',
                   border: 'none',
                   color: '#0B0E11',
                   fontSize: 13,

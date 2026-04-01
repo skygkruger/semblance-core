@@ -32,9 +32,9 @@
   --v-glow-lg: rgba(110, 207, 163, 0.28);
   --v-wire: rgba(110, 207, 163, 0.32);
 
-  /* Severity */
-  --caution: #B09A8A;
-  --critical: #B07A8A;
+  /* Severity — cyberpunk professional */
+  --caution: #EDDD52;
+  --critical: #E8657A;
 
   /* Typography — Variable names for fontsource, standard names for Google Fonts CDN */
   --fd: 'Fraunces Variable', 'Fraunces', Georgia, serif;
@@ -147,6 +147,17 @@
   --id-privacy-5: #98a0a8;
   --id-privacy-6: #808890;
   --id-privacy-tint: rgba(160, 165, 175, 0.03);
+
+  /* Cloud Bridge — Electric Cyan / Indigo / Blue
+     Data bridging outward. Cold plasma, fiber optics.
+     Contrast to Veridian's organic warmth. */
+  --id-cloud-1: #2563EB;
+  --id-cloud-2: #3B82F6;
+  --id-cloud-3: #38BDF8;
+  --id-cloud-4: #7DD3FC;
+  --id-cloud-5: #818CF8;
+  --id-cloud-6: #6366F1;
+  --id-cloud-tint: rgba(56, 189, 248, 0.04);
 }
 
 @keyframes shimmer {

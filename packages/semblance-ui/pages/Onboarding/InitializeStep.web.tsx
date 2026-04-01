@@ -30,14 +30,14 @@ function DownloadRow({ download, completeLabel, errorLabel, retryLabel, onRetry 
       padding: 16,
       borderRadius: 8,
       backgroundColor: '#111518',
-      border: `1px solid ${isError ? 'rgba(176, 122, 138, 0.4)' : 'rgba(107,95,168,0.15)'}`,
+      border: `1px solid ${isError ? 'rgba(232, 101, 122, 0.4)' : 'rgba(107,95,168,0.15)'}`,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ fontFamily: 'var(--fb)', fontSize: 14, color: isError ? '#B07A8A' : '#EEF1F4' }}>
+        <span style={{ fontFamily: 'var(--fb)', fontSize: 14, color: isError ? '#E8657A' : '#EEF1F4' }}>
           {download.modelName}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontFamily: 'var(--fm)', fontSize: 12, color: isComplete ? '#6ECFA3' : isError ? '#B07A8A' : '#8593A4' }}>
+          <span style={{ fontFamily: 'var(--fm)', fontSize: 12, color: isComplete ? '#6ECFA3' : isError ? '#E8657A' : '#8593A4' }}>
             {isComplete ? completeLabel : isError ? errorLabel : `${formatBytes(download.downloadedBytes)} / ${formatBytes(download.totalBytes)}`}
           </span>
           {isError && onRetry && (
@@ -175,7 +175,7 @@ export function InitializeStep({ downloads, knowledgeMoment, loading, onComplete
         <p style={{
           fontFamily: 'var(--fb)',
           fontSize: 13,
-          color: '#B09A8A',
+          color: '#EDDD52',
           maxWidth: 400,
           textAlign: 'center',
           lineHeight: 1.5,

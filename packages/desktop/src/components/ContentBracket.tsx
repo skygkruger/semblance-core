@@ -32,7 +32,9 @@ const HIERARCHY = [
   { selector: '.wireframe-globe', tier: 0 },
   { selector: '.page-title', tier: 1 },
   { selector: '.shimmer-desc', tier: 2 },
+  { selector: '.cloud-bridge__shimmer-desc', tier: 2 },
   { selector: '.surface-opal', tier: 3 },
+  { selector: '.surface-cloud', tier: 3 },
   { selector: '.surface-void:not([data-identity])', tier: 3 },
   { selector: '.settings-screen', tier: 3 },
   // connections-screen excluded — tracked via individual cards + section headers

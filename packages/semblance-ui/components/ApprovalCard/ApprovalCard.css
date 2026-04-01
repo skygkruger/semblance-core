@@ -85,12 +85,12 @@
 
 .approval-card__risk--medium {
   color: var(--caution);
-  background: rgba(176, 154, 138, 0.1);
+  background: rgba(237, 221, 82, 0.1);
 }
 
 .approval-card__risk--high {
   color: var(--critical);
-  background: rgba(176, 122, 138, 0.1);
+  background: rgba(232, 101, 122, 0.1);
 }
 
 /* ─── Context ─── */
@@ -168,7 +168,7 @@
 
 /* MEDIUM — amber bleeds through divider, data label, data items, border */
 .approval-card[data-risk="medium"] {
-  border-color: rgba(176, 154, 138, 0.12);
+  border-color: rgba(237, 221, 82, 0.12);
 }
 
 .approval-card[data-risk="medium"] .approval-card__divider {
@@ -184,13 +184,13 @@
 }
 
 .approval-card[data-risk="medium"]:hover {
-  border-color: rgba(176, 154, 138, 0.25);
-  box-shadow: 0 0 24px rgba(176, 154, 138, 0.12);
+  border-color: rgba(237, 221, 82, 0.25);
+  box-shadow: 0 0 24px rgba(237, 221, 82, 0.12);
 }
 
 /* HIGH — rust bleeds through divider, data label, data items, border */
 .approval-card[data-risk="high"] {
-  border-color: rgba(176, 122, 138, 0.15);
+  border-color: rgba(232, 101, 122, 0.15);
 }
 
 .approval-card[data-risk="high"] .approval-card__divider {
@@ -206,8 +206,8 @@
 }
 
 .approval-card[data-risk="high"]:hover {
-  border-color: rgba(176, 122, 138, 0.30);
-  box-shadow: 0 0 24px rgba(176, 122, 138, 0.12);
+  border-color: rgba(232, 101, 122, 0.30);
+  box-shadow: 0 0 24px rgba(232, 101, 122, 0.12);
 }
 
 /* ═══ Dismiss Button Hover — color-coded by risk, identical intensity to Approve ═══ */
@@ -215,12 +215,12 @@
 
 /* Medium: grey resting, amber hover — matches approve glow structure */
 .approval-card[data-risk="medium"] .btn--dismiss:hover {
-  background: rgba(176, 154, 138, 0.10);
-  box-shadow: 0 0 12px rgba(176, 154, 138, 0.18), inset 0 0 8px rgba(176, 154, 138, 0.08);
+  background: rgba(237, 221, 82, 0.10);
+  box-shadow: 0 0 12px rgba(237, 221, 82, 0.18), inset 0 0 8px rgba(237, 221, 82, 0.08);
 }
 
 /* High: grey resting, rust hover — matches approve glow structure */
 .approval-card[data-risk="high"] .btn--dismiss:hover {
-  background: rgba(176, 122, 138, 0.10);
-  box-shadow: 0 0 12px rgba(176, 122, 138, 0.18), inset 0 0 8px rgba(176, 122, 138, 0.08);
+  background: rgba(232, 101, 122, 0.10);
+  box-shadow: 0 0 12px rgba(232, 101, 122, 0.18), inset 0 0 8px rgba(232, 101, 122, 0.08);
 }

@@ -81,7 +81,7 @@ export const LargeSize: Story = {
 
 export const SmallSize: Story = {
   render: () => (
-    <div style={{ display: 'flex', gap: 12, color: '#B09A8A' }}>
+    <div style={{ display: 'flex', gap: 12, color: '#EDDD52' }}>
       <EnvelopeIcon size={12} />
       <CalendarIcon size={12} />
       <PersonIcon size={12} />

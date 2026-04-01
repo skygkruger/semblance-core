@@ -182,14 +182,14 @@ export function SettingsAccount({
 
         {confirmDeactivate && (
           <div style={{ padding: '12px 20px' }}>
-            <p style={{ fontSize: 13, color: '#B07A8A', marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: '#E8657A', marginBottom: 8 }}>
               {t('account.deactivate_confirm_body')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
                 style={{
-                  background: '#B07A8A',
+                  background: '#E8657A',
                   border: 'none',
                   color: '#0B0E11',
                   fontSize: 13,

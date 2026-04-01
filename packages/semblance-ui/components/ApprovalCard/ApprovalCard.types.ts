@@ -5,8 +5,8 @@ export type ApprovalState = 'pending' | 'approved' | 'dismissed';
 
 export const RISK_COLORS: Record<RiskLevel, string> = {
   low: '#6ECFA3',
-  medium: '#B09A8A',
-  high: '#B07A8A',
+  medium: '#EDDD52',
+  high: '#E8657A',
 };
 
 export interface ApprovalCardProps {

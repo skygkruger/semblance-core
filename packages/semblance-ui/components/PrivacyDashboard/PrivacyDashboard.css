@@ -180,9 +180,9 @@
 }
 
 .privacy-dashboard__status-badge--warning {
-  background: rgba(176, 154, 138, 0.08);
+  background: rgba(237, 221, 82, 0.08);
   color: var(--caution);
-  border: 1px solid rgba(176, 154, 138, 0.15);
+  border: 1px solid rgba(237, 221, 82, 0.15);
 }
 
 .privacy-dashboard__status-badge--neutral {

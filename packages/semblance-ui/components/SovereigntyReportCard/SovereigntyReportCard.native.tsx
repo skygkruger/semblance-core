@@ -96,7 +96,7 @@ export function SovereigntyReportCard({
         </Text>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
           <Text style={{ fontSize: 14, color: '#CDD4DB' }}>{t('sovereignty.status', { defaultValue: 'Status' })}</Text>
-          <Text style={{ fontFamily: 'DM Mono', fontSize: 14, color: auditChainStatus.verified ? '#6ECFA3' : '#B09A8A' }}>
+          <Text style={{ fontFamily: 'DM Mono', fontSize: 14, color: auditChainStatus.verified ? '#6ECFA3' : '#EDDD52' }}>
             {auditChainStatus.verified ? t('sovereignty.verified', { defaultValue: 'Verified' }) : t('sovereignty.broken', { defaultValue: 'Broken' })}
           </Text>
         </View>
@@ -113,7 +113,7 @@ export function SovereigntyReportCard({
         {signatureVerified !== undefined && (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, marginTop: 8 }}>
             <Text style={{ fontSize: 14, color: '#CDD4DB' }}>{t('sovereignty.signature', { defaultValue: 'Signature' })}</Text>
-            <Text style={{ fontFamily: 'DM Mono', fontSize: 14, color: signatureVerified ? '#6ECFA3' : '#B07A8A' }}>
+            <Text style={{ fontFamily: 'DM Mono', fontSize: 14, color: signatureVerified ? '#6ECFA3' : '#E8657A' }}>
               {signatureVerified ? t('sovereignty.valid', { defaultValue: 'Valid' }) : t('sovereignty.invalid', { defaultValue: 'Invalid' })}
             </Text>
           </View>

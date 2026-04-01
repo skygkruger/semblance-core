@@ -25,12 +25,12 @@
 }
 
 .agent-input__document-pill--processing {
-  border-color: rgba(176, 154, 138, 0.25);
+  border-color: rgba(237, 221, 82, 0.25);
 }
 
 .agent-input__document-pill--error {
-  border-color: rgba(176, 122, 138, 0.35);
-  background: rgba(176, 122, 138, 0.06);
+  border-color: rgba(232, 101, 122, 0.35);
+  background: rgba(232, 101, 122, 0.06);
 }
 
 .agent-input__document-name {
@@ -46,8 +46,8 @@
 .agent-input__pill-spinner {
   width: 10px;
   height: 10px;
-  border: 1.5px solid rgba(176, 154, 138, 0.3);
-  border-top-color: #B09A8A;
+  border: 1.5px solid rgba(237, 221, 82, 0.3);
+  border-top-color: #EDDD52;
   border-radius: 50%;
   animation: pill-spin 0.8s linear infinite;
   flex-shrink: 0;
@@ -56,7 +56,7 @@
 .agent-input__pill-error {
   font-family: var(--fm);
   font-size: 11px;
-  color: #B07A8A;
+  color: #E8657A;
   flex-shrink: 0;
 }
 
@@ -281,9 +281,9 @@
 }
 
 .agent-input__cancel:hover {
-  color: #B07A8A;
-  border-color: #B07A8A;
-  background: rgba(176, 122, 138, 0.08);
+  color: #E8657A;
+  border-color: #E8657A;
+  background: rgba(232, 101, 122, 0.08);
 }
 
 .agent-input__thinking-text {
@@ -382,7 +382,7 @@
 
 /* Processing — amber ring, faster pulse */
 .agent-input__mic--processing {
-  border-color: rgba(176, 154, 138, 0.30);
+  border-color: rgba(237, 221, 82, 0.30);
   pointer-events: none;
 }
 
@@ -391,7 +391,7 @@
   position: absolute;
   inset: -3px;
   border-radius: 50%;
-  border: 1.5px solid rgba(176, 154, 138, 0.4);
+  border: 1.5px solid rgba(237, 221, 82, 0.4);
   animation: mic-ring-pulse 0.9s ease-out infinite;
   pointer-events: none;
 }
@@ -404,8 +404,8 @@
 
 /* Error — rust tint, no animation */
 .agent-input__mic--error {
-  color: #B07A8A;
-  border-color: rgba(176, 122, 138, 0.35);
+  color: #E8657A;
+  border-color: rgba(232, 101, 122, 0.35);
 }
 
 .agent-input__mic--error::after {
@@ -413,7 +413,7 @@
 }
 
 .agent-input__mic--error:hover {
-  background: rgba(176, 122, 138, 0.08);
+  background: rgba(232, 101, 122, 0.08);
 }
 
 /* ─── Voice overlay — floats above textarea ─── */
@@ -462,7 +462,7 @@
 
 /* ─── Voice container state modifiers ─── */
 .agent-input--processing .agent-input__container {
-  border-color: rgba(176, 154, 138, 0.25);
+  border-color: rgba(237, 221, 82, 0.25);
 }
 
 .agent-input--listening .agent-input__container {
@@ -479,7 +479,7 @@
 }
 
 .agent-input--voice-error .agent-input__container {
-  border-color: rgba(176, 122, 138, 0.5);
+  border-color: rgba(232, 101, 122, 0.5);
   animation: voice-error-flash 0.6s ease-out;
 }
 
@@ -501,10 +501,10 @@
 
 @keyframes voice-error-flash {
   0% {
-    border-color: rgba(176, 122, 138, 0.5);
+    border-color: rgba(232, 101, 122, 0.5);
   }
   50% {
-    border-color: rgba(176, 122, 138, 0.3);
+    border-color: rgba(232, 101, 122, 0.3);
   }
   100% {
     border-color: transparent;

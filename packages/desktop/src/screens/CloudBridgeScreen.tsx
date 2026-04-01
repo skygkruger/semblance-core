@@ -8,7 +8,8 @@
 // Key privacy principle: VERIDIAN SYNTHETICS never sees, proxies, or caches
 // Cloud Bridge traffic. The user's device connects directly to their provider.
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { SkeletonCard } from '@semblance/ui';
 import {
   cloudBridgeGetProviders,
   cloudBridgeAddProvider,
@@ -16,9 +17,14 @@ import {
   cloudBridgeValidateKey,
   cloudBridgeGetPolicy,
   cloudBridgeSetPolicy,
-  cloudBridgeGetUsage,
 } from '../ipc/commands';
 import type { CloudBridgeProviderIPC, CloudBridgePolicyIPC } from '../ipc/commands';
+import { ContentBracket } from '../components/ContentBracket';
+import { GhostSprite } from '../components/GhostSprite';
+import { SectionDivider } from '../components/SectionDivider';
+import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
+import { EmptyFeatureState } from '../components/EmptyFeatureState';
+import './CloudBridgeScreen.css';
 
 const KNOWN_PROVIDERS = [
   { id: 'anthropic', name: 'Anthropic (Claude)', placeholder: 'Your Anthropic API key' },
@@ -60,8 +66,9 @@ export function CloudBridgeScreen() {
         cloudBridgeGetProviders(),
         cloudBridgeGetPolicy(),
       ]);
-      setProviders(provs);
-      setPolicy(pol);
+      setProviders(Array.isArray(provs) ? provs : []);
+      // Sidecar stubs may return [] instead of a policy object — guard against that
+      setPolicy(pol && typeof pol === 'object' && !Array.isArray(pol) && 'mode' in pol ? pol : null);
     } catch {
       // Cloud Bridge may not be initialized yet
     } finally {
@@ -77,7 +84,6 @@ export function CloudBridgeScreen() {
     setValidationError(null);
 
     try {
-      // Validate the key first
       const validation = await cloudBridgeValidateKey({
         providerId: selectedProviderId,
         apiKey: apiKeyInput,
@@ -90,7 +96,6 @@ export function CloudBridgeScreen() {
         return;
       }
 
-      // Add the provider
       const result = await cloudBridgeAddProvider({
         providerId: selectedProviderId,
         apiKey: apiKeyInput,
@@ -118,284 +123,299 @@ export function CloudBridgeScreen() {
   };
 
   const handlePolicyChange = async (updates: Partial<CloudBridgePolicyIPC>) => {
-    if (!policy) return;
-    const newPolicy = { ...policy, ...updates };
+    const base = policy ?? { mode: 'off' as const, domainRules: {}, previewBeforeSend: false, excludedCategories: [], spendingCap: { enabled: false, monthlyLimit: 0, currentSpend: 0 } };
+    const newPolicy = { ...base, ...updates };
     setPolicy(newPolicy);
-    await cloudBridgeSetPolicy(newPolicy);
+    await cloudBridgeSetPolicy(newPolicy).catch(() => {});
   };
 
   const handleCategoryToggle = async (category: string) => {
-    if (!policy) return;
-    const current = policy.excludedCategories;
+    const current = (policy ?? { excludedCategories: [] as string[] }).excludedCategories;
     const updated = current.includes(category)
       ? current.filter(c => c !== category)
       : [...current, category];
     await handlePolicyChange({ excludedCategories: updated });
   };
 
+  // Default policy for dev mode (stubs return null)
+  const effectivePolicy: CloudBridgePolicyIPC = policy ?? {
+    mode: 'off',
+    domainRules: {},
+    previewBeforeSend: false,
+    excludedCategories: [],
+    spendingCap: { enabled: false, monthlyLimit: 0, currentSpend: 0 },
+  };
+
+  const connectedCount = providers.filter(p => p.status === 'connected').length;
+  const routingMode = effectivePolicy.mode;
+  const isActive = routingMode !== 'off' && connectedCount > 0;
+
   if (loading) {
-    return <div className="p-6 text-[#8593A4]">Loading Cloud Bridge settings...</div>;
+    return (
+      <div className="page-scroll">
+        <div className="page-layout">
+          <h1 className="page-title" style={{ fontSize: 28 }}>Cloud Bridge</h1>
+          <SkeletonCard variant="generic" message="Loading Cloud Bridge" subMessage="Retrieving provider configuration" showSpinner />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl">
-      {/* Header */}
-      <div>
-        <h2 className="text-lg font-medium text-[#e8e3e3]" style={{ fontFamily: 'DM Mono, monospace' }}>
-          Cloud Bridge
-        </h2>
-        <p className="text-sm text-[#8593A4] mt-1" style={{ fontFamily: 'DM Mono, monospace' }}>
-          Connect your existing AI subscriptions or API keys to amplify Semblance's
-          capabilities. When off, all inference runs locally on your device.
-        </p>
-      </div>
+    <div className="page-scroll">
+      <div className="page-layout">
+        <ContentBracket>
+        <GhostSprite insight="Cloud Bridge amplifies your local AI with your own cloud subscriptions. VERIDIAN never sees the traffic.">
+        <h1 className="page-title cloud-bridge__title" style={{ fontSize: 28 }}>Cloud Bridge</h1>
+        <div className="cloud-bridge__shimmer-desc">Connect your cloud AI subscriptions to amplify local intelligence</div>
 
-      {/* Routing Mode */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-[#e8e3e3]" style={{ fontFamily: 'DM Mono, monospace' }}>
-          Routing Mode
-        </h3>
-        <div className="space-y-2">
-          {ROUTING_MODES.map(mode => (
-            <label
-              key={mode.value}
-              className="flex items-start gap-3 p-3 rounded cursor-pointer hover:bg-[#1a1a2e]/50"
-              style={{ backgroundColor: policy?.mode === mode.value ? '#1a1a2e' : 'transparent' }}
-            >
-              <input
-                type="radio"
-                name="routing-mode"
-                value={mode.value}
-                checked={policy?.mode === mode.value}
-                onChange={() => handlePolicyChange({ mode: mode.value as CloudBridgePolicyIPC['mode'] })}
-                className="mt-1"
-              />
-              <div>
-                <div className="text-sm text-[#e8e3e3]" style={{ fontFamily: 'DM Mono, monospace' }}>
-                  {mode.label}
-                </div>
-                <div className="text-xs text-[#8593A4]" style={{ fontFamily: 'DM Mono, monospace' }}>
-                  {mode.description}
-                </div>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Connected Providers */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-[#e8e3e3]" style={{ fontFamily: 'DM Mono, monospace' }}>
-            Connected Providers
-          </h3>
-          <button
-            onClick={() => setAddingProvider(true)}
-            className="text-xs px-3 py-1 text-[#6ECFA3] border border-[#6ECFA3]/30 rounded hover:bg-[#6ECFA3]/10"
-            style={{ fontFamily: 'DM Mono, monospace' }}
-          >
-            + Add Provider
-          </button>
-        </div>
-
-        {providers.length === 0 && !addingProvider && (
-          <p className="text-sm text-[#8593A4] italic" style={{ fontFamily: 'DM Mono, monospace' }}>
-            No providers connected. Add an API key to get started.
-          </p>
-        )}
-
-        {providers.map(provider => (
-          <div
-            key={provider.id}
-            className="p-4 rounded border border-[#8593A4]/20"
-            style={{ backgroundColor: '#0B0E11' }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-sm text-[#e8e3e3]" style={{ fontFamily: 'DM Mono, monospace' }}>
-                  {provider.name}
-                </span>
-                <span
-                  className="ml-2 text-xs px-2 py-0.5 rounded"
-                  style={{
-                    fontFamily: 'DM Mono, monospace',
-                    color: provider.status === 'connected' ? '#6ECFA3' : '#B07A8A',
-                    backgroundColor: provider.status === 'connected' ? '#6ECFA3/10' : '#B07A8A/10',
-                  }}
+          <div className="surface-cloud" style={{ padding: 24, borderRadius: 12, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {/* ─── Routing Mode ─── */}
+            <FeatureStatusBanner
+              title="Routing Mode"
+              statusLabel={routingMode.toUpperCase()}
+              status={isActive ? 'active' : routingMode === 'off' ? 'error' : 'waiting'}
+            />
+            <div className="cloud-bridge__routing-options">
+              {ROUTING_MODES.map(mode => (
+                <label
+                  key={mode.value}
+                  className={`cloud-bridge__routing-option${effectivePolicy.mode === mode.value ? ' cloud-bridge__routing-option--active' : ''}`}
                 >
-                  {provider.status}
-                </span>
-              </div>
-              <button
-                onClick={() => handleRemoveProvider(provider.id)}
-                className="text-xs text-[#B07A8A] hover:text-[#B07A8A]/80"
-                style={{ fontFamily: 'DM Mono, monospace' }}
-              >
-                Disconnect
-              </button>
+                  <input
+                    type="radio"
+                    name="routing-mode"
+                    value={mode.value}
+                    checked={effectivePolicy.mode === mode.value}
+                    onChange={() => handlePolicyChange({ mode: mode.value as CloudBridgePolicyIPC['mode'] })}
+                    className="cloud-bridge__routing-radio"
+                    style={{ accentColor: '#38BDF8' }}
+                  />
+                  <div>
+                    <div className="cloud-bridge__routing-label">{mode.label}</div>
+                    <div className="cloud-bridge__routing-desc">{mode.description}</div>
+                  </div>
+                </label>
+              ))}
             </div>
-            {provider.usageThisMonth.requests > 0 && (
-              <div className="mt-2 text-xs text-[#8593A4]" style={{ fontFamily: 'DM Mono, monospace' }}>
-                This month: {provider.usageThisMonth.requests} requests
-                {provider.usageThisMonth.estimatedCost !== null && (
-                  <> | ${(provider.usageThisMonth.estimatedCost / 100).toFixed(2)}</>
+
+            <SectionDivider />
+
+            {/* ─── Connected Providers ─── */}
+            <FeatureStatusBanner
+              title="Connected Providers"
+              statusLabel={connectedCount > 0 ? `${connectedCount} CONNECTED` : 'NONE'}
+              status={connectedCount > 0 ? 'active' : 'error'}
+            />
+
+            {providers.length === 0 && !addingProvider ? (
+              <EmptyFeatureState
+                message="No cloud providers connected. Add an API key to amplify your local intelligence."
+                actionLabel="Add Provider"
+                onAction={() => setAddingProvider(true)}
+              />
+            ) : (
+              <div className="cloud-bridge__providers-list">
+                {providers.map(provider => (
+                  <div key={provider.id} className="cloud-bridge__provider">
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span className="cloud-bridge__provider-name">{provider.name}</span>
+                        <span
+                          className="cloud-bridge__provider-status"
+                          style={{
+                            color: provider.status === 'connected' ? '#6ECFA3' : '#E8657A',
+                          }}
+                        >
+                          {provider.status}
+                        </span>
+                      </div>
+                      {provider.usageThisMonth.requests > 0 && (
+                        <div className="cloud-bridge__provider-usage">
+                          This month: {provider.usageThisMonth.requests} requests
+                          {provider.usageThisMonth.estimatedCost !== null && (
+                            <> | ${(provider.usageThisMonth.estimatedCost / 100).toFixed(2)}</>
+                          )}
+                        </div>
+                      )}
+                      {provider.errorMessage && (
+                        <div className="cloud-bridge__provider-error">{provider.errorMessage}</div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => handleRemoveProvider(provider.id)}
+                    >
+                      <span className="btn__text">Disconnect</span>
+                    </button>
+                  </div>
+                ))}
+
+                {!addingProvider && (
+                  <button
+                    type="button"
+                    className="btn btn--opal btn--sm"
+                    onClick={() => setAddingProvider(true)}
+                    style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                  >
+                    <span className="btn__text">+ Add Provider</span>
+                  </button>
                 )}
               </div>
             )}
-            {provider.errorMessage && (
-              <div className="mt-1 text-xs text-[#B07A8A]" style={{ fontFamily: 'DM Mono, monospace' }}>
-                {provider.errorMessage}
+
+            {/* ─── Add Provider Form ─── */}
+            {addingProvider && (
+              <div className="cloud-bridge__add-form">
+                <select
+                  value={selectedProviderId}
+                  onChange={e => setSelectedProviderId(e.target.value)}
+                >
+                  {KNOWN_PROVIDERS.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+
+                {selectedProviderId === 'custom' && (
+                  <input
+                    type="text"
+                    placeholder="Base URL (e.g., https://my-server:8080)"
+                    value={customBaseUrl}
+                    onChange={e => setCustomBaseUrl(e.target.value)}
+                  />
+                )}
+
+                <input
+                  type="password"
+                  placeholder={KNOWN_PROVIDERS.find(p => p.id === selectedProviderId)?.placeholder ?? 'API key'}
+                  value={apiKeyInput}
+                  onChange={e => setApiKeyInput(e.target.value)}
+                />
+
+                {validationError && (
+                  <span className="cloud-bridge__validation-error">{validationError}</span>
+                )}
+
+                <div className="cloud-bridge__add-form-actions">
+                  <button
+                    type="button"
+                    className="btn btn--opal btn--sm"
+                    onClick={handleAddProvider}
+                    disabled={validating || !apiKeyInput.trim()}
+                  >
+                    <span className="btn__text">{validating ? 'Validating...' : 'Connect'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => { setAddingProvider(false); setValidationError(null); }}
+                  >
+                    <span className="btn__text">Cancel</span>
+                  </button>
+                </div>
               </div>
             )}
-          </div>
-        ))}
 
-        {/* Add Provider Form */}
-        {addingProvider && (
-          <div className="p-4 rounded border border-[#6ECFA3]/30 space-y-3" style={{ backgroundColor: '#0B0E11' }}>
-            <select
-              value={selectedProviderId}
-              onChange={e => setSelectedProviderId(e.target.value)}
-              className="w-full p-2 text-sm bg-[#0B0E11] text-[#e8e3e3] border border-[#8593A4]/30 rounded"
-              style={{ fontFamily: 'DM Mono, monospace' }}
-            >
-              {KNOWN_PROVIDERS.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            {/* ─── Privacy Controls (visible when not off) ─── */}
+            {effectivePolicy.mode !== 'off' && (
+              <>
+                <SectionDivider />
 
-            {selectedProviderId === 'custom' && (
-              <input
-                type="text"
-                placeholder="Base URL (e.g., https://my-server:8080)"
-                value={customBaseUrl}
-                onChange={e => setCustomBaseUrl(e.target.value)}
-                className="w-full p-2 text-sm bg-[#0B0E11] text-[#e8e3e3] border border-[#8593A4]/30 rounded"
-                style={{ fontFamily: 'DM Mono, monospace' }}
-              />
+                <FeatureStatusBanner
+                  title="Privacy Controls"
+                  statusLabel={effectivePolicy.excludedCategories.length > 0 ? `${effectivePolicy.excludedCategories.length} EXCLUDED` : 'NO EXCLUSIONS'}
+                  status={effectivePolicy.excludedCategories.length > 0 ? 'active' : 'waiting'}
+                />
+
+                <div className="cloud-bridge__privacy-row">
+                  <input
+                    type="checkbox"
+                    checked={effectivePolicy.previewBeforeSend}
+                    onChange={e => handlePolicyChange({ previewBeforeSend: e.target.checked })}
+                    style={{ accentColor: '#38BDF8' }}
+                  />
+                  <span className="cloud-bridge__privacy-label">Preview prompts before sending to cloud</span>
+                </div>
+
+                <div className="cloud-bridge__category-hint">
+                  Never send these data categories to cloud providers:
+                </div>
+                <div className="cloud-bridge__category-list">
+                  {DATA_CATEGORIES.map(cat => (
+                    <label key={cat.id} className="cloud-bridge__category-item">
+                      <input
+                        type="checkbox"
+                        checked={effectivePolicy.excludedCategories.includes(cat.id)}
+                        onChange={() => handleCategoryToggle(cat.id)}
+                      />
+                      <span className="cloud-bridge__category-label">{cat.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <SectionDivider />
+
+                {/* ─── Spending Cap ─── */}
+                <FeatureStatusBanner
+                  title="Spending Cap"
+                  statusLabel={effectivePolicy.spendingCap.enabled ? `$${(effectivePolicy.spendingCap.monthlyLimit / 100).toFixed(0)}/MO` : 'UNLIMITED'}
+                  status={effectivePolicy.spendingCap.enabled ? 'active' : 'waiting'}
+                />
+
+                <div className="cloud-bridge__privacy-row">
+                  <input
+                    type="checkbox"
+                    checked={effectivePolicy.spendingCap.enabled}
+                    onChange={e => handlePolicyChange({
+                      spendingCap: { ...effectivePolicy.spendingCap, enabled: e.target.checked },
+                    })}
+                    style={{ accentColor: '#38BDF8' }}
+                  />
+                  <span className="cloud-bridge__privacy-label">Monthly spending cap (API keys)</span>
+                </div>
+                {effectivePolicy.spendingCap.enabled && (
+                  <div className="cloud-bridge__spending-row">
+                    <span className="cloud-bridge__spending-label">$</span>
+                    <input
+                      type="number"
+                      value={(effectivePolicy.spendingCap.monthlyLimit / 100).toFixed(2)}
+                      onChange={e => handlePolicyChange({
+                        spendingCap: {
+                          ...effectivePolicy.spendingCap,
+                          monthlyLimit: Math.round(parseFloat(e.target.value) * 100),
+                        },
+                      })}
+                      className="cloud-bridge__spending-input"
+                      min="0"
+                      step="5"
+                    />
+                    <span className="cloud-bridge__spending-label">
+                      / month (current: ${(effectivePolicy.spendingCap.currentSpend / 100).toFixed(2)})
+                    </span>
+                  </div>
+                )}
+              </>
             )}
 
-            <input
-              type="password"
-              placeholder={KNOWN_PROVIDERS.find(p => p.id === selectedProviderId)?.placeholder ?? 'API key'}
-              value={apiKeyInput}
-              onChange={e => setApiKeyInput(e.target.value)}
-              className="w-full p-2 text-sm bg-[#0B0E11] text-[#e8e3e3] border border-[#8593A4]/30 rounded"
-              style={{ fontFamily: 'DM Mono, monospace' }}
-            />
+            <SectionDivider />
 
-            {validationError && (
-              <p className="text-xs text-[#B07A8A]" style={{ fontFamily: 'DM Mono, monospace' }}>
-                {validationError}
-              </p>
-            )}
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddProvider}
-                disabled={validating || !apiKeyInput.trim()}
-                className="px-4 py-2 text-xs bg-[#6ECFA3] text-[#0B0E11] rounded disabled:opacity-50"
-                style={{ fontFamily: 'DM Mono, monospace' }}
-              >
-                {validating ? 'Validating...' : 'Connect'}
-              </button>
-              <button
-                onClick={() => { setAddingProvider(false); setValidationError(null); }}
-                className="px-4 py-2 text-xs text-[#8593A4] border border-[#8593A4]/30 rounded"
-                style={{ fontFamily: 'DM Mono, monospace' }}
-              >
-                Cancel
-              </button>
+            {/* ─── Sovereignty Note ─── */}
+            <div className="cloud-bridge__sovereignty-note">
+              {effectivePolicy.mode === 'off' ? (
+                <>Zero data transmitted to any cloud AI provider. All inference performed locally on your device.</>
+              ) : (
+                <>
+                  Cloud Bridge connects your device directly to your cloud provider.
+                  VERIDIAN SYNTHETICS never sees, proxies, or caches Cloud Bridge traffic.
+                  All calls are logged to your local audit trail and visible in the Network Monitor.
+                </>
+              )}
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Privacy Controls */}
-      {policy && policy.mode !== 'off' && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-[#e8e3e3]" style={{ fontFamily: 'DM Mono, monospace' }}>
-            Privacy Controls
-          </h3>
-
-          <label className="flex items-center gap-3 text-sm text-[#e8e3e3]" style={{ fontFamily: 'DM Mono, monospace' }}>
-            <input
-              type="checkbox"
-              checked={policy.previewBeforeSend}
-              onChange={e => handlePolicyChange({ previewBeforeSend: e.target.checked })}
-            />
-            Preview prompts before sending to cloud
-          </label>
-
-          <div className="space-y-1">
-            <p className="text-xs text-[#8593A4]" style={{ fontFamily: 'DM Mono, monospace' }}>
-              Never send these data categories to cloud providers:
-            </p>
-            {DATA_CATEGORIES.map(cat => (
-              <label
-                key={cat.id}
-                className="flex items-center gap-2 text-sm text-[#e8e3e3] pl-2"
-                style={{ fontFamily: 'DM Mono, monospace' }}
-              >
-                <input
-                  type="checkbox"
-                  checked={policy.excludedCategories.includes(cat.id)}
-                  onChange={() => handleCategoryToggle(cat.id)}
-                />
-                {cat.label}
-              </label>
-            ))}
-          </div>
-
-          {/* Spending Cap */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-3 text-sm text-[#e8e3e3]" style={{ fontFamily: 'DM Mono, monospace' }}>
-              <input
-                type="checkbox"
-                checked={policy.spendingCap.enabled}
-                onChange={e => handlePolicyChange({
-                  spendingCap: { ...policy.spendingCap, enabled: e.target.checked },
-                })}
-              />
-              Monthly spending cap (API keys)
-            </label>
-            {policy.spendingCap.enabled && (
-              <div className="flex items-center gap-2 pl-8">
-                <span className="text-sm text-[#8593A4]" style={{ fontFamily: 'DM Mono, monospace' }}>$</span>
-                <input
-                  type="number"
-                  value={(policy.spendingCap.monthlyLimit / 100).toFixed(2)}
-                  onChange={e => handlePolicyChange({
-                    spendingCap: {
-                      ...policy.spendingCap,
-                      monthlyLimit: Math.round(parseFloat(e.target.value) * 100),
-                    },
-                  })}
-                  className="w-24 p-1 text-sm bg-[#0B0E11] text-[#e8e3e3] border border-[#8593A4]/30 rounded"
-                  style={{ fontFamily: 'DM Mono, monospace' }}
-                  min="0"
-                  step="5"
-                />
-                <span className="text-xs text-[#8593A4]" style={{ fontFamily: 'DM Mono, monospace' }}>
-                  / month (current: ${(policy.spendingCap.currentSpend / 100).toFixed(2)})
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Sovereignty Note */}
-      <div className="p-3 rounded border border-[#6ECFA3]/20 text-xs text-[#8593A4]" style={{ fontFamily: 'DM Mono, monospace' }}>
-        {policy?.mode === 'off' ? (
-          <>Zero data transmitted to any cloud AI provider. All inference performed locally.</>
-        ) : (
-          <>
-            Cloud Bridge connects your device directly to your cloud provider.
-            VERIDIAN SYNTHETICS never sees, proxies, or caches Cloud Bridge traffic.
-            All calls are logged to your local audit trail and visible in the Network Monitor.
-          </>
-        )}
+        </GhostSprite>
+        </ContentBracket>
       </div>
     </div>
   );
