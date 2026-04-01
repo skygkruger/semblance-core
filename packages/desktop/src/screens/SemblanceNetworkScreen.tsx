@@ -10,8 +10,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
-import { Card, Button, Input, StatusIndicator, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { Button, Input, StatusIndicator, SkeletonCard, FeatureGate } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { PageContainer } from '../components/PageContainer';
+import { SectionDivider } from '../components/SectionDivider';
+import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
+import { EmptyFeatureState } from '../components/EmptyFeatureState';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 import { useNavigate } from 'react-router-dom';
 import {
   networkPeersList,
@@ -155,12 +160,9 @@ export function SemblanceNetworkScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
-        <h1 className="page-title" style={{ fontSize: 28 }}>{t('semblanceNetwork.title', 'Semblance Network')}</h1>
         <ContentBracket>
-        <p className="semblance-network-screen__subtitle">
-          {t('semblanceNetwork.subtitle', 'Consent-first peer-to-peer sharing with other Semblance users.')}
-        </p>
-
+        <h1 className="page-title" style={{ fontSize: 28 }}>{t('semblanceNetwork.title', 'Semblance Network')}</h1>
+        <ShimmerDescription text="Peer-to-peer sharing with other Semblance users" />
         {statusMessage && (
           <div className="semblance-network-screen__status">{statusMessage}</div>
         )}
@@ -173,95 +175,83 @@ export function SemblanceNetworkScreen() {
             showSpinner
           />
         ) : (
-          <>
+          <PageContainer>
             {/* -- Connect Section -- */}
-            <Card className="semblance-network-screen__section-card surface-void opal-wireframe">
-              <h2 style={{ fontFamily: "'DM Mono', monospace", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
-                {t('semblanceNetwork.connect', 'Connect')}
-              </h2>
-              <div className="semblance-network-screen__connect-row">
-                <div className="semblance-network-screen__connect-input-group">
-                  <Input
-                    type="text"
-                    placeholder={t('semblanceNetwork.enterCode', 'Enter connection code')}
-                    value={inputCode}
-                    onChange={e => setInputCode(e.target.value)}
-                    maxLength={12}
-                    className="semblance-network-screen__input-wrapper"
-                  />
-                  <button
-                    type="button"
-                    className="btn btn--opal btn--sm"
-                    onClick={handleConnect}
-                    disabled={connecting || !inputCode.trim()}
-                  >
-                    <span className="btn__text">{connecting ? t('semblanceNetwork.connecting', 'Connecting...') : t('semblanceNetwork.connect', 'Connect')}</span>
-                  </button>
-                </div>
-                <span className="semblance-network-screen__or">{t('semblanceNetwork.or', 'or')}</span>
+            <FeatureStatusBanner title="CONNECT" statusLabel="READY" status="active" />
+            <div className="semblance-network-screen__connect-row">
+              <div className="semblance-network-screen__connect-input-group">
+                <Input
+                  type="text"
+                  placeholder={t('semblanceNetwork.enterCode', 'Enter connection code')}
+                  value={inputCode}
+                  onChange={e => setInputCode(e.target.value)}
+                  maxLength={12}
+                  className="semblance-network-screen__input-wrapper"
+                />
                 <button
                   type="button"
                   className="btn btn--opal btn--sm"
-                  onClick={handleGenerateCode}
+                  onClick={handleConnect}
+                  disabled={connecting || !inputCode.trim()}
                 >
-                  <span className="btn__text">{t('semblanceNetwork.generateCode', 'Generate My Code')}</span>
+                  <span className="btn__text">{connecting ? t('semblanceNetwork.connecting', 'Connecting...') : t('semblanceNetwork.connect', 'Connect')}</span>
                 </button>
               </div>
-              {connectCode && (
-                <div className="semblance-network-screen__code-display">
-                  <span className="semblance-network-screen__code">{connectCode}</span>
-                  <span className="semblance-network-screen__code-hint">{t('semblanceNetwork.codeHint', 'Share this with the other user')}</span>
-                </div>
-              )}
-            </Card>
+              <span className="semblance-network-screen__or">{t('semblanceNetwork.or', 'or')}</span>
+              <button
+                type="button"
+                className="btn btn--opal btn--sm"
+                onClick={handleGenerateCode}
+              >
+                <span className="btn__text">{t('semblanceNetwork.generateCode', 'Generate My Code')}</span>
+              </button>
+            </div>
+            {connectCode && (
+              <div className="semblance-network-screen__code-display">
+                <span className="semblance-network-screen__code">{connectCode}</span>
+                <span className="semblance-network-screen__code-hint">{t('semblanceNetwork.codeHint', 'Share this with the other user')}</span>
+              </div>
+            )}
+
+            <SectionDivider />
 
             {/* -- Peer List -- */}
-            <Card className="semblance-network-screen__section-card surface-void opal-wireframe">
-              <h2 style={{ fontFamily: "'DM Mono', monospace", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
-                {t('semblanceNetwork.connectedPeers', 'Connected Peers')} {peers.length > 0 && <span className="semblance-network-screen__count">{peers.length}</span>}
-              </h2>
-              {peers.length === 0 ? (
-                <div className="semblance-network-screen__empty">
-                  <p>{t('semblanceNetwork.noPeers', 'No peer connections yet.')}</p>
-                  <p className="semblance-network-screen__muted">
-                    {t('semblanceNetwork.noPeersHint', 'Connect with other Semblance users on your local network or via connection codes.')}
-                  </p>
-                </div>
-              ) : (
-                <ul className="semblance-network-screen__peer-list">
-                  {peers.map(peer => (
-                    <li
-                      key={peer.id}
-                      className={`semblance-network-screen__peer ${selectedPeer === peer.id ? 'semblance-network-screen__peer--selected' : ''}`}
-                      onClick={() => setSelectedPeer(peer.id === selectedPeer ? null : peer.id)}
+            <FeatureStatusBanner title="CONNECTED PEERS" statusLabel={peers.length > 0 ? `${peers.length} CONNECTED` : 'NO CONNECTIONS'} status={peers.length > 0 ? 'active' : 'waiting'} />
+            {peers.length === 0 ? (
+              <EmptyFeatureState message="Connect with other Semblance users to share knowledge securely" />
+            ) : (
+              <ul className="semblance-network-screen__peer-list">
+                {peers.map(peer => (
+                  <li
+                    key={peer.id}
+                    className={`semblance-network-screen__peer ${selectedPeer === peer.id ? 'semblance-network-screen__peer--selected' : ''}`}
+                    onClick={() => setSelectedPeer(peer.id === selectedPeer ? null : peer.id)}
+                  >
+                    <div className="semblance-network-screen__peer-info">
+                      <span className="semblance-network-screen__peer-name">{peer.name}</span>
+                      <span className="semblance-network-screen__peer-meta">
+                        <StatusIndicator status="success" />
+                        {' '}
+                        {t('semblanceNetwork.paired', 'Paired')} {new Date(peer.pairedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={e => { e.stopPropagation(); handleDisconnect(peer.id); }}
                     >
-                      <div className="semblance-network-screen__peer-info">
-                        <span className="semblance-network-screen__peer-name">{peer.name}</span>
-                        <span className="semblance-network-screen__peer-meta">
-                          <StatusIndicator status="success" />
-                          {' '}
-                          {t('semblanceNetwork.paired', 'Paired')} {new Date(peer.pairedAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={e => { e.stopPropagation(); handleDisconnect(peer.id); }}
-                      >
-                        {t('button.disconnect', 'Disconnect')}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
+                      {t('button.disconnect', 'Disconnect')}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             {/* -- Sharing Controls -- */}
             {selectedPeer && (
-              <Card className="semblance-network-screen__section-card surface-void opal-wireframe">
-                <h2 style={{ fontFamily: "'DM Mono', monospace", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 16 }}>
-                  {t('semblanceNetwork.sharingControls', 'Sharing Controls')} — {peers.find(p => p.id === selectedPeer)?.name}
-                </h2>
+              <>
+                <SectionDivider />
+                <FeatureStatusBanner title="SHARING CONTROLS" statusLabel={peers.find(p => p.id === selectedPeer)?.name ?? ''} status="active" />
                 <p className="semblance-network-screen__muted">
                   {t('semblanceNetwork.neverShareable', 'Financial data, health data, raw documents, and credentials are never shareable.')}
                 </p>
@@ -289,9 +279,9 @@ export function SemblanceNetworkScreen() {
                     </label>
                   ))}
                 </div>
-              </Card>
+              </>
             )}
-          </>
+          </PageContainer>
         )}
         </ContentBracket>
       </div>

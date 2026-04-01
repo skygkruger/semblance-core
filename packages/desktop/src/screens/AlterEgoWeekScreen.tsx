@@ -9,6 +9,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, FeatureGate, SkeletonCard, StatusIndicator } from '@semblance/ui';
 import { StaticBracket } from '../components/StaticBracket';
+import { PageContainer } from '../components/PageContainer';
+import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 import { sidecarCall } from '../ipc/commands';
 import { useLicense } from '../contexts/LicenseContext';
 import { AlterEgoWeekCard } from '../components/AlterEgoWeekCard';
@@ -210,33 +213,41 @@ export function AlterEgoWeekScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+        <StaticBracket>
         {/* Header */}
         <h1 className="page-title" style={{ fontSize: 28 }}>
           Alter Ego Week
         </h1>
-        <p style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: 12,
-          color: '#A8B4C0',
-          letterSpacing: '0.04em',
-          margin: 0,
-          lineHeight: 1.5,
-        }}>
-          Build trust through 7 days of autonomous demonstrations.
-        </p>
-        <StaticBracket>
+        <ShimmerDescription text="Build trust through 7 days of autonomous demonstrations" />
+        <PageContainer>
+        <FeatureStatusBanner
+          title="ALTER EGO WEEK"
+          statusLabel={
+            isComplete && weekState.userActivated ? 'ACTIVATED'
+            : isComplete ? 'COMPLETE'
+            : weekState.active ? `DAY ${weekState.currentDay ?? 1} OF 7`
+            : 'NOT STARTED'
+          }
+          status={
+            isComplete && weekState.userActivated ? 'active'
+            : isComplete ? 'active'
+            : weekState.active ? 'waiting'
+            : 'inactive'
+          }
+        />
+
         {/* Error */}
         {error && (
-          <Card className="surface-void opal-wireframe" style={{ marginBottom: 20, borderColor: 'rgba(176, 122, 138, 0.3)', background: 'rgba(176, 122, 138, 0.12)' }}>
+          <div style={{ marginBottom: 16, padding: 12, borderRadius: 8, borderColor: 'rgba(176, 122, 138, 0.3)', background: 'rgba(176, 122, 138, 0.12)' }}>
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#B07A8A', letterSpacing: '0.04em', margin: 0 }}>
               {error}
             </p>
-          </Card>
+          </div>
         )}
 
         {/* Not started */}
         {!weekState.active && !isComplete && (
-          <Card className="surface-void opal-wireframe" style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 20 }}>
             <p style={{
               fontFamily: "'DM Mono', monospace",
               fontSize: 12,
@@ -250,7 +261,7 @@ export function AlterEgoWeekScreen() {
             <button type="button" className="btn btn--opal btn--sm" onClick={handleStart}>
               <span className="btn__text">Start Week</span>
             </button>
-          </Card>
+          </div>
         )}
 
         {/* Active Week — AlterEgoWeekCard */}
@@ -273,17 +284,7 @@ export function AlterEgoWeekScreen() {
         )}
 
         {isComplete && weekState.userActivated && (
-          <Card className="surface-void opal-wireframe" style={{ borderColor: 'rgba(110, 207, 163, 0.2)' }}>
-            <h2 style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 18,
-              fontWeight: 300,
-              color: '#EEF1F4',
-              margin: 0,
-              marginBottom: 12,
-            }}>
-              Week Complete
-            </h2>
+          <div>
             <p style={{
               fontFamily: "'DM Mono', monospace",
               fontSize: 12,
@@ -304,21 +305,11 @@ export function AlterEgoWeekScreen() {
                 Alter Ego Active
               </span>
             </div>
-          </Card>
+          </div>
         )}
 
         {isComplete && !weekState.activationOffered && !weekState.userActivated && (
-          <Card className="surface-void opal-wireframe" style={{ borderColor: 'rgba(110, 207, 163, 0.2)' }}>
-            <h2 style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 18,
-              fontWeight: 300,
-              color: '#EEF1F4',
-              margin: 0,
-              marginBottom: 12,
-            }}>
-              Week Complete
-            </h2>
+          <div>
             <p style={{
               fontFamily: "'DM Mono', monospace",
               fontSize: 12,
@@ -329,8 +320,9 @@ export function AlterEgoWeekScreen() {
             }}>
               You've completed all 7 days. The activation offer will appear once your results are reviewed.
             </p>
-          </Card>
+          </div>
         )}
+        </PageContainer>
         </StaticBracket>
       </div>
     </div>

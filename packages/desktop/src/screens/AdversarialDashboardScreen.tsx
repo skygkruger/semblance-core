@@ -11,6 +11,11 @@ import { getDarkPatternFlags, dismissDarkPatternFlag, getFinancialDashboard, pre
 import { useLicense } from '../contexts/LicenseContext';
 import { Card, SkeletonCard, FeatureGate } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { PageContainer } from '../components/PageContainer';
+import { SectionDivider } from '../components/SectionDivider';
+import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
+import { EmptyFeatureState } from '../components/EmptyFeatureState';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 import { DarkPatternBadge } from '../components/DarkPatternBadge';
 import type { DarkPatternFlag } from '../components/DarkPatternBadge';
 import './AdversarialDashboardScreen.css';
@@ -108,12 +113,10 @@ export function AdversarialDashboardScreen() {
   return (
       <div className="page-scroll">
         <div className="page-layout">
-          <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.adversarial.title')}</h1>
-          <p className="adversarial-dashboard__subtitle">
-            {t('screen.adversarial.subtitle')}
-          </p>
-
           <ContentBracket>
+          <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.adversarial.title')}</h1>
+          <ShimmerDescription text="Protecting you from dark patterns, manipulation, and unfair practices" />
+
           {loading && (
             <SkeletonCard
               variant="generic"
@@ -124,8 +127,9 @@ export function AdversarialDashboardScreen() {
           )}
 
           {!loading && (
-            <>
-              {/* Opt-out stats */}
+            <PageContainer>
+              {/* Threat Overview */}
+              <FeatureStatusBanner title="THREAT OVERVIEW" statusLabel={flags.length > 0 ? `${flags.length} DETECTED` : 'ALL CLEAR'} status={flags.length > 0 ? 'error' : 'active'} />
               <div className="adversarial-dashboard__stats">
                 <Card className="adversarial-dashboard__stat surface-void opal-wireframe">
                   <p className="adversarial-dashboard__stat-value">{optOutStatus?.totalOptOuts ?? 0}</p>
@@ -143,52 +147,48 @@ export function AdversarialDashboardScreen() {
                 </Card>
               </div>
 
+              <SectionDivider />
+
               {/* Dark pattern alerts */}
-              <div className="adversarial-dashboard__card">
-                <h2 className="adversarial-dashboard__section-title">{t('screen.adversarial.dark_pattern_alerts')}</h2>
-                {flags.length === 0 ? (
-                  <p className="adversarial-dashboard__empty">
-                    {t('screen.adversarial.no_threats')}
-                  </p>
-                ) : (
-                  <div className="adversarial-dashboard__alert-list" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {flags.map((flag) => (
-                      <DarkPatternBadge
-                        key={flag.contentId}
-                        flag={flag}
-                        onDismiss={(contentId) => {
-                          dismissDarkPatternFlag(contentId).catch((err) =>
-                            console.error('[AdversarialDashboard] Failed to dismiss flag:', err)
-                          );
-                          setFlags((prev) => prev.filter((f) => f.contentId !== contentId));
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+              <FeatureStatusBanner title="DARK PATTERN ALERTS" statusLabel={flags.length > 0 ? `${flags.length} ALERTS` : 'NONE DETECTED'} status={flags.length > 0 ? 'error' : 'active'} />
+              {flags.length === 0 ? (
+                <EmptyFeatureState message="No dark patterns detected. Semblance is monitoring your digital interactions." />
+              ) : (
+                <div className="adversarial-dashboard__alert-list" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {flags.map((flag) => (
+                    <DarkPatternBadge
+                      key={flag.contentId}
+                      flag={flag}
+                      onDismiss={(contentId) => {
+                        dismissDarkPatternFlag(contentId).catch((err) =>
+                          console.error('[AdversarialDashboard] Failed to dismiss flag:', err)
+                        );
+                        setFlags((prev) => prev.filter((f) => f.contentId !== contentId));
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <SectionDivider />
 
               {/* Subscription assessments */}
-              <Card className="adversarial-dashboard__card surface-void opal-wireframe">
-                <h2 className="adversarial-dashboard__section-title">{t('screen.adversarial.subscription_value')}</h2>
-                {subscriptions.length === 0 ? (
-                  <p className="adversarial-dashboard__empty">
-                    {t('screen.adversarial.no_subscriptions')}
-                  </p>
-                ) : (
-                  <div className="adversarial-dashboard__subscription-list">
-                    {subscriptions.map((sub) => (
-                      <div key={sub.id} className="adversarial-dashboard__subscription-item">
-                        <span className="adversarial-dashboard__subscription-name">{sub.name}</span>
-                        <span className="adversarial-dashboard__subscription-cost">
-                          ${sub.monthlyCost.toFixed(2)}/mo
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            </>
+              <FeatureStatusBanner title="SUBSCRIPTION ASSESSMENT" statusLabel={subscriptions.length > 0 ? `${subscriptions.length} TRACKED` : 'NO DATA'} status={subscriptions.length > 0 ? 'active' : 'waiting'} />
+              {subscriptions.length === 0 ? (
+                <EmptyFeatureState message="Connect financial data to assess your subscription value" />
+              ) : (
+                <div className="adversarial-dashboard__subscription-list">
+                  {subscriptions.map((sub) => (
+                    <div key={sub.id} className="adversarial-dashboard__subscription-item">
+                      <span className="adversarial-dashboard__subscription-name">{sub.name}</span>
+                      <span className="adversarial-dashboard__subscription-cost">
+                        ${sub.monthlyCost.toFixed(2)}/mo
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </PageContainer>
           )}
           </ContentBracket>
         </div>

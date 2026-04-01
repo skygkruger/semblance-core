@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, ProgressBar, FeatureGate } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { PageContainer } from '../components/PageContainer';
+import { SectionDivider } from '../components/SectionDivider';
+import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
+import { EmptyFeatureState } from '../components/EmptyFeatureState';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 import { getLatestDigest, listDigests, generateDigest, getDailyDigest, dismissDailyDigest } from '../ipc/commands';
 import { DailyDigestCard } from '../components/DailyDigestCard';
 import { useLicense } from '../contexts/LicenseContext';
@@ -134,17 +139,20 @@ export function DigestScreen() {
     return (
       <div className="page-scroll">
         <div className="page-layout">
+          <ContentBracket>
           <h1 className="page-title" style={{ fontSize: 28 }}>
             {t('screen.digest.title')}
           </h1>
-          <Card className="p-8 text-center surface-void opal-wireframe">
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', marginBottom: 16 }}>
-              {t('screen.digest.empty')}
-            </p>
-            <button type="button" className="btn btn--opal btn--sm" onClick={handleGenerate}>
-              <span className="btn__text">{t('screen.digest.btn_generate')}</span>
-            </button>
-          </Card>
+          <ShimmerDescription text="Your weekly intelligence summary" />
+            <PageContainer>
+              <FeatureStatusBanner title="WEEKLY DIGEST" statusLabel="NO DATA" status="waiting" />
+              <EmptyFeatureState
+                message={t('screen.digest.empty')}
+                actionLabel={t('screen.digest.btn_generate')}
+                onAction={handleGenerate}
+              />
+            </PageContainer>
+          </ContentBracket>
         </div>
       </div>
     );
@@ -163,10 +171,12 @@ export function DigestScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
+        <ContentBracket>
         <h1 className="page-title" style={{ fontSize: 28 }}>
           {t('screen.digest.title')} · {formatDateRange(digest.weekStart, digest.weekEnd)}
         </h1>
-        <ContentBracket>
+        <ShimmerDescription text="Your weekly intelligence summary" />
+        <PageContainer>
         {/* Daily Digest */}
         {dailyDigest && (
           <DailyDigestCard
@@ -180,100 +190,102 @@ export function DigestScreen() {
 
         {/* Narrative */}
         {digest.narrative && (
-          <Card className="p-4 border border-semblance-border dark:border-semblance-border-dark surface-void opal-wireframe">
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontStyle: 'italic', color: '#EEF1F4', letterSpacing: '0.04em', lineHeight: 1.6 }}>
-              &ldquo;{digest.narrative}&rdquo;
-            </p>
-          </Card>
+          <>
+            <FeatureStatusBanner title="NARRATIVE" statusLabel="THIS WEEK" status="active" />
+            <div style={{ padding: 16, borderRadius: 8, background: 'rgba(255,255,255,0.02)', marginBottom: 8 }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontStyle: 'italic', color: '#EEF1F4', letterSpacing: '0.04em', lineHeight: 1.6, margin: 0 }}>
+                &ldquo;{digest.narrative}&rdquo;
+              </p>
+            </div>
+          </>
         )}
 
         {/* Highlights */}
         {(digest.highlights ?? []).length > 0 && (
-          <div className="grid grid-cols-3 gap-3">
-            {(digest.highlights ?? []).map((hl, i) => (
-              <Card key={i} className="p-4 text-center surface-void opal-wireframe">
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 400, color: '#6ECFA3' }}>
-                  {hl.impact}
-                </p>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', marginTop: 4 }}>
-                  {hl.title}
-                </p>
-              </Card>
-            ))}
-          </div>
+          <>
+            <SectionDivider />
+            <FeatureStatusBanner title="HIGHLIGHTS" statusLabel={`${(digest.highlights ?? []).length} ITEMS`} status="active" />
+            <div className="grid grid-cols-3 gap-3">
+              {(digest.highlights ?? []).map((hl, i) => (
+                <Card key={i} className="p-4 text-center surface-void opal-wireframe">
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 400, color: '#6ECFA3' }}>
+                    {hl.impact}
+                  </p>
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', marginTop: 4 }}>
+                    {hl.title}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
 
+        <SectionDivider />
+
         {/* Actions Breakdown */}
-        <Card className="p-4 surface-void opal-wireframe">
-          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 16 }}>
-            {t('screen.digest.section_breakdown')}
-          </h2>
-          <div className="space-y-4">
-            {/* Email */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{t('screen.digest.breakdown_email')}</span>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
-                  {t('screen.digest.breakdown_email_detail', { archived: digest.emailsArchived, drafted: digest.emailsDrafted, sent: digest.emailsSent })}
-                </span>
-              </div>
-              <ProgressBar value={digest.emailsArchived + digest.emailsDrafted + digest.emailsSent} max={maxActions} />
+        <FeatureStatusBanner title="ACTIONS BREAKDOWN" statusLabel={`${digest.totalActions} ACTIONS`} status="active" />
+        <div className="space-y-4">
+          {/* Email */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{t('screen.digest.breakdown_email')}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
+                {t('screen.digest.breakdown_email_detail', { archived: digest.emailsArchived, drafted: digest.emailsDrafted, sent: digest.emailsSent })}
+              </span>
             </div>
-
-            {/* Calendar */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{t('screen.digest.breakdown_calendar')}</span>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
-                  {t('screen.digest.breakdown_calendar_detail', { preps: digest.meetingPrepsGenerated, resolved: digest.conflictsResolved })}
-                </span>
-              </div>
-              <ProgressBar value={digest.meetingPrepsGenerated + digest.conflictsResolved} max={maxActions} />
-            </div>
-
-            {/* Subscriptions */}
-            {digest.subscriptionsAnalyzed > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{t('screen.digest.breakdown_subscriptions')}</span>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
-                    {t('screen.digest.breakdown_subs_detail', { forgotten: digest.forgottenSubscriptions ?? 0, savings: (digest.potentialSavings ?? 0).toFixed(0) })}
-                  </span>
-                </div>
-                <ProgressBar value={digest.forgottenSubscriptions} max={digest.subscriptionsAnalyzed} />
-              </div>
-            )}
+            <ProgressBar value={digest.emailsArchived + digest.emailsDrafted + digest.emailsSent} max={maxActions} />
           </div>
-        </Card>
+
+          {/* Calendar */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{t('screen.digest.breakdown_calendar')}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
+                {t('screen.digest.breakdown_calendar_detail', { preps: digest.meetingPrepsGenerated, resolved: digest.conflictsResolved })}
+              </span>
+            </div>
+            <ProgressBar value={digest.meetingPrepsGenerated + digest.conflictsResolved} max={maxActions} />
+          </div>
+
+          {/* Subscriptions */}
+          {digest.subscriptionsAnalyzed > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>{t('screen.digest.breakdown_subscriptions')}</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em' }}>
+                  {t('screen.digest.breakdown_subs_detail', { forgotten: digest.forgottenSubscriptions ?? 0, savings: (digest.potentialSavings ?? 0).toFixed(0) })}
+                </span>
+              </div>
+              <ProgressBar value={digest.forgottenSubscriptions} max={digest.subscriptionsAnalyzed} />
+            </div>
+          )}
+        </div>
+
+        <SectionDivider />
 
         {/* Autonomy Health */}
-        <Card className="p-4 surface-void opal-wireframe">
-          <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
-            {t('screen.digest.section_autonomy')}
-          </h2>
-          <div className="flex items-center justify-between">
-            <div>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>
-                {t('screen.digest.autonomy_accuracy', { percent: Math.round(digest.autonomyAccuracy * 100) })}
-              </p>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', marginTop: 2 }}>
-                {t('screen.digest.autonomy_detail', { auto: autoExec, approved, total: totalAutonomy })}
-              </p>
-            </div>
-            {rejected === 0 && totalAutonomy > 0 && (
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, padding: '4px 8px', borderRadius: 4, background: 'rgba(110, 207, 163, 0.1)', color: '#6ECFA3', letterSpacing: '0.04em' }}>
-                {t('screen.digest.zero_rejected')}
-              </span>
-            )}
+        <FeatureStatusBanner title="AUTONOMY HEALTH" statusLabel={`${Math.round(digest.autonomyAccuracy * 100)}% ACCURACY`} status={digest.autonomyAccuracy > 0.8 ? 'active' : 'waiting'} />
+        <div className="flex items-center justify-between">
+          <div>
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>
+              {t('screen.digest.autonomy_accuracy', { percent: Math.round(digest.autonomyAccuracy * 100) })}
+            </p>
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', marginTop: 2 }}>
+              {t('screen.digest.autonomy_detail', { auto: autoExec, approved, total: totalAutonomy })}
+            </p>
           </div>
-        </Card>
+          {rejected === 0 && totalAutonomy > 0 && (
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, padding: '4px 8px', borderRadius: 4, background: 'rgba(110, 207, 163, 0.1)', color: '#6ECFA3', letterSpacing: '0.04em' }}>
+              {t('screen.digest.zero_rejected')}
+            </span>
+          )}
+        </div>
 
         {/* Past Digests */}
         {pastDigests.length > 1 && (
-          <Card className="p-4 surface-void opal-wireframe">
-            <h2 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 12 }}>
-              {t('screen.digest.section_past')}
-            </h2>
+          <>
+            <SectionDivider />
+            <FeatureStatusBanner title="PAST DIGESTS" statusLabel={`${pastDigests.length - 1} PREVIOUS`} status="active" />
             <div className="space-y-2">
               {pastDigests.slice(1, 5).map(pd => (
                 <div
@@ -289,8 +301,9 @@ export function DigestScreen() {
                 </div>
               ))}
             </div>
-          </Card>
+          </>
         )}
+        </PageContainer>
         </ContentBracket>
       </div>
     </div>

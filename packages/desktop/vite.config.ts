@@ -38,7 +38,7 @@ function tauriPluginStub() {
         'get_language_preference': 'en',
         'get_model_status': { ollamaStatus:'disconnected',inferenceEngine:'none',activeModel:null,availableModels:[],userName:'Dev User',onboardingComplete:true },
         'get_autonomy_config': { domains:{} },
-        'get_license_status': { tier:'free',active:false },
+        'get_license_status': { tier:'digital-representative',active:true },
         'get_network_trust_status': { clean:true,unauthorizedCount:0,activeServiceCount:0 },
         'get_actions_summary': { total:0,pending:0,approved:0,rejected:0,timeSaved:0 },
         'get_latest_digest': { weekStart:'',weekEnd:'',sections:[],generatedAt:'' },

@@ -14,7 +14,31 @@ interface ContentBracketProps {
 
 interface TickPosition {
   y: number;
+  tier: number; // 1=page title (longest), 2=sub-header, 3=container edge, 4=section, 5=input, 6=card
 }
+
+const TIER_TICK_LENGTHS: Record<number, number> = {
+  1: 24, // page title
+  2: 18, // shimmer description
+  3: 14, // container edges
+  4: 10, // section banners
+  5: 8,  // inputs
+  6: 8,  // cards
+};
+
+// Hierarchy selectors — order matters for tier assignment
+const HIERARCHY = [
+  { selector: '.page-title', tier: 1 },
+  { selector: '.shimmer-desc', tier: 2 },
+  { selector: '.surface-opal', tier: 3 },
+  { selector: '.surface-void:not([data-identity])', tier: 3 },
+  { selector: '.bracket-section', tier: 4 },
+  { selector: '.input-wrapper', tier: 5 },
+  { selector: '.quick-capture__container', tier: 5 },
+  { selector: '.card', tier: 6 },
+  { selector: '.surface-slate', tier: 6 },
+  { selector: '.skeleton-card', tier: 6 },
+];
 
 export function ContentBracket({
   children,
@@ -40,30 +64,58 @@ export function ContentBracket({
     const wrapper = wrapperRef.current;
     if (!content || !wrapper) return;
 
-    // Find all card-like elements anywhere inside, not just direct children
-    const cards = Array.from(content.querySelectorAll('.card, .surface-void, .surface-slate, .skeleton-card')) as HTMLElement[];
-    // Deduplicate: only keep outermost cards (skip cards nested inside other cards)
-    const topCards = cards.filter(card => !cards.some(other => other !== card && other.contains(card)));
+    // Find all hierarchy elements — no dedup, every element gets a tick
+    const found = new Map<HTMLElement, number>(); // element → tier
+    for (const { selector, tier } of HIERARCHY) {
+      for (const el of Array.from(content.querySelectorAll(selector)) as HTMLElement[]) {
+        // Only set tier if not already found at a higher (lower number) tier
+        if (!found.has(el) || found.get(el)! > tier) {
+          found.set(el, tier);
+        }
+      }
+    }
+    // Also check the wrapper's siblings (page-title, shimmer-desc are outside contentRef but inside the bracket)
+    const wrapperParent = wrapper;
+    for (const { selector, tier } of HIERARCHY) {
+      for (const el of Array.from(wrapperParent.querySelectorAll(`:scope > ${selector}`)) as HTMLElement[]) {
+        if (!found.has(el) || found.get(el)! > tier) {
+          found.set(el, tier);
+        }
+      }
+    }
 
-    if (topCards.length === 0) {
+    const elements = Array.from(found.entries());
+    if (elements.length === 0) {
       setTicks([]);
       setSpineHeight(0);
       return;
     }
 
     const contentRect = content.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
     const mainEl = wrapper.closest('main');
-    const mainLeft = mainEl ? mainEl.getBoundingClientRect().left : contentRect.left;
-    const gutterCenter = (contentRect.left - mainLeft) / 2;
-    setSpineX(mainLeft - contentRect.left + gutterCenter);
-    setContentHeight(contentRect.height);
+    const mainLeft = mainEl ? mainEl.getBoundingClientRect().left : wrapperRect.left;
+    const gutterCenter = (wrapperRect.left - mainLeft) / 2 || (contentRect.left - mainLeft) / 2;
+    setSpineX(mainLeft - wrapperRect.left + gutterCenter);
+    setContentHeight(wrapperRect.height);
 
+    // For container edges (tier 3), create TWO ticks: top and bottom of the container
     const positions: TickPosition[] = [];
-    for (const card of topCards) {
-      const cardRect = card.getBoundingClientRect();
-      const centerY = cardRect.top - contentRect.top + cardRect.height / 2;
-      positions.push({ y: centerY });
+    for (const [el, tier] of elements) {
+      const elRect = el.getBoundingClientRect();
+      if (tier === 3) {
+        // Top edge and bottom edge of the container
+        positions.push({ y: elRect.top - wrapperRect.top, tier });
+        positions.push({ y: elRect.bottom - wrapperRect.top, tier });
+      } else {
+        // Center of element
+        const centerY = elRect.top - wrapperRect.top + elRect.height / 2;
+        positions.push({ y: centerY, tier });
+      }
     }
+
+    // Sort by Y position
+    positions.sort((a, b) => a.y - b.y);
 
     if (positions.length > 0) {
       setSpineTop(positions[0]!.y);
@@ -129,7 +181,6 @@ export function ContentBracket({
   }, [children, measure]);
 
   const capLen = 6;
-  const tickLen = 16;
   const p = drawProgress;
 
   // Spine: full duration, same as StaticBracket
@@ -185,6 +236,7 @@ export function ContentBracket({
               const nearSpine = tick.y >= animSpineTop && tick.y <= animSpineBottom;
               const tickOpacity = nearSpine ? 1 : Math.max(0, 1 - spineDistToTick / 20);
               const easedTickP = 1 - Math.pow(1 - tickLocalP, 2);
+              const tickLen = TIER_TICK_LENGTHS[tick.tier] ?? 8;
               return <line key={tick.i} x1={spineX} y1={tick.y} x2={spineX + tickLen * easedTickP} y2={tick.y} opacity={tickOpacity} />;
             })}
           </g>

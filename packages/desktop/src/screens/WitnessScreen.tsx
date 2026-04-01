@@ -8,8 +8,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '../contexts/LicenseContext';
-import { Card, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { SkeletonCard, FeatureGate } from '@semblance/ui';
 import { StaticBracket } from '../components/StaticBracket';
+import { PageContainer } from '../components/PageContainer';
+import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
+import { EmptyFeatureState } from '../components/EmptyFeatureState';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 import {
   witnessGetAttestations,
   witnessGenerateAttestation,
@@ -156,12 +160,9 @@ export function WitnessScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
-        <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.witness.title')}</h1>
         <StaticBracket>
-          <p className="witness__subtitle">
-            {t('screen.witness.subtitle')}
-          </p>
-
+        <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.witness.title')}</h1>
+        <ShimmerDescription text="Cryptographic attestations of autonomous actions" />
           {loading ? (
             <SkeletonCard
               variant="generic"
@@ -170,84 +171,87 @@ export function WitnessScreen() {
               showSpinner
             />
           ) : (
-            <Card className="witness__card surface-void opal-wireframe">
-              <div className="witness__section-header">
-                <h2 style={{ fontFamily: "'DM Mono', monospace", fontWeight: 300, fontSize: 18, color: '#EEF1F4', marginBottom: 0 }}>
-                  {t('screen.witness.attestations')}
-                </h2>
-                <button
-                  type="button"
-                  className="btn btn--opal btn--sm"
-                  onClick={handleCreateAttestation}
-                  disabled={creating}
-                >
-                  <span className="btn__text">{creating ? t('screen.witness.creating', 'Creating...') : t('screen.witness.create_attestation', 'Create Attestation')}</span>
-                </button>
-              </div>
+            <PageContainer>
+              <FeatureStatusBanner title="ATTESTATIONS" statusLabel={attestations.length > 0 ? `${attestations.length} ATTESTATIONS` : 'NO ATTESTATIONS'} status={attestations.length > 0 ? 'active' : 'waiting'} />
 
               {attestations.length === 0 ? (
-                <p className="witness__empty">
-                  {t('screen.witness.empty')}
-                </p>
+                <EmptyFeatureState
+                  message="Attestations will appear here as Semblance takes actions on your behalf"
+                  actionLabel="Create Attestation"
+                  onAction={handleCreateAttestation}
+                />
               ) : (
-                <div className="witness__attestation-list">
-                  {attestations.map((att) => (
-                    <div
-                      key={att.id}
-                      className={`witness__attestation-item ${selectedIds.has(att.id) ? 'witness__attestation-item--selected' : ''}`}
-                      onClick={() => toggleSelection(att.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          toggleSelection(att.id);
-                        }
-                      }}
+                <>
+                  <div className="witness__section-header" style={{ marginBottom: 12 }}>
+                    <button
+                      type="button"
+                      className="btn btn--opal btn--sm"
+                      onClick={handleCreateAttestation}
+                      disabled={creating}
                     >
-                      <span
-                        className={`witness__attestation-check ${selectedIds.has(att.id) ? 'witness__attestation-check--active' : ''}`}
-                      >
-                        {selectedIds.has(att.id) && (
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </span>
-                      <div className="witness__attestation-info">
-                        <div className="witness__attestation-action">{att.description}</div>
-                        <div className="witness__attestation-time">{att.timestamp}</div>
-                      </div>
-                      <span className="witness__attestation-hash">
-                        {(att.hash ?? '').slice(0, 8)}...
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                      <span className="btn__text">{creating ? t('screen.witness.creating', 'Creating...') : t('screen.witness.create_attestation', 'Create Attestation')}</span>
+                    </button>
+                  </div>
 
-              <div className="witness__actions">
-                <button
-                  type="button"
-                  className="btn btn--opal btn--sm"
-                  disabled={!hasSelection}
-                  onClick={handleShareSelected}
-                >
-                  <span className="btn__text">{t('screen.witness.share_selected')}</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  disabled={!hasSelection}
-                  onClick={handleVerifySelected}
-                >
-                  <span className="btn__text">{t('screen.witness.verify_selected')}</span>
-                </button>
-              </div>
+                  <div className="witness__attestation-list">
+                    {attestations.map((att) => (
+                      <div
+                        key={att.id}
+                        className={`witness__attestation-item ${selectedIds.has(att.id) ? 'witness__attestation-item--selected' : ''}`}
+                        onClick={() => toggleSelection(att.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleSelection(att.id);
+                          }
+                        }}
+                      >
+                        <span
+                          className={`witness__attestation-check ${selectedIds.has(att.id) ? 'witness__attestation-check--active' : ''}`}
+                        >
+                          {selectedIds.has(att.id) && (
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                              <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </span>
+                        <div className="witness__attestation-info">
+                          <div className="witness__attestation-action">{att.description}</div>
+                          <div className="witness__attestation-time">{att.timestamp}</div>
+                        </div>
+                        <span className="witness__attestation-hash">
+                          {(att.hash ?? '').slice(0, 8)}...
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="witness__actions">
+                    <button
+                      type="button"
+                      className="btn btn--opal btn--sm"
+                      disabled={!hasSelection}
+                      onClick={handleShareSelected}
+                    >
+                      <span className="btn__text">{t('screen.witness.share_selected')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      disabled={!hasSelection}
+                      onClick={handleVerifySelected}
+                    >
+                      <span className="btn__text">{t('screen.witness.verify_selected')}</span>
+                    </button>
+                  </div>
+                </>
+              )}
               {statusMessage && (
                 <p className="witness__status-message">{statusMessage}</p>
               )}
-            </Card>
+            </PageContainer>
           )}
         </StaticBracket>
       </div>

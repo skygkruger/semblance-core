@@ -17,8 +17,12 @@ import {
   livingWillImport,
 } from '../ipc/commands';
 import type { LivingWillExportRecord } from '../ipc/commands';
-import { Card, Input, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { Input, SkeletonCard, FeatureGate } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
+import { PageContainer } from '../components/PageContainer';
+import { SectionDivider } from '../components/SectionDivider';
+import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
+import { ShimmerDescription } from '../components/ShimmerDescription';
 import './LivingWillScreen.css';
 
 export function LivingWillScreen() {
@@ -205,117 +209,112 @@ export function LivingWillScreen() {
   return (
     <div className="page-scroll">
       <div className="page-layout">
-        <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.living_will.title')}</h1>
         <ContentBracket>
-        <p className="living-will__subtitle">
-          {t('screen.living_will.subtitle')}
-        </p>
-
-        {/* Export status */}
-        <Card className="surface-void opal-wireframe">
-          <h2 className="living-will__section-title">{t('screen.living_will.export_status')}</h2>
-          <div className="living-will__status-row">
-            <span className="living-will__status-label">{t('screen.living_will.last_export')}</span>
-            <span className="living-will__status-value">
-              {lastExport ?? t('screen.living_will.never')}
-            </span>
-          </div>
-          <div className="living-will__status-row">
-            <span className="living-will__status-label">{t('screen.living_will.total_exports')}</span>
-            <span className="living-will__status-value">{exports.length}</span>
-          </div>
-          <div className="living-will__status-row">
-            <span className="living-will__status-label">{t('screen.living_will.encryption')}</span>
-            <span className="living-will__status-value">AES-256-GCM</span>
-          </div>
-
-          {/* Passphrase prompt */}
-          {showPassphrasePrompt && (
-            <div className="living-will__passphrase-prompt">
-              <p className="living-will__passphrase-label">
-                {showPassphrasePrompt === 'export'
-                  ? t('screen.living_will.enter_passphrase_export', 'Enter a passphrase to encrypt the archive:')
-                  : t('screen.living_will.enter_passphrase_import', 'Enter the passphrase used to encrypt this archive:')}
-              </p>
-              <Input
-                type="password"
-                placeholder={t('screen.living_will.passphrase_placeholder', 'Passphrase')}
-                value={passphrase}
-                onChange={(e) => setPassphrase(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    if (showPassphrasePrompt === 'export') handleExportConfirm();
-                    else handleImportConfirm();
-                  }
-                }}
-                autoFocus
-              />
-              <div className="living-will__passphrase-actions">
-                <button
-                  type="button"
-                  className="btn btn--opal btn--sm"
-                  onClick={showPassphrasePrompt === 'export' ? handleExportConfirm : handleImportConfirm}
-                  disabled={!passphrase.trim()}
-                >
-                  <span className="btn__text">{t('common.confirm', 'Confirm')}</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => { setShowPassphrasePrompt(null); setPassphrase(''); }}
-                >
-                  <span className="btn__text">{t('common.cancel', 'Cancel')}</span>
-                </button>
-              </div>
+        <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.living_will.title')}</h1>
+        <ShimmerDescription text="Encrypted digital twin exports for sovereignty and recovery" />
+          <PageContainer>
+            <FeatureStatusBanner title="EXPORT STATUS" statusLabel={exports.length > 0 ? `${exports.length} EXPORTS` : 'NO EXPORTS'} status={exports.length > 0 ? 'active' : 'waiting'} />
+            <div className="living-will__status-row">
+              <span className="living-will__status-label">{t('screen.living_will.last_export')}</span>
+              <span className="living-will__status-value">
+                {lastExport ?? t('screen.living_will.never')}
+              </span>
             </div>
-          )}
+            <div className="living-will__status-row">
+              <span className="living-will__status-label">{t('screen.living_will.total_exports')}</span>
+              <span className="living-will__status-value">{exports.length}</span>
+            </div>
+            <div className="living-will__status-row">
+              <span className="living-will__status-label">{t('screen.living_will.encryption')}</span>
+              <span className="living-will__status-value">AES-256-GCM</span>
+            </div>
 
-          <div className="living-will__actions">
-            <button
-              type="button"
-              className="btn btn--opal btn--sm"
-              onClick={handleExportStart}
-              disabled={exporting || showPassphrasePrompt !== null}
-            >
-              <span className="btn__text">{exporting ? t('screen.living_will.exporting', 'Exporting...') : t('screen.living_will.export_now')}</span>
-            </button>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              onClick={handleImportStart}
-              disabled={importing || showPassphrasePrompt !== null}
-            >
-              <span className="btn__text">{importing ? t('screen.living_will.importing', 'Importing...') : t('screen.living_will.import_archive')}</span>
-            </button>
-          </div>
-          {statusMessage && (
-            <p className="living-will__status-message">{statusMessage}</p>
-          )}
-        </Card>
+            {/* Passphrase prompt */}
+            {showPassphrasePrompt && (
+              <div className="living-will__passphrase-prompt">
+                <p className="living-will__passphrase-label">
+                  {showPassphrasePrompt === 'export'
+                    ? t('screen.living_will.enter_passphrase_export', 'Enter a passphrase to encrypt the archive:')
+                    : t('screen.living_will.enter_passphrase_import', 'Enter the passphrase used to encrypt this archive:')}
+                </p>
+                <Input
+                  type="password"
+                  placeholder={t('screen.living_will.passphrase_placeholder', 'Passphrase')}
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (showPassphrasePrompt === 'export') handleExportConfirm();
+                      else handleImportConfirm();
+                    }
+                  }}
+                  autoFocus
+                />
+                <div className="living-will__passphrase-actions">
+                  <button
+                    type="button"
+                    className="btn btn--opal btn--sm"
+                    onClick={showPassphrasePrompt === 'export' ? handleExportConfirm : handleImportConfirm}
+                    disabled={!passphrase.trim()}
+                  >
+                    <span className="btn__text">{t('common.confirm', 'Confirm')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => { setShowPassphrasePrompt(null); setPassphrase(''); }}
+                  >
+                    <span className="btn__text">{t('common.cancel', 'Cancel')}</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
-        {/* Auto-export toggle */}
-        <Card className="surface-void opal-wireframe">
-          <h2 className="living-will__section-title">{t('screen.living_will.automatic_export')}</h2>
-          <div className="living-will__toggle-row">
-            <span className="living-will__toggle-label">
-              {t('screen.living_will.auto_export_weekly')}
-            </span>
-            <button
-              type="button"
-              className={`living-will__toggle ${autoExportEnabled ? 'living-will__toggle--active' : ''}`}
-              onClick={() => handleToggleAutoExport(!autoExportEnabled)}
-              aria-pressed={autoExportEnabled}
-              aria-label="Toggle automatic export"
-            >
-              <span className="living-will__toggle-knob" />
-            </button>
-          </div>
-          {exports.length === 0 && (
-            <p className="living-will__empty">
-              {t('screen.living_will.configure_exports')}
-            </p>
-          )}
-        </Card>
+            <div className="living-will__actions">
+              <button
+                type="button"
+                className="btn btn--opal btn--sm"
+                onClick={handleExportStart}
+                disabled={exporting || showPassphrasePrompt !== null}
+              >
+                <span className="btn__text">{exporting ? t('screen.living_will.exporting', 'Exporting...') : t('screen.living_will.export_now')}</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={handleImportStart}
+                disabled={importing || showPassphrasePrompt !== null}
+              >
+                <span className="btn__text">{importing ? t('screen.living_will.importing', 'Importing...') : t('screen.living_will.import_archive')}</span>
+              </button>
+            </div>
+            {statusMessage && (
+              <p className="living-will__status-message">{statusMessage}</p>
+            )}
+
+            <SectionDivider />
+
+            <FeatureStatusBanner title="AUTOMATIC EXPORT" statusLabel={autoExportEnabled ? 'WEEKLY' : 'MANUAL'} status={autoExportEnabled ? 'active' : 'inactive'} />
+            <div className="living-will__toggle-row">
+              <span className="living-will__toggle-label">
+                {t('screen.living_will.auto_export_weekly')}
+              </span>
+              <button
+                type="button"
+                className={`living-will__toggle ${autoExportEnabled ? 'living-will__toggle--active' : ''}`}
+                onClick={() => handleToggleAutoExport(!autoExportEnabled)}
+                aria-pressed={autoExportEnabled}
+                aria-label="Toggle automatic export"
+              >
+                <span className="living-will__toggle-knob" />
+              </button>
+            </div>
+            {exports.length === 0 && (
+              <p className="living-will__empty">
+                {t('screen.living_will.configure_exports')}
+              </p>
+            )}
+          </PageContainer>
         </ContentBracket>
       </div>
     </div>
