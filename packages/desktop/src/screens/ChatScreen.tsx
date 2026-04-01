@@ -1372,13 +1372,12 @@ export function ChatScreen() {
               )}
             </>
           )}
+          {/* Multi-agent orchestration — renders inline in message flow */}
+          {orchestrationEvents.length > 0 && (
+            <MultiAgentOverlay events={orchestrationEvents} active={orchestrationActive} />
+          )}
         </div>
         </div>
-
-        {/* Multi-agent orchestration overlay */}
-        {orchestrationEvents.length > 0 && (
-          <MultiAgentOverlay events={orchestrationEvents} active={orchestrationActive} />
-        )}
 
         {/* Voice waveform — shown when recording */}
         {voiceCapable && voice.voiceEnabled && voice.voiceState === 'listening' && (
