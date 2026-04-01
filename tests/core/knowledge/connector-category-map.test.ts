@@ -119,8 +119,8 @@ describe('Connector Category Map', () => {
   });
 
   it('CATEGORY_META colors align with design tokens for finance, reading, browser', () => {
-    // finance → --caution (#B09A8A)
-    expect(CATEGORY_META.finance.color).toBe('#B09A8A');
+    // finance → gold (#EDDD52)
+    expect(CATEGORY_META.finance.color).toBe('#EDDD52');
     // reading → opal purple (#9B8FBE)
     expect(CATEGORY_META.reading.color).toBe('#9B8FBE');
     // browser → --v (Veridian #6ECFA3)
