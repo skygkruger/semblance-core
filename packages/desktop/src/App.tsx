@@ -497,7 +497,7 @@ function AppContent() {
         }}>
           <DotMatrix />
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <WireframeSpinner size={100} />
+            <WireframeSpinner size={100} speed={0.75} />
             <p style={{
               color: '#8593A4',
               fontFamily: "'DM Mono', monospace",

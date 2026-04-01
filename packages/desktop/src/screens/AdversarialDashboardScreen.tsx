@@ -173,7 +173,7 @@ export function AdversarialDashboardScreen() {
               <SectionDivider />
 
               {/* Subscription assessments */}
-              <FeatureStatusBanner title="SUBSCRIPTION ASSESSMENT" statusLabel={subscriptions.length > 0 ? `${subscriptions.length} TRACKED` : 'NO DATA'} status={subscriptions.length > 0 ? 'active' : 'waiting'} />
+              <FeatureStatusBanner title="SUBSCRIPTION ASSESSMENT" statusLabel={subscriptions.length > 0 ? `${subscriptions.length} TRACKED` : 'NO DATA'} status={subscriptions.length > 0 ? 'active' : 'error'} />
               {subscriptions.length === 0 ? (
                 <EmptyFeatureState message="Connect financial data to assess your subscription value" />
               ) : (

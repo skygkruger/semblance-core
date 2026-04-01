@@ -145,7 +145,7 @@ export function DigestScreen() {
           </h1>
           <ShimmerDescription text="Your weekly intelligence summary" />
             <PageContainer>
-              <FeatureStatusBanner title="WEEKLY DIGEST" statusLabel="NO DATA" status="waiting" />
+              <FeatureStatusBanner title="WEEKLY DIGEST" statusLabel="NO DATA" status="error" />
               <EmptyFeatureState
                 message={t('screen.digest.empty')}
                 actionLabel={t('screen.digest.btn_generate')}
@@ -264,11 +264,11 @@ export function DigestScreen() {
         <SectionDivider />
 
         {/* Autonomy Health */}
-        <FeatureStatusBanner title="AUTONOMY HEALTH" statusLabel={`${Math.round(digest.autonomyAccuracy * 100)}% ACCURACY`} status={digest.autonomyAccuracy > 0.8 ? 'active' : 'waiting'} />
+        <FeatureStatusBanner title="AUTONOMY HEALTH" statusLabel={digest.autonomyAccuracy != null && !isNaN(digest.autonomyAccuracy) ? `${Math.round(digest.autonomyAccuracy * 100)}% ACCURACY` : 'NO DATA'} status={digest.autonomyAccuracy != null && !isNaN(digest.autonomyAccuracy) && digest.autonomyAccuracy > 0.8 ? 'active' : 'error'} />
         <div className="flex items-center justify-between">
           <div>
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#EEF1F4', letterSpacing: '0.04em' }}>
-              {t('screen.digest.autonomy_accuracy', { percent: Math.round(digest.autonomyAccuracy * 100) })}
+              {t('screen.digest.autonomy_accuracy', { percent: digest.autonomyAccuracy != null && !isNaN(digest.autonomyAccuracy) ? Math.round(digest.autonomyAccuracy * 100) : 0 })}
             </p>
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#5E6B7C', letterSpacing: '0.04em', marginTop: 2 }}>
               {t('screen.digest.autonomy_detail', { auto: autoExec, approved, total: totalAutonomy })}

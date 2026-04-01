@@ -172,7 +172,7 @@ export function WitnessScreen() {
             />
           ) : (
             <PageContainer>
-              <FeatureStatusBanner title="ATTESTATIONS" statusLabel={attestations.length > 0 ? `${attestations.length} ATTESTATIONS` : 'NO ATTESTATIONS'} status={attestations.length > 0 ? 'active' : 'waiting'} />
+              <FeatureStatusBanner title="ATTESTATIONS" statusLabel={attestations.length > 0 ? `${attestations.length} ATTESTATIONS` : 'NO ATTESTATIONS'} status={attestations.length > 0 ? 'active' : 'error'} />
 
               {attestations.length === 0 ? (
                 <EmptyFeatureState

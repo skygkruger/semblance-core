@@ -865,7 +865,7 @@ export function RelationshipsScreen() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
-            <WireframeSpinner size={100} />
+            <WireframeSpinner size={100} speed={0.75} />
             <span style={{
               fontFamily: "'DM Mono', monospace",
               fontSize: 11,

@@ -21,7 +21,7 @@ export function EmptyFeatureState({
   message,
   actionLabel,
   onAction,
-  spinnerSize = 48,
+  spinnerSize = 75,
 }: EmptyFeatureStateProps) {
   return (
     <div style={{
@@ -33,7 +33,7 @@ export function EmptyFeatureState({
       gap: 16,
       minHeight: 140,
     }}>
-      <WireframeSpinner size={spinnerSize} />
+      <WireframeSpinner size={spinnerSize} speed={0.75} />
       <span style={{
         fontFamily: "'DM Mono', monospace",
         fontSize: 12,

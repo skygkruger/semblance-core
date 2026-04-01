@@ -18,7 +18,7 @@ export function SkeletonCard({
 
   return (
     <View style={[styles.container, { height: typeof height === 'number' ? height : undefined }]}>
-      {showSpinner && <WireframeSpinner size={100} />}
+      {showSpinner && <WireframeSpinner size={100} speed={0.75} />}
       <Text style={styles.status}>{displayMessage}</Text>
       {displaySub && (
         <Text style={styles.sub}>{displaySub}</Text>

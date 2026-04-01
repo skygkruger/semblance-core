@@ -216,7 +216,7 @@ export function SemblanceNetworkScreen() {
             <SectionDivider />
 
             {/* -- Peer List -- */}
-            <FeatureStatusBanner title="CONNECTED PEERS" statusLabel={peers.length > 0 ? `${peers.length} CONNECTED` : 'NO CONNECTIONS'} status={peers.length > 0 ? 'active' : 'waiting'} />
+            <FeatureStatusBanner title="CONNECTED PEERS" statusLabel={peers.length > 0 ? `${peers.length} CONNECTED` : 'NO CONNECTIONS'} status={peers.length > 0 ? 'active' : 'error'} />
             {peers.length === 0 ? (
               <EmptyFeatureState message="Connect with other Semblance users to share knowledge securely" />
             ) : (

@@ -208,7 +208,7 @@ export function AgentInput({
           {/* Thinking overlay */}
           {thinking && (
             <View style={styles.thinkingOverlay} accessibilityLabel={t('input.thinking_text')}>
-              <WireframeSpinner size={40} speed={0.8} />
+              <WireframeSpinner size={40} speed={0.75} />
               <Text style={styles.thinkingText}>{t('input.thinking_text')}</Text>
             </View>
           )}

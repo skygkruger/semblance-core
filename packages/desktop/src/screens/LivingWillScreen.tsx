@@ -213,7 +213,7 @@ export function LivingWillScreen() {
         <h1 className="page-title" style={{ fontSize: 28 }}>{t('screen.living_will.title')}</h1>
         <ShimmerDescription text="Encrypted digital twin exports for sovereignty and recovery" />
           <PageContainer>
-            <FeatureStatusBanner title="EXPORT STATUS" statusLabel={exports.length > 0 ? `${exports.length} EXPORTS` : 'NO EXPORTS'} status={exports.length > 0 ? 'active' : 'waiting'} />
+            <FeatureStatusBanner title="EXPORT STATUS" statusLabel={exports.length > 0 ? `${exports.length} EXPORTS` : 'NO EXPORTS'} status={exports.length > 0 ? 'active' : 'error'} />
             <div className="living-will__status-row">
               <span className="living-will__status-label">{t('screen.living_will.last_export')}</span>
               <span className="living-will__status-value">

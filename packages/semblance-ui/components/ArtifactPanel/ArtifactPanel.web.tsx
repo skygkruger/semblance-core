@@ -123,7 +123,7 @@ export function ArtifactPanel({
       <div className="artifact-panel__body">
         {generating ? (
           <div className="artifact-panel__generating">
-            <WireframeSpinner size={100} />
+            <WireframeSpinner size={100} speed={0.75} />
             <div className="artifact-panel__generating-label">Synthesizing artifact</div>
           </div>
         ) : (

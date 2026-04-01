@@ -173,9 +173,9 @@ export function TunnelPairingScreen() {
             <SectionDivider />
 
             {/* Paired Devices */}
-            <FeatureStatusBanner title="PAIRED DEVICES" statusLabel={peers.length > 0 ? `${peers.length} DEVICES` : 'NO DEVICES'} status={peers.length > 0 ? 'active' : 'waiting'} />
+            <FeatureStatusBanner title="PAIRED DEVICES" statusLabel={peers.length > 0 ? `${peers.length} DEVICES` : 'NO DEVICES'} status={peers.length > 0 ? 'active' : 'error'} />
             {peers.length === 0 ? (
-              <EmptyFeatureState message="No devices found on your local network. Ensure both devices are on the same Wi-Fi." />
+              <EmptyFeatureState message="No devices found on your local network. Ensure both devices are on the same Wi&#8209;Fi." />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {peers.map((peer) => (

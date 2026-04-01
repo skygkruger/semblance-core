@@ -17,7 +17,7 @@ export function SkeletonCard({
 
   return (
     <div className="skeleton-card" style={{ height }}>
-      {showSpinner && <WireframeSpinner size={100} />}
+      {showSpinner && <WireframeSpinner size={100} speed={0.75} />}
       <div className="skeleton-card__status">{displayMessage}</div>
       {displaySub && (
         <div className="skeleton-card__sub">{displaySub}</div>

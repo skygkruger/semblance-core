@@ -189,7 +189,7 @@ export function InheritanceScreen() {
               <SectionDivider />
 
               {/* Trusted parties */}
-              <FeatureStatusBanner title="TRUSTED PARTIES" statusLabel={trustedParties.length > 0 ? `${trustedParties.length} CONFIGURED` : 'NONE CONFIGURED'} status={trustedParties.length > 0 ? 'active' : 'waiting'} />
+              <FeatureStatusBanner title="TRUSTED PARTIES" statusLabel={trustedParties.length > 0 ? `${trustedParties.length} CONFIGURED` : 'NONE CONFIGURED'} status={trustedParties.length > 0 ? 'active' : 'error'} />
               {trustedParties.length === 0 && !showAddForm ? (
                 <EmptyFeatureState
                   message="No trusted parties configured. Add someone you trust to manage your data."

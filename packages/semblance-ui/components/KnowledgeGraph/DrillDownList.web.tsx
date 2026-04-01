@@ -115,7 +115,7 @@ export function DrillDownList({
 
         {loading && (
           <div className="kg-drilldown__loading">
-            <WireframeSpinner size={100} />
+            <WireframeSpinner size={100} speed={0.75} />
           </div>
         )}
 
