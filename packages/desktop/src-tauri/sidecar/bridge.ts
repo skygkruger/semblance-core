@@ -5325,7 +5325,7 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
 
   try {
     // Slack requires HTTPS redirect URIs — use self-signed cert for localhost
-    const requiresHttps = params.connectorId === 'slack';
+    const requiresHttps = params.connectorId === 'slack' || params.connectorId === 'slack-oauth';
     const { callbackUrl, state } = await callbackServer.start({ https: requiresHttps });
     console.error(`[sidecar] Callback server started at: ${callbackUrl}`);
 

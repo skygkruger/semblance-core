@@ -240,14 +240,45 @@ export function OnboardingFlow() {
       return;
     }
 
-    // ── Contacts: extracted from email — show explanation, don't auto-connect ──
+    // ── Contacts: extracted from email — auto-connect if email is connected ──
     if (sourceId === 'contacts') {
+      if (sourceStatuses.email === 'connected') {
+        setSourceStatuses(prev => ({ ...prev, contacts: 'connected' }));
+      } else {
+        emit('semblance://toast', {
+          id: `contacts_info_${Date.now()}`,
+          message: 'Connect your email first — contacts are extracted automatically from your email accounts.',
+          variant: 'info',
+        }).catch(() => {});
+      }
+      return;
+    }
+
+    // ── Health: requires specific provider setup in Settings ──
+    if (sourceId === 'health') {
       emit('semblance://toast', {
-        id: `contacts_info_${Date.now()}`,
-        message: 'Contacts are automatically extracted from your connected email accounts.',
+        id: `health_info_${Date.now()}`,
+        message: 'Health tracking connects to Oura, Fitbit, Whoop, and more. Set up in Settings after onboarding.',
         variant: 'info',
       }).catch(() => {});
       return;
+    }
+
+    // ── Calendar: reuse Gmail tokens (Gmail already requests Calendar scope) ──
+    if (sourceId === 'calendar' && sourceStatuses.email === 'connected') {
+      setSourceStatuses(prev => ({ ...prev, calendar: 'connecting' }));
+      try {
+        // Gmail already authorized Calendar scope — trigger sync directly
+        await ipcSend({
+          action: 'connector.sync',
+          payload: { connectorId: 'google-calendar' },
+        });
+        setSourceStatuses(prev => ({ ...prev, calendar: 'connected' }));
+        return;
+      } catch {
+        // Sync failed — fall through to regular OAuth flow below
+        console.error('[OnboardingFlow] Calendar sync with Gmail token failed, trying OAuth');
+      }
     }
 
     // ── OAuth sources (email, calendar, slack) ───────────────────────────────
@@ -265,12 +296,27 @@ export function OnboardingFlow() {
           variant: 'attention',
         }).catch(() => {});
       } else {
-        setSourceStatuses(prev => ({ ...prev, [sourceId]: 'connected' }));
+        setSourceStatuses(prev => {
+          const updated = { ...prev, [sourceId]: 'connected' as const };
+          // Gmail includes Calendar scope — auto-connect calendar + contacts
+          if (sourceId === 'email') {
+            updated.calendar = 'connected';
+            updated.contacts = 'connected';
+          }
+          return updated;
+        });
         // Trigger sync
         ipcSend({
           action: 'connector.sync',
           payload: { connectorId },
         }).catch(() => {});
+        // If email connected, also trigger calendar sync (Gmail token has Calendar scope)
+        if (sourceId === 'email') {
+          ipcSend({
+            action: 'connector.sync',
+            payload: { connectorId: 'google-calendar' },
+          }).catch(() => {});
+        }
       }
     } catch (err) {
       console.error(`[OnboardingFlow] Failed to connect ${connectorId}:`, err);
