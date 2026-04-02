@@ -1,9 +1,10 @@
 // OnboardingFlow — Multi-step onboarding sequence using semblance-ui components.
 // Container that manages step state and IPC, delegates presentation to library pages.
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Button,
   SplashScreen,
   HardwareDetection,
   DataSourcesStep,
@@ -14,7 +15,6 @@ import {
   TermsAcceptanceStep,
   IntentCapture,
   LanguageSelect,
-  DotMatrix,
   AlterEgoWeekOffer,
   InitialIndexStep,
 } from '@semblance/ui';
@@ -22,6 +22,9 @@ import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier, Da
 import { detectOSLocale } from '@semblance/core/i18n/supported-languages';
 import { listen, emit, type UnlistenFn } from '@tauri-apps/api/event';
 import { useAppDispatch } from '../state/AppState';
+import { OnboardingParticleField } from '../components/OnboardingParticleField';
+import { OnboardingAmbientGlow } from '../components/OnboardingAmbientGlow';
+import { OnboardingGrid } from '../components/OnboardingGrid';
 
 import {
   detectHardware,
@@ -46,32 +49,33 @@ import type { HardwareDisplayInfo, KnowledgeMoment } from '../ipc/types';
 type OnboardingStep =
   | 'language-select'
   | 'splash'
-  | 'hardware'
-  | 'data-sources'
-  | 'initial-index'
-  | 'knowledge-moment'
-  | 'autonomy'
-  | 'alter-ego-offer'
-  | 'intent-capture'
+  | 'terms'
   | 'naming-moment'
   | 'naming-ai'
-  | 'initialize'
-  | 'terms';
+  | 'hardware'
+  | 'autonomy'
+  | 'intent-capture'
+  | 'data-sources'
+  | 'initial-index'
+  | 'alter-ego-offer'
+  | 'initialize';
 
+// Narrative arc: Meet → Bond → Trust → Empower → Launch
+// Terms early (before data). Naming early (emotional core).
+// Data sources after trust is established. Initialize is the climax.
 const STEP_ORDER: OnboardingStep[] = [
   'language-select',
   'splash',
-  'hardware',
-  'data-sources',
-  'initial-index',
-  'knowledge-moment',
-  'autonomy',
-  'intent-capture',
+  'terms',
   'naming-moment',
   'naming-ai',
-  'initialize',
+  'hardware',
+  'autonomy',
+  'intent-capture',
+  'data-sources',
+  'initial-index',
   'alter-ego-offer',
-  'terms',
+  'initialize',
 ];
 
 /** Map data source IDs to connector IDs for OAuth */
@@ -155,6 +159,18 @@ export function OnboardingFlow() {
   }, []);
 
   const currentIndex = STEP_ORDER.indexOf(step);
+  const progress = STEP_ORDER.length > 1 ? currentIndex / (STEP_ORDER.length - 1) : 0;
+  const isConverging = step === 'initialize';
+  const [stepKey, setStepKey] = useState(0);
+  const prevStepRef = useRef(step);
+
+  // Increment stepKey on step transitions for stagger animation
+  useEffect(() => {
+    if (step !== prevStepRef.current) {
+      prevStepRef.current = step;
+      setStepKey(k => k + 1);
+    }
+  }, [step]);
 
   const goNext = useCallback(() => {
     const nextIndex = currentIndex + 1;
@@ -423,9 +439,9 @@ export function OnboardingFlow() {
     };
   }, [step, sourceStatuses, selectedDirectories]);
 
-  // Generate knowledge moment when entering the knowledge-moment step
+  // Generate knowledge moment when entering the initialize step
   useEffect(() => {
-    if (step !== 'knowledge-moment') return;
+    if (step !== 'initialize') return;
 
     const tryGenerateKnowledgeMoment = async () => {
       let dataExists = hasIndexedData;
@@ -598,10 +614,38 @@ export function OnboardingFlow() {
 
   return (
     <div
-      className="h-screen flex flex-col items-center justify-center"
-      style={{ backgroundColor: '#0B0E11', color: '#EEF1F4' }}
+      className="h-screen flex flex-col items-center"
+      style={{ backgroundColor: '#0B0E11', color: '#EEF1F4', overflowY: 'auto', overflowX: 'hidden' }}
     >
-      <DotMatrix />
+      <OnboardingGrid progress={progress} />
+      <OnboardingParticleField progress={progress} converging={isConverging} />
+      <OnboardingAmbientGlow progress={progress} />
+      <div className="onboarding-vignette" />
+
+      {/* Back chevron — persistent on all steps except the first */}
+      {currentIndex > 0 && (
+        <button
+          type="button"
+          className="btn btn--opal btn--sm"
+          onClick={goBack}
+          aria-label="Go back"
+          style={{
+            position: 'fixed',
+            top: 24,
+            left: 24,
+            zIndex: 20,
+            minWidth: 0,
+            padding: '8px 10px',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+      )}
+
+      {/* Step content — keyed wrapper re-triggers stagger animation */}
+      <div key={stepKey} className="onboarding-step-enter" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', position: 'relative', zIndex: 1, padding: '80px 24px 64px', margin: 'auto 0' }}>
       {step === 'language-select' && (
         <LanguageSelect
           detectedCode={detectOSLocale()}
@@ -640,140 +684,7 @@ export function OnboardingFlow() {
         />
       )}
 
-      {step === 'knowledge-moment' && (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 24,
-          maxWidth: 480,
-          width: '100%',
-          animation: 'dissolve 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
-        }}>
-          {momentLoading && (
-            <>
-              <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
-                Discovering connections...
-              </h2>
-              <div className="onboarding-content-frame" style={{ width: '100%' }}>
-                <div style={{
-                  padding: 24,
-                  borderRadius: 8,
-                  backgroundColor: '#111518',
-                  border: '1px solid rgba(107,95,168,0.15)',
-                  minHeight: 120,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, color: '#5E6B7C' }}>
-                    Analyzing your data...
-                  </span>
-                </div>
-              </div>
-            </>
-          )}
-
-          {!momentLoading && knowledgeMoment && (
-            <>
-              <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
-                {aiName || 'Semblance'} already sees patterns
-              </h2>
-              <div className="onboarding-content-frame" style={{ width: '100%' }}>
-                <div className="knowledge-moment-card surface-opal opal-surface" style={{ padding: 24 }}>
-                  <h3 style={{
-                    fontFamily: "'Fraunces', serif",
-                    fontSize: 18,
-                    fontWeight: 400,
-                    color: '#EEF1F4',
-                    margin: '0 0 8px 0',
-                  }}>
-                    {knowledgeMoment.title}
-                  </h3>
-                  <p style={{
-                    fontFamily: "'DM Sans', system-ui, sans-serif",
-                    fontSize: 14,
-                    color: '#A8B4C0',
-                    margin: 0,
-                    lineHeight: 1.6,
-                  }}>
-                    {knowledgeMoment.summary}
-                  </p>
-                  {knowledgeMoment.connections.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
-                      {knowledgeMoment.connections.map((conn) => (
-                        <span key={conn} style={{
-                          fontFamily: "'DM Mono', monospace",
-                          fontSize: 11,
-                          color: '#6ECFA3',
-                          background: 'rgba(110, 207, 163, 0.1)',
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                        }}>
-                          {conn}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {!momentLoading && !knowledgeMoment && (
-            <>
-              <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
-                Ready to learn
-              </h2>
-              <p style={{
-                fontFamily: "'DM Sans', system-ui, sans-serif",
-                fontSize: 13,
-                color: '#8593A4',
-                textAlign: 'center',
-                margin: 0,
-                maxWidth: 360,
-                lineHeight: 1.5,
-              }}>
-                {aiName || 'Semblance'} will discover patterns in your data as it builds your knowledge graph over time.
-              </p>
-            </>
-          )}
-
-          <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={goBack}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
-                color: '#5E6B7C', transition: 'color 150ms ease',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 15l-5-5 5-5" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={goNext}
-              style={{
-                fontFamily: "'DM Sans', system-ui, sans-serif",
-                fontSize: 14,
-                fontWeight: 500,
-                color: '#0B0E11',
-                background: 'linear-gradient(135deg, #6ECFA3 0%, #5BB990 100%)',
-                border: 'none',
-                borderRadius: 8,
-                padding: '10px 24px',
-                cursor: 'pointer',
-              }}
-            >
-              Continue
-            </button>
-          </div>
-        </div>
-      )}
+      {/* knowledge-moment step removed — folded into Initialize step */}
 
       {step === 'autonomy' && (
         <AutonomyTierStep
@@ -801,7 +712,7 @@ export function OnboardingFlow() {
           downloads={downloads}
           knowledgeMoment={hasIndexedData ? knowledgeMoment : null}
           loading={hasIndexedData ? momentLoading : false}
-          onComplete={goNext}
+          onComplete={handleComplete}
           aiName={aiName}
           runtimeReady={runtimeReady}
           onRetryModel={handleRetryModel}
@@ -817,34 +728,20 @@ export function OnboardingFlow() {
       )}
 
       {step === 'terms' && (
-        <TermsAcceptanceStep onAccept={handleComplete} />
+        <TermsAcceptanceStep onAccept={goNext} />
       )}
 
-      {/* Step indicator */}
-      <div style={{
-        position: 'fixed',
-        bottom: 24,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        gap: 6,
-        zIndex: 10,
-        padding: '6px 12px',
-        borderRadius: 12,
-        background: 'rgba(11, 14, 17, 0.85)',
-      }}>
-        {STEP_ORDER.map((s, i) => (
-          <div
-            key={s}
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              backgroundColor: i <= currentIndex ? '#6ECFA3' : '#2A2F35',
-              transition: 'background-color 300ms ease',
-            }}
-          />
-        ))}
+      </div>{/* close onboarding-step-enter */}
+
+      {/* Shimmer progress line */}
+      <div
+        className="onboarding-progress-line"
+        style={{ width: Math.max(120, STEP_ORDER.length * 16) }}
+      >
+        <div
+          className="onboarding-progress-line__fill"
+          style={{ width: `${progress * 100}%` }}
+        />
       </div>
     </div>
   );
