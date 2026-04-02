@@ -556,6 +556,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       if (lastIdx >= 0 && msgs[lastIdx]!.role === 'assistant') {
         const prev = msgs[lastIdx]!.orchestration ?? [];
         msgs[lastIdx] = { ...msgs[lastIdx]!, orchestration: [...prev, action.event] };
+      } else {
+        // No assistant message yet — create one to hold orchestration events
+        // This happens when the demo fires before a message is sent
+        msgs.push({
+          id: `assistant_orch_${Date.now()}`,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          orchestration: [action.event],
+        });
       }
       return { ...state, chatMessages: msgs };
     }

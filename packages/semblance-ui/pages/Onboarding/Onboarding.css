@@ -3,7 +3,7 @@
 /* Shimmer headline — steel-blue / silver / sage gradient text */
 .onboarding-shimmer-headline {
   font-family: var(--fm);
-  font-weight: 200;
+  font-weight: 400;
   letter-spacing: 0.04em;
   text-align: center;
   margin: 0;
@@ -23,7 +23,7 @@
 
 .naming__headline {
   font-family: var(--fm);
-  font-weight: 200;
+  font-weight: 400;
   font-size: clamp(28px, 5vw, 48px);
   letter-spacing: 0.04em;
   text-align: center;
@@ -43,13 +43,13 @@
   animation-delay: -6s;
 }
 
-/* Gradient pronouns — opal shimmer */
+/* Gradient pronouns — sage/blue/silver shimmer */
 .naming__pronoun {
   background: linear-gradient(
     105deg,
-    #625882 0%, #9a94b8 12%, #b8c0cc 24%,
-    #d8dde8 38%, #e4e8ee 50%, #d8dde8 62%,
-    #b8c0cc 76%, #9a94b8 88%, #625882 100%
+    #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%,
+    #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%,
+    #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%
   );
   background-size: 300% auto;
   -webkit-background-clip: text;
@@ -61,16 +61,17 @@
 }
 
 .naming__subtext {
-  font-family: var(--fb);
-  font-size: 13px;
-  color: #8593A4;
+  font-family: var(--fm);
+  font-size: 12px;
+  color: #A8B4C0;
+  letter-spacing: 0.04em;
   text-align: center;
   max-width: 300px;
   margin: 8px auto 0;
   line-height: 1.5;
 }
 
-/* ─── AI name shimmer preview ─── */
+/* ─── AI name shimmer preview — sage/blue/silver ─── */
 .naming__ai-preview {
   font-family: var(--fm);
   font-size: 36px;
@@ -80,9 +81,9 @@
   min-height: 48px;
   background: linear-gradient(
     105deg,
-    #625882 0%, #9a94b8 12%, #b8c0cc 24%,
-    #d8dde8 38%, #e4e8ee 50%, #d8dde8 62%,
-    #b8c0cc 76%, #9a94b8 88%, #625882 100%
+    #63778a 0%, #7a94b0 10%, #8aa4b8 20%, #b8cdd8 30%,
+    #8fa8a0 42%, #7a9e8e 50%, #8fa8a0 58%,
+    #b8cdd8 70%, #8aa4b8 80%, #7a94b0 90%, #63778a 100%
   );
   background-size: 300% auto;
   -webkit-background-clip: text;
@@ -101,9 +102,10 @@
 }
 
 .naming__ai-subtext {
-  font-family: var(--fb);
-  font-size: 13px;
-  color: #8593A4;
+  font-family: var(--fm);
+  font-size: 12px;
+  color: #A8B4C0;
+  letter-spacing: 0.04em;
   text-align: center;
   max-width: 340px;
   margin: 4px auto 0;
@@ -118,7 +120,7 @@
   transform: translateY(0);
 }
 
-/* ─── Onboarding content frame — subtle opal border to bridge card language ─── */
+/* ─── Onboarding content frame — Veridian-tinted conic border ─── */
 .onboarding-content-frame {
   position: relative;
   width: 100%;
@@ -127,10 +129,10 @@
   background:
     linear-gradient(#0B0E11, #0B0E11) padding-box,
     conic-gradient(from var(--opal-angle),
-      rgba(97,88,128,0.2), rgba(119,110,162,0.28),
-      rgba(154,168,184,0.35), rgba(216,221,232,0.38),
-      rgba(154,168,184,0.35), rgba(119,110,162,0.28),
-      rgba(97,88,128,0.2)) border-box;
+      rgba(110,207,163,0.08), rgba(110,207,163,0.14),
+      rgba(110,207,163,0.20), rgba(110,207,163,0.25),
+      rgba(110,207,163,0.20), rgba(110,207,163,0.14),
+      rgba(110,207,163,0.08)) border-box;
   animation: opal-border-sweep 8s linear infinite;
   padding: var(--sp-4);
   display: flex;
@@ -146,6 +148,7 @@
   border-radius: var(--r-md);
   border: 1px solid var(--b1);
   cursor: pointer;
+  text-align: center;
   transition: border-color 180ms ease-out, background 180ms ease-out;
 }
 
@@ -170,30 +173,31 @@
   display: none; /* Chrome/Safari */
 }
 
-/* ─── Knowledge Moment card — uses surface-opal via class ─── */
+/* ─── Knowledge Moment card ─── */
 .knowledge-moment-card {
   width: 100%;
   padding: var(--sp-6);
   box-sizing: border-box;
 }
 
-/* Card text — matched to BriefingCard typography */
 .knowledge-moment-card__title {
-  font-family: var(--fb);
-  font-weight: 300;
-  font-size: var(--text-xl);
+  font-family: var(--fm);
+  font-weight: 400;
+  font-size: 21px;
   color: var(--w-dim);
   margin: 0 0 8px;
   line-height: 1.3;
+  letter-spacing: 0.04em;
 }
 
 .knowledge-moment-card__summary {
-  font-family: var(--fb);
-  font-weight: 300;
-  font-size: var(--text-base);
-  color: var(--sv3);
+  font-family: var(--fm);
+  font-weight: 400;
+  font-size: 12px;
+  color: #A8B4C0;
   margin: 0 0 12px;
   line-height: 1.6;
+  letter-spacing: 0.04em;
 }
 
 .knowledge-moment-card__tags {
@@ -209,4 +213,96 @@
   padding: 2px 8px;
   border-radius: 6px;
   background: var(--v-dim);
+}
+
+/* ─── Onboarding vignette — darkened edges, draws eye to center ─── */
+.onboarding-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 70% 65% at 50% 50%,
+    transparent 0%,
+    transparent 40%,
+    rgba(6, 8, 9, 0.3) 70%,
+    rgba(6, 8, 9, 0.65) 100%
+  );
+  transition: background 1.5s ease;
+}
+
+/* ─── Onboarding ambient glow breathing ─── */
+@keyframes onboarding-glow-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ─── Staggered step entrance — headline → content → button ─── */
+.onboarding-step-enter {
+  position: relative;
+  z-index: 1;
+}
+
+.onboarding-step-enter > *:nth-child(1) {
+  animation: onboarding-stagger-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0ms;
+}
+
+.onboarding-step-enter > *:nth-child(2) {
+  animation: onboarding-stagger-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 150ms;
+}
+
+.onboarding-step-enter > *:nth-child(3) {
+  animation: onboarding-stagger-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 300ms;
+}
+
+.onboarding-step-enter > *:nth-child(4) {
+  animation: onboarding-stagger-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 400ms;
+}
+
+.onboarding-step-enter > *:nth-child(5) {
+  animation: onboarding-stagger-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 500ms;
+}
+
+@keyframes onboarding-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ─── Shimmer progress line (replaces dot indicators) ─── */
+.onboarding-progress-line {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  height: 2px;
+  border-radius: 1px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.onboarding-progress-line__fill {
+  height: 100%;
+  border-radius: 1px;
+  background: linear-gradient(
+    90deg,
+    #63778a 0%, #7a94b0 15%, #8aa4b8 30%, #b8cdd8 45%,
+    #8fa8a0 55%, #7a9e8e 65%, #8fa8a0 75%,
+    #b8cdd8 85%, #8aa4b8 100%
+  );
+  background-size: 300% auto;
+  animation: shimmer 19s linear infinite;
+  animation-delay: -6s;
+  transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
