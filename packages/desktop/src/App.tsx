@@ -43,6 +43,7 @@ import { CloudBridgeScreen } from './screens/CloudBridgeScreen';
 import { AlterEgoWeekScreen } from './screens/AlterEgoWeekScreen';
 import { ImportEverythingScreen } from './screens/ImportEverythingScreen';
 import { CanvasPanel } from './components/CanvasPanel';
+import { ChatMonitor } from './components/ChatMonitor';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
 import { UpgradeScreen as UpgradeScreenComponent, UpgradeEmailCapture } from '@semblance/ui';
@@ -639,6 +640,7 @@ function AppContent() {
         </div>
       </main>
       <CanvasPanel />
+      <ChatMonitor />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );

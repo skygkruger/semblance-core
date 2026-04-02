@@ -139,6 +139,8 @@ export interface AppState {
     categoryVolumes: Record<'actions' | 'system' | 'voice', number>;
   };
   language: string;
+  /** Chat monitor panel state — persists across navigation */
+  chatMonitor: 'hidden' | 'minimized' | 'expanded';
 }
 
 export interface ConversationSummaryState {
@@ -263,6 +265,7 @@ export type AppAction =
   | { type: 'REPLACE_CHAT_MESSAGES'; messages: ChatMessage[] }
   | { type: 'SET_LAST_MESSAGE_ACTIONS'; actions: ChatActionItem[]; messageId?: string }
   | { type: 'APPEND_ORCHESTRATION_EVENT'; event: OrchestrationEvent }
+  | { type: 'SET_CHAT_MONITOR'; state: 'hidden' | 'minimized' | 'expanded' }
   | { type: 'SET_CONVERSATION_SETTINGS'; settings: AppState['conversationSettings'] }
   | { type: 'SET_INTENT_PROFILE'; profile: AppState['intentProfile'] }
   | { type: 'SET_PRIMARY_GOAL'; goal: string }
@@ -403,6 +406,7 @@ export const initialState: AppState = {
     categoryVolumes: { actions: 1.0, system: 1.0, voice: 1.0 },
   },
   language: 'en',
+  chatMonitor: 'hidden',
 };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────
@@ -555,6 +559,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       }
       return { ...state, chatMessages: msgs };
     }
+    case 'SET_CHAT_MONITOR':
+      return { ...state, chatMonitor: action.state };
     case 'SET_CONVERSATION_SETTINGS':
       return { ...state, conversationSettings: action.settings };
     case 'SET_INTENT_PROFILE':

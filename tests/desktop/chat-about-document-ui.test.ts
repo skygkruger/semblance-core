@@ -58,6 +58,7 @@ describe('AppState document context', () => {
     alterEgoSettings: { dollarThreshold: 50, confirmationDisabledCategories: [] },
     soundSettings: { enabled: true, categoryVolumes: { actions: 0.7, system: 0.5, voice: 0.8 } },
     language: 'en',
+    chatMonitor: 'hidden' as const,
   };
 
   const mockDoc: DocumentContext = {
