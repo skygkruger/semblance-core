@@ -52,7 +52,7 @@ export function NamingYourAI({ onComplete, defaultValue = '' }: NamingYourAIProp
           disabled={!hasValue}
           onClick={() => onComplete?.(aiName.trim())}
         >
-          <span className="btn__text">{t('naming_ai.start_button')}</span>
+          <span className="btn__text">{t('naming_ai.continue_button', { defaultValue: 'Continue' })}</span>
         </Button>
       </div>
     </div>

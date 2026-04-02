@@ -89,9 +89,25 @@ export function AlterEgoWeekOffer({ onAccept, onSkip, onBack }: AlterEgoWeekOffe
         <Button variant="opal" size="lg" onClick={onAccept}>
           <span className="btn__text">{t('alter_ego_week_offer.start_button')}</span>
         </Button>
-        <Button variant="ghost" size="lg" onClick={onSkip}>
-          <span className="btn__text">{t('alter_ego_week_offer.skip_button')}</span>
-        </Button>
+        <button
+          type="button"
+          onClick={onSkip}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 12,
+            color: '#5E6B7C',
+            letterSpacing: '0.04em',
+            padding: '4px 8px',
+            transition: 'color 200ms ease',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#A8B4C0')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
+        >
+          {t('alter_ego_week_offer.skip_button')}
+        </button>
       </div>
     </div>
   );
