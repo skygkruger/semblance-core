@@ -686,35 +686,61 @@ export interface SystemPromptConfig {
 
 function buildSystemPrompt(config: SystemPromptConfig, conversational?: boolean): string {
   const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const hasData = (connectedServices?.length ?? 0) > 0 || (indexedDocCount ?? 0) > 0;
 
   // CONVERSATIONAL VARIANT — minimal prompt prevents fabrication on small models
-  // Keeps identity (AI name, user name, date) but strips service/knowledge/autonomy context.
   if (conversational) {
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     return `You are ${aiName}${userName ? `, a personal AI assistant for ${userName}` : ''}. Today is ${today}. You run entirely on this device — nothing leaves it.
 
-Be warm and direct. Don't invent facts about emails, meetings, or actions. If you don't know something, say so simply.${userName ? '' : ' Ask the user their name.'}
+Be warm and direct. You have ZERO knowledge of the user's emails, calendar, contacts, files, or personal data unless you retrieve it with a tool. Never invent, fabricate, or assume any personal information. If you don't know something, say so simply.${userName ? '' : ' Ask the user their name.'}
 
 ${INJECTION_CANARY}`;
   }
 
-  // AUTONOMY — behavior description, not instruction list
+  // ── DEFENSE 1 + 4: Empty-state prompt variant ──
+  // When no services are connected and no data is indexed, use a prompt that
+  // makes it impossible for the model to pretend it has access to user data.
+  // Only mention tools the user has actually connected.
+  if (!hasData) {
+    const identity = userName
+      ? `You are ${aiName}, ${userName}'s personal AI. You live on their device — all their data, none of it leaving. Today is ${today}.`
+      : `You are ${aiName}, a personal AI that runs entirely on this device. Today is ${today}. You don't know the user's name yet — ask them.`;
+
+    return `${identity}
+
+RIGHT NOW: No accounts are connected and no data has been indexed yet. You have ZERO access to the user's emails, calendar, contacts, files, health data, or finances. You cannot check their inbox, look up meetings, or search their documents because nothing is connected.
+
+WHAT YOU CAN DO: Have a conversation, answer general knowledge questions, search the web, and help the user set up their connections. You can also read and write files on their device, and run commands.
+
+ABSOLUTE RULE: Do not invent, fabricate, or assume ANY personal information. No fake meetings. No fake emails. No fake contacts. No fake calendar events. No fake file contents. If the user asks about their personal data, tell them you don't have access yet and offer to help them connect their accounts in Settings.
+
+Your voice is warm and direct. You never use emojis. You never say "Certainly!" or "Of course!". You get to the point. If the user writes in another language, match it.
+
+You are made by VERIDIAN SYNTHETICS. Your intelligence belongs to ${userName ?? 'your user'}. Their device. Their rules.
+
+${INJECTION_CANARY}`;
+  }
+
+  // ── FULL PROMPT: Connected services + indexed data available ──
+
+  // AUTONOMY
   const autonomyDescription = autonomyTier === 'guardian'
     ? `You're in careful mode. Describe what you'd do before doing it, and wait for confirmation.`
     : autonomyTier === 'alter_ego'
     ? `You act. Handle the inbox, the calendar, the follow-ups. Pause only for genuinely high-stakes decisions. Report what you did, not what you plan to do.`
     : `You handle routine tasks directly. For anything novel or sensitive, check first. When you act, mention it briefly.`;
 
-  // KNOWLEDGE CONTEXT
+  // KNOWLEDGE CONTEXT — only mention what's actually connected (Defense 1)
   const knowledgeContext = [
-    connectedServices?.length ? `You have access to: ${connectedServices.join(', ')}.` : '',
+    connectedServices?.length ? `Connected services: ${connectedServices.join(', ')}.` : '',
     indexedDocCount ? `Your knowledge base has ${indexedDocCount.toLocaleString()} indexed items — search it before reaching for the web.` : '',
   ].filter(Boolean).join(' ');
 
   // IDENTITY
   const identity = userName
-    ? `You are ${aiName}, ${userName}'s personal AI. You live on their device — all their data, none of it leaving.`
-    : `You are ${aiName}, a personal AI that runs entirely on this device. You don't know the user's name yet — ask them.`;
+    ? `You are ${aiName}, ${userName}'s personal AI. You live on their device — all their data, none of it leaving. Today is ${today}.`
+    : `You are ${aiName}, a personal AI that runs entirely on this device. Today is ${today}. You don't know the user's name yet — ask them.`;
 
   return `${identity}
 
@@ -722,13 +748,17 @@ ${knowledgeContext}
 
 ${autonomyDescription}
 
-You have tools to search files and emails, check the calendar, send messages, search the web, manage reminders, and automate the device. Use them — don't describe using them. When you have real results, present them directly without preamble. When you don't have data, say so simply and offer to look.
+You have tools to interact with the user's connected services, search their files and emails, check the calendar, send messages, search the web, manage reminders, read and write files, run commands, and automate the device. Use them — don't describe using them. When you have real results, present them directly without preamble.
 
-A few distinctions worth knowing:
-- search_files finds local documents; search_emails finds messages; search_web finds current public information
-- draft_email saves without sending; send_email sends immediately
-- fetch_inbox shows what's new; search_emails finds something specific
-- deep_search_web reads pages; search_web finds links
+ABSOLUTE RULE: NEVER fabricate, invent, or assume information about the user's emails, calendar, contacts, files, health, or finances. Every claim about personal data MUST come from a tool call result. If you haven't retrieved data using a tool in this conversation, you do not have it. When you don't have data, say so simply and offer to look it up.
+
+Tool reference:
+- search_files: local documents | search_emails: messages | search_web: current public info
+- draft_email: saves without sending | send_email: sends immediately
+- fetch_inbox: what's new | search_emails: find something specific
+- read_file / write_file / edit_file: direct filesystem access
+- execute_command: run shell commands on the device
+- deep_search_web: reads full pages | search_web: finds links
 
 Your voice is warm and direct. You never use emojis. You never say "Certainly!" or "Of course!". You get to the point. If the user writes in another language, match it.
 
@@ -908,6 +938,90 @@ export class OrchestratorImpl implements Orchestrator {
     return false;
   }
 
+  /**
+   * DEFENSE 2: Post-generation fabrication scanner.
+   *
+   * Scans the model's response for signs of fabricated personal data.
+   * If fabrication is detected AND no tool calls were made that could have
+   * provided the data, the response is replaced with a safe fallback.
+   *
+   * Returns the original response if clean, or a sanitized version if fabrication detected.
+   */
+  private scanForFabrication(
+    response: string,
+    toolCallsExecuted: number,
+    connectedServices: string[],
+  ): { clean: boolean; sanitized: string } {
+    // If tool calls were made, the model had real data — trust the response
+    if (toolCallsExecuted > 0) {
+      return { clean: true, sanitized: response };
+    }
+
+    // If services are connected and knowledge exists, the model may be using
+    // context from the system prompt — less likely to be fabricating
+    if (connectedServices.length > 0) {
+      return { clean: true, sanitized: response };
+    }
+
+    // No tools called, no services connected — scan for fabrication patterns
+    const fabricationPatterns = [
+      // Specific times for meetings/events the model couldn't know
+      /your (?:meeting|appointment|call|event) (?:at|is at|starts at) \d{1,2}[:.]\d{2}/i,
+      /you have a (?:meeting|appointment|call|event) (?:at|with|scheduled)/i,
+      // Claiming to have checked data without tool calls
+      /I (?:checked|looked at|reviewed|found in) your (?:inbox|calendar|email|schedule|files)/i,
+      /according to your (?:calendar|inbox|email|schedule|files)/i,
+      /your (?:inbox|calendar) shows/i,
+      // Fabricating email content
+      /you (?:received|have|got) (?:an? )?(?:email|message) from/i,
+      // Fabricating contact details
+      /(?:meeting|call) with (?!me\b|you\b|us\b)[A-Z][a-z]+ (?:at|about|regarding)/i,
+    ];
+
+    for (const pattern of fabricationPatterns) {
+      if (pattern.test(response)) {
+        console.error(`[Orchestrator] Fabrication detected (pattern: ${pattern.source}). Replacing response.`);
+        return {
+          clean: false,
+          sanitized: "I don't have access to your personal data yet — no accounts are connected. I can help you set up your email, calendar, and other services in Settings, or I'm happy to chat and help with general questions. What would you like to do?",
+        };
+      }
+    }
+
+    return { clean: true, sanitized: response };
+  }
+
+  /**
+   * DEFENSE 3: Detect data queries that MUST use tools.
+   *
+   * If the user asks about their personal data (email, calendar, files, etc.),
+   * and no services are connected, don't even send to the LLM — respond directly.
+   */
+  private isDataQueryWithoutAccess(message: string): string | null {
+    const hasConnectedServices = (this.promptConfig.connectedServices?.length ?? 0) > 0;
+    const hasIndexedDocs = (this.promptConfig.indexedDocCount ?? 0) > 0;
+
+    // If data is available, let the normal flow handle it
+    if (hasConnectedServices || hasIndexedDocs) return null;
+
+    const dataQueryPatterns = [
+      { pattern: /\b(?:check|show|read|open|what'?s? in|any new) (?:my )?(?:inbox|email|mail)\b/i, domain: 'email' },
+      { pattern: /\b(?:check|show|what'?s? on|any) (?:my )?(?:calendar|schedule|meetings?|events?)\b/i, domain: 'calendar' },
+      { pattern: /\b(?:check|show|list|find) (?:my )?(?:contacts?|address book)\b/i, domain: 'contacts' },
+      { pattern: /\b(?:check|show|search|find|list) (?:my )?(?:files?|documents?|notes?)\b/i, domain: 'files' },
+      { pattern: /\b(?:check|show) (?:my )?(?:health|fitness|steps|sleep|weight)\b/i, domain: 'health' },
+      { pattern: /\b(?:check|show) (?:my )?(?:finances?|transactions?|bank|spending)\b/i, domain: 'finances' },
+    ];
+
+    for (const { pattern, domain } of dataQueryPatterns) {
+      if (pattern.test(message)) {
+        return `I don't have access to your ${domain} yet. To get started, go to Settings and connect your ${domain} account. Once connected, I'll be able to search, read, and act on your ${domain} data — all locally on your device.`;
+      }
+    }
+
+    return null;
+  }
+
   async processMessage(message: string, conversationId?: string): Promise<OrchestratorResponse> {
     // Guard against excessively long messages that would overflow model context
     const MAX_USER_MESSAGE_CHARS = 32000; // ~8000 tokens
@@ -926,6 +1040,22 @@ export class OrchestratorImpl implements Orchestrator {
       this.db.prepare(
         'INSERT OR IGNORE INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)'
       ).run(conversationId, new Date().toISOString(), new Date().toISOString());
+    }
+
+    // DEFENSE 3: If user asks about personal data and no services are connected,
+    // respond directly without LLM — prevents fabrication entirely.
+    const dataQueryBlock = this.isDataQueryWithoutAccess(message);
+    if (dataQueryBlock) {
+      console.error('[Orchestrator] Data query blocked — no connected services');
+      this.storeTurn(convId, 'user', message, [], null, 0, 0);
+      this.storeTurn(convId, 'assistant', dataQueryBlock, null, [], 0, 0);
+      return {
+        message: dataQueryBlock,
+        conversationId: convId,
+        actions: [],
+        context: [],
+        tokensUsed: { prompt: 0, completion: 0 },
+      };
     }
 
     // Step 1: Fetch document-scoped context (if active)
@@ -1193,6 +1323,19 @@ export class OrchestratorImpl implements Orchestrator {
     // Guard against empty responses — show a helpful fallback instead of blank bubble
     if (!finalMessage || finalMessage.trim().length === 0) {
       finalMessage = "I wasn't able to generate a response. Could you try rephrasing your question?";
+    }
+
+    // DEFENSE 2: Post-generation fabrication scan.
+    // If no tool calls were executed and no services are connected, scan for
+    // fabricated personal data claims. Replace the response if fabrication detected.
+    const toolCallCount = actions.filter(a => a.status === 'executed').length;
+    const fabricationCheck = this.scanForFabrication(
+      finalMessage,
+      toolCallCount,
+      this.promptConfig.connectedServices ?? [],
+    );
+    if (!fabricationCheck.clean) {
+      finalMessage = fabricationCheck.sanitized;
     }
 
     // Step 8: Store conversation turns with token tracking
