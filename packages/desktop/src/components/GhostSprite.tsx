@@ -207,17 +207,12 @@ export function GhostSprite({
     const mainRect = mainEl.getBoundingClientRect();
     const wrapperBounds = wrapperRef.current!.getBoundingClientRect();
 
-    // Find the rightmost visible content element for accurate gutter measurement
-    const visibleElements = Array.from(content.querySelectorAll('.page-title, .surface-opal, .surface-void, .surface-slate, .settings-screen, .card, .connections-screen')) as HTMLElement[];
-    let contentRightEdge = contentRect.right;
-    for (const el of visibleElements) {
-      const elRight = el.getBoundingClientRect().right;
-      if (elRight > contentRightEdge - 100 && elRight < mainRect.right) {
-        contentRightEdge = Math.max(contentRightEdge, elRight);
-      }
-    }
-    // If no elements found wider, use the page-layout content area
-    const rightEdge = Math.min(contentRightEdge, contentRect.right) - wrapperBounds.left;
+    // Right gutter = space between page-layout right edge and main right edge
+    // page-layout is 960px max-width centered in main, with 24px padding
+    const pageLayoutMaxWidth = 960;
+    const mainCenter = mainRect.left + mainRect.width / 2;
+    const contentRightEdge = mainCenter + Math.min(pageLayoutMaxWidth, mainRect.width) / 2;
+    const rightEdge = contentRightEdge - wrapperBounds.left;
     const mainRight = mainRect.right - wrapperBounds.left;
     const gutterCenter = rightEdge + (mainRight - rightEdge) / 2;
 

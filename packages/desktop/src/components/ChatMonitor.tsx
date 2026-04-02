@@ -24,25 +24,14 @@ function useRightGutter() {
     if (!main) return;
 
     const mainRect = main.getBoundingClientRect();
-    // Find the page-layout content area inside main
-    const content = main.querySelector('.page-layout, .flex-1');
-    const contentRect = content?.getBoundingClientRect();
+    // Same math as GhostSprite — page-layout is 960px max-width centered in main
+    const pageLayoutMaxWidth = 960;
+    const mainCenter = mainRect.left + mainRect.width / 2;
+    const contentRight = mainCenter + Math.min(pageLayoutMaxWidth, mainRect.width) / 2;
 
-    // Content right edge — use page-layout if found, otherwise estimate from main
-    let contentRight: number;
-    if (contentRect && contentRect.width > 0) {
-      contentRight = contentRect.right;
-    } else {
-      // Fallback: assume 960px max-width centered in main
-      const maxW = 960;
-      const mainCenter = mainRect.left + mainRect.width / 2;
-      contentRight = mainCenter + Math.min(maxW, mainRect.width) / 2;
-    }
-
-    const viewportWidth = window.innerWidth;
-    const gutterLeft = Math.min(contentRight + 12, viewportWidth); // 12px padding from content
-    const gutterWidth = Math.max(0, viewportWidth - gutterLeft);
-    const gutterCenter = gutterLeft + gutterWidth / 2;
+    const gutterLeft = contentRight;
+    const gutterWidth = Math.max(0, mainRect.right - contentRight);
+    const gutterCenter = contentRight + gutterWidth / 2;
 
     setGutter({ left: gutterLeft, width: gutterWidth, center: gutterCenter });
   }, []);
@@ -128,7 +117,11 @@ export function ChatMonitor() {
   }, [dispatch, state.activeConversationId]);
 
   const handleToggle = useCallback(() => {
-    dispatch({ type: 'SET_CHAT_MONITOR', state: panelState === 'expanded' ? 'hidden' : 'expanded' });
+    if (panelState === 'expanded') {
+      dispatch({ type: 'SET_CHAT_MONITOR', state: 'minimized' });
+    } else {
+      dispatch({ type: 'SET_CHAT_MONITOR', state: 'expanded' });
+    }
   }, [panelState, dispatch]);
 
   const handleMinimize = useCallback(() => {
@@ -300,8 +293,8 @@ export function ChatMonitor() {
               <button type="button" onClick={handleMinimize} style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: '#5E6B7C', display: 'flex', alignItems: 'center',
               }} title="Minimize">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 15 12 9 18 15" />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="6" y1="12" x2="18" y2="12" />
                 </svg>
               </button>
               <button type="button" onClick={() => dispatch({ type: 'SET_CHAT_MONITOR', state: 'hidden' })} style={{
@@ -352,29 +345,23 @@ export function ChatMonitor() {
                         />
                       </div>
                     )}
-                    <div style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                      <div style={{
-                        maxWidth: '90%',
+                    <div className={`chat-bubble ${msg.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--assistant'}`}>
+                      <div className="chat-bubble__card" style={{
                         padding: '6px 10px',
-                        borderRadius: 8,
-                        background: msg.role === 'user' ? 'rgba(110, 207, 163, 0.03)' : '#111518',
-                        border: `1px solid ${msg.role === 'user' ? 'rgba(110, 207, 163, 0.08)' : 'rgba(255, 255, 255, 0.04)'}`,
-                        fontFamily: "'DM Mono', monospace",
                         fontSize: 11,
-                        color: '#A8B4C0',
-                        letterSpacing: '0.04em',
-                        lineHeight: 1.5,
-                        wordBreak: 'break-word',
+                        maxWidth: '95%',
                       }}>
-                        {msg.content
-                          ? (msg.content.length > 300 ? msg.content.slice(0, 300) + '...' : msg.content)
-                              .replace(/<artifact\s+[^>]*>[\s\S]*?<\/artifact>/g, '')
-                              .replace(/<\/?artifact[^>]*>/g, '')
-                              .trim() || (isStreaming ? '' : '...')
-                          : isStreaming
-                            ? <span style={{ display: 'inline-block', width: 8, height: 1, background: '#6ECFA3', animation: 'loading-pulse 1s ease-in-out infinite' }} />
-                            : '...'
-                        }
+                        <span className="chat-bubble__content" style={{ fontSize: 11 }}>
+                          {msg.content
+                            ? (msg.content.length > 300 ? msg.content.slice(0, 300) + '...' : msg.content)
+                                .replace(/<artifact\s+[^>]*>[\s\S]*?<\/artifact>/g, '')
+                                .replace(/<\/?artifact[^>]*>/g, '')
+                                .trim() || (isStreaming ? '' : '...')
+                            : isStreaming
+                              ? <span style={{ display: 'inline-block', width: 8, height: 1, background: '#6ECFA3', animation: 'loading-pulse 1s ease-in-out infinite' }} />
+                              : '...'
+                          }
+                        </span>
                       </div>
                     </div>
                   </div>

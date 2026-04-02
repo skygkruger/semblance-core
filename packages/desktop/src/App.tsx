@@ -640,10 +640,7 @@ function AppContent() {
         </div>
       </main>
       <CanvasPanel />
-      {/* ChatMonitor must not participate in flex layout — absolute wrapper isolates it */}
-      <div style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0, overflow: 'visible' }}>
-        <ChatMonitor />
-      </div>
+      <ChatMonitor />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
