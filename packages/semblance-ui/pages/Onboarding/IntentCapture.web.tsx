@@ -106,7 +106,7 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
       </h1>
 
       <div className="onboarding-content-frame" style={{ width: '100%' }}>
-        <p className="naming__subtext" style={{ maxWidth: 380, margin: 0 }}>
+        <p className="naming__subtext" style={{ maxWidth: 380, margin: '0 auto', textAlign: 'center' }}>
           {t(`intent.${subStep}_subtext`)}
         </p>
 

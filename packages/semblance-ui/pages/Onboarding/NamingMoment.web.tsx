@@ -28,7 +28,7 @@ export function NamingMoment({ onComplete, defaultValue = '' }: NamingMomentProp
         {t('naming_moment.headline')}
       </h1>
       <div className="onboarding-content-frame" style={{ width: '100%' }}>
-        <p className="naming__subtext" style={{ margin: 0 }}>
+        <p className="naming__subtext" style={{ margin: '0 auto', textAlign: 'center' }}>
           {t('naming_moment.privacy_notice')}
         </p>
 

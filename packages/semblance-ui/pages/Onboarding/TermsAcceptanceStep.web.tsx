@@ -38,6 +38,7 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
             fontFamily: "'DM Mono', monospace",
             letterSpacing: '0.04em',
             margin: 0,
+            textAlign: 'center',
           }}
         >
           {t('onboarding.terms.description', {
@@ -98,6 +99,7 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
           style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '12px',
             cursor: 'pointer',
             fontSize: '12px',
