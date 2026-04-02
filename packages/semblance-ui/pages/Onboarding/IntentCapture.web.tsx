@@ -53,14 +53,6 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
     }
   }, [currentIndex, responses, onComplete]);
 
-  const handleBack = useCallback(() => {
-    const prevIndex = currentIndex - 1;
-    if (prevIndex >= 0) {
-      const prev = SUB_STEPS[prevIndex];
-      if (prev) setSubStep(prev);
-    }
-  }, [currentIndex]);
-
   const handleSkip = useCallback(() => {
     // Skip current sub-step (clear its value)
     setResponses(prev => ({
@@ -130,23 +122,7 @@ export function IntentCapture({ onComplete, onSkip }: IntentCaptureProps) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>
-        {!isFirstStep && (
-          <button
-            type="button"
-            onClick={handleBack}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
-              color: '#5E6B7C', transition: 'color 150ms ease',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 15l-5-5 5-5" />
-            </svg>
-          </button>
-        )}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
         <Button
           variant="opal"
           size="lg"

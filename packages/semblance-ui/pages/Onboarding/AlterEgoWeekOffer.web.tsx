@@ -28,8 +28,8 @@ export function AlterEgoWeekOffer({ onAccept, onSkip, onBack }: AlterEgoWeekOffe
           gap: 16,
         }}>
           <p style={{
-            fontFamily: "'DM Sans', system-ui, sans-serif",
-            fontSize: 14,
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 12, letterSpacing: '0.04em',
             color: '#A8B4C0',
             margin: 0,
             lineHeight: 1.6,
@@ -62,9 +62,9 @@ export function AlterEgoWeekOffer({ onAccept, onSkip, onBack }: AlterEgoWeekOffe
                   {t('alter_ego_week_offer.day_label', { day })}
                 </span>
                 <span style={{
-                  fontFamily: "'DM Sans', system-ui, sans-serif",
-                  fontSize: 13,
-                  color: '#CDD4DB',
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 12, letterSpacing: '0.04em',
+                  color: '#A8B4C0',
                 }}>
                   {t(`alter_ego_week_offer.days.${day}`)}
                 </span>
@@ -73,7 +73,7 @@ export function AlterEgoWeekOffer({ onAccept, onSkip, onBack }: AlterEgoWeekOffe
           </div>
 
           <p style={{
-            fontFamily: "'DM Sans', system-ui, sans-serif",
+            fontFamily: "'DM Mono', monospace",
             fontSize: 12,
             color: '#5E6B7C',
             margin: 0,
@@ -85,28 +85,12 @@ export function AlterEgoWeekOffer({ onAccept, onSkip, onBack }: AlterEgoWeekOffe
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'center' }}>
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
-              color: '#5E6B7C', transition: 'color 150ms ease',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 15l-5-5 5-5" />
-            </svg>
-          </button>
-        )}
-        <Button variant="ghost" size="md" onClick={onSkip}>
-          <span className="btn__text">{t('alter_ego_week_offer.skip_button')}</span>
-        </Button>
-        <Button variant="opal" size="md" onClick={onAccept}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 8 }}>
+        <Button variant="opal" size="lg" onClick={onAccept}>
           <span className="btn__text">{t('alter_ego_week_offer.start_button')}</span>
+        </Button>
+        <Button variant="ghost" size="lg" onClick={onSkip}>
+          <span className="btn__text">{t('alter_ego_week_offer.skip_button')}</span>
         </Button>
       </div>
     </div>

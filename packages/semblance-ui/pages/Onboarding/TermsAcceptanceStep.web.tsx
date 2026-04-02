@@ -26,16 +26,17 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
       }}
     >
       <h2 className="onboarding-shimmer-headline" style={{ fontSize: 'var(--text-2xl)' }}>
-        {t('onboarding.terms.title', { defaultValue: 'One last thing' })}
+        {t('onboarding.terms.title', { defaultValue: 'Before we begin' })}
       </h2>
 
       <div className="onboarding-content-frame" style={{ width: '100%' }}>
         <p
           style={{
-            fontSize: '15px',
+            fontSize: '12px',
             lineHeight: '1.6',
-            color: '#8593A4',
-            fontFamily: 'var(--fb)',
+            color: '#A8B4C0',
+            fontFamily: "'DM Mono', monospace",
+            letterSpacing: '0.04em',
             margin: 0,
           }}
         >
@@ -49,9 +50,9 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
           style={{
             padding: '20px',
             maxHeight: '280px',
-            fontSize: '13px',
+            fontSize: '12px',
             lineHeight: '1.7',
-            color: '#8593A4',
+            color: '#A8B4C0',
             fontFamily: 'var(--fm)',
           }}
         >
@@ -99,9 +100,10 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
             alignItems: 'center',
             gap: '12px',
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: '12px',
             color: '#EEF1F4',
-            fontFamily: 'var(--fb)',
+            fontFamily: "'DM Mono', monospace",
+            letterSpacing: '0.04em',
           }}
         >
           <span
@@ -136,14 +138,14 @@ export function TermsAcceptanceStep({ onAccept, termsVersion = '1.0' }: TermsAcc
         </label>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
         <Button
-          variant="solid"
-          size="md"
+          variant="opal"
+          size="lg"
           disabled={!checked}
           onClick={onAccept}
         >
-          {t('onboarding.terms.accept_button', { defaultValue: 'Get started' })}
+          <span className="btn__text">{t('onboarding.terms.accept_button', { defaultValue: 'I accept' })}</span>
         </Button>
       </div>
 

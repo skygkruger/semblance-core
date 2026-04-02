@@ -106,24 +106,8 @@ export function InitialIndexStep({ sources, complete, onContinue, onBack }: Init
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'center' }}>
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
-              color: '#5E6B7C', transition: 'color 150ms ease',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 15l-5-5 5-5" />
-            </svg>
-          </button>
-        )}
-        <Button variant="opal" size="md" onClick={onContinue}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+        <Button variant="opal" size="lg" onClick={onContinue}>
           <span className="btn__text">
             {complete
               ? t('initial_index.continue_button')

@@ -174,23 +174,10 @@ export function DataSourcesStep({
         </p>
       )}
 
-      <div className="datasources__actions">
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
-              color: '#5E6B7C', transition: 'color 150ms ease',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 15l-5-5 5-5" />
-            </svg>
-          </button>
-        )}
+      <div className="datasources__actions" style={{ justifyContent: 'center' }}>
+        <Button variant="opal" size="lg" onClick={handleContinue}>
+          <span className="btn__text">{t('data_sources.continue_button')}</span>
+        </Button>
         <button
           type="button"
           className="datasources__skip"
@@ -198,9 +185,6 @@ export function DataSourcesStep({
         >
           {t('data_sources.skip_button')}
         </button>
-        <Button variant="opal" size="md" onClick={handleContinue}>
-          <span className="btn__text">{t('data_sources.continue_button')}</span>
-        </Button>
       </div>
     </div>
   );

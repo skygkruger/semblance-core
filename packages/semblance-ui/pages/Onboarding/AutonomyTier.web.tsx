@@ -72,24 +72,8 @@ export function AutonomyTier({ value, onChange, onContinue, onBack }: AutonomyTi
           {t('autonomy.alter_ego_note')}
         </p>
       </div>
-      <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'center' }}>
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
-              color: '#5E6B7C', transition: 'color 150ms ease',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#8593A4')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 15l-5-5 5-5" />
-            </svg>
-          </button>
-        )}
-        <Button variant="opal" onClick={onContinue}><span className="btn__text">{t('autonomy.continue_button')}</span></Button>
+      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
+        <Button variant="opal" size="lg" onClick={onContinue}><span className="btn__text">{t('autonomy.continue_button')}</span></Button>
       </div>
     </div>
   );
