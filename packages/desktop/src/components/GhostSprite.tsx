@@ -244,7 +244,7 @@ export function GhostSprite({
       if (observer) observer.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [children, measure]);
+  }, [measure]); // eslint-disable-line react-hooks/exhaustive-deps — ResizeObserver handles content changes; children ref changes on every parent re-render and would cause unnecessary re-measures
 
   // Track mouse globally for eye following + gutter detection
   useEffect(() => {
