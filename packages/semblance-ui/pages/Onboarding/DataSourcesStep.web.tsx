@@ -174,14 +174,26 @@ export function DataSourcesStep({
         </p>
       )}
 
-      <div className="datasources__actions" style={{ justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 4 }}>
         <Button variant="opal" size="lg" onClick={handleContinue}>
           <span className="btn__text">{t('data_sources.continue_button')}</span>
         </Button>
         <button
           type="button"
-          className="datasources__skip"
           onClick={onSkip}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 12,
+            color: '#5E6B7C',
+            letterSpacing: '0.04em',
+            padding: '4px 8px',
+            transition: 'color 200ms ease',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#A8B4C0')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
         >
           {t('data_sources.skip_button')}
         </button>
