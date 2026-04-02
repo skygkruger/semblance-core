@@ -1,21 +1,77 @@
 /**
- * ChatMonitor — Persistent chat panel accessible from any screen.
- * Fixed icon in the bottom-right viewport corner. Expands to a mini-chat
- * panel for monitoring active tasks or starting new ones.
+ * ChatMonitor — Persistent chat panel that fills the right gutter.
+ * Dynamically measures the gutter (content right edge → viewport right edge)
+ * and sizes itself to fit exactly. Updates on resize and sidebar toggle.
  *
- * Hidden on /chat route (redundant). Shows task activity indicator when
- * agent is responding. Three states: hidden → minimized → expanded.
+ * Hidden on /chat route. Three states: hidden → minimized → expanded.
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChatBubble, AgentInput } from '@semblance/ui';
 import { MultiAgentOverlay } from './MultiAgentOverlay';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import { useTauriEvent } from '../hooks/useTauriEvent';
 import { sendMessage, cancelMessage } from '../ipc/commands';
 import type { SubagentStreamEvent } from './MultiAgentDemo';
-import type { ChatMessage, ChatActionItem } from '../state/AppState';
+
+// ─── Gutter measurement hook ─────────────────────────────────────────────────
+
+function useRightGutter() {
+  const [gutter, setGutter] = useState({ left: 0, width: 0, center: 0 });
+
+  const measure = useCallback(() => {
+    const main = document.querySelector('main');
+    if (!main) return;
+
+    const mainRect = main.getBoundingClientRect();
+    // Find the page-layout content area inside main
+    const content = main.querySelector('.page-layout, .flex-1');
+    const contentRect = content?.getBoundingClientRect();
+
+    // Content right edge — use page-layout if found, otherwise estimate from main
+    let contentRight: number;
+    if (contentRect && contentRect.width > 0) {
+      contentRight = contentRect.right;
+    } else {
+      // Fallback: assume 960px max-width centered in main
+      const maxW = 960;
+      const mainCenter = mainRect.left + mainRect.width / 2;
+      contentRight = mainCenter + Math.min(maxW, mainRect.width) / 2;
+    }
+
+    const viewportWidth = window.innerWidth;
+    const gutterLeft = Math.min(contentRight + 12, viewportWidth); // 12px padding from content
+    const gutterWidth = Math.max(0, viewportWidth - gutterLeft);
+    const gutterCenter = gutterLeft + gutterWidth / 2;
+
+    setGutter({ left: gutterLeft, width: gutterWidth, center: gutterCenter });
+  }, []);
+
+  useEffect(() => {
+    measure();
+    window.addEventListener('resize', measure);
+
+    // Also observe the main element for sidebar toggle changes
+    const main = document.querySelector('main');
+    const observer = main && typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(measure)
+      : null;
+    if (observer && main) observer.observe(main);
+
+    // Re-measure periodically for sidebar transitions (300ms transition)
+    const interval = setInterval(measure, 500);
+
+    return () => {
+      window.removeEventListener('resize', measure);
+      if (observer) observer.disconnect();
+      clearInterval(interval);
+    };
+  }, [measure]);
+
+  return gutter;
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function ChatMonitor() {
   const state = useAppState();
@@ -29,9 +85,9 @@ export function ChatMonitor() {
   const isOnChat = location.pathname === '/chat';
   const isResponding = state.isResponding;
   const messages = state.chatMessages;
+  const gutter = useRightGutter();
 
-  // Auto-expand when agent starts responding from another screen —
-  // if you asked a question and navigated away, you want to see the work
+  // Auto-expand when agent starts responding from another screen
   useEffect(() => {
     if (isResponding && !isOnChat && panelState === 'hidden') {
       dispatch({ type: 'SET_CHAT_MONITOR', state: 'expanded' });
@@ -45,7 +101,7 @@ export function ChatMonitor() {
     }
   }, [panelState, messages]);
 
-  // Listen for streaming tokens (needed for live updates in the panel)
+  // Listen for streaming tokens
   useTauriEvent<string>('semblance://chat-token', useCallback((token: string) => {
     if (!isOnChat) {
       dispatch({ type: 'APPEND_TO_LAST_MESSAGE', content: token });
@@ -54,48 +110,25 @@ export function ChatMonitor() {
 
   const handleSend = useCallback(async (message: string) => {
     if (!message.trim()) return;
-
     dispatch({
       type: 'ADD_CHAT_MESSAGE',
-      message: {
-        id: `user_${Date.now()}`,
-        role: 'user',
-        content: message,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
+      message: { id: `user_${Date.now()}`, role: 'user', content: message, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
     });
-
     dispatch({
       type: 'ADD_CHAT_MESSAGE',
-      message: {
-        id: `assistant_${Date.now()}`,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
+      message: { id: `assistant_${Date.now()}`, role: 'assistant', content: '', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
     });
-
     dispatch({ type: 'SET_IS_RESPONDING', value: true });
-
     try {
       await sendMessage(message, state.activeConversationId ?? undefined);
     } catch (err) {
       dispatch({ type: 'SET_IS_RESPONDING', value: false });
-      dispatch({
-        type: 'APPEND_TO_LAST_MESSAGE',
-        content: `Error: ${err instanceof Error ? err.message : String(err)}`,
-      });
+      dispatch({ type: 'APPEND_TO_LAST_MESSAGE', content: `Error: ${err instanceof Error ? err.message : String(err)}` });
     }
   }, [dispatch, state.activeConversationId]);
 
   const handleToggle = useCallback(() => {
-    if (panelState === 'hidden') {
-      dispatch({ type: 'SET_CHAT_MONITOR', state: 'expanded' });
-    } else if (panelState === 'minimized') {
-      dispatch({ type: 'SET_CHAT_MONITOR', state: 'expanded' });
-    } else {
-      dispatch({ type: 'SET_CHAT_MONITOR', state: 'hidden' });
-    }
+    dispatch({ type: 'SET_CHAT_MONITOR', state: panelState === 'expanded' ? 'hidden' : 'expanded' });
   }, [panelState, dispatch]);
 
   const handleMinimize = useCallback(() => {
@@ -107,10 +140,11 @@ export function ChatMonitor() {
     navigate('/chat');
   }, [dispatch, navigate]);
 
-  // Don't render on the chat screen
+  // Don't render on chat screen or if gutter is too narrow
   if (isOnChat) return null;
+  const gutterTooNarrow = gutter.width < 60;
 
-  // Derive thinking text for the minimized indicator
+  // Derive status text
   const lastAssistant = messages.filter(m => m.role === 'assistant').at(-1);
   const orch = lastAssistant?.orchestration;
   let statusText = '';
@@ -130,68 +164,73 @@ export function ChatMonitor() {
     }
   }
 
-  // Last few messages for the expanded view (most recent 6)
-  const recentMessages = messages.slice(-6);
+  const recentMessages = messages.slice(-8);
+
+  // Panel dimensions — fill the gutter
+  const panelPadding = 8; // padding from edges
+  const panelWidth = Math.max(200, gutter.width - panelPadding * 2);
+  const panelLeft = gutter.left + panelPadding;
 
   return (
     <>
-      {/* ─── Trigger icon — always visible bottom-right ─── */}
-      <button
-        type="button"
-        onClick={handleToggle}
-        style={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          zIndex: 9000,
-          width: 40,
-          height: 40,
-          borderRadius: '50%',
-          background: isResponding
-            ? 'rgba(110, 207, 163, 0.1)'
-            : panelState !== 'hidden'
-              ? 'rgba(255, 255, 255, 0.06)'
-              : 'rgba(255, 255, 255, 0.03)',
-          border: `1px solid ${isResponding ? 'rgba(110, 207, 163, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 300ms ease',
-          backdropFilter: 'blur(8px)',
-        }}
-        title="Chat Monitor"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-          stroke={isResponding ? '#6ECFA3' : '#5E6B7C'}
-          style={{ transition: 'stroke 300ms ease' }}
-        >
-          <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-        </svg>
-        {/* Activity pulse */}
-        {isResponding && (
-          <span style={{
-            position: 'absolute',
-            top: -2,
-            right: -2,
-            width: 8,
-            height: 8,
+      {/* ─── Trigger icon — centered in gutter ─── */}
+      {!gutterTooNarrow && (
+        <button
+          type="button"
+          onClick={handleToggle}
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            left: gutter.center - 20,
+            zIndex: 9000,
+            width: 40,
+            height: 40,
             borderRadius: '50%',
-            background: '#6ECFA3',
-            animation: 'pulse 1.5s ease-in-out infinite',
-            animationDelay: '-1000s',
-          }} />
-        )}
-      </button>
+            background: isResponding
+              ? 'rgba(110, 207, 163, 0.1)'
+              : panelState !== 'hidden'
+                ? 'rgba(255, 255, 255, 0.06)'
+                : 'rgba(255, 255, 255, 0.03)',
+            border: `1px solid ${isResponding ? 'rgba(110, 207, 163, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 300ms ease',
+          }}
+          title="Chat Monitor"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            stroke={isResponding ? '#6ECFA3' : '#5E6B7C'}
+            style={{ transition: 'stroke 300ms ease' }}
+          >
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+          </svg>
+          {isResponding && (
+            <span style={{
+              position: 'absolute',
+              top: -2,
+              right: -2,
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: '#6ECFA3',
+              animation: 'pulse 1.5s ease-in-out infinite',
+              animationDelay: '-1000s',
+            }} />
+          )}
+        </button>
+      )}
 
-      {/* ─── Minimized indicator ─── */}
-      {panelState === 'minimized' && isResponding && (
+      {/* ─── Minimized indicator — centered in gutter ─── */}
+      {panelState === 'minimized' && isResponding && !gutterTooNarrow && (
         <div
           onClick={() => dispatch({ type: 'SET_CHAT_MONITOR', state: 'expanded' })}
           style={{
             position: 'fixed',
             bottom: 72,
-            right: 24,
+            left: gutter.center,
+            transform: 'translateX(-50%)',
             zIndex: 9000,
             background: '#121518',
             border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -201,51 +240,38 @@ export function ChatMonitor() {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            backdropFilter: 'blur(12px)',
-            transition: 'all 300ms ease',
+            maxWidth: gutter.width - 16,
           }}
         >
           <span style={{
-            width: 5,
-            height: 5,
-            borderRadius: '50%',
-            background: '#6ECFA3',
-            animation: 'pulse 1.5s ease-in-out infinite',
-            animationDelay: '-1000s',
-            flexShrink: 0,
+            width: 5, height: 5, borderRadius: '50%', background: '#6ECFA3',
+            animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '-1000s', flexShrink: 0,
           }} />
           <span style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 10,
-            color: '#A8B4C0',
-            letterSpacing: '0.04em',
-            maxWidth: 160,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#A8B4C0',
+            letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {statusText}
           </span>
         </div>
       )}
 
-      {/* ─── Expanded panel ─── */}
-      {panelState === 'expanded' && (
+      {/* ─── Expanded panel — fills right gutter ─── */}
+      {panelState === 'expanded' && !gutterTooNarrow && (
         <div
           style={{
             position: 'fixed',
+            top: 8,
+            left: panelLeft,
+            width: panelWidth,
             bottom: 72,
-            right: 24,
             zIndex: 9000,
-            width: 340,
-            maxHeight: 'calc(100vh - 120px)',
             background: '#0B0E11',
             border: '1px solid rgba(255, 255, 255, 0.06)',
             borderRadius: 12,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            backdropFilter: 'blur(16px)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(0, 0, 0, 0.2)',
           }}
         >
@@ -256,66 +282,31 @@ export function ChatMonitor() {
             justifyContent: 'space-between',
             padding: '10px 14px',
             borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+            flexShrink: 0,
           }}>
             <span style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 11,
-              fontWeight: 400,
-              color: '#A8B4C0',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
+              fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400,
+              color: '#A8B4C0', letterSpacing: '0.04em', textTransform: 'uppercase',
             }}>
-              Chat Monitor
+              Chat
             </span>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                type="button"
-                onClick={handleOpenInChat}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 10,
-                  color: '#6ECFA3',
-                  letterSpacing: '0.04em',
-                  padding: '2px 6px',
-                }}
-              >
+              <button type="button" onClick={handleOpenInChat} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#6ECFA3', letterSpacing: '0.04em', padding: '2px 6px',
+              }}>
                 Open
               </button>
-              <button
-                type="button"
-                onClick={handleMinimize}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '2px 4px',
-                  color: '#5E6B7C',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                title="Minimize"
-              >
+              <button type="button" onClick={handleMinimize} style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: '#5E6B7C', display: 'flex', alignItems: 'center',
+              }} title="Minimize">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 15 12 9 18 15" />
                 </svg>
               </button>
-              <button
-                type="button"
-                onClick={() => dispatch({ type: 'SET_CHAT_MONITOR', state: 'hidden' })}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '2px 4px',
-                  color: '#5E6B7C',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                title="Close"
-              >
+              <button type="button" onClick={() => dispatch({ type: 'SET_CHAT_MONITOR', state: 'hidden' })} style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: '#5E6B7C', display: 'flex', alignItems: 'center',
+              }} title="Close">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 6 6 18" /><path d="m6 6 12 12" />
                 </svg>
@@ -329,24 +320,18 @@ export function ChatMonitor() {
             style={{
               flex: 1,
               overflowY: 'auto',
-              padding: '12px 14px',
+              padding: '12px 10px',
               display: 'flex',
               flexDirection: 'column',
               gap: 10,
-              minHeight: 120,
-              maxHeight: 400,
             }}
           >
             {recentMessages.length === 0 ? (
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: 120,
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 11,
-                color: '#5E6B7C',
-                letterSpacing: '0.04em',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flex: 1, fontFamily: "'DM Mono', monospace", fontSize: 11,
+                color: '#5E6B7C', letterSpacing: '0.04em', textAlign: 'center',
+                padding: '0 12px',
               }}>
                 Start a conversation from anywhere
               </div>
@@ -358,7 +343,6 @@ export function ChatMonitor() {
 
                 return (
                   <div key={msg.id}>
-                    {/* Orchestration bracket (compact) */}
                     {msg.role === 'assistant' && hasOrch && (
                       <div style={{ marginBottom: 6 }}>
                         <MultiAgentOverlay
@@ -368,19 +352,12 @@ export function ChatMonitor() {
                         />
                       </div>
                     )}
-
-                    {/* Compact message bubble */}
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                    }}>
+                    <div style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
                       <div style={{
-                        maxWidth: '85%',
+                        maxWidth: '90%',
                         padding: '6px 10px',
                         borderRadius: 8,
-                        background: msg.role === 'user'
-                          ? 'rgba(110, 207, 163, 0.03)'
-                          : '#111518',
+                        background: msg.role === 'user' ? 'rgba(110, 207, 163, 0.03)' : '#111518',
                         border: `1px solid ${msg.role === 'user' ? 'rgba(110, 207, 163, 0.08)' : 'rgba(255, 255, 255, 0.04)'}`,
                         fontFamily: "'DM Mono', monospace",
                         fontSize: 11,
@@ -390,7 +367,7 @@ export function ChatMonitor() {
                         wordBreak: 'break-word',
                       }}>
                         {msg.content
-                          ? (msg.content.length > 200 ? msg.content.slice(0, 200) + '...' : msg.content)
+                          ? (msg.content.length > 300 ? msg.content.slice(0, 300) + '...' : msg.content)
                               .replace(/<artifact\s+[^>]*>[\s\S]*?<\/artifact>/g, '')
                               .replace(/<\/?artifact[^>]*>/g, '')
                               .trim() || (isStreaming ? '' : '...')
@@ -406,16 +383,13 @@ export function ChatMonitor() {
             )}
           </div>
 
-          {/* Compact input */}
+          {/* Input */}
           <div style={{
-            padding: '10px 14px',
+            padding: '10px',
             borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+            flexShrink: 0,
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <input
                 type="text"
                 value={inputValue}
@@ -439,53 +413,29 @@ export function ChatMonitor() {
                   color: '#A8B4C0',
                   letterSpacing: '0.04em',
                   outline: 'none',
-                  transition: 'border-color 200ms ease',
+                  minWidth: 0,
                 }}
                 onFocus={e => (e.currentTarget.style.borderColor = 'rgba(110, 207, 163, 0.25)')}
                 onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)')}
               />
               {isResponding ? (
-                <button
-                  type="button"
-                  onClick={() => cancelMessage().catch(() => {})}
-                  style={{
-                    background: 'none',
-                    border: '1px solid rgba(232, 101, 122, 0.2)',
-                    borderRadius: 6,
-                    padding: '6px 10px',
-                    cursor: 'pointer',
-                    fontFamily: "'DM Mono', monospace",
-                    fontSize: 10,
-                    color: '#E8657A',
-                    letterSpacing: '0.04em',
-                  }}
-                >
+                <button type="button" onClick={() => cancelMessage().catch(() => {})} style={{
+                  background: 'none', border: '1px solid rgba(232, 101, 122, 0.2)', borderRadius: 6,
+                  padding: '6px 8px', cursor: 'pointer', fontFamily: "'DM Mono', monospace",
+                  fontSize: 10, color: '#E8657A', letterSpacing: '0.04em', flexShrink: 0,
+                }}>
                   Stop
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (inputValue.trim()) {
-                      handleSend(inputValue.trim());
-                      setInputValue('');
-                    }
-                  }}
-                  disabled={!inputValue.trim()}
-                  style={{
-                    background: 'none',
-                    border: '1px solid rgba(110, 207, 163, 0.2)',
-                    borderRadius: 6,
-                    padding: '6px 10px',
-                    cursor: inputValue.trim() ? 'pointer' : 'default',
-                    fontFamily: "'DM Mono', monospace",
-                    fontSize: 10,
-                    color: inputValue.trim() ? '#6ECFA3' : '#5E6B7C',
-                    letterSpacing: '0.04em',
-                    opacity: inputValue.trim() ? 1 : 0.5,
-                    transition: 'all 200ms ease',
-                  }}
-                >
+                <button type="button" onClick={() => {
+                  if (inputValue.trim()) { handleSend(inputValue.trim()); setInputValue(''); }
+                }} disabled={!inputValue.trim()} style={{
+                  background: 'none', border: '1px solid rgba(110, 207, 163, 0.2)', borderRadius: 6,
+                  padding: '6px 8px', cursor: inputValue.trim() ? 'pointer' : 'default',
+                  fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: '0.04em', flexShrink: 0,
+                  color: inputValue.trim() ? '#6ECFA3' : '#5E6B7C',
+                  opacity: inputValue.trim() ? 1 : 0.5,
+                }}>
                   Send
                 </button>
               )}
