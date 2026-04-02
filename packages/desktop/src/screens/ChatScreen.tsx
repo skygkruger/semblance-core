@@ -99,16 +99,29 @@ export function ChatScreen() {
       lastMsg.orchestration.length > 0 &&
       lastMsg.content.length > 20 // response is well underway
     ) {
+      // Delay must exceed cascade animation time (nodes * 60ms + 400ms settle + 2.5s orchestrationActive timeout)
+      // Use orchestration event count as a proxy for bracket size
+      const nodeEstimate = lastMsg.orchestration?.length ?? 0;
+      const cascadeDuration = nodeEstimate * 60 + 800; // cascade time + buffer
+      const collapseDelay = Math.max(3000, cascadeDuration);
       const timer = setTimeout(() => {
         setCollapsedOrchestrations(prev => new Set(prev).add(lastMsg.id));
-      }, 3000);
+      }, collapseDelay);
       return () => clearTimeout(timer);
     }
   }, [orchestrationActive, lastMsg?.id, lastMsg?.role, lastMsg?.orchestration?.length, lastMsg?.content.length]);
 
   const handleDemoComplete = useCallback(() => {
-    // Events persist on the message — no cleanup needed
-  }, []);
+    // Delay response until after cascade animation finishes
+    // Cascade starts 400ms after synthesis_completed, runs for nodes*60+400ms
+    const lastAssistant = state.chatMessages.filter(m => m.role === 'assistant').at(-1);
+    const eventCount = lastAssistant?.orchestration?.length ?? 0;
+    const cascadeDelay = 400 + eventCount * 60 + 400 + 500; // cascade start + cascade run + buffer
+    setTimeout(() => {
+      dispatch({ type: 'APPEND_TO_LAST_MESSAGE', content: 'Here\'s your standup preparation based on the analysis of your emails, calendar, and knowledge base...' });
+      dispatch({ type: 'SET_IS_RESPONDING', value: false });
+    }, cascadeDelay);
+  }, [dispatch, state.chatMessages]);
 
   // ─── Contextual thinking text ────────────────────────────────────────────
   // Derives what to show in the input area based on current agent activity
@@ -1418,7 +1431,10 @@ export function ChatScreen() {
 
                   {/* Multi-agent bracket — on assistant messages that have orchestration data */}
                   {msg.role === 'assistant' && hasOrchestration && (
-                    <div className="chat-bubble chat-bubble--assistant" style={{ marginBottom: isCollapsed ? 4 : 8 }}>
+                    <div className="chat-bubble chat-bubble--assistant" style={{
+                      marginBottom: isCollapsed ? 4 : 8,
+                      transition: 'margin-bottom 500ms cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}>
                       <div style={{ maxWidth: '80%' }}>
                         <MultiAgentOverlay
                           events={msg.orchestration as unknown as SubagentStreamEvent[]}
@@ -1438,7 +1454,8 @@ export function ChatScreen() {
                   )}
 
                   {/* Chat bubble — hide empty streaming bubble while bracket is actively animating */}
-                  {!(isStreaming && !msg.content && isOrchestrationLive) && (
+                  {/* Hide empty bubble while bracket is actively animating */}
+                  {!((!msg.content || msg.content.trim() === '') && isOrchestrationLive) && (
                     <ChatBubble
                       role={msg.role}
                       content={msg.role === 'assistant'

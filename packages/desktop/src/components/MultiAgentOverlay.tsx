@@ -292,7 +292,7 @@ function CollapsedBracket({ events, onExpand }: { events: SubagentStreamEvent[];
         {agentCount > 0 && <span>{agentCount} agent{agentCount !== 1 ? 's' : ''}</span>}
         {toolCount > 0 && <span style={{ color: '#818CF8' }}>{toolCount} tool{toolCount !== 1 ? 's' : ''}</span>}
         {totalTokens > 0 && <span>{(totalTokens / 1000).toFixed(1)}k tok</span>}
-        {hadCloud && <CloudIcon size={10} />}
+        {hadCloud && <CloudIcon size={14} />}
         {hadError && <span style={{ color: '#E8657A' }}>partial</span>}
       </span>
     </div>
@@ -300,34 +300,30 @@ function CollapsedBracket({ events, onExpand }: { events: SubagentStreamEvent[];
 }
 
 export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed }: MultiAgentOverlayProps) {
-  // Collapsed mode — render summary
-  if (collapsed && events.length > 0) {
-    return <CollapsedBracket events={events} onExpand={onToggleCollapsed} />;
-  }
+  // ALL hooks must be declared before any conditional returns
   const wrapperRef = useRef<HTMLDivElement>(null);
   const animFrameRef = useRef(0);
   const springRef = useRef<SpringState>({ position: 0, velocity: 0 });
   const [spineBottom, setSpineBottom] = useState(0);
   const tickStatesRef = useRef<Map<number, TickState>>(new Map());
-  const [, setFrame] = useState(0); // force re-render
+  const [, setFrame] = useState(0);
   const lastTimeRef = useRef(0);
   const lastNodeCountRef = useRef(0);
-
-  // Completion cascade state
   const cascadeStartRef = useRef<number | null>(null);
   const [cascadeActive, setCascadeActive] = useState(false);
   const [capVisible, setCapVisible] = useState(false);
-
-  // Breathing phase — sine wave for idle periods
+  const completionCountRef = useRef(0);
   const breathRef = useRef(0);
+  const lastEventTimeRef = useRef(performance.now());
 
   const { nodes, phase, parallelGroups } = buildNodes(events);
 
   const lineHeight = 26;
   const spineX = 14;
-  const tickLen = 12;
+  const tickLenBase = 12;
   const capLen = 5;
   const contentLeft = 48;
+  const contentIndent = 20;
   const spineTop = 13;
   const targetBottom = spineTop + Math.max(0, nodes.length - 1) * lineHeight;
 
@@ -338,9 +334,15 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
     }
   }, [nodes.length, spineTop]);
 
-  // Trigger completion cascade
+  // Trigger completion cascade — fires every time a new synthesis_completed arrives
+  const currentCompletionCount = events.filter(e => e.type === 'synthesis_completed').length;
   useEffect(() => {
-    if (phase === 'complete' && !cascadeStartRef.current) {
+    if (currentCompletionCount > completionCountRef.current && currentCompletionCount > 0) {
+      completionCountRef.current = currentCompletionCount;
+      // Reset cascade state for re-fire
+      cascadeStartRef.current = null;
+      setCascadeActive(false);
+      setCapVisible(false);
       // Delay cascade slightly so the last node settles first
       const timer = setTimeout(() => {
         cascadeStartRef.current = performance.now();
@@ -348,10 +350,9 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [phase]);
+  }, [currentCompletionCount]);
 
   // Detect when node count increases to know spine is idle vs extending
-  const lastEventTimeRef = useRef(performance.now());
   useEffect(() => {
     if (nodes.length > lastNodeCountRef.current) {
       lastEventTimeRef.current = performance.now();
@@ -375,6 +376,18 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
       breathRef.current = Math.sin(now / 1200) * 0.12; // ±12% opacity oscillation
     } else {
       breathRef.current *= 0.9; // decay breathing when events are active
+    }
+
+    // Collapse/expand animation — smooth approach toward target
+    const cTarget = collapseTargetRef.current;
+    const cCurrent = collapseProgressRef.current;
+    if (Math.abs(cTarget - cCurrent) > 0.001) {
+      const speed = cCurrent > 0.85 ? 0.03 : 0.04;
+      collapseProgressRef.current += (cTarget - cCurrent) * speed;
+      if (Math.abs(cTarget - collapseProgressRef.current) < 0.005) {
+        collapseProgressRef.current = cTarget;
+      }
+      setCollapseProgress(collapseProgressRef.current);
     }
 
     // Per-tick animations
@@ -460,7 +473,8 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
     }
 
     const isMoving = Math.abs(newSpring.velocity) > 0.1 || Math.abs(targetBottom - newSpring.position) > 0.5;
-    if (isMoving || active || needsRender || (phase !== 'complete') || cascadeActive) {
+    const isCollapseAnimating = Math.abs(collapseTargetRef.current - collapseProgressRef.current) > 0.001;
+    if (isMoving || active || needsRender || (phase !== 'complete') || cascadeActive || isCollapseAnimating) {
       animFrameRef.current = requestAnimationFrame(animate);
     }
   }, [targetBottom, active, nodes, phase, spineTop, lineHeight, cascadeActive, capVisible]);
@@ -478,6 +492,19 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
 
   if (nodes.length === 0) return null;
 
+  // Collapse animation state — driven by the animation loop, not CSS
+  const collapseProgressRef = useRef(0); // 0 = fully expanded, 1 = fully collapsed
+  const [collapseProgress, setCollapseProgress] = useState(0);
+  const collapseTargetRef = useRef(0); // 0 or 1
+  const isCollapsed = !!(collapsed && events.length > 0);
+
+  // Update collapse target when prop changes
+  useEffect(() => {
+    collapseTargetRef.current = isCollapsed ? 1 : 0;
+  }, [isCollapsed]);
+
+  // Animate collapse progress in the main loop (handled below)
+
   const totalHeight = nodes.length * lineHeight + 20;
   const bracketColor = '#5E6B7C';
   const currentSpineBottom = Math.max(spineTop, spineBottom);
@@ -489,19 +516,83 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
     if (nodes[i]!.status === 'active') { activeNodeIndex = i; break; }
   }
 
+  // collapseProgress: 0 = fully expanded, 1 = fully collapsed
+  const cp = collapseProgress;
+  // Phase 1: 0→0.7 = inverse cascade (ticks retract bottom-to-top, spine shrinks)
+  // Phase 2: 0.6→1.0 = top node fades, summary materializes (overlaps slightly with phase 1)
+  const cascadeP = Math.min(1, cp / 0.7);
+  const settleRaw = Math.max(0, (cp - 0.6) / 0.4);
+  const settleP = 1 - Math.pow(1 - settleRaw, 2); // ease-out for smooth settle
+  const fullyCollapsed = cp > 0.99;
+
+  const fullHeight = totalHeight;
+  const collapsedHeight = 34;
+  const displayHeight = Math.round(fullHeight - (fullHeight - collapsedHeight) * cp);
+
   return (
-    <div
-      ref={wrapperRef}
-      style={{
-        position: 'relative',
+    <div ref={wrapperRef} style={{
+      position: 'relative',
+      height: displayHeight,
+      overflow: 'hidden',
+    }}>
+      {/* Summary text — delayed appearance, fades in after spine settles */}
+      {settleP > 0.8 && events.length > 0 && (() => {
+        const summaryP = Math.max(0, (settleP - 0.8) / 0.2);
+        const summaryEased = 1 - Math.pow(1 - summaryP, 3); // cubic ease-out — slower settle
+        return (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            opacity: summaryEased,
+            transform: `translateX(${(1 - summaryEased) * -16}px)`,
+            pointerEvents: summaryEased > 0.5 ? 'auto' : 'none',
+          }}>
+            <CollapsedBracket events={events} onExpand={onToggleCollapsed} />
+          </div>
+        );
+      })()}
+
+      {/* Full bracket — inverse cascade retraction, never unmounts to avoid layout snap */}
+      <div style={{
+        pointerEvents: fullyCollapsed ? 'none' : 'auto',
         maxWidth: 720,
         width: '100%',
         padding: '8px 0',
         fontFamily: "'DM Mono', monospace",
         fontSize: 11,
         letterSpacing: '0.04em',
-      }}
-    >
+        position: 'relative',
+      }}>
+      {/* Collapse button — visible when not actively animating */}
+      {!active && onToggleCollapsed && cp < 0.1 && (
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          style={{
+            position: 'absolute',
+            top: 2,
+            right: 0,
+            zIndex: 10,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px 6px',
+            color: '#5E6B7C',
+            transition: 'color 200ms ease',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#A8B4C0')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
+          title="Collapse"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+      )}
       <svg
         style={{
           position: 'absolute',
@@ -531,6 +622,14 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
           const bothComplete = topNode.status === 'complete' && botNode.status === 'complete';
           const segOpacity = hasActive ? 0.55 + breath : bothComplete ? 0.25 : 0.4 + breath * 0.5;
 
+          // Spine retracts from bottom during collapse — first segment persists through phase 2
+          const isFirstSeg = i === 1;
+          const spineRetract = isFirstSeg
+            ? settleP // first segment fades with the summary entrance
+            : cascadeP * (i / Math.max(1, nodes.length - 1));
+          const segVisibility = 1 - Math.max(0, Math.min(1, isFirstSeg ? spineRetract : spineRetract * 2));
+          if (segVisibility <= 0) return null;
+
           return (
             <line
               key={`seg-${i}`}
@@ -538,7 +637,7 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
               x2={spineX} y2={clippedBottom}
               stroke={bracketColor}
               strokeWidth={1}
-              opacity={segOpacity}
+              opacity={segOpacity * segVisibility}
             />
           );
         })}
@@ -565,9 +664,9 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
         )}
 
         <g stroke={bracketColor} strokeWidth={1}>
-          {/* Top cap */}
+          {/* Top cap — persists through phase 1, fades during phase 2 as summary takes over */}
           {currentSpineBottom > spineTop && (
-            <line x1={spineX} y1={spineTop} x2={spineX + capLen} y2={spineTop} opacity={0.4} />
+            <line x1={spineX} y1={spineTop} x2={spineX + capLen} y2={spineTop} opacity={0.4 * (1 - settleP * 0.7)} />
           )}
 
           {/* Bottom cap — only after completion cascade */}
@@ -575,22 +674,31 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
             <line x1={spineX} y1={currentSpineBottom} x2={spineX + capLen} y2={currentSpineBottom} opacity={0.4} />
           )}
 
-          {/* Ticks */}
+          {/* Ticks — retract bottom-to-top during collapse */}
           {nodes.map((node, i) => {
             const state = tickStatesRef.current.get(i);
             if (!state || state.tickProgress <= 0) return null;
             const tickY = spineTop + i * lineHeight;
 
+            // Collapse retraction: bottom ticks retract first, top node stays for phase 2
+            const reverseIdx = nodes.length - 1 - i;
+            const retractStart = i === 0 ? 0.9 : reverseIdx / Math.max(1, nodes.length); // first node retracts last
+            const retractProgress = Math.max(0, Math.min(1, (cascadeP - retractStart * 0.7) / 0.3));
+            const retractEased = retractProgress * retractProgress;
+            const tickScale = 1 - retractEased;
+
+            if (tickScale <= 0) return null;
+
             // Base tick opacity + cascade flash + status-change flash
             const flashBrightness = state.flashStart > 0 ? (1 - state.flashProgress) * 0.6 : 0;
             const cascadeBrightness = state.cascadeFlash * 0.5;
-            const tickOpacity = 0.4 + flashBrightness + cascadeBrightness;
+            const tickOpacity = (0.4 + flashBrightness + cascadeBrightness) * tickScale;
 
             return (
               <line
                 key={`tick-${i}`}
                 x1={spineX} y1={tickY}
-                x2={spineX + tickLen * state.tickProgress} y2={tickY}
+                x2={spineX + tickLenBase * state.tickProgress * tickScale} y2={tickY}
                 opacity={tickOpacity}
                 stroke={flashBrightness > 0.1 || cascadeBrightness > 0.1
                   ? dotColor(node)
@@ -601,20 +709,21 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
         </g>
 
         {/* ── Arrival ripples ── */}
-        {nodes.map((_, i) => {
+        {nodes.map((node, i) => {
           const state = tickStatesRef.current.get(i);
           if (!state || state.rippleProgress >= 1) return null;
           const tickY = spineTop + i * lineHeight;
-          const rippleLen = tickLen * 2.5;
+          const tLen = tickLenBase;
+          const rippleLen = tLen * 2.5;
           const rippleOpacity = (1 - state.rippleProgress) * 0.3;
           const rippleExtend = state.rippleProgress;
 
           return (
             <line
               key={`ripple-${i}`}
-              x1={spineX + tickLen}
+              x1={spineX + tLen}
               y1={tickY}
-              x2={spineX + tickLen + (rippleLen - tickLen) * rippleExtend}
+              x2={spineX + tLen + (rippleLen - tLen) * rippleExtend}
               y2={tickY}
               stroke={bracketColor}
               strokeWidth={1}
@@ -633,7 +742,7 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
 
           const y1 = spineTop + firstIdx * lineHeight;
           const y2 = spineTop + lastIdx * lineHeight;
-          const x = spineX + tickLen + 6;
+          const x = spineX + tickLenBase + 6;
           const connectorOpacity = Math.min(firstState.tickProgress, lastState.tickProgress) * 0.25;
 
           return (
@@ -651,7 +760,7 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
                 return (
                   <line
                     key={`hook-${idx}`}
-                    x1={spineX + tickLen} y1={y}
+                    x1={spineX + tickLenBase} y1={y}
                     x2={x} y2={y}
                     stroke={bracketColor} strokeWidth={1}
                   />
@@ -672,10 +781,18 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
             ? (1 - (state.flashProgress ?? 0)) : 0;
           const cascadeBrightness = state?.cascadeFlash ?? 0;
 
-          const dotOpacity = tickProgress > 0 ? Math.min(1, tickProgress * 3) : 0;
+          // Collapse fade: bottom nodes fade first, top node fades during phase 2
+          const reverseIdx = nodes.length - 1 - i;
+          const fadeStart = i === 0 ? 0.9 : reverseIdx / Math.max(1, nodes.length);
+          const fadeProg = i === 0
+            ? settleP // first node fades as summary slides in
+            : Math.max(0, Math.min(1, (cascadeP - fadeStart * 0.7) / 0.3));
+          const collapseOpacity = 1 - fadeProg;
+
+          const dotOpacity = (tickProgress > 0 ? Math.min(1, tickProgress * 3) : 0) * collapseOpacity;
           const now = performance.now();
           const textDelay = arrivedAt > 0 ? Math.min(1, Math.max(0, (now - arrivedAt - 150) / 250)) : 0;
-          const textOpacity = tickProgress > 0.3 ? textDelay : 0;
+          const textOpacity = (tickProgress > 0.3 ? textDelay : 0) * collapseOpacity;
 
           const isActiveNode = i === activeNodeIndex;
 
@@ -714,21 +831,21 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
               {/* Cloud icon */}
               {node.isCloud && (
                 <span style={{ opacity: dotOpacity, transition: 'opacity 200ms ease' }}>
-                  <CloudIcon size={11} />
+                  <CloudIcon size={14} />
                 </span>
               )}
 
-              {/* Label */}
+              {/* Label — subtasks indented to align with extended ticks */}
               <span
                 style={{
-                  color: node.status === 'complete' ? '#5E6B7C'
-                    : node.status === 'error' ? '#E8657A'
-                    : node.tier === 2 ? '#818CF8'
+                  color: node.status === 'error' ? '#E8657A'
+                    : node.tier === 2 ? (node.status === 'complete' ? '#5E6B7C' : '#818CF8')
                     : node.tier === 3 ? '#5E6B7C'
-                    : node.tier === 4 ? '#EDDD52'
-                    : '#A8B4C0',
-                  fontSize: node.tier >= 2 ? 10 : 11,
-                  paddingLeft: node.tier >= 2 ? 8 : 0,
+                    : node.tier === 4 ? (node.status === 'complete' ? '#6ECFA3' : '#EDDD52')
+                    : node.status === 'complete' ? '#A8B4C0'
+                    : '#EEF1F4',
+                  fontSize: (node.tier === 2 || node.tier === 3) ? 10 : 12,
+                  paddingLeft: (node.tier === 2 || node.tier === 3) ? contentIndent : 0,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -750,6 +867,7 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );

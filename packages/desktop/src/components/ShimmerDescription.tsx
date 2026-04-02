@@ -11,7 +11,7 @@ export function ShimmerDescription({ text }: ShimmerDescriptionProps) {
   return (
     <p className="shimmer-desc" style={{
       fontFamily: "'DM Mono', monospace",
-      fontSize: 12,
+      fontSize: 14,
       letterSpacing: '0.04em',
       lineHeight: 1.5,
       margin: 0,
