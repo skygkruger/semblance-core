@@ -20,7 +20,7 @@ describe('Intent onboarding — step type and order', () => {
     expect(onboardingFlow).toContain("'intent-capture'");
   });
 
-  it("STEP_ORDER includes 'intent-capture' between 'autonomy' and 'naming-moment'", () => {
+  it("STEP_ORDER includes 'intent-capture' after 'autonomy'", () => {
     // Extract the STEP_ORDER array from source
     const stepOrderMatch = onboardingFlow.match(/const STEP_ORDER[^=]*=\s*\[([\s\S]*?)\];/);
     expect(stepOrderMatch).not.toBeNull();
@@ -31,9 +31,8 @@ describe('Intent onboarding — step type and order', () => {
       .filter(Boolean);
     const autonomyIdx = steps.indexOf('autonomy');
     const intentIdx = steps.indexOf('intent-capture');
-    const namingIdx = steps.indexOf('naming-moment');
+    expect(intentIdx).toBeGreaterThan(-1);
     expect(intentIdx).toBeGreaterThan(autonomyIdx);
-    expect(intentIdx).toBeLessThan(namingIdx);
   });
 });
 

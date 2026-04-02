@@ -249,7 +249,7 @@ describe('Security Pass — Phase 4: Pre-Launch Infrastructure', () => {
     expect(source).toContain('TermsAcceptanceStep');
   });
 
-  it('Desktop STEP_ORDER has 13 entries', () => {
+  it('Desktop STEP_ORDER has 12 entries', () => {
     const source = readFileSync(
       join(ROOT, 'packages/desktop/src/screens/OnboardingFlow.tsx'),
       'utf-8',
@@ -258,11 +258,11 @@ describe('Security Pass — Phase 4: Pre-Launch Infrastructure', () => {
     const stepOrderMatch = source.match(/const STEP_ORDER[\s\S]*?\];/);
     expect(stepOrderMatch).not.toBeNull();
     const steps = stepOrderMatch![0].match(/'/g);
-    // 13 steps, each quoted = 26 quote marks (13 pairs)
-    expect(steps!.length).toBe(26);
+    // 12 steps, each quoted = 24 quote marks (12 pairs)
+    expect(steps!.length).toBe(24);
   });
 
-  it('Terms step is the last in STEP_ORDER', () => {
+  it('Initialize step is the last in STEP_ORDER', () => {
     const source = readFileSync(
       join(ROOT, 'packages/desktop/src/screens/OnboardingFlow.tsx'),
       'utf-8',
@@ -270,14 +270,14 @@ describe('Security Pass — Phase 4: Pre-Launch Infrastructure', () => {
     const stepOrderMatch = source.match(/const STEP_ORDER[\s\S]*?\];/);
     expect(stepOrderMatch).not.toBeNull();
     const stepText = stepOrderMatch![0];
-    const termsIndex = stepText.lastIndexOf("'terms'");
+    const initIndex = stepText.lastIndexOf("'initialize'");
     const lastBracket = stepText.lastIndexOf(']');
-    // 'terms' should be the last entry before closing bracket
-    expect(termsIndex).toBeGreaterThan(-1);
-    expect(termsIndex).toBeLessThan(lastBracket);
-    // No other step appears after 'terms'
-    const afterTerms = stepText.slice(termsIndex + "'terms'".length, lastBracket);
-    expect(afterTerms.match(/'[a-z-]+'/)).toBeNull();
+    // 'initialize' should be the last entry before closing bracket
+    expect(initIndex).toBeGreaterThan(-1);
+    expect(initIndex).toBeLessThan(lastBracket);
+    // No other step appears after 'initialize'
+    const afterInit = stepText.slice(initIndex + "'initialize'".length, lastBracket);
+    expect(afterInit.match(/'[a-z-]+'/)).toBeNull();
   });
 
   it('Desktop migration runner has _migrations table schema', () => {

@@ -23,7 +23,7 @@ describe('TermsAcceptanceStep', () => {
 
   it('renders the title', () => {
     render(<TermsAcceptanceStep onAccept={mockOnAccept} />);
-    expect(screen.getByText('One last thing')).toBeInTheDocument();
+    expect(screen.getByText('Before we begin')).toBeInTheDocument();
   });
 
   it('renders all 4 terms sections', () => {
@@ -41,7 +41,7 @@ describe('TermsAcceptanceStep', () => {
 
   it('accept button is disabled by default', () => {
     render(<TermsAcceptanceStep onAccept={mockOnAccept} />);
-    const button = screen.getByText('Get started');
+    const button = screen.getByText('I accept').closest('button');
     expect(button).toBeDisabled();
   });
 
@@ -51,7 +51,7 @@ describe('TermsAcceptanceStep', () => {
 
     await userEvent.click(checkbox);
 
-    const button = screen.getByText('Get started');
+    const button = screen.getByText('I accept').closest('button');
     expect(button).not.toBeDisabled();
   });
 
@@ -60,7 +60,7 @@ describe('TermsAcceptanceStep', () => {
     const checkbox = screen.getByRole('checkbox');
     await userEvent.click(checkbox);
 
-    const button = screen.getByText('Get started');
+    const button = screen.getByText('I accept').closest('button')!;
     await userEvent.click(button);
 
     expect(mockOnAccept).toHaveBeenCalledTimes(1);
@@ -68,7 +68,7 @@ describe('TermsAcceptanceStep', () => {
 
   it('does not call onAccept when button clicked without checking', async () => {
     render(<TermsAcceptanceStep onAccept={mockOnAccept} />);
-    const button = screen.getByText('Get started');
+    const button = screen.getByText('I accept').closest('button')!;
 
     // Button is disabled, click should not fire
     fireEvent.click(button);
