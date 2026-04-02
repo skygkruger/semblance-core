@@ -1804,17 +1804,53 @@ export class OrchestratorImpl implements Orchestrator {
           continue;
         }
 
-        // Execute with audit trail logging
+        // Execute with audit trail logging — create AgentAction record
+        // (same as IPC tools — every executed action must be in the audit trail)
+        const extAgentAction: AgentAction = {
+          id: nanoid(),
+          action: extActionType ?? 'service.api_call' as ActionType,
+          payload: tc.arguments,
+          reasoning: `LLM requested ${tc.name} based on conversation context`,
+          domain: extDomain,
+          tier: extTier,
+          status: 'executed',
+          createdAt: new Date().toISOString(),
+          reasoningContext: reasoningCtx,
+        };
+
         try {
           const handlerResult = await extHandler(tc.arguments);
+          extAgentAction.executedAt = new Date().toISOString();
           if (handlerResult.error) {
+            extAgentAction.status = 'failed';
             executedResults.push({ tool: tc.name, result: { error: handlerResult.error } });
           } else {
             executedResults.push({ tool: tc.name, result: handlerResult.result });
           }
         } catch (err) {
+          extAgentAction.status = 'failed';
+          extAgentAction.executedAt = new Date().toISOString();
           executedResults.push({ tool: tc.name, result: { error: err instanceof Error ? err.message : 'Extension tool failed' } });
         }
+
+        // Log Alter Ego receipt for transparency (same as IPC tools)
+        if (extTier === 'alter_ego' && this.alterEgoStore && extAgentAction.status === 'executed') {
+          const receipt = {
+            id: extAgentAction.id,
+            actionType: extAgentAction.action as ActionType,
+            summary: this.summarizeAction(extAgentAction.action, extAgentAction.payload),
+            reasoning: extAgentAction.reasoning,
+            status: 'executed' as const,
+            undoAvailable: false,
+            undoExpiresAt: new Date(Date.now() + 30_000).toISOString(),
+            weekGroup: this.alterEgoStore.getWeekGroup(new Date()),
+            createdAt: extAgentAction.createdAt,
+            executedAt: extAgentAction.executedAt!,
+          };
+          this.alterEgoStore.logReceipt(receipt);
+        }
+
+        actions.push(extAgentAction);
         continue;
       }
 
