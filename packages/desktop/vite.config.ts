@@ -34,9 +34,9 @@ function tauriPluginStub() {
         'list_credentials','get_accounts_status','document_pick_files','list_conversations',
       ];
       const objectCommands = {
-        'get_onboarding_complete': { complete: false },
+        'get_onboarding_complete': { complete: true },
         'get_language_preference': 'en',
-        'get_model_status': { ollamaStatus:'disconnected',inferenceEngine:'none',activeModel:null,availableModels:[],userName:null,onboardingComplete:false },
+        'get_model_status': { ollamaStatus:'disconnected',inferenceEngine:'none',activeModel:null,availableModels:[],userName:'Dev User',onboardingComplete:true },
         'get_autonomy_config': { domains:{} },
         'get_license_status': { tier:'digital-representative',active:true },
         'get_network_trust_status': { clean:true,unauthorizedCount:0,activeServiceCount:0 },
@@ -99,8 +99,14 @@ function tauriPluginStub() {
   };
 }
 
+const isTauriBuild = !!process.env['TAURI_ENV_PLATFORM'];
+
 export default defineConfig({
-  plugins: [react(), tauriPluginStub()],
+  plugins: [
+    react(),
+    // Only use stubs in Vite dev server — Tauri builds use real @tauri-apps/api at runtime
+    ...(!isTauriBuild ? [tauriPluginStub()] : []),
+  ],
   clearScreen: false,
   server: {
     port: 1420,
