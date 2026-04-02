@@ -5,7 +5,7 @@
 **Before doing ANY work — on every session start AND after every compaction — read this file:**
 
 ```
-C:\Users\skyle\desktop\world-shattering\semblance\SEMBLANCE_BUILD_BIBLE.md
+SEMBLANCE_BUILD_BIBLE.md (project root, gitignored)
 ```
 
 This is the canonical product specification. It supersedes all prior build maps, sprint documents, and feature lists. Every feature ships exactly as designed in the Build Bible. No exceptions. If a conflict exists between the Build Bible and any other document, the Build Bible wins.
@@ -130,7 +130,7 @@ A build reported as "ready" without `/demo-check` output is a lie regardless of 
 
 **Before doing ANY work, read this document:**
 
-1. **Design Bible** (located in the private `semblence-representative` repo at `docs/DESIGN_BIBLE.md`, path: `C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\DESIGN_BIBLE.md`) — Canonical design bible. Defines colors, typography (DM Sans / Fraunces / DM Mono / Josefin Sans), spacing, opal texture system, opal border system, shimmer effects, golden standard component patterns, severity colors, motion, responsive breakpoints, the reactive dot matrix background, CSS architecture conventions, and native tokens. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now. This file is in the private repo intentionally — do NOT copy it into the public semblance-core repo.
+1. **Design Bible** (located in the private `semblence-representative` repo at `docs/DESIGN_BIBLE.md`, path: `semblence-representative/docs/DESIGN_BIBLE.md`) — Canonical design bible. Defines colors, typography (DM Sans / Fraunces / DM Mono / Josefin Sans), spacing, opal texture system, opal border system, shimmer effects, golden standard component patterns, severity colors, motion, responsive breakpoints, the reactive dot matrix background, CSS architecture conventions, and native tokens. **Read before creating or modifying ANY UI component, marketing material, or user-facing content.** If you have not read it in this session, stop and read it now. This file is in the private repo intentionally — do NOT copy it into the public semblance-core repo.
 
 This instruction survives compaction.
 
@@ -317,7 +317,7 @@ Key files:
 - packages/core/premium/license-keys.ts — Ed25519 signature verification
 - packages/core/premium/license-email-detector.ts — SEMBLANCE_LICENSE_KEY pattern detection
 - packages/desktop/src/contexts/LicenseContext.tsx — React context, openCheckout(), manageSubscription()
-- infrastructure/license-worker/ — Cloudflare Worker (deployed, do not modify without Orbital Director approval)
+- License Worker — Cloudflare Worker source lives in the private repo (semblence-representative/infrastructure/license-worker/)
 
 Canonical reference: SEMBLANCE_PAYMENT_SYSTEM.md in Orbital Command project.
 
@@ -582,17 +582,9 @@ Semblance is split across two repositories:
 - **Classification rule:** Features that *prove, preserve, or protect* user data belong here. Their value comes from trust, and auditability strengthens that trust.
 
 ### semblence-representative (Private, Proprietary)
-- **Remote:** https://github.com/skygkruger/semblence-representative.git
 - **Package name:** `@semblance/dr` (note: repo name typo "semblence" is intentional/locked)
-- **Contains:** Digital Representative agency capabilities — features where Semblance *acts on the user's behalf*:
-  - Representative email mode + style-matched drafting
-  - Subscription cancellation workflows + follow-up tracking
-  - Customer service templates
-  - Form & Bureaucracy automation (PDF auto-fill, smart field mapping)
-  - Health & Wellness tracking (HealthKit integration, pattern correlation)
-  - Premium finance modules (Plaid integration, transaction categorization)
-  - Premium UI components
-- **Classification rule:** Features that *act as the user's agent* in the world belong here. Their commercial value is in the implementation — the email drafting algorithms, cancellation workflow logic, form auto-fill heuristics.
+- **Contains:** Digital Representative agency capabilities — proprietary features where Semblance acts on the user's behalf. See the private repo for feature list.
+- **Classification rule:** Features that *act as the user's agent* in the world belong here. Their commercial value is in the implementation.
 - **Integration:** Loaded via `loadExtensions()` → `@semblance/dr` → `createExtension()` with typed `ExtensionInitContext`.
 
 ### How to Classify New Features
@@ -883,28 +875,28 @@ NEVER report a data-movement feature done without data-audit.js output confirmin
 **These documents are in the private representative repo. Claude Code must read and update them on every session.**
 
 ### Cross-Repo Reference
-This repo: `C:\Users\skyle\desktop\world-shattering\semblance\` (semblance-core, public)
-Private docs: `C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\`
+This repo: semblance-core (public)
+Private docs: semblence-representative/docs/ (private repo, adjacent directory)
 
 ### Required Documents
 
 **1. SEMBLANCE_STATE.md** — Living memory. Read at session START. Write at session END.
-`C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\SEMBLANCE_STATE.md`
+`semblence-representative/docs/SEMBLANCE_STATE.md`
 Contains: current build state, feature verification status (✅⚠️❌🔲), environment prerequisites, cut list, active issues with exact error messages, session velocity, session log, locked decisions.
 
 **2. SLICE_CONTRACTS.md** — Top-down feature contracts. Read before implementing or fixing any feature.
-`C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\SLICE_CONTRACTS.md`
+`semblence-representative/docs/SLICE_CONTRACTS.md`
 Contains: full data path for each feature, exact response shapes, numbered assertions that define done, known failure modes. **If no contract exists for a feature, stop and tell Orbital Director.**
 
 **3. SESSION_PROTOCOL.md** — Three-phase session discipline. Read once, follow always.
-`C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\SESSION_PROTOCOL.md`
+`semblence-representative/docs/SESSION_PROTOCOL.md`
 
 **4. DEMO_SCRIPT.md** — Investor demo screenplay. Read before any demo-prep session.
-`C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\DEMO_SCRIPT.md`
+`semblence-representative/docs/DEMO_SCRIPT.md`
 Contains: 10-beat demo screenplay, beat-to-contract mapping, beat dependency graph, fallbacks, pre-demo checklist, cut list. Critical path: Beats 1→2→3→4→9.
 
 **5. DESIGN_BIBLE.md** — Canonical design spec. Read before any UI work.
-`C:\Users\skyle\desktop\world-shattering\semblence-representative\docs\DESIGN_BIBLE.md`
+`semblence-representative/docs/DESIGN_BIBLE.md`
 
 ### Mandatory Session Flow
 ```
@@ -949,7 +941,7 @@ And remember: the product is judged by what it does, not what it shows. Build th
 **Before closing context or ending a session, re-read the Build Bible:**
 
 ```
-C:\Users\skyle\desktop\world-shattering\semblance\SEMBLANCE_BUILD_BIBLE.md
+SEMBLANCE_BUILD_BIBLE.md (project root, gitignored)
 ```
 
 This ensures your final actions align with the canonical specification. The Build Bible is the first and last thing you read. This instruction survives compaction.

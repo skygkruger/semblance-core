@@ -56,6 +56,12 @@ coverage/
 # Build Bible (canonical spec — private, not committed)
 SEMBLANCE_BUILD_BIBLE.md
 
+# Infrastructure secrets (license worker, payment config — lives in private repo)
+infrastructure/
+
+# Session logs (contain personal names, investor details, email addresses)
+docs/sessions/
+
 # TypeScript compiled output (tsc --build emits next to source)
 packages/core/**/*.js
 packages/core/**/*.js.map
