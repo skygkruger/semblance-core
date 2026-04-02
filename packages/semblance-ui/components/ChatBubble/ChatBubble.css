@@ -34,22 +34,22 @@
   background:
     linear-gradient(#111518, #111518) padding-box,
     conic-gradient(from var(--opal-angle),
-      rgba(97,88,128,0.35), rgba(119,110,162,0.45),
-      rgba(154,168,184,0.55), rgba(216,221,232,0.6),
-      rgba(154,168,184,0.55), rgba(119,110,162,0.45),
-      rgba(97,88,128,0.35)) border-box;
+      rgba(99,102,241,0.2), rgba(129,140,248,0.35),
+      rgba(165,170,255,0.45), rgba(180,185,255,0.5),
+      rgba(165,170,255,0.45), rgba(129,140,248,0.35),
+      rgba(99,102,241,0.2)) border-box;
   animation: opal-border-sweep 8s linear infinite;
 }
 
-/* User variant — subtle Veridian tint, dialed down */
+/* User variant — same fill as agent, Veridian conic border */
 .chat-bubble--user .chat-bubble__card {
   background:
-    linear-gradient(rgba(110,207,163,0.03), rgba(110,207,163,0.015)) padding-box,
+    linear-gradient(#111518, #111518) padding-box,
     conic-gradient(from var(--opal-angle),
-      rgba(97,88,128,0.18), rgba(119,110,162,0.24),
-      rgba(154,168,184,0.30), rgba(216,221,232,0.34),
-      rgba(154,168,184,0.30), rgba(119,110,162,0.24),
-      rgba(97,88,128,0.18)) border-box;
+      rgba(110,207,163,0.2), rgba(110,207,163,0.35),
+      rgba(110,207,163,0.45), rgba(140,220,180,0.5),
+      rgba(110,207,163,0.45), rgba(110,207,163,0.35),
+      rgba(110,207,163,0.2)) border-box;
 }
 
 /* Dimmed shimmer on user bubbles */
@@ -69,13 +69,13 @@
     105deg,
     transparent                    0%,
     transparent                   15%,
-    rgba(74,  63, 107, 0.0)       20%,
-    rgba(107, 95, 168, 0.06)      32%,
-    rgba(154, 168, 184, 0.08)     44%,
-    rgba(216, 221, 232, 0.11)     52%,
-    rgba(216, 221, 232, 0.08)     58%,
-    rgba(154, 168, 184, 0.06)     66%,
-    rgba(107, 95, 168, 0.03)      76%,
+    rgba(99, 102, 241, 0.0)       20%,
+    rgba(129, 140, 248, 0.06)     32%,
+    rgba(165, 170, 255, 0.08)     44%,
+    rgba(180, 185, 255, 0.11)     52%,
+    rgba(180, 185, 255, 0.08)     58%,
+    rgba(165, 170, 255, 0.06)     66%,
+    rgba(129, 140, 248, 0.03)     76%,
     transparent                   85%,
     transparent                  100%
   );

@@ -175,12 +175,12 @@ export function advanceQueue(queue: ShapeQueue): void {
 // ─── Opal color ramp ───
 
 const OPAL_RAMP: Vec3[] = [
-  [97, 88, 128],
-  [119, 110, 162],
-  [154, 168, 184],
-  [216, 221, 232],
-  [154, 168, 184],
-  [119, 110, 162],
+  [99, 102, 241],
+  [129, 140, 248],
+  [165, 170, 255],
+  [180, 185, 255],
+  [165, 170, 255],
+  [129, 140, 248],
 ];
 
 export function sampleOpal(t: number): Vec3 {
