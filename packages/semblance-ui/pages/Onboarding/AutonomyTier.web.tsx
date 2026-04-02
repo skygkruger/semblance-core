@@ -35,8 +35,8 @@ export function AutonomyTier({ value, onChange, onContinue, onBack }: AutonomyTi
               animationDelay: `${i * 80}ms`,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-lg)', fontWeight: 400, color: '#EEF1F4' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 'var(--text-lg)', fontWeight: 400, color: '#EEF1F4' }}>
                 {t(`autonomy.tiers.${tier.id}.name`)}
               </span>
               {tier.recommended && (
@@ -54,7 +54,7 @@ export function AutonomyTier({ value, onChange, onContinue, onBack }: AutonomyTi
                 </span>
               )}
             </div>
-            <p style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-sm)', color: '#8593A4', marginTop: 6, lineHeight: 1.5 }}>
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#A8B4C0', letterSpacing: '0.04em', marginTop: 6, lineHeight: 1.5, textAlign: 'center' }}>
               {t(`autonomy.tiers.${tier.id}.description`)}
             </p>
           </div>
@@ -62,12 +62,14 @@ export function AutonomyTier({ value, onChange, onContinue, onBack }: AutonomyTi
 
         {/* Alter Ego note */}
         <p style={{
-          fontFamily: "'DM Sans', system-ui, sans-serif",
+          fontFamily: "'DM Mono', monospace",
           fontSize: 12,
           color: '#5E6B7C',
+          letterSpacing: '0.04em',
           margin: 0,
           padding: '8px 12px',
           lineHeight: 1.5,
+          textAlign: 'center',
         }}>
           {t('autonomy.alter_ego_note')}
         </p>

@@ -54,10 +54,11 @@ export function LanguageSelect({ detectedCode, onConfirm }: LanguageSelectProps)
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: 12,
                 width: '100%',
                 padding: '14px 16px',
-                textAlign: 'left',
+                textAlign: 'center',
                 font: 'inherit',
               }}
             >
