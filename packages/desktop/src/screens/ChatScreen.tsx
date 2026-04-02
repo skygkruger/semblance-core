@@ -310,7 +310,7 @@ export function ChatScreen() {
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     const isNearBottom = distanceFromBottom < 150;
     if (isNearBottom || userJustSentRef.current) {
-      el.scrollTo({ top: el.scrollHeight, behavior: userJustSentRef.current ? 'smooth' : 'auto' });
+      el.scrollTo?.({ top: el.scrollHeight, behavior: userJustSentRef.current ? 'smooth' : 'auto' });
       userJustSentRef.current = false;
     }
   }, [state.chatMessages, state.chatMessages.length > 0 ? state.chatMessages[state.chatMessages.length - 1]?.content : '']);
