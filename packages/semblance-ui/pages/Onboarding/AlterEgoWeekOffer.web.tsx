@@ -42,7 +42,7 @@ export function AlterEgoWeekOffer({ onAccept, onSkip, onBack }: AlterEgoWeekOffe
             display: 'flex',
             flexDirection: 'column',
             gap: 8,
-            alignItems: 'center',
+            textAlign: 'left',
           }}>
             {[1, 2, 3, 4, 5, 6, 7].map((day) => (
               <div key={day} style={{
@@ -50,8 +50,6 @@ export function AlterEgoWeekOffer({ onAccept, onSkip, onBack }: AlterEgoWeekOffe
                 alignItems: 'center',
                 gap: 10,
                 padding: '6px 0',
-                width: '100%',
-                maxWidth: 320,
               }}>
                 <span style={{
                   fontFamily: "'DM Mono', monospace",
