@@ -76,7 +76,7 @@ export function InitialIndexStep({ sources, complete, onContinue, onBack }: Init
             padding: 16,
             borderRadius: 8,
             backgroundColor: '#111518',
-            border: '1px solid rgba(107,95,168,0.15)',
+            border: '1px solid rgba(99,102,241,0.15)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{

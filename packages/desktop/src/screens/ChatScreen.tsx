@@ -14,7 +14,7 @@ import { VoiceWaveform } from '../components/VoiceWaveform';
 import { WebFetchSummary } from '../components/WebFetchSummary';
 import { WebSearchResult } from '../components/WebSearchResult';
 import { parseArtifacts } from '@semblance/core/agent/artifact-parser';
-import { MultiAgentDemo, registerMultiAgentCallback, unregisterMultiAgentCallback } from '../components/MultiAgentDemo';
+import { MultiAgentDemo } from '../components/MultiAgentDemo';
 import type { SubagentStreamEvent } from '../components/MultiAgentDemo';
 import { MultiAgentOverlay } from '../components/MultiAgentOverlay';
 import { useAppState, useAppDispatch } from '../state/AppState';
@@ -76,18 +76,19 @@ export function ChatScreen() {
   // Track which messages the user has manually collapsed
   const [collapsedOrchestrations, setCollapsedOrchestrations] = useState<Set<string>>(new Set());
 
+  // Multi-agent callback is registered at the App level (survives navigation).
+  // ChatScreen tracks orchestrationActive locally based on message orchestration data.
+  const lastAssistantOrch = state.chatMessages.filter(m => m.role === 'assistant').at(-1)?.orchestration;
   useEffect(() => {
-    registerMultiAgentCallback((event: SubagentStreamEvent) => {
+    if (!lastAssistantOrch || lastAssistantOrch.length === 0) return;
+    const lastEvent = lastAssistantOrch[lastAssistantOrch.length - 1];
+    if (lastEvent && lastEvent.type !== 'synthesis_completed') {
       setOrchestrationActive(true);
-      // Persist event on the last assistant message
-      dispatch({ type: 'APPEND_ORCHESTRATION_EVENT', event: event as unknown as import('../state/AppState').OrchestrationEvent });
-      if (event.type === 'synthesis_completed') {
-        // Keep active for cascade animation, then deactivate
-        setTimeout(() => setOrchestrationActive(false), 2500);
-      }
-    });
-    return () => unregisterMultiAgentCallback();
-  }, [dispatch]);
+    }
+    if (lastEvent && lastEvent.type === 'synthesis_completed') {
+      setTimeout(() => setOrchestrationActive(false), 2500);
+    }
+  }, [lastAssistantOrch?.length]);
 
   // Auto-collapse historical brackets once response has content and orchestration is done
   const lastMsg = state.chatMessages[state.chatMessages.length - 1];
@@ -111,17 +112,7 @@ export function ChatScreen() {
     }
   }, [orchestrationActive, lastMsg?.id, lastMsg?.role, lastMsg?.orchestration?.length, lastMsg?.content.length]);
 
-  const handleDemoComplete = useCallback(() => {
-    // Delay response until after cascade animation finishes
-    // Cascade starts 400ms after synthesis_completed, runs for nodes*60+400ms
-    const lastAssistant = state.chatMessages.filter(m => m.role === 'assistant').at(-1);
-    const eventCount = lastAssistant?.orchestration?.length ?? 0;
-    const cascadeDelay = 400 + eventCount * 60 + 400 + 500; // cascade start + cascade run + buffer
-    setTimeout(() => {
-      dispatch({ type: 'APPEND_TO_LAST_MESSAGE', content: 'Here\'s your standup preparation based on the analysis of your emails, calendar, and knowledge base...' });
-      dispatch({ type: 'SET_IS_RESPONDING', value: false });
-    }, cascadeDelay);
-  }, [dispatch, state.chatMessages]);
+  // handleDemoComplete moved to App.tsx — demo persists across navigation
 
   // ─── Contextual thinking text ────────────────────────────────────────────
   // Derives what to show in the input area based on current agent activity
@@ -1580,8 +1571,7 @@ export function ChatScreen() {
         }}
       />
 
-      {/* Dev-only multi-agent demo trigger */}
-      <MultiAgentDemo onComplete={handleDemoComplete} />
+      {/* MultiAgentDemo moved to App.tsx — persists across navigation */}
     </div>
   );
 }

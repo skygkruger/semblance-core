@@ -136,13 +136,13 @@ export function UpgradeScreen({
           <OpalBorderView
             borderRadius={nativeRadius.lg}
             borderColors={[
-              'rgba(107,95,168,0.35)',
-              'rgba(119,110,162,0.50)',
-              'rgba(154,168,184,0.60)',
-              'rgba(216,221,232,0.65)',
-              'rgba(154,168,184,0.60)',
-              'rgba(119,110,162,0.50)',
-              'rgba(107,95,168,0.35)',
+              'rgba(99,102,241,0.35)',
+              'rgba(129,140,248,0.50)',
+              'rgba(165,170,255,0.60)',
+              'rgba(180,185,255,0.65)',
+              'rgba(165,170,255,0.60)',
+              'rgba(129,140,248,0.50)',
+              'rgba(99,102,241,0.35)',
             ]}
           >
             <View style={styles.plan}>
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(107, 95, 168, 0.12)',
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
     paddingHorizontal: nativeSpacing.s2,
     paddingVertical: 2,
     borderRadius: nativeRadius.sm,
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   activeInfo: {
     backgroundColor: brandColors.s2,
     borderWidth: 1,
-    borderColor: 'rgba(107, 95, 168, 0.32)',
+    borderColor: 'rgba(99, 102, 241, 0.32)',
     borderRadius: nativeRadius.lg,
     padding: nativeSpacing.s6,
     gap: nativeSpacing.s2,

@@ -120,7 +120,7 @@ export const nativeFontWeight = {
 export const opalSurface = {
   backgroundColor: '#111518',
   borderWidth: 1,
-  borderColor: 'rgba(107,95,168,0.15)',
+  borderColor: 'rgba(99,102,241,0.15)',
 } as const;
 
 // Surface system — 4 canonical card surfaces for React Native
@@ -135,7 +135,7 @@ export const nativeSurfaces = {
   opal: {
     backgroundColor: '#121518',
     borderWidth: 1,
-    borderColor: 'rgba(107,95,168,0.15)',
+    borderColor: 'rgba(99,102,241,0.15)',
     borderRadius: 12,
   },
   /** Notifications, actions — transient cards */
@@ -166,7 +166,7 @@ export const nativeLeftBarColors = {
   health: ['#5a7a64', '#6e9474', '#82a888', '#a8c8a8', '#8eb898', '#72a07c', '#5a7a64'],
   privacy: ['#687078', '#808890', '#98a0a8', '#b8c0c8', '#98a0a8', '#808890', '#687078'],
   veridian: ['rgba(110,207,163,0.55)', 'rgba(110,207,163,0.65)', 'rgba(110,207,163,0.75)', 'rgba(110,207,163,0.85)', 'rgba(110,207,163,0.75)', 'rgba(110,207,163,0.65)', 'rgba(110,207,163,0.55)'],
-  opal: ['rgba(97,88,128,0.55)', 'rgba(119,110,162,0.65)', 'rgba(154,168,184,0.75)', 'rgba(216,221,232,0.85)', 'rgba(154,168,184,0.75)', 'rgba(119,110,162,0.65)', 'rgba(97,88,128,0.55)'],
+  opal: ['rgba(99,102,241,0.45)', 'rgba(129,140,248,0.55)', 'rgba(165,170,255,0.65)', 'rgba(180,185,255,0.75)', 'rgba(165,170,255,0.65)', 'rgba(129,140,248,0.55)', 'rgba(99,102,241,0.45)'],
 } as const;
 
 // Button opal variant colors per identity — border + text for native

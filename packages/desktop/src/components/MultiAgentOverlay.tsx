@@ -283,17 +283,22 @@ function CollapsedBracket({ events, onExpand }: { events: SubagentStreamEvent[];
         </g>
       </svg>
 
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
         <span style={{
           width: 4, height: 4, borderRadius: '50%',
           background: hadError ? '#E8657A' : '#6ECFA3',
           flexShrink: 0,
         }} />
         {agentCount > 0 && <span>{agentCount} agent{agentCount !== 1 ? 's' : ''}</span>}
+        {agentCount > 0 && toolCount > 0 && <span style={{ color: '#5E6B7C' }}>{'\u00b7'}</span>}
         {toolCount > 0 && <span style={{ color: '#818CF8' }}>{toolCount} tool{toolCount !== 1 ? 's' : ''}</span>}
+        {(agentCount > 0 || toolCount > 0) && totalTokens > 0 && <span style={{ color: '#5E6B7C' }}>{'\u00b7'}</span>}
         {totalTokens > 0 && <span>{(totalTokens / 1000).toFixed(1)}k tok</span>}
+        {hadError && <><span style={{ color: '#5E6B7C' }}>{'\u00b7'}</span><span style={{ color: '#E8657A' }}>partial</span></>}
         {hadCloud && <CloudIcon size={14} />}
-        {hadError && <span style={{ color: '#E8657A' }}>partial</span>}
       </span>
     </div>
   );
@@ -565,34 +570,6 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
         letterSpacing: '0.04em',
         position: 'relative',
       }}>
-      {/* Collapse button — visible when not actively animating */}
-      {!active && onToggleCollapsed && cp < 0.1 && (
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          style={{
-            position: 'absolute',
-            top: 2,
-            right: 0,
-            zIndex: 10,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px 6px',
-            color: '#5E6B7C',
-            transition: 'color 200ms ease',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#A8B4C0')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
-          title="Collapse"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
-      )}
       <svg
         style={{
           position: 'absolute',
@@ -863,6 +840,33 @@ export function MultiAgentOverlay({ events, active, collapsed, onToggleCollapsed
                 <span style={{ color: '#5E6B7C', fontSize: 9, opacity: textOpacity }}>
                   {node.tokenCount} tok
                 </span>
+              )}
+
+              {/* Collapse chevron — inline with first node */}
+              {i === 0 && !active && onToggleCollapsed && cp < 0.1 && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onToggleCollapsed(); }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '2px 4px',
+                    color: '#5E6B7C',
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginLeft: 'auto',
+                    opacity: textOpacity,
+                    transition: 'color 200ms ease',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#A8B4C0')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#5E6B7C')}
+                  title="Collapse"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
               )}
             </div>
           );

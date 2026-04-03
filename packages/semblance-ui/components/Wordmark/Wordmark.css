@@ -23,13 +23,14 @@
 .wordmark--shimmer {
   background: linear-gradient(
     105deg,
-    #6b7a8a 0%, #9aa8b8 18%, #c8d2d8 30%, #9aa8b8 42%,
-    #6b7a8a 58%, #8a97a8 74%, #6b7a8a 100%
+    #6b7a8a 0%, #8a97a8 12%, #9aa8b8 24%, #c8d2d8 38%,
+    #9aa8b8 50%, #8a97a8 62%, #6b7a8a 76%,
+    #8a97a8 88%, #9aa8b8 94%, #6b7a8a 100%
   );
-  background-size: 250% auto;
+  background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer 16s linear infinite;
+  animation: shimmer 19s linear infinite;
   animation-delay: -6s;
 }

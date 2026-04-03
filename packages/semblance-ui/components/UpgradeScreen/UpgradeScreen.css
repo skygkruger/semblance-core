@@ -164,7 +164,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(ellipse at center, rgba(107, 95, 168, 0.12) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
   pointer-events: none;
   animation: founding-glow-breathe 6s ease-in-out infinite;
 }
@@ -248,7 +248,7 @@
   text-align: center;
   padding: var(--sp-6);
   background: linear-gradient(135deg, var(--s2), var(--s1));
-  border: 1px solid rgba(107, 95, 168, 0.32);
+  border: 1px solid rgba(99, 102, 241, 0.32);
   border-radius: var(--r-lg);
   margin-bottom: var(--sp-8);
   position: relative;
@@ -261,7 +261,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(ellipse at center, rgba(107, 95, 168, 0.12) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
   pointer-events: none;
   animation: founding-glow-breathe 6s ease-in-out infinite;
 }

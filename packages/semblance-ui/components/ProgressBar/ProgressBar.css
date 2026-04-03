@@ -9,13 +9,13 @@
     linear-gradient(#181B1F, #181B1F) padding-box,
     linear-gradient(
       90deg,
-      rgba(97,88,128,0.35),
-      rgba(119,110,162,0.5),
-      rgba(154,168,184,0.6),
-      rgba(216,221,232,0.7),
-      rgba(154,168,184,0.6),
-      rgba(119,110,162,0.5),
-      rgba(97,88,128,0.35)
+      rgba(99,102,241,0.35),
+      rgba(129,140,248,0.5),
+      rgba(165,170,255,0.6),
+      rgba(180,185,255,0.7),
+      rgba(165,170,255,0.6),
+      rgba(129,140,248,0.5),
+      rgba(99,102,241,0.35)
     ) border-box;
   background-size: 100% 100%, 200% 100%;
   animation: progress-opal-sweep 4s linear infinite;

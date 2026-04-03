@@ -44,6 +44,7 @@ import { AlterEgoWeekScreen } from './screens/AlterEgoWeekScreen';
 import { ImportEverythingScreen } from './screens/ImportEverythingScreen';
 import { CanvasPanel } from './components/CanvasPanel';
 import { ChatMonitor } from './components/ChatMonitor';
+import { MultiAgentDemo, registerMultiAgentCallback, unregisterMultiAgentCallback } from './components/MultiAgentDemo';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
 import { UpgradeScreen as UpgradeScreenComponent, UpgradeEmailCapture } from '@semblance/ui';
@@ -307,6 +308,14 @@ function AppContent() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [sidecarReady, setSidecarReady] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Global multi-agent callback — always registered, survives page navigation
+  useEffect(() => {
+    registerMultiAgentCallback((event) => {
+      dispatch({ type: 'APPEND_ORCHESTRATION_EVENT', event: event as unknown as import('./state/AppState').OrchestrationEvent });
+    });
+    return () => unregisterMultiAgentCallback();
+  }, [dispatch]);
 
   const dismissToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -641,6 +650,16 @@ function AppContent() {
       </main>
       <CanvasPanel />
       <ChatMonitor />
+      <MultiAgentDemo onComplete={() => {
+        // Inject fake response after cascade — delay based on event count
+        const lastMsg = state.chatMessages.filter(m => m.role === 'assistant').at(-1);
+        const eventCount = lastMsg?.orchestration?.length ?? 0;
+        const cascadeDelay = 400 + eventCount * 60 + 400 + 500;
+        setTimeout(() => {
+          dispatch({ type: 'APPEND_TO_LAST_MESSAGE', content: 'Here\'s your preparation based on the analysis...' });
+          dispatch({ type: 'SET_IS_RESPONDING', value: false });
+        }, cascadeDelay);
+      }} />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );

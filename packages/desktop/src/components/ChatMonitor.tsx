@@ -6,7 +6,7 @@
  * Hidden on /chat route. Three states: hidden → minimized → expanded.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MultiAgentOverlay } from './MultiAgentOverlay';
 import { useAppState, useAppDispatch } from '../state/AppState';
@@ -17,6 +17,7 @@ import type { SubagentStreamEvent } from './MultiAgentDemo';
 // ─── Gutter measurement hook ─────────────────────────────────────────────────
 
 function useRightGutter() {
+  const lastRef = useRef({ left: 0, width: 0, center: 0 });
   const [gutter, setGutter] = useState({ left: 0, width: 0, center: 0 });
 
   const measure = useCallback(() => {
@@ -24,35 +25,55 @@ function useRightGutter() {
     if (!main) return;
 
     const mainRect = main.getBoundingClientRect();
-    // Same math as GhostSprite — page-layout is 960px max-width centered in main
-    const pageLayoutMaxWidth = 960;
-    const mainCenter = mainRect.left + mainRect.width / 2;
-    const contentRight = mainCenter + Math.min(pageLayoutMaxWidth, mainRect.width) / 2;
 
-    const gutterLeft = contentRight;
-    const gutterWidth = Math.max(0, mainRect.right - contentRight);
-    const gutterCenter = contentRight + gutterWidth / 2;
+    // Read from CSS custom property (set by Wraith which scans actual content elements)
+    const cssCenter = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gutter-center') || '0');
+    const cssLeft = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gutter-left') || '0');
 
-    setGutter({ left: gutterLeft, width: gutterWidth, center: gutterCenter });
+    let gutterLeft: number;
+    let gutterCenter: number;
+    if (cssCenter > 0 && cssLeft > 0) {
+      gutterLeft = Math.round(cssLeft);
+      gutterCenter = Math.round(cssCenter);
+    } else {
+      // Fallback: 960px centered
+      const mainCenter = mainRect.left + mainRect.width / 2;
+      gutterLeft = Math.round(mainCenter + Math.min(960, mainRect.width) / 2);
+      gutterCenter = Math.round(gutterLeft + (mainRect.right - gutterLeft) / 2);
+    }
+
+    const gutterWidth = Math.max(0, Math.round(mainRect.right - gutterLeft));
+
+    // Only update state if values actually changed
+    if (lastRef.current.left !== gutterLeft || lastRef.current.width !== gutterWidth) {
+      lastRef.current = { left: gutterLeft, width: gutterWidth, center: gutterCenter };
+      setGutter({ left: gutterLeft, width: gutterWidth, center: gutterCenter });
+    }
   }, []);
+
+  // Measure synchronously before paint — only triggers setState if values changed
+  useLayoutEffect(() => { measure(); });
 
   useEffect(() => {
     measure();
     window.addEventListener('resize', measure);
 
-    // Also observe the main element for sidebar toggle changes
     const main = document.querySelector('main');
-    const observer = main && typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(measure)
-      : null;
-    if (observer && main) observer.observe(main);
+    const resizeObs = main && typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(measure) : null;
+    if (resizeObs && main) resizeObs.observe(main);
 
-    // Re-measure periodically for sidebar transitions (300ms transition)
-    const interval = setInterval(measure, 500);
+    // MutationObserver catches route changes (new content rendered in main)
+    const mutObs = main && typeof MutationObserver !== 'undefined'
+      ? new MutationObserver(measure) : null;
+    if (mutObs && main) mutObs.observe(main, { childList: true, subtree: true });
+
+    const interval = setInterval(measure, 100);
 
     return () => {
       window.removeEventListener('resize', measure);
-      if (observer) observer.disconnect();
+      if (resizeObs) resizeObs.disconnect();
+      if (mutObs) mutObs.disconnect();
       clearInterval(interval);
     };
   }, [measure]);
@@ -76,12 +97,22 @@ export function ChatMonitor() {
   const messages = state.chatMessages;
   const gutter = useRightGutter();
 
-  // Auto-expand when agent starts responding from another screen
+  // Track collapsed brackets in the monitor
+  const [monitorCollapsed, setMonitorCollapsed] = useState<Set<string>>(new Set());
+
+  // Detect if orchestration is actively running (not yet completed)
+  const lastAssistant = messages.filter(m => m.role === 'assistant').at(-1);
+  const orchEvents = lastAssistant?.orchestration ?? [];
+  const orchLength = orchEvents.length;
+  const lastOrcEvent = orchEvents.length > 0 ? orchEvents[orchEvents.length - 1] : null;
+  const orchIsActive = orchLength > 0 && lastOrcEvent?.type !== 'synthesis_completed';
+
+  // Auto-expand immediately when there's active orchestration on a non-chat screen
   useEffect(() => {
-    if (isResponding && !isOnChat && panelState === 'hidden') {
+    if (!isOnChat && panelState === 'hidden' && (orchIsActive || isResponding)) {
       dispatch({ type: 'SET_CHAT_MONITOR', state: 'expanded' });
     }
-  }, [isResponding, isOnChat, panelState, dispatch]);
+  }, [isOnChat, panelState, orchIsActive, isResponding, dispatch]);
 
   // Auto-scroll in expanded panel
   useEffect(() => {
@@ -138,7 +169,6 @@ export function ChatMonitor() {
   const gutterTooNarrow = gutter.width < 60;
 
   // Derive status text
-  const lastAssistant = messages.filter(m => m.role === 'assistant').at(-1);
   const orch = lastAssistant?.orchestration;
   let statusText = '';
   if (isResponding) {
@@ -160,9 +190,7 @@ export function ChatMonitor() {
   const recentMessages = messages.slice(-8);
 
   // Panel dimensions — fill the gutter
-  const panelPadding = 8; // padding from edges
-  const panelWidth = Math.max(200, gutter.width - panelPadding * 2);
-  const panelLeft = gutter.left + panelPadding;
+  const panelLeft = gutter.left + 12;
 
   return (
     <>
@@ -189,7 +217,7 @@ export function ChatMonitor() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'all 300ms ease',
+            transition: 'left 1500ms ease-out, background 300ms ease, border 300ms ease',
           }}
           title="Chat Monitor"
         >
@@ -224,6 +252,7 @@ export function ChatMonitor() {
             bottom: 72,
             left: gutter.center,
             transform: 'translateX(-50%)',
+            transition: 'left 1500ms ease-out',
             zIndex: 9000,
             background: '#121518',
             border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -254,9 +283,10 @@ export function ChatMonitor() {
         <div
           style={{
             position: 'fixed',
-            top: 8,
+            top: 0,
             left: panelLeft,
-            width: panelWidth,
+            right: 0,
+            transition: 'left 1500ms ease-out',
             bottom: 72,
             zIndex: 9000,
             background: '#0B0E11',
@@ -340,11 +370,21 @@ export function ChatMonitor() {
                       <div style={{ marginBottom: 6 }}>
                         <MultiAgentOverlay
                           events={msg.orchestration as unknown as SubagentStreamEvent[]}
-                          active={isStreaming && state.isResponding}
-                          collapsed={!isStreaming}
+                          active={isLast && orchIsActive}
+                          collapsed={isLast && orchIsActive ? false : !monitorCollapsed.has(msg.id)}
+                          onToggleCollapsed={() => {
+                            setMonitorCollapsed(prev => {
+                              const next = new Set(prev);
+                              if (next.has(msg.id)) next.delete(msg.id);
+                              else next.add(msg.id);
+                              return next;
+                            });
+                          }}
                         />
                       </div>
                     )}
+                    {/* Hide empty assistant bubble while orchestration is active */}
+                    {!(msg.role === 'assistant' && (!msg.content || msg.content.trim() === '') && hasOrch) && (
                     <div className={`chat-bubble ${msg.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--assistant'}`}>
                       <div className="chat-bubble__card" style={{
                         padding: '6px 10px',
@@ -364,6 +404,7 @@ export function ChatMonitor() {
                         </span>
                       </div>
                     </div>
+                    )}
                   </div>
                 );
               })

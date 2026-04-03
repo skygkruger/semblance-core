@@ -207,14 +207,44 @@ export function GhostSprite({
     const mainRect = mainEl.getBoundingClientRect();
     const wrapperBounds = wrapperRef.current!.getBoundingClientRect();
 
-    // Right gutter = space between page-layout right edge and main right edge
-    // page-layout is 960px max-width centered in main, with 24px padding
-    const pageLayoutMaxWidth = 960;
-    const mainCenter = mainRect.left + mainRect.width / 2;
-    const contentRightEdge = mainCenter + Math.min(pageLayoutMaxWidth, mainRect.width) / 2;
+    // Scan actual content elements — same logic as ChatMonitor
+    const scanSelectors = [
+      '.surface-opal', '.surface-cloud', '.surface-void', '.surface-slate',
+      '.surface-pill', '.card', '.skeleton-card',
+      '.settings-screen', '.connections-screen',
+      '.page-title', '.bracket-section',
+    ];
+    let contentRightEdge = 0;
+    for (const sel of scanSelectors) {
+      for (const el of Array.from(content.querySelectorAll(sel)) as HTMLElement[]) {
+        const r = el.getBoundingClientRect().right;
+        if (r > contentRightEdge && r > mainRect.left + 100 && r < mainRect.right) {
+          contentRightEdge = r;
+        }
+      }
+    }
+    if (contentRightEdge === 0) {
+      const pageLayout = content.querySelector('.page-layout');
+      if (pageLayout) {
+        for (const child of Array.from(pageLayout.children) as HTMLElement[]) {
+          const r = child.getBoundingClientRect().right;
+          if (r > contentRightEdge && r < mainRect.right) contentRightEdge = r;
+        }
+      }
+    }
+    if (contentRightEdge === 0) {
+      const mc = mainRect.left + mainRect.width / 2;
+      contentRightEdge = mc + Math.min(960, mainRect.width) / 2;
+    }
+
     const rightEdge = contentRightEdge - wrapperBounds.left;
     const mainRight = mainRect.right - wrapperBounds.left;
     const gutterCenter = rightEdge + (mainRight - rightEdge) / 2;
+
+    // Share with ChatMonitor via CSS custom property
+    const viewportGutterCenter = contentRightEdge + (mainRect.right - contentRightEdge) / 2;
+    document.documentElement.style.setProperty('--gutter-center', `${Math.round(viewportGutterCenter)}px`);
+    document.documentElement.style.setProperty('--gutter-left', `${Math.round(contentRightEdge)}px`);
 
     setSpriteX(gutterCenter - GHOST_W / 2);
     // Vertically center in the viewport midpoint of the main area

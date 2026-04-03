@@ -30,7 +30,7 @@ function DownloadRow({ download, completeLabel, errorLabel, retryLabel, onRetry 
       padding: 16,
       borderRadius: 8,
       backgroundColor: '#111518',
-      border: `1px solid ${isError ? 'rgba(232, 101, 122, 0.4)' : 'rgba(107,95,168,0.15)'}`,
+      border: `1px solid ${isError ? 'rgba(232, 101, 122, 0.4)' : 'rgba(99,102,241,0.15)'}`,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontFamily: 'var(--fb)', fontSize: 14, color: isError ? '#E8657A' : '#EEF1F4' }}>

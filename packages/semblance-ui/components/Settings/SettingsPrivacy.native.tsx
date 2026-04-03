@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: nativeSpacing.s4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(107, 95, 168, 0.15)',
+    borderBottomColor: 'rgba(99, 102, 241, 0.15)',
   },
   headerBack: {
     width: 44,

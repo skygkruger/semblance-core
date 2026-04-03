@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: nativeSpacing.s4,
     paddingVertical: nativeSpacing.s3,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(107, 95, 168, 0.15)',
+    borderBottomColor: 'rgba(99, 102, 241, 0.15)',
   },
   title: {
     fontFamily: nativeFontFamily.ui,

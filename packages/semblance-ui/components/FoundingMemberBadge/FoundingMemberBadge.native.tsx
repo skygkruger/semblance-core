@@ -5,8 +5,8 @@ import { ShimmerText } from '../ShimmerText/ShimmerText.native';
 import { brandColors, nativeSpacing, nativeRadius, nativeFontSize, nativeFontFamily } from '../../tokens/native';
 
 const OPAL_TEXT = '#9aa8b8';
-const OPAL_BG = 'rgba(74,63,107,0.10)';
-const OPAL_BORDER = 'rgba(107,95,168,0.32)';
+const OPAL_BG = 'rgba(79,82,200,0.10)';
+const OPAL_BORDER = 'rgba(99,102,241,0.32)';
 
 export function FoundingMemberBadge({ seat, variant = 'inline' }: FoundingMemberBadgeProps) {
   const { t } = useTranslation();
