@@ -94,6 +94,7 @@ describe('Orchestrator', () => {
       autonomy,
       db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
+      connectedServices: ['Gmail', 'Calendar'], // Simulate connected state for tool tests
     });
   });
 
@@ -163,6 +164,7 @@ describe('Orchestrator', () => {
       autonomy,
       db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
+      connectedServices: ['Gmail', 'Files'],
     });
 
     const result = await orch.processMessage('Search my files for React hooks');
@@ -193,6 +195,7 @@ describe('Orchestrator', () => {
       autonomy,
       db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
+      connectedServices: ['Gmail', 'Calendar', 'Files'],
     });
 
     const result = await orch.processMessage('Send an email to test@example.com saying Hi');
@@ -232,6 +235,7 @@ describe('Orchestrator', () => {
       autonomy,
       db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
+      connectedServices: ['Gmail', 'Calendar', 'Files'],
     });
 
     const result = await orch.processMessage('Check my email');
@@ -263,6 +267,7 @@ describe('Orchestrator', () => {
       autonomy,
       db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
+      connectedServices: ['Gmail', 'Calendar', 'Files'],
     });
 
     const result = await orch.processMessage('Send test email');
@@ -295,6 +300,7 @@ describe('Orchestrator', () => {
       autonomy,
       db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
+      connectedServices: ['Gmail', 'Calendar', 'Files'],
     });
 
     const result = await orch.processMessage('Send test email');
@@ -327,6 +333,7 @@ describe('Orchestrator', () => {
       autonomy,
       db: db as unknown as DatabaseHandle,
       model: 'llama3.2:8b',
+      connectedServices: ['Gmail', 'Calendar', 'Files'],
     });
 
     await orch.processMessage('Send email');
