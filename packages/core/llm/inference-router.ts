@@ -23,6 +23,7 @@ import type {
 import type { TaskType, InferenceTier } from './inference-types.js';
 import { TASK_TIER_MAP, TIER_FALLBACK_CHAIN } from './inference-types.js';
 import type { ModelRegistryEntry } from './model-registry.js';
+import { stripR1ThinkingBlocks } from './model-registry.js';
 
 export type InferencePlatform = 'desktop' | 'ios' | 'android';
 
@@ -57,6 +58,10 @@ export interface InferenceRouterConfig {
   visionFastModel?: string;
   /** Vision model name for rich vision tasks (Qwen2.5-VL). */
   visionRichModel?: string;
+  /** Quality tier provider (DeepSeek-R1) — co-resident reasoning specialist. */
+  qualityProvider?: LLMProvider;
+  /** Quality tier model name (DeepSeek-R1 Distill). */
+  qualityModel?: string;
 }
 
 /**
@@ -82,6 +87,8 @@ export class InferenceRouter implements LLMProvider {
   private visionProvider: LLMProvider | null;
   private visionFastModel: string | null;
   private visionRichModel: string | null;
+  private qualityProvider: LLMProvider | null;
+  private qualityModel: string | null;
 
   constructor(config: InferenceRouterConfig) {
     this.reasoningProvider = config.reasoningProvider;
@@ -99,6 +106,8 @@ export class InferenceRouter implements LLMProvider {
     this.visionProvider = config.visionProvider ?? null;
     this.visionFastModel = config.visionFastModel ?? null;
     this.visionRichModel = config.visionRichModel ?? null;
+    this.qualityProvider = config.qualityProvider ?? null;
+    this.qualityModel = config.qualityModel ?? null;
   }
 
   // ─── LLMProvider Interface ───────────────────────────────────────────────
@@ -185,11 +194,17 @@ export class InferenceRouter implements LLMProvider {
   async routedChat(request: ChatRequest, taskType: TaskType): Promise<ChatResponse> {
     const tier = TASK_TIER_MAP[taskType];
     const { provider, model } = this.resolveProviderAndModel(tier, taskType);
+    const isQualityTier = tier === 'quality' && provider === this.qualityProvider;
     try {
-      return await provider.chat({
+      const response = await provider.chat({
         ...request,
         model: request.model || model,
       });
+      // Strip <think>...</think> blocks from R1 quality tier responses
+      if (isQualityTier && response.message?.content) {
+        response.message.content = stripR1ThinkingBlocks(response.message.content);
+      }
+      return response;
     } catch (err) {
       // Vision failures must NOT fall back — reasoning can't process images
       if (tier === 'vision') throw err;
@@ -211,11 +226,17 @@ export class InferenceRouter implements LLMProvider {
   async routedGenerate(request: GenerateRequest, taskType: TaskType): Promise<GenerateResponse> {
     const tier = TASK_TIER_MAP[taskType];
     const { provider, model } = this.resolveProviderAndModel(tier, taskType);
+    const isQualityTier = tier === 'quality' && provider === this.qualityProvider;
     try {
-      return await provider.generate({
+      const response = await provider.generate({
         ...request,
         model: request.model || model,
       });
+      // Strip <think>...</think> blocks from R1 quality tier responses
+      if (isQualityTier && response.text) {
+        response.text = stripR1ThinkingBlocks(response.text);
+      }
+      return response;
     } catch (err) {
       // Vision failures must NOT fall back — reasoning can't process images
       if (tier === 'vision') throw err;
@@ -354,6 +375,38 @@ export class InferenceRouter implements LLMProvider {
   }
 
   /**
+   * Set or update the quality tier provider (DeepSeek-R1 reasoning specialist).
+   * Used for the 'reason' task type only — complex multi-step planning.
+   */
+  setQualityProvider(provider: LLMProvider, model: string): void {
+    this.qualityProvider = provider;
+    this.qualityModel = model;
+  }
+
+  /**
+   * Clear the quality provider (e.g., when user disables reasoning specialist).
+   */
+  clearQualityProvider(): void {
+    this.qualityProvider = null;
+    this.qualityModel = null;
+  }
+
+  /**
+   * Get the active quality/reasoning specialist model name, or null if not configured.
+   */
+  getQualityModel(): string | null {
+    return this.qualityModel;
+  }
+
+  /**
+   * Check if the quality tier (reasoning specialist) is ready.
+   */
+  async isQualityReady(): Promise<boolean> {
+    if (!this.qualityProvider) return false;
+    return this.qualityProvider.isAvailable();
+  }
+
+  /**
    * Check if the fast tier is ready (SmolLM2 loaded).
    */
   isFastTierReady(): boolean {
@@ -427,7 +480,15 @@ export class InferenceRouter implements LLMProvider {
       return { provider: this.embeddingProvider, model: this.embeddingModel };
     }
 
-    // Primary/Quality tier: BitNet > reasoning provider
+    // Quality tier: use dedicated R1 reasoning specialist if configured.
+    // Quality tier is ONLY used for the 'reason' task type (complex multi-step planning).
+    // Other task types (generate, draft) stay on primary even if quality provider exists,
+    // because R1 function calling reliability is not yet verified for structured tool output.
+    if (tier === 'quality' && this.qualityProvider && this.qualityModel && taskType === 'reason') {
+      return { provider: this.qualityProvider, model: this.qualityModel };
+    }
+
+    // Primary/Quality fallthrough tier: BitNet > reasoning provider
     if (this.bitnetProvider) {
       return { provider: this.bitnetProvider, model: this.bitnetReasoningModel ?? this.reasoningModel };
     }

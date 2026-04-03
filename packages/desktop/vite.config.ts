@@ -119,6 +119,7 @@ export default defineConfig({
   resolve: {
     extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.jsx', '.js'],
     alias: {
+      '@semblance/core': resolve(__dirname, '../core'),
       '@semblance/ui': resolve(__dirname, '../semblance-ui'),
     },
     // Force single instance — pnpm hoists two i18next versions (v23 for semblance-ui, v24 for desktop).

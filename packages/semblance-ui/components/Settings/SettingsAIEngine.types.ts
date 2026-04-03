@@ -41,6 +41,10 @@ export interface SettingsAIEngineProps {
   onStandardDownload: (modelId: string) => void;
   onStandardActivate: (modelId: string) => void;
   onStandardDelete?: (modelId: string) => void;
+
+  /** Enthusiast tier opt-in — unlocks frontier models (64GB+ RAM required) */
+  enthusiastTierEnabled: boolean;
+  onEnthusiastTierToggle: (enabled: boolean) => void;
 }
 
 export const threadOptions = ['auto', '4', '8', '16'] as const;

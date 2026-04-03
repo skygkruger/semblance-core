@@ -118,6 +118,10 @@ export interface SettingsNavigatorProps {
   onBitNetDelete?: (modelId: string) => void;
   onStandardDelete?: (modelId: string) => void;
 
+  /* Enthusiast tier */
+  enthusiastTierEnabled?: boolean;
+  onEnthusiastTierToggle?: (enabled: boolean) => void;
+
   /* Web Search */
   searchEngine?: string;
   searchBraveApiKey?: string;

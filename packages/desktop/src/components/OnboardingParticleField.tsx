@@ -17,6 +17,8 @@ interface Particle {
   opacity: number;
   baseOpacity: number;
   speed: number;
+  /** 'veridian' or 'indigo' — determines particle color */
+  palette: 'veridian' | 'indigo';
 }
 
 interface OnboardingParticleFieldProps {
@@ -59,6 +61,7 @@ export function OnboardingParticleField({ progress, converging = false }: Onboar
         opacity: 0,
         baseOpacity: 0.15 + Math.random() * 0.25,
         speed,
+        palette: i % 3 === 0 ? 'indigo' : 'veridian', // ~1/3 indigo, ~2/3 veridian
       });
     }
     particlesRef.current = particles;
@@ -146,10 +149,19 @@ export function OnboardingParticleField({ progress, converging = false }: Onboar
         if (p.y < -10) p.y = h() + 10;
         if (p.y > h() + 10) p.y = -10;
 
-        // Draw — Veridian-tinted based on progress
-        const r = 110;
-        const g = Math.round(180 + progress * 27); // 180→207 as progress increases
-        const b = Math.round(140 + progress * 23); // 140→163
+        // Draw — color based on particle palette
+        let r: number, g: number, b: number;
+        if (p.palette === 'indigo') {
+          // Soft indigo: base ~(130, 120, 200), shifts slightly with progress
+          r = Math.round(120 + progress * 10);
+          g = Math.round(110 + progress * 15);
+          b = Math.round(190 + progress * 15);
+        } else {
+          // Veridian: base ~(110, 180, 140), shifts toward full veridian with progress
+          r = 110;
+          g = Math.round(180 + progress * 27);
+          b = Math.round(140 + progress * 23);
+        }
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${p.opacity})`;

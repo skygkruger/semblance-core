@@ -146,6 +146,8 @@ export function SettingsAIEngine({
   onStandardActivate,
   onBitNetDelete,
   onStandardDelete,
+  enthusiastTierEnabled,
+  onEnthusiastTierToggle,
 }: SettingsAIEngineProps) {
   const { t } = useTranslation('settings');
 
@@ -238,6 +240,22 @@ export function SettingsAIEngine({
         <div className="settings-section-header bracket-section">{t('ai_engine.section_hardware')}</div>
         <div className="settings-row settings-row--static">
           <span className="settings-row__label">{hardwareProfile}</span>
+        </div>
+        <div className="settings-row" onClick={() => onEnthusiastTierToggle(!enthusiastTierEnabled)}>
+          <div>
+            <span className="settings-row__label">Enthusiast Tier</span>
+            <div style={{ fontSize: 11, color: '#8593A4', marginTop: 2 }}>
+              Unlock frontier models (64GB+ RAM / 24GB+ VRAM recommended)
+            </div>
+          </div>
+          <button
+            type="button"
+            className="settings-toggle"
+            data-on={String(enthusiastTierEnabled)}
+            onClick={(e) => { e.stopPropagation(); onEnthusiastTierToggle(!enthusiastTierEnabled); }}
+          >
+            <span className="settings-toggle__thumb" />
+          </button>
         </div>
 
         {/* Performance Settings */}

@@ -524,6 +524,9 @@ export function OnboardingFlow() {
     // Let the sidecar emit real progress events with accurate model names and sizes.
     setDownloads([]);
 
+    // Track whether component has unmounted to handle async listener cleanup
+    let unmounted = false;
+
     // Listen for NativeRuntime model loaded event (reasoning model ready).
     // Fires for native loads (modelType='reasoning') AND Ollama detection (engine='ollama').
     let unlistenModelLoaded: UnlistenFn | undefined;
@@ -534,7 +537,7 @@ export function OnboardingFlow() {
           setRuntimeReady(true);
         }
       }
-    ).then((fn) => { unlistenModelLoaded = fn; });
+    ).then((fn) => { if (unmounted) { fn(); } else { unlistenModelLoaded = fn; } });
 
     // Set up event listener BEFORE starting downloads to avoid race condition
     let unlisten: UnlistenFn | undefined;
@@ -547,6 +550,7 @@ export function OnboardingFlow() {
       status: 'pending' | 'downloading' | 'complete' | 'error';
       error?: string;
     }>('semblance://model-download-progress', (event) => {
+      if (unmounted) return;
       const p = event.payload;
       setDownloads(prev => {
         // Match by modelId (stable) rather than modelName (localized)
@@ -569,7 +573,7 @@ export function OnboardingFlow() {
         updated[idx] = entry;
         return updated;
       });
-    }).then((fn) => { unlisten = fn; });
+    }).then((fn) => { if (unmounted) { fn(); } else { unlisten = fn; } });
 
     // Start downloads after listener is registered
     startModelDownloads(hardwareInfo?.tier ?? 'standard')
@@ -584,7 +588,7 @@ export function OnboardingFlow() {
         }]);
       });
 
-    return () => { unlisten?.(); unlistenModelLoaded?.(); };
+    return () => { unmounted = true; unlisten?.(); unlistenModelLoaded?.(); };
   }, [step, hardwareInfo]);
 
   // Timeout fallback: if all downloads complete but runtime never reports ready,

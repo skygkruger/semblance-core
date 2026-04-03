@@ -11,6 +11,7 @@ export interface ResidencyPolicy {
   standard: 'always' | 'session' | 'on-demand';
   performance: 'always' | 'session' | 'on-demand';
   workstation: 'always' | 'session' | 'on-demand';
+  enthusiast: 'always' | 'session' | 'on-demand';
 }
 
 export interface ModelRegistryEntry {
@@ -52,6 +53,9 @@ export interface ModelRegistryEntry {
   mmProjectorFilename?: string;
   /** For vision models: mmproj file size in bytes */
   mmProjectorSizeBytes?: number;
+  /** For split GGUF models: list of all filenames (e.g., part 1 of 2, part 2 of 2).
+   *  The download manager must download and verify ALL files. */
+  splitFiles?: string[];
 }
 
 /**
@@ -85,6 +89,37 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'always',
       performance: 'always',
       workstation: 'always',
+
+      enthusiast: 'always',
+    },
+  },
+
+  // ─── Fast Tier: Phi-4-Mini 3.8B (performance+ hardware) ─────────────────────
+  // Dramatically outperforms SmolLM2 on structured output, instruction following,
+  // and intent detection. 128K context enables longer classification inputs.
+  // NOT used on constrained/standard — RAM budget too tight (3GB fast + primary + embed).
+  {
+    id: 'phi-4-mini-3.8b-instruct-q4_k_m',
+    displayName: 'Phi-4 Mini 3.8B Instruct',
+    family: 'phi4',
+    parameterCount: '3.8B',
+    quantization: 'Q4_K_M',
+    fileSizeBytes: 2_490_000_000, // ~2.49GB (verified HF)
+    ramRequiredMb: 3072,
+    hfRepo: 'bartowski/microsoft_Phi-4-mini-instruct-GGUF',
+    hfFilename: 'microsoft_Phi-4-mini-instruct-Q4_K_M.gguf',
+    isEmbedding: false,
+    modality: 'text',
+    inferenceTier: 'fast',
+    minTier: 'performance',
+    contextLength: 128000,
+    license: 'MIT',
+    residencyPolicy: {
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'always',
+      workstation: 'always',
+      enthusiast: 'always',
     },
   },
 
@@ -110,6 +145,8 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'always',
       performance: 'always',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
   },
 
@@ -124,7 +161,7 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     quantization: 'Q4_K_M',
     fileSizeBytes: 1_100_000_000,
     ramRequiredMb: 2048,
-    hfRepo: 'Qwen/Qwen3-1.7B-GGUF',
+    hfRepo: 'unsloth/Qwen3-1.7B-GGUF',
     hfFilename: 'Qwen3-1.7B-Q4_K_M.gguf',
     // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
     isEmbedding: false,
@@ -138,6 +175,8 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'always',
       performance: 'always',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
     idleEvictAfterSeconds: 300, // constrained only — 5 min idle evict
   },
@@ -165,6 +204,8 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'session',
       performance: 'always',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
   },
 
@@ -191,13 +232,103 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'on-demand',
       performance: 'session',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
   },
 
-  // Workstation (32GB+): Qwen3 30B MoE
+  // Performance (16-31GB): Qwen3 8B Q5_K_M — higher reasoning fidelity option
+  // ~25% larger than Q4_K_M for measurably better multi-agent reasoning.
+  // On-demand: user opt-in via Settings, not auto-recommended.
+  {
+    id: 'qwen3-8b-instruct-q5_k_m',
+    displayName: 'Qwen3 8B Instruct (HQ)',
+    family: 'qwen3',
+    parameterCount: '8B',
+    quantization: 'Q5_K_M',
+    fileSizeBytes: 5_850_000_000, // ~5.85GB (verified HF)
+    ramRequiredMb: 9216,
+    hfRepo: 'Qwen/Qwen3-8B-GGUF',
+    hfFilename: 'Qwen3-8B-Q5_K_M.gguf',
+    isEmbedding: false,
+    modality: 'text',
+    inferenceTier: 'primary',
+    minTier: 'performance',
+    contextLength: 32768,
+    license: 'Apache-2.0',
+    residencyPolicy: {
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand',
+    },
+  },
+
+  // Workstation (32GB+): Qwen3 14B — dense model, all 14B params active per token.
+  // Stronger reasoning than 8B, fits comfortably in 32GB with room for fast tier,
+  // embedding, vision, OS, and user applications (~8.5GB model + ~2.5GB overhead).
+  {
+    id: 'qwen3-14b-instruct-q4_k_m',
+    displayName: 'Qwen3 14B Instruct',
+    family: 'qwen3',
+    parameterCount: '14B',
+    quantization: 'Q4_K_M',
+    fileSizeBytes: 8_500_000_000, // ~8.5GB
+    ramRequiredMb: 12288,
+    hfRepo: 'Qwen/Qwen3-14B-GGUF',
+    hfFilename: 'Qwen3-14B-Q4_K_M.gguf',
+    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
+    isEmbedding: false,
+    modality: 'text',
+    inferenceTier: 'primary',
+    minTier: 'workstation',
+    contextLength: 32768,
+    license: 'Apache-2.0',
+    residencyPolicy: {
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'session',
+
+      enthusiast: 'session',
+    },
+  },
+
+  // Workstation (32GB+): Qwen3 14B Q5_K_M — higher reasoning fidelity option
+  // On-demand: user opt-in via Settings, not auto-recommended.
+  {
+    id: 'qwen3-14b-instruct-q5_k_m',
+    displayName: 'Qwen3 14B Instruct (HQ)',
+    family: 'qwen3',
+    parameterCount: '14B',
+    quantization: 'Q5_K_M',
+    fileSizeBytes: 10_500_000_000, // ~10.5GB (verified HF)
+    ramRequiredMb: 14336,
+    hfRepo: 'Qwen/Qwen3-14B-GGUF',
+    hfFilename: 'Qwen3-14B-Q5_K_M.gguf',
+    isEmbedding: false,
+    modality: 'text',
+    inferenceTier: 'primary',
+    minTier: 'workstation',
+    contextLength: 32768,
+    license: 'Apache-2.0',
+    residencyPolicy: {
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand',
+    },
+  },
+
+  // High-end Workstation (48GB+): Qwen3 30B MoE — 30B params, 3B active per token.
+  // Fast inference (3B active = 4B-class speed) with expert diversity from 30B total.
+  // 17GB download requires 48GB+ to run alongside fast tier, embedding, and OS.
+  // Available as a user choice in Settings for systems with sufficient RAM.
   {
     id: 'qwen3-30b-a3b-q4_k_m',
-    displayName: 'Qwen3 30B Instruct',
+    displayName: 'Qwen3 30B MoE Instruct',
     family: 'qwen3',
     parameterCount: '30B (3B active)',
     quantization: 'Q4_K_M',
@@ -216,13 +347,100 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       constrained: 'on-demand',
       standard: 'on-demand',
       performance: 'on-demand',
+      workstation: 'on-demand', // on-demand, not default — user must explicitly choose
+      enthusiast: 'on-demand',
+    },
+  },
+
+  // ─── Reasoning Specialists: DeepSeek-R1 Distilled (co-resident quality tier) ──
+  // Chain-of-thought reasoning models for complex multi-step planning.
+  // Used by the 'quality' inference tier for 'reason' task types.
+  // CRITICAL: R1 output includes <think>...</think> blocks that must be stripped
+  // before passing to the orchestrator's tool-call parser.
+
+  // Performance (16-31GB): DeepSeek-R1 Distill Qwen 7B
+  {
+    id: 'deepseek-r1-distill-qwen-7b-q5_k_m',
+    displayName: 'DeepSeek R1 Distill 7B',
+    family: 'deepseek-r1',
+    parameterCount: '7B',
+    quantization: 'Q5_K_M',
+    fileSizeBytes: 5_440_000_000, // ~5.44GB (verified HF)
+    ramRequiredMb: 8192,
+    hfRepo: 'bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF',
+    hfFilename: 'DeepSeek-R1-Distill-Qwen-7B-Q5_K_M.gguf',
+    isEmbedding: false,
+    modality: 'text',
+    inferenceTier: 'primary',
+    minTier: 'performance',
+    contextLength: 32768,
+    license: 'MIT',
+    residencyPolicy: {
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'session',
+      workstation: 'always',
+      enthusiast: 'always',
+    },
+  },
+
+  // Workstation (32GB+): DeepSeek-R1 Distill Qwen 14B
+  {
+    id: 'deepseek-r1-distill-qwen-14b-q5_k_m',
+    displayName: 'DeepSeek R1 Distill 14B',
+    family: 'deepseek-r1',
+    parameterCount: '14B',
+    quantization: 'Q5_K_M',
+    fileSizeBytes: 10_510_000_000, // ~10.51GB (verified HF)
+    ramRequiredMb: 14336,
+    hfRepo: 'bartowski/DeepSeek-R1-Distill-Qwen-14B-GGUF',
+    hfFilename: 'DeepSeek-R1-Distill-Qwen-14B-Q5_K_M.gguf',
+    isEmbedding: false,
+    modality: 'text',
+    inferenceTier: 'primary',
+    minTier: 'workstation',
+    contextLength: 32768,
+    license: 'MIT',
+    residencyPolicy: {
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
       workstation: 'session',
+      enthusiast: 'always',
+    },
+  },
+
+  // Enthusiast (64GB+, opt-in): DeepSeek-R1 Distill Qwen 32B — ceiling reasoning
+  {
+    id: 'deepseek-r1-distill-qwen-32b-q4_k_m',
+    displayName: 'DeepSeek R1 Distill 32B',
+    family: 'deepseek-r1',
+    parameterCount: '32B',
+    quantization: 'Q4_K_M',
+    fileSizeBytes: 19_900_000_000, // ~19.9GB (verified HF)
+    ramRequiredMb: 24576,
+    hfRepo: 'unsloth/DeepSeek-R1-Distill-Qwen-32B-GGUF',
+    hfFilename: 'DeepSeek-R1-Distill-Qwen-32B-Q4_K_M.gguf',
+    isEmbedding: false,
+    modality: 'text',
+    inferenceTier: 'primary',
+    minTier: 'enthusiast',
+    contextLength: 32768,
+    license: 'MIT',
+    residencyPolicy: {
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'session',
     },
   },
 
   // ─── Vision Tier ─────────────────────────────────────────────────────────────
 
-  // Vision — Fast: Moondream2 (always available on standard+, on-demand on constrained)
+  // Vision — Lightweight: Moondream2 (on-demand fallback for constrained hardware)
+  // Demoted from default — Qwen2.5-VL 3B is now the default fast vision model on standard+.
+  // Moondream2 remains the only option on constrained hardware (fits in <8GB with primary model).
   {
     id: 'moondream2-f16',
     displayName: 'Moondream2',
@@ -233,7 +451,6 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     ramRequiredMb: 3072,
     hfRepo: 'ggml-org/moondream2-20250414-GGUF',
     hfFilename: 'moondream2-text-model-f16_ct-vicuna.gguf',
-    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
     isEmbedding: false,
     modality: 'vision',
     inferenceTier: 'vision',
@@ -242,26 +459,27 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     license: 'Apache-2.0',
     residencyPolicy: {
       constrained: 'on-demand',
-      standard: 'session',
-      performance: 'always',
-      workstation: 'always',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand',
     },
     mmProjectorFilename: 'moondream2-mmproj-f16-20250414.gguf',
     mmProjectorSizeBytes: 910_000_000,
   },
 
-  // Vision — Document: Qwen2.5-VL 3B (on-demand, document OCR and rich visual tasks)
+  // Vision — Default: Qwen2.5-VL 3B (default vision model on standard+)
+  // 32K context, better OCR and document reading than Moondream2.
   {
     id: 'qwen2.5-vl-3b-instruct-q4_k_m',
     displayName: 'Qwen2.5 VL 3B Instruct',
     family: 'qwen2.5-vl',
     parameterCount: '3B',
     quantization: 'Q4_K_M',
-    fileSizeBytes: 2_200_000_000,
+    fileSizeBytes: 1_929_901_056, // ~1.8GB (verified HF)
     ramRequiredMb: 4096,
-    hfRepo: 'Qwen/Qwen2.5-VL-3B-Instruct-GGUF',
-    hfFilename: 'qwen2.5-vl-3b-instruct-q4_k_m.gguf',
-    // sha256 omitted — hash not yet verified. Download integrity check skipped until populated.
+    hfRepo: 'ggml-org/Qwen2.5-VL-3B-Instruct-GGUF',
+    hfFilename: 'Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf',
     isEmbedding: false,
     modality: 'vision',
     inferenceTier: 'vision',
@@ -270,12 +488,74 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     license: 'Apache-2.0',
     residencyPolicy: {
       constrained: 'on-demand',
+      standard: 'session',
+      performance: 'session', // not always — RAM too tight with Phi-4-Mini + 8B primary
+      workstation: 'always',
+      enthusiast: 'always',
+    },
+    mmProjectorFilename: 'mmproj-Qwen2.5-VL-3B-Instruct-f16.gguf',
+    mmProjectorSizeBytes: 1_338_428_128, // ~1.25GB (verified HF)
+  },
+
+  // Vision — Rich: Qwen2.5-VL 7B (performance+ tiers, higher accuracy OCR/document analysis)
+  // Significantly better than 3B for document reading, screen analysis, form automation.
+  {
+    id: 'qwen2.5-vl-7b-instruct-q4_k_m',
+    displayName: 'Qwen2.5 VL 7B Instruct',
+    family: 'qwen2.5-vl',
+    parameterCount: '7B',
+    quantization: 'Q4_K_M',
+    fileSizeBytes: 4_680_000_000, // ~4.68GB (verified HF)
+    ramRequiredMb: 7168,
+    hfRepo: 'unsloth/Qwen2.5-VL-7B-Instruct-GGUF',
+    hfFilename: 'Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf',
+    isEmbedding: false,
+    modality: 'vision',
+    inferenceTier: 'vision',
+    minTier: 'performance',
+    contextLength: 32768,
+    license: 'Apache-2.0',
+    residencyPolicy: {
+      constrained: 'on-demand',
       standard: 'on-demand',
       performance: 'on-demand',
       workstation: 'session',
+      enthusiast: 'always',
     },
-    mmProjectorFilename: 'qwen2.5-vl-3b-instruct-mmproj-f16.gguf',
-    mmProjectorSizeBytes: 480_000_000,
+    mmProjectorFilename: 'mmproj-BF16.gguf',
+    mmProjectorSizeBytes: 1_350_000_000,
+  },
+
+  // ─── Enthusiast Tier: Llama 4 Scout MoE ────────────────────────────────────────
+  // 109B total params, 17B active per token. Natively multimodal. 131K context.
+  // Split GGUF (2 files, 65.3GB total). Requires 64GB+ RAM. Opt-in only.
+  {
+    id: 'llama-4-scout-17b-16e-q4_k_m',
+    displayName: 'Llama 4 Scout 109B MoE',
+    family: 'llama4',
+    parameterCount: '109B (17B active)',
+    quantization: 'Q4_K_M',
+    fileSizeBytes: 65_300_000_000, // ~65.3GB total (2 split files)
+    ramRequiredMb: 49152,
+    hfRepo: 'unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF',
+    hfFilename: 'Q4_K_M/Llama-4-Scout-17B-16E-Instruct-Q4_K_M-00001-of-00002.gguf',
+    isEmbedding: false,
+    modality: 'text',
+    inferenceTier: 'primary',
+    minTier: 'enthusiast',
+    contextLength: 131072,
+    license: 'Meta Llama 4',
+    residencyPolicy: {
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand', // opt-in only, even on enthusiast
+    },
+    splitFiles: [
+      'Q4_K_M/Llama-4-Scout-17B-16E-Instruct-Q4_K_M-00001-of-00002.gguf',
+      'Q4_K_M/Llama-4-Scout-17B-16E-Instruct-Q4_K_M-00002-of-00002.gguf',
+    ],
   },
 ] as const;
 
@@ -311,6 +591,8 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'always',
       performance: 'always',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
   },
 
@@ -338,6 +620,8 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'always',
       performance: 'always',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
   },
 
@@ -365,6 +649,8 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'always',
       performance: 'always',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
   },
 
@@ -394,6 +680,8 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'always',
       performance: 'always',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
   },
 
@@ -421,6 +709,8 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'always',
       performance: 'always',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
   },
 
@@ -448,6 +738,8 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'session',
       performance: 'always',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
   },
 
@@ -475,6 +767,8 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
       standard: 'on-demand',
       performance: 'session',
       workstation: 'always',
+
+      enthusiast: 'always',
     },
   },
 
@@ -484,13 +778,23 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
 
 /**
  * Get the recommended reasoning model for a hardware tier.
- * Returns the highest-quality Qwen3 primary model the hardware can support.
+ * Returns the best Qwen3 primary model the hardware can support as a default.
+ *
+ * Selection logic:
+ * 1. Filter to primary text models the tier can run (minTier ≤ current tier)
+ * 2. Among those, prefer models with 'session' residency at the target tier
+ *    (these are the models designed to be the default for that tier)
+ * 3. If multiple session-resident models exist, pick the one with the highest
+ *    minTier (best quality)
+ * 4. If no session-resident model, pick the highest-quality candidate
+ *
+ * This ensures that on-demand models (like the 30B MoE) are available in the
+ * catalogue but not auto-recommended — users opt into them via Settings.
  */
 export function getRecommendedReasoningModel(tier: HardwareProfileTier): ModelRegistryEntry {
-  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation'];
+  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation', 'enthusiast'];
   const tierIndex = tierOrder.indexOf(tier);
 
-  // Find the best primary-tier Q4_K_M model this hardware can run
   const candidates = MODEL_CATALOG
     .filter(m =>
       !m.isEmbedding
@@ -500,25 +804,41 @@ export function getRecommendedReasoningModel(tier: HardwareProfileTier): ModelRe
     );
 
   if (candidates.length === 0) {
-    // Fallback: any non-embedding model
     const all = MODEL_CATALOG.filter(m => !m.isEmbedding && m.modality === 'text' && tierOrder.indexOf(m.minTier) <= tierIndex);
     return all.reduce((best, current) =>
       tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
     );
   }
 
-  // Return the one with the highest minTier (best quality the hardware supports)
-  return candidates.reduce((best, current) =>
+  // Prefer models with 'session' residency at the target tier — these are the
+  // designed defaults. On-demand models are user-selectable but not auto-recommended.
+  const sessionResident = candidates.filter(m => m.residencyPolicy[tier] === 'session');
+  const pool = sessionResident.length > 0 ? sessionResident : candidates;
+
+  return pool.reduce((best, current) =>
     tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
   );
 }
 
 /**
- * Get the fast tier model (SmolLM2). Always-resident on all hardware.
+ * Get the fast tier model for a hardware tier.
+ * - Performance+ tiers: Phi-4-Mini 3.8B (stronger classification, 128K context)
+ * - Constrained/Standard: SmolLM2 1.7B (fits tight RAM budgets)
+ *
  * Used exclusively for: classification, extraction, triage, intent detection.
  */
-export function getFastTierModel(): ModelRegistryEntry {
-  const entry = MODEL_CATALOG.find(m => m.inferenceTier === 'fast');
+export function getFastTierModel(tier: HardwareProfileTier = 'constrained'): ModelRegistryEntry {
+  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation', 'enthusiast'];
+  const tierIndex = tierOrder.indexOf(tier);
+
+  // On performance+ hardware, prefer Phi-4-Mini for stronger classification/extraction
+  if (tierIndex >= 2) {
+    const phi4 = MODEL_CATALOG.find(m => m.inferenceTier === 'fast' && m.family === 'phi4');
+    if (phi4) return phi4;
+  }
+
+  // Fallback: SmolLM2 (always available, constrained-compatible)
+  const entry = MODEL_CATALOG.find(m => m.inferenceTier === 'fast' && m.family === 'smollm2');
   if (!entry) throw new Error('No fast tier model in catalog — this is a build error');
   return entry;
 }
@@ -537,7 +857,7 @@ export function getEmbeddingModel(): ModelRegistryEntry {
  * Get vision models available for a hardware tier.
  */
 export function getVisionModelsForTier(tier: HardwareProfileTier): ModelRegistryEntry[] {
-  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation'];
+  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation', 'enthusiast'];
   const tierIndex = tierOrder.indexOf(tier);
   return MODEL_CATALOG.filter(
     m => m.modality === 'vision' && tierOrder.indexOf(m.minTier) <= tierIndex,
@@ -550,7 +870,18 @@ export function getVisionModelsForTier(tier: HardwareProfileTier): ModelRegistry
  */
 export function getRecommendedVisionModel(tier: HardwareProfileTier): ModelRegistryEntry | null {
   const models = getVisionModelsForTier(tier);
-  return models.find(m => m.family === 'moondream') ?? models[0] ?? null;
+  if (models.length === 0) return null;
+
+  // On constrained: Moondream2 is the only option that fits
+  if (tier === 'constrained') {
+    return models.find(m => m.family === 'moondream') ?? models[0] ?? null;
+  }
+
+  // On standard+: prefer Qwen2.5-VL 3B (better OCR, 32K context)
+  return models.find(m => m.id === 'qwen2.5-vl-3b-instruct-q4_k_m')
+    ?? models.find(m => m.family === 'qwen2.5-vl')
+    ?? models[0]
+    ?? null;
 }
 
 /**
@@ -559,6 +890,18 @@ export function getRecommendedVisionModel(tier: HardwareProfileTier): ModelRegis
  */
 export function getRichVisionModel(tier: HardwareProfileTier): ModelRegistryEntry | null {
   const models = getVisionModelsForTier(tier);
+  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation', 'enthusiast'];
+  const tierIndex = tierOrder.indexOf(tier);
+
+  // On performance+ tiers, prefer the 7B vision model for higher accuracy
+  if (tierIndex >= 2) {
+    const vl7b = models.find(m => m.id === 'qwen2.5-vl-7b-instruct-q4_k_m');
+    if (vl7b) return vl7b;
+  }
+
+  // On standard: return Qwen2.5-VL 3B
+  // On constrained: return null (no rich vision model fits)
+  if (tier === 'constrained') return null;
   return models.find(m => m.family === 'qwen2.5-vl') ?? null;
 }
 
@@ -609,7 +952,7 @@ export function getBitNetModels(): readonly ModelRegistryEntry[] {
  * Get BitNet models that a given hardware tier can run.
  */
 export function getBitNetModelsForTier(tier: HardwareProfileTier): ModelRegistryEntry[] {
-  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation'];
+  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation', 'enthusiast'];
   const tierIndex = tierOrder.indexOf(tier);
   return BITNET_MODEL_CATALOG.filter(m => tierOrder.indexOf(m.minTier) <= tierIndex);
 }
@@ -621,9 +964,11 @@ export function getBitNetModelsForTier(tier: HardwareProfileTier): ModelRegistry
  *   - standard (8-15GB): Falcon-E 3B (1.0GB, native 1-bit)
  *   - performance (16-31GB): Falcon3 7B (3.28GB, 8192 context)
  *   - workstation (32GB+): Falcon3 10B (3.99GB, best quality)
+ *   - enthusiast (64GB+, opt-in): Falcon3 10B (same as workstation)
  */
 export function getRecommendedBitNetModel(tier: HardwareProfileTier): ModelRegistryEntry {
   switch (tier) {
+    case 'enthusiast':
     case 'workstation':
       return BITNET_MODEL_CATALOG.find(m => m.id === 'falcon3-10b-instruct-1.58bit')!;
     case 'performance':
@@ -644,7 +989,7 @@ export function getRecommendedBitNetModel(tier: HardwareProfileTier): ModelRegis
  * Returns reasoning models only (no embedding).
  */
 export function getAllReasoningModelsForTier(tier: HardwareProfileTier): ModelRegistryEntry[] {
-  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation'];
+  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation', 'enthusiast'];
   const tierIndex = tierOrder.indexOf(tier);
 
   const standard = MODEL_CATALOG.filter(
@@ -664,4 +1009,37 @@ export function getAnyModelById(id: string): ModelRegistryEntry | null {
     ?? BITNET_MODEL_CATALOG.find(m => m.id === id)
     ?? null
   );
+}
+
+/**
+ * Get the recommended DeepSeek-R1 reasoning specialist for a hardware tier.
+ * Returns null for constrained/standard (no specialist fits).
+ * Used by the quality inference tier for complex multi-step planning.
+ *
+ * CRITICAL: R1 models output <think>...</think> blocks in their responses.
+ * The quality provider in InferenceRouter strips these before returning.
+ */
+export function getRecommendedReasoningSpecialist(tier: HardwareProfileTier): ModelRegistryEntry | null {
+  switch (tier) {
+    case 'enthusiast':
+      return MODEL_CATALOG.find(m => m.id === 'deepseek-r1-distill-qwen-32b-q4_k_m') ?? null;
+    case 'workstation':
+      return MODEL_CATALOG.find(m => m.id === 'deepseek-r1-distill-qwen-14b-q5_k_m') ?? null;
+    case 'performance':
+      return MODEL_CATALOG.find(m => m.id === 'deepseek-r1-distill-qwen-7b-q5_k_m') ?? null;
+    case 'standard':
+    case 'constrained':
+    default:
+      return null;
+  }
+}
+
+/**
+ * Strip <think>...</think> blocks from DeepSeek-R1 model output.
+ * R1 models include chain-of-thought reasoning wrapped in <think> tags.
+ * This must be removed before the response reaches the orchestrator's
+ * tool-call parser or is displayed to the user.
+ */
+export function stripR1ThinkingBlocks(text: string): string {
+  return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 }

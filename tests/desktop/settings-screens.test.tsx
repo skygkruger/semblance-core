@@ -108,6 +108,8 @@ describe('SettingsAIEngine', () => {
     standardDownloadProgress: 0,
     onStandardDownload: vi.fn(),
     onStandardActivate: vi.fn(),
+    enthusiastTierEnabled: false,
+    onEnthusiastTierToggle: vi.fn(),
   };
 
   it('renders AI Engine header', () => {

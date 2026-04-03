@@ -1096,8 +1096,8 @@ export interface StandardModelsResponse {
   activeModelId: string | null;
 }
 
-export function getStandardModels(): Promise<StandardModelsResponse> {
-  return invoke<StandardModelsResponse>('standard_get_models');
+export function getStandardModels(tier?: string): Promise<StandardModelsResponse> {
+  return invoke<StandardModelsResponse>('standard_get_models', tier ? { tier } : undefined);
 }
 
 export function downloadStandardModel(modelId: string): Promise<{ status: string; modelId: string }> {

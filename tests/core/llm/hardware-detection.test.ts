@@ -73,6 +73,7 @@ describe('Hardware → Model Selection Pipeline', () => {
       standard: 8 * 1024,
       performance: 16 * 1024,
       workstation: 32 * 1024,
+      enthusiast: 64 * 1024,
     };
 
     for (const [tier, ramMb] of Object.entries(tierRamMb) as [HardwareProfileTier, number][]) {

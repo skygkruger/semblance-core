@@ -2,7 +2,7 @@
 // Used by InferenceRouter for model selection and NativeRuntime configuration.
 // CRITICAL: No network imports. Pure types.
 
-export type HardwareProfileTier = 'constrained' | 'standard' | 'performance' | 'workstation';
+export type HardwareProfileTier = 'constrained' | 'standard' | 'performance' | 'workstation' | 'enthusiast';
 
 export interface GpuInfo {
   name: string;
@@ -29,14 +29,29 @@ export interface HardwareProfile {
  * Tiers determine which models are recommended and how inference is configured.
  *
  * - constrained: <8GB RAM — smallest models only
- * - standard: 8–15GB RAM — 3B parameter models
- * - performance: 16–31GB RAM — 7B parameter models
- * - workstation: 32GB+ RAM — 8B+ parameter models with GPU acceleration
+ * - standard: 8–15GB RAM — 4B parameter models
+ * - performance: 16–31GB RAM — 8B parameter models
+ * - workstation: 32GB+ RAM or discrete GPU with ≥8GB dedicated VRAM
+ * - enthusiast: NEVER auto-detected. Opt-in only via user Settings.
+ *   Intended for 64GB+ systems or discrete GPU with ≥24GB VRAM.
+ *
+ * GPU VRAM only promotes tier for discrete GPUs (nvidia/amd) where VRAM is a
+ * separate memory pool. Apple Silicon unified memory does NOT qualify — the GPU
+ * shares the same RAM pool, so a 16GB MacBook Air reporting 12GB "VRAM" must
+ * not be promoted to workstation (which would recommend a 17GB model).
  */
 export function classifyHardware(totalRamMb: number, gpu: GpuInfo | null): HardwareProfileTier {
   const ramGb = totalRamMb / 1024;
 
-  if (ramGb >= 32 || (gpu && gpu.computeCapable && gpu.vramMb >= 8192)) {
+  // Discrete GPU with ≥8GB dedicated VRAM can promote to workstation
+  // regardless of system RAM (e.g., 16GB RAM + RTX 4070 12GB).
+  // Unified memory (Apple Silicon) does NOT qualify.
+  const hasDiscreteGpuPromotion = gpu != null
+    && gpu.computeCapable
+    && gpu.vramMb >= 8192
+    && gpu.vendor !== 'apple'; // unified memory — not a separate pool
+
+  if (ramGb >= 32 || hasDiscreteGpuPromotion) {
     return 'workstation';
   }
   if (ramGb >= 16) {
@@ -67,6 +82,8 @@ export function isVoiceCapable(
  */
 export function describeTier(tier: HardwareProfileTier): string {
   switch (tier) {
+    case 'enthusiast':
+      return 'Enthusiast system — frontier models with maximum quality and context';
     case 'workstation':
       return 'High-performance system — full-size models with GPU acceleration';
     case 'performance':

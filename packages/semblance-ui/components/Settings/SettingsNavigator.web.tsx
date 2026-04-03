@@ -73,6 +73,8 @@ export function SettingsNavigator(props: SettingsNavigatorProps) {
           onStandardActivate={props.onStandardActivate}
           onBitNetDelete={props.onBitNetDelete}
           onStandardDelete={props.onStandardDelete}
+          enthusiastTierEnabled={props.enthusiastTierEnabled ?? false}
+          onEnthusiastTierToggle={props.onEnthusiastTierToggle ?? (() => {})}
         />
       );
 

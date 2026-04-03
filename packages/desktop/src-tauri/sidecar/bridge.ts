@@ -1214,9 +1214,13 @@ async function handleInitialize(): Promise<unknown> {
     }
   }
 
-  // ── Step 3b: Load fast tier model (SmolLM2) if available on disk ──────────
+  // ── Step 3b: Load fast tier model if available on disk ────────────────────
+  // At startup, tier is unknown — try Phi-4-Mini first (performance+), fall back to SmolLM2.
+  // The correct model will already be downloaded from onboarding based on detected tier.
   try {
-    const fastModel = getFastTierModel();
+    const phi4 = getFastTierModel('performance'); // Phi-4-Mini if it exists in catalog
+    const smol = getFastTierModel('constrained'); // SmolLM2 (always in catalog)
+    const fastModel = isModelDownloaded(phi4.id, modelsBaseDir) ? phi4 : smol;
     if (isModelDownloaded(fastModel.id, modelsBaseDir)) {
       const fastPath = getModelPath(fastModel.id, modelsBaseDir);
       try {
@@ -1231,7 +1235,7 @@ async function handleInitialize(): Promise<unknown> {
     // getFastTierModel() may throw if no fast model in catalog — skip silently
   }
 
-  // ── Step 3c: Load vision model (Moondream2) if available on disk ─────────
+  // ── Step 3c: Load vision model if available on disk ─────────────────────
   try {
     const visionModel = getRecommendedVisionModel('standard');
     if (visionModel && visionModel.mmProjectorFilename) {
@@ -4540,7 +4544,7 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
   }
 
   try {
-    const fastModel = getFastTierModel();
+    const fastModel = getFastTierModel(tier);
     planned.push({ modelId: fastModel.id, status: isModelDownloaded(fastModel.id, baseDir) ? 'already_downloaded' : 'queued' });
   } catch { /* optional */ }
 
@@ -4574,14 +4578,17 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
         const reasoningTargetPath = getModelPath(reasoningModel.id, baseDir);
         await downloadAndLoad(reasoningModel, reasoningTargetPath, 'reasoning', () => {
           sendCallback('native_load_model', { model_path: reasoningTargetPath, model_type: 'reasoning' })
-            .then(() => console.error(`[sidecar] Reasoning model "${reasoningModel.id}" loaded`))
+            .then(() => {
+              console.error(`[sidecar] Reasoning model "${reasoningModel.id}" loaded`);
+              emit('native-model-loaded', { modelId: reasoningModel.id, modelType: 'reasoning', path: reasoningTargetPath, engine: 'native' });
+            })
             .catch((err) => console.error(`[sidecar] Reasoning load failed:`, err));
         });
       }
 
-      // 3. Fast tier (SmolLM2)
+      // 3. Fast tier (SmolLM2 on constrained/standard, Phi-4-Mini on performance+)
       try {
-        const fastModel = getFastTierModel();
+        const fastModel = getFastTierModel(tier);
         const fastPath = getModelPath(fastModel.id, baseDir);
         await downloadAndLoad(fastModel, fastPath, 'fast', () => {
           sendCallback('native_load_model', { model_path: fastPath, model_type: 'fast' })
@@ -4818,10 +4825,21 @@ function handleBitNetGetStatus(): unknown {
 // ─── Standard (Qwen) Model Management ─────────────────────────────────────
 // Exposes standard GGUF models from MODEL_CATALOG in Settings for power users.
 
-function handleStandardGetModels(): unknown {
+function handleStandardGetModels(params?: { tier?: string }): unknown {
   const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
-  const standardModels = MODEL_CATALOG.filter(m => !m.isEmbedding);
+  const tier = (params?.tier || 'standard') as HardwareProfileTier;
+  const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation', 'enthusiast'];
+  const tierIndex = tierOrder.indexOf(tier);
+
+  // Filter models to those the user's hardware can run (minTier ≤ user tier)
+  const standardModels = MODEL_CATALOG.filter(m =>
+    !m.isEmbedding && tierOrder.indexOf(m.minTier) <= tierIndex
+  );
   const activeStdModel = getPref('standard_active_model') ?? null;
+
+  // Mark the recommended model for this tier
+  const recommendedId = getRecommendedReasoningModel(tier).id;
+  const recommendedFastId = getFastTierModel(tier).id;
 
   return {
     models: standardModels.map(m => ({
@@ -4829,22 +4847,36 @@ function handleStandardGetModels(): unknown {
       displayName: m.displayName,
       family: m.family,
       parameterCount: m.parameterCount,
+      quantization: m.quantization,
       fileSizeBytes: m.fileSizeBytes,
       ramRequiredMb: m.ramRequiredMb,
       license: m.license ?? 'Apache 2.0',
       nativeOneBit: false,
       contextLength: m.contextLength ?? 32768,
+      inferenceTier: m.inferenceTier,
+      minTier: m.minTier,
       isDownloaded: isModelDownloaded(m.id, baseDir),
-      isRecommended: false,
+      isRecommended: m.id === recommendedId || m.id === recommendedFastId,
     })),
     activeModelId: activeStdModel,
   };
 }
 
-async function handleStandardDownloadModel(params: { modelId: string }): Promise<unknown> {
+async function handleStandardDownloadModel(params: { modelId: string; tier?: string }): Promise<unknown> {
   const model = MODEL_CATALOG.find(m => m.id === params.modelId && !m.isEmbedding);
   if (!model) {
     throw new Error(`Unknown standard model: ${params.modelId}`);
+  }
+
+  // Warn (but don't block) if model exceeds detected hardware tier.
+  // Users can override in Settings, so this is advisory not mandatory.
+  if (params.tier) {
+    const tierOrder: HardwareProfileTier[] = ['constrained', 'standard', 'performance', 'workstation', 'enthusiast'];
+    const userTierIndex = tierOrder.indexOf(params.tier as HardwareProfileTier);
+    const modelTierIndex = tierOrder.indexOf(model.minTier);
+    if (modelTierIndex > userTierIndex) {
+      console.error(`[sidecar] WARNING: Downloading ${model.id} (requires ${model.minTier}) on ${params.tier} hardware — may not have enough RAM to run`);
+    }
   }
 
   const baseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
@@ -8142,7 +8174,7 @@ async function handleRequest(req: Request): Promise<void> {
 
       // ─── Standard Model Management ──────────────────────────────────────
       case 'standard_get_models': {
-        const result = handleStandardGetModels();
+        const result = handleStandardGetModels(params as { tier?: string });
         respond(id, result);
         break;
       }

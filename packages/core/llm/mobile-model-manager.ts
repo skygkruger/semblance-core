@@ -59,6 +59,20 @@ export interface MobileModelDownload {
  */
 export const MOBILE_MODEL_REGISTRY: MobileModelEntry[] = [
   // ─── 3B Reasoning Models (Capable tier: 6GB+ RAM) ──────────────────
+  // Qwen3 4B is the preferred model — same family as desktop, stronger reasoning
+  // for multi-agent task decomposition and orchestration. Q4_K_M fits in 6GB+.
+  {
+    id: 'qwen3-4b-q4',
+    name: 'Qwen3 4B Q4_K_M',
+    type: 'reasoning',
+    sizeTier: '3B',
+    hfRepo: 'Qwen/Qwen3-4B-GGUF',
+    hfFilename: 'Qwen3-4B-Q4_K_M.gguf',
+    expectedSizeBytes: 2_700_000_000,
+    expectedSha256: null,
+    minRamMb: 4096,
+  },
+  // Llama 3.2 3B as alternative for capable tier (lighter than Qwen3 4B)
   {
     id: 'llama-3.2-3b-q4',
     name: 'Llama 3.2 3B Q4_K_M',
@@ -71,6 +85,20 @@ export const MOBILE_MODEL_REGISTRY: MobileModelEntry[] = [
     minRamMb: 5120,
   },
   // ─── 1.5B Reasoning Models (Constrained tier: 4GB RAM) ─────────────
+  // Qwen3 1.7B preferred — same family as desktop, better reasoning than Qwen 2.5 1.5B,
+  // 32K context vs 8K, and only marginally larger download.
+  {
+    id: 'qwen3-1.7b-q4',
+    name: 'Qwen3 1.7B Q4_K_M',
+    type: 'reasoning',
+    sizeTier: '1.5B',
+    hfRepo: 'Qwen/Qwen3-1.7B-GGUF',
+    hfFilename: 'Qwen3-1.7B-Q4_K_M.gguf',
+    expectedSizeBytes: 1_100_000_000,
+    expectedSha256: null,
+    minRamMb: 2048,
+  },
+  // Qwen 2.5 1.5B as fallback for very tight memory
   {
     id: 'qwen-2.5-1.5b-q4',
     name: 'Qwen 2.5 1.5B Q4_K_M',

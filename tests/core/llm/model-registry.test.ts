@@ -64,10 +64,19 @@ describe('MODEL_CATALOG', () => {
 });
 
 describe('Three-Tier Architecture', () => {
-  it('has exactly one fast tier model (SmolLM2)', () => {
+  it('has fast tier models (SmolLM2 for constrained/standard, Phi-4-Mini for performance+)', () => {
     const fastModels = MODEL_CATALOG.filter(m => m.inferenceTier === 'fast');
-    expect(fastModels).toHaveLength(1);
-    expect(fastModels[0]!.family).toBe('smollm2');
+    expect(fastModels).toHaveLength(2);
+    expect(fastModels.some(m => m.family === 'smollm2')).toBe(true);
+    expect(fastModels.some(m => m.family === 'phi4')).toBe(true);
+  });
+
+  it('getFastTierModel returns SmolLM2 on constrained/standard, Phi-4-Mini on performance+', () => {
+    expect(getFastTierModel('constrained').family).toBe('smollm2');
+    expect(getFastTierModel('standard').family).toBe('smollm2');
+    expect(getFastTierModel('performance').family).toBe('phi4');
+    expect(getFastTierModel('workstation').family).toBe('phi4');
+    expect(getFastTierModel('enthusiast').family).toBe('phi4');
   });
 
   it('fast tier model is always-resident on all hardware tiers', () => {
@@ -80,7 +89,7 @@ describe('Three-Tier Architecture', () => {
 
   it('has primary tier Qwen3 models for each hardware tier', () => {
     const primaryModels = MODEL_CATALOG.filter(m => m.inferenceTier === 'primary' && m.family === 'qwen3');
-    expect(primaryModels.length).toBe(4);
+    expect(primaryModels.length).toBe(7); // 1.7B, 4B, 8B, 8B-Q5, 14B, 14B-Q5, 30B MoE
     expect(primaryModels.some(m => m.minTier === 'constrained')).toBe(true);
     expect(primaryModels.some(m => m.minTier === 'standard')).toBe(true);
     expect(primaryModels.some(m => m.minTier === 'performance')).toBe(true);
@@ -89,7 +98,7 @@ describe('Three-Tier Architecture', () => {
 
   it('has vision tier models', () => {
     const visionModels = MODEL_CATALOG.filter(m => m.inferenceTier === 'vision');
-    expect(visionModels.length).toBe(2);
+    expect(visionModels.length).toBe(3); // Moondream2, VL-3B, VL-7B
     expect(visionModels.some(m => m.family === 'moondream')).toBe(true);
     expect(visionModels.some(m => m.family === 'qwen2.5-vl')).toBe(true);
   });
@@ -151,10 +160,11 @@ describe('getRecommendedReasoningModel', () => {
     expect(model.family).toBe('qwen3');
   });
 
-  it('workstation tier gets Qwen3 30B MoE', () => {
+  it('workstation tier gets Qwen3 14B (default, session-resident)', () => {
     const model = getRecommendedReasoningModel('workstation');
-    expect(model.parameterCount).toBe('30B (3B active)');
+    expect(model.parameterCount).toBe('14B');
     expect(model.family).toBe('qwen3');
+    expect(model.id).toBe('qwen3-14b-instruct-q4_k_m');
   });
 
   it('higher tiers get larger models', () => {
@@ -209,10 +219,14 @@ describe('Vision model lookups', () => {
     expect(models.length).toBe(2);
   });
 
-  it('getRecommendedVisionModel returns Moondream2', () => {
-    const model = getRecommendedVisionModel('standard');
-    expect(model).not.toBeNull();
-    expect(model!.family).toBe('moondream');
+  it('getRecommendedVisionModel returns Moondream2 on constrained, Qwen2.5-VL 3B on standard+', () => {
+    const constrained = getRecommendedVisionModel('constrained');
+    expect(constrained).not.toBeNull();
+    expect(constrained!.family).toBe('moondream');
+
+    const standard = getRecommendedVisionModel('standard');
+    expect(standard).not.toBeNull();
+    expect(standard!.id).toBe('qwen2.5-vl-3b-instruct-q4_k_m');
   });
 
   it('getRichVisionModel returns Qwen2.5-VL for standard+', () => {
@@ -328,10 +342,14 @@ describe('Residency policies', () => {
     expect(model.residencyPolicy.constrained).toBe('session');
   });
 
-  it('Qwen3 30B is session-resident only on workstation', () => {
-    const model = getModelById('qwen3-30b-a3b-q4_k_m');
-    expect(model).not.toBeNull();
-    expect(model!.residencyPolicy.workstation).toBe('session');
-    expect(model!.residencyPolicy.performance).toBe('on-demand');
+  it('Qwen3 14B is session-resident on workstation, 30B MoE is on-demand', () => {
+    const model14b = getModelById('qwen3-14b-instruct-q4_k_m');
+    expect(model14b).not.toBeNull();
+    expect(model14b!.residencyPolicy.workstation).toBe('session');
+    expect(model14b!.residencyPolicy.performance).toBe('on-demand');
+
+    const model30b = getModelById('qwen3-30b-a3b-q4_k_m');
+    expect(model30b).not.toBeNull();
+    expect(model30b!.residencyPolicy.workstation).toBe('on-demand'); // opt-in only
   });
 });

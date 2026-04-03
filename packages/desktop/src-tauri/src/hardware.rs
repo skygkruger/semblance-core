@@ -76,15 +76,27 @@ pub fn detect_hardware() -> HardwareProfile {
 }
 
 /// Classify hardware tier based on RAM and GPU.
+///
+/// GPU VRAM only promotes the tier for discrete GPUs (nvidia/amd) where VRAM
+/// is a separate memory pool. Apple Silicon uses unified memory — reporting
+/// VRAM equal to system RAM would falsely promote a 16GB MacBook Air to
+/// workstation and recommend a 17GB model that cannot fit in memory.
 fn classify_tier(total_ram_mb: u64, gpu: &Option<GpuInfo>) -> String {
     let ram_gb = total_ram_mb / 1024;
 
-    if ram_gb >= 32
-        || gpu
-            .as_ref()
-            .map(|g| g.compute_capable && g.vram_mb >= 8192)
-            .unwrap_or(false)
-    {
+    // Discrete GPU with ≥8GB dedicated VRAM can promote to workstation
+    // regardless of system RAM (e.g., 16GB RAM + RTX 4070 12GB).
+    // Unified memory (Apple Silicon) does NOT qualify — VRAM is the same pool.
+    let has_discrete_gpu_promotion = gpu
+        .as_ref()
+        .map(|g| {
+            g.compute_capable
+                && g.vram_mb >= 8192
+                && g.vendor != "apple" // unified memory — not a separate pool
+        })
+        .unwrap_or(false);
+
+    if ram_gb >= 32 || has_discrete_gpu_promotion {
         "workstation".to_string()
     } else if ram_gb >= 16 {
         "performance".to_string()
@@ -350,7 +362,8 @@ mod tests {
     }
 
     #[test]
-    fn test_classify_tier_gpu_promotion() {
+    fn test_classify_tier_discrete_gpu_promotion() {
+        // Discrete NVIDIA GPU with 12GB VRAM should promote 16GB system to workstation
         let gpu = Some(GpuInfo {
             name: "RTX 4070".to_string(),
             vendor: "nvidia".to_string(),
@@ -358,6 +371,31 @@ mod tests {
             compute_capable: true,
         });
         assert_eq!(classify_tier(16384, &gpu), "workstation");
+    }
+
+    #[test]
+    fn test_classify_tier_apple_silicon_no_promotion() {
+        // Apple Silicon unified memory must NOT promote tier via VRAM.
+        // A 16GB M4 Air reports ~12GB VRAM but it's the same pool as RAM.
+        let gpu = Some(GpuInfo {
+            name: "Apple Silicon (Metal)".to_string(),
+            vendor: "apple".to_string(),
+            vram_mb: 12288,
+            compute_capable: true,
+        });
+        assert_eq!(classify_tier(16384, &gpu), "performance"); // NOT workstation
+    }
+
+    #[test]
+    fn test_classify_tier_apple_silicon_32gb_is_workstation() {
+        // 32GB+ Apple Silicon qualifies via RAM threshold, not GPU promotion
+        let gpu = Some(GpuInfo {
+            name: "Apple Silicon (Metal)".to_string(),
+            vendor: "apple".to_string(),
+            vram_mb: 24576,
+            compute_capable: true,
+        });
+        assert_eq!(classify_tier(32768, &gpu), "workstation");
     }
 
     #[test]

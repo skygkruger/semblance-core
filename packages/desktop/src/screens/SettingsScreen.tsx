@@ -104,6 +104,9 @@ export function SettingsScreen() {
 
   const [privacyStatus, setPrivacyStatus] = useState<'clean' | 'review-needed'>('clean');
 
+  // Enthusiast tier opt-in
+  const [enthusiastTierEnabled, setEnthusiastTierEnabled] = useState(false);
+
   // Cron job state
   const [cronJobs, setCronJobs] = useState<Array<{ id: string; name: string; schedule: string; enabled: boolean; lastFiredAt: string | null; nextFireAt: string }>>([]);
 
@@ -177,6 +180,7 @@ export function SettingsScreen() {
     getDarkPatternFlags().then((r) => { if (Array.isArray(r)) setAdversarialAlertCount(r.filter((f) => !(f as unknown as { dismissed?: boolean }).dismissed).length); }).catch(() => {});
     sidecarCall<{ entryCount?: number }>('audit_get_chain_status').then((s) => { setWitnessAttestationCount(s?.entryCount ?? 0); }).catch(() => {});
     sidecarCall<{ available?: boolean }>('hw_key_get_info', { keyId: null }).then((s) => { setBiometricEnabled(!!s?.available); }).catch(() => {});
+    sidecarCall<string | null>('get_pref', { key: 'enthusiast_tier_enabled' }).then((v) => { setEnthusiastTierEnabled(v === 'true'); }).catch(() => {});
     sidecarCall<Array<{ createdAt?: string }>>('living_will_get_history').then((r) => {
       if (Array.isArray(r) && r.length > 0) {
         const sorted = r.sort((a, b) =>
@@ -411,6 +415,14 @@ export function SettingsScreen() {
     }
   }, [dispatch, notifSettings, domainOverrides, state.autonomyConfig]);
 
+  const handleEnthusiastTierToggle = useCallback((enabled: boolean) => {
+    setEnthusiastTierEnabled(enabled);
+    sidecarCall('set_pref', { key: 'enthusiast_tier_enabled', value: String(enabled) }).catch(() => {});
+    // Refresh model lists with new tier filtering
+    const tier = enabled ? 'enthusiast' : undefined;
+    getStandardModels(tier).then((res) => setStandardModels(res.models)).catch(() => {});
+  }, []);
+
   const handleBitNetDownload = useCallback(async (modelId: string) => {
     setBitnetDownloadingModelId(modelId);
     setBitnetDownloadProgress(0);
@@ -632,6 +644,8 @@ export function SettingsScreen() {
           onStandardDownload={handleStandardDownload}
           onStandardActivate={handleStandardActivate}
           onStandardDelete={handleStandardDelete}
+          enthusiastTierEnabled={enthusiastTierEnabled}
+          onEnthusiastTierToggle={handleEnthusiastTierToggle}
 
           /* Connections props */
           connections={accounts.map(a => ({
