@@ -1,24 +1,27 @@
-// NativeRuntime — Direct llama.cpp integration via BitNet.cpp FFI bindings.
+// NativeRuntime — Direct llama.cpp integration via llama-cpp-2 crate.
 //
-// LOCKED DECISION (2026-03-13): Uses `bitnet-sys` crate which compiles BitNet.cpp
-// (Microsoft's llama.cpp fork with 1-bit kernel support) from source via CMake.
-// BitNet.cpp is a superset of llama.cpp — same API plus optimized TL1/TL2/i2_s
-// kernels. Standard GGUF models (Q4_K_M, Q8_0, etc.) load normally. BitNet GGUFs
-// get the optimized 1-bit kernels automatically.
+// Uses the `llama-cpp-2` crate which wraps upstream llama.cpp with safe Rust
+// bindings. Supports Metal (macOS), CUDA (Windows/Linux), and CPU fallback.
+// All standard GGUF quantizations (Q4_K_M, Q8_0, etc.) are supported.
 //
-// Replaces the previous `llama-cpp-2` crate (TODO-05 Step 1).
+// NOTE: 1-bit BitNet (i2_s) models are NOT supported by upstream llama.cpp.
+// See OPTION_C_IMPLEMENTATION_PLAN.md for the Option A revisit plan that
+// would restore i2_s support via a dual-backend approach post-launch.
 //
 // Architecture:
 // - Only one reasoning model loaded at a time (Arc<Mutex<>> guarded)
 // - Embedding model stays resident separately (small, ~275MB)
-// - GPU backend auto-selected: CUDA (Windows/Linux) > Metal (macOS) > CPU fallback
+// - GPU backend auto-selected: Metal (macOS) > CUDA (Windows/Linux) > CPU fallback
 // - Methods are synchronous (CPU-bound llama.cpp FFI calls) — callers use the async
 //   Mutex wrapper and tokio tasks for concurrency.
 
-use bitnet_sys::{
-    AddBos, LlamaBackend, LlamaBatch, LlamaContextParams, LlamaModel,
-    LlamaModelParams, LlamaSampler,
-};
+use llama_cpp_2::context::params::LlamaContextParams;
+use llama_cpp_2::llama_backend::LlamaBackend;
+use llama_cpp_2::llama_batch::LlamaBatch;
+use llama_cpp_2::model::params::LlamaModelParams;
+use llama_cpp_2::model::{AddBos, LlamaModel};
+use llama_cpp_2::sampling::LlamaSampler;
+use llama_cpp_2::mtmd::{MtmdBitmap, MtmdContext, MtmdContextParams, MtmdInputText};
 use serde::{Deserialize, Serialize};
 use std::num::NonZeroU32;
 use std::path::PathBuf;
@@ -69,7 +72,7 @@ pub enum RuntimeStatus {
 
 // ─── NativeRuntime ───────────────────────────────────────────────────────────
 
-/// NativeRuntime manages BitNet.cpp / llama.cpp model instances for local inference.
+/// NativeRuntime manages llama.cpp model instances for local inference.
 ///
 /// Thread-safe via Arc<Mutex<>>. Only one reasoning model loaded at a time.
 /// Embedding model can be loaded concurrently (separate context).
@@ -87,12 +90,13 @@ pub struct NativeRuntime {
     fast_model_path: Option<PathBuf>,
     vision_model: Option<LlamaModel>,
     vision_model_path: Option<PathBuf>,
-    vision_clip_ctx: Option<*mut bitnet_sys::clip_ctx>,
+    vision_mtmd_ctx: Option<MtmdContext>,
     vision_mmproj_path: Option<PathBuf>,
 }
 
 // SAFETY: NativeRuntime is only accessed through a tokio::sync::Mutex, ensuring
-// exclusive access. The raw *mut clip_ctx pointer is only used while the lock is held.
+// exclusive access. The underlying llama.cpp C objects are thread-safe when accessed
+// with proper synchronization.
 unsafe impl Send for NativeRuntime {}
 
 #[allow(dead_code)] // Public API — callers wired in Step 2 (BitNetProvider)
@@ -105,7 +109,7 @@ impl NativeRuntime {
             }
             Err(e) => {
                 eprintln!(
-                    "[NativeRuntime] Failed to initialize BitNet.cpp backend: {}",
+                    "[NativeRuntime] Failed to initialize llama.cpp backend: {}",
                     e
                 );
                 None
@@ -122,13 +126,13 @@ impl NativeRuntime {
             fast_model_path: None,
             vision_model: None,
             vision_model_path: None,
-            vision_clip_ctx: None,
+            vision_mtmd_ctx: None,
             vision_mmproj_path: None,
         }
     }
 
     /// Load a reasoning model from a GGUF file.
-    /// Works with both standard GGUF (Q4_K_M, Q8_0) and BitNet i2_s GGUFs.
+    /// Works with standard GGUF quantizations (Q4_K_M, Q8_0, etc.).
     /// Blocking — model loading reads the full file from disk.
     pub fn load_reasoning_model(&mut self, model_path: PathBuf) -> Result<(), String> {
         if !model_path.exists() {
@@ -138,13 +142,13 @@ impl NativeRuntime {
         let backend = self
             .backend
             .as_ref()
-            .ok_or("BitNet.cpp backend not initialized")?;
+            .ok_or("llama.cpp backend not initialized")?;
 
         self.status = RuntimeStatus::Loading;
 
-        // CPU-only inference (CUDA/Vulkan disabled in BitNet build for portability).
-        // n_gpu_layers=0 keeps everything on CPU — avoids crashes from missing GPU backend.
-        let model_params = LlamaModelParams::default().with_n_gpu_layers(0);
+        // Offload all layers to GPU (Metal on macOS, CUDA on Windows/Linux).
+        // Falls back to CPU gracefully if no GPU backend is available.
+        let model_params = LlamaModelParams::default().with_n_gpu_layers(999);
 
         match LlamaModel::load_from_file(backend, &model_path, &model_params) {
             Ok(model) => {
@@ -180,9 +184,11 @@ impl NativeRuntime {
         let backend = self
             .backend
             .as_ref()
-            .ok_or("BitNet.cpp backend not initialized")?;
+            .ok_or("llama.cpp backend not initialized")?;
 
-        let model_params = LlamaModelParams::default().with_n_gpu_layers(0);
+        // Offload all layers to GPU (Metal on macOS, CUDA on Windows/Linux).
+        // Falls back to CPU gracefully if no GPU backend is available.
+        let model_params = LlamaModelParams::default().with_n_gpu_layers(999);
 
         match LlamaModel::load_from_file(backend, &model_path, &model_params) {
             Ok(model) => {
@@ -210,9 +216,11 @@ impl NativeRuntime {
         let backend = self
             .backend
             .as_ref()
-            .ok_or("BitNet.cpp backend not initialized")?;
+            .ok_or("llama.cpp backend not initialized")?;
 
-        let model_params = LlamaModelParams::default().with_n_gpu_layers(0);
+        // Offload all layers to GPU (Metal on macOS, CUDA on Windows/Linux).
+        // Falls back to CPU gracefully if no GPU backend is available.
+        let model_params = LlamaModelParams::default().with_n_gpu_layers(999);
 
         match LlamaModel::load_from_file(backend, &model_path, &model_params) {
             Ok(model) => {
@@ -245,6 +253,7 @@ impl NativeRuntime {
 
     /// Load a vision model (Moondream2) and its multimodal projector.
     /// Both the main GGUF and the mmproj GGUF must be provided.
+    /// Uses llama-cpp-2's mtmd (multimodal) API for CLIP/LLaVA integration.
     pub fn load_vision_model(&mut self, model_path: PathBuf, mmproj_path: PathBuf) -> Result<(), String> {
         if !model_path.exists() {
             return Err(format!("Vision model file not found: {:?}", model_path));
@@ -256,109 +265,70 @@ impl NativeRuntime {
         let backend = self.backend.as_ref().ok_or("Backend not initialized")?;
 
         // Load the main vision model (same as any GGUF)
-        let model_params = LlamaModelParams::default().with_n_gpu_layers(0);
+        // Offload all layers to GPU (Metal on macOS, CUDA on Windows/Linux).
+        let model_params = LlamaModelParams::default().with_n_gpu_layers(999);
         let model = LlamaModel::load_from_file(backend, &model_path, &model_params)
             .map_err(|e| format!("Failed to load vision model: {}", e))?;
 
-        // Load the CLIP multimodal projector
-        let mmproj_cstr = std::ffi::CString::new(mmproj_path.to_string_lossy().as_bytes())
-            .map_err(|_| "Invalid mmproj path".to_string())?;
-        let clip_ctx = unsafe { bitnet_sys::clip_model_load(mmproj_cstr.as_ptr(), 0) };
-        if clip_ctx.is_null() {
-            return Err("Failed to load CLIP model from mmproj".to_string());
-        }
+        // Load the multimodal projector via mtmd API
+        let mmproj_str = mmproj_path.to_str()
+            .ok_or_else(|| format!("Invalid mmproj path: {:?}", mmproj_path))?;
+        let mtmd_params = MtmdContextParams::default();
+        let mtmd_ctx = MtmdContext::init_from_file(mmproj_str, &model, &mtmd_params)
+            .map_err(|e| format!("Failed to load multimodal projector: {}", e))?;
 
         eprintln!(
-            "[NativeRuntime] Vision model loaded: {:?} + mmproj: {:?} (clip_embd={})",
-            model_path, mmproj_path,
-            unsafe { bitnet_sys::clip_n_mmproj_embd(clip_ctx) }
+            "[NativeRuntime] Vision model loaded: {:?} + mmproj: {:?} (vision={})",
+            model_path, mmproj_path, mtmd_ctx.support_vision()
         );
         self.vision_model = Some(model);
         self.vision_model_path = Some(model_path);
-        self.vision_clip_ctx = Some(clip_ctx);
+        self.vision_mtmd_ctx = Some(mtmd_ctx);
         self.vision_mmproj_path = Some(mmproj_path);
         Ok(())
     }
 
     /// Generate text from an image + prompt using the vision model.
-    /// Image is processed through CLIP, embeddings injected into context,
-    /// then text generation continues with the Moondream2 chat template.
+    /// Image is processed through the mtmd (multimodal) API, embeddings injected
+    /// into context, then text generation continues with the Moondream2 chat template.
     pub fn generate_vision(&self, prompt: String, image_path: String, max_tokens: u32) -> Result<GenerateResponse, String> {
         let model = self.vision_model.as_ref().ok_or("No vision model loaded")?;
-        let clip_ctx = self.vision_clip_ctx.ok_or("No CLIP model loaded")?;
+        let mtmd_ctx = self.vision_mtmd_ctx.as_ref().ok_or("No multimodal context loaded")?;
         let backend = self.backend.as_ref().ok_or("Backend not initialized")?;
 
         let start = std::time::Instant::now();
 
-        // Encode image through CLIP
-        let image_cstr = std::ffi::CString::new(image_path.as_bytes())
-            .map_err(|_| "Invalid image path".to_string())?;
-        let n_threads = std::thread::available_parallelism().map(|n| n.get() as i32).unwrap_or(4);
+        // Load image via mtmd API
+        let bitmap = MtmdBitmap::from_file(mtmd_ctx, &image_path)
+            .map_err(|e| format!("Failed to load image: {}", e))?;
 
-        let image_embed = unsafe {
-            bitnet_sys::llava_image_embed_make_with_filename(clip_ctx, n_threads, image_cstr.as_ptr())
+        Self::log("generate_vision: image loaded via mtmd");
+
+        // Tokenize image + text prompt together via mtmd
+        // Moondream2 uses: <image>\nQuestion: {prompt}\n\nAnswer:
+        let text_prompt = format!("\nQuestion: {}\n\nAnswer:", prompt);
+        let input_text = MtmdInputText {
+            text: text_prompt,
+            add_special: true,
+            parse_special: true,
         };
-        if image_embed.is_null() {
-            return Err("Failed to encode image through CLIP".to_string());
-        }
+        let chunks = mtmd_ctx.tokenize(input_text, &[&bitmap])
+            .map_err(|e| format!("Vision tokenization failed: {}", e))?;
 
-        Self::log(&format!("generate_vision: image encoded, n_image_pos={}", unsafe { (*image_embed).n_image_pos }));
+        Self::log("generate_vision: tokenized image+text chunks");
 
         // Create context
         let ctx_params = LlamaContextParams::default().with_n_ctx(std::num::NonZeroU32::new(4096));
         let mut ctx = model.new_context(backend, ctx_params)
             .map_err(|e| format!("Failed to create vision context: {}", e))?;
 
-        // Inject image embeddings into context at position 0
-        let mut n_past: i32 = 0;
-        let success = unsafe {
-            bitnet_sys::llava_eval_image_embed(
-                ctx.as_mut_ptr(),
-                image_embed,
-                512,
-                &mut n_past,
-            )
-        };
+        // Evaluate all chunks (image embeddings + text tokens) into the context
+        let n_past = chunks.eval_chunks(mtmd_ctx, &mut ctx, 0, 0, 512, true)
+            .map_err(|e| format!("Failed to evaluate vision chunks: {}", e))?;
 
-        // Free image embed (no longer needed after injection)
-        unsafe { bitnet_sys::llava_image_embed_free(image_embed); }
+        Self::log(&format!("generate_vision: chunks evaluated, n_past={}", n_past));
 
-        if !success {
-            return Err("Failed to inject image embeddings into context".to_string());
-        }
-
-        Self::log(&format!("generate_vision: image embeddings injected, n_past={}", n_past));
-
-        // Tokenize the text prompt (comes after image in the context)
-        // Moondream2 uses a simple prompt format: <image>\nQuestion: {prompt}\n\nAnswer:
-        let text_prompt = format!("\nQuestion: {}\n\nAnswer:", prompt);
-        let tokens = model.str_to_token(&text_prompt, AddBos::Always)
-            .map_err(|e| format!("Vision tokenization failed: {}", e))?;
-
-        if tokens.is_empty() {
-            return Err("Empty prompt after tokenization".to_string());
-        }
-
-        // Decode text tokens after image embeddings (chunked prefill)
-        let chunk_size: usize = 512;
-        let total_prompt_tokens = tokens.len();
-        let mut pos = n_past;
-        for (chunk_idx, chunk) in tokens.chunks(chunk_size).enumerate() {
-            let is_last_chunk = (chunk_idx + 1) * chunk_size >= total_prompt_tokens;
-            let mut batch = LlamaBatch::new(chunk.len().max(512), 1);
-            for (i, token) in chunk.iter().enumerate() {
-                let is_last_token = is_last_chunk && i == chunk.len() - 1;
-                batch.add(*token, pos, &[0], is_last_token)
-                    .map_err(|e| format!("Vision batch add failed: {}", e))?;
-                pos += 1;
-            }
-            ctx.decode(&mut batch)
-                .map_err(|e| format!("Vision prefill chunk {} failed: {}", chunk_idx, e))?;
-        }
-
-        Self::log("generate_vision: text prefill complete, starting generation...");
-
-        // Sampler chain (same as generate_fast — deterministic for vision)
+        // Sampler chain (deterministic for vision)
         let mut sampler = LlamaSampler::chain_simple([
             LlamaSampler::top_p(0.9, 1),
             LlamaSampler::min_p(0.05, 1),
@@ -366,9 +336,9 @@ impl NativeRuntime {
             LlamaSampler::dist(42),
         ]);
 
-        // Generation loop (identical to generate/generate_fast)
+        // Generation loop
         let mut output_bytes: Vec<u8> = Vec::new();
-        let mut n_cur = pos;
+        let mut n_cur = n_past;
         let mut tokens_generated = 0u32;
         let mut gen_batch = LlamaBatch::new(1, 1);
 
@@ -380,7 +350,8 @@ impl NativeRuntime {
                 break;
             }
 
-            let piece = model.token_to_bytes(token);
+            let piece = model.token_to_piece_bytes(token, 128, false, None)
+                .unwrap_or_default();
             output_bytes.extend_from_slice(&piece);
             tokens_generated += 1;
 
@@ -418,11 +389,9 @@ impl NativeRuntime {
     pub fn vision_model_path(&self) -> Option<&PathBuf> { self.vision_model_path.as_ref() }
 
     pub fn unload_vision_model(&mut self) {
+        self.vision_mtmd_ctx = None;
         self.vision_model = None;
         self.vision_model_path = None;
-        if let Some(ctx) = self.vision_clip_ctx.take() {
-            unsafe { bitnet_sys::clip_free(ctx); }
-        }
         self.vision_mmproj_path = None;
     }
 
@@ -458,7 +427,7 @@ impl NativeRuntime {
         let backend = self
             .backend
             .as_ref()
-            .ok_or("BitNet.cpp backend not initialized")?;
+            .ok_or("llama.cpp backend not initialized")?;
         let model = self
             .reasoning_model
             .as_ref()
@@ -513,7 +482,6 @@ impl NativeRuntime {
         ));
 
         // 4096 context — sufficient for conversational turns with Qwen Q4_K_M models.
-        // Smaller BitNet models use less KV cache so this is safe for both.
         Self::log("generate: creating context with n_ctx=4096...");
         let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(4096));
         let mut ctx = model
@@ -613,7 +581,8 @@ impl NativeRuntime {
             }
 
             // Decode token to bytes
-            let piece = model.token_to_bytes(token);
+            let piece = model.token_to_piece_bytes(token, 128, false, None)
+                .unwrap_or_default();
             output_bytes.extend_from_slice(&piece);
             tokens_generated += 1;
 
@@ -658,7 +627,7 @@ impl NativeRuntime {
         let backend = self
             .backend
             .as_ref()
-            .ok_or("BitNet.cpp backend not initialized")?;
+            .ok_or("llama.cpp backend not initialized")?;
         let model = self
             .fast_model
             .as_ref()
@@ -740,7 +709,8 @@ impl NativeRuntime {
                 break;
             }
 
-            let piece = model.token_to_bytes(token);
+            let piece = model.token_to_piece_bytes(token, 128, false, None)
+                .unwrap_or_default();
             output_bytes.extend_from_slice(&piece);
             tokens_generated += 1;
 
@@ -787,7 +757,7 @@ impl NativeRuntime {
         let backend = self
             .backend
             .as_ref()
-            .ok_or("BitNet.cpp backend not initialized")?;
+            .ok_or("llama.cpp backend not initialized")?;
 
         let start = std::time::Instant::now();
         let n_embd = model.n_embd() as u32;
