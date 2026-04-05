@@ -21,6 +21,7 @@ const TIER_LABELS: Record<HardwareProfileTier, string> = {
   standard: 'Standard',
   performance: 'Performance',
   workstation: 'Workstation',
+  enthusiast: 'Enthusiast',
 };
 
 const TIER_DESCRIPTIONS: Record<HardwareProfileTier, string> = {
@@ -28,6 +29,7 @@ const TIER_DESCRIPTIONS: Record<HardwareProfileTier, string> = {
   standard: 'Your device can run a capable AI model for everyday tasks.',
   performance: 'Your device can run a powerful AI model with fast responses.',
   workstation: 'Your device can run the highest-quality AI model available.',
+  enthusiast: '64GB+ RAM — opt-in access to large models.',
 };
 
 function formatRam(mb: number): string {

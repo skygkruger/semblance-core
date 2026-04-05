@@ -124,6 +124,7 @@ export class SubagentExecutor {
     });
 
     switch (this.hardwareTier) {
+      case 'enthusiast':
       case 'workstation':
       case 'performance':
         // 16GB+ — true parallel if different tiers, otherwise interleaved
