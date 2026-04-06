@@ -35,14 +35,14 @@ function elapsed() {
   return ((Date.now() - startTime) / 1000).toFixed(0) + 's';
 }
 
-function run(label, cmd, args, timeoutMs = 600000) {
+function run(label, cmd, args, timeoutMs = 600000, cwd = ROOT) {
   stage = label;
   console.log(`\n  [${'═'.repeat(50)}]`);
   console.log(`  STAGE: ${label}`);
   console.log(`  [${'═'.repeat(50)}]\n`);
 
   const r = spawnSync(cmd, args, {
-    cwd: ROOT, encoding: 'utf8', timeout: timeoutMs, stdio: 'inherit',
+    cwd, encoding: 'utf8', timeout: timeoutMs, stdio: 'inherit',
   });
 
   if (r.status !== 0) {
@@ -79,7 +79,8 @@ if (TARGET === 'macos') tauriArgs.push('--target', 'universal-apple-darwin');
 if (TARGET === 'macos-x64') tauriArgs.push('--target', 'x86_64-apple-darwin');
 if (TARGET === 'macos-arm') tauriArgs.push('--target', 'aarch64-apple-darwin');
 
-run('TAURI BUILD', 'npx', tauriArgs, 1800000); // 30 min timeout for Rust compile
+const tauriBin = join(ROOT, 'packages', 'desktop', 'node_modules', '.bin', 'tauri');
+run('TAURI BUILD', tauriBin, tauriArgs.slice(1), 1800000, join(ROOT, 'packages', 'desktop')); // 30 min timeout for Rust compile
 
 // ── Stage 4: Post-install verification ───────────────────────────────────
 if (!SKIP_INSTALL) {

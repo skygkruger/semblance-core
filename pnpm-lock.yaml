@@ -48,6 +48,9 @@ importers:
       better-sqlite3:
         specifier: ^12.6.2
         version: 12.6.2
+      esbuild:
+        specifier: 0.25.12
+        version: 0.25.12
       jsdom:
         specifier: ^28.1.0
         version: 28.1.0(@noble/hashes@1.8.0)

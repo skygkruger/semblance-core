@@ -12,12 +12,35 @@ const ROOT = resolve(__dirname, '..');
 const SIDECAR_DIR = join(ROOT, 'packages', 'desktop', 'src-tauri', 'sidecar');
 const SIDECAR_MODULES = join(SIDECAR_DIR, 'node_modules');
 const ROOT_MODULES = join(ROOT, 'node_modules');
+// pnpm places workspace deps in package-local node_modules; check there as fallback
+const CORE_MODULES = join(ROOT, 'packages', 'core', 'node_modules');
+
+function findModuleDir(mod) {
+  const rootPath = join(ROOT_MODULES, mod);
+  if (existsSync(rootPath)) return rootPath;
+  const corePath = join(CORE_MODULES, mod);
+  if (existsSync(corePath)) return corePath;
+  // pnpm virtual store: @scope/name is stored as @scope+name@version/node_modules/@scope/name
+  const pnpmBase = join(ROOT_MODULES, '.pnpm');
+  if (existsSync(pnpmBase)) {
+    const prefix = mod.replace('/', '+');
+    try {
+      const entries = require('fs').readdirSync(pnpmBase);
+      const match = entries.find(e => e.startsWith(prefix + '@'));
+      if (match) {
+        const candidate = join(pnpmBase, match, 'node_modules', mod);
+        if (existsSync(candidate)) return candidate;
+      }
+    } catch (_) {}
+  }
+  return null;
+}
 
 console.log('[bundle-sidecar] Bundling bridge.ts → bridge.cjs...');
 
 execSync(
   [
-    'node', join(ROOT, 'node_modules', 'esbuild', 'bin', 'esbuild'),
+    join(ROOT, 'node_modules', 'esbuild', 'bin', 'esbuild'),
     join(SIDECAR_DIR, 'bridge.ts'),
     '--bundle',
     '--platform=node',
@@ -38,7 +61,9 @@ console.log('[bundle-sidecar] Resolving all transitive dependencies...');
 function getAllDeps(pkg, visited = new Set()) {
   if (visited.has(pkg)) return visited;
   visited.add(pkg);
-  const pkgJsonPath = join(ROOT_MODULES, pkg, 'package.json');
+  const modDir = findModuleDir(pkg);
+  if (!modDir) return visited;
+  const pkgJsonPath = join(modDir, 'package.json');
   if (!existsSync(pkgJsonPath)) return visited;
   try {
     const p = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
@@ -68,16 +93,16 @@ mkdirSync(SIDECAR_MODULES, { recursive: true });
 // Copy each dependency
 let copied = 0;
 for (const mod of [...allDeps].sort()) {
-  const src = join(ROOT_MODULES, mod);
+  const src = findModuleDir(mod);
   const dest = join(SIDECAR_MODULES, mod);
-  if (existsSync(src)) {
+  if (src) {
     // Ensure parent dir exists for scoped packages (@lancedb/lancedb)
     const parentDir = join(dest, '..');
     if (!existsSync(parentDir)) mkdirSync(parentDir, { recursive: true });
     cpSync(src, dest, { recursive: true, dereference: true });
     copied++;
   } else {
-    console.warn(`  WARN: ${mod} not found at ${src}`);
+    console.warn(`  WARN: ${mod} not found in root or workspace node_modules`);
   }
 }
 

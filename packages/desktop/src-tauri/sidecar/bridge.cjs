@@ -102,10 +102,10 @@ var init_nanoid = __esm({
   }
 });
 
-// packages/core/platform/desktop-vector-store.ts
+// packages/core/platform/desktop-vector-store.js
 var lancedb, LanceDBVectorStore;
 var init_desktop_vector_store = __esm({
-  "packages/core/platform/desktop-vector-store.ts"() {
+  "packages/core/platform/desktop-vector-store.js"() {
     "use strict";
     lancedb = __toESM(require("@lancedb/lancedb"), 1);
     LanceDBVectorStore = class {
@@ -131,8 +131,10 @@ var init_desktop_vector_store = __esm({
         }
       }
       async insertChunks(chunks) {
-        if (!this.db) throw new Error("LanceDBVectorStore not initialized");
-        if (chunks.length === 0) return;
+        if (!this.db)
+          throw new Error("LanceDBVectorStore not initialized");
+        if (chunks.length === 0)
+          return;
         const records = chunks.map((c) => ({
           id: c.id,
           documentId: c.documentId,
@@ -153,7 +155,8 @@ var init_desktop_vector_store = __esm({
         }
       }
       async search(queryVector, limit = 10, filter2) {
-        if (!this.table) return [];
+        if (!this.table)
+          return [];
         const fetchLimit = filter2?.sourceTypes ? limit * 3 : limit;
         const results = await this.table.query().nearestTo(queryVector).distanceType("cosine").limit(fetchLimit).toArray();
         let mapped = results.map((r) => ({
@@ -174,11 +177,13 @@ var init_desktop_vector_store = __esm({
         return mapped.slice(0, limit);
       }
       async deleteByDocumentId(documentId) {
-        if (!this.table) return;
+        if (!this.table)
+          return;
         await this.table.delete(`documentId = '${documentId}'`);
       }
       async count() {
-        if (!this.table) return 0;
+        if (!this.table)
+          return 0;
         return await this.table.countRows();
       }
       close() {
@@ -192,7 +197,7 @@ var init_desktop_vector_store = __esm({
   }
 });
 
-// packages/core/platform/desktop-adapter.ts
+// packages/core/platform/desktop-adapter.js
 function createDesktopVectorStore(dataDir2) {
   return new LanceDBVectorStore(dataDir2);
 }
@@ -211,7 +216,7 @@ function createDesktopAdapter() {
 }
 var fs, fsPromises, path, os, import_node_crypto2, import_better_sqlite3, desktopFs, desktopPath, desktopCrypto, desktopSqlite, desktopHardware, desktopNotifications;
 var init_desktop_adapter = __esm({
-  "packages/core/platform/desktop-adapter.ts"() {
+  "packages/core/platform/desktop-adapter.js"() {
     "use strict";
     fs = __toESM(require("node:fs"), 1);
     fsPromises = __toESM(require("node:fs/promises"), 1);
@@ -370,11 +375,9 @@ var init_desktop_adapter = __esm({
   }
 });
 
-// packages/core/platform/mobile-adapter.ts
+// packages/core/platform/mobile-adapter.js
 function notConfigured(subsystem) {
-  throw new Error(
-    `[MobileAdapter] ${subsystem} not configured. Call setPlatform() with a fully configured mobile adapter at app startup.`
-  );
+  throw new Error(`[MobileAdapter] ${subsystem} not configured. Call setPlatform() with a fully configured mobile adapter at app startup.`);
 }
 function createMobileAdapter(config) {
   return {
@@ -390,7 +393,7 @@ function createMobileAdapter(config) {
 }
 var mobilePath, fallbackFs, fallbackCrypto, fallbackSqlite, fallbackHardware, fallbackNotifications;
 var init_mobile_adapter = __esm({
-  "packages/core/platform/mobile-adapter.ts"() {
+  "packages/core/platform/mobile-adapter.js"() {
     "use strict";
     mobilePath = {
       join: (...segments) => {
@@ -399,7 +402,8 @@ var init_mobile_adapter = __esm({
       extname: (filePath) => {
         const lastDot = filePath.lastIndexOf(".");
         const lastSlash = filePath.lastIndexOf("/");
-        if (lastDot <= 0 || lastDot <= lastSlash) return "";
+        if (lastDot <= 0 || lastDot <= lastSlash)
+          return "";
         return filePath.slice(lastDot);
       },
       basename: (filePath, ext) => {
@@ -460,7 +464,7 @@ var init_mobile_adapter = __esm({
   }
 });
 
-// packages/core/platform/index.ts
+// packages/core/platform/index.js
 var platform_exports = {};
 __export(platform_exports, {
   createDesktopAdapter: () => createDesktopAdapter,
@@ -482,9 +486,7 @@ function getPlatform() {
     if (typeof process !== "undefined" && process.versions?.node) {
       _platform = createDesktopAdapter();
     } else {
-      throw new Error(
-        "[Platform] No platform configured. Call setPlatform(createMobileAdapter({...})) at React Native app startup."
-      );
+      throw new Error("[Platform] No platform configured. Call setPlatform(createMobileAdapter({...})) at React Native app startup.");
     }
   }
   return _platform;
@@ -501,16 +503,18 @@ function initDesktopPlatform() {
   return adapter;
 }
 function isMobilePlatform() {
-  if (!_platform) return false;
+  if (!_platform)
+    return false;
   return _platform.name === "mobile-ios" || _platform.name === "mobile-android";
 }
 function isDesktopPlatform() {
-  if (!_platform) return false;
+  if (!_platform)
+    return false;
   return _platform.name === "desktop";
 }
 var _platform;
 var init_platform = __esm({
-  "packages/core/platform/index.ts"() {
+  "packages/core/platform/index.js"() {
     "use strict";
     init_desktop_adapter();
     init_desktop_adapter();
@@ -1576,6 +1580,11 @@ var init_browser = __esm({
 });
 
 // node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/index.mjs
+var dist_exports = {};
+__export(dist_exports, {
+  Ollama: () => Ollama2,
+  default: () => index
+});
 var import_node_fs, import_node_path, import_whatwg_fetch2, Ollama2, index;
 var init_dist = __esm({
   "node_modules/.pnpm/ollama@0.6.3/node_modules/ollama/dist/index.mjs"() {
@@ -1626,7 +1635,7 @@ var init_dist = __esm({
   }
 });
 
-// packages/core/llm/ollama-provider.ts
+// packages/core/llm/ollama-provider.js
 var ollama_provider_exports = {};
 __export(ollama_provider_exports, {
   OllamaProvider: () => OllamaProvider
@@ -1646,7 +1655,7 @@ function isEmbeddingModel(name) {
 }
 var EMBEDDING_MODEL_FAMILIES, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS, NS_TO_MS, OllamaProvider;
 var init_ollama_provider = __esm({
-  "packages/core/llm/ollama-provider.ts"() {
+  "packages/core/llm/ollama-provider.js"() {
     "use strict";
     init_dist();
     EMBEDDING_MODEL_FAMILIES = ["nomic-embed", "all-minilm", "mxbai-embed", "snowflake-arctic-embed"];
@@ -1659,9 +1668,7 @@ var init_ollama_provider = __esm({
       constructor(config) {
         this.baseUrl = config?.baseUrl ?? "http://localhost:11434";
         if (!isLocalhost(this.baseUrl)) {
-          throw new Error(
-            `[OllamaProvider] SECURITY: Refused non-localhost URL "${this.baseUrl}". The Ollama provider may ONLY connect to localhost. This is a hard safety constraint \u2014 no data may leave this device.`
-          );
+          throw new Error(`[OllamaProvider] SECURITY: Refused non-localhost URL "${this.baseUrl}". The Ollama provider may ONLY connect to localhost. This is a hard safety constraint \u2014 no data may leave this device.`);
         }
         this.client = new Ollama2({ host: this.baseUrl });
       }
@@ -1835,7 +1842,8 @@ var init_ollama_provider = __esm({
         let match;
         while ((match = tagRegex.exec(text)) !== null) {
           const jsonStr = (match[1] ?? "").trim();
-          if (!jsonStr) continue;
+          if (!jsonStr)
+            continue;
           try {
             const parsed = JSON.parse(jsonStr);
             if (parsed.name && toolNames.has(parsed.name)) {
@@ -1851,7 +1859,8 @@ var init_ollama_provider = __esm({
         const codeBlockRegex = /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\})\s*```/g;
         while ((match = codeBlockRegex.exec(text)) !== null) {
           const blockJson = match[1] ?? "";
-          if (!blockJson) continue;
+          if (!blockJson)
+            continue;
           try {
             const parsed = JSON.parse(blockJson);
             if (parsed.name && toolNames.has(parsed.name)) {
@@ -1881,10 +1890,10 @@ var init_ollama_provider = __esm({
   }
 });
 
-// packages/core/llm/model-manager.ts
+// packages/core/llm/model-manager.js
 var PREFERRED_CHAT_MODELS, PREFERRED_EMBEDDING_MODELS, CREATE_TABLE, ModelManager;
 var init_model_manager = __esm({
-  "packages/core/llm/model-manager.ts"() {
+  "packages/core/llm/model-manager.js"() {
     "use strict";
     init_platform();
     PREFERRED_CHAT_MODELS = [
@@ -1932,7 +1941,8 @@ var init_model_manager = __esm({
         const pref = this.getPreference("active_chat_model");
         if (pref) {
           const models = await this.listModels();
-          if (models.some((m) => m.name === pref)) return pref;
+          if (models.some((m) => m.name === pref))
+            return pref;
         }
         return this.selectBestChatModel();
       }
@@ -1943,7 +1953,8 @@ var init_model_manager = __esm({
         const pref = this.getPreference("active_embedding_model");
         if (pref) {
           const models = await this.listModels();
-          if (models.some((m) => m.name === pref)) return pref;
+          if (models.some((m) => m.name === pref))
+            return pref;
         }
         return this.selectBestEmbeddingModel();
       }
@@ -2007,10 +2018,9 @@ var init_model_manager = __esm({
         const models = this.cachedModels ?? await this.listModels();
         const chatModels = models.filter((m) => !m.isEmbedding);
         for (const preferred of PREFERRED_CHAT_MODELS) {
-          const found = chatModels.find(
-            (m) => m.name === preferred || m.name.startsWith(preferred)
-          );
-          if (found) return found.name;
+          const found = chatModels.find((m) => m.name === preferred || m.name.startsWith(preferred));
+          if (found)
+            return found.name;
         }
         return chatModels[0]?.name ?? null;
       }
@@ -2021,29 +2031,24 @@ var init_model_manager = __esm({
         const models = this.cachedModels ?? await this.listModels();
         const embedModels = models.filter((m) => m.isEmbedding);
         for (const preferred of PREFERRED_EMBEDDING_MODELS) {
-          const found = embedModels.find(
-            (m) => m.name === preferred || m.name.startsWith(preferred)
-          );
-          if (found) return found.name;
+          const found = embedModels.find((m) => m.name === preferred || m.name.startsWith(preferred));
+          if (found)
+            return found.name;
         }
         return embedModels[0]?.name ?? null;
       }
       getPreference(key) {
-        const row = this.db.prepare(
-          "SELECT value FROM model_preferences WHERE key = ?"
-        ).get(key);
+        const row = this.db.prepare("SELECT value FROM model_preferences WHERE key = ?").get(key);
         return row?.value ?? null;
       }
       setPreference(key, value) {
-        this.db.prepare(
-          "INSERT OR REPLACE INTO model_preferences (key, value, updated_at) VALUES (?, ?, datetime('now'))"
-        ).run(key, value);
+        this.db.prepare("INSERT OR REPLACE INTO model_preferences (key, value, updated_at) VALUES (?, ?, datetime('now'))").run(key, value);
       }
     };
   }
 });
 
-// packages/core/llm/hardware-types.ts
+// packages/core/llm/hardware-types.js
 function classifyHardware(totalRamMb, gpu) {
   const ramGb = totalRamMb / 1024;
   const hasDiscreteGpuPromotion = gpu != null && gpu.computeCapable && gpu.vramMb >= 8192 && gpu.vendor !== "apple";
@@ -2059,56 +2064,52 @@ function classifyHardware(totalRamMb, gpu) {
   return "constrained";
 }
 var init_hardware_types = __esm({
-  "packages/core/llm/hardware-types.ts"() {
+  "packages/core/llm/hardware-types.js"() {
     "use strict";
   }
 });
 
-// packages/core/llm/model-registry.ts
+// packages/core/llm/model-registry.js
 function getRecommendedReasoningModel(tier) {
   const tierOrder = ["constrained", "standard", "performance", "workstation", "enthusiast"];
   const tierIndex = tierOrder.indexOf(tier);
-  const candidates = MODEL_CATALOG.filter(
-    (m) => !m.isEmbedding && m.inferenceTier === "primary" && m.modality === "text" && tierOrder.indexOf(m.minTier) <= tierIndex
-  );
+  const candidates = MODEL_CATALOG.filter((m) => !m.isEmbedding && m.inferenceTier === "primary" && m.modality === "text" && tierOrder.indexOf(m.minTier) <= tierIndex);
   if (candidates.length === 0) {
     const all = MODEL_CATALOG.filter((m) => !m.isEmbedding && m.modality === "text" && tierOrder.indexOf(m.minTier) <= tierIndex);
-    return all.reduce(
-      (best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
-    );
+    return all.reduce((best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best);
   }
   const sessionResident = candidates.filter((m) => m.residencyPolicy[tier] === "session");
   const pool2 = sessionResident.length > 0 ? sessionResident : candidates;
-  return pool2.reduce(
-    (best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
-  );
+  return pool2.reduce((best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best);
 }
 function getFastTierModel(tier = "constrained") {
   const tierOrder = ["constrained", "standard", "performance", "workstation", "enthusiast"];
   const tierIndex = tierOrder.indexOf(tier);
   if (tierIndex >= 2) {
     const phi4 = MODEL_CATALOG.find((m) => m.inferenceTier === "fast" && m.family === "phi4");
-    if (phi4) return phi4;
+    if (phi4)
+      return phi4;
   }
   const entry = MODEL_CATALOG.find((m) => m.inferenceTier === "fast" && m.family === "smollm2");
-  if (!entry) throw new Error("No fast tier model in catalog \u2014 this is a build error");
+  if (!entry)
+    throw new Error("No fast tier model in catalog \u2014 this is a build error");
   return entry;
 }
 function getEmbeddingModel() {
   const entry = MODEL_CATALOG.find((m) => m.isEmbedding);
-  if (!entry) throw new Error("No embedding model in catalog \u2014 this is a build error");
+  if (!entry)
+    throw new Error("No embedding model in catalog \u2014 this is a build error");
   return entry;
 }
 function getVisionModelsForTier(tier) {
   const tierOrder = ["constrained", "standard", "performance", "workstation", "enthusiast"];
   const tierIndex = tierOrder.indexOf(tier);
-  return MODEL_CATALOG.filter(
-    (m) => m.modality === "vision" && tierOrder.indexOf(m.minTier) <= tierIndex
-  );
+  return MODEL_CATALOG.filter((m) => m.modality === "vision" && tierOrder.indexOf(m.minTier) <= tierIndex);
 }
 function getRecommendedVisionModel(tier) {
   const models = getVisionModelsForTier(tier);
-  if (models.length === 0) return null;
+  if (models.length === 0)
+    return null;
   if (tier === "constrained") {
     return models.find((m) => m.family === "moondream") ?? models[0] ?? null;
   }
@@ -2136,7 +2137,7 @@ function stripR1ThinkingBlocks(text) {
 }
 var MODEL_CATALOG, BITNET_MODEL_CATALOG;
 var init_model_registry = __esm({
-  "packages/core/llm/model-registry.ts"() {
+  "packages/core/llm/model-registry.js"() {
     "use strict";
     MODEL_CATALOG = [
       // ─── Fast Tier: SmolLM2 1.7B (always-resident on ALL hardware) ────────────────
@@ -2829,21 +2830,21 @@ var init_model_registry = __esm({
   }
 });
 
-// packages/core/llm/model-residency.ts
+// packages/core/llm/model-residency.js
 var init_model_residency = __esm({
-  "packages/core/llm/model-residency.ts"() {
+  "packages/core/llm/model-residency.js"() {
     "use strict";
   }
 });
 
-// packages/core/llm/vision-provider.ts
+// packages/core/llm/vision-provider.js
 var vision_provider_exports = {};
 __export(vision_provider_exports, {
   VisionProvider: () => VisionProvider
 });
 var VisionProvider;
 var init_vision_provider = __esm({
-  "packages/core/llm/vision-provider.ts"() {
+  "packages/core/llm/vision-provider.js"() {
     "use strict";
     VisionProvider = class {
       bridge;
@@ -2881,8 +2882,10 @@ var init_vision_provider = __esm({
        */
       async load(tier) {
         const model = tier === "fast" ? this.fastModel : this.richModel;
-        if (!model) throw new Error(`Vision ${tier} tier not configured`);
-        if (model.loaded) return;
+        if (!model)
+          throw new Error(`Vision ${tier} tier not configured`);
+        if (model.loaded)
+          return;
         if (this.bridge?.loadVisionModel) {
           await this.bridge.loadVisionModel(model.modelPath, model.mmProjectorPath);
         }
@@ -2894,7 +2897,8 @@ var init_vision_provider = __esm({
        */
       async unload(tier) {
         const model = tier === "fast" ? this.fastModel : this.richModel;
-        if (!model) return;
+        if (!model)
+          return;
         model.loaded = false;
         console.log(`[VisionProvider] ${tier} tier unloaded: ${model.modelId}`);
       }
@@ -3040,14 +3044,14 @@ var init_vision_provider = __esm({
   }
 });
 
-// packages/core/llm/native-provider.ts
+// packages/core/llm/native-provider.js
 var native_provider_exports = {};
 __export(native_provider_exports, {
   NativeProvider: () => NativeProvider
 });
 var NativeProvider;
 var init_native_provider = __esm({
-  "packages/core/llm/native-provider.ts"() {
+  "packages/core/llm/native-provider.js"() {
     "use strict";
     NativeProvider = class {
       bridge;
@@ -3091,7 +3095,8 @@ var init_native_provider = __esm({
         const nonSystemMessages = messages.filter((m) => m.role !== "system");
         const systemPrompt = systemMessages.map((m) => m.content).join("\n\n") || void 0;
         const prompt = nonSystemMessages.map((m) => {
-          if (m.role === "assistant") return `Assistant: ${m.content}`;
+          if (m.role === "assistant")
+            return `Assistant: ${m.content}`;
           return m.content;
         }).join("\n\n");
         const result2 = await this.bridge.generate({
@@ -3204,21 +3209,19 @@ var init_native_provider = __esm({
        * Format tool definitions as a prompt block the model can understand.
        */
       formatToolDefinitions(tools) {
-        const coreTools = tools.filter(
-          (t) => [
-            "search_web",
-            "deep_search_web",
-            "fetch_url",
-            "fetch_inbox",
-            "search_emails",
-            "send_email",
-            "draft_email",
-            "fetch_calendar",
-            "create_reminder",
-            "search_knowledge",
-            "search_files"
-          ].includes(t.name)
-        );
+        const coreTools = tools.filter((t) => [
+          "search_web",
+          "deep_search_web",
+          "fetch_url",
+          "fetch_inbox",
+          "search_emails",
+          "send_email",
+          "draft_email",
+          "fetch_calendar",
+          "create_reminder",
+          "search_knowledge",
+          "search_files"
+        ].includes(t.name));
         const toolList = (coreTools.length > 0 ? coreTools : tools.slice(0, 10)).map((t) => `- ${t.name}: ${t.description?.split(".")[0] ?? ""}`).join("\n");
         return `To use a tool: tool_name({"key":"value"})
 
@@ -3238,7 +3241,8 @@ Answer from knowledge first. Use tools only when needed.`;
         let match;
         while ((match = toolCallRegex.exec(text)) !== null) {
           const jsonStr = (match[1] ?? "").trim();
-          if (!jsonStr) continue;
+          if (!jsonStr)
+            continue;
           try {
             const parsed = JSON.parse(jsonStr);
             if (parsed.name && typeof parsed.name === "string") {
@@ -3256,7 +3260,8 @@ Answer from knowledge first. Use tools only when needed.`;
           const jsonBlockRegex = /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\})\s*```/g;
           while ((match = jsonBlockRegex.exec(text)) !== null) {
             const blockJson = match[1] ?? "";
-            if (!blockJson) continue;
+            if (!blockJson)
+              continue;
             try {
               const parsed = JSON.parse(blockJson);
               if (parsed.name && typeof parsed.name === "string") {
@@ -3275,7 +3280,8 @@ Answer from knowledge first. Use tools only when needed.`;
           while ((match = funcCallRegex.exec(text)) !== null) {
             const funcName = match[1] ?? "";
             const argsJson = match[2] ?? "";
-            if (!funcName || !argsJson) continue;
+            if (!funcName || !argsJson)
+              continue;
             try {
               const args = JSON.parse(argsJson);
               toolCalls.push({ name: funcName, arguments: args });
@@ -3319,10 +3325,10 @@ ${msg.content}
   }
 });
 
-// packages/core/llm/bitnet-provider.ts
+// packages/core/llm/bitnet-provider.js
 var BitNetProvider;
 var init_bitnet_provider = __esm({
-  "packages/core/llm/bitnet-provider.ts"() {
+  "packages/core/llm/bitnet-provider.js"() {
     "use strict";
     BitNetProvider = class {
       bridge;
@@ -3494,21 +3500,19 @@ var init_bitnet_provider = __esm({
         return result2;
       }
       formatToolDefinitions(tools) {
-        const coreTools = tools.filter(
-          (t) => [
-            "search_web",
-            "deep_search_web",
-            "fetch_url",
-            "fetch_inbox",
-            "search_emails",
-            "send_email",
-            "draft_email",
-            "fetch_calendar",
-            "create_reminder",
-            "search_knowledge",
-            "search_files"
-          ].includes(t.name)
-        );
+        const coreTools = tools.filter((t) => [
+          "search_web",
+          "deep_search_web",
+          "fetch_url",
+          "fetch_inbox",
+          "search_emails",
+          "send_email",
+          "draft_email",
+          "fetch_calendar",
+          "create_reminder",
+          "search_knowledge",
+          "search_files"
+        ].includes(t.name));
         const toolList = (coreTools.length > 0 ? coreTools : tools.slice(0, 10)).map((t) => `- ${t.name}: ${t.description?.split(".")[0] ?? ""}`).join("\n");
         return `You can use tools by outputting: <tool_call>{"name":"tool_name","arguments":{"key":"value"}}</tool_call>
 
@@ -3523,7 +3527,8 @@ Only use tools when needed. Answer from knowledge first.`;
         let match;
         while ((match = toolCallRegex.exec(text)) !== null) {
           const jsonStr = (match[1] ?? "").trim();
-          if (!jsonStr) continue;
+          if (!jsonStr)
+            continue;
           try {
             const parsed = JSON.parse(jsonStr);
             if (parsed.name && typeof parsed.name === "string") {
@@ -3541,7 +3546,8 @@ Only use tools when needed. Answer from knowledge first.`;
           const jsonBlockRegex = /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[\s\S]*?\})\s*```/g;
           while ((match = jsonBlockRegex.exec(text)) !== null) {
             const blockJson = match[1] ?? "";
-            if (!blockJson) continue;
+            if (!blockJson)
+              continue;
             try {
               const parsed = JSON.parse(blockJson);
               if (parsed.name && typeof parsed.name === "string") {
@@ -3560,7 +3566,8 @@ Only use tools when needed. Answer from knowledge first.`;
           while ((match = funcCallRegex.exec(text)) !== null) {
             const funcName = match[1] ?? "";
             const argsJson = match[2] ?? "";
-            if (!funcName || !argsJson) continue;
+            if (!funcName || !argsJson)
+              continue;
             try {
               const args = JSON.parse(argsJson);
               toolCalls.push({ name: funcName, arguments: args });
@@ -3599,10 +3606,10 @@ ${msg.content}
   }
 });
 
-// packages/core/llm/inference-types.ts
+// packages/core/llm/inference-types.js
 var TASK_TIER_MAP;
 var init_inference_types = __esm({
-  "packages/core/llm/inference-types.ts"() {
+  "packages/core/llm/inference-types.js"() {
     "use strict";
     TASK_TIER_MAP = {
       classify: "fast",
@@ -3617,14 +3624,14 @@ var init_inference_types = __esm({
   }
 });
 
-// packages/core/llm/inference-router.ts
+// packages/core/llm/inference-router.js
 var inference_router_exports = {};
 __export(inference_router_exports, {
   InferenceRouter: () => InferenceRouter
 });
 var InferenceRouter;
 var init_inference_router = __esm({
-  "packages/core/llm/inference-router.ts"() {
+  "packages/core/llm/inference-router.js"() {
     "use strict";
     init_inference_types();
     init_model_registry();
@@ -3725,7 +3732,8 @@ var init_inference_router = __esm({
       }
       async getModel(name) {
         const result2 = await this.reasoningProvider.getModel(name);
-        if (result2) return result2;
+        if (result2)
+          return result2;
         return this.embeddingProvider.getModel(name);
       }
       // ─── Task-Aware Routing ───────────────────────────────────────────────────
@@ -3747,7 +3755,8 @@ var init_inference_router = __esm({
           }
           return response;
         } catch (err) {
-          if (tier === "vision") throw err;
+          if (tier === "vision")
+            throw err;
           if (tier !== "primary" && tier !== "quality" && tier !== "embedding") {
             console.error(`[InferenceRouter] ${tier} tier failed for ${taskType}, falling back to reasoning:`, err.message);
             return this.reasoningProvider.chat({
@@ -3775,7 +3784,8 @@ var init_inference_router = __esm({
           }
           return response;
         } catch (err) {
-          if (tier === "vision") throw err;
+          if (tier === "vision")
+            throw err;
           if (tier !== "primary" && tier !== "quality" && tier !== "embedding") {
             console.error(`[InferenceRouter] ${tier} tier failed for ${taskType}, falling back to reasoning:`, err.message);
             return this.reasoningProvider.generate({
@@ -3799,7 +3809,8 @@ var init_inference_router = __esm({
        * Get the model name used for a specific task type.
        */
       getModelForTask(taskType) {
-        if (taskType === "embed") return this.embeddingModel;
+        if (taskType === "embed")
+          return this.embeddingModel;
         const { model } = this.resolveProviderAndModel(TASK_TIER_MAP[taskType], taskType);
         return model;
       }
@@ -3882,7 +3893,8 @@ var init_inference_router = __esm({
        * Check if the BitNet provider is available and ready.
        */
       async isBitNetReady() {
-        if (!this.bitnetProvider) return false;
+        if (!this.bitnetProvider)
+          return false;
         return this.bitnetProvider.isAvailable();
       }
       /**
@@ -3916,7 +3928,8 @@ var init_inference_router = __esm({
        * Check if the quality tier (reasoning specialist) is ready.
        */
       async isQualityReady() {
-        if (!this.qualityProvider) return false;
+        if (!this.qualityProvider)
+          return false;
         return this.qualityProvider.isAvailable();
       }
       /**
@@ -3947,7 +3960,8 @@ var init_inference_router = __esm({
        * Check if the mobile provider is available and ready.
        */
       async isMobileReady() {
-        if (!this.mobileProvider) return false;
+        if (!this.mobileProvider)
+          return false;
         return this.mobileProvider.isAvailable();
       }
       // ─── Private ──────────────────────────────────────────────────────────────
@@ -3993,7 +4007,7 @@ var init_inference_router = __esm({
   }
 });
 
-// packages/core/llm/index.ts
+// packages/core/llm/index.js
 function createLLMProvider(config) {
   const runtime = config && "runtime" in config ? config.runtime : "ollama";
   const baseUrl = config && "baseUrl" in config ? config.baseUrl : void 0;
@@ -4036,7 +4050,7 @@ function createLLMProvider(config) {
   });
 }
 var init_llm = __esm({
-  "packages/core/llm/index.ts"() {
+  "packages/core/llm/index.js"() {
     "use strict";
     init_ollama_provider();
     init_model_manager();
@@ -4055,7 +4069,7 @@ var init_llm = __esm({
   }
 });
 
-// packages/core/knowledge/document-store.ts
+// packages/core/knowledge/document-store.js
 function rowToDocument(row, content = "") {
   return {
     id: row.id,
@@ -4084,7 +4098,7 @@ function rowToEntity(row) {
 }
 var CREATE_TABLES, DocumentStore;
 var init_document_store = __esm({
-  "packages/core/knowledge/document-store.ts"() {
+  "packages/core/knowledge/document-store.js"() {
     "use strict";
     init_nanoid();
     CREATE_TABLES = `
@@ -4140,9 +4154,7 @@ var init_document_store = __esm({
        * If a document with the same content_hash already exists, returns its ID (dedup).
        */
       insertDocument(params) {
-        const existing = this.db.prepare(
-          "SELECT id FROM documents WHERE content_hash = ?"
-        ).get(params.contentHash);
+        const existing = this.db.prepare("SELECT id FROM documents WHERE content_hash = ?").get(params.contentHash);
         if (existing) {
           return { id: existing.id, deduplicated: true };
         }
@@ -4151,36 +4163,21 @@ var init_document_store = __esm({
         this.db.prepare(`
       INSERT INTO documents (id, source, source_path, title, content_hash, mime_type, created_at, updated_at, indexed_at, metadata)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-          id,
-          params.source,
-          params.sourcePath ?? null,
-          params.title,
-          params.contentHash,
-          params.mimeType,
-          now,
-          now,
-          now,
-          params.metadata ? JSON.stringify(params.metadata) : null
-        );
+    `).run(id, params.source, params.sourcePath ?? null, params.title, params.contentHash, params.mimeType, now, now, now, params.metadata ? JSON.stringify(params.metadata) : null);
         return { id, deduplicated: false };
       }
       /**
        * Get a document by ID.
        */
       getDocument(id) {
-        const row = this.db.prepare(
-          "SELECT * FROM documents WHERE id = ?"
-        ).get(id);
+        const row = this.db.prepare("SELECT * FROM documents WHERE id = ?").get(id);
         return row ? rowToDocument(row) : null;
       }
       /**
        * Get a document by source path (for re-indexing checks).
        */
       getDocumentBySourcePath(sourcePath) {
-        const row = this.db.prepare(
-          "SELECT * FROM documents WHERE source_path = ?"
-        ).get(sourcePath);
+        const row = this.db.prepare("SELECT * FROM documents WHERE source_path = ?").get(sourcePath);
         return row ? rowToDocument(row) : null;
       }
       /**
@@ -4221,20 +4218,14 @@ var init_document_store = __esm({
        */
       markReindexed(id) {
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        this.db.prepare(
-          "UPDATE documents SET indexed_at = ?, updated_at = ? WHERE id = ?"
-        ).run(now, now, id);
+        this.db.prepare("UPDATE documents SET indexed_at = ?, updated_at = ? WHERE id = ?").run(now, now, id);
       }
       /**
        * Get source statistics.
        */
       getStats() {
-        const total = this.db.prepare(
-          "SELECT COUNT(*) as count FROM documents"
-        ).get();
-        const sourceCounts = this.db.prepare(
-          "SELECT source, COUNT(*) as count FROM documents GROUP BY source"
-        ).all();
+        const total = this.db.prepare("SELECT COUNT(*) as count FROM documents").get();
+        const sourceCounts = this.db.prepare("SELECT source, COUNT(*) as count FROM documents GROUP BY source").all();
         const sources = {};
         for (const row of sourceCounts) {
           sources[row.source] = row.count;
@@ -4248,27 +4239,15 @@ var init_document_store = __esm({
         this.db.prepare(`
       INSERT INTO entities (id, name, type, aliases, first_seen, last_seen, metadata)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-          id,
-          params.name,
-          params.type,
-          params.aliases ? JSON.stringify(params.aliases) : null,
-          now,
-          now,
-          params.metadata ? JSON.stringify(params.metadata) : null
-        );
+    `).run(id, params.name, params.type, params.aliases ? JSON.stringify(params.aliases) : null, now, now, params.metadata ? JSON.stringify(params.metadata) : null);
         return id;
       }
       getEntity(id) {
-        const row = this.db.prepare(
-          "SELECT * FROM entities WHERE id = ?"
-        ).get(id);
+        const row = this.db.prepare("SELECT * FROM entities WHERE id = ?").get(id);
         return row ? rowToEntity(row) : null;
       }
       findEntitiesByName(name) {
-        const rows = this.db.prepare(
-          "SELECT * FROM entities WHERE name LIKE ? OR aliases LIKE ?"
-        ).all(`%${name}%`, `%${name}%`);
+        const rows = this.db.prepare("SELECT * FROM entities WHERE name LIKE ? OR aliases LIKE ?").all(`%${name}%`, `%${name}%`);
         return rows.map(rowToEntity);
       }
       insertMention(params) {
@@ -4278,15 +4257,11 @@ var init_document_store = __esm({
       INSERT INTO entity_mentions (id, entity_id, document_id, chunk_id, context, mentioned_at)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(id, params.entityId, params.documentId, params.chunkId, params.context ?? null, now);
-        this.db.prepare(
-          "UPDATE entities SET last_seen = ? WHERE id = ?"
-        ).run(now, params.entityId);
+        this.db.prepare("UPDATE entities SET last_seen = ? WHERE id = ?").run(now, params.entityId);
         return id;
       }
       getMentionsForDocument(documentId) {
-        const rows = this.db.prepare(
-          "SELECT * FROM entity_mentions WHERE document_id = ?"
-        ).all(documentId);
+        const rows = this.db.prepare("SELECT * FROM entity_mentions WHERE document_id = ?").all(documentId);
         return rows.map((r) => ({
           entityId: r.entity_id,
           documentId: r.document_id,
@@ -4299,10 +4274,10 @@ var init_document_store = __esm({
   }
 });
 
-// packages/core/knowledge/vector-store.ts
+// packages/core/knowledge/vector-store.js
 var TABLE_NAME, VectorStore;
 var init_vector_store = __esm({
-  "packages/core/knowledge/vector-store.ts"() {
+  "packages/core/knowledge/vector-store.js"() {
     "use strict";
     init_platform();
     TABLE_NAME = "document_chunks";
@@ -4320,9 +4295,7 @@ var init_vector_store = __esm({
       async initialize() {
         const p = getPlatform();
         if (!p.vectorStore) {
-          throw new Error(
-            "[VectorStore] Platform does not have a vectorStore configured. Ensure the platform adapter includes a VectorStoreAdapter."
-          );
+          throw new Error("[VectorStore] Platform does not have a vectorStore configured. Ensure the platform adapter includes a VectorStoreAdapter.");
         }
         this.adapter = p.vectorStore;
         await this.adapter.initialize(TABLE_NAME, this.dimensions);
@@ -4338,8 +4311,10 @@ var init_vector_store = __esm({
        * Insert chunks with embeddings into the vector store.
        */
       async insertChunks(chunks) {
-        if (!this.adapter) throw new Error("VectorStore not initialized");
-        if (chunks.length === 0) return;
+        if (!this.adapter)
+          throw new Error("VectorStore not initialized");
+        if (chunks.length === 0)
+          return;
         const entries = chunks.map((c) => ({
           id: c.id,
           documentId: c.documentId,
@@ -4357,7 +4332,8 @@ var init_vector_store = __esm({
        * Optionally filter by source types.
        */
       async search(queryEmbedding, limit = 10, options) {
-        if (!this.adapter) return [];
+        if (!this.adapter)
+          return [];
         return this.adapter.search(queryEmbedding, limit, {
           sourceTypes: options?.sourceTypes
         });
@@ -4366,14 +4342,16 @@ var init_vector_store = __esm({
        * Delete all chunks for a given document ID.
        */
       async deleteByDocumentId(documentId) {
-        if (!this.adapter) return;
+        if (!this.adapter)
+          return;
         await this.adapter.deleteByDocumentId(documentId);
       }
       /**
        * Get total chunk count.
        */
       async count() {
-        if (!this.adapter) return 0;
+        if (!this.adapter)
+          return 0;
         return this.adapter.count();
       }
       /**
@@ -4389,7 +4367,7 @@ var init_vector_store = __esm({
   }
 });
 
-// packages/core/types/signing.ts
+// packages/core/types/signing.js
 function sha256(data) {
   return getPlatform().crypto.sha256(data);
 }
@@ -4405,17 +4383,18 @@ function verifySignature(key, signature, id, timestamp, action, payload) {
   const expected = signRequest(key, id, timestamp, action, payload);
   const sigBuf = Buffer.from(signature, "utf-8");
   const expBuf = Buffer.from(expected, "utf-8");
-  if (sigBuf.length !== expBuf.length) return false;
+  if (sigBuf.length !== expBuf.length)
+    return false;
   return getPlatform().crypto.timingSafeEqual(sigBuf, expBuf);
 }
 var init_signing = __esm({
-  "packages/core/types/signing.ts"() {
+  "packages/core/types/signing.js"() {
     "use strict";
     init_platform();
   }
 });
 
-// packages/core/knowledge/chunker.ts
+// packages/core/knowledge/chunker.js
 function chunkText(text, config) {
   const chunkSize = config?.chunkSize ?? DEFAULT_CHUNK_SIZE;
   const overlap = config?.chunkOverlap ?? DEFAULT_CHUNK_OVERLAP;
@@ -4443,7 +4422,8 @@ function recursiveSplit(text, chunkSize, separators) {
   }
   for (const separator of separators) {
     const parts = text.split(separator);
-    if (parts.length <= 1) continue;
+    if (parts.length <= 1)
+      continue;
     const chunks2 = [];
     let current = "";
     for (const part of parts) {
@@ -4482,7 +4462,8 @@ function recursiveSplit(text, chunkSize, separators) {
   return chunks;
 }
 function mergeWithOverlap(segments, chunkSize, overlap) {
-  if (segments.length === 0) return [];
+  if (segments.length === 0)
+    return [];
   const chunks = [];
   let chunkIndex = 0;
   let i = 0;
@@ -4519,7 +4500,7 @@ function mergeWithOverlap(segments, chunkSize, overlap) {
 }
 var DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP, SEPARATORS;
 var init_chunker = __esm({
-  "packages/core/knowledge/chunker.ts"() {
+  "packages/core/knowledge/chunker.js"() {
     "use strict";
     DEFAULT_CHUNK_SIZE = 2e3;
     DEFAULT_CHUNK_OVERLAP = 200;
@@ -4544,10 +4525,10 @@ var init_chunker = __esm({
   }
 });
 
-// packages/core/knowledge/indexer.ts
+// packages/core/knowledge/indexer.js
 var Indexer;
 var init_indexer = __esm({
-  "packages/core/knowledge/indexer.ts"() {
+  "packages/core/knowledge/indexer.js"() {
     "use strict";
     init_nanoid();
     init_signing();
@@ -4636,7 +4617,8 @@ var init_indexer = __esm({
         }
         const vectorChunks = textChunks.map((chunk2, i) => {
           const embedding = embeddings[i];
-          if (!embedding || embedding.length === 0) return null;
+          if (!embedding || embedding.length === 0)
+            return null;
           return {
             id: nanoid(),
             documentId,
@@ -4670,10 +4652,10 @@ var init_indexer = __esm({
   }
 });
 
-// packages/core/knowledge/search.ts
+// packages/core/knowledge/search.js
 var SemanticSearch;
 var init_search = __esm({
-  "packages/core/knowledge/search.ts"() {
+  "packages/core/knowledge/search.js"() {
     "use strict";
     SemanticSearch = class {
       llm;
@@ -4703,7 +4685,8 @@ var init_search = __esm({
             input: query
           });
           const first2 = embedResponse.embeddings[0];
-          if (!first2) return [];
+          if (!first2)
+            return [];
           queryEmbedding = first2;
         }
         const sourceTypes = options?.sourceTypes ?? (options?.source ? [options.source] : void 0);
@@ -4713,15 +4696,21 @@ var init_search = __esm({
         });
         const results = [];
         for (const vr of vectorResults) {
-          if (results.length >= limit) break;
-          if (vr.score < minScore) continue;
+          if (results.length >= limit)
+            break;
+          if (vr.score < minScore)
+            continue;
           const document2 = this.documentStore.getDocument(vr.documentId);
-          if (!document2) continue;
-          if (sourceTypes && sourceTypes.length > 0 && !sourceTypes.includes(document2.source)) continue;
+          if (!document2)
+            continue;
+          if (sourceTypes && sourceTypes.length > 0 && !sourceTypes.includes(document2.source))
+            continue;
           if (options?.dateRange) {
             const docDate = document2.createdAt;
-            if (options.dateRange.from && docDate < options.dateRange.from) continue;
-            if (options.dateRange.to && docDate > options.dateRange.to) continue;
+            if (options.dateRange.from && docDate < options.dateRange.from)
+              continue;
+            if (options.dateRange.to && docDate > options.dateRange.to)
+              continue;
           }
           const chunk2 = {
             id: vr.id,
@@ -4742,10 +4731,10 @@ var init_search = __esm({
   }
 });
 
-// packages/core/knowledge/embedding-pipeline.ts
+// packages/core/knowledge/embedding-pipeline.js
 var DEFAULT_BATCH_SIZE, DEFAULT_MAX_RETRIES, DEFAULT_RETRY_DELAY_MS, EmbeddingPipeline;
 var init_embedding_pipeline = __esm({
-  "packages/core/knowledge/embedding-pipeline.ts"() {
+  "packages/core/knowledge/embedding-pipeline.js"() {
     "use strict";
     DEFAULT_BATCH_SIZE = 32;
     DEFAULT_MAX_RETRIES = 2;
@@ -4835,15 +4824,11 @@ var init_embedding_pipeline = __esm({
                 model: this.model,
                 input: texts
               }),
-              new Promise(
-                (_3, reject2) => setTimeout(() => reject2(new Error(`Embedding timed out after ${EMBED_TIMEOUT_MS}ms`)), EMBED_TIMEOUT_MS)
-              )
+              new Promise((_3, reject2) => setTimeout(() => reject2(new Error(`Embedding timed out after ${EMBED_TIMEOUT_MS}ms`)), EMBED_TIMEOUT_MS))
             ]);
             for (const embedding of response.embeddings) {
               if (embedding.length !== this.dimensions) {
-                throw new Error(
-                  `Dimension mismatch: expected ${this.dimensions}, got ${embedding.length}`
-                );
+                throw new Error(`Dimension mismatch: expected ${this.dimensions}, got ${embedding.length}`);
               }
             }
             return { embeddings: response.embeddings, retriesUsed: attempt };
@@ -4863,7 +4848,7 @@ var init_embedding_pipeline = __esm({
   }
 });
 
-// packages/core/knowledge/connector-category-map.ts
+// packages/core/knowledge/connector-category-map.js
 function getCategoryForEntityType(type, metadata) {
   switch (type) {
     case "person":
@@ -4874,21 +4859,34 @@ function getCategoryForEntityType(type, metadata) {
       return "knowledge";
     case "document": {
       const source = metadata?.source;
-      if (source === "email") return "email";
-      if (source === "calendar") return "calendar";
-      if (source === "contact") return "people";
-      if (source === "messaging") return "social";
-      if (source === "social") return "social";
-      if (source === "financial") return "finance";
-      if (source === "health") return "health";
-      if (source === "browser_history") return "browser";
-      if (source === "cloud_storage") return "cloud";
-      if (source === "photos_metadata") return "cloud";
-      if (source === "local_file") return "knowledge";
-      if (source === "note") return "knowledge";
+      if (source === "email")
+        return "email";
+      if (source === "calendar")
+        return "calendar";
+      if (source === "contact")
+        return "people";
+      if (source === "messaging")
+        return "social";
+      if (source === "social")
+        return "social";
+      if (source === "financial")
+        return "finance";
+      if (source === "health")
+        return "health";
+      if (source === "browser_history")
+        return "browser";
+      if (source === "cloud_storage")
+        return "cloud";
+      if (source === "photos_metadata")
+        return "cloud";
+      if (source === "local_file")
+        return "knowledge";
+      if (source === "note")
+        return "knowledge";
       if (source) {
         const connectorCat = CONNECTOR_TO_CATEGORY[source];
-        if (connectorCat) return connectorCat;
+        if (connectorCat)
+          return connectorCat;
       }
       return "knowledge";
     }
@@ -4924,7 +4922,7 @@ function getAllCategories() {
 }
 var CONNECTOR_TO_CATEGORY, CATEGORY_META;
 var init_connector_category_map = __esm({
-  "packages/core/knowledge/connector-category-map.ts"() {
+  "packages/core/knowledge/connector-category-map.js"() {
     "use strict";
     CONNECTOR_TO_CATEGORY = {
       // Health & Fitness
@@ -5067,9 +5065,10 @@ var init_connector_category_map = __esm({
   }
 });
 
-// packages/core/agent/content-sanitizer.ts
+// packages/core/agent/content-sanitizer.js
 function stripInjectionPatterns(content) {
-  if (!content) return "";
+  if (!content)
+    return "";
   let sanitized = content;
   sanitized = sanitized.replace(CONTROL_CHARS, "");
   for (const pattern of CONTROL_TOKEN_PATTERNS) {
@@ -5100,7 +5099,7 @@ function wrapInDataBoundary(content, label) {
 }
 var MAX_CHUNK_LENGTH, ROLE_PREFIXES, CONTROL_TOKEN_PATTERNS, INSTRUCTION_MARKERS, CONTROL_CHARS, INJECTION_CANARY;
 var init_content_sanitizer = __esm({
-  "packages/core/agent/content-sanitizer.ts"() {
+  "packages/core/agent/content-sanitizer.js"() {
     "use strict";
     MAX_CHUNK_LENGTH = 2e3;
     ROLE_PREFIXES = [
@@ -17437,7 +17436,7 @@ var require_xlsx = __commonJS({
           "MIME-Version: 1.0",
           "Content-Type: multipart/mixed; boundary=SocialCalcSpreadsheetControlSave"
         ].join("\n");
-        var sep3 = [
+        var sep2 = [
           "--SocialCalcSpreadsheetControlSave",
           "Content-type: text/plain; charset=UTF-8"
         ].join("\n") + "\n";
@@ -17497,7 +17496,7 @@ var require_xlsx = __commonJS({
           return o.join("\n");
         }
         function sheet_to_eth(ws) {
-          return [header, sep3, meta, sep3, sheet_to_eth_data(ws), end].join("\n");
+          return [header, sep2, meta, sep2, sheet_to_eth_data(ws), end].join("\n");
         }
         return {
           to_workbook: eth_to_workbook,
@@ -17575,22 +17574,22 @@ var require_xlsx = __commonJS({
         }
         function dsv_to_sheet_str(str, opts) {
           var o = opts || {};
-          var sep3 = "";
+          var sep2 = "";
           if (DENSE != null && o.dense == null) o.dense = DENSE;
           var ws = o.dense ? [] : {};
           var range2 = { s: { c: 0, r: 0 }, e: { c: 0, r: 0 } };
           if (str.slice(0, 4) == "sep=") {
             if (str.charCodeAt(5) == 13 && str.charCodeAt(6) == 10) {
-              sep3 = str.charAt(4);
+              sep2 = str.charAt(4);
               str = str.slice(7);
             } else if (str.charCodeAt(5) == 13 || str.charCodeAt(5) == 10) {
-              sep3 = str.charAt(4);
+              sep2 = str.charAt(4);
               str = str.slice(6);
-            } else sep3 = guess_sep(str.slice(0, 1024));
-          } else if (o && o.FS) sep3 = o.FS;
-          else sep3 = guess_sep(str.slice(0, 1024));
+            } else sep2 = guess_sep(str.slice(0, 1024));
+          } else if (o && o.FS) sep2 = o.FS;
+          else sep2 = guess_sep(str.slice(0, 1024));
           var R = 0, C2 = 0, v = 0;
-          var start = 0, end = 0, sepcc = sep3.charCodeAt(0), instr = false, cc = 0, startcc = str.charCodeAt(0);
+          var start = 0, end = 0, sepcc = sep2.charCodeAt(0), instr = false, cc = 0, startcc = str.charCodeAt(0);
           str = str.replace(/\r\n/mg, "\n");
           var _re = o.dateNF != null ? dateNF_regex(o.dateNF) : null;
           function finish_cell() {
@@ -41791,7 +41790,7 @@ var init_pdf = __esm({
           var globalThis2 = __webpack_require__2(4576);
           var $String = globalThis2.String;
           module2.exports = !!Object.getOwnPropertySymbols && !fails(function() {
-            var symbol = /* @__PURE__ */ Symbol("symbol detection");
+            var symbol = Symbol("symbol detection");
             return !$String(symbol) || !(Object(symbol) instanceof Symbol) || // Chrome 38-40 symbols are not inherited from DOM collections prototypes to instances
             !Symbol.sham && V8_VERSION && V8_VERSION < 41;
           });
@@ -55278,7 +55277,7 @@ var init_pdf = __esm({
         return this.#map.entries();
       }
     };
-    INTERNAL = /* @__PURE__ */ Symbol("INTERNAL");
+    INTERNAL = Symbol("INTERNAL");
     OptionalContentGroup = class {
       #isDisplay = false;
       #isPrint = false;
@@ -56588,7 +56587,7 @@ var init_pdf = __esm({
         }
       }
     };
-    INITIAL_DATA = /* @__PURE__ */ Symbol("INITIAL_DATA");
+    INITIAL_DATA = Symbol("INITIAL_DATA");
     PDFObjects = class {
       #objs = /* @__PURE__ */ Object.create(null);
       #ensureObj(objId) {
@@ -101257,7 +101256,7 @@ var require_lib6 = __commonJS({
   }
 });
 
-// packages/core/knowledge/file-scanner.ts
+// packages/core/knowledge/file-scanner.js
 var file_scanner_exports = {};
 __export(file_scanner_exports, {
   readFileContent: () => readFileContent,
@@ -101277,7 +101276,8 @@ async function scanRecursive(dirPath, results) {
     return;
   }
   for (const entry of entries) {
-    if (entry.name.startsWith(".")) continue;
+    if (entry.name.startsWith("."))
+      continue;
     const fullPath = p.path.join(dirPath, entry.name);
     if (entry.isDirectory()) {
       if (!EXCLUDED_DIRS.has(entry.name)) {
@@ -101285,9 +101285,11 @@ async function scanRecursive(dirPath, results) {
       }
       continue;
     }
-    if (!entry.isFile()) continue;
+    if (!entry.isFile())
+      continue;
     const ext = p.path.extname(entry.name).toLowerCase();
-    if (!SUPPORTED_EXTENSIONS.has(ext)) continue;
+    if (!SUPPORTED_EXTENSIONS.has(ext))
+      continue;
     try {
       const stats = await p.fs.stat(fullPath);
       results.push({
@@ -101321,9 +101323,7 @@ async function readFileContentUnsanitized(filePath) {
   const timeoutMs = fileSize > 50 * 1024 * 1024 ? READ_FILE_TIMEOUT_LARGE_MS : READ_FILE_TIMEOUT_MS;
   return Promise.race([
     readFileContentInner(filePath, fileSize),
-    new Promise(
-      (_3, reject2) => setTimeout(() => reject2(new Error(`readFileContent timed out after ${timeoutMs}ms for ${name}${ext}`)), timeoutMs)
-    )
+    new Promise((_3, reject2) => setTimeout(() => reject2(new Error(`readFileContent timed out after ${timeoutMs}ms for ${name}${ext}`)), timeoutMs))
   ]);
 }
 function isTextFormat(ext) {
@@ -101482,7 +101482,8 @@ async function readFileContentInner(filePath, fileSize) {
         let totalLength = 0;
         for (const sheetName of workbook.SheetNames) {
           const sheet = workbook.Sheets[sheetName];
-          if (!sheet) continue;
+          if (!sheet)
+            continue;
           const csv = XLSX.utils.sheet_to_csv(sheet);
           sheets.push(`--- Sheet: ${sheetName} ---
 ${csv}`);
@@ -101608,7 +101609,7 @@ ${csv}`);
 }
 var SUPPORTED_EXTENSIONS, EXCLUDED_DIRS, READ_FILE_TIMEOUT_MS, READ_FILE_TIMEOUT_LARGE_MS, CONTENT_EXTRACT_LIMIT_BYTES, TEXT_STREAM_CHUNK_BYTES;
 var init_file_scanner = __esm({
-  "packages/core/knowledge/file-scanner.ts"() {
+  "packages/core/knowledge/file-scanner.js"() {
     "use strict";
     init_platform();
     init_content_sanitizer();
@@ -101690,13 +101691,13 @@ var init_file_scanner = __esm({
   }
 });
 
-// packages/core/knowledge/knowledge-curator.ts
+// packages/core/knowledge/knowledge-curator.js
 function sourceToCategory(source, metadata) {
   return getCategoryForEntityType("document", { source, ...metadata });
 }
 var KnowledgeCurator;
 var init_knowledge_curator = __esm({
-  "packages/core/knowledge/knowledge-curator.ts"() {
+  "packages/core/knowledge/knowledge-curator.js"() {
     "use strict";
     init_nanoid();
     init_connector_category_map();
@@ -101728,7 +101729,8 @@ var init_knowledge_curator = __esm({
         const matchingDocs = allDocs.filter((doc) => {
           const overrideCategory = doc.metadata?.visualizationCategory;
           const docCategory = overrideCategory ?? sourceToCategory(doc.source, doc.metadata);
-          if (docCategory !== category) return false;
+          if (docCategory !== category)
+            return false;
           if (query) {
             const titleMatch = doc.title.toLowerCase().includes(query);
             const pathMatch = doc.sourcePath?.toLowerCase().includes(query) ?? false;
@@ -101830,9 +101832,7 @@ var init_knowledge_curator = __esm({
           toCategory: newCategory
         });
         const updatedMetadata = { ...doc.metadata, visualizationCategory: newCategory };
-        this.db.prepare(
-          "UPDATE documents SET metadata = ?, updated_at = ? WHERE id = ?"
-        ).run(JSON.stringify(updatedMetadata), (/* @__PURE__ */ new Date()).toISOString(), chunkId);
+        this.db.prepare("UPDATE documents SET metadata = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(updatedMetadata), (/* @__PURE__ */ new Date()).toISOString(), chunkId);
         return { success: true, chunkId, operation: "recategorize" };
       }
       // ─── Reindex ───────────────────────────────────────────────────────────
@@ -101885,7 +101885,8 @@ var init_knowledge_curator = __esm({
        */
       async suggestCategories(chunkId) {
         const doc = this.documentStore.getDocument(chunkId);
-        if (!doc) return [];
+        if (!doc)
+          return [];
         const currentCategory = sourceToCategory(doc.source, doc.metadata);
         const allCategories = getAllCategories();
         const allDocs = this.documentStore.listDocuments();
@@ -101928,7 +101929,8 @@ Respond in JSON format:
           const validCategories = new Set(allCategories);
           const suggestions = [];
           for (const item of parsed) {
-            if (!validCategories.has(item.category)) continue;
+            if (!validCategories.has(item.category))
+              continue;
             const cat = item.category;
             suggestions.push({
               category: cat,
@@ -101993,24 +101995,24 @@ Respond in JSON format:
   }
 });
 
-// packages/core/knowledge/retroactive-embedder.ts
+// packages/core/knowledge/retroactive-embedder.js
 var init_retroactive_embedder = __esm({
-  "packages/core/knowledge/retroactive-embedder.ts"() {
+  "packages/core/knowledge/retroactive-embedder.js"() {
     "use strict";
     init_chunker();
   }
 });
 
-// packages/core/knowledge/kg-sync.ts
+// packages/core/knowledge/kg-sync.js
 var KG_SYNC_MAX_BYTES;
 var init_kg_sync = __esm({
-  "packages/core/knowledge/kg-sync.ts"() {
+  "packages/core/knowledge/kg-sync.js"() {
     "use strict";
     KG_SYNC_MAX_BYTES = 10 * 1024 * 1024;
   }
 });
 
-// packages/core/knowledge/index.ts
+// packages/core/knowledge/index.js
 async function createKnowledgeGraph(config) {
   const p = getPlatform();
   const dataDir2 = config.dataDir;
@@ -102050,7 +102052,7 @@ async function createKnowledgeGraph(config) {
 }
 var KnowledgeGraphImpl;
 var init_knowledge = __esm({
-  "packages/core/knowledge/index.ts"() {
+  "packages/core/knowledge/index.js"() {
     "use strict";
     init_platform();
     init_document_store();
@@ -102151,7 +102153,7 @@ var init_knowledge = __esm({
   }
 });
 
-// packages/core/ipc/socket-transport.ts
+// packages/core/ipc/socket-transport.js
 var socket_transport_exports = {};
 __export(socket_transport_exports, {
   SocketTransport: () => SocketTransport
@@ -102165,7 +102167,7 @@ function encodeMessage(data) {
 }
 var import_node_net, SocketTransport;
 var init_socket_transport = __esm({
-  "packages/core/ipc/socket-transport.ts"() {
+  "packages/core/ipc/socket-transport.js"() {
     "use strict";
     import_node_net = require("node:net");
     SocketTransport = class {
@@ -102288,10 +102290,10 @@ var init_socket_transport = __esm({
   }
 });
 
-// packages/core/agent/ipc-client.ts
+// packages/core/agent/ipc-client.js
 var CoreIPCClient;
 var init_ipc_client = __esm({
-  "packages/core/agent/ipc-client.ts"() {
+  "packages/core/agent/ipc-client.js"() {
     "use strict";
     init_nanoid();
     init_signing();
@@ -102322,9 +102324,7 @@ var init_ipc_client = __esm({
           const keyHex = (await Promise.resolve().then(() => (init_platform(), platform_exports))).getPlatform().fs.readFileSync(this.signingKeyPath, "utf-8").trim();
           this.signingKey = Buffer.from(keyHex, "hex");
         } catch (err) {
-          throw new Error(
-            `[IPCClient] Failed to read signing key from ${this.signingKeyPath}: ` + (err instanceof Error ? err.message : String(err))
-          );
+          throw new Error(`[IPCClient] Failed to read signing key from ${this.signingKeyPath}: ` + (err instanceof Error ? err.message : String(err)));
         }
         const { SocketTransport: SocketTransport2 } = await Promise.resolve().then(() => (init_socket_transport(), socket_transport_exports));
         this.transport = new SocketTransport2({ socketPath: this.socketPath });
@@ -102363,7 +102363,7 @@ var init_ipc_client = __esm({
   }
 });
 
-// packages/core/agent/autonomy.ts
+// packages/core/agent/autonomy.js
 var autonomy_exports = {};
 __export(autonomy_exports, {
   ACTION_RISK_MAP: () => ACTION_RISK_MAP,
@@ -102371,7 +102371,7 @@ __export(autonomy_exports, {
 });
 var CREATE_TABLE2, ACTION_DOMAIN_MAP, ACTION_RISK_MAP, AutonomyManager;
 var init_autonomy = __esm({
-  "packages/core/agent/autonomy.ts"() {
+  "packages/core/agent/autonomy.js"() {
     "use strict";
     CREATE_TABLE2 = `
   CREATE TABLE IF NOT EXISTS autonomy_config (
@@ -102699,9 +102699,7 @@ var init_autonomy = __esm({
        * Get the tier for a specific domain.
        */
       getDomainTier(domain) {
-        const row = this.db.prepare(
-          "SELECT tier FROM autonomy_config WHERE domain = ?"
-        ).get(domain);
+        const row = this.db.prepare("SELECT tier FROM autonomy_config WHERE domain = ?").get(domain);
         return row?.tier ?? this.defaultTier;
       }
       /**
@@ -102709,9 +102707,7 @@ var init_autonomy = __esm({
        * Triggers sync callback if configured.
        */
       setDomainTier(domain, tier) {
-        this.db.prepare(
-          "INSERT OR REPLACE INTO autonomy_config (domain, tier, updated_at) VALUES (?, ?, datetime('now'))"
-        ).run(domain, tier);
+        this.db.prepare("INSERT OR REPLACE INTO autonomy_config (domain, tier, updated_at) VALUES (?, ?, datetime('now'))").run(domain, tier);
         this.onPreferenceChanged?.(domain, tier);
       }
       /**
@@ -102729,10 +102725,10 @@ var init_autonomy = __esm({
   }
 });
 
-// packages/core/agent/artifact-parser.ts
+// packages/core/agent/artifact-parser.js
 var ARTIFACT_SYSTEM_PROMPT;
 var init_artifact_parser = __esm({
-  "packages/core/agent/artifact-parser.ts"() {
+  "packages/core/agent/artifact-parser.js"() {
     "use strict";
     ARTIFACT_SYSTEM_PROMPT = `
 When generating structured content (code, documents, data), wrap it in artifact tags:
@@ -102755,7 +102751,7 @@ Do NOT use artifact tags for:
   }
 });
 
-// packages/core/agent/approval-patterns.ts
+// packages/core/agent/approval-patterns.js
 function deriveSubType(actionType, payload) {
   switch (actionType) {
     case "email.send":
@@ -102780,7 +102776,7 @@ function deriveSubType(actionType, payload) {
 }
 var CREATE_APPROVAL_PATTERNS_TABLE, ApprovalPatternTracker;
 var init_approval_patterns = __esm({
-  "packages/core/agent/approval-patterns.ts"() {
+  "packages/core/agent/approval-patterns.js"() {
     "use strict";
     CREATE_APPROVAL_PATTERNS_TABLE = `
   CREATE TABLE IF NOT EXISTS approval_patterns (
@@ -102808,9 +102804,7 @@ var init_approval_patterns = __esm({
       recordApproval(actionType, payload) {
         const subType = deriveSubType(actionType, payload);
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        const existing = this.db.prepare(
-          "SELECT consecutive_approvals, total_approvals FROM approval_patterns WHERE action_type = ? AND sub_type = ?"
-        ).get(actionType, subType);
+        const existing = this.db.prepare("SELECT consecutive_approvals, total_approvals FROM approval_patterns WHERE action_type = ? AND sub_type = ?").get(actionType, subType);
         if (existing) {
           this.db.prepare(`
         UPDATE approval_patterns SET
@@ -102833,9 +102827,7 @@ var init_approval_patterns = __esm({
       recordRejection(actionType, payload) {
         const subType = deriveSubType(actionType, payload);
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        const existing = this.db.prepare(
-          "SELECT total_rejections FROM approval_patterns WHERE action_type = ? AND sub_type = ?"
-        ).get(actionType, subType);
+        const existing = this.db.prepare("SELECT total_rejections FROM approval_patterns WHERE action_type = ? AND sub_type = ?").get(actionType, subType);
         if (existing) {
           this.db.prepare(`
         UPDATE approval_patterns SET
@@ -102857,10 +102849,9 @@ var init_approval_patterns = __esm({
        */
       isRoutine(actionType, payload) {
         const subType = deriveSubType(actionType, payload);
-        const row = this.db.prepare(
-          "SELECT consecutive_approvals, auto_execute_threshold FROM approval_patterns WHERE action_type = ? AND sub_type = ?"
-        ).get(actionType, subType);
-        if (!row) return false;
+        const row = this.db.prepare("SELECT consecutive_approvals, auto_execute_threshold FROM approval_patterns WHERE action_type = ? AND sub_type = ?").get(actionType, subType);
+        if (!row)
+          return false;
         return row.consecutive_approvals >= row.auto_execute_threshold;
       }
       /**
@@ -102868,10 +102859,9 @@ var init_approval_patterns = __esm({
        */
       getPattern(actionType, payload) {
         const subType = deriveSubType(actionType, payload);
-        const row = this.db.prepare(
-          "SELECT * FROM approval_patterns WHERE action_type = ? AND sub_type = ?"
-        ).get(actionType, subType);
-        if (!row) return null;
+        const row = this.db.prepare("SELECT * FROM approval_patterns WHERE action_type = ? AND sub_type = ?").get(actionType, subType);
+        if (!row)
+          return null;
         return {
           actionType: row.action_type,
           subType: row.sub_type,
@@ -102889,9 +102879,7 @@ var init_approval_patterns = __esm({
        */
       getConsecutiveApprovals(actionType, payload) {
         const subType = deriveSubType(actionType, payload);
-        const row = this.db.prepare(
-          "SELECT consecutive_approvals FROM approval_patterns WHERE action_type = ? AND sub_type = ?"
-        ).get(actionType, subType);
+        const row = this.db.prepare("SELECT consecutive_approvals FROM approval_patterns WHERE action_type = ? AND sub_type = ?").get(actionType, subType);
         return row?.consecutive_approvals ?? 0;
       }
       /**
@@ -102899,9 +102887,7 @@ var init_approval_patterns = __esm({
        */
       getThreshold(actionType, payload) {
         const subType = deriveSubType(actionType, payload);
-        const row = this.db.prepare(
-          "SELECT auto_execute_threshold FROM approval_patterns WHERE action_type = ? AND sub_type = ?"
-        ).get(actionType, subType);
+        const row = this.db.prepare("SELECT auto_execute_threshold FROM approval_patterns WHERE action_type = ? AND sub_type = ?").get(actionType, subType);
         return row?.auto_execute_threshold ?? 3;
       }
       /**
@@ -102924,10 +102910,10 @@ var init_approval_patterns = __esm({
   }
 });
 
-// packages/core/extensions/ip-adapter-registry.ts
+// packages/core/extensions/ip-adapter-registry.js
 var IPAdapterRegistry, ipAdapters;
 var init_ip_adapter_registry = __esm({
-  "packages/core/extensions/ip-adapter-registry.ts"() {
+  "packages/core/extensions/ip-adapter-registry.js"() {
     "use strict";
     IPAdapterRegistry = class {
       _statementParser = null;
@@ -102985,10 +102971,10 @@ var init_ip_adapter_registry = __esm({
   }
 });
 
-// packages/core/agent/escalation-boundaries.ts
+// packages/core/agent/escalation-boundaries.js
 var LEGAL_PATTERNS, IRREVERSIBLE_ACTIONS, DEFAULT_CONFIG, BoundaryEnforcer;
 var init_escalation_boundaries = __esm({
-  "packages/core/agent/escalation-boundaries.ts"() {
+  "packages/core/agent/escalation-boundaries.js"() {
     "use strict";
     LEGAL_PATTERNS = [
       /\bcontract\b/i,
@@ -103026,16 +103012,21 @@ var init_escalation_boundaries = __esm({
       checkBoundaries(input) {
         const boundaries = [];
         const financial = this.checkFinancial(input.payload);
-        if (financial) boundaries.push(financial);
+        if (financial)
+          boundaries.push(financial);
         const legal = this.checkLegal(input.payload);
-        if (legal) boundaries.push(legal);
+        if (legal)
+          boundaries.push(legal);
         const irreversible = this.checkIrreversible(input.action);
-        if (irreversible) boundaries.push(irreversible);
+        if (irreversible)
+          boundaries.push(irreversible);
         const novel = this.checkNovel(input.action);
-        if (novel) boundaries.push(novel);
+        if (novel)
+          boundaries.push(novel);
         if (input.llmConfidence !== void 0) {
           const lowConf = this.checkConfidence(input.llmConfidence);
-          if (lowConf) boundaries.push(lowConf);
+          if (lowConf)
+            boundaries.push(lowConf);
         }
         return boundaries;
       }
@@ -103105,11 +103096,10 @@ var init_escalation_boundaries = __esm({
           "messaging.read",
           "clipboard.analyze"
         ];
-        if (readActions.includes(action)) return null;
+        if (readActions.includes(action))
+          return null;
         try {
-          const row = this.db.prepare(
-            "SELECT COUNT(*) as count FROM approval_patterns WHERE action_type = ?"
-          ).get(action);
+          const row = this.db.prepare("SELECT COUNT(*) as count FROM approval_patterns WHERE action_type = ?").get(action);
           if (!row || row.count === 0) {
             return {
               type: "novel",
@@ -103140,10 +103130,10 @@ var init_escalation_boundaries = __esm({
   }
 });
 
-// packages/core/agent/context-budget.ts
+// packages/core/agent/context-budget.js
 var MODEL_CONTEXT_WINDOWS, BUDGET_ALLOCATIONS, AdaptiveContextBudget;
 var init_context_budget = __esm({
-  "packages/core/agent/context-budget.ts"() {
+  "packages/core/agent/context-budget.js"() {
     "use strict";
     MODEL_CONTEXT_WINDOWS = {
       // SmolLM2 fast tier
@@ -103244,7 +103234,8 @@ var init_context_budget = __esm({
        * Uses running average of chars-per-token from actual model responses.
        */
       estimateTokens(text) {
-        if (!text) return 0;
+        if (!text)
+          return 0;
         return Math.ceil(text.length / this.charsPerToken);
       }
       /**
@@ -103316,7 +103307,8 @@ var init_context_budget = __esm({
        * Calculate the maximum chars for document context chunks.
        */
       calculateDocChunkSize(modelId, numChunks) {
-        if (numChunks === 0) return 0;
+        if (numChunks === 0)
+          return 0;
         const budget = this.allocate(modelId);
         const docBudgetChars = this.tokensToChars(budget.documentContextTokens);
         return Math.floor(docBudgetChars / numChunks);
@@ -103326,7 +103318,8 @@ var init_context_budget = __esm({
        * Updates the chars-per-token estimate for the model family.
        */
       recordActualTokens(modelId, promptChars, promptTokens) {
-        if (promptTokens <= 0 || promptChars <= 0) return;
+        if (promptTokens <= 0 || promptChars <= 0)
+          return;
         const actualCpt = promptChars / promptTokens;
         const key = this.getModelFamily(modelId);
         const existing = this.modelActuals.get(key);
@@ -103337,7 +103330,8 @@ var init_context_budget = __esm({
         }
         if (this.modelActuals.size > 0) {
           let sum = 0;
-          for (const v of this.modelActuals.values()) sum += v;
+          for (const v of this.modelActuals.values())
+            sum += v;
           this.charsPerToken = sum / this.modelActuals.size;
         }
       }
@@ -103352,14 +103346,15 @@ var init_context_budget = __esm({
        */
       getModelFamily(modelId) {
         const parts = modelId.split("-");
-        if (parts.length >= 2) return parts.slice(0, 2).join("-");
+        if (parts.length >= 2)
+          return parts.slice(0, 2).join("-");
         return parts[0] ?? "default";
       }
     };
   }
 });
 
-// packages/core/agent/orchestrator.ts
+// packages/core/agent/orchestrator.js
 function buildSystemPrompt(config, conversational) {
   const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
   const today = (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
@@ -103419,7 +103414,7 @@ ${INJECTION_CANARY}`;
 }
 var CREATE_TABLES2, BASE_TOOLS, BASE_TOOL_ACTION_MAP, BASE_LOCAL_TOOLS, VOICE_MODE_CONTEXT, DEFAULT_SYSTEM_PROMPT, OrchestratorImpl;
 var init_orchestrator = __esm({
-  "packages/core/agent/orchestrator.ts"() {
+  "packages/core/agent/orchestrator.js"() {
     "use strict";
     init_nanoid();
     init_artifact_parser();
@@ -104128,16 +104123,20 @@ var init_orchestrator = __esm({
         const wordCount = lower.split(/\s+/).length;
         if (wordCount <= 3) {
           const followUps = /^(why\s*(?:not|is that|though)?|how\s*(?:come|so)|tell me more|go on|continue|explain|elaborate|and\??|what else|really|seriously|huh)\??$/;
-          if (followUps.test(lower)) return true;
+          if (followUps.test(lower))
+            return true;
         }
         if (wordCount <= 4) {
           const greetings = /^(hi|hello|hey|howdy|sup|yo|good\s*(morning|afternoon|evening|night)|thanks|thank you|bye|goodbye|ok|okay|sure|yes|no|nah|yep|nope|cool|great|nice|hm+|huh|what'?s?\s*up)/;
-          if (greetings.test(lower)) return true;
+          if (greetings.test(lower))
+            return true;
         }
         const selfReferential = /(?:what(?:'s| is) your name|who are you|what can you do|what are you|tell me (?:about yourself|your name|my name)|what(?:'s| is) my name|how are you)/;
-        if (selfReferential.test(lower)) return true;
+        if (selfReferential.test(lower))
+          return true;
         const casual = /(?:do you (?:like|think|feel|know|have)|how do you|what do you think|tell me a (?:joke|story)|are you (?:real|alive|sentient|ai|a bot))/;
-        if (casual.test(lower)) return true;
+        if (casual.test(lower))
+          return true;
         return false;
       }
       /**
@@ -104189,7 +104188,8 @@ var init_orchestrator = __esm({
       isDataQueryWithoutAccess(message) {
         const hasConnectedServices = (this.promptConfig.connectedServices?.length ?? 0) > 0;
         const hasIndexedDocs = (this.promptConfig.indexedDocCount ?? 0) > 0;
-        if (hasConnectedServices || hasIndexedDocs) return null;
+        if (hasConnectedServices || hasIndexedDocs)
+          return null;
         const dataQueryPatterns = [
           { pattern: /\b(?:check|show|read|open|what'?s? in|any new) (?:my )?(?:inbox|email|mail)\b/i, domain: "email" },
           { pattern: /\b(?:check|show|what'?s? on|any) (?:my )?(?:calendar|schedule|meetings?|events?)\b/i, domain: "calendar" },
@@ -104214,9 +104214,7 @@ var init_orchestrator = __esm({
         }
         const convId = conversationId ?? this.createConversation();
         if (conversationId) {
-          this.db.prepare(
-            "INSERT OR IGNORE INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)"
-          ).run(conversationId, (/* @__PURE__ */ new Date()).toISOString(), (/* @__PURE__ */ new Date()).toISOString());
+          this.db.prepare("INSERT OR IGNORE INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)").run(conversationId, (/* @__PURE__ */ new Date()).toISOString(), (/* @__PURE__ */ new Date()).toISOString());
         }
         const dataQueryBlock = this.isDataQueryWithoutAccess(message);
         if (dataQueryBlock) {
@@ -104272,14 +104270,11 @@ var init_orchestrator = __esm({
               ...messages,
               {
                 role: "user",
-                content: wrapInDataBoundary(
-                  `Here are the results for the user's request "${message}":
+                content: wrapInDataBoundary(`Here are the results for the user's request "${message}":
 
 ${sanitizedToolResults}
 
-Present ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Never include internal identifiers like message IDs, thread IDs, or document IDs in your response. Respond in the same language the user used.`,
-                  "tool execution results"
-                )
+Present ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Never include internal identifiers like message IDs, thread IDs, or document IDs in your response. Respond in the same language the user used.`, "tool execution results")
               }
             ];
             const synthesis = await this.llm.chat({
@@ -104327,11 +104322,13 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
             let searchStart = 0;
             while (searchStart < finalMessage.length) {
               const braceIdx = finalMessage.indexOf("{", searchStart);
-              if (braceIdx === -1) break;
+              if (braceIdx === -1)
+                break;
               let depth = 0;
               let endIdx = -1;
               for (let j = braceIdx; j < finalMessage.length; j++) {
-                if (finalMessage[j] === "{") depth++;
+                if (finalMessage[j] === "{")
+                  depth++;
                 else if (finalMessage[j] === "}") {
                   depth--;
                   if (depth === 0) {
@@ -104340,7 +104337,8 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
                   }
                 }
               }
-              if (endIdx === -1) break;
+              if (endIdx === -1)
+                break;
               const candidate = finalMessage.slice(braceIdx, endIdx + 1);
               try {
                 const parsed = JSON.parse(candidate);
@@ -104384,13 +104382,10 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
                 ...messages,
                 {
                   role: "user",
-                  content: wrapInDataBoundary(
-                    `Tool results:
+                  content: wrapInDataBoundary(`Tool results:
 ${sanitizedToolResults}
 
-Present ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Never include internal identifiers like message IDs, thread IDs, or document IDs in your response. Respond in the same language the user used.`,
-                    "tool execution results"
-                  )
+Present ALL results to the user. List every item. Do not skip or summarize away any entries. Do not invent data not in the results. Never include internal identifiers like message IDs, thread IDs, or document IDs in your response. Respond in the same language the user used.`, "tool execution results")
                 }
               ];
               const followUp = await this.llm.chat({
@@ -104429,11 +104424,7 @@ ${checkIn}`;
           finalMessage = "I wasn't able to generate a response. Could you try rephrasing your question?";
         }
         const toolCallCount = actions.filter((a) => a.status === "executed").length;
-        const fabricationCheck = this.scanForFabrication(
-          finalMessage,
-          toolCallCount,
-          this.promptConfig.connectedServices ?? []
-        );
+        const fabricationCheck = this.scanForFabrication(finalMessage, toolCallCount, this.promptConfig.connectedServices ?? []);
         if (!fabricationCheck.clean) {
           finalMessage = fabricationCheck.sanitized;
         }
@@ -104460,9 +104451,7 @@ ${checkIn}`;
         };
       }
       async getConversation(conversationId) {
-        const rows = this.db.prepare(
-          "SELECT * FROM conversation_turns WHERE conversation_id = ? ORDER BY timestamp ASC"
-        ).all(conversationId);
+        const rows = this.db.prepare("SELECT * FROM conversation_turns WHERE conversation_id = ? ORDER BY timestamp ASC").all(conversationId);
         return rows.map((r) => ({
           id: r.id,
           role: r.role,
@@ -104473,35 +104462,22 @@ ${checkIn}`;
         }));
       }
       async approveAction(actionId) {
-        const row = this.db.prepare(
-          "SELECT * FROM pending_actions WHERE id = ? AND status = 'pending_approval'"
-        ).get(actionId);
+        const row = this.db.prepare("SELECT * FROM pending_actions WHERE id = ? AND status = 'pending_approval'").get(actionId);
         if (!row) {
           throw new Error(`Action ${actionId} not found or not pending approval`);
         }
         const action = row.action;
         const payload = JSON.parse(row.payload);
         const response = await this.ipc.sendAction(action, payload);
-        this.db.prepare(
-          "UPDATE pending_actions SET status = ?, executed_at = ?, response_json = ? WHERE id = ?"
-        ).run(
-          response.status === "success" ? "executed" : "failed",
-          (/* @__PURE__ */ new Date()).toISOString(),
-          JSON.stringify(response),
-          actionId
-        );
+        this.db.prepare("UPDATE pending_actions SET status = ?, executed_at = ?, response_json = ? WHERE id = ?").run(response.status === "success" ? "executed" : "failed", (/* @__PURE__ */ new Date()).toISOString(), JSON.stringify(response), actionId);
         if (response.status === "success") {
           this.patternTracker.recordApproval(action, payload);
         }
         return response;
       }
       async rejectAction(actionId) {
-        const row = this.db.prepare(
-          "SELECT action, payload FROM pending_actions WHERE id = ? AND status = 'pending_approval'"
-        ).get(actionId);
-        this.db.prepare(
-          "UPDATE pending_actions SET status = 'rejected' WHERE id = ? AND status = 'pending_approval'"
-        ).run(actionId);
+        const row = this.db.prepare("SELECT action, payload FROM pending_actions WHERE id = ? AND status = 'pending_approval'").get(actionId);
+        this.db.prepare("UPDATE pending_actions SET status = 'rejected' WHERE id = ? AND status = 'pending_approval'").run(actionId);
         if (row) {
           const action = row.action;
           const payload = JSON.parse(row.payload);
@@ -104509,9 +104485,7 @@ ${checkIn}`;
         }
       }
       async getPendingActions() {
-        const rows = this.db.prepare(
-          "SELECT * FROM pending_actions WHERE status = 'pending_approval' ORDER BY created_at ASC"
-        ).all();
+        const rows = this.db.prepare("SELECT * FROM pending_actions WHERE status = 'pending_approval' ORDER BY created_at ASC").all();
         return rows.map((r) => ({
           id: r.id,
           action: r.action,
@@ -104560,11 +104534,7 @@ ${checkIn}`;
 ${modelResponse}`.toLowerCase();
         const calls = [];
         if (/search(?:ing)?\s+(?:the\s+)?(?:web|internet|online)|web\s+search|look\s+(?:up|online)|google|find\s+(?:out|information)\s+about/i.test(combined)) {
-          const queryMatch = userMessage.match(
-            /(?:search\s+(?:for|about|the\s+web\s+for)?|look\s+up|find\s+(?:information\s+)?(?:about|on)?|google)\s+["""]?(.+?)["""]?\s*$/i
-          ) ?? userMessage.match(
-            /(?:about|for|on)\s+["""]?(.+?)["""]?\s*$/i
-          );
+          const queryMatch = userMessage.match(/(?:search\s+(?:for|about|the\s+web\s+for)?|look\s+up|find\s+(?:information\s+)?(?:about|on)?|google)\s+["""]?(.+?)["""]?\s*$/i) ?? userMessage.match(/(?:about|for|on)\s+["""]?(.+?)["""]?\s*$/i);
           const query = queryMatch?.[1]?.trim() ?? userMessage.replace(/^.*(?:search|look|find|run)\s+/i, "").trim();
           if (query && query.length > 1) {
             calls.push({ name: "search_web", arguments: { query } });
@@ -104625,14 +104595,17 @@ ${modelResponse}`.toLowerCase();
        * Returns false if < 24h since last check-in or no pending observations.
        */
       shouldTriggerCheckIn() {
-        if (!this.intentManager) return false;
+        if (!this.intentManager)
+          return false;
         const pending = this.intentManager.getPendingObservations("chat");
-        if (pending.length === 0) return false;
+        if (pending.length === 0)
+          return false;
         const lastTs = this.intentManager.getLastCheckInTimestamp();
         if (lastTs) {
           const elapsed = Date.now() - new Date(lastTs).getTime();
           const twentyFourHours = 24 * 60 * 60 * 1e3;
-          if (elapsed < twentyFourHours) return false;
+          if (elapsed < twentyFourHours)
+            return false;
         }
         return true;
       }
@@ -104645,9 +104618,11 @@ ${modelResponse}`.toLowerCase();
        * is genuinely harmful — worth the extra inference call to avoid it.
        */
       async isEmotionallySensitive(recentMessages) {
-        if (!this.llm) return true;
+        if (!this.llm)
+          return true;
         const last3 = recentMessages.slice(-3);
-        if (last3.length === 0) return false;
+        if (last3.length === 0)
+          return false;
         const messageText = last3.map((m) => `${m.role}: ${m.content}`).join("\n");
         try {
           const request = {
@@ -104661,7 +104636,8 @@ ${messageText}`,
           };
           const response = await this.llm.generate(request);
           const answer = response.text.trim().toUpperCase();
-          if (answer === "NO") return false;
+          if (answer === "NO")
+            return false;
           return true;
         } catch {
           return true;
@@ -104674,10 +104650,13 @@ ${messageText}`,
        */
       async evaluateCheckIn(_message, history) {
         const sensitive = await this.isEmotionallySensitive(history);
-        if (sensitive) return null;
-        if (!this.intentManager) return null;
+        if (sensitive)
+          return null;
+        if (!this.intentManager)
+          return null;
         const pending = this.intentManager.getPendingObservations("chat");
-        if (pending.length === 0) return null;
+        if (pending.length === 0)
+          return null;
         const obs = pending[0];
         if (!this.llm) {
           this.intentManager.markSurfacedInChat(obs.id);
@@ -104696,7 +104675,8 @@ ${messageText}`,
           };
           const response = await this.llm.generate(request);
           const checkIn = response.text.trim();
-          if (!checkIn) return null;
+          if (!checkIn)
+            return null;
           this.intentManager.markSurfacedInChat(obs.id);
           this.intentManager.setLastCheckInTimestamp((/* @__PURE__ */ new Date()).toISOString());
           return checkIn;
@@ -104730,7 +104710,8 @@ ${VOICE_MODE_CONTEXT}` : conversational ? basePrompt : `${basePrompt}
 ${ARTIFACT_SYSTEM_PROMPT}`;
         if (this.intentManager) {
           const intentCtx = this.intentManager.buildIntentContext();
-          if (intentCtx) systemContent += `
+          if (intentCtx)
+            systemContent += `
 
 ${intentCtx}`;
         }
@@ -104741,28 +104722,19 @@ ${intentCtx}`;
           const docChunkMaxChars = this.contextBudget.calculateDocChunkSize(this.model, documentChunks.length);
           const activeDocs = this.documentContext?.getActiveDocuments() ?? [];
           const docLabel = activeDocs.length === 1 ? `'${sanitizeRetrievedContent(activeDocs[0]?.fileName ?? "document")}'` : `${activeDocs.length} attached documents (${activeDocs.map((d) => sanitizeRetrievedContent(d.fileName)).join(", ")})`;
-          const docContextStr = documentChunks.map(
-            (r, i) => `[${i + 1}] ${sanitizeRetrievedContent(r.chunk.content.slice(0, docChunkMaxChars))}`
-          ).join("\n\n");
+          const docContextStr = documentChunks.map((r, i) => `[${i + 1}] ${sanitizeRetrievedContent(r.chunk.content.slice(0, docChunkMaxChars))}`).join("\n\n");
           messages.push({
             role: "user",
-            content: wrapInDataBoundary(
-              `The user is asking about ${docLabel}. Relevant passages:
-${docContextStr}`,
-              "document context"
-            )
+            content: wrapInDataBoundary(`The user is asking about ${docLabel}. Relevant passages:
+${docContextStr}`, "document context")
           });
         }
         const docChunkIds = new Set(documentChunks.map((r) => r.chunk.id));
         const deduplicatedContext = context.filter((r) => !docChunkIds.has(r.chunk.id));
         if (deduplicatedContext.length > 0) {
           const budget = this.contextBudget.allocate(this.model);
-          const kgCharsPerResult = this.contextBudget.tokensToChars(
-            Math.floor(budget.knowledgeGraphTokens / Math.max(1, deduplicatedContext.length))
-          );
-          const contextStr = deduplicatedContext.map(
-            (r, i) => `[${i + 1}] ${sanitizeRetrievedContent(r.document.title)} (${r.document.source}): ${sanitizeRetrievedContent(r.chunk.content.slice(0, kgCharsPerResult))}`
-          ).join("\n\n");
+          const kgCharsPerResult = this.contextBudget.tokensToChars(Math.floor(budget.knowledgeGraphTokens / Math.max(1, deduplicatedContext.length)));
+          const contextStr = deduplicatedContext.map((r, i) => `[${i + 1}] ${sanitizeRetrievedContent(r.document.title)} (${r.document.source}): ${sanitizeRetrievedContent(r.chunk.content.slice(0, kgCharsPerResult))}`).join("\n\n");
           messages.push({
             role: "user",
             content: wrapInDataBoundary(contextStr, "knowledge base")
@@ -104853,16 +104825,7 @@ ${docContextStr}`,
                 this.db.prepare(`
               INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
               VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)
-            `).run(
-                  agentAction2.id,
-                  agentAction2.action,
-                  JSON.stringify(agentAction2.payload),
-                  agentAction2.reasoning,
-                  agentAction2.domain,
-                  agentAction2.tier,
-                  agentAction2.createdAt,
-                  reasoningCtx ? JSON.stringify(reasoningCtx) : null
-                );
+            `).run(agentAction2.id, agentAction2.action, JSON.stringify(agentAction2.payload), agentAction2.reasoning, agentAction2.domain, agentAction2.tier, agentAction2.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
                 actions.push(agentAction2);
                 continue;
               }
@@ -104883,16 +104846,7 @@ ${docContextStr}`,
               this.db.prepare(`
             INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)
-          `).run(
-                agentAction2.id,
-                agentAction2.action,
-                JSON.stringify(agentAction2.payload),
-                agentAction2.reasoning,
-                agentAction2.domain,
-                agentAction2.tier,
-                agentAction2.createdAt,
-                reasoningCtx ? JSON.stringify(reasoningCtx) : null
-              );
+          `).run(agentAction2.id, agentAction2.action, JSON.stringify(agentAction2.payload), agentAction2.reasoning, agentAction2.domain, agentAction2.tier, agentAction2.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
               actions.push(agentAction2);
               continue;
             }
@@ -104985,9 +104939,7 @@ ${docContextStr}`,
             const catCategories = tc.arguments["categories"];
             const catPriority = tc.arguments["priority"];
             try {
-              this.db.prepare(
-                `UPDATE indexed_emails SET priority = ?, categories = ? WHERE message_id = ?`
-              ).run(catPriority, JSON.stringify(catCategories ?? []), catMessageId);
+              this.db.prepare(`UPDATE indexed_emails SET priority = ?, categories = ? WHERE message_id = ?`).run(catPriority, JSON.stringify(catCategories ?? []), catMessageId);
             } catch {
             }
             executedResults.push({
@@ -105002,10 +104954,7 @@ ${docContextStr}`,
             continue;
           }
           if (tc.name === "detect_calendar_conflicts") {
-            const conflicts = await this.knowledge.search(
-              `calendar event ${tc.arguments["startTime"]} ${tc.arguments["endTime"]}`,
-              { limit: 10, source: "calendar" }
-            );
+            const conflicts = await this.knowledge.search(`calendar event ${tc.arguments["startTime"]} ${tc.arguments["endTime"]}`, { limit: 10, source: "calendar" });
             executedResults.push({
               tool: "detect_calendar_conflicts",
               result: {
@@ -105029,12 +104978,10 @@ ${docContextStr}`,
               const future = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1e3).toISOString();
               let events = [];
               try {
-                events = this.db.prepare(
-                  `SELECT title, start_time as startTime, end_time as endTime, location, attendees
+                events = this.db.prepare(`SELECT title, start_time as startTime, end_time as endTime, location, attendees
                FROM indexed_calendar_events
                WHERE start_time >= ? AND start_time <= ?
-               ORDER BY start_time ASC LIMIT 20`
-                ).all(cutoff, future);
+               ORDER BY start_time ASC LIMIT 20`).all(cutoff, future);
               } catch {
               }
               executedResults.push({
@@ -105125,9 +105072,7 @@ ${docContextStr}`,
               let targetDocId = docId;
               if (!targetDocId) {
                 const titleLower = title.toLowerCase();
-                const match = searchResults.find(
-                  (r) => r.document.title.toLowerCase().includes(titleLower) || titleLower.includes(r.document.title.toLowerCase())
-                );
+                const match = searchResults.find((r) => r.document.title.toLowerCase().includes(titleLower) || titleLower.includes(r.document.title.toLowerCase()));
                 targetDocId = match?.document.id;
               }
               if (!targetDocId) {
@@ -105181,18 +105126,7 @@ ${docContextStr}`,
               emails, phones, organization, job_title,
               source, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, ?)
-          `).run(
-                id,
-                name,
-                name.split(" ")[0] ?? name,
-                name.split(" ").slice(1).join(" ") || null,
-                JSON.stringify(email ? [email] : []),
-                JSON.stringify(phone ? [phone] : []),
-                org ?? null,
-                jobTitle ?? null,
-                now,
-                now
-              );
+          `).run(id, name, name.split(" ")[0] ?? name, name.split(" ").slice(1).join(" ") || null, JSON.stringify(email ? [email] : []), JSON.stringify(phone ? [phone] : []), org ?? null, jobTitle ?? null, now, now);
               executedResults.push({
                 tool: "add_contact",
                 result: { success: true, id, name, email, phone }
@@ -105303,15 +105237,11 @@ ${prompt}` }]
             source TEXT DEFAULT 'device', merged_from TEXT DEFAULT '[]',
             created_at TEXT NOT NULL, updated_at TEXT NOT NULL
           )`);
-              const rows = query ? this.db.prepare(
-                `SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
+              const rows = query ? this.db.prepare(`SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
                  FROM contacts
                  WHERE LOWER(display_name) LIKE ? OR LOWER(emails) LIKE ? OR LOWER(organization) LIKE ? OR LOWER(phones) LIKE ?
-                 ORDER BY interaction_count DESC LIMIT 10`
-              ).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) : this.db.prepare(
-                `SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
-                 FROM contacts ORDER BY display_name ASC LIMIT 50`
-              ).all();
+                 ORDER BY interaction_count DESC LIMIT 10`).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) : this.db.prepare(`SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
+                 FROM contacts ORDER BY display_name ASC LIMIT 50`).all();
               if (rows.length === 0) {
                 executedResults.push({ tool: "search_contacts", result: { contacts: [], message: "No contacts found. The user can add contacts using the add_contact tool or import from Google Contacts in Settings > Connections." } });
               } else {
@@ -105337,14 +105267,12 @@ ${prompt}` }]
           if (tc.name === "get_contact") {
             const name = (tc.arguments["name"] ?? "").toLowerCase();
             try {
-              const row = this.db.prepare(
-                `SELECT id, display_name, given_name, family_name, emails, phones, organization,
+              const row = this.db.prepare(`SELECT id, display_name, given_name, family_name, emails, phones, organization,
                     job_title, birthday, relationship_type, communication_frequency,
                     last_contact_date, interaction_count, tags
              FROM contacts
              WHERE LOWER(display_name) LIKE ?
-             ORDER BY interaction_count DESC LIMIT 1`
-              ).get(`%${name}%`);
+             ORDER BY interaction_count DESC LIMIT 1`).get(`%${name}%`);
               if (row) {
                 executedResults.push({
                   tool: "get_contact",
@@ -105402,19 +105330,13 @@ ${prompt}` }]
             const days = tc.arguments["days"] || 30;
             const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1e3).toISOString().slice(0, 10);
             try {
-              const totalRow = this.db.prepare(
-                "SELECT COUNT(*) as count, SUM(amount) as total FROM stored_transactions WHERE date >= ?"
-              ).get(cutoff);
-              const topMerchants = this.db.prepare(
-                `SELECT normalized_merchant, SUM(amount) as total, COUNT(*) as count
+              const totalRow = this.db.prepare("SELECT COUNT(*) as count, SUM(amount) as total FROM stored_transactions WHERE date >= ?").get(cutoff);
+              const topMerchants = this.db.prepare(`SELECT normalized_merchant, SUM(amount) as total, COUNT(*) as count
              FROM stored_transactions WHERE date >= ?
-             GROUP BY normalized_merchant ORDER BY total DESC LIMIT 10`
-              ).all(cutoff);
-              const byCategory = this.db.prepare(
-                `SELECT category, SUM(amount) as total, COUNT(*) as count
+             GROUP BY normalized_merchant ORDER BY total DESC LIMIT 10`).all(cutoff);
+              const byCategory = this.db.prepare(`SELECT category, SUM(amount) as total, COUNT(*) as count
              FROM stored_transactions WHERE date >= ? AND category != ''
-             GROUP BY category ORDER BY total DESC`
-              ).all(cutoff);
+             GROUP BY category ORDER BY total DESC`).all(cutoff);
               executedResults.push({
                 tool: "get_financial_summary",
                 result: {
@@ -105434,9 +105356,7 @@ ${prompt}` }]
             const days = tc.arguments["days"] || 7;
             const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1e3).toISOString().slice(0, 10);
             try {
-              const rows = this.db.prepare(
-                "SELECT * FROM health_entries WHERE date >= ? ORDER BY date DESC"
-              ).all(cutoff);
+              const rows = this.db.prepare("SELECT * FROM health_entries WHERE date >= ? ORDER BY date DESC").all(cutoff);
               executedResults.push({
                 tool: "get_health_entries",
                 result: {
@@ -105463,20 +105383,8 @@ ${prompt}` }]
             const date = tc.arguments["date"] || (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
             const id = nanoid();
             try {
-              this.db.prepare(
-                `INSERT OR REPLACE INTO health_entries (id, date, timestamp, mood, energy, water_glasses, symptoms, medications, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-              ).run(
-                id,
-                date,
-                (/* @__PURE__ */ new Date()).toISOString(),
-                tc.arguments["mood"] ?? null,
-                tc.arguments["energy"] ?? null,
-                tc.arguments["waterGlasses"] ?? null,
-                JSON.stringify(tc.arguments["symptoms"] ?? []),
-                JSON.stringify(tc.arguments["medications"] ?? []),
-                tc.arguments["notes"] ?? null
-              );
+              this.db.prepare(`INSERT OR REPLACE INTO health_entries (id, date, timestamp, mood, energy, water_glasses, symptoms, medications, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(id, date, (/* @__PURE__ */ new Date()).toISOString(), tc.arguments["mood"] ?? null, tc.arguments["energy"] ?? null, tc.arguments["waterGlasses"] ?? null, JSON.stringify(tc.arguments["symptoms"] ?? []), JSON.stringify(tc.arguments["medications"] ?? []), tc.arguments["notes"] ?? null);
               executedResults.push({
                 tool: "add_health_entry",
                 result: { success: true, id, date, message: `Health entry logged for ${date}` }
@@ -105553,9 +105461,7 @@ ${prompt}` }]
             source TEXT DEFAULT 'user', created_at TEXT NOT NULL
           )`);
               const id = `rem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-              this.db.prepare(
-                "INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-              ).run(id, text, dueAt, recurrence ?? null, "pending", "ai", (/* @__PURE__ */ new Date()).toISOString());
+              this.db.prepare("INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(id, text, dueAt, recurrence ?? null, "pending", "ai", (/* @__PURE__ */ new Date()).toISOString());
               executedResults.push({
                 tool: "create_reminder",
                 result: { success: true, id, text, dueAt, recurrence }
@@ -105575,9 +105481,7 @@ ${prompt}` }]
             recurrence TEXT, status TEXT NOT NULL DEFAULT 'pending',
             source TEXT DEFAULT 'user', created_at TEXT NOT NULL
           )`);
-              const reminders = this.db.prepare(
-                "SELECT * FROM reminders WHERE status IN ('pending', 'snoozed') ORDER BY due_at ASC LIMIT 50"
-              ).all();
+              const reminders = this.db.prepare("SELECT * FROM reminders WHERE status IN ('pending', 'snoozed') ORDER BY due_at ASC LIMIT 50").all();
               executedResults.push({
                 tool: "list_reminders",
                 result: reminders.map((r) => ({
@@ -105698,38 +105602,16 @@ ${prompt}` }]
             if (guardrailResult.decision === "BATCH_PENDING") {
               agentAction.status = "pending_approval";
               agentAction.reasoning = guardrailResult.reason;
-              this.db.prepare(
-                `INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
-             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)`
-              ).run(
-                agentAction.id,
-                agentAction.action,
-                JSON.stringify(agentAction.payload),
-                agentAction.reasoning,
-                agentAction.domain,
-                agentAction.tier,
-                agentAction.createdAt,
-                reasoningCtx ? JSON.stringify(reasoningCtx) : null
-              );
+              this.db.prepare(`INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
+             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)`).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload), agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
               actions.push(agentAction);
               continue;
             }
             if (guardrailResult.decision === "DRAFT_FIRST") {
               agentAction.status = "pending_approval";
               agentAction.reasoning = guardrailResult.reason;
-              this.db.prepare(
-                `INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
-             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)`
-              ).run(
-                agentAction.id,
-                agentAction.action,
-                JSON.stringify(agentAction.payload),
-                agentAction.reasoning,
-                agentAction.domain,
-                agentAction.tier,
-                agentAction.createdAt,
-                reasoningCtx ? JSON.stringify(reasoningCtx) : null
-              );
+              this.db.prepare(`INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
+             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)`).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload), agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
               executedResults.push({
                 tool: tc.name,
                 result: {
@@ -105781,16 +105663,7 @@ ${prompt}` }]
             this.db.prepare(`
           INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
           VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)
-        `).run(
-              agentAction.id,
-              agentAction.action,
-              JSON.stringify(agentAction.payload),
-              agentAction.reasoning,
-              agentAction.domain,
-              agentAction.tier,
-              agentAction.createdAt,
-              reasoningCtx ? JSON.stringify(reasoningCtx) : null
-            );
+        `).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload), agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
           }
           actions.push(agentAction);
         }
@@ -105803,18 +105676,22 @@ ${prompt}` }]
       summarizeAction(actionType, payload) {
         const truncate = (s, max2) => s.length > max2 ? s.slice(0, max2) + "..." : s;
         const toName = (email) => {
-          if (typeof email !== "string") return "unknown";
+          if (typeof email !== "string")
+            return "unknown";
           const atIdx = email.indexOf("@");
           return atIdx > 0 ? email.slice(0, atIdx) : email;
         };
         const firstTo = (p) => {
           const to = p["to"];
-          if (Array.isArray(to) && to.length > 0) return toName(to[0]);
-          if (typeof to === "string") return toName(to);
+          if (Array.isArray(to) && to.length > 0)
+            return toName(to[0]);
+          if (typeof to === "string")
+            return toName(to);
           return "unknown";
         };
         const formatDate = (iso) => {
-          if (typeof iso !== "string") return "";
+          if (typeof iso !== "string")
+            return "";
           try {
             const d = new Date(iso);
             return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -105948,15 +105825,14 @@ ${retryHint}`;
        * Used before building email/calendar action payloads.
        */
       resolveContact(nameRef, context) {
-        if (!this.contactResolver) return null;
+        if (!this.contactResolver)
+          return null;
         return this.contactResolver.resolve(nameRef, context);
       }
       createConversation() {
         const id = nanoid();
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        this.db.prepare(
-          "INSERT INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)"
-        ).run(id, now, now);
+        this.db.prepare("INSERT INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)").run(id, now, now);
         return id;
       }
       storeTurn(conversationId, role, content, context, actions, tokensPrompt, tokensCompletion) {
@@ -105965,29 +105841,17 @@ ${retryHint}`;
         this.db.prepare(`
       INSERT INTO conversation_turns (id, conversation_id, role, content, timestamp, context_json, actions_json, tokens_prompt, tokens_completion)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-          id,
-          conversationId,
-          role,
-          content,
-          now,
-          context ? JSON.stringify(context) : null,
-          actions ? JSON.stringify(actions) : null,
-          tokensPrompt,
-          tokensCompletion
-        );
-        this.db.prepare(
-          "UPDATE conversations SET updated_at = ? WHERE id = ?"
-        ).run(now, conversationId);
+    `).run(id, conversationId, role, content, now, context ? JSON.stringify(context) : null, actions ? JSON.stringify(actions) : null, tokensPrompt, tokensCompletion);
+        this.db.prepare("UPDATE conversations SET updated_at = ? WHERE id = ?").run(now, conversationId);
       }
     };
   }
 });
 
-// packages/core/agent/complexity-classifier.ts
+// packages/core/agent/complexity-classifier.js
 var TOOL_DOMAIN_MAP, INTENT_PATTERNS, COMPLEX_PATTERNS, ComplexityClassifier;
 var init_complexity_classifier = __esm({
-  "packages/core/agent/complexity-classifier.ts"() {
+  "packages/core/agent/complexity-classifier.js"() {
     "use strict";
     TOOL_DOMAIN_MAP = {
       // Email
@@ -106131,14 +105995,13 @@ var init_complexity_classifier = __esm({
           return ruleBasedResult;
         }
         try {
-          const response = await this.llm.routedChat(
-            {
-              model: "",
-              // routedChat picks the model
-              messages: [
-                {
-                  role: "system",
-                  content: `You classify user requests for an AI assistant.
+          const response = await this.llm.routedChat({
+            model: "",
+            // routedChat picks the model
+            messages: [
+              {
+                role: "system",
+                content: `You classify user requests for an AI assistant.
 Respond with ONLY a JSON object: {"complexity":"simple"|"compound"|"complex","domains":["email","calendar",...],"parallelCapable":true|false}
 
 Rules:
@@ -106147,15 +106010,13 @@ Rules:
 - "complex": multiple domains OR research+action combos that benefit from parallel execution
 
 Available domains: email, calendar, files, web, contacts, finances, health, reminders, messaging, location, cloud-storage`
-                },
-                { role: "user", content: message }
-              ],
-              temperature: 0,
-              maxTokens: 128,
-              format: "json"
-            },
-            "classify"
-          );
+              },
+              { role: "user", content: message }
+            ],
+            temperature: 0,
+            maxTokens: 128,
+            format: "json"
+          }, "classify");
           const parsed = JSON.parse(response.message.content);
           if (parsed.complexity && ["simple", "compound", "complex"].includes(parsed.complexity)) {
             return {
@@ -106178,7 +106039,7 @@ Available domains: email, calendar, files, web, contacts, finances, health, remi
   }
 });
 
-// packages/core/agent/tool-hooks.ts
+// packages/core/agent/tool-hooks.js
 async function executePreToolHooks(registry, context, additionalHookIds) {
   const hooks = registry.getPreHooks(context.toolName);
   const hookActions = [];
@@ -106245,10 +106106,7 @@ async function executePostToolHooks(registry, context, result2, additionalHookId
       continue;
     }
     try {
-      const action = await hook.execute(
-        { ...context, toolParams: context.toolParams },
-        currentResult
-      );
+      const action = await hook.execute({ ...context, toolParams: context.toolParams }, currentResult);
       hookActions.push({ hookId: hook.id, action: action.action });
       switch (action.action) {
         case "pass":
@@ -106321,7 +106179,7 @@ function createGuardianRedirectHook() {
 }
 var ToolHookRegistryImpl;
 var init_tool_hooks = __esm({
-  "packages/core/agent/tool-hooks.ts"() {
+  "packages/core/agent/tool-hooks.js"() {
     "use strict";
     ToolHookRegistryImpl = class {
       preHooks = /* @__PURE__ */ new Map();
@@ -106339,14 +106197,10 @@ var init_tool_hooks = __esm({
         this.postHooks.delete(id);
       }
       getPreHooks(toolName) {
-        return Array.from(this.preHooks.values()).filter(
-          (h) => h.appliesTo.length === 0 || h.appliesTo.includes(toolName)
-        );
+        return Array.from(this.preHooks.values()).filter((h) => h.appliesTo.length === 0 || h.appliesTo.includes(toolName));
       }
       getPostHooks(toolName) {
-        return Array.from(this.postHooks.values()).filter(
-          (h) => h.appliesTo.length === 0 || h.appliesTo.includes(toolName)
-        );
+        return Array.from(this.postHooks.values()).filter((h) => h.appliesTo.length === 0 || h.appliesTo.includes(toolName));
       }
       /** Get all registered pre-hooks. */
       getAllPreHooks() {
@@ -106360,10 +106214,10 @@ var init_tool_hooks = __esm({
   }
 });
 
-// packages/core/agent/subagent-executor.ts
+// packages/core/agent/subagent-executor.js
 var SubagentExecutor;
 var init_subagent_executor = __esm({
-  "packages/core/agent/subagent-executor.ts"() {
+  "packages/core/agent/subagent-executor.js"() {
     "use strict";
     init_nanoid();
     init_tool_hooks();
@@ -106409,12 +106263,14 @@ var init_subagent_executor = __esm({
        */
       selectExecutionMode(plan) {
         const maxWaveSize = Math.max(...plan.waves.map((w) => w.length));
-        if (maxWaveSize <= 1) return "sequential";
+        if (maxWaveSize <= 1)
+          return "sequential";
         const hasDifferentTiers = plan.waves.some((wave) => {
           const tiers = new Set(wave.map((s) => s.modelTier));
           return tiers.size > 1;
         });
         switch (this.hardwareTier) {
+          case "enthusiast":
           case "workstation":
           case "performance":
             return hasDifferentTiers ? "parallel" : "interleaved";
@@ -106467,9 +106323,7 @@ var init_subagent_executor = __esm({
        * Only safe when using different model tiers (no memory contention).
        */
       async executeParallel(subtasks, userMessage, sessionId) {
-        const promises2 = subtasks.map(
-          (subtask) => this.executeSubagent(subtask, userMessage, sessionId)
-        );
+        const promises2 = subtasks.map((subtask) => this.executeSubagent(subtask, userMessage, sessionId));
         return Promise.all(promises2);
       }
       /**
@@ -106513,15 +106367,10 @@ var init_subagent_executor = __esm({
           data: { text: subtask.description }
         });
         try {
-          const scopedTools = this.allToolDefs.filter(
-            (t) => scope.allowedTools.includes(t.name)
-          );
+          const scopedTools = this.allToolDefs.filter((t) => scope.allowedTools.includes(t.name));
           const memoryEntries = this.sessionMemory.getAll();
           const sessionContext = memoryEntries.length > 0 ? "\n\nAvailable context from prior steps:\n" + memoryEntries.filter((e) => e.priority !== "ephemeral").map((e) => `- ${e.key}: ${e.value}`).join("\n") : "";
-          const knowledgeResults = await this.knowledge.search(
-            `${userMessage} ${subtask.description}`,
-            { limit: 3 }
-          );
+          const knowledgeResults = await this.knowledge.search(`${userMessage} ${subtask.description}`, { limit: 3 });
           const knowledgeContext = knowledgeResults.length > 0 ? "\n\nRelevant knowledge:\n" + knowledgeResults.map((r) => `- ${r.document.title}: ${r.chunk.content?.slice(0, 300) ?? ""}`).join("\n") : "";
           const messages = [
             {
@@ -106635,11 +106484,7 @@ Your subtask: ${subtask.description}`
                 domain: ComplexityClassifier.getToolDomain(toolCall.name),
                 autonomyTier: scope.effectiveTier
               };
-              const preResult = await executePreToolHooks(
-                this.hookRegistry,
-                hookContext,
-                subtask.preToolHooks
-              );
+              const preResult = await executePreToolHooks(this.hookRegistry, hookContext, subtask.preToolHooks);
               if (!preResult.proceed) {
                 messages.push({
                   role: "assistant",
@@ -106654,17 +106499,9 @@ Your subtask: ${subtask.description}`
                 timestamp: Date.now(),
                 data: { toolName: preResult.toolName, toolStatus: "executing" }
               });
-              const toolResult = await this.executeTool(
-                preResult.toolName,
-                preResult.params
-              );
+              const toolResult = await this.executeTool(preResult.toolName, preResult.params);
               toolCallsExecuted++;
-              const postResult = await executePostToolHooks(
-                this.hookRegistry,
-                { ...hookContext, toolName: preResult.toolName },
-                toolResult.result,
-                subtask.postToolHooks
-              );
+              const postResult = await executePostToolHooks(this.hookRegistry, { ...hookContext, toolName: preResult.toolName }, toolResult.result, subtask.postToolHooks);
               if (postResult.aborted) {
                 messages.push({
                   role: "assistant",
@@ -106743,10 +106580,7 @@ ${postResult.injectedContext}` : "";
           }
           if (this.localTools.has(toolName)) {
             if (toolName === "search_files" || toolName === "list_indexed_documents") {
-              const results = await this.knowledge.search(
-                params.query ?? "",
-                { limit: 10 }
-              );
+              const results = await this.knowledge.search(params.query ?? "", { limit: 10 });
               return { tool: toolName, result: results, success: true };
             }
           }
@@ -106819,10 +106653,10 @@ ${postResult.injectedContext}` : "";
   }
 });
 
-// packages/core/agent/session-memory.ts
+// packages/core/agent/session-memory.js
 var InMemorySessionMemory;
 var init_session_memory = __esm({
-  "packages/core/agent/session-memory.ts"() {
+  "packages/core/agent/session-memory.js"() {
     "use strict";
     InMemorySessionMemory = class {
       entries = /* @__PURE__ */ new Map();
@@ -106858,9 +106692,7 @@ var init_session_memory = __esm({
         this.entries.clear();
       }
       getCompactionSnapshot() {
-        return Array.from(this.entries.values()).filter(
-          (e) => e.priority === "critical" || e.priority === "normal"
-        );
+        return Array.from(this.entries.values()).filter((e) => e.priority === "critical" || e.priority === "normal");
       }
       /** Number of entries. */
       get size() {
@@ -106870,10 +106702,10 @@ var init_session_memory = __esm({
   }
 });
 
-// packages/core/agent/context-compaction.ts
+// packages/core/agent/context-compaction.js
 var DEFAULT_COMPACTION_CONFIG, ContextCompactionEngine;
 var init_context_compaction = __esm({
-  "packages/core/agent/context-compaction.ts"() {
+  "packages/core/agent/context-compaction.js"() {
     "use strict";
     DEFAULT_COMPACTION_CONFIG = {
       interval: 5,
@@ -107024,9 +106856,7 @@ var init_context_compaction = __esm({
       }
       /** Rough token estimate (~4 chars per token). */
       estimateTokens(messages) {
-        return Math.ceil(
-          messages.reduce((sum, m) => sum + m.content.length, 0) / 4
-        );
+        return Math.ceil(messages.reduce((sum, m) => sum + m.content.length, 0) / 4);
       }
       /** Get compaction stats. */
       getStats() {
@@ -107039,10 +106869,10 @@ var init_context_compaction = __esm({
   }
 });
 
-// packages/core/agent/hierarchical-permissions.ts
+// packages/core/agent/hierarchical-permissions.js
 var HierarchicalPermissionResolver;
 var init_hierarchical_permissions = __esm({
-  "packages/core/agent/hierarchical-permissions.ts"() {
+  "packages/core/agent/hierarchical-permissions.js"() {
     "use strict";
     init_complexity_classifier();
     HierarchicalPermissionResolver = class {
@@ -107182,18 +107012,25 @@ var init_hierarchical_permissions = __esm({
           "send_message_channel"
         ]);
         if (userTier === "guardian") {
-          if (READ_TOOLS.has(toolName)) return "approve";
+          if (READ_TOOLS.has(toolName))
+            return "approve";
           return "approve";
         }
         if (userTier === "partner") {
-          if (READ_TOOLS.has(toolName)) return "auto";
-          if (WRITE_TOOLS.has(toolName)) return "auto";
-          if (EXECUTE_TOOLS.has(toolName)) return "approve";
+          if (READ_TOOLS.has(toolName))
+            return "auto";
+          if (WRITE_TOOLS.has(toolName))
+            return "auto";
+          if (EXECUTE_TOOLS.has(toolName))
+            return "approve";
           return "approve";
         }
-        if (READ_TOOLS.has(toolName)) return "auto";
-        if (WRITE_TOOLS.has(toolName)) return "auto";
-        if (toolName === "send_email" || toolName === "send_message_channel") return "approve";
+        if (READ_TOOLS.has(toolName))
+          return "auto";
+        if (WRITE_TOOLS.has(toolName))
+          return "auto";
+        if (toolName === "send_email" || toolName === "send_message_channel")
+          return "approve";
         return "auto";
       }
       /**
@@ -107227,7 +107064,7 @@ var init_hierarchical_permissions = __esm({
   }
 });
 
-// packages/core/agent/filesystem-tools.ts
+// packages/core/agent/filesystem-tools.js
 var filesystem_tools_exports = {};
 __export(filesystem_tools_exports, {
   ALL_PLATFORM_TOOLS: () => ALL_PLATFORM_TOOLS,
@@ -107289,7 +107126,7 @@ function isCommandBlocked(command) {
 }
 var FILESYSTEM_TOOL_DEFINITIONS, TERMINAL_TOOL_DEFINITION, ALL_PLATFORM_TOOLS, FILESYSTEM_TOOL_ACTION_MAP, PLATFORM_TOOL_NAMES, BLOCKED_COMMANDS, SAFE_COMMANDS, SYSTEM_PATHS;
 var init_filesystem_tools = __esm({
-  "packages/core/agent/filesystem-tools.ts"() {
+  "packages/core/agent/filesystem-tools.js"() {
     "use strict";
     FILESYSTEM_TOOL_DEFINITIONS = [
       {
@@ -107525,10 +107362,10 @@ var init_filesystem_tools = __esm({
   }
 });
 
-// packages/core/agent/orchestrator-v2-types.ts
+// packages/core/agent/orchestrator-v2-types.js
 var DEFAULT_COORDINATOR_CONFIG;
 var init_orchestrator_v2_types = __esm({
-  "packages/core/agent/orchestrator-v2-types.ts"() {
+  "packages/core/agent/orchestrator-v2-types.js"() {
     "use strict";
     DEFAULT_COORDINATOR_CONFIG = {
       compactionInterval: 5,
@@ -107541,10 +107378,10 @@ var init_orchestrator_v2_types = __esm({
   }
 });
 
-// packages/core/agent/coordinator-agent.ts
+// packages/core/agent/coordinator-agent.js
 var CoordinatorAgent;
 var init_coordinator_agent = __esm({
-  "packages/core/agent/coordinator-agent.ts"() {
+  "packages/core/agent/coordinator-agent.js"() {
     "use strict";
     init_nanoid();
     init_complexity_classifier();
@@ -107599,14 +107436,13 @@ var init_coordinator_agent = __esm({
         });
         this.hookRegistry = new ToolHookRegistryImpl();
         this.permissionResolver = new HierarchicalPermissionResolver(this.autonomy);
-        this.hookRegistry.registerPreHook(
-          createAutonomyEnforcementHook((toolName) => {
-            const domain = ComplexityClassifier.getToolDomain(toolName);
-            const actionType = this.toolActionMap[toolName];
-            if (!actionType) return "auto_approve";
-            return this.autonomy.decide(actionType);
-          })
-        );
+        this.hookRegistry.registerPreHook(createAutonomyEnforcementHook((toolName) => {
+          const domain = ComplexityClassifier.getToolDomain(toolName);
+          const actionType = this.toolActionMap[toolName];
+          if (!actionType)
+            return "auto_approve";
+          return this.autonomy.decide(actionType);
+        }));
         this.hookRegistry.registerPreHook(createGuardianRedirectHook());
         this.hookRegistry.registerPreHook(createTerminalSafetyHook());
         this.hookRegistry.registerPreHook(createFilesystemPermissionHook());
@@ -107723,19 +107559,9 @@ var init_coordinator_agent = __esm({
             const sessionCtx = await this.sessionContextProvider.getSessionOverrides(conversationId);
             if (sessionCtx) {
               sessionModelOverride = sessionCtx.modelOverride;
-              this.sessionMemory.set(
-                "session:key",
-                sessionCtx.sessionKey ?? "",
-                "critical",
-                "coordinator"
-              );
+              this.sessionMemory.set("session:key", sessionCtx.sessionKey ?? "", "critical", "coordinator");
               if (Object.keys(sessionCtx.autonomyOverrides).length > 0) {
-                this.sessionMemory.set(
-                  "session:autonomy_overrides",
-                  JSON.stringify(sessionCtx.autonomyOverrides),
-                  "critical",
-                  "coordinator"
-                );
+                this.sessionMemory.set("session:autonomy_overrides", JSON.stringify(sessionCtx.autonomyOverrides), "critical", "coordinator");
               }
               console.error(`[CoordinatorAgent] Named session context loaded: ${sessionCtx.sessionKey}`);
             }
@@ -107750,11 +107576,7 @@ var init_coordinator_agent = __esm({
           domains: assessment.domains
         });
         const executor = this.getOrCreateExecutor();
-        const results = await executor.executePlan(
-          decomposition.executionPlan,
-          message,
-          sessionId
-        );
+        const results = await executor.executePlan(decomposition.executionPlan, message, sessionId);
         this.emitBusEvent("orchestrator.synthesis_started", {
           sessionId,
           subtaskCount: results.length
@@ -107764,12 +107586,7 @@ var init_coordinator_agent = __esm({
           sessionId,
           tokensConsumed: synthesis.tokensUsed
         });
-        this.sessionMemory.set(
-          `last_complex_result:${sessionId}`,
-          synthesis.message.slice(0, 2e3),
-          "normal",
-          "coordinator"
-        );
+        this.sessionMemory.set(`last_complex_result:${sessionId}`, synthesis.message.slice(0, 2e3), "normal", "coordinator");
         const actions = [];
         for (const result2 of results) {
           if (result2.status === "escalated" && result2.escalationRequest) {
@@ -107803,17 +107620,17 @@ var init_coordinator_agent = __esm({
         return this.decomposeRuleBased(message, assessment);
       }
       async decomposeWithLLM(message, assessment) {
-        if (!this.llm.routedChat) return [];
+        if (!this.llm.routedChat)
+          return [];
         const toolList = assessment.estimatedTools.join(", ");
         const domainList = assessment.domains.join(", ");
         try {
-          const response = await this.llm.routedChat(
-            {
-              model: "",
-              messages: [
-                {
-                  role: "system",
-                  content: `You decompose complex user requests into parallel subtasks for a multi-agent AI assistant.
+          const response = await this.llm.routedChat({
+            model: "",
+            messages: [
+              {
+                role: "system",
+                content: `You decompose complex user requests into parallel subtasks for a multi-agent AI assistant.
 Each subtask runs as an independent agent with scoped tools.
 
 Available tools by domain:
@@ -107836,22 +107653,21 @@ Rules:
 - modelTier: "fast" for classification/triage, "primary" for reasoning/drafting
 - Keep subtask count between 2-5 (more would overwhelm local hardware)
 - The last subtask should be a synthesis step with no tools (modelTier "primary")`
-                },
-                {
-                  role: "user",
-                  content: `Request: "${message}"
+              },
+              {
+                role: "user",
+                content: `Request: "${message}"
 Detected domains: ${domainList}
 Estimated tools: ${toolList}`
-                }
-              ],
-              temperature: 0.3,
-              maxTokens: 1024,
-              format: "json"
-            },
-            "classify"
-          );
+              }
+            ],
+            temperature: 0.3,
+            maxTokens: 1024,
+            format: "json"
+          }, "classify");
           const parsed = JSON.parse(response.message.content);
-          if (!Array.isArray(parsed) || parsed.length === 0) return [];
+          if (!Array.isArray(parsed) || parsed.length === 0)
+            return [];
           return parsed.filter((s) => s.description && s.tools).map((s, i) => ({
             id: s.id ?? `st-${i + 1}`,
             description: s.description,
@@ -107986,7 +107802,8 @@ Synthesize these into a single coherent response for the user.`
       }
       // ─── Event Bus ──────────────────────────────────────────────────────────────
       emitBusEvent(type, details) {
-        if (!this.eventBus) return;
+        if (!this.eventBus)
+          return;
         try {
           this.eventBus.emit(type, details);
         } catch {
@@ -107996,10 +107813,10 @@ Synthesize these into a single coherent response for the user.`
   }
 });
 
-// packages/core/agent/conversation-manager.ts
+// packages/core/agent/conversation-manager.js
 var ConversationManager;
 var init_conversation_manager = __esm({
-  "packages/core/agent/conversation-manager.ts"() {
+  "packages/core/agent/conversation-manager.js"() {
     "use strict";
     init_nanoid();
     ConversationManager = class {
@@ -108054,10 +107871,8 @@ var init_conversation_manager = __esm({
         const id = nanoid();
         const now = (/* @__PURE__ */ new Date()).toISOString();
         const autoTitle = firstUserMessage ? firstUserMessage.split(/\s+/).slice(0, 6).join(" ").substring(0, 50) : null;
-        this.db.prepare(
-          `INSERT INTO conversations (id, created_at, updated_at, title, pinned, pinned_at, auto_title, turn_count, last_message_preview, expires_at)
-       VALUES (?, ?, ?, NULL, 0, NULL, ?, 0, NULL, NULL)`
-        ).run(id, now, now, autoTitle);
+        this.db.prepare(`INSERT INTO conversations (id, created_at, updated_at, title, pinned, pinned_at, auto_title, turn_count, last_message_preview, expires_at)
+       VALUES (?, ?, ?, NULL, 0, NULL, ?, 0, NULL, NULL)`).run(id, now, now, autoTitle);
         return {
           id,
           title: null,
@@ -108103,23 +107918,20 @@ var init_conversation_manager = __esm({
       }
       /** Get a full conversation with its turns. */
       get(id) {
-        const row = this.db.prepare(
-          `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
-       FROM conversations WHERE id = ?`
-        ).get(id);
-        if (!row) return null;
+        const row = this.db.prepare(`SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
+       FROM conversations WHERE id = ?`).get(id);
+        if (!row)
+          return null;
         const turns = this.getTurns(id);
         return { ...this.rowToSummary(row), turns };
       }
       /** Get paginated turns for a conversation. */
       getTurns(id, limit = 100, offset = 0) {
-        const rows = this.db.prepare(
-          `SELECT id, conversation_id, role, content, timestamp
+        const rows = this.db.prepare(`SELECT id, conversation_id, role, content, timestamp
        FROM conversation_turns
        WHERE conversation_id = ?
        ORDER BY timestamp ASC
-       LIMIT ? OFFSET ?`
-        ).all(id, limit, offset);
+       LIMIT ? OFFSET ?`).all(id, limit, offset);
         return rows.map((r) => ({
           id: r.id,
           conversationId: r.conversation_id,
@@ -108130,9 +107942,7 @@ var init_conversation_manager = __esm({
       }
       /** Rename a conversation (user-set title). */
       rename(id, title) {
-        this.db.prepare(
-          "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?"
-        ).run(title, (/* @__PURE__ */ new Date()).toISOString(), id);
+        this.db.prepare("UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?").run(title, (/* @__PURE__ */ new Date()).toISOString(), id);
       }
       /** Delete a conversation and cascade to turns + embeddings. */
       delete(id) {
@@ -108143,34 +107953,26 @@ var init_conversation_manager = __esm({
       /** Pin a conversation. */
       pin(id) {
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        this.db.prepare(
-          "UPDATE conversations SET pinned = 1, pinned_at = ?, updated_at = ? WHERE id = ?"
-        ).run(now, now, id);
+        this.db.prepare("UPDATE conversations SET pinned = 1, pinned_at = ?, updated_at = ? WHERE id = ?").run(now, now, id);
       }
       /** Unpin a conversation. */
       unpin(id) {
-        this.db.prepare(
-          "UPDATE conversations SET pinned = 0, pinned_at = NULL, updated_at = ? WHERE id = ?"
-        ).run((/* @__PURE__ */ new Date()).toISOString(), id);
+        this.db.prepare("UPDATE conversations SET pinned = 0, pinned_at = NULL, updated_at = ? WHERE id = ?").run((/* @__PURE__ */ new Date()).toISOString(), id);
       }
       /** Search conversations by title/autoTitle/preview using LIKE. */
       searchByTitle(query, limit = 20) {
         const pattern = `%${query}%`;
-        const rows = this.db.prepare(
-          `SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
+        const rows = this.db.prepare(`SELECT id, title, auto_title, created_at, updated_at, pinned, pinned_at, turn_count, last_message_preview, expires_at
        FROM conversations
        WHERE title LIKE ? OR auto_title LIKE ? OR last_message_preview LIKE ?
        ORDER BY updated_at DESC
-       LIMIT ?`
-        ).all(pattern, pattern, pattern, limit);
+       LIMIT ?`).all(pattern, pattern, pattern, limit);
         return rows.map(this.rowToSummary);
       }
       /** Delete expired conversations (where expires_at < now AND not pinned). Returns count deleted. */
       pruneExpired() {
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        const expired = this.db.prepare(
-          `SELECT id FROM conversations WHERE expires_at IS NOT NULL AND expires_at < ? AND pinned = 0`
-        ).all(now);
+        const expired = this.db.prepare(`SELECT id FROM conversations WHERE expires_at IS NOT NULL AND expires_at < ? AND pinned = 0`).all(now);
         for (const row of expired) {
           this.delete(row.id);
         }
@@ -108178,41 +107980,29 @@ var init_conversation_manager = __esm({
       }
       /** Set expiry on a conversation. */
       setExpiry(id, expiresAt) {
-        this.db.prepare(
-          "UPDATE conversations SET expires_at = ?, updated_at = ? WHERE id = ?"
-        ).run(expiresAt, (/* @__PURE__ */ new Date()).toISOString(), id);
+        this.db.prepare("UPDATE conversations SET expires_at = ?, updated_at = ? WHERE id = ?").run(expiresAt, (/* @__PURE__ */ new Date()).toISOString(), id);
       }
       /** Update conversation metadata after a turn is added. */
       updateAfterTurn(id, content, role) {
         const now = (/* @__PURE__ */ new Date()).toISOString();
         const preview = content.substring(0, 120);
         if (role === "user") {
-          const conv = this.db.prepare(
-            "SELECT turn_count, auto_title FROM conversations WHERE id = ?"
-          ).get(id);
+          const conv = this.db.prepare("SELECT turn_count, auto_title FROM conversations WHERE id = ?").get(id);
           if (conv && !conv.auto_title) {
             const autoTitle = content.split(/\s+/).slice(0, 6).join(" ").substring(0, 50);
-            this.db.prepare(
-              "UPDATE conversations SET auto_title = ?, turn_count = turn_count + 1, last_message_preview = ?, updated_at = ? WHERE id = ?"
-            ).run(autoTitle, preview, now, id);
+            this.db.prepare("UPDATE conversations SET auto_title = ?, turn_count = turn_count + 1, last_message_preview = ?, updated_at = ? WHERE id = ?").run(autoTitle, preview, now, id);
             return;
           }
         }
-        this.db.prepare(
-          "UPDATE conversations SET turn_count = turn_count + 1, last_message_preview = ?, updated_at = ? WHERE id = ?"
-        ).run(preview, now, id);
+        this.db.prepare("UPDATE conversations SET turn_count = turn_count + 1, last_message_preview = ?, updated_at = ? WHERE id = ?").run(preview, now, id);
       }
       /** Bulk delete all conversations. Optionally preserve pinned. Returns count deleted. */
       clearAll(opts) {
         let ids;
         if (opts?.preservePinned) {
-          ids = this.db.prepare(
-            "SELECT id FROM conversations WHERE pinned = 0"
-          ).all();
+          ids = this.db.prepare("SELECT id FROM conversations WHERE pinned = 0").all();
         } else {
-          ids = this.db.prepare(
-            "SELECT id FROM conversations"
-          ).all();
+          ids = this.db.prepare("SELECT id FROM conversations").all();
         }
         for (const row of ids) {
           this.delete(row.id);
@@ -108221,12 +108011,8 @@ var init_conversation_manager = __esm({
       }
       /** Get conversation counts. */
       getCount() {
-        const total = this.db.prepare(
-          "SELECT COUNT(*) as count FROM conversations"
-        ).get();
-        const pinned = this.db.prepare(
-          "SELECT COUNT(*) as count FROM conversations WHERE pinned = 1"
-        ).get();
+        const total = this.db.prepare("SELECT COUNT(*) as count FROM conversations").get();
+        const pinned = this.db.prepare("SELECT COUNT(*) as count FROM conversations WHERE pinned = 1").get();
         return { total: total.count, pinned: pinned.count };
       }
       // ─── Internal ──────────────────────────────────────────────────────────────
@@ -108248,10 +108034,10 @@ var init_conversation_manager = __esm({
   }
 });
 
-// packages/core/agent/attachments.ts
+// packages/core/agent/attachments.js
 var MAX_ATTACHMENTS, MAX_DOC_SIZE_BYTES, MAX_IMAGE_SIZE_BYTES, FILE_CATEGORIES, SUPPORTED_EXTENSIONS2;
 var init_attachments = __esm({
-  "packages/core/agent/attachments.ts"() {
+  "packages/core/agent/attachments.js"() {
     "use strict";
     MAX_ATTACHMENTS = 10;
     MAX_DOC_SIZE_BYTES = 50 * 1024 * 1024;
@@ -108306,10 +108092,10 @@ var init_attachments = __esm({
   }
 });
 
-// packages/core/agent/document-context.ts
+// packages/core/agent/document-context.js
 var DocumentContextManager;
 var init_document_context = __esm({
-  "packages/core/agent/document-context.ts"() {
+  "packages/core/agent/document-context.js"() {
     "use strict";
     init_file_scanner();
     init_attachments();
@@ -108329,7 +108115,8 @@ var init_document_context = __esm({
           throw new Error(`Maximum ${MAX_ATTACHMENTS} documents allowed`);
         }
         for (const doc of this.activeDocuments.values()) {
-          if (doc.filePath === filePath) return doc;
+          if (doc.filePath === filePath)
+            return doc;
         }
         const content = await readFileContent(filePath);
         const result2 = await this.knowledgeGraph.indexDocument({
@@ -108375,7 +108162,8 @@ var init_document_context = __esm({
        * Returns null if none.
        */
       getActiveDocument() {
-        if (this.activeDocuments.size === 0) return null;
+        if (this.activeDocuments.size === 0)
+          return null;
         return this.activeDocuments.values().next().value ?? null;
       }
       /**
@@ -108396,7 +108184,8 @@ var init_document_context = __esm({
        * Returns empty if no active documents.
        */
       async getContextForPrompt(userQuery, limit = 5) {
-        if (this.activeDocuments.size === 0) return [];
+        if (this.activeDocuments.size === 0)
+          return [];
         const docIds = new Set(this.activeDocuments.keys());
         const results = await this.knowledgeGraph.search(userQuery, {
           limit: limit * 3 * Math.max(1, this.activeDocuments.size)
@@ -108411,7 +108200,8 @@ var init_document_context = __esm({
        */
       async addToKnowledge(documentId) {
         const doc = this.activeDocuments.get(documentId);
-        if (!doc) return false;
+        if (!doc)
+          return false;
         const content = await readFileContent(doc.filePath);
         await this.knowledgeGraph.indexDocument({
           content: content.content,
@@ -108434,23 +108224,31 @@ var init_document_context = __esm({
   }
 });
 
-// packages/core/agent/daily-digest.ts
+// packages/core/agent/daily-digest.js
 function formatTimeSaved(seconds) {
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 60)
+    return `${seconds}s`;
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 60)
+    return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   const remaining = minutes % 60;
   return remaining > 0 ? `${hours}h ${remaining}m` : `${hours}h`;
 }
 function buildSummary(digest) {
   const parts = [];
-  if (digest.emailsHandled > 0) parts.push(`${digest.emailsHandled} emails handled`);
-  if (digest.meetingsPrepped > 0) parts.push(`${digest.meetingsPrepped} meetings prepped`);
-  if (digest.followUpsTracked > 0) parts.push(`${digest.followUpsTracked} follow-ups tracked`);
-  if (digest.remindersCreated > 0) parts.push(`${digest.remindersCreated} reminders created`);
-  if (digest.webSearches > 0) parts.push(`${digest.webSearches} web searches`);
-  if (parts.length === 0) return "No actions today.";
+  if (digest.emailsHandled > 0)
+    parts.push(`${digest.emailsHandled} emails handled`);
+  if (digest.meetingsPrepped > 0)
+    parts.push(`${digest.meetingsPrepped} meetings prepped`);
+  if (digest.followUpsTracked > 0)
+    parts.push(`${digest.followUpsTracked} follow-ups tracked`);
+  if (digest.remindersCreated > 0)
+    parts.push(`${digest.remindersCreated} reminders created`);
+  if (digest.webSearches > 0)
+    parts.push(`${digest.webSearches} web searches`);
+  if (parts.length === 0)
+    return "No actions today.";
   return `Today: ${parts.join(", ")}. Time saved: ~${digest.timeSavedFormatted}.`;
 }
 function getDateString(date = /* @__PURE__ */ new Date()) {
@@ -108464,16 +108262,21 @@ function categorizeAction(actionType) {
     remindersCreated: 0,
     webSearches: 0
   };
-  if (actionType.startsWith("email.")) counts.emailsHandled = 1;
-  else if (actionType.startsWith("calendar.")) counts.meetingsPrepped = 1;
-  else if (actionType === "reminder.create") counts.remindersCreated = 1;
-  else if (actionType.startsWith("reminder.")) counts.followUpsTracked = 1;
-  else if (actionType.startsWith("web.")) counts.webSearches = 1;
+  if (actionType.startsWith("email."))
+    counts.emailsHandled = 1;
+  else if (actionType.startsWith("calendar."))
+    counts.meetingsPrepped = 1;
+  else if (actionType === "reminder.create")
+    counts.remindersCreated = 1;
+  else if (actionType.startsWith("reminder."))
+    counts.followUpsTracked = 1;
+  else if (actionType.startsWith("web."))
+    counts.webSearches = 1;
   return counts;
 }
 var CREATE_TABLES3, DailyDigestGenerator;
 var init_daily_digest = __esm({
-  "packages/core/agent/daily-digest.ts"() {
+  "packages/core/agent/daily-digest.js"() {
     "use strict";
     init_nanoid();
     CREATE_TABLES3 = `
@@ -108512,17 +108315,16 @@ var init_daily_digest = __esm({
       generate(date = /* @__PURE__ */ new Date()) {
         const dateStr = getDateString(date);
         const existing = this.getByDate(dateStr);
-        if (existing) return existing;
+        if (existing)
+          return existing;
         const dayStart = `${dateStr}T00:00:00`;
         const dayEnd = `${dateStr}T23:59:59`;
         let rows;
         try {
-          rows = this.db.prepare(
-            `SELECT action, estimated_time_saved_seconds
+          rows = this.db.prepare(`SELECT action, estimated_time_saved_seconds
          FROM audit_trail
          WHERE timestamp >= ? AND timestamp <= ?
-         AND status = 'success'`
-          ).all(dayStart, dayEnd);
+         AND status = 'success'`).all(dayStart, dayEnd);
         } catch {
           rows = [];
         }
@@ -108567,24 +108369,9 @@ var init_daily_digest = __esm({
           summary,
           dismissed: false
         };
-        this.db.prepare(
-          `INSERT INTO daily_digests (id, date, generated_at, total_actions, actions_by_type, total_time_saved_seconds,
+        this.db.prepare(`INSERT INTO daily_digests (id, date, generated_at, total_actions, actions_by_type, total_time_saved_seconds,
        emails_handled, meetings_prepped, follow_ups_tracked, reminders_created, web_searches, summary, dismissed)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
-        ).run(
-          digest.id,
-          digest.date,
-          (/* @__PURE__ */ new Date()).toISOString(),
-          digest.totalActions,
-          JSON.stringify(digest.actionsByType),
-          digest.totalTimeSavedSeconds,
-          digest.emailsHandled,
-          digest.meetingsPrepped,
-          digest.followUpsTracked,
-          digest.remindersCreated,
-          digest.webSearches,
-          digest.summary
-        );
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`).run(digest.id, digest.date, (/* @__PURE__ */ new Date()).toISOString(), digest.totalActions, JSON.stringify(digest.actionsByType), digest.totalTimeSavedSeconds, digest.emailsHandled, digest.meetingsPrepped, digest.followUpsTracked, digest.remindersCreated, digest.webSearches, digest.summary);
         return digest;
       }
       /**
@@ -108594,7 +108381,8 @@ var init_daily_digest = __esm({
        */
       async generateWithComparison(date = /* @__PURE__ */ new Date()) {
         const digest = this.generate(date);
-        if (!this.comparisonStatementProvider) return digest;
+        if (!this.comparisonStatementProvider)
+          return digest;
         try {
           const comparison = await this.comparisonStatementProvider.getComparisonStatementOnly();
           if (comparison.summaryText && comparison.totalDataPoints > 0) {
@@ -108616,10 +108404,9 @@ ${comparison.summaryText}`;
        * Get digest for a specific date.
        */
       getByDate(dateStr) {
-        const row = this.db.prepare(
-          "SELECT * FROM daily_digests WHERE date = ?"
-        ).get(dateStr);
-        if (!row) return null;
+        const row = this.db.prepare("SELECT * FROM daily_digests WHERE date = ?").get(dateStr);
+        if (!row)
+          return null;
         return {
           id: row.id,
           date: row.date,
@@ -108640,18 +108427,14 @@ ${comparison.summaryText}`;
        * Dismiss today's digest.
        */
       dismiss(digestId) {
-        this.db.prepare(
-          "UPDATE daily_digests SET dismissed = 1 WHERE id = ?"
-        ).run(digestId);
+        this.db.prepare("UPDATE daily_digests SET dismissed = 1 WHERE id = ?").run(digestId);
       }
       /**
        * Get daily digest preferences.
        */
       getPreferences() {
         try {
-          const row = this.db.prepare(
-            "SELECT value FROM preferences WHERE key = 'daily_digest_prefs'"
-          ).get();
+          const row = this.db.prepare("SELECT value FROM preferences WHERE key = 'daily_digest_prefs'").get();
           if (row) {
             return JSON.parse(row.value);
           }
@@ -108670,30 +108453,28 @@ ${comparison.summaryText}`;
         value TEXT NOT NULL
       )
     `);
-        this.db.prepare(
-          `INSERT OR REPLACE INTO preferences (key, value) VALUES ('daily_digest_prefs', ?)`
-        ).run(JSON.stringify(prefs));
+        this.db.prepare(`INSERT OR REPLACE INTO preferences (key, value) VALUES ('daily_digest_prefs', ?)`).run(JSON.stringify(prefs));
         this.onPreferenceChanged?.(prefs);
       }
     };
   }
 });
 
-// packages/core/agent/task-router.ts
+// packages/core/agent/task-router.js
 var init_task_router = __esm({
-  "packages/core/agent/task-router.ts"() {
+  "packages/core/agent/task-router.js"() {
     "use strict";
   }
 });
 
-// packages/core/agent/device-handoff.ts
+// packages/core/agent/device-handoff.js
 var init_device_handoff = __esm({
-  "packages/core/agent/device-handoff.ts"() {
+  "packages/core/agent/device-handoff.js"() {
     "use strict";
   }
 });
 
-// packages/core/agent/index.ts
+// packages/core/agent/index.js
 function createCoordinatorAgent(config) {
   const p = getPlatform();
   const db = p.sqlite.openDatabase(p.path.join(config.dataDir, "agent.db"));
@@ -108736,7 +108517,7 @@ function createCoordinatorAgent(config) {
   return coordinator;
 }
 var init_agent = __esm({
-  "packages/core/agent/index.ts"() {
+  "packages/core/agent/index.js"() {
     "use strict";
     init_autonomy();
     init_ipc_client();
@@ -108761,7 +108542,7 @@ var init_agent = __esm({
   }
 });
 
-// packages/core/extensions/loader.ts
+// packages/core/extensions/loader.js
 async function loadExtensions() {
   if (loadedExtensions.length > 0) {
     return loadedExtensions;
@@ -108784,18 +108565,20 @@ async function loadExtensions() {
 }
 var loadedExtensions;
 var init_loader = __esm({
-  "packages/core/extensions/loader.ts"() {
+  "packages/core/extensions/loader.js"() {
     "use strict";
     loadedExtensions = [];
   }
 });
 
-// packages/core/premium/founding-token.ts
+// packages/core/premium/founding-token.js
 function base64urlDecode(str) {
   let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
   const padding = base64.length % 4;
-  if (padding === 2) base64 += "==";
-  else if (padding === 3) base64 += "=";
+  if (padding === 2)
+    base64 += "==";
+  else if (padding === 3)
+    base64 += "=";
   return Buffer.from(base64, "base64");
 }
 function verifyFoundingToken(token) {
@@ -108870,7 +108653,7 @@ function verifyFoundingToken(token) {
 }
 var import_node_crypto3, TEST_PUBLIC_KEY_PEM, PRODUCTION_PUBLIC_KEY_PEM, FOUNDING_PUBLIC_KEY_PEM, MAX_FOUNDING_SEAT;
 var init_founding_token = __esm({
-  "packages/core/premium/founding-token.ts"() {
+  "packages/core/premium/founding-token.js"() {
     "use strict";
     import_node_crypto3 = require("node:crypto");
     TEST_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
@@ -108884,12 +108667,14 @@ MCowBQYDK2VwAyEAjdSpFw84m5aJU+Qa8vXlGFS4IQRZW1s/sAfMbKl4/rI=
   }
 });
 
-// packages/core/premium/license-keys.ts
+// packages/core/premium/license-keys.js
 function base64urlDecode2(str) {
   let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
   const padding = base64.length % 4;
-  if (padding === 2) base64 += "==";
-  else if (padding === 3) base64 += "=";
+  if (padding === 2)
+    base64 += "==";
+  else if (padding === 3)
+    base64 += "=";
   return Buffer.from(base64, "base64");
 }
 function verifyLicenseKeySignature(key) {
@@ -108929,7 +108714,7 @@ function verifyLicenseKeySignature(key) {
 }
 var import_node_crypto4, TEST_PUBLIC_KEY_PEM2, PRODUCTION_PUBLIC_KEY_PEM2, LICENSE_PUBLIC_KEY_PEM;
 var init_license_keys = __esm({
-  "packages/core/premium/license-keys.ts"() {
+  "packages/core/premium/license-keys.js"() {
     "use strict";
     import_node_crypto4 = require("node:crypto");
     TEST_PUBLIC_KEY_PEM2 = `-----BEGIN PUBLIC KEY-----
@@ -108942,10 +108727,10 @@ MCowBQYDK2VwAyEAjZLwfE5cpkjYZF0kVoOvR3FzySjU1NNOezrQSgtimkU=
   }
 });
 
-// packages/core/premium/premium-gate.ts
+// packages/core/premium/premium-gate.js
 var FEATURE_TIER_MAP, TIER_RANK, PremiumGate;
 var init_premium_gate = __esm({
-  "packages/core/premium/premium-gate.ts"() {
+  "packages/core/premium/premium-gate.js"() {
     "use strict";
     init_founding_token();
     init_license_keys();
@@ -109009,7 +108794,8 @@ var init_premium_gate = __esm({
         try {
           const columns = this.db.prepare("PRAGMA table_info('license')").all();
           const hasKeyColumn = columns.some((c) => c.name === "license_key");
-          if (!hasKeyColumn) return;
+          if (!hasKeyColumn)
+            return;
           this.db.exec(`
         CREATE TABLE IF NOT EXISTS license_new (
           id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -109031,10 +108817,13 @@ var init_premium_gate = __esm({
        */
       isPremium() {
         const tier = this.getLicenseTier();
-        if (tier === "free") return false;
+        if (tier === "free")
+          return false;
         const row = this.db.prepare("SELECT expires_at FROM license WHERE id = 1").get();
-        if (!row) return false;
-        if (tier === "lifetime" || tier === "founding") return true;
+        if (!row)
+          return false;
+        if (tier === "lifetime" || tier === "founding")
+          return true;
         if (row.expires_at) {
           return new Date(row.expires_at).getTime() > Date.now();
         }
@@ -109045,7 +108834,8 @@ var init_premium_gate = __esm({
        */
       getLicenseTier() {
         const row = this.db.prepare("SELECT tier FROM license WHERE id = 1").get();
-        if (!row) return "free";
+        if (!row)
+          return "free";
         return row.tier;
       }
       /**
@@ -109070,8 +108860,10 @@ var init_premium_gate = __esm({
         try {
           let b64 = segments[1].replace(/-/g, "+").replace(/_/g, "/");
           const padding = b64.length % 4;
-          if (padding === 2) b64 += "==";
-          else if (padding === 3) b64 += "=";
+          if (padding === 2)
+            b64 += "==";
+          else if (padding === 3)
+            b64 += "=";
           const decoded = Buffer.from(b64, "base64").toString("utf-8");
           payload = JSON.parse(decoded);
         } catch {
@@ -109160,7 +108952,8 @@ var init_premium_gate = __esm({
        */
       getFoundingSeat() {
         const row = this.db.prepare("SELECT founding_seat FROM license WHERE id = 1").get();
-        if (!row) return null;
+        if (!row)
+          return null;
         return row.founding_seat ?? null;
       }
       /**
@@ -109168,7 +108961,8 @@ var init_premium_gate = __esm({
        * Async because keychain access is async.
        */
       async getLicenseKey() {
-        if (!this.keyStorage) return null;
+        if (!this.keyStorage)
+          return null;
         try {
           return await this.keyStorage.getLicenseKey();
         } catch {
@@ -109201,7 +108995,8 @@ var init_premium_gate = __esm({
        * Returns all features available at the current tier.
        */
       getAvailableFeatures() {
-        if (!this.isPremium()) return [];
+        if (!this.isPremium())
+          return [];
         const currentTier = this.getLicenseTier();
         const currentRank = TIER_RANK[currentTier];
         return Object.entries(FEATURE_TIER_MAP).filter(([, requiredTier]) => currentRank >= TIER_RANK[requiredTier]).map(([feature]) => feature);
@@ -109210,10 +109005,10 @@ var init_premium_gate = __esm({
   }
 });
 
-// packages/core/style/style-profile.ts
+// packages/core/style/style-profile.js
 var CREATE_TABLES4, StyleProfileStore;
 var init_style_profile = __esm({
-  "packages/core/style/style-profile.ts"() {
+  "packages/core/style/style-profile.js"() {
     "use strict";
     init_nanoid();
     CREATE_TABLES4 = `
@@ -109265,36 +109060,25 @@ var init_style_profile = __esm({
         this.db.prepare(`
       INSERT INTO style_profiles (id, version, user_id, profile_json, emails_analyzed, is_active, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-          id,
-          profileWithId.version,
-          userId,
-          JSON.stringify(profileWithId),
-          profileWithId.emailsAnalyzed,
-          profileWithId.isActive ? 1 : 0,
-          now,
-          now
-        );
+    `).run(id, profileWithId.version, userId, JSON.stringify(profileWithId), profileWithId.emailsAnalyzed, profileWithId.isActive ? 1 : 0, now, now);
         return profileWithId;
       }
       /**
        * Get the currently active profile for a user, or null if none exists.
        */
       getActiveProfile(userId = "default") {
-        const row = this.db.prepare(
-          "SELECT profile_json FROM style_profiles WHERE user_id = ? ORDER BY rowid DESC LIMIT 1"
-        ).get(userId);
-        if (!row) return null;
+        const row = this.db.prepare("SELECT profile_json FROM style_profiles WHERE user_id = ? ORDER BY rowid DESC LIMIT 1").get(userId);
+        if (!row)
+          return null;
         return JSON.parse(row.profile_json);
       }
       /**
        * Get a profile by its ID.
        */
       getProfileById(id) {
-        const row = this.db.prepare(
-          "SELECT profile_json FROM style_profiles WHERE id = ?"
-        ).get(id);
-        if (!row) return null;
+        const row = this.db.prepare("SELECT profile_json FROM style_profiles WHERE id = ?").get(id);
+        if (!row)
+          return null;
         return JSON.parse(row.profile_json);
       }
       /**
@@ -109302,7 +109086,8 @@ var init_style_profile = __esm({
        */
       updateProfile(id, updates) {
         const existing = this.getProfileById(id);
-        if (!existing) return null;
+        if (!existing)
+          return null;
         const historyId = `sph_${nanoid()}`;
         const historyNow = (/* @__PURE__ */ new Date()).toISOString();
         this.db.prepare(`
@@ -109324,23 +109109,14 @@ var init_style_profile = __esm({
       UPDATE style_profiles
       SET version = ?, profile_json = ?, emails_analyzed = ?, is_active = ?, updated_at = ?
       WHERE id = ?
-    `).run(
-          newVersion,
-          JSON.stringify(updated),
-          updated.emailsAnalyzed,
-          updated.isActive ? 1 : 0,
-          now,
-          id
-        );
+    `).run(newVersion, JSON.stringify(updated), updated.emailsAnalyzed, updated.isActive ? 1 : 0, now, id);
         return updated;
       }
       /**
        * Get version history for a profile.
        */
       getProfileHistory(profileId) {
-        const rows = this.db.prepare(
-          "SELECT * FROM style_profile_history WHERE profile_id = ? ORDER BY version ASC"
-        ).all(profileId);
+        const rows = this.db.prepare("SELECT * FROM style_profile_history WHERE profile_id = ? ORDER BY version ASC").all(profileId);
         return rows.map((r) => ({
           id: r.id,
           profileId: r.profile_id,
@@ -109354,7 +109130,8 @@ var init_style_profile = __esm({
        */
       isProfileActive(profileId) {
         const profile = this.getProfileById(profileId);
-        if (!profile) return false;
+        if (!profile)
+          return false;
         return profile.emailsAnalyzed >= 20;
       }
       // ─── Correction Tracking ──────────────────────────────────────────────────
@@ -109367,14 +109144,7 @@ var init_style_profile = __esm({
         this.db.prepare(`
       INSERT INTO style_corrections (id, profile_id, original_draft, corrected_draft, correction_type, created_at, applied)
       VALUES (?, ?, ?, ?, ?, ?, 0)
-    `).run(
-          id,
-          input.profileId,
-          input.originalDraft,
-          input.correctedDraft,
-          input.correctionType ?? null,
-          now
-        );
+    `).run(id, input.profileId, input.originalDraft, input.correctedDraft, input.correctionType ?? null, now);
         return {
           id,
           profileId: input.profileId,
@@ -109389,9 +109159,7 @@ var init_style_profile = __esm({
        * Get all unapplied corrections for a profile.
        */
       getUnappliedCorrections(profileId) {
-        const rows = this.db.prepare(
-          "SELECT * FROM style_corrections WHERE profile_id = ? AND applied = 0 ORDER BY created_at ASC"
-        ).all(profileId);
+        const rows = this.db.prepare("SELECT * FROM style_corrections WHERE profile_id = ? AND applied = 0 ORDER BY created_at ASC").all(profileId);
         return rows.map((r) => ({
           id: r.id,
           profileId: r.profile_id,
@@ -109406,9 +109174,7 @@ var init_style_profile = __esm({
        * Get all corrections of a specific type for a profile.
        */
       getCorrectionsByType(profileId, type) {
-        const rows = this.db.prepare(
-          "SELECT * FROM style_corrections WHERE profile_id = ? AND correction_type = ? ORDER BY created_at ASC"
-        ).all(profileId, type);
+        const rows = this.db.prepare("SELECT * FROM style_corrections WHERE profile_id = ? AND correction_type = ? ORDER BY created_at ASC").all(profileId, type);
         return rows.map((r) => ({
           id: r.id,
           profileId: r.profile_id,
@@ -109423,17 +109189,13 @@ var init_style_profile = __esm({
        * Mark a correction as applied to the profile.
        */
       markCorrectionApplied(correctionId) {
-        this.db.prepare(
-          "UPDATE style_corrections SET applied = 1 WHERE id = ?"
-        ).run(correctionId);
+        this.db.prepare("UPDATE style_corrections SET applied = 1 WHERE id = ?").run(correctionId);
       }
       /**
        * Count corrections by type for a profile (for determining when to apply).
        */
       countUnappliedCorrectionsByType(profileId) {
-        const rows = this.db.prepare(
-          "SELECT correction_type, COUNT(*) as count FROM style_corrections WHERE profile_id = ? AND applied = 0 AND correction_type IS NOT NULL GROUP BY correction_type"
-        ).all(profileId);
+        const rows = this.db.prepare("SELECT correction_type, COUNT(*) as count FROM style_corrections WHERE profile_id = ? AND applied = 0 AND correction_type IS NOT NULL GROUP BY correction_type").all(profileId);
         const counts = {};
         for (const row of rows) {
           counts[row.correction_type] = row.count;
@@ -113242,7 +113004,7 @@ var init_types = __esm({
         ...processCreateParams(params)
       });
     };
-    BRAND = /* @__PURE__ */ Symbol("zod_brand");
+    BRAND = Symbol("zod_brand");
     ZodBranded = class extends ZodType {
       _parse(input) {
         const { ctx } = this._processInputParams(input);
@@ -113559,10 +113321,10 @@ var init_zod = __esm({
   }
 });
 
-// packages/core/types/ipc.ts
+// packages/core/types/ipc.js
 var ActionType, emailStringOrArray, EmailSendPayload, EmailFetchPayload, CalendarFetchPayload, CalendarCreatePayload, CalendarUpdatePayload, CalendarDeletePayload, EmailArchivePayload, EmailMovePayload, EmailMarkReadPayload, ServiceApiCallPayload, FinanceFetchPayload, PlaidLinkPayload, PlaidExchangePayload, PlaidSyncPayload, PlaidBalancesPayload, PlaidStatusPayload, PlaidDisconnectPayload, HealthFetchPayload, ModelDownloadPayload, ModelDownloadCancelPayload, ModelVerifyPayload, WebSearchPayload, WebSearchResponse, WebDeepSearchPayload, WebDeepSearchResponse, WebFetchPayload, WebFetchResponse, ReminderCreatePayload, ReminderUpdatePayload, ReminderListPayload, ReminderDeletePayload, ContactsImportPayload, ContactsListPayload, ContactsGetPayload, ContactsSearchPayload, MessagingDraftPayload, MessagingSendPayload, MessagingReadPayload, ClipboardAnalyzePayload, ClipboardActPayload, ClipboardWebActionPayload, LocationReminderFirePayload, LocationCommuteAlertPayload, LocationWeatherQueryPayload, VoiceTranscribePayload, VoiceSpeakPayload, VoiceConversationPayload, CloudAuthPayload, CloudAuthStatusPayload, CloudDisconnectPayload, CloudListFilesPayload, CloudFileMetadataPayload, CloudDownloadFilePayload, CloudCheckChangedPayload, ConnectorAuthPayload, ConnectorAuthStatusPayload, ConnectorDisconnectPayload, ConnectorSyncPayload, ConnectorListItemsPayload, ImportRunPayload, ImportStatusPayload, FileWritePayload, NetworkStartDiscoveryPayload, NetworkStopDiscoveryPayload, NetworkSendPayload, ActionPayloadMap, ActionRequest, ActionResponse;
 var init_ipc = __esm({
-  "packages/core/types/ipc.ts"() {
+  "packages/core/types/ipc.js"() {
     "use strict";
     init_zod();
     ActionType = external_exports.enum([
@@ -114148,10 +113910,10 @@ var init_ipc = __esm({
   }
 });
 
-// packages/core/types/audit.ts
+// packages/core/types/audit.js
 var AuditEntry;
 var init_audit = __esm({
-  "packages/core/types/audit.ts"() {
+  "packages/core/types/audit.js"() {
     "use strict";
     init_zod();
     init_ipc();
@@ -114171,7 +113933,7 @@ var init_audit = __esm({
   }
 });
 
-// packages/core/types/cloud-bridge.ts
+// packages/core/types/cloud-bridge.js
 var cloud_bridge_exports = {};
 __export(cloud_bridge_exports, {
   DEFAULT_ROUTING_POLICY: () => DEFAULT_ROUTING_POLICY,
@@ -114183,7 +113945,7 @@ function getKnownProvider(id) {
 }
 var DEFAULT_ROUTING_POLICY, KNOWN_PROVIDERS;
 var init_cloud_bridge = __esm({
-  "packages/core/types/cloud-bridge.ts"() {
+  "packages/core/types/cloud-bridge.js"() {
     "use strict";
     DEFAULT_ROUTING_POLICY = {
       mode: "off",
@@ -114243,9 +114005,9 @@ var init_cloud_bridge = __esm({
   }
 });
 
-// packages/core/types/index.ts
+// packages/core/types/index.js
 var init_types2 = __esm({
-  "packages/core/types/index.ts"() {
+  "packages/core/types/index.js"() {
     "use strict";
     init_ipc();
     init_audit();
@@ -114254,10 +114016,10 @@ var init_types2 = __esm({
   }
 });
 
-// packages/core/agent/named-session-manager.ts
+// packages/core/agent/named-session-manager.js
 var NamedSessionManager;
 var init_named_session_manager = __esm({
-  "packages/core/agent/named-session-manager.ts"() {
+  "packages/core/agent/named-session-manager.js"() {
     "use strict";
     init_nanoid();
     NamedSessionManager = class {
@@ -114273,41 +114035,26 @@ var init_named_session_manager = __esm({
         const normalizedKey = this.normalizeKey(params.key);
         const conversationId = nanoid();
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        this.db.prepare(
-          "INSERT OR IGNORE INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)"
-        ).run(conversationId, now, now);
+        this.db.prepare("INSERT OR IGNORE INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)").run(conversationId, now, now);
         this.db.prepare(`
       INSERT OR REPLACE INTO named_sessions
         (session_key, label, conversation_id, autonomy_override_json, model_override, channel_binding, message_count, last_active_at, created_at)
       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
-    `).run(
-          normalizedKey,
-          params.label,
-          conversationId,
-          params.autonomyOverrides ? JSON.stringify(params.autonomyOverrides) : null,
-          params.modelOverride ?? null,
-          params.channelBinding ?? null,
-          now,
-          now
-        );
+    `).run(normalizedKey, params.label, conversationId, params.autonomyOverrides ? JSON.stringify(params.autonomyOverrides) : null, params.modelOverride ?? null, params.channelBinding ?? null, now, now);
         return conversationId;
       }
       /**
        * Get a session by key.
        */
       async getSession(key) {
-        const row = this.db.prepare(
-          "SELECT * FROM named_sessions WHERE session_key = ?"
-        ).get(this.normalizeKey(key));
+        const row = this.db.prepare("SELECT * FROM named_sessions WHERE session_key = ?").get(this.normalizeKey(key));
         return row ? this.rowToSession(row) : null;
       }
       /**
        * List all named sessions.
        */
       async listSessions() {
-        const rows = this.db.prepare(
-          "SELECT * FROM named_sessions ORDER BY last_active_at DESC"
-        ).all();
+        const rows = this.db.prepare("SELECT * FROM named_sessions ORDER BY last_active_at DESC").all();
         return rows.map((r) => this.rowToSession(r));
       }
       /**
@@ -114315,9 +114062,7 @@ var init_named_session_manager = __esm({
        */
       async deleteSession(key) {
         const normalizedKey = this.normalizeKey(key);
-        const session = this.db.prepare(
-          "SELECT conversation_id FROM named_sessions WHERE session_key = ?"
-        ).get(normalizedKey);
+        const session = this.db.prepare("SELECT conversation_id FROM named_sessions WHERE session_key = ?").get(normalizedKey);
         if (session) {
           this.db.prepare("DELETE FROM conversation_turns WHERE conversation_id = ?").run(session.conversation_id);
           this.db.prepare("DELETE FROM conversations WHERE id = ?").run(session.conversation_id);
@@ -114330,9 +114075,7 @@ var init_named_session_manager = __esm({
       async resolveSession(key) {
         const existing = await this.getSession(key);
         if (existing) {
-          this.db.prepare(
-            "UPDATE named_sessions SET last_active_at = ? WHERE session_key = ?"
-          ).run((/* @__PURE__ */ new Date()).toISOString(), this.normalizeKey(key));
+          this.db.prepare("UPDATE named_sessions SET last_active_at = ? WHERE session_key = ?").run((/* @__PURE__ */ new Date()).toISOString(), this.normalizeKey(key));
           return existing.conversationId;
         }
         const label = key.split(":").map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" ");
@@ -114344,24 +114087,21 @@ var init_named_session_manager = __esm({
        */
       async getEffectiveTier(sessionKey, domain, globalTier) {
         const session = await this.getSession(sessionKey);
-        if (!session) return globalTier;
+        if (!session)
+          return globalTier;
         return session.autonomyOverrides[domain] ?? globalTier;
       }
       /**
        * Increment message count for a session.
        */
       incrementMessageCount(key) {
-        this.db.prepare(
-          "UPDATE named_sessions SET message_count = message_count + 1, last_active_at = ? WHERE session_key = ?"
-        ).run((/* @__PURE__ */ new Date()).toISOString(), this.normalizeKey(key));
+        this.db.prepare("UPDATE named_sessions SET message_count = message_count + 1, last_active_at = ? WHERE session_key = ?").run((/* @__PURE__ */ new Date()).toISOString(), this.normalizeKey(key));
       }
       /**
        * Get session by channel binding.
        */
       async getSessionByChannel(channelBinding) {
-        const row = this.db.prepare(
-          "SELECT * FROM named_sessions WHERE channel_binding = ?"
-        ).get(channelBinding);
+        const row = this.db.prepare("SELECT * FROM named_sessions WHERE channel_binding = ?").get(channelBinding);
         return row ? this.rowToSession(row) : null;
       }
       // ─── Private ──────────────────────────────────────────────────────────────
@@ -114403,32 +114143,32 @@ var init_named_session_manager = __esm({
   }
 });
 
-// packages/core/ipc/in-process-transport.ts
+// packages/core/ipc/in-process-transport.js
 var init_in_process_transport = __esm({
-  "packages/core/ipc/in-process-transport.ts"() {
+  "packages/core/ipc/in-process-transport.js"() {
     "use strict";
   }
 });
 
-// packages/core/extensions/ui-slots.ts
+// packages/core/extensions/ui-slots.js
 var init_ui_slots = __esm({
-  "packages/core/extensions/ui-slots.ts"() {
+  "packages/core/extensions/ui-slots.js"() {
     "use strict";
   }
 });
 
-// packages/core/extensions/index.ts
+// packages/core/extensions/index.js
 var init_extensions = __esm({
-  "packages/core/extensions/index.ts"() {
+  "packages/core/extensions/index.js"() {
     "use strict";
     init_loader();
     init_ui_slots();
   }
 });
 
-// packages/core/llm/mobile-model-manager.ts
+// packages/core/llm/mobile-model-manager.js
 var init_mobile_model_manager = __esm({
-  "packages/core/llm/mobile-model-manager.ts"() {
+  "packages/core/llm/mobile-model-manager.js"() {
     "use strict";
   }
 });
@@ -116466,7 +116206,7 @@ var init_ed25519 = __esm({
   }
 });
 
-// packages/core/crypto/ed25519.ts
+// packages/core/crypto/ed25519.js
 function generateKeyPair() {
   const seed = getPlatform().crypto.randomBytes(32);
   const publicKey = Buffer.from(ed25519.getPublicKey(seed));
@@ -116487,26 +116227,27 @@ function verify3(payload, signature, publicKey) {
   }
 }
 var init_ed255192 = __esm({
-  "packages/core/crypto/ed25519.ts"() {
+  "packages/core/crypto/ed25519.js"() {
     "use strict";
     init_ed25519();
     init_platform();
   }
 });
 
-// packages/core/audit/merkle-chain.ts
+// packages/core/audit/merkle-chain.js
 function canonicalJSON(obj2) {
-  if (obj2 === null || obj2 === void 0) return "null";
-  if (typeof obj2 === "string") return JSON.stringify(obj2);
-  if (typeof obj2 === "number" || typeof obj2 === "boolean") return String(obj2);
+  if (obj2 === null || obj2 === void 0)
+    return "null";
+  if (typeof obj2 === "string")
+    return JSON.stringify(obj2);
+  if (typeof obj2 === "number" || typeof obj2 === "boolean")
+    return String(obj2);
   if (Array.isArray(obj2)) {
     return "[" + obj2.map((item) => canonicalJSON(item)).join(",") + "]";
   }
   if (typeof obj2 === "object") {
     const sorted = Object.keys(obj2).sort();
-    const entries = sorted.map(
-      (key) => JSON.stringify(key) + ":" + canonicalJSON(obj2[key])
-    );
+    const entries = sorted.map((key) => JSON.stringify(key) + ":" + canonicalJSON(obj2[key]));
     return "{" + entries.join(",") + "}";
   }
   return String(obj2);
@@ -116515,7 +116256,8 @@ function hashEntry(entry) {
   return sha256(canonicalJSON(entry));
 }
 function buildMerkleRoot(leafHashes) {
-  if (leafHashes.length === 0) return "";
+  if (leafHashes.length === 0)
+    return "";
   let level = [...leafHashes];
   while (level.length > 1) {
     const nextLevel = [];
@@ -116530,7 +116272,7 @@ function buildMerkleRoot(leafHashes) {
 }
 var CREATE_MERKLE_TABLE, MerkleChain;
 var init_merkle_chain = __esm({
-  "packages/core/audit/merkle-chain.ts"() {
+  "packages/core/audit/merkle-chain.js"() {
     "use strict";
     init_signing();
     init_ed255192();
@@ -116556,9 +116298,7 @@ var init_merkle_chain = __esm({
        * and chains to the previous day's root.
        */
       buildDailyMerkleTree(date) {
-        const entries = this.db.prepare(
-          `SELECT * FROM audit_log WHERE timestamp LIKE ? ORDER BY rowid ASC`
-        ).all(`${date}%`);
+        const entries = this.db.prepare(`SELECT * FROM audit_log WHERE timestamp LIKE ? ORDER BY rowid ASC`).all(`${date}%`);
         const auditEntries = entries.map((row) => ({
           id: row.id,
           requestId: row.request_id,
@@ -116574,9 +116314,7 @@ var init_merkle_chain = __esm({
         }));
         const leafHashes = auditEntries.map(hashEntry);
         const merkleRoot = buildMerkleRoot(leafHashes);
-        const prevRow = this.db.prepare(
-          `SELECT merkle_root FROM merkle_chain WHERE date < ? ORDER BY date DESC LIMIT 1`
-        ).get(date);
+        const prevRow = this.db.prepare(`SELECT merkle_root FROM merkle_chain WHERE date < ? ORDER BY date DESC LIMIT 1`).get(date);
         const previousRoot = prevRow?.merkle_root ?? "";
         const chainedHash = sha256(merkleRoot + previousRoot);
         this.db.prepare(`
@@ -116617,9 +116355,7 @@ var init_merkle_chain = __esm({
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
           totalEntries += row.entry_count;
-          const entries = this.db.prepare(
-            `SELECT * FROM audit_log WHERE timestamp LIKE ? ORDER BY rowid ASC`
-          ).all(`${row.date}%`);
+          const entries = this.db.prepare(`SELECT * FROM audit_log WHERE timestamp LIKE ? ORDER BY rowid ASC`).all(`${row.date}%`);
           const auditEntries = entries.map((r) => ({
             id: r.id,
             requestId: r.request_id,
@@ -116680,20 +116416,15 @@ var init_merkle_chain = __esm({
           chainedHash: receipt.chainedHash,
           entryCount: receipt.entryCount
         });
-        return verify3(
-          Buffer.from(receiptPayload),
-          Buffer.from(receipt.signature, "hex"),
-          publicKey
-        );
+        return verify3(Buffer.from(receiptPayload), Buffer.from(receipt.signature, "hex"), publicKey);
       }
       /**
        * Get the latest stored verification result (for IPC caching).
        */
       getLatestRoot() {
-        const row = this.db.prepare(
-          "SELECT * FROM merkle_chain ORDER BY date DESC LIMIT 1"
-        ).get();
-        if (!row) return null;
+        const row = this.db.prepare("SELECT * FROM merkle_chain ORDER BY date DESC LIMIT 1").get();
+        if (!row)
+          return null;
         return {
           date: row.date,
           merkleRoot: row.merkle_root,
@@ -151239,7 +150970,7 @@ var require_fontkit_umd = __commonJS({
       })();
       isStandardArguments.isLegacyArguments = isLegacyArguments;
       var isArguments$1 = supportsStandardArguments ? isStandardArguments : isLegacyArguments;
-      var hasSymbols = typeof Symbol === "function" && typeof /* @__PURE__ */ Symbol("foo") === "symbol";
+      var hasSymbols = typeof Symbol === "function" && typeof Symbol("foo") === "symbol";
       var toStr$3 = Object.prototype.toString;
       var concat = Array.prototype.concat;
       var origDefineProperty = Object.defineProperty;
@@ -151335,7 +151066,7 @@ var require_fontkit_umd = __commonJS({
           return true;
         }
         var obj2 = {};
-        var sym = /* @__PURE__ */ Symbol("test");
+        var sym = Symbol("test");
         var symObj = Object(sym);
         if (typeof sym === "string") {
           return false;
@@ -151383,7 +151114,7 @@ var require_fontkit_umd = __commonJS({
         if (typeof origSymbol("foo") !== "symbol") {
           return false;
         }
-        if (typeof /* @__PURE__ */ Symbol("bar") !== "symbol") {
+        if (typeof Symbol("bar") !== "symbol") {
           return false;
         }
         return shams();
@@ -171037,7 +170768,7 @@ var require_fontkit_umd = __commonJS({
   }
 });
 
-// packages/core/reporting/sovereignty-report.ts
+// packages/core/reporting/sovereignty-report.js
 function generateSovereigntyReport(deps, periodStart, periodEnd) {
   const kp = deps.keyPair ?? generateKeyPair();
   const knowledgeSummary = queryKnowledgeSummary(deps.coreDb);
@@ -171202,10 +170933,7 @@ async function renderSovereigntyReportPDF(report) {
   drawKeyValue("Time Saved", hours > 0 ? `${hours}h ${mins}m` : `${totalTimeMins}m`);
   drawDivider();
   drawSectionHeader("Hard Limits Enforced");
-  drawText(
-    `Your AI declined to execute ${report.hardLimitsEnforced} action(s) that violated your hard limits.`,
-    { font: dmSans, size: 9, color: C.silver }
-  );
+  drawText(`Your AI declined to execute ${report.hardLimitsEnforced} action(s) that violated your hard limits.`, { font: dmSans, size: 9, color: C.silver });
   drawDivider();
   drawSectionHeader("Network Activity");
   const serviceEntries = Object.entries(report.networkActivity.connectionsByService);
@@ -171227,10 +170955,7 @@ async function renderSovereigntyReportPDF(report) {
   drawDivider();
   drawSectionHeader("Audit Chain Status");
   const chainColor = report.auditChainStatus.verified ? C.veridian : C.caution;
-  drawText(
-    report.auditChainStatus.verified ? "Chain Verified" : "Chain Break Detected",
-    { font: dmSansBold, size: 10, color: chainColor }
-  );
+  drawText(report.auditChainStatus.verified ? "Chain Verified" : "Chain Break Detected", { font: dmSansBold, size: 10, color: chainColor });
   drawKeyValue("Total entries", String(report.auditChainStatus.totalEntries));
   drawKeyValue("Days covered", String(report.auditChainStatus.daysCovered));
   if (report.auditChainStatus.breaks.length > 0) {
@@ -171258,9 +170983,7 @@ async function renderSovereigntyReportPDF(report) {
 }
 function queryKnowledgeSummary(db) {
   try {
-    const rows = db.prepare(
-      `SELECT source, COUNT(*) as count FROM documents GROUP BY source`
-    ).all();
+    const rows = db.prepare(`SELECT source, COUNT(*) as count FROM documents GROUP BY source`).all();
     const summary = {};
     for (const row of rows) {
       summary[row.source] = row.count;
@@ -171275,11 +170998,9 @@ function queryAutonomousActions(db, start, end) {
   const byTier = {};
   let totalTimeSaved = 0;
   try {
-    const rows = db.prepare(
-      `SELECT domain, tier, COUNT(*) as count FROM pending_actions
+    const rows = db.prepare(`SELECT domain, tier, COUNT(*) as count FROM pending_actions
        WHERE created_at >= ? AND created_at <= ? AND status != 'pending_approval'
-       GROUP BY domain, tier`
-    ).all(start, end);
+       GROUP BY domain, tier`).all(start, end);
     for (const row of rows) {
       byDomain[row.domain] = (byDomain[row.domain] ?? 0) + row.count;
       byTier[row.tier] = (byTier[row.tier] ?? 0) + row.count;
@@ -171287,10 +171008,8 @@ function queryAutonomousActions(db, start, end) {
   } catch {
   }
   try {
-    const timeRow = db.prepare(
-      `SELECT COALESCE(SUM(estimated_time_saved_seconds), 0) as total
-       FROM pending_actions WHERE created_at >= ? AND created_at <= ?`
-    ).get(start, end);
+    const timeRow = db.prepare(`SELECT COALESCE(SUM(estimated_time_saved_seconds), 0) as total
+       FROM pending_actions WHERE created_at >= ? AND created_at <= ?`).get(start, end);
     totalTimeSaved = timeRow?.total ?? 0;
   } catch {
   }
@@ -171298,23 +171017,20 @@ function queryAutonomousActions(db, start, end) {
 }
 function queryHardLimitsEnforced(db, start, end) {
   try {
-    const row = db.prepare(
-      `SELECT COUNT(*) as count FROM pending_actions
-       WHERE created_at >= ? AND created_at <= ? AND status = 'rejected'`
-    ).get(start, end);
+    const row = db.prepare(`SELECT COUNT(*) as count FROM pending_actions
+       WHERE created_at >= ? AND created_at <= ? AND status = 'rejected'`).get(start, end);
     return row?.count ?? 0;
   } catch {
     return 0;
   }
 }
 function queryNetworkActivity(db, start, end) {
-  if (!db) return {};
+  if (!db)
+    return {};
   try {
-    const rows = db.prepare(
-      `SELECT action, COUNT(*) as count FROM audit_log
+    const rows = db.prepare(`SELECT action, COUNT(*) as count FROM audit_log
        WHERE timestamp >= ? AND timestamp <= ?
-       GROUP BY action ORDER BY count DESC`
-    ).all(start, end);
+       GROUP BY action ORDER BY count DESC`).all(start, end);
     const services = {};
     for (const row of rows) {
       const dot = row.action.indexOf(".");
@@ -171331,21 +171047,15 @@ function queryAdversarialDefense(db, start, end) {
   let manipulativeEmailsNeutralized = 0;
   let optOutActionsTaken = 0;
   try {
-    const dpRow = db.prepare(
-      `SELECT COUNT(*) as count FROM dark_pattern_flags
-       WHERE flagged_at >= ? AND flagged_at <= ?`
-    ).get(start, end);
+    const dpRow = db.prepare(`SELECT COUNT(*) as count FROM dark_pattern_flags
+       WHERE flagged_at >= ? AND flagged_at <= ?`).get(start, end);
     darkPatternsDetected = dpRow?.count ?? 0;
-    const emailRow = db.prepare(
-      `SELECT COUNT(*) as count FROM dark_pattern_flags
-       WHERE flagged_at >= ? AND flagged_at <= ? AND content_type = 'email'`
-    ).get(start, end);
+    const emailRow = db.prepare(`SELECT COUNT(*) as count FROM dark_pattern_flags
+       WHERE flagged_at >= ? AND flagged_at <= ? AND content_type = 'email'`).get(start, end);
     manipulativeEmailsNeutralized = emailRow?.count ?? 0;
-    const optRow = db.prepare(
-      `SELECT COUNT(*) as count FROM pending_actions
+    const optRow = db.prepare(`SELECT COUNT(*) as count FROM pending_actions
        WHERE created_at >= ? AND created_at <= ?
-       AND (action LIKE '%opt_out%' OR action LIKE '%unsubscribe%')`
-    ).get(start, end);
+       AND (action LIKE '%opt_out%' OR action LIKE '%unsubscribe%')`).get(start, end);
     optOutActionsTaken = optRow?.count ?? 0;
   } catch {
   }
@@ -171356,20 +171066,14 @@ function queryAuditChainStatus(db, start, end) {
     return { verified: true, totalEntries: 0, daysCovered: 0, breaks: [] };
   }
   try {
-    const countRow = db.prepare(
-      `SELECT COUNT(*) as count FROM audit_log WHERE timestamp >= ? AND timestamp <= ?`
-    ).get(start, end);
+    const countRow = db.prepare(`SELECT COUNT(*) as count FROM audit_log WHERE timestamp >= ? AND timestamp <= ?`).get(start, end);
     const totalEntries = countRow?.count ?? 0;
-    const daysRow = db.prepare(
-      `SELECT COUNT(DISTINCT DATE(timestamp)) as days FROM audit_log
-       WHERE timestamp >= ? AND timestamp <= ?`
-    ).get(start, end);
+    const daysRow = db.prepare(`SELECT COUNT(DISTINCT DATE(timestamp)) as days FROM audit_log
+       WHERE timestamp >= ? AND timestamp <= ?`).get(start, end);
     const daysCovered = daysRow?.days ?? 0;
-    const rows = db.prepare(
-      `SELECT id, chain_hash, timestamp FROM audit_log
+    const rows = db.prepare(`SELECT id, chain_hash, timestamp FROM audit_log
        WHERE timestamp >= ? AND timestamp <= ?
-       ORDER BY rowid ASC`
-    ).all(start, end);
+       ORDER BY rowid ASC`).all(start, end);
     const breaks = [];
     let verified = true;
     if (rows.length === 0) {
@@ -171382,7 +171086,7 @@ function queryAuditChainStatus(db, start, end) {
 }
 var import_pdf_lib, import_fontkit, import_promises, import_node_url, import_node_path2, import_meta2, C, __moduleDir, FONT_DIR;
 var init_sovereignty_report = __esm({
-  "packages/core/reporting/sovereignty-report.ts"() {
+  "packages/core/reporting/sovereignty-report.js"() {
     "use strict";
     import_pdf_lib = __toESM(require_cjs(), 1);
     import_fontkit = __toESM(require_fontkit_umd(), 1);
@@ -171411,7 +171115,7 @@ var init_sovereignty_report = __esm({
   }
 });
 
-// packages/core/credentials/keychain.ts
+// packages/core/credentials/keychain.js
 function keychainServiceName(connectorId) {
   return `semblance.credential.${connectorId}`;
 }
@@ -171420,189 +171124,13 @@ function keychainOAuthServiceName(provider) {
 }
 var MIGRATED_SENTINEL;
 var init_keychain = __esm({
-  "packages/core/credentials/keychain.ts"() {
+  "packages/core/credentials/keychain.js"() {
     "use strict";
     MIGRATED_SENTINEL = "MIGRATED_TO_KEYCHAIN";
   }
 });
 
 // packages/core/index.ts
-function defaultSocketPath() {
-  const p = getPlatform();
-  if (p.hardware.platform() === "win32") {
-    const home = p.hardware.homedir();
-    const username = home.split(/[/\\]/).pop() ?? "default";
-    return `\\\\.\\pipe\\semblance-gateway-${username}-${process.pid}`;
-  }
-  return p.path.join(p.hardware.homedir(), ".semblance", "gateway.sock");
-}
-function createSemblanceCore(config) {
-  const p = getPlatform();
-  const dataDir2 = config?.dataDir ?? p.path.join(p.hardware.homedir(), ".semblance", "data");
-  const ollamaBaseUrl = config?.ollamaBaseUrl ?? "http://localhost:11434";
-  const signingKeyPath = config?.signingKeyPath ?? p.path.join(p.hardware.homedir(), ".semblance", "signing.key");
-  const socketPath = config?.socketPath ?? defaultSocketPath();
-  const embeddingModel = config?.embeddingModel ?? "nomic-embed-text";
-  const llm = config?.llmProvider ?? createLLMProvider({ baseUrl: ollamaBaseUrl });
-  let models = null;
-  let knowledge = null;
-  let agent = null;
-  let ipc = null;
-  let initialized = false;
-  const core2 = {
-    get llm() {
-      return llm;
-    },
-    get knowledge() {
-      if (!knowledge) throw new Error("[SemblanceCore] Not initialized. Call initialize() first.");
-      return knowledge;
-    },
-    get agent() {
-      if (!agent) throw new Error("[SemblanceCore] Not initialized. Call initialize() first.");
-      return agent;
-    },
-    get ipc() {
-      if (!ipc) throw new Error("[SemblanceCore] Not initialized. Call initialize() first.");
-      return ipc;
-    },
-    get models() {
-      if (!models) throw new Error("[SemblanceCore] Not initialized. Call initialize() first.");
-      return models;
-    },
-    async initialize() {
-      if (initialized) return;
-      if (!p.fs.existsSync(dataDir2)) {
-        p.fs.mkdirSync(dataDir2, { recursive: true });
-      }
-      console.error("[SemblanceCore] Opening core.db...");
-      const coreDb = p.sqlite.openDatabase(p.path.join(dataDir2, "core.db"));
-      coreDb.pragma("journal_mode = WAL");
-      models = new ModelManager(llm, coreDb);
-      console.error("[SemblanceCore] ModelManager ready, checking LLM availability...");
-      const llmCheckStart = Date.now();
-      const llmAvailable = await llm.isAvailable();
-      console.error(`[SemblanceCore] LLM availability check took ${Date.now() - llmCheckStart}ms, available: ${llmAvailable}`);
-      if (!llmAvailable) {
-        console.error("[SemblanceCore] Ollama is not running. LLM features will be unavailable until Ollama starts.");
-      }
-      let chatModel = config?.chatModel;
-      if (!chatModel && llmAvailable) {
-        chatModel = await models.getActiveChatModel() ?? void 0;
-        if (chatModel) {
-          console.error(`[SemblanceCore] Selected chat model: ${chatModel}`);
-        }
-      }
-      chatModel = chatModel ?? "llama3.1:8b";
-      console.error(`[SemblanceCore] Chat model selected: ${chatModel}`);
-      const knowledgeDir = p.path.join(dataDir2, "knowledge");
-      try {
-        const kgPromise = createKnowledgeGraph({
-          dataDir: knowledgeDir,
-          llmProvider: llm,
-          embeddingModel
-        });
-        const timeoutPromise = new Promise(
-          (_3, reject2) => setTimeout(() => reject2(new Error("Knowledge graph init timed out after 10s")), 1e4)
-        );
-        knowledge = await Promise.race([kgPromise, timeoutPromise]);
-        console.error("[SemblanceCore] Knowledge graph initialized");
-      } catch (err) {
-        console.error(
-          "[SemblanceCore] Knowledge graph initialization failed:",
-          err instanceof Error ? err.message : String(err),
-          "\u2014 Semantic search and indexing will be unavailable."
-        );
-      }
-      console.error("[SemblanceCore] Connecting IPC client...");
-      if (config?.ipcTransport) {
-        const keyBytes = new Uint8Array(32);
-        for (let i = 0; i < 32; i++) keyBytes[i] = Math.floor(Math.random() * 256);
-        ipc = new CoreIPCClient({
-          transport: config.ipcTransport,
-          signingKey: Buffer.from(keyBytes)
-        });
-      } else {
-        ipc = new CoreIPCClient({
-          socketPath,
-          signingKeyPath
-        });
-      }
-      try {
-        const ipcConnectStart = Date.now();
-        await ipc.connect();
-        console.error(`[SemblanceCore] Connected to Gateway via IPC (${Date.now() - ipcConnectStart}ms)`);
-      } catch (err) {
-        console.error(
-          "[SemblanceCore] Could not connect to Gateway:",
-          err instanceof Error ? err.message : String(err),
-          "\u2014 Agent actions requiring Gateway will fail until Gateway is started."
-        );
-      }
-      console.error("[SemblanceCore] IPC step complete, creating orchestrator...");
-      console.error("[SemblanceCore] Creating v2 coordinator agent...");
-      const styleProfileStore2 = new StyleProfileStore(coreDb);
-      if (knowledge) {
-        const totalRamMb = Math.round(p.hardware.totalmem() / (1024 * 1024));
-        const hardwareTier = classifyHardware(totalRamMb, null);
-        console.error(`[SemblanceCore] Hardware tier: ${hardwareTier} (${totalRamMb}MB RAM)`);
-        agent = createCoordinatorAgent({
-          llmProvider: llm,
-          knowledgeGraph: knowledge,
-          ipcClient: ipc,
-          autonomyConfig: config?.autonomyConfig,
-          dataDir: dataDir2,
-          model: chatModel,
-          styleProfileStore: styleProfileStore2,
-          hardwareTier
-        });
-        console.error("[SemblanceCore] v2 Coordinator agent initialized");
-        console.error("[SemblanceCore] Loading extensions...");
-        const extStart = Date.now();
-        const extensions = await loadExtensions();
-        console.error(`[SemblanceCore] Extensions loaded in ${Date.now() - extStart}ms`);
-        if (extensions.length > 0) {
-          const premiumGate2 = new PremiumGate(coreDb);
-          const extCtx = {
-            db: coreDb,
-            llm,
-            model: chatModel,
-            ipcClient: ipc,
-            autonomyManager: agent.autonomy,
-            premiumGate: premiumGate2,
-            styleProfileStore: styleProfileStore2,
-            semanticSearch: knowledge.semanticSearch,
-            recurringDetector: ipAdapters.recurringDetector,
-            knowledgeGraph: knowledge,
-            dataDir: dataDir2
-          };
-          for (const ext of extensions) {
-            if (ext.initialize) {
-              await ext.initialize(extCtx);
-            }
-            if (ext.tools && ext.tools.length > 0) {
-              agent.registerTools(ext.tools);
-            }
-          }
-          console.error(`[SemblanceCore] Loaded ${extensions.length} extension(s)`);
-        }
-      } else {
-        console.error("[SemblanceCore] Skipping orchestrator and extensions \u2014 knowledge graph unavailable");
-      }
-      initialized = true;
-      console.error("[SemblanceCore] All subsystems initialized");
-    },
-    async shutdown() {
-      if (!initialized) return;
-      if (ipc) {
-        await ipc.disconnect();
-        console.log("[SemblanceCore] Disconnected from Gateway");
-      }
-      initialized = false;
-      console.log("[SemblanceCore] Shut down");
-    }
-  };
-  return core2;
-}
 var init_core = __esm({
   "packages/core/index.ts"() {
     "use strict";
@@ -173701,49 +173229,49 @@ var require_readability = __commonJS({
 var require_symbols = __commonJS({
   "node_modules/.pnpm/linkedom@0.18.12/node_modules/linkedom/cjs/shared/symbols.js"(exports2) {
     "use strict";
-    var CHANGED = /* @__PURE__ */ Symbol("changed");
+    var CHANGED = Symbol("changed");
     exports2.CHANGED = CHANGED;
-    var CLASS_LIST = /* @__PURE__ */ Symbol("classList");
+    var CLASS_LIST = Symbol("classList");
     exports2.CLASS_LIST = CLASS_LIST;
-    var CUSTOM_ELEMENTS = /* @__PURE__ */ Symbol("CustomElements");
+    var CUSTOM_ELEMENTS = Symbol("CustomElements");
     exports2.CUSTOM_ELEMENTS = CUSTOM_ELEMENTS;
-    var CONTENT = /* @__PURE__ */ Symbol("content");
+    var CONTENT = Symbol("content");
     exports2.CONTENT = CONTENT;
-    var DATASET = /* @__PURE__ */ Symbol("dataset");
+    var DATASET = Symbol("dataset");
     exports2.DATASET = DATASET;
-    var DOCTYPE = /* @__PURE__ */ Symbol("doctype");
+    var DOCTYPE = Symbol("doctype");
     exports2.DOCTYPE = DOCTYPE;
-    var DOM_PARSER = /* @__PURE__ */ Symbol("DOMParser");
+    var DOM_PARSER = Symbol("DOMParser");
     exports2.DOM_PARSER = DOM_PARSER;
-    var END = /* @__PURE__ */ Symbol("end");
+    var END = Symbol("end");
     exports2.END = END;
-    var EVENT_TARGET = /* @__PURE__ */ Symbol("EventTarget");
+    var EVENT_TARGET = Symbol("EventTarget");
     exports2.EVENT_TARGET = EVENT_TARGET;
-    var GLOBALS = /* @__PURE__ */ Symbol("globals");
+    var GLOBALS = Symbol("globals");
     exports2.GLOBALS = GLOBALS;
-    var IMAGE = /* @__PURE__ */ Symbol("image");
+    var IMAGE = Symbol("image");
     exports2.IMAGE = IMAGE;
-    var MIME = /* @__PURE__ */ Symbol("mime");
+    var MIME = Symbol("mime");
     exports2.MIME = MIME;
-    var MUTATION_OBSERVER = /* @__PURE__ */ Symbol("MutationObserver");
+    var MUTATION_OBSERVER = Symbol("MutationObserver");
     exports2.MUTATION_OBSERVER = MUTATION_OBSERVER;
-    var NEXT = /* @__PURE__ */ Symbol("next");
+    var NEXT = Symbol("next");
     exports2.NEXT = NEXT;
-    var OWNER_ELEMENT = /* @__PURE__ */ Symbol("ownerElement");
+    var OWNER_ELEMENT = Symbol("ownerElement");
     exports2.OWNER_ELEMENT = OWNER_ELEMENT;
-    var PREV = /* @__PURE__ */ Symbol("prev");
+    var PREV = Symbol("prev");
     exports2.PREV = PREV;
-    var PRIVATE = /* @__PURE__ */ Symbol("private");
+    var PRIVATE = Symbol("private");
     exports2.PRIVATE = PRIVATE;
-    var SHEET = /* @__PURE__ */ Symbol("sheet");
+    var SHEET = Symbol("sheet");
     exports2.SHEET = SHEET;
-    var START = /* @__PURE__ */ Symbol("start");
+    var START = Symbol("start");
     exports2.START = START;
-    var STYLE = /* @__PURE__ */ Symbol("style");
+    var STYLE = Symbol("style");
     exports2.STYLE = STYLE;
-    var UPGRADE = /* @__PURE__ */ Symbol("upgrade");
+    var UPGRADE = Symbol("upgrade");
     exports2.UPGRADE = UPGRADE;
-    var VALUE = /* @__PURE__ */ Symbol("value");
+    var VALUE = Symbol("value");
     exports2.VALUE = VALUE;
   }
 });
@@ -184519,12 +184047,12 @@ var require_CSSValueExpression = __commonJS({
         return false;
       }
     };
-    CSSOM.CSSValueExpression.prototype._parseJSString = function(token, idx, sep3) {
-      var endIdx = this._findMatchedIdx(token, idx, sep3), text;
+    CSSOM.CSSValueExpression.prototype._parseJSString = function(token, idx, sep2) {
+      var endIdx = this._findMatchedIdx(token, idx, sep2), text;
       if (endIdx === -1) {
         return false;
       } else {
-        text = token.substring(idx, endIdx + sep3.length);
+        text = token.substring(idx, endIdx + sep2.length);
         return {
           idx: endIdx,
           text
@@ -184564,15 +184092,15 @@ var require_CSSValueExpression = __commonJS({
       if (!isLegal) {
         return false;
       } else {
-        var sep3 = "/";
-        return this._parseJSString(token, idx, sep3);
+        var sep2 = "/";
+        return this._parseJSString(token, idx, sep2);
       }
     };
-    CSSOM.CSSValueExpression.prototype._findMatchedIdx = function(token, idx, sep3) {
+    CSSOM.CSSValueExpression.prototype._findMatchedIdx = function(token, idx, sep2) {
       var startIdx = idx, endIdx;
       var NOT_FOUND = -1;
       while (true) {
-        endIdx = token.indexOf(sep3, startIdx + 1);
+        endIdx = token.indexOf(sep2, startIdx + 1);
         if (endIdx === -1) {
           endIdx = NOT_FOUND;
           break;
@@ -187731,7 +187259,7 @@ var require_cjs3 = __commonJS({
   }
 });
 
-// packages/gateway/services/oauth-callback-server.ts
+// packages/gateway/services/oauth-callback-server.js
 function generateSelfSignedCert() {
   const { privateKey, publicKey } = (0, import_node_crypto8.generateKeyPairSync)("rsa", {
     modulusLength: 2048,
@@ -187743,10 +187271,7 @@ function generateSelfSignedCert() {
   const serial = (0, import_node_crypto8.randomBytes)(8);
   const { execSync } = require("node:child_process");
   try {
-    const certOut = execSync(
-      'openssl req -x509 -newkey rsa:2048 -keyout /dev/stdout -out /dev/stdout -days 1 -nodes -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null',
-      { encoding: "utf-8", timeout: 5e3 }
-    );
+    const certOut = execSync('openssl req -x509 -newkey rsa:2048 -keyout /dev/stdout -out /dev/stdout -days 1 -nodes -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null', { encoding: "utf-8", timeout: 5e3 });
     const keyMatch = certOut.match(/(-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----)/);
     const certMatch = certOut.match(/(-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----)/);
     if (keyMatch && certMatch) {
@@ -187763,16 +187288,11 @@ function generateSelfSignedCert() {
     const keyPath = join13(tmpDir, "key.pem");
     const certPath = join13(tmpDir, "cert.pem");
     writeFileSync8(keyPath, privateKey);
-    execSync(
-      `openssl req -x509 -key "${keyPath}" -out "${certPath}" -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null`,
-      { timeout: 5e3 }
-    );
+    execSync(`openssl req -x509 -key "${keyPath}" -out "${certPath}" -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null`, { timeout: 5e3 });
     const cert = readFs(certPath, "utf-8");
     return { key: privateKey, cert };
   } catch {
-    throw new Error(
-      "Cannot generate self-signed certificate: openssl not found. Install OpenSSL or use HTTP-only OAuth for this connector."
-    );
+    throw new Error("Cannot generate self-signed certificate: openssl not found. Install OpenSSL or use HTTP-only OAuth for this connector.");
   } finally {
     if (tmpDir) {
       try {
@@ -187792,7 +187312,7 @@ function generateSelfSignedCert() {
 }
 var import_node_http, import_node_https, import_node_crypto8, import_node_url2, PORT_RANGE_START, PORT_RANGE_END, AUTO_SHUTDOWN_MS, OAuthCallbackServer;
 var init_oauth_callback_server = __esm({
-  "packages/gateway/services/oauth-callback-server.ts"() {
+  "packages/gateway/services/oauth-callback-server.js"() {
     "use strict";
     import_node_http = require("node:http");
     import_node_https = require("node:https");
@@ -187933,7 +187453,7 @@ var init_oauth_callback_server = __esm({
   }
 });
 
-// packages/gateway/services/google-drive-adapter.ts
+// packages/gateway/services/google-drive-adapter.js
 var google_drive_adapter_exports = {};
 __export(google_drive_adapter_exports, {
   GOOGLE_DRIVE_READONLY_SCOPE: () => GOOGLE_DRIVE_READONLY_SCOPE,
@@ -187941,7 +187461,7 @@ __export(google_drive_adapter_exports, {
 });
 var GOOGLE_DRIVE_READONLY_SCOPE, WORKSPACE_EXPORT_MAP, GoogleDriveAdapter;
 var init_google_drive_adapter = __esm({
-  "packages/gateway/services/google-drive-adapter.ts"() {
+  "packages/gateway/services/google-drive-adapter.js"() {
     "use strict";
     init_oauth_callback_server();
     GOOGLE_DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
@@ -188003,9 +187523,12 @@ var init_google_drive_adapter = __esm({
           const { exec } = await import("node:child_process");
           const url = authUrl.toString();
           const platform8 = process.platform;
-          if (platform8 === "win32") exec(`start "" "${url}"`);
-          else if (platform8 === "darwin") exec(`open "${url}"`);
-          else exec(`xdg-open "${url}"`);
+          if (platform8 === "win32")
+            exec(`start "" "${url}"`);
+          else if (platform8 === "darwin")
+            exec(`open "${url}"`);
+          else
+            exec(`xdg-open "${url}"`);
         } catch {
         }
         try {
@@ -188086,7 +187609,8 @@ var init_google_drive_adapter = __esm({
         url.searchParams.set("pageSize", String(pageSize));
         url.searchParams.set("fields", "nextPageToken,files(id,name,mimeType,size,modifiedTime,createdTime,parents,md5Checksum,webViewLink)");
         url.searchParams.set("orderBy", "modifiedTime desc");
-        if (pageToken) url.searchParams.set("pageToken", pageToken);
+        if (pageToken)
+          url.searchParams.set("pageToken", pageToken);
         const response = await globalThis.fetch(url.toString(), {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
@@ -188196,7 +187720,8 @@ var init_google_drive_adapter = __esm({
       async getValidAccessToken() {
         if (!this.tokenManager.isTokenExpired("google_drive")) {
           const token = this.tokenManager.getAccessToken("google_drive");
-          if (token) return token;
+          if (token)
+            return token;
         }
         const refreshToken = this.tokenManager.getRefreshToken("google_drive");
         if (!refreshToken) {
@@ -188213,12 +187738,7 @@ var init_google_drive_adapter = __esm({
           })
         });
         const data = await response.json();
-        this.tokenManager.refreshAccessToken(
-          "google_drive",
-          data.access_token,
-          Date.now() + data.expires_in * 1e3,
-          data.refresh_token
-        );
+        this.tokenManager.refreshAccessToken("google_drive", data.access_token, Date.now() + data.expires_in * 1e3, data.refresh_token);
         return data.access_token;
       }
       /** Get the workspace export map (for testing) */
@@ -188290,8 +187810,8 @@ var require_err_helpers = __commonJS({
 var require_err_proto = __commonJS({
   "node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err-proto.js"(exports2, module2) {
     "use strict";
-    var seen = /* @__PURE__ */ Symbol("circular-ref-tag");
-    var rawSymbol = /* @__PURE__ */ Symbol("pino-raw-err-ref");
+    var seen = Symbol("circular-ref-tag");
+    var rawSymbol = Symbol("pino-raw-err-ref");
     var pinoErrProto = Object.create({}, {
       type: {
         enumerable: true,
@@ -188428,7 +187948,7 @@ var require_req = __commonJS({
       mapHttpRequest,
       reqSerializer
     };
-    var rawSymbol = /* @__PURE__ */ Symbol("pino-raw-req-ref");
+    var rawSymbol = Symbol("pino-raw-req-ref");
     var pinoReqProto = Object.create({}, {
       id: {
         enumerable: true,
@@ -188523,7 +188043,7 @@ var require_res = __commonJS({
       mapHttpResponse,
       resSerializer
     };
-    var rawSymbol = /* @__PURE__ */ Symbol("pino-raw-res-ref");
+    var rawSymbol = Symbol("pino-raw-res-ref");
     var pinoResProto = Object.create({}, {
       statusCode: {
         enumerable: true,
@@ -188765,7 +188285,7 @@ var require_redact = __commonJS({
       }
       return true;
     }
-    var PATH_NOT_FOUND = /* @__PURE__ */ Symbol("PATH_NOT_FOUND");
+    var PATH_NOT_FOUND = Symbol("PATH_NOT_FOUND");
     function getValueIfExists(obj2, parts) {
       let current = obj2;
       for (const part of parts) {
@@ -189066,37 +188586,37 @@ var require_redact = __commonJS({
 var require_symbols2 = __commonJS({
   "node_modules/.pnpm/pino@10.3.1/node_modules/pino/lib/symbols.js"(exports2, module2) {
     "use strict";
-    var setLevelSym = /* @__PURE__ */ Symbol("pino.setLevel");
-    var getLevelSym = /* @__PURE__ */ Symbol("pino.getLevel");
-    var levelValSym = /* @__PURE__ */ Symbol("pino.levelVal");
-    var levelCompSym = /* @__PURE__ */ Symbol("pino.levelComp");
-    var useLevelLabelsSym = /* @__PURE__ */ Symbol("pino.useLevelLabels");
-    var useOnlyCustomLevelsSym = /* @__PURE__ */ Symbol("pino.useOnlyCustomLevels");
-    var mixinSym = /* @__PURE__ */ Symbol("pino.mixin");
-    var lsCacheSym = /* @__PURE__ */ Symbol("pino.lsCache");
-    var chindingsSym = /* @__PURE__ */ Symbol("pino.chindings");
-    var asJsonSym = /* @__PURE__ */ Symbol("pino.asJson");
-    var writeSym = /* @__PURE__ */ Symbol("pino.write");
-    var redactFmtSym = /* @__PURE__ */ Symbol("pino.redactFmt");
-    var timeSym = /* @__PURE__ */ Symbol("pino.time");
-    var timeSliceIndexSym = /* @__PURE__ */ Symbol("pino.timeSliceIndex");
-    var streamSym = /* @__PURE__ */ Symbol("pino.stream");
-    var stringifySym = /* @__PURE__ */ Symbol("pino.stringify");
-    var stringifySafeSym = /* @__PURE__ */ Symbol("pino.stringifySafe");
-    var stringifiersSym = /* @__PURE__ */ Symbol("pino.stringifiers");
-    var endSym = /* @__PURE__ */ Symbol("pino.end");
-    var formatOptsSym = /* @__PURE__ */ Symbol("pino.formatOpts");
-    var messageKeySym = /* @__PURE__ */ Symbol("pino.messageKey");
-    var errorKeySym = /* @__PURE__ */ Symbol("pino.errorKey");
-    var nestedKeySym = /* @__PURE__ */ Symbol("pino.nestedKey");
-    var nestedKeyStrSym = /* @__PURE__ */ Symbol("pino.nestedKeyStr");
-    var mixinMergeStrategySym = /* @__PURE__ */ Symbol("pino.mixinMergeStrategy");
-    var msgPrefixSym = /* @__PURE__ */ Symbol("pino.msgPrefix");
-    var wildcardFirstSym = /* @__PURE__ */ Symbol("pino.wildcardFirst");
-    var serializersSym = /* @__PURE__ */ Symbol.for("pino.serializers");
-    var formattersSym = /* @__PURE__ */ Symbol.for("pino.formatters");
-    var hooksSym = /* @__PURE__ */ Symbol.for("pino.hooks");
-    var needsMetadataGsym = /* @__PURE__ */ Symbol.for("pino.metadata");
+    var setLevelSym = Symbol("pino.setLevel");
+    var getLevelSym = Symbol("pino.getLevel");
+    var levelValSym = Symbol("pino.levelVal");
+    var levelCompSym = Symbol("pino.levelComp");
+    var useLevelLabelsSym = Symbol("pino.useLevelLabels");
+    var useOnlyCustomLevelsSym = Symbol("pino.useOnlyCustomLevels");
+    var mixinSym = Symbol("pino.mixin");
+    var lsCacheSym = Symbol("pino.lsCache");
+    var chindingsSym = Symbol("pino.chindings");
+    var asJsonSym = Symbol("pino.asJson");
+    var writeSym = Symbol("pino.write");
+    var redactFmtSym = Symbol("pino.redactFmt");
+    var timeSym = Symbol("pino.time");
+    var timeSliceIndexSym = Symbol("pino.timeSliceIndex");
+    var streamSym = Symbol("pino.stream");
+    var stringifySym = Symbol("pino.stringify");
+    var stringifySafeSym = Symbol("pino.stringifySafe");
+    var stringifiersSym = Symbol("pino.stringifiers");
+    var endSym = Symbol("pino.end");
+    var formatOptsSym = Symbol("pino.formatOpts");
+    var messageKeySym = Symbol("pino.messageKey");
+    var errorKeySym = Symbol("pino.errorKey");
+    var nestedKeySym = Symbol("pino.nestedKey");
+    var nestedKeyStrSym = Symbol("pino.nestedKeyStr");
+    var mixinMergeStrategySym = Symbol("pino.mixinMergeStrategy");
+    var msgPrefixSym = Symbol("pino.msgPrefix");
+    var wildcardFirstSym = Symbol("pino.wildcardFirst");
+    var serializersSym = Symbol.for("pino.serializers");
+    var formattersSym = Symbol.for("pino.formatters");
+    var hooksSym = Symbol.for("pino.hooks");
+    var needsMetadataGsym = Symbol.for("pino.metadata");
     module2.exports = {
       setLevelSym,
       getLevelSym,
@@ -190221,7 +189741,7 @@ var require_thread_stream = __commonJS({
     } = require_indexes();
     var buffer = require("buffer");
     var assert2 = require("assert");
-    var kImpl = /* @__PURE__ */ Symbol("kImpl");
+    var kImpl = Symbol("kImpl");
     var MAX_STRING = buffer.constants.MAX_STRING_LENGTH;
     var FakeWeakRef = class {
       constructor(value) {
@@ -190639,7 +190159,7 @@ var require_transport = __commonJS({
     var { createRequire } = require("module");
     var { existsSync: existsSync13 } = require("node:fs");
     var getCallers = require_caller();
-    var { join: join13, isAbsolute, sep: sep3 } = require("node:path");
+    var { join: join13, isAbsolute, sep: sep2 } = require("node:path");
     var { fileURLToPath: fileURLToPath2 } = require("node:url");
     var sleep = require_atomic_sleep();
     var onExit = require_on_exit_leak_free();
@@ -190838,7 +190358,7 @@ var require_transport = __commonJS({
         let fixTarget2;
         for (const filePath of callers) {
           try {
-            const context = filePath === "node:repl" ? process.cwd() + sep3 : filePath;
+            const context = filePath === "node:repl" ? process.cwd() + sep2 : filePath;
             fixTarget2 = createRequire(context).resolve(origin);
             break;
           } catch (err) {
@@ -192237,7 +191757,7 @@ ${originalIndentation}`;
 var require_multistream = __commonJS({
   "node_modules/.pnpm/pino@10.3.1/node_modules/pino/lib/multistream.js"(exports2, module2) {
     "use strict";
-    var metadata = /* @__PURE__ */ Symbol.for("pino.metadata");
+    var metadata = Symbol.for("pino.metadata");
     var { DEFAULT_LEVELS } = require_constants3();
     var DEFAULT_INFO_LEVEL = DEFAULT_LEVELS.info;
     function multistream(streamsArray, opts) {
@@ -234071,10 +233591,10 @@ var require_shared = __commonJS({
       let contentType = metaEntries.shift() || "application/octet-stream";
       let params = {};
       for (let entry of metaEntries) {
-        let sep3 = entry.indexOf("=");
-        if (sep3 >= 0) {
-          let key = entry.substring(0, sep3);
-          let value = entry.substring(sep3 + 1);
+        let sep2 = entry.indexOf("=");
+        if (sep2 >= 0) {
+          let key = entry.substring(0, sep2);
+          let value = entry.substring(sep2 + 1);
           params[key] = value;
         }
       }
@@ -247648,8 +247168,8 @@ var require_utils7 = __commonJS({
         Object.defineProperty(target, keys2[i], Object.getOwnPropertyDescriptor(source, keys2[i]));
       }
     };
-    module2.exports.wrapperSymbol = /* @__PURE__ */ Symbol("wrapper");
-    module2.exports.implSymbol = /* @__PURE__ */ Symbol("impl");
+    module2.exports.wrapperSymbol = Symbol("wrapper");
+    module2.exports.implSymbol = Symbol("impl");
     module2.exports.wrapperForImpl = function(impl) {
       return impl[module2.exports.wrapperSymbol];
     };
@@ -247842,7 +247362,7 @@ var require_url_state_machine = __commonJS({
       ws: 80,
       wss: 443
     };
-    var failure = /* @__PURE__ */ Symbol("failure");
+    var failure = Symbol("failure");
     function countSymbols(str) {
       return punycode.ucs2.decode(str).length;
     }
@@ -249269,8 +248789,8 @@ var require_lib20 = __commonJS({
     var https = _interopDefault(require("https"));
     var zlib = _interopDefault(require("zlib"));
     var Readable = Stream.Readable;
-    var BUFFER = /* @__PURE__ */ Symbol("buffer");
-    var TYPE = /* @__PURE__ */ Symbol("type");
+    var BUFFER = Symbol("buffer");
+    var TYPE = Symbol("type");
     var Blob2 = class _Blob {
       constructor() {
         this[TYPE] = "";
@@ -249385,7 +248905,7 @@ var require_lib20 = __commonJS({
       convert = require("encoding").convert;
     } catch (e) {
     }
-    var INTERNALS = /* @__PURE__ */ Symbol("Body internals");
+    var INTERNALS = Symbol("Body internals");
     var PassThrough = Stream.PassThrough;
     function Body(body) {
       var _this = this;
@@ -249725,7 +249245,7 @@ var require_lib20 = __commonJS({
       }
       return void 0;
     }
-    var MAP = /* @__PURE__ */ Symbol("map");
+    var MAP = Symbol("map");
     var Headers2 = class _Headers {
       /**
        * Headers class
@@ -249933,7 +249453,7 @@ var require_lib20 = __commonJS({
         return [k.toLowerCase(), headers[MAP][k].join(", ")];
       });
     }
-    var INTERNAL2 = /* @__PURE__ */ Symbol("internal");
+    var INTERNAL2 = Symbol("internal");
     function createHeadersIterator(target, kind) {
       const iterator = Object.create(HeadersIteratorPrototype);
       iterator[INTERNAL2] = {
@@ -250002,7 +249522,7 @@ var require_lib20 = __commonJS({
       }
       return headers;
     }
-    var INTERNALS$1 = /* @__PURE__ */ Symbol("Response internals");
+    var INTERNALS$1 = Symbol("Response internals");
     var STATUS_CODES = http.STATUS_CODES;
     var Response2 = class _Response {
       constructor() {
@@ -250078,7 +249598,7 @@ var require_lib20 = __commonJS({
       enumerable: false,
       configurable: true
     });
-    var INTERNALS$2 = /* @__PURE__ */ Symbol("Request internals");
+    var INTERNALS$2 = Symbol("Request internals");
     var URL3 = Url.URL || whatwgUrl.URL;
     var parse_url = Url.parse;
     var format_url = Url.format;
@@ -252566,14 +252086,14 @@ var require_tsdav_cjs = __commonJS({
   }
 });
 
-// packages/core/knowledge/calendar-indexer.ts
+// packages/core/knowledge/calendar-indexer.js
 var calendar_indexer_exports = {};
 __export(calendar_indexer_exports, {
   CalendarIndexer: () => CalendarIndexer
 });
 var CREATE_CALENDAR_INDEX_TABLE, CalendarIndexer;
 var init_calendar_indexer = __esm({
-  "packages/core/knowledge/calendar-indexer.ts"() {
+  "packages/core/knowledge/calendar-indexer.js"() {
     "use strict";
     init_nanoid();
     init_content_sanitizer();
@@ -252657,9 +252177,7 @@ var init_calendar_indexer = __esm({
         const total = events.length;
         for (const event of events) {
           try {
-            const existing = this.db.prepare(
-              "SELECT id FROM indexed_calendar_events WHERE uid = ?"
-            ).get(event.id);
+            const existing = this.db.prepare("SELECT id FROM indexed_calendar_events WHERE uid = ?").get(event.id);
             if (existing) {
               this.db.prepare(`
             UPDATE indexed_calendar_events SET
@@ -252667,20 +252185,7 @@ var init_calendar_indexer = __esm({
               is_all_day = ?, location = ?, attendees = ?, organizer = ?,
               status = ?, recurrence_rule = ?, indexed_at = ?
             WHERE uid = ?
-          `).run(
-                sanitizeRetrievedContent(event.title),
-                sanitizeRetrievedContent(event.description ?? ""),
-                event.startTime,
-                event.endTime,
-                this.isAllDayEvent(event.startTime, event.endTime) ? 1 : 0,
-                event.location ?? "",
-                JSON.stringify(event.attendees.map((a) => a.email)),
-                event.organizer.email,
-                event.status,
-                event.recurrence ?? null,
-                (/* @__PURE__ */ new Date()).toISOString(),
-                event.id
-              );
+          `).run(sanitizeRetrievedContent(event.title), sanitizeRetrievedContent(event.description ?? ""), event.startTime, event.endTime, this.isAllDayEvent(event.startTime, event.endTime) ? 1 : 0, event.location ?? "", JSON.stringify(event.attendees.map((a) => a.email)), event.organizer.email, event.status, event.recurrence ?? null, (/* @__PURE__ */ new Date()).toISOString(), event.id);
               continue;
             }
             const id = nanoid();
@@ -252695,23 +252200,7 @@ var init_calendar_indexer = __esm({
             is_all_day, location, attendees, organizer, status,
             recurrence_rule, account_id, indexed_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-              id,
-              event.id,
-              event.calendarId,
-              sanitizedTitle,
-              sanitizedDescription,
-              event.startTime,
-              event.endTime,
-              isAllDay ? 1 : 0,
-              event.location ?? "",
-              JSON.stringify(attendeeEmails),
-              event.organizer.email,
-              event.status,
-              event.recurrence ?? null,
-              accountId,
-              now
-            );
+        `).run(id, event.id, event.calendarId, sanitizedTitle, sanitizedDescription, event.startTime, event.endTime, isAllDay ? 1 : 0, event.location ?? "", JSON.stringify(attendeeEmails), event.organizer.email, event.status, event.recurrence ?? null, accountId, now);
             const embeddingContent = `Calendar: ${sanitizeRetrievedContent(event.title)} ${sanitizeRetrievedContent(event.description ?? "")} ${sanitizeRetrievedContent(event.location ?? "")}`;
             await this.knowledge.indexDocument({
               content: embeddingContent,
@@ -252769,30 +252258,25 @@ var init_calendar_indexer = __esm({
           params.push(options.accountId);
         }
         const limit = options?.limit ?? 50;
-        const rows = this.db.prepare(
-          `SELECT * FROM indexed_calendar_events WHERE ${conditions.join(" AND ")} ORDER BY start_time ASC LIMIT ?`
-        ).all(...params, limit);
+        const rows = this.db.prepare(`SELECT * FROM indexed_calendar_events WHERE ${conditions.join(" AND ")} ORDER BY start_time ASC LIMIT ?`).all(...params, limit);
         return rows.map(this.rowToEvent);
       }
       /**
        * Get events in a specific time range (for conflict detection).
        */
       getEventsInRange(startTime, endTime) {
-        const rows = this.db.prepare(
-          `SELECT * FROM indexed_calendar_events
+        const rows = this.db.prepare(`SELECT * FROM indexed_calendar_events
        WHERE start_time < ? AND end_time > ?
-       ORDER BY start_time ASC`
-        ).all(endTime, startTime);
+       ORDER BY start_time ASC`).all(endTime, startTime);
         return rows.map(this.rowToEvent);
       }
       /**
        * Get an event by UID.
        */
       getByUid(uid) {
-        const row = this.db.prepare(
-          "SELECT * FROM indexed_calendar_events WHERE uid = ?"
-        ).get(uid);
-        if (!row) return null;
+        const row = this.db.prepare("SELECT * FROM indexed_calendar_events WHERE uid = ?").get(uid);
+        if (!row)
+          return null;
         return this.rowToEvent(row);
       }
       /**
@@ -252800,9 +252284,7 @@ var init_calendar_indexer = __esm({
        */
       getIndexedCount(accountId) {
         if (accountId) {
-          const row2 = this.db.prepare(
-            "SELECT COUNT(*) as count FROM indexed_calendar_events WHERE account_id = ?"
-          ).get(accountId);
+          const row2 = this.db.prepare("SELECT COUNT(*) as count FROM indexed_calendar_events WHERE account_id = ?").get(accountId);
           return row2.count;
         }
         const row = this.db.prepare("SELECT COUNT(*) as count FROM indexed_calendar_events").get();
@@ -252840,7 +252322,8 @@ var init_calendar_indexer = __esm({
        * Called at daemon startup to set up calendar.starting events.
        */
       registerUpcomingEventTimers() {
-        if (!this.eventBus) return;
+        if (!this.eventBus)
+          return;
         const upcoming = this.getUpcomingEvents({ daysAhead: 1, includeAllDay: false });
         for (const evt of upcoming) {
           this.registerCalendarTimers(evt.uid, evt.title, evt.startTime);
@@ -252850,7 +252333,8 @@ var init_calendar_indexer = __esm({
        * Register T-45 and T-10 countdown timers for a single calendar event.
        */
       registerCalendarTimers(eventId, title, startTime) {
-        if (!this.eventBus) return;
+        if (!this.eventBus)
+          return;
         const startMs = new Date(startTime).getTime();
         const now = Date.now();
         const fireAt = [
@@ -252860,10 +252344,12 @@ var init_calendar_indexer = __esm({
         for (const { minutesUntil, label } of fireAt) {
           const fireMs = startMs - minutesUntil * 60 * 1e3;
           const delayMs = fireMs - now;
-          if (delayMs <= 0 || delayMs > 24 * 60 * 60 * 1e3) continue;
+          if (delayMs <= 0 || delayMs > 24 * 60 * 60 * 1e3)
+            continue;
           const timerKey = `${eventId}:${label}`;
           const existing = this.calendarTimers.get(timerKey);
-          if (existing) clearTimeout(existing);
+          if (existing)
+            clearTimeout(existing);
           const timer = setTimeout(() => {
             this.eventBus?.emit("calendar.starting", { eventId, title, minutesUntil });
             this.calendarTimers.delete(timerKey);
@@ -252897,14 +252383,14 @@ var init_calendar_indexer = __esm({
   }
 });
 
-// packages/core/knowledge/contacts/relationship-analyzer.ts
+// packages/core/knowledge/contacts/relationship-analyzer.js
 var relationship_analyzer_exports = {};
 __export(relationship_analyzer_exports, {
   RelationshipAnalyzer: () => RelationshipAnalyzer
 });
 var RelationshipAnalyzer;
 var init_relationship_analyzer = __esm({
-  "packages/core/knowledge/contacts/relationship-analyzer.ts"() {
+  "packages/core/knowledge/contacts/relationship-analyzer.js"() {
     "use strict";
     init_content_sanitizer();
     RelationshipAnalyzer = class {
@@ -252923,7 +252409,8 @@ var init_relationship_analyzer = __esm({
        */
       analyzeFrequency(contactId) {
         const contact = this.contactStore.getContact(contactId);
-        if (!contact) return null;
+        if (!contact)
+          return null;
         const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1e3).toISOString();
         const now = (/* @__PURE__ */ new Date()).toISOString();
         let emailCount = 0;
@@ -252984,7 +252471,8 @@ var init_relationship_analyzer = __esm({
        */
       analyzeTrend(contactId) {
         const contact = this.contactStore.getContact(contactId);
-        if (!contact) return "stable";
+        if (!contact)
+          return "stable";
         const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1e3).toISOString();
         return this.analyzeTrendForContact(contact, ninetyDaysAgo);
       }
@@ -253011,11 +252499,15 @@ var init_relationship_analyzer = __esm({
       `).get(email, `%${email}%`, ninetyDaysAgo);
           totalCount += total?.count ?? 0;
         }
-        if (totalCount === 0) return "inactive";
-        if (previousCount === 0) return recentCount > 0 ? "increasing" : "inactive";
+        if (totalCount === 0)
+          return "inactive";
+        if (previousCount === 0)
+          return recentCount > 0 ? "increasing" : "inactive";
         const ratio = recentCount / previousCount;
-        if (ratio > 1.3) return "increasing";
-        if (ratio < 0.7) return "decreasing";
+        if (ratio > 1.3)
+          return "increasing";
+        if (ratio < 0.7)
+          return "decreasing";
         return "stable";
       }
       /**
@@ -253035,7 +252527,8 @@ var init_relationship_analyzer = __esm({
        */
       async inferRelationshipType(contactId) {
         const contact = this.contactStore.getContact(contactId);
-        if (!contact) return "unknown";
+        if (!contact)
+          return "unknown";
         const freq = contact.communicationFrequency ?? this.analyzeFrequency(contactId);
         const interactionCount = contact.interactionCount;
         if (interactionCount < 5) {
@@ -253076,7 +252569,8 @@ var init_relationship_analyzer = __esm({
        * LLM-based classification with structured evidence.
        */
       async classifyWithLLM(contact) {
-        if (!this.llm) return this.classifyByRules(contact);
+        if (!this.llm)
+          return this.classifyByRules(contact);
         const recentEmails = this.getRecentEmailSnippets(contact, 3);
         const evidence = {
           name: contact.displayName,
@@ -253111,7 +252605,8 @@ Respond with ONLY the relationship type (one word):`;
           });
           const result2 = response.message.content.trim().toLowerCase();
           const validTypes = ["colleague", "client", "vendor", "friend", "family", "acquaintance"];
-          if (validTypes.includes(result2)) return result2;
+          if (validTypes.includes(result2))
+            return result2;
           return this.classifyByRules(contact);
         } catch {
           return this.classifyByRules(contact);
@@ -253222,7 +252717,8 @@ Respond with ONLY the relationship type (one word):`;
        */
       getReciprocityScore(contactId) {
         const contact = this.contactStore.getContact(contactId);
-        if (!contact || contact.emails.length === 0) return null;
+        if (!contact || contact.emails.length === 0)
+          return null;
         const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1e3).toISOString();
         let userInitiated = 0;
         let contactInitiated = 0;
@@ -253257,7 +252753,8 @@ Respond with ONLY the relationship type (one word):`;
         `).get(ce.thread_id, email, ce.received_at);
             if (userReply) {
               const diff = new Date(userReply.received_at).getTime() - new Date(ce.received_at).getTime();
-              if (diff > 0 && diff < 7 * 24 * 60 * 60 * 1e3) userResponseTimes.push(diff);
+              if (diff > 0 && diff < 7 * 24 * 60 * 60 * 1e3)
+                userResponseTimes.push(diff);
             }
           }
           const userEmails = this.db.prepare(`
@@ -253273,7 +252770,8 @@ Respond with ONLY the relationship type (one word):`;
         `).get(ue.thread_id, email, ue.received_at);
             if (contactReply) {
               const diff = new Date(contactReply.received_at).getTime() - new Date(ue.received_at).getTime();
-              if (diff > 0 && diff < 7 * 24 * 60 * 60 * 1e3) contactResponseTimes.push(diff);
+              if (diff > 0 && diff < 7 * 24 * 60 * 60 * 1e3)
+                contactResponseTimes.push(diff);
             }
           }
         }
@@ -253303,9 +252801,7 @@ Respond with ONLY the relationship type (one word):`;
         reciprocated INTEGER NOT NULL DEFAULT 0
       );
     `);
-        const rows = this.db.prepare(
-          "SELECT * FROM contact_introductions ORDER BY introduced_at DESC LIMIT 50"
-        ).all();
+        const rows = this.db.prepare("SELECT * FROM contact_introductions ORDER BY introduced_at DESC LIMIT 50").all();
         return rows.map((r) => ({
           id: r.id,
           introducedContactA: r.introduced_contact_a,
@@ -253318,7 +252814,7 @@ Respond with ONLY the relationship type (one word):`;
   }
 });
 
-// packages/core/importers/connector-registry.ts
+// packages/core/importers/connector-registry.js
 var connector_registry_exports = {};
 __export(connector_registry_exports, {
   ConnectorRegistry: () => ConnectorRegistry,
@@ -253891,7 +253387,7 @@ function createDefaultConnectorRegistry() {
 }
 var ConnectorRegistry;
 var init_connector_registry = __esm({
-  "packages/core/importers/connector-registry.ts"() {
+  "packages/core/importers/connector-registry.js"() {
     "use strict";
     ConnectorRegistry = class {
       connectors = /* @__PURE__ */ new Map();
@@ -253917,9 +253413,7 @@ var init_connector_registry = __esm({
       }
       /** List connectors available for a specific platform. */
       listByPlatform(platform8) {
-        return this.listAll().filter(
-          (c) => c.platform === "all" || c.platform === platform8
-        );
+        return this.listAll().filter((c) => c.platform === "all" || c.platform === platform8);
       }
       /** List premium-only connectors. */
       listPremium() {
@@ -253945,7 +253439,7 @@ var init_connector_registry = __esm({
   }
 });
 
-// packages/core/importers/browser/firefox-history-parser.ts
+// packages/core/importers/browser/firefox-history-parser.js
 var firefox_history_parser_exports = {};
 __export(firefox_history_parser_exports, {
   FirefoxHistoryParser: () => FirefoxHistoryParser
@@ -253956,14 +253450,15 @@ function deterministicId(url) {
 }
 var import_node_crypto9, FirefoxHistoryParser;
 var init_firefox_history_parser = __esm({
-  "packages/core/importers/browser/firefox-history-parser.ts"() {
+  "packages/core/importers/browser/firefox-history-parser.js"() {
     "use strict";
     import_node_crypto9 = require("node:crypto");
     FirefoxHistoryParser = class {
       sourceType = "browser_history";
       supportedFormats = ["firefox_sqlite"];
       canParse(path2, data) {
-        if (path2.endsWith("places.sqlite")) return true;
+        if (path2.endsWith("places.sqlite"))
+          return true;
         if (data) {
           try {
             const parsed = JSON.parse(data);
@@ -254071,7 +253566,7 @@ var init_firefox_history_parser = __esm({
   }
 });
 
-// packages/core/importers/browser/safari-history-parser.ts
+// packages/core/importers/browser/safari-history-parser.js
 var safari_history_parser_exports = {};
 __export(safari_history_parser_exports, {
   SafariHistoryParser: () => SafariHistoryParser
@@ -254085,7 +253580,7 @@ function deterministicId2(url) {
 }
 var import_node_crypto10, WEBKIT_EPOCH_OFFSET, SafariHistoryParser;
 var init_safari_history_parser = __esm({
-  "packages/core/importers/browser/safari-history-parser.ts"() {
+  "packages/core/importers/browser/safari-history-parser.js"() {
     "use strict";
     import_node_crypto10 = require("node:crypto");
     WEBKIT_EPOCH_OFFSET = 978307200;
@@ -254158,9 +253653,7 @@ var init_safari_history_parser = __esm({
             params.push(options.limit);
           }
           const rows = db.prepare(query).all(...params);
-          const totalFound = db.prepare(
-            "SELECT COUNT(*) as cnt FROM history_items WHERE url IS NOT NULL"
-          ).get().cnt;
+          const totalFound = db.prepare("SELECT COUNT(*) as cnt FROM history_items WHERE url IS NOT NULL").get().cnt;
           const items = rows.map((row) => {
             const timestampMs = row.last_visit_time ? webkitTimestampToMs(row.last_visit_time) : Date.now();
             let domain = "";
@@ -254203,7 +253696,7 @@ var init_safari_history_parser = __esm({
   }
 });
 
-// packages/core/importers/browser/edge-history-parser.ts
+// packages/core/importers/browser/edge-history-parser.js
 var edge_history_parser_exports = {};
 __export(edge_history_parser_exports, {
   EdgeHistoryParser: () => EdgeHistoryParser
@@ -254219,7 +253712,7 @@ function deterministicId3(url) {
 }
 var import_node_crypto11, CHROMIUM_EPOCH_OFFSET_USEC, EDGE_PATH_FRAGMENTS, EdgeHistoryParser;
 var init_edge_history_parser = __esm({
-  "packages/core/importers/browser/edge-history-parser.ts"() {
+  "packages/core/importers/browser/edge-history-parser.js"() {
     "use strict";
     import_node_crypto11 = require("node:crypto");
     CHROMIUM_EPOCH_OFFSET_USEC = 11644473600000000n;
@@ -254235,7 +253728,8 @@ var init_edge_history_parser = __esm({
       canParse(path2) {
         const normalized = path2.replace(/\\/g, "/").toLowerCase();
         const filename = normalized.split("/").pop() || "";
-        if (filename !== "history") return false;
+        if (filename !== "history")
+          return false;
         return EDGE_PATH_FRAGMENTS.some((frag) => normalized.includes(frag));
       }
       async parse(path2, options) {
@@ -254297,9 +253791,7 @@ var init_edge_history_parser = __esm({
             params.push(options.limit);
           }
           const rows = db.prepare(query).all(...params);
-          const totalFound = db.prepare(
-            "SELECT COUNT(*) as cnt FROM urls WHERE url IS NOT NULL"
-          ).get().cnt;
+          const totalFound = db.prepare("SELECT COUNT(*) as cnt FROM urls WHERE url IS NOT NULL").get().cnt;
           const items = [];
           for (const row of rows) {
             try {
@@ -254350,7 +253842,7 @@ var init_edge_history_parser = __esm({
   }
 });
 
-// packages/core/importers/browser/arc-history-parser.ts
+// packages/core/importers/browser/arc-history-parser.js
 var arc_history_parser_exports = {};
 __export(arc_history_parser_exports, {
   ArcHistoryParser: () => ArcHistoryParser
@@ -254366,7 +253858,7 @@ function deterministicId4(url) {
 }
 var import_node_crypto12, CHROMIUM_EPOCH_OFFSET_USEC2, ARC_PATH_FRAGMENTS, ArcHistoryParser;
 var init_arc_history_parser = __esm({
-  "packages/core/importers/browser/arc-history-parser.ts"() {
+  "packages/core/importers/browser/arc-history-parser.js"() {
     "use strict";
     import_node_crypto12 = require("node:crypto");
     CHROMIUM_EPOCH_OFFSET_USEC2 = 11644473600000000n;
@@ -254381,7 +253873,8 @@ var init_arc_history_parser = __esm({
       canParse(path2) {
         const normalized = path2.replace(/\\/g, "/").toLowerCase();
         const filename = normalized.split("/").pop() || "";
-        if (filename !== "history") return false;
+        if (filename !== "history")
+          return false;
         return ARC_PATH_FRAGMENTS.some((frag) => normalized.includes(frag));
       }
       async parse(path2, options) {
@@ -254443,9 +253936,7 @@ var init_arc_history_parser = __esm({
             params.push(options.limit);
           }
           const rows = db.prepare(query).all(...params);
-          const totalFound = db.prepare(
-            "SELECT COUNT(*) as cnt FROM urls WHERE url IS NOT NULL"
-          ).get().cnt;
+          const totalFound = db.prepare("SELECT COUNT(*) as cnt FROM urls WHERE url IS NOT NULL").get().cnt;
           const items = [];
           for (const row of rows) {
             try {
@@ -254493,6 +253984,2587 @@ var init_arc_history_parser = __esm({
         }
       }
     };
+  }
+});
+
+// node_modules/.pnpm/async-limiter@1.0.1/node_modules/async-limiter/index.js
+var require_async_limiter = __commonJS({
+  "node_modules/.pnpm/async-limiter@1.0.1/node_modules/async-limiter/index.js"(exports2, module2) {
+    "use strict";
+    function Queue(options) {
+      if (!(this instanceof Queue)) {
+        return new Queue(options);
+      }
+      options = options || {};
+      this.concurrency = options.concurrency || Infinity;
+      this.pending = 0;
+      this.jobs = [];
+      this.cbs = [];
+      this._done = done.bind(this);
+    }
+    var arrayAddMethods = [
+      "push",
+      "unshift",
+      "splice"
+    ];
+    arrayAddMethods.forEach(function(method) {
+      Queue.prototype[method] = function() {
+        var methodResult = Array.prototype[method].apply(this.jobs, arguments);
+        this._run();
+        return methodResult;
+      };
+    });
+    Object.defineProperty(Queue.prototype, "length", {
+      get: function() {
+        return this.pending + this.jobs.length;
+      }
+    });
+    Queue.prototype._run = function() {
+      if (this.pending === this.concurrency) {
+        return;
+      }
+      if (this.jobs.length) {
+        var job = this.jobs.shift();
+        this.pending++;
+        job(this._done);
+        this._run();
+      }
+      if (this.pending === 0) {
+        while (this.cbs.length !== 0) {
+          var cb2 = this.cbs.pop();
+          process.nextTick(cb2);
+        }
+      }
+    };
+    Queue.prototype.onDone = function(cb2) {
+      if (typeof cb2 === "function") {
+        this.cbs.push(cb2);
+        this._run();
+      }
+    };
+    function done() {
+      this.pending--;
+      this._run();
+    }
+    module2.exports = Queue;
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/constants.js
+var require_constants7 = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/constants.js"(exports2, module2) {
+    "use strict";
+    module2.exports = {
+      BINARY_TYPES: ["nodebuffer", "arraybuffer", "fragments"],
+      GUID: "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
+      kStatusCode: Symbol("status-code"),
+      kWebSocket: Symbol("websocket"),
+      EMPTY_BUFFER: Buffer.alloc(0),
+      NOOP: () => {
+      }
+    };
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/buffer-util.js
+var require_buffer_util = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/buffer-util.js"(exports2, module2) {
+    "use strict";
+    var { EMPTY_BUFFER } = require_constants7();
+    function concat(list, totalLength) {
+      if (list.length === 0) return EMPTY_BUFFER;
+      if (list.length === 1) return list[0];
+      const target = Buffer.allocUnsafe(totalLength);
+      var offset = 0;
+      for (var i = 0; i < list.length; i++) {
+        const buf = list[i];
+        buf.copy(target, offset);
+        offset += buf.length;
+      }
+      return target;
+    }
+    function _mask(source, mask, output, offset, length) {
+      for (var i = 0; i < length; i++) {
+        output[offset + i] = source[i] ^ mask[i & 3];
+      }
+    }
+    function _unmask(buffer, mask) {
+      const length = buffer.length;
+      for (var i = 0; i < length; i++) {
+        buffer[i] ^= mask[i & 3];
+      }
+    }
+    function toArrayBuffer(buf) {
+      if (buf.byteLength === buf.buffer.byteLength) {
+        return buf.buffer;
+      }
+      return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    }
+    function toBuffer(data) {
+      toBuffer.readOnly = true;
+      if (Buffer.isBuffer(data)) return data;
+      var buf;
+      if (data instanceof ArrayBuffer) {
+        buf = Buffer.from(data);
+      } else if (ArrayBuffer.isView(data)) {
+        buf = viewToBuffer(data);
+      } else {
+        buf = Buffer.from(data);
+        toBuffer.readOnly = false;
+      }
+      return buf;
+    }
+    function viewToBuffer(view) {
+      const buf = Buffer.from(view.buffer);
+      if (view.byteLength !== view.buffer.byteLength) {
+        return buf.slice(view.byteOffset, view.byteOffset + view.byteLength);
+      }
+      return buf;
+    }
+    try {
+      const bufferUtil = require("bufferutil");
+      const bu = bufferUtil.BufferUtil || bufferUtil;
+      module2.exports = {
+        concat,
+        mask(source, mask, output, offset, length) {
+          if (length < 48) _mask(source, mask, output, offset, length);
+          else bu.mask(source, mask, output, offset, length);
+        },
+        toArrayBuffer,
+        toBuffer,
+        unmask(buffer, mask) {
+          if (buffer.length < 32) _unmask(buffer, mask);
+          else bu.unmask(buffer, mask);
+        }
+      };
+    } catch (e) {
+      module2.exports = {
+        concat,
+        mask: _mask,
+        toArrayBuffer,
+        toBuffer,
+        unmask: _unmask
+      };
+    }
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/permessage-deflate.js
+var require_permessage_deflate = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/permessage-deflate.js"(exports2, module2) {
+    "use strict";
+    var Limiter = require_async_limiter();
+    var zlib = require("zlib");
+    var bufferUtil = require_buffer_util();
+    var { kStatusCode, NOOP } = require_constants7();
+    var TRAILER = Buffer.from([0, 0, 255, 255]);
+    var EMPTY_BLOCK = Buffer.from([0]);
+    var kPerMessageDeflate = Symbol("permessage-deflate");
+    var kTotalLength = Symbol("total-length");
+    var kCallback = Symbol("callback");
+    var kBuffers = Symbol("buffers");
+    var kError = Symbol("error");
+    var zlibLimiter;
+    var PerMessageDeflate = class {
+      /**
+       * Creates a PerMessageDeflate instance.
+       *
+       * @param {Object} options Configuration options
+       * @param {Boolean} options.serverNoContextTakeover Request/accept disabling
+       *     of server context takeover
+       * @param {Boolean} options.clientNoContextTakeover Advertise/acknowledge
+       *     disabling of client context takeover
+       * @param {(Boolean|Number)} options.serverMaxWindowBits Request/confirm the
+       *     use of a custom server window size
+       * @param {(Boolean|Number)} options.clientMaxWindowBits Advertise support
+       *     for, or request, a custom client window size
+       * @param {Object} options.zlibDeflateOptions Options to pass to zlib on deflate
+       * @param {Object} options.zlibInflateOptions Options to pass to zlib on inflate
+       * @param {Number} options.threshold Size (in bytes) below which messages
+       *     should not be compressed
+       * @param {Number} options.concurrencyLimit The number of concurrent calls to
+       *     zlib
+       * @param {Boolean} isServer Create the instance in either server or client
+       *     mode
+       * @param {Number} maxPayload The maximum allowed message length
+       */
+      constructor(options, isServer, maxPayload) {
+        this._maxPayload = maxPayload | 0;
+        this._options = options || {};
+        this._threshold = this._options.threshold !== void 0 ? this._options.threshold : 1024;
+        this._isServer = !!isServer;
+        this._deflate = null;
+        this._inflate = null;
+        this.params = null;
+        if (!zlibLimiter) {
+          const concurrency = this._options.concurrencyLimit !== void 0 ? this._options.concurrencyLimit : 10;
+          zlibLimiter = new Limiter({ concurrency });
+        }
+      }
+      /**
+       * @type {String}
+       */
+      static get extensionName() {
+        return "permessage-deflate";
+      }
+      /**
+       * Create an extension negotiation offer.
+       *
+       * @return {Object} Extension parameters
+       * @public
+       */
+      offer() {
+        const params = {};
+        if (this._options.serverNoContextTakeover) {
+          params.server_no_context_takeover = true;
+        }
+        if (this._options.clientNoContextTakeover) {
+          params.client_no_context_takeover = true;
+        }
+        if (this._options.serverMaxWindowBits) {
+          params.server_max_window_bits = this._options.serverMaxWindowBits;
+        }
+        if (this._options.clientMaxWindowBits) {
+          params.client_max_window_bits = this._options.clientMaxWindowBits;
+        } else if (this._options.clientMaxWindowBits == null) {
+          params.client_max_window_bits = true;
+        }
+        return params;
+      }
+      /**
+       * Accept an extension negotiation offer/response.
+       *
+       * @param {Array} configurations The extension negotiation offers/reponse
+       * @return {Object} Accepted configuration
+       * @public
+       */
+      accept(configurations) {
+        configurations = this.normalizeParams(configurations);
+        this.params = this._isServer ? this.acceptAsServer(configurations) : this.acceptAsClient(configurations);
+        return this.params;
+      }
+      /**
+       * Releases all resources used by the extension.
+       *
+       * @public
+       */
+      cleanup() {
+        if (this._inflate) {
+          this._inflate.close();
+          this._inflate = null;
+        }
+        if (this._deflate) {
+          this._deflate.close();
+          this._deflate = null;
+        }
+      }
+      /**
+       *  Accept an extension negotiation offer.
+       *
+       * @param {Array} offers The extension negotiation offers
+       * @return {Object} Accepted configuration
+       * @private
+       */
+      acceptAsServer(offers) {
+        const opts = this._options;
+        const accepted = offers.find((params) => {
+          if (opts.serverNoContextTakeover === false && params.server_no_context_takeover || params.server_max_window_bits && (opts.serverMaxWindowBits === false || typeof opts.serverMaxWindowBits === "number" && opts.serverMaxWindowBits > params.server_max_window_bits) || typeof opts.clientMaxWindowBits === "number" && !params.client_max_window_bits) {
+            return false;
+          }
+          return true;
+        });
+        if (!accepted) {
+          throw new Error("None of the extension offers can be accepted");
+        }
+        if (opts.serverNoContextTakeover) {
+          accepted.server_no_context_takeover = true;
+        }
+        if (opts.clientNoContextTakeover) {
+          accepted.client_no_context_takeover = true;
+        }
+        if (typeof opts.serverMaxWindowBits === "number") {
+          accepted.server_max_window_bits = opts.serverMaxWindowBits;
+        }
+        if (typeof opts.clientMaxWindowBits === "number") {
+          accepted.client_max_window_bits = opts.clientMaxWindowBits;
+        } else if (accepted.client_max_window_bits === true || opts.clientMaxWindowBits === false) {
+          delete accepted.client_max_window_bits;
+        }
+        return accepted;
+      }
+      /**
+       * Accept the extension negotiation response.
+       *
+       * @param {Array} response The extension negotiation response
+       * @return {Object} Accepted configuration
+       * @private
+       */
+      acceptAsClient(response) {
+        const params = response[0];
+        if (this._options.clientNoContextTakeover === false && params.client_no_context_takeover) {
+          throw new Error('Unexpected parameter "client_no_context_takeover"');
+        }
+        if (!params.client_max_window_bits) {
+          if (typeof this._options.clientMaxWindowBits === "number") {
+            params.client_max_window_bits = this._options.clientMaxWindowBits;
+          }
+        } else if (this._options.clientMaxWindowBits === false || typeof this._options.clientMaxWindowBits === "number" && params.client_max_window_bits > this._options.clientMaxWindowBits) {
+          throw new Error(
+            'Unexpected or invalid parameter "client_max_window_bits"'
+          );
+        }
+        return params;
+      }
+      /**
+       * Normalize parameters.
+       *
+       * @param {Array} configurations The extension negotiation offers/reponse
+       * @return {Array} The offers/response with normalized parameters
+       * @private
+       */
+      normalizeParams(configurations) {
+        configurations.forEach((params) => {
+          Object.keys(params).forEach((key) => {
+            var value = params[key];
+            if (value.length > 1) {
+              throw new Error(`Parameter "${key}" must have only a single value`);
+            }
+            value = value[0];
+            if (key === "client_max_window_bits") {
+              if (value !== true) {
+                const num = +value;
+                if (!Number.isInteger(num) || num < 8 || num > 15) {
+                  throw new TypeError(
+                    `Invalid value for parameter "${key}": ${value}`
+                  );
+                }
+                value = num;
+              } else if (!this._isServer) {
+                throw new TypeError(
+                  `Invalid value for parameter "${key}": ${value}`
+                );
+              }
+            } else if (key === "server_max_window_bits") {
+              const num = +value;
+              if (!Number.isInteger(num) || num < 8 || num > 15) {
+                throw new TypeError(
+                  `Invalid value for parameter "${key}": ${value}`
+                );
+              }
+              value = num;
+            } else if (key === "client_no_context_takeover" || key === "server_no_context_takeover") {
+              if (value !== true) {
+                throw new TypeError(
+                  `Invalid value for parameter "${key}": ${value}`
+                );
+              }
+            } else {
+              throw new Error(`Unknown parameter "${key}"`);
+            }
+            params[key] = value;
+          });
+        });
+        return configurations;
+      }
+      /**
+       * Decompress data. Concurrency limited by async-limiter.
+       *
+       * @param {Buffer} data Compressed data
+       * @param {Boolean} fin Specifies whether or not this is the last fragment
+       * @param {Function} callback Callback
+       * @public
+       */
+      decompress(data, fin, callback) {
+        zlibLimiter.push((done) => {
+          this._decompress(data, fin, (err, result2) => {
+            done();
+            callback(err, result2);
+          });
+        });
+      }
+      /**
+       * Compress data. Concurrency limited by async-limiter.
+       *
+       * @param {Buffer} data Data to compress
+       * @param {Boolean} fin Specifies whether or not this is the last fragment
+       * @param {Function} callback Callback
+       * @public
+       */
+      compress(data, fin, callback) {
+        zlibLimiter.push((done) => {
+          this._compress(data, fin, (err, result2) => {
+            done();
+            callback(err, result2);
+          });
+        });
+      }
+      /**
+       * Decompress data.
+       *
+       * @param {Buffer} data Compressed data
+       * @param {Boolean} fin Specifies whether or not this is the last fragment
+       * @param {Function} callback Callback
+       * @private
+       */
+      _decompress(data, fin, callback) {
+        const endpoint = this._isServer ? "client" : "server";
+        if (!this._inflate) {
+          const key = `${endpoint}_max_window_bits`;
+          const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
+          this._inflate = zlib.createInflateRaw(
+            Object.assign({}, this._options.zlibInflateOptions, { windowBits })
+          );
+          this._inflate[kPerMessageDeflate] = this;
+          this._inflate[kTotalLength] = 0;
+          this._inflate[kBuffers] = [];
+          this._inflate.on("error", inflateOnError);
+          this._inflate.on("data", inflateOnData);
+        }
+        this._inflate[kCallback] = callback;
+        this._inflate.write(data);
+        if (fin) this._inflate.write(TRAILER);
+        this._inflate.flush(() => {
+          const err = this._inflate[kError];
+          if (err) {
+            this._inflate.close();
+            this._inflate = null;
+            callback(err);
+            return;
+          }
+          const data2 = bufferUtil.concat(
+            this._inflate[kBuffers],
+            this._inflate[kTotalLength]
+          );
+          if (fin && this.params[`${endpoint}_no_context_takeover`]) {
+            this._inflate.close();
+            this._inflate = null;
+          } else {
+            this._inflate[kTotalLength] = 0;
+            this._inflate[kBuffers] = [];
+          }
+          callback(null, data2);
+        });
+      }
+      /**
+       * Compress data.
+       *
+       * @param {Buffer} data Data to compress
+       * @param {Boolean} fin Specifies whether or not this is the last fragment
+       * @param {Function} callback Callback
+       * @private
+       */
+      _compress(data, fin, callback) {
+        if (!data || data.length === 0) {
+          process.nextTick(callback, null, EMPTY_BLOCK);
+          return;
+        }
+        const endpoint = this._isServer ? "server" : "client";
+        if (!this._deflate) {
+          const key = `${endpoint}_max_window_bits`;
+          const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
+          this._deflate = zlib.createDeflateRaw(
+            Object.assign({}, this._options.zlibDeflateOptions, { windowBits })
+          );
+          this._deflate[kTotalLength] = 0;
+          this._deflate[kBuffers] = [];
+          this._deflate.on("error", NOOP);
+          this._deflate.on("data", deflateOnData);
+        }
+        this._deflate.write(data);
+        this._deflate.flush(zlib.Z_SYNC_FLUSH, () => {
+          if (!this._deflate) {
+            return;
+          }
+          var data2 = bufferUtil.concat(
+            this._deflate[kBuffers],
+            this._deflate[kTotalLength]
+          );
+          if (fin) data2 = data2.slice(0, data2.length - 4);
+          if (fin && this.params[`${endpoint}_no_context_takeover`]) {
+            this._deflate.close();
+            this._deflate = null;
+          } else {
+            this._deflate[kTotalLength] = 0;
+            this._deflate[kBuffers] = [];
+          }
+          callback(null, data2);
+        });
+      }
+    };
+    module2.exports = PerMessageDeflate;
+    function deflateOnData(chunk2) {
+      this[kBuffers].push(chunk2);
+      this[kTotalLength] += chunk2.length;
+    }
+    function inflateOnData(chunk2) {
+      this[kTotalLength] += chunk2.length;
+      if (this[kPerMessageDeflate]._maxPayload < 1 || this[kTotalLength] <= this[kPerMessageDeflate]._maxPayload) {
+        this[kBuffers].push(chunk2);
+        return;
+      }
+      this[kError] = new RangeError("Max payload size exceeded");
+      this[kError][kStatusCode] = 1009;
+      this.removeListener("data", inflateOnData);
+      this.reset();
+    }
+    function inflateOnError(err) {
+      this[kPerMessageDeflate]._inflate = null;
+      err[kStatusCode] = 1007;
+      this[kCallback](err);
+    }
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/event-target.js
+var require_event_target2 = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/event-target.js"(exports2, module2) {
+    "use strict";
+    var Event2 = class {
+      /**
+       * Create a new `Event`.
+       *
+       * @param {String} type The name of the event
+       * @param {Object} target A reference to the target to which the event was dispatched
+       */
+      constructor(type, target) {
+        this.target = target;
+        this.type = type;
+      }
+    };
+    var MessageEvent = class extends Event2 {
+      /**
+       * Create a new `MessageEvent`.
+       *
+       * @param {(String|Buffer|ArrayBuffer|Buffer[])} data The received data
+       * @param {WebSocket} target A reference to the target to which the event was dispatched
+       */
+      constructor(data, target) {
+        super("message", target);
+        this.data = data;
+      }
+    };
+    var CloseEvent = class extends Event2 {
+      /**
+       * Create a new `CloseEvent`.
+       *
+       * @param {Number} code The status code explaining why the connection is being closed
+       * @param {String} reason A human-readable string explaining why the connection is closing
+       * @param {WebSocket} target A reference to the target to which the event was dispatched
+       */
+      constructor(code, reason, target) {
+        super("close", target);
+        this.wasClean = target._closeFrameReceived && target._closeFrameSent;
+        this.reason = reason;
+        this.code = code;
+      }
+    };
+    var OpenEvent = class extends Event2 {
+      /**
+       * Create a new `OpenEvent`.
+       *
+       * @param {WebSocket} target A reference to the target to which the event was dispatched
+       */
+      constructor(target) {
+        super("open", target);
+      }
+    };
+    var ErrorEvent = class extends Event2 {
+      /**
+       * Create a new `ErrorEvent`.
+       *
+       * @param {Object} error The error that generated this event
+       * @param {WebSocket} target A reference to the target to which the event was dispatched
+       */
+      constructor(error, target) {
+        super("error", target);
+        this.message = error.message;
+        this.error = error;
+      }
+    };
+    var EventTarget = {
+      /**
+       * Register an event listener.
+       *
+       * @param {String} method A string representing the event type to listen for
+       * @param {Function} listener The listener to add
+       * @public
+       */
+      addEventListener(method, listener) {
+        if (typeof listener !== "function") return;
+        function onMessage(data) {
+          listener.call(this, new MessageEvent(data, this));
+        }
+        function onClose(code, message) {
+          listener.call(this, new CloseEvent(code, message, this));
+        }
+        function onError(error) {
+          listener.call(this, new ErrorEvent(error, this));
+        }
+        function onOpen() {
+          listener.call(this, new OpenEvent(this));
+        }
+        if (method === "message") {
+          onMessage._listener = listener;
+          this.on(method, onMessage);
+        } else if (method === "close") {
+          onClose._listener = listener;
+          this.on(method, onClose);
+        } else if (method === "error") {
+          onError._listener = listener;
+          this.on(method, onError);
+        } else if (method === "open") {
+          onOpen._listener = listener;
+          this.on(method, onOpen);
+        } else {
+          this.on(method, listener);
+        }
+      },
+      /**
+       * Remove an event listener.
+       *
+       * @param {String} method A string representing the event type to remove
+       * @param {Function} listener The listener to remove
+       * @public
+       */
+      removeEventListener(method, listener) {
+        const listeners = this.listeners(method);
+        for (var i = 0; i < listeners.length; i++) {
+          if (listeners[i] === listener || listeners[i]._listener === listener) {
+            this.removeListener(method, listeners[i]);
+          }
+        }
+      }
+    };
+    module2.exports = EventTarget;
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/extension.js
+var require_extension = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/extension.js"(exports2, module2) {
+    "use strict";
+    var tokenChars = [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      // 0 - 15
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      // 16 - 31
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      1,
+      0,
+      // 32 - 47
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      // 48 - 63
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      // 64 - 79
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      // 80 - 95
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      // 96 - 111
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0
+      // 112 - 127
+    ];
+    function push2(dest, name, elem) {
+      if (Object.prototype.hasOwnProperty.call(dest, name)) dest[name].push(elem);
+      else dest[name] = [elem];
+    }
+    function parse(header) {
+      const offers = {};
+      if (header === void 0 || header === "") return offers;
+      var params = {};
+      var mustUnescape = false;
+      var isEscaping = false;
+      var inQuotes = false;
+      var extensionName;
+      var paramName;
+      var start = -1;
+      var end = -1;
+      for (var i = 0; i < header.length; i++) {
+        const code = header.charCodeAt(i);
+        if (extensionName === void 0) {
+          if (end === -1 && tokenChars[code] === 1) {
+            if (start === -1) start = i;
+          } else if (code === 32 || code === 9) {
+            if (end === -1 && start !== -1) end = i;
+          } else if (code === 59 || code === 44) {
+            if (start === -1) {
+              throw new SyntaxError(`Unexpected character at index ${i}`);
+            }
+            if (end === -1) end = i;
+            const name = header.slice(start, end);
+            if (code === 44) {
+              push2(offers, name, params);
+              params = {};
+            } else {
+              extensionName = name;
+            }
+            start = end = -1;
+          } else {
+            throw new SyntaxError(`Unexpected character at index ${i}`);
+          }
+        } else if (paramName === void 0) {
+          if (end === -1 && tokenChars[code] === 1) {
+            if (start === -1) start = i;
+          } else if (code === 32 || code === 9) {
+            if (end === -1 && start !== -1) end = i;
+          } else if (code === 59 || code === 44) {
+            if (start === -1) {
+              throw new SyntaxError(`Unexpected character at index ${i}`);
+            }
+            if (end === -1) end = i;
+            push2(params, header.slice(start, end), true);
+            if (code === 44) {
+              push2(offers, extensionName, params);
+              params = {};
+              extensionName = void 0;
+            }
+            start = end = -1;
+          } else if (code === 61 && start !== -1 && end === -1) {
+            paramName = header.slice(start, i);
+            start = end = -1;
+          } else {
+            throw new SyntaxError(`Unexpected character at index ${i}`);
+          }
+        } else {
+          if (isEscaping) {
+            if (tokenChars[code] !== 1) {
+              throw new SyntaxError(`Unexpected character at index ${i}`);
+            }
+            if (start === -1) start = i;
+            else if (!mustUnescape) mustUnescape = true;
+            isEscaping = false;
+          } else if (inQuotes) {
+            if (tokenChars[code] === 1) {
+              if (start === -1) start = i;
+            } else if (code === 34 && start !== -1) {
+              inQuotes = false;
+              end = i;
+            } else if (code === 92) {
+              isEscaping = true;
+            } else {
+              throw new SyntaxError(`Unexpected character at index ${i}`);
+            }
+          } else if (code === 34 && header.charCodeAt(i - 1) === 61) {
+            inQuotes = true;
+          } else if (end === -1 && tokenChars[code] === 1) {
+            if (start === -1) start = i;
+          } else if (start !== -1 && (code === 32 || code === 9)) {
+            if (end === -1) end = i;
+          } else if (code === 59 || code === 44) {
+            if (start === -1) {
+              throw new SyntaxError(`Unexpected character at index ${i}`);
+            }
+            if (end === -1) end = i;
+            var value = header.slice(start, end);
+            if (mustUnescape) {
+              value = value.replace(/\\/g, "");
+              mustUnescape = false;
+            }
+            push2(params, paramName, value);
+            if (code === 44) {
+              push2(offers, extensionName, params);
+              params = {};
+              extensionName = void 0;
+            }
+            paramName = void 0;
+            start = end = -1;
+          } else {
+            throw new SyntaxError(`Unexpected character at index ${i}`);
+          }
+        }
+      }
+      if (start === -1 || inQuotes) {
+        throw new SyntaxError("Unexpected end of input");
+      }
+      if (end === -1) end = i;
+      const token = header.slice(start, end);
+      if (extensionName === void 0) {
+        push2(offers, token, {});
+      } else {
+        if (paramName === void 0) {
+          push2(params, token, true);
+        } else if (mustUnescape) {
+          push2(params, paramName, token.replace(/\\/g, ""));
+        } else {
+          push2(params, paramName, token);
+        }
+        push2(offers, extensionName, params);
+      }
+      return offers;
+    }
+    function format(extensions) {
+      return Object.keys(extensions).map((extension) => {
+        var configurations = extensions[extension];
+        if (!Array.isArray(configurations)) configurations = [configurations];
+        return configurations.map((params) => {
+          return [extension].concat(
+            Object.keys(params).map((k) => {
+              var values2 = params[k];
+              if (!Array.isArray(values2)) values2 = [values2];
+              return values2.map((v) => v === true ? k : `${k}=${v}`).join("; ");
+            })
+          ).join("; ");
+        }).join(", ");
+      }).join(", ");
+    }
+    module2.exports = { format, parse };
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/validation.js
+var require_validation = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/validation.js"(exports2) {
+    "use strict";
+    try {
+      const isValidUTF8 = require("utf-8-validate");
+      exports2.isValidUTF8 = typeof isValidUTF8 === "object" ? isValidUTF8.Validation.isValidUTF8 : isValidUTF8;
+    } catch (e) {
+      exports2.isValidUTF8 = () => true;
+    }
+    exports2.isValidStatusCode = (code) => {
+      return code >= 1e3 && code <= 1013 && code !== 1004 && code !== 1005 && code !== 1006 || code >= 3e3 && code <= 4999;
+    };
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/receiver.js
+var require_receiver = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/receiver.js"(exports2, module2) {
+    "use strict";
+    var { Writable } = require("stream");
+    var PerMessageDeflate = require_permessage_deflate();
+    var {
+      BINARY_TYPES,
+      EMPTY_BUFFER,
+      kStatusCode,
+      kWebSocket
+    } = require_constants7();
+    var { concat, toArrayBuffer, unmask } = require_buffer_util();
+    var { isValidStatusCode, isValidUTF8 } = require_validation();
+    var GET_INFO = 0;
+    var GET_PAYLOAD_LENGTH_16 = 1;
+    var GET_PAYLOAD_LENGTH_64 = 2;
+    var GET_MASK = 3;
+    var GET_DATA = 4;
+    var INFLATING = 5;
+    var Receiver = class extends Writable {
+      /**
+       * Creates a Receiver instance.
+       *
+       * @param {String} binaryType The type for binary data
+       * @param {Object} extensions An object containing the negotiated extensions
+       * @param {Number} maxPayload The maximum allowed message length
+       */
+      constructor(binaryType, extensions, maxPayload) {
+        super();
+        this._binaryType = binaryType || BINARY_TYPES[0];
+        this[kWebSocket] = void 0;
+        this._extensions = extensions || {};
+        this._maxPayload = maxPayload | 0;
+        this._bufferedBytes = 0;
+        this._buffers = [];
+        this._compressed = false;
+        this._payloadLength = 0;
+        this._mask = void 0;
+        this._fragmented = 0;
+        this._masked = false;
+        this._fin = false;
+        this._opcode = 0;
+        this._totalPayloadLength = 0;
+        this._messageLength = 0;
+        this._fragments = [];
+        this._state = GET_INFO;
+        this._loop = false;
+      }
+      /**
+       * Implements `Writable.prototype._write()`.
+       *
+       * @param {Buffer} chunk The chunk of data to write
+       * @param {String} encoding The character encoding of `chunk`
+       * @param {Function} cb Callback
+       */
+      _write(chunk2, encoding, cb2) {
+        if (this._opcode === 8 && this._state == GET_INFO) return cb2();
+        this._bufferedBytes += chunk2.length;
+        this._buffers.push(chunk2);
+        this.startLoop(cb2);
+      }
+      /**
+       * Consumes `n` bytes from the buffered data.
+       *
+       * @param {Number} n The number of bytes to consume
+       * @return {Buffer} The consumed bytes
+       * @private
+       */
+      consume(n) {
+        this._bufferedBytes -= n;
+        if (n === this._buffers[0].length) return this._buffers.shift();
+        if (n < this._buffers[0].length) {
+          const buf = this._buffers[0];
+          this._buffers[0] = buf.slice(n);
+          return buf.slice(0, n);
+        }
+        const dst = Buffer.allocUnsafe(n);
+        do {
+          const buf = this._buffers[0];
+          if (n >= buf.length) {
+            this._buffers.shift().copy(dst, dst.length - n);
+          } else {
+            buf.copy(dst, dst.length - n, 0, n);
+            this._buffers[0] = buf.slice(n);
+          }
+          n -= buf.length;
+        } while (n > 0);
+        return dst;
+      }
+      /**
+       * Starts the parsing loop.
+       *
+       * @param {Function} cb Callback
+       * @private
+       */
+      startLoop(cb2) {
+        var err;
+        this._loop = true;
+        do {
+          switch (this._state) {
+            case GET_INFO:
+              err = this.getInfo();
+              break;
+            case GET_PAYLOAD_LENGTH_16:
+              err = this.getPayloadLength16();
+              break;
+            case GET_PAYLOAD_LENGTH_64:
+              err = this.getPayloadLength64();
+              break;
+            case GET_MASK:
+              this.getMask();
+              break;
+            case GET_DATA:
+              err = this.getData(cb2);
+              break;
+            default:
+              this._loop = false;
+              return;
+          }
+        } while (this._loop);
+        cb2(err);
+      }
+      /**
+       * Reads the first two bytes of a frame.
+       *
+       * @return {(RangeError|undefined)} A possible error
+       * @private
+       */
+      getInfo() {
+        if (this._bufferedBytes < 2) {
+          this._loop = false;
+          return;
+        }
+        const buf = this.consume(2);
+        if ((buf[0] & 48) !== 0) {
+          this._loop = false;
+          return error(RangeError, "RSV2 and RSV3 must be clear", true, 1002);
+        }
+        const compressed = (buf[0] & 64) === 64;
+        if (compressed && !this._extensions[PerMessageDeflate.extensionName]) {
+          this._loop = false;
+          return error(RangeError, "RSV1 must be clear", true, 1002);
+        }
+        this._fin = (buf[0] & 128) === 128;
+        this._opcode = buf[0] & 15;
+        this._payloadLength = buf[1] & 127;
+        if (this._opcode === 0) {
+          if (compressed) {
+            this._loop = false;
+            return error(RangeError, "RSV1 must be clear", true, 1002);
+          }
+          if (!this._fragmented) {
+            this._loop = false;
+            return error(RangeError, "invalid opcode 0", true, 1002);
+          }
+          this._opcode = this._fragmented;
+        } else if (this._opcode === 1 || this._opcode === 2) {
+          if (this._fragmented) {
+            this._loop = false;
+            return error(RangeError, `invalid opcode ${this._opcode}`, true, 1002);
+          }
+          this._compressed = compressed;
+        } else if (this._opcode > 7 && this._opcode < 11) {
+          if (!this._fin) {
+            this._loop = false;
+            return error(RangeError, "FIN must be set", true, 1002);
+          }
+          if (compressed) {
+            this._loop = false;
+            return error(RangeError, "RSV1 must be clear", true, 1002);
+          }
+          if (this._payloadLength > 125) {
+            this._loop = false;
+            return error(
+              RangeError,
+              `invalid payload length ${this._payloadLength}`,
+              true,
+              1002
+            );
+          }
+        } else {
+          this._loop = false;
+          return error(RangeError, `invalid opcode ${this._opcode}`, true, 1002);
+        }
+        if (!this._fin && !this._fragmented) this._fragmented = this._opcode;
+        this._masked = (buf[1] & 128) === 128;
+        if (this._payloadLength === 126) this._state = GET_PAYLOAD_LENGTH_16;
+        else if (this._payloadLength === 127) this._state = GET_PAYLOAD_LENGTH_64;
+        else return this.haveLength();
+      }
+      /**
+       * Gets extended payload length (7+16).
+       *
+       * @return {(RangeError|undefined)} A possible error
+       * @private
+       */
+      getPayloadLength16() {
+        if (this._bufferedBytes < 2) {
+          this._loop = false;
+          return;
+        }
+        this._payloadLength = this.consume(2).readUInt16BE(0);
+        return this.haveLength();
+      }
+      /**
+       * Gets extended payload length (7+64).
+       *
+       * @return {(RangeError|undefined)} A possible error
+       * @private
+       */
+      getPayloadLength64() {
+        if (this._bufferedBytes < 8) {
+          this._loop = false;
+          return;
+        }
+        const buf = this.consume(8);
+        const num = buf.readUInt32BE(0);
+        if (num > Math.pow(2, 53 - 32) - 1) {
+          this._loop = false;
+          return error(
+            RangeError,
+            "Unsupported WebSocket frame: payload length > 2^53 - 1",
+            false,
+            1009
+          );
+        }
+        this._payloadLength = num * Math.pow(2, 32) + buf.readUInt32BE(4);
+        return this.haveLength();
+      }
+      /**
+       * Payload length has been read.
+       *
+       * @return {(RangeError|undefined)} A possible error
+       * @private
+       */
+      haveLength() {
+        if (this._payloadLength && this._opcode < 8) {
+          this._totalPayloadLength += this._payloadLength;
+          if (this._totalPayloadLength > this._maxPayload && this._maxPayload > 0) {
+            this._loop = false;
+            return error(RangeError, "Max payload size exceeded", false, 1009);
+          }
+        }
+        if (this._masked) this._state = GET_MASK;
+        else this._state = GET_DATA;
+      }
+      /**
+       * Reads mask bytes.
+       *
+       * @private
+       */
+      getMask() {
+        if (this._bufferedBytes < 4) {
+          this._loop = false;
+          return;
+        }
+        this._mask = this.consume(4);
+        this._state = GET_DATA;
+      }
+      /**
+       * Reads data bytes.
+       *
+       * @param {Function} cb Callback
+       * @return {(Error|RangeError|undefined)} A possible error
+       * @private
+       */
+      getData(cb2) {
+        var data = EMPTY_BUFFER;
+        if (this._payloadLength) {
+          if (this._bufferedBytes < this._payloadLength) {
+            this._loop = false;
+            return;
+          }
+          data = this.consume(this._payloadLength);
+          if (this._masked) unmask(data, this._mask);
+        }
+        if (this._opcode > 7) return this.controlMessage(data);
+        if (this._compressed) {
+          this._state = INFLATING;
+          this.decompress(data, cb2);
+          return;
+        }
+        if (data.length) {
+          this._messageLength = this._totalPayloadLength;
+          this._fragments.push(data);
+        }
+        return this.dataMessage();
+      }
+      /**
+       * Decompresses data.
+       *
+       * @param {Buffer} data Compressed data
+       * @param {Function} cb Callback
+       * @private
+       */
+      decompress(data, cb2) {
+        const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+        perMessageDeflate.decompress(data, this._fin, (err, buf) => {
+          if (err) return cb2(err);
+          if (buf.length) {
+            this._messageLength += buf.length;
+            if (this._messageLength > this._maxPayload && this._maxPayload > 0) {
+              return cb2(
+                error(RangeError, "Max payload size exceeded", false, 1009)
+              );
+            }
+            this._fragments.push(buf);
+          }
+          const er = this.dataMessage();
+          if (er) return cb2(er);
+          this.startLoop(cb2);
+        });
+      }
+      /**
+       * Handles a data message.
+       *
+       * @return {(Error|undefined)} A possible error
+       * @private
+       */
+      dataMessage() {
+        if (this._fin) {
+          const messageLength = this._messageLength;
+          const fragments = this._fragments;
+          this._totalPayloadLength = 0;
+          this._messageLength = 0;
+          this._fragmented = 0;
+          this._fragments = [];
+          if (this._opcode === 2) {
+            var data;
+            if (this._binaryType === "nodebuffer") {
+              data = concat(fragments, messageLength);
+            } else if (this._binaryType === "arraybuffer") {
+              data = toArrayBuffer(concat(fragments, messageLength));
+            } else {
+              data = fragments;
+            }
+            this.emit("message", data);
+          } else {
+            const buf = concat(fragments, messageLength);
+            if (!isValidUTF8(buf)) {
+              this._loop = false;
+              return error(Error, "invalid UTF-8 sequence", true, 1007);
+            }
+            this.emit("message", buf.toString());
+          }
+        }
+        this._state = GET_INFO;
+      }
+      /**
+       * Handles a control message.
+       *
+       * @param {Buffer} data Data to handle
+       * @return {(Error|RangeError|undefined)} A possible error
+       * @private
+       */
+      controlMessage(data) {
+        if (this._opcode === 8) {
+          this._loop = false;
+          if (data.length === 0) {
+            this.emit("conclude", 1005, "");
+            this.end();
+          } else if (data.length === 1) {
+            return error(RangeError, "invalid payload length 1", true, 1002);
+          } else {
+            const code = data.readUInt16BE(0);
+            if (!isValidStatusCode(code)) {
+              return error(RangeError, `invalid status code ${code}`, true, 1002);
+            }
+            const buf = data.slice(2);
+            if (!isValidUTF8(buf)) {
+              return error(Error, "invalid UTF-8 sequence", true, 1007);
+            }
+            this.emit("conclude", code, buf.toString());
+            this.end();
+          }
+        } else if (this._opcode === 9) {
+          this.emit("ping", data);
+        } else {
+          this.emit("pong", data);
+        }
+        this._state = GET_INFO;
+      }
+    };
+    module2.exports = Receiver;
+    function error(ErrorCtor, message, prefix, statusCode) {
+      const err = new ErrorCtor(
+        prefix ? `Invalid WebSocket frame: ${message}` : message
+      );
+      Error.captureStackTrace(err, error);
+      err[kStatusCode] = statusCode;
+      return err;
+    }
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/sender.js
+var require_sender = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/sender.js"(exports2, module2) {
+    "use strict";
+    var { randomBytes: randomBytes9 } = require("crypto");
+    var PerMessageDeflate = require_permessage_deflate();
+    var { EMPTY_BUFFER } = require_constants7();
+    var { isValidStatusCode } = require_validation();
+    var { mask: applyMask, toBuffer } = require_buffer_util();
+    var Sender = class _Sender {
+      /**
+       * Creates a Sender instance.
+       *
+       * @param {net.Socket} socket The connection socket
+       * @param {Object} extensions An object containing the negotiated extensions
+       */
+      constructor(socket, extensions) {
+        this._extensions = extensions || {};
+        this._socket = socket;
+        this._firstFragment = true;
+        this._compress = false;
+        this._bufferedBytes = 0;
+        this._deflating = false;
+        this._queue = [];
+      }
+      /**
+       * Frames a piece of data according to the HyBi WebSocket protocol.
+       *
+       * @param {Buffer} data The data to frame
+       * @param {Object} options Options object
+       * @param {Number} options.opcode The opcode
+       * @param {Boolean} options.readOnly Specifies whether `data` can be modified
+       * @param {Boolean} options.fin Specifies whether or not to set the FIN bit
+       * @param {Boolean} options.mask Specifies whether or not to mask `data`
+       * @param {Boolean} options.rsv1 Specifies whether or not to set the RSV1 bit
+       * @return {Buffer[]} The framed data as a list of `Buffer` instances
+       * @public
+       */
+      static frame(data, options) {
+        const merge = options.mask && options.readOnly;
+        var offset = options.mask ? 6 : 2;
+        var payloadLength = data.length;
+        if (data.length >= 65536) {
+          offset += 8;
+          payloadLength = 127;
+        } else if (data.length > 125) {
+          offset += 2;
+          payloadLength = 126;
+        }
+        const target = Buffer.allocUnsafe(merge ? data.length + offset : offset);
+        target[0] = options.fin ? options.opcode | 128 : options.opcode;
+        if (options.rsv1) target[0] |= 64;
+        target[1] = payloadLength;
+        if (payloadLength === 126) {
+          target.writeUInt16BE(data.length, 2);
+        } else if (payloadLength === 127) {
+          target.writeUInt32BE(0, 2);
+          target.writeUInt32BE(data.length, 6);
+        }
+        if (!options.mask) return [target, data];
+        const mask = randomBytes9(4);
+        target[1] |= 128;
+        target[offset - 4] = mask[0];
+        target[offset - 3] = mask[1];
+        target[offset - 2] = mask[2];
+        target[offset - 1] = mask[3];
+        if (merge) {
+          applyMask(data, mask, target, offset, data.length);
+          return [target];
+        }
+        applyMask(data, mask, data, 0, data.length);
+        return [target, data];
+      }
+      /**
+       * Sends a close message to the other peer.
+       *
+       * @param {(Number|undefined)} code The status code component of the body
+       * @param {String} data The message component of the body
+       * @param {Boolean} mask Specifies whether or not to mask the message
+       * @param {Function} cb Callback
+       * @public
+       */
+      close(code, data, mask, cb2) {
+        var buf;
+        if (code === void 0) {
+          buf = EMPTY_BUFFER;
+        } else if (typeof code !== "number" || !isValidStatusCode(code)) {
+          throw new TypeError("First argument must be a valid error code number");
+        } else if (data === void 0 || data === "") {
+          buf = Buffer.allocUnsafe(2);
+          buf.writeUInt16BE(code, 0);
+        } else {
+          buf = Buffer.allocUnsafe(2 + Buffer.byteLength(data));
+          buf.writeUInt16BE(code, 0);
+          buf.write(data, 2);
+        }
+        if (this._deflating) {
+          this.enqueue([this.doClose, buf, mask, cb2]);
+        } else {
+          this.doClose(buf, mask, cb2);
+        }
+      }
+      /**
+       * Frames and sends a close message.
+       *
+       * @param {Buffer} data The message to send
+       * @param {Boolean} mask Specifies whether or not to mask `data`
+       * @param {Function} cb Callback
+       * @private
+       */
+      doClose(data, mask, cb2) {
+        this.sendFrame(
+          _Sender.frame(data, {
+            fin: true,
+            rsv1: false,
+            opcode: 8,
+            mask,
+            readOnly: false
+          }),
+          cb2
+        );
+      }
+      /**
+       * Sends a ping message to the other peer.
+       *
+       * @param {*} data The message to send
+       * @param {Boolean} mask Specifies whether or not to mask `data`
+       * @param {Function} cb Callback
+       * @public
+       */
+      ping(data, mask, cb2) {
+        const buf = toBuffer(data);
+        if (this._deflating) {
+          this.enqueue([this.doPing, buf, mask, toBuffer.readOnly, cb2]);
+        } else {
+          this.doPing(buf, mask, toBuffer.readOnly, cb2);
+        }
+      }
+      /**
+       * Frames and sends a ping message.
+       *
+       * @param {*} data The message to send
+       * @param {Boolean} mask Specifies whether or not to mask `data`
+       * @param {Boolean} readOnly Specifies whether `data` can be modified
+       * @param {Function} cb Callback
+       * @private
+       */
+      doPing(data, mask, readOnly, cb2) {
+        this.sendFrame(
+          _Sender.frame(data, {
+            fin: true,
+            rsv1: false,
+            opcode: 9,
+            mask,
+            readOnly
+          }),
+          cb2
+        );
+      }
+      /**
+       * Sends a pong message to the other peer.
+       *
+       * @param {*} data The message to send
+       * @param {Boolean} mask Specifies whether or not to mask `data`
+       * @param {Function} cb Callback
+       * @public
+       */
+      pong(data, mask, cb2) {
+        const buf = toBuffer(data);
+        if (this._deflating) {
+          this.enqueue([this.doPong, buf, mask, toBuffer.readOnly, cb2]);
+        } else {
+          this.doPong(buf, mask, toBuffer.readOnly, cb2);
+        }
+      }
+      /**
+       * Frames and sends a pong message.
+       *
+       * @param {*} data The message to send
+       * @param {Boolean} mask Specifies whether or not to mask `data`
+       * @param {Boolean} readOnly Specifies whether `data` can be modified
+       * @param {Function} cb Callback
+       * @private
+       */
+      doPong(data, mask, readOnly, cb2) {
+        this.sendFrame(
+          _Sender.frame(data, {
+            fin: true,
+            rsv1: false,
+            opcode: 10,
+            mask,
+            readOnly
+          }),
+          cb2
+        );
+      }
+      /**
+       * Sends a data message to the other peer.
+       *
+       * @param {*} data The message to send
+       * @param {Object} options Options object
+       * @param {Boolean} options.compress Specifies whether or not to compress `data`
+       * @param {Boolean} options.binary Specifies whether `data` is binary or text
+       * @param {Boolean} options.fin Specifies whether the fragment is the last one
+       * @param {Boolean} options.mask Specifies whether or not to mask `data`
+       * @param {Function} cb Callback
+       * @public
+       */
+      send(data, options, cb2) {
+        const buf = toBuffer(data);
+        const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+        var opcode = options.binary ? 2 : 1;
+        var rsv1 = options.compress;
+        if (this._firstFragment) {
+          this._firstFragment = false;
+          if (rsv1 && perMessageDeflate) {
+            rsv1 = buf.length >= perMessageDeflate._threshold;
+          }
+          this._compress = rsv1;
+        } else {
+          rsv1 = false;
+          opcode = 0;
+        }
+        if (options.fin) this._firstFragment = true;
+        if (perMessageDeflate) {
+          const opts = {
+            fin: options.fin,
+            rsv1,
+            opcode,
+            mask: options.mask,
+            readOnly: toBuffer.readOnly
+          };
+          if (this._deflating) {
+            this.enqueue([this.dispatch, buf, this._compress, opts, cb2]);
+          } else {
+            this.dispatch(buf, this._compress, opts, cb2);
+          }
+        } else {
+          this.sendFrame(
+            _Sender.frame(buf, {
+              fin: options.fin,
+              rsv1: false,
+              opcode,
+              mask: options.mask,
+              readOnly: toBuffer.readOnly
+            }),
+            cb2
+          );
+        }
+      }
+      /**
+       * Dispatches a data message.
+       *
+       * @param {Buffer} data The message to send
+       * @param {Boolean} compress Specifies whether or not to compress `data`
+       * @param {Object} options Options object
+       * @param {Number} options.opcode The opcode
+       * @param {Boolean} options.readOnly Specifies whether `data` can be modified
+       * @param {Boolean} options.fin Specifies whether or not to set the FIN bit
+       * @param {Boolean} options.mask Specifies whether or not to mask `data`
+       * @param {Boolean} options.rsv1 Specifies whether or not to set the RSV1 bit
+       * @param {Function} cb Callback
+       * @private
+       */
+      dispatch(data, compress, options, cb2) {
+        if (!compress) {
+          this.sendFrame(_Sender.frame(data, options), cb2);
+          return;
+        }
+        const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+        this._deflating = true;
+        perMessageDeflate.compress(data, options.fin, (_3, buf) => {
+          this._deflating = false;
+          options.readOnly = false;
+          this.sendFrame(_Sender.frame(buf, options), cb2);
+          this.dequeue();
+        });
+      }
+      /**
+       * Executes queued send operations.
+       *
+       * @private
+       */
+      dequeue() {
+        while (!this._deflating && this._queue.length) {
+          const params = this._queue.shift();
+          this._bufferedBytes -= params[1].length;
+          params[0].apply(this, params.slice(1));
+        }
+      }
+      /**
+       * Enqueues a send operation.
+       *
+       * @param {Array} params Send operation parameters.
+       * @private
+       */
+      enqueue(params) {
+        this._bufferedBytes += params[1].length;
+        this._queue.push(params);
+      }
+      /**
+       * Sends a frame.
+       *
+       * @param {Buffer[]} list The frame to send
+       * @param {Function} cb Callback
+       * @private
+       */
+      sendFrame(list, cb2) {
+        if (list.length === 2) {
+          this._socket.cork();
+          this._socket.write(list[0]);
+          this._socket.write(list[1], cb2);
+          this._socket.uncork();
+        } else {
+          this._socket.write(list[0], cb2);
+        }
+      }
+    };
+    module2.exports = Sender;
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/websocket.js
+var require_websocket = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/websocket.js"(exports2, module2) {
+    "use strict";
+    var EventEmitter = require("events");
+    var crypto4 = require("crypto");
+    var https = require("https");
+    var http = require("http");
+    var net = require("net");
+    var tls = require("tls");
+    var url = require("url");
+    var PerMessageDeflate = require_permessage_deflate();
+    var EventTarget = require_event_target2();
+    var extension = require_extension();
+    var Receiver = require_receiver();
+    var Sender = require_sender();
+    var {
+      BINARY_TYPES,
+      EMPTY_BUFFER,
+      GUID,
+      kStatusCode,
+      kWebSocket,
+      NOOP
+    } = require_constants7();
+    var readyStates = ["CONNECTING", "OPEN", "CLOSING", "CLOSED"];
+    var protocolVersions = [8, 13];
+    var closeTimeout = 30 * 1e3;
+    var WebSocket2 = class _WebSocket extends EventEmitter {
+      /**
+       * Create a new `WebSocket`.
+       *
+       * @param {(String|url.Url|url.URL)} address The URL to which to connect
+       * @param {(String|String[])} protocols The subprotocols
+       * @param {Object} options Connection options
+       */
+      constructor(address, protocols, options) {
+        super();
+        this.readyState = _WebSocket.CONNECTING;
+        this.protocol = "";
+        this._binaryType = BINARY_TYPES[0];
+        this._closeFrameReceived = false;
+        this._closeFrameSent = false;
+        this._closeMessage = "";
+        this._closeTimer = null;
+        this._closeCode = 1006;
+        this._extensions = {};
+        this._receiver = null;
+        this._sender = null;
+        this._socket = null;
+        if (address !== null) {
+          this._isServer = false;
+          this._redirects = 0;
+          if (Array.isArray(protocols)) {
+            protocols = protocols.join(", ");
+          } else if (typeof protocols === "object" && protocols !== null) {
+            options = protocols;
+            protocols = void 0;
+          }
+          initAsClient(this, address, protocols, options);
+        } else {
+          this._isServer = true;
+        }
+      }
+      get CONNECTING() {
+        return _WebSocket.CONNECTING;
+      }
+      get CLOSING() {
+        return _WebSocket.CLOSING;
+      }
+      get CLOSED() {
+        return _WebSocket.CLOSED;
+      }
+      get OPEN() {
+        return _WebSocket.OPEN;
+      }
+      /**
+       * This deviates from the WHATWG interface since ws doesn't support the
+       * required default "blob" type (instead we define a custom "nodebuffer"
+       * type).
+       *
+       * @type {String}
+       */
+      get binaryType() {
+        return this._binaryType;
+      }
+      set binaryType(type) {
+        if (!BINARY_TYPES.includes(type)) return;
+        this._binaryType = type;
+        if (this._receiver) this._receiver._binaryType = type;
+      }
+      /**
+       * @type {Number}
+       */
+      get bufferedAmount() {
+        if (!this._socket) return 0;
+        return (this._socket.bufferSize || 0) + this._sender._bufferedBytes;
+      }
+      /**
+       * @type {String}
+       */
+      get extensions() {
+        return Object.keys(this._extensions).join();
+      }
+      /**
+       * Set up the socket and the internal resources.
+       *
+       * @param {net.Socket} socket The network socket between the server and client
+       * @param {Buffer} head The first packet of the upgraded stream
+       * @param {Number} maxPayload The maximum allowed message size
+       * @private
+       */
+      setSocket(socket, head, maxPayload) {
+        const receiver = new Receiver(
+          this._binaryType,
+          this._extensions,
+          maxPayload
+        );
+        this._sender = new Sender(socket, this._extensions);
+        this._receiver = receiver;
+        this._socket = socket;
+        receiver[kWebSocket] = this;
+        socket[kWebSocket] = this;
+        receiver.on("conclude", receiverOnConclude);
+        receiver.on("drain", receiverOnDrain);
+        receiver.on("error", receiverOnError);
+        receiver.on("message", receiverOnMessage);
+        receiver.on("ping", receiverOnPing);
+        receiver.on("pong", receiverOnPong);
+        socket.setTimeout(0);
+        socket.setNoDelay();
+        if (head.length > 0) socket.unshift(head);
+        socket.on("close", socketOnClose);
+        socket.on("data", socketOnData);
+        socket.on("end", socketOnEnd);
+        socket.on("error", socketOnError);
+        this.readyState = _WebSocket.OPEN;
+        this.emit("open");
+      }
+      /**
+       * Emit the `'close'` event.
+       *
+       * @private
+       */
+      emitClose() {
+        this.readyState = _WebSocket.CLOSED;
+        if (!this._socket) {
+          this.emit("close", this._closeCode, this._closeMessage);
+          return;
+        }
+        if (this._extensions[PerMessageDeflate.extensionName]) {
+          this._extensions[PerMessageDeflate.extensionName].cleanup();
+        }
+        this._receiver.removeAllListeners();
+        this.emit("close", this._closeCode, this._closeMessage);
+      }
+      /**
+       * Start a closing handshake.
+       *
+       *          +----------+   +-----------+   +----------+
+       *     - - -|ws.close()|-->|close frame|-->|ws.close()|- - -
+       *    |     +----------+   +-----------+   +----------+     |
+       *          +----------+   +-----------+         |
+       * CLOSING  |ws.close()|<--|close frame|<--+-----+       CLOSING
+       *          +----------+   +-----------+   |
+       *    |           |                        |   +---+        |
+       *                +------------------------+-->|fin| - - - -
+       *    |         +---+                      |   +---+
+       *     - - - - -|fin|<---------------------+
+       *              +---+
+       *
+       * @param {Number} code Status code explaining why the connection is closing
+       * @param {String} data A string explaining why the connection is closing
+       * @public
+       */
+      close(code, data) {
+        if (this.readyState === _WebSocket.CLOSED) return;
+        if (this.readyState === _WebSocket.CONNECTING) {
+          const msg = "WebSocket was closed before the connection was established";
+          return abortHandshake(this, this._req, msg);
+        }
+        if (this.readyState === _WebSocket.CLOSING) {
+          if (this._closeFrameSent && this._closeFrameReceived) this._socket.end();
+          return;
+        }
+        this.readyState = _WebSocket.CLOSING;
+        this._sender.close(code, data, !this._isServer, (err) => {
+          if (err) return;
+          this._closeFrameSent = true;
+          if (this._closeFrameReceived) this._socket.end();
+        });
+        this._closeTimer = setTimeout(
+          this._socket.destroy.bind(this._socket),
+          closeTimeout
+        );
+      }
+      /**
+       * Send a ping.
+       *
+       * @param {*} data The data to send
+       * @param {Boolean} mask Indicates whether or not to mask `data`
+       * @param {Function} cb Callback which is executed when the ping is sent
+       * @public
+       */
+      ping(data, mask, cb2) {
+        if (typeof data === "function") {
+          cb2 = data;
+          data = mask = void 0;
+        } else if (typeof mask === "function") {
+          cb2 = mask;
+          mask = void 0;
+        }
+        if (this.readyState !== _WebSocket.OPEN) {
+          const err = new Error(
+            `WebSocket is not open: readyState ${this.readyState} (${readyStates[this.readyState]})`
+          );
+          if (cb2) return cb2(err);
+          throw err;
+        }
+        if (typeof data === "number") data = data.toString();
+        if (mask === void 0) mask = !this._isServer;
+        this._sender.ping(data || EMPTY_BUFFER, mask, cb2);
+      }
+      /**
+       * Send a pong.
+       *
+       * @param {*} data The data to send
+       * @param {Boolean} mask Indicates whether or not to mask `data`
+       * @param {Function} cb Callback which is executed when the pong is sent
+       * @public
+       */
+      pong(data, mask, cb2) {
+        if (typeof data === "function") {
+          cb2 = data;
+          data = mask = void 0;
+        } else if (typeof mask === "function") {
+          cb2 = mask;
+          mask = void 0;
+        }
+        if (this.readyState !== _WebSocket.OPEN) {
+          const err = new Error(
+            `WebSocket is not open: readyState ${this.readyState} (${readyStates[this.readyState]})`
+          );
+          if (cb2) return cb2(err);
+          throw err;
+        }
+        if (typeof data === "number") data = data.toString();
+        if (mask === void 0) mask = !this._isServer;
+        this._sender.pong(data || EMPTY_BUFFER, mask, cb2);
+      }
+      /**
+       * Send a data message.
+       *
+       * @param {*} data The message to send
+       * @param {Object} options Options object
+       * @param {Boolean} options.compress Specifies whether or not to compress `data`
+       * @param {Boolean} options.binary Specifies whether `data` is binary or text
+       * @param {Boolean} options.fin Specifies whether the fragment is the last one
+       * @param {Boolean} options.mask Specifies whether or not to mask `data`
+       * @param {Function} cb Callback which is executed when data is written out
+       * @public
+       */
+      send(data, options, cb2) {
+        if (typeof options === "function") {
+          cb2 = options;
+          options = {};
+        }
+        if (this.readyState !== _WebSocket.OPEN) {
+          const err = new Error(
+            `WebSocket is not open: readyState ${this.readyState} (${readyStates[this.readyState]})`
+          );
+          if (cb2) return cb2(err);
+          throw err;
+        }
+        if (typeof data === "number") data = data.toString();
+        const opts = Object.assign(
+          {
+            binary: typeof data !== "string",
+            mask: !this._isServer,
+            compress: true,
+            fin: true
+          },
+          options
+        );
+        if (!this._extensions[PerMessageDeflate.extensionName]) {
+          opts.compress = false;
+        }
+        this._sender.send(data || EMPTY_BUFFER, opts, cb2);
+      }
+      /**
+       * Forcibly close the connection.
+       *
+       * @public
+       */
+      terminate() {
+        if (this.readyState === _WebSocket.CLOSED) return;
+        if (this.readyState === _WebSocket.CONNECTING) {
+          const msg = "WebSocket was closed before the connection was established";
+          return abortHandshake(this, this._req, msg);
+        }
+        if (this._socket) {
+          this.readyState = _WebSocket.CLOSING;
+          this._socket.destroy();
+        }
+      }
+    };
+    readyStates.forEach((readyState, i) => {
+      WebSocket2[readyState] = i;
+    });
+    ["open", "error", "close", "message"].forEach((method) => {
+      Object.defineProperty(WebSocket2.prototype, `on${method}`, {
+        /**
+         * Return the listener of the event.
+         *
+         * @return {(Function|undefined)} The event listener or `undefined`
+         * @public
+         */
+        get() {
+          const listeners = this.listeners(method);
+          for (var i = 0; i < listeners.length; i++) {
+            if (listeners[i]._listener) return listeners[i]._listener;
+          }
+          return void 0;
+        },
+        /**
+         * Add a listener for the event.
+         *
+         * @param {Function} listener The listener to add
+         * @public
+         */
+        set(listener) {
+          const listeners = this.listeners(method);
+          for (var i = 0; i < listeners.length; i++) {
+            if (listeners[i]._listener) this.removeListener(method, listeners[i]);
+          }
+          this.addEventListener(method, listener);
+        }
+      });
+    });
+    WebSocket2.prototype.addEventListener = EventTarget.addEventListener;
+    WebSocket2.prototype.removeEventListener = EventTarget.removeEventListener;
+    module2.exports = WebSocket2;
+    function initAsClient(websocket, address, protocols, options) {
+      const opts = Object.assign(
+        {
+          protocolVersion: protocolVersions[1],
+          maxPayload: 100 * 1024 * 1024,
+          perMessageDeflate: true,
+          followRedirects: false,
+          maxRedirects: 10
+        },
+        options,
+        {
+          createConnection: void 0,
+          socketPath: void 0,
+          hostname: void 0,
+          protocol: void 0,
+          timeout: void 0,
+          method: void 0,
+          auth: void 0,
+          host: void 0,
+          path: void 0,
+          port: void 0
+        }
+      );
+      if (!protocolVersions.includes(opts.protocolVersion)) {
+        throw new RangeError(
+          `Unsupported protocol version: ${opts.protocolVersion} (supported versions: ${protocolVersions.join(", ")})`
+        );
+      }
+      var parsedUrl;
+      if (typeof address === "object" && address.href !== void 0) {
+        parsedUrl = address;
+        websocket.url = address.href;
+      } else {
+        parsedUrl = url.URL ? new url.URL(address) : url.parse(address);
+        websocket.url = address;
+      }
+      const isUnixSocket = parsedUrl.protocol === "ws+unix:";
+      if (!parsedUrl.host && (!isUnixSocket || !parsedUrl.pathname)) {
+        throw new Error(`Invalid URL: ${websocket.url}`);
+      }
+      const isSecure = parsedUrl.protocol === "wss:" || parsedUrl.protocol === "https:";
+      const defaultPort2 = isSecure ? 443 : 80;
+      const key = crypto4.randomBytes(16).toString("base64");
+      const get3 = isSecure ? https.get : http.get;
+      const path2 = parsedUrl.search ? `${parsedUrl.pathname || "/"}${parsedUrl.search}` : parsedUrl.pathname || "/";
+      var perMessageDeflate;
+      opts.createConnection = isSecure ? tlsConnect : netConnect;
+      opts.defaultPort = opts.defaultPort || defaultPort2;
+      opts.port = parsedUrl.port || defaultPort2;
+      opts.host = parsedUrl.hostname.startsWith("[") ? parsedUrl.hostname.slice(1, -1) : parsedUrl.hostname;
+      opts.headers = Object.assign(
+        {
+          "Sec-WebSocket-Version": opts.protocolVersion,
+          "Sec-WebSocket-Key": key,
+          Connection: "Upgrade",
+          Upgrade: "websocket"
+        },
+        opts.headers
+      );
+      opts.path = path2;
+      opts.timeout = opts.handshakeTimeout;
+      if (opts.perMessageDeflate) {
+        perMessageDeflate = new PerMessageDeflate(
+          opts.perMessageDeflate !== true ? opts.perMessageDeflate : {},
+          false,
+          opts.maxPayload
+        );
+        opts.headers["Sec-WebSocket-Extensions"] = extension.format({
+          [PerMessageDeflate.extensionName]: perMessageDeflate.offer()
+        });
+      }
+      if (protocols) {
+        opts.headers["Sec-WebSocket-Protocol"] = protocols;
+      }
+      if (opts.origin) {
+        if (opts.protocolVersion < 13) {
+          opts.headers["Sec-WebSocket-Origin"] = opts.origin;
+        } else {
+          opts.headers.Origin = opts.origin;
+        }
+      }
+      if (parsedUrl.auth) {
+        opts.auth = parsedUrl.auth;
+      } else if (parsedUrl.username || parsedUrl.password) {
+        opts.auth = `${parsedUrl.username}:${parsedUrl.password}`;
+      }
+      if (isUnixSocket) {
+        const parts = path2.split(":");
+        opts.socketPath = parts[0];
+        opts.path = parts[1];
+      }
+      var req = websocket._req = get3(opts);
+      if (opts.timeout) {
+        req.on("timeout", () => {
+          abortHandshake(websocket, req, "Opening handshake has timed out");
+        });
+      }
+      req.on("error", (err) => {
+        if (websocket._req.aborted) return;
+        req = websocket._req = null;
+        websocket.readyState = WebSocket2.CLOSING;
+        websocket.emit("error", err);
+        websocket.emitClose();
+      });
+      req.on("response", (res) => {
+        const location = res.headers.location;
+        const statusCode = res.statusCode;
+        if (location && opts.followRedirects && statusCode >= 300 && statusCode < 400) {
+          if (++websocket._redirects > opts.maxRedirects) {
+            abortHandshake(websocket, req, "Maximum redirects exceeded");
+            return;
+          }
+          req.abort();
+          const addr = url.URL ? new url.URL(location, address) : url.resolve(address, location);
+          initAsClient(websocket, addr, protocols, options);
+        } else if (!websocket.emit("unexpected-response", req, res)) {
+          abortHandshake(
+            websocket,
+            req,
+            `Unexpected server response: ${res.statusCode}`
+          );
+        }
+      });
+      req.on("upgrade", (res, socket, head) => {
+        websocket.emit("upgrade", res);
+        if (websocket.readyState !== WebSocket2.CONNECTING) return;
+        req = websocket._req = null;
+        const digest = crypto4.createHash("sha1").update(key + GUID).digest("base64");
+        if (res.headers["sec-websocket-accept"] !== digest) {
+          abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
+          return;
+        }
+        const serverProt = res.headers["sec-websocket-protocol"];
+        const protList = (protocols || "").split(/, */);
+        var protError;
+        if (!protocols && serverProt) {
+          protError = "Server sent a subprotocol but none was requested";
+        } else if (protocols && !serverProt) {
+          protError = "Server sent no subprotocol";
+        } else if (serverProt && !protList.includes(serverProt)) {
+          protError = "Server sent an invalid subprotocol";
+        }
+        if (protError) {
+          abortHandshake(websocket, socket, protError);
+          return;
+        }
+        if (serverProt) websocket.protocol = serverProt;
+        if (perMessageDeflate) {
+          try {
+            const extensions = extension.parse(
+              res.headers["sec-websocket-extensions"]
+            );
+            if (extensions[PerMessageDeflate.extensionName]) {
+              perMessageDeflate.accept(extensions[PerMessageDeflate.extensionName]);
+              websocket._extensions[PerMessageDeflate.extensionName] = perMessageDeflate;
+            }
+          } catch (err) {
+            abortHandshake(
+              websocket,
+              socket,
+              "Invalid Sec-WebSocket-Extensions header"
+            );
+            return;
+          }
+        }
+        websocket.setSocket(socket, head, opts.maxPayload);
+      });
+    }
+    function netConnect(options) {
+      if (options.protocolVersion) options.path = options.socketPath;
+      return net.connect(options);
+    }
+    function tlsConnect(options) {
+      options.path = void 0;
+      options.servername = options.servername || options.host;
+      return tls.connect(options);
+    }
+    function abortHandshake(websocket, stream, message) {
+      websocket.readyState = WebSocket2.CLOSING;
+      const err = new Error(message);
+      Error.captureStackTrace(err, abortHandshake);
+      if (stream.setHeader) {
+        stream.abort();
+        stream.once("abort", websocket.emitClose.bind(websocket));
+        websocket.emit("error", err);
+      } else {
+        stream.destroy(err);
+        stream.once("error", websocket.emit.bind(websocket, "error"));
+        stream.once("close", websocket.emitClose.bind(websocket));
+      }
+    }
+    function receiverOnConclude(code, reason) {
+      const websocket = this[kWebSocket];
+      websocket._socket.removeListener("data", socketOnData);
+      websocket._socket.resume();
+      websocket._closeFrameReceived = true;
+      websocket._closeMessage = reason;
+      websocket._closeCode = code;
+      if (code === 1005) websocket.close();
+      else websocket.close(code, reason);
+    }
+    function receiverOnDrain() {
+      this[kWebSocket]._socket.resume();
+    }
+    function receiverOnError(err) {
+      const websocket = this[kWebSocket];
+      websocket._socket.removeListener("data", socketOnData);
+      websocket.readyState = WebSocket2.CLOSING;
+      websocket._closeCode = err[kStatusCode];
+      websocket.emit("error", err);
+      websocket._socket.destroy();
+    }
+    function receiverOnFinish() {
+      this[kWebSocket].emitClose();
+    }
+    function receiverOnMessage(data) {
+      this[kWebSocket].emit("message", data);
+    }
+    function receiverOnPing(data) {
+      const websocket = this[kWebSocket];
+      websocket.pong(data, !websocket._isServer, NOOP);
+      websocket.emit("ping", data);
+    }
+    function receiverOnPong(data) {
+      this[kWebSocket].emit("pong", data);
+    }
+    function socketOnClose() {
+      const websocket = this[kWebSocket];
+      this.removeListener("close", socketOnClose);
+      this.removeListener("end", socketOnEnd);
+      websocket.readyState = WebSocket2.CLOSING;
+      websocket._socket.read();
+      websocket._receiver.end();
+      this.removeListener("data", socketOnData);
+      this[kWebSocket] = void 0;
+      clearTimeout(websocket._closeTimer);
+      if (websocket._receiver._writableState.finished || websocket._receiver._writableState.errorEmitted) {
+        websocket.emitClose();
+      } else {
+        websocket._receiver.on("error", receiverOnFinish);
+        websocket._receiver.on("finish", receiverOnFinish);
+      }
+    }
+    function socketOnData(chunk2) {
+      if (!this[kWebSocket]._receiver.write(chunk2)) {
+        this.pause();
+      }
+    }
+    function socketOnEnd() {
+      const websocket = this[kWebSocket];
+      websocket.readyState = WebSocket2.CLOSING;
+      websocket._receiver.end();
+      this.end();
+    }
+    function socketOnError() {
+      const websocket = this[kWebSocket];
+      this.removeListener("error", socketOnError);
+      this.on("error", NOOP);
+      websocket.readyState = WebSocket2.CLOSING;
+      this.destroy();
+    }
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/websocket-server.js
+var require_websocket_server = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/lib/websocket-server.js"(exports2, module2) {
+    "use strict";
+    var EventEmitter = require("events");
+    var crypto4 = require("crypto");
+    var http = require("http");
+    var PerMessageDeflate = require_permessage_deflate();
+    var extension = require_extension();
+    var WebSocket2 = require_websocket();
+    var { GUID } = require_constants7();
+    var keyRegex = /^[+/0-9A-Za-z]{22}==$/;
+    var WebSocketServer = class extends EventEmitter {
+      /**
+       * Create a `WebSocketServer` instance.
+       *
+       * @param {Object} options Configuration options
+       * @param {Number} options.backlog The maximum length of the queue of pending
+       *     connections
+       * @param {Boolean} options.clientTracking Specifies whether or not to track
+       *     clients
+       * @param {Function} options.handleProtocols An hook to handle protocols
+       * @param {String} options.host The hostname where to bind the server
+       * @param {Number} options.maxPayload The maximum allowed message size
+       * @param {Boolean} options.noServer Enable no server mode
+       * @param {String} options.path Accept only connections matching this path
+       * @param {(Boolean|Object)} options.perMessageDeflate Enable/disable
+       *     permessage-deflate
+       * @param {Number} options.port The port where to bind the server
+       * @param {http.Server} options.server A pre-created HTTP/S server to use
+       * @param {Function} options.verifyClient An hook to reject connections
+       * @param {Function} callback A listener for the `listening` event
+       */
+      constructor(options, callback) {
+        super();
+        options = Object.assign(
+          {
+            maxPayload: 100 * 1024 * 1024,
+            perMessageDeflate: false,
+            handleProtocols: null,
+            clientTracking: true,
+            verifyClient: null,
+            noServer: false,
+            backlog: null,
+            // use default (511 as implemented in net.js)
+            server: null,
+            host: null,
+            path: null,
+            port: null
+          },
+          options
+        );
+        if (options.port == null && !options.server && !options.noServer) {
+          throw new TypeError(
+            'One of the "port", "server", or "noServer" options must be specified'
+          );
+        }
+        if (options.port != null) {
+          this._server = http.createServer((req, res) => {
+            const body = http.STATUS_CODES[426];
+            res.writeHead(426, {
+              "Content-Length": body.length,
+              "Content-Type": "text/plain"
+            });
+            res.end(body);
+          });
+          this._server.listen(
+            options.port,
+            options.host,
+            options.backlog,
+            callback
+          );
+        } else if (options.server) {
+          this._server = options.server;
+        }
+        if (this._server) {
+          this._removeListeners = addListeners(this._server, {
+            listening: this.emit.bind(this, "listening"),
+            error: this.emit.bind(this, "error"),
+            upgrade: (req, socket, head) => {
+              this.handleUpgrade(req, socket, head, (ws) => {
+                this.emit("connection", ws, req);
+              });
+            }
+          });
+        }
+        if (options.perMessageDeflate === true) options.perMessageDeflate = {};
+        if (options.clientTracking) this.clients = /* @__PURE__ */ new Set();
+        this.options = options;
+      }
+      /**
+       * Returns the bound address, the address family name, and port of the server
+       * as reported by the operating system if listening on an IP socket.
+       * If the server is listening on a pipe or UNIX domain socket, the name is
+       * returned as a string.
+       *
+       * @return {(Object|String|null)} The address of the server
+       * @public
+       */
+      address() {
+        if (this.options.noServer) {
+          throw new Error('The server is operating in "noServer" mode');
+        }
+        if (!this._server) return null;
+        return this._server.address();
+      }
+      /**
+       * Close the server.
+       *
+       * @param {Function} cb Callback
+       * @public
+       */
+      close(cb2) {
+        if (cb2) this.once("close", cb2);
+        if (this.clients) {
+          for (const client of this.clients) client.terminate();
+        }
+        const server = this._server;
+        if (server) {
+          this._removeListeners();
+          this._removeListeners = this._server = null;
+          if (this.options.port != null) {
+            server.close(() => this.emit("close"));
+            return;
+          }
+        }
+        process.nextTick(emitClose, this);
+      }
+      /**
+       * See if a given request should be handled by this server instance.
+       *
+       * @param {http.IncomingMessage} req Request object to inspect
+       * @return {Boolean} `true` if the request is valid, else `false`
+       * @public
+       */
+      shouldHandle(req) {
+        if (this.options.path) {
+          const index2 = req.url.indexOf("?");
+          const pathname = index2 !== -1 ? req.url.slice(0, index2) : req.url;
+          if (pathname !== this.options.path) return false;
+        }
+        return true;
+      }
+      /**
+       * Handle a HTTP Upgrade request.
+       *
+       * @param {http.IncomingMessage} req The request object
+       * @param {net.Socket} socket The network socket between the server and client
+       * @param {Buffer} head The first packet of the upgraded stream
+       * @param {Function} cb Callback
+       * @public
+       */
+      handleUpgrade(req, socket, head, cb2) {
+        socket.on("error", socketOnError);
+        const key = req.headers["sec-websocket-key"] !== void 0 ? req.headers["sec-websocket-key"].trim() : false;
+        const upgrade = req.headers.upgrade;
+        const version3 = +req.headers["sec-websocket-version"];
+        const extensions = {};
+        if (req.method !== "GET" || upgrade === void 0 || upgrade.toLowerCase() !== "websocket" || !key || !keyRegex.test(key) || version3 !== 8 && version3 !== 13 || !this.shouldHandle(req)) {
+          return abortHandshake(socket, 400);
+        }
+        if (this.options.perMessageDeflate) {
+          const perMessageDeflate = new PerMessageDeflate(
+            this.options.perMessageDeflate,
+            true,
+            this.options.maxPayload
+          );
+          try {
+            const offers = extension.parse(req.headers["sec-websocket-extensions"]);
+            if (offers[PerMessageDeflate.extensionName]) {
+              perMessageDeflate.accept(offers[PerMessageDeflate.extensionName]);
+              extensions[PerMessageDeflate.extensionName] = perMessageDeflate;
+            }
+          } catch (err) {
+            return abortHandshake(socket, 400);
+          }
+        }
+        if (this.options.verifyClient) {
+          const info2 = {
+            origin: req.headers[`${version3 === 8 ? "sec-websocket-origin" : "origin"}`],
+            secure: !!(req.connection.authorized || req.connection.encrypted),
+            req
+          };
+          if (this.options.verifyClient.length === 2) {
+            this.options.verifyClient(info2, (verified, code, message, headers) => {
+              if (!verified) {
+                return abortHandshake(socket, code || 401, message, headers);
+              }
+              this.completeUpgrade(key, extensions, req, socket, head, cb2);
+            });
+            return;
+          }
+          if (!this.options.verifyClient(info2)) return abortHandshake(socket, 401);
+        }
+        this.completeUpgrade(key, extensions, req, socket, head, cb2);
+      }
+      /**
+       * Upgrade the connection to WebSocket.
+       *
+       * @param {String} key The value of the `Sec-WebSocket-Key` header
+       * @param {Object} extensions The accepted extensions
+       * @param {http.IncomingMessage} req The request object
+       * @param {net.Socket} socket The network socket between the server and client
+       * @param {Buffer} head The first packet of the upgraded stream
+       * @param {Function} cb Callback
+       * @private
+       */
+      completeUpgrade(key, extensions, req, socket, head, cb2) {
+        if (!socket.readable || !socket.writable) return socket.destroy();
+        const digest = crypto4.createHash("sha1").update(key + GUID).digest("base64");
+        const headers = [
+          "HTTP/1.1 101 Switching Protocols",
+          "Upgrade: websocket",
+          "Connection: Upgrade",
+          `Sec-WebSocket-Accept: ${digest}`
+        ];
+        const ws = new WebSocket2(null);
+        var protocol = req.headers["sec-websocket-protocol"];
+        if (protocol) {
+          protocol = protocol.split(",").map(trim);
+          if (this.options.handleProtocols) {
+            protocol = this.options.handleProtocols(protocol, req);
+          } else {
+            protocol = protocol[0];
+          }
+          if (protocol) {
+            headers.push(`Sec-WebSocket-Protocol: ${protocol}`);
+            ws.protocol = protocol;
+          }
+        }
+        if (extensions[PerMessageDeflate.extensionName]) {
+          const params = extensions[PerMessageDeflate.extensionName].params;
+          const value = extension.format({
+            [PerMessageDeflate.extensionName]: [params]
+          });
+          headers.push(`Sec-WebSocket-Extensions: ${value}`);
+          ws._extensions = extensions;
+        }
+        this.emit("headers", headers, req);
+        socket.write(headers.concat("\r\n").join("\r\n"));
+        socket.removeListener("error", socketOnError);
+        ws.setSocket(socket, head, this.options.maxPayload);
+        if (this.clients) {
+          this.clients.add(ws);
+          ws.on("close", () => this.clients.delete(ws));
+        }
+        cb2(ws);
+      }
+    };
+    module2.exports = WebSocketServer;
+    function addListeners(server, map2) {
+      for (const event of Object.keys(map2)) server.on(event, map2[event]);
+      return function removeListeners() {
+        for (const event of Object.keys(map2)) {
+          server.removeListener(event, map2[event]);
+        }
+      };
+    }
+    function emitClose(server) {
+      server.emit("close");
+    }
+    function socketOnError() {
+      this.destroy();
+    }
+    function abortHandshake(socket, code, message, headers) {
+      if (socket.writable) {
+        message = message || http.STATUS_CODES[code];
+        headers = Object.assign(
+          {
+            Connection: "close",
+            "Content-type": "text/html",
+            "Content-Length": Buffer.byteLength(message)
+          },
+          headers
+        );
+        socket.write(
+          `HTTP/1.1 ${code} ${http.STATUS_CODES[code]}\r
+` + Object.keys(headers).map((h) => `${h}: ${headers[h]}`).join("\r\n") + "\r\n\r\n" + message
+        );
+      }
+      socket.removeListener("error", socketOnError);
+      socket.destroy();
+    }
+    function trim(str) {
+      return str.trim();
+    }
+  }
+});
+
+// node_modules/.pnpm/ws@6.2.3/node_modules/ws/index.js
+var require_ws = __commonJS({
+  "node_modules/.pnpm/ws@6.2.3/node_modules/ws/index.js"(exports2, module2) {
+    "use strict";
+    var WebSocket2 = require_websocket();
+    WebSocket2.Server = require_websocket_server();
+    WebSocket2.Receiver = require_receiver();
+    WebSocket2.Sender = require_sender();
+    module2.exports = WebSocket2;
   }
 });
 
@@ -256840,7 +258912,7 @@ var require_index_umd = __commonJS({
   }
 });
 
-// packages/core/skills/skill-bundle-resolver.ts
+// packages/core/skills/skill-bundle-resolver.js
 var skill_bundle_resolver_exports = {};
 __export(skill_bundle_resolver_exports, {
   bundleToSubtask: () => bundleToSubtask,
@@ -256879,7 +258951,8 @@ function bundleToSubtask(bundle, subtaskId, userMessage, config) {
   };
 }
 function findMatchingBundle(requiredTools, bundles) {
-  if (bundles.length === 0 || requiredTools.length === 0) return null;
+  if (bundles.length === 0 || requiredTools.length === 0)
+    return null;
   let bestMatch = null;
   let bestOverlap = 0;
   for (const bundle of bundles) {
@@ -256893,7 +258966,7 @@ function findMatchingBundle(requiredTools, bundles) {
 }
 var CAPABILITY_MODEL_TIER;
 var init_skill_bundle_resolver = __esm({
-  "packages/core/skills/skill-bundle-resolver.ts"() {
+  "packages/core/skills/skill-bundle-resolver.js"() {
     "use strict";
     CAPABILITY_MODEL_TIER = {
       knowledge_graph_read: "fast",
@@ -256908,7 +258981,7 @@ var init_skill_bundle_resolver = __esm({
   }
 });
 
-// packages/core/agent/browser-tools.ts
+// packages/core/agent/browser-tools.js
 var browser_tools_exports = {};
 __export(browser_tools_exports, {
   BROWSER_TOOL_ACTION_MAP: () => BROWSER_TOOL_ACTION_MAP,
@@ -256917,7 +258990,7 @@ __export(browser_tools_exports, {
 });
 var BROWSER_TOOL_DEFINITIONS, BROWSER_TOOL_ACTION_MAP, BROWSER_TOOL_NAMES;
 var init_browser_tools = __esm({
-  "packages/core/agent/browser-tools.ts"() {
+  "packages/core/agent/browser-tools.js"() {
     "use strict";
     BROWSER_TOOL_DEFINITIONS = [
       {
@@ -257028,7 +259101,7 @@ var init_browser_tools = __esm({
   }
 });
 
-// packages/gateway/tools/filesystem-executor.ts
+// packages/gateway/tools/filesystem-executor.js
 var filesystem_executor_exports = {};
 __export(filesystem_executor_exports, {
   FilesystemExecutor: () => FilesystemExecutor
@@ -257072,7 +259145,7 @@ function guessMimeType(ext) {
 }
 var import_node_fs12, import_node_path13, import_node_os12, FilesystemExecutor;
 var init_filesystem_executor = __esm({
-  "packages/gateway/tools/filesystem-executor.ts"() {
+  "packages/gateway/tools/filesystem-executor.js"() {
     "use strict";
     import_node_fs12 = require("node:fs");
     import_node_path13 = require("node:path");
@@ -257167,9 +259240,11 @@ var init_filesystem_executor = __esm({
         try {
           const items = (0, import_node_fs12.readdirSync)(dir, { withFileTypes: true });
           for (const item of items) {
-            if (!includeHidden && item.name.startsWith(".")) continue;
+            if (!includeHidden && item.name.startsWith("."))
+              continue;
             if (pattern && !this.matchGlob(item.name, pattern)) {
-              if (!(item.isDirectory() && recursive)) continue;
+              if (!(item.isDirectory() && recursive))
+                continue;
             }
             const fullPath = (0, import_node_path13.join)(dir, item.name);
             try {
@@ -257249,22 +259324,27 @@ var init_filesystem_executor = __esm({
         return matches;
       }
       searchDir(dir, regex, matches, maxResults, filePattern) {
-        if (matches.length >= maxResults) return;
+        if (matches.length >= maxResults)
+          return;
         try {
           const items = (0, import_node_fs12.readdirSync)(dir, { withFileTypes: true });
           for (const item of items) {
-            if (matches.length >= maxResults) return;
-            if (item.name.startsWith(".") || item.name === "node_modules") continue;
+            if (matches.length >= maxResults)
+              return;
+            if (item.name.startsWith(".") || item.name === "node_modules")
+              continue;
             const fullPath = (0, import_node_path13.join)(dir, item.name);
             if (item.isDirectory()) {
               this.searchDir(fullPath, regex, matches, maxResults, filePattern);
             } else if (item.isFile()) {
-              if (filePattern && !this.matchGlob(item.name, filePattern)) continue;
+              if (filePattern && !this.matchGlob(item.name, filePattern))
+                continue;
               try {
                 const content = (0, import_node_fs12.readFileSync)(fullPath, "utf-8");
                 const lines = content.split("\n");
                 for (let i = 0; i < lines.length; i++) {
-                  if (matches.length >= maxResults) return;
+                  if (matches.length >= maxResults)
+                    return;
                   if (regex.test(lines[i])) {
                     matches.push({
                       filePath: fullPath,
@@ -257293,12 +259373,15 @@ var init_filesystem_executor = __esm({
         return results;
       }
       globDir(dir, pattern, results, maxResults) {
-        if (results.length >= maxResults) return;
+        if (results.length >= maxResults)
+          return;
         try {
           const items = (0, import_node_fs12.readdirSync)(dir, { withFileTypes: true });
           for (const item of items) {
-            if (results.length >= maxResults) return;
-            if (item.name.startsWith(".") || item.name === "node_modules") continue;
+            if (results.length >= maxResults)
+              return;
+            if (item.name.startsWith(".") || item.name === "node_modules")
+              continue;
             const fullPath = (0, import_node_path13.join)(dir, item.name);
             if (this.matchGlob(item.name, pattern) || this.matchGlob((0, import_node_path13.relative)(this.resolvePath("."), fullPath).replace(/\\/g, "/"), pattern)) {
               try {
@@ -257350,14 +259433,14 @@ var init_filesystem_executor = __esm({
   }
 });
 
-// packages/gateway/tools/terminal-executor.ts
+// packages/gateway/tools/terminal-executor.js
 var terminal_executor_exports = {};
 __export(terminal_executor_exports, {
   TerminalExecutor: () => TerminalExecutor
 });
 var import_node_child_process4, import_node_os13, import_node_path14, TerminalExecutor;
 var init_terminal_executor = __esm({
-  "packages/gateway/tools/terminal-executor.ts"() {
+  "packages/gateway/tools/terminal-executor.js"() {
     "use strict";
     import_node_child_process4 = require("node:child_process");
     import_node_os13 = require("node:os");
@@ -257445,7 +259528,8 @@ var init_terminal_executor = __esm({
        */
       getDefaultShell() {
         const p = (0, import_node_os13.platform)();
-        if (p === "win32") return "powershell";
+        if (p === "win32")
+          return "powershell";
         return "bash";
       }
       /**
@@ -257472,10 +259556,10 @@ var init_terminal_executor = __esm({
   }
 });
 
-// packages/gateway/cloud-bridge/provider-registry.ts
+// packages/gateway/cloud-bridge/provider-registry.js
 var ProviderRegistry;
 var init_provider_registry = __esm({
-  "packages/gateway/cloud-bridge/provider-registry.ts"() {
+  "packages/gateway/cloud-bridge/provider-registry.js"() {
     "use strict";
     ProviderRegistry = class {
       providers = /* @__PURE__ */ new Map();
@@ -257572,7 +259656,8 @@ var init_provider_registry = __esm({
        */
       getDefaultModel(providerId) {
         const provider = this.providers.get(providerId);
-        if (!provider || provider.models.length === 0) return null;
+        if (!provider || provider.models.length === 0)
+          return null;
         return provider.models.find((m) => m.supportsTools) ?? provider.models[0] ?? null;
       }
       /**
@@ -257585,10 +259670,10 @@ var init_provider_registry = __esm({
   }
 });
 
-// packages/gateway/cloud-bridge/cloud-bridge-adapter.ts
+// packages/gateway/cloud-bridge/cloud-bridge-adapter.js
 var CloudBridgeAdapter;
 var init_cloud_bridge_adapter = __esm({
-  "packages/gateway/cloud-bridge/cloud-bridge-adapter.ts"() {
+  "packages/gateway/cloud-bridge/cloud-bridge-adapter.js"() {
     "use strict";
     init_core();
     CloudBridgeAdapter = class {
@@ -257624,11 +259709,7 @@ var init_cloud_bridge_adapter = __esm({
               response = await this.callGoogle(knownConfig, apiKey, request);
               break;
             default:
-              response = await this.callOpenAICompatible(
-                knownConfig.baseUrl,
-                apiKey,
-                request
-              );
+              response = await this.callOpenAICompatible(knownConfig.baseUrl, apiKey, request);
           }
         } else {
           const baseUrl = this.getBaseUrl(request.provider);
@@ -257755,14 +259836,11 @@ var init_cloud_bridge_adapter = __esm({
           body.systemInstruction = { parts: [{ text: systemMsg.content }] };
         }
         const endpoint = config.chatEndpoint.replace("{model}", request.model);
-        const response = await fetch(
-          `${config.baseUrl}${endpoint}?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-          }
-        );
+        const response = await fetch(`${config.baseUrl}${endpoint}?key=${apiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
         if (!response.ok) {
           const errorText = await response.text().catch(() => "");
           throw new Error(`Google AI API error (${response.status}): ${errorText.slice(0, 500)}`);
@@ -257785,7 +259863,7 @@ var init_cloud_bridge_adapter = __esm({
   }
 });
 
-// packages/gateway/cloud-bridge/api-key-validator.ts
+// packages/gateway/cloud-bridge/api-key-validator.js
 var api_key_validator_exports = {};
 __export(api_key_validator_exports, {
   validateApiKey: () => validateApiKey
@@ -257885,9 +259963,7 @@ async function validateOpenAI(config, apiKey) {
 }
 async function validateGoogle(config, apiKey) {
   try {
-    const response = await fetch(
-      `${config.baseUrl}/v1beta/models?key=${apiKey}`
-    );
+    const response = await fetch(`${config.baseUrl}/v1beta/models?key=${apiKey}`);
     if (response.ok) {
       return { valid: true, providerId: config.id, models: config.models };
     }
@@ -257951,13 +260027,13 @@ async function validateOpenAICompatible(providerId, apiKey, baseUrl) {
   }
 }
 var init_api_key_validator = __esm({
-  "packages/gateway/cloud-bridge/api-key-validator.ts"() {
+  "packages/gateway/cloud-bridge/api-key-validator.js"() {
     "use strict";
     init_core();
   }
 });
 
-// packages/gateway/cloud-bridge/content-classifier.ts
+// packages/gateway/cloud-bridge/content-classifier.js
 function classifyContent(text) {
   const confidence = {
     financial: 0,
@@ -257986,7 +260062,8 @@ function classifyContent(text) {
   return { categories, confidence };
 }
 function checkExclusions(text, excludedCategories) {
-  if (excludedCategories.length === 0) return [];
+  if (excludedCategories.length === 0)
+    return [];
   const { categories } = classifyContent(text);
   return categories.filter((c) => excludedCategories.includes(c));
 }
@@ -257997,12 +260074,13 @@ function scorePatterns(text, patterns) {
       matches++;
     }
   }
-  if (matches === 0) return 0;
+  if (matches === 0)
+    return 0;
   return Math.min(1, 0.2 + matches * 0.15);
 }
 var FINANCIAL_PATTERNS, HEALTH_PATTERNS, LEGAL_PATTERNS2, PERSONAL_ID_PATTERNS, CONTACT_PATTERNS, CALENDAR_PATTERNS;
 var init_content_classifier = __esm({
-  "packages/gateway/cloud-bridge/content-classifier.ts"() {
+  "packages/gateway/cloud-bridge/content-classifier.js"() {
     "use strict";
     FINANCIAL_PATTERNS = [
       /\b(?:account\s*(?:number|#|num)|routing\s*(?:number|#))\b/i,
@@ -258062,10 +260140,10 @@ var init_content_classifier = __esm({
   }
 });
 
-// packages/gateway/cloud-bridge/confidence-detector.ts
+// packages/gateway/cloud-bridge/confidence-detector.js
 var DEFAULT_THRESHOLDS, HEDGING_PATTERNS, CONTRADICTION_PATTERNS, REFUSAL_PATTERNS, UNCERTAINTY_PATTERNS, ConfidenceDetector;
 var init_confidence_detector = __esm({
-  "packages/gateway/cloud-bridge/confidence-detector.ts"() {
+  "packages/gateway/cloud-bridge/confidence-detector.js"() {
     "use strict";
     DEFAULT_THRESHOLDS = {
       default: 0.6,
@@ -258211,7 +260289,8 @@ var init_confidence_detector = __esm({
       }
       /** Update thresholds. */
       setThresholds(thresholds) {
-        if (thresholds.default !== void 0) this.thresholds.default = thresholds.default;
+        if (thresholds.default !== void 0)
+          this.thresholds.default = thresholds.default;
         if (thresholds.domains) {
           Object.assign(this.thresholds.domains, thresholds.domains);
         }
@@ -258222,43 +260301,55 @@ var init_confidence_detector = __esm({
       }
       // ─── Private ──────────────────────────────────────────────────────────────
       calculateScore(signals, response) {
-        if (signals.length === 0) return 1;
+        if (signals.length === 0)
+          return 1;
         let score = 1;
         for (const signal of signals) {
           score -= signal.severity * 0.15;
         }
-        if (signals.length >= 3) score -= 0.1;
-        if (signals.length >= 5) score -= 0.15;
+        if (signals.length >= 3)
+          score -= 0.1;
+        if (signals.length >= 5)
+          score -= 0.15;
         const hasRefusal = signals.some((s) => s.type === "refusal");
-        if (hasRefusal) score -= 0.2;
-        if (response.split(/\s+/).length < 10) score -= 0.15;
+        if (hasRefusal)
+          score -= 0.2;
+        if (response.split(/\s+/).length < 10)
+          score -= 0.15;
         return Math.max(0, Math.min(1, score));
       }
     };
   }
 });
 
-// packages/gateway/cloud-bridge/cost-optimizer.ts
+// packages/gateway/cloud-bridge/cost-optimizer.js
 function assessComplexity(inputTokens, domain) {
-  if (["finances", "legal", "health"].includes(domain)) return "complex";
-  if (inputTokens > 4e3) return "complex";
-  if (inputTokens > 1e3) return "moderate";
+  if (["finances", "legal", "health"].includes(domain))
+    return "complex";
+  if (inputTokens > 4e3)
+    return "complex";
+  if (inputTokens > 1e3)
+    return "moderate";
   return "simple";
 }
 function modelCostTier(model) {
   const costPerOutputToken = model.costPerOutputToken ?? 0;
-  if (costPerOutputToken <= 1e-6) return "cheap";
-  if (costPerOutputToken <= 15e-6) return "mid";
+  if (costPerOutputToken <= 1e-6)
+    return "cheap";
+  if (costPerOutputToken <= 15e-6)
+    return "mid";
   return "expensive";
 }
 function modelSufficient(tier, complexity) {
-  if (complexity === "simple") return true;
-  if (complexity === "moderate") return tier !== "cheap";
+  if (complexity === "simple")
+    return true;
+  if (complexity === "moderate")
+    return tier !== "cheap";
   return tier === "expensive";
 }
 var CostOptimizer;
 var init_cost_optimizer = __esm({
-  "packages/gateway/cloud-bridge/cost-optimizer.ts"() {
+  "packages/gateway/cloud-bridge/cost-optimizer.js"() {
     "use strict";
     CostOptimizer = class {
       registry;
@@ -258288,13 +260379,15 @@ var init_cost_optimizer = __esm({
         const candidates = [];
         for (const providerId of this.providerRanking) {
           const provider = connected.find((p) => p.id === providerId && p.status === "connected");
-          if (!provider) continue;
+          if (!provider)
+            continue;
           for (const model of provider.models) {
             candidates.push({ provider: providerId, model });
           }
         }
         for (const provider of connected) {
-          if (this.providerRanking.includes(provider.id)) continue;
+          if (this.providerRanking.includes(provider.id))
+            continue;
           for (const model of provider.models) {
             candidates.push({ provider: provider.id, model });
           }
@@ -258315,12 +260408,9 @@ var init_cost_optimizer = __esm({
           }));
         }
         const selected = viable[0];
-        if (!selected) return null;
-        const estimatedCostCents = this.computeCost(
-          selected.model,
-          estimatedInputTokens,
-          estimatedOutputTokens
-        );
+        if (!selected)
+          return null;
+        const estimatedCostCents = this.computeCost(selected.model, estimatedInputTokens, estimatedOutputTokens);
         const canAfford = !policy.spendingCap.enabled || policy.spendingCap.currentSpend + (estimatedCostCents ?? 0) <= policy.spendingCap.monthlyLimit;
         return {
           provider: selected.provider,
@@ -258339,17 +260429,21 @@ var init_cost_optimizer = __esm({
       selectFallbackProvider(excludeProvider) {
         const connected = this.registry.getConnectedProviders();
         for (const providerId of this.providerRanking) {
-          if (providerId === excludeProvider) continue;
+          if (providerId === excludeProvider)
+            continue;
           const provider = connected.find((p) => p.id === providerId);
           if (provider) {
             const model = this.registry.getDefaultModel(providerId);
-            if (model) return { provider: providerId, model: model.id };
+            if (model)
+              return { provider: providerId, model: model.id };
           }
         }
         for (const provider of connected) {
-          if (provider.id === excludeProvider) continue;
+          if (provider.id === excludeProvider)
+            continue;
           const model = this.registry.getDefaultModel(provider.id);
-          if (model) return { provider: provider.id, model: model.id };
+          if (model)
+            return { provider: provider.id, model: model.id };
         }
         return null;
       }
@@ -258358,21 +260452,19 @@ var init_cost_optimizer = __esm({
         if (model.costPerInputToken === null || model.costPerOutputToken === null) {
           return null;
         }
-        return Math.round(
-          (inputTokens * model.costPerInputToken + outputTokens * model.costPerOutputToken) * 100
-        );
+        return Math.round((inputTokens * model.costPerInputToken + outputTokens * model.costPerOutputToken) * 100);
       }
     };
   }
 });
 
-// packages/gateway/cloud-bridge/prompt-minimizer.ts
+// packages/gateway/cloud-bridge/prompt-minimizer.js
 function estimateTokens(messages) {
   return Math.ceil(messages.reduce((sum, m) => sum + m.content.length, 0) / 4);
 }
 var SYSTEM_PROMPT_MARKERS, KNOWLEDGE_CONTEXT_MARKERS, PII_PATTERNS, PromptMinimizer;
 var init_prompt_minimizer = __esm({
-  "packages/gateway/cloud-bridge/prompt-minimizer.ts"() {
+  "packages/gateway/cloud-bridge/prompt-minimizer.js"() {
     "use strict";
     init_content_classifier();
     SYSTEM_PROMPT_MARKERS = [
@@ -258506,10 +260598,10 @@ var init_prompt_minimizer = __esm({
   }
 });
 
-// packages/gateway/cloud-bridge/routing-engine.ts
+// packages/gateway/cloud-bridge/routing-engine.js
 var CloudBridgeRoutingEngine;
 var init_routing_engine = __esm({
-  "packages/gateway/cloud-bridge/routing-engine.ts"() {
+  "packages/gateway/cloud-bridge/routing-engine.js"() {
     "use strict";
     init_nanoid();
     init_core();
@@ -258639,9 +260731,7 @@ var init_routing_engine = __esm({
           const model = provider?.models.find((m) => m.id === request.model);
           let estimatedCostCents = null;
           if (model?.costPerInputToken && model?.costPerOutputToken) {
-            estimatedCostCents = Math.round(
-              (response.tokensUsed.prompt * model.costPerInputToken + response.tokensUsed.completion * model.costPerOutputToken) * 100
-            );
+            estimatedCostCents = Math.round((response.tokensUsed.prompt * model.costPerInputToken + response.tokensUsed.completion * model.costPerOutputToken) * 100);
           }
           this.logAuditEntry({
             type: "cloud_bridge_request",
@@ -258660,12 +260750,7 @@ var init_routing_engine = __esm({
             routingMode: this.policy.mode,
             latencyMs: response.durationMs
           });
-          this.registry.recordUsage(
-            request.provider,
-            response.tokensUsed.prompt,
-            response.tokensUsed.completion,
-            estimatedCostCents
-          );
+          this.registry.recordUsage(request.provider, response.tokensUsed.prompt, response.tokensUsed.completion, estimatedCostCents);
           if (this.policy.spendingCap.enabled && estimatedCostCents !== null) {
             this.policy.spendingCap.currentSpend += estimatedCostCents;
           }
@@ -258701,11 +260786,7 @@ var init_routing_engine = __esm({
        * @returns { response: string, escalated: boolean, confidence: ConfidenceResult }
        */
       async evaluateAndEscalate(localResponse, domain, messages, options) {
-        const confidence = this.confidenceDetector.evaluate(
-          localResponse,
-          domain,
-          options?.queryComplexity
-        );
+        const confidence = this.confidenceDetector.evaluate(localResponse, domain, options?.queryComplexity);
         if (!confidence.shouldEscalate) {
           return { response: localResponse, escalated: false, confidence };
         }
@@ -258724,32 +260805,20 @@ var init_routing_engine = __esm({
         if (decision.route !== "cloud_bridge") {
           return { response: localResponse, escalated: false, confidence };
         }
-        const costEstimate = this.costOptimizer.estimate(
-          messages,
-          options?.maxTokens ?? 2048,
+        const costEstimate = this.costOptimizer.estimate(messages, options?.maxTokens ?? 2048, domain, this.policy);
+        const request = this.buildRequest({
+          route: "cloud_bridge",
+          reason: `Confidence escalation (score: ${confidence.score.toFixed(2)})`,
+          provider: costEstimate?.provider ?? decision.provider,
+          model: costEstimate?.model ?? decision.model
+        }, messages, {
+          subagentId: options?.subagentId,
+          taskType: options?.taskType ?? "escalation",
           domain,
-          this.policy
-        );
-        const request = this.buildRequest(
-          {
-            route: "cloud_bridge",
-            reason: `Confidence escalation (score: ${confidence.score.toFixed(2)})`,
-            provider: costEstimate?.provider ?? decision.provider,
-            model: costEstimate?.model ?? decision.model
-          },
-          messages,
-          {
-            subagentId: options?.subagentId,
-            taskType: options?.taskType ?? "escalation",
-            domain,
-            maxTokens: options?.maxTokens,
-            temperature: options?.temperature
-          }
-        );
-        const minimized = this.promptMinimizer.minimize(
-          request.messages,
-          this.policy.excludedCategories
-        );
+          maxTokens: options?.maxTokens,
+          temperature: options?.temperature
+        });
+        const minimized = this.promptMinimizer.minimize(request.messages, this.policy.excludedCategories);
         request.messages = minimized.messages;
         const cloudResponse = await this.executeCloudRequest(request);
         if (cloudResponse) {
@@ -258786,7 +260855,7 @@ var init_routing_engine = __esm({
   }
 });
 
-// packages/gateway/cloud-bridge/index.ts
+// packages/gateway/cloud-bridge/index.js
 var cloud_bridge_exports2 = {};
 __export(cloud_bridge_exports2, {
   CloudBridgeAdapter: () => CloudBridgeAdapter,
@@ -258800,7 +260869,7 @@ __export(cloud_bridge_exports2, {
   validateApiKey: () => validateApiKey
 });
 var init_cloud_bridge2 = __esm({
-  "packages/gateway/cloud-bridge/index.ts"() {
+  "packages/gateway/cloud-bridge/index.js"() {
     "use strict";
     init_provider_registry();
     init_cloud_bridge_adapter();
@@ -258813,14 +260882,14 @@ var init_cloud_bridge2 = __esm({
   }
 });
 
-// packages/core/security/cloud-bridge-credentials.ts
+// packages/core/security/cloud-bridge-credentials.js
 var cloud_bridge_credentials_exports = {};
 __export(cloud_bridge_credentials_exports, {
   CloudBridgeCredentialStore: () => CloudBridgeCredentialStore
 });
 var SERVICE_PREFIX, CloudBridgeCredentialStore;
 var init_cloud_bridge_credentials = __esm({
-  "packages/core/security/cloud-bridge-credentials.ts"() {
+  "packages/core/security/cloud-bridge-credentials.js"() {
     "use strict";
     SERVICE_PREFIX = "semblance.cloud-bridge";
     CloudBridgeCredentialStore = class {
@@ -258855,7 +260924,8 @@ var init_cloud_bridge_credentials = __esm({
       async getCredential(providerId) {
         const service = `${SERVICE_PREFIX}.${providerId}`;
         const apiKey = await this.keychain.get(service, "api_key");
-        if (!apiKey) return null;
+        if (!apiKey)
+          return null;
         const metadataStr = await this.keychain.get(service, "metadata");
         let baseUrl = null;
         let storedAt = "";
@@ -258906,14 +260976,14 @@ var init_cloud_bridge_credentials = __esm({
   }
 });
 
-// packages/core/llm/fast-native-provider.ts
+// packages/core/llm/fast-native-provider.js
 var fast_native_provider_exports = {};
 __export(fast_native_provider_exports, {
   FastNativeProvider: () => FastNativeProvider
 });
 var FastNativeProvider;
 var init_fast_native_provider = __esm({
-  "packages/core/llm/fast-native-provider.ts"() {
+  "packages/core/llm/fast-native-provider.js"() {
     "use strict";
     FastNativeProvider = class {
       bridge;
@@ -258976,14 +261046,15 @@ var init_fast_native_provider = __esm({
         return [{ name: this.modelName, size: 0, isEmbedding: false }];
       }
       async getModel(name) {
-        if (name === this.modelName) return { name, size: 0, isEmbedding: false };
+        if (name === this.modelName)
+          return { name, size: 0, isEmbedding: false };
         return null;
       }
     };
   }
 });
 
-// packages/core/agent/preference-detectors.ts
+// packages/core/agent/preference-detectors.js
 var preference_detectors_exports = {};
 __export(preference_detectors_exports, {
   detectFormatPatterns: () => detectFormatPatterns,
@@ -259006,7 +261077,8 @@ function detectTemporalResponsePatterns(deps) {
     } catch {
       continue;
     }
-    if (contactEmails.length === 0) continue;
+    if (contactEmails.length === 0)
+      continue;
     const responseTimes = [];
     for (const email of contactEmails) {
       const incomingEmails = deps.db.prepare(`
@@ -259029,7 +261101,8 @@ function detectTemporalResponsePatterns(deps) {
         }
       }
     }
-    if (responseTimes.length < 3) continue;
+    if (responseTimes.length < 3)
+      continue;
     const avgResponseHours = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
     const medianResponseHours = responseTimes.sort((a, b) => a - b)[Math.floor(responseTimes.length / 2)] ?? avgResponseHours;
     if (medianResponseHours <= 1) {
@@ -259059,10 +261132,12 @@ function detectMeetingTimePatterns(deps) {
       AND is_all_day = 0
     ORDER BY start_time ASC
   `).all();
-  if (events.length < 5) return signals;
+  if (events.length < 5)
+    return signals;
   const hourCounts = {};
   for (const event of events) {
-    if (event.status === "cancelled") continue;
+    if (event.status === "cancelled")
+      continue;
     const hour = new Date(event.start_time).getHours();
     hourCounts[hour] = (hourCounts[hour] ?? 0) + 1;
   }
@@ -259095,7 +261170,8 @@ function detectFormatPatterns(deps) {
     WHERE received_at > datetime('now', '-90 days')
     ORDER BY received_at DESC LIMIT 100
   `).all();
-  if (sentEmails.length < 10) return signals;
+  if (sentEmails.length < 10)
+    return signals;
   const avgLen = sentEmails.reduce((sum, e) => sum + e.len, 0) / sentEmails.length;
   if (avgLen < 80) {
     signals.push({
@@ -259122,11 +261198,13 @@ function detectSystemPatterns(deps) {
       WHERE source = 'local_file' AND created_at > datetime('now', '-90 days')
       LIMIT 200
     `).all();
-    if (docs.length < 10) return signals;
+    if (docs.length < 10)
+      return signals;
     const extCounts = {};
     for (const doc of docs) {
       const ext = doc.source_path.split(".").pop()?.toLowerCase() ?? "";
-      if (ext) extCounts[ext] = (extCounts[ext] ?? 0) + 1;
+      if (ext)
+        extCounts[ext] = (extCounts[ext] ?? 0) + 1;
     }
     const totalFiles = docs.length;
     const topExt = Object.entries(extCounts).sort(([, a], [, b]) => b - a)[0];
@@ -259167,7 +261245,7 @@ function runAllPreferenceDetectors(deps) {
   return allSignals;
 }
 var init_preference_detectors = __esm({
-  "packages/core/agent/preference-detectors.ts"() {
+  "packages/core/agent/preference-detectors.js"() {
     "use strict";
   }
 });
@@ -259179,20 +261257,225 @@ var import_node_os14 = require("node:os");
 var import_node_fs13 = require("node:fs");
 var import_better_sqlite34 = __toESM(require("better-sqlite3"), 1);
 init_nanoid();
-init_core();
+
+// packages/core/index.js
+init_platform();
+init_llm();
+init_model_manager();
+init_knowledge();
+init_ipc_client();
+init_agent();
+init_hardware_types();
+init_loader();
+init_premium_gate();
+init_style_profile();
+init_ip_adapter_registry();
+init_types2();
+init_llm();
+init_knowledge();
+init_ipc_client();
+init_agent();
+init_conversation_manager();
+init_named_session_manager();
+init_context_budget();
+init_content_sanitizer();
+init_socket_transport();
+init_in_process_transport();
+init_platform();
+init_desktop_adapter();
+init_extensions();
+init_mobile_model_manager();
+init_merkle_chain();
+init_sovereignty_report();
+init_keychain();
+function defaultSocketPath() {
+  const p = getPlatform();
+  if (p.hardware.platform() === "win32") {
+    const home = p.hardware.homedir();
+    const username = home.split(/[/\\]/).pop() ?? "default";
+    return `\\\\.\\pipe\\semblance-gateway-${username}-${process.pid}`;
+  }
+  return p.path.join(p.hardware.homedir(), ".semblance", "gateway.sock");
+}
+function createSemblanceCore(config) {
+  const p = getPlatform();
+  const dataDir2 = config?.dataDir ?? p.path.join(p.hardware.homedir(), ".semblance", "data");
+  const ollamaBaseUrl = config?.ollamaBaseUrl ?? "http://localhost:11434";
+  const signingKeyPath = config?.signingKeyPath ?? p.path.join(p.hardware.homedir(), ".semblance", "signing.key");
+  const socketPath = config?.socketPath ?? defaultSocketPath();
+  const embeddingModel = config?.embeddingModel ?? "nomic-embed-text";
+  const llm = config?.llmProvider ?? createLLMProvider({ baseUrl: ollamaBaseUrl });
+  let models = null;
+  let knowledge = null;
+  let agent = null;
+  let ipc = null;
+  let initialized = false;
+  const core2 = {
+    get llm() {
+      return llm;
+    },
+    get knowledge() {
+      if (!knowledge)
+        throw new Error("[SemblanceCore] Not initialized. Call initialize() first.");
+      return knowledge;
+    },
+    get agent() {
+      if (!agent)
+        throw new Error("[SemblanceCore] Not initialized. Call initialize() first.");
+      return agent;
+    },
+    get ipc() {
+      if (!ipc)
+        throw new Error("[SemblanceCore] Not initialized. Call initialize() first.");
+      return ipc;
+    },
+    get models() {
+      if (!models)
+        throw new Error("[SemblanceCore] Not initialized. Call initialize() first.");
+      return models;
+    },
+    async initialize() {
+      if (initialized)
+        return;
+      if (!p.fs.existsSync(dataDir2)) {
+        p.fs.mkdirSync(dataDir2, { recursive: true });
+      }
+      console.error("[SemblanceCore] Opening core.db...");
+      const coreDb = p.sqlite.openDatabase(p.path.join(dataDir2, "core.db"));
+      coreDb.pragma("journal_mode = WAL");
+      models = new ModelManager(llm, coreDb);
+      console.error("[SemblanceCore] ModelManager ready, checking LLM availability...");
+      const llmCheckStart = Date.now();
+      const llmAvailable = await llm.isAvailable();
+      console.error(`[SemblanceCore] LLM availability check took ${Date.now() - llmCheckStart}ms, available: ${llmAvailable}`);
+      if (!llmAvailable) {
+        console.error("[SemblanceCore] Ollama is not running. LLM features will be unavailable until Ollama starts.");
+      }
+      let chatModel = config?.chatModel;
+      if (!chatModel && llmAvailable) {
+        chatModel = await models.getActiveChatModel() ?? void 0;
+        if (chatModel) {
+          console.error(`[SemblanceCore] Selected chat model: ${chatModel}`);
+        }
+      }
+      chatModel = chatModel ?? "llama3.1:8b";
+      console.error(`[SemblanceCore] Chat model selected: ${chatModel}`);
+      const knowledgeDir = p.path.join(dataDir2, "knowledge");
+      try {
+        const kgPromise = createKnowledgeGraph({
+          dataDir: knowledgeDir,
+          llmProvider: llm,
+          embeddingModel
+        });
+        const timeoutPromise = new Promise((_3, reject2) => setTimeout(() => reject2(new Error("Knowledge graph init timed out after 10s")), 1e4));
+        knowledge = await Promise.race([kgPromise, timeoutPromise]);
+        console.error("[SemblanceCore] Knowledge graph initialized");
+      } catch (err) {
+        console.error("[SemblanceCore] Knowledge graph initialization failed:", err instanceof Error ? err.message : String(err), "\u2014 Semantic search and indexing will be unavailable.");
+      }
+      console.error("[SemblanceCore] Connecting IPC client...");
+      if (config?.ipcTransport) {
+        const keyBytes = new Uint8Array(32);
+        for (let i = 0; i < 32; i++)
+          keyBytes[i] = Math.floor(Math.random() * 256);
+        ipc = new CoreIPCClient({
+          transport: config.ipcTransport,
+          signingKey: Buffer.from(keyBytes)
+        });
+      } else {
+        ipc = new CoreIPCClient({
+          socketPath,
+          signingKeyPath
+        });
+      }
+      try {
+        const ipcConnectStart = Date.now();
+        await ipc.connect();
+        console.error(`[SemblanceCore] Connected to Gateway via IPC (${Date.now() - ipcConnectStart}ms)`);
+      } catch (err) {
+        console.error("[SemblanceCore] Could not connect to Gateway:", err instanceof Error ? err.message : String(err), "\u2014 Agent actions requiring Gateway will fail until Gateway is started.");
+      }
+      console.error("[SemblanceCore] IPC step complete, creating orchestrator...");
+      console.error("[SemblanceCore] Creating v2 coordinator agent...");
+      const styleProfileStore2 = new StyleProfileStore(coreDb);
+      if (knowledge) {
+        const totalRamMb = Math.round(p.hardware.totalmem() / (1024 * 1024));
+        const hardwareTier = classifyHardware(totalRamMb, null);
+        console.error(`[SemblanceCore] Hardware tier: ${hardwareTier} (${totalRamMb}MB RAM)`);
+        agent = createCoordinatorAgent({
+          llmProvider: llm,
+          knowledgeGraph: knowledge,
+          ipcClient: ipc,
+          autonomyConfig: config?.autonomyConfig,
+          dataDir: dataDir2,
+          model: chatModel,
+          styleProfileStore: styleProfileStore2,
+          hardwareTier
+        });
+        console.error("[SemblanceCore] v2 Coordinator agent initialized");
+        console.error("[SemblanceCore] Loading extensions...");
+        const extStart = Date.now();
+        const extensions = await loadExtensions();
+        console.error(`[SemblanceCore] Extensions loaded in ${Date.now() - extStart}ms`);
+        if (extensions.length > 0) {
+          const premiumGate2 = new PremiumGate(coreDb);
+          const extCtx = {
+            db: coreDb,
+            llm,
+            model: chatModel,
+            ipcClient: ipc,
+            autonomyManager: agent.autonomy,
+            premiumGate: premiumGate2,
+            styleProfileStore: styleProfileStore2,
+            semanticSearch: knowledge.semanticSearch,
+            recurringDetector: ipAdapters.recurringDetector,
+            knowledgeGraph: knowledge,
+            dataDir: dataDir2
+          };
+          for (const ext of extensions) {
+            if (ext.initialize) {
+              await ext.initialize(extCtx);
+            }
+            if (ext.tools && ext.tools.length > 0) {
+              agent.registerTools(ext.tools);
+            }
+          }
+          console.error(`[SemblanceCore] Loaded ${extensions.length} extension(s)`);
+        }
+      } else {
+        console.error("[SemblanceCore] Skipping orchestrator and extensions \u2014 knowledge graph unavailable");
+      }
+      initialized = true;
+      console.error("[SemblanceCore] All subsystems initialized");
+    },
+    async shutdown() {
+      if (!initialized)
+        return;
+      if (ipc) {
+        await ipc.disconnect();
+        console.log("[SemblanceCore] Disconnected from Gateway");
+      }
+      initialized = false;
+      console.log("[SemblanceCore] Shut down");
+    }
+  };
+  return core2;
+}
+
+// packages/desktop/src-tauri/sidecar/bridge.ts
 init_llm();
 init_platform();
 init_desktop_adapter();
 init_file_scanner();
 init_content_sanitizer();
 
-// packages/gateway/index.ts
+// packages/gateway/index.js
 var import_better_sqlite33 = __toESM(require("better-sqlite3"), 1);
 var import_node_path9 = require("node:path");
 var import_node_os8 = require("node:os");
 var import_node_fs9 = require("node:fs");
 
-// packages/gateway/audit/trail.ts
+// packages/gateway/audit/trail.js
 init_nanoid();
 init_core();
 var GENESIS_HASH = sha256("semblance-audit-genesis");
@@ -259255,9 +261538,7 @@ var AuditTrail = class {
       INSERT INTO audit_log (id, request_id, timestamp, action, direction, status, payload_hash, signature, chain_hash, metadata, estimated_time_saved_seconds)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    const lastRow = this.db.prepare(
-      "SELECT id, payload_hash, signature FROM audit_log ORDER BY rowid DESC LIMIT 1"
-    ).get();
+    const lastRow = this.db.prepare("SELECT id, payload_hash, signature FROM audit_log ORDER BY rowid DESC LIMIT 1").get();
     if (lastRow) {
       this.lastEntry = {
         id: lastRow.id,
@@ -259273,19 +261554,7 @@ var AuditTrail = class {
   append(params) {
     const id = nanoid();
     const chainHash = this.lastEntry ? computeChainHash(this.lastEntry.id, this.lastEntry.payloadHash, this.lastEntry.signature) : GENESIS_HASH;
-    this.insertStmt.run(
-      id,
-      params.requestId,
-      params.timestamp,
-      params.action,
-      params.direction,
-      params.status,
-      params.payloadHash,
-      params.signature,
-      chainHash,
-      params.metadata ? JSON.stringify(params.metadata) : null,
-      params.estimatedTimeSavedSeconds ?? 0
-    );
+    this.insertStmt.run(id, params.requestId, params.timestamp, params.action, params.direction, params.status, params.payloadHash, params.signature, chainHash, params.metadata ? JSON.stringify(params.metadata) : null, params.estimatedTimeSavedSeconds ?? 0);
     this.lastEntry = {
       id,
       payloadHash: params.payloadHash,
@@ -259297,36 +261566,28 @@ var AuditTrail = class {
    * Get all audit entries for a given request ID (request + response pair).
    */
   getByRequestId(requestId) {
-    const rows = this.db.prepare(
-      "SELECT * FROM audit_log WHERE request_id = ? ORDER BY rowid ASC"
-    ).all(requestId);
+    const rows = this.db.prepare("SELECT * FROM audit_log WHERE request_id = ? ORDER BY rowid ASC").all(requestId);
     return rows.map(rowToEntry);
   }
   /**
    * Get audit entries within a time range.
    */
   getByTimeRange(start, end) {
-    const rows = this.db.prepare(
-      "SELECT * FROM audit_log WHERE timestamp >= ? AND timestamp <= ? ORDER BY rowid ASC"
-    ).all(start, end);
+    const rows = this.db.prepare("SELECT * FROM audit_log WHERE timestamp >= ? AND timestamp <= ? ORDER BY rowid ASC").all(start, end);
     return rows.map(rowToEntry);
   }
   /**
    * Get audit entries for a specific action type.
    */
   getByAction(action) {
-    const rows = this.db.prepare(
-      "SELECT * FROM audit_log WHERE action = ? ORDER BY rowid ASC"
-    ).all(action);
+    const rows = this.db.prepare("SELECT * FROM audit_log WHERE action = ? ORDER BY rowid ASC").all(action);
     return rows.map(rowToEntry);
   }
   /**
    * Get the N most recent audit entries.
    */
   getRecent(limit) {
-    const rows = this.db.prepare(
-      "SELECT * FROM audit_log ORDER BY rowid DESC LIMIT ?"
-    ).all(limit);
+    const rows = this.db.prepare("SELECT * FROM audit_log ORDER BY rowid DESC LIMIT ?").all(limit);
     return rows.map(rowToEntry).reverse();
   }
   /**
@@ -259335,10 +261596,9 @@ var AuditTrail = class {
    * with the ID of the first entry where the chain breaks.
    */
   verifyChainIntegrity() {
-    const rows = this.db.prepare(
-      "SELECT id, payload_hash, signature, chain_hash FROM audit_log ORDER BY rowid ASC"
-    ).all();
-    if (rows.length === 0) return { valid: true };
+    const rows = this.db.prepare("SELECT id, payload_hash, signature, chain_hash FROM audit_log ORDER BY rowid ASC").all();
+    if (rows.length === 0)
+      return { valid: true };
     if (rows[0].chain_hash !== GENESIS_HASH) {
       return { valid: false, brokenAt: rows[0].id };
     }
@@ -259361,7 +261621,7 @@ var AuditTrail = class {
   }
 };
 
-// packages/gateway/security/allowlist.ts
+// packages/gateway/security/allowlist.js
 init_nanoid();
 var CREATE_TABLE4 = `
   CREATE TABLE IF NOT EXISTS allowed_services (
@@ -259413,14 +261673,10 @@ var Allowlist = class {
     const normalized = this.normalizeDomain(domain);
     let stmt;
     if (port !== void 0) {
-      stmt = this.db.prepare(
-        "SELECT 1 FROM allowed_services WHERE domain = ? AND (port IS NULL OR port = ?) AND is_active = 1 LIMIT 1"
-      );
+      stmt = this.db.prepare("SELECT 1 FROM allowed_services WHERE domain = ? AND (port IS NULL OR port = ?) AND is_active = 1 LIMIT 1");
       return stmt.get(normalized, port) !== void 0;
     }
-    stmt = this.db.prepare(
-      "SELECT 1 FROM allowed_services WHERE domain = ? AND is_active = 1 LIMIT 1"
-    );
+    stmt = this.db.prepare("SELECT 1 FROM allowed_services WHERE domain = ? AND is_active = 1 LIMIT 1");
     return stmt.get(normalized) !== void 0;
   }
   /**
@@ -259434,17 +261690,7 @@ var Allowlist = class {
     const normalizedDomain = this.normalizeDomain(params.domain);
     const id = nanoid();
     const addedAt = (/* @__PURE__ */ new Date()).toISOString();
-    this.db.prepare(
-      "INSERT INTO allowed_services (id, service_name, domain, port, protocol, added_at, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    ).run(
-      id,
-      params.serviceName,
-      normalizedDomain,
-      params.port ?? null,
-      params.protocol,
-      addedAt,
-      params.addedBy ?? "user"
-    );
+    this.db.prepare("INSERT INTO allowed_services (id, service_name, domain, port, protocol, added_at, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)").run(id, params.serviceName, normalizedDomain, params.port ?? null, params.protocol, addedAt, params.addedBy ?? "user");
     return {
       id,
       serviceName: params.serviceName,
@@ -259467,23 +261713,19 @@ var Allowlist = class {
    * Deactivate a service (soft-disable without removing the record).
    */
   deactivateService(id) {
-    const result2 = this.db.prepare(
-      "UPDATE allowed_services SET is_active = 0 WHERE id = ?"
-    ).run(id);
+    const result2 = this.db.prepare("UPDATE allowed_services SET is_active = 0 WHERE id = ?").run(id);
     return result2.changes > 0;
   }
   /**
    * List all services (active and inactive).
    */
   listServices() {
-    const rows = this.db.prepare(
-      "SELECT * FROM allowed_services ORDER BY added_at ASC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM allowed_services ORDER BY added_at ASC").all();
     return rows.map(rowToService);
   }
 };
 
-// packages/gateway/security/signing.ts
+// packages/gateway/security/signing.js
 var import_node_crypto5 = require("node:crypto");
 var import_node_fs2 = require("node:fs");
 var import_node_os = require("node:os");
@@ -259506,10 +261748,9 @@ var KeyManager = class {
    * Get the HMAC signing key. Generates one on first access.
    */
   getKey() {
-    if (this.cachedKey) return this.cachedKey;
-    const row = this.db.prepare(
-      "SELECT key_hex FROM signing_keys WHERE name = ?"
-    ).get(KEY_NAME);
+    if (this.cachedKey)
+      return this.cachedKey;
+    const row = this.db.prepare("SELECT key_hex FROM signing_keys WHERE name = ?").get(KEY_NAME);
     if (row) {
       this.cachedKey = Buffer.from(row.key_hex, "hex");
       return this.cachedKey;
@@ -259524,9 +261765,7 @@ var KeyManager = class {
   generateKey() {
     const key = (0, import_node_crypto5.randomBytes)(32);
     const keyHex = key.toString("hex");
-    this.db.prepare(
-      "INSERT OR REPLACE INTO signing_keys (name, key_hex) VALUES (?, ?)"
-    ).run(KEY_NAME, keyHex);
+    this.db.prepare("INSERT OR REPLACE INTO signing_keys (name, key_hex) VALUES (?, ?)").run(KEY_NAME, keyHex);
     this.cachedKey = key;
     return key;
   }
@@ -259544,7 +261783,7 @@ var KeyManager = class {
   }
 };
 
-// packages/gateway/security/rate-limiter.ts
+// packages/gateway/security/rate-limiter.js
 var DEFAULT_ACTION_LIMITS = {
   "email.send": 20,
   "email.fetch": 60,
@@ -259671,13 +261910,14 @@ var RateLimiter = class {
     window2.timestamps = window2.timestamps.filter((t) => t > cutoff);
   }
   getRetryAfter(window2, now) {
-    if (window2.timestamps.length === 0) return 0;
+    if (window2.timestamps.length === 0)
+      return 0;
     const oldest = window2.timestamps[0];
     return Math.max(0, oldest + this.windowMs - now);
   }
 };
 
-// packages/gateway/security/anomaly-detector.ts
+// packages/gateway/security/anomaly-detector.js
 var DEFAULT_BURST_THRESHOLD = 10;
 var DEFAULT_BURST_WINDOW_MS = 5e3;
 var DEFAULT_MAX_PAYLOAD_BYTES = 1e6;
@@ -259700,9 +261940,7 @@ var AnomalyDetector = class {
     const anomalies = [];
     const now = Date.now();
     this.recentTimestamps.push(now);
-    this.recentTimestamps = this.recentTimestamps.filter(
-      (t) => t > now - this.burstWindowMs
-    );
+    this.recentTimestamps = this.recentTimestamps.filter((t) => t > now - this.burstWindowMs);
     if (this.recentTimestamps.length > this.burstThreshold) {
       anomalies.push({
         type: "burst",
@@ -259745,7 +261983,7 @@ var AnomalyDetector = class {
   }
 };
 
-// packages/gateway/services/fallback-adapter.ts
+// packages/gateway/services/fallback-adapter.js
 var FallbackAdapter = class {
   async execute(action, _payload) {
     return {
@@ -259758,7 +261996,7 @@ var FallbackAdapter = class {
   }
 };
 
-// packages/gateway/services/registry.ts
+// packages/gateway/services/registry.js
 var ServiceRegistry = class {
   adapters = /* @__PURE__ */ new Map();
   defaultAdapter;
@@ -259785,7 +262023,7 @@ var ServiceRegistry = class {
   }
 };
 
-// packages/gateway/ipc/transport.ts
+// packages/gateway/ipc/transport.js
 var import_node_net2 = require("node:net");
 var import_node_path3 = require("node:path");
 var import_node_os2 = require("node:os");
@@ -259951,10 +262189,10 @@ var GatewayTransport = class {
   }
 };
 
-// packages/gateway/ipc/validator.ts
+// packages/gateway/ipc/validator.js
 init_core();
 
-// packages/gateway/audit/time-saved-defaults.ts
+// packages/gateway/audit/time-saved-defaults.js
 var TIME_SAVED_DEFAULTS = {
   "email.fetch": 0,
   // Fetching is infrastructure, no direct time saved
@@ -260177,24 +262415,27 @@ function getDefaultTimeSaved(action) {
   return TIME_SAVED_DEFAULTS[action] ?? 0;
 }
 
-// packages/gateway/ipc/validator.ts
+// packages/gateway/ipc/validator.js
 var TTL_MS = 3e4;
 var MAX_SEEN_IDS = 1e4;
 var recentRequestIds = /* @__PURE__ */ new Map();
 function isStale(timestamp) {
   const requestTime = new Date(timestamp).getTime();
-  if (Number.isNaN(requestTime)) return true;
+  if (Number.isNaN(requestTime))
+    return true;
   const age = Date.now() - requestTime;
   return age > TTL_MS || age < -TTL_MS;
 }
 function isDuplicate(requestId) {
-  if (recentRequestIds.has(requestId)) return true;
+  if (recentRequestIds.has(requestId))
+    return true;
   if (recentRequestIds.size >= MAX_SEEN_IDS) {
     const entriesToEvict = recentRequestIds.size - MAX_SEEN_IDS + 1;
     const iter = recentRequestIds.keys();
     for (let i = 0; i < entriesToEvict; i++) {
       const oldest = iter.next().value;
-      if (oldest !== void 0) recentRequestIds.delete(oldest);
+      if (oldest !== void 0)
+        recentRequestIds.delete(oldest);
     }
   }
   recentRequestIds.set(requestId, Date.now());
@@ -260203,7 +262444,8 @@ function isDuplicate(requestId) {
 function purgeExpiredIds() {
   const cutoff = Date.now() - TTL_MS;
   for (const [id, ts] of recentRequestIds) {
-    if (ts < cutoff) recentRequestIds.delete(id);
+    if (ts < cutoff)
+      recentRequestIds.delete(id);
   }
 }
 var purgeInterval = setInterval(purgeExpiredIds, 6e4);
@@ -260252,89 +262494,34 @@ async function validateAndExecute(raw, deps) {
   const request = parseResult.data;
   const payloadHash = sha256(JSON.stringify(request.payload));
   if (isStale(request.timestamp)) {
-    const auditRef = logRejection(
-      deps.auditTrail,
-      request.id,
-      request.action,
-      payloadHash,
-      request.signature,
-      "timestamp_stale",
-      `Request timestamp ${request.timestamp} is outside the ${TTL_MS}ms freshness window`
-    );
+    const auditRef = logRejection(deps.auditTrail, request.id, request.action, payloadHash, request.signature, "timestamp_stale", `Request timestamp ${request.timestamp} is outside the ${TTL_MS}ms freshness window`);
     return makeErrorResponse(request.id, "error", "TIMESTAMP_STALE", "Request timestamp is stale or future-dated", auditRef);
   }
   if (isDuplicate(request.id)) {
-    const auditRef = logRejection(
-      deps.auditTrail,
-      request.id,
-      request.action,
-      payloadHash,
-      request.signature,
-      "request_replayed",
-      `Duplicate request ID: ${request.id}`
-    );
+    const auditRef = logRejection(deps.auditTrail, request.id, request.action, payloadHash, request.signature, "request_replayed", `Duplicate request ID: ${request.id}`);
     return makeErrorResponse(request.id, "error", "REQUEST_REPLAYED", "Duplicate request ID rejected", auditRef);
   }
   const payloadSchema = ActionPayloadMap[request.action];
   if (payloadSchema) {
     const payloadResult = payloadSchema.safeParse(request.payload);
     if (!payloadResult.success) {
-      const auditRef = logRejection(
-        deps.auditTrail,
-        request.id,
-        request.action,
-        payloadHash,
-        request.signature,
-        "payload_invalid",
-        payloadResult.error.message
-      );
+      const auditRef = logRejection(deps.auditTrail, request.id, request.action, payloadHash, request.signature, "payload_invalid", payloadResult.error.message);
       return makeErrorResponse(request.id, "error", "PAYLOAD_INVALID", payloadResult.error.message, auditRef);
     }
   }
-  const sigValid = verifySignature(
-    deps.signingKey,
-    request.signature,
-    request.id,
-    request.timestamp,
-    request.action,
-    request.payload
-  );
+  const sigValid = verifySignature(deps.signingKey, request.signature, request.id, request.timestamp, request.action, request.payload);
   if (!sigValid) {
-    const auditRef = logRejection(
-      deps.auditTrail,
-      request.id,
-      request.action,
-      payloadHash,
-      request.signature,
-      "signature_invalid",
-      "HMAC-SHA256 verification failed"
-    );
+    const auditRef = logRejection(deps.auditTrail, request.id, request.action, payloadHash, request.signature, "signature_invalid", "HMAC-SHA256 verification failed");
     return makeErrorResponse(request.id, "error", "SIGNATURE_INVALID", "Request signature verification failed", auditRef);
   }
   const targetDomain = extractTargetDomain(request.action, request.payload);
   if (targetDomain && !deps.allowlist.isAllowed(targetDomain)) {
-    const auditRef = logRejection(
-      deps.auditTrail,
-      request.id,
-      request.action,
-      payloadHash,
-      request.signature,
-      "domain_not_allowed",
-      `Domain not on allowlist: ${targetDomain}`
-    );
+    const auditRef = logRejection(deps.auditTrail, request.id, request.action, payloadHash, request.signature, "domain_not_allowed", `Domain not on allowlist: ${targetDomain}`);
     return makeErrorResponse(request.id, "error", "DOMAIN_NOT_ALLOWED", `Domain not on allowlist: ${targetDomain}`, auditRef);
   }
   const rateResult = deps.rateLimiter.check(request.action);
   if (!rateResult.allowed) {
-    const auditRef = logRejection(
-      deps.auditTrail,
-      request.id,
-      request.action,
-      payloadHash,
-      request.signature,
-      "rate_limited",
-      `Retry after ${rateResult.retryAfterMs}ms`
-    );
+    const auditRef = logRejection(deps.auditTrail, request.id, request.action, payloadHash, request.signature, "rate_limited", `Retry after ${rateResult.retryAfterMs}ms`);
     return makeErrorResponse(request.id, "rate_limited", "RATE_LIMITED", `Rate limit exceeded. Retry after ${rateResult.retryAfterMs}ms`, auditRef);
   }
   const anomalyResult = deps.anomalyDetector.check({
@@ -260344,22 +262531,8 @@ async function validateAndExecute(raw, deps) {
   if (anomalyResult.flagged) {
     const hasBurst = anomalyResult.anomalies.some((a) => a.type === "burst");
     if (hasBurst) {
-      const auditRef = logRejection(
-        deps.auditTrail,
-        request.id,
-        request.action,
-        payloadHash,
-        request.signature,
-        "anomaly_detected",
-        anomalyResult.anomalies.map((a) => a.message).join("; ")
-      );
-      return makeErrorResponse(
-        request.id,
-        "requires_approval",
-        "ANOMALY_DETECTED",
-        anomalyResult.anomalies.map((a) => a.message).join("; "),
-        auditRef
-      );
+      const auditRef = logRejection(deps.auditTrail, request.id, request.action, payloadHash, request.signature, "anomaly_detected", anomalyResult.anomalies.map((a) => a.message).join("; "));
+      return makeErrorResponse(request.id, "requires_approval", "ANOMALY_DETECTED", anomalyResult.anomalies.map((a) => a.message).join("; "), auditRef);
     }
   }
   const pendingAuditId = deps.auditTrail.append({
@@ -260426,7 +262599,7 @@ function extractTargetDomain(action, payload) {
   return null;
 }
 
-// packages/gateway/services/reminder-adapter.ts
+// packages/gateway/services/reminder-adapter.js
 var ReminderAdapter = class {
   store;
   constructor(store) {
@@ -260471,11 +262644,16 @@ var ReminderAdapter = class {
   }
   handleUpdate(payload) {
     const input = {};
-    if (payload.text !== void 0) input.text = payload.text;
-    if (payload.dueAt !== void 0) input.dueAt = payload.dueAt;
-    if (payload.recurrence !== void 0) input.recurrence = payload.recurrence;
-    if (payload.status !== void 0) input.status = payload.status;
-    if (payload.snoozedUntil !== void 0) input.snoozedUntil = payload.snoozedUntil;
+    if (payload.text !== void 0)
+      input.text = payload.text;
+    if (payload.dueAt !== void 0)
+      input.dueAt = payload.dueAt;
+    if (payload.recurrence !== void 0)
+      input.recurrence = payload.recurrence;
+    if (payload.status !== void 0)
+      input.status = payload.status;
+    if (payload.snoozedUntil !== void 0)
+      input.snoozedUntil = payload.snoozedUntil;
     const reminder = this.store.update(payload.id, input);
     if (!reminder) {
       return {
@@ -260507,7 +262685,7 @@ var ReminderAdapter = class {
   }
 };
 
-// packages/gateway/services/web-search-adapter.ts
+// packages/gateway/services/web-search-adapter.js
 var WebSearchAdapter = class {
   getApiKey;
   fetchFn;
@@ -260596,7 +262774,7 @@ var WebSearchAdapter = class {
   }
 };
 
-// packages/gateway/services/searxng-adapter.ts
+// packages/gateway/services/searxng-adapter.js
 var SearXNGAdapter = class {
   getBaseUrl;
   fetchFn;
@@ -260672,7 +262850,7 @@ var SearXNGAdapter = class {
   }
 };
 
-// packages/gateway/services/duckduckgo-adapter.ts
+// packages/gateway/services/duckduckgo-adapter.js
 var DuckDuckGoAdapter = class {
   fetchFn;
   constructor(config) {
@@ -260784,15 +262962,17 @@ function extractRealUrl(ddgUrl) {
       }
     }
   }
-  if (ddgUrl.startsWith("http")) return ddgUrl;
-  if (ddgUrl.startsWith("//")) return `https:${ddgUrl}`;
+  if (ddgUrl.startsWith("http"))
+    return ddgUrl;
+  if (ddgUrl.startsWith("//"))
+    return `https:${ddgUrl}`;
   return ddgUrl;
 }
 function stripHtml(html) {
   return html.replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
 }
 
-// packages/gateway/services/web-search-factory.ts
+// packages/gateway/services/web-search-factory.js
 var WebSearchAdapterFactory = class {
   braveAdapter;
   searxngAdapter;
@@ -260838,7 +263018,7 @@ var WebSearchAdapterFactory = class {
   }
 };
 
-// packages/gateway/services/web-fetch-adapter.ts
+// packages/gateway/services/web-fetch-adapter.js
 var MAX_DOWNLOAD_SIZE = 5 * 1024 * 1024;
 var DEFAULT_TIMEOUT_MS = 15e3;
 var MAX_REDIRECTS = 5;
@@ -260885,9 +263065,11 @@ var WebFetchAdapter = class {
     const urlStr = payload.url;
     const maxContentLength = payload.maxContentLength ?? 5e4;
     const schemeError = this.validateUrlScheme(urlStr);
-    if (schemeError) return schemeError;
+    if (schemeError)
+      return schemeError;
     const ipError = this.validateNotPrivateIP(urlStr);
-    if (ipError) return ipError;
+    if (ipError)
+      return ipError;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     let response;
@@ -260922,9 +263104,11 @@ var WebFetchAdapter = class {
           }
           const resolvedUrl = new URL(location, currentUrl).toString();
           const redirectSchemeError = this.validateUrlScheme(resolvedUrl);
-          if (redirectSchemeError) return redirectSchemeError;
+          if (redirectSchemeError)
+            return redirectSchemeError;
           const redirectIpError = this.validateNotPrivateIP(resolvedUrl);
-          if (redirectIpError) return redirectIpError;
+          if (redirectIpError)
+            return redirectIpError;
           currentUrl = resolvedUrl;
           continue;
         }
@@ -261071,7 +263255,7 @@ var WebFetchAdapter = class {
   }
 };
 
-// packages/gateway/services/deep-search-adapter.ts
+// packages/gateway/services/deep-search-adapter.js
 var MAX_CONTENT_PER_PAGE = 3e3;
 var FETCH_TIMEOUT_MS = 8e3;
 var DeepSearchAdapter = class {
@@ -261154,7 +263338,7 @@ var DeepSearchAdapter = class {
   }
 };
 
-// packages/core/knowledge/reminder-store.ts
+// packages/core/knowledge/reminder-store.js
 init_nanoid();
 var CREATE_TABLES5 = `
   CREATE TABLE IF NOT EXISTS reminders (
@@ -261194,7 +263378,8 @@ function rowToReminder(row) {
   return reminder;
 }
 function computeNextOccurrence(dueAt, recurrence) {
-  if (recurrence === "none") return null;
+  if (recurrence === "none")
+    return null;
   const date = new Date(dueAt);
   switch (recurrence) {
     case "daily":
@@ -261237,7 +263422,8 @@ var ReminderStore = class {
   }
   update(id, input) {
     const existing = this.findById(id);
-    if (!existing) return null;
+    if (!existing)
+      return null;
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const text = input.text ?? existing.text;
     const dueAt = input.dueAt ?? existing.dueAt;
@@ -261260,9 +263446,7 @@ var ReminderStore = class {
     return row ? rowToReminder(row) : null;
   }
   findByStatus(status, limit = 50) {
-    const rows = this.db.prepare(
-      "SELECT * FROM reminders WHERE status = ? ORDER BY due_at ASC LIMIT ?"
-    ).all(status, limit);
+    const rows = this.db.prepare("SELECT * FROM reminders WHERE status = ? ORDER BY due_at ASC LIMIT ?").all(status, limit);
     return rows.map(rowToReminder);
   }
   /**
@@ -261270,9 +263454,7 @@ var ReminderStore = class {
    */
   findDue(now) {
     const timestamp = now ?? (/* @__PURE__ */ new Date()).toISOString();
-    const rows = this.db.prepare(
-      "SELECT * FROM reminders WHERE due_at <= ? AND status = 'pending' ORDER BY due_at ASC"
-    ).all(timestamp);
+    const rows = this.db.prepare("SELECT * FROM reminders WHERE due_at <= ? AND status = 'pending' ORDER BY due_at ASC").all(timestamp);
     return rows.map(rowToReminder);
   }
   /**
@@ -261280,9 +263462,7 @@ var ReminderStore = class {
    */
   findSnoozedReady(now) {
     const timestamp = now ?? (/* @__PURE__ */ new Date()).toISOString();
-    const rows = this.db.prepare(
-      "SELECT * FROM reminders WHERE status = 'snoozed' AND snoozed_until IS NOT NULL AND snoozed_until <= ? ORDER BY snoozed_until ASC"
-    ).all(timestamp);
+    const rows = this.db.prepare("SELECT * FROM reminders WHERE status = 'snoozed' AND snoozed_until IS NOT NULL AND snoozed_until <= ? ORDER BY snoozed_until ASC").all(timestamp);
     return rows.map(rowToReminder);
   }
   /**
@@ -261303,7 +263483,8 @@ var ReminderStore = class {
    */
   fire(id) {
     const reminder = this.findById(id);
-    if (!reminder) return null;
+    if (!reminder)
+      return null;
     const fired = this.update(id, { status: "fired" });
     const nextDueAt = computeNextOccurrence(reminder.dueAt, reminder.recurrence);
     let next = null;
@@ -261318,9 +263499,7 @@ var ReminderStore = class {
     return { fired, next };
   }
   findAll(limit = 50) {
-    const rows = this.db.prepare(
-      "SELECT * FROM reminders ORDER BY due_at ASC LIMIT ?"
-    ).all(limit);
+    const rows = this.db.prepare("SELECT * FROM reminders ORDER BY due_at ASC LIMIT ?").all(limit);
     return rows.map(rowToReminder);
   }
   /**
@@ -261328,28 +263507,23 @@ var ReminderStore = class {
    */
   updateLocationTrigger(id, trigger) {
     const existing = this.findById(id);
-    if (!existing) return null;
+    if (!existing)
+      return null;
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const json = trigger ? JSON.stringify(trigger) : null;
-    this.db.prepare(
-      "UPDATE reminders SET location_trigger_json = ?, updated_at = ? WHERE id = ?"
-    ).run(json, now, id);
+    this.db.prepare("UPDATE reminders SET location_trigger_json = ?, updated_at = ? WHERE id = ?").run(json, now, id);
     return this.findById(id);
   }
   /**
    * Find all pending reminders with armed location triggers.
    */
   findArmedLocationReminders() {
-    const rows = this.db.prepare(
-      "SELECT * FROM reminders WHERE status = 'pending' AND location_trigger_json IS NOT NULL ORDER BY created_at ASC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM reminders WHERE status = 'pending' AND location_trigger_json IS NOT NULL ORDER BY created_at ASC").all();
     return rows.map(rowToReminder).filter((r) => r.locationTrigger?.armed === true);
   }
   count(status) {
     if (status) {
-      const row2 = this.db.prepare(
-        "SELECT COUNT(*) as count FROM reminders WHERE status = ?"
-      ).get(status);
+      const row2 = this.db.prepare("SELECT COUNT(*) as count FROM reminders WHERE status = ?").get(status);
       return row2.count;
     }
     const row = this.db.prepare("SELECT COUNT(*) as count FROM reminders").get();
@@ -261357,10 +263531,10 @@ var ReminderStore = class {
   }
 };
 
-// packages/gateway/credentials/encryption.ts
+// packages/gateway/credentials/encryption.js
 var import_node_crypto7 = require("node:crypto");
 
-// packages/gateway/credentials/key-storage.ts
+// packages/gateway/credentials/key-storage.js
 var import_node_crypto6 = require("node:crypto");
 var import_node_fs4 = require("node:fs");
 var import_node_path4 = require("node:path");
@@ -261405,19 +263579,16 @@ var FileKeyStorage = class {
   }
 };
 
-// packages/gateway/credentials/encryption.ts
+// packages/gateway/credentials/encryption.js
 var ALGORITHM = "aes-256-gcm";
 var IV_LENGTH = 12;
 var AUTH_TAG_LENGTH = 16;
 var cachedKey = null;
 function getEncryptionKey(keyPath) {
-  if (cachedKey) return cachedKey;
+  if (cachedKey)
+    return cachedKey;
   const fileStorage = new FileKeyStorage(keyPath);
-  const key = require("node:fs").existsSync(
-    keyPath ?? require("node:path").join(require("node:os").homedir(), ".semblance", "credential.key")
-  ) ? require("node:fs").readFileSync(
-    keyPath ?? require("node:path").join(require("node:os").homedir(), ".semblance", "credential.key")
-  ) : (() => {
+  const key = require("node:fs").existsSync(keyPath ?? require("node:path").join(require("node:os").homedir(), ".semblance", "credential.key")) ? require("node:fs").readFileSync(keyPath ?? require("node:path").join(require("node:os").homedir(), ".semblance", "credential.key")) : (() => {
     const newKey = (0, import_node_crypto7.randomBytes)(32);
     const path2 = keyPath ?? require("node:path").join(require("node:os").homedir(), ".semblance", "credential.key");
     const dir = require("node:path").dirname(path2);
@@ -261462,7 +263633,7 @@ function decryptPassword(key, encrypted) {
   return decrypted.toString("utf-8");
 }
 
-// packages/gateway/services/oauth-token-manager.ts
+// packages/gateway/services/oauth-token-manager.js
 init_core();
 var CREATE_TABLE5 = `
   CREATE TABLE IF NOT EXISTS oauth_tokens (
@@ -261514,21 +263685,13 @@ var OAuthTokenManager = class {
         scopes = excluded.scopes,
         user_email = excluded.user_email,
         updated_at = datetime('now')
-    `).run(
-      tokens.provider,
-      encryptedAccess,
-      encryptedRefresh,
-      tokens.expiresAt,
-      tokens.scopes,
-      tokens.userEmail ?? null
-    );
+    `).run(tokens.provider, encryptedAccess, encryptedRefresh, tokens.expiresAt, tokens.scopes, tokens.userEmail ?? null);
   }
   /** Get the decrypted access token for a provider. Returns null if not stored. */
   getAccessToken(provider) {
-    const row = this.db.prepare(
-      "SELECT access_token_encrypted FROM oauth_tokens WHERE provider = ?"
-    ).get(provider);
-    if (!row) return null;
+    const row = this.db.prepare("SELECT access_token_encrypted FROM oauth_tokens WHERE provider = ?").get(provider);
+    if (!row)
+      return null;
     if (row.access_token_encrypted === MIGRATED_SENTINEL) {
       return null;
     }
@@ -261539,16 +263702,16 @@ var OAuthTokenManager = class {
     if (this.keychain) {
       const service = keychainOAuthServiceName(provider);
       const fromKeychain = await this.keychain.get(service, "access_token");
-      if (fromKeychain) return fromKeychain;
+      if (fromKeychain)
+        return fromKeychain;
     }
     return this.getAccessToken(provider);
   }
   /** Get the decrypted refresh token for a provider. Returns null if not stored. */
   getRefreshToken(provider) {
-    const row = this.db.prepare(
-      "SELECT refresh_token_encrypted FROM oauth_tokens WHERE provider = ?"
-    ).get(provider);
-    if (!row) return null;
+    const row = this.db.prepare("SELECT refresh_token_encrypted FROM oauth_tokens WHERE provider = ?").get(provider);
+    if (!row)
+      return null;
     if (row.refresh_token_encrypted === MIGRATED_SENTINEL) {
       return null;
     }
@@ -261559,16 +263722,16 @@ var OAuthTokenManager = class {
     if (this.keychain) {
       const service = keychainOAuthServiceName(provider);
       const fromKeychain = await this.keychain.get(service, "refresh_token");
-      if (fromKeychain) return fromKeychain;
+      if (fromKeychain)
+        return fromKeychain;
     }
     return this.getRefreshToken(provider);
   }
   /** Check if the stored access token is expired (or will expire within bufferMs). */
   isTokenExpired(provider, bufferMs = 6e4) {
-    const row = this.db.prepare(
-      "SELECT expires_at FROM oauth_tokens WHERE provider = ?"
-    ).get(provider);
-    if (!row) return true;
+    const row = this.db.prepare("SELECT expires_at FROM oauth_tokens WHERE provider = ?").get(provider);
+    if (!row)
+      return true;
     return Date.now() + bufferMs >= row.expires_at;
   }
   /**
@@ -261638,17 +263801,14 @@ var OAuthTokenManager = class {
   }
   /** Check if valid (non-expired) tokens exist for a provider. */
   hasValidTokens(provider) {
-    const row = this.db.prepare(
-      "SELECT expires_at FROM oauth_tokens WHERE provider = ?"
-    ).get(provider);
-    if (!row) return false;
+    const row = this.db.prepare("SELECT expires_at FROM oauth_tokens WHERE provider = ?").get(provider);
+    if (!row)
+      return false;
     return Date.now() < row.expires_at;
   }
   /** Get the stored user email for a provider. */
   getUserEmail(provider) {
-    const row = this.db.prepare(
-      "SELECT user_email FROM oauth_tokens WHERE provider = ?"
-    ).get(provider);
+    const row = this.db.prepare("SELECT user_email FROM oauth_tokens WHERE provider = ?").get(provider);
     return row?.user_email ?? null;
   }
   // ─── Multi-Account Methods (Sprint G) ────────────────────────────────────
@@ -261659,7 +263819,8 @@ var OAuthTokenManager = class {
   migrateToMultiAccount() {
     const tableInfo = this.db.prepare("PRAGMA table_info('oauth_tokens')").all();
     const hasAccountId = tableInfo.some((col) => col.name === "account_id");
-    if (hasAccountId) return;
+    if (hasAccountId)
+      return;
     console.error("[OAuthTokenManager] Migrating to multi-account schema...");
     const beforeCount = this.db.prepare("SELECT COUNT(*) as cnt FROM oauth_tokens").get().cnt;
     this.db.exec(`
@@ -261688,17 +263849,7 @@ var OAuthTokenManager = class {
     for (const row of existingRows) {
       const email = row.user_email ?? `primary@${row.provider}`;
       const accountId = `${row.provider}:${email}`;
-      insertV2.run(
-        accountId,
-        row.provider,
-        email,
-        row.access_token_encrypted,
-        row.refresh_token_encrypted,
-        row.expires_at,
-        row.scopes,
-        row.created_at ?? (/* @__PURE__ */ new Date()).toISOString(),
-        row.updated_at ?? (/* @__PURE__ */ new Date()).toISOString()
-      );
+      insertV2.run(accountId, row.provider, email, row.access_token_encrypted, row.refresh_token_encrypted, row.expires_at, row.scopes, row.created_at ?? (/* @__PURE__ */ new Date()).toISOString(), row.updated_at ?? (/* @__PURE__ */ new Date()).toISOString());
     }
     this.db.exec("DROP TABLE oauth_tokens");
     this.db.exec("ALTER TABLE oauth_tokens_v2 RENAME TO oauth_tokens");
@@ -261736,29 +263887,21 @@ var OAuthTokenManager = class {
         scopes = excluded.scopes,
         is_primary = excluded.is_primary,
         updated_at = datetime('now')
-    `).run(
-      tokens.accountId,
-      tokens.provider,
-      tokens.userEmail ?? tokens.provider,
-      encryptedAccess,
-      encryptedRefresh,
-      tokens.expiresAt,
-      tokens.scopes,
-      tokens.isPrimary ?? false ? 1 : 0
-    );
+    `).run(tokens.accountId, tokens.provider, tokens.userEmail ?? tokens.provider, encryptedAccess, encryptedRefresh, tokens.expiresAt, tokens.scopes, tokens.isPrimary ?? false ? 1 : 0);
   }
   /** Get access token for a specific account ID (async, keychain-aware). */
   async getAccountAccessTokenAsync(accountId) {
     if (this.keychain) {
       const service = keychainOAuthServiceName(accountId);
       const fromKeychain = await this.keychain.get(service, "access_token");
-      if (fromKeychain) return fromKeychain;
+      if (fromKeychain)
+        return fromKeychain;
     }
-    const row = this.db.prepare(
-      "SELECT access_token_encrypted FROM oauth_tokens WHERE account_id = ?"
-    ).get(accountId);
-    if (!row) return null;
-    if (row.access_token_encrypted === MIGRATED_SENTINEL) return null;
+    const row = this.db.prepare("SELECT access_token_encrypted FROM oauth_tokens WHERE account_id = ?").get(accountId);
+    if (!row)
+      return null;
+    if (row.access_token_encrypted === MIGRATED_SENTINEL)
+      return null;
     return decryptPassword(this.encryptionKey, row.access_token_encrypted);
   }
   /** Get refresh token for a specific account ID (async, keychain-aware). */
@@ -261766,13 +263909,14 @@ var OAuthTokenManager = class {
     if (this.keychain) {
       const service = keychainOAuthServiceName(accountId);
       const fromKeychain = await this.keychain.get(service, "refresh_token");
-      if (fromKeychain) return fromKeychain;
+      if (fromKeychain)
+        return fromKeychain;
     }
-    const row = this.db.prepare(
-      "SELECT refresh_token_encrypted FROM oauth_tokens WHERE account_id = ?"
-    ).get(accountId);
-    if (!row) return null;
-    if (row.refresh_token_encrypted === MIGRATED_SENTINEL) return null;
+    const row = this.db.prepare("SELECT refresh_token_encrypted FROM oauth_tokens WHERE account_id = ?").get(accountId);
+    if (!row)
+      return null;
+    if (row.refresh_token_encrypted === MIGRATED_SENTINEL)
+      return null;
     return decryptPassword(this.encryptionKey, row.refresh_token_encrypted);
   }
   /** Refresh access token for a specific account (by account_id). */
@@ -261808,18 +263952,16 @@ var OAuthTokenManager = class {
   }
   /** Check if a specific account's token is expired. */
   isAccountTokenExpired(accountId, bufferMs = 6e4) {
-    const row = this.db.prepare(
-      "SELECT expires_at FROM oauth_tokens WHERE account_id = ?"
-    ).get(accountId);
-    if (!row) return true;
+    const row = this.db.prepare("SELECT expires_at FROM oauth_tokens WHERE account_id = ?").get(accountId);
+    if (!row)
+      return true;
     return Date.now() + bufferMs >= row.expires_at;
   }
   /** Get tokens for a specific account ID. */
   getAccountTokens(accountId) {
-    const row = this.db.prepare(
-      "SELECT * FROM oauth_tokens WHERE account_id = ?"
-    ).get(accountId);
-    if (!row) return null;
+    const row = this.db.prepare("SELECT * FROM oauth_tokens WHERE account_id = ?").get(accountId);
+    if (!row)
+      return null;
     const accessToken = row.access_token_encrypted === MIGRATED_SENTINEL ? "" : decryptPassword(this.encryptionKey, row.access_token_encrypted);
     const refreshToken = row.refresh_token_encrypted === MIGRATED_SENTINEL ? "" : decryptPassword(this.encryptionKey, row.refresh_token_encrypted);
     return {
@@ -261833,9 +263975,7 @@ var OAuthTokenManager = class {
   }
   /** List all accounts for a provider. */
   listAccounts(provider) {
-    const rows = this.db.prepare(
-      "SELECT account_id, provider, user_email, display_name, scopes, is_primary, expires_at, created_at FROM oauth_tokens WHERE provider = ? ORDER BY is_primary DESC, created_at ASC"
-    ).all(provider);
+    const rows = this.db.prepare("SELECT account_id, provider, user_email, display_name, scopes, is_primary, expires_at, created_at FROM oauth_tokens WHERE provider = ? ORDER BY is_primary DESC, created_at ASC").all(provider);
     return rows.map((r) => ({
       accountId: r.account_id,
       provider: r.provider,
@@ -261849,9 +263989,7 @@ var OAuthTokenManager = class {
   }
   /** List all accounts across all providers. */
   listAllAccounts() {
-    const rows = this.db.prepare(
-      "SELECT account_id, provider, user_email, display_name, scopes, is_primary, expires_at, created_at FROM oauth_tokens ORDER BY provider, is_primary DESC, created_at ASC"
-    ).all();
+    const rows = this.db.prepare("SELECT account_id, provider, user_email, display_name, scopes, is_primary, expires_at, created_at FROM oauth_tokens ORDER BY provider, is_primary DESC, created_at ASC").all();
     return rows.map((r) => ({
       accountId: r.account_id,
       provider: r.provider,
@@ -261866,7 +264004,8 @@ var OAuthTokenManager = class {
   /** Set an account as primary for its provider. */
   setPrimary(accountId) {
     const row = this.db.prepare("SELECT provider FROM oauth_tokens WHERE account_id = ?").get(accountId);
-    if (!row) throw new Error(`Account ${accountId} not found`);
+    if (!row)
+      throw new Error(`Account ${accountId} not found`);
     this.db.prepare("UPDATE oauth_tokens SET is_primary = 0 WHERE provider = ?").run(row.provider);
     this.db.prepare("UPDATE oauth_tokens SET is_primary = 1 WHERE account_id = ?").run(accountId);
   }
@@ -261883,9 +264022,7 @@ var OAuthTokenManager = class {
   }
   /** Get the primary account for a provider (backwards-compatible). */
   getPrimaryAccount(provider) {
-    const row = this.db.prepare(
-      "SELECT * FROM oauth_tokens WHERE provider = ? AND is_primary = 1"
-    ).get(provider);
+    const row = this.db.prepare("SELECT * FROM oauth_tokens WHERE provider = ? AND is_primary = 1").get(provider);
     if (!row) {
       return this.getAccountTokens(`${provider}:${provider}`);
     }
@@ -261902,10 +264039,10 @@ var OAuthTokenManager = class {
   }
 };
 
-// packages/gateway/index.ts
+// packages/gateway/index.js
 init_google_drive_adapter();
 
-// packages/gateway/services/file-write-adapter.ts
+// packages/gateway/services/file-write-adapter.js
 var import_node_os4 = require("node:os");
 var import_node_path5 = require("node:path");
 var import_node_fs5 = require("node:fs");
@@ -261928,11 +264065,16 @@ function resolveDirectory(directory) {
   return resolved;
 }
 function isFilenameUnsafe(filename) {
-  if (filename.includes("..")) return true;
-  if (filename.includes("/")) return true;
-  if (filename.includes("\\")) return true;
-  if (filename.startsWith(".") && filename !== (0, import_node_path5.basename)(filename)) return true;
-  if ((0, import_node_path5.basename)(filename).length === 0) return true;
+  if (filename.includes(".."))
+    return true;
+  if (filename.includes("/"))
+    return true;
+  if (filename.includes("\\"))
+    return true;
+  if (filename.startsWith(".") && filename !== (0, import_node_path5.basename)(filename))
+    return true;
+  if ((0, import_node_path5.basename)(filename).length === 0)
+    return true;
   return false;
 }
 function addTimestampSuffix(filename) {
@@ -261990,7 +264132,7 @@ var FileWriteAdapter = class {
   }
 };
 
-// packages/gateway/credentials/store.ts
+// packages/gateway/credentials/store.js
 init_nanoid();
 init_core();
 var CREATE_TABLE6 = `
@@ -262055,18 +264197,7 @@ var CredentialStore = class {
     this.db.prepare(`
       INSERT INTO service_credentials (id, service_type, protocol, host, port, username, encrypted_password, use_tls, display_name, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      input.serviceType,
-      input.protocol,
-      input.host,
-      input.port,
-      input.username,
-      encryptedPw,
-      input.useTLS ? 1 : 0,
-      input.displayName,
-      createdAt
-    );
+    `).run(id, input.serviceType, input.protocol, input.host, input.port, input.username, encryptedPw, input.useTLS ? 1 : 0, input.displayName, createdAt);
     return {
       id,
       serviceType: input.serviceType,
@@ -262085,27 +264216,21 @@ var CredentialStore = class {
    * Get a credential by ID.
    */
   get(id) {
-    const row = this.db.prepare(
-      "SELECT * FROM service_credentials WHERE id = ?"
-    ).get(id);
+    const row = this.db.prepare("SELECT * FROM service_credentials WHERE id = ?").get(id);
     return row ? rowToCredential(row) : null;
   }
   /**
    * Get all credentials for a specific service type.
    */
   getByType(serviceType) {
-    const rows = this.db.prepare(
-      "SELECT * FROM service_credentials WHERE service_type = ? ORDER BY created_at ASC"
-    ).all(serviceType);
+    const rows = this.db.prepare("SELECT * FROM service_credentials WHERE service_type = ? ORDER BY created_at ASC").all(serviceType);
     return rows.map(rowToCredential);
   }
   /**
    * Get all credentials.
    */
   getAll() {
-    const rows = this.db.prepare(
-      "SELECT * FROM service_credentials ORDER BY created_at ASC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM service_credentials ORDER BY created_at ASC").all();
     return rows.map(rowToCredential);
   }
   /**
@@ -262113,7 +264238,8 @@ var CredentialStore = class {
    */
   update(id, updates) {
     const existing = this.get(id);
-    if (!existing) throw new Error(`Credential not found: ${id}`);
+    if (!existing)
+      throw new Error(`Credential not found: ${id}`);
     const fields = [];
     const values2 = [];
     if (updates.host !== void 0) {
@@ -262144,11 +264270,10 @@ var CredentialStore = class {
       fields.push("last_verified_at = ?");
       values2.push(updates.lastVerifiedAt);
     }
-    if (fields.length === 0) return existing;
+    if (fields.length === 0)
+      return existing;
     values2.push(id);
-    this.db.prepare(
-      `UPDATE service_credentials SET ${fields.join(", ")} WHERE id = ?`
-    ).run(...values2);
+    this.db.prepare(`UPDATE service_credentials SET ${fields.join(", ")} WHERE id = ?`).run(...values2);
     return this.get(id);
   }
   /**
@@ -262181,7 +264306,8 @@ var CredentialStore = class {
     if (this.keychain) {
       const service = keychainServiceName(credential.id);
       const fromKeychain = await this.keychain.get(service, "password");
-      if (fromKeychain) return fromKeychain;
+      if (fromKeychain)
+        return fromKeychain;
     }
     if (credential.encryptedPassword === MIGRATED_SENTINEL) {
       throw new Error(`Credential ${credential.id} marked as migrated but not found in keychain`);
@@ -262212,7 +264338,7 @@ var CredentialStore = class {
   }
 };
 
-// packages/gateway/credentials/types.ts
+// packages/gateway/credentials/types.js
 init_zod();
 var ServiceType = external_exports.enum(["email", "calendar"]);
 var ProtocolType = external_exports.enum(["imap", "smtp", "caldav"]);
@@ -262291,7 +264417,7 @@ var PROVIDER_PRESETS = {
   }
 };
 
-// packages/gateway/services/email/imap-adapter.ts
+// packages/gateway/services/email/imap-adapter.js
 var import_imapflow = __toESM(require_imap_flow(), 1);
 function parseAddress(addr) {
   if (addr && typeof addr === "object" && "address" in addr) {
@@ -262304,12 +264430,15 @@ function parseAddress(addr) {
   return { name: "", address: "" };
 }
 function parseAddressList(list) {
-  if (!list) return [];
-  if (Array.isArray(list)) return list.map(parseAddress);
+  if (!list)
+    return [];
+  if (Array.isArray(list))
+    return list.map(parseAddress);
   return [parseAddress(list)];
 }
 function deriveThreadId(headers) {
-  if (!headers) return void 0;
+  if (!headers)
+    return void 0;
   if (Buffer.isBuffer(headers)) {
     const text = headers.toString("utf-8");
     const referencesMatch = text.match(/^references:\s*(.+)/im);
@@ -262323,7 +264452,8 @@ function deriveThreadId(headers) {
     }
     return void 0;
   }
-  if (typeof headers.get !== "function") return void 0;
+  if (typeof headers.get !== "function")
+    return void 0;
   const references = headers.get("references");
   if (references && references.length > 0) {
     const firstRef = references[0].trim().split(/\s+/)[0];
@@ -262406,8 +264536,10 @@ var IMAPAdapter = class {
       this.connections.delete(credentialId);
     }
     const credential = this.credentialStore.get(credentialId);
-    if (!credential) throw new Error(`Credential not found: ${credentialId}`);
-    if (credential.protocol !== "imap") throw new Error(`Credential ${credentialId} is not an IMAP credential`);
+    if (!credential)
+      throw new Error(`Credential not found: ${credentialId}`);
+    if (credential.protocol !== "imap")
+      throw new Error(`Credential ${credentialId} is not an IMAP credential`);
     const password = this.credentialStore.decryptPassword(credential);
     const client = new import_imapflow.ImapFlow({
       host: credential.host,
@@ -262459,12 +264591,15 @@ var IMAPAdapter = class {
       let uids;
       if (params.messageIds && params.messageIds.length > 0) {
         uids = params.messageIds.map(Number).filter((n) => !isNaN(n));
-        if (uids.length === 0) return [];
+        if (uids.length === 0)
+          return [];
       } else if (Object.keys(searchCriteria).length > 0) {
         const searchResult = await client.search(searchCriteria);
-        if (!searchResult) return [];
+        if (!searchResult)
+          return [];
         uids = searchResult.slice(-limit).map(Number);
-        if (uids.length === 0) return [];
+        if (uids.length === 0)
+          return [];
       } else {
         const exists = client.mailbox && client.mailbox.exists;
         uids = `${Math.max(1, (exists || limit) - limit + 1)}:*`;
@@ -262480,7 +264615,8 @@ var IMAPAdapter = class {
       for await (const msg of client.fetch(uids, fetchOptions)) {
         try {
           const envelope = msg.envelope;
-          if (!envelope) continue;
+          if (!envelope)
+            continue;
           let textBody = "";
           let htmlBody;
           if (msg.source) {
@@ -262597,7 +264733,8 @@ var IMAPAdapter = class {
     const lock = await client.getMailboxLock("INBOX");
     try {
       const uids = messageIds.map(Number).filter((n) => !isNaN(n));
-      if (uids.length === 0) return;
+      if (uids.length === 0)
+        return;
       try {
         await client.messageMove(uids, archiveFolder, { uid: true });
       } catch {
@@ -262616,7 +264753,8 @@ var IMAPAdapter = class {
     const lock = await client.getMailboxLock(fromFolder);
     try {
       const uids = messageIds.map(Number).filter((n) => !isNaN(n));
-      if (uids.length === 0) return;
+      if (uids.length === 0)
+        return;
       try {
         await client.messageMove(uids, toFolder, { uid: true });
       } catch {
@@ -262635,7 +264773,8 @@ var IMAPAdapter = class {
     const lock = await client.getMailboxLock("INBOX");
     try {
       const uids = messageIds.map(Number).filter((n) => !isNaN(n));
-      if (uids.length === 0) return;
+      if (uids.length === 0)
+        return;
       if (read) {
         await client.messageFlagsAdd(uids, ["\\Seen"], { uid: true });
       } else {
@@ -262651,7 +264790,8 @@ var IMAPAdapter = class {
   async saveDraft(credentialId, draft) {
     const client = await this.getConnection(credentialId);
     const credential = this.credentialStore.get(credentialId);
-    if (!credential) throw new Error(`Credential not found: ${credentialId}`);
+    if (!credential)
+      throw new Error(`Credential not found: ${credentialId}`);
     const headers = [
       `From: ${credential.username}`,
       `To: ${draft.to.join(", ")}`
@@ -262709,7 +264849,7 @@ var IMAPAdapter = class {
   }
 };
 
-// packages/gateway/services/email/smtp-adapter.ts
+// packages/gateway/services/email/smtp-adapter.js
 var import_nodemailer = __toESM(require_nodemailer(), 1);
 var DEFAULT_RATE_LIMIT = 10;
 var RATE_WINDOW_MS = 6e4;
@@ -262734,8 +264874,10 @@ var SMTPAdapter = class {
       return existing.transporter;
     }
     const credential = this.credentialStore.get(credentialId);
-    if (!credential) throw new Error(`Credential not found: ${credentialId}`);
-    if (credential.protocol !== "smtp") throw new Error(`Credential ${credentialId} is not an SMTP credential`);
+    if (!credential)
+      throw new Error(`Credential not found: ${credentialId}`);
+    if (credential.protocol !== "smtp")
+      throw new Error(`Credential ${credentialId} is not an SMTP credential`);
     const password = this.credentialStore.decryptPassword(credential);
     const transporter = (0, import_nodemailer.createTransport)({
       host: credential.host,
@@ -262785,7 +264927,8 @@ var SMTPAdapter = class {
       throw new Error(`Rate limit exceeded: maximum ${this.maxPerMinute} emails per minute`);
     }
     const credential = this.credentialStore.get(credentialId);
-    if (!credential) throw new Error(`Credential not found: ${credentialId}`);
+    if (!credential)
+      throw new Error(`Credential not found: ${credentialId}`);
     const transporter = this.getTransport(credentialId);
     const mailOptions = {
       from: credential.username,
@@ -262929,24 +265072,28 @@ var SMTPAdapter = class {
   }
 };
 
-// packages/gateway/services/email/email-adapter.ts
+// packages/gateway/services/email/email-adapter.js
 var GMAIL_IMAP_HOST = "imap.gmail.com";
 var GMAIL_IMAP_PORT = 993;
 var GMAIL_SMTP_HOST = "smtp.gmail.com";
 var GMAIL_SMTP_PORT = 465;
 function parseRecipientList(header) {
-  if (!header) return [];
+  if (!header)
+    return [];
   return header.split(",").map((r) => {
     const trimmed = r.trim();
     const match = trimmed.match(/^(.+?)\s*<(.+?)>$/);
-    if (match) return { name: match[1].replace(/^["']|["']$/g, ""), address: match[2] };
+    if (match)
+      return { name: match[1].replace(/^["']|["']$/g, ""), address: match[2] };
     return { name: trimmed, address: trimmed };
   });
 }
 function buildImapStyleFlags(isRead, isStarred) {
   const flags = [];
-  if (isRead) flags.push("\\Seen");
-  if (isStarred) flags.push("\\Flagged");
+  if (isRead)
+    flags.push("\\Seen");
+  if (isStarred)
+    flags.push("\\Flagged");
   return flags;
 }
 var EmailAdapter = class {
@@ -262996,7 +265143,8 @@ var EmailAdapter = class {
    * Returns the new access token, or null if refresh fails.
    */
   async refreshGoogleToken() {
-    if (!this.oauthTokenManager) return null;
+    if (!this.oauthTokenManager)
+      return null;
     const refreshToken = await this.oauthTokenManager.getRefreshTokenAsync("google");
     if (!refreshToken) {
       console.error("[EmailAdapter] No refresh token available for Google");
@@ -263031,13 +265179,7 @@ var EmailAdapter = class {
         return null;
       }
       const newExpiresAt = Date.now() + (data.expires_in ?? 3600) * 1e3;
-      this.oauthTokenManager.refreshAccessToken(
-        "google",
-        data.access_token,
-        newExpiresAt,
-        data.refresh_token
-        // Google sometimes rotates refresh tokens
-      );
+      this.oauthTokenManager.refreshAccessToken("google", data.access_token, newExpiresAt, data.refresh_token);
       console.error("[EmailAdapter] Google token refreshed successfully, expires in", data.expires_in, "seconds");
       return data.access_token;
     } catch (err) {
@@ -263135,13 +265277,7 @@ var EmailAdapter = class {
       } catch (apiErr) {
         console.error("[EmailAdapter] Gmail REST API fetch failed:", apiErr);
         try {
-          const imapMessages = await this.imap.fetchMessagesOAuth(
-            GMAIL_IMAP_HOST,
-            GMAIL_IMAP_PORT,
-            oauth.userEmail,
-            oauth.accessToken,
-            params
-          );
+          const imapMessages = await this.imap.fetchMessagesOAuth(GMAIL_IMAP_HOST, GMAIL_IMAP_PORT, oauth.userEmail, oauth.accessToken, params);
           return { success: true, data: { messages: imapMessages } };
         } catch (imapErr) {
           console.error("[EmailAdapter] Gmail IMAP XOAUTH2 also failed:", imapErr);
@@ -263185,23 +265321,24 @@ var EmailAdapter = class {
     }
     const listData = await listResp.json();
     const messageIds = listData.messages ?? [];
-    if (messageIds.length === 0) return [];
+    if (messageIds.length === 0)
+      return [];
     const BATCH_SIZE = 10;
     const results = [];
     for (let i = 0; i < messageIds.length; i += BATCH_SIZE) {
       const batch = messageIds.slice(i, i + BATCH_SIZE);
-      const batchResults = await Promise.allSettled(
-        batch.map(async (msg) => {
-          const detailUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`;
-          const detailResp = await globalThis.fetch(detailUrl, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
-          if (!detailResp.ok) return null;
-          return detailResp.json();
-        })
-      );
+      const batchResults = await Promise.allSettled(batch.map(async (msg) => {
+        const detailUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`;
+        const detailResp = await globalThis.fetch(detailUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if (!detailResp.ok)
+          return null;
+        return detailResp.json();
+      }));
       for (const result2 of batchResults) {
-        if (result2.status !== "fulfilled" || !result2.value) continue;
+        if (result2.status !== "fulfilled" || !result2.value)
+          continue;
         const msg = result2.value;
         const headers = msg.payload?.headers ?? [];
         const getHeader = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
@@ -263280,13 +265417,7 @@ References: ${params.replyToMessageId}\r
       console.error(`[EmailAdapter] Gmail API send failed (${resp.status}): ${errText.slice(0, 300)}`);
       try {
         console.error(`[EmailAdapter] Falling back to SMTP XOAUTH2 for ${oauth.userEmail}`);
-        const result2 = await this.smtp.sendEmailOAuth(
-          GMAIL_SMTP_HOST,
-          GMAIL_SMTP_PORT,
-          oauth.userEmail,
-          oauth.accessToken,
-          params
-        );
+        const result2 = await this.smtp.sendEmailOAuth(GMAIL_SMTP_HOST, GMAIL_SMTP_PORT, oauth.userEmail, oauth.accessToken, params);
         return { success: true, data: result2 };
       } catch (smtpErr) {
         console.error(`[EmailAdapter] SMTP fallback also failed:`, smtpErr);
@@ -263381,7 +265512,7 @@ References: ${params.replyToMessageId}\r
   }
 };
 
-// packages/gateway/services/calendar/caldav-adapter.ts
+// packages/gateway/services/calendar/caldav-adapter.js
 var import_tsdav = __toESM(require_tsdav_cjs(), 1);
 function parseVEvent(ical, calendarId) {
   try {
@@ -263391,7 +265522,8 @@ function parseVEvent(ical, calendarId) {
       return match?.[1]?.trim();
     };
     const uid = getField("UID");
-    if (!uid) return null;
+    if (!uid)
+      return null;
     const summary = getField("SUMMARY") ?? "(no title)";
     const description = getField("DESCRIPTION");
     const location = getField("LOCATION");
@@ -263401,8 +265533,10 @@ function parseVEvent(ical, calendarId) {
     const rrule = getField("RRULE");
     const statusRaw = getField("STATUS")?.toUpperCase();
     let status = "confirmed";
-    if (statusRaw === "TENTATIVE") status = "tentative";
-    if (statusRaw === "CANCELLED") status = "cancelled";
+    if (statusRaw === "TENTATIVE")
+      status = "tentative";
+    if (statusRaw === "CANCELLED")
+      status = "cancelled";
     const attendees = [];
     const attendeeRegex = /^ATTENDEE[^:]*:(.*)$/gmi;
     let attendeeMatch;
@@ -263413,9 +265547,12 @@ function parseVEvent(ical, calendarId) {
       const partstatMatch = line.match(/PARTSTAT=([^;:]+)/i);
       let partstat = "needs-action";
       const ps = partstatMatch?.[1]?.toUpperCase();
-      if (ps === "ACCEPTED") partstat = "accepted";
-      else if (ps === "DECLINED") partstat = "declined";
-      else if (ps === "TENTATIVE") partstat = "tentative";
+      if (ps === "ACCEPTED")
+        partstat = "accepted";
+      else if (ps === "DECLINED")
+        partstat = "declined";
+      else if (ps === "TENTATIVE")
+        partstat = "tentative";
       attendees.push({
         name: cnMatch?.[1] ?? "",
         email: mailto,
@@ -263457,10 +265594,12 @@ function parseVEvent(ical, calendarId) {
   }
 }
 function parseICalDate(dateStr) {
-  if (!dateStr) return null;
+  if (!dateStr)
+    return null;
   const cleanDate = dateStr.replace(/^[^:]+:/, "");
   const match = cleanDate.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2}))?Z?$/);
-  if (!match) return null;
+  if (!match)
+    return null;
   const year = match[1];
   const month = match[2];
   const day = match[3];
@@ -263481,8 +265620,10 @@ function buildVEvent(params, uid) {
     `DTEND:${toICalDate(params.endTime)}`,
     `SUMMARY:${params.title}`
   ];
-  if (params.description) lines.push(`DESCRIPTION:${params.description}`);
-  if (params.location) lines.push(`LOCATION:${params.location}`);
+  if (params.description)
+    lines.push(`DESCRIPTION:${params.description}`);
+  if (params.location)
+    lines.push(`LOCATION:${params.location}`);
   if (params.attendees) {
     for (const a of params.attendees) {
       if (typeof a === "string") {
@@ -263517,8 +265658,10 @@ var CalDAVAdapter = class {
       return existing.client;
     }
     const credential = this.credentialStore.get(credentialId);
-    if (!credential) throw new Error(`Credential not found: ${credentialId}`);
-    if (credential.protocol !== "caldav") throw new Error(`Credential ${credentialId} is not a CalDAV credential`);
+    if (!credential)
+      throw new Error(`Credential not found: ${credentialId}`);
+    if (credential.protocol !== "caldav")
+      throw new Error(`Credential ${credentialId} is not a CalDAV credential`);
     const password = this.credentialStore.decryptPassword(credential);
     const client = await (0, import_tsdav.createDAVClient)({
       serverUrl: `https://${credential.host}${credential.port !== 443 ? ":" + credential.port : ""}`,
@@ -263567,9 +265710,11 @@ var CalDAVAdapter = class {
         }
       });
       for (const obj2 of objects) {
-        if (!obj2.data) continue;
+        if (!obj2.data)
+          continue;
         const event = parseVEvent(obj2.data, calendar.url);
-        if (event) events.push(event);
+        if (event)
+          events.push(event);
       }
     }
     return events;
@@ -263581,7 +265726,8 @@ var CalDAVAdapter = class {
     const client = await this.getClient(credentialId);
     const calendars = await client.fetchCalendars();
     const targetCalendar = params.calendarId ? calendars.find((c) => c.url === params.calendarId) : calendars[0];
-    if (!targetCalendar) throw new Error("No calendar found");
+    if (!targetCalendar)
+      throw new Error("No calendar found");
     const uid = `semblance-${Date.now()}-${Math.random().toString(36).substring(2)}@local`;
     const icalData = buildVEvent(params, uid);
     await client.createCalendarObject({
@@ -263597,9 +265743,7 @@ var CalDAVAdapter = class {
       startTime: params.startTime,
       endTime: params.endTime,
       location: params.location,
-      attendees: (params.attendees ?? []).map(
-        (a) => typeof a === "string" ? { name: a, email: a, status: "needs-action" } : { ...a, status: "needs-action" }
-      ),
+      attendees: (params.attendees ?? []).map((a) => typeof a === "string" ? { name: a, email: a, status: "needs-action" } : { ...a, status: "needs-action" }),
       organizer: { name: "", email: "" },
       recurrence: void 0,
       status: "confirmed",
@@ -263617,7 +265761,8 @@ var CalDAVAdapter = class {
     for (const calendar of calendars) {
       const objects = await client.fetchCalendarObjects({ calendar });
       for (const obj2 of objects) {
-        if (!obj2.data) continue;
+        if (!obj2.data)
+          continue;
         const event = parseVEvent(obj2.data, calendar.url);
         if (event && event.id === params.eventId) {
           const updated = {
@@ -263639,12 +265784,8 @@ var CalDAVAdapter = class {
           return {
             ...event,
             ...updated,
-            attendees: (updated.attendees ?? []).map(
-              (a) => typeof a === "string" ? { name: a, email: a, status: "needs-action" } : { ...a, status: "needs-action" }
-            ),
-            reminders: (updated.reminders ?? event.reminders ?? []).map(
-              (r) => typeof r === "number" ? { minutesBefore: r } : r
-            ),
+            attendees: (updated.attendees ?? []).map((a) => typeof a === "string" ? { name: a, email: a, status: "needs-action" } : { ...a, status: "needs-action" }),
+            reminders: (updated.reminders ?? event.reminders ?? []).map((r) => typeof r === "number" ? { minutesBefore: r } : r),
             lastModified: (/* @__PURE__ */ new Date()).toISOString()
           };
         }
@@ -263720,7 +265861,7 @@ var CalDAVAdapter = class {
   }
 };
 
-// packages/gateway/services/calendar/calendar-adapter.ts
+// packages/gateway/services/calendar/calendar-adapter.js
 var CalendarAdapter = class {
   caldav;
   credentialStore;
@@ -263810,7 +265951,8 @@ var CalendarAdapter = class {
   }
   // --- Google Calendar REST API helpers ---
   async getGoogleCalendarToken() {
-    if (!this.oauthTokenManager) return null;
+    if (!this.oauthTokenManager)
+      return null;
     let token = await this.oauthTokenManager.getAccessTokenAsync("google-calendar");
     if (!token) {
       token = await this.oauthTokenManager.getAccessTokenAsync("google");
@@ -263824,12 +265966,12 @@ var CalendarAdapter = class {
       start: { dateTime: params.startTime },
       end: { dateTime: params.endTime }
     };
-    if (params.description) body.description = params.description;
-    if (params.location) body.location = params.location;
+    if (params.description)
+      body.description = params.description;
+    if (params.location)
+      body.location = params.location;
     if (params.attendees) {
-      body.attendees = params.attendees.map(
-        (a) => typeof a === "string" ? { email: a } : { email: a.email, displayName: a.name }
-      );
+      body.attendees = params.attendees.map((a) => typeof a === "string" ? { email: a } : { email: a.email, displayName: a.name });
     }
     if (params.reminders && params.reminders.length > 0) {
       body.reminders = {
@@ -263837,17 +265979,14 @@ var CalendarAdapter = class {
         overrides: params.reminders.map((minutes) => ({ method: "popup", minutes }))
       };
     }
-    const resp = await globalThis.fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      }
-    );
+    const resp = await globalThis.fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
     if (resp.status === 403) {
       return {
         success: false,
@@ -263871,15 +266010,18 @@ var CalendarAdapter = class {
   async updateViaRestApi(accessToken, params) {
     const calendarId = params.updates?.calendarId ?? "primary";
     const body = {};
-    if (params.updates?.title !== void 0) body.summary = params.updates.title;
-    if (params.updates?.startTime !== void 0) body.start = { dateTime: params.updates.startTime };
-    if (params.updates?.endTime !== void 0) body.end = { dateTime: params.updates.endTime };
-    if (params.updates?.description !== void 0) body.description = params.updates.description;
-    if (params.updates?.location !== void 0) body.location = params.updates.location;
+    if (params.updates?.title !== void 0)
+      body.summary = params.updates.title;
+    if (params.updates?.startTime !== void 0)
+      body.start = { dateTime: params.updates.startTime };
+    if (params.updates?.endTime !== void 0)
+      body.end = { dateTime: params.updates.endTime };
+    if (params.updates?.description !== void 0)
+      body.description = params.updates.description;
+    if (params.updates?.location !== void 0)
+      body.location = params.updates.location;
     if (params.updates?.attendees !== void 0) {
-      body.attendees = params.updates.attendees.map(
-        (a) => typeof a === "string" ? { email: a } : { email: a.email, displayName: a.name }
-      );
+      body.attendees = params.updates.attendees.map((a) => typeof a === "string" ? { email: a } : { email: a.email, displayName: a.name });
     }
     if (params.updates?.reminders !== void 0 && params.updates.reminders.length > 0) {
       body.reminders = {
@@ -263887,17 +266029,14 @@ var CalendarAdapter = class {
         overrides: params.updates.reminders.map((minutes) => ({ method: "popup", minutes }))
       };
     }
-    const resp = await globalThis.fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(params.eventId)}`,
-      {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      }
-    );
+    const resp = await globalThis.fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(params.eventId)}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
     if (resp.status === 403) {
       return {
         success: false,
@@ -263920,15 +266059,12 @@ var CalendarAdapter = class {
   }
   async deleteViaRestApi(accessToken, params) {
     const calendarId = params.calendarId ?? "primary";
-    const resp = await globalThis.fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(params.eventId)}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
+    const resp = await globalThis.fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(params.eventId)}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`
       }
-    );
+    });
     if (resp.status === 403) {
       return {
         success: false,
@@ -263953,7 +266089,7 @@ var CalendarAdapter = class {
   }
 };
 
-// packages/gateway/audit/audit-query.ts
+// packages/gateway/audit/audit-query.js
 function rowToEntry2(row) {
   return {
     id: row.id,
@@ -264007,8 +266143,10 @@ var AuditQuery = class {
     const where2 = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const limit = options.limit ? `LIMIT ?` : "";
     const offset = options.offset ? `OFFSET ?` : "";
-    if (options.limit) params.push(options.limit);
-    if (options.offset) params.push(options.offset);
+    if (options.limit)
+      params.push(options.limit);
+    if (options.offset)
+      params.push(options.offset);
     const sql = `SELECT * FROM audit_log ${where2} ORDER BY rowid ASC ${limit} ${offset}`;
     const rows = this.db.prepare(sql).all(...params);
     return rows.map(rowToEntry2);
@@ -264129,9 +266267,7 @@ var AuditQuery = class {
    * Get all entries with a specific status (e.g., 'rejected' for unauthorized attempts).
    */
   getByStatus(status, limit = 100) {
-    const rows = this.db.prepare(
-      "SELECT * FROM audit_log WHERE status = ? ORDER BY rowid DESC LIMIT ?"
-    ).all(status, limit);
+    const rows = this.db.prepare("SELECT * FROM audit_log WHERE status = ? ORDER BY rowid DESC LIMIT ?").all(status, limit);
     return rows.map(rowToEntry2);
   }
   /**
@@ -264171,7 +266307,7 @@ function periodToRange(period) {
   }
 }
 
-// packages/gateway/monitor/network-monitor.ts
+// packages/gateway/monitor/network-monitor.js
 function actionToServiceName(action) {
   const prefix = action.indexOf(".") > 0 ? action.substring(0, action.indexOf(".")) : action;
   const nameMap = {
@@ -264330,15 +266466,20 @@ var NetworkMonitor = class {
    */
   domainToServicePrefix(domain) {
     const lower = domain.toLowerCase();
-    if (lower.includes("imap") || lower.includes("smtp") || lower.includes("mail")) return "email";
-    if (lower.includes("caldav") || lower.includes("calendar")) return "calendar";
-    if (lower.includes("plaid") || lower.includes("finance") || lower.includes("bank")) return "finance";
-    if (lower.includes("health")) return "health";
+    if (lower.includes("imap") || lower.includes("smtp") || lower.includes("mail"))
+      return "email";
+    if (lower.includes("caldav") || lower.includes("calendar"))
+      return "calendar";
+    if (lower.includes("plaid") || lower.includes("finance") || lower.includes("bank"))
+      return "finance";
+    if (lower.includes("health"))
+      return "health";
     return "service";
   }
 };
 function periodToAfter(period) {
-  if (!period) return void 0;
+  if (!period)
+    return void 0;
   const now = /* @__PURE__ */ new Date();
   switch (period) {
     case "today": {
@@ -264356,7 +266497,7 @@ function periodToAfter(period) {
   }
 }
 
-// packages/gateway/monitor/privacy-report.ts
+// packages/gateway/monitor/privacy-report.js
 init_core();
 var PrivacyReportGenerator = class {
   query;
@@ -264407,9 +266548,7 @@ var PrivacyReportGenerator = class {
     const allowlistServices = this.allowlist.listServices();
     const services = [];
     for (const [serviceKey, stats] of serviceMap) {
-      const matchingAllowlist = allowlistServices.find(
-        (s) => domainMatchesService(s.domain, serviceKey)
-      );
+      const matchingAllowlist = allowlistServices.find((s) => domainMatchesService(s.domain, serviceKey));
       services.push({
         name: matchingAllowlist?.serviceName ?? serviceKey,
         domain: matchingAllowlist?.domain ?? serviceKey,
@@ -264419,10 +266558,7 @@ var PrivacyReportGenerator = class {
       });
     }
     const auditTrailHash = computeAuditHash(entries.map((e) => e.id + e.payloadHash));
-    const totalTimeSavedSeconds = entries.reduce(
-      (sum, e) => sum + (e.estimatedTimeSavedSeconds ?? 0),
-      0
-    );
+    const totalTimeSavedSeconds = entries.reduce((sum, e) => sum + (e.estimatedTimeSavedSeconds ?? 0), 0);
     const statement = unauthorizedAttempts === 0 ? `During the period ${startDate} to ${endDate}, all network activity was limited to user-authorized services. No data was transmitted to unauthorized destinations. ${entries.length} connection(s) were made to ${services.length} authorized service(s).` : `During the period ${startDate} to ${endDate}, ${unauthorizedAttempts} unauthorized connection attempt(s) were detected and blocked. ${entries.length} authorized connection(s) were made to ${services.length} service(s).`;
     return {
       metadata: {
@@ -264465,8 +266601,10 @@ var PrivacyReportGenerator = class {
     for (const svc of report.services) {
       lines.push(`  ${svc.name} (${svc.domain})`);
       lines.push(`    Connections: ${svc.connectionCount}`);
-      if (svc.firstConnection) lines.push(`    First: ${svc.firstConnection}`);
-      if (svc.lastConnection) lines.push(`    Last: ${svc.lastConnection}`);
+      if (svc.firstConnection)
+        lines.push(`    First: ${svc.firstConnection}`);
+      if (svc.lastConnection)
+        lines.push(`    Last: ${svc.lastConnection}`);
     }
     if (report.services.length === 0) {
       lines.push("  No services contacted during this period.");
@@ -264487,29 +266625,36 @@ function actionToServiceKey(action) {
 }
 function domainMatchesService(domain, serviceKey) {
   const lower = domain.toLowerCase();
-  if (serviceKey === "email") return lower.includes("imap") || lower.includes("smtp") || lower.includes("mail");
-  if (serviceKey === "calendar") return lower.includes("caldav") || lower.includes("calendar");
-  if (serviceKey === "finance") return lower.includes("plaid") || lower.includes("bank");
-  if (serviceKey === "health") return lower.includes("health");
+  if (serviceKey === "email")
+    return lower.includes("imap") || lower.includes("smtp") || lower.includes("mail");
+  if (serviceKey === "calendar")
+    return lower.includes("caldav") || lower.includes("calendar");
+  if (serviceKey === "finance")
+    return lower.includes("plaid") || lower.includes("bank");
+  if (serviceKey === "health")
+    return lower.includes("health");
   return false;
 }
 function computeAuditHash(entries) {
-  if (entries.length === 0) return sha256("empty-audit-period");
+  if (entries.length === 0)
+    return sha256("empty-audit-period");
   return sha256(entries.join("|"));
 }
 function formatTimeSaved2(seconds) {
-  if (seconds < 60) return `${seconds} seconds`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)} minutes`;
+  if (seconds < 60)
+    return `${seconds} seconds`;
+  if (seconds < 3600)
+    return `${Math.round(seconds / 60)} minutes`;
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.round(seconds % 3600 / 60);
   return minutes > 0 ? `${hours}h ${minutes}m` : `${hours} hours`;
 }
 
-// packages/gateway/index.ts
+// packages/gateway/index.js
 init_oauth_callback_server();
 init_google_drive_adapter();
 
-// packages/gateway/daemon/daemon-manager.ts
+// packages/gateway/daemon/daemon-manager.js
 var import_node_path6 = require("node:path");
 var import_node_os5 = require("node:os");
 var import_node_fs6 = require("node:fs");
@@ -264545,7 +266690,8 @@ var DaemonManager = class {
    * Polls every 60 seconds in the daemon tick loop.
    */
   startWakeDetection() {
-    if (this.wakeCheckInterval) return;
+    if (this.wakeCheckInterval)
+      return;
     this.lastUptimeSeconds = (0, import_node_os5.uptime)();
     this.wakeCheckInterval = setInterval(() => {
       const currentUptime = (0, import_node_os5.uptime)();
@@ -264659,7 +266805,8 @@ var DaemonManager = class {
    */
   isRunning() {
     const pidData = this.readPidFile();
-    if (!pidData) return false;
+    if (!pidData)
+      return false;
     try {
       process.kill(pidData.pid, 0);
       return true;
@@ -264692,7 +266839,8 @@ var DaemonManager = class {
   // ─── Platform-Specific Install ────────────────────────────────────────────
   installMacOS() {
     const plistDir = (0, import_node_path6.join)((0, import_node_os5.homedir)(), "Library", "LaunchAgents");
-    if (!(0, import_node_fs6.existsSync)(plistDir)) (0, import_node_fs6.mkdirSync)(plistDir, { recursive: true });
+    if (!(0, import_node_fs6.existsSync)(plistDir))
+      (0, import_node_fs6.mkdirSync)(plistDir, { recursive: true });
     const plistPath = this.getMacOSPlistPath();
     const logPath = (0, import_node_path6.join)(this.dataDir, "gateway-daemon.log");
     const errPath = (0, import_node_path6.join)(this.dataDir, "gateway-daemon.err");
@@ -264731,7 +266879,8 @@ var DaemonManager = class {
   }
   installWindows() {
     const startupDir = this.getWindowsStartupDir();
-    if (!(0, import_node_fs6.existsSync)(startupDir)) (0, import_node_fs6.mkdirSync)(startupDir, { recursive: true });
+    if (!(0, import_node_fs6.existsSync)(startupDir))
+      (0, import_node_fs6.mkdirSync)(startupDir, { recursive: true });
     const startupPath = this.getWindowsStartupPath();
     const script = `Set WshShell = CreateObject("WScript.Shell")
 WshShell.Run """${this.gatewayBinaryPath}"" --daemon", 0, False`;
@@ -264747,7 +266896,8 @@ WshShell.Run """${this.gatewayBinaryPath}"" --daemon", 0, False`;
   }
   installLinux() {
     const serviceDir = (0, import_node_path6.join)((0, import_node_os5.homedir)(), ".config", "systemd", "user");
-    if (!(0, import_node_fs6.existsSync)(serviceDir)) (0, import_node_fs6.mkdirSync)(serviceDir, { recursive: true });
+    if (!(0, import_node_fs6.existsSync)(serviceDir))
+      (0, import_node_fs6.mkdirSync)(serviceDir, { recursive: true });
     const servicePath = this.getLinuxServicePath();
     const logPath = (0, import_node_path6.join)(this.dataDir, "gateway-daemon.log");
     const serviceFile = `[Unit]
@@ -264789,13 +266939,15 @@ WantedBy=default.target`;
   }
   // ─── PID File Management ──────────────────────────────────────────────────
   writePidFile(pid) {
-    if (!(0, import_node_fs6.existsSync)(this.dataDir)) (0, import_node_fs6.mkdirSync)(this.dataDir, { recursive: true });
+    if (!(0, import_node_fs6.existsSync)(this.dataDir))
+      (0, import_node_fs6.mkdirSync)(this.dataDir, { recursive: true });
     const data = { pid, startedAt: (/* @__PURE__ */ new Date()).toISOString() };
     (0, import_node_fs6.writeFileSync)(this.pidFilePath, JSON.stringify(data), "utf-8");
   }
   readPidFile() {
     try {
-      if (!(0, import_node_fs6.existsSync)(this.pidFilePath)) return null;
+      if (!(0, import_node_fs6.existsSync)(this.pidFilePath))
+        return null;
       const raw = (0, import_node_fs6.readFileSync)(this.pidFilePath, "utf-8");
       return JSON.parse(raw);
     } catch {
@@ -264804,13 +266956,14 @@ WantedBy=default.target`;
   }
   removePidFile() {
     try {
-      if ((0, import_node_fs6.existsSync)(this.pidFilePath)) (0, import_node_fs6.unlinkSync)(this.pidFilePath);
+      if ((0, import_node_fs6.existsSync)(this.pidFilePath))
+        (0, import_node_fs6.unlinkSync)(this.pidFilePath);
     } catch {
     }
   }
 };
 
-// packages/gateway/cron/cron-scheduler.ts
+// packages/gateway/cron/cron-scheduler.js
 var import_better_sqlite32 = __toESM(require("better-sqlite3"), 1);
 var import_node_path7 = require("node:path");
 var import_node_os6 = require("node:os");
@@ -264925,7 +267078,8 @@ var CronScheduler = class {
     if (typeof dbOrPath === "string" || dbOrPath === void 0) {
       const dbPath = dbOrPath ?? (0, import_node_path7.join)((0, import_node_os6.homedir)(), ".semblance", "data", "cron.db");
       const dbDir = (0, import_node_path7.join)(dbPath, "..");
-      if (!(0, import_node_fs7.existsSync)(dbDir)) (0, import_node_fs7.mkdirSync)(dbDir, { recursive: true });
+      if (!(0, import_node_fs7.existsSync)(dbDir))
+        (0, import_node_fs7.mkdirSync)(dbDir, { recursive: true });
       this.db = new import_better_sqlite32.default(dbPath);
     } else {
       this.db = dbOrPath;
@@ -264993,9 +267147,7 @@ var CronScheduler = class {
    */
   updateSchedule(id, schedule) {
     const nextFire = this.computeNextFire(schedule).toISOString();
-    const result2 = this.db.prepare(
-      "UPDATE cron_jobs SET schedule = ?, next_fire_at = ? WHERE id = ?"
-    ).run(schedule, nextFire, id);
+    const result2 = this.db.prepare("UPDATE cron_jobs SET schedule = ?, next_fire_at = ? WHERE id = ?").run(schedule, nextFire, id);
     return result2.changes > 0;
   }
   /**
@@ -265003,7 +267155,8 @@ var CronScheduler = class {
    */
   async fireJob(id) {
     const job = this.getJob(id);
-    if (!job) return { success: false, message: `Job ${id} not found` };
+    if (!job)
+      return { success: false, message: `Job ${id} not found` };
     if (!this.onFireJob) {
       return { success: false, message: "No fire handler registered" };
     }
@@ -265021,9 +267174,7 @@ var CronScheduler = class {
   async tick() {
     const now = /* @__PURE__ */ new Date();
     const firedIds = [];
-    const dueJobs = this.db.prepare(
-      "SELECT * FROM cron_jobs WHERE enabled = 1 AND next_fire_at <= ?"
-    ).all(now.toISOString());
+    const dueJobs = this.db.prepare("SELECT * FROM cron_jobs WHERE enabled = 1 AND next_fire_at <= ?").all(now.toISOString());
     for (const row of dueJobs) {
       const job = this.rowToJob(row);
       try {
@@ -265046,7 +267197,8 @@ var CronScheduler = class {
    * Also checks for missed jobs on startup (jobs that were due while daemon was stopped).
    */
   startTickLoop() {
-    if (this.tickInterval) return;
+    if (this.tickInterval)
+      return;
     void this.tick();
     this.tickInterval = setInterval(() => {
       void this.tick();
@@ -265097,9 +267249,7 @@ var CronScheduler = class {
   markFired(id, schedule) {
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const nextFire = this.computeNextFire(schedule).toISOString();
-    this.db.prepare(
-      "UPDATE cron_jobs SET last_fired_at = ?, next_fire_at = ? WHERE id = ?"
-    ).run(now, nextFire, id);
+    this.db.prepare("UPDATE cron_jobs SET last_fired_at = ?, next_fire_at = ? WHERE id = ?").run(now, nextFire, id);
   }
   rowToJob(row) {
     return {
@@ -265141,10 +267291,12 @@ var CronScheduler = class {
   }
   // Match a single cron field (supports *, star-slash-N, N, comma-separated, and N-M ranges).
   matchesCronField(expr, value, min2, max2) {
-    if (expr === "*") return true;
+    if (expr === "*")
+      return true;
     if (expr.startsWith("*/")) {
       const step = parseInt(expr.slice(2), 10);
-      if (isNaN(step) || step <= 0) return false;
+      if (isNaN(step) || step <= 0)
+        return false;
       return (value - min2) % step === 0;
     }
     const parts = expr.split(",");
@@ -265158,14 +267310,15 @@ var CronScheduler = class {
         }
       } else {
         const num = parseInt(part, 10);
-        if (num === value) return true;
+        if (num === value)
+          return true;
       }
     }
     return false;
   }
 };
 
-// packages/gateway/channels/channel-registry.ts
+// packages/gateway/channels/channel-registry.js
 var ChannelRegistry = class {
   adapters = /* @__PURE__ */ new Map();
   eventBus = null;
@@ -265195,8 +267348,10 @@ var ChannelRegistry = class {
    */
   async start(channelId) {
     const adapter = this.adapters.get(channelId);
-    if (!adapter) throw new Error(`Channel ${channelId} not registered`);
-    if (adapter.isRunning()) return;
+    if (!adapter)
+      throw new Error(`Channel ${channelId} not registered`);
+    if (adapter.isRunning())
+      return;
     await adapter.start();
   }
   /**
@@ -265218,7 +267373,8 @@ var ChannelRegistry = class {
    */
   async stop(channelId) {
     const adapter = this.adapters.get(channelId);
-    if (!adapter) return;
+    if (!adapter)
+      return;
     if (adapter.isRunning()) {
       await adapter.stop();
     }
@@ -265272,14 +267428,14 @@ var ChannelRegistry = class {
   }
 };
 
-// packages/gateway/security/content-sanitizer.ts
+// packages/gateway/security/content-sanitizer.js
 init_core();
 init_core();
 
-// packages/gateway/channels/inbound-pipeline.ts
+// packages/gateway/channels/inbound-pipeline.js
 init_core();
 
-// packages/gateway/channels/pairing-manager.ts
+// packages/gateway/channels/pairing-manager.js
 var PairingManager = class {
   db;
   constructor(db) {
@@ -265303,10 +267459,9 @@ var PairingManager = class {
    * Verify a pairing code. Returns true if valid and not expired.
    */
   verifyCode(channelId, senderId, code) {
-    const row = this.db.prepare(
-      "SELECT * FROM pairing_codes WHERE channel_id = ? AND sender_id = ? AND code = ?"
-    ).get(channelId, senderId, code);
-    if (!row) return false;
+    const row = this.db.prepare("SELECT * FROM pairing_codes WHERE channel_id = ? AND sender_id = ? AND code = ?").get(channelId, senderId, code);
+    if (!row)
+      return false;
     if (new Date(row.expiresAt) < /* @__PURE__ */ new Date()) {
       this.db.prepare("DELETE FROM pairing_codes WHERE channel_id = ? AND sender_id = ?").run(channelId, senderId);
       return false;
@@ -265328,35 +267483,27 @@ var PairingManager = class {
    * Check if a sender is approved for a channel.
    */
   isApproved(channelId, senderId) {
-    const row = this.db.prepare(
-      "SELECT 1 FROM approved_contacts WHERE channel_id = ? AND sender_id = ?"
-    ).get(channelId, senderId);
+    const row = this.db.prepare("SELECT 1 FROM approved_contacts WHERE channel_id = ? AND sender_id = ?").get(channelId, senderId);
     return row !== void 0;
   }
   /**
    * Revoke a previously approved contact.
    */
   revokeContact(channelId, senderId) {
-    this.db.prepare(
-      "DELETE FROM approved_contacts WHERE channel_id = ? AND sender_id = ?"
-    ).run(channelId, senderId);
+    this.db.prepare("DELETE FROM approved_contacts WHERE channel_id = ? AND sender_id = ?").run(channelId, senderId);
   }
   /**
    * List all pending pairing requests (not yet approved).
    */
   listPending() {
-    const rows = this.db.prepare(
-      "SELECT channel_id, sender_id, expires_at FROM pairing_codes WHERE expires_at > ? ORDER BY expires_at DESC"
-    ).all((/* @__PURE__ */ new Date()).toISOString());
+    const rows = this.db.prepare("SELECT channel_id, sender_id, expires_at FROM pairing_codes WHERE expires_at > ? ORDER BY expires_at DESC").all((/* @__PURE__ */ new Date()).toISOString());
     return rows.map((r) => ({ channelId: r.channel_id, senderId: r.sender_id, expiresAt: r.expires_at }));
   }
   /**
    * List all approved contacts.
    */
   listApproved() {
-    const rows = this.db.prepare(
-      "SELECT channel_id, sender_id, display_name, approved_at FROM approved_contacts ORDER BY approved_at DESC"
-    ).all();
+    const rows = this.db.prepare("SELECT channel_id, sender_id, display_name, approved_at FROM approved_contacts ORDER BY approved_at DESC").all();
     return rows.map((r) => ({
       channelId: r.channel_id,
       senderId: r.sender_id,
@@ -265386,7 +267533,7 @@ var PairingManager = class {
   }
 };
 
-// packages/gateway/canvas/canvas-manager.ts
+// packages/gateway/canvas/canvas-manager.js
 init_core();
 var VALID_COMPONENT_TYPES = /* @__PURE__ */ new Set([
   "morning_brief",
@@ -265490,7 +267637,7 @@ var CanvasManager = class {
   }
 };
 
-// packages/gateway/events/event-bus.ts
+// packages/gateway/events/event-bus.js
 var HIGH_PRIORITY_EVENTS = /* @__PURE__ */ new Set([
   "email.arrived",
   "calendar.starting",
@@ -265592,9 +267739,7 @@ var SemblanceEventBus = class {
   // ─── Private ──────────────────────────────────────────────────────────────
   flushQueue() {
     const now = Date.now();
-    const validEvents = this.highPriorityQueue.filter(
-      (q) => now - q.queuedAt < QUEUE_TTL_MS
-    );
+    const validEvents = this.highPriorityQueue.filter((q) => now - q.queuedAt < QUEUE_TTL_MS);
     this.highPriorityQueue = [];
     for (const { event } of validEvents) {
       for (const sub of this.subscriptions) {
@@ -265610,7 +267755,7 @@ var SemblanceEventBus = class {
   }
 };
 
-// packages/gateway/tunnel/tunnel-gateway-server.ts
+// packages/gateway/tunnel/tunnel-gateway-server.js
 var import_node_http2 = require("node:http");
 init_core();
 var TunnelGatewayServer = class {
@@ -265627,7 +267772,8 @@ var TunnelGatewayServer = class {
    * Start the server on the WireGuard mesh IP.
    */
   async start() {
-    if (this.server) return;
+    if (this.server)
+      return;
     this.server = (0, import_node_http2.createServer)((req, res) => {
       void this.handleRequest(req, res);
     });
@@ -265647,7 +267793,8 @@ var TunnelGatewayServer = class {
    * Stop the server gracefully.
    */
   async stop() {
-    if (!this.server) return;
+    if (!this.server)
+      return;
     return new Promise((resolve7) => {
       this.server.close(() => {
         this.server = null;
@@ -265803,7 +267950,7 @@ var TunnelGatewayServer = class {
   }
 };
 
-// packages/gateway/tunnel/headscale-client.ts
+// packages/gateway/tunnel/headscale-client.js
 var HeadscaleClient = class {
   config;
   fetchFn;
@@ -265894,7 +268041,8 @@ var HeadscaleClient = class {
    * Check if this device is registered.
    */
   async isRegistered() {
-    if (!this.registeredDeviceId) return false;
+    if (!this.registeredDeviceId)
+      return false;
     try {
       const peers = await this.getPeers();
       return true;
@@ -265906,7 +268054,8 @@ var HeadscaleClient = class {
    * Deregister this device from the mesh.
    */
   async deregister() {
-    if (!this.registeredDeviceId) return;
+    if (!this.registeredDeviceId)
+      return;
     const url = `${this.config.serverUrl}/api/v1/machine/${this.registeredDeviceId}`;
     await this.fetchFn(url, {
       method: "DELETE",
@@ -265932,16 +268081,21 @@ var HeadscaleClient = class {
   // ─── Private ──────────────────────────────────────────────────────────────
   inferPlatform(name) {
     const lower = name.toLowerCase();
-    if (lower.includes("mac") || lower.includes("darwin")) return "macos";
-    if (lower.includes("win")) return "windows";
-    if (lower.includes("linux")) return "linux";
-    if (lower.includes("iphone") || lower.includes("ios")) return "ios";
-    if (lower.includes("android")) return "android";
+    if (lower.includes("mac") || lower.includes("darwin"))
+      return "macos";
+    if (lower.includes("win"))
+      return "windows";
+    if (lower.includes("linux"))
+      return "linux";
+    if (lower.includes("iphone") || lower.includes("ios"))
+      return "ios";
+    if (lower.includes("android"))
+      return "android";
     return "unknown";
   }
 };
 
-// packages/gateway/tunnel/wireguard-manager.ts
+// packages/gateway/tunnel/wireguard-manager.js
 var import_node_child_process = require("node:child_process");
 var import_node_fs8 = require("node:fs");
 var import_node_path8 = require("node:path");
@@ -265960,7 +268114,8 @@ var WireGuardManager = class {
    * Start the WireGuard tunnel with the provided config.
    */
   async start(config) {
-    if (this.running) return;
+    if (this.running)
+      return;
     const confContent = this.buildConfigFile(config);
     (0, import_node_fs8.writeFileSync)(this.configPath, confContent, { mode: 384 });
     this.meshIp = config.meshIp;
@@ -265977,13 +268132,15 @@ var WireGuardManager = class {
    * Stop the WireGuard tunnel.
    */
   async stop() {
-    if (!this.running) return;
+    if (!this.running)
+      return;
     if (this.process) {
       this.process.kill("SIGTERM");
       this.process = null;
     }
     try {
-      if ((0, import_node_fs8.existsSync)(this.configPath)) (0, import_node_fs8.unlinkSync)(this.configPath);
+      if ((0, import_node_fs8.existsSync)(this.configPath))
+        (0, import_node_fs8.unlinkSync)(this.configPath);
     } catch {
     }
     this.running = false;
@@ -266028,7 +268185,8 @@ var WireGuardManager = class {
    * Add a new peer to the running WireGuard config.
    */
   async addPeer(peer) {
-    if (!(0, import_node_fs8.existsSync)(this.configPath)) return;
+    if (!(0, import_node_fs8.existsSync)(this.configPath))
+      return;
     const peerSection = this.buildPeerSection(peer);
     const { appendFileSync } = require("node:fs");
     appendFileSync(this.configPath, "\n" + peerSection);
@@ -266107,7 +268265,7 @@ Endpoint = ${peer.endpoint}`;
   }
 };
 
-// packages/gateway/tunnel/pairing-coordinator.ts
+// packages/gateway/tunnel/pairing-coordinator.js
 var PairingCoordinator = class {
   db;
   constructor(db) {
@@ -266140,10 +268298,9 @@ var PairingCoordinator = class {
    * Verify a pairing code entered on the accepting device.
    */
   async verifyPairingCode(code) {
-    const row = this.db.prepare(
-      "SELECT * FROM tunnel_pairing_codes WHERE code = ? AND expires_at > ?"
-    ).get(code, (/* @__PURE__ */ new Date()).toISOString());
-    if (!row) return null;
+    const row = this.db.prepare("SELECT * FROM tunnel_pairing_codes WHERE code = ? AND expires_at > ?").get(code, (/* @__PURE__ */ new Date()).toISOString());
+    if (!row)
+      return null;
     this.db.prepare("DELETE FROM tunnel_pairing_codes WHERE code = ?").run(code);
     return JSON.parse(row.qr_payload_json);
   }
@@ -266161,9 +268318,7 @@ var PairingCoordinator = class {
    * List all paired devices.
    */
   async listPairedDevices() {
-    const rows = this.db.prepare(
-      "SELECT * FROM paired_devices ORDER BY last_seen_at DESC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM paired_devices ORDER BY last_seen_at DESC").all();
     return rows.map((r) => ({
       deviceId: r.device_id,
       displayName: r.display_name,
@@ -266180,10 +268335,9 @@ var PairingCoordinator = class {
    * Get a specific paired device.
    */
   async getPairedDevice(deviceId) {
-    const row = this.db.prepare(
-      "SELECT * FROM paired_devices WHERE device_id = ?"
-    ).get(deviceId);
-    if (!row) return null;
+    const row = this.db.prepare("SELECT * FROM paired_devices WHERE device_id = ?").get(deviceId);
+    if (!row)
+      return null;
     return {
       deviceId: row.device_id,
       displayName: row.display_name,
@@ -266205,9 +268359,7 @@ var PairingCoordinator = class {
    * Update last-seen timestamp for a paired device.
    */
   updateLastSeen(deviceId) {
-    this.db.prepare(
-      "UPDATE paired_devices SET last_seen_at = ? WHERE device_id = ?"
-    ).run((/* @__PURE__ */ new Date()).toISOString(), deviceId);
+    this.db.prepare("UPDATE paired_devices SET last_seen_at = ? WHERE device_id = ?").run((/* @__PURE__ */ new Date()).toISOString(), deviceId);
   }
   /**
    * Get the number of paired devices.
@@ -266239,7 +268391,7 @@ var PairingCoordinator = class {
   }
 };
 
-// packages/gateway/tunnel/kg-sync.ts
+// packages/gateway/tunnel/kg-sync.js
 init_core();
 var TunnelKGSync = class {
   store;
@@ -266356,7 +268508,8 @@ var TunnelKGSync = class {
   }
   // ─── Private ──────────────────────────────────────────────────────────────
   computeLocalDeltas(categories) {
-    if (!this.store) return [];
+    if (!this.store)
+      return [];
     const cats = categories ?? ["contacts", "calendar", "preferences", "named_sessions"];
     const deltas = [];
     for (const category of cats) {
@@ -266384,10 +268537,12 @@ var TunnelKGSync = class {
    */
   isSafeToSync(delta) {
     const validCategories = ["contacts", "calendar", "preferences", "named_sessions"];
-    if (!validCategories.includes(delta.category)) return false;
+    if (!validCategories.includes(delta.category))
+      return false;
     const forbidden = ["emailBody", "messageContent", "documentContent", "rawContent", "body"];
     for (const key of Object.keys(delta.payload)) {
-      if (forbidden.includes(key)) return false;
+      if (forbidden.includes(key))
+        return false;
     }
     return true;
   }
@@ -266408,7 +268563,7 @@ var TunnelKGSync = class {
   }
 };
 
-// packages/gateway/index.ts
+// packages/gateway/index.js
 var Gateway = class {
   transport = null;
   auditDb = null;
@@ -266455,18 +268610,14 @@ var Gateway = class {
       );
     `);
     const getWebSetting = (key) => {
-      const row = this.configDb.prepare(
-        "SELECT value FROM web_search_settings WHERE key = ?"
-      ).get(key);
+      const row = this.configDb.prepare("SELECT value FROM web_search_settings WHERE key = ?").get(key);
       return row?.value ?? null;
     };
     const envSearxngUrl = process.env["SEARXNG_URL"];
     if (envSearxngUrl) {
       const existing = getWebSetting("searxng_url");
       if (!existing) {
-        const upsert = this.configDb.prepare(
-          "INSERT INTO web_search_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
-        );
+        const upsert = this.configDb.prepare("INSERT INTO web_search_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
         upsert.run("searxng_url", envSearxngUrl);
         upsert.run("provider", "searxng");
       }
@@ -266608,35 +268759,40 @@ var Gateway = class {
    * Get the audit trail for querying.
    */
   getAuditTrail() {
-    if (!this.auditTrail) throw new Error("Gateway not started");
+    if (!this.auditTrail)
+      throw new Error("Gateway not started");
     return this.auditTrail;
   }
   /**
    * Get the allowlist for management.
    */
   getAllowlist() {
-    if (!this.allowlist) throw new Error("Gateway not started");
+    if (!this.allowlist)
+      throw new Error("Gateway not started");
     return this.allowlist;
   }
   /**
    * Get the rate limiter for monitoring.
    */
   getRateLimiter() {
-    if (!this.rateLimiter) throw new Error("Gateway not started");
+    if (!this.rateLimiter)
+      throw new Error("Gateway not started");
     return this.rateLimiter;
   }
   /**
    * Get the service registry for adapter management.
    */
   getServiceRegistry() {
-    if (!this.serviceRegistry) throw new Error("Gateway not started");
+    if (!this.serviceRegistry)
+      throw new Error("Gateway not started");
     return this.serviceRegistry;
   }
   /**
    * Get the OAuth token manager (for extensions that need OAuth).
    */
   getOAuthTokenManager() {
-    if (!this.oauthTokenManager) throw new Error("Gateway not started");
+    if (!this.oauthTokenManager)
+      throw new Error("Gateway not started");
     return this.oauthTokenManager;
   }
   /**
@@ -266644,7 +268800,8 @@ var Gateway = class {
    * factory function and registered with the service registry.
    */
   registerExtensionAdapters(adapters) {
-    if (!this.serviceRegistry) throw new Error("Gateway not started");
+    if (!this.serviceRegistry)
+      throw new Error("Gateway not started");
     const ctx = {
       getOAuthTokenManager: () => this.oauthTokenManager,
       configDb: this.configDb
@@ -266665,10 +268822,9 @@ var Gateway = class {
    * Called by the desktop app when the user saves search configuration.
    */
   saveWebSearchSettings(settings) {
-    if (!this.configDb || !this.allowlist) throw new Error("Gateway not started");
-    const upsert = this.configDb.prepare(
-      "INSERT INTO web_search_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
-    );
+    if (!this.configDb || !this.allowlist)
+      throw new Error("Gateway not started");
+    const upsert = this.configDb.prepare("INSERT INTO web_search_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
     if (settings.provider !== void 0) {
       upsert.run("provider", settings.provider);
     }
@@ -266706,7 +268862,7 @@ var Gateway = class {
   }
 };
 
-// packages/core/knowledge/email-indexer.ts
+// packages/core/knowledge/email-indexer.js
 init_nanoid();
 init_content_sanitizer();
 var CREATE_EMAIL_INDEX_TABLE = `
@@ -266775,10 +268931,9 @@ var EmailIndexer = class {
     const total = messages.length;
     for (const msg of messages) {
       try {
-        const existing = this.db.prepare(
-          "SELECT id FROM indexed_emails WHERE message_id = ?"
-        ).get(msg.messageId);
-        if (existing) continue;
+        const existing = this.db.prepare("SELECT id FROM indexed_emails WHERE message_id = ?").get(msg.messageId);
+        if (existing)
+          continue;
         const rawBodyText = msg.body.text || "";
         const bodyText = sanitizeRetrievedContent(rawBodyText);
         const snippet = bodyText.substring(0, 200).replace(/\s+/g, " ").trim();
@@ -266864,9 +269019,7 @@ var EmailIndexer = class {
    */
   getIndexedCount(accountId) {
     if (accountId) {
-      const row2 = this.db.prepare(
-        "SELECT COUNT(*) as count FROM indexed_emails WHERE account_id = ?"
-      ).get(accountId);
+      const row2 = this.db.prepare("SELECT COUNT(*) as count FROM indexed_emails WHERE account_id = ?").get(accountId);
       return row2.count;
     }
     const row = this.db.prepare("SELECT COUNT(*) as count FROM indexed_emails").get();
@@ -266896,9 +269049,7 @@ var EmailIndexer = class {
     const where2 = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const limit = options?.limit ?? 50;
     const offset = options?.offset ?? 0;
-    const rows = this.db.prepare(
-      `SELECT * FROM indexed_emails ${where2} ORDER BY received_at DESC LIMIT ? OFFSET ?`
-    ).all(...params, limit, offset);
+    const rows = this.db.prepare(`SELECT * FROM indexed_emails ${where2} ORDER BY received_at DESC LIMIT ? OFFSET ?`).all(...params, limit, offset);
     return rows.map((r) => ({
       id: r.id,
       messageId: r.message_id,
@@ -266923,18 +269074,15 @@ var EmailIndexer = class {
    * Update email labels and priority (called by email categorizer).
    */
   updateCategorization(messageId, labels, priority) {
-    this.db.prepare(
-      "UPDATE indexed_emails SET labels = ?, priority = ? WHERE message_id = ?"
-    ).run(JSON.stringify(labels), priority, messageId);
+    this.db.prepare("UPDATE indexed_emails SET labels = ?, priority = ? WHERE message_id = ?").run(JSON.stringify(labels), priority, messageId);
   }
   /**
    * Get an indexed email by message ID.
    */
   getByMessageId(messageId) {
-    const row = this.db.prepare(
-      "SELECT * FROM indexed_emails WHERE message_id = ?"
-    ).get(messageId);
-    if (!row) return null;
+    const row = this.db.prepare("SELECT * FROM indexed_emails WHERE message_id = ?").get(messageId);
+    if (!row)
+      return null;
     return {
       id: row.id,
       messageId: row.message_id,
@@ -266974,9 +269122,7 @@ var EmailIndexer = class {
       params.push(options.dateBefore);
     }
     const limit = options?.limit ?? 20;
-    const rows = this.db.prepare(
-      `SELECT * FROM indexed_emails WHERE ${conditions.join(" AND ")} ORDER BY received_at DESC LIMIT ?`
-    ).all(...params, limit);
+    const rows = this.db.prepare(`SELECT * FROM indexed_emails WHERE ${conditions.join(" AND ")} ORDER BY received_at DESC LIMIT ?`).all(...params, limit);
     return rows.map((r) => ({
       id: r.id,
       messageId: r.message_id,
@@ -267039,7 +269185,7 @@ var EmailIndexer = class {
 // packages/desktop/src-tauri/sidecar/bridge.ts
 init_calendar_indexer();
 
-// packages/core/agent/email-categorizer.ts
+// packages/core/agent/email-categorizer.js
 init_content_sanitizer();
 var EMAIL_CATEGORIES = [
   "actionable",
@@ -267076,7 +269222,8 @@ var EmailCategorizer = class {
    */
   async categorizeEmail(email) {
     const cached = this.cache.get(email.messageId);
-    if (cached) return cached;
+    if (cached)
+      return cached;
     const labels = JSON.parse(email.labels);
     if (labels.length > 0) {
       const result2 = {
@@ -267107,7 +269254,8 @@ var EmailCategorizer = class {
       }
       return !this.cache.has(e.messageId);
     });
-    if (uncategorized.length === 0) return results;
+    if (uncategorized.length === 0)
+      return results;
     const available = await this.llm.isAvailable();
     if (!available) {
       for (const email of uncategorized) {
@@ -267128,11 +269276,7 @@ var EmailCategorizer = class {
         for (const result2 of batchResults) {
           results.push(result2);
           this.cache.set(result2.messageId, result2);
-          this.emailIndexer.updateCategorization(
-            result2.messageId,
-            result2.categories,
-            result2.priority
-          );
+          this.emailIndexer.updateCategorization(result2.messageId, result2.categories, result2.priority);
         }
       } catch {
         for (const email of batch) {
@@ -267140,11 +269284,7 @@ var EmailCategorizer = class {
             const result2 = await this.categorizeSingle(email);
             results.push(result2);
             this.cache.set(result2.messageId, result2);
-            this.emailIndexer.updateCategorization(
-              result2.messageId,
-              result2.categories,
-              result2.priority
-            );
+            this.emailIndexer.updateCategorization(result2.messageId, result2.categories, result2.priority);
           } catch {
             const fallback = {
               messageId: email.messageId,
@@ -267213,13 +269353,11 @@ Respond ONLY with JSON: {"categories": [...], "priority": "..."}`;
    * Build categorization prompt for a batch of emails.
    */
   buildBatchPrompt(emails) {
-    const emailList = emails.map(
-      (e, i) => `Email ${i + 1}:
+    const emailList = emails.map((e, i) => `Email ${i + 1}:
 From: ${sanitizeRetrievedContent(e.fromName)} <${sanitizeRetrievedContent(e.from)}>
 Subject: ${sanitizeRetrievedContent(e.subject)}
 Date: ${e.receivedAt}
-Snippet: ${sanitizeRetrievedContent(e.snippet)}`
-    ).join("\n\n");
+Snippet: ${sanitizeRetrievedContent(e.snippet)}`).join("\n\n");
     return `Categorize each email. For each, provide "categories" (array) and "priority" (high/normal/low).
 
 Categories: actionable, informational, routine, newsletter, automated, personal, commercial, urgent
@@ -267285,7 +269423,7 @@ Respond ONLY with a JSON array of objects, one per email in order:
   }
 };
 
-// packages/core/agent/proactive-engine.ts
+// packages/core/agent/proactive-engine.js
 init_nanoid();
 var CREATE_INSIGHTS_TABLE = `
   CREATE TABLE IF NOT EXISTS proactive_insights (
@@ -267407,13 +269545,14 @@ var ProactiveEngine = class {
     const insights = [];
     const events = this.calendarIndexer.getUpcomingEvents({ daysAhead: 1, limit: 10 });
     for (const event of events) {
-      const existing = this.db.prepare(
-        "SELECT id FROM proactive_insights WHERE type = ? AND source_ids LIKE ? AND dismissed = 0"
-      ).get("meeting_prep", `%${event.uid}%`);
-      if (existing) continue;
-      if (event.isAllDay) continue;
+      const existing = this.db.prepare("SELECT id FROM proactive_insights WHERE type = ? AND source_ids LIKE ? AND dismissed = 0").get("meeting_prep", `%${event.uid}%`);
+      if (existing)
+        continue;
+      if (event.isAllDay)
+        continue;
       const brief = await this.buildMeetingPrepBrief(event);
-      if (!brief) continue;
+      if (!brief)
+        continue;
       const insight = {
         id: nanoid(),
         type: "meeting_prep",
@@ -267437,7 +269576,8 @@ var ProactiveEngine = class {
    */
   async buildMeetingPrepBrief(event) {
     const attendeeEmails = JSON.parse(event.attendees);
-    if (attendeeEmails.length === 0) return null;
+    if (attendeeEmails.length === 0)
+      return null;
     const attendees = [];
     const relevantEmails = [];
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
@@ -267504,18 +269644,17 @@ var ProactiveEngine = class {
       limit: 50
     });
     for (const email of emails) {
-      if (email.receivedAt > twentyFourHoursAgo) continue;
-      if (email.receivedAt < oneWeekAgo) continue;
+      if (email.receivedAt > twentyFourHoursAgo)
+        continue;
+      if (email.receivedAt < oneWeekAgo)
+        continue;
       if (!this.looksLikeQuestion(email.snippet) && !this.looksLikeQuestion(email.subject)) {
         continue;
       }
-      const existing = this.db.prepare(
-        "SELECT id FROM proactive_insights WHERE type = ? AND source_ids LIKE ? AND dismissed = 0"
-      ).get("follow_up", `%${email.messageId}%`);
-      if (existing) continue;
-      const daysSince = Math.floor(
-        (Date.now() - new Date(email.receivedAt).getTime()) / (24 * 60 * 60 * 1e3)
-      );
+      const existing = this.db.prepare("SELECT id FROM proactive_insights WHERE type = ? AND source_ids LIKE ? AND dismissed = 0").get("follow_up", `%${email.messageId}%`);
+      if (existing)
+        continue;
+      const daysSince = Math.floor((Date.now() - new Date(email.receivedAt).getTime()) / (24 * 60 * 60 * 1e3));
       const insight = {
         id: nanoid(),
         type: "follow_up",
@@ -267551,13 +269690,14 @@ var ProactiveEngine = class {
       limit: 100
     });
     for (const email of emails) {
-      if (email.receivedAt < oneWeekAgo) continue;
+      if (email.receivedAt < oneWeekAgo)
+        continue;
       const hasDeadline = this.looksLikeDeadline(email.snippet) || this.looksLikeDeadline(email.subject);
-      if (!hasDeadline) continue;
-      const existing = this.db.prepare(
-        "SELECT id FROM proactive_insights WHERE type = ? AND source_ids LIKE ? AND dismissed = 0"
-      ).get("deadline", `%${email.messageId}%`);
-      if (existing) continue;
+      if (!hasDeadline)
+        continue;
+      const existing = this.db.prepare("SELECT id FROM proactive_insights WHERE type = ? AND source_ids LIKE ? AND dismissed = 0").get("deadline", `%${email.messageId}%`);
+      if (existing)
+        continue;
       const insight = {
         id: nanoid(),
         type: "deadline",
@@ -267604,16 +269744,15 @@ var ProactiveEngine = class {
    */
   async getMeetingPrep(eventId) {
     const event = this.calendarIndexer.getByUid(eventId);
-    if (!event) return null;
+    if (!event)
+      return null;
     return this.buildMeetingPrepBrief(event);
   }
   /**
    * Dismiss an insight (user doesn't want to see it).
    */
   dismissInsight(insightId) {
-    this.db.prepare(
-      "UPDATE proactive_insights SET dismissed = 1 WHERE id = ?"
-    ).run(insightId);
+    this.db.prepare("UPDATE proactive_insights SET dismissed = 1 WHERE id = ?").run(insightId);
   }
   /**
    * Start periodic proactive analysis.
@@ -267644,18 +269783,7 @@ var ProactiveEngine = class {
         id, type, priority, title, summary, source_ids, suggested_action,
         created_at, expires_at, estimated_time_saved_seconds
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      insight.id,
-      insight.type,
-      insight.priority,
-      insight.title,
-      insight.summary,
-      JSON.stringify(insight.sourceIds),
-      insight.suggestedAction ? JSON.stringify(insight.suggestedAction) : null,
-      insight.createdAt,
-      insight.expiresAt,
-      insight.estimatedTimeSavedSeconds
-    );
+    `).run(insight.id, insight.type, insight.priority, insight.title, insight.summary, JSON.stringify(insight.sourceIds), insight.suggestedAction ? JSON.stringify(insight.suggestedAction) : null, insight.createdAt, insight.expiresAt, insight.estimatedTimeSavedSeconds);
   }
   looksLikeQuestion(text) {
     return FOLLOW_UP_PATTERNS.some((pattern) => pattern.test(text));
@@ -267682,23 +269810,24 @@ var ProactiveEngine = class {
   }
 };
 
-// packages/core/premium/index.ts
+// packages/core/premium/index.js
 init_premium_gate();
 init_founding_token();
 init_license_keys();
 
-// packages/core/premium/license-email-detector.ts
+// packages/core/premium/license-email-detector.js
 var LICENSE_KEY_PATTERN = /SEMBLANCE_LICENSE_KEY:(sem_[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/;
 function extractLicenseKey(emailBody) {
   const match = emailBody.match(LICENSE_KEY_PATTERN);
-  if (!match || !match[1]) return null;
+  if (!match || !match[1])
+    return null;
   return match[1];
 }
 
 // packages/desktop/src-tauri/sidecar/bridge.ts
 init_ip_adapter_registry();
 
-// packages/core/agent/autonomy-escalation.ts
+// packages/core/agent/autonomy-escalation.js
 init_nanoid();
 var ESCALATION_THRESHOLDS = {
   guardian_to_partner: {
@@ -267851,7 +269980,8 @@ var EscalationEngine = class {
     this.expirePendingPrompts();
     for (const pattern of patterns) {
       const domain = ACTION_TO_DOMAIN[pattern.actionType];
-      if (!domain) continue;
+      if (!domain)
+        continue;
       const currentTier = this.autonomy.getDomainTier(domain);
       if (currentTier === "guardian") {
         const threshold = ESCALATION_THRESHOLDS.guardian_to_partner.threshold;
@@ -267863,7 +269993,8 @@ var EscalationEngine = class {
             consecutiveApprovals: pattern.consecutiveApprovals,
             pattern
           });
-          if (prompt) prompts.push(prompt);
+          if (prompt)
+            prompts.push(prompt);
         }
       }
       if (currentTier === "partner") {
@@ -267878,7 +270009,8 @@ var EscalationEngine = class {
               consecutiveApprovals: pattern.consecutiveApprovals,
               pattern
             });
-            if (prompt) prompts.push(prompt);
+            if (prompt)
+              prompts.push(prompt);
           }
         }
       }
@@ -267891,9 +270023,7 @@ var EscalationEngine = class {
   recordResponse(promptId, accepted) {
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const status = accepted ? "accepted" : "dismissed";
-    this.db.prepare(
-      "UPDATE escalation_prompts SET status = ?, responded_at = ? WHERE id = ?"
-    ).run(status, now, promptId);
+    this.db.prepare("UPDATE escalation_prompts SET status = ?, responded_at = ? WHERE id = ?").run(status, now, promptId);
     if (accepted) {
       const prompt = this.getPrompt(promptId);
       if (prompt) {
@@ -267906,9 +270036,7 @@ var EscalationEngine = class {
    * Get a specific prompt by ID.
    */
   getPrompt(promptId) {
-    const row = this.db.prepare(
-      "SELECT * FROM escalation_prompts WHERE id = ?"
-    ).get(promptId);
+    const row = this.db.prepare("SELECT * FROM escalation_prompts WHERE id = ?").get(promptId);
     return row ? this.rowToPrompt(row) : null;
   }
   /**
@@ -267916,18 +270044,14 @@ var EscalationEngine = class {
    */
   getActivePrompts() {
     this.expirePendingPrompts();
-    const rows = this.db.prepare(
-      "SELECT * FROM escalation_prompts WHERE status = ? ORDER BY created_at DESC"
-    ).all("pending");
+    const rows = this.db.prepare("SELECT * FROM escalation_prompts WHERE status = ? ORDER BY created_at DESC").all("pending");
     return rows.map((r) => this.rowToPrompt(r));
   }
   /**
    * Get all prompts (for history/debugging).
    */
   getAllPrompts() {
-    const rows = this.db.prepare(
-      "SELECT * FROM escalation_prompts ORDER BY created_at DESC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM escalation_prompts ORDER BY created_at DESC").all();
     return rows.map((r) => this.rowToPrompt(r));
   }
   // ─── Internal ───────────────────────────────────────────────────────────
@@ -267938,12 +270062,9 @@ var EscalationEngine = class {
       WHERE domain = ? AND type = ?
       AND (status = 'pending' OR (status = 'dismissed' AND responded_at > ?))
       ORDER BY created_at DESC LIMIT 1
-    `).get(
-      opts.domain,
-      opts.type,
-      new Date(Date.now() - cooldownMs).toISOString()
-    );
-    if (existing) return null;
+    `).get(opts.domain, opts.type, new Date(Date.now() - cooldownMs).toISOString());
+    if (existing)
+      return null;
     const now = /* @__PURE__ */ new Date();
     const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1e3);
     const message = opts.type === "guardian_to_partner" ? `You've approved all ${opts.consecutiveApprovals} of ${this.aiName}'s ${opts.pattern.subType} actions. Want ${this.aiName} to handle these automatically?` : `${this.aiName} has handled your ${opts.domain} autonomously with no corrections. Ready to let ${this.aiName} take on more? Here's what Alter Ego mode would do differently:`;
@@ -267963,25 +270084,12 @@ var EscalationEngine = class {
     this.db.prepare(`
       INSERT INTO escalation_prompts (id, type, domain, action_type, consecutive_approvals, message, preview_actions, created_at, expires_at, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      prompt.id,
-      prompt.type,
-      prompt.domain,
-      prompt.actionType,
-      prompt.consecutiveApprovals,
-      prompt.message,
-      JSON.stringify(prompt.previewActions),
-      prompt.createdAt,
-      prompt.expiresAt,
-      prompt.status
-    );
+    `).run(prompt.id, prompt.type, prompt.domain, prompt.actionType, prompt.consecutiveApprovals, prompt.message, JSON.stringify(prompt.previewActions), prompt.createdAt, prompt.expiresAt, prompt.status);
     return prompt;
   }
   expirePendingPrompts() {
     const now = (/* @__PURE__ */ new Date()).toISOString();
-    this.db.prepare(
-      "UPDATE escalation_prompts SET status = 'expired' WHERE status = 'pending' AND expires_at < ?"
-    ).run(now);
+    this.db.prepare("UPDATE escalation_prompts SET status = 'expired' WHERE status = 'pending' AND expires_at < ?").run(now);
   }
   daysSince(isoDate) {
     const diff = Date.now() - new Date(isoDate).getTime();
@@ -268003,7 +270111,7 @@ var EscalationEngine = class {
   }
 };
 
-// packages/core/agent/knowledge-moment.ts
+// packages/core/agent/knowledge-moment.js
 var KnowledgeMomentGenerator = class {
   emailIndexer;
   calendarIndexer;
@@ -268025,18 +270133,23 @@ var KnowledgeMomentGenerator = class {
    */
   async generate() {
     const meetingMoment = await this.tryMeetingBased();
-    if (meetingMoment) return meetingMoment;
+    if (meetingMoment)
+      return meetingMoment;
     const emailMoment = await this.tryEmailOnly();
-    if (emailMoment) return emailMoment;
+    if (emailMoment)
+      return emailMoment;
     const calendarMoment = await this.tryCalendarOnly();
-    if (calendarMoment) return calendarMoment;
+    if (calendarMoment)
+      return calendarMoment;
     const filesMoment = await this.tryFilesOnly();
-    if (filesMoment) return filesMoment;
+    if (filesMoment)
+      return filesMoment;
     return null;
   }
   // ─── Tier 1/2: Meeting + Email Context ──────────────────────────────────
   async tryMeetingBased() {
-    if (!this.calendarIndexer || !this.emailIndexer) return null;
+    if (!this.calendarIndexer || !this.emailIndexer)
+      return null;
     const meetings = this.calendarIndexer.getUpcomingEvents({
       daysAhead: 2,
       includeAllDay: false,
@@ -268046,7 +270159,8 @@ var KnowledgeMomentGenerator = class {
       const attendees2 = this.parseAttendees(m.attendees);
       return attendees2.length > 0;
     });
-    if (!meetingWithAttendees) return null;
+    if (!meetingWithAttendees)
+      return null;
     const attendees = this.parseAttendees(meetingWithAttendees.attendees);
     const primaryAttendee = attendees[0];
     const emailHistory = this.emailIndexer.searchEmails("", {
@@ -268090,9 +270204,11 @@ var KnowledgeMomentGenerator = class {
   }
   // ─── Tier 3: Email-Only ─────────────────────────────────────────────────
   async tryEmailOnly() {
-    if (!this.emailIndexer) return null;
+    if (!this.emailIndexer)
+      return null;
     const recentEmails = this.emailIndexer.searchEmails("", { limit: 50 });
-    if (recentEmails.length === 0) return null;
+    if (recentEmails.length === 0)
+      return null;
     const senderGroups = /* @__PURE__ */ new Map();
     for (const email of recentEmails) {
       const key = email.from;
@@ -268114,7 +270230,8 @@ var KnowledgeMomentGenerator = class {
         }
       }
     }
-    if (!bestSender) return null;
+    if (!bestSender)
+      return null;
     const message = `You have an unanswered email from ${bestSender.name} about "${bestSender.unanswered.subject}". You've exchanged ${bestSender.count} emails recently. The message was received ${this.formatTimeAgo(bestSender.unanswered.receivedAt)}.`;
     return {
       tier: 3,
@@ -268137,13 +270254,15 @@ var KnowledgeMomentGenerator = class {
   }
   // ─── Tier 4: Calendar-Only ──────────────────────────────────────────────
   async tryCalendarOnly() {
-    if (!this.calendarIndexer) return null;
+    if (!this.calendarIndexer)
+      return null;
     const meetings = this.calendarIndexer.getUpcomingEvents({
       daysAhead: 2,
       includeAllDay: false,
       limit: 5
     });
-    if (meetings.length === 0) return null;
+    if (meetings.length === 0)
+      return null;
     const meeting = meetings[0];
     const attendees = this.parseAttendees(meeting.attendees);
     const relatedDocs = await this.searchRelatedDocs(meeting.title);
@@ -268165,9 +270284,11 @@ var KnowledgeMomentGenerator = class {
   }
   // ─── Tier 5: Files-Only ─────────────────────────────────────────────────
   async tryFilesOnly() {
-    if (!this.knowledgeGraph) return null;
+    if (!this.knowledgeGraph)
+      return null;
     const stats = await this.knowledgeGraph.getStats();
-    if (stats.totalDocuments === 0) return null;
+    if (stats.totalDocuments === 0)
+      return null;
     const message = `${this.aiName} found ${stats.totalDocuments} document${stats.totalDocuments !== 1 ? "s" : ""} and ${stats.totalChunks} passage${stats.totalChunks !== 1 ? "s" : ""} to learn from. Ask me anything about your files.`;
     return {
       tier: 5,
@@ -268180,7 +270301,8 @@ var KnowledgeMomentGenerator = class {
   }
   // ─── Helpers ────────────────────────────────────────────────────────────
   parseAttendees(attendeesStr) {
-    if (!attendeesStr || attendeesStr === "[]") return [];
+    if (!attendeesStr || attendeesStr === "[]")
+      return [];
     try {
       const parsed = JSON.parse(attendeesStr);
       return Array.isArray(parsed) ? parsed.filter((a) => typeof a === "string") : [];
@@ -268190,7 +270312,8 @@ var KnowledgeMomentGenerator = class {
   }
   extractName(emailOrName) {
     const nameMatch = emailOrName.match(/^([^<]+)</);
-    if (nameMatch) return nameMatch[1].trim();
+    if (nameMatch)
+      return nameMatch[1].trim();
     const localPart = emailOrName.split("@")[0] ?? emailOrName;
     return localPart.charAt(0).toUpperCase() + localPart.slice(1);
   }
@@ -268198,7 +270321,8 @@ var KnowledgeMomentGenerator = class {
     return emails.find((e) => !e.isRead) ?? null;
   }
   async searchRelatedDocs(query) {
-    if (!this.knowledgeGraph) return [];
+    if (!this.knowledgeGraph)
+      return [];
     try {
       const results = await this.knowledgeGraph.search(query, { limit: 3 });
       return results.map((r) => ({
@@ -268227,14 +270351,16 @@ var KnowledgeMomentGenerator = class {
   formatTimeAgo(isoDate) {
     const diff = Date.now() - new Date(isoDate).getTime();
     const hours = Math.floor(diff / (1e3 * 60 * 60));
-    if (hours < 1) return "just now";
-    if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+    if (hours < 1)
+      return "just now";
+    if (hours < 24)
+      return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
     const days = Math.floor(hours / 24);
     return `${days} day${days !== 1 ? "s" : ""} ago`;
   }
 };
 
-// packages/core/knowledge/contacts/contact-store.ts
+// packages/core/knowledge/contacts/contact-store.js
 init_nanoid();
 var CREATE_TABLES6 = `
   CREATE TABLE IF NOT EXISTS contacts (
@@ -268318,9 +270444,7 @@ var ContactStore = class {
    */
   insertContact(params) {
     if (params.deviceContactId) {
-      const existing = this.db.prepare(
-        "SELECT id FROM contacts WHERE device_contact_id = ?"
-      ).get(params.deviceContactId);
+      const existing = this.db.prepare("SELECT id FROM contacts WHERE device_contact_id = ?").get(params.deviceContactId);
       if (existing) {
         return { id: existing.id, deduplicated: true };
       }
@@ -268334,34 +270458,15 @@ var ContactStore = class {
         emails, phones, organization, job_title, birthday, addresses,
         source, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      params.deviceContactId ?? null,
-      params.displayName,
-      params.givenName ?? null,
-      params.familyName ?? null,
-      JSON.stringify(emails),
-      JSON.stringify(params.phones ?? []),
-      params.organization ?? null,
-      params.jobTitle ?? null,
-      params.birthday ?? null,
-      JSON.stringify(params.addresses ?? []),
-      params.source ?? "device",
-      now,
-      now
-    );
+    `).run(id, params.deviceContactId ?? null, params.displayName, params.givenName ?? null, params.familyName ?? null, JSON.stringify(emails), JSON.stringify(params.phones ?? []), params.organization ?? null, params.jobTitle ?? null, params.birthday ?? null, JSON.stringify(params.addresses ?? []), params.source ?? "device", now, now);
     for (const email of emails) {
-      this.db.prepare(
-        "INSERT OR IGNORE INTO contact_email_map (email, contact_id) VALUES (?, ?)"
-      ).run(email.toLowerCase(), id);
+      this.db.prepare("INSERT OR IGNORE INTO contact_email_map (email, contact_id) VALUES (?, ?)").run(email.toLowerCase(), id);
     }
     return { id, deduplicated: false };
   }
   /** Get a contact by ID. */
   getContact(id) {
-    const row = this.db.prepare(
-      "SELECT * FROM contacts WHERE id = ?"
-    ).get(id);
+    const row = this.db.prepare("SELECT * FROM contacts WHERE id = ?").get(id);
     return row ? rowToContact(row) : null;
   }
   /** Find contacts by email address (O(1) via denormalized map). */
@@ -268375,15 +270480,14 @@ var ContactStore = class {
   }
   /** Find contacts by name (partial match, case-insensitive). */
   findByName(name) {
-    const rows = this.db.prepare(
-      "SELECT * FROM contacts WHERE display_name LIKE ? OR given_name LIKE ? OR family_name LIKE ?"
-    ).all(`%${name}%`, `%${name}%`, `%${name}%`);
+    const rows = this.db.prepare("SELECT * FROM contacts WHERE display_name LIKE ? OR given_name LIKE ? OR family_name LIKE ?").all(`%${name}%`, `%${name}%`, `%${name}%`);
     return rows.map(rowToContact);
   }
   /** Update an existing contact. Only provided fields are updated. */
   updateContact(id, updates) {
     const existing = this.getContact(id);
-    if (!existing) return false;
+    if (!existing)
+      return false;
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const fields = ["updated_at = ?"];
     const values2 = [now];
@@ -268464,15 +270568,11 @@ var ContactStore = class {
       values2.push(JSON.stringify(updates.mergedFrom));
     }
     values2.push(id);
-    this.db.prepare(
-      `UPDATE contacts SET ${fields.join(", ")} WHERE id = ?`
-    ).run(...values2);
+    this.db.prepare(`UPDATE contacts SET ${fields.join(", ")} WHERE id = ?`).run(...values2);
     if (updates.emails !== void 0) {
       this.db.prepare("DELETE FROM contact_email_map WHERE contact_id = ?").run(id);
       for (const email of updates.emails) {
-        this.db.prepare(
-          "INSERT OR IGNORE INTO contact_email_map (email, contact_id) VALUES (?, ?)"
-        ).run(email.toLowerCase(), id);
+        this.db.prepare("INSERT OR IGNORE INTO contact_email_map (email, contact_id) VALUES (?, ?)").run(email.toLowerCase(), id);
       }
     }
     return true;
@@ -268500,9 +270600,7 @@ var ContactStore = class {
     if (!ALLOWED_SORT_ORDERS.has(sortOrder)) {
       throw new Error(`Invalid sort order: ${sortOrder}`);
     }
-    const rows = this.db.prepare(
-      `SELECT * FROM contacts ORDER BY ${sortBy2} ${sortOrder} LIMIT ? OFFSET ?`
-    ).all(limit, offset);
+    const rows = this.db.prepare(`SELECT * FROM contacts ORDER BY ${sortBy2} ${sortOrder} LIMIT ? OFFSET ?`).all(limit, offset);
     return rows.map(rowToContact);
   }
   /** Search contacts by text (name, org, email). */
@@ -268517,22 +270615,14 @@ var ContactStore = class {
   }
   /** Get contact statistics. */
   getStats() {
-    const total = this.db.prepare(
-      "SELECT COUNT(*) as count FROM contacts"
-    ).get();
-    const typeCounts = this.db.prepare(
-      "SELECT relationship_type, COUNT(*) as count FROM contacts GROUP BY relationship_type"
-    ).all();
+    const total = this.db.prepare("SELECT COUNT(*) as count FROM contacts").get();
+    const typeCounts = this.db.prepare("SELECT relationship_type, COUNT(*) as count FROM contacts GROUP BY relationship_type").all();
     const byRelationshipType = {};
     for (const row of typeCounts) {
       byRelationshipType[row.relationship_type] = row.count;
     }
-    const withBirthday = this.db.prepare(
-      "SELECT COUNT(*) as count FROM contacts WHERE birthday IS NOT NULL AND birthday != ''"
-    ).get();
-    const withOrganization = this.db.prepare(
-      "SELECT COUNT(*) as count FROM contacts WHERE organization IS NOT NULL AND organization != ''"
-    ).get();
+    const withBirthday = this.db.prepare("SELECT COUNT(*) as count FROM contacts WHERE birthday IS NOT NULL AND birthday != ''").get();
+    const withOrganization = this.db.prepare("SELECT COUNT(*) as count FROM contacts WHERE organization IS NOT NULL AND organization != ''").get();
     return {
       totalContacts: total.count,
       byRelationshipType,
@@ -268545,7 +270635,7 @@ var ContactStore = class {
 // packages/desktop/src-tauri/sidecar/bridge.ts
 init_relationship_analyzer();
 
-// packages/core/agent/proactive/birthday-tracker.ts
+// packages/core/agent/proactive/birthday-tracker.js
 init_nanoid();
 var BirthdayTracker = class {
   contactStore;
@@ -268562,9 +270652,11 @@ var BirthdayTracker = class {
     const results = [];
     const now = /* @__PURE__ */ new Date();
     for (const contact of contacts) {
-      if (!contact.birthday) continue;
+      if (!contact.birthday)
+        continue;
       const daysUntil = this.daysUntilBirthday(contact.birthday, now);
-      if (daysUntil === null || daysUntil > daysAhead) continue;
+      if (daysUntil === null || daysUntil > daysAhead)
+        continue;
       results.push({
         contactId: contact.id,
         displayName: contact.displayName,
@@ -268581,10 +270673,12 @@ var BirthdayTracker = class {
    */
   generateBirthdayInsight(contactId) {
     const contact = this.contactStore.getContact(contactId);
-    if (!contact || !contact.birthday) return null;
+    if (!contact || !contact.birthday)
+      return null;
     const now = /* @__PURE__ */ new Date();
     const daysUntil = this.daysUntilBirthday(contact.birthday, now);
-    if (daysUntil === null) return null;
+    if (daysUntil === null)
+      return null;
     const isToday = daysUntil === 0;
     const title = isToday ? `${contact.displayName}'s birthday is today!` : `${contact.displayName}'s birthday in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`;
     const summary = isToday ? `Today is ${contact.displayName}'s birthday. Consider sending a message.` : `${contact.displayName}'s birthday is coming up on ${this.formatBirthdayDisplay(contact.birthday)}.`;
@@ -268607,18 +270701,20 @@ var BirthdayTracker = class {
    * Dedup: will not create if one already exists for this contact.
    */
   createBirthdayReminders() {
-    if (!this.reminderStore) return 0;
+    if (!this.reminderStore)
+      return 0;
     const contacts = this.contactStore.listContacts({ limit: 1e4 });
     let created = 0;
     for (const contact of contacts) {
-      if (!contact.birthday) continue;
+      if (!contact.birthday)
+        continue;
       const existingReminders = this.reminderStore.findAll(1e4);
-      const alreadyExists = existingReminders.some(
-        (r) => r.source === "birthday_tracker" && r.text.includes(contact.id)
-      );
-      if (alreadyExists) continue;
+      const alreadyExists = existingReminders.some((r) => r.source === "birthday_tracker" && r.text.includes(contact.id));
+      if (alreadyExists)
+        continue;
       const nextBirthday = this.getNextBirthdayDate(contact.birthday);
-      if (!nextBirthday) continue;
+      if (!nextBirthday)
+        continue;
       this.reminderStore.create({
         text: `Birthday: ${contact.displayName} [${contact.id}]`,
         dueAt: nextBirthday.toISOString(),
@@ -268635,7 +270731,8 @@ var BirthdayTracker = class {
    */
   daysUntilBirthday(birthday, now) {
     const parsed = this.parseBirthday(birthday);
-    if (!parsed) return null;
+    if (!parsed)
+      return null;
     const { month, day } = parsed;
     const thisYear = now.getFullYear();
     let nextBirthday = new Date(thisYear, month - 1, day);
@@ -268662,7 +270759,8 @@ var BirthdayTracker = class {
   getNextBirthdayDate(birthday) {
     const now = /* @__PURE__ */ new Date();
     const daysUntil = this.daysUntilBirthday(birthday, now);
-    if (daysUntil === null) return null;
+    if (daysUntil === null)
+      return null;
     const result2 = new Date(now);
     result2.setDate(result2.getDate() + daysUntil);
     result2.setHours(9, 0, 0, 0);
@@ -268670,13 +270768,14 @@ var BirthdayTracker = class {
   }
   formatBirthdayDisplay(birthday) {
     const parsed = this.parseBirthday(birthday);
-    if (!parsed) return birthday;
+    if (!parsed)
+      return birthday;
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     return `${months[parsed.month - 1]} ${parsed.day}`;
   }
 };
 
-// packages/core/agent/proactive/contact-frequency-monitor.ts
+// packages/core/agent/proactive/contact-frequency-monitor.js
 var ContactFrequencyMonitor = class {
   db;
   contactStore;
@@ -268698,7 +270797,8 @@ var ContactFrequencyMonitor = class {
         continue;
       }
       const trend = this.analyzer.analyzeTrend(contact.id);
-      if (trend !== "decreasing" && trend !== "inactive") continue;
+      if (trend !== "decreasing" && trend !== "inactive")
+        continue;
       const gapDescription = this.describeGap(contact);
       alerts.push({
         contactId: contact.id,
@@ -268742,14 +270842,17 @@ var ContactFrequencyMonitor = class {
     const lastDate = new Date(contact.lastContactDate);
     const now = /* @__PURE__ */ new Date();
     const diffDays = Math.floor((now.getTime() - lastDate.getTime()) / (24 * 60 * 60 * 1e3));
-    if (diffDays > 90) return `No contact in over ${Math.floor(diffDays / 30)} months`;
-    if (diffDays > 30) return `No contact in over ${Math.floor(diffDays / 7)} weeks`;
-    if (diffDays > 7) return `Last contact ${diffDays} days ago`;
+    if (diffDays > 90)
+      return `No contact in over ${Math.floor(diffDays / 30)} months`;
+    if (diffDays > 30)
+      return `No contact in over ${Math.floor(diffDays / 7)} weeks`;
+    if (diffDays > 7)
+      return `Last contact ${diffDays} days ago`;
     return `Last contact ${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
   }
 };
 
-// packages/core/routing/device-registry.ts
+// packages/core/routing/device-registry.js
 init_nanoid();
 var CREATE_TABLE7 = `
   CREATE TABLE IF NOT EXISTS devices (
@@ -268820,13 +270923,9 @@ var DeviceRegistry = class {
     });
     const existing = this.db.prepare("SELECT id FROM devices WHERE id = ?").get(device.id);
     if (existing) {
-      this.db.prepare(
-        "UPDATE devices SET name = ?, type = ?, platform = ?, capabilities = ?, last_seen = ? WHERE id = ?"
-      ).run(device.name, device.type, device.platform, capabilities, device.lastSeen || now, device.id);
+      this.db.prepare("UPDATE devices SET name = ?, type = ?, platform = ?, capabilities = ?, last_seen = ? WHERE id = ?").run(device.name, device.type, device.platform, capabilities, device.lastSeen || now, device.id);
     } else {
-      this.db.prepare(
-        "INSERT INTO devices (id, name, type, platform, capabilities, last_seen, registered_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      ).run(device.id, device.name, device.type, device.platform, capabilities, device.lastSeen || now, now);
+      this.db.prepare("INSERT INTO devices (id, name, type, platform, capabilities, last_seen, registered_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(device.id, device.name, device.type, device.platform, capabilities, device.lastSeen || now, now);
     }
   }
   /**
@@ -268834,7 +270933,8 @@ var DeviceRegistry = class {
    */
   update(deviceId, updates) {
     const row = this.db.prepare("SELECT * FROM devices WHERE id = ?").get(deviceId);
-    if (!row) throw new Error(`Device not found: ${deviceId}`);
+    if (!row)
+      throw new Error(`Device not found: ${deviceId}`);
     const existing = rowToDevice(row);
     const merged = { ...existing, ...updates, id: deviceId };
     this.register(merged);
@@ -268859,35 +270959,40 @@ var DeviceRegistry = class {
    */
   getBestDevice(requirements) {
     const devices = this.getDevices().filter((d) => d.isOnline);
-    if (devices.length === 0) return null;
+    if (devices.length === 0)
+      return null;
     const capable = devices.filter((d) => {
-      if (requirements.requiresNetwork && d.networkType === "offline") return false;
-      if (requirements.requiresGPU && !d.gpuAvailable) return false;
-      if (d.ramGB < requirements.minRAM) return false;
-      if (!meetsModelSize(d.maxModelSize, requirements.minModelSize)) return false;
-      if (d.type === "mobile" && !requirements.canRunOnMobile) return false;
-      if (d.type === "desktop" && !requirements.canRunOnDesktop) return false;
+      if (requirements.requiresNetwork && d.networkType === "offline")
+        return false;
+      if (requirements.requiresGPU && !d.gpuAvailable)
+        return false;
+      if (d.ramGB < requirements.minRAM)
+        return false;
+      if (!meetsModelSize(d.maxModelSize, requirements.minModelSize))
+        return false;
+      if (d.type === "mobile" && !requirements.canRunOnMobile)
+        return false;
+      if (d.type === "desktop" && !requirements.canRunOnDesktop)
+        return false;
       return true;
     });
-    if (capable.length === 0) return null;
-    if (capable.length === 1) return capable[0];
+    if (capable.length === 0)
+      return null;
+    if (capable.length === 1)
+      return capable[0];
     return capable.sort((a, b) => scoreDevice(b, requirements) - scoreDevice(a, requirements))[0];
   }
   /**
    * Log a routing decision for auditability.
    */
   logDecision(taskType, targetDeviceId, reason, confidence) {
-    this.db.prepare(
-      "INSERT INTO routing_decisions (id, task_type, target_device_id, reason, confidence, timestamp) VALUES (?, ?, ?, ?, ?, ?)"
-    ).run(nanoid(), taskType, targetDeviceId, reason, confidence, (/* @__PURE__ */ new Date()).toISOString());
+    this.db.prepare("INSERT INTO routing_decisions (id, task_type, target_device_id, reason, confidence, timestamp) VALUES (?, ?, ?, ?, ?, ?)").run(nanoid(), taskType, targetDeviceId, reason, confidence, (/* @__PURE__ */ new Date()).toISOString());
   }
   /**
    * Get recent routing decisions.
    */
   getRecentDecisions(limit = 20) {
-    return this.db.prepare(
-      "SELECT id, task_type AS taskType, target_device_id AS targetDeviceId, reason, confidence, timestamp FROM routing_decisions ORDER BY timestamp DESC LIMIT ?"
-    ).all(limit);
+    return this.db.prepare("SELECT id, task_type AS taskType, target_device_id AS targetDeviceId, reason, confidence, timestamp FROM routing_decisions ORDER BY timestamp DESC LIMIT ?").all(limit);
   }
 };
 var MODEL_SIZE_ORDER = {
@@ -268908,25 +271013,33 @@ function meetsModelSize(deviceMax, required) {
 }
 function scoreDevice(device, requirements) {
   let score = 0;
-  if (requirements.preferredDevice === device.type) score += 10;
-  if (requirements.preferredDevice === "either") score += 5;
-  if (!device.inferenceActive) score += 8;
+  if (requirements.preferredDevice === device.type)
+    score += 10;
+  if (requirements.preferredDevice === "either")
+    score += 5;
+  if (!device.inferenceActive)
+    score += 8;
   score -= device.activeTasks * 2;
-  if (device.networkType === "ethernet") score += 3;
-  if (device.networkType === "wifi") score += 2;
-  if (device.networkType === "cellular") score += 1;
+  if (device.networkType === "ethernet")
+    score += 3;
+  if (device.networkType === "wifi")
+    score += 2;
+  if (device.networkType === "cellular")
+    score += 1;
   if (device.type === "mobile" && device.batteryLevel !== null) {
     if (device.batteryLevel < 20 && requirements.estimatedBatteryImpact !== "low") {
       score -= 15;
     }
-    if (device.isCharging) score += 3;
+    if (device.isCharging)
+      score += 3;
   }
   score += Math.min(device.ramGB, 16);
-  if (device.type === "desktop") score += 5;
+  if (device.type === "desktop")
+    score += 5;
   return score;
 }
 
-// packages/core/routing/task-assessor.ts
+// packages/core/routing/task-assessor.js
 var TASK_PROFILES = {
   // Email tasks — mostly lightweight, need network
   "email.categorize": {
@@ -269131,7 +271244,7 @@ var TaskAssessor = class {
   }
 };
 
-// packages/core/routing/router.ts
+// packages/core/routing/router.js
 var TaskRouter = class {
   registry;
   assessor;
@@ -269172,12 +271285,7 @@ var TaskRouter = class {
       reason: alt.reasons.length > 0 ? alt.reasons[0] : "Lower overall score"
     }));
     const confidence = capable.length === 1 ? 1 : Math.min(1, Math.max(0.5, (best.score - (capable[1]?.score ?? 0)) / 20));
-    this.registry.logDecision(
-      task.type,
-      best.device.id,
-      best.reasons.join("; ") || "Best available device",
-      confidence
-    );
+    this.registry.logDecision(task.type, best.device.id, best.reasons.join("; ") || "Best available device", confidence);
     return {
       targetDevice: best.device,
       reason: best.reasons.join("; ") || "Best available device",
@@ -269190,7 +271298,8 @@ var TaskRouter = class {
    */
   canHandle(deviceId, task) {
     const device = this.registry.getDevice(deviceId);
-    if (!device || !device.isOnline) return false;
+    if (!device || !device.isOnline)
+      return false;
     const requirements = this.assessor.assess(task);
     return this.scoreDevice(device, requirements, task) > -100;
   }
@@ -269229,15 +271338,22 @@ var TaskRouter = class {
     }
     score -= device.activeTasks * 3;
     if (task.urgency === "background") {
-      if (device.type === "desktop") score += 10;
+      if (device.type === "desktop")
+        score += 10;
     }
-    if (requirements.preferredDevice === device.type) score += 10;
-    if (requirements.preferredDevice === "either") score += 5;
-    if (device.type === "desktop") score += 5;
+    if (requirements.preferredDevice === device.type)
+      score += 10;
+    if (requirements.preferredDevice === "either")
+      score += 5;
+    if (device.type === "desktop")
+      score += 5;
     score += Math.min(device.ramGB, 16);
-    if (device.networkType === "ethernet") score += 3;
-    if (device.networkType === "wifi") score += 2;
-    if (device.type === "mobile" && device.isCharging) score += 5;
+    if (device.networkType === "ethernet")
+      score += 3;
+    if (device.networkType === "wifi")
+      score += 2;
+    if (device.type === "mobile" && device.isCharging)
+      score += 5;
     return score;
   }
   /**
@@ -269280,7 +271396,7 @@ function meetsModelSize2(deviceMax, required) {
   return parseModelSize2(deviceMax) >= parseModelSize2(required);
 }
 
-// packages/core/agent/messaging/message-drafter.ts
+// packages/core/agent/messaging/message-drafter.js
 function buildSmsStylePrompt(profile, recipientName, relationship) {
   const parts = [];
   parts.push("You are drafting a SHORT text message (SMS). Rules:");
@@ -269334,11 +271450,7 @@ var MessageDrafter = class {
    * Draft a text message based on user intent and optional style profile.
    */
   async draftMessage(request) {
-    const stylePrompt = buildSmsStylePrompt(
-      request.styleProfile,
-      request.recipientName,
-      request.relationship
-    );
+    const stylePrompt = buildSmsStylePrompt(request.styleProfile, request.recipientName, request.relationship);
     const userPrompt = request.recipientName ? `Draft a text message to ${request.recipientName}: ${request.intent}` : `Draft a text message: ${request.intent}`;
     try {
       const response = await this.llm.chat({
@@ -269363,17 +271475,18 @@ var MessageDrafter = class {
   }
 };
 
-// packages/core/agent/messaging/phone-utils.ts
+// packages/core/agent/messaging/phone-utils.js
 function maskPhoneNumber(phone) {
   const stripped = phone.replace(/[\s\-\(\)\.]/g, "");
-  if (stripped.length < 4) return "***";
+  if (stripped.length < 4)
+    return "***";
   const last4 = stripped.slice(-4);
   const prefix = stripped.slice(0, stripped.length - 4);
   const masked = prefix.replace(/\d/g, "*");
   return masked + last4;
 }
 
-// packages/core/agent/clipboard/patterns.ts
+// packages/core/agent/clipboard/patterns.js
 var PATTERNS = [
   // FedEx tracking: 12-34 digits
   {
@@ -269441,7 +271554,8 @@ function matchPatterns(text) {
     const match = text.match(pattern.regex);
     if (match) {
       const value = match[1] ?? match[0];
-      if (pattern.validate && !pattern.validate(value)) continue;
+      if (pattern.validate && !pattern.validate(value))
+        continue;
       matches.push({
         type: pattern.type,
         value,
@@ -269460,7 +271574,7 @@ function matchPatterns(text) {
   return Array.from(seen.values());
 }
 
-// packages/core/agent/clipboard/action-mapper.ts
+// packages/core/agent/clipboard/action-mapper.js
 var ACTION_MAP = {
   tracking_number: { actionType: "track_package", description: "Track this package" },
   flight_code: { actionType: "track_flight", description: "Track this flight" },
@@ -269491,7 +271605,7 @@ var ClipboardActionMapper = class {
   }
 };
 
-// packages/core/agent/clipboard/pattern-recognizer.ts
+// packages/core/agent/clipboard/pattern-recognizer.js
 var ClipboardPatternRecognizer = class {
   llm;
   model;
@@ -269543,7 +271657,8 @@ var ClipboardPatternRecognizer = class {
     return matchPatterns(text);
   }
   async analyzeWithLLM(text) {
-    if (!this.llm) return [];
+    if (!this.llm)
+      return [];
     try {
       const response = await this.llm.chat({
         model: this.model,
@@ -269582,7 +271697,7 @@ Respond with JSON array of objects with "type" and "value" fields. If nothing ac
   }
 };
 
-// packages/core/agent/clipboard/clipboard-privacy.ts
+// packages/core/agent/clipboard/clipboard-privacy.js
 function sanitizeForAuditTrail(pattern) {
   return {
     patternType: pattern.type,
@@ -269596,7 +271711,7 @@ function sanitizeForAuditTrail(pattern) {
 init_connector_registry();
 init_conversation_manager();
 
-// packages/core/agent/conversation-indexer.ts
+// packages/core/agent/conversation-indexer.js
 init_nanoid();
 var ConversationIndexer = class {
   db;
@@ -269612,12 +271727,11 @@ var ConversationIndexer = class {
    */
   async indexTurn(params) {
     const { conversationId, turnId, role, content, timestamp } = params;
-    if (!content || content.trim().length === 0) return;
+    if (!content || content.trim().length === 0)
+      return;
     const indexContent = content.substring(0, 2e3);
     const sourcePath = `conversation://${conversationId}/${turnId}`;
-    const conv = this.db.prepare(
-      "SELECT title, auto_title FROM conversations WHERE id = ?"
-    ).get(conversationId);
+    const conv = this.db.prepare("SELECT title, auto_title FROM conversations WHERE id = ?").get(conversationId);
     const title = conv?.title ?? conv?.auto_title ?? "Conversation";
     const result2 = await this.knowledge.indexDocument({
       content: indexContent,
@@ -269633,10 +271747,8 @@ var ConversationIndexer = class {
       }
     });
     const embeddingId = nanoid();
-    this.db.prepare(
-      `INSERT INTO conversation_embeddings (id, conversation_id, turn_id, chunk_id, created_at)
-       VALUES (?, ?, ?, ?, ?)`
-    ).run(embeddingId, conversationId, turnId, result2.documentId, (/* @__PURE__ */ new Date()).toISOString());
+    this.db.prepare(`INSERT INTO conversation_embeddings (id, conversation_id, turn_id, chunk_id, created_at)
+       VALUES (?, ?, ?, ?, ?)`).run(embeddingId, conversationId, turnId, result2.documentId, (/* @__PURE__ */ new Date()).toISOString());
   }
   /**
    * Semantic search across all conversation turns.
@@ -269655,26 +271767,20 @@ var ConversationIndexer = class {
    * Remove all indexed chunks for a conversation from the vector store.
    */
   async removeConversation(conversationId) {
-    const embeddings = this.db.prepare(
-      "SELECT chunk_id FROM conversation_embeddings WHERE conversation_id = ?"
-    ).all(conversationId);
+    const embeddings = this.db.prepare("SELECT chunk_id FROM conversation_embeddings WHERE conversation_id = ?").all(conversationId);
     for (const emb of embeddings) {
       try {
         await this.knowledge.deleteDocument(emb.chunk_id);
       } catch {
       }
     }
-    this.db.prepare(
-      "DELETE FROM conversation_embeddings WHERE conversation_id = ?"
-    ).run(conversationId);
+    this.db.prepare("DELETE FROM conversation_embeddings WHERE conversation_id = ?").run(conversationId);
   }
   /**
    * Check if a turn has already been indexed.
    */
   isIndexed(turnId) {
-    const row = this.db.prepare(
-      "SELECT id FROM conversation_embeddings WHERE turn_id = ? LIMIT 1"
-    ).get(turnId);
+    const row = this.db.prepare("SELECT id FROM conversation_embeddings WHERE turn_id = ? LIMIT 1").get(turnId);
     return !!row;
   }
   // ─── Internal ──────────────────────────────────────────────────────────────
@@ -269686,10 +271792,9 @@ var ConversationIndexer = class {
       const turnId = metadata.turnId;
       const role = metadata.role;
       const timestamp = metadata.timestamp;
-      if (!conversationId || !turnId) continue;
-      const conv = this.db.prepare(
-        "SELECT title, auto_title FROM conversations WHERE id = ?"
-      ).get(conversationId);
+      if (!conversationId || !turnId)
+        continue;
+      const conv = this.db.prepare("SELECT title, auto_title FROM conversations WHERE id = ?").get(conversationId);
       const conversationTitle = conv?.title ?? conv?.auto_title ?? "Conversation";
       const content = result2.chunk.content;
       const excerpt = content.length > 200 ? content.substring(0, 200) + "..." : content;
@@ -269702,13 +271807,14 @@ var ConversationIndexer = class {
         score: result2.score,
         timestamp: timestamp ?? ""
       });
-      if (enriched.length >= limit) break;
+      if (enriched.length >= limit)
+        break;
     }
     return enriched;
   }
 };
 
-// packages/core/agent/intent-manager.ts
+// packages/core/agent/intent-manager.js
 init_nanoid();
 var CREATE_TABLES7 = `
   CREATE TABLE IF NOT EXISTS user_intent (
@@ -269768,17 +271874,14 @@ var IntentManager = class {
   migrate() {
     this.db.exec(CREATE_TABLES7);
     this.db.exec(CREATE_INDEXES2);
-    this.db.prepare(
-      `INSERT OR IGNORE INTO user_intent (id, updated_at) VALUES ('singleton', ?)`
-    ).run((/* @__PURE__ */ new Date()).toISOString());
+    this.db.prepare(`INSERT OR IGNORE INTO user_intent (id, updated_at) VALUES ('singleton', ?)`).run((/* @__PURE__ */ new Date()).toISOString());
   }
   // ─── Core CRUD ──────────────────────────────────────────────────────────
   /** Get the full intent profile. Returns null if nothing has been set. */
   getIntent() {
-    const row = this.db.prepare(
-      "SELECT * FROM user_intent WHERE id = ?"
-    ).get("singleton");
-    if (!row) return null;
+    const row = this.db.prepare("SELECT * FROM user_intent WHERE id = ?").get("singleton");
+    if (!row)
+      return null;
     const hardLimits = this.getActiveHardLimits(false);
     const personalValues = this.getAllPersonalValues();
     if (!row.primary_goal && hardLimits.length === 0 && personalValues.length === 0) {
@@ -269795,19 +271898,15 @@ var IntentManager = class {
   /** Set or update the primary goal. */
   setPrimaryGoal(text) {
     const now = (/* @__PURE__ */ new Date()).toISOString();
-    this.db.prepare(
-      `UPDATE user_intent SET primary_goal = ?, primary_goal_set_at = ?, updated_at = ? WHERE id = 'singleton'`
-    ).run(text, now, now);
+    this.db.prepare(`UPDATE user_intent SET primary_goal = ?, primary_goal_set_at = ?, updated_at = ? WHERE id = 'singleton'`).run(text, now, now);
   }
   /** Add a hard limit. Attempts LLM parsing; falls back to confidence=0 if unavailable. */
   async addHardLimit(rawText, source) {
     const id = nanoid();
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const parsedRule = await this.parseHardLimit(rawText);
-    this.db.prepare(
-      `INSERT INTO hard_limits (id, raw_text, parsed_rule_json, active, source, created_at, updated_at)
-       VALUES (?, ?, ?, 1, ?, ?, ?)`
-    ).run(id, rawText, JSON.stringify(parsedRule), source, now, now);
+    this.db.prepare(`INSERT INTO hard_limits (id, raw_text, parsed_rule_json, active, source, created_at, updated_at)
+       VALUES (?, ?, ?, 1, ?, ?, ?)`).run(id, rawText, JSON.stringify(parsedRule), source, now, now);
     return {
       id,
       rawText,
@@ -269825,19 +271924,15 @@ var IntentManager = class {
   /** Toggle a hard limit active/inactive. */
   toggleHardLimit(id, active) {
     const now = (/* @__PURE__ */ new Date()).toISOString();
-    this.db.prepare(
-      "UPDATE hard_limits SET active = ?, updated_at = ? WHERE id = ?"
-    ).run(active ? 1 : 0, now, id);
+    this.db.prepare("UPDATE hard_limits SET active = ?, updated_at = ? WHERE id = ?").run(active ? 1 : 0, now, id);
   }
   /** Add a personal value. Attempts LLM theme extraction; falls back to empty string. */
   async addPersonalValue(rawText, source) {
     const id = nanoid();
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const theme = await this.extractTheme(rawText);
-    this.db.prepare(
-      `INSERT INTO personal_values (id, raw_text, theme, source, active, created_at)
-       VALUES (?, ?, ?, ?, 1, ?)`
-    ).run(id, rawText, theme, source, now);
+    this.db.prepare(`INSERT INTO personal_values (id, raw_text, theme, source, active, created_at)
+       VALUES (?, ?, ?, ?, 1, ?)`).run(id, rawText, theme, source, now);
     return {
       id,
       rawText,
@@ -269867,9 +271962,12 @@ var IntentManager = class {
     const matchedLimits = [];
     for (const limit of activeLimits) {
       const rule = limit.parsedRule;
-      if (rule.confidence === 0 && !rule.scope) continue;
-      if (!this.matchScope(rule.scope, action)) continue;
-      if (rule.target && !this.matchTarget(rule.target, payload)) continue;
+      if (rule.confidence === 0 && !rule.scope)
+        continue;
+      if (!this.matchScope(rule.scope, action))
+        continue;
+      if (rule.target && !this.matchTarget(rule.target, payload))
+        continue;
       matchedLimits.push(limit);
     }
     if (matchedLimits.length > 0) {
@@ -269936,7 +272034,8 @@ Example output: {"action":"never","scope":"finance.*","target":"crypto","categor
   }
   /** Extract a theme label from a personal value text. LLM unavailable → empty string. */
   async extractTheme(rawText) {
-    if (!this.llm || !this.model) return "";
+    if (!this.llm || !this.model)
+      return "";
     try {
       const request = {
         model: this.model,
@@ -269962,23 +272061,20 @@ Output only the theme word:`,
   }
   /** Get all hard limits where confidence=0 (unparsed). */
   getUnparsedLimits() {
-    const rows = this.db.prepare(
-      `SELECT * FROM hard_limits WHERE json_extract(parsed_rule_json, '$.confidence') = 0`
-    ).all();
+    const rows = this.db.prepare(`SELECT * FROM hard_limits WHERE json_extract(parsed_rule_json, '$.confidence') = 0`).all();
     return rows.map(rowToHardLimit);
   }
   /** Re-parse all unparsed hard limits. Returns the count of successfully re-parsed limits. */
   async retryParsing() {
     const unparsed = this.getUnparsedLimits();
-    if (unparsed.length === 0 || !this.llm || !this.model) return 0;
+    if (unparsed.length === 0 || !this.llm || !this.model)
+      return 0;
     let count = 0;
     for (const limit of unparsed) {
       const newRule = await this.parseHardLimit(limit.rawText);
       if (newRule.confidence > 0) {
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        this.db.prepare(
-          "UPDATE hard_limits SET parsed_rule_json = ?, updated_at = ? WHERE id = ?"
-        ).run(JSON.stringify(newRule), now, limit.id);
+        this.db.prepare("UPDATE hard_limits SET parsed_rule_json = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(newRule), now, limit.id);
         count++;
       }
     }
@@ -269988,7 +272084,8 @@ Output only the theme word:`,
   /** Build formatted intent context block for system prompt injection. */
   buildIntentContext() {
     const intent = this.getIntent();
-    if (!intent) return "";
+    if (!intent)
+      return "";
     const parts = [];
     parts.push("USER INTENT CONTEXT");
     parts.push("===================");
@@ -270030,22 +272127,9 @@ Output only the theme word:`,
   /** Record a new intent observation (drift, alignment, or conflict). */
   recordObservation(obs) {
     const id = nanoid();
-    this.db.prepare(
-      `INSERT INTO intent_observations (id, observed_at, observation_type, description, evidence_json,
+    this.db.prepare(`INSERT INTO intent_observations (id, observed_at, observation_type, description, evidence_json,
        surfaced_morning_brief, surfaced_in_chat, dismissed, dismissed_at, user_response)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      id,
-      obs.observedAt,
-      obs.type,
-      obs.description,
-      JSON.stringify(obs.evidence),
-      obs.surfacedMorningBrief ? 1 : 0,
-      obs.surfacedInChat ? 1 : 0,
-      obs.dismissed ? 1 : 0,
-      obs.dismissedAt ?? null,
-      obs.userResponse ?? null
-    );
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(id, obs.observedAt, obs.type, obs.description, JSON.stringify(obs.evidence), obs.surfacedMorningBrief ? 1 : 0, obs.surfacedInChat ? 1 : 0, obs.dismissed ? 1 : 0, obs.dismissedAt ?? null, obs.userResponse ?? null);
     return { id, ...obs };
   }
   /** Get pending (non-dismissed) observations, optionally filtered by channel. */
@@ -270064,34 +272148,24 @@ Output only the theme word:`,
   /** Dismiss an observation, optionally recording the user's response. */
   dismissObservation(id, userResponse) {
     const now = (/* @__PURE__ */ new Date()).toISOString();
-    this.db.prepare(
-      "UPDATE intent_observations SET dismissed = 1, dismissed_at = ?, user_response = ? WHERE id = ?"
-    ).run(now, userResponse ?? null, id);
+    this.db.prepare("UPDATE intent_observations SET dismissed = 1, dismissed_at = ?, user_response = ? WHERE id = ?").run(now, userResponse ?? null, id);
   }
   /** Mark an observation as surfaced in morning brief. */
   markSurfacedMorningBrief(id) {
-    this.db.prepare(
-      "UPDATE intent_observations SET surfaced_morning_brief = 1 WHERE id = ?"
-    ).run(id);
+    this.db.prepare("UPDATE intent_observations SET surfaced_morning_brief = 1 WHERE id = ?").run(id);
   }
   /** Mark an observation as surfaced in chat. */
   markSurfacedInChat(id) {
-    this.db.prepare(
-      "UPDATE intent_observations SET surfaced_in_chat = 1 WHERE id = ?"
-    ).run(id);
+    this.db.prepare("UPDATE intent_observations SET surfaced_in_chat = 1 WHERE id = ?").run(id);
   }
   /** Get last check-in timestamp from preferences. */
   getLastCheckInTimestamp() {
-    const row = this.db.prepare(
-      "SELECT value FROM preferences WHERE key = 'intent_last_checkin'"
-    ).get();
+    const row = this.db.prepare("SELECT value FROM preferences WHERE key = 'intent_last_checkin'").get();
     return row?.value ?? null;
   }
   /** Set last check-in timestamp. */
   setLastCheckInTimestamp(ts) {
-    this.db.prepare(
-      "INSERT OR REPLACE INTO preferences (key, value) VALUES ('intent_last_checkin', ?)"
-    ).run(ts);
+    this.db.prepare("INSERT OR REPLACE INTO preferences (key, value) VALUES ('intent_last_checkin', ?)").run(ts);
   }
   // ─── Private Helpers ────────────────────────────────────────────────────
   /** Get all hard limits. If activeOnly=true, returns only active limits. */
@@ -270102,16 +272176,17 @@ Output only the theme word:`,
   }
   /** Get all personal values. */
   getAllPersonalValues() {
-    const rows = this.db.prepare(
-      "SELECT * FROM personal_values ORDER BY created_at ASC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM personal_values ORDER BY created_at ASC").all();
     return rows.map(rowToPersonalValue);
   }
   /** Match a rule scope against an action type. Supports wildcards (finance.*). */
   matchScope(scope, action) {
-    if (!scope) return false;
-    if (scope === "any") return true;
-    if (scope === action) return true;
+    if (!scope)
+      return false;
+    if (scope === "any")
+      return true;
+    if (scope === action)
+      return true;
     if (scope.endsWith(".*")) {
       const prefix = scope.slice(0, -2);
       return action.startsWith(prefix + ".");
@@ -270178,7 +272253,7 @@ function rowToObservation(row) {
   };
 }
 
-// packages/core/agent/alter-ego-store.ts
+// packages/core/agent/alter-ego-store.js
 var TRUST_THRESHOLD = 3;
 var CREATE_TABLES8 = `
   CREATE TABLE IF NOT EXISTS alter_ego_settings (
@@ -270227,9 +272302,7 @@ var AlterEgoStore = class {
   }
   // ─── Settings ───────────────────────────────────────────────────────────
   getSettings() {
-    const row = this.db.prepare(
-      "SELECT dollar_threshold, confirmation_disabled_categories FROM alter_ego_settings WHERE id = 1"
-    ).get();
+    const row = this.db.prepare("SELECT dollar_threshold, confirmation_disabled_categories FROM alter_ego_settings WHERE id = 1").get();
     if (!row) {
       return { dollarThreshold: 50, confirmationDisabledCategories: [] };
     }
@@ -270242,15 +272315,11 @@ var AlterEgoStore = class {
     const current = this.getSettings();
     const threshold = partial2.dollarThreshold ?? current.dollarThreshold;
     const categories = partial2.confirmationDisabledCategories ?? current.confirmationDisabledCategories;
-    this.db.prepare(
-      "UPDATE alter_ego_settings SET dollar_threshold = ?, confirmation_disabled_categories = ? WHERE id = 1"
-    ).run(threshold, JSON.stringify(categories));
+    this.db.prepare("UPDATE alter_ego_settings SET dollar_threshold = ?, confirmation_disabled_categories = ? WHERE id = 1").run(threshold, JSON.stringify(categories));
   }
   // ─── Trust ──────────────────────────────────────────────────────────────
   getTrust(email, scope) {
-    const row = this.db.prepare(
-      "SELECT * FROM alter_ego_trust WHERE contact_email = ? AND scope = ?"
-    ).get(email.toLowerCase(), scope);
+    const row = this.db.prepare("SELECT * FROM alter_ego_trust WHERE contact_email = ? AND scope = ?").get(email.toLowerCase(), scope);
     if (!row) {
       return {
         contactEmail: email.toLowerCase(),
@@ -270288,61 +272357,36 @@ var AlterEgoStore = class {
         id, action_type, summary, reasoning, status,
         undo_available, undo_expires_at, week_group, created_at, executed_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      receipt.id,
-      receipt.actionType,
-      receipt.summary,
-      receipt.reasoning,
-      receipt.status,
-      receipt.undoAvailable ? 1 : 0,
-      receipt.undoExpiresAt,
-      receipt.weekGroup,
-      receipt.createdAt,
-      receipt.executedAt
-    );
+    `).run(receipt.id, receipt.actionType, receipt.summary, receipt.reasoning, receipt.status, receipt.undoAvailable ? 1 : 0, receipt.undoExpiresAt, receipt.weekGroup, receipt.createdAt, receipt.executedAt);
   }
   markUndone(id) {
-    const result2 = this.db.prepare(
-      "UPDATE alter_ego_action_log SET status = ?, undo_available = 0 WHERE id = ?"
-    ).run("undone", id);
+    const result2 = this.db.prepare("UPDATE alter_ego_action_log SET status = ?, undo_available = 0 WHERE id = ?").run("undone", id);
     return result2.changes > 0;
   }
   getReceipts(weekGroup) {
     let rows;
     if (weekGroup) {
-      rows = this.db.prepare(
-        "SELECT * FROM alter_ego_action_log WHERE week_group = ? ORDER BY executed_at DESC"
-      ).all(weekGroup);
+      rows = this.db.prepare("SELECT * FROM alter_ego_action_log WHERE week_group = ? ORDER BY executed_at DESC").all(weekGroup);
     } else {
-      rows = this.db.prepare(
-        "SELECT * FROM alter_ego_action_log ORDER BY executed_at DESC"
-      ).all();
+      rows = this.db.prepare("SELECT * FROM alter_ego_action_log ORDER BY executed_at DESC").all();
     }
     return rows.map(rowToReceipt);
   }
   getRecentReceipts(limit) {
-    const rows = this.db.prepare(
-      "SELECT * FROM alter_ego_action_log ORDER BY executed_at DESC LIMIT ?"
-    ).all(limit);
+    const rows = this.db.prepare("SELECT * FROM alter_ego_action_log ORDER BY executed_at DESC LIMIT ?").all(limit);
     return rows.map(rowToReceipt);
   }
   // ─── Anomalies ──────────────────────────────────────────────────────────
   isNovelAction(actionType) {
-    const row = this.db.prepare(
-      "SELECT acknowledged FROM alter_ego_anomalies WHERE action_type = ?"
-    ).get(actionType);
+    const row = this.db.prepare("SELECT acknowledged FROM alter_ego_anomalies WHERE action_type = ?").get(actionType);
     if (!row) {
-      this.db.prepare(
-        "INSERT OR IGNORE INTO alter_ego_anomalies (action_type, first_seen_at, acknowledged) VALUES (?, ?, 0)"
-      ).run(actionType, (/* @__PURE__ */ new Date()).toISOString());
+      this.db.prepare("INSERT OR IGNORE INTO alter_ego_anomalies (action_type, first_seen_at, acknowledged) VALUES (?, ?, 0)").run(actionType, (/* @__PURE__ */ new Date()).toISOString());
       return true;
     }
     return row.acknowledged === 0;
   }
   acknowledgeAnomaly(actionType) {
-    this.db.prepare(
-      "UPDATE alter_ego_anomalies SET acknowledged = 1 WHERE action_type = ?"
-    ).run(actionType);
+    this.db.prepare("UPDATE alter_ego_anomalies SET acknowledged = 1 WHERE action_type = ?").run(actionType);
   }
   // ─── Utilities ──────────────────────────────────────────────────────────
   /**
@@ -270365,29 +272409,19 @@ var AlterEgoStore = class {
     let undoneCount;
     let batchedCount;
     if (weekEnd) {
-      const executed = this.db.prepare(
-        "SELECT COUNT(*) as count FROM alter_ego_action_log WHERE created_at >= ? AND created_at <= ? AND status = ?"
-      ).get(weekGroupOrStart, weekEnd, "executed");
-      const undone = this.db.prepare(
-        "SELECT COUNT(*) as count FROM alter_ego_action_log WHERE created_at >= ? AND created_at <= ? AND status = ?"
-      ).get(weekGroupOrStart, weekEnd, "undone");
+      const executed = this.db.prepare("SELECT COUNT(*) as count FROM alter_ego_action_log WHERE created_at >= ? AND created_at <= ? AND status = ?").get(weekGroupOrStart, weekEnd, "executed");
+      const undone = this.db.prepare("SELECT COUNT(*) as count FROM alter_ego_action_log WHERE created_at >= ? AND created_at <= ? AND status = ?").get(weekGroupOrStart, weekEnd, "undone");
       executedCount = executed.count;
       undoneCount = undone.count;
       try {
-        const batched = this.db.prepare(
-          "SELECT COUNT(*) as count FROM pending_actions WHERE created_at >= ? AND created_at <= ? AND tier = 'alter_ego'"
-        ).get(weekGroupOrStart, weekEnd);
+        const batched = this.db.prepare("SELECT COUNT(*) as count FROM pending_actions WHERE created_at >= ? AND created_at <= ? AND tier = 'alter_ego'").get(weekGroupOrStart, weekEnd);
         batchedCount = batched.count;
       } catch {
         batchedCount = 0;
       }
     } else {
-      const executed = this.db.prepare(
-        "SELECT COUNT(*) as count FROM alter_ego_action_log WHERE week_group = ? AND status = ?"
-      ).get(weekGroupOrStart, "executed");
-      const undone = this.db.prepare(
-        "SELECT COUNT(*) as count FROM alter_ego_action_log WHERE week_group = ? AND status = ?"
-      ).get(weekGroupOrStart, "undone");
+      const executed = this.db.prepare("SELECT COUNT(*) as count FROM alter_ego_action_log WHERE week_group = ? AND status = ?").get(weekGroupOrStart, "executed");
+      const undone = this.db.prepare("SELECT COUNT(*) as count FROM alter_ego_action_log WHERE week_group = ? AND status = ?").get(weekGroupOrStart, "undone");
       executedCount = executed.count;
       undoneCount = undone.count;
       batchedCount = 0;
@@ -270414,7 +272448,7 @@ function rowToReceipt(row) {
   };
 }
 
-// packages/core/agent/alter-ego-guardrails.ts
+// packages/core/agent/alter-ego-guardrails.js
 init_escalation_boundaries();
 var FINANCIAL_SIGNIFICANT_ACTIONS = [
   "finance.plaid_disconnect"
@@ -270534,7 +272568,7 @@ var AlterEgoGuardrails = class {
 init_named_session_manager();
 init_vision_provider();
 
-// packages/gateway/browser/browser-cdp-adapter.ts
+// packages/gateway/browser/browser-cdp-adapter.js
 var BrowserCDPAdapter = class {
   wsEndpoint = null;
   ws = null;
@@ -270717,7 +272751,7 @@ var BrowserCDPAdapter = class {
   }
 };
 
-// packages/core/agent/import-everything-orchestrator.ts
+// packages/core/agent/import-everything-orchestrator.js
 init_platform();
 var CREATE_TABLE8 = `
   CREATE TABLE IF NOT EXISTS import_history (
@@ -270734,24 +272768,12 @@ function getBrowserHistoryPaths() {
   const home = process.env["HOME"] ?? process.env["USERPROFILE"] ?? "";
   const paths = [];
   if (process.platform === "darwin") {
-    paths.push(
-      { browser: "Chrome", path: `${home}/Library/Application Support/Google/Chrome/Default/History` },
-      { browser: "Firefox", path: `${home}/Library/Application Support/Firefox/Profiles` },
-      { browser: "Safari", path: `${home}/Library/Safari/History.db` },
-      { browser: "Arc", path: `${home}/Library/Application Support/Arc/User Data/Default/History` }
-    );
+    paths.push({ browser: "Chrome", path: `${home}/Library/Application Support/Google/Chrome/Default/History` }, { browser: "Firefox", path: `${home}/Library/Application Support/Firefox/Profiles` }, { browser: "Safari", path: `${home}/Library/Safari/History.db` }, { browser: "Arc", path: `${home}/Library/Application Support/Arc/User Data/Default/History` });
   } else if (process.platform === "win32") {
     const appData = process.env["LOCALAPPDATA"] ?? `${home}/AppData/Local`;
-    paths.push(
-      { browser: "Chrome", path: `${appData}/Google/Chrome/User Data/Default/History` },
-      { browser: "Firefox", path: `${appData}/Mozilla/Firefox/Profiles` },
-      { browser: "Edge", path: `${appData}/Microsoft/Edge/User Data/Default/History` }
-    );
+    paths.push({ browser: "Chrome", path: `${appData}/Google/Chrome/User Data/Default/History` }, { browser: "Firefox", path: `${appData}/Mozilla/Firefox/Profiles` }, { browser: "Edge", path: `${appData}/Microsoft/Edge/User Data/Default/History` });
   } else {
-    paths.push(
-      { browser: "Chrome", path: `${home}/.config/google-chrome/Default/History` },
-      { browser: "Firefox", path: `${home}/.mozilla/firefox` }
-    );
+    paths.push({ browser: "Chrome", path: `${home}/.config/google-chrome/Default/History` }, { browser: "Firefox", path: `${home}/.mozilla/firefox` });
   }
   return paths;
 }
@@ -270859,9 +272881,7 @@ var ImportEverythingOrchestrator = class {
           break;
       }
       const { nanoid: nanoid2 } = await Promise.resolve().then(() => (init_nanoid(), nanoid_exports));
-      this.db.prepare(
-        "INSERT INTO import_history (id, source, imported_at, item_count, consent_granted) VALUES (?, ?, ?, ?, 1)"
-      ).run(`imp_${nanoid2()}`, source, (/* @__PURE__ */ new Date()).toISOString(), itemCount);
+      this.db.prepare("INSERT INTO import_history (id, source, imported_at, item_count, consent_granted) VALUES (?, ?, ?, ?, 1)").run(`imp_${nanoid2()}`, source, (/* @__PURE__ */ new Date()).toISOString(), itemCount);
       onProgress({ source, phase: "done", itemsProcessed: itemCount, totalItems: itemCount });
     } catch (err) {
       onProgress({ source, phase: "error", itemsProcessed: 0, totalItems: 0, errorMessage: err.message });
@@ -270869,9 +272889,7 @@ var ImportEverythingOrchestrator = class {
   }
   /** Get import history */
   getImportHistory() {
-    const rows = this.db.prepare(
-      "SELECT source, imported_at, item_count FROM import_history ORDER BY imported_at DESC"
-    ).all();
+    const rows = this.db.prepare("SELECT source, imported_at, item_count FROM import_history ORDER BY imported_at DESC").all();
     return rows.map((r) => ({
       source: r.source,
       importedAt: r.imported_at,
@@ -270903,13 +272921,16 @@ var ImportEverythingOrchestrator = class {
         let dbPath = bp.path;
         if (bp.browser === "Firefox") {
           const resolvedPath = await this.findFirefoxPlacesDb(bp.path);
-          if (!resolvedPath) continue;
+          if (!resolvedPath)
+            continue;
           dbPath = resolvedPath;
         }
         const parser = sqliteParsers[bp.browser];
-        if (!parser) continue;
+        if (!parser)
+          continue;
         const result2 = await parser.parse(dbPath, { limit: 5e3 });
-        if (result2.items.length === 0) continue;
+        if (result2.items.length === 0)
+          continue;
         if (this.knowledgeGraph) {
           for (const item of result2.items) {
             try {
@@ -270951,8 +272972,10 @@ var ImportEverythingOrchestrator = class {
       const entries = await p.fs.readdir(profilesDir, { withFileTypes: true });
       const profileDirs = entries.filter((e) => e.isDirectory() && (e.name.includes(".default") || e.name.includes(".default-release"))).map((e) => e.name);
       const sorted = profileDirs.sort((a, b) => {
-        if (a.includes("default-release") && !b.includes("default-release")) return -1;
-        if (!a.includes("default-release") && b.includes("default-release")) return 1;
+        if (a.includes("default-release") && !b.includes("default-release"))
+          return -1;
+        if (!a.includes("default-release") && b.includes("default-release"))
+          return 1;
         return 0;
       });
       for (const dirName of sorted) {
@@ -270977,14 +273000,12 @@ var ImportEverythingOrchestrator = class {
     return 0;
   }
   getLastImportAt(source) {
-    const row = this.db.prepare(
-      "SELECT imported_at FROM import_history WHERE source = ? ORDER BY imported_at DESC LIMIT 1"
-    ).get(source);
+    const row = this.db.prepare("SELECT imported_at FROM import_history WHERE source = ? ORDER BY imported_at DESC LIMIT 1").get(source);
     return row?.imported_at ?? null;
   }
 };
 
-// packages/gateway/channels/signal/signal-adapter.ts
+// packages/gateway/channels/signal/signal-adapter.js
 var SignalChannelAdapter = class {
   channelId = "signal";
   displayName = "Signal";
@@ -271056,7 +273077,8 @@ var SignalChannelAdapter = class {
   }
   // ─── Private ──────────────────────────────────────────────────────────────
   async receiveMessages() {
-    if (!this.systemGateway || !this.signalCliPath) return;
+    if (!this.systemGateway || !this.signalCliPath)
+      return;
     let result2;
     try {
       result2 = await this.systemGateway.execute({
@@ -271067,9 +273089,11 @@ var SignalChannelAdapter = class {
     } catch {
       return;
     }
-    if (result2.exitCode !== 0 || !result2.stdout.trim()) return;
+    if (result2.exitCode !== 0 || !result2.stdout.trim())
+      return;
     for (const line of result2.stdout.split("\n")) {
-      if (!line.trim()) continue;
+      if (!line.trim())
+        continue;
       try {
         const msg = JSON.parse(line);
         if (msg.envelope?.dataMessage?.message) {
@@ -271090,7 +273114,7 @@ var SignalChannelAdapter = class {
   }
 };
 
-// packages/gateway/channels/slack/slack-channel-adapter.ts
+// packages/gateway/channels/slack/slack-channel-adapter.js
 var SlackChannelAdapter = class {
   channelId = "slack";
   displayName = "Slack";
@@ -271135,7 +273159,7 @@ var SlackChannelAdapter = class {
         return;
       }
       try {
-        const wsModule = await import("ws");
+        const wsModule = await Promise.resolve().then(() => __toESM(require_ws(), 1));
         this.ws = new wsModule.WebSocket(connectData.url);
         const socket = this.ws;
         socket.on("open", () => {
@@ -271227,7 +273251,7 @@ var SlackChannelAdapter = class {
   }
 };
 
-// packages/gateway/channels/whatsapp/whatsapp-adapter.ts
+// packages/gateway/channels/whatsapp/whatsapp-adapter.js
 var import_node_path10 = require("node:path");
 var import_node_os9 = require("node:os");
 var import_node_fs10 = require("node:fs");
@@ -271291,9 +273315,11 @@ var WhatsAppChannelAdapter = class {
         const upsert = args[0];
         const messages = upsert.messages ?? [];
         for (const msg of messages) {
-          if (msg.key?.fromMe) continue;
+          if (msg.key?.fromMe)
+            continue;
           const text = msg.message?.conversation ?? msg.message?.extendedTextMessage?.text;
-          if (!text) continue;
+          if (!text)
+            continue;
           const inbound = {
             channelId: "whatsapp",
             senderId: msg.key?.remoteJid ?? "unknown",
@@ -271351,7 +273377,7 @@ var WhatsAppChannelAdapter = class {
   }
 };
 
-// packages/core/skills/skill-declaration.ts
+// packages/core/skills/skill-declaration.js
 var ALL_CAPABILITIES = [
   "knowledge_graph_read",
   "knowledge_graph_write",
@@ -271411,8 +273437,10 @@ function validateSkillDeclaration(decl) {
   } else {
     for (let i = 0; i < d.tools.length; i++) {
       const tool = d.tools[i];
-      if (typeof tool?.name !== "string") errors.push(`tools[${i}].name must be a string`);
-      if (typeof tool?.description !== "string") errors.push(`tools[${i}].description must be a string`);
+      if (typeof tool?.name !== "string")
+        errors.push(`tools[${i}].name must be a string`);
+      if (typeof tool?.description !== "string")
+        errors.push(`tools[${i}].description must be a string`);
     }
   }
   if (typeof d.entryPoint !== "string" || d.entryPoint.trim().length === 0) {
@@ -271426,7 +273454,7 @@ function validateSkillDeclaration(decl) {
   return { valid: errors.length === 0, errors };
 }
 
-// packages/core/skills/skill-registry.ts
+// packages/core/skills/skill-registry.js
 var CREATE_TABLE9 = `
   CREATE TABLE IF NOT EXISTS installed_skills (
     skill_id TEXT PRIMARY KEY,
@@ -271465,13 +273493,7 @@ var SkillRegistry = class {
     this.db.prepare(`
       INSERT INTO installed_skills (skill_id, declaration_json, install_path, consented_capabilities, enabled, installed_at, loaded_at)
       VALUES (?, ?, ?, ?, 1, ?, NULL)
-    `).run(
-      declaration.id,
-      JSON.stringify(declaration),
-      sourcePath,
-      JSON.stringify(consented),
-      now
-    );
+    `).run(declaration.id, JSON.stringify(declaration), sourcePath, JSON.stringify(consented), now);
     return { success: true, skillId: declaration.id };
   }
   /**
@@ -271556,9 +273578,7 @@ var SkillRegistry = class {
    * List all installed skills with their status.
    */
   list() {
-    const rows = this.db.prepare(
-      "SELECT * FROM installed_skills ORDER BY installed_at ASC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM installed_skills ORDER BY installed_at ASC").all();
     return rows.map((r) => ({
       declaration: JSON.parse(r.declaration_json),
       installPath: r.install_path,
@@ -271572,10 +273592,9 @@ var SkillRegistry = class {
    * Get a specific installed skill.
    */
   get(skillId) {
-    const row = this.db.prepare(
-      "SELECT * FROM installed_skills WHERE skill_id = ?"
-    ).get(skillId);
-    if (!row) return null;
+    const row = this.db.prepare("SELECT * FROM installed_skills WHERE skill_id = ?").get(skillId);
+    if (!row)
+      return null;
     return {
       declaration: JSON.parse(row.declaration_json),
       installPath: row.install_path,
@@ -271593,7 +273612,7 @@ var SkillRegistry = class {
   }
 };
 
-// packages/core/agent/sub-agent-coordinator.ts
+// packages/core/agent/sub-agent-coordinator.js
 init_nanoid();
 var SubAgentCoordinator = class {
   agents = /* @__PURE__ */ new Map();
@@ -271629,7 +273648,8 @@ var SubAgentCoordinator = class {
    */
   isToolAllowed(sessionKey, toolName) {
     const agent = this.agents.get(sessionKey);
-    if (!agent) return true;
+    if (!agent)
+      return true;
     return agent.config.allowedTools.includes(toolName);
   }
   /**
@@ -271650,7 +273670,7 @@ var SubAgentCoordinator = class {
   }
 };
 
-// packages/gateway/security/binary-allowlist.ts
+// packages/gateway/security/binary-allowlist.js
 init_nanoid();
 var import_node_fs11 = require("node:fs");
 var import_node_os10 = require("node:os");
@@ -271725,9 +273745,7 @@ var PERMANENT_BLOCK_LIST = [
   "pacman",
   "snap"
 ];
-var BLOCK_SET = new Set(
-  PERMANENT_BLOCK_LIST.map((b) => b.toLowerCase())
-);
+var BLOCK_SET = new Set(PERMANENT_BLOCK_LIST.map((b) => b.toLowerCase()));
 var SEED_ALLOWLIST = [
   // macOS only
   { name: "open", path: "/usr/bin/open", description: "Open files and apps", platform: "darwin" },
@@ -271772,9 +273790,7 @@ var BinaryAllowlist = class {
     if (BLOCK_SET.has(name)) {
       return `permanently blocked: '${name}' is on the compiled-in block list (shells, interpreters, network tools)`;
     }
-    const row = this.db.prepare(
-      "SELECT * FROM binary_allowlist WHERE binary_name = ? AND is_active = 1"
-    ).get(name);
+    const row = this.db.prepare("SELECT * FROM binary_allowlist WHERE binary_name = ? AND is_active = 1").get(name);
     if (!row) {
       return `not in allowlist: '${name}' is not on the user binary allowlist`;
     }
@@ -271805,15 +273821,7 @@ var BinaryAllowlist = class {
     this.db.prepare(`
       INSERT OR REPLACE INTO binary_allowlist (id, binary_name, binary_path, description, added_at, added_by, max_execution_seconds, allow_stdin, is_active)
       VALUES (?, ?, ?, ?, ?, 'user', ?, ?, 1)
-    `).run(
-      id,
-      name,
-      params.binaryPath,
-      params.description ?? null,
-      now,
-      params.maxExecutionSeconds ?? 30,
-      params.allowStdin ?? false ? 1 : 0
-    );
+    `).run(id, name, params.binaryPath, params.description ?? null, now, params.maxExecutionSeconds ?? 30, params.allowStdin ?? false ? 1 : 0);
     return {
       id,
       binaryName: name,
@@ -271830,27 +273838,21 @@ var BinaryAllowlist = class {
    * Remove a binary from the user allowlist.
    */
   remove(binaryName) {
-    const result2 = this.db.prepare(
-      "DELETE FROM binary_allowlist WHERE binary_name = ?"
-    ).run(binaryName.toLowerCase());
+    const result2 = this.db.prepare("DELETE FROM binary_allowlist WHERE binary_name = ?").run(binaryName.toLowerCase());
     return result2.changes > 0;
   }
   /**
    * List all allowlisted binaries.
    */
   list() {
-    const rows = this.db.prepare(
-      "SELECT * FROM binary_allowlist ORDER BY binary_name ASC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM binary_allowlist ORDER BY binary_name ASC").all();
     return rows.map(rowToBinary);
   }
   /**
    * Get a specific entry by binary name.
    */
   get(binaryName) {
-    const row = this.db.prepare(
-      "SELECT * FROM binary_allowlist WHERE binary_name = ?"
-    ).get(binaryName.toLowerCase());
+    const row = this.db.prepare("SELECT * FROM binary_allowlist WHERE binary_name = ?").get(binaryName.toLowerCase());
     return row ? rowToBinary(row) : null;
   }
   /**
@@ -271871,8 +273873,10 @@ var BinaryAllowlist = class {
     const existingNames = new Set(existing.map((r) => r.binary_name));
     const currentPlatform = (0, import_node_os10.platform)();
     for (const seed of SEED_ALLOWLIST) {
-      if (existingNames.has(seed.name.toLowerCase())) continue;
-      if (seed.platform !== "all" && seed.platform !== currentPlatform) continue;
+      if (existingNames.has(seed.name.toLowerCase()))
+        continue;
+      if (seed.platform !== "all" && seed.platform !== currentPlatform)
+        continue;
       let resolvedPath = seed.path;
       if (!resolvedPath) {
         try {
@@ -271882,8 +273886,10 @@ var BinaryAllowlist = class {
           continue;
         }
       }
-      if (!resolvedPath) continue;
-      if (seed.path && !(0, import_node_fs11.existsSync)(resolvedPath)) continue;
+      if (!resolvedPath)
+        continue;
+      if (seed.path && !(0, import_node_fs11.existsSync)(resolvedPath))
+        continue;
       try {
         this.add({
           binaryPath: resolvedPath,
@@ -271909,7 +273915,7 @@ function rowToBinary(row) {
   };
 }
 
-// packages/gateway/security/argument-validator.ts
+// packages/gateway/security/argument-validator.js
 var import_node_os11 = require("node:os");
 var import_node_path11 = require("node:path");
 var REJECTION_PATTERNS = [
@@ -271969,13 +273975,15 @@ var ArgumentValidator = class {
    * Check if a string looks like an absolute file path.
    */
   looksLikePath(arg) {
-    if (arg.startsWith("/") && !arg.startsWith("//")) return true;
-    if (/^[A-Za-z]:[/\\]/.test(arg)) return true;
+    if (arg.startsWith("/") && !arg.startsWith("//"))
+      return true;
+    if (/^[A-Za-z]:[/\\]/.test(arg))
+      return true;
     return false;
   }
 };
 
-// packages/gateway/system/system-command-gateway.ts
+// packages/gateway/system/system-command-gateway.js
 var import_node_child_process3 = require("node:child_process");
 var import_node_path12 = require("node:path");
 var SAFE_ENV_VARS = /* @__PURE__ */ new Set([
@@ -272061,41 +274069,36 @@ var SystemCommandGateway = class {
     }
     return new Promise((resolve7) => {
       let timedOut = false;
-      const child = (0, import_node_child_process3.execFile)(
-        params.binary,
-        params.args,
-        {
-          timeout: timeoutMs,
-          maxBuffer: 10 * 1024 * 1024,
-          // 10MB
-          cwd: params.workingDir,
-          env: safeEnv,
-          windowsHide: true
-        },
-        (error, stdout, stderr) => {
-          const durationMs = Date.now() - startTime;
-          if (error && "killed" in error && error.killed) {
-            timedOut = true;
-          }
-          let exitCode = 0;
-          if (error && "code" in error && typeof error.code === "number") {
-            exitCode = error.code;
-          } else if (error) {
-            exitCode = 1;
-          }
-          if (child.pid) {
-            this.pidTable.remove(child.pid);
-          }
-          resolve7({
-            exitCode,
-            stdout: stdout ?? "",
-            stderr: stderr ?? "",
-            durationMs,
-            timedOut,
-            pid: child.pid ?? null
-          });
+      const child = (0, import_node_child_process3.execFile)(params.binary, params.args, {
+        timeout: timeoutMs,
+        maxBuffer: 10 * 1024 * 1024,
+        // 10MB
+        cwd: params.workingDir,
+        env: safeEnv,
+        windowsHide: true
+      }, (error, stdout, stderr) => {
+        const durationMs = Date.now() - startTime;
+        if (error && "killed" in error && error.killed) {
+          timedOut = true;
         }
-      );
+        let exitCode = 0;
+        if (error && "code" in error && typeof error.code === "number") {
+          exitCode = error.code;
+        } else if (error) {
+          exitCode = 1;
+        }
+        if (child.pid) {
+          this.pidTable.remove(child.pid);
+        }
+        resolve7({
+          exitCode,
+          stdout: stdout ?? "",
+          stderr: stderr ?? "",
+          durationMs,
+          timedOut,
+          pid: child.pid ?? null
+        });
+      });
       if (child.pid) {
         this.pidTable.register(child.pid, (0, import_node_path12.basename)(params.binary));
       }
@@ -272160,7 +274163,7 @@ var SystemCommandGateway = class {
   }
 };
 
-// packages/core/agent/preference-graph.ts
+// packages/core/agent/preference-graph.js
 init_nanoid();
 var CREATE_PREFERENCE_TABLES = `
   CREATE TABLE IF NOT EXISTS preference_nodes (
@@ -272190,17 +274193,14 @@ var PreferenceGraph = class {
    * If no match, create a new preference node.
    */
   recordSignal(signal) {
-    const existing = this.db.prepare(
-      "SELECT * FROM preference_nodes WHERE domain = ? AND pattern = ?"
-    ).get(signal.domain, signal.pattern);
+    const existing = this.db.prepare("SELECT * FROM preference_nodes WHERE domain = ? AND pattern = ?").get(signal.domain, signal.pattern);
     const now = (/* @__PURE__ */ new Date()).toISOString();
     if (existing) {
-      if (existing.override === 1) return;
+      if (existing.override === 1)
+        return;
       const newConfidence = existing.confidence * 0.9 + signal.confidence * 0.1;
       const clampedConfidence = Math.min(1, Math.max(0, newConfidence));
-      this.db.prepare(
-        "UPDATE preference_nodes SET confidence = ?, evidence_count = ?, last_observed_at = ? WHERE id = ?"
-      ).run(clampedConfidence, existing.evidence_count + 1, now, existing.id);
+      this.db.prepare("UPDATE preference_nodes SET confidence = ?, evidence_count = ?, last_observed_at = ? WHERE id = ?").run(clampedConfidence, existing.evidence_count + 1, now, existing.id);
     } else {
       const id = `pref_${nanoid()}`;
       this.db.prepare(`
@@ -272214,18 +274214,14 @@ var PreferenceGraph = class {
    */
   getPreferences(domain, minConfidence) {
     const threshold = minConfidence ?? 0.3;
-    const rows = this.db.prepare(
-      "SELECT * FROM preference_nodes WHERE domain = ? AND confidence >= ? AND (override = 0 OR override_value = 1) ORDER BY confidence DESC"
-    ).all(domain, threshold);
+    const rows = this.db.prepare("SELECT * FROM preference_nodes WHERE domain = ? AND confidence >= ? AND (override = 0 OR override_value = 1) ORDER BY confidence DESC").all(domain, threshold);
     return rows.map(rowToNode);
   }
   /**
    * Get all high-confidence preferences (confidence >= 0.85).
    */
   getHighConfidencePreferences() {
-    const rows = this.db.prepare(
-      "SELECT * FROM preference_nodes WHERE confidence >= 0.85 AND (override = 0 OR override_value = 1) ORDER BY confidence DESC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM preference_nodes WHERE confidence >= 0.85 AND (override = 0 OR override_value = 1) ORDER BY confidence DESC").all();
     return rows.map(rowToNode);
   }
   /**
@@ -272233,36 +274229,29 @@ var PreferenceGraph = class {
    */
   getAllPreferences(minConfidence) {
     const threshold = minConfidence ?? 0.3;
-    const rows = this.db.prepare(
-      "SELECT * FROM preference_nodes WHERE confidence >= ? ORDER BY domain, confidence DESC"
-    ).all(threshold);
+    const rows = this.db.prepare("SELECT * FROM preference_nodes WHERE confidence >= ? ORDER BY domain, confidence DESC").all(threshold);
     return rows.map(rowToNode);
   }
   /**
    * User confirms a detected preference (sets confidence = 1.0, override = true).
    */
   confirmPreference(id) {
-    this.db.prepare(
-      "UPDATE preference_nodes SET confidence = 1.0, override = 1, override_value = 1 WHERE id = ?"
-    ).run(id);
+    this.db.prepare("UPDATE preference_nodes SET confidence = 1.0, override = 1, override_value = 1 WHERE id = ?").run(id);
   }
   /**
    * User denies a detected preference (tombstones it, excludes from future detection).
    */
   denyPreference(id) {
-    this.db.prepare(
-      "UPDATE preference_nodes SET override = 1, override_value = 0, confidence = 0.0 WHERE id = ?"
-    ).run(id);
+    this.db.prepare("UPDATE preference_nodes SET override = 1, override_value = 0, confidence = 0.0 WHERE id = ?").run(id);
   }
   /**
    * Query: given an action type, does any high-confidence preference suggest
    * auto-approval? Returns the preference node if yes, null if no.
    */
   shouldAutoApprove(actionType, _context) {
-    const row = this.db.prepare(
-      "SELECT * FROM preference_nodes WHERE action_type = ? AND confidence >= 0.85 AND (override = 0 OR override_value = 1) ORDER BY confidence DESC LIMIT 1"
-    ).get(actionType);
-    if (!row) return null;
+    const row = this.db.prepare("SELECT * FROM preference_nodes WHERE action_type = ? AND confidence >= 0.85 AND (override = 0 OR override_value = 1) ORDER BY confidence DESC LIMIT 1").get(actionType);
+    if (!row)
+      return null;
     return rowToNode(row);
   }
 };
@@ -272281,7 +274270,7 @@ function rowToNode(row) {
   };
 }
 
-// packages/core/agent/speculative-loader.ts
+// packages/core/agent/speculative-loader.js
 var TTL_MEETING_PREP = 2 * 60 * 60 * 1e3;
 var TTL_MORNING_BRIEF = 4 * 60 * 60 * 1e3;
 var TTL_EMAIL_CONTEXT = 30 * 60 * 1e3;
@@ -272293,7 +274282,8 @@ var SpeculativeLoader = class {
    */
   get(key) {
     const entry = this.cache.get(key);
-    if (!entry) return null;
+    if (!entry)
+      return null;
     const age = Date.now() - new Date(entry.assembledAt).getTime();
     if (age > entry.ttlMs) {
       this.cache.delete(key);
@@ -272398,7 +274388,8 @@ var SpeculativeLoader = class {
       totalEntries++;
       totalHits += entry.hitCount;
       const age = now - new Date(entry.assembledAt).getTime();
-      if (age > oldestAge) oldestAge = age;
+      if (age > oldestAge)
+        oldestAge = age;
     }
     const hitRate = totalEntries > 0 ? totalHits / totalEntries : 0;
     const oldestAgeStr = totalEntries > 0 ? `${Math.round(oldestAge / 6e4)}m` : "none";
@@ -272412,7 +274403,7 @@ var SpeculativeLoader = class {
   }
 };
 
-// packages/core/agent/commitment-tracker.ts
+// packages/core/agent/commitment-tracker.js
 init_nanoid();
 var CREATE_COMMITMENT_TABLE = `
   CREATE TABLE IF NOT EXISTS tracked_commitments (
@@ -272447,11 +274438,13 @@ var DEADLINE_PATTERNS2 = [
       const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
       const dayName = match[1]?.toLowerCase();
       const targetDay = days.indexOf(dayName ?? "");
-      if (targetDay === -1) return null;
+      if (targetDay === -1)
+        return null;
       const now = /* @__PURE__ */ new Date();
       const currentDay = now.getDay();
       let daysUntil = targetDay - currentDay;
-      if (daysUntil <= 0) daysUntil += 7;
+      if (daysUntil <= 0)
+        daysUntil += 7;
       const target = new Date(now.getTime() + daysUntil * 24 * 60 * 60 * 1e3);
       return target.toISOString().split("T")[0];
     }
@@ -272499,10 +274492,9 @@ var CommitmentTracker = class {
       LIMIT 200
     `).all();
     for (const email of emails) {
-      const existing = this.db.prepare(
-        "SELECT id FROM tracked_commitments WHERE email_id = ?"
-      ).get(email.message_id);
-      if (existing) continue;
+      const existing = this.db.prepare("SELECT id FROM tracked_commitments WHERE email_id = ?").get(email.message_id);
+      if (existing)
+        continue;
       const commitments = this.extractCommitmentsHeuristic(email.snippet);
       for (const commitment of commitments) {
         let recipients = [];
@@ -272528,17 +274520,7 @@ var CommitmentTracker = class {
         this.db.prepare(`
           INSERT INTO tracked_commitments (id, email_id, thread_id, recipient_id, recipient_name, commitment_text, detected_deadline, implied_deadline, status, resolved_at, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, ?)
-        `).run(
-          tracked.id,
-          tracked.emailId,
-          tracked.threadId,
-          tracked.recipientId,
-          tracked.recipientName,
-          tracked.commitmentText,
-          tracked.detectedDeadline,
-          tracked.impliedDeadline,
-          tracked.createdAt
-        );
+        `).run(tracked.id, tracked.emailId, tracked.threadId, tracked.recipientId, tracked.recipientName, tracked.commitmentText, tracked.detectedDeadline, tracked.impliedDeadline, tracked.createdAt);
         newCommitments.push(tracked);
       }
     }
@@ -272562,26 +274544,20 @@ var CommitmentTracker = class {
    * Get all pending commitments.
    */
   getPendingCommitments() {
-    const rows = this.db.prepare(
-      "SELECT * FROM tracked_commitments WHERE status = 'pending' ORDER BY implied_deadline ASC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM tracked_commitments WHERE status = 'pending' ORDER BY implied_deadline ASC").all();
     return rows.map(rowToCommitment);
   }
   /**
    * Mark a commitment as resolved.
    */
   resolve(id) {
-    this.db.prepare(
-      "UPDATE tracked_commitments SET status = 'resolved', resolved_at = ? WHERE id = ?"
-    ).run((/* @__PURE__ */ new Date()).toISOString(), id);
+    this.db.prepare("UPDATE tracked_commitments SET status = 'resolved', resolved_at = ? WHERE id = ?").run((/* @__PURE__ */ new Date()).toISOString(), id);
   }
   /**
    * Dismiss a commitment (user explicitly marks it as no longer relevant).
    */
   dismiss(id) {
-    this.db.prepare(
-      "UPDATE tracked_commitments SET status = 'dismissed' WHERE id = ?"
-    ).run(id);
+    this.db.prepare("UPDATE tracked_commitments SET status = 'dismissed' WHERE id = ?").run(id);
   }
   // ─── Private ──────────────────────────────────────────────────────────────
   /**
@@ -272618,9 +274594,7 @@ var CommitmentTracker = class {
    * after the commitment was created.
    */
   autoResolveCommitments() {
-    const pending = this.db.prepare(
-      "SELECT id, thread_id, created_at FROM tracked_commitments WHERE status = 'pending'"
-    ).all();
+    const pending = this.db.prepare("SELECT id, thread_id, created_at FROM tracked_commitments WHERE status = 'pending'").all();
     for (const commitment of pending) {
       const followUp = this.db.prepare(`
         SELECT id FROM indexed_emails
@@ -272649,7 +274623,7 @@ function rowToCommitment(row) {
   };
 }
 
-// packages/core/agent/pattern-shift-detector.ts
+// packages/core/agent/pattern-shift-detector.js
 var PatternShiftDetector = class {
   db;
   constructor(db) {
@@ -272673,12 +274647,14 @@ var PatternShiftDetector = class {
       } catch {
         continue;
       }
-      if (contactEmails.length === 0) continue;
+      if (contactEmails.length === 0)
+        continue;
       const threeWeeksAgo = new Date(Date.now() - 21 * 24 * 60 * 60 * 1e3).toISOString();
       const sixWeeksAgo = new Date(Date.now() - 42 * 24 * 60 * 60 * 1e3).toISOString();
       const recentEmails = this.getEmailsFromContact(contactEmails, threeWeeksAgo, (/* @__PURE__ */ new Date()).toISOString());
       const priorEmails = this.getEmailsFromContact(contactEmails, sixWeeksAgo, threeWeeksAgo);
-      if (recentEmails.length < 3 || priorEmails.length < 3) continue;
+      if (recentEmails.length < 3 || priorEmails.length < 3)
+        continue;
       const recentAvgLen = avg(recentEmails.map((e) => e.snippetLen));
       const priorAvgLen = avg(priorEmails.map((e) => e.snippetLen));
       if (priorAvgLen > 0 && recentAvgLen / priorAvgLen < 0.6) {
@@ -272786,19 +274762,28 @@ var PatternShiftDetector = class {
    */
   formalityScore(text) {
     let score = 3;
-    if (/\b(Dear|Respected|Esteemed)\b/i.test(text)) score += 1.5;
-    if (/\b(Sincerely|Regards|Best regards|Kind regards|Respectfully)\b/i.test(text)) score += 1;
-    if (/\b(Please find attached|As per our|In accordance|Per your request)\b/i.test(text)) score += 0.5;
-    if (/\b(Mr\.|Mrs\.|Ms\.|Dr\.)\b/.test(text)) score += 0.5;
-    if (/\b(Hey|Yo|Sup|Hiya)\b/i.test(text)) score -= 1.5;
-    if (/\b(lol|haha|btw|fyi|tbh|omg)\b/i.test(text)) score -= 1;
-    if (/[!]{2,}/.test(text)) score -= 0.5;
-    if (/[:;]-?[)D(P]/.test(text)) score -= 0.5;
+    if (/\b(Dear|Respected|Esteemed)\b/i.test(text))
+      score += 1.5;
+    if (/\b(Sincerely|Regards|Best regards|Kind regards|Respectfully)\b/i.test(text))
+      score += 1;
+    if (/\b(Please find attached|As per our|In accordance|Per your request)\b/i.test(text))
+      score += 0.5;
+    if (/\b(Mr\.|Mrs\.|Ms\.|Dr\.)\b/.test(text))
+      score += 0.5;
+    if (/\b(Hey|Yo|Sup|Hiya)\b/i.test(text))
+      score -= 1.5;
+    if (/\b(lol|haha|btw|fyi|tbh|omg)\b/i.test(text))
+      score -= 1;
+    if (/[!]{2,}/.test(text))
+      score -= 0.5;
+    if (/[:;]-?[)D(P]/.test(text))
+      score -= 0.5;
     return Math.max(1, Math.min(5, score));
   }
 };
 function avg(numbers) {
-  if (numbers.length === 0) return 0;
+  if (numbers.length === 0)
+    return 0;
   return numbers.reduce((a, b) => a + b, 0) / numbers.length;
 }
 function extractTopicKey(subject) {
@@ -272811,7 +274796,7 @@ function extractTopicKey(subject) {
 init_merkle_chain();
 init_ed255192();
 
-// packages/core/crypto/hardware-key-provider.ts
+// packages/core/crypto/hardware-key-provider.js
 init_ed255192();
 var HardwareKeyProvider = class _HardwareKeyProvider {
   storage;
@@ -272973,7 +274958,7 @@ var HardwareKeyProvider = class _HardwareKeyProvider {
 init_sovereignty_report();
 init_model_registry();
 
-// packages/core/llm/model-storage.ts
+// packages/core/llm/model-storage.js
 init_platform();
 var MODELS_DIR_NAME = "models";
 function getModelsDir(dataDir2) {
@@ -272991,7 +274976,8 @@ function getModelPath(modelId, dataDir2) {
 function isModelDownloaded(modelId, dataDir2) {
   const p = getPlatform();
   const path2 = getModelPath(modelId, dataDir2);
-  if (!p.fs.existsSync(path2)) return false;
+  if (!p.fs.existsSync(path2))
+    return false;
   const stat2 = p.fs.statSync(path2);
   return stat2.size > 1e6;
 }
@@ -273010,14 +274996,16 @@ function getBitNetModelPath(modelId, dataDir2) {
 function isBitNetModelDownloaded(modelId, dataDir2) {
   const p = getPlatform();
   const path2 = getBitNetModelPath(modelId, dataDir2);
-  if (!p.fs.existsSync(path2)) return false;
+  if (!p.fs.existsSync(path2))
+    return false;
   const stat2 = p.fs.statSync(path2);
   return stat2.size > 1e6;
 }
 function listDownloadedBitNetModels(dataDir2) {
   const p = getPlatform();
   const dir = getBitNetModelsDir(dataDir2);
-  if (!p.fs.existsSync(dir)) return [];
+  if (!p.fs.existsSync(dir))
+    return [];
   return p.fs.readdirSync(dir).filter((f) => f.endsWith(".gguf")).map((filename) => {
     const fullPath = p.path.join(dir, filename);
     const stat2 = p.fs.statSync(fullPath);
@@ -273029,7 +275017,7 @@ function listDownloadedBitNetModels(dataDir2) {
   });
 }
 
-// packages/core/voice/whisper-model-manager.ts
+// packages/core/voice/whisper-model-manager.js
 var WHISPER_MODELS = [
   {
     id: "whisper-tiny",
@@ -273073,7 +275061,7 @@ var WHISPER_MODELS = [
   }
 ];
 
-// packages/core/voice/piper-model-manager.ts
+// packages/core/voice/piper-model-manager.js
 var PIPER_VOICES = [
   {
     id: "en_US-amy-medium",
@@ -273128,7 +275116,7 @@ var PIPER_VOICES = [
 // packages/desktop/src-tauri/sidecar/bridge.ts
 init_oauth_callback_server();
 
-// packages/gateway/config/oauth-clients.ts
+// packages/gateway/config/oauth-clients.js
 function envOrDefault(envVar, defaultValue) {
   return process.env[envVar] ?? defaultValue;
 }
@@ -273211,7 +275199,7 @@ var oauthClients = {
   }
 };
 
-// packages/gateway/services/connector-router.ts
+// packages/gateway/services/connector-router.js
 var ConnectorRouter = class {
   adapters = /* @__PURE__ */ new Map();
   /** Register an adapter for a specific connector ID. */
@@ -273253,10 +275241,10 @@ var ConnectorRouter = class {
   }
 };
 
-// packages/gateway/services/base-pkce-adapter.ts
+// packages/gateway/services/base-pkce-adapter.js
 var import_node_crypto13 = require("node:crypto");
 
-// packages/gateway/services/base-oauth-adapter.ts
+// packages/gateway/services/base-oauth-adapter.js
 init_zod();
 init_oauth_callback_server();
 var TokenResponseSchema = external_exports.object({
@@ -273388,7 +275376,8 @@ var BaseOAuthAdapter = class {
   async getValidAccessToken() {
     if (!this.tokenManager.isTokenExpired(this.config.providerKey)) {
       const token = this.tokenManager.getAccessToken(this.config.providerKey);
-      if (token) return token;
+      if (token)
+        return token;
     }
     const refreshToken = this.tokenManager.getRefreshToken(this.config.providerKey);
     if (!refreshToken) {
@@ -273413,12 +275402,7 @@ var BaseOAuthAdapter = class {
       throw new Error(`Invalid refresh token response from ${this.config.providerKey}: ${refreshParse.error.message}`);
     }
     const data = refreshParse.data;
-    this.tokenManager.refreshAccessToken(
-      this.config.providerKey,
-      data.access_token,
-      Date.now() + data.expires_in * 1e3,
-      data.refresh_token
-    );
+    this.tokenManager.refreshAccessToken(this.config.providerKey, data.access_token, Date.now() + data.expires_in * 1e3, data.refresh_token);
     return data.access_token;
   }
   /**
@@ -273445,7 +275429,7 @@ var BaseOAuthAdapter = class {
   }
 };
 
-// packages/gateway/services/base-pkce-adapter.ts
+// packages/gateway/services/base-pkce-adapter.js
 function generateCodeVerifier(length = 64) {
   const bytes = (0, import_node_crypto13.randomBytes)(length);
   return bytes.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "").slice(0, 128);
@@ -273486,7 +275470,7 @@ var BasePKCEAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/spotify/spotify-adapter.ts
+// packages/gateway/services/spotify/spotify-adapter.js
 var SPOTIFY_SCOPES = "user-read-recently-played user-library-read user-top-read playlist-read-private";
 var API_BASE = "https://api.spotify.com/v1";
 function getSpotifyOAuthConfig() {
@@ -273706,7 +275690,7 @@ var SpotifyAdapter = class extends BasePKCEAdapter {
   }
 };
 
-// packages/gateway/services/github/github-adapter.ts
+// packages/gateway/services/github/github-adapter.js
 var GITHUB_SCOPES = "read:user repo";
 var API_BASE2 = "https://api.github.com";
 function getGitHubOAuthConfig() {
@@ -273980,7 +275964,7 @@ var GitHubAdapter = class extends BasePKCEAdapter {
   }
 };
 
-// packages/gateway/services/readwise/readwise-adapter.ts
+// packages/gateway/services/readwise/readwise-adapter.js
 var PROVIDER_KEY = "readwise";
 var API_BASE3 = "https://readwise.io/api/v2";
 var ReadwiseAdapter = class {
@@ -274137,7 +276121,8 @@ var ReadwiseAdapter = class {
       }
       const data = await response.json();
       for (const highlight of data.results) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.highlightToImportedItem(highlight));
       }
       nextUrl = data.next;
@@ -274159,7 +276144,8 @@ var ReadwiseAdapter = class {
       }
       const data = await response.json();
       for (const book of data.results) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.bookToImportedItem(book));
       }
       nextUrl = data.next;
@@ -274219,7 +276205,7 @@ Note: ${highlight.note}` : ""),
   }
 };
 
-// packages/gateway/services/notion/notion-adapter.ts
+// packages/gateway/services/notion/notion-adapter.js
 init_oauth_callback_server();
 var NOTION_VERSION = "2022-06-28";
 function getNotionOAuthConfig() {
@@ -274392,7 +276378,8 @@ var NotionAdapter = class extends BaseOAuthAdapter {
         }
         const data = await response.json();
         for (const result2 of data.results) {
-          if (items.length >= limit) break;
+          if (items.length >= limit)
+            break;
           if (result2.object === "page") {
             items.push(this.pageToImportedItem(result2));
           } else if (result2.object === "database") {
@@ -274505,7 +276492,7 @@ var NotionAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/dropbox/dropbox-adapter.ts
+// packages/gateway/services/dropbox/dropbox-adapter.js
 var DROPBOX_SCOPES = "files.metadata.read files.content.read";
 var API_BASE4 = "https://api.dropboxapi.com/2";
 var CONTENT_BASE = "https://content.dropboxapi.com/2";
@@ -274878,7 +276865,7 @@ var DropboxAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/onedrive/onedrive-adapter.ts
+// packages/gateway/services/onedrive/onedrive-adapter.js
 var ONEDRIVE_SCOPES = "Files.Read.All User.Read offline_access";
 var GRAPH_BASE = "https://graph.microsoft.com/v1.0";
 function getOneDriveOAuthConfig() {
@@ -274970,7 +276957,8 @@ var OneDriveAdapter = class extends BaseOAuthAdapter {
         }
         const data = await response.json();
         for (const item of data.value) {
-          if (items.length >= limit) break;
+          if (items.length >= limit)
+            break;
           items.push(this.driveItemToImportedItem(item));
         }
         nextLink = data["@odata.nextLink"] ?? null;
@@ -275133,10 +277121,7 @@ var OneDriveAdapter = class extends BaseOAuthAdapter {
     const accessToken = await this.getValidAccessToken();
     const fileId = payload["fileId"];
     const sinceTimestamp = payload["sinceTimestamp"];
-    const response = await globalThis.fetch(
-      `${GRAPH_BASE}/me/drive/items/${fileId}?$select=lastModifiedDateTime`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    const response = await globalThis.fetch(`${GRAPH_BASE}/me/drive/items/${fileId}?$select=lastModifiedDateTime`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!response.ok) {
       return {
         success: false,
@@ -275176,7 +277161,7 @@ var OneDriveAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/oura/oura-adapter.ts
+// packages/gateway/services/oura/oura-adapter.js
 var OURA_SCOPES = "daily heartrate workout tag session personal email";
 var API_BASE5 = "https://api.ouraring.com/v2";
 function getOuraOAuthConfig() {
@@ -275445,7 +277430,7 @@ var OuraAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/whoop/whoop-adapter.ts
+// packages/gateway/services/whoop/whoop-adapter.js
 var WHOOP_SCOPES = "read:recovery read:cycles read:sleep read:workout read:profile read:body_measurement";
 var API_BASE6 = "https://api.prod.whoop.com/developer/v1";
 function getWhoopOAuthConfig() {
@@ -275678,7 +277663,7 @@ var WhoopAdapter = class extends BasePKCEAdapter {
   }
 };
 
-// packages/gateway/services/fitbit/fitbit-adapter.ts
+// packages/gateway/services/fitbit/fitbit-adapter.js
 var FITBIT_SCOPES = "activity heartrate sleep weight profile";
 var API_BASE7 = "https://api.fitbit.com";
 function getFitbitOAuthConfig() {
@@ -275912,7 +277897,7 @@ var FitbitAdapter = class extends BasePKCEAdapter {
   }
 };
 
-// packages/gateway/services/strava/strava-adapter.ts
+// packages/gateway/services/strava/strava-adapter.js
 var STRAVA_SCOPES = "activity:read_all";
 var API_BASE8 = "https://www.strava.com/api/v3";
 function getStravaOAuthConfig() {
@@ -276050,12 +278035,15 @@ var StravaAdapter = class extends BaseOAuthAdapter {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       const activities = await response.json();
-      if (activities.length === 0) break;
+      if (activities.length === 0)
+        break;
       for (const activity of activities) {
-        if (allItems.length >= limit) break;
+        if (allItems.length >= limit)
+          break;
         allItems.push(this.activityToImportedItem(activity));
       }
-      if (activities.length < perPage) break;
+      if (activities.length < perPage)
+        break;
       page++;
     }
     return allItems;
@@ -276100,7 +278088,7 @@ var StravaAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/oauth1-signer.ts
+// packages/gateway/services/oauth1-signer.js
 var import_node_crypto14 = require("node:crypto");
 function percentEncode(value) {
   return encodeURIComponent(value).replace(/!/g, "%21").replace(/\*/g, "%2A").replace(/'/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29");
@@ -276147,17 +278135,13 @@ function generateOAuth1Header(credentials, params) {
     allParams[key] = value;
   }
   const baseString = buildSignatureBaseString(params.method, baseUrl, allParams);
-  const signature = signHmacSha1(
-    baseString,
-    credentials.consumerSecret,
-    credentials.tokenSecret ?? ""
-  );
+  const signature = signHmacSha1(baseString, credentials.consumerSecret, credentials.tokenSecret ?? "");
   oauthParams["oauth_signature"] = signature;
   const headerParts = Object.keys(oauthParams).sort().map((key) => `${percentEncode(key)}="${percentEncode(oauthParams[key])}"`).join(", ");
   return `OAuth ${headerParts}`;
 }
 
-// packages/gateway/services/garmin/garmin-adapter.ts
+// packages/gateway/services/garmin/garmin-adapter.js
 init_oauth_callback_server();
 var REQUEST_TOKEN_URL = "https://connectapi.garmin.com/oauth-service/oauth/request_token";
 var AUTHORIZE_URL = "https://connect.garmin.com/oauthConfirm";
@@ -276527,7 +278511,7 @@ var GarminAdapter = class {
   }
 };
 
-// packages/gateway/services/toggl/toggl-adapter.ts
+// packages/gateway/services/toggl/toggl-adapter.js
 var API_BASE9 = "https://api.track.toggl.com/api/v9";
 var PROVIDER_KEY3 = "toggl";
 var TogglAdapter = class {
@@ -276749,7 +278733,7 @@ var TogglAdapter = class {
   }
 };
 
-// packages/gateway/services/rescuetime/rescuetime-adapter.ts
+// packages/gateway/services/rescuetime/rescuetime-adapter.js
 var API_BASE10 = "https://www.rescuetime.com/anapi";
 var PROVIDER_KEY4 = "rescuetime";
 var PRODUCTIVITY_LABELS = {
@@ -276937,8 +278921,10 @@ var RescueTimeAdapter = class {
       const key = `${startDate}_${endDate}`;
       const existing = byDate.get(key) ?? { totalSeconds: 0, productiveSeconds: 0, distractingSeconds: 0, activities: [] };
       existing.totalSeconds += timeSeconds;
-      if (productivity > 0) existing.productiveSeconds += timeSeconds;
-      if (productivity < 0) existing.distractingSeconds += timeSeconds;
+      if (productivity > 0)
+        existing.productiveSeconds += timeSeconds;
+      if (productivity < 0)
+        existing.distractingSeconds += timeSeconds;
       existing.activities.push({
         name: activity,
         category,
@@ -277019,7 +279005,7 @@ var RescueTimeAdapter = class {
   }
 };
 
-// packages/gateway/services/pocket/pocket-adapter.ts
+// packages/gateway/services/pocket/pocket-adapter.js
 init_oauth_callback_server();
 var PROVIDER_KEY5 = "pocket";
 var API_BASE11 = "https://getpocket.com/v3";
@@ -277184,7 +279170,8 @@ var PocketAdapter = class {
       }
       const articles = Object.values(data.list);
       for (const article of articles) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.articleToImportedItem(article));
       }
     } catch (err) {
@@ -277275,7 +279262,7 @@ var PocketAdapter = class {
   }
 };
 
-// packages/gateway/services/instapaper/instapaper-adapter.ts
+// packages/gateway/services/instapaper/instapaper-adapter.js
 var PROVIDER_KEY6 = "instapaper";
 var API_BASE12 = "https://www.instapaper.com/api/1";
 var InstapaperAdapter = class {
@@ -277479,11 +279466,13 @@ var InstapaperAdapter = class {
     const items = [];
     for (const bookmark of bookmarkItems) {
       const bookmarkId = bookmark.metadata["bookmarkId"];
-      if (!bookmarkId) continue;
+      if (!bookmarkId)
+        continue;
       try {
         const url = `${API_BASE12}/bookmarks/${bookmarkId}/highlights`;
         const response = await this.makeSignedRequest("GET", url);
-        if (!response.ok) continue;
+        if (!response.ok)
+          continue;
         const highlights = await response.json();
         for (const highlight of highlights) {
           items.push({
@@ -277562,7 +279551,7 @@ Note: ${highlight.note}` : ""),
   }
 };
 
-// packages/gateway/services/todoist/todoist-adapter.ts
+// packages/gateway/services/todoist/todoist-adapter.js
 var REST_API_BASE = "https://api.todoist.com/rest/v2";
 var SYNC_API_BASE = "https://api.todoist.com/sync/v9";
 function getTodoistOAuthConfig() {
@@ -277648,7 +279637,8 @@ var TodoistAdapter = class extends BaseOAuthAdapter {
     try {
       const activeTasks = await this.fetchActiveTasks(accessToken);
       for (const task of activeTasks) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.taskToImportedItem(task, projectMap));
       }
     } catch (err) {
@@ -277657,7 +279647,8 @@ var TodoistAdapter = class extends BaseOAuthAdapter {
     try {
       const completedItems = await this.fetchCompletedTasks(accessToken, limit - items.length);
       for (const completed of completedItems) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.completedTaskToImportedItem(completed, projectMap));
       }
     } catch (err) {
@@ -277788,7 +279779,7 @@ var TodoistAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/lastfm/lastfm-adapter.ts
+// packages/gateway/services/lastfm/lastfm-adapter.js
 var import_node_crypto15 = require("node:crypto");
 init_oauth_callback_server();
 var PROVIDER_KEY7 = "lastfm";
@@ -277988,8 +279979,10 @@ var LastFmAdapter = class {
       url.searchParams.set("format", "json");
       url.searchParams.set("limit", String(Math.min(limit - items.length, 200)));
       url.searchParams.set("page", String(page));
-      if (from !== void 0) url.searchParams.set("from", String(from));
-      if (to !== void 0) url.searchParams.set("to", String(to));
+      if (from !== void 0)
+        url.searchParams.set("from", String(from));
+      if (to !== void 0)
+        url.searchParams.set("to", String(to));
       const response = await globalThis.fetch(url.toString());
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -277998,7 +279991,8 @@ var LastFmAdapter = class {
       totalPages = parseInt(data.recenttracks["@attr"].totalPages, 10);
       const tracks = data.recenttracks.track.filter((t) => !t["@attr"]?.nowplaying);
       for (const track of tracks) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.scrobbleToImportedItem(track));
       }
       page++;
@@ -278078,7 +280072,7 @@ var LastFmAdapter = class {
   }
 };
 
-// packages/gateway/services/letterboxd/letterboxd-adapter.ts
+// packages/gateway/services/letterboxd/letterboxd-adapter.js
 var import_node_crypto16 = require("node:crypto");
 var PROVIDER_KEY8 = "letterboxd";
 var API_BASE14 = "https://api.letterboxd.com/api/v0";
@@ -278268,11 +280262,13 @@ var LetterboxdAdapter = class {
       }
       const data = await response.json();
       for (const entry of data.items) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.logEntryToImportedItem(entry));
       }
       nextCursor = data.next;
-      if (!nextCursor || data.items.length === 0) break;
+      if (!nextCursor || data.items.length === 0)
+        break;
       fetchUrl = nextCursor;
     }
     return items;
@@ -278380,7 +280376,7 @@ var LetterboxdAdapter = class {
   }
 };
 
-// packages/gateway/services/mendeley/mendeley-adapter.ts
+// packages/gateway/services/mendeley/mendeley-adapter.js
 var API_BASE15 = "https://api.mendeley.com";
 function getMendeleyOAuthConfig() {
   return {
@@ -278539,15 +280535,19 @@ var MendeleyAdapter = class extends BaseOAuthAdapter {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       const documents = await response.json();
-      if (documents.length === 0) break;
+      if (documents.length === 0)
+        break;
       for (const doc of documents) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.documentToImportedItem(doc));
       }
       const linkHeader = response.headers.get("Link");
-      if (!linkHeader) break;
+      if (!linkHeader)
+        break;
       const nextMatch = linkHeader.match(/marker=([^&>]+)/);
-      if (!nextMatch) break;
+      if (!nextMatch)
+        break;
       marker = nextMatch[1];
     }
     return items;
@@ -278571,15 +280571,19 @@ var MendeleyAdapter = class extends BaseOAuthAdapter {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       const annotations = await response.json();
-      if (annotations.length === 0) break;
+      if (annotations.length === 0)
+        break;
       for (const annotation of annotations) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.annotationToImportedItem(annotation));
       }
       const linkHeader = response.headers.get("Link");
-      if (!linkHeader) break;
+      if (!linkHeader)
+        break;
       const nextMatch = linkHeader.match(/marker=([^&>]+)/);
-      if (!nextMatch) break;
+      if (!nextMatch)
+        break;
       marker = nextMatch[1];
     }
     return items;
@@ -278635,7 +280639,7 @@ var MendeleyAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/harvest/harvest-adapter.ts
+// packages/gateway/services/harvest/harvest-adapter.js
 var API_BASE16 = "https://api.harvestapp.com/v2";
 function getHarvestOAuthConfig() {
   return {
@@ -278780,10 +280784,12 @@ var HarvestAdapter = class extends BaseOAuthAdapter {
       }
       const data = await response.json();
       for (const entry of data.time_entries) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.timeEntryToImportedItem(entry));
       }
-      if (!data.next_page) break;
+      if (!data.next_page)
+        break;
       page = data.next_page;
     }
     return items;
@@ -278803,10 +280809,12 @@ var HarvestAdapter = class extends BaseOAuthAdapter {
       }
       const data = await response.json();
       for (const project of data.projects) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.projectToImportedItem(project));
       }
-      if (!data.next_page) break;
+      if (!data.next_page)
+        break;
       page = data.next_page;
     }
     return items;
@@ -278870,7 +280878,8 @@ var HarvestAdapter = class extends BaseOAuthAdapter {
    * Ensure we have a Harvest account ID. Fetches from /users/me if needed.
    */
   async ensureAccountId(accessToken) {
-    if (this.accountId) return;
+    if (this.accountId)
+      return;
     const response = await globalThis.fetch(`${API_BASE16}/users/me`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -278903,7 +280912,7 @@ var HarvestAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/slack/slack-adapter.ts
+// packages/gateway/services/slack/slack-adapter.js
 init_oauth_callback_server();
 var API_BASE17 = "https://slack.com/api";
 function getSlackOAuthConfig() {
@@ -279063,13 +281072,10 @@ var SlackAdapter = class extends BaseOAuthAdapter {
     }
     const messagesPerChannel = Math.max(1, Math.floor(limit / Math.max(channels.length, 1)));
     for (const channel of channels) {
-      if (items.length >= limit) break;
+      if (items.length >= limit)
+        break;
       try {
-        const messageItems = await this.fetchChannelHistory(
-          accessToken,
-          channel,
-          Math.min(messagesPerChannel, limit - items.length)
-        );
+        const messageItems = await this.fetchChannelHistory(accessToken, channel, Math.min(messagesPerChannel, limit - items.length));
         items.push(...messageItems);
       } catch (err) {
         errors.push({ message: `Channel ${channel.name}: ${err instanceof Error ? err.message : String(err)}` });
@@ -279149,7 +281155,8 @@ var SlackAdapter = class extends BaseOAuthAdapter {
       const memberChannels = data.channels.filter((c) => c.is_member || c.is_im);
       channels.push(...memberChannels);
       const nextCursor = data.response_metadata?.next_cursor;
-      if (!nextCursor || nextCursor.length === 0) break;
+      if (!nextCursor || nextCursor.length === 0)
+        break;
       cursor = nextCursor;
     }
     return channels.slice(0, limit);
@@ -279214,7 +281221,7 @@ var SlackAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/box/box-adapter.ts
+// packages/gateway/services/box/box-adapter.js
 var API_BASE18 = "https://api.box.com/2.0";
 function getBoxOAuthConfig() {
   return {
@@ -279516,13 +281523,16 @@ var BoxAdapter = class extends BaseOAuthAdapter {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       const data = await response.json();
-      if (data.entries.length === 0) break;
+      if (data.entries.length === 0)
+        break;
       for (const entry of data.entries) {
-        if (items.length >= limit) break;
+        if (items.length >= limit)
+          break;
         items.push(this.boxItemToImportedItem(entry));
       }
       offset += data.entries.length;
-      if (offset >= data.total_count) break;
+      if (offset >= data.total_count)
+        break;
     }
     return items;
   }
@@ -279554,7 +281564,7 @@ var BoxAdapter = class extends BaseOAuthAdapter {
   }
 };
 
-// packages/gateway/services/connector-registration.ts
+// packages/gateway/services/connector-registration.js
 function registerAllConnectors(tokenManager) {
   const router = new ConnectorRouter();
   router.registerAdapter("spotify", new SpotifyAdapter(tokenManager));
@@ -279602,7 +281612,7 @@ function wireConnectorRouter(registry, router) {
   }
 }
 
-// packages/core/agent/intent-drift-analyzer.ts
+// packages/core/agent/intent-drift-analyzer.js
 init_nanoid();
 var IntentDriftAnalyzer = class {
   db;
@@ -279627,10 +281637,13 @@ var IntentDriftAnalyzer = class {
       return [];
     }
     const frequencies = this.getActionFrequencies();
-    if (frequencies.length === 0) return [];
+    if (frequencies.length === 0)
+      return [];
     const summary = this.buildBehavioralSummary(frequencies);
-    if (!summary) return [];
-    if (!this.llm || !this.model) return [];
+    if (!summary)
+      return [];
+    if (!this.llm || !this.model)
+      return [];
     return this.generateObservations(intent, summary);
   }
   /**
@@ -279661,7 +281674,8 @@ var IntentDriftAnalyzer = class {
     for (const f of frequencies) {
       totals.set(f.action, (totals.get(f.action) ?? 0) + f.count);
     }
-    if (totals.size === 0) return null;
+    if (totals.size === 0)
+      return null;
     const parts = [];
     for (const [action, count] of totals) {
       parts.push(`${count} ${action.replace(/\./g, " ")} action${count !== 1 ? "s" : ""}`);
@@ -279707,9 +281721,11 @@ Example: "You mentioned family is important. This week's activity was heavily wo
       const response = await this.llm.generate(request);
       const text = response.text.trim();
       const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) return [];
+      if (!jsonMatch)
+        return [];
       const parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed)) return [];
+      if (!Array.isArray(parsed))
+        return [];
       const now = (/* @__PURE__ */ new Date()).toISOString();
       return parsed.filter((p) => (p.type === "drift" || p.type === "alignment" || p.type === "conflict") && p.description).slice(0, 2).map((p) => ({
         id: nanoid(),
@@ -279727,7 +281743,7 @@ Example: "You mentioned family is important. This week's activity was heavily wo
   }
 };
 
-// packages/core/agent/morning-brief.ts
+// packages/core/agent/morning-brief.js
 init_nanoid();
 init_content_sanitizer();
 var CREATE_TABLES9 = `
@@ -279789,24 +281805,33 @@ var MorningBriefGenerator = class {
     const date = options?.date ?? /* @__PURE__ */ new Date();
     const dateStr = date.toISOString().slice(0, 10);
     const existing = this.getByDate(dateStr);
-    if (existing) return existing;
+    if (existing)
+      return existing;
     const sections = [];
     const meetingsSection = await this.gatherMeetings(date);
-    if (meetingsSection.items.length > 0) sections.push(meetingsSection);
+    if (meetingsSection.items.length > 0)
+      sections.push(meetingsSection);
     const followUpsSection = this.gatherFollowUps();
-    if (followUpsSection.items.length > 0) sections.push(followUpsSection);
+    if (followUpsSection.items.length > 0)
+      sections.push(followUpsSection);
     const remindersSection = this.gatherReminders(date);
-    if (remindersSection.items.length > 0) sections.push(remindersSection);
+    if (remindersSection.items.length > 0)
+      sections.push(remindersSection);
     const alterEgoSection = this.gatherAlterEgoSummary(date);
-    if (alterEgoSection.items.length > 0) sections.push(alterEgoSection);
+    if (alterEgoSection.items.length > 0)
+      sections.push(alterEgoSection);
     const weatherSection = await this.gatherWeather();
-    if (weatherSection.items.length > 0) sections.push(weatherSection);
+    if (weatherSection.items.length > 0)
+      sections.push(weatherSection);
     const financialSection = this.gatherFinancial();
-    if (financialSection.items.length > 0) sections.push(financialSection);
+    if (financialSection.items.length > 0)
+      sections.push(financialSection);
     const insightsSection = this.gatherInsights();
-    if (insightsSection.items.length > 0) sections.push(insightsSection);
+    if (insightsSection.items.length > 0)
+      sections.push(insightsSection);
     const intentSection = await this.gatherIntentAlignment();
-    if (intentSection.items.length > 0) sections.push(intentSection);
+    if (intentSection.items.length > 0)
+      sections.push(intentSection);
     sections.sort((a, b) => a.priority - b.priority);
     if (sections.length === 0) {
       const emptyBrief = {
@@ -279818,10 +281843,8 @@ var MorningBriefGenerator = class {
         estimatedReadTimeSeconds: 5,
         dismissed: false
       };
-      this.db.prepare(
-        `INSERT INTO morning_briefs (id, date, generated_at, sections_json, summary, estimated_read_time_seconds, dismissed)
-         VALUES (?, ?, ?, ?, ?, ?, 0)`
-      ).run(emptyBrief.id, emptyBrief.date, emptyBrief.generatedAt, "[]", emptyBrief.summary, emptyBrief.estimatedReadTimeSeconds);
+      this.db.prepare(`INSERT INTO morning_briefs (id, date, generated_at, sections_json, summary, estimated_read_time_seconds, dismissed)
+         VALUES (?, ?, ?, ?, ?, ?, 0)`).run(emptyBrief.id, emptyBrief.date, emptyBrief.generatedAt, "[]", emptyBrief.summary, emptyBrief.estimatedReadTimeSeconds);
       return emptyBrief;
     }
     const summary = await this.synthesizeSummary(sections);
@@ -279835,27 +281858,17 @@ var MorningBriefGenerator = class {
       estimatedReadTimeSeconds,
       dismissed: false
     };
-    this.db.prepare(
-      `INSERT INTO morning_briefs (id, date, generated_at, sections_json, summary, estimated_read_time_seconds, dismissed)
-       VALUES (?, ?, ?, ?, ?, ?, 0)`
-    ).run(
-      brief.id,
-      brief.date,
-      brief.generatedAt,
-      JSON.stringify(brief.sections),
-      brief.summary,
-      brief.estimatedReadTimeSeconds
-    );
+    this.db.prepare(`INSERT INTO morning_briefs (id, date, generated_at, sections_json, summary, estimated_read_time_seconds, dismissed)
+       VALUES (?, ?, ?, ?, ?, ?, 0)`).run(brief.id, brief.date, brief.generatedAt, JSON.stringify(brief.sections), brief.summary, brief.estimatedReadTimeSeconds);
     return brief;
   }
   /**
    * Get brief for a specific date.
    */
   getByDate(dateStr) {
-    const row = this.db.prepare(
-      "SELECT * FROM morning_briefs WHERE date = ?"
-    ).get(dateStr);
-    if (!row) return null;
+    const row = this.db.prepare("SELECT * FROM morning_briefs WHERE date = ?").get(dateStr);
+    if (!row)
+      return null;
     return {
       id: row.id,
       date: row.date,
@@ -279870,9 +281883,7 @@ var MorningBriefGenerator = class {
    * Dismiss a brief.
    */
   dismiss(briefId) {
-    this.db.prepare(
-      "UPDATE morning_briefs SET dismissed = 1 WHERE id = ?"
-    ).run(briefId);
+    this.db.prepare("UPDATE morning_briefs SET dismissed = 1 WHERE id = ?").run(briefId);
   }
   // ─── Section Gatherers ──────────────────────────────────────────────────
   /**
@@ -279933,7 +281944,8 @@ var MorningBriefGenerator = class {
     try {
       const events = this.calendarIndexer.getUpcomingEvents({ daysAhead: 1, limit: 10 });
       for (const event of events) {
-        if (event.isAllDay) continue;
+        if (event.isAllDay)
+          continue;
         const startTime = new Date(event.startTime);
         const timeStr = startTime.toLocaleTimeString("en-US", {
           hour: "numeric",
@@ -280214,7 +282226,8 @@ ${JSON.stringify(sanitizedSections, null, 2)}
   buildTemplateSummary(sections) {
     const parts = [];
     for (const section of sections) {
-      if (section.items.length === 0) continue;
+      if (section.items.length === 0)
+        continue;
       switch (section.type) {
         case "meetings":
           parts.push(`${section.items.length} meeting${section.items.length !== 1 ? "s" : ""} today`);
@@ -280246,7 +282259,8 @@ ${JSON.stringify(sanitizedSections, null, 2)}
           break;
       }
     }
-    if (parts.length === 0) return "Nothing notable on your schedule today.";
+    if (parts.length === 0)
+      return "Nothing notable on your schedule today.";
     return `Good morning. ${parts.join(", ")}.`;
   }
   computeReadTime(summary) {
@@ -280258,7 +282272,7 @@ ${JSON.stringify(sanitizedSections, null, 2)}
 // packages/desktop/src-tauri/sidecar/bridge.ts
 init_daily_digest();
 
-// packages/core/weather/weather-cache.ts
+// packages/core/weather/weather-cache.js
 var WeatherCache = class {
   store = /* @__PURE__ */ new Map();
   /**
@@ -280266,7 +282280,8 @@ var WeatherCache = class {
    */
   get(key) {
     const entry = this.store.get(key);
-    if (!entry) return null;
+    if (!entry)
+      return null;
     if (Date.now() > entry.expiresAt) {
       this.store.delete(key);
       return null;
@@ -280304,20 +282319,29 @@ var WeatherCache = class {
   }
 };
 
-// packages/core/weather/weather-web-fallback.ts
+// packages/core/weather/weather-web-fallback.js
 var CURRENT_TTL_MS = 30 * 60 * 1e3;
 var FORECAST_TTL_MS = 60 * 60 * 1e3;
 function parseConditionFromText(text) {
   const lower = text.toLowerCase();
-  if (lower.includes("clear") || lower.includes("sunny")) return "clear";
-  if (lower.includes("partly")) return "partly_cloudy";
-  if (lower.includes("cloud") || lower.includes("overcast")) return "cloudy";
-  if (lower.includes("thunder") || lower.includes("storm")) return "thunderstorm";
-  if (lower.includes("heavy rain")) return "heavy_rain";
-  if (lower.includes("rain") || lower.includes("drizzle") || lower.includes("shower")) return "rain";
-  if (lower.includes("snow") || lower.includes("sleet")) return "snow";
-  if (lower.includes("fog") || lower.includes("mist")) return "fog";
-  if (lower.includes("wind") || lower.includes("gust")) return "wind";
+  if (lower.includes("clear") || lower.includes("sunny"))
+    return "clear";
+  if (lower.includes("partly"))
+    return "partly_cloudy";
+  if (lower.includes("cloud") || lower.includes("overcast"))
+    return "cloudy";
+  if (lower.includes("thunder") || lower.includes("storm"))
+    return "thunderstorm";
+  if (lower.includes("heavy rain"))
+    return "heavy_rain";
+  if (lower.includes("rain") || lower.includes("drizzle") || lower.includes("shower"))
+    return "rain";
+  if (lower.includes("snow") || lower.includes("sleet"))
+    return "snow";
+  if (lower.includes("fog") || lower.includes("mist"))
+    return "fog";
+  if (lower.includes("wind") || lower.includes("gust"))
+    return "wind";
   return "unknown";
 }
 var WeatherWebFallback = class {
@@ -280333,7 +282357,8 @@ var WeatherWebFallback = class {
   async queryCurrentWeather(locationLabel) {
     const cacheKey = `current:${locationLabel.toLowerCase()}`;
     const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
+    if (cached)
+      return cached;
     try {
       const response = await this.ipcClient.sendAction("web.search", {
         query: `current weather ${locationLabel}`,
@@ -280368,7 +282393,8 @@ var WeatherWebFallback = class {
   async queryForecast(locationLabel, hours) {
     const cacheKey = `forecast:${locationLabel.toLowerCase()}:${hours}`;
     const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
+    if (cached)
+      return cached;
     try {
       const response = await this.ipcClient.sendAction("web.search", {
         query: `${hours} hour weather forecast ${locationLabel}`,
@@ -280411,7 +282437,7 @@ var WeatherWebFallback = class {
   }
 };
 
-// packages/core/weather/weather-service.ts
+// packages/core/weather/weather-service.js
 var WeatherService = class {
   platform;
   webFallback;
@@ -280432,7 +282458,8 @@ var WeatherService = class {
     if (coord && this.platform.weather) {
       const cacheKey = WeatherCache.coordKey(coord.latitude, coord.longitude, "current");
       const cached = this.cache.get(cacheKey);
-      if (cached) return cached;
+      if (cached)
+        return cached;
       try {
         const conditions = await this.platform.weather.getCurrentConditions(coord);
         if (conditions) {
@@ -280454,7 +282481,8 @@ var WeatherService = class {
     if (coord && this.platform.weather) {
       const cacheKey = WeatherCache.coordKey(coord.latitude, coord.longitude, `forecast:${hours}`);
       const cached = this.cache.get(cacheKey);
-      if (cached) return cached;
+      if (cached)
+        return cached;
       try {
         const forecast = await this.platform.weather.getForecast(coord, hours);
         if (forecast) {
@@ -280475,9 +282503,11 @@ var WeatherService = class {
     const targetMs = new Date(timestamp).getTime();
     const nowMs = Date.now();
     const hoursAhead = Math.max(1, Math.ceil((targetMs - nowMs) / (60 * 60 * 1e3)));
-    if (hoursAhead > 48) return null;
+    if (hoursAhead > 48)
+      return null;
     const forecast = await this.getForecastData(hoursAhead + 2, locationLabel);
-    if (!forecast || forecast.length === 0) return null;
+    if (!forecast || forecast.length === 0)
+      return null;
     let closest = null;
     let closestDiff = Infinity;
     for (const entry of forecast) {
@@ -280492,7 +282522,7 @@ var WeatherService = class {
   }
 };
 
-// packages/core/location/location-privacy.ts
+// packages/core/location/location-privacy.js
 function reduceCoordinatePrecision(coord, decimalPlaces = 3) {
   const factor = Math.pow(10, decimalPlaces);
   return {
@@ -280530,7 +282560,7 @@ function distanceMeters(a, b) {
   return R * c;
 }
 
-// packages/core/location/location-store.ts
+// packages/core/location/location-store.js
 init_nanoid();
 var CREATE_TABLES10 = `
   CREATE TABLE IF NOT EXISTS location_history (
@@ -280565,7 +282595,8 @@ var LocationStore = class {
    * Deduplicates: skips if < 100m from last reading within 5 minutes.
    */
   recordLocation(location) {
-    if (!isValidCoordinate(location.coordinate)) return null;
+    if (!isValidCoordinate(location.coordinate))
+      return null;
     const reduced = reduceCoordinatePrecision(location.coordinate, 3);
     const last2 = this.getLastKnownLocation();
     if (last2) {
@@ -280595,18 +282626,14 @@ var LocationStore = class {
    */
   getRecentLocations(hours) {
     const since = new Date(Date.now() - hours * 60 * 60 * 1e3).toISOString();
-    const rows = this.db.prepare(
-      "SELECT * FROM location_history WHERE timestamp >= ? ORDER BY timestamp DESC"
-    ).all(since);
+    const rows = this.db.prepare("SELECT * FROM location_history WHERE timestamp >= ? ORDER BY timestamp DESC").all(since);
     return rows.map(rowToStoredLocation);
   }
   /**
    * Get the most recent stored location.
    */
   getLastKnownLocation() {
-    const row = this.db.prepare(
-      "SELECT * FROM location_history ORDER BY timestamp DESC LIMIT 1"
-    ).get();
+    const row = this.db.prepare("SELECT * FROM location_history ORDER BY timestamp DESC LIMIT 1").get();
     return row ? rowToStoredLocation(row) : null;
   }
   /**
@@ -280614,9 +282641,7 @@ var LocationStore = class {
    */
   purgeOldLocations(daysToKeep) {
     const cutoff = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1e3).toISOString();
-    const result2 = this.db.prepare(
-      "DELETE FROM location_history WHERE timestamp < ?"
-    ).run(cutoff);
+    const result2 = this.db.prepare("DELETE FROM location_history WHERE timestamp < ?").run(cutoff);
     return result2.changes;
   }
   /**
@@ -280638,7 +282663,7 @@ var LocationStore = class {
 init_style_profile();
 init_document_context();
 
-// packages/core/health/health-entry-store.ts
+// packages/core/health/health-entry-store.js
 init_nanoid();
 var HealthEntryStore = class {
   db;
@@ -280647,7 +282672,8 @@ var HealthEntryStore = class {
     this.db = db;
   }
   ensureTable() {
-    if (this.initialized) return;
+    if (this.initialized)
+      return;
     this.db.run(`
       CREATE TABLE IF NOT EXISTS health_entries (
         id TEXT PRIMARY KEY,
@@ -280683,8 +282709,7 @@ var HealthEntryStore = class {
       medications: entry.medications ?? existing?.medications ?? [],
       notes: entry.notes ?? existing?.notes ?? null
     };
-    this.db.run(
-      `INSERT INTO health_entries (id, date, timestamp, mood, energy, water_glasses, symptoms, medications, notes)
+    this.db.run(`INSERT INTO health_entries (id, date, timestamp, mood, energy, water_glasses, symptoms, medications, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(date) DO UPDATE SET
          timestamp = excluded.timestamp,
@@ -280693,25 +282718,24 @@ var HealthEntryStore = class {
          water_glasses = excluded.water_glasses,
          symptoms = excluded.symptoms,
          medications = excluded.medications,
-         notes = excluded.notes`,
-      [
-        full.id,
-        full.date,
-        full.timestamp,
-        full.mood,
-        full.energy,
-        full.waterGlasses,
-        JSON.stringify(full.symptoms),
-        JSON.stringify(full.medications),
-        full.notes
-      ]
-    );
+         notes = excluded.notes`, [
+      full.id,
+      full.date,
+      full.timestamp,
+      full.mood,
+      full.energy,
+      full.waterGlasses,
+      JSON.stringify(full.symptoms),
+      JSON.stringify(full.medications),
+      full.notes
+    ]);
     return full;
   }
   getEntry(date) {
     this.ensureTable();
     const row = this.db.get("SELECT * FROM health_entries WHERE date = ?", [date]);
-    if (!row) return null;
+    if (!row)
+      return null;
     return {
       id: row.id,
       date: row.date,
@@ -280781,7 +282805,7 @@ var HealthEntryStore = class {
   }
 };
 
-// packages/core/cloud-storage/cloud-storage-client.ts
+// packages/core/cloud-storage/cloud-storage-client.js
 var CloudStorageClient = class {
   ipc;
   defaultProvider;
@@ -280860,7 +282884,7 @@ var CloudStorageClient = class {
   }
 };
 
-// packages/core/knowledge/graph-visualization.ts
+// packages/core/knowledge/graph-visualization.js
 init_connector_category_map();
 var CREATE_CACHE_TABLE = `
   CREATE TABLE IF NOT EXISTS graph_cache (
@@ -280932,7 +282956,8 @@ var GraphVisualizationProvider = class {
   getGraphData(options) {
     if (!options || Object.keys(options).length === 0) {
       const cached = this.getCachedGraph();
-      if (cached) return cached;
+      if (cached)
+        return cached;
     }
     const maxNodes = options?.maxNodes ?? 200;
     const edgeCap = maxNodes * (options?.edgeCapMultiplier ?? 3);
@@ -280988,9 +283013,7 @@ var GraphVisualizationProvider = class {
       cappedNodes = displayed;
     }
     const cappedNodeIds = new Set(cappedNodes.map((n) => n.id));
-    let cappedEdges = edges.filter(
-      (e) => cappedNodeIds.has(e.sourceId) && cappedNodeIds.has(e.targetId)
-    );
+    let cappedEdges = edges.filter((e) => cappedNodeIds.has(e.sourceId) && cappedNodeIds.has(e.targetId));
     cappedEdges = this.capEdges(cappedEdges, edgeCap);
     const stats = this.computeStats(cappedNodes, cappedEdges);
     const result2 = {
@@ -281041,14 +283064,13 @@ var GraphVisualizationProvider = class {
     }
     const graph = this.getGraphData();
     const node = graph.nodes.find((n) => n.id === nodeId);
-    if (!node) return null;
+    if (!node)
+      return null;
     if (node.type === "directory") {
       const dirPath = node.metadata.path;
       if (dirPath) {
         try {
-          const childDocs = this.db.prepare(
-            "SELECT id, title, created_at, metadata FROM documents WHERE source = 'local_file' AND source_path LIKE ? || '%'"
-          ).all(dirPath);
+          const childDocs = this.db.prepare("SELECT id, title, created_at, metadata FROM documents WHERE source = 'local_file' AND source_path LIKE ? || '%'").all(dirPath);
           const connections2 = childDocs.map((doc) => {
             let meta = {};
             try {
@@ -281087,10 +283109,12 @@ var GraphVisualizationProvider = class {
     for (const edge of graph.edges) {
       if (edge.sourceId === nodeId) {
         const target = graph.nodes.find((n) => n.id === edge.targetId);
-        if (target) connections.push({ node: target, edge });
+        if (target)
+          connections.push({ node: target, edge });
       } else if (edge.targetId === nodeId) {
         const source = graph.nodes.find((n) => n.id === edge.sourceId);
-        if (source) connections.push({ node: source, edge });
+        if (source)
+          connections.push({ node: source, edge });
       }
     }
     const recentActivity = [];
@@ -281113,20 +283137,17 @@ var GraphVisualizationProvider = class {
   getGrowthTimeline(granularity = "day") {
     let entityDates = [];
     try {
-      entityDates = this.db.prepare(
-        "SELECT first_seen as date FROM entities ORDER BY first_seen ASC"
-      ).all();
+      entityDates = this.db.prepare("SELECT first_seen as date FROM entities ORDER BY first_seen ASC").all();
     } catch {
     }
     let docDates = [];
     try {
-      docDates = this.db.prepare(
-        "SELECT created_at as date FROM documents ORDER BY created_at ASC"
-      ).all();
+      docDates = this.db.prepare("SELECT created_at as date FROM documents ORDER BY created_at ASC").all();
     } catch {
     }
     const allDates = [...entityDates, ...docDates].map((r) => r.date.substring(0, 10)).sort();
-    if (allDates.length === 0) return [];
+    if (allDates.length === 0)
+      return [];
     const grouped = /* @__PURE__ */ new Map();
     for (const date of allDates) {
       const key = this.dateToGranularity(date, granularity);
@@ -281147,12 +283168,12 @@ var GraphVisualizationProvider = class {
    */
   getCachedGraph(ttlMs = 60 * 60 * 1e3) {
     try {
-      const row = this.db.prepare(
-        "SELECT graph_json, updated_at FROM graph_cache WHERE id = ?"
-      ).get("default");
-      if (!row) return null;
+      const row = this.db.prepare("SELECT graph_json, updated_at FROM graph_cache WHERE id = ?").get("default");
+      if (!row)
+        return null;
       const age = Date.now() - new Date(row.updated_at).getTime();
-      if (age > ttlMs) return null;
+      if (age > ttlMs)
+        return null;
       return JSON.parse(row.graph_json);
     } catch {
       return null;
@@ -281176,7 +283197,8 @@ var GraphVisualizationProvider = class {
     const baseGraph = this.getGraphData(options);
     const categoryMap = /* @__PURE__ */ new Map();
     for (const node of baseGraph.nodes) {
-      if (node.type === "category") continue;
+      if (node.type === "category")
+        continue;
       const cat = getCategoryForEntityType(node.type, node.metadata);
       const list = categoryMap.get(cat);
       if (list) {
@@ -281209,7 +283231,8 @@ var GraphVisualizationProvider = class {
     for (const edge of baseGraph.edges) {
       const srcCat = nodeToCat.get(edge.sourceId);
       const tgtCat = nodeToCat.get(edge.targetId);
-      if (!srcCat || !tgtCat || srcCat === tgtCat) continue;
+      if (!srcCat || !tgtCat || srcCat === tgtCat)
+        continue;
       const [a, b] = [srcCat, tgtCat].sort();
       const key = `${a}::${b}`;
       const existing = catEdgeAgg.get(key);
@@ -281279,13 +283302,12 @@ var GraphVisualizationProvider = class {
   getNodesForCategory(category, options) {
     const graph = this.getGraphData(options);
     const catNodes = graph.nodes.filter((n) => {
-      if (n.type === "category") return false;
+      if (n.type === "category")
+        return false;
       return getCategoryForEntityType(n.type, n.metadata) === category;
     });
     const catNodeIds = new Set(catNodes.map((n) => n.id));
-    const catEdges = graph.edges.filter(
-      (e) => catNodeIds.has(e.sourceId) && catNodeIds.has(e.targetId)
-    );
+    const catEdges = graph.edges.filter((e) => catNodeIds.has(e.sourceId) && catNodeIds.has(e.targetId));
     return { nodes: catNodes, edges: catEdges };
   }
   /**
@@ -281329,12 +283351,18 @@ var GraphVisualizationProvider = class {
       const contact = this.contactStore.getContact(contactId);
       if (contact) {
         const bodyParts = [];
-        if (contact.organization) bodyParts.push(`Organization: ${contact.organization}`);
-        if (contact.jobTitle) bodyParts.push(`Title: ${contact.jobTitle}`);
-        if (contact.emails.length > 0) bodyParts.push(`Emails: ${contact.emails.join(", ")}`);
-        if (contact.phones.length > 0) bodyParts.push(`Phones: ${contact.phones.join(", ")}`);
-        if (contact.birthday) bodyParts.push(`Birthday: ${contact.birthday}`);
-        if (contact.tags.length > 0) bodyParts.push(`Tags: ${contact.tags.join(", ")}`);
+        if (contact.organization)
+          bodyParts.push(`Organization: ${contact.organization}`);
+        if (contact.jobTitle)
+          bodyParts.push(`Title: ${contact.jobTitle}`);
+        if (contact.emails.length > 0)
+          bodyParts.push(`Emails: ${contact.emails.join(", ")}`);
+        if (contact.phones.length > 0)
+          bodyParts.push(`Phones: ${contact.phones.join(", ")}`);
+        if (contact.birthday)
+          bodyParts.push(`Birthday: ${contact.birthday}`);
+        if (contact.tags.length > 0)
+          bodyParts.push(`Tags: ${contact.tags.join(", ")}`);
         return {
           type: "person",
           title: contact.displayName,
@@ -281356,9 +283384,7 @@ var GraphVisualizationProvider = class {
     const entityId = node.metadata.entityId;
     if (entityId) {
       try {
-        const entity = this.db.prepare(
-          "SELECT name, type, aliases, metadata FROM entities WHERE id = ?"
-        ).get(entityId);
+        const entity = this.db.prepare("SELECT name, type, aliases, metadata FROM entities WHERE id = ?").get(entityId);
         if (entity) {
           let meta = {};
           try {
@@ -281379,17 +283405,15 @@ var GraphVisualizationProvider = class {
   }
   getEmailThreadContent(node) {
     const threadId = node.metadata.threadId;
-    if (!threadId) return void 0;
+    if (!threadId)
+      return void 0;
     try {
-      const emails = this.db.prepare(
-        'SELECT subject, "from", from_name, snippet, received_at, priority FROM indexed_emails WHERE thread_id = ? ORDER BY received_at DESC LIMIT 20'
-      ).all(threadId);
-      if (emails.length === 0) return void 0;
-      const body = emails.map(
-        (e) => `From: ${e.from_name || e.from}
+      const emails = this.db.prepare('SELECT subject, "from", from_name, snippet, received_at, priority FROM indexed_emails WHERE thread_id = ? ORDER BY received_at DESC LIMIT 20').all(threadId);
+      if (emails.length === 0)
+        return void 0;
+      const body = emails.map((e) => `From: ${e.from_name || e.from}
 Subject: ${e.subject}
-${e.snippet}`
-      ).join("\n---\n");
+${e.snippet}`).join("\n---\n");
       return {
         type: "email",
         title: node.label,
@@ -281411,23 +283435,26 @@ ${e.snippet}`,
   }
   getEventContent(node) {
     const eventId = node.metadata.calendarEventId;
-    if (!eventId) return void 0;
+    if (!eventId)
+      return void 0;
     try {
-      const event = this.db.prepare(
-        "SELECT title, description, start_time, end_time, location, attendees, calendar_id FROM indexed_calendar_events WHERE id = ?"
-      ).get(eventId);
-      if (!event) return void 0;
+      const event = this.db.prepare("SELECT title, description, start_time, end_time, location, attendees, calendar_id FROM indexed_calendar_events WHERE id = ?").get(eventId);
+      if (!event)
+        return void 0;
       const bodyParts = [];
       bodyParts.push(`When: ${event.start_time}${event.end_time ? ` - ${event.end_time}` : ""}`);
-      if (event.location) bodyParts.push(`Where: ${event.location}`);
-      if (event.description) bodyParts.push(`
+      if (event.location)
+        bodyParts.push(`Where: ${event.location}`);
+      if (event.description)
+        bodyParts.push(`
 ${event.description}`);
       let attendeeList = [];
       try {
         attendeeList = JSON.parse(event.attendees);
       } catch {
       }
-      if (attendeeList.length > 0) bodyParts.push(`Attendees: ${attendeeList.join(", ")}`);
+      if (attendeeList.length > 0)
+        bodyParts.push(`Attendees: ${attendeeList.join(", ")}`);
       return {
         type: "event",
         title: event.title,
@@ -281445,12 +283472,15 @@ ${event.description}`);
     }
   }
   getReminderContent(node) {
-    if (!this.reminderStore) return void 0;
+    if (!this.reminderStore)
+      return void 0;
     const reminderId = node.metadata.reminderId;
-    if (!reminderId) return void 0;
+    if (!reminderId)
+      return void 0;
     try {
       const reminder = this.reminderStore.findByStatus("pending").find((r) => r.id === reminderId);
-      if (!reminder) return void 0;
+      if (!reminder)
+        return void 0;
       return {
         type: "reminder",
         title: reminder.text,
@@ -281472,12 +283502,12 @@ Source: ${reminder.source}`,
   }
   getTopicContent(node) {
     const entityId = node.metadata.entityId;
-    if (!entityId) return void 0;
+    if (!entityId)
+      return void 0;
     try {
-      const mentions = this.db.prepare(
-        "SELECT m.document_id, m.context, m.mentioned_at, d.title as doc_title FROM entity_mentions m LEFT JOIN documents d ON m.document_id = d.id WHERE m.entity_id = ? ORDER BY m.mentioned_at DESC LIMIT 20"
-      ).all(entityId);
-      if (mentions.length === 0) return void 0;
+      const mentions = this.db.prepare("SELECT m.document_id, m.context, m.mentioned_at, d.title as doc_title FROM entity_mentions m LEFT JOIN documents d ON m.document_id = d.id WHERE m.entity_id = ? ORDER BY m.mentioned_at DESC LIMIT 20").all(entityId);
+      if (mentions.length === 0)
+        return void 0;
       const body = mentions.filter((m) => m.doc_title || m.context).map((m) => `In "${m.doc_title || m.document_id}": ${m.context || "(no context)"}`).join("\n");
       return {
         type: "topic",
@@ -281496,12 +283526,12 @@ Source: ${reminder.source}`,
   getLocationContent(node) {
     const lat = node.metadata.latitude;
     const lon = node.metadata.longitude;
-    if (lat == null || lon == null) return void 0;
+    if (lat == null || lon == null)
+      return void 0;
     try {
-      const visits = this.db.prepare(
-        "SELECT timestamp, accuracy FROM location_history WHERE ROUND(latitude, 2) = ? AND ROUND(longitude, 2) = ? ORDER BY timestamp DESC LIMIT 20"
-      ).all(lat, lon);
-      if (visits.length === 0) return void 0;
+      const visits = this.db.prepare("SELECT timestamp, accuracy FROM location_history WHERE ROUND(latitude, 2) = ? AND ROUND(longitude, 2) = ? ORDER BY timestamp DESC LIMIT 20").all(lat, lon);
+      if (visits.length === 0)
+        return void 0;
       return {
         type: "location",
         title: node.label,
@@ -281522,12 +283552,12 @@ Latest: ${visits[0]?.timestamp}`,
   }
   getDocumentContent(node) {
     const documentId = node.metadata.documentId;
-    if (!documentId) return void 0;
+    if (!documentId)
+      return void 0;
     try {
-      const doc = this.db.prepare(
-        "SELECT id, title, source, source_path, mime_type, metadata, created_at, updated_at, indexed_at FROM documents WHERE id = ?"
-      ).get(documentId);
-      if (!doc) return void 0;
+      const doc = this.db.prepare("SELECT id, title, source, source_path, mime_type, metadata, created_at, updated_at, indexed_at FROM documents WHERE id = ?").get(documentId);
+      if (!doc)
+        return void 0;
       let meta = {};
       try {
         meta = doc.metadata ? JSON.parse(doc.metadata) : {};
@@ -281535,23 +283565,28 @@ Latest: ${visits[0]?.timestamp}`,
       }
       const bodyParts = [];
       bodyParts.push(`Source: ${doc.source.replace(/_/g, " ")}`);
-      if (doc.source_path) bodyParts.push(`Path: ${doc.source_path}`);
+      if (doc.source_path)
+        bodyParts.push(`Path: ${doc.source_path}`);
       bodyParts.push(`Type: ${doc.mime_type}`);
       bodyParts.push(`Created: ${doc.created_at}`);
       bodyParts.push(`Indexed: ${doc.indexed_at}`);
-      if (meta.subject) bodyParts.push(`Subject: ${meta.subject}`);
-      if (meta.from) bodyParts.push(`From: ${meta.from}`);
-      if (meta.to) bodyParts.push(`To: ${meta.to}`);
-      if (meta.snippet) bodyParts.push(`
+      if (meta.subject)
+        bodyParts.push(`Subject: ${meta.subject}`);
+      if (meta.from)
+        bodyParts.push(`From: ${meta.from}`);
+      if (meta.to)
+        bodyParts.push(`To: ${meta.to}`);
+      if (meta.snippet)
+        bodyParts.push(`
 ${meta.snippet}`);
-      if (meta.summary) bodyParts.push(`
+      if (meta.summary)
+        bodyParts.push(`
 ${meta.summary}`);
-      if (meta.description) bodyParts.push(`
+      if (meta.description)
+        bodyParts.push(`
 ${meta.description}`);
       try {
-        const mentions = this.db.prepare(
-          "SELECT e.name, e.type FROM entity_mentions m JOIN entities e ON m.entity_id = e.id WHERE m.document_id = ? LIMIT 20"
-        ).all(documentId);
+        const mentions = this.db.prepare("SELECT e.name, e.type FROM entity_mentions m JOIN entities e ON m.entity_id = e.id WHERE m.document_id = ? LIMIT 20").all(documentId);
         if (mentions.length > 0) {
           bodyParts.push(`
 Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`);
@@ -281582,7 +283617,8 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
       const contacts = this.contactStore.listContacts({ limit: 500 });
       for (const contact of contacts) {
         const id = `person_${contact.id}`;
-        if (nodeIds.has(id)) continue;
+        if (nodeIds.has(id))
+          continue;
         nodeIds.add(id);
         const domain = this.classifyPersonDomain(contact.organization ?? "", contact.emails);
         nodes.push({
@@ -281602,12 +283638,11 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
       }
     }
     try {
-      const entityPersons = this.db.prepare(
-        "SELECT * FROM entities WHERE type = 'person' LIMIT 200"
-      ).all();
+      const entityPersons = this.db.prepare("SELECT * FROM entities WHERE type = 'person' LIMIT 200").all();
       for (const entity of entityPersons) {
         const id = `person_entity_${entity.id}`;
-        if (nodeIds.has(id)) continue;
+        if (nodeIds.has(id))
+          continue;
         nodeIds.add(id);
         nodes.push({
           id,
@@ -281624,12 +283659,11 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   }
   addTopicNodes(nodes, nodeIds) {
     try {
-      const topics = this.db.prepare(
-        "SELECT e.id, e.name, e.first_seen, COUNT(m.id) as mention_count FROM entities e LEFT JOIN entity_mentions m ON e.id = m.entity_id WHERE e.type = 'topic' GROUP BY e.id ORDER BY mention_count DESC LIMIT 100"
-      ).all();
+      const topics = this.db.prepare("SELECT e.id, e.name, e.first_seen, COUNT(m.id) as mention_count FROM entities e LEFT JOIN entity_mentions m ON e.id = m.entity_id WHERE e.type = 'topic' GROUP BY e.id ORDER BY mention_count DESC LIMIT 100").all();
       for (const topic of topics) {
         const id = `topic_${topic.id}`;
-        if (nodeIds.has(id)) continue;
+        if (nodeIds.has(id))
+          continue;
         nodeIds.add(id);
         nodes.push({
           id,
@@ -281650,24 +283684,21 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   }
   addDocumentNodes(nodes, nodeIds) {
     try {
-      const docs = this.db.prepare(
-        "SELECT d.id, d.title, d.created_at, d.source, d.source_path, d.metadata, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id WHERE d.source != 'conversation' GROUP BY d.id ORDER BY mention_count DESC LIMIT 500"
-      ).all();
+      const docs = this.db.prepare("SELECT d.id, d.title, d.created_at, d.source, d.source_path, d.metadata, COUNT(m.id) as mention_count FROM documents d LEFT JOIN entity_mentions m ON d.id = m.document_id WHERE d.source != 'conversation' GROUP BY d.id ORDER BY mention_count DESC LIMIT 500").all();
       const directoryDocs = docs.filter((d) => d.source === "directory");
       const directoryPaths = directoryDocs.map((d) => d.source_path).filter(Boolean);
       for (const doc of docs) {
         if (doc.source === "directory") {
           const id = `directory_${doc.id}`;
-          if (nodeIds.has(id)) continue;
+          if (nodeIds.has(id))
+            continue;
           nodeIds.add(id);
           let meta = {};
           try {
             meta = doc.metadata ? JSON.parse(doc.metadata) : {};
           } catch {
           }
-          const fileCount = docs.filter(
-            (d) => d.source === "local_file" && d.source_path?.startsWith(doc.source_path)
-          ).length;
+          const fileCount = docs.filter((d) => d.source === "local_file" && d.source_path?.startsWith(doc.source_path)).length;
           nodes.push({
             id,
             label: doc.title,
@@ -281699,7 +283730,8 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   }
   pushDocumentNode(nodes, nodeIds, doc) {
     const id = `document_${doc.id}`;
-    if (nodeIds.has(id)) return;
+    if (nodeIds.has(id))
+      return;
     nodeIds.add(id);
     nodes.push({
       id,
@@ -281717,20 +283749,19 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   }
   addDirectoryFileEdges(edges, edgeKeys, nodeIds) {
     try {
-      const dirs = this.db.prepare(
-        "SELECT id, source_path FROM documents WHERE source = 'directory' AND source_path IS NOT NULL"
-      ).all();
+      const dirs = this.db.prepare("SELECT id, source_path FROM documents WHERE source = 'directory' AND source_path IS NOT NULL").all();
       for (const dir of dirs) {
         const dirNodeId = `directory_${dir.id}`;
-        if (!nodeIds.has(dirNodeId)) continue;
-        const children = this.db.prepare(
-          "SELECT id FROM documents WHERE source = 'local_file' AND source_path LIKE ? || '%'"
-        ).all(dir.source_path);
+        if (!nodeIds.has(dirNodeId))
+          continue;
+        const children = this.db.prepare("SELECT id FROM documents WHERE source = 'local_file' AND source_path LIKE ? || '%'").all(dir.source_path);
         for (const child of children) {
           const fileNodeId = `document_${child.id}`;
-          if (!nodeIds.has(fileNodeId)) continue;
+          if (!nodeIds.has(fileNodeId))
+            continue;
           const edgeKey = `${dirNodeId}\u2192${fileNodeId}`;
-          if (edgeKeys.has(edgeKey)) continue;
+          if (edgeKeys.has(edgeKey))
+            continue;
           edgeKeys.add(edgeKey);
           edges.push({
             id: `edge_dir_file_${dir.id}_${child.id}`,
@@ -281749,12 +283780,11 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
     const pastCutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1e3).toISOString();
     const futureCutoff = new Date(Date.now() + daysForward * 24 * 60 * 60 * 1e3).toISOString();
     try {
-      const events = this.db.prepare(
-        "SELECT id, title, start_time, attendees FROM indexed_calendar_events WHERE start_time >= ? AND start_time <= ? ORDER BY start_time DESC LIMIT 100"
-      ).all(pastCutoff, futureCutoff);
+      const events = this.db.prepare("SELECT id, title, start_time, attendees FROM indexed_calendar_events WHERE start_time >= ? AND start_time <= ? ORDER BY start_time DESC LIMIT 100").all(pastCutoff, futureCutoff);
       for (const event of events) {
         const id = `event_${event.id}`;
-        if (nodeIds.has(id)) continue;
+        if (nodeIds.has(id))
+          continue;
         nodeIds.add(id);
         let attendeeCount = 1;
         try {
@@ -281780,12 +283810,11 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   }
   addEmailThreadNodes(nodes, nodeIds) {
     try {
-      const threads = this.db.prepare(
-        "SELECT thread_id, MIN(subject) as subject, COUNT(*) as msg_count, MIN(received_at) as first_date FROM indexed_emails GROUP BY thread_id ORDER BY msg_count DESC LIMIT 50"
-      ).all();
+      const threads = this.db.prepare("SELECT thread_id, MIN(subject) as subject, COUNT(*) as msg_count, MIN(received_at) as first_date FROM indexed_emails GROUP BY thread_id ORDER BY msg_count DESC LIMIT 50").all();
       for (const thread of threads) {
         const id = `email_thread_${thread.thread_id}`;
-        if (nodeIds.has(id)) continue;
+        if (nodeIds.has(id))
+          continue;
         nodeIds.add(id);
         nodes.push({
           id,
@@ -281805,11 +283834,13 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
     }
   }
   addReminderNodes(nodes, nodeIds) {
-    if (!this.reminderStore) return;
+    if (!this.reminderStore)
+      return;
     const reminders = this.reminderStore.findByStatus("pending");
     for (const reminder of reminders) {
       const id = `reminder_${reminder.id}`;
-      if (nodeIds.has(id)) continue;
+      if (nodeIds.has(id))
+        continue;
       nodeIds.add(id);
       nodes.push({
         id,
@@ -281824,12 +283855,11 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   }
   addLocationNodes(nodes, nodeIds) {
     try {
-      const locations = this.db.prepare(
-        "SELECT ROUND(latitude, 2) as lat, ROUND(longitude, 2) as lon, COUNT(*) as visit_count, MIN(timestamp) as first_visit FROM location_history GROUP BY ROUND(latitude, 2), ROUND(longitude, 2) ORDER BY visit_count DESC LIMIT 30"
-      ).all();
+      const locations = this.db.prepare("SELECT ROUND(latitude, 2) as lat, ROUND(longitude, 2) as lon, COUNT(*) as visit_count, MIN(timestamp) as first_visit FROM location_history GROUP BY ROUND(latitude, 2), ROUND(longitude, 2) ORDER BY visit_count DESC LIMIT 30").all();
       for (const loc of locations) {
         const id = `location_${loc.lat}_${loc.lon}`;
-        if (nodeIds.has(id)) continue;
+        if (nodeIds.has(id))
+          continue;
         nodeIds.add(id);
         const latDir = loc.lat >= 0 ? "N" : "S";
         const lonDir = loc.lon >= 0 ? "E" : "W";
@@ -281850,15 +283880,15 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   // ─── Private: Edge Builders ────────────────────────────────────────────────
   addMentionEdges(edges, edgeKeys, nodeIds) {
     try {
-      const mentions = this.db.prepare(
-        "SELECT entity_id, document_id, COUNT(*) as count FROM entity_mentions GROUP BY entity_id, document_id"
-      ).all();
+      const mentions = this.db.prepare("SELECT entity_id, document_id, COUNT(*) as count FROM entity_mentions GROUP BY entity_id, document_id").all();
       for (const m of mentions) {
         const entityNodeId = this.findEntityNodeId(m.entity_id, nodeIds);
         const docNodeId = `document_${m.document_id}`;
-        if (!entityNodeId || !nodeIds.has(docNodeId)) continue;
+        if (!entityNodeId || !nodeIds.has(docNodeId))
+          continue;
         const key = [entityNodeId, docNodeId].sort().join("::");
-        if (edgeKeys.has(key)) continue;
+        if (edgeKeys.has(key))
+          continue;
         edgeKeys.add(key);
         edges.push({
           id: `edge_mention_${m.entity_id}_${m.document_id}`,
@@ -281873,13 +283903,12 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   }
   addAttendeeEdges(edges, edgeKeys, nodeIds) {
     try {
-      const events = this.db.prepare(
-        "SELECT id, attendees FROM indexed_calendar_events"
-      ).all();
+      const events = this.db.prepare("SELECT id, attendees FROM indexed_calendar_events").all();
       const emailToNodeId = this.buildEmailToNodeMap(nodeIds);
       for (const event of events) {
         const eventNodeId = `event_${event.id}`;
-        if (!nodeIds.has(eventNodeId)) continue;
+        if (!nodeIds.has(eventNodeId))
+          continue;
         let attendees = [];
         try {
           attendees = JSON.parse(event.attendees);
@@ -281888,9 +283917,11 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
         }
         for (const attendeeEmail of attendees) {
           const personNodeId = emailToNodeId.get(attendeeEmail.toLowerCase());
-          if (!personNodeId) continue;
+          if (!personNodeId)
+            continue;
           const key = [personNodeId, eventNodeId].sort().join("::");
-          if (edgeKeys.has(key)) continue;
+          if (edgeKeys.has(key))
+            continue;
           edgeKeys.add(key);
           edges.push({
             id: `edge_attendee_${personNodeId}_${event.id}`,
@@ -281906,13 +283937,12 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   }
   addEmailThreadEdges(edges, edgeKeys, nodeIds) {
     try {
-      const emails = this.db.prepare(
-        'SELECT thread_id, "from", "to" FROM indexed_emails'
-      ).all();
+      const emails = this.db.prepare('SELECT thread_id, "from", "to" FROM indexed_emails').all();
       const emailToNodeId = this.buildEmailToNodeMap(nodeIds);
       for (const email of emails) {
         const threadNodeId = `email_thread_${email.thread_id}`;
-        if (!nodeIds.has(threadNodeId)) continue;
+        if (!nodeIds.has(threadNodeId))
+          continue;
         const fromNodeId = emailToNodeId.get(email.from.toLowerCase());
         if (fromNodeId) {
           const key = [fromNodeId, threadNodeId].sort().join("::");
@@ -281935,9 +283965,11 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
         }
         for (const recipient of recipients) {
           const toNodeId = emailToNodeId.get(recipient.toLowerCase());
-          if (!toNodeId) continue;
+          if (!toNodeId)
+            continue;
           const key = [toNodeId, threadNodeId].sort().join("::");
-          if (edgeKeys.has(key)) continue;
+          if (edgeKeys.has(key))
+            continue;
           edgeKeys.add(key);
           edges.push({
             id: `edge_email_${toNodeId}_${email.thread_id}`,
@@ -281952,14 +283984,17 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
     }
   }
   addRelationshipEdges(edges, edgeKeys, nodeIds) {
-    if (!this.relationshipAnalyzer) return;
+    if (!this.relationshipAnalyzer)
+      return;
     const relGraph = this.relationshipAnalyzer.buildRelationshipGraph();
     for (const edge of relGraph.edges) {
       const sourceNodeId = `person_${edge.sourceId}`;
       const targetNodeId = `person_${edge.targetId}`;
-      if (!nodeIds.has(sourceNodeId) || !nodeIds.has(targetNodeId)) continue;
+      if (!nodeIds.has(sourceNodeId) || !nodeIds.has(targetNodeId))
+        continue;
       const key = [sourceNodeId, targetNodeId].sort().join("::");
-      if (edgeKeys.has(key)) continue;
+      if (edgeKeys.has(key))
+        continue;
       edgeKeys.add(key);
       edges.push({
         id: `edge_rel_${edge.sourceId}_${edge.targetId}`,
@@ -281973,18 +284008,22 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   // ─── Private: Helpers ──────────────────────────────────────────────────────
   findEntityNodeId(entityId, nodeIds) {
     const personId = `person_entity_${entityId}`;
-    if (nodeIds.has(personId)) return personId;
+    if (nodeIds.has(personId))
+      return personId;
     const topicId = `topic_${entityId}`;
-    if (nodeIds.has(topicId)) return topicId;
+    if (nodeIds.has(topicId))
+      return topicId;
     return null;
   }
   buildEmailToNodeMap(nodeIds) {
     const map2 = /* @__PURE__ */ new Map();
-    if (!this.contactStore) return map2;
+    if (!this.contactStore)
+      return map2;
     const contacts = this.contactStore.listContacts({ limit: 500 });
     for (const contact of contacts) {
       const nodeId = `person_${contact.id}`;
-      if (!nodeIds.has(nodeId)) continue;
+      if (!nodeIds.has(nodeId))
+        continue;
       for (const email of contact.emails) {
         map2.set(email.toLowerCase(), nodeId);
       }
@@ -281992,24 +284031,28 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
     return map2;
   }
   classifyPersonDomain(organization, emails) {
-    if (!organization && emails.length === 0) return "general";
+    if (!organization && emails.length === 0)
+      return "general";
     const financeKeywords = ["bank", "finance", "capital", "invest", "insurance"];
     const orgLower = organization.toLowerCase();
-    if (financeKeywords.some((k) => orgLower.includes(k))) return "finance";
+    if (financeKeywords.some((k) => orgLower.includes(k)))
+      return "finance";
     return "general";
   }
   /**
    * Cap nodes by retaining the most-connected (highest size) nodes.
    */
   capNodes(nodes, max2) {
-    if (nodes.length <= max2) return nodes;
+    if (nodes.length <= max2)
+      return nodes;
     return [...nodes].sort((a, b) => b.size - a.size).slice(0, max2);
   }
   /**
    * Cap edges by retaining highest-weight edges.
    */
   capEdges(edges, max2) {
-    if (edges.length <= max2) return edges;
+    if (edges.length <= max2)
+      return edges;
     return [...edges].sort((a, b) => b.weight - a.weight).slice(0, max2);
   }
   computeStats(nodes, edges) {
@@ -282050,8 +284093,10 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
     };
   }
   dateToGranularity(dateStr, granularity) {
-    if (granularity === "day") return dateStr;
-    if (granularity === "month") return dateStr.substring(0, 7);
+    if (granularity === "day")
+      return dateStr;
+    if (granularity === "month")
+      return dateStr.substring(0, 7);
     const date = new Date(dateStr);
     const day = date.getDay();
     const diff = day === 0 ? -6 : 1 - day;
@@ -282060,13 +284105,13 @@ Mentioned entities: ${mentions.map((m) => `${m.name} (${m.type})`).join(", ")}`)
   }
 };
 
-// packages/core/living-will/living-will-exporter.ts
+// packages/core/living-will/living-will-exporter.js
 init_platform();
 
-// packages/core/living-will/archive-builder.ts
+// packages/core/living-will/archive-builder.js
 init_platform();
 
-// packages/core/crypto/key-derivation.ts
+// packages/core/crypto/key-derivation.js
 var import_hash_wasm = __toESM(require_index_umd(), 1);
 init_platform();
 var ARGON2_MEMORY_COST = 65536;
@@ -282099,7 +284144,7 @@ function generateSalt() {
   return getPlatform().crypto.randomBytes(SALT_LENGTH);
 }
 
-// packages/core/living-will/archive-builder.ts
+// packages/core/living-will/archive-builder.js
 var ARCHIVE_VERSION = 2;
 var SEMBLANCE_MIN_VERSION = "0.30.0";
 var ArchiveBuilder = class {
@@ -282121,13 +284166,20 @@ var ArchiveBuilder = class {
    */
   buildArchive(deviceId, data) {
     const sections = [];
-    if (data.knowledgeGraph !== void 0) sections.push("knowledgeGraph");
-    if (data.styleProfile !== void 0) sections.push("styleProfile");
-    if (data.decisionProfile !== void 0) sections.push("decisionProfile");
-    if (data.relationshipMap !== void 0) sections.push("relationshipMap");
-    if (data.preferences !== void 0) sections.push("preferences");
-    if (data.actionSummary !== void 0) sections.push("actionSummary");
-    if (data.inheritanceConfig !== void 0) sections.push("inheritanceConfig");
+    if (data.knowledgeGraph !== void 0)
+      sections.push("knowledgeGraph");
+    if (data.styleProfile !== void 0)
+      sections.push("styleProfile");
+    if (data.decisionProfile !== void 0)
+      sections.push("decisionProfile");
+    if (data.relationshipMap !== void 0)
+      sections.push("relationshipMap");
+    if (data.preferences !== void 0)
+      sections.push("preferences");
+    if (data.actionSummary !== void 0)
+      sections.push("actionSummary");
+    if (data.inheritanceConfig !== void 0)
+      sections.push("inheritanceConfig");
     const manifest = this.buildManifest(deviceId, sections);
     return {
       manifest,
@@ -282168,7 +284220,7 @@ var ArchiveBuilder = class {
   }
 };
 
-// packages/core/living-will/selective-export.ts
+// packages/core/living-will/selective-export.js
 var SelectiveExporter = class {
   /**
    * Filter knowledge graph entities based on exclude flags.
@@ -282176,8 +284228,10 @@ var SelectiveExporter = class {
    */
   filterKnowledgeGraph(entities, config) {
     return entities.filter((entity) => {
-      if (config.excludeFinancialData && isFinancialEntity(entity)) return false;
-      if (config.excludeHealthData && isHealthEntity(entity)) return false;
+      if (config.excludeFinancialData && isFinancialEntity(entity))
+        return false;
+      if (config.excludeHealthData && isHealthEntity(entity))
+        return false;
       return true;
     });
   }
@@ -282198,10 +284252,7 @@ var SelectiveExporter = class {
       if (kg.entities && Array.isArray(kg.entities)) {
         result2.knowledgeGraph = {
           ...kg,
-          entities: this.filterKnowledgeGraph(
-            kg.entities,
-            config
-          )
+          entities: this.filterKnowledgeGraph(kg.entities, config)
         };
       } else {
         result2.knowledgeGraph = fullData.knowledgeGraph;
@@ -282234,7 +284285,7 @@ function isHealthEntity(entity) {
   return type === "health" || type === "medical" || type === "wellness" || type === "fitness";
 }
 
-// packages/core/living-will/living-will-exporter.ts
+// packages/core/living-will/living-will-exporter.js
 init_nanoid();
 var LivingWillExporter = class {
   db;
@@ -282278,9 +284329,7 @@ var LivingWillExporter = class {
     const filteredData = this.selectiveExporter.applyConfig(rawData, config);
     const archive = this.archiveBuilder.buildArchive(this.deviceId, filteredData);
     if (this.deps.attestationSigner) {
-      const signed = this.deps.attestationSigner.sign(
-        archive.manifest
-      );
+      const signed = this.deps.attestationSigner.sign(archive.manifest);
       archive.signature = signed.proof.proofValue;
     }
     const encrypted = await this.archiveBuilder.createEncryptedArchive(archive, passphrase);
@@ -282298,9 +284347,7 @@ var LivingWillExporter = class {
    * Get export history.
    */
   getExportHistory() {
-    const rows = this.db.prepare(
-      "SELECT id, exported_at, archive_path, sections, device_id FROM living_will_exports ORDER BY exported_at DESC"
-    ).all();
+    const rows = this.db.prepare("SELECT id, exported_at, archive_path, sections, device_id FROM living_will_exports ORDER BY exported_at DESC").all();
     return rows.map((row) => ({
       id: row.id,
       exportedAt: row.exported_at,
@@ -282342,9 +284389,7 @@ var LivingWillExporter = class {
   }
   getAuditCount() {
     try {
-      const row = this.db.prepare(
-        "SELECT COUNT(*) as count FROM audit_trail WHERE direction = 'request'"
-      ).get();
+      const row = this.db.prepare("SELECT COUNT(*) as count FROM audit_trail WHERE direction = 'request'").get();
       return row?.count ?? 0;
     } catch {
       return 0;
@@ -282356,28 +284401,31 @@ var LivingWillExporter = class {
       const kg = data.knowledgeGraph;
       counts.knowledgeGraph = Array.isArray(kg.documents) ? kg.documents.length : 1;
     }
-    if (data.styleProfile !== void 0) counts.styleProfile = 1;
-    if (data.decisionProfile !== void 0) counts.decisionProfile = 1;
+    if (data.styleProfile !== void 0)
+      counts.styleProfile = 1;
+    if (data.decisionProfile !== void 0)
+      counts.decisionProfile = 1;
     if (data.relationshipMap !== void 0) {
       const rm = data.relationshipMap;
       counts.relationshipMap = Array.isArray(rm.contacts) ? rm.contacts.length : 1;
     }
-    if (data.preferences !== void 0) counts.preferences = 1;
-    if (data.actionSummary !== void 0) counts.actionSummary = 1;
-    if (data.inheritanceConfig !== void 0) counts.inheritanceConfig = 1;
+    if (data.preferences !== void 0)
+      counts.preferences = 1;
+    if (data.actionSummary !== void 0)
+      counts.actionSummary = 1;
+    if (data.inheritanceConfig !== void 0)
+      counts.inheritanceConfig = 1;
     return counts;
   }
   recordExport(archivePath, sections) {
-    this.db.prepare(
-      "INSERT INTO living_will_exports (id, exported_at, archive_path, sections, device_id) VALUES (?, ?, ?, ?, ?)"
-    ).run(nanoid(), (/* @__PURE__ */ new Date()).toISOString(), archivePath, JSON.stringify(sections), this.deviceId);
+    this.db.prepare("INSERT INTO living_will_exports (id, exported_at, archive_path, sections, device_id) VALUES (?, ?, ?, ?, ?)").run(nanoid(), (/* @__PURE__ */ new Date()).toISOString(), archivePath, JSON.stringify(sections), this.deviceId);
   }
 };
 
-// packages/core/living-will/living-will-importer.ts
+// packages/core/living-will/living-will-importer.js
 init_platform();
 
-// packages/core/living-will/archive-reader.ts
+// packages/core/living-will/archive-reader.js
 init_platform();
 var ArchiveReader = class {
   /**
@@ -282438,7 +284486,7 @@ var ArchiveReader = class {
   }
 };
 
-// packages/core/living-will/living-will-importer.ts
+// packages/core/living-will/living-will-importer.js
 var LivingWillImporter = class {
   db;
   premiumGate;
@@ -282509,19 +284557,16 @@ var LivingWillImporter = class {
     }
     warnings.push(...validation.warnings);
     if (verificationKey && this.deps.attestationVerifier && archive.signature) {
-      const verifyResult = this.deps.attestationVerifier.verify(
-        {
-          payload: archive.manifest,
-          proof: {
-            type: "HmacSha256Signature",
-            created: archive.manifest.createdAt,
-            verificationMethod: `device:${archive.manifest.deviceId}`,
-            proofPurpose: "assertionMethod",
-            proofValue: archive.signature
-          }
-        },
-        verificationKey
-      );
+      const verifyResult = this.deps.attestationVerifier.verify({
+        payload: archive.manifest,
+        proof: {
+          type: "HmacSha256Signature",
+          created: archive.manifest.createdAt,
+          verificationMethod: `device:${archive.manifest.deviceId}`,
+          proofPurpose: "assertionMethod",
+          proofValue: archive.signature
+        }
+      }, verificationKey);
       if (!verifyResult.valid) {
         warnings.push("Signature verification failed \u2014 archive may have been modified");
       }
@@ -282569,7 +284614,8 @@ var LivingWillImporter = class {
     };
   }
   restoreKnowledgeGraph(data) {
-    if (!this.deps.documentStore?.insertDocument) return;
+    if (!this.deps.documentStore?.insertDocument)
+      return;
     const kg = data;
     if (kg.documents && Array.isArray(kg.documents)) {
       for (const doc of kg.documents) {
@@ -282581,14 +284627,16 @@ var LivingWillImporter = class {
     }
   }
   restoreStyleProfile(data) {
-    if (!this.deps.styleProfileStore?.createProfile) return;
+    if (!this.deps.styleProfileStore?.createProfile)
+      return;
     try {
       this.deps.styleProfileStore.createProfile(data);
     } catch {
     }
   }
   restoreRelationshipMap(data) {
-    if (!this.deps.contactStore?.insertContact) return;
+    if (!this.deps.contactStore?.insertContact)
+      return;
     const rm = data;
     if (rm.contacts && Array.isArray(rm.contacts)) {
       for (const contact of rm.contacts) {
@@ -282600,7 +284648,8 @@ var LivingWillImporter = class {
     }
   }
   restorePreferences(data) {
-    if (!this.deps.autonomyManager?.setDomainTier) return;
+    if (!this.deps.autonomyManager?.setDomainTier)
+      return;
     const prefs = data;
     const autonomy = prefs.autonomy;
     if (autonomy) {
@@ -282614,7 +284663,7 @@ var LivingWillImporter = class {
   }
 };
 
-// packages/core/living-will/living-will-scheduler.ts
+// packages/core/living-will/living-will-scheduler.js
 var MS_PER_DAY = 864e5;
 var WEEKLY_MS = 7 * MS_PER_DAY;
 var MONTHLY_MS = 30 * MS_PER_DAY;
@@ -282660,9 +284709,7 @@ var LivingWillScheduler = class {
    * Get current scheduler configuration.
    */
   getConfig() {
-    const row = this.db.prepare(
-      "SELECT cadence, output_path, last_run_at, next_run_at FROM living_will_schedule WHERE id = 1"
-    ).get();
+    const row = this.db.prepare("SELECT cadence, output_path, last_run_at, next_run_at FROM living_will_schedule WHERE id = 1").get();
     if (!row) {
       return {
         cadence: "disabled",
@@ -282683,8 +284730,10 @@ var LivingWillScheduler = class {
    */
   isDue() {
     const config = this.getConfig();
-    if (config.cadence === "disabled") return false;
-    if (!config.lastRunAt) return true;
+    if (config.cadence === "disabled")
+      return false;
+    if (!config.lastRunAt)
+      return true;
     const elapsed = Date.now() - new Date(config.lastRunAt).getTime();
     const interval = config.cadence === "weekly" ? WEEKLY_MS : MONTHLY_MS;
     return elapsed >= interval;
@@ -282705,9 +284754,7 @@ var LivingWillScheduler = class {
     if (exportResult.success) {
       const now = (/* @__PURE__ */ new Date()).toISOString();
       const nextRun = this.computeNextRun(config.cadence, now);
-      this.db.prepare(
-        "UPDATE living_will_schedule SET last_run_at = ?, next_run_at = ? WHERE id = 1"
-      ).run(now, nextRun);
+      this.db.prepare("UPDATE living_will_schedule SET last_run_at = ?, next_run_at = ? WHERE id = 1").run(now, nextRun);
     }
     return { ran: true, skipped: false, exportResult };
   }
@@ -282718,7 +284765,7 @@ var LivingWillScheduler = class {
   }
 };
 
-// packages/core/witness/witness-format.ts
+// packages/core/witness/witness-format.js
 var WITNESS_CONTEXT = "https://veridian.run/witness/v1";
 var WITNESS_TYPE = "SemblanceWitness";
 function buildWitnessPayload(action, autonomyTier, device, auditEntryId) {
@@ -282733,7 +284780,7 @@ function buildWitnessPayload(action, autonomyTier, device, auditEntryId) {
   };
 }
 
-// packages/core/witness/witness-generator.ts
+// packages/core/witness/witness-generator.js
 init_nanoid();
 var WitnessGenerator = class {
   db;
@@ -282773,12 +284820,7 @@ var WitnessGenerator = class {
       };
     }
     const id = nanoid();
-    const payload = buildWitnessPayload(
-      actionSummary,
-      autonomyTier,
-      this.deviceIdentity,
-      auditEntryId
-    );
+    const payload = buildWitnessPayload(actionSummary, autonomyTier, this.deviceIdentity, auditEntryId);
     const signed = this.signer.sign(payload);
     const attestation = {
       "@context": WITNESS_CONTEXT,
@@ -282795,50 +284837,41 @@ var WitnessGenerator = class {
     this.db.prepare(`
       INSERT INTO witness_attestations (id, audit_entry_id, action_summary, autonomy_tier, device_id, attestation_json, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      auditEntryId,
-      actionSummary,
-      autonomyTier,
-      this.deviceIdentity.id,
-      JSON.stringify(attestation),
-      attestation.createdAt
-    );
+    `).run(id, auditEntryId, actionSummary, autonomyTier, this.deviceIdentity.id, JSON.stringify(attestation), attestation.createdAt);
     return { success: true, attestation };
   }
   /**
    * Retrieve a single attestation by ID.
    */
   getAttestation(id) {
-    const row = this.db.prepare(
-      "SELECT attestation_json FROM witness_attestations WHERE id = ?"
-    ).get(id);
-    if (!row) return null;
+    const row = this.db.prepare("SELECT attestation_json FROM witness_attestations WHERE id = ?").get(id);
+    if (!row)
+      return null;
     return JSON.parse(row.attestation_json);
   }
   /**
    * List stored attestations, most recent first.
    */
   listAttestations(limit = 50) {
-    const rows = this.db.prepare(
-      "SELECT attestation_json FROM witness_attestations ORDER BY created_at DESC LIMIT ?"
-    ).all(limit);
+    const rows = this.db.prepare("SELECT attestation_json FROM witness_attestations ORDER BY created_at DESC LIMIT ?").all(limit);
     return rows.map((row) => JSON.parse(row.attestation_json));
   }
 };
 
-// packages/core/attestation/attestation-verifier.ts
+// packages/core/attestation/attestation-verifier.js
 init_platform();
 
-// packages/core/attestation/attestation-format.ts
+// packages/core/attestation/attestation-format.js
 var ED25519_PROOF_TYPE = "Ed25519Signature2020";
 var HMAC_PROOF_TYPE = "HmacSha256Signature";
 function canonicalizePayload(payload) {
   return JSON.stringify(sortKeys(payload));
 }
 function sortKeys(obj2) {
-  if (obj2 === null || obj2 === void 0) return obj2;
-  if (Array.isArray(obj2)) return obj2.map(sortKeys);
+  if (obj2 === null || obj2 === void 0)
+    return obj2;
+  if (Array.isArray(obj2))
+    return obj2.map(sortKeys);
   if (typeof obj2 === "object") {
     const sorted = {};
     for (const key of Object.keys(obj2).sort()) {
@@ -282849,7 +284882,7 @@ function sortKeys(obj2) {
   return obj2;
 }
 
-// packages/core/attestation/attestation-verifier.ts
+// packages/core/attestation/attestation-verifier.js
 init_ed255192();
 var AttestationVerifier = class {
   /**
@@ -282886,7 +284919,8 @@ var AttestationVerifier = class {
   }
 };
 function constantTimeEqual(a, b) {
-  if (a.length !== b.length) return false;
+  if (a.length !== b.length)
+    return false;
   let mismatch = 0;
   for (let i = 0; i < a.length; i++) {
     mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -282894,7 +284928,7 @@ function constantTimeEqual(a, b) {
   return mismatch === 0;
 }
 
-// packages/core/witness/witness-verifier.ts
+// packages/core/witness/witness-verifier.js
 var WitnessVerifier = class {
   verifier = new AttestationVerifier();
   /**
@@ -282918,7 +284952,7 @@ var WitnessVerifier = class {
   }
 };
 
-// packages/core/witness/witness-exporter.ts
+// packages/core/witness/witness-exporter.js
 var WitnessExporter = class {
   /**
    * Export an attestation as pretty-printed JSON.
@@ -282933,20 +284967,16 @@ var WitnessExporter = class {
    * HMAC-SHA256 (legacy): exports the symmetric key — verifier CAN forge attestations.
    */
   exportPublicKey(key, deviceIdentity, algorithm = "hmac-sha256") {
-    return JSON.stringify(
-      {
-        algorithm,
-        key: key.toString("hex"),
-        deviceId: deviceIdentity.id,
-        exportedAt: (/* @__PURE__ */ new Date()).toISOString()
-      },
-      null,
-      2
-    );
+    return JSON.stringify({
+      algorithm,
+      key: key.toString("hex"),
+      deviceId: deviceIdentity.id,
+      exportedAt: (/* @__PURE__ */ new Date()).toISOString()
+    }, null, 2);
   }
 };
 
-// packages/core/attestation/attestation-signer.ts
+// packages/core/attestation/attestation-signer.js
 init_platform();
 init_ed255192();
 var AttestationSigner = class {
@@ -283002,7 +285032,7 @@ var AttestationSigner = class {
   }
 };
 
-// packages/core/inheritance/inheritance-config-store.ts
+// packages/core/inheritance/inheritance-config-store.js
 var CREATE_TABLES11 = `
   CREATE TABLE IF NOT EXISTS inheritance_config (
     id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -283079,9 +285109,7 @@ var InheritanceConfigStore = class {
     this.db.exec(CREATE_TABLES11);
     const existing = this.db.prepare("SELECT id FROM inheritance_config WHERE id = 1").get();
     if (!existing) {
-      this.db.prepare(
-        "INSERT INTO inheritance_config (id, time_lock_hours, require_step_confirmation, require_all_parties_for_deletion) VALUES (1, 72, 1, 1)"
-      ).run();
+      this.db.prepare("INSERT INTO inheritance_config (id, time_lock_hours, require_step_confirmation, require_all_parties_for_deletion) VALUES (1, 72, 1, 1)").run();
     }
   }
   // ─── Config ──────────────────────────────────────────────────────────────
@@ -283104,12 +285132,7 @@ var InheritanceConfigStore = class {
         require_all_parties_for_deletion = ?,
         last_reviewed_at = ?
       WHERE id = 1
-    `).run(
-      merged.timeLockHours,
-      merged.requireStepConfirmation ? 1 : 0,
-      merged.requireAllPartiesForDeletion ? 1 : 0,
-      merged.lastReviewedAt
-    );
+    `).run(merged.timeLockHours, merged.requireStepConfirmation ? 1 : 0, merged.requireAllPartiesForDeletion ? 1 : 0, merged.lastReviewedAt);
     return merged;
   }
   // ─── Trusted Parties ─────────────────────────────────────────────────────
@@ -283117,19 +285140,12 @@ var InheritanceConfigStore = class {
     this.db.prepare(`
       INSERT INTO inheritance_trusted_parties (id, name, email, relationship, passphrase_hash, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      party.id,
-      party.name,
-      party.email,
-      party.relationship,
-      party.passphraseHash,
-      party.createdAt,
-      party.updatedAt
-    );
+    `).run(party.id, party.name, party.email, party.relationship, party.passphraseHash, party.createdAt, party.updatedAt);
   }
   getParty(id) {
     const row = this.db.prepare("SELECT * FROM inheritance_trusted_parties WHERE id = ?").get(id);
-    if (!row) return null;
+    if (!row)
+      return null;
     return this.mapPartyRow(row);
   }
   getAllParties() {
@@ -283138,7 +285154,8 @@ var InheritanceConfigStore = class {
   }
   updateParty(id, updates) {
     const existing = this.getParty(id);
-    if (!existing) return null;
+    if (!existing)
+      return null;
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const name = updates.name ?? existing.name;
     const email = updates.email ?? existing.email;
@@ -283157,28 +285174,16 @@ var InheritanceConfigStore = class {
     this.db.prepare(`
       INSERT INTO inheritance_actions (id, party_id, category, sequence_order, action_type, payload_json, label, requires_deletion_consensus, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      action.id,
-      action.partyId,
-      action.category,
-      action.sequenceOrder,
-      action.actionType,
-      JSON.stringify(action.payload),
-      action.label,
-      action.requiresDeletionConsensus ? 1 : 0,
-      action.createdAt,
-      action.updatedAt
-    );
+    `).run(action.id, action.partyId, action.category, action.sequenceOrder, action.actionType, JSON.stringify(action.payload), action.label, action.requiresDeletionConsensus ? 1 : 0, action.createdAt, action.updatedAt);
   }
   getActionsForParty(partyId) {
-    const rows = this.db.prepare(
-      "SELECT * FROM inheritance_actions WHERE party_id = ? ORDER BY sequence_order ASC"
-    ).all(partyId);
+    const rows = this.db.prepare("SELECT * FROM inheritance_actions WHERE party_id = ? ORDER BY sequence_order ASC").all(partyId);
     return rows.map((r) => this.mapActionRow(r));
   }
   getAction(id) {
     const row = this.db.prepare("SELECT * FROM inheritance_actions WHERE id = ?").get(id);
-    if (!row) return null;
+    if (!row)
+      return null;
     return this.mapActionRow(row);
   }
   getAllActions() {
@@ -283190,30 +285195,16 @@ var InheritanceConfigStore = class {
     this.db.prepare(`
       INSERT INTO inheritance_notification_templates (id, party_id, action_id, recipient_name, recipient_email, subject, body, last_reviewed_at, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      template2.id,
-      template2.partyId,
-      template2.actionId,
-      template2.recipientName,
-      template2.recipientEmail,
-      template2.subject,
-      template2.body,
-      template2.lastReviewedAt,
-      template2.createdAt,
-      template2.updatedAt
-    );
+    `).run(template2.id, template2.partyId, template2.actionId, template2.recipientName, template2.recipientEmail, template2.subject, template2.body, template2.lastReviewedAt, template2.createdAt, template2.updatedAt);
   }
   getTemplatesForParty(partyId) {
-    const rows = this.db.prepare(
-      "SELECT * FROM inheritance_notification_templates WHERE party_id = ? ORDER BY created_at ASC"
-    ).all(partyId);
+    const rows = this.db.prepare("SELECT * FROM inheritance_notification_templates WHERE party_id = ? ORDER BY created_at ASC").all(partyId);
     return rows.map((r) => this.mapTemplateRow(r));
   }
   getTemplateForAction(actionId) {
-    const row = this.db.prepare(
-      "SELECT * FROM inheritance_notification_templates WHERE action_id = ?"
-    ).get(actionId);
-    if (!row) return null;
+    const row = this.db.prepare("SELECT * FROM inheritance_notification_templates WHERE action_id = ?").get(actionId);
+    if (!row)
+      return null;
     return this.mapTemplateRow(row);
   }
   getAllTemplates() {
@@ -283225,28 +285216,18 @@ var InheritanceConfigStore = class {
     this.db.prepare(`
       INSERT INTO inheritance_activations (id, party_id, state, activated_at, time_lock_expires_at, actions_total, actions_completed, current_action_id, requires_step_confirmation, cancelled_at, completed_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      activation.id,
-      activation.partyId,
-      activation.state,
-      activation.activatedAt,
-      activation.timeLockExpiresAt,
-      activation.actionsTotal,
-      activation.actionsCompleted,
-      activation.currentActionId,
-      activation.requiresStepConfirmation ? 1 : 0,
-      activation.cancelledAt,
-      activation.completedAt
-    );
+    `).run(activation.id, activation.partyId, activation.state, activation.activatedAt, activation.timeLockExpiresAt, activation.actionsTotal, activation.actionsCompleted, activation.currentActionId, activation.requiresStepConfirmation ? 1 : 0, activation.cancelledAt, activation.completedAt);
   }
   getActivation(id) {
     const row = this.db.prepare("SELECT * FROM inheritance_activations WHERE id = ?").get(id);
-    if (!row) return null;
+    if (!row)
+      return null;
     return this.mapActivationRow(row);
   }
   updateActivation(id, updates) {
     const existing = this.getActivation(id);
-    if (!existing) return null;
+    if (!existing)
+      return null;
     const merged = { ...existing, ...updates, id };
     this.db.prepare(`
       UPDATE inheritance_activations SET
@@ -283254,30 +285235,15 @@ var InheritanceConfigStore = class {
         actions_total = ?, actions_completed = ?, current_action_id = ?,
         requires_step_confirmation = ?, cancelled_at = ?, completed_at = ?
       WHERE id = ?
-    `).run(
-      merged.state,
-      merged.activatedAt,
-      merged.timeLockExpiresAt,
-      merged.actionsTotal,
-      merged.actionsCompleted,
-      merged.currentActionId,
-      merged.requiresStepConfirmation ? 1 : 0,
-      merged.cancelledAt,
-      merged.completedAt,
-      id
-    );
+    `).run(merged.state, merged.activatedAt, merged.timeLockExpiresAt, merged.actionsTotal, merged.actionsCompleted, merged.currentActionId, merged.requiresStepConfirmation ? 1 : 0, merged.cancelledAt, merged.completedAt, id);
     return merged;
   }
   getActiveActivations() {
-    const rows = this.db.prepare(
-      "SELECT * FROM inheritance_activations WHERE state NOT IN ('inactive', 'completed', 'cancelled') ORDER BY activated_at ASC"
-    ).all();
+    const rows = this.db.prepare("SELECT * FROM inheritance_activations WHERE state NOT IN ('inactive', 'completed', 'cancelled') ORDER BY activated_at ASC").all();
     return rows.map((r) => this.mapActivationRow(r));
   }
   getActivationsForParty(partyId) {
-    const rows = this.db.prepare(
-      "SELECT * FROM inheritance_activations WHERE party_id = ? ORDER BY activated_at DESC"
-    ).all(partyId);
+    const rows = this.db.prepare("SELECT * FROM inheritance_activations WHERE party_id = ? ORDER BY activated_at DESC").all(partyId);
     return rows.map((r) => this.mapActivationRow(r));
   }
   // ─── Row Mappers ─────────────────────────────────────────────────────────
@@ -283337,7 +285303,7 @@ var InheritanceConfigStore = class {
   }
 };
 
-// packages/core/inheritance/test-run-engine.ts
+// packages/core/inheritance/test-run-engine.js
 init_nanoid();
 var TestRunEngine = class {
   store;
@@ -283405,11 +285371,11 @@ var TestRunEngine = class {
   }
 };
 
-// packages/core/backup/backup-manager.ts
+// packages/core/backup/backup-manager.js
 init_platform();
 init_ed255192();
 
-// packages/core/crypto/device-keypair.ts
+// packages/core/crypto/device-keypair.js
 init_ed255192();
 var PRIVATE_KEY_STORAGE_KEY = "semblance.device.ed25519.privateKey";
 var PUBLIC_KEY_STORAGE_KEY = "semblance.device.ed25519.publicKey";
@@ -283431,7 +285397,7 @@ function exportPublicKey(keyPair) {
   return keyPair.publicKey.toString("hex");
 }
 
-// packages/core/backup/backup-manifest.ts
+// packages/core/backup/backup-manifest.js
 var CURRENT_MANIFEST_VERSION = 2;
 function createManifest(opts) {
   return {
@@ -283462,9 +285428,7 @@ function parseManifest(raw) {
     throw new Error("Invalid manifest: missing version");
   }
   if (obj2.version > CURRENT_MANIFEST_VERSION) {
-    throw new Error(
-      `Unsupported manifest version ${obj2.version} (max supported: ${CURRENT_MANIFEST_VERSION})`
-    );
+    throw new Error(`Unsupported manifest version ${obj2.version} (max supported: ${CURRENT_MANIFEST_VERSION})`);
   }
   if (typeof obj2.deviceId !== "string") {
     throw new Error("Invalid manifest: missing deviceId");
@@ -283481,7 +285445,7 @@ function verifyIntegrity(manifest, payloadChecksum) {
   return manifest.integrityHash === payloadChecksum;
 }
 
-// packages/core/backup/types.ts
+// packages/core/backup/types.js
 var DEFAULT_BACKUP_CONFIG = {
   enabled: false,
   destinationPath: "",
@@ -283491,7 +285455,7 @@ var DEFAULT_BACKUP_CONFIG = {
   lastBackupSizeBytes: null
 };
 
-// packages/core/backup/backup-manager.ts
+// packages/core/backup/backup-manager.js
 var SEPARATOR = "\0\0\0\0";
 var SIGNATURE_LENGTH = 128;
 var SEMBLANCE_VERSION = "0.30.0";
@@ -284467,7 +286431,7 @@ async function handleInitialize() {
   const modelsBaseDir = dataDir ? (0, import_node_path15.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
   if (core) {
     try {
-      const { Ollama: Ollama3 } = await import("ollama");
+      const { Ollama: Ollama3 } = await Promise.resolve().then(() => (init_dist(), dist_exports));
       const ollamaClient = new Ollama3({ host: "http://localhost:11434" });
       const listResponse = await ollamaClient.list();
       const ollamaModels = listResponse.models.map((m) => m.name);
@@ -284657,7 +286621,7 @@ async function handleInitialize() {
     const HEALTH_CHECK_INTERVAL = 3e4;
     setInterval(async () => {
       try {
-        const { Ollama: Ollama3 } = await import("ollama");
+        const { Ollama: Ollama3 } = await Promise.resolve().then(() => (init_dist(), dist_exports));
         const client = new Ollama3({ host: "http://localhost:11434" });
         await client.list();
       } catch {
@@ -285341,7 +287305,7 @@ async function handleSendMessage(id, params) {
     let llmAvailable = await core.llm.isAvailable().catch(() => false);
     if (!llmAvailable) {
       try {
-        const { Ollama: OllamaClient } = await import("ollama");
+        const { Ollama: OllamaClient } = await Promise.resolve().then(() => (init_dist(), dist_exports));
         const client = new OllamaClient({ host: "http://localhost:11434" });
         const list = await Promise.race([
           client.list(),
@@ -285573,7 +287537,7 @@ async function handleGetOllamaStatus() {
   }
   if (core) {
     try {
-      const { Ollama: Ollama3 } = await import("ollama");
+      const { Ollama: Ollama3 } = await Promise.resolve().then(() => (init_dist(), dist_exports));
       const ollamaClient = new Ollama3({ host: "http://localhost:11434" });
       const listResponse = await ollamaClient.list();
       const ollamaModels = listResponse.models.map((m) => m.name);
@@ -287190,7 +289154,7 @@ async function handleStartModelDownloads(params) {
   let ollamaHasModel = false;
   let ollamaModel = "";
   try {
-    const { Ollama: Ollama3 } = await import("ollama");
+    const { Ollama: Ollama3 } = await Promise.resolve().then(() => (init_dist(), dist_exports));
     const client = new Ollama3({ host: "http://localhost:11434" });
     const list = await client.list();
     const reasoning = list.models.filter((m) => !m.name.includes("embed") && !m.name.includes("nomic"));
@@ -288443,7 +290407,7 @@ async function handleRequest(req) {
         let currentActiveModel = null;
         let currentEngine = "none";
         try {
-          const { Ollama: OllamaCheck } = await import("ollama");
+          const { Ollama: OllamaCheck } = await Promise.resolve().then(() => (init_dist(), dist_exports));
           const checkClient = new OllamaCheck({ host: "http://localhost:11434" });
           const checkList = await checkClient.list();
           const checkModels = checkList.models.filter((m) => !m.name.includes("embed"));
