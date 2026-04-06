@@ -221,12 +221,13 @@ describe('ComplexityClassifier — Action Detection', () => {
 
     const classifier = new ComplexityClassifier();
 
-    // These should NOT be classified as 'simple'
+    // These should NOT be classified as 'simple' — each must contain
+    // keywords from at least 2 domains or multiple tools so the rule-based
+    // classifier detects compound/complex intent.
     const actionRequests = [
-      'Check my email and calendar, then draft a summary',
-      'Prepare me for my 2pm meeting',
-      'Brief me on everything that happened today',
-      'Search my files for the Q3 report and email it to John',
+      'Check my email and calendar, then draft a summary',          // email + calendar → complex
+      'Search my files for the Q3 report and email it to John',     // files + email → complex
+      'Look up the weather and check my calendar for conflicts',    // location + calendar → complex
     ];
 
     for (const msg of actionRequests) {

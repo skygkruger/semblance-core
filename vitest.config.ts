@@ -28,6 +28,9 @@ function preferTsOverJs() {
 
 export default defineConfig({
   plugins: [preferTsOverJs()],
+  define: {
+    'process.env.NODE_ENV': '"test"',
+  },
   test: {
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     testTimeout: 10000,
