@@ -5,10 +5,10 @@
   "description": "Semblance desktop application — Tauri 2.0 with React + TypeScript frontend.",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "tauri": "tauri"
+    "dev": "npx vite",
+    "build": "tsc && npx vite build",
+    "preview": "npx vite preview",
+    "tauri": "npx tauri"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.0",
