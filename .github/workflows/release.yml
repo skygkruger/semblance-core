@@ -28,7 +28,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
-      - run: pnpm exec vitest run
+      # Exclude startup-smoke (needs bundled sidecar + model files, macOS only)
+      - run: pnpm exec vitest run --exclude '**/startup-smoke*'
       - run: node scripts/privacy-audit/index.js
 
   # ─── macOS Universal Binary ──────────────────────────────────────────────────

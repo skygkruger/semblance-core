@@ -50,9 +50,9 @@ const ts = run('npx', ['tsc', '--noEmit'], 60000);
 check('TypeScript clean', ts.ok, ts.ok ? '' : 'compilation errors found');
 console.log(ts.ok ? 'clean' : 'FAILED');
 
-// ── 2. Tests ──────────────────────────────────────────────────────────────
-process.stdout.write('  Running tests... ');
-const tests = run('npx', ['vitest', 'run'], 300000);
+// ── 2. Tests (unit + bracket wiring — excludes hardware-dependent integration) ─
+process.stdout.write('  Running tests (excluding startup-smoke)... ');
+const tests = run('npx', ['vitest', 'run', '--exclude', '**/startup-smoke*'], 300000);
 const testMatch = tests.stdout.match(/(\d+) passed/);
 const failMatch = tests.stdout.match(/(\d+) failed/);
 const skipMatch = tests.stdout.match(/(\d+) skipped/);

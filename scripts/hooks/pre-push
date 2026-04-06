@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Pre-push hook: fast gate before code reaches remote
+#
+# Runs: TypeScript check + unit/bracket tests + privacy audit
+# Does NOT run: startup-smoke (needs sidecar), embedding stress (needs models),
+#               post-deploy (needs installed app)
+#
+# To bypass in emergencies: git push --no-verify
+# But if you bypass this, the CI will still catch you.
+#
+# Install: node scripts/install-hooks.js
+#   (or: cp scripts/hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push)
+
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+echo ""
+echo "═══════════════════════════════════════════════════════════"
+echo "  SEMBLANCE PRE-PUSH GATE"
+echo "═══════════════════════════════════════════════════════════"
+echo ""
+
+# Fast preflight: typecheck + tests (excluding hardware-dependent) + privacy audit
+echo "Running preflight:fast..."
+if ! node scripts/preflight.js --fast; then
+  echo ""
+  echo -e "${RED}PRE-PUSH BLOCKED${NC} — preflight:fast failed."
+  echo "Fix the issues above, then push again."
+  echo ""
+  exit 1
+fi
+
+# Also run bracket integration tests explicitly (fast, no hardware needed)
+echo ""
+echo "Running bracket event wiring tests..."
+if ! npx vitest run tests/integration/bracket-event-roundtrip.test.ts 2>/dev/null; then
+  echo ""
+  echo -e "${RED}PRE-PUSH BLOCKED${NC} — bracket integration tests failed."
+  echo ""
+  exit 1
+fi
+
+echo ""
+echo -e "${GREEN}PRE-PUSH GATE PASSED${NC} — pushing to remote."
+echo ""

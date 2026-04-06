@@ -25,6 +25,7 @@
     "test:bracket": "vitest run tests/integration/bracket-event-roundtrip.test.ts",
     "test:integration": "vitest run tests/integration/",
     "verify:deploy": "bash scripts/post-deploy-verify.sh",
+    "install-hooks": "node scripts/install-hooks.js",
     "install-verify": "node scripts/install-and-verify.js",
     "install-verify:check": "node scripts/install-and-verify.js --no-install",
     "verify:json": "node scripts/semblance-verify.js --json",

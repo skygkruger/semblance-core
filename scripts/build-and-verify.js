@@ -72,7 +72,13 @@ if (!SKIP_PREFLIGHT) {
 // ── Stage 2: Bundle sidecar ───────────────────────────────────────────────
 run('BUNDLE SIDECAR', 'node', ['scripts/bundle-sidecar.js'], 120000);
 
-// ── Stage 3: Tauri build ──────────────────────────────────────────────────
+// ── Stage 3: Integration tests (sidecar now available) ───────────────────
+// Startup-smoke needs the bundled sidecar; bracket tests verify event wiring.
+// These are the tests that couldn't run during preflight (no sidecar yet).
+process.stdout.write('\n  Running post-bundle integration tests...\n');
+run('INTEGRATION TESTS', 'npx', ['vitest', 'run', 'tests/integration/'], 300000);
+
+// ── Stage 4: Tauri build ──────────────────────────────────────────────────
 const tauriArgs = ['tauri', 'build'];
 if (TARGET === 'windows') tauriArgs.push('--target', 'x86_64-pc-windows-msvc');
 if (TARGET === 'macos') tauriArgs.push('--target', 'universal-apple-darwin');
@@ -82,11 +88,23 @@ if (TARGET === 'macos-arm') tauriArgs.push('--target', 'aarch64-apple-darwin');
 const tauriBin = join(ROOT, 'packages', 'desktop', 'node_modules', '.bin', 'tauri');
 run('TAURI BUILD', tauriBin, tauriArgs.slice(1), 1800000, join(ROOT, 'packages', 'desktop')); // 30 min timeout for Rust compile
 
-// ── Stage 4: Post-install verification ───────────────────────────────────
+// ── Stage 5: Post-install verification ───────────────────────────────────
 if (!SKIP_INSTALL) {
   run('INSTALL VERIFY', 'node', ['scripts/install-and-verify.js', '--no-install'], 120000);
 } else {
   console.log('\n  [INSTALL VERIFY SKIPPED — --skip-install flag]');
+}
+
+// ── Stage 6: Post-deploy verification (macOS only) ──────────────────────
+const isMacOS = process.platform === 'darwin';
+const appExists = existsSync('/Applications/Semblance.app');
+if (isMacOS && appExists) {
+  run('POST-DEPLOY VERIFY', 'bash', ['scripts/post-deploy-verify.sh'], 300000);
+} else if (isMacOS && !appExists) {
+  console.log('\n  [POST-DEPLOY VERIFY SKIPPED — Semblance.app not installed yet]');
+  console.log('  Install the build, then run: pnpm verify:deploy');
+} else {
+  console.log('\n  [POST-DEPLOY VERIFY SKIPPED — macOS only]');
 }
 
 // ── Summary ───────────────────────────────────────────────────────────────
@@ -95,5 +113,8 @@ console.log('\n' + '═'.repeat(60));
 console.log('  ✅ BUILD PIPELINE COMPLETE');
 console.log(`  Total time: ${totalTime}`);
 console.log('  Artifacts: packages/desktop/src-tauri/target/release/bundle/');
+if (isMacOS && !appExists) {
+  console.log('  ⚠ Run pnpm verify:deploy after installing to /Applications');
+}
 console.log('═'.repeat(60) + '\n');
 process.exit(0);
