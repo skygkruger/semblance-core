@@ -11,7 +11,7 @@
 export interface CloudBridgeProvider {
   id: string;                          // 'anthropic', 'openai', 'google', 'custom'
   name: string;                        // Display name: 'Anthropic API', 'OpenAI API'
-  connectionType: 'api_key';           // 'oauth' reserved for future — not implemented in Phase 3
+  connectionType: 'api_key';           // 'oauth' reserved for future (Phase 4+)
   status: 'connected' | 'disconnected' | 'error' | 'rate_limited';
   models: CloudBridgeModel[];
   usageThisMonth: {
