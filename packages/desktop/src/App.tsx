@@ -44,7 +44,7 @@ import { AlterEgoWeekScreen } from './screens/AlterEgoWeekScreen';
 import { ImportEverythingScreen } from './screens/ImportEverythingScreen';
 import { CanvasPanel } from './components/CanvasPanel';
 import { ChatMonitor } from './components/ChatMonitor';
-import { MultiAgentDemo, registerMultiAgentCallback, unregisterMultiAgentCallback } from './components/MultiAgentDemo';
+import { MultiAgentDemo, registerMultiAgentCallback, unregisterMultiAgentCallback, getRegisteredMultiAgentCallback } from './components/MultiAgentDemo';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { UpdateChecker } from './components/UpdateChecker';
 import { UpgradeScreen as UpgradeScreenComponent, UpgradeEmailCapture } from '@semblance/ui';
@@ -316,6 +316,16 @@ function AppContent() {
     });
     return () => unregisterMultiAgentCallback();
   }, [dispatch]);
+
+  // Bridge Tauri event listener for orchestrator:subagent events from sidecar
+  // Sidecar emits NDJSON → lib.rs forwards as Tauri event → this listener feeds the bracket UI
+  useEffect(() => {
+    const unlisten = listen('semblance://orchestrator:subagent', (event) => {
+      const callback = getRegisteredMultiAgentCallback();
+      if (callback) callback(event.payload as import('./components/MultiAgentDemo').SubagentStreamEvent);
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, []);
 
   const dismissToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));

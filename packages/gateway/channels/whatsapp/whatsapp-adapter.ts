@@ -126,8 +126,15 @@ export class WhatsAppChannelAdapter implements ChannelAdapter {
 
       this.running = true;
     } catch (err) {
-      this.errorMessage = `WhatsApp connection failed: ${(err as Error).message}. Install @whiskeysockets/baileys to enable WhatsApp.`;
-      console.error('[WhatsApp] Start failed:', (err as Error).message);
+      const msg = (err as Error).message;
+      if (msg.includes('baileys') || msg.includes('Cannot find package')) {
+        // Expected when baileys is not installed — not an error condition
+        this.errorMessage = 'WhatsApp adapter disabled — @whiskeysockets/baileys not installed';
+        console.error('[WhatsApp] Adapter disabled — baileys package not installed');
+      } else {
+        this.errorMessage = `WhatsApp connection failed: ${msg}`;
+        console.error('[WhatsApp] Start failed:', msg);
+      }
     }
   }
 

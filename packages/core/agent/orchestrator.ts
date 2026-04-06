@@ -12,6 +12,7 @@ import type {
 } from '../llm/types.js';
 import type { KnowledgeGraph, SearchResult } from '../knowledge/index.js';
 import type { KnowledgeCurator } from '../knowledge/knowledge-curator.js';
+import type { SubagentStreamEvent } from './orchestrator-v2-types.js';
 import type { VisualizationCategory } from '../knowledge/connector-category-map.js';
 import type { IPCClient } from './ipc-client.js';
 import { AutonomyManager, type AutonomyDecision } from './autonomy.js';
@@ -832,6 +833,7 @@ export class OrchestratorImpl implements Orchestrator {
   private alterEgoStore: AlterEgoStore | null;
   private knowledgeCurator: KnowledgeCurator | null = null;
   private weatherService: { getCurrentWeather(location?: string): Promise<unknown> } | null;
+  private streamCallback: ((event: SubagentStreamEvent) => void) | null = null;
   private promptConfig: SystemPromptConfig;
   // Extension support
   private extensionToolHandlers: Map<string, ToolHandler> = new Map();
@@ -902,6 +904,11 @@ export class OrchestratorImpl implements Orchestrator {
   /** Update the active model name (e.g., after switching to Ollama). */
   setModel(model: string): void {
     this.model = model;
+  }
+
+  /** Set a stream event callback for v1 tool call progress (feeds the bracket UI). */
+  setStreamCallback(callback: (event: SubagentStreamEvent) => void): void {
+    this.streamCallback = callback;
   }
 
   /**
@@ -1853,6 +1860,19 @@ export class OrchestratorImpl implements Orchestrator {
     const reasoningCtx = context && context.length > 0 ? this.buildReasoningContext(userMessage, context) : undefined;
 
     for (const tc of toolCalls) {
+      // Emit stream event so bracket UI shows tool call progress
+      if (this.streamCallback) {
+        try {
+          this.streamCallback({
+            type: 'subagent_tool_call' as const,
+            subagentId: 'v1',
+            subtaskId: tc.name,
+            timestamp: Date.now(),
+            data: { toolName: tc.name, toolStatus: 'running' },
+          });
+        } catch { /* non-critical */ }
+      }
+
       // HARD LIMIT ENFORCEMENT — runs before ALL other checks (boundary, autonomy, extension)
       if (this.intentManager) {
         const actionType = this.allToolActionMap[tc.name];

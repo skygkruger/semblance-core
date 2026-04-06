@@ -15,6 +15,7 @@ import { createKnowledgeGraph } from './knowledge/index.js';
 import { CoreIPCClient } from './agent/ipc-client.js';
 import { createOrchestrator, createCoordinatorAgent } from './agent/index.js';
 import { classifyHardware } from './llm/hardware-types.js';
+import { getRecommendedReasoningModel } from './llm/model-registry.js';
 import { loadExtensions } from './extensions/loader.js';
 import { PremiumGate } from './premium/premium-gate.js';
 import { StyleProfileStore } from './style/style-profile.js';
@@ -335,7 +336,9 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
           console.error(`[SemblanceCore] Selected chat model: ${chatModel}`);
         }
       }
-      chatModel = chatModel ?? 'llama3.1:8b';
+      // When Ollama is offline, use the NativeRuntime's recommended model name
+      // instead of a hardcoded Ollama model identifier
+      chatModel = chatModel ?? getRecommendedReasoningModel('standard').id;
 
       console.error(`[SemblanceCore] Chat model selected: ${chatModel}`);
       // Step 3: Initialize the knowledge graph (LanceDB + SQLite)

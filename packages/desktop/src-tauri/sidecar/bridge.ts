@@ -7445,8 +7445,8 @@ async function handleRequest(req: Request): Promise<void> {
         const locSettingsRaw = getPref('location_settings');
         const locSettings = locSettingsRaw ? JSON.parse(locSettingsRaw) as { defaultCity?: string } : null;
         const cityLabel = locSettings?.defaultCity || undefined;
-        const weather = await weatherService.getCurrentWeather(cityLabel);
-        respond(id, weather);
+        const currentConditions = await weatherService.getCurrentWeather(cityLabel);
+        respond(id, { currentConditions, eventForecasts: [] });
         break;
       }
       case 'commute_get_today': {
@@ -7685,6 +7685,14 @@ async function handleRequest(req: Request): Promise<void> {
       case 'reminder.check_due': {
         if (prefsDb) {
           try {
+            // Ensure reminders table exists (may not yet be created if Gateway hasn't initialized)
+            prefsDb.exec(
+              'CREATE TABLE IF NOT EXISTS reminders (' +
+              'id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL, ' +
+              'recurrence TEXT NOT NULL DEFAULT \'none\', status TEXT NOT NULL DEFAULT \'pending\', ' +
+              'snoozed_until TEXT, source TEXT NOT NULL DEFAULT \'chat\', ' +
+              'created_at TEXT NOT NULL, updated_at TEXT NOT NULL)'
+            );
             const now = new Date().toISOString();
             const dueReminders = prefsDb.prepare(
               "SELECT id, text, due_at FROM reminders WHERE status IN ('pending', 'snoozed') AND due_at <= ?"

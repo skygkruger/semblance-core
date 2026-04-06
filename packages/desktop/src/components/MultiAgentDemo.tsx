@@ -62,6 +62,10 @@ export function unregisterMultiAgentCallback() {
   _callback = null;
 }
 
+export function getRegisteredMultiAgentCallback(): MultiAgentEventCallback | null {
+  return _callback;
+}
+
 function emit(event: SubagentStreamEvent) {
   _callback?.(event);
 }

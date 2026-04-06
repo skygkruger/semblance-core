@@ -194,14 +194,14 @@ export class InferenceRouter implements LLMProvider {
   async routedChat(request: ChatRequest, taskType: TaskType): Promise<ChatResponse> {
     const tier = TASK_TIER_MAP[taskType];
     const { provider, model } = this.resolveProviderAndModel(tier, taskType);
-    const isQualityTier = tier === 'quality' && provider === this.qualityProvider;
     try {
       const response = await provider.chat({
         ...request,
         model: request.model || model,
       });
-      // Strip <think>...</think> blocks from R1 quality tier responses
-      if (isQualityTier && response.message?.content) {
+      // Strip <think>...</think> blocks from all model responses unconditionally.
+      // Qwen3, DeepSeek-R1, and other models emit chain-of-thought in <think> tags.
+      if (response.message?.content) {
         response.message.content = stripR1ThinkingBlocks(response.message.content);
       }
       return response;
@@ -226,14 +226,13 @@ export class InferenceRouter implements LLMProvider {
   async routedGenerate(request: GenerateRequest, taskType: TaskType): Promise<GenerateResponse> {
     const tier = TASK_TIER_MAP[taskType];
     const { provider, model } = this.resolveProviderAndModel(tier, taskType);
-    const isQualityTier = tier === 'quality' && provider === this.qualityProvider;
     try {
       const response = await provider.generate({
         ...request,
         model: request.model || model,
       });
-      // Strip <think>...</think> blocks from R1 quality tier responses
-      if (isQualityTier && response.text) {
+      // Strip <think>...</think> blocks from all model responses unconditionally.
+      if (response.text) {
         response.text = stripR1ThinkingBlocks(response.text);
       }
       return response;

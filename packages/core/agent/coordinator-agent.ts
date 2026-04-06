@@ -230,6 +230,10 @@ export class CoordinatorAgent implements Orchestrator {
   /** Set the stream event callback for multi-agent UI updates. */
   setStreamCallback(callback: StreamEventCallback): void {
     this.getOrCreateExecutor().setStreamCallback(callback);
+    // Also wire v1 so single-tool calls emit stream events for the bracket UI
+    if (this.v1.setStreamCallback) {
+      this.v1.setStreamCallback(callback);
+    }
   }
 
   /** Set the Cloud Bridge chat handler for hybrid local+cloud execution. */

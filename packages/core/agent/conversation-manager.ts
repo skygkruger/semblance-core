@@ -3,6 +3,7 @@
 // All data local-only per Sanctuary Protocol.
 
 import { nanoid } from 'nanoid';
+import { stripR1ThinkingBlocks } from '../llm/model-registry.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -270,7 +271,9 @@ export class ConversationManager {
   /** Update conversation metadata after a turn is added. */
   updateAfterTurn(id: string, content: string, role: 'user' | 'assistant'): void {
     const now = new Date().toISOString();
-    const preview = content.substring(0, 120);
+    // Strip <think>...</think> chain-of-thought blocks before creating preview
+    const cleaned = role === 'assistant' ? stripR1ThinkingBlocks(content) : content;
+    const preview = cleaned.substring(0, 120);
 
     // Auto-title on first user turn
     if (role === 'user') {
@@ -279,7 +282,7 @@ export class ConversationManager {
       ).get(id) as { turn_count: number; auto_title: string | null } | undefined;
 
       if (conv && !conv.auto_title) {
-        const autoTitle = content.split(/\s+/).slice(0, 6).join(' ').substring(0, 50);
+        const autoTitle = cleaned.split(/\s+/).slice(0, 6).join(' ').substring(0, 50);
         this.db.prepare(
           'UPDATE conversations SET auto_title = ?, turn_count = turn_count + 1, last_message_preview = ?, updated_at = ? WHERE id = ?'
         ).run(autoTitle, preview, now, id);

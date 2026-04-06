@@ -218,6 +218,7 @@ impl SidecarBridge {
         let mut cmd = Command::new(&node_path);
         cmd.arg("--max-old-space-size=4096")
             .arg("--expose-gc")
+            .arg("--no-deprecation")
             .arg(&script_path)
             .current_dir(&working_dir)
             .stdin(std::process::Stdio::piped())
@@ -413,6 +414,7 @@ impl SidecarBridge {
             let mut cmd = Command::new(&node_path);
             cmd.arg("--max-old-space-size=4096")
                 .arg("--expose-gc")
+                .arg("--no-deprecation")
                 .arg(&script_path)
                 .current_dir(&working_dir)
                 .stdin(std::process::Stdio::piped())
@@ -2901,6 +2903,29 @@ pub fn run() {
                                 let _ = StdCommand::new("taskkill")
                                     .args(["/F", "/PID", &pid.to_string()])
                                     .creation_flags(0x08000000)
+                                    .output();
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Kill stale node sidecar processes from previous sessions (macOS)
+            #[cfg(target_os = "macos")]
+            {
+                use std::process::Command as StdCommand;
+                if let Ok(output) = StdCommand::new("pgrep")
+                    .args(["-f", "semblance.*bridge\\.cjs"])
+                    .output()
+                {
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    let current_pid = std::process::id();
+                    for line in stdout.lines() {
+                        if let Ok(pid) = line.trim().parse::<u32>() {
+                            if pid != current_pid {
+                                eprintln!("[tauri] Killing stale sidecar process PID={}", pid);
+                                let _ = StdCommand::new("kill")
+                                    .args(["-9", &pid.to_string()])
                                     .output();
                             }
                         }

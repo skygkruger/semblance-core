@@ -1035,10 +1035,10 @@ export function getRecommendedReasoningSpecialist(tier: HardwareProfileTier): Mo
 }
 
 /**
- * Strip <think>...</think> blocks from DeepSeek-R1 model output.
- * R1 models include chain-of-thought reasoning wrapped in <think> tags.
- * This must be removed before the response reaches the orchestrator's
- * tool-call parser or is displayed to the user.
+ * Strip <think>...</think> chain-of-thought blocks from model output.
+ * Qwen3, DeepSeek-R1, and other reasoning models emit internal reasoning
+ * wrapped in <think> tags. This must be removed before the response reaches
+ * the orchestrator's tool-call parser or is displayed to the user.
  */
 export function stripR1ThinkingBlocks(text: string): string {
   return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();

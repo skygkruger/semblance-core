@@ -150,13 +150,16 @@ export class ComplexityClassifier {
       reasoning = `${toolCount} tools across ${domainCount} domain(s) — chained execution`;
     }
 
-    return {
+    const result = {
       complexity,
       domains: Array.from(matchedDomains),
       estimatedTools: Array.from(matchedTools),
       reasoning,
       parallelCapable,
     };
+
+    console.error(`[ComplexityClassifier] ${result.complexity} | tools: [${result.estimatedTools.join(', ')}] | domains: [${result.domains.join(', ')}] | ${result.reasoning}`);
+    return result;
   }
 
   /**

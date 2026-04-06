@@ -797,6 +797,8 @@ impl NativeRuntime {
 
     /// Generate embeddings for a batch of texts using the loaded embedding model.
     /// Blocking — runs forward pass for each input text synchronously.
+    /// Uses a single persistent context across the batch to avoid heap corruption
+    /// from rapid context create/destroy cycles on Metal GPU.
     pub fn embed(&self, request: EmbedRequest) -> Result<EmbedResponse, String> {
         Self::log(&format!("embed() entered, {} inputs", request.input.len()));
 
@@ -813,6 +815,16 @@ impl NativeRuntime {
         let n_embd = model.n_embd() as u32;
         let mut all_embeddings = Vec::with_capacity(request.input.len());
 
+        // Create ONE embedding context for the entire batch — reuse with clear_kv_cache().
+        // Creating/destroying contexts per input causes heap corruption on Metal due to
+        // GPU buffer deallocation races.
+        let ctx_params = LlamaContextParams::default()
+            .with_embeddings(true)
+            .with_n_ctx(NonZeroU32::new(2048));
+        let mut ctx = model
+            .new_context(backend, ctx_params)
+            .map_err(|e| format!("Failed to create embedding context: {}", e))?;
+
         for (text_idx, text) in request.input.iter().enumerate() {
             Self::log(&format!(
                 "embed: processing input {}/{} ({} chars)",
@@ -820,14 +832,6 @@ impl NativeRuntime {
                 request.input.len(),
                 text.len()
             ));
-
-            // Create embedding context per input (with mean pooling for sentence embeddings)
-            let ctx_params = LlamaContextParams::default()
-                .with_embeddings(true)
-                .with_n_ctx(NonZeroU32::new(2048));
-            let mut ctx = model
-                .new_context(backend, ctx_params)
-                .map_err(|e| format!("Failed to create embedding context: {}", e))?;
 
             let tokens = model
                 .str_to_token(text, AddBos::Always)
