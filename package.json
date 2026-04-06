@@ -12,6 +12,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "pnpm --filter @semblance/desktop dev",
     "privacy-audit": "node scripts/privacy-audit/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
