@@ -103,8 +103,11 @@ unsafe impl Send for NativeRuntime {}
 impl NativeRuntime {
     pub fn new() -> Self {
         let backend = match LlamaBackend::init() {
-            Ok(mut b) => {
-                b.void_logs();
+            Ok(b) => {
+                // NOTE: Do NOT call b.void_logs() here — we need llama.cpp's
+                // diagnostic output to debug model loading failures.
+                // The logs go to stderr and are captured in sidecar.log.
+                eprintln!("[NativeRuntime] llama.cpp backend initialized successfully");
                 Some(b)
             }
             Err(e) => {
@@ -139,6 +142,15 @@ impl NativeRuntime {
             return Err(format!("Model file not found: {:?}", model_path));
         }
 
+        // Log file size for diagnostics
+        if let Ok(meta) = std::fs::metadata(&model_path) {
+            eprintln!(
+                "[NativeRuntime] Loading reasoning model: {:?} (size: {:.1} MB)",
+                model_path,
+                meta.len() as f64 / 1_048_576.0
+            );
+        }
+
         let backend = self
             .backend
             .as_ref()
@@ -150,6 +162,7 @@ impl NativeRuntime {
         // Falls back to CPU gracefully if no GPU backend is available.
         let model_params = LlamaModelParams::default().with_n_gpu_layers(999);
 
+        eprintln!("[NativeRuntime] Calling LlamaModel::load_from_file (n_gpu_layers=999)...");
         match LlamaModel::load_from_file(backend, &model_path, &model_params) {
             Ok(model) => {
                 eprintln!(
@@ -165,6 +178,7 @@ impl NativeRuntime {
             }
             Err(e) => {
                 let err_msg = format!("Failed to load reasoning model: {}", e);
+                eprintln!("[NativeRuntime] ERROR: {}", err_msg);
                 self.status = RuntimeStatus::Error(err_msg.clone());
                 Err(err_msg)
             }
@@ -181,6 +195,14 @@ impl NativeRuntime {
             ));
         }
 
+        if let Ok(meta) = std::fs::metadata(&model_path) {
+            eprintln!(
+                "[NativeRuntime] Loading embedding model: {:?} (size: {:.1} MB)",
+                model_path,
+                meta.len() as f64 / 1_048_576.0
+            );
+        }
+
         let backend = self
             .backend
             .as_ref()
@@ -190,6 +212,7 @@ impl NativeRuntime {
         // Falls back to CPU gracefully if no GPU backend is available.
         let model_params = LlamaModelParams::default().with_n_gpu_layers(999);
 
+        eprintln!("[NativeRuntime] Calling LlamaModel::load_from_file for embedding...");
         match LlamaModel::load_from_file(backend, &model_path, &model_params) {
             Ok(model) => {
                 eprintln!(
@@ -201,7 +224,10 @@ impl NativeRuntime {
                 self.embedding_model_path = Some(model_path);
                 Ok(())
             }
-            Err(e) => Err(format!("Failed to load embedding model: {}", e)),
+            Err(e) => {
+                eprintln!("[NativeRuntime] ERROR loading embedding: {}", e);
+                Err(format!("Failed to load embedding model: {}", e))
+            }
         }
     }
 
@@ -213,6 +239,14 @@ impl NativeRuntime {
             return Err(format!("Fast model file not found: {:?}", model_path));
         }
 
+        if let Ok(meta) = std::fs::metadata(&model_path) {
+            eprintln!(
+                "[NativeRuntime] Loading fast model: {:?} (size: {:.1} MB)",
+                model_path,
+                meta.len() as f64 / 1_048_576.0
+            );
+        }
+
         let backend = self
             .backend
             .as_ref()
@@ -222,6 +256,7 @@ impl NativeRuntime {
         // Falls back to CPU gracefully if no GPU backend is available.
         let model_params = LlamaModelParams::default().with_n_gpu_layers(999);
 
+        eprintln!("[NativeRuntime] Calling LlamaModel::load_from_file for fast model...");
         match LlamaModel::load_from_file(backend, &model_path, &model_params) {
             Ok(model) => {
                 eprintln!(
@@ -234,7 +269,10 @@ impl NativeRuntime {
                 self.fast_model_path = Some(model_path);
                 Ok(())
             }
-            Err(e) => Err(format!("Failed to load fast model: {}", e)),
+            Err(e) => {
+                eprintln!("[NativeRuntime] ERROR loading fast model: {}", e);
+                Err(format!("Failed to load fast model: {}", e))
+            }
         }
     }
 
@@ -262,13 +300,25 @@ impl NativeRuntime {
             return Err(format!("Vision mmproj file not found: {:?}", mmproj_path));
         }
 
+        if let Ok(meta) = std::fs::metadata(&model_path) {
+            eprintln!(
+                "[NativeRuntime] Loading vision model: {:?} (size: {:.1} MB)",
+                model_path,
+                meta.len() as f64 / 1_048_576.0
+            );
+        }
+
         let backend = self.backend.as_ref().ok_or("Backend not initialized")?;
 
         // Load the main vision model (same as any GGUF)
         // Offload all layers to GPU (Metal on macOS, CUDA on Windows/Linux).
         let model_params = LlamaModelParams::default().with_n_gpu_layers(999);
+        eprintln!("[NativeRuntime] Calling LlamaModel::load_from_file for vision model...");
         let model = LlamaModel::load_from_file(backend, &model_path, &model_params)
-            .map_err(|e| format!("Failed to load vision model: {}", e))?;
+            .map_err(|e| {
+                eprintln!("[NativeRuntime] ERROR loading vision model: {}", e);
+                format!("Failed to load vision model: {}", e)
+            })?;
 
         // Load the multimodal projector via mtmd API
         let mmproj_str = mmproj_path.to_str()

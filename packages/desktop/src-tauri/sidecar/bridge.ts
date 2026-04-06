@@ -1175,8 +1175,11 @@ async function handleInitialize(): Promise<unknown> {
 
   // ── Step 3: If no Ollama, load NativeRuntime reasoning model (CPU) ───────
   if (inferenceEngine !== 'ollama') {
-    for (const model of MODEL_CATALOG) {
-      if (model.isEmbedding) continue;
+    // Prefer primary-tier models (Qwen3) over fast-tier (Phi-4-Mini) for reasoning slot.
+    const primaryCandidates = MODEL_CATALOG.filter(m => !m.isEmbedding && m.inferenceTier === 'primary');
+    const fallbackCandidates = MODEL_CATALOG.filter(m => !m.isEmbedding && m.inferenceTier !== 'primary');
+    const reasoningCandidates = [...primaryCandidates, ...fallbackCandidates];
+    for (const model of reasoningCandidates) {
       if (isModelDownloaded(model.id, modelsBaseDir)) {
         const modelPath = getModelPath(model.id, modelsBaseDir);
         try {
@@ -1188,13 +1191,13 @@ async function handleInitialize(): Promise<unknown> {
             console.error(`[sidecar] native_load_model timed out for "${model.id}" after 120s`);
             break;
           }
-          console.error(`[sidecar] Loaded reasoning model "${model.id}" into NativeRuntime`);
+          console.error(`[sidecar] Loaded reasoning model "${model.id}" (tier: ${model.inferenceTier}) into NativeRuntime`);
           activeModel = model.displayName;
           availableModels.push(model.displayName);
           break; // Only need one reasoning model
         } catch (err) {
           console.error(`[sidecar] Failed to load "${model.id}" into NativeRuntime:`, err);
-          break;
+          continue; // Try next candidate instead of giving up
         }
       }
     }
@@ -1307,7 +1310,10 @@ async function handleInitialize(): Promise<unknown> {
   // If no Ollama and no BitNet models loaded, try standard GGUF models from MODEL_CATALOG
   if (inferenceEngine === 'none' && !activeModel && core) {
     const stdBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
-    for (const stdModel of MODEL_CATALOG.filter(m => !m.isEmbedding)) {
+    // Prefer primary-tier models for reasoning slot
+    const stdPrimary = MODEL_CATALOG.filter(m => !m.isEmbedding && m.inferenceTier === 'primary');
+    const stdFallback = MODEL_CATALOG.filter(m => !m.isEmbedding && m.inferenceTier !== 'primary');
+    for (const stdModel of [...stdPrimary, ...stdFallback]) {
       if (isModelDownloaded(stdModel.id, stdBaseDir)) {
         const stdPath = getModelPath(stdModel.id, stdBaseDir);
         try {
@@ -1374,7 +1380,10 @@ async function handleInitialize(): Promise<unknown> {
           // If no BitNet model was loaded, try standard GGUF models from MODEL_CATALOG
           if (!router.getReasoningModel() || router.getReasoningModel() === '') {
             const stdBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
-            for (const stdModel of MODEL_CATALOG.filter(m => !m.isEmbedding)) {
+            // Prefer primary-tier models for reasoning slot
+    const stdPrimary = MODEL_CATALOG.filter(m => !m.isEmbedding && m.inferenceTier === 'primary');
+    const stdFallback = MODEL_CATALOG.filter(m => !m.isEmbedding && m.inferenceTier !== 'primary');
+    for (const stdModel of [...stdPrimary, ...stdFallback]) {
               if (isModelDownloaded(stdModel.id, stdBaseDir)) {
                 const stdPath = getModelPath(stdModel.id, stdBaseDir);
                 try {

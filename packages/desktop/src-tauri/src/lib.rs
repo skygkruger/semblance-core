@@ -154,19 +154,39 @@ impl SidecarBridge {
     async fn spawn(project_root: PathBuf, app_handle: tauri::AppHandle, runtime: native_runtime::SharedNativeRuntime) -> Result<Self, String> {
         // Production: use bundled bridge.cjs with system node
         // Development: use tsx to run bridge.ts from source
-        // Use the exe's parent directory — resources are placed alongside the exe
+        //
+        // Tauri 2 places `resources` in Contents/Resources/ on macOS,
+        // NOT alongside the binary in Contents/MacOS/. Check both locations.
         let exe_dir = std::env::current_exe()
             .ok()
             .and_then(|p| p.parent().map(|p| p.to_path_buf()))
             .unwrap_or_else(|| project_root.clone());
-        let bundled_bridge = exe_dir.join("sidecar").join("bridge.cjs");
-        eprintln!("[tauri] Looking for bundled bridge at: {:?} exists={}", bundled_bridge, bundled_bridge.exists());
+
+        // Primary: Tauri resource_dir (Contents/Resources/ on macOS)
+        let resource_bridge = app_handle.path().resource_dir()
+            .ok()
+            .map(|p| p.join("sidecar").join("bridge.cjs"));
+        // Fallback: alongside the binary (Contents/MacOS/)
+        let exe_bridge = exe_dir.join("sidecar").join("bridge.cjs");
+
+        let bundled_bridge = if resource_bridge.as_ref().map_or(false, |p| p.exists()) {
+            let rb = resource_bridge.unwrap();
+            eprintln!("[tauri] Found bundled bridge in resources: {:?}", rb);
+            rb
+        } else if exe_bridge.exists() {
+            eprintln!("[tauri] Found bundled bridge alongside exe: {:?}", exe_bridge);
+            exe_bridge
+        } else {
+            eprintln!("[tauri] No bundled bridge found. resource_dir={:?} exe_dir={:?}", resource_bridge, exe_dir);
+            exe_bridge // Will fall through to dev mode below
+        };
 
         let (node_path, script_path, working_dir) = if bundled_bridge.exists() {
             // Production mode: bundled bridge.cjs, use system node
             let node = which_node().ok_or("Node.js not found. Install Node.js 20+ to run Semblance.")?;
-            eprintln!("[tauri] Production mode: node={:?} script={:?}", node, bundled_bridge);
-            (node, bundled_bridge, exe_dir.join("sidecar"))
+            let sidecar_dir = bundled_bridge.parent().unwrap_or(&exe_dir).to_path_buf();
+            eprintln!("[tauri] Production mode: node={:?} script={:?} cwd={:?}", node, bundled_bridge, sidecar_dir);
+            (node, bundled_bridge, sidecar_dir)
         } else {
             // Development mode: tsx from node_modules
             #[cfg(windows)]
