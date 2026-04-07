@@ -13,7 +13,7 @@
     "packages/semblance-ui"
   ],
   "scripts": {
-    "dev": "pnpm --filter @semblance/desktop dev",
+    "dev": "cd packages/desktop && npx vite",
     "privacy-audit": "node scripts/privacy-audit/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
