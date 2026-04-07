@@ -39,25 +39,17 @@
   "license": "(MIT OR Apache-2.0)",
   "author": "Veridian Synthetics",
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
-    "better-sqlite3": "^12.6.2",
     "esbuild": "0.25.12",
-    "jsdom": "^28.1.0",
     "nanoid": "^5.1.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsx": "^4.19.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "typescript": "^5.9.3"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "better-sqlite3",
       "esbuild"
     ]
   },
