@@ -170,7 +170,22 @@ export function renderMarkdown(text: string): string {
         const langClass = block.lang ? ` class="language-${block.lang}"` : '';
         // Trim trailing newline inside code block for cleaner display
         const trimmed = block.content.replace(/\n$/, '');
-        return `<pre><code${langClass}>${trimmed}</code></pre>`;
+        const langLabel = block.lang
+          ? `<span class="chat-code-block__lang">${block.lang}</span>`
+          : '';
+        // data-code stores raw text for the copy button (re-decoded from HTML entities)
+        const rawCode = trimmed
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"');
+        const copyBtn = `<button class="chat-code-block__copy" data-code="${escapeHtml(rawCode)}" type="button">Copy</button>`;
+        return (
+          `<div class="chat-code-block">` +
+          `<div class="chat-code-block__header">${langLabel}${copyBtn}</div>` +
+          `<pre><code${langClass}>${trimmed}</code></pre>` +
+          `</div>`
+        );
       }
       return renderRawBlock(block.content);
     })

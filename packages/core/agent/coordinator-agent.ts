@@ -445,16 +445,16 @@ Rules:
         'classify',
       );
 
-      const parsed = JSON.parse(response.message.content) as Array<{
-        id?: string;
-        description?: string;
-        successCriteria?: string;
-        tools?: string[];
-        modelTier?: string;
-        dependsOn?: string[];
-      }>;
+      let parsed = JSON.parse(response.message.content) as
+        | Array<{ id?: string; description?: string; successCriteria?: string; tools?: string[]; modelTier?: string; dependsOn?: string[] }>
+        | { id?: string; description?: string; successCriteria?: string; tools?: string[]; modelTier?: string; dependsOn?: string[] };
 
-      if (!Array.isArray(parsed) || parsed.length === 0) return [];
+      // Some models return a single object instead of an array — normalize
+      if (!Array.isArray(parsed)) {
+        parsed = parsed && typeof parsed === 'object' && parsed.description ? [parsed] : [];
+      }
+
+      if (parsed.length === 0) return [];
 
       return parsed
         .filter(s => s.description && s.tools)

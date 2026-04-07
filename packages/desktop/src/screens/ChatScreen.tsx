@@ -1,7 +1,7 @@
 import { useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChatBubble, AgentInput, StatusIndicator, DocumentPanel, ArtifactPanel, ConversationHistoryPanel, ApprovalCard, AlterEgoDraftReview, AlterEgoReceipt, AlterEgoBatchReview, ActionCard } from '@semblance/ui';
-import type { ArtifactItem } from '@semblance/ui';
+import { ChatBubble, AgentInput, StatusIndicator, DocumentPanel, ArtifactPanel, ConversationHistoryPanel, ApprovalCard, AlterEgoDraftReview, AlterEgoReceipt, AlterEgoBatchReview, ActionCard, ToolStepCard, getToolDisplayName } from '@semblance/ui';
+import type { ArtifactItem, ToolStepCardProps } from '@semblance/ui';
 import { MessageDraftCard } from '../components/MessageDraftCard';
 import { ReminderCard } from '../components/ReminderCard';
 import { SubscriptionInsightCard } from '../components/SubscriptionInsightCard';
@@ -940,6 +940,70 @@ export function ChatScreen() {
     return state.autonomyConfig[domain] ?? 'partner';
   }
 
+  // Extract tool step cards from orchestration events for v1 path (no bracket)
+  interface ToolStep {
+    id: string;
+    toolName: string;
+    displayName: string;
+    status: ToolStepCardProps['status'];
+    summary?: string;
+    subagentId?: string;
+    startTime?: number;
+    endTime?: number;
+  }
+
+  function extractToolSteps(events: Array<{ type: string; subagentId?: string; subtaskId?: string; timestamp?: number; data?: Record<string, unknown>; [k: string]: unknown }>): ToolStep[] {
+    const steps: ToolStep[] = [];
+    const callMap = new Map<string, ToolStep>();
+
+    for (const evt of events) {
+      const evtType = evt.type;
+      if (evtType === 'subagent_tool_call') {
+        const toolName = (evt.data?.toolName ?? evt.data?.tool ?? 'unknown') as string;
+        const id = `${evt.subagentId ?? ''}_${toolName}_${evt.timestamp ?? steps.length}`;
+        const step: ToolStep = {
+          id,
+          toolName,
+          displayName: getToolDisplayName(toolName),
+          status: 'active',
+          subagentId: evt.subagentId,
+          startTime: evt.timestamp,
+        };
+        callMap.set(id, step);
+        steps.push(step);
+      } else if (evtType === 'subagent_tool_result') {
+        const toolName = (evt.data?.toolName ?? evt.data?.tool ?? '') as string;
+        // Find matching active call for this subagent + tool
+        const match = [...callMap.entries()].reverse().find(
+          ([, s]) => s.subagentId === evt.subagentId && s.toolName === toolName && s.status === 'active'
+        );
+        if (match) {
+          match[1].status = 'complete';
+          match[1].endTime = evt.timestamp;
+          const resultData = evt.data?.result ?? evt.data?.summary;
+          if (typeof resultData === 'string') {
+            match[1].summary = resultData.length > 80 ? resultData.slice(0, 80) + '...' : resultData;
+          } else if (typeof resultData === 'object' && resultData !== null) {
+            const count = (resultData as Record<string, unknown>).count ?? (resultData as Record<string, unknown>).length;
+            if (typeof count === 'number') {
+              match[1].summary = `${count} result${count !== 1 ? 's' : ''}`;
+            }
+          }
+        }
+      } else if (evtType === 'subagent_failed') {
+        // Mark all active steps for this subagent as error
+        for (const [, step] of callMap) {
+          if (step.subagentId === evt.subagentId && step.status === 'active') {
+            step.status = 'error';
+            step.summary = (evt.data?.error ?? evt.data?.reason ?? 'Failed') as string;
+          }
+        }
+      }
+    }
+
+    return steps;
+  }
+
   // Route each action to the right UI component based on type, status, and autonomy tier
   function renderInlineAction(act: ChatActionItem) {
     const isPending = act.status === 'pending_approval';
@@ -1444,8 +1508,29 @@ export function ChatScreen() {
                     </div>
                   )}
 
+                  {/* Tool step cards — v1 path (no bracket, tool calls from orchestration events) */}
+                  {msg.role === 'assistant' && hasOrchestration && !isCollapsed && (() => {
+                    const toolSteps = extractToolSteps(msg.orchestration as Array<{ type: string; subagentId?: string; subtaskId?: string; timestamp?: number; data?: Record<string, unknown> }>);
+                    if (toolSteps.length === 0) return null;
+                    return (
+                      <div className="chat-bubble chat-bubble--assistant" style={{ marginBottom: 4 }}>
+                        <div style={{ maxWidth: '80%', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {toolSteps.map(step => (
+                            <ToolStepCard
+                              key={step.id}
+                              toolName={step.toolName}
+                              displayName={step.displayName}
+                              status={step.status}
+                              summary={step.summary}
+                              duration={step.startTime && step.endTime ? step.endTime - step.startTime : undefined}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Chat bubble — hide empty streaming bubble while bracket is actively animating */}
-                  {/* Hide empty bubble while bracket is actively animating */}
                   {!((!msg.content || msg.content.trim() === '') && isOrchestrationLive) && (
                     <ChatBubble
                       role={msg.role}
@@ -1457,15 +1542,30 @@ export function ChatScreen() {
                         : msg.content}
                       timestamp={msg.timestamp}
                       streaming={isStreaming}
+                      onCopy={() => {
+                        navigator.clipboard.writeText(msg.content).catch(() => {});
+                      }}
+                      onRegenerate={msg.role === 'assistant' && !isStreaming ? () => {
+                        // Find the last user message before this assistant message
+                        const userMsg = state.chatMessages.slice(0, i).reverse().find(m => m.role === 'user');
+                        if (userMsg) handleSend(userMsg.content);
+                      } : undefined}
                     />
                   )}
 
-                  {/* Inline actions — only show after orchestration completes for the active message */}
-                  {msg.actions && msg.actions.length > 0 && !(isLastAssistant && orchestrationActive) && (
-                    <div className="mt-2 space-y-2 max-w-[720px]">
-                      {msg.actions.map(act => renderInlineAction(act))}
-                    </div>
-                  )}
+                  {/* Inline actions — show completed actions during orchestration, pending only after */}
+                  {msg.actions && msg.actions.length > 0 && (() => {
+                    const isLive = isLastAssistant && orchestrationActive;
+                    const visibleActions = isLive
+                      ? msg.actions.filter(a => a.status !== 'pending_approval')
+                      : msg.actions;
+                    if (visibleActions.length === 0) return null;
+                    return (
+                      <div className="mt-2 space-y-2 max-w-[720px]">
+                        {visibleActions.map(act => renderInlineAction(act))}
+                      </div>
+                    );
+                  })()}
                 </div>
                 );
               })}

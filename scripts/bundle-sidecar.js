@@ -40,7 +40,7 @@ console.log('[bundle-sidecar] Bundling bridge.ts → bridge.cjs...');
 
 execSync(
   [
-    join(ROOT, 'node_modules', 'esbuild', 'bin', 'esbuild'),
+    join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'esbuild.CMD' : 'esbuild'),
     join(SIDECAR_DIR, 'bridge.ts'),
     '--bundle',
     '--platform=node',

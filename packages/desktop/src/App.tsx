@@ -523,8 +523,11 @@ function AppContent() {
     return () => clearInterval(interval);
   }, [sidecarReady, state.activeModel, dispatch]);
 
+  // Dev-only: ?onboarding=true in URL forces onboarding view without touching saved state
+  const forceOnboarding = import.meta.env.DEV && new URLSearchParams(window.location.search).get('onboarding') === 'true';
+
   // Show onboarding if not complete — but show loading spinner while waiting for sidecar
-  if (!state.onboardingComplete) {
+  if (forceOnboarding || !state.onboardingComplete) {
     if (!sidecarReady) {
       return (
         <div style={{

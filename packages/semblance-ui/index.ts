@@ -56,6 +56,10 @@ export type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphProps, CategoryLegendI
 export { PrivacyDashboard } from './components/PrivacyDashboard/index.js';
 export type { PrivacyDashboardProps, NetworkEntry, AuditEntry, ChainIntegrityData, KeySecurityData } from './components/PrivacyDashboard/index.js';
 export { WireframeSpinner } from './components/WireframeSpinner/index.js';
+export { ThinkingTimer } from './components/ThinkingTimer/index.js';
+export { ToolStepCard } from './components/ToolStepCard/index.js';
+export type { ToolStepCardProps } from './components/ToolStepCard/index.js';
+export { TOOL_DISPLAY_NAMES, getToolDisplayName } from './components/ToolStepCard/index.js';
 export { SkeletonCard } from './components/SkeletonCard/index.js';
 export type { SkeletonCardProps } from './components/SkeletonCard/index.js';
 export { LanguageSelect } from './components/LanguageSelect/index.js';

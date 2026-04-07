@@ -8,6 +8,7 @@ import {
   ERROR_PATH,
   PLACEHOLDER_HINTS,
 } from './AgentInput.types';
+import { ThinkingTimer } from '../ThinkingTimer/ThinkingTimer.web';
 import './AgentInput.css';
 
 export function AgentInput({
@@ -214,35 +215,13 @@ export function AgentInput({
           data-testid="agent-input-field"
         />
 
-        {/* Thinking overlay — green cursor + "Thinking" text + optional Stop button */}
+        {/* Thinking overlay — elapsed timer + contextual label + optional Stop button */}
         {thinking && (
           <div className="agent-input__thinking-overlay" data-testid="thinking-overlay">
-            <span className="agent-input__thinking-cursor" />
-            <span className="agent-input__thinking-text">{thinkingText || t('input.thinking_text')}</span>
-            {onCancel && (
-              <button
-                type="button"
-                className="agent-input__cancel"
-                onClick={onCancel}
-                data-testid="cancel-button"
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255, 255, 255, 0.06)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-                style={{
-                  marginLeft: '8px',
-                  padding: '2px 10px',
-                  fontSize: '12px',
-                  color: '#8593A4',
-                  background: 'transparent',
-                  border: '1px solid #8593A433',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  lineHeight: '18px',
-                  transition: 'background 150ms ease',
-                }}
-              >
-                Stop
-              </button>
-            )}
+            <ThinkingTimer
+              label={thinkingText || t('input.thinking_text')}
+              onCancel={onCancel}
+            />
           </div>
         )}
 

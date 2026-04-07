@@ -1,0 +1,111 @@
+/* ─── ToolStep — inline tool call indicator (no card wrapper) ─── */
+
+.tool-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #A8B4C0;
+  animation: tool-step-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes tool-step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Status dot */
+.tool-step__dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tool-step__dot-pulse {
+  position: absolute;
+  inset: -3px;
+  border: 1px solid;
+  border-radius: 50%;
+  animation: tool-step-pulse 1.4s ease-out infinite;
+}
+
+@keyframes tool-step-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Label */
+.tool-step__name {
+  color: #EEF1F4;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  transition: color 150ms ease;
+}
+
+/* Completion flash — text flashes Veridian then settles back */
+.tool-step--complete .tool-step__name {
+  animation: tool-step-flash 600ms ease-out;
+}
+
+@keyframes tool-step-flash {
+  0% { color: #6ECFA3; text-shadow: 0 0 8px rgba(110, 207, 163, 0.6); }
+  40% { color: #6ECFA3; text-shadow: 0 0 4px rgba(110, 207, 163, 0.3); }
+  100% { color: #EEF1F4; text-shadow: none; }
+}
+
+/* Summary also flashes */
+.tool-step--complete .tool-step__summary {
+  animation: tool-step-flash-muted 600ms ease-out;
+}
+
+@keyframes tool-step-flash-muted {
+  0% { color: rgba(110, 207, 163, 0.7); }
+  40% { color: rgba(110, 207, 163, 0.5); }
+  100% { color: #5E6B7C; }
+}
+
+/* Summary text */
+.tool-step__summary {
+  color: #5E6B7C;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Duration */
+.tool-step__duration {
+  color: #3D4650;
+  white-space: nowrap;
+  font-size: 10px;
+}
+
+/* Spinner */
+.tool-step__spinner {
+  flex-shrink: 0;
+  animation: tool-step-spin 1s linear infinite;
+}
+
+@keyframes tool-step-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error state — name turns rose */
+.tool-step--error .tool-step__name {
+  color: #E8657A;
+}
+
+.tool-step--error .tool-step__summary {
+  color: rgba(232, 101, 122, 0.6);
+}

@@ -4,4 +4,6 @@ export interface ChatBubbleProps {
   timestamp?: string;
   streaming?: boolean;
   className?: string;
+  onCopy?: () => void;
+  onRegenerate?: () => void;
 }

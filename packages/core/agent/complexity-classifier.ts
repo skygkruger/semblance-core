@@ -58,12 +58,12 @@ interface IntentPattern {
 const INTENT_PATTERNS: IntentPattern[] = [
   { keywords: /\b(?:email|inbox|mail|send|draft|reply|forward)\b/i, tools: ['fetch_inbox', 'search_emails', 'send_email', 'draft_email'], domain: 'email' },
   { keywords: /\b(?:calendar|schedule|meeting|event|appointment|book)\b/i, tools: ['fetch_calendar', 'create_calendar_event'], domain: 'calendar' },
-  { keywords: /\b(?:file|document|note|pdf|search.*(?:file|doc))\b/i, tools: ['search_files', 'read_document'], domain: 'files' },
+  { keywords: /\b(?:files?|documents?|notes?|pdf|search.*(?:files?|docs?))\b/i, tools: ['search_files', 'read_document'], domain: 'files' },
   { keywords: /\b(?:search|google|look\s*up|find\s*online|web|research)\b/i, tools: ['search_web', 'fetch_url'], domain: 'web' },
-  { keywords: /\b(?:contact|phone|person|people)\b/i, tools: ['search_contacts'], domain: 'contacts' },
+  { keywords: /\b(?:contacts?|phone|person|people)\b/i, tools: ['search_contacts'], domain: 'contacts' },
   { keywords: /\b(?:money|transaction|expense|budget|finance|bank|spend)\b/i, tools: ['fetch_transactions'], domain: 'finances' },
   { keywords: /\b(?:health|weight|sleep|exercise|steps|workout|heart\s*rate)\b/i, tools: ['log_health_entry', 'get_health_summary'], domain: 'health' },
-  { keywords: /\b(?:remind|reminder|alarm|todo|task)\b/i, tools: ['create_reminder', 'list_reminders'], domain: 'reminders' },
+  { keywords: /\b(?:remind|reminders?|alarm|todos?|tasks?)\b/i, tools: ['create_reminder', 'list_reminders'], domain: 'reminders' },
   { keywords: /\b(?:weather|temperature|forecast|rain)\b/i, tools: ['get_weather'], domain: 'location' },
   { keywords: /\b(?:cloud|drive|dropbox|google\s*drive)\b/i, tools: ['search_cloud_files', 'list_cloud_files'], domain: 'cloud-storage' },
 ];

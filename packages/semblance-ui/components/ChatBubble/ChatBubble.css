@@ -240,3 +240,108 @@
   background: rgba(0, 0, 0, 0.2);
   font-weight: 600;
 }
+
+/* ─── Code block with header bar ─── */
+
+.chat-code-block {
+  margin: 8px 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #1E2328;
+}
+
+.chat-code-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background: #1a1e24;
+  border-bottom: 1px solid #1E2328;
+}
+
+.chat-code-block__lang {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #5E6B7C;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.chat-code-block__copy {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #5E6B7C;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.chat-code-block__copy:hover {
+  color: #6ECFA3;
+  background: rgba(110, 207, 163, 0.08);
+}
+
+.chat-code-block pre {
+  background: #0f1216;
+  margin: 0;
+  padding: 14px;
+  border-radius: 0;
+  border: none;
+}
+
+/* Override nested pre styles when inside code-block wrapper */
+.chat-bubble__markdown .chat-code-block pre {
+  margin: 0;
+  border-radius: 0;
+}
+
+/* ─── Message action buttons (hover toolbar) ─── */
+
+.chat-bubble__actions {
+  position: absolute;
+  top: -4px;
+  right: 8px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 150ms ease, transform 150ms ease;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.chat-bubble__card:hover .chat-bubble__actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.chat-bubble__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #181C21;
+  border: 1px solid #1E2328;
+  border-radius: 6px;
+  color: #5E6B7C;
+  cursor: pointer;
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+.chat-bubble__action-btn:hover {
+  color: #6ECFA3;
+  background: rgba(110, 207, 163, 0.06);
+  border-color: rgba(110, 207, 163, 0.2);
+}
+
+/* ─── Streaming leading-edge fade ─── */
+
+.chat-bubble--streaming .chat-bubble__markdown {
+  mask-image: linear-gradient(to bottom, black calc(100% - 40px), rgba(0,0,0,0.65));
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 40px), rgba(0,0,0,0.65));
+}
