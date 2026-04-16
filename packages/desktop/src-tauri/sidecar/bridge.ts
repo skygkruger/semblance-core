@@ -4286,49 +4286,73 @@ async function downloadHfFile(
   const url = `https://huggingface.co/${entry.hfRepo}/resolve/main/${entry.hfFilename}`;
   console.error(`[sidecar] downloadHfFile FETCHING: ${modelId} from ${url}`);
   const { createWriteStream } = await import('node:fs');
-  const { pipeline } = await import('node:stream/promises');
+  const https = await import('node:https');
+  const http = await import('node:http');
+  const nodeUrl = await import('node:url');
+
+  // Use node:https instead of globalThis.fetch (undici) because Node.js on Windows
+  // gets ECONNRESET errors on HuggingFace CDN redirects due to IPv6/TLS issues.
+  // Force IPv4 (family: 4) to avoid the ECONNRESET on redirect targets.
+  function httpsGet(targetUrl: string, maxRedirects = 5): Promise<import('node:http').IncomingMessage> {
+    return new Promise((resolve, reject) => {
+      if (maxRedirects <= 0) { reject(new Error('Too many redirects')); return; }
+      const parsed = new URL(targetUrl);
+      const mod = parsed.protocol === 'https:' ? https : http;
+      const req = mod.get(targetUrl, { timeout: 60_000, family: 4 }, (res) => {
+        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          res.resume(); // drain response
+          const redirectUrl = new URL(res.headers.location, targetUrl).href;
+          httpsGet(redirectUrl, maxRedirects - 1).then(resolve, reject);
+          return;
+        }
+        resolve(res);
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(new Error('Request timed out (60s)')); });
+      // Wire up abort controller
+      if (download.abortController) {
+        const onAbort = () => { req.destroy(new Error('Download aborted')); };
+        download.abortController.signal.addEventListener('abort', onAbort, { once: true });
+        req.on('close', () => download.abortController?.signal.removeEventListener('abort', onAbort));
+      }
+    });
+  }
 
   try {
-    // Fetch with exponential backoff retry (3 attempts: 0s, 2s, 8s)
-    let response: Response | null = null;
+    // Fetch with exponential backoff retry (3 attempts: 0s, 2s, 4s)
+    let res: import('node:http').IncomingMessage | null = null;
     const maxRetries = 3;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        response = await globalThis.fetch(url, {
-          signal: download.abortController!.signal,
-          redirect: 'follow',
-        });
-        console.error(`[sidecar] downloadHfFile RESPONSE: ${modelId} status=${response?.status}, ok=${response?.ok}, hasBody=${!!response?.body}`);
-        if (response.ok && response.body) break;
-        const statusErr = `HTTP ${response.status}: ${response.statusText}`;
-        if (response.status >= 400 && response.status < 500) {
-          // Client errors (404, 403) are not retryable
-          throw new Error(statusErr);
-        }
+        res = await httpsGet(url);
+        const status = res.statusCode ?? 0;
+        console.error(`[sidecar] downloadHfFile RESPONSE: ${modelId} status=${status}`);
+        if (status >= 200 && status < 300) break;
+        res.resume(); // drain
+        const statusErr = `HTTP ${status}`;
+        if (status >= 400 && status < 500) throw new Error(statusErr); // not retryable
         throw new Error(statusErr);
       } catch (fetchErr) {
-        const isAbort = fetchErr instanceof DOMException && fetchErr.name === 'AbortError';
+        const isAbort = fetchErr instanceof Error && fetchErr.message === 'Download aborted';
         const isClientError = fetchErr instanceof Error && fetchErr.message.startsWith('HTTP 4');
         if (isAbort || isClientError || attempt === maxRetries - 1) throw fetchErr;
         const delayMs = Math.pow(2, attempt + 1) * 1000; // 2s, 4s
         console.error(`[sidecar] Download attempt ${attempt + 1} failed, retrying in ${delayMs}ms...`);
         await new Promise(r => setTimeout(r, delayMs));
-        // Reset download state for retry
         download.downloadedBytes = 0;
       }
     }
 
-    if (!response || !response.ok || !response.body) {
+    if (!res || !res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
       throw new Error(`Failed to download after ${maxRetries} attempts`);
     }
 
     const fileStream = createWriteStream(targetPath);
-    const reader = response.body.getReader();
     let lastEmitTime = Date.now();
     let bytesInWindow = 0;
 
-    const writable = new (await import('node:stream')).Writable({
-      write(chunk: Buffer, _encoding, callback) {
+    await new Promise<void>((resolve, reject) => {
+      res!.on('data', (chunk: Buffer) => {
         download.downloadedBytes += chunk.length;
         bytesInWindow += chunk.length;
         const now = Date.now();
@@ -4339,23 +4363,15 @@ async function downloadHfFile(
           lastEmitTime = now;
           emit('model-download-progress', { ...download, abortController: undefined });
         }
-        fileStream.write(chunk, callback);
-      },
-    });
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      await new Promise<void>((resolve, reject) => {
-        writable.write(Buffer.from(value), (err) => err ? reject(err) : resolve());
+        if (!fileStream.write(chunk)) {
+          res!.pause();
+          fileStream.once('drain', () => res!.resume());
+        }
       });
-    }
-
-    fileStream.end();
-    await new Promise<void>((resolve, reject) => {
+      res!.on('end', () => { fileStream.end(); });
+      res!.on('error', (err) => { fileStream.destroy(); reject(err); });
       fileStream.on('finish', resolve);
-      fileStream.on('error', reject);
+      fileStream.on('error', (err) => { res!.destroy(); reject(err); });
     });
 
     download.downloadedBytes = download.totalBytes;
