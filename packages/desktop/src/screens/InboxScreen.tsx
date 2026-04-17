@@ -346,9 +346,9 @@ export function InboxScreen() {
           </div>
         )}
 
-        {/* Quick Capture */}
+        {/* Quick Capture — stores the text as a note/reminder, does not filter the inbox list. */}
         <QuickCaptureInput
-          placeholder="Search inbox, draft an email, or ask about your messages..."
+          placeholder="Capture a note or reminder..."
           onCapture={async (text) => {
             const result = await quickCapture(text);
             return result;

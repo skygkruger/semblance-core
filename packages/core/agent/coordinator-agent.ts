@@ -149,12 +149,15 @@ export class CoordinatorAgent implements Orchestrator {
 
     console.error(`[CoordinatorAgent] Complexity: ${assessment.complexity} | Domains: ${assessment.domains.join(', ')} | Reasoning: ${assessment.reasoning}`);
 
-    // Simple and compound → v1 loop (unchanged, zero overhead)
-    if (assessment.complexity === 'simple' || assessment.complexity === 'compound') {
+    // Simple (pure conversational, no tools) → v1 loop (zero overhead).
+    if (assessment.complexity === 'simple') {
       return this.v1.processMessage(message, conversationId);
     }
 
-    // Complex → multi-agent decomposition
+    // Compound + complex → multi-agent decomposition so the bracket overlay
+    // animates on every tool-calling task. Compound tasks still resolve with a
+    // single subtask in most cases; the overhead is minimal and the user sees
+    // the tool-call progress bracket they expect.
     return this.processComplexRequest(message, assessment, conversationId);
   }
 

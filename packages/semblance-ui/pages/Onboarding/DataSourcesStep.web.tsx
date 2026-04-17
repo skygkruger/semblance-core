@@ -51,21 +51,13 @@ export function DataSourcesStep({
   ];
 
   const handleConnect = useCallback((source: DataSource) => {
-    if (source.connectorId && onConnectSource) {
-      // Fire real OAuth flow
-      onConnectSource(source.id, source.connectorId);
-    } else {
-      // Non-OAuth source: toggle local state
-      setConnected(prev => {
-        const next = new Set(prev);
-        if (next.has(source.id)) {
-          next.delete(source.id);
-        } else {
-          next.add(source.id);
-        }
-        return next;
-      });
-    }
+    // Always delegate to parent so it can handle each source appropriately:
+    // OAuth sources (email, calendar, slack) kick off real auth flows,
+    // native sources (files, contacts) run their specific actions,
+    // and setup-required sources (health) show guidance toasts.
+    // The parent updates sourceStatuses for anything that actually connects;
+    // non-OAuth sources that don't change state correctly stay "disconnected".
+    onConnectSource?.(source.id, source.connectorId ?? '');
     setShowNudge(false);
   }, [onConnectSource]);
 

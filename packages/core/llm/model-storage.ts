@@ -27,15 +27,28 @@ export function getModelPath(modelId: string, dataDir?: string): string {
 }
 
 /**
- * Check if a model file exists locally and is non-trivial (at least 1MB).
- * Catches partial downloads and corrupt files.
+ * Check if a model file exists locally at its expected size.
+ *
+ * If `expectedSizeBytes` is provided, the file must be within 1% of that size
+ * (absolute tolerance: max(1MB, expectedSizeBytes*0.01)). This catches truncated
+ * downloads that earlier checks (>1MB only) silently accepted.
+ *
+ * If `expectedSizeBytes` is not provided, falls back to the legacy >1MB check.
+ * Callers should pass the registry's `fileSizeBytes` whenever possible.
  */
-export function isModelDownloaded(modelId: string, dataDir?: string): boolean {
+export function isModelDownloaded(
+  modelId: string,
+  dataDir?: string,
+  expectedSizeBytes?: number,
+): boolean {
   const p = getPlatform();
   const path = getModelPath(modelId, dataDir);
   if (!p.fs.existsSync(path)) return false;
-  // Verify file is non-trivial (at least 1MB) — catches partial downloads
   const stat = p.fs.statSync(path);
+  if (expectedSizeBytes && expectedSizeBytes > 0) {
+    const tolerance = Math.max(1_000_000, Math.round(expectedSizeBytes * 0.01));
+    return Math.abs(stat.size - expectedSizeBytes) <= tolerance;
+  }
   return stat.size > 1_000_000;
 }
 

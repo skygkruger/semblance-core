@@ -13,6 +13,17 @@ export interface SearchOptions {
   source?: DocumentSource;
   /** Filter by multiple source types */
   sourceTypes?: DocumentSource[];
+  /** Exclude specific source types from results (applied after filtering). */
+  excludeSources?: DocumentSource[];
+  /**
+   * Include past conversation turns in results. Default: false.
+   * Conversation turns are indexed for the AI's private recall — feeding them
+   * back as generic "context" causes the AI to treat its own prior outputs
+   * as facts and compounds hallucinations. Callers that genuinely want to
+   * recall dialogue (e.g. the conversation-indexer's searchConversations) must
+   * opt in by setting this to true or by explicitly requesting source='conversation'.
+   */
+  includeConversations?: boolean;
   /** Minimum similarity score (0–1). Default: 0 */
   minScore?: number;
   /** Filter by date range (ISO 8601 strings) */
@@ -89,6 +100,23 @@ export class SemanticSearch {
 
       // Source type filter (document-level, ensures correctness even if vector store didn't filter)
       if (sourceTypes && sourceTypes.length > 0 && !sourceTypes.includes(document.source)) continue;
+
+      // Exclude-source filter — used to keep conversation artifacts out of general
+      // context retrieval so the AI doesn't feed its own prior outputs back to itself.
+      if (options?.excludeSources && options.excludeSources.includes(document.source)) continue;
+
+      // Default conversation exclusion. Callers that want dialogue recall must
+      // opt in explicitly (source='conversation', includeConversations=true, or
+      // sourceTypes containing 'conversation'). This prevents every call site
+      // from re-discovering the same footgun.
+      if (
+        document.source === 'conversation'
+        && options?.source !== 'conversation'
+        && !options?.includeConversations
+        && !(options?.sourceTypes && options.sourceTypes.includes('conversation'))
+      ) {
+        continue;
+      }
 
       // Date range filter
       if (options?.dateRange) {

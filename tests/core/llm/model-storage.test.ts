@@ -58,6 +58,25 @@ describe('Model Storage', () => {
     expect(isModelDownloaded('partial-model', testDir)).toBe(false);
   });
 
+  it('isModelDownloaded rejects truncated download when expected size provided', () => {
+    // Simulates the phi-4-mini truncation bug: registry says 2.49GB but only 944MB on disk.
+    // Without the size param, the 944MB file passes the >1MB check. With the size param,
+    // it must be within 1% of expected — truncation is detected.
+    const modelsDir = getModelsDir(testDir);
+    writeFileSync(join(modelsDir, 'truncated.gguf'), Buffer.alloc(1_100_000));
+
+    expect(isModelDownloaded('truncated', testDir)).toBe(true); // Legacy check passes
+    expect(isModelDownloaded('truncated', testDir, 2_490_000_000)).toBe(false); // Size check catches it
+  });
+
+  it('isModelDownloaded accepts file within 1% of expected size', () => {
+    const modelsDir = getModelsDir(testDir);
+    const expectedSize = 10_000_000;
+    writeFileSync(join(modelsDir, 'close-enough.gguf'), Buffer.alloc(expectedSize - 50_000));
+
+    expect(isModelDownloaded('close-enough', testDir, expectedSize)).toBe(true);
+  });
+
   it('getModelFileSize returns 0 for missing model', () => {
     expect(getModelFileSize('nonexistent', testDir)).toBe(0);
   });

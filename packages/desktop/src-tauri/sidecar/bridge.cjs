@@ -2046,7 +2046,8 @@ var init_model_manager = __esm({
 // packages/core/llm/hardware-types.js
 function classifyHardware(totalRamMb, gpu) {
   const ramGb = totalRamMb / 1024;
-  if (ramGb >= 32 || gpu && gpu.computeCapable && gpu.vramMb >= 8192) {
+  const hasDiscreteGpuPromotion = gpu != null && gpu.computeCapable && gpu.vramMb >= 8192 && gpu.vendor !== "apple";
+  if (ramGb >= 32 || hasDiscreteGpuPromotion) {
     return "workstation";
   }
   if (ramGb >= 16) {
@@ -2063,51 +2064,47 @@ var init_hardware_types = __esm({
   }
 });
 
-// packages/core/llm/model-registry.ts
+// packages/core/llm/model-registry.js
 function getRecommendedReasoningModel(tier) {
   const tierOrder = ["constrained", "standard", "performance", "workstation", "enthusiast"];
   const tierIndex = tierOrder.indexOf(tier);
-  const candidates = MODEL_CATALOG.filter(
-    (m) => !m.isEmbedding && m.inferenceTier === "primary" && m.modality === "text" && tierOrder.indexOf(m.minTier) <= tierIndex
-  );
+  const candidates = MODEL_CATALOG.filter((m) => !m.isEmbedding && m.inferenceTier === "primary" && m.modality === "text" && tierOrder.indexOf(m.minTier) <= tierIndex);
   if (candidates.length === 0) {
     const all = MODEL_CATALOG.filter((m) => !m.isEmbedding && m.modality === "text" && tierOrder.indexOf(m.minTier) <= tierIndex);
-    return all.reduce(
-      (best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
-    );
+    return all.reduce((best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best);
   }
   const sessionResident = candidates.filter((m) => m.residencyPolicy[tier] === "session");
   const pool2 = sessionResident.length > 0 ? sessionResident : candidates;
-  return pool2.reduce(
-    (best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
-  );
+  return pool2.reduce((best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best);
 }
 function getFastTierModel(tier = "constrained") {
   const tierOrder = ["constrained", "standard", "performance", "workstation", "enthusiast"];
   const tierIndex = tierOrder.indexOf(tier);
   if (tierIndex >= 2) {
     const phi4 = MODEL_CATALOG.find((m) => m.inferenceTier === "fast" && m.family === "phi4");
-    if (phi4) return phi4;
+    if (phi4)
+      return phi4;
   }
   const entry = MODEL_CATALOG.find((m) => m.inferenceTier === "fast" && m.family === "smollm2");
-  if (!entry) throw new Error("No fast tier model in catalog \u2014 this is a build error");
+  if (!entry)
+    throw new Error("No fast tier model in catalog \u2014 this is a build error");
   return entry;
 }
 function getEmbeddingModel() {
   const entry = MODEL_CATALOG.find((m) => m.isEmbedding);
-  if (!entry) throw new Error("No embedding model in catalog \u2014 this is a build error");
+  if (!entry)
+    throw new Error("No embedding model in catalog \u2014 this is a build error");
   return entry;
 }
 function getVisionModelsForTier(tier) {
   const tierOrder = ["constrained", "standard", "performance", "workstation", "enthusiast"];
   const tierIndex = tierOrder.indexOf(tier);
-  return MODEL_CATALOG.filter(
-    (m) => m.modality === "vision" && tierOrder.indexOf(m.minTier) <= tierIndex
-  );
+  return MODEL_CATALOG.filter((m) => m.modality === "vision" && tierOrder.indexOf(m.minTier) <= tierIndex);
 }
 function getRecommendedVisionModel(tier) {
   const models = getVisionModelsForTier(tier);
-  if (models.length === 0) return null;
+  if (models.length === 0)
+    return null;
   if (tier === "constrained") {
     return models.find((m) => m.family === "moondream") ?? models[0] ?? null;
   }
@@ -2130,9 +2127,12 @@ function getRecommendedBitNetModel(tier) {
       return BITNET_MODEL_CATALOG.find((m) => m.id === "falcon3-1b-instruct-1.58bit");
   }
 }
+function stripR1ThinkingBlocks(text) {
+  return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+}
 var MODEL_CATALOG, BITNET_MODEL_CATALOG;
 var init_model_registry = __esm({
-  "packages/core/llm/model-registry.ts"() {
+  "packages/core/llm/model-registry.js"() {
     "use strict";
     MODEL_CATALOG = [
       // ─── Fast Tier: SmolLM2 1.7B (always-resident on ALL hardware) ────────────────
@@ -3629,6 +3629,7 @@ var init_inference_router = __esm({
   "packages/core/llm/inference-router.js"() {
     "use strict";
     init_inference_types();
+    init_model_registry();
     InferenceRouter = class {
       reasoningProvider;
       embeddingProvider;
@@ -3645,6 +3646,8 @@ var init_inference_router = __esm({
       visionProvider;
       visionFastModel;
       visionRichModel;
+      qualityProvider;
+      qualityModel;
       constructor(config) {
         this.reasoningProvider = config.reasoningProvider;
         this.embeddingProvider = config.embeddingProvider;
@@ -3661,6 +3664,8 @@ var init_inference_router = __esm({
         this.visionProvider = config.visionProvider ?? null;
         this.visionFastModel = config.visionFastModel ?? null;
         this.visionRichModel = config.visionRichModel ?? null;
+        this.qualityProvider = config.qualityProvider ?? null;
+        this.qualityModel = config.qualityModel ?? null;
       }
       // ─── LLMProvider Interface ───────────────────────────────────────────────
       async isAvailable() {
@@ -3735,10 +3740,14 @@ var init_inference_router = __esm({
         const tier = TASK_TIER_MAP[taskType];
         const { provider, model } = this.resolveProviderAndModel(tier, taskType);
         try {
-          return await provider.chat({
+          const response = await provider.chat({
             ...request,
             model: request.model || model
           });
+          if (response.message?.content) {
+            response.message.content = stripR1ThinkingBlocks(response.message.content);
+          }
+          return response;
         } catch (err) {
           if (tier === "vision")
             throw err;
@@ -3759,10 +3768,14 @@ var init_inference_router = __esm({
         const tier = TASK_TIER_MAP[taskType];
         const { provider, model } = this.resolveProviderAndModel(tier, taskType);
         try {
-          return await provider.generate({
+          const response = await provider.generate({
             ...request,
             model: request.model || model
           });
+          if (response.text) {
+            response.text = stripR1ThinkingBlocks(response.text);
+          }
+          return response;
         } catch (err) {
           if (tier === "vision")
             throw err;
@@ -3884,6 +3897,35 @@ var init_inference_router = __esm({
         return this.bitnetReasoningModel;
       }
       /**
+       * Set or update the quality tier provider (DeepSeek-R1 reasoning specialist).
+       * Used for the 'reason' task type only — complex multi-step planning.
+       */
+      setQualityProvider(provider, model) {
+        this.qualityProvider = provider;
+        this.qualityModel = model;
+      }
+      /**
+       * Clear the quality provider (e.g., when user disables reasoning specialist).
+       */
+      clearQualityProvider() {
+        this.qualityProvider = null;
+        this.qualityModel = null;
+      }
+      /**
+       * Get the active quality/reasoning specialist model name, or null if not configured.
+       */
+      getQualityModel() {
+        return this.qualityModel;
+      }
+      /**
+       * Check if the quality tier (reasoning specialist) is ready.
+       */
+      async isQualityReady() {
+        if (!this.qualityProvider)
+          return false;
+        return this.qualityProvider.isAvailable();
+      }
+      /**
        * Check if the fast tier is ready (SmolLM2 loaded).
        */
       isFastTierReady() {
@@ -3939,6 +3981,9 @@ var init_inference_router = __esm({
         }
         if (tier === "embedding") {
           return { provider: this.embeddingProvider, model: this.embeddingModel };
+        }
+        if (tier === "quality" && this.qualityProvider && this.qualityModel && taskType === "reason") {
+          return { provider: this.qualityProvider, model: this.qualityModel };
         }
         if (this.bitnetProvider) {
           return { provider: this.bitnetProvider, model: this.bitnetReasoningModel ?? this.reasoningModel };
@@ -42239,7 +42284,7 @@ var init_pdf = __esm({
           var DOM_EXCEPTION = "DOMException";
           var Error2 = getBuiltIn("Error");
           var NativeDOMException = getBuiltIn(DOM_EXCEPTION);
-          var $DOMException = function DOMException2() {
+          var $DOMException = function DOMException() {
             anInstance(this, DOMExceptionPrototype);
             var argumentsLength = arguments.length;
             var message = normalizeStringArgument(argumentsLength < 1 ? void 0 : arguments[0]);
@@ -89079,21 +89124,21 @@ var require_dom = __commonJS({
     var INVALID_MODIFICATION_ERR = ExceptionCode.INVALID_MODIFICATION_ERR = (ExceptionMessage[13] = "Invalid modification", 13);
     var NAMESPACE_ERR = ExceptionCode.NAMESPACE_ERR = (ExceptionMessage[14] = "Invalid namespace", 14);
     var INVALID_ACCESS_ERR = ExceptionCode.INVALID_ACCESS_ERR = (ExceptionMessage[15] = "Invalid access", 15);
-    function DOMException2(code, message) {
+    function DOMException(code, message) {
       if (message instanceof Error) {
         var error = message;
       } else {
         error = this;
         Error.call(this, ExceptionMessage[code]);
         this.message = ExceptionMessage[code];
-        if (Error.captureStackTrace) Error.captureStackTrace(this, DOMException2);
+        if (Error.captureStackTrace) Error.captureStackTrace(this, DOMException);
       }
       error.code = code;
       if (message) this.message = this.message + ": " + message;
       return error;
     }
-    DOMException2.prototype = Error.prototype;
-    copy(ExceptionCode, DOMException2);
+    DOMException.prototype = Error.prototype;
+    copy(ExceptionCode, DOMException);
     function NodeList() {
     }
     NodeList.prototype = {
@@ -89203,7 +89248,7 @@ var require_dom = __commonJS({
           }
         }
       } else {
-        throw new DOMException2(NOT_FOUND_ERR, new Error(el.tagName + "@" + attr));
+        throw new DOMException(NOT_FOUND_ERR, new Error(el.tagName + "@" + attr));
       }
     }
     NamedNodeMap.prototype = {
@@ -89221,7 +89266,7 @@ var require_dom = __commonJS({
       setNamedItem: function(attr) {
         var el = attr.ownerElement;
         if (el && el != this._ownerElement) {
-          throw new DOMException2(INUSE_ATTRIBUTE_ERR);
+          throw new DOMException(INUSE_ATTRIBUTE_ERR);
         }
         var oldAttr = this.getNamedItem(attr.nodeName);
         _addNamedNode(this._ownerElement, this, attr, oldAttr);
@@ -89231,7 +89276,7 @@ var require_dom = __commonJS({
       setNamedItemNS: function(attr) {
         var el = attr.ownerElement, oldAttr;
         if (el && el != this._ownerElement) {
-          throw new DOMException2(INUSE_ATTRIBUTE_ERR);
+          throw new DOMException(INUSE_ATTRIBUTE_ERR);
         }
         oldAttr = this.getNamedItemNS(attr.namespaceURI, attr.localName);
         _addNamedNode(this._ownerElement, this, attr, oldAttr);
@@ -89563,10 +89608,10 @@ var require_dom = __commonJS({
     }
     function assertPreInsertionValidity1to5(parent, node, child) {
       if (!hasValidParentNodeType(parent)) {
-        throw new DOMException2(HIERARCHY_REQUEST_ERR, "Unexpected parent node type " + parent.nodeType);
+        throw new DOMException(HIERARCHY_REQUEST_ERR, "Unexpected parent node type " + parent.nodeType);
       }
       if (child && child.parentNode !== parent) {
-        throw new DOMException2(NOT_FOUND_ERR, "child not in parent");
+        throw new DOMException(NOT_FOUND_ERR, "child not in parent");
       }
       if (
         // 4. If `node` is not a DocumentFragment, DocumentType, Element, or CharacterData node, then throw a "HierarchyRequestError" DOMException.
@@ -89576,7 +89621,7 @@ var require_dom = __commonJS({
         // or `node` is a doctype and `parent` is not a document, then throw a "HierarchyRequestError" DOMException.
         isDocTypeNode(node) && parent.nodeType !== Node2.DOCUMENT_NODE
       ) {
-        throw new DOMException2(
+        throw new DOMException(
           HIERARCHY_REQUEST_ERR,
           "Unexpected node type " + node.nodeType + " for parent node type " + parent.nodeType
         );
@@ -89588,27 +89633,27 @@ var require_dom = __commonJS({
       if (node.nodeType === Node2.DOCUMENT_FRAGMENT_NODE) {
         var nodeChildElements = nodeChildNodes.filter(isElementNode);
         if (nodeChildElements.length > 1 || find2(nodeChildNodes, isTextNode)) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "More than one element or text in fragment");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "More than one element or text in fragment");
         }
         if (nodeChildElements.length === 1 && !isElementInsertionPossible(parent, child)) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Element in fragment can not be inserted before doctype");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "Element in fragment can not be inserted before doctype");
         }
       }
       if (isElementNode(node)) {
         if (!isElementInsertionPossible(parent, child)) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Only one element can be added and only after doctype");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "Only one element can be added and only after doctype");
         }
       }
       if (isDocTypeNode(node)) {
         if (find2(parentChildNodes, isDocTypeNode)) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Only one doctype is allowed");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "Only one doctype is allowed");
         }
         var parentElementChild = find2(parentChildNodes, isElementNode);
         if (child && parentChildNodes.indexOf(parentElementChild) < parentChildNodes.indexOf(child)) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Doctype can only be inserted before an element");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "Doctype can only be inserted before an element");
         }
         if (!child && parentElementChild) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Doctype can not be appended since element is present");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "Doctype can not be appended since element is present");
         }
       }
     }
@@ -89618,15 +89663,15 @@ var require_dom = __commonJS({
       if (node.nodeType === Node2.DOCUMENT_FRAGMENT_NODE) {
         var nodeChildElements = nodeChildNodes.filter(isElementNode);
         if (nodeChildElements.length > 1 || find2(nodeChildNodes, isTextNode)) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "More than one element or text in fragment");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "More than one element or text in fragment");
         }
         if (nodeChildElements.length === 1 && !isElementReplacementPossible(parent, child)) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Element in fragment can not be inserted before doctype");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "Element in fragment can not be inserted before doctype");
         }
       }
       if (isElementNode(node)) {
         if (!isElementReplacementPossible(parent, child)) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Only one element can be added and only after doctype");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "Only one element can be added and only after doctype");
         }
       }
       if (isDocTypeNode(node)) {
@@ -89635,11 +89680,11 @@ var require_dom = __commonJS({
         };
         var hasDoctypeChildThatIsNotChild = hasDoctypeChildThatIsNotChild2;
         if (find2(parentChildNodes, hasDoctypeChildThatIsNotChild2)) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Only one doctype is allowed");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "Only one doctype is allowed");
         }
         var parentElementChild = find2(parentChildNodes, isElementNode);
         if (child && parentChildNodes.indexOf(parentElementChild) < parentChildNodes.indexOf(child)) {
-          throw new DOMException2(HIERARCHY_REQUEST_ERR, "Doctype can only be inserted before an element");
+          throw new DOMException(HIERARCHY_REQUEST_ERR, "Doctype can only be inserted before an element");
         }
       }
     }
@@ -90421,7 +90466,7 @@ var require_dom = __commonJS({
     }
     var getTextContent;
     exports2.DocumentType = DocumentType;
-    exports2.DOMException = DOMException2;
+    exports2.DOMException = DOMException;
     exports2.DOMImplementation = DOMImplementation;
     exports2.Element = Element;
     exports2.Node = Node2;
@@ -104017,6 +104062,7 @@ var init_orchestrator = __esm({
       alterEgoStore;
       knowledgeCurator = null;
       weatherService;
+      streamCallback = null;
       promptConfig;
       // Extension support
       extensionToolHandlers = /* @__PURE__ */ new Map();
@@ -104060,6 +104106,10 @@ var init_orchestrator = __esm({
       /** Update the active model name (e.g., after switching to Ollama). */
       setModel(model) {
         this.model = model;
+      }
+      /** Set a stream event callback for v1 tool call progress (feeds the bracket UI). */
+      setStreamCallback(callback) {
+        this.streamCallback = callback;
       }
       /**
        * Detect messages that are conversational and don't need tool access.
@@ -104723,6 +104773,18 @@ ${docContextStr}`, "document context")
         const executedResults = [];
         const reasoningCtx = context && context.length > 0 ? this.buildReasoningContext(userMessage, context) : void 0;
         for (const tc of toolCalls) {
+          if (this.streamCallback) {
+            try {
+              this.streamCallback({
+                type: "subagent_tool_call",
+                subagentId: "v1",
+                subtaskId: tc.name,
+                timestamp: Date.now(),
+                data: { toolName: tc.name, toolStatus: "running" }
+              });
+            } catch {
+            }
+          }
           if (this.intentManager) {
             const actionType2 = this.allToolActionMap[tc.name];
             if (actionType2) {
@@ -105405,11 +105467,13 @@ ${prompt}` }]
             try {
               this.db.exec(`CREATE TABLE IF NOT EXISTS reminders (
             id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL,
-            recurrence TEXT, status TEXT NOT NULL DEFAULT 'pending',
-            source TEXT DEFAULT 'user', created_at TEXT NOT NULL
+            recurrence TEXT NOT NULL DEFAULT 'none', status TEXT NOT NULL DEFAULT 'pending',
+            snoozed_until TEXT, source TEXT NOT NULL DEFAULT 'chat',
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
           )`);
               const id = `rem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-              this.db.prepare("INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(id, text, dueAt, recurrence ?? null, "pending", "ai", (/* @__PURE__ */ new Date()).toISOString());
+              const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+              this.db.prepare("INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(id, text, dueAt, recurrence ?? "none", "pending", "ai", nowIso, nowIso);
               executedResults.push({
                 tool: "create_reminder",
                 result: { success: true, id, text, dueAt, recurrence }
@@ -105426,8 +105490,9 @@ ${prompt}` }]
             try {
               this.db.exec(`CREATE TABLE IF NOT EXISTS reminders (
             id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL,
-            recurrence TEXT, status TEXT NOT NULL DEFAULT 'pending',
-            source TEXT DEFAULT 'user', created_at TEXT NOT NULL
+            recurrence TEXT NOT NULL DEFAULT 'none', status TEXT NOT NULL DEFAULT 'pending',
+            snoozed_until TEXT, source TEXT NOT NULL DEFAULT 'chat',
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
           )`);
               const reminders = this.db.prepare("SELECT * FROM reminders WHERE status IN ('pending', 'snoozed') ORDER BY due_at ASC LIMIT 50").all();
               executedResults.push({
@@ -105796,10 +105861,10 @@ ${retryHint}`;
   }
 });
 
-// packages/core/agent/complexity-classifier.ts
+// packages/core/agent/complexity-classifier.js
 var TOOL_DOMAIN_MAP, INTENT_PATTERNS, COMPLEX_PATTERNS, ComplexityClassifier;
 var init_complexity_classifier = __esm({
-  "packages/core/agent/complexity-classifier.ts"() {
+  "packages/core/agent/complexity-classifier.js"() {
     "use strict";
     TOOL_DOMAIN_MAP = {
       // Email
@@ -105945,14 +106010,13 @@ var init_complexity_classifier = __esm({
           return ruleBasedResult;
         }
         try {
-          const response = await this.llm.routedChat(
-            {
-              model: "",
-              // routedChat picks the model
-              messages: [
-                {
-                  role: "system",
-                  content: `You classify user requests for an AI assistant.
+          const response = await this.llm.routedChat({
+            model: "",
+            // routedChat picks the model
+            messages: [
+              {
+                role: "system",
+                content: `You classify user requests for an AI assistant.
 Respond with ONLY a JSON object: {"complexity":"simple"|"compound"|"complex","domains":["email","calendar",...],"parallelCapable":true|false}
 
 Rules:
@@ -105961,15 +106025,13 @@ Rules:
 - "complex": multiple domains OR research+action combos that benefit from parallel execution
 
 Available domains: email, calendar, files, web, contacts, finances, health, reminders, messaging, location, cloud-storage`
-                },
-                { role: "user", content: message }
-              ],
-              temperature: 0,
-              maxTokens: 128,
-              format: "json"
-            },
-            "classify"
-          );
+              },
+              { role: "user", content: message }
+            ],
+            temperature: 0,
+            maxTokens: 128,
+            format: "json"
+          }, "classify");
           const parsed = JSON.parse(response.message.content);
           if (parsed.complexity && ["simple", "compound", "complex"].includes(parsed.complexity)) {
             return {
@@ -106223,6 +106285,7 @@ var init_subagent_executor = __esm({
           return tiers.size > 1;
         });
         switch (this.hardwareTier) {
+          case "enthusiast":
           case "workstation":
           case "performance":
             return hasDifferentTiers ? "parallel" : "interleaved";
@@ -107330,10 +107393,10 @@ var init_orchestrator_v2_types = __esm({
   }
 });
 
-// packages/core/agent/coordinator-agent.ts
+// packages/core/agent/coordinator-agent.js
 var CoordinatorAgent;
 var init_coordinator_agent = __esm({
-  "packages/core/agent/coordinator-agent.ts"() {
+  "packages/core/agent/coordinator-agent.js"() {
     "use strict";
     init_nanoid();
     init_complexity_classifier();
@@ -107388,14 +107451,13 @@ var init_coordinator_agent = __esm({
         });
         this.hookRegistry = new ToolHookRegistryImpl();
         this.permissionResolver = new HierarchicalPermissionResolver(this.autonomy);
-        this.hookRegistry.registerPreHook(
-          createAutonomyEnforcementHook((toolName) => {
-            const domain = ComplexityClassifier.getToolDomain(toolName);
-            const actionType = this.toolActionMap[toolName];
-            if (!actionType) return "auto_approve";
-            return this.autonomy.decide(actionType);
-          })
-        );
+        this.hookRegistry.registerPreHook(createAutonomyEnforcementHook((toolName) => {
+          const domain = ComplexityClassifier.getToolDomain(toolName);
+          const actionType = this.toolActionMap[toolName];
+          if (!actionType)
+            return "auto_approve";
+          return this.autonomy.decide(actionType);
+        }));
         this.hookRegistry.registerPreHook(createGuardianRedirectHook());
         this.hookRegistry.registerPreHook(createTerminalSafetyHook());
         this.hookRegistry.registerPreHook(createFilesystemPermissionHook());
@@ -107515,19 +107577,9 @@ var init_coordinator_agent = __esm({
             const sessionCtx = await this.sessionContextProvider.getSessionOverrides(conversationId);
             if (sessionCtx) {
               sessionModelOverride = sessionCtx.modelOverride;
-              this.sessionMemory.set(
-                "session:key",
-                sessionCtx.sessionKey ?? "",
-                "critical",
-                "coordinator"
-              );
+              this.sessionMemory.set("session:key", sessionCtx.sessionKey ?? "", "critical", "coordinator");
               if (Object.keys(sessionCtx.autonomyOverrides).length > 0) {
-                this.sessionMemory.set(
-                  "session:autonomy_overrides",
-                  JSON.stringify(sessionCtx.autonomyOverrides),
-                  "critical",
-                  "coordinator"
-                );
+                this.sessionMemory.set("session:autonomy_overrides", JSON.stringify(sessionCtx.autonomyOverrides), "critical", "coordinator");
               }
               console.error(`[CoordinatorAgent] Named session context loaded: ${sessionCtx.sessionKey}`);
             }
@@ -107542,11 +107594,7 @@ var init_coordinator_agent = __esm({
           domains: assessment.domains
         });
         const executor = this.getOrCreateExecutor();
-        const results = await executor.executePlan(
-          decomposition.executionPlan,
-          message,
-          sessionId
-        );
+        const results = await executor.executePlan(decomposition.executionPlan, message, sessionId);
         this.emitBusEvent("orchestrator.synthesis_started", {
           sessionId,
           subtaskCount: results.length
@@ -107556,12 +107604,7 @@ var init_coordinator_agent = __esm({
           sessionId,
           tokensConsumed: synthesis.tokensUsed
         });
-        this.sessionMemory.set(
-          `last_complex_result:${sessionId}`,
-          synthesis.message.slice(0, 2e3),
-          "normal",
-          "coordinator"
-        );
+        this.sessionMemory.set(`last_complex_result:${sessionId}`, synthesis.message.slice(0, 2e3), "normal", "coordinator");
         const actions = [];
         for (const result2 of results) {
           if (result2.status === "escalated" && result2.escalationRequest) {
@@ -107595,17 +107638,17 @@ var init_coordinator_agent = __esm({
         return this.decomposeRuleBased(message, assessment);
       }
       async decomposeWithLLM(message, assessment) {
-        if (!this.llm.routedChat) return [];
+        if (!this.llm.routedChat)
+          return [];
         const toolList = assessment.estimatedTools.join(", ");
         const domainList = assessment.domains.join(", ");
         try {
-          const response = await this.llm.routedChat(
-            {
-              model: "",
-              messages: [
-                {
-                  role: "system",
-                  content: `You decompose complex user requests into parallel subtasks for a multi-agent AI assistant.
+          const response = await this.llm.routedChat({
+            model: "",
+            messages: [
+              {
+                role: "system",
+                content: `You decompose complex user requests into parallel subtasks for a multi-agent AI assistant.
 Each subtask runs as an independent agent with scoped tools.
 
 Available tools by domain:
@@ -107628,25 +107671,24 @@ Rules:
 - modelTier: "fast" for classification/triage, "primary" for reasoning/drafting
 - Keep subtask count between 2-5 (more would overwhelm local hardware)
 - The last subtask should be a synthesis step with no tools (modelTier "primary")`
-                },
-                {
-                  role: "user",
-                  content: `Request: "${message}"
+              },
+              {
+                role: "user",
+                content: `Request: "${message}"
 Detected domains: ${domainList}
 Estimated tools: ${toolList}`
-                }
-              ],
-              temperature: 0.3,
-              maxTokens: 1024,
-              format: "json"
-            },
-            "classify"
-          );
+              }
+            ],
+            temperature: 0.3,
+            maxTokens: 1024,
+            format: "json"
+          }, "classify");
           let parsed = JSON.parse(response.message.content);
           if (!Array.isArray(parsed)) {
             parsed = parsed && typeof parsed === "object" && parsed.description ? [parsed] : [];
           }
-          if (parsed.length === 0) return [];
+          if (parsed.length === 0)
+            return [];
           return parsed.filter((s) => s.description && s.tools).map((s, i) => ({
             id: s.id ?? `st-${i + 1}`,
             description: s.description,
@@ -107781,7 +107823,8 @@ Synthesize these into a single coherent response for the user.`
       }
       // ─── Event Bus ──────────────────────────────────────────────────────────────
       emitBusEvent(type, details) {
-        if (!this.eventBus) return;
+        if (!this.eventBus)
+          return;
         try {
           this.eventBus.emit(type, details);
         } catch {
@@ -107797,6 +107840,7 @@ var init_conversation_manager = __esm({
   "packages/core/agent/conversation-manager.js"() {
     "use strict";
     init_nanoid();
+    init_model_registry();
     ConversationManager = class {
       db;
       constructor(db) {
@@ -107963,11 +108007,12 @@ var init_conversation_manager = __esm({
       /** Update conversation metadata after a turn is added. */
       updateAfterTurn(id, content, role) {
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        const preview = content.substring(0, 120);
+        const cleaned = role === "assistant" ? stripR1ThinkingBlocks(content) : content;
+        const preview = cleaned.substring(0, 120);
         if (role === "user") {
           const conv = this.db.prepare("SELECT turn_count, auto_title FROM conversations WHERE id = ?").get(id);
           if (conv && !conv.auto_title) {
-            const autoTitle = content.split(/\s+/).slice(0, 6).join(" ").substring(0, 50);
+            const autoTitle = cleaned.split(/\s+/).slice(0, 6).join(" ").substring(0, 50);
             this.db.prepare("UPDATE conversations SET auto_title = ?, turn_count = turn_count + 1, last_message_preview = ?, updated_at = ? WHERE id = ?").run(autoTitle, preview, now, id);
             return;
           }
@@ -262853,6 +262898,7 @@ init_knowledge();
 init_ipc_client();
 init_agent();
 init_hardware_types();
+init_model_registry();
 init_loader();
 init_premium_gate();
 init_style_profile();
@@ -262945,7 +262991,7 @@ function createSemblanceCore(config) {
           console.error(`[SemblanceCore] Selected chat model: ${chatModel}`);
         }
       }
-      chatModel = chatModel ?? "llama3.1:8b";
+      chatModel = chatModel ?? getRecommendedReasoningModel("standard").id;
       console.error(`[SemblanceCore] Chat model selected: ${chatModel}`);
       const knowledgeDir = p.path.join(dataDir2, "knowledge");
       try {
@@ -274838,7 +274884,7 @@ var SlackChannelAdapter = class {
   }
 };
 
-// packages/gateway/channels/whatsapp/whatsapp-adapter.ts
+// packages/gateway/channels/whatsapp/whatsapp-adapter.js
 var import_node_path10 = require("node:path");
 var import_node_os9 = require("node:os");
 var import_node_fs10 = require("node:fs");
@@ -274902,9 +274948,11 @@ var WhatsAppChannelAdapter = class {
         const upsert = args[0];
         const messages = upsert.messages ?? [];
         for (const msg of messages) {
-          if (msg.key?.fromMe) continue;
+          if (msg.key?.fromMe)
+            continue;
           const text = msg.message?.conversation ?? msg.message?.extendedTextMessage?.text;
-          if (!text) continue;
+          if (!text)
+            continue;
           const inbound = {
             channelId: "whatsapp",
             senderId: msg.key?.remoteJid ?? "unknown",
@@ -276565,12 +276613,16 @@ function getModelsDir(dataDir2) {
 function getModelPath(modelId, dataDir2) {
   return getPlatform().path.join(getModelsDir(dataDir2), `${modelId}.gguf`);
 }
-function isModelDownloaded(modelId, dataDir2) {
+function isModelDownloaded(modelId, dataDir2, expectedSizeBytes) {
   const p = getPlatform();
   const path2 = getModelPath(modelId, dataDir2);
   if (!p.fs.existsSync(path2))
     return false;
   const stat2 = p.fs.statSync(path2);
+  if (expectedSizeBytes && expectedSizeBytes > 0) {
+    const tolerance = Math.max(1e6, Math.round(expectedSizeBytes * 0.01));
+    return Math.abs(stat2.size - expectedSizeBytes) <= tolerance;
+  }
   return stat2.size > 1e6;
 }
 var BITNET_SUBDIR = "bitnet";
@@ -288053,7 +288105,7 @@ async function handleInitialize() {
   }
   for (const model of MODEL_CATALOG) {
     if (!model.isEmbedding) continue;
-    if (isModelDownloaded(model.id, modelsBaseDir)) {
+    if (isModelDownloaded(model.id, modelsBaseDir, model.fileSizeBytes)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
       try {
         await Promise.race([
@@ -288071,7 +288123,7 @@ async function handleInitialize() {
     const fallbackCandidates = MODEL_CATALOG.filter((m) => !m.isEmbedding && m.inferenceTier !== "primary");
     const reasoningCandidates = [...primaryCandidates, ...fallbackCandidates];
     for (const model of reasoningCandidates) {
-      if (isModelDownloaded(model.id, modelsBaseDir)) {
+      if (isModelDownloaded(model.id, modelsBaseDir, model.fileSizeBytes)) {
         const modelPath = getModelPath(model.id, modelsBaseDir);
         try {
           const loadResult = await Promise.race([
@@ -288108,8 +288160,8 @@ async function handleInitialize() {
   try {
     const phi4 = getFastTierModel("performance");
     const smol = getFastTierModel("constrained");
-    const fastModel = isModelDownloaded(phi4.id, modelsBaseDir) ? phi4 : smol;
-    if (isModelDownloaded(fastModel.id, modelsBaseDir)) {
+    const fastModel = isModelDownloaded(phi4.id, modelsBaseDir, phi4.fileSizeBytes) ? phi4 : smol;
+    if (isModelDownloaded(fastModel.id, modelsBaseDir, fastModel.fileSizeBytes)) {
       const fastPath = getModelPath(fastModel.id, modelsBaseDir);
       try {
         await sendCallback("native_load_model", { model_path: fastPath, model_type: "fast" });
@@ -288125,7 +288177,7 @@ async function handleInitialize() {
     const visionModel = getRecommendedVisionModel("standard");
     if (visionModel && visionModel.mmProjectorFilename) {
       const mmProjId = visionModel.id + "-mmproj";
-      if (isModelDownloaded(visionModel.id, modelsBaseDir) && isModelDownloaded(mmProjId, modelsBaseDir)) {
+      if (isModelDownloaded(visionModel.id, modelsBaseDir, visionModel.fileSizeBytes) && isModelDownloaded(mmProjId, modelsBaseDir, visionModel.mmProjectorSizeBytes)) {
         const visionPath = getModelPath(visionModel.id, modelsBaseDir);
         const mmProjPath = getModelPath(mmProjId, modelsBaseDir);
         try {
@@ -288612,7 +288664,7 @@ async function handleInitialize() {
             subagentId: event.subagentId,
             subtaskId: event.subtaskId,
             timestamp: event.timestamp,
-            ...event.data
+            data: event.data ?? {}
           });
           if (canvasManager && (event.type === "subagent_started" || event.type === "subagent_completed" || event.type === "subagent_failed" || event.type === "synthesis_started" || event.type === "synthesis_completed")) {
             canvasManager.push({
@@ -288622,7 +288674,7 @@ async function handleInitialize() {
                 event: event.type,
                 subagentId: event.subagentId,
                 subtaskId: event.subtaskId,
-                ...event.data
+                ...event.data ?? {}
               },
               replace: true,
               title: "Multi-agent execution"
@@ -290589,25 +290641,53 @@ async function downloadHfFile(entry, targetPath, modelId, displayName) {
   const url = `https://huggingface.co/${entry.hfRepo}/resolve/main/${entry.hfFilename}`;
   console.error(`[sidecar] downloadHfFile FETCHING: ${modelId} from ${url}`);
   const { createWriteStream } = await import("node:fs");
-  const { pipeline } = await import("node:stream/promises");
+  const https = await import("node:https");
+  const http = await import("node:http");
+  function httpsGet(targetUrl, maxRedirects = 5) {
+    return new Promise((resolve8, reject2) => {
+      if (maxRedirects <= 0) {
+        reject2(new Error("Too many redirects"));
+        return;
+      }
+      const parsed = new URL(targetUrl);
+      const mod2 = parsed.protocol === "https:" ? https : http;
+      const req = mod2.get(targetUrl, { timeout: 6e4, family: 4 }, (res) => {
+        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          res.resume();
+          const redirectUrl = new URL(res.headers.location, targetUrl).href;
+          httpsGet(redirectUrl, maxRedirects - 1).then(resolve8, reject2);
+          return;
+        }
+        resolve8(res);
+      });
+      req.on("error", reject2);
+      req.on("timeout", () => {
+        req.destroy(new Error("Request timed out (60s)"));
+      });
+      if (download.abortController) {
+        const onAbort = () => {
+          req.destroy(new Error("Download aborted"));
+        };
+        download.abortController.signal.addEventListener("abort", onAbort, { once: true });
+        req.on("close", () => download.abortController?.signal.removeEventListener("abort", onAbort));
+      }
+    });
+  }
   try {
-    let response = null;
+    let res = null;
     const maxRetries = 3;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        response = await globalThis.fetch(url, {
-          signal: download.abortController.signal,
-          redirect: "follow"
-        });
-        console.error(`[sidecar] downloadHfFile RESPONSE: ${modelId} status=${response?.status}, ok=${response?.ok}, hasBody=${!!response?.body}`);
-        if (response.ok && response.body) break;
-        const statusErr = `HTTP ${response.status}: ${response.statusText}`;
-        if (response.status >= 400 && response.status < 500) {
-          throw new Error(statusErr);
-        }
+        res = await httpsGet(url);
+        const status = res.statusCode ?? 0;
+        console.error(`[sidecar] downloadHfFile RESPONSE: ${modelId} status=${status}`);
+        if (status >= 200 && status < 300) break;
+        res.resume();
+        const statusErr = `HTTP ${status}`;
+        if (status >= 400 && status < 500) throw new Error(statusErr);
         throw new Error(statusErr);
       } catch (fetchErr) {
-        const isAbort = fetchErr instanceof DOMException && fetchErr.name === "AbortError";
+        const isAbort = fetchErr instanceof Error && fetchErr.message === "Download aborted";
         const isClientError = fetchErr instanceof Error && fetchErr.message.startsWith("HTTP 4");
         if (isAbort || isClientError || attempt === maxRetries - 1) throw fetchErr;
         const delayMs = Math.pow(2, attempt + 1) * 1e3;
@@ -290616,16 +290696,18 @@ async function downloadHfFile(entry, targetPath, modelId, displayName) {
         download.downloadedBytes = 0;
       }
     }
-    if (!response || !response.ok || !response.body) {
+    if (!res || !res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
       throw new Error(`Failed to download after ${maxRetries} attempts`);
     }
     const fileStream = createWriteStream(targetPath);
-    const reader = response.body.getReader();
     let lastEmitTime = Date.now();
     let bytesInWindow = 0;
-    const writable = new (await import("node:stream")).Writable({
-      write(chunk2, _encoding, callback) {
+    const expectedBytes = parseInt(String(res.headers["content-length"] ?? "0"), 10);
+    let receivedBytes = 0;
+    await new Promise((resolve8, reject2) => {
+      res.on("data", (chunk2) => {
         download.downloadedBytes += chunk2.length;
+        receivedBytes += chunk2.length;
         bytesInWindow += chunk2.length;
         const now = Date.now();
         const elapsed = now - lastEmitTime;
@@ -290635,22 +290717,35 @@ async function downloadHfFile(entry, targetPath, modelId, displayName) {
           lastEmitTime = now;
           emit("model-download-progress", { ...download, abortController: void 0 });
         }
-        fileStream.write(chunk2, callback);
-      }
-    });
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      await new Promise((resolve8, reject2) => {
-        writable.write(Buffer.from(value), (err) => err ? reject2(err) : resolve8());
+        if (!fileStream.write(chunk2)) {
+          res.pause();
+          fileStream.once("drain", () => res.resume());
+        }
       });
-    }
-    fileStream.end();
-    await new Promise((resolve8, reject2) => {
-      fileStream.on("finish", resolve8);
-      fileStream.on("error", reject2);
+      res.on("end", () => {
+        fileStream.end();
+      });
+      res.on("error", (err) => {
+        fileStream.destroy();
+        reject2(err);
+      });
+      res.on("aborted", () => {
+        fileStream.destroy();
+        reject2(new Error(`Connection aborted prematurely at ${receivedBytes}/${expectedBytes} bytes`));
+      });
+      fileStream.on("finish", () => {
+        if (expectedBytes > 0 && receivedBytes !== expectedBytes) {
+          reject2(new Error(`Incomplete download for "${modelId}": received ${receivedBytes} bytes, expected ${expectedBytes} (Content-Length)`));
+          return;
+        }
+        resolve8();
+      });
+      fileStream.on("error", (err) => {
+        res.destroy();
+        reject2(err);
+      });
     });
-    download.downloadedBytes = download.totalBytes;
+    download.downloadedBytes = expectedBytes > 0 ? expectedBytes : receivedBytes;
     download.speedBytesPerSec = 0;
     if (entry.sha256) {
       const { createHash: createHash8 } = await import("node:crypto");
@@ -290725,7 +290820,7 @@ async function handleStartModelDownloads(params) {
   const tier = params.tier || "standard";
   const baseDir = dataDir ? (0, import_node_path16.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
   async function downloadAndLoad(model, targetPath, _modelType, onComplete) {
-    if (isModelDownloaded(model.id, baseDir)) {
+    if (isModelDownloaded(model.id, baseDir, model.fileSizeBytes)) {
       const existing = {
         modelId: model.id,
         modelName: model.displayName,
@@ -290795,22 +290890,22 @@ async function handleStartModelDownloads(params) {
   } catch {
   }
   const embeddingModel = getEmbeddingModel();
-  planned.push({ modelId: embeddingModel.id, status: isModelDownloaded(embeddingModel.id, baseDir) ? "already_downloaded" : "queued" });
+  planned.push({ modelId: embeddingModel.id, status: isModelDownloaded(embeddingModel.id, baseDir, embeddingModel.fileSizeBytes) ? "already_downloaded" : "queued" });
   if (!ollamaHasModel) {
     const reasoningModel = getRecommendedReasoningModel(tier);
-    planned.push({ modelId: reasoningModel.id, status: isModelDownloaded(reasoningModel.id, baseDir) ? "already_downloaded" : "queued" });
+    planned.push({ modelId: reasoningModel.id, status: isModelDownloaded(reasoningModel.id, baseDir, reasoningModel.fileSizeBytes) ? "already_downloaded" : "queued" });
   }
   try {
     const fastModel = getFastTierModel(tier);
-    planned.push({ modelId: fastModel.id, status: isModelDownloaded(fastModel.id, baseDir) ? "already_downloaded" : "queued" });
+    planned.push({ modelId: fastModel.id, status: isModelDownloaded(fastModel.id, baseDir, fastModel.fileSizeBytes) ? "already_downloaded" : "queued" });
   } catch {
   }
   try {
     const visionModel = getRecommendedVisionModel(tier);
     if (visionModel?.mmProjectorFilename) {
-      planned.push({ modelId: visionModel.id, status: isModelDownloaded(visionModel.id, baseDir) ? "already_downloaded" : "queued" });
+      planned.push({ modelId: visionModel.id, status: isModelDownloaded(visionModel.id, baseDir, visionModel.fileSizeBytes) ? "already_downloaded" : "queued" });
       const mmProjId = visionModel.id + "-mmproj";
-      planned.push({ modelId: mmProjId, status: isModelDownloaded(mmProjId, baseDir) ? "already_downloaded" : "queued" });
+      planned.push({ modelId: mmProjId, status: isModelDownloaded(mmProjId, baseDir, visionModel.mmProjectorSizeBytes) ? "already_downloaded" : "queued" });
     }
   } catch {
   }
@@ -290857,7 +290952,7 @@ async function handleStartModelDownloads(params) {
             displayName: `${visionModel.displayName} Projector`
           };
           await downloadAndLoad(mmProjEntry, mmProjPath, "vision", () => {
-            if (isModelDownloaded(visionModel.id, baseDir)) {
+            if (isModelDownloaded(visionModel.id, baseDir, visionModel.fileSizeBytes)) {
               sendCallback("native_load_model", {
                 model_path: visionPath,
                 model_type: "vision",
@@ -293418,18 +293513,20 @@ async function handleRequest(req) {
               id TEXT PRIMARY KEY,
               text TEXT NOT NULL,
               due_at TEXT NOT NULL,
-              recurrence TEXT,
+              recurrence TEXT NOT NULL DEFAULT 'none',
               status TEXT NOT NULL DEFAULT 'pending',
-              source TEXT DEFAULT 'user',
-              created_at TEXT NOT NULL
+              snoozed_until TEXT,
+              source TEXT NOT NULL DEFAULT 'chat',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
             )
           `);
           const { nanoid: nanoid2 } = await Promise.resolve().then(() => (init_nanoid(), nanoid_exports));
           const remId = nanoid2();
           const now = (/* @__PURE__ */ new Date()).toISOString();
           prefsDb.prepare(
-            "INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-          ).run(remId, rcParams.text, rcParams.dueAt, rcParams.recurrence ?? null, "pending", "user", now);
+            "INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+          ).run(remId, rcParams.text, rcParams.dueAt, rcParams.recurrence ?? "none", "pending", "user", now, now);
           respond(id, { id: remId, text: rcParams.text, dueAt: rcParams.dueAt, status: "pending" });
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));

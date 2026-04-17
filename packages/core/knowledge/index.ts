@@ -60,6 +60,12 @@ export interface KnowledgeGraph {
   search(query: string, options?: {
     limit?: number;
     source?: DocumentSource;
+    sourceTypes?: DocumentSource[];
+    excludeSources?: DocumentSource[];
+    /** Opt-in to include conversation turns; default excludes them. */
+    includeConversations?: boolean;
+    minScore?: number;
+    dateRange?: { from?: string; to?: string };
   }): Promise<SearchResult[]>;
 
   /** Scan and index files from a directory */
@@ -137,6 +143,11 @@ class KnowledgeGraphImpl implements KnowledgeGraph {
   async search(query: string, options?: {
     limit?: number;
     source?: DocumentSource;
+    sourceTypes?: DocumentSource[];
+    excludeSources?: DocumentSource[];
+    includeConversations?: boolean;
+    minScore?: number;
+    dateRange?: { from?: string; to?: string };
   }): Promise<SearchResult[]> {
     return this.semanticSearch.search(query, options);
   }

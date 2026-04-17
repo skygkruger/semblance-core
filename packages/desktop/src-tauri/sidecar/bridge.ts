@@ -1159,7 +1159,7 @@ async function handleInitialize(): Promise<unknown> {
   // ── Step 2: Load embedding model (always needed, even with Ollama) ───────
   for (const model of MODEL_CATALOG) {
     if (!model.isEmbedding) continue;
-    if (isModelDownloaded(model.id, modelsBaseDir)) {
+    if (isModelDownloaded(model.id, modelsBaseDir, model.fileSizeBytes)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
       try {
         await Promise.race([
@@ -1180,7 +1180,7 @@ async function handleInitialize(): Promise<unknown> {
     const fallbackCandidates = MODEL_CATALOG.filter(m => !m.isEmbedding && m.inferenceTier !== 'primary');
     const reasoningCandidates = [...primaryCandidates, ...fallbackCandidates];
     for (const model of reasoningCandidates) {
-      if (isModelDownloaded(model.id, modelsBaseDir)) {
+      if (isModelDownloaded(model.id, modelsBaseDir, model.fileSizeBytes)) {
         const modelPath = getModelPath(model.id, modelsBaseDir);
         try {
           const loadResult = await Promise.race([
@@ -1223,8 +1223,8 @@ async function handleInitialize(): Promise<unknown> {
   try {
     const phi4 = getFastTierModel('performance'); // Phi-4-Mini if it exists in catalog
     const smol = getFastTierModel('constrained'); // SmolLM2 (always in catalog)
-    const fastModel = isModelDownloaded(phi4.id, modelsBaseDir) ? phi4 : smol;
-    if (isModelDownloaded(fastModel.id, modelsBaseDir)) {
+    const fastModel = isModelDownloaded(phi4.id, modelsBaseDir, phi4.fileSizeBytes) ? phi4 : smol;
+    if (isModelDownloaded(fastModel.id, modelsBaseDir, fastModel.fileSizeBytes)) {
       const fastPath = getModelPath(fastModel.id, modelsBaseDir);
       try {
         await sendCallback('native_load_model', { model_path: fastPath, model_type: 'fast' });
@@ -1243,7 +1243,7 @@ async function handleInitialize(): Promise<unknown> {
     const visionModel = getRecommendedVisionModel('standard');
     if (visionModel && visionModel.mmProjectorFilename) {
       const mmProjId = visionModel.id + '-mmproj';
-      if (isModelDownloaded(visionModel.id, modelsBaseDir) && isModelDownloaded(mmProjId, modelsBaseDir)) {
+      if (isModelDownloaded(visionModel.id, modelsBaseDir, visionModel.fileSizeBytes) && isModelDownloaded(mmProjId, modelsBaseDir, visionModel.mmProjectorSizeBytes)) {
         const visionPath = getModelPath(visionModel.id, modelsBaseDir);
         const mmProjPath = getModelPath(mmProjId, modelsBaseDir);
         try {
@@ -1829,13 +1829,16 @@ async function handleInitialize(): Promise<unknown> {
       // When subagents execute in parallel, the frontend sees real-time progress.
       if ('setStreamCallback' in core.agent) {
         (core.agent as any).setStreamCallback((event: any) => {
-          // Emit to NDJSON event stream for frontend consumption
+          // Emit to NDJSON event stream for frontend consumption.
+          // MultiAgentOverlay expects `data` to stay nested — it reads e.data.toolName,
+          // e.data.text, e.data.modelTier, etc. Flattening ...event.data at the root
+          // destroys that shape and makes every overlay node render as "tool" / blank.
           emit('orchestrator:subagent', {
             type: event.type,
             subagentId: event.subagentId,
             subtaskId: event.subtaskId,
             timestamp: event.timestamp,
-            ...event.data,
+            data: event.data ?? {},
           });
 
           // Push multi-agent progress to canvas for visual tracking
@@ -1853,7 +1856,7 @@ async function handleInitialize(): Promise<unknown> {
                 event: event.type,
                 subagentId: event.subagentId,
                 subtaskId: event.subtaskId,
-                ...event.data,
+                ...(event.data ?? {}),
               },
               replace: true,
               title: 'Multi-agent execution',
@@ -4288,7 +4291,6 @@ async function downloadHfFile(
   const { createWriteStream } = await import('node:fs');
   const https = await import('node:https');
   const http = await import('node:http');
-  const nodeUrl = await import('node:url');
 
   // Use node:https instead of globalThis.fetch (undici) because Node.js on Windows
   // gets ECONNRESET errors on HuggingFace CDN redirects due to IPv6/TLS issues.
@@ -4350,10 +4352,15 @@ async function downloadHfFile(
     const fileStream = createWriteStream(targetPath);
     let lastEmitTime = Date.now();
     let bytesInWindow = 0;
+    // Capture Content-Length from the response (server is the source of truth for
+    // file size — the registry's fileSizeBytes is used for UI estimates only).
+    const expectedBytes = parseInt(String(res!.headers['content-length'] ?? '0'), 10);
+    let receivedBytes = 0;
 
     await new Promise<void>((resolve, reject) => {
       res!.on('data', (chunk: Buffer) => {
         download.downloadedBytes += chunk.length;
+        receivedBytes += chunk.length;
         bytesInWindow += chunk.length;
         const now = Date.now();
         const elapsed = now - lastEmitTime;
@@ -4370,11 +4377,21 @@ async function downloadHfFile(
       });
       res!.on('end', () => { fileStream.end(); });
       res!.on('error', (err) => { fileStream.destroy(); reject(err); });
-      fileStream.on('finish', resolve);
+      res!.on('aborted', () => {
+        fileStream.destroy();
+        reject(new Error(`Connection aborted prematurely at ${receivedBytes}/${expectedBytes} bytes`));
+      });
+      fileStream.on('finish', () => {
+        if (expectedBytes > 0 && receivedBytes !== expectedBytes) {
+          reject(new Error(`Incomplete download for "${modelId}": received ${receivedBytes} bytes, expected ${expectedBytes} (Content-Length)`));
+          return;
+        }
+        resolve();
+      });
       fileStream.on('error', (err) => { res!.destroy(); reject(err); });
     });
 
-    download.downloadedBytes = download.totalBytes;
+    download.downloadedBytes = expectedBytes > 0 ? expectedBytes : receivedBytes;
     download.speedBytesPerSec = 0;
 
     // SHA-256 hash verification — catches corrupted or tampered downloads
@@ -4484,7 +4501,7 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
     _modelType: string,
     onComplete?: () => void,
   ): Promise<void> {
-    if (isModelDownloaded(model.id, baseDir)) {
+    if (isModelDownloaded(model.id, baseDir, model.fileSizeBytes)) {
       const existing: ActiveDownload = {
         modelId: model.id,
         modelName: model.displayName,
@@ -4561,24 +4578,24 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
 
   // ── Build the download plan (what models we'll download) ──
   const embeddingModel = getEmbeddingModel();
-  planned.push({ modelId: embeddingModel.id, status: isModelDownloaded(embeddingModel.id, baseDir) ? 'already_downloaded' : 'queued' });
+  planned.push({ modelId: embeddingModel.id, status: isModelDownloaded(embeddingModel.id, baseDir, embeddingModel.fileSizeBytes) ? 'already_downloaded' : 'queued' });
 
   if (!ollamaHasModel) {
     const reasoningModel = getRecommendedReasoningModel(tier);
-    planned.push({ modelId: reasoningModel.id, status: isModelDownloaded(reasoningModel.id, baseDir) ? 'already_downloaded' : 'queued' });
+    planned.push({ modelId: reasoningModel.id, status: isModelDownloaded(reasoningModel.id, baseDir, reasoningModel.fileSizeBytes) ? 'already_downloaded' : 'queued' });
   }
 
   try {
     const fastModel = getFastTierModel(tier);
-    planned.push({ modelId: fastModel.id, status: isModelDownloaded(fastModel.id, baseDir) ? 'already_downloaded' : 'queued' });
+    planned.push({ modelId: fastModel.id, status: isModelDownloaded(fastModel.id, baseDir, fastModel.fileSizeBytes) ? 'already_downloaded' : 'queued' });
   } catch { /* optional */ }
 
   try {
     const visionModel = getRecommendedVisionModel(tier);
     if (visionModel?.mmProjectorFilename) {
-      planned.push({ modelId: visionModel.id, status: isModelDownloaded(visionModel.id, baseDir) ? 'already_downloaded' : 'queued' });
+      planned.push({ modelId: visionModel.id, status: isModelDownloaded(visionModel.id, baseDir, visionModel.fileSizeBytes) ? 'already_downloaded' : 'queued' });
       const mmProjId = visionModel.id + '-mmproj';
-      planned.push({ modelId: mmProjId, status: isModelDownloaded(mmProjId, baseDir) ? 'already_downloaded' : 'queued' });
+      planned.push({ modelId: mmProjId, status: isModelDownloaded(mmProjId, baseDir, visionModel.mmProjectorSizeBytes) ? 'already_downloaded' : 'queued' });
     }
   } catch { /* optional */ }
 
@@ -4647,7 +4664,7 @@ async function handleStartModelDownloads(params: { tier: string }): Promise<unkn
             displayName: `${visionModel.displayName} Projector`,
           };
           await downloadAndLoad(mmProjEntry, mmProjPath, 'vision', () => {
-            if (isModelDownloaded(visionModel.id, baseDir)) {
+            if (isModelDownloaded(visionModel.id, baseDir, visionModel.fileSizeBytes)) {
               sendCallback('native_load_model', {
                 model_path: visionPath,
                 model_type: 'vision',
@@ -7637,23 +7654,27 @@ async function handleRequest(req: Request): Promise<void> {
         const rcParams = params as { text: string; dueAt: string; recurrence?: string };
         if (!prefsDb) { respondError(id, 'Core not initialized'); break; }
         try {
+          // Schema must match ReminderStore (packages/core/knowledge/reminder-store.ts) —
+          // whichever caller runs first owns the table; both must agree.
           prefsDb.exec(`
             CREATE TABLE IF NOT EXISTS reminders (
               id TEXT PRIMARY KEY,
               text TEXT NOT NULL,
               due_at TEXT NOT NULL,
-              recurrence TEXT,
+              recurrence TEXT NOT NULL DEFAULT 'none',
               status TEXT NOT NULL DEFAULT 'pending',
-              source TEXT DEFAULT 'user',
-              created_at TEXT NOT NULL
+              snoozed_until TEXT,
+              source TEXT NOT NULL DEFAULT 'chat',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
             )
           `);
           const { nanoid } = await import('nanoid');
           const remId = nanoid();
           const now = new Date().toISOString();
           prefsDb.prepare(
-            'INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-          ).run(remId, rcParams.text, rcParams.dueAt, rcParams.recurrence ?? null, 'pending', 'user', now);
+            'INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+          ).run(remId, rcParams.text, rcParams.dueAt, rcParams.recurrence ?? 'none', 'pending', 'user', now, now);
           respond(id, { id: remId, text: rcParams.text, dueAt: rcParams.dueAt, status: 'pending' });
         } catch (err) {
           respondError(id, err instanceof Error ? err.message : String(err));

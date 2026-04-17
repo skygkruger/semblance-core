@@ -751,7 +751,12 @@ ${autonomyDescription}
 
 You have tools to interact with the user's connected services, search their files and emails, check the calendar, send messages, search the web, manage reminders, read and write files, run commands, and automate the device. Use them — don't describe using them. When you have real results, present them directly without preamble.
 
-ABSOLUTE RULE: NEVER fabricate, invent, or assume information about the user's emails, calendar, contacts, files, health, or finances. Every claim about personal data MUST come from a tool call result. If you haven't retrieved data using a tool in this conversation, you do not have it. When you don't have data, say so simply and offer to look it up.
+ABSOLUTE RULES — zero tolerance:
+1. NEVER fabricate, invent, or assume information about the user's emails, calendar, contacts, files, health, or finances. Every claim about personal data MUST come from a tool call result in THIS conversation. If you haven't just called a tool and received data, you do not have it.
+2. NEVER proactively volunteer personal details the user hasn't asked about. For greetings ("hi", "good morning", etc.), respond with a simple warm greeting — do not list their upcoming meetings, recent emails, or any other specifics unless they ask.
+3. NEVER claim the user "mentioned" or "said" something you don't have explicit evidence for in this conversation's visible turn history.
+4. If you don't know something, say so in one sentence. Do not fill silence with made-up content.
+5. Never present retrieved context as if it were original knowledge — cite the source (email from X, file Y.md).
 
 Tool reference:
 - search_files: local documents | search_emails: messages | search_web: current public info
@@ -964,25 +969,36 @@ export class OrchestratorImpl implements Orchestrator {
       return { clean: true, sanitized: response };
     }
 
-    // If services are connected and knowledge exists, the model may be using
-    // context from the system prompt — less likely to be fabricating
-    if (connectedServices.length > 0) {
-      return { clean: true, sanitized: response };
-    }
+    // Previously this bypassed the scanner whenever ANY service was connected,
+    // on the assumption that the system prompt's service summary counted as real
+    // context. That's wrong — the model can still fabricate specifics (fake names,
+    // fake email subjects, invented meetings) even with services connected, and
+    // letting those through gets them indexed as "conversation" and compounds.
+    // Always scan when no tool was called. The `connectedServices` argument is
+    // kept in the signature for future scope-aware checks.
+    void connectedServices;
 
-    // No tools called, no services connected — scan for fabrication patterns
+    // No tools called — scan for fabrication patterns
     const fabricationPatterns = [
       // Specific times for meetings/events the model couldn't know
       /your (?:meeting|appointment|call|event) (?:at|is at|starts at) \d{1,2}[:.]\d{2}/i,
       /you have a (?:meeting|appointment|call|event) (?:at|with|scheduled)/i,
       // Claiming to have checked data without tool calls
-      /I (?:checked|looked at|reviewed|found in) your (?:inbox|calendar|email|schedule|files)/i,
+      /I (?:checked|looked at|reviewed|found in|have access to) your (?:inbox|calendar|email|schedule|files)/i,
       /according to your (?:calendar|inbox|email|schedule|files)/i,
       /your (?:inbox|calendar) shows/i,
       // Fabricating email content
       /you (?:received|have|got) (?:an? )?(?:email|message) from/i,
+      /(?:recent|new) emails? (?:about|from|regarding)/i,
+      /emails? (?:about|regarding) (?:leads?|prospects?|clients?|deals?|meetings?|projects?) (?:in|from|with)/i,
       // Fabricating contact details
       /(?:meeting|call) with (?!me\b|you\b|us\b)[A-Z][a-z]+ (?:at|about|regarding)/i,
+      // False memory — pretending user said something they didn't
+      /^you mentioned (?:that )?you/im,
+      /you (?:mentioned|told me|said)(?: that)? (?:you )?(?:want|need|have|are)/i,
+      // Fabricated file contents / mixed content-type hallucinations
+      /here are (?:the|your) (?:search results|files|documents|emails):?\s*$/im,
+      /I (?:also )?have access to your (?:files|emails|contacts|calendar)/i,
     ];
 
     for (const pattern of fabricationPatterns) {
@@ -1074,8 +1090,14 @@ export class OrchestratorImpl implements Orchestrator {
 
     // Step 2: Search knowledge graph for general context
     // Budget: adaptive limit based on model context window (knowledge_graph allocation)
+    // Exclude 'conversation' source — the AI's own prior turns must not be fed back
+    // as "context" or it hallucinates, indexes that hallucination, and compounds the
+    // error on every subsequent turn. Conversation recall must be an explicit tool call.
     const kgLimit = this.contextBudget.calculateKnowledgeLimit(this.model);
-    const context = await this.knowledge.search(message, { limit: kgLimit });
+    const context = await this.knowledge.search(message, {
+      limit: kgLimit,
+      excludeSources: ['conversation'],
+    });
 
     // Step 3: Build conversation history
     const history = conversationId ? await this.getConversation(convId) : [];
@@ -1872,6 +1894,10 @@ export class OrchestratorImpl implements Orchestrator {
           });
         } catch { /* non-critical */ }
       }
+      // Remember how many results existed before this iteration so the finally
+      // block can detect whether the tool emitted a new result and what it was.
+      const resultsBeforeThisTool = executedResults.length;
+      try {
 
       // HARD LIMIT ENFORCEMENT — runs before ALL other checks (boundary, autonomy, extension)
       if (this.intentManager) {
@@ -2038,29 +2064,49 @@ export class OrchestratorImpl implements Orchestrator {
 
       if (tc.name === 'search_emails') {
         // Search indexed emails locally — no Gateway needed
-        const results = await this.knowledge.search(tc.arguments['query'] as string, {
-          limit: 10,
-          source: 'email',
-        });
-        executedResults.push({
-          tool: 'search_emails',
-          result: results.map(r => {
-            // Strip raw IDs from metadata before they reach the LLM — prevents
-            // message IDs like "19d286405fcdb850" from leaking into chat responses.
-            const meta = r.document.metadata ? { ...r.document.metadata } : {};
-            delete meta['messageId'];
-            delete meta['id'];
-            delete meta['threadId'];
-            return {
-              title: r.document.title,
-              content: r.chunk.content.slice(0, 300),
-              score: r.score,
-              from: meta['from'] ?? meta['fromName'] ?? undefined,
-              date: meta['receivedAt'] ?? meta['date'] ?? undefined,
-              subject: meta['subject'] ?? undefined,
-            };
-          }),
-        });
+        const queryRaw = tc.arguments['query'];
+        const query = typeof queryRaw === 'string' ? queryRaw : '';
+        if (!query.trim()) {
+          executedResults.push({
+            tool: 'search_emails',
+            result: { error: 'search_emails requires a non-empty query', results: [] },
+          });
+          continue;
+        }
+        try {
+          const results = (await this.knowledge.search(query, {
+            limit: 10,
+            source: 'email',
+          })) ?? [];
+          executedResults.push({
+            tool: 'search_emails',
+            result: results
+              .filter(r => r && r.document && r.chunk)
+              .map(r => {
+                // Strip raw IDs from metadata before they reach the LLM — prevents
+                // message IDs like "19d286405fcdb850" from leaking into chat responses.
+                const meta = r.document.metadata ? { ...r.document.metadata } : {};
+                delete meta['messageId'];
+                delete meta['id'];
+                delete meta['threadId'];
+                const content = typeof r.chunk.content === 'string' ? r.chunk.content.slice(0, 300) : '';
+                return {
+                  title: r.document.title,
+                  content,
+                  score: r.score,
+                  from: meta['from'] ?? meta['fromName'] ?? undefined,
+                  date: meta['receivedAt'] ?? meta['date'] ?? undefined,
+                  subject: meta['subject'] ?? undefined,
+                };
+              }),
+          });
+        } catch (searchErr) {
+          console.error('[search_emails] error:', searchErr);
+          executedResults.push({
+            tool: 'search_emails',
+            result: { error: searchErr instanceof Error ? searchErr.message : String(searchErr), results: [] },
+          });
+        }
         continue;
       }
 
@@ -2206,9 +2252,15 @@ export class OrchestratorImpl implements Orchestrator {
             source: source as import('../knowledge/types.js').DocumentSource | undefined,
             limit,
           });
+          // Hide conversation chunks from user-facing document listings — they are
+          // indexed for AI recall only, not as "documents". Only surface them if the
+          // caller explicitly asks for source='conversation'.
+          const visibleDocs = source === 'conversation'
+            ? docs
+            : docs.filter(d => d.source !== 'conversation');
           executedResults.push({
             tool: 'list_indexed_documents',
-            result: docs.map(d => ({
+            result: visibleDocs.map(d => ({
               id: d.id,
               title: d.title,
               source: d.source,
@@ -2723,15 +2775,18 @@ export class OrchestratorImpl implements Orchestrator {
         const dueAt = tc.arguments['dueAt'] as string ?? new Date(Date.now() + 3600000).toISOString();
         const recurrence = tc.arguments['recurrence'] as string | undefined;
         try {
+          // Schema must match ReminderStore (packages/core/knowledge/reminder-store.ts).
           this.db.exec(`CREATE TABLE IF NOT EXISTS reminders (
             id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL,
-            recurrence TEXT, status TEXT NOT NULL DEFAULT 'pending',
-            source TEXT DEFAULT 'user', created_at TEXT NOT NULL
+            recurrence TEXT NOT NULL DEFAULT 'none', status TEXT NOT NULL DEFAULT 'pending',
+            snoozed_until TEXT, source TEXT NOT NULL DEFAULT 'chat',
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
           )`);
           const id = `rem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          const nowIso = new Date().toISOString();
           this.db.prepare(
-            'INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-          ).run(id, text, dueAt, recurrence ?? null, 'pending', 'ai', new Date().toISOString());
+            'INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+          ).run(id, text, dueAt, recurrence ?? 'none', 'pending', 'ai', nowIso, nowIso);
           executedResults.push({
             tool: 'create_reminder',
             result: { success: true, id, text, dueAt, recurrence },
@@ -2749,8 +2804,9 @@ export class OrchestratorImpl implements Orchestrator {
         try {
           this.db.exec(`CREATE TABLE IF NOT EXISTS reminders (
             id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL,
-            recurrence TEXT, status TEXT NOT NULL DEFAULT 'pending',
-            source TEXT DEFAULT 'user', created_at TEXT NOT NULL
+            recurrence TEXT NOT NULL DEFAULT 'none', status TEXT NOT NULL DEFAULT 'pending',
+            snoozed_until TEXT, source TEXT NOT NULL DEFAULT 'chat',
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
           )`);
           const reminders = this.db.prepare(
             "SELECT * FROM reminders WHERE status IN ('pending', 'snoozed') ORDER BY due_at ASC LIMIT 50"
@@ -2984,6 +3040,36 @@ export class OrchestratorImpl implements Orchestrator {
       }
 
       actions.push(agentAction);
+      } finally {
+        // Always emit a tool_result so the UI card leaves its 'active' state,
+        // even when a branch `continue`s without falling through. If no result
+        // was pushed during this iteration (e.g., approval-queued action), we
+        // still emit so the spinner resolves.
+        if (this.streamCallback) {
+          try {
+            const produced = executedResults.slice(resultsBeforeThisTool);
+            const last = produced[produced.length - 1];
+            const hadError = !!last && typeof last.result === 'object' && last.result !== null
+              && 'error' in (last.result as Record<string, unknown>);
+            const summary = last
+              ? (typeof last.result === 'string'
+                  ? last.result.slice(0, 200)
+                  : JSON.stringify(last.result ?? {}).slice(0, 200))
+              : 'completed';
+            this.streamCallback({
+              type: 'subagent_tool_result' as const,
+              subagentId: 'v1',
+              subtaskId: tc.name,
+              timestamp: Date.now(),
+              data: {
+                toolName: tc.name,
+                toolStatus: hadError ? 'error' : 'success',
+                toolResult: summary,
+              },
+            });
+          } catch { /* non-critical */ }
+        }
+      }
     }
 
     return { actions, executedResults };

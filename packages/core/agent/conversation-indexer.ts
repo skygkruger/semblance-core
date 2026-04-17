@@ -102,6 +102,8 @@ export class ConversationIndexer {
     const results = await this.knowledge.search(query, {
       limit: limit * 2, // Fetch extra to allow for dedup/grouping
       source: 'conversation',
+      includeConversations: true, // explicit opt-in — this function is the
+      // dedicated path for intentional dialogue recall
     });
 
     return this.enrichSearchResults(results, limit);

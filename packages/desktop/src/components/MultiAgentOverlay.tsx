@@ -81,6 +81,10 @@ function buildNodes(events: SubagentStreamEvent[]): {
   const agentStartTimes = new Map<string, number>(); // subagentId → start timestamp
 
   for (const e of events) {
+    // Sidecar events can arrive with a missing `data` object (e.g., minimal
+    // phase-transition events) — access every field through optional chaining
+    // so the overlay never throws on undefined.
+    const d = e.data ?? {};
     switch (e.type) {
       case 'decomposition_started': phase = 'decomposing'; break;
       case 'decomposition_complete': phase = 'executing'; break;
@@ -90,7 +94,7 @@ function buildNodes(events: SubagentStreamEvent[]): {
         break;
       case 'subagent_completed': agentStatus.set(e.subagentId, 'complete'); break;
       case 'subagent_failed': agentStatus.set(e.subagentId, 'error'); break;
-      case 'subagent_tool_result': toolComplete.add(`${e.subagentId}-${e.data.toolName}`); break;
+      case 'subagent_tool_result': toolComplete.add(`${e.subagentId}-${d.toolName ?? 'tool'}`); break;
       case 'synthesis_started': phase = 'synthesizing'; break;
       case 'synthesis_progress': break;
       case 'synthesis_completed': phase = 'complete'; break;
@@ -109,37 +113,39 @@ function buildNodes(events: SubagentStreamEvent[]): {
   const agentStartIndices: { index: number; subagentId: string; time: number }[] = [];
 
   for (const e of events) {
+    const d = e.data ?? {};
     if (e.type === 'subagent_started') {
       agentStartIndices.push({ index: nodes.length, subagentId: e.subagentId, time: e.timestamp });
       nodes.push({
         id: e.subagentId,
-        label: e.data.text ?? e.subagentId,
+        label: d.text ?? e.subagentId,
         tier: 1, status: agentStatus.get(e.subagentId) ?? 'active',
-        isCloud: e.data.modelTier === 'cloud_bridge',
+        isCloud: d.modelTier === 'cloud_bridge',
         parentAgent: e.subagentId,
         eventTime: e.timestamp,
       });
     }
     if (e.type === 'subagent_tool_call') {
-      const toolKey = `${e.subagentId}-${e.data.toolName}`;
+      const tName = d.toolName ?? 'tool';
+      const toolKey = `${e.subagentId}-${tName}`;
       const isDone = toolComplete.has(toolKey);
       const isError = events.some(ev =>
         ev.type === 'subagent_tool_result' && ev.subagentId === e.subagentId &&
-        ev.data.toolName === e.data.toolName && ev.data.toolStatus === 'error'
+        (ev.data?.toolName ?? 'tool') === tName && ev.data?.toolStatus === 'error'
       );
       nodes.push({
-        id: `tool-${e.subagentId}-${e.data.toolName}-${e.timestamp}`,
-        label: e.data.toolName ?? 'tool',
+        id: `tool-${e.subagentId}-${tName}-${e.timestamp}`,
+        label: tName,
         tier: 2, status: isError ? 'error' : isDone ? 'complete' : 'active',
         parentAgent: e.subagentId,
         eventTime: e.timestamp,
       });
     }
-    if (e.type === 'subagent_tool_result' && e.data.toolResult) {
+    if (e.type === 'subagent_tool_result' && d.toolResult) {
       nodes.push({
-        id: `result-${e.subagentId}-${e.data.toolName}-${e.timestamp}`,
-        label: e.data.toolResult,
-        tier: 3, status: e.data.toolStatus === 'error' ? 'error' : 'complete',
+        id: `result-${e.subagentId}-${d.toolName ?? 'tool'}-${e.timestamp}`,
+        label: d.toolResult,
+        tier: 3, status: d.toolStatus === 'error' ? 'error' : 'complete',
         parentAgent: e.subagentId,
         eventTime: e.timestamp,
       });

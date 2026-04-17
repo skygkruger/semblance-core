@@ -157,14 +157,33 @@ impl SidecarBridge {
         //
         // Tauri 2 places `resources` in Contents/Resources/ on macOS,
         // NOT alongside the binary in Contents/MacOS/. Check both locations.
+        //
+        // On Windows, std::env::current_exe() and Tauri's resource_dir() can return
+        // extended-length UNC paths like \\?\C:\Users\... Node.js v24's argv parser
+        // mishandles these (truncates to "C:"), causing EISDIR on main module resolve.
+        // Strip the \\?\ prefix so Node gets a clean drive-letter path.
+        let strip_unc = |p: PathBuf| -> PathBuf {
+            #[cfg(windows)]
+            {
+                if let Some(s) = p.to_str() {
+                    if let Some(stripped) = s.strip_prefix(r"\\?\") {
+                        return PathBuf::from(stripped);
+                    }
+                }
+            }
+            p
+        };
+
         let exe_dir = std::env::current_exe()
             .ok()
             .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+            .map(strip_unc)
             .unwrap_or_else(|| project_root.clone());
 
         // Primary: Tauri resource_dir (Contents/Resources/ on macOS)
         let resource_bridge = app_handle.path().resource_dir()
             .ok()
+            .map(strip_unc)
             .map(|p| p.join("sidecar").join("bridge.cjs"));
         // Fallback: alongside the binary (Contents/MacOS/)
         let exe_bridge = exe_dir.join("sidecar").join("bridge.cjs");
@@ -185,7 +204,24 @@ impl SidecarBridge {
             // Production mode: bundled bridge.cjs, use system node
             let node = which_node().ok_or("Node.js not found. Install Node.js 20+ to run Semblance.")?;
             let sidecar_dir = bundled_bridge.parent().unwrap_or(&exe_dir).to_path_buf();
+            // Normalize all paths (strip UNC prefix if present) to avoid Node arg parsing bugs.
+            let node = strip_unc(node);
+            let bundled_bridge = strip_unc(bundled_bridge);
+            let sidecar_dir = strip_unc(sidecar_dir);
             eprintln!("[tauri] Production mode: node={:?} script={:?} cwd={:?}", node, bundled_bridge, sidecar_dir);
+            // Write spawn params directly to sidecar.log so they survive GUI-mode stderr loss.
+            {
+                use std::io::Write;
+                let home = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).unwrap_or_else(|_| ".".to_string());
+                let log_dir = PathBuf::from(&home).join(".semblance").join("data");
+                let _ = std::fs::create_dir_all(&log_dir);
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(log_dir.join("sidecar.log")) {
+                    let _ = writeln!(f, "[tauri-spawn] node={:?}", node);
+                    let _ = writeln!(f, "[tauri-spawn] script={:?}", bundled_bridge);
+                    let _ = writeln!(f, "[tauri-spawn] cwd={:?}", sidecar_dir);
+                    let _ = f.flush();
+                }
+            }
             (node, bundled_bridge, sidecar_dir)
         } else {
             // Development mode: tsx from node_modules

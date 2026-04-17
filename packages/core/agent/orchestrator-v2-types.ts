@@ -96,6 +96,9 @@ export interface SubagentStreamEvent {
     text?: string;
     toolName?: string;
     toolStatus?: string;
+    toolResult?: string;
+    toolArgs?: Record<string, unknown>;
+    modelTier?: string;
     progress?: number;
     tokensConsumed?: number;
   };
