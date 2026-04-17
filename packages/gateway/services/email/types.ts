@@ -33,13 +33,19 @@ export const EmailMessage = z.object({
 });
 export type EmailMessage = z.infer<typeof EmailMessage>;
 
+// Small LLMs often serialize tool arguments as strings even when the schema
+// wants numbers/booleans ("limit": "10", "unreadOnly": "true"). Use z.coerce
+// so those get accepted cleanly instead of bubbling up as validator rejections.
 export const EmailFetchParams = z.object({
   folder: z.string().default('INBOX'),
-  limit: z.number().int().positive().default(50),
+  limit: z.coerce.number().int().positive().default(50),
   since: z.string().optional(),
   search: z.string().optional(),
   messageIds: z.array(z.string()).optional(),
-  unreadOnly: z.boolean().optional(),
+  unreadOnly: z.preprocess(
+    v => (typeof v === 'string' ? v === 'true' : v),
+    z.boolean().optional(),
+  ),
   sort: z.string().optional(),
   // Multi-account overrides: when syncing a specific account, pass its token directly
   // so the adapter doesn't need to look up the primary account.
