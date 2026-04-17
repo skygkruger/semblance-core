@@ -2068,47 +2068,51 @@ var init_hardware_types = __esm({
   }
 });
 
-// packages/core/llm/model-registry.js
+// packages/core/llm/model-registry.ts
 function getRecommendedReasoningModel(tier) {
   const tierOrder = ["constrained", "standard", "performance", "workstation", "enthusiast"];
   const tierIndex = tierOrder.indexOf(tier);
-  const candidates = MODEL_CATALOG.filter((m) => !m.isEmbedding && m.inferenceTier === "primary" && m.modality === "text" && tierOrder.indexOf(m.minTier) <= tierIndex);
+  const candidates = MODEL_CATALOG.filter(
+    (m) => !m.isEmbedding && m.inferenceTier === "primary" && m.modality === "text" && tierOrder.indexOf(m.minTier) <= tierIndex
+  );
   if (candidates.length === 0) {
     const all = MODEL_CATALOG.filter((m) => !m.isEmbedding && m.modality === "text" && tierOrder.indexOf(m.minTier) <= tierIndex);
-    return all.reduce((best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best);
+    return all.reduce(
+      (best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
+    );
   }
   const sessionResident = candidates.filter((m) => m.residencyPolicy[tier] === "session");
   const pool2 = sessionResident.length > 0 ? sessionResident : candidates;
-  return pool2.reduce((best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best);
+  return pool2.reduce(
+    (best, current) => tierOrder.indexOf(current.minTier) > tierOrder.indexOf(best.minTier) ? current : best
+  );
 }
 function getFastTierModel(tier = "constrained") {
   const tierOrder = ["constrained", "standard", "performance", "workstation", "enthusiast"];
   const tierIndex = tierOrder.indexOf(tier);
   if (tierIndex >= 2) {
     const phi4 = MODEL_CATALOG.find((m) => m.inferenceTier === "fast" && m.family === "phi4");
-    if (phi4)
-      return phi4;
+    if (phi4) return phi4;
   }
   const entry = MODEL_CATALOG.find((m) => m.inferenceTier === "fast" && m.family === "smollm2");
-  if (!entry)
-    throw new Error("No fast tier model in catalog \u2014 this is a build error");
+  if (!entry) throw new Error("No fast tier model in catalog \u2014 this is a build error");
   return entry;
 }
 function getEmbeddingModel() {
   const entry = MODEL_CATALOG.find((m) => m.isEmbedding);
-  if (!entry)
-    throw new Error("No embedding model in catalog \u2014 this is a build error");
+  if (!entry) throw new Error("No embedding model in catalog \u2014 this is a build error");
   return entry;
 }
 function getVisionModelsForTier(tier) {
   const tierOrder = ["constrained", "standard", "performance", "workstation", "enthusiast"];
   const tierIndex = tierOrder.indexOf(tier);
-  return MODEL_CATALOG.filter((m) => m.modality === "vision" && tierOrder.indexOf(m.minTier) <= tierIndex);
+  return MODEL_CATALOG.filter(
+    (m) => m.modality === "vision" && tierOrder.indexOf(m.minTier) <= tierIndex
+  );
 }
 function getRecommendedVisionModel(tier) {
   const models = getVisionModelsForTier(tier);
-  if (models.length === 0)
-    return null;
+  if (models.length === 0) return null;
   if (tier === "constrained") {
     return models.find((m) => m.family === "moondream") ?? models[0] ?? null;
   }
@@ -2136,7 +2140,7 @@ function stripR1ThinkingBlocks(text) {
 }
 var MODEL_CATALOG, BITNET_MODEL_CATALOG;
 var init_model_registry = __esm({
-  "packages/core/llm/model-registry.js"() {
+  "packages/core/llm/model-registry.ts"() {
     "use strict";
     MODEL_CATALOG = [
       // ─── Fast Tier: SmolLM2 1.7B (always-resident on ALL hardware) ────────────────
@@ -2202,8 +2206,8 @@ var init_model_registry = __esm({
         family: "nomic-bert",
         parameterCount: "137M",
         quantization: "Q8_0",
-        fileSizeBytes: 275e6,
-        // ~275MB
+        fileSizeBytes: 146146432,
+        // exact HF Content-Length (~139MB); previously listed as 275MB which broke size-aware isModelDownloaded check
         ramRequiredMb: 512,
         hfRepo: "nomic-ai/nomic-embed-text-v1.5-GGUF",
         hfFilename: "nomic-embed-text-v1.5.Q8_0.gguf",

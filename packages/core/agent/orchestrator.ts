@@ -1653,15 +1653,34 @@ export class OrchestratorImpl implements Orchestrator {
       this.contextBudget.recordActualTokens(this.model, estimatedPromptChars, promptTokens);
     }
 
-    // Emit subagent_completed so the overlay bracket finalises.
+    // Emit subagent_completed → synthesis_started → synthesis_completed so
+    // the MultiAgentOverlay reaches phase 'complete'. Without the synthesis
+    // events the bracket would stay in 'executing' forever, the completion
+    // cascade animation never fires, and ChatScreen.orchestrationActive never
+    // flips to false (so the bracket never collapses).
     if (this.streamCallback) {
       try {
+        const now = Date.now();
         this.streamCallback({
           type: 'subagent_completed',
           subagentId: v1SubagentId,
           subtaskId: 'v1-main',
-          timestamp: Date.now(),
+          timestamp: now,
           data: { text: 'Done' },
+        });
+        this.streamCallback({
+          type: 'synthesis_started',
+          subagentId: v1SubagentId,
+          subtaskId: 'v1-main',
+          timestamp: now + 1,
+          data: { text: 'Composing response' },
+        });
+        this.streamCallback({
+          type: 'synthesis_completed',
+          subagentId: v1SubagentId,
+          subtaskId: 'v1-main',
+          timestamp: now + 2,
+          data: { text: 'Response ready' },
         });
       } catch { /* non-critical */ }
     }
