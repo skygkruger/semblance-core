@@ -40,17 +40,19 @@ describe('DataSourcesStep', () => {
     expect(connectButtons.length).toBe(6);
   });
 
-  it('toggles a source to connected when Connect is clicked', () => {
-    render(<DataSourcesStep />);
-    // Get the first Connect button — files/contacts/health are non-OAuth, toggle locally
-    // Email/Calendar/Slack are OAuth and require onConnectSource
+  it('delegates every Connect click to onConnectSource — no fake local toggle', () => {
+    // The DataSourcesStep never fakes "connected" locally anymore. Every click
+    // delegates to the parent handler which shows a real toast / runs real OAuth /
+    // triggers the real sync. This prevents the Health-fake-connect bug where
+    // clicking a non-OAuth source painted "Connected" without doing anything.
+    const onConnectSource = vi.fn();
+    render(<DataSourcesStep onConnectSource={onConnectSource} />);
     const connectButtons = screen.getAllByText('Connect');
-    // Click Files (index 2) which is non-OAuth and toggles locally
+    // Click Files — non-OAuth, would have toggled locally before
     fireEvent.click(connectButtons[2]!);
-    // Now Files should show "Connected" text
-    expect(screen.getByText('Connected')).toBeTruthy();
-    // And only 5 Connect buttons remain
-    expect(screen.getAllByText('Connect').length).toBe(5);
+    expect(onConnectSource).toHaveBeenCalledWith('files', expect.any(String));
+    // UI state did NOT change — the parent is responsible for status updates
+    expect(screen.getAllByText('Connect').length).toBe(6);
   });
 
   it('shows nudge when Continue clicked with 0 connected', () => {

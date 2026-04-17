@@ -160,6 +160,7 @@ describe('ConversationIndexer — searchConversations()', () => {
     expect(knowledge.search).toHaveBeenCalledWith('portland weather', {
       limit: 10, // 5 * 2 (double for dedup)
       source: 'conversation',
+      includeConversations: true,
     });
   });
 

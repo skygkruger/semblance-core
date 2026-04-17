@@ -114,9 +114,11 @@ describe('Orchestrator', () => {
   it('searches knowledge graph for context', async () => {
     await orchestrator.processMessage('What did I write about React?');
 
+    // Default retrieval must exclude conversation source so the AI doesn't
+    // feed its own prior outputs back as "context" (anti-hallucination).
     expect(mockKnowledge.search).toHaveBeenCalledWith(
       'What did I write about React?',
-      { limit: 5 },
+      { limit: 5, excludeSources: ['conversation'] },
     );
   });
 
