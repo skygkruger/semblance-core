@@ -89,6 +89,7 @@ const fallbackFs: FileSystemAdapter = {
   readFileSync: () => notConfigured('FileSystem'),
   readFileSyncBuffer: () => notConfigured('FileSystem'),
   writeFileSync: () => notConfigured('FileSystem'),
+  appendFileSync: () => notConfigured('FileSystem'),
   unlinkSync: () => notConfigured('FileSystem'),
   statSync: () => notConfigured('FileSystem'),
   readdirSync: () => notConfigured('FileSystem'),

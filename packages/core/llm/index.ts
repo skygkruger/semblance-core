@@ -92,6 +92,8 @@ export interface CreateLLMProviderConfig {
   bitnetBridge?: NativeRuntimeBridge;
   /** BitNet model name. Only used when bitnetBridge is provided. */
   bitnetModel?: string;
+  /** Hardware tier for tool-exposure cap. Defaults to 'standard'. */
+  hardwareTier?: 'constrained' | 'standard' | 'performance' | 'workstation' | 'enthusiast';
 }
 
 /**
@@ -114,6 +116,7 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
   const embeddingModel = (config && 'embeddingModel' in config) ? config.embeddingModel : 'nomic-embed-text';
   const bitnetBridge = (config && 'bitnetBridge' in config) ? config.bitnetBridge : undefined;
   const bitnetModel = (config && 'bitnetModel' in config) ? config.bitnetModel : 'falcon-e-1b';
+  const hardwareTier = (config && 'hardwareTier' in config) ? config.hardwareTier : 'standard';
 
   let provider: LLMProvider;
 
@@ -129,6 +132,7 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
       bridge: nativeBridge,
       modelName: reasoningModel ?? 'native',
       embeddingModelName: embeddingModel,
+      hardwareTier,
     });
   } else {
     // Default: Ollama provider (localhost-only)

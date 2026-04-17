@@ -28,6 +28,9 @@ export interface FileSystemAdapter {
   /** Write file contents (synchronous) */
   writeFileSync(path: string, data: string | Buffer): void;
 
+  /** Append to file (synchronous). Creates file if missing. */
+  appendFileSync(path: string, data: string | Buffer): void;
+
   /** Delete a file (synchronous) */
   unlinkSync(path: string): void;
 

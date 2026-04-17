@@ -26,19 +26,43 @@ import type {
 } from './types.js';
 import type { NativeRuntimeBridge } from './native-bridge-types.js';
 
+/**
+ * Hardware-tier-aware caps on how many tool definitions the native provider
+ * exposes to the model. Small models (7B and below) get confused by long tool
+ * lists and either skip tool calls entirely or narrate them. Large models are
+ * fine with everything. These limits tune the compromise per tier.
+ */
+export type ProviderHardwareTier = 'constrained' | 'standard' | 'performance' | 'workstation' | 'enthusiast';
+const TOOL_EXPOSURE_CAP: Record<ProviderHardwareTier, number> = {
+  constrained: 8,
+  standard: 15,
+  performance: 25,
+  workstation: 9999, // effectively no cap
+  enthusiast: 9999,
+};
+
 export class NativeProvider implements LLMProvider {
   private bridge: NativeRuntimeBridge;
   private modelName: string;
   private embeddingModelName: string;
+  private hardwareTier: ProviderHardwareTier;
 
   constructor(config: {
     bridge: NativeRuntimeBridge;
     modelName?: string;
     embeddingModelName?: string;
+    /** Tier of the host hardware — controls tool-exposure cap. Defaults to 'standard'. */
+    hardwareTier?: ProviderHardwareTier;
   }) {
     this.bridge = config.bridge;
     this.modelName = config.modelName ?? 'native';
     this.embeddingModelName = config.embeddingModelName ?? 'nomic-embed-text-v1.5';
+    this.hardwareTier = config.hardwareTier ?? 'standard';
+  }
+
+  /** Allow the runtime to update the tier after construction (e.g., after hardware detection). */
+  setHardwareTier(tier: ProviderHardwareTier): void {
+    this.hardwareTier = tier;
   }
 
   async isAvailable(): Promise<boolean> {
@@ -226,25 +250,45 @@ export class NativeProvider implements LLMProvider {
 
   /**
    * Format tool definitions as a prompt block the model can understand.
+   * Exposes more tools on more-capable hardware — smaller models tolerate
+   * longer tool lists poorly (they narrate instead of calling, or pick the
+   * wrong tool). On workstation/enthusiast the cap is effectively off.
+   *
+   * Priority order within each cap:
+   *   1. Always-needed (search_web, fetch_inbox, search_emails, send_email, draft_email)
+   *   2. Frequently-needed (calendar, reminders, knowledge, files)
+   *   3. Everything else, in registration order
    */
   private formatToolDefinitions(tools: ToolDefinition[]): string {
-    // Compact format — only core tools, one-line descriptions.
-    // Small models (7B) get confused by verbose tool definitions.
-    // The orchestrator's intent extraction handles tool calling robustly
-    // even when the model doesn't output perfect formatted calls.
-    const coreTools = tools.filter(t =>
-      ['search_web', 'deep_search_web', 'fetch_url', 'fetch_inbox', 'search_emails',
-       'send_email', 'draft_email', 'fetch_calendar', 'create_reminder',
-       'search_knowledge', 'search_files'].includes(t.name)
-    );
-    const toolList = (coreTools.length > 0 ? coreTools : tools.slice(0, 10))
+    const cap = TOOL_EXPOSURE_CAP[this.hardwareTier];
+    const tier1Names = new Set([
+      'search_web', 'fetch_inbox', 'search_emails', 'send_email', 'draft_email',
+    ]);
+    const tier2Names = new Set([
+      'deep_search_web', 'fetch_url', 'fetch_calendar', 'get_today_events',
+      'create_reminder', 'list_reminders', 'search_knowledge', 'search_files',
+      'list_indexed_documents', 'read_document', 'search_contacts', 'add_contact',
+    ]);
+    const tier1 = tools.filter(t => tier1Names.has(t.name));
+    const tier2 = tools.filter(t => tier2Names.has(t.name));
+    const tier3 = tools.filter(t => !tier1Names.has(t.name) && !tier2Names.has(t.name));
+    const ordered = [...tier1, ...tier2, ...tier3];
+    const selected = ordered.slice(0, cap);
+
+    const toolList = selected
       .map(t => `- ${t.name}: ${t.description?.split('.')[0] ?? ''}`)
       .join('\n');
+
+    const tierNote = this.hardwareTier === 'constrained'
+      ? '\nYou are running on constrained hardware. Prefer direct answers over tools when possible.'
+      : this.hardwareTier === 'workstation' || this.hardwareTier === 'enthusiast'
+      ? '\nYou have generous compute — use tools confidently when the user asks about their data.'
+      : '';
 
     return `To use a tool: tool_name({"key":"value"})
 
 Available tools:
-${toolList}
+${toolList}${tierNote}
 
 Answer from knowledge first. Use tools only when needed.`;
   }

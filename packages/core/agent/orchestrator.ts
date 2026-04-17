@@ -2,6 +2,7 @@
 // User message → knowledge search → LLM prompt → tool calls → autonomy → IPC → response.
 
 import type { DatabaseHandle } from '../platform/types.js';
+import { getPlatform } from '../platform/index.js';
 import { nanoid } from 'nanoid';
 import type {
   LLMProvider,
@@ -683,15 +684,40 @@ export interface SystemPromptConfig {
   autonomyTier: 'guardian' | 'partner' | 'alter_ego';
   connectedServices?: string[];
   indexedDocCount?: number;
+  /**
+   * Hardware tier — selects prompt verbosity. Constrained models need terse
+   * rules; workstation/enthusiast can handle the full prompt. Defaults to 'standard'.
+   */
+  hardwareTier?: 'constrained' | 'standard' | 'performance' | 'workstation' | 'enthusiast';
+  /**
+   * True when initial sync is still running AND we have at least some indexed
+   * data (user indexed directories during onboarding, or Gmail sync partial).
+   * Lets the prompt acknowledge "still catching up" without claiming empty-state
+   * nor claiming full access.
+   */
+  syncInFlight?: boolean;
 }
 
 function buildSystemPrompt(config: SystemPromptConfig, conversational?: boolean): string {
-  const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
+  const { aiName, userName, autonomyTier, connectedServices, indexedDocCount, hardwareTier, syncInFlight } = config;
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const hasData = (connectedServices?.length ?? 0) > 0 || (indexedDocCount ?? 0) > 0;
+  // A service being "connected" does NOT mean data exists yet — the initial sync
+  // may still be in flight. The AI must treat itself as empty-state until actual
+  // documents are indexed. Using service connection alone caused cold-start
+  // hallucinations where the AI claimed it had "checked" the inbox when the
+  // knowledge graph was still empty.
+  const hasData = (indexedDocCount ?? 0) > 0;
+  const isSmallModel = hardwareTier === 'constrained';
 
   // CONVERSATIONAL VARIANT — minimal prompt prevents fabrication on small models
   if (conversational) {
+    if (isSmallModel) {
+      return `You are ${aiName}${userName ? ` — ${userName}'s personal AI` : ''}. Today: ${today}.
+
+Be brief and warm. You don't know ${userName ?? 'the user'}'s private data unless a tool returns it. Never invent specifics.${userName ? '' : ' Ask their name if it matters.'}
+
+${INJECTION_CANARY}`;
+    }
     return `You are ${aiName}${userName ? `, a personal AI assistant for ${userName}` : ''}. Today is ${today}. You run entirely on this device — nothing leaves it.
 
 Be warm and direct. You have ZERO knowledge of the user's emails, calendar, contacts, files, or personal data unless you retrieve it with a tool. Never invent, fabricate, or assume any personal information. If you don't know something, say so simply.${userName ? '' : ' Ask the user their name.'}
@@ -700,17 +726,40 @@ ${INJECTION_CANARY}`;
   }
 
   // ── DEFENSE 1 + 4: Empty-state prompt variant ──
-  // When no services are connected and no data is indexed, use a prompt that
-  // makes it impossible for the model to pretend it has access to user data.
-  // Only mention tools the user has actually connected.
+  // Selected when indexedDocCount === 0. Even if services are "connected", we
+  // stay in this variant until sync actually produces documents — otherwise the
+  // AI hallucinates during the gap between OAuth-complete and first-rows-indexed.
+  //
+  // Variants within empty-state:
+  //  - Fresh cold start (no services connected, no indexing): "set up your connections"
+  //  - Sync in flight (services connected, sync running): "I'm still indexing — give me a moment"
+  //  - User declined onboarding data sources entirely: same as fresh cold start
   if (!hasData) {
     const identity = userName
       ? `You are ${aiName}, ${userName}'s personal AI. You live on their device — all their data, none of it leaving. Today is ${today}.`
       : `You are ${aiName}, a personal AI that runs entirely on this device. Today is ${today}. You don't know the user's name yet — ask them.`;
 
+    // If services connected but indexing still catching up — acknowledge the gap.
+    const anyConnected = (connectedServices?.length ?? 0) > 0;
+    const stateNote = anyConnected
+      ? `RIGHT NOW: The user has connected ${connectedServices!.join(', ')} but the initial sync hasn't finished yet. You do NOT have their data indexed. Do not claim you've read their inbox, calendar, or files — you haven't, the sync is still running. If asked about their data, say you're still catching up from the initial sync and offer to try again in a moment.`
+      : `RIGHT NOW: No accounts are connected and no data has been indexed yet. You have ZERO access to the user's emails, calendar, contacts, files, health data, or finances. You cannot check their inbox, look up meetings, or search their documents because nothing is connected.`;
+
+    if (isSmallModel) {
+      return `${identity}
+
+${stateNote}
+
+Have conversation, answer general questions, search the web, or help connect accounts. NEVER invent personal details (no fake meetings, emails, contacts, files). If asked about their data and you don't have it, say so plainly.
+
+Warm voice, no emojis, direct. Match the user's language.
+
+${INJECTION_CANARY}`;
+    }
+
     return `${identity}
 
-RIGHT NOW: No accounts are connected and no data has been indexed yet. You have ZERO access to the user's emails, calendar, contacts, files, health data, or finances. You cannot check their inbox, look up meetings, or search their documents because nothing is connected.
+${stateNote}
 
 WHAT YOU CAN DO: Have a conversation, answer general knowledge questions, search the web, and help the user set up their connections. You can also read and write files on their device, and run commands.
 
@@ -732,16 +781,39 @@ ${INJECTION_CANARY}`;
     ? `You act. Handle the inbox, the calendar, the follow-ups. Pause only for genuinely high-stakes decisions. Report what you did, not what you plan to do.`
     : `You handle routine tasks directly. For anything novel or sensitive, check first. When you act, mention it briefly.`;
 
-  // KNOWLEDGE CONTEXT — only mention what's actually connected (Defense 1)
+  // KNOWLEDGE CONTEXT — only mention what's actually connected (Defense 1).
+  // Add a "sync still running" caveat when the flag is set so the model knows
+  // some data might be missing even though some is indexed.
+  const syncNote = syncInFlight ? ' (initial sync still running — more data coming)' : '';
   const knowledgeContext = [
     connectedServices?.length ? `Connected services: ${connectedServices.join(', ')}.` : '',
-    indexedDocCount ? `Your knowledge base has ${indexedDocCount.toLocaleString()} indexed items — search it before reaching for the web.` : '',
+    indexedDocCount ? `Your knowledge base has ${indexedDocCount.toLocaleString()} indexed items${syncNote} — search it before reaching for the web.` : '',
   ].filter(Boolean).join(' ');
 
   // IDENTITY
   const identity = userName
     ? `You are ${aiName}, ${userName}'s personal AI. You live on their device — all their data, none of it leaving. Today is ${today}.`
     : `You are ${aiName}, a personal AI that runs entirely on this device. Today is ${today}. You don't know the user's name yet — ask them.`;
+
+  // Small-model variant: top-3 rules, terse tool list, short phrasing.
+  if (isSmallModel) {
+    return `${identity}
+
+${knowledgeContext}
+
+${autonomyDescription}
+
+RULES:
+1. Never invent user data. Every claim about their emails, calendar, contacts, files, health, or finances must come from a tool call in this turn.
+2. On greetings ("hi", "good morning"), just greet back briefly. Don't volunteer their schedule or inbox unless asked.
+3. If you don't know, say so in one sentence.
+
+Tools: search_emails, fetch_inbox, send_email, draft_email, search_web, create_reminder. Use them on user request — don't describe using them.
+
+Warm voice, no emojis. Match user's language. Made by VERIDIAN SYNTHETICS.
+
+${INJECTION_CANARY}`;
+  }
 
   return `${identity}
 
@@ -778,6 +850,19 @@ const DEFAULT_SYSTEM_PROMPT = buildSystemPrompt({
   aiName: 'Semblance',
   autonomyTier: 'partner',
 });
+
+// Temperature constants — one setting per decision class.
+//   DECIDE: tool-selection, classification, extraction. Must be deterministic.
+//   RETRY:  fabrication-retry regeneration. Slightly looser than DECIDE to
+//           escape the failure mode without drifting into invention.
+//   SYNTH:  narrating tool-call results back to the user. Slight variety, still grounded.
+//   CONVERSE: open-ended chit-chat and user-facing replies with no tools. Natural.
+// These replace the previous blanket 0.7 used at every LLM call site which made
+// tool decisions non-deterministic (same question → different tools → spurious calls).
+const TEMP_DECIDE = 0.2;
+const TEMP_RETRY = 0.4;
+const TEMP_SYNTH = 0.5;
+const TEMP_CONVERSE = 0.7;
 
 // --- Orchestrator Interface ---
 
@@ -840,6 +925,17 @@ export class OrchestratorImpl implements Orchestrator {
   private weatherService: { getCurrentWeather(location?: string): Promise<unknown> } | null;
   private streamCallback: ((event: SubagentStreamEvent) => void) | null = null;
   private promptConfig: SystemPromptConfig;
+  /**
+   * Per-conversation fabrication strike tally. When this exceeds FABRICATION_RECOVERY_THRESHOLD,
+   * the conversation drops into recovery mode (minimal prompt) for the rest of
+   * its lifespan. Prevents one bad turn from poisoning every subsequent turn.
+   */
+  /** Currently-active v1 subagent id (for stream events from processToolCalls). */
+  private activeV1SubagentId: string | null = null;
+  private fabricationStrikes: Map<string, number> = new Map();
+  private static readonly FABRICATION_RECOVERY_THRESHOLD = 2;
+  /** Path to the metrics log. Set when metrics logging is enabled. */
+  private metricsLogPath: string | null = null;
   // Extension support
   private extensionToolHandlers: Map<string, ToolHandler> = new Map();
   private allTools: ToolDefinition[] = [...BASE_TOOLS];
@@ -867,6 +963,7 @@ export class OrchestratorImpl implements Orchestrator {
     userName?: string;
     connectedServices?: string[];
     indexedDocCount?: number;
+    hardwareTier?: 'constrained' | 'standard' | 'performance' | 'workstation' | 'enthusiast';
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -896,6 +993,7 @@ export class OrchestratorImpl implements Orchestrator {
       autonomyTier: representativeTier,
       connectedServices: config.connectedServices,
       indexedDocCount: config.indexedDocCount,
+      hardwareTier: config.hardwareTier,
     };
     this.db.exec(CREATE_TABLES);
     // Migration: add reasoning_context column to existing pending_actions tables
@@ -933,10 +1031,33 @@ export class OrchestratorImpl implements Orchestrator {
       if (followUps.test(lower)) return true;
     }
 
-    // Short greetings and small talk
-    if (wordCount <= 4) {
-      const greetings = /^(hi|hello|hey|howdy|sup|yo|good\s*(morning|afternoon|evening|night)|thanks|thank you|bye|goodbye|ok|okay|sure|yes|no|nah|yep|nope|cool|great|nice|hm+|huh|what'?s?\s*up)/;
-      if (greetings.test(lower)) return true;
+    // Short greetings and small talk — English + top non-English by speaker count.
+    // Keeps the conversational path reachable for users writing in their native language.
+    if (wordCount <= 5) {
+      // English
+      const enGreet = /^(hi|hello|hey|howdy|sup|yo|good\s*(morning|afternoon|evening|night)|thanks|thank you|bye|goodbye|ok|okay|sure|yes|no|nah|yep|nope|cool|great|nice|hm+|huh|what'?s?\s*up)/;
+      if (enGreet.test(lower)) return true;
+      // Spanish
+      const esGreet = /^(hola|buenos?\s*(d[íi]as|tardes|noches)|qu[eé]\s*tal|gracias|adi[óo]s|hasta\s*(luego|pronto|ma[ñn]ana)|s[íi]|no|bien|genial|vale)/;
+      if (esGreet.test(lower)) return true;
+      // French
+      const frGreet = /^(bonjour|bonsoir|salut|coucou|merci|au\s*revoir|[àa]\s*(bient[ôo]t|plus)|oui|non|ok|d'accord|[cç]a\s*va|bien)/;
+      if (frGreet.test(lower)) return true;
+      // German
+      const deGreet = /^(hallo|guten\s*(morgen|tag|abend)|servus|moin|tsch[üu]ss|danke|bitte|ja|nein|gut|okay)/;
+      if (deGreet.test(lower)) return true;
+      // Portuguese
+      const ptGreet = /^(ol[áa]|oi|bom\s*dia|boa\s*(tarde|noite)|obrigad[oa]|tchau|at[ée]\s*(logo|mais)|sim|n[ãa]o|ok)/;
+      if (ptGreet.test(lower)) return true;
+      // Italian
+      const itGreet = /^(ciao|salve|buongiorno|buonasera|grazie|prego|arrivederci|a\s*presto|s[íi]|no|va\s*bene)/;
+      if (itGreet.test(lower)) return true;
+      // Japanese (romaji + common kana greetings)
+      const jaGreet = /^(konnichi\s*wa|ohayou|konbanwa|arigatou|sayounara|oyasumi|hai|iie|daijoubu|こんにちは|おはよう|こんばんは|ありがとう|さようなら|おやすみ|はい|いいえ)/i;
+      if (jaGreet.test(message.trim())) return true;
+      // Mandarin (pinyin + common hanzi)
+      const zhGreet = /^(ni\s*hao|zao\s*shang\s*hao|wan\s*shang\s*hao|xie\s*xie|zai\s*jian|shi|bu|hao|你好|早上好|晚上好|谢谢|再见|是|不|好)/;
+      if (zhGreet.test(message.trim())) return true;
     }
 
     // Questions about the AI itself or the user that are answerable from the system prompt
@@ -959,6 +1080,66 @@ export class OrchestratorImpl implements Orchestrator {
    *
    * Returns the original response if clean, or a sanitized version if fabrication detected.
    */
+  /**
+   * Record a fabrication event against a conversation. Returns the new strike count.
+   */
+  private recordFabricationStrike(conversationId: string): number {
+    const next = (this.fabricationStrikes.get(conversationId) ?? 0) + 1;
+    this.fabricationStrikes.set(conversationId, next);
+    return next;
+  }
+
+  /**
+   * Whether this conversation has tripped the fabrication threshold and should
+   * drop to a minimal conversational prompt.
+   */
+  private isInRecoveryMode(conversationId: string): boolean {
+    return (this.fabricationStrikes.get(conversationId) ?? 0) >= OrchestratorImpl.FABRICATION_RECOVERY_THRESHOLD;
+  }
+
+  /** Configure metrics log file (called at sidecar init). */
+  setMetricsLogPath(path: string): void {
+    this.metricsLogPath = path;
+  }
+
+  /**
+   * Append a metric line to the metrics log. Best-effort, never throws.
+   * Format: NDJSON — one JSON object per line, grep-able.
+   */
+  private metric(event: string, data: Record<string, unknown> = {}): void {
+    if (!this.metricsLogPath) return;
+    try {
+      // Lazy-import fs to keep core import-clean. Platform adapter is already
+      // used by every other filesystem operation in core.
+      const p = getPlatform();
+      const line = JSON.stringify({ ts: new Date().toISOString(), event, ...data }) + '\n';
+      p.fs.appendFileSync(this.metricsLogPath, line);
+    } catch {
+      // Swallow — metrics must never affect user-facing behavior.
+    }
+  }
+
+  /**
+   * Detect claims with high specificity (named people, timestamps, email
+   * subjects, numeric amounts). These are the markers of fabrication when no
+   * tool call has backed them. Used alongside the phrase-pattern scanner.
+   */
+  private containsSpecificClaims(response: string): boolean {
+    const specificityMarkers: RegExp[] = [
+      // Proper-noun person + verb construct ("Alan wants...", "Sarah mentioned...")
+      /\b[A-Z][a-z]{2,}\s+(?:wants?|needs?|said|mentioned|asked|requested|replied)\b/,
+      // Time-of-day markers ("at 3:15 pm", "at 14:00")
+      /\b(?:at|by|from)\s+\d{1,2}[:.]\d{2}\s*(?:am|pm|AM|PM)?\b/,
+      // Count of emails/items with a specific number over 2
+      /\b(?:\d{2,}|[3-9])\s+(?:unread|new|recent)\s+(?:emails?|messages?|meetings?|events?)\b/i,
+      // Quoted subject/title construct — model invented a subject line
+      /(?:subject|titled|titled)\s+["'"]/i,
+      // Specific dollar/currency amounts in a personal-data context
+      /\$\d[\d,]*(?:\.\d{2})?\s+(?:from|to|in|owed|due|pending)/,
+    ];
+    return specificityMarkers.some(p => p.test(response));
+  }
+
   private scanForFabrication(
     response: string,
     toolCallsExecuted: number,
@@ -1011,6 +1192,18 @@ export class OrchestratorImpl implements Orchestrator {
       }
     }
 
+    // Second-pass specificity check — catches novel fabrications that slipped
+    // past the explicit phrase patterns. Only fires when no tool grounded the
+    // response (toolCallsExecuted === 0, already verified above) AND the claim
+    // is specific enough to be an invention rather than a general statement.
+    if (this.containsSpecificClaims(response)) {
+      console.error('[Orchestrator] Specific personal claim without tool backing — rejecting.');
+      return {
+        clean: false,
+        sanitized: "I don't have that specific information — I'd need to check your data directly. Want me to look it up, or would you rather I help with something else?",
+      };
+    }
+
     return { clean: true, sanitized: response };
   }
 
@@ -1052,6 +1245,23 @@ export class OrchestratorImpl implements Orchestrator {
       const originalLength = message.length;
       message = message.slice(0, MAX_USER_MESSAGE_CHARS) + '\n\n[Message truncated — original was ' + originalLength + ' characters]';
       console.error(`[Orchestrator] User message truncated from ${originalLength} to ${MAX_USER_MESSAGE_CHARS} chars`);
+    }
+
+    // Emit subagent_started so the overlay bracket animates for v1 paths too.
+    // The coordinator's fast-path relies on v1 emitting this sequence — without
+    // it, compound-single-domain tasks would show no progress bracket.
+    const v1SubagentId = 'v1-' + (conversationId ?? 'new').slice(0, 8) + '-' + Date.now().toString(36);
+    this.activeV1SubagentId = v1SubagentId;
+    if (this.streamCallback) {
+      try {
+        this.streamCallback({
+          type: 'subagent_started',
+          subagentId: v1SubagentId,
+          subtaskId: 'v1-main',
+          timestamp: Date.now(),
+          data: { text: 'Thinking...' },
+        });
+      } catch { /* non-critical */ }
     }
 
     // Get or create conversation
@@ -1107,7 +1317,15 @@ export class OrchestratorImpl implements Orchestrator {
     // usage instead of calling tools, or call tools for simple questions.
     // For conversational messages, we also use a stripped-down system prompt
     // that removes service/knowledge/autonomy context to prevent fabrication.
-    const isConversational = this.isConversationalMessage(message);
+    // If this conversation has hit the fabrication strike threshold, drop into
+    // recovery mode — minimal conversational prompt, no tools, no retrieval
+    // context. The only way out is a new conversation. This prevents a bad turn
+    // from indefinitely polluting the model's behaviour.
+    const inRecovery = this.isInRecoveryMode(convId);
+    const isConversational = inRecovery || this.isConversationalMessage(message);
+    if (inRecovery) {
+      this.metric('recovery_mode_active', { conversationId: convId });
+    }
 
     // Step 5: Intent extraction BEFORE LLM call.
     // If we can determine the user's intent from their message alone, execute the
@@ -1165,7 +1383,9 @@ export class OrchestratorImpl implements Orchestrator {
         const synthesis = await this.llm.chat({
           model: this.model,
           messages: synthesisMessages,
-          temperature: 0.7,
+          // Synthesis narrates real tool results back to the user. Low-ish temp
+          // keeps the narrative grounded — still natural but disinclined to invent.
+          temperature: TEMP_SYNTH,
           maxTokens: 2048,
         });
         finalMessage = synthesis.message.content ?? '';
@@ -1204,7 +1424,10 @@ export class OrchestratorImpl implements Orchestrator {
         model: this.model,
         messages,
         tools,
-        temperature: 0.7,
+        // Conversational messages (no tools) get CONVERSE temp for natural flow.
+        // Tool-capable messages get DECIDE temp — we want deterministic tool choice,
+        // not randomness. The synthesis step re-raises temperature for the user-facing reply.
+        temperature: tools ? TEMP_DECIDE : TEMP_CONVERSE,
         maxTokens: 1024,
       };
       let response = await this.llm.chat(chatRequest);
@@ -1311,7 +1534,8 @@ export class OrchestratorImpl implements Orchestrator {
           const followUp = await this.llm.chat({
             model: this.model,
             messages: followUpMessages,
-            temperature: 0.7,
+            // Follow-up synthesis of tool results — same as main synthesis path.
+            temperature: TEMP_SYNTH,
             maxTokens: 2048,
           });
           finalMessage = followUp.message.content ?? '';
@@ -1331,7 +1555,8 @@ export class OrchestratorImpl implements Orchestrator {
           const retryResponse = await this.llm.chat({
             model: this.model,
             messages,
-            temperature: 0.7,
+            // Retry after all tool calls went to approval — deterministic-ish.
+            temperature: TEMP_RETRY,
             maxTokens: 1024,
           });
           if (retryResponse?.message?.content) {
@@ -1355,8 +1580,15 @@ export class OrchestratorImpl implements Orchestrator {
     }
 
     // DEFENSE 2: Post-generation fabrication scan.
-    // If no tool calls were executed and no services are connected, scan for
-    // fabricated personal data claims. Replace the response if fabrication detected.
+    // If no tool calls were executed, scan for fabricated personal data claims.
+    // On detection we:
+    //  1. Increment the per-conversation strike counter.
+    //  2. Attempt ONE regeneration with a stricter system injection — the model
+    //     gets a chance to correct itself with explicit instruction not to invent.
+    //  3. If the retry also fabricates, substitute the safe canned response.
+    //  4. If this conversation has hit 2+ strikes total, switch to the minimal
+    //     conversational prompt for the remainder of the conversation ("recovery
+    //     mode") to stop the model from compounding errors.
     const toolCallCount = actions.filter(a => a.status === 'executed').length;
     const fabricationCheck = this.scanForFabrication(
       finalMessage,
@@ -1364,7 +1596,41 @@ export class OrchestratorImpl implements Orchestrator {
       this.promptConfig.connectedServices ?? [],
     );
     if (!fabricationCheck.clean) {
-      finalMessage = fabricationCheck.sanitized;
+      this.recordFabricationStrike(convId);
+      this.metric('scanner_fired', { model: this.model, toolCalls: toolCallCount });
+      // Single retry with a stricter instruction prepended to the system prompt.
+      // We regenerate against the SAME messages so the model sees its previous
+      // output is rejected and must produce a tool-grounded response or say so.
+      try {
+        const retryMessages = this.buildMessages(message, context, history, documentChunks, isConversational);
+        const stricterSystemIdx = retryMessages.findIndex(m => m.role === 'system');
+        if (stricterSystemIdx >= 0) {
+          retryMessages[stricterSystemIdx] = {
+            role: 'system',
+            content: retryMessages[stricterSystemIdx]!.content +
+              `\n\nRETRY — your previous response contained claims about the user's personal data that were not backed by any tool call in this turn. Regenerate WITHOUT inventing specifics. If you need data, emit a tool call instead of narrating. If you cannot do either, reply in one sentence that you don't have access yet.`,
+          };
+        }
+        const retry = await this.llm.chat({
+          model: this.model,
+          messages: retryMessages,
+          temperature: TEMP_RETRY,
+          maxTokens: 512,
+        });
+        const retryText = (retry.message.content ?? '').trim();
+        const retryCheck = this.scanForFabrication(retryText, 0, this.promptConfig.connectedServices ?? []);
+        if (retryText && retryCheck.clean) {
+          finalMessage = retryText;
+          this.metric('scanner_retry_succeeded', { model: this.model });
+        } else {
+          // Retry also fabricated — substitute safe response.
+          finalMessage = fabricationCheck.sanitized;
+          this.metric('scanner_retry_failed', { model: this.model });
+        }
+      } catch (retryErr) {
+        console.error('[Orchestrator] Fabrication retry failed:', retryErr);
+        finalMessage = fabricationCheck.sanitized;
+      }
     }
 
     // Step 8: Store conversation turns with token tracking
@@ -1385,6 +1651,19 @@ export class OrchestratorImpl implements Orchestrator {
       const documentChars = documentChunks?.reduce((s, r) => s + r.chunk.content.length, 0) ?? 0;
       const estimatedPromptChars = systemPromptChars + historyChars + contextChars + documentChars + message.length;
       this.contextBudget.recordActualTokens(this.model, estimatedPromptChars, promptTokens);
+    }
+
+    // Emit subagent_completed so the overlay bracket finalises.
+    if (this.streamCallback) {
+      try {
+        this.streamCallback({
+          type: 'subagent_completed',
+          subagentId: v1SubagentId,
+          subtaskId: 'v1-main',
+          timestamp: Date.now(),
+          data: { text: 'Done' },
+        });
+      } catch { /* non-critical */ }
     }
 
     return {
@@ -1409,14 +1688,32 @@ export class OrchestratorImpl implements Orchestrator {
       actions_json: string | null;
     }[];
 
-    return rows.map(r => ({
-      id: r.id,
-      role: r.role as 'user' | 'assistant',
-      content: r.content,
-      timestamp: r.timestamp,
-      context: r.context_json ? JSON.parse(r.context_json) as SearchResult[] : undefined,
-      actions: r.actions_json ? JSON.parse(r.actions_json) as AgentAction[] : undefined,
-    }));
+    // Retroactively scan assistant turns for fabrication patterns. If a turn
+    // was stored before the scanner caught it (or before the scanner existed),
+    // redact the content so it doesn't re-enter the prompt and amplify.
+    return rows.map(r => {
+      let content = r.content;
+      if (r.role === 'assistant') {
+        const hadToolCalls = !!(r.actions_json && JSON.parse(r.actions_json).length > 0);
+        const check = this.scanForFabrication(
+          content,
+          hadToolCalls ? 1 : 0,
+          this.promptConfig.connectedServices ?? [],
+        );
+        if (!check.clean) {
+          content = check.sanitized;
+          this.metric('retroactive_scan_redacted', { conversationId, turnId: r.id });
+        }
+      }
+      return {
+        id: r.id,
+        role: r.role as 'user' | 'assistant',
+        content,
+        timestamp: r.timestamp,
+        context: r.context_json ? JSON.parse(r.context_json) as SearchResult[] : undefined,
+        actions: r.actions_json ? JSON.parse(r.actions_json) as AgentAction[] : undefined,
+      };
+    });
   }
 
   async approveAction(actionId: string): Promise<ActionResponse> {
@@ -1881,13 +2178,14 @@ export class OrchestratorImpl implements Orchestrator {
     const executedResults: Array<{ tool: string; result: unknown }> = [];
     const reasoningCtx = context && context.length > 0 ? this.buildReasoningContext(userMessage, context) : undefined;
 
+    const subagentId = this.activeV1SubagentId ?? 'v1';
     for (const tc of toolCalls) {
       // Emit stream event so bracket UI shows tool call progress
       if (this.streamCallback) {
         try {
           this.streamCallback({
             type: 'subagent_tool_call' as const,
-            subagentId: 'v1',
+            subagentId,
             subtaskId: tc.name,
             timestamp: Date.now(),
             data: { toolName: tc.name, toolStatus: 'running' },
@@ -3058,7 +3356,7 @@ export class OrchestratorImpl implements Orchestrator {
               : 'completed';
             this.streamCallback({
               type: 'subagent_tool_result' as const,
-              subagentId: 'v1',
+              subagentId,
               subtaskId: tc.name,
               timestamp: Date.now(),
               data: {
@@ -3213,7 +3511,8 @@ export class OrchestratorImpl implements Orchestrator {
             { role: 'system', content: 'You are drafting an email. Output ONLY the email body text, nothing else.' },
             { role: 'user', content: prompt },
           ],
-          temperature: 0.7,
+          // Email drafting — natural voice, but more focused than pure chat.
+          temperature: TEMP_SYNTH,
         });
 
         const generatedBody = response.message.content.trim();

@@ -35,6 +35,9 @@ const desktopFs: FileSystemAdapter = {
   writeFileSync: (p: string, data: string | Buffer) => {
     fs.writeFileSync(p, data);
   },
+  appendFileSync: (p: string, data: string | Buffer) => {
+    fs.appendFileSync(p, data);
+  },
   unlinkSync: (p: string) => {
     fs.unlinkSync(p);
   },

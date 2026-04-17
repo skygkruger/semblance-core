@@ -417,6 +417,9 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
           model: chatModel,
           styleProfileStore,
           hardwareTier,
+          // AI metrics log — scanner fires, retries, recovery-mode activations.
+          // Appended to at runtime; grep-able NDJSON. No PII, only event types.
+          metricsLogPath: p.path.join(dataDir, 'ai-metrics.ndjson'),
         });
         console.error('[SemblanceCore] v2 Coordinator agent initialized');
 

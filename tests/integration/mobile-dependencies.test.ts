@@ -50,6 +50,7 @@ describe('MobileAdapterConfig interface is satisfiable', () => {
       readFileSync: () => '',
       readFileSyncBuffer: () => Buffer.alloc(0),
       writeFileSync: () => {},
+      appendFileSync: () => {},
       unlinkSync: () => {},
       statSync: () => ({ size: 0, isDirectory: () => false, isFile: () => true, mtimeMs: 0 }),
       readdirSync: () => [],

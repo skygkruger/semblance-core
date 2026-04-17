@@ -158,6 +158,8 @@ export function createCoordinatorAgent(config: {
   coordinatorConfig?: Partial<CoordinatorConfig>;
   hardwareTier?: HardwareProfileTier;
   eventBus?: OrchestratorEventEmitter;
+  /** Path where AI metrics (scanner fires, retries, etc.) should be appended. */
+  metricsLogPath?: string;
 }): Orchestrator {
   const p = getPlatform();
   const db = p.sqlite.openDatabase(p.path.join(config.dataDir, 'agent.db'));
@@ -177,8 +179,12 @@ export function createCoordinatorAgent(config: {
     userName: config.userName,
     connectedServices: config.connectedServices,
     indexedDocCount: config.indexedDocCount,
+    hardwareTier: config.hardwareTier,
     styleProfileStore: config.styleProfileStore,
   });
+
+  // Wire metrics log path if provided (non-critical — silent no-op when unset).
+  if (config.metricsLogPath) v1.setMetricsLogPath(config.metricsLogPath);
 
   // Extract tool metadata from v1 for the coordinator
   // The v1 orchestrator stores these as private fields, so we access them

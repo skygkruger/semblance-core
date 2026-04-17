@@ -321,6 +321,7 @@ describe('Mobile Adapter — Injected Implementations', () => {
       readFileSync: () => 'mock content',
       readFileSyncBuffer: () => Buffer.from('mock'),
       writeFileSync: () => {},
+      appendFileSync: () => {},
       unlinkSync: () => {},
       statSync: () => ({ size: 100, isDirectory: () => false, isFile: () => true, mtimeMs: 0 }),
       readdirSync: () => ['a.txt', 'b.txt'],

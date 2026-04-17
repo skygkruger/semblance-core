@@ -154,10 +154,22 @@ export class CoordinatorAgent implements Orchestrator {
       return this.v1.processMessage(message, conversationId);
     }
 
-    // Compound + complex → multi-agent decomposition so the bracket overlay
-    // animates on every tool-calling task. Compound tasks still resolve with a
-    // single subtask in most cases; the overhead is minimal and the user sees
-    // the tool-call progress bracket they expect.
+    // Compound fast-path: single-domain, single-tool-family compound requests
+    // (e.g., "check my inbox and draft a reply") stay on v1. The overlay still
+    // animates because v1 now emits subagent_started / subagent_tool_call /
+    // subagent_tool_result / subagent_completed events inline. Decomposition
+    // would add 500ms+ of LLM classification + synthesis for no user-visible
+    // benefit on a single-domain task.
+    //
+    // Only truly multi-domain or complex requests get full v2 decomposition.
+    if (
+      assessment.complexity === 'compound'
+      && assessment.domains.length <= 1
+    ) {
+      return this.v1.processMessage(message, conversationId);
+    }
+
+    // Complex or multi-domain compound → full multi-agent decomposition.
     return this.processComplexRequest(message, assessment, conversationId);
   }
 

@@ -51,12 +51,21 @@ export class ConversationIndexer {
    * Index a conversation turn into the knowledge graph.
    * Only index after assistant response completes (not during streaming).
    * One chunk per turn, max 2000 chars (matching existing chunker limit).
+   *
+   * Assistant turns are rejected if they match fabrication patterns — we never
+   * want a hallucinated claim re-entering the graph as retrievable "context".
    */
   async indexTurn(params: IndexTurnParams): Promise<void> {
     const { conversationId, turnId, role, content, timestamp } = params;
 
     // Skip empty content
     if (!content || content.trim().length === 0) return;
+
+    if (role === 'assistant' && this.looksLikeFabrication(content)) {
+      // Intentionally do not index — prevents the pre-scanner baseline of
+      // hallucinations from getting preserved in the vector store.
+      return;
+    }
 
     // Truncate to max 2000 chars (matching existing chunker limit)
     const indexContent = content.substring(0, 2000);
@@ -91,6 +100,31 @@ export class ConversationIndexer {
       `INSERT INTO conversation_embeddings (id, conversation_id, turn_id, chunk_id, created_at)
        VALUES (?, ?, ?, ?, ?)`
     ).run(embeddingId, conversationId, turnId, result.documentId, new Date().toISOString());
+  }
+
+  /**
+   * Lightweight fabrication detection — mirrors the patterns in
+   * Orchestrator.scanForFabrication. Duplicated here instead of imported to
+   * keep this file independent of the orchestrator (circular-dep risk).
+   * When either module changes, both must be kept in sync.
+   */
+  private looksLikeFabrication(response: string): boolean {
+    const patterns: RegExp[] = [
+      /your (?:meeting|appointment|call|event) (?:at|is at|starts at) \d{1,2}[:.]\d{2}/i,
+      /you have a (?:meeting|appointment|call|event) (?:at|with|scheduled)/i,
+      /I (?:checked|looked at|reviewed|found in|have access to) your (?:inbox|calendar|email|schedule|files)/i,
+      /according to your (?:calendar|inbox|email|schedule|files)/i,
+      /your (?:inbox|calendar) shows/i,
+      /you (?:received|have|got) (?:an? )?(?:email|message) from/i,
+      /(?:recent|new) emails? (?:about|from|regarding)/i,
+      /emails? (?:about|regarding) (?:leads?|prospects?|clients?|deals?|meetings?|projects?) (?:in|from|with)/i,
+      /(?:meeting|call) with (?!me\b|you\b|us\b)[A-Z][a-z]+ (?:at|about|regarding)/i,
+      /^you mentioned (?:that )?you/im,
+      /you (?:mentioned|told me|said)(?: that)? (?:you )?(?:want|need|have|are)/i,
+      /here are (?:the|your) (?:search results|files|documents|emails):?\s*$/im,
+      /I (?:also )?have access to your (?:files|emails|contacts|calendar)/i,
+    ];
+    return patterns.some(p => p.test(response));
   }
 
   /**

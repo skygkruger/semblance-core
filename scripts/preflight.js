@@ -77,6 +77,23 @@ const privacy = run('node', ['scripts/privacy-audit/index.js'], 30000);
 check('Privacy audit', privacy.ok, privacy.ok ? '' : 'network imports in AI Core');
 console.log(privacy.ok ? 'PASS' : 'FAIL');
 
+// ── 4b. AI golden-path contracts ───────────────────────────────────────────
+// Model-agnostic golden tests against a mock provider. Pin the orchestrator's
+// behavior (hallucination scanner, cold-start prompt selection, recovery mode,
+// multi-language conversational routing) independent of which real model runs
+// at deploy time. Must pass even on a machine with no models installed.
+process.stdout.write('  AI golden paths (mock)... ');
+const goldens = run('npx', ['vitest', 'run', 'tests/ai-goldens/golden-paths.test.ts'], 60000);
+const goldenPass = goldens.stdout.match(/(\d+) passed/);
+const goldenFail = goldens.stdout.match(/(\d+) failed/);
+const goldensOk = goldens.ok && !(goldenFail && parseInt(goldenFail[1]) > 0);
+check(
+  `AI golden paths (${goldenPass ? goldenPass[1] : '0'} passing${goldenFail ? ', ' + goldenFail[1] + ' failing' : ''})`,
+  goldensOk,
+  goldensOk ? '' : 'AI orchestrator contract broken — hallucination/cold-start/recovery behaviour regressed',
+);
+console.log(goldensOk ? `${goldenPass ? goldenPass[1] : '0'} passing` : 'FAILED');
+
 if (!FAST) {
   // ── 5. Sidecar smoke ───────────────────────────────────────────────────
   const sidecarPath = join(ROOT, 'packages', 'desktop', 'src-tauri', 'sidecar', 'bridge.cjs');
@@ -97,6 +114,26 @@ if (!FAST) {
   const p0Ok = p0Match ? p0Match[1] === 'PASS' : false;
   check('P0 gate', p0Ok, p0Ok ? '' : 'P0 features failing');
   console.log(p0Ok ? 'PASS' : 'FAIL');
+
+  // ── 7. Live AI golden suite (only if a provider resolves) ────────────
+  // These tests skip (not fail) when no reasoning provider is available, so
+  // the gate never creates a dependency on Ollama or any specific model. When
+  // a provider IS present, the assertions are exercised against it.
+  process.stdout.write('  Live AI golden (opt-in)... ');
+  const liveGoldens = run('npx', ['vitest', 'run', 'tests/ai-goldens/live-provider.test.ts'], 180000);
+  const liveFail = liveGoldens.stdout.match(/(\d+) failed/);
+  // Only fail the gate if tests actually ran AND failed. All-skipped is OK.
+  const liveOk = liveGoldens.ok && !(liveFail && parseInt(liveFail[1]) > 0);
+  const liveSkipMatch = liveGoldens.stdout.match(/(\d+) skipped/);
+  const liveSkipped = liveSkipMatch ? parseInt(liveSkipMatch[1]) : 0;
+  const livePassMatch = liveGoldens.stdout.match(/(\d+) passed/);
+  const livePassed = livePassMatch ? parseInt(livePassMatch[1]) : 0;
+  check(
+    `Live AI golden (${livePassed} passing, ${liveSkipped} skipped, ${liveFail ? liveFail[1] : '0'} failing)`,
+    liveOk,
+    liveOk ? '' : 'Live AI golden tests failed against an active provider — real model behaviour regressed',
+  );
+  console.log(liveOk ? (livePassed === 0 ? 'skipped (no provider)' : `${livePassed} passing`) : 'FAILED');
 }
 
 // ── Summary ───────────────────────────────────────────────────────────────

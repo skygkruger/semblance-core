@@ -587,12 +587,14 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     modality: 'text',
     inferenceTier: 'primary',
     residencyPolicy: {
-      constrained: 'session',
-      standard: 'always',
-      performance: 'always',
-      workstation: 'always',
-
-      enthusiast: 'always',
+      // 1-bit / 1.58-bit models are opt-in only. They ship as an available option
+      // for advanced users but are never auto-recommended or auto-loaded. Standard
+      // GGUFs (Qwen, Phi) are the defaults at every tier for quality reasons.
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand',
     },
   },
 
@@ -616,12 +618,14 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     modality: 'text',
     inferenceTier: 'primary',
     residencyPolicy: {
-      constrained: 'session',
-      standard: 'always',
-      performance: 'always',
-      workstation: 'always',
-
-      enthusiast: 'always',
+      // 1-bit / 1.58-bit models are opt-in only. They ship as an available option
+      // for advanced users but are never auto-recommended or auto-loaded. Standard
+      // GGUFs (Qwen, Phi) are the defaults at every tier for quality reasons.
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand',
     },
   },
 
@@ -645,12 +649,14 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     modality: 'text',
     inferenceTier: 'primary',
     residencyPolicy: {
-      constrained: 'session',
-      standard: 'always',
-      performance: 'always',
-      workstation: 'always',
-
-      enthusiast: 'always',
+      // 1-bit / 1.58-bit models are opt-in only. They ship as an available option
+      // for advanced users but are never auto-recommended or auto-loaded. Standard
+      // GGUFs (Qwen, Phi) are the defaults at every tier for quality reasons.
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand',
     },
   },
 
@@ -676,12 +682,14 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     modality: 'text',
     inferenceTier: 'primary',
     residencyPolicy: {
-      constrained: 'session',
-      standard: 'always',
-      performance: 'always',
-      workstation: 'always',
-
-      enthusiast: 'always',
+      // 1-bit / 1.58-bit models are opt-in only. They ship as an available option
+      // for advanced users but are never auto-recommended or auto-loaded. Standard
+      // GGUFs (Qwen, Phi) are the defaults at every tier for quality reasons.
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand',
     },
   },
 
@@ -705,12 +713,14 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     modality: 'text',
     inferenceTier: 'primary',
     residencyPolicy: {
-      constrained: 'session',
-      standard: 'always',
-      performance: 'always',
-      workstation: 'always',
-
-      enthusiast: 'always',
+      // 1-bit / 1.58-bit models are opt-in only. They ship as an available option
+      // for advanced users but are never auto-recommended or auto-loaded. Standard
+      // GGUFs (Qwen, Phi) are the defaults at every tier for quality reasons.
+      constrained: 'on-demand',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand',
     },
   },
 
@@ -734,12 +744,13 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     modality: 'text',
     inferenceTier: 'primary',
     residencyPolicy: {
+      // 1.58-bit PTQ models are opt-in only — aggressive quantization degrades
+      // tool-calling fidelity and narrative coherence relative to standard Q4_K_M.
       constrained: 'on-demand',
-      standard: 'session',
-      performance: 'always',
-      workstation: 'always',
-
-      enthusiast: 'always',
+      standard: 'on-demand',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand',
     },
   },
 
@@ -765,10 +776,9 @@ export const BITNET_MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     residencyPolicy: {
       constrained: 'on-demand',
       standard: 'on-demand',
-      performance: 'session',
-      workstation: 'always',
-
-      enthusiast: 'always',
+      performance: 'on-demand',
+      workstation: 'on-demand',
+      enthusiast: 'on-demand',
     },
   },
 

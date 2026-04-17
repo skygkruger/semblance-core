@@ -25,7 +25,7 @@
         {
           "testName": "send_message",
           "status": "PASS",
-          "detail": "responseId=msg_1774020152027"
+          "detail": "responseId=msg_1776441368871"
         },
         {
           "testName": "Inference completes",
@@ -126,7 +126,7 @@
         {
           "testName": "camelCase keys",
           "status": "PASS",
-          "detail": "docs=0, chunks=0"
+          "detail": "docs=1, chunks=0"
         },
         {
           "testName": "search handler",
@@ -203,7 +203,7 @@
         {
           "testName": "reminder_create",
           "status": "PASS",
-          "detail": "id=yP3D9aBg-HiVdgKdRBUTl"
+          "detail": "id=WJuETxh6NoDQxVO6Wzb8w"
         },
         {
           "testName": "Reminder persists",
@@ -272,15 +272,25 @@
     },
     {
       "name": "BRIEF",
-      "pass": 0,
+      "pass": 2,
       "warn": 1,
       "fail": 0,
-      "total": 1,
+      "total": 3,
       "tests": [
         {
           "testName": "generate_morning_brief",
+          "status": "PASS",
+          "detail": "Brief generated"
+        },
+        {
+          "testName": "Brief has summary",
+          "status": "PASS",
+          "detail": "Good morning. 24° Weather details for Omaha, on Friday, Apri..."
+        },
+        {
+          "testName": "Brief has events",
           "status": "WARN",
-          "detail": "Cannot read properties of undefined (reading 'exec')"
+          "detail": "No events field"
         }
       ]
     },
@@ -309,10 +319,10 @@
       ]
     }
   ],
-  "totalPass": 38,
-  "totalTests": 40,
+  "totalPass": 40,
+  "totalTests": 42,
   "p0Pass": true,
   "p1Pass": true,
   "buildReady": true,
-  "date": "2026-03-20 15:22:16"
+  "date": "2026-04-17 15:55:52"
 }

@@ -70,6 +70,14 @@ export function createRNFSAdapter(): FileSystemAdapter {
       void RNFS.writeFile(path, content, 'utf8');
     },
 
+    appendFileSync(path: string, data: string | Buffer): void {
+      const content = typeof data === 'string' ? data : data.toString('utf-8');
+      const existing = fileCache.get(path) ?? '';
+      fileCache.set(path, existing + content);
+      // Async append to disk — RNFS.appendFile if available, else write
+      void (RNFS as unknown as { appendFile?: (p: string, c: string, e: string) => Promise<void> }).appendFile?.(path, content, 'utf8');
+    },
+
     unlinkSync(path: string): void {
       fileCache.delete(path);
       bufferCache.delete(path);

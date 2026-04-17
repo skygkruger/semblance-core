@@ -57,6 +57,40 @@ interface ToolExecutionResult {
 
 // ─── Subagent Executor ────────────────────────────────────────────────────────
 
+/**
+ * Truncate a string to at most `maxChars`, breaking at the nearest sentence
+ * boundary before the cut rather than mid-word. Preserves JSON-ish payloads
+ * by preferring commas and `}` when no sentence boundary is near.
+ *
+ * If the string is already within budget, returns it unchanged.
+ * If no reasonable boundary exists in the last 15% of the window, falls back
+ * to a hard slice with an ellipsis.
+ */
+function truncateAtSentenceBoundary(s: string, maxChars: number): string {
+  if (s.length <= maxChars) return s;
+  const window = s.slice(0, maxChars);
+  // Prefer sentence endings
+  const sentenceEnd = Math.max(
+    window.lastIndexOf('. '),
+    window.lastIndexOf('! '),
+    window.lastIndexOf('? '),
+    window.lastIndexOf('\n\n'),
+  );
+  if (sentenceEnd > maxChars * 0.85) {
+    return window.slice(0, sentenceEnd + 1) + '... [truncated]';
+  }
+  // For JSON-ish content, break at a comma or closing brace
+  const structEnd = Math.max(
+    window.lastIndexOf('},'),
+    window.lastIndexOf('",'),
+    window.lastIndexOf('],'),
+  );
+  if (structEnd > maxChars * 0.85) {
+    return window.slice(0, structEnd + 1) + '... [truncated]';
+  }
+  return window + '... [truncated]';
+}
+
 export class SubagentExecutor {
   private llm: LLMProvider;
   private knowledge: KnowledgeGraph;
@@ -474,8 +508,14 @@ If you need a tool you don't have, explain what you need and why.${sessionContex
             data: { toolName: preResult.toolName, toolStatus: 'completed' },
           });
 
-          // Add tool result to conversation
-          const resultStr = JSON.stringify(postResult.result).slice(0, 2000);
+          // Add tool result to conversation.
+          // Truncation target: ~2000 chars was arbitrary. We use a context-budget
+          // heuristic instead — roughly half the model's context window divided
+          // by expected tool-call count (~3 per turn). Prefer sentence-boundary
+          // truncation so the model doesn't see half-words.
+          const fullResultStr = JSON.stringify(postResult.result);
+          const budget = this.getToolResultCharBudget();
+          const resultStr = truncateAtSentenceBoundary(fullResultStr, budget);
           const injected = postResult.injectedContext
             ? `\n${postResult.injectedContext}`
             : '';
@@ -584,6 +624,24 @@ If you need a tool you don't have, explain what you need and why.${sessionContex
         result: { error: (error as Error).message },
         success: false,
       };
+    }
+  }
+
+  /**
+   * Character budget for a single tool-call result inserted back into the
+   * conversation. Scales with hardware tier — small models have smaller
+   * effective context windows and need tighter truncation to leave room for
+   * system prompt + history + the next generation. Returns chars not tokens
+   * because the caller is string-based; ~4 chars/token rule of thumb.
+   */
+  private getToolResultCharBudget(): number {
+    switch (this.hardwareTier) {
+      case 'constrained': return 1200;  // ~300 tokens
+      case 'standard': return 2400;     // ~600 tokens
+      case 'performance': return 4000;  // ~1000 tokens
+      case 'workstation': return 6000;  // ~1500 tokens
+      case 'enthusiast': return 8000;   // ~2000 tokens
+      default: return 2400;
     }
   }
 
