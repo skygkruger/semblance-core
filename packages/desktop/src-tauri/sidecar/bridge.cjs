@@ -235,6 +235,9 @@ var init_desktop_adapter = __esm({
       writeFileSync: (p, data) => {
         fs.writeFileSync(p, data);
       },
+      appendFileSync: (p, data) => {
+        fs.appendFileSync(p, data);
+      },
       unlinkSync: (p) => {
         fs.unlinkSync(p);
       },
@@ -429,6 +432,7 @@ var init_mobile_adapter = __esm({
       readFileSync: () => notConfigured("FileSystem"),
       readFileSyncBuffer: () => notConfigured("FileSystem"),
       writeFileSync: () => notConfigured("FileSystem"),
+      appendFileSync: () => notConfigured("FileSystem"),
       unlinkSync: () => notConfigured("FileSystem"),
       statSync: () => notConfigured("FileSystem"),
       readdirSync: () => notConfigured("FileSystem"),
@@ -2643,11 +2647,14 @@ var init_model_registry = __esm({
         modality: "text",
         inferenceTier: "primary",
         residencyPolicy: {
-          constrained: "session",
-          standard: "always",
-          performance: "always",
-          workstation: "always",
-          enthusiast: "always"
+          // 1-bit / 1.58-bit models are opt-in only. They ship as an available option
+          // for advanced users but are never auto-recommended or auto-loaded. Standard
+          // GGUFs (Qwen, Phi) are the defaults at every tier for quality reasons.
+          constrained: "on-demand",
+          standard: "on-demand",
+          performance: "on-demand",
+          workstation: "on-demand",
+          enthusiast: "on-demand"
         }
       },
       {
@@ -2671,11 +2678,14 @@ var init_model_registry = __esm({
         modality: "text",
         inferenceTier: "primary",
         residencyPolicy: {
-          constrained: "session",
-          standard: "always",
-          performance: "always",
-          workstation: "always",
-          enthusiast: "always"
+          // 1-bit / 1.58-bit models are opt-in only. They ship as an available option
+          // for advanced users but are never auto-recommended or auto-loaded. Standard
+          // GGUFs (Qwen, Phi) are the defaults at every tier for quality reasons.
+          constrained: "on-demand",
+          standard: "on-demand",
+          performance: "on-demand",
+          workstation: "on-demand",
+          enthusiast: "on-demand"
         }
       },
       {
@@ -2699,11 +2709,14 @@ var init_model_registry = __esm({
         modality: "text",
         inferenceTier: "primary",
         residencyPolicy: {
-          constrained: "session",
-          standard: "always",
-          performance: "always",
-          workstation: "always",
-          enthusiast: "always"
+          // 1-bit / 1.58-bit models are opt-in only. They ship as an available option
+          // for advanced users but are never auto-recommended or auto-loaded. Standard
+          // GGUFs (Qwen, Phi) are the defaults at every tier for quality reasons.
+          constrained: "on-demand",
+          standard: "on-demand",
+          performance: "on-demand",
+          workstation: "on-demand",
+          enthusiast: "on-demand"
         }
       },
       // ─── Post-Training Quantized Models (standard models compressed to 1.58-bit) ─
@@ -2728,11 +2741,14 @@ var init_model_registry = __esm({
         modality: "text",
         inferenceTier: "primary",
         residencyPolicy: {
-          constrained: "session",
-          standard: "always",
-          performance: "always",
-          workstation: "always",
-          enthusiast: "always"
+          // 1-bit / 1.58-bit models are opt-in only. They ship as an available option
+          // for advanced users but are never auto-recommended or auto-loaded. Standard
+          // GGUFs (Qwen, Phi) are the defaults at every tier for quality reasons.
+          constrained: "on-demand",
+          standard: "on-demand",
+          performance: "on-demand",
+          workstation: "on-demand",
+          enthusiast: "on-demand"
         }
       },
       {
@@ -2756,11 +2772,14 @@ var init_model_registry = __esm({
         modality: "text",
         inferenceTier: "primary",
         residencyPolicy: {
-          constrained: "session",
-          standard: "always",
-          performance: "always",
-          workstation: "always",
-          enthusiast: "always"
+          // 1-bit / 1.58-bit models are opt-in only. They ship as an available option
+          // for advanced users but are never auto-recommended or auto-loaded. Standard
+          // GGUFs (Qwen, Phi) are the defaults at every tier for quality reasons.
+          constrained: "on-demand",
+          standard: "on-demand",
+          performance: "on-demand",
+          workstation: "on-demand",
+          enthusiast: "on-demand"
         }
       },
       {
@@ -2784,11 +2803,13 @@ var init_model_registry = __esm({
         modality: "text",
         inferenceTier: "primary",
         residencyPolicy: {
+          // 1.58-bit PTQ models are opt-in only — aggressive quantization degrades
+          // tool-calling fidelity and narrative coherence relative to standard Q4_K_M.
           constrained: "on-demand",
-          standard: "session",
-          performance: "always",
-          workstation: "always",
-          enthusiast: "always"
+          standard: "on-demand",
+          performance: "on-demand",
+          workstation: "on-demand",
+          enthusiast: "on-demand"
         }
       },
       {
@@ -2814,9 +2835,9 @@ var init_model_registry = __esm({
         residencyPolicy: {
           constrained: "on-demand",
           standard: "on-demand",
-          performance: "session",
-          workstation: "always",
-          enthusiast: "always"
+          performance: "on-demand",
+          workstation: "on-demand",
+          enthusiast: "on-demand"
         }
       }
       // Llama3 8B 1.58bit removed — requires Python conversion (no pre-built GGUF available).
@@ -3044,18 +3065,32 @@ var native_provider_exports = {};
 __export(native_provider_exports, {
   NativeProvider: () => NativeProvider
 });
-var NativeProvider;
+var TOOL_EXPOSURE_CAP, NativeProvider;
 var init_native_provider = __esm({
   "packages/core/llm/native-provider.js"() {
     "use strict";
+    TOOL_EXPOSURE_CAP = {
+      constrained: 8,
+      standard: 15,
+      performance: 25,
+      workstation: 9999,
+      // effectively no cap
+      enthusiast: 9999
+    };
     NativeProvider = class {
       bridge;
       modelName;
       embeddingModelName;
+      hardwareTier;
       constructor(config) {
         this.bridge = config.bridge;
         this.modelName = config.modelName ?? "native";
         this.embeddingModelName = config.embeddingModelName ?? "nomic-embed-text-v1.5";
+        this.hardwareTier = config.hardwareTier ?? "standard";
+      }
+      /** Allow the runtime to update the tier after construction (e.g., after hardware detection). */
+      setHardwareTier(tier) {
+        this.hardwareTier = tier;
       }
       async isAvailable() {
         try {
@@ -3202,26 +3237,49 @@ var init_native_provider = __esm({
       }
       /**
        * Format tool definitions as a prompt block the model can understand.
+       * Exposes more tools on more-capable hardware — smaller models tolerate
+       * longer tool lists poorly (they narrate instead of calling, or pick the
+       * wrong tool). On workstation/enthusiast the cap is effectively off.
+       *
+       * Priority order within each cap:
+       *   1. Always-needed (search_web, fetch_inbox, search_emails, send_email, draft_email)
+       *   2. Frequently-needed (calendar, reminders, knowledge, files)
+       *   3. Everything else, in registration order
        */
       formatToolDefinitions(tools) {
-        const coreTools = tools.filter((t) => [
+        const cap = TOOL_EXPOSURE_CAP[this.hardwareTier];
+        const tier1Names = /* @__PURE__ */ new Set([
           "search_web",
-          "deep_search_web",
-          "fetch_url",
           "fetch_inbox",
           "search_emails",
           "send_email",
-          "draft_email",
+          "draft_email"
+        ]);
+        const tier2Names = /* @__PURE__ */ new Set([
+          "deep_search_web",
+          "fetch_url",
           "fetch_calendar",
+          "get_today_events",
           "create_reminder",
+          "list_reminders",
           "search_knowledge",
-          "search_files"
-        ].includes(t.name));
-        const toolList = (coreTools.length > 0 ? coreTools : tools.slice(0, 10)).map((t) => `- ${t.name}: ${t.description?.split(".")[0] ?? ""}`).join("\n");
+          "search_files",
+          "list_indexed_documents",
+          "read_document",
+          "search_contacts",
+          "add_contact"
+        ]);
+        const tier1 = tools.filter((t) => tier1Names.has(t.name));
+        const tier2 = tools.filter((t) => tier2Names.has(t.name));
+        const tier3 = tools.filter((t) => !tier1Names.has(t.name) && !tier2Names.has(t.name));
+        const ordered = [...tier1, ...tier2, ...tier3];
+        const selected = ordered.slice(0, cap);
+        const toolList = selected.map((t) => `- ${t.name}: ${t.description?.split(".")[0] ?? ""}`).join("\n");
+        const tierNote = this.hardwareTier === "constrained" ? "\nYou are running on constrained hardware. Prefer direct answers over tools when possible." : this.hardwareTier === "workstation" || this.hardwareTier === "enthusiast" ? "\nYou have generous compute \u2014 use tools confidently when the user asks about their data." : "";
         return `To use a tool: tool_name({"key":"value"})
 
 Available tools:
-${toolList}
+${toolList}${tierNote}
 
 Answer from knowledge first. Use tools only when needed.`;
       }
@@ -4009,6 +4067,7 @@ function createLLMProvider(config) {
   const embeddingModel = config && "embeddingModel" in config ? config.embeddingModel : "nomic-embed-text";
   const bitnetBridge = config && "bitnetBridge" in config ? config.bitnetBridge : void 0;
   const bitnetModel = config && "bitnetModel" in config ? config.bitnetModel : "falcon-e-1b";
+  const hardwareTier = config && "hardwareTier" in config ? config.hardwareTier : "standard";
   let provider;
   if (runtime === "bitnet" && nativeBridge) {
     provider = new BitNetProvider({
@@ -4020,7 +4079,8 @@ function createLLMProvider(config) {
     provider = new NativeProvider({
       bridge: nativeBridge,
       modelName: reasoningModel ?? "native",
-      embeddingModelName: embeddingModel
+      embeddingModelName: embeddingModel,
+      hardwareTier
     });
   } else {
     provider = new OllamaProvider({ baseUrl });
@@ -4698,6 +4758,11 @@ var init_search = __esm({
             continue;
           if (sourceTypes && sourceTypes.length > 0 && !sourceTypes.includes(document2.source))
             continue;
+          if (options?.excludeSources && options.excludeSources.includes(document2.source))
+            continue;
+          if (document2.source === "conversation" && options?.source !== "conversation" && !options?.includeConversations && !(options?.sourceTypes && options.sourceTypes.includes("conversation"))) {
+            continue;
+          }
           if (options?.dateRange) {
             const docDate = document2.createdAt;
             if (options.dateRange.from && docDate < options.dateRange.from)
@@ -103349,10 +103414,18 @@ var init_context_budget = __esm({
 
 // packages/core/agent/orchestrator.js
 function buildSystemPrompt(config, conversational) {
-  const { aiName, userName, autonomyTier, connectedServices, indexedDocCount } = config;
+  const { aiName, userName, autonomyTier, connectedServices, indexedDocCount, hardwareTier, syncInFlight } = config;
   const today = (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  const hasData = (connectedServices?.length ?? 0) > 0 || (indexedDocCount ?? 0) > 0;
+  const hasData = (indexedDocCount ?? 0) > 0;
+  const isSmallModel = hardwareTier === "constrained";
   if (conversational) {
+    if (isSmallModel) {
+      return `You are ${aiName}${userName ? ` \u2014 ${userName}'s personal AI` : ""}. Today: ${today}.
+
+Be brief and warm. You don't know ${userName ?? "the user"}'s private data unless a tool returns it. Never invent specifics.${userName ? "" : " Ask their name if it matters."}
+
+${INJECTION_CANARY}`;
+    }
     return `You are ${aiName}${userName ? `, a personal AI assistant for ${userName}` : ""}. Today is ${today}. You run entirely on this device \u2014 nothing leaves it.
 
 Be warm and direct. You have ZERO knowledge of the user's emails, calendar, contacts, files, or personal data unless you retrieve it with a tool. Never invent, fabricate, or assume any personal information. If you don't know something, say so simply.${userName ? "" : " Ask the user their name."}
@@ -103361,9 +103434,22 @@ ${INJECTION_CANARY}`;
   }
   if (!hasData) {
     const identity3 = userName ? `You are ${aiName}, ${userName}'s personal AI. You live on their device \u2014 all their data, none of it leaving. Today is ${today}.` : `You are ${aiName}, a personal AI that runs entirely on this device. Today is ${today}. You don't know the user's name yet \u2014 ask them.`;
+    const anyConnected = (connectedServices?.length ?? 0) > 0;
+    const stateNote = anyConnected ? `RIGHT NOW: The user has connected ${connectedServices.join(", ")} but the initial sync hasn't finished yet. You do NOT have their data indexed. Do not claim you've read their inbox, calendar, or files \u2014 you haven't, the sync is still running. If asked about their data, say you're still catching up from the initial sync and offer to try again in a moment.` : `RIGHT NOW: No accounts are connected and no data has been indexed yet. You have ZERO access to the user's emails, calendar, contacts, files, health data, or finances. You cannot check their inbox, look up meetings, or search their documents because nothing is connected.`;
+    if (isSmallModel) {
+      return `${identity3}
+
+${stateNote}
+
+Have conversation, answer general questions, search the web, or help connect accounts. NEVER invent personal details (no fake meetings, emails, contacts, files). If asked about their data and you don't have it, say so plainly.
+
+Warm voice, no emojis, direct. Match the user's language.
+
+${INJECTION_CANARY}`;
+    }
     return `${identity3}
 
-RIGHT NOW: No accounts are connected and no data has been indexed yet. You have ZERO access to the user's emails, calendar, contacts, files, health data, or finances. You cannot check their inbox, look up meetings, or search their documents because nothing is connected.
+${stateNote}
 
 WHAT YOU CAN DO: Have a conversation, answer general knowledge questions, search the web, and help the user set up their connections. You can also read and write files on their device, and run commands.
 
@@ -103376,11 +103462,30 @@ You are made by VERIDIAN SYNTHETICS. Your intelligence belongs to ${userName ?? 
 ${INJECTION_CANARY}`;
   }
   const autonomyDescription = autonomyTier === "guardian" ? `You're in careful mode. Describe what you'd do before doing it, and wait for confirmation.` : autonomyTier === "alter_ego" ? `You act. Handle the inbox, the calendar, the follow-ups. Pause only for genuinely high-stakes decisions. Report what you did, not what you plan to do.` : `You handle routine tasks directly. For anything novel or sensitive, check first. When you act, mention it briefly.`;
+  const syncNote = syncInFlight ? " (initial sync still running \u2014 more data coming)" : "";
   const knowledgeContext = [
     connectedServices?.length ? `Connected services: ${connectedServices.join(", ")}.` : "",
-    indexedDocCount ? `Your knowledge base has ${indexedDocCount.toLocaleString()} indexed items \u2014 search it before reaching for the web.` : ""
+    indexedDocCount ? `Your knowledge base has ${indexedDocCount.toLocaleString()} indexed items${syncNote} \u2014 search it before reaching for the web.` : ""
   ].filter(Boolean).join(" ");
   const identity2 = userName ? `You are ${aiName}, ${userName}'s personal AI. You live on their device \u2014 all their data, none of it leaving. Today is ${today}.` : `You are ${aiName}, a personal AI that runs entirely on this device. Today is ${today}. You don't know the user's name yet \u2014 ask them.`;
+  if (isSmallModel) {
+    return `${identity2}
+
+${knowledgeContext}
+
+${autonomyDescription}
+
+RULES:
+1. Never invent user data. Every claim about their emails, calendar, contacts, files, health, or finances must come from a tool call in this turn.
+2. On greetings ("hi", "good morning"), just greet back briefly. Don't volunteer their schedule or inbox unless asked.
+3. If you don't know, say so in one sentence.
+
+Tools: search_emails, fetch_inbox, send_email, draft_email, search_web, create_reminder. Use them on user request \u2014 don't describe using them.
+
+Warm voice, no emojis. Match user's language. Made by VERIDIAN SYNTHETICS.
+
+${INJECTION_CANARY}`;
+  }
   return `${identity2}
 
 ${knowledgeContext}
@@ -103389,7 +103494,12 @@ ${autonomyDescription}
 
 You have tools to interact with the user's connected services, search their files and emails, check the calendar, send messages, search the web, manage reminders, read and write files, run commands, and automate the device. Use them \u2014 don't describe using them. When you have real results, present them directly without preamble.
 
-ABSOLUTE RULE: NEVER fabricate, invent, or assume information about the user's emails, calendar, contacts, files, health, or finances. Every claim about personal data MUST come from a tool call result. If you haven't retrieved data using a tool in this conversation, you do not have it. When you don't have data, say so simply and offer to look it up.
+ABSOLUTE RULES \u2014 zero tolerance:
+1. NEVER fabricate, invent, or assume information about the user's emails, calendar, contacts, files, health, or finances. Every claim about personal data MUST come from a tool call result in THIS conversation. If you haven't just called a tool and received data, you do not have it.
+2. NEVER proactively volunteer personal details the user hasn't asked about. For greetings ("hi", "good morning", etc.), respond with a simple warm greeting \u2014 do not list their upcoming meetings, recent emails, or any other specifics unless they ask.
+3. NEVER claim the user "mentioned" or "said" something you don't have explicit evidence for in this conversation's visible turn history.
+4. If you don't know something, say so in one sentence. Do not fill silence with made-up content.
+5. Never present retrieved context as if it were original knowledge \u2014 cite the source (email from X, file Y.md).
 
 Tool reference:
 - search_files: local documents | search_emails: messages | search_web: current public info
@@ -103405,10 +103515,11 @@ You are made by VERIDIAN SYNTHETICS. Your intelligence belongs to ${userName ?? 
 
 ${INJECTION_CANARY}`;
 }
-var CREATE_TABLES2, BASE_TOOLS, BASE_TOOL_ACTION_MAP, BASE_LOCAL_TOOLS, VOICE_MODE_CONTEXT, DEFAULT_SYSTEM_PROMPT, OrchestratorImpl;
+var CREATE_TABLES2, BASE_TOOLS, BASE_TOOL_ACTION_MAP, BASE_LOCAL_TOOLS, VOICE_MODE_CONTEXT, DEFAULT_SYSTEM_PROMPT, TEMP_DECIDE, TEMP_RETRY, TEMP_SYNTH, TEMP_CONVERSE, OrchestratorImpl;
 var init_orchestrator = __esm({
   "packages/core/agent/orchestrator.js"() {
     "use strict";
+    init_platform();
     init_nanoid();
     init_artifact_parser();
     init_approval_patterns();
@@ -104039,7 +104150,11 @@ var init_orchestrator = __esm({
       aiName: "Semblance",
       autonomyTier: "partner"
     });
-    OrchestratorImpl = class {
+    TEMP_DECIDE = 0.2;
+    TEMP_RETRY = 0.4;
+    TEMP_SYNTH = 0.5;
+    TEMP_CONVERSE = 0.7;
+    OrchestratorImpl = class _OrchestratorImpl {
       llm;
       knowledge;
       ipc;
@@ -104064,6 +104179,17 @@ var init_orchestrator = __esm({
       weatherService;
       streamCallback = null;
       promptConfig;
+      /**
+       * Per-conversation fabrication strike tally. When this exceeds FABRICATION_RECOVERY_THRESHOLD,
+       * the conversation drops into recovery mode (minimal prompt) for the rest of
+       * its lifespan. Prevents one bad turn from poisoning every subsequent turn.
+       */
+      /** Currently-active v1 subagent id (for stream events from processToolCalls). */
+      activeV1SubagentId = null;
+      fabricationStrikes = /* @__PURE__ */ new Map();
+      static FABRICATION_RECOVERY_THRESHOLD = 2;
+      /** Path to the metrics log. Set when metrics logging is enabled. */
+      metricsLogPath = null;
       // Extension support
       extensionToolHandlers = /* @__PURE__ */ new Map();
       allTools = [...BASE_TOOLS];
@@ -104095,7 +104221,8 @@ var init_orchestrator = __esm({
           userName: config.userName,
           autonomyTier: representativeTier,
           connectedServices: config.connectedServices,
-          indexedDocCount: config.indexedDocCount
+          indexedDocCount: config.indexedDocCount,
+          hardwareTier: config.hardwareTier
         };
         this.db.exec(CREATE_TABLES2);
         try {
@@ -104124,9 +104251,30 @@ var init_orchestrator = __esm({
           if (followUps.test(lower))
             return true;
         }
-        if (wordCount <= 4) {
-          const greetings = /^(hi|hello|hey|howdy|sup|yo|good\s*(morning|afternoon|evening|night)|thanks|thank you|bye|goodbye|ok|okay|sure|yes|no|nah|yep|nope|cool|great|nice|hm+|huh|what'?s?\s*up)/;
-          if (greetings.test(lower))
+        if (wordCount <= 5) {
+          const enGreet = /^(hi|hello|hey|howdy|sup|yo|good\s*(morning|afternoon|evening|night)|thanks|thank you|bye|goodbye|ok|okay|sure|yes|no|nah|yep|nope|cool|great|nice|hm+|huh|what'?s?\s*up)/;
+          if (enGreet.test(lower))
+            return true;
+          const esGreet = /^(hola|buenos?\s*(d[íi]as|tardes|noches)|qu[eé]\s*tal|gracias|adi[óo]s|hasta\s*(luego|pronto|ma[ñn]ana)|s[íi]|no|bien|genial|vale)/;
+          if (esGreet.test(lower))
+            return true;
+          const frGreet = /^(bonjour|bonsoir|salut|coucou|merci|au\s*revoir|[àa]\s*(bient[ôo]t|plus)|oui|non|ok|d'accord|[cç]a\s*va|bien)/;
+          if (frGreet.test(lower))
+            return true;
+          const deGreet = /^(hallo|guten\s*(morgen|tag|abend)|servus|moin|tsch[üu]ss|danke|bitte|ja|nein|gut|okay)/;
+          if (deGreet.test(lower))
+            return true;
+          const ptGreet = /^(ol[áa]|oi|bom\s*dia|boa\s*(tarde|noite)|obrigad[oa]|tchau|at[ée]\s*(logo|mais)|sim|n[ãa]o|ok)/;
+          if (ptGreet.test(lower))
+            return true;
+          const itGreet = /^(ciao|salve|buongiorno|buonasera|grazie|prego|arrivederci|a\s*presto|s[íi]|no|va\s*bene)/;
+          if (itGreet.test(lower))
+            return true;
+          const jaGreet = /^(konnichi\s*wa|ohayou|konbanwa|arigatou|sayounara|oyasumi|hai|iie|daijoubu|こんにちは|おはよう|こんばんは|ありがとう|さようなら|おやすみ|はい|いいえ)/i;
+          if (jaGreet.test(message.trim()))
+            return true;
+          const zhGreet = /^(ni\s*hao|zao\s*shang\s*hao|wan\s*shang\s*hao|xie\s*xie|zai\s*jian|shi|bu|hao|你好|早上好|晚上好|谢谢|再见|是|不|好)/;
+          if (zhGreet.test(message.trim()))
             return true;
         }
         const selfReferential = /(?:what(?:'s| is) your name|who are you|what can you do|what are you|tell me (?:about yourself|your name|my name)|what(?:'s| is) my name|how are you)/;
@@ -104146,25 +104294,84 @@ var init_orchestrator = __esm({
        *
        * Returns the original response if clean, or a sanitized version if fabrication detected.
        */
+      /**
+       * Record a fabrication event against a conversation. Returns the new strike count.
+       */
+      recordFabricationStrike(conversationId) {
+        const next = (this.fabricationStrikes.get(conversationId) ?? 0) + 1;
+        this.fabricationStrikes.set(conversationId, next);
+        return next;
+      }
+      /**
+       * Whether this conversation has tripped the fabrication threshold and should
+       * drop to a minimal conversational prompt.
+       */
+      isInRecoveryMode(conversationId) {
+        return (this.fabricationStrikes.get(conversationId) ?? 0) >= _OrchestratorImpl.FABRICATION_RECOVERY_THRESHOLD;
+      }
+      /** Configure metrics log file (called at sidecar init). */
+      setMetricsLogPath(path2) {
+        this.metricsLogPath = path2;
+      }
+      /**
+       * Append a metric line to the metrics log. Best-effort, never throws.
+       * Format: NDJSON — one JSON object per line, grep-able.
+       */
+      metric(event, data = {}) {
+        if (!this.metricsLogPath)
+          return;
+        try {
+          const p = getPlatform();
+          const line = JSON.stringify({ ts: (/* @__PURE__ */ new Date()).toISOString(), event, ...data }) + "\n";
+          p.fs.appendFileSync(this.metricsLogPath, line);
+        } catch {
+        }
+      }
+      /**
+       * Detect claims with high specificity (named people, timestamps, email
+       * subjects, numeric amounts). These are the markers of fabrication when no
+       * tool call has backed them. Used alongside the phrase-pattern scanner.
+       */
+      containsSpecificClaims(response) {
+        const specificityMarkers = [
+          // Proper-noun person + verb construct ("Alan wants...", "Sarah mentioned...")
+          /\b[A-Z][a-z]{2,}\s+(?:wants?|needs?|said|mentioned|asked|requested|replied)\b/,
+          // Time-of-day markers ("at 3:15 pm", "at 14:00")
+          /\b(?:at|by|from)\s+\d{1,2}[:.]\d{2}\s*(?:am|pm|AM|PM)?\b/,
+          // Count of emails/items with a specific number over 2
+          /\b(?:\d{2,}|[3-9])\s+(?:unread|new|recent)\s+(?:emails?|messages?|meetings?|events?)\b/i,
+          // Quoted subject/title construct — model invented a subject line
+          /(?:subject|titled|titled)\s+["'"]/i,
+          // Specific dollar/currency amounts in a personal-data context
+          /\$\d[\d,]*(?:\.\d{2})?\s+(?:from|to|in|owed|due|pending)/
+        ];
+        return specificityMarkers.some((p) => p.test(response));
+      }
       scanForFabrication(response, toolCallsExecuted, connectedServices) {
         if (toolCallsExecuted > 0) {
           return { clean: true, sanitized: response };
         }
-        if (connectedServices.length > 0) {
-          return { clean: true, sanitized: response };
-        }
+        void connectedServices;
         const fabricationPatterns = [
           // Specific times for meetings/events the model couldn't know
           /your (?:meeting|appointment|call|event) (?:at|is at|starts at) \d{1,2}[:.]\d{2}/i,
           /you have a (?:meeting|appointment|call|event) (?:at|with|scheduled)/i,
           // Claiming to have checked data without tool calls
-          /I (?:checked|looked at|reviewed|found in) your (?:inbox|calendar|email|schedule|files)/i,
+          /I (?:checked|looked at|reviewed|found in|have access to) your (?:inbox|calendar|email|schedule|files)/i,
           /according to your (?:calendar|inbox|email|schedule|files)/i,
           /your (?:inbox|calendar) shows/i,
           // Fabricating email content
           /you (?:received|have|got) (?:an? )?(?:email|message) from/i,
+          /(?:recent|new) emails? (?:about|from|regarding)/i,
+          /emails? (?:about|regarding) (?:leads?|prospects?|clients?|deals?|meetings?|projects?) (?:in|from|with)/i,
           // Fabricating contact details
-          /(?:meeting|call) with (?!me\b|you\b|us\b)[A-Z][a-z]+ (?:at|about|regarding)/i
+          /(?:meeting|call) with (?!me\b|you\b|us\b)[A-Z][a-z]+ (?:at|about|regarding)/i,
+          // False memory — pretending user said something they didn't
+          /^you mentioned (?:that )?you/im,
+          /you (?:mentioned|told me|said)(?: that)? (?:you )?(?:want|need|have|are)/i,
+          // Fabricated file contents / mixed content-type hallucinations
+          /here are (?:the|your) (?:search results|files|documents|emails):?\s*$/im,
+          /I (?:also )?have access to your (?:files|emails|contacts|calendar)/i
         ];
         for (const pattern of fabricationPatterns) {
           if (pattern.test(response)) {
@@ -104174,6 +104381,13 @@ var init_orchestrator = __esm({
               sanitized: "I don't have access to your personal data yet \u2014 no accounts are connected. I can help you set up your email, calendar, and other services in Settings, or I'm happy to chat and help with general questions. What would you like to do?"
             };
           }
+        }
+        if (this.containsSpecificClaims(response)) {
+          console.error("[Orchestrator] Specific personal claim without tool backing \u2014 rejecting.");
+          return {
+            clean: false,
+            sanitized: "I don't have that specific information \u2014 I'd need to check your data directly. Want me to look it up, or would you rather I help with something else?"
+          };
         }
         return { clean: true, sanitized: response };
       }
@@ -104210,6 +104424,20 @@ var init_orchestrator = __esm({
           message = message.slice(0, MAX_USER_MESSAGE_CHARS) + "\n\n[Message truncated \u2014 original was " + originalLength + " characters]";
           console.error(`[Orchestrator] User message truncated from ${originalLength} to ${MAX_USER_MESSAGE_CHARS} chars`);
         }
+        const v1SubagentId = "v1-" + (conversationId ?? "new").slice(0, 8) + "-" + Date.now().toString(36);
+        this.activeV1SubagentId = v1SubagentId;
+        if (this.streamCallback) {
+          try {
+            this.streamCallback({
+              type: "subagent_started",
+              subagentId: v1SubagentId,
+              subtaskId: "v1-main",
+              timestamp: Date.now(),
+              data: { text: "Thinking..." }
+            });
+          } catch {
+          }
+        }
         const convId = conversationId ?? this.createConversation();
         if (conversationId) {
           this.db.prepare("INSERT OR IGNORE INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)").run(conversationId, (/* @__PURE__ */ new Date()).toISOString(), (/* @__PURE__ */ new Date()).toISOString());
@@ -104230,9 +104458,16 @@ var init_orchestrator = __esm({
         const docLimit = this.contextBudget.calculateKnowledgeLimit(this.model, 800);
         const documentChunks = this.documentContext ? await this.documentContext.getContextForPrompt(message, docLimit) : [];
         const kgLimit = this.contextBudget.calculateKnowledgeLimit(this.model);
-        const context = await this.knowledge.search(message, { limit: kgLimit });
+        const context = await this.knowledge.search(message, {
+          limit: kgLimit,
+          excludeSources: ["conversation"]
+        });
         const history = conversationId ? await this.getConversation(convId) : [];
-        const isConversational = this.isConversationalMessage(message);
+        const inRecovery = this.isInRecoveryMode(convId);
+        const isConversational = inRecovery || this.isConversationalMessage(message);
+        if (inRecovery) {
+          this.metric("recovery_mode_active", { conversationId: convId });
+        }
         const READ_SAFE_TOOLS = /* @__PURE__ */ new Set([
           "search_web",
           "deep_search_web",
@@ -104278,7 +104513,9 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
             const synthesis = await this.llm.chat({
               model: this.model,
               messages: synthesisMessages,
-              temperature: 0.7,
+              // Synthesis narrates real tool results back to the user. Low-ish temp
+              // keeps the narrative grounded — still natural but disinclined to invent.
+              temperature: TEMP_SYNTH,
               maxTokens: 2048
             });
             finalMessage = synthesis.message.content ?? "";
@@ -104299,7 +104536,10 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
             model: this.model,
             messages,
             tools,
-            temperature: 0.7,
+            // Conversational messages (no tools) get CONVERSE temp for natural flow.
+            // Tool-capable messages get DECIDE temp — we want deterministic tool choice,
+            // not randomness. The synthesis step re-raises temperature for the user-facing reply.
+            temperature: tools ? TEMP_DECIDE : TEMP_CONVERSE,
             maxTokens: 1024
           };
           let response = await this.llm.chat(chatRequest);
@@ -104389,7 +104629,8 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
               const followUp = await this.llm.chat({
                 model: this.model,
                 messages: followUpMessages,
-                temperature: 0.7,
+                // Follow-up synthesis of tool results — same as main synthesis path.
+                temperature: TEMP_SYNTH,
                 maxTokens: 2048
               });
               finalMessage = followUp.message.content ?? "";
@@ -104400,7 +104641,8 @@ Present ALL results to the user. List every item. Do not skip or summarize away 
               const retryResponse = await this.llm.chat({
                 model: this.model,
                 messages,
-                temperature: 0.7,
+                // Retry after all tool calls went to approval — deterministic-ish.
+                temperature: TEMP_RETRY,
                 maxTokens: 1024
               });
               if (retryResponse?.message?.content) {
@@ -104424,7 +104666,38 @@ ${checkIn}`;
         const toolCallCount = actions.filter((a) => a.status === "executed").length;
         const fabricationCheck = this.scanForFabrication(finalMessage, toolCallCount, this.promptConfig.connectedServices ?? []);
         if (!fabricationCheck.clean) {
-          finalMessage = fabricationCheck.sanitized;
+          this.recordFabricationStrike(convId);
+          this.metric("scanner_fired", { model: this.model, toolCalls: toolCallCount });
+          try {
+            const retryMessages = this.buildMessages(message, context, history, documentChunks, isConversational);
+            const stricterSystemIdx = retryMessages.findIndex((m) => m.role === "system");
+            if (stricterSystemIdx >= 0) {
+              retryMessages[stricterSystemIdx] = {
+                role: "system",
+                content: retryMessages[stricterSystemIdx].content + `
+
+RETRY \u2014 your previous response contained claims about the user's personal data that were not backed by any tool call in this turn. Regenerate WITHOUT inventing specifics. If you need data, emit a tool call instead of narrating. If you cannot do either, reply in one sentence that you don't have access yet.`
+              };
+            }
+            const retry = await this.llm.chat({
+              model: this.model,
+              messages: retryMessages,
+              temperature: TEMP_RETRY,
+              maxTokens: 512
+            });
+            const retryText = (retry.message.content ?? "").trim();
+            const retryCheck = this.scanForFabrication(retryText, 0, this.promptConfig.connectedServices ?? []);
+            if (retryText && retryCheck.clean) {
+              finalMessage = retryText;
+              this.metric("scanner_retry_succeeded", { model: this.model });
+            } else {
+              finalMessage = fabricationCheck.sanitized;
+              this.metric("scanner_retry_failed", { model: this.model });
+            }
+          } catch (retryErr) {
+            console.error("[Orchestrator] Fabrication retry failed:", retryErr);
+            finalMessage = fabricationCheck.sanitized;
+          }
         }
         const promptTokens = this.lastLlmTokens?.prompt ?? 0;
         const completionTokens = this.lastLlmTokens?.completion ?? 0;
@@ -104439,6 +104712,18 @@ ${checkIn}`;
           const estimatedPromptChars = systemPromptChars + historyChars + contextChars + documentChars + message.length;
           this.contextBudget.recordActualTokens(this.model, estimatedPromptChars, promptTokens);
         }
+        if (this.streamCallback) {
+          try {
+            this.streamCallback({
+              type: "subagent_completed",
+              subagentId: v1SubagentId,
+              subtaskId: "v1-main",
+              timestamp: Date.now(),
+              data: { text: "Done" }
+            });
+          } catch {
+          }
+        }
         return {
           message: finalMessage,
           conversationId: convId,
@@ -104450,14 +104735,25 @@ ${checkIn}`;
       }
       async getConversation(conversationId) {
         const rows = this.db.prepare("SELECT * FROM conversation_turns WHERE conversation_id = ? ORDER BY timestamp ASC").all(conversationId);
-        return rows.map((r) => ({
-          id: r.id,
-          role: r.role,
-          content: r.content,
-          timestamp: r.timestamp,
-          context: r.context_json ? JSON.parse(r.context_json) : void 0,
-          actions: r.actions_json ? JSON.parse(r.actions_json) : void 0
-        }));
+        return rows.map((r) => {
+          let content = r.content;
+          if (r.role === "assistant") {
+            const hadToolCalls = !!(r.actions_json && JSON.parse(r.actions_json).length > 0);
+            const check = this.scanForFabrication(content, hadToolCalls ? 1 : 0, this.promptConfig.connectedServices ?? []);
+            if (!check.clean) {
+              content = check.sanitized;
+              this.metric("retroactive_scan_redacted", { conversationId, turnId: r.id });
+            }
+          }
+          return {
+            id: r.id,
+            role: r.role,
+            content,
+            timestamp: r.timestamp,
+            context: r.context_json ? JSON.parse(r.context_json) : void 0,
+            actions: r.actions_json ? JSON.parse(r.actions_json) : void 0
+          };
+        });
       }
       async approveAction(actionId) {
         const row = this.db.prepare("SELECT * FROM pending_actions WHERE id = ? AND status = 'pending_approval'").get(actionId);
@@ -104772,12 +105068,13 @@ ${docContextStr}`, "document context")
         const actions = [];
         const executedResults = [];
         const reasoningCtx = context && context.length > 0 ? this.buildReasoningContext(userMessage, context) : void 0;
+        const subagentId = this.activeV1SubagentId ?? "v1";
         for (const tc of toolCalls) {
           if (this.streamCallback) {
             try {
               this.streamCallback({
                 type: "subagent_tool_call",
-                subagentId: "v1",
+                subagentId,
                 subtaskId: tc.name,
                 timestamp: Date.now(),
                 data: { toolName: tc.name, toolStatus: "running" }
@@ -104785,47 +105082,70 @@ ${docContextStr}`, "document context")
             } catch {
             }
           }
-          if (this.intentManager) {
-            const actionType2 = this.allToolActionMap[tc.name];
-            if (actionType2) {
-              const intentCheck = this.intentManager.checkAction(actionType2, tc.arguments);
-              if (!intentCheck.allowed && intentCheck.matchedLimits.length > 0) {
-                const firstLimit = intentCheck.matchedLimits[0];
-                actions.push({
-                  id: nanoid(),
-                  action: actionType2,
-                  payload: tc.arguments,
-                  reasoning: `Blocked by hard limit: ${intentCheck.matchedLimits.map((l2) => l2.rawText).join("; ")}`,
-                  domain: this.autonomy.getDomainForAction(actionType2),
-                  tier: this.autonomy.getDomainTier(this.autonomy.getDomainForAction(actionType2)),
-                  status: "rejected",
-                  createdAt: (/* @__PURE__ */ new Date()).toISOString(),
-                  reasoningContext: reasoningCtx
-                });
-                executedResults.push({
-                  tool: tc.name,
-                  result: { blocked: true, reason: `Blocked by your hard limit: "${firstLimit.rawText}"` }
-                });
-                continue;
+          const resultsBeforeThisTool = executedResults.length;
+          try {
+            if (this.intentManager) {
+              const actionType2 = this.allToolActionMap[tc.name];
+              if (actionType2) {
+                const intentCheck = this.intentManager.checkAction(actionType2, tc.arguments);
+                if (!intentCheck.allowed && intentCheck.matchedLimits.length > 0) {
+                  const firstLimit = intentCheck.matchedLimits[0];
+                  actions.push({
+                    id: nanoid(),
+                    action: actionType2,
+                    payload: tc.arguments,
+                    reasoning: `Blocked by hard limit: ${intentCheck.matchedLimits.map((l2) => l2.rawText).join("; ")}`,
+                    domain: this.autonomy.getDomainForAction(actionType2),
+                    tier: this.autonomy.getDomainTier(this.autonomy.getDomainForAction(actionType2)),
+                    status: "rejected",
+                    createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+                    reasoningContext: reasoningCtx
+                  });
+                  executedResults.push({
+                    tool: tc.name,
+                    result: { blocked: true, reason: `Blocked by your hard limit: "${firstLimit.rawText}"` }
+                  });
+                  continue;
+                }
               }
             }
-          }
-          const extHandler = this.extensionToolHandlers.get(tc.name);
-          if (extHandler) {
-            const extActionType = this.allToolActionMap[tc.name];
-            const extDomain = extActionType ? this.autonomy.getDomainForAction(extActionType) : "general";
-            const extTier = this.autonomy.getDomainTier(extDomain);
-            if (extActionType) {
-              const boundaries2 = this.boundaryEnforcer.checkBoundaries({
-                action: extActionType,
-                payload: tc.arguments
-              });
-              if (this.boundaryEnforcer.shouldEscalate(boundaries2)) {
+            const extHandler = this.extensionToolHandlers.get(tc.name);
+            if (extHandler) {
+              const extActionType = this.allToolActionMap[tc.name];
+              const extDomain = extActionType ? this.autonomy.getDomainForAction(extActionType) : "general";
+              const extTier = this.autonomy.getDomainTier(extDomain);
+              if (extActionType) {
+                const boundaries2 = this.boundaryEnforcer.checkBoundaries({
+                  action: extActionType,
+                  payload: tc.arguments
+                });
+                if (this.boundaryEnforcer.shouldEscalate(boundaries2)) {
+                  const agentAction2 = {
+                    id: nanoid(),
+                    action: extActionType,
+                    payload: tc.arguments,
+                    reasoning: `Extension tool '${tc.name}' triggered boundary escalation: ${boundaries2.map((b) => b.reason).join("; ")}`,
+                    domain: extDomain,
+                    tier: extTier,
+                    status: "pending_approval",
+                    createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+                    reasoningContext: reasoningCtx
+                  };
+                  this.db.prepare(`
+              INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
+              VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)
+            `).run(agentAction2.id, agentAction2.action, JSON.stringify(agentAction2.payload), agentAction2.reasoning, agentAction2.domain, agentAction2.tier, agentAction2.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
+                  actions.push(agentAction2);
+                  continue;
+                }
+              }
+              const extDecision = extActionType ? this.autonomy.decide(extActionType) : extTier === "guardian" ? "requires_approval" : "auto_approve";
+              if (extDecision === "requires_approval") {
                 const agentAction2 = {
                   id: nanoid(),
-                  action: extActionType,
+                  action: extActionType ?? "service.api_call",
                   payload: tc.arguments,
-                  reasoning: `Extension tool '${tc.name}' triggered boundary escalation: ${boundaries2.map((b) => b.reason).join("; ")}`,
+                  reasoning: `Extension tool '${tc.name}' requires approval (${extTier} tier)`,
                   domain: extDomain,
                   tier: extTier,
                   status: "pending_approval",
@@ -104833,317 +105153,315 @@ ${docContextStr}`, "document context")
                   reasoningContext: reasoningCtx
                 };
                 this.db.prepare(`
-              INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
-              VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)
-            `).run(agentAction2.id, agentAction2.action, JSON.stringify(agentAction2.payload), agentAction2.reasoning, agentAction2.domain, agentAction2.tier, agentAction2.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
-                actions.push(agentAction2);
-                continue;
-              }
-            }
-            const extDecision = extActionType ? this.autonomy.decide(extActionType) : extTier === "guardian" ? "requires_approval" : "auto_approve";
-            if (extDecision === "requires_approval") {
-              const agentAction2 = {
-                id: nanoid(),
-                action: extActionType ?? "service.api_call",
-                payload: tc.arguments,
-                reasoning: `Extension tool '${tc.name}' requires approval (${extTier} tier)`,
-                domain: extDomain,
-                tier: extTier,
-                status: "pending_approval",
-                createdAt: (/* @__PURE__ */ new Date()).toISOString(),
-                reasoningContext: reasoningCtx
-              };
-              this.db.prepare(`
             INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)
           `).run(agentAction2.id, agentAction2.action, JSON.stringify(agentAction2.payload), agentAction2.reasoning, agentAction2.domain, agentAction2.tier, agentAction2.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
-              actions.push(agentAction2);
+                actions.push(agentAction2);
+                continue;
+              }
+              const extAgentAction = {
+                id: nanoid(),
+                action: extActionType ?? "service.api_call",
+                payload: tc.arguments,
+                reasoning: `LLM requested ${tc.name} based on conversation context`,
+                domain: extDomain,
+                tier: extTier,
+                status: "executed",
+                createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+                reasoningContext: reasoningCtx
+              };
+              try {
+                const handlerResult = await extHandler(tc.arguments);
+                extAgentAction.executedAt = (/* @__PURE__ */ new Date()).toISOString();
+                if (handlerResult.error) {
+                  extAgentAction.status = "failed";
+                  executedResults.push({ tool: tc.name, result: { error: handlerResult.error } });
+                } else {
+                  executedResults.push({ tool: tc.name, result: handlerResult.result });
+                }
+              } catch (err) {
+                extAgentAction.status = "failed";
+                extAgentAction.executedAt = (/* @__PURE__ */ new Date()).toISOString();
+                executedResults.push({ tool: tc.name, result: { error: err instanceof Error ? err.message : "Extension tool failed" } });
+              }
+              if (extTier === "alter_ego" && this.alterEgoStore && extAgentAction.status === "executed") {
+                const receipt = {
+                  id: extAgentAction.id,
+                  actionType: extAgentAction.action,
+                  summary: this.summarizeAction(extAgentAction.action, extAgentAction.payload),
+                  reasoning: extAgentAction.reasoning,
+                  status: "executed",
+                  undoAvailable: false,
+                  undoExpiresAt: new Date(Date.now() + 3e4).toISOString(),
+                  weekGroup: this.alterEgoStore.getWeekGroup(/* @__PURE__ */ new Date()),
+                  createdAt: extAgentAction.createdAt,
+                  executedAt: extAgentAction.executedAt
+                };
+                this.alterEgoStore.logReceipt(receipt);
+              }
+              actions.push(extAgentAction);
               continue;
             }
-            const extAgentAction = {
-              id: nanoid(),
-              action: extActionType ?? "service.api_call",
-              payload: tc.arguments,
-              reasoning: `LLM requested ${tc.name} based on conversation context`,
-              domain: extDomain,
-              tier: extTier,
-              status: "executed",
-              createdAt: (/* @__PURE__ */ new Date()).toISOString(),
-              reasoningContext: reasoningCtx
-            };
-            try {
-              const handlerResult = await extHandler(tc.arguments);
-              extAgentAction.executedAt = (/* @__PURE__ */ new Date()).toISOString();
-              if (handlerResult.error) {
-                extAgentAction.status = "failed";
-                executedResults.push({ tool: tc.name, result: { error: handlerResult.error } });
-              } else {
-                executedResults.push({ tool: tc.name, result: handlerResult.result });
-              }
-            } catch (err) {
-              extAgentAction.status = "failed";
-              extAgentAction.executedAt = (/* @__PURE__ */ new Date()).toISOString();
-              executedResults.push({ tool: tc.name, result: { error: err instanceof Error ? err.message : "Extension tool failed" } });
-            }
-            if (extTier === "alter_ego" && this.alterEgoStore && extAgentAction.status === "executed") {
-              const receipt = {
-                id: extAgentAction.id,
-                actionType: extAgentAction.action,
-                summary: this.summarizeAction(extAgentAction.action, extAgentAction.payload),
-                reasoning: extAgentAction.reasoning,
-                status: "executed",
-                undoAvailable: false,
-                undoExpiresAt: new Date(Date.now() + 3e4).toISOString(),
-                weekGroup: this.alterEgoStore.getWeekGroup(/* @__PURE__ */ new Date()),
-                createdAt: extAgentAction.createdAt,
-                executedAt: extAgentAction.executedAt
-              };
-              this.alterEgoStore.logReceipt(receipt);
-            }
-            actions.push(extAgentAction);
-            continue;
-          }
-          if (tc.name === "search_files") {
-            const query = tc.arguments["query"];
-            const results = await this.knowledge.search(query, { limit: 5 });
-            executedResults.push({
-              tool: "search_files",
-              result: results.map((r) => ({
-                documentId: r.document.id,
-                title: r.document.title,
-                sourcePath: r.document.sourcePath ?? null,
-                source: r.document.source,
-                mimeType: r.document.mimeType,
-                content: r.chunk.content.slice(0, 500),
-                score: r.score
-              }))
-            });
-            continue;
-          }
-          if (tc.name === "search_emails") {
-            const results = await this.knowledge.search(tc.arguments["query"], {
-              limit: 10,
-              source: "email"
-            });
-            executedResults.push({
-              tool: "search_emails",
-              result: results.map((r) => {
-                const meta = r.document.metadata ? { ...r.document.metadata } : {};
-                delete meta["messageId"];
-                delete meta["id"];
-                delete meta["threadId"];
-                return {
+            if (tc.name === "search_files") {
+              const query = tc.arguments["query"];
+              const results = await this.knowledge.search(query, { limit: 5 });
+              executedResults.push({
+                tool: "search_files",
+                result: results.map((r) => ({
+                  documentId: r.document.id,
                   title: r.document.title,
-                  content: r.chunk.content.slice(0, 300),
-                  score: r.score,
-                  from: meta["from"] ?? meta["fromName"] ?? void 0,
-                  date: meta["receivedAt"] ?? meta["date"] ?? void 0,
-                  subject: meta["subject"] ?? void 0
-                };
-              })
-            });
-            continue;
-          }
-          if (tc.name === "categorize_email") {
-            const catMessageId = tc.arguments["messageId"];
-            const catCategories = tc.arguments["categories"];
-            const catPriority = tc.arguments["priority"];
-            try {
-              this.db.prepare(`UPDATE indexed_emails SET priority = ?, categories = ? WHERE message_id = ?`).run(catPriority, JSON.stringify(catCategories ?? []), catMessageId);
-            } catch {
-            }
-            executedResults.push({
-              tool: "categorize_email",
-              result: {
-                messageId: catMessageId,
-                categories: catCategories,
-                priority: catPriority,
-                persisted: true
-              }
-            });
-            continue;
-          }
-          if (tc.name === "detect_calendar_conflicts") {
-            const conflicts = await this.knowledge.search(`calendar event ${tc.arguments["startTime"]} ${tc.arguments["endTime"]}`, { limit: 10, source: "calendar" });
-            executedResults.push({
-              tool: "detect_calendar_conflicts",
-              result: {
-                conflicts: conflicts.map((c) => ({
-                  title: c.document.title,
-                  metadata: c.document.metadata
-                })),
-                hasConflicts: conflicts.length > 0
-              }
-            });
-            continue;
-          }
-          if (tc.name === "fetch_calendar") {
-            const daysAhead = tc.arguments["daysAhead"] ?? 7;
-            try {
-              const calResults = await this.knowledge.search("calendar event meeting", {
-                limit: 20,
-                source: "calendar"
+                  sourcePath: r.document.sourcePath ?? null,
+                  source: r.document.source,
+                  mimeType: r.document.mimeType,
+                  content: r.chunk.content.slice(0, 500),
+                  score: r.score
+                }))
               });
-              const cutoff = (/* @__PURE__ */ new Date()).toISOString();
-              const future = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1e3).toISOString();
-              let events = [];
+              continue;
+            }
+            if (tc.name === "search_emails") {
+              const queryRaw = tc.arguments["query"];
+              const query = typeof queryRaw === "string" ? queryRaw : "";
+              if (!query.trim()) {
+                executedResults.push({
+                  tool: "search_emails",
+                  result: { error: "search_emails requires a non-empty query", results: [] }
+                });
+                continue;
+              }
               try {
-                events = this.db.prepare(`SELECT title, start_time as startTime, end_time as endTime, location, attendees
-               FROM indexed_calendar_events
-               WHERE start_time >= ? AND start_time <= ?
-               ORDER BY start_time ASC LIMIT 20`).all(cutoff, future);
+                const results = await this.knowledge.search(query, {
+                  limit: 10,
+                  source: "email"
+                }) ?? [];
+                executedResults.push({
+                  tool: "search_emails",
+                  result: results.filter((r) => r && r.document && r.chunk).map((r) => {
+                    const meta = r.document.metadata ? { ...r.document.metadata } : {};
+                    delete meta["messageId"];
+                    delete meta["id"];
+                    delete meta["threadId"];
+                    const content = typeof r.chunk.content === "string" ? r.chunk.content.slice(0, 300) : "";
+                    return {
+                      title: r.document.title,
+                      content,
+                      score: r.score,
+                      from: meta["from"] ?? meta["fromName"] ?? void 0,
+                      date: meta["receivedAt"] ?? meta["date"] ?? void 0,
+                      subject: meta["subject"] ?? void 0
+                    };
+                  })
+                });
+              } catch (searchErr) {
+                console.error("[search_emails] error:", searchErr);
+                executedResults.push({
+                  tool: "search_emails",
+                  result: { error: searchErr instanceof Error ? searchErr.message : String(searchErr), results: [] }
+                });
+              }
+              continue;
+            }
+            if (tc.name === "categorize_email") {
+              const catMessageId = tc.arguments["messageId"];
+              const catCategories = tc.arguments["categories"];
+              const catPriority = tc.arguments["priority"];
+              try {
+                this.db.prepare(`UPDATE indexed_emails SET priority = ?, categories = ? WHERE message_id = ?`).run(catPriority, JSON.stringify(catCategories ?? []), catMessageId);
               } catch {
               }
               executedResults.push({
-                tool: "fetch_calendar",
-                result: events.length > 0 ? { events, source: "local_index" } : calResults.length > 0 ? { events: calResults.map((r) => ({ title: r.document.title, metadata: r.document.metadata })), source: "knowledge_graph" } : { events: [], message: "No calendar events found. Connect Google Calendar in Settings \u2192 Connections." }
+                tool: "categorize_email",
+                result: {
+                  messageId: catMessageId,
+                  categories: catCategories,
+                  priority: catPriority,
+                  persisted: true
+                }
               });
-            } catch {
-              executedResults.push({
-                tool: "fetch_calendar",
-                result: { events: [], message: "No calendar events available. Connect Google Calendar in Settings \u2192 Connections." }
-              });
+              continue;
             }
-            continue;
-          }
-          if (tc.name === "search_cloud_files") {
-            const results = await this.knowledge.search(tc.arguments["query"], {
-              limit: 10,
-              source: "cloud_storage"
-            });
-            executedResults.push({
-              tool: "search_cloud_files",
-              result: results.map((r) => ({
-                title: r.document.title,
-                content: r.chunk.content.slice(0, 500),
-                score: r.score,
-                metadata: r.document.metadata
-              }))
-            });
-            continue;
-          }
-          if (tc.name === "list_cloud_files") {
-            const query = tc.arguments["query"] || "*";
-            const limit = tc.arguments["limit"] ?? 50;
-            try {
-              const docs = await this.knowledge.listDocuments({
-                source: "cloud_storage",
-                limit
-              });
-              const filtered = query === "*" ? docs : docs.filter((d) => d.title.toLowerCase().includes(query.toLowerCase()));
+            if (tc.name === "detect_calendar_conflicts") {
+              const conflicts = await this.knowledge.search(`calendar event ${tc.arguments["startTime"]} ${tc.arguments["endTime"]}`, { limit: 10, source: "calendar" });
               executedResults.push({
-                tool: "list_cloud_files",
-                result: filtered.map((d) => ({
-                  id: d.sourcePath ?? d.id,
-                  name: d.title,
-                  mimeType: d.mimeType,
-                  source: d.source,
-                  indexedAt: d.indexedAt,
-                  metadata: d.metadata
-                }))
+                tool: "detect_calendar_conflicts",
+                result: {
+                  conflicts: conflicts.map((c) => ({
+                    title: c.document.title,
+                    metadata: c.document.metadata
+                  })),
+                  hasConflicts: conflicts.length > 0
+                }
               });
-            } catch (err) {
-              executedResults.push({
-                tool: "list_cloud_files",
-                result: `No cloud files indexed yet. The user needs to connect Google Drive first.`
-              });
+              continue;
             }
-            continue;
-          }
-          if (tc.name === "list_indexed_documents") {
-            const source = tc.arguments["source"];
-            const limit = tc.arguments["limit"] ?? 50;
-            try {
-              const docs = await this.knowledge.listDocuments({
-                source,
-                limit
-              });
-              executedResults.push({
-                tool: "list_indexed_documents",
-                result: docs.map((d) => ({
-                  id: d.id,
-                  title: d.title,
-                  source: d.source,
-                  sourcePath: d.sourcePath ?? null,
-                  mimeType: d.mimeType,
-                  indexedAt: d.indexedAt
-                }))
-              });
-            } catch {
-              executedResults.push({ tool: "list_indexed_documents", result: { error: "Could not list documents" } });
-            }
-            continue;
-          }
-          if (tc.name === "read_document") {
-            const title = tc.arguments["title"];
-            const docId = tc.arguments["documentId"];
-            try {
-              const searchResults = await this.knowledge.search(title, { limit: 20 });
-              let targetDocId = docId;
-              if (!targetDocId) {
-                const titleLower = title.toLowerCase();
-                const match = searchResults.find((r) => r.document.title.toLowerCase().includes(titleLower) || titleLower.includes(r.document.title.toLowerCase()));
-                targetDocId = match?.document.id;
-              }
-              if (!targetDocId) {
-                targetDocId = searchResults[0]?.document.id;
-              }
-              if (targetDocId) {
-                const docChunks = searchResults.filter((r) => r.document.id === targetDocId).sort((a, b) => a.chunk.chunkIndex - b.chunk.chunkIndex);
-                const doc = docChunks[0]?.document;
-                let allContent = docChunks.map((c) => c.chunk.content).join("\n");
-                if (docChunks.length <= 2 && doc) {
-                  const moreResults = await this.knowledge.search(doc.title, { limit: 30 });
-                  const moreChunks = moreResults.filter((r) => r.document.id === targetDocId).sort((a, b) => a.chunk.chunkIndex - b.chunk.chunkIndex);
-                  if (moreChunks.length > docChunks.length) {
-                    allContent = moreChunks.map((c) => c.chunk.content).join("\n");
-                  }
+            if (tc.name === "fetch_calendar") {
+              const daysAhead = tc.arguments["daysAhead"] ?? 7;
+              try {
+                const calResults = await this.knowledge.search("calendar event meeting", {
+                  limit: 20,
+                  source: "calendar"
+                });
+                const cutoff = (/* @__PURE__ */ new Date()).toISOString();
+                const future = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1e3).toISOString();
+                let events = [];
+                try {
+                  events = this.db.prepare(`SELECT title, start_time as startTime, end_time as endTime, location, attendees
+               FROM indexed_calendar_events
+               WHERE start_time >= ? AND start_time <= ?
+               ORDER BY start_time ASC LIMIT 20`).all(cutoff, future);
+                } catch {
                 }
                 executedResults.push({
-                  tool: "read_document",
-                  result: {
-                    title: doc?.title ?? title,
-                    source: doc?.source,
-                    sourcePath: doc?.sourcePath,
-                    content: allContent.slice(0, 6e3),
-                    // Cap at 6000 chars for context window
-                    totalLength: allContent.length
-                  }
+                  tool: "fetch_calendar",
+                  result: events.length > 0 ? { events, source: "local_index" } : calResults.length > 0 ? { events: calResults.map((r) => ({ title: r.document.title, metadata: r.document.metadata })), source: "knowledge_graph" } : { events: [], message: "No calendar events found. Connect Google Calendar in Settings \u2192 Connections." }
                 });
-              } else {
+              } catch {
                 executedResults.push({
-                  tool: "read_document",
-                  result: { error: `No document found matching "${title}". Use list_indexed_documents to see available files.` }
+                  tool: "fetch_calendar",
+                  result: { events: [], message: "No calendar events available. Connect Google Calendar in Settings \u2192 Connections." }
                 });
               }
-            } catch (err) {
-              executedResults.push({ tool: "read_document", result: { error: `Failed to read document: ${err instanceof Error ? err.message : String(err)}` } });
+              continue;
             }
-            continue;
-          }
-          if (tc.name === "add_contact") {
-            const name = tc.arguments["name"];
-            const email = tc.arguments["email"];
-            const phone = tc.arguments["phone"];
-            const org = tc.arguments["organization"];
-            const jobTitle = tc.arguments["jobTitle"];
-            try {
-              const id = `ct_${Date.now()}`;
-              const now = (/* @__PURE__ */ new Date()).toISOString();
-              this.db.prepare(`
+            if (tc.name === "search_cloud_files") {
+              const results = await this.knowledge.search(tc.arguments["query"], {
+                limit: 10,
+                source: "cloud_storage"
+              });
+              executedResults.push({
+                tool: "search_cloud_files",
+                result: results.map((r) => ({
+                  title: r.document.title,
+                  content: r.chunk.content.slice(0, 500),
+                  score: r.score,
+                  metadata: r.document.metadata
+                }))
+              });
+              continue;
+            }
+            if (tc.name === "list_cloud_files") {
+              const query = tc.arguments["query"] || "*";
+              const limit = tc.arguments["limit"] ?? 50;
+              try {
+                const docs = await this.knowledge.listDocuments({
+                  source: "cloud_storage",
+                  limit
+                });
+                const filtered = query === "*" ? docs : docs.filter((d) => d.title.toLowerCase().includes(query.toLowerCase()));
+                executedResults.push({
+                  tool: "list_cloud_files",
+                  result: filtered.map((d) => ({
+                    id: d.sourcePath ?? d.id,
+                    name: d.title,
+                    mimeType: d.mimeType,
+                    source: d.source,
+                    indexedAt: d.indexedAt,
+                    metadata: d.metadata
+                  }))
+                });
+              } catch (err) {
+                executedResults.push({
+                  tool: "list_cloud_files",
+                  result: `No cloud files indexed yet. The user needs to connect Google Drive first.`
+                });
+              }
+              continue;
+            }
+            if (tc.name === "list_indexed_documents") {
+              const source = tc.arguments["source"];
+              const limit = tc.arguments["limit"] ?? 50;
+              try {
+                const docs = await this.knowledge.listDocuments({
+                  source,
+                  limit
+                });
+                const visibleDocs = source === "conversation" ? docs : docs.filter((d) => d.source !== "conversation");
+                executedResults.push({
+                  tool: "list_indexed_documents",
+                  result: visibleDocs.map((d) => ({
+                    id: d.id,
+                    title: d.title,
+                    source: d.source,
+                    sourcePath: d.sourcePath ?? null,
+                    mimeType: d.mimeType,
+                    indexedAt: d.indexedAt
+                  }))
+                });
+              } catch {
+                executedResults.push({ tool: "list_indexed_documents", result: { error: "Could not list documents" } });
+              }
+              continue;
+            }
+            if (tc.name === "read_document") {
+              const title = tc.arguments["title"];
+              const docId = tc.arguments["documentId"];
+              try {
+                const searchResults = await this.knowledge.search(title, { limit: 20 });
+                let targetDocId = docId;
+                if (!targetDocId) {
+                  const titleLower = title.toLowerCase();
+                  const match = searchResults.find((r) => r.document.title.toLowerCase().includes(titleLower) || titleLower.includes(r.document.title.toLowerCase()));
+                  targetDocId = match?.document.id;
+                }
+                if (!targetDocId) {
+                  targetDocId = searchResults[0]?.document.id;
+                }
+                if (targetDocId) {
+                  const docChunks = searchResults.filter((r) => r.document.id === targetDocId).sort((a, b) => a.chunk.chunkIndex - b.chunk.chunkIndex);
+                  const doc = docChunks[0]?.document;
+                  let allContent = docChunks.map((c) => c.chunk.content).join("\n");
+                  if (docChunks.length <= 2 && doc) {
+                    const moreResults = await this.knowledge.search(doc.title, { limit: 30 });
+                    const moreChunks = moreResults.filter((r) => r.document.id === targetDocId).sort((a, b) => a.chunk.chunkIndex - b.chunk.chunkIndex);
+                    if (moreChunks.length > docChunks.length) {
+                      allContent = moreChunks.map((c) => c.chunk.content).join("\n");
+                    }
+                  }
+                  executedResults.push({
+                    tool: "read_document",
+                    result: {
+                      title: doc?.title ?? title,
+                      source: doc?.source,
+                      sourcePath: doc?.sourcePath,
+                      content: allContent.slice(0, 6e3),
+                      // Cap at 6000 chars for context window
+                      totalLength: allContent.length
+                    }
+                  });
+                } else {
+                  executedResults.push({
+                    tool: "read_document",
+                    result: { error: `No document found matching "${title}". Use list_indexed_documents to see available files.` }
+                  });
+                }
+              } catch (err) {
+                executedResults.push({ tool: "read_document", result: { error: `Failed to read document: ${err instanceof Error ? err.message : String(err)}` } });
+              }
+              continue;
+            }
+            if (tc.name === "add_contact") {
+              const name = tc.arguments["name"];
+              const email = tc.arguments["email"];
+              const phone = tc.arguments["phone"];
+              const org = tc.arguments["organization"];
+              const jobTitle = tc.arguments["jobTitle"];
+              try {
+                const id = `ct_${Date.now()}`;
+                const now = (/* @__PURE__ */ new Date()).toISOString();
+                this.db.prepare(`
             INSERT OR IGNORE INTO contacts (
               id, display_name, given_name, family_name,
               emails, phones, organization, job_title,
               source, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, ?)
           `).run(id, name, name.split(" ")[0] ?? name, name.split(" ").slice(1).join(" ") || null, JSON.stringify(email ? [email] : []), JSON.stringify(phone ? [phone] : []), org ?? null, jobTitle ?? null, now, now);
-              executedResults.push({
-                tool: "add_contact",
-                result: { success: true, id, name, email, phone }
-              });
-            } catch (err) {
-              try {
-                this.db.exec(`
+                executedResults.push({
+                  tool: "add_contact",
+                  result: { success: true, id, name, email, phone }
+                });
+              } catch (err) {
+                try {
+                  this.db.exec(`
               CREATE TABLE IF NOT EXISTS contacts (
                 id TEXT PRIMARY KEY, device_contact_id TEXT UNIQUE,
                 display_name TEXT NOT NULL, given_name TEXT, family_name TEXT,
@@ -105157,85 +105475,85 @@ ${docContextStr}`, "document context")
                 created_at TEXT NOT NULL, updated_at TEXT NOT NULL
               )
             `);
-                const id = `ct_${Date.now()}`;
-                const now = (/* @__PURE__ */ new Date()).toISOString();
-                this.db.prepare(`
+                  const id = `ct_${Date.now()}`;
+                  const now = (/* @__PURE__ */ new Date()).toISOString();
+                  this.db.prepare(`
               INSERT INTO contacts (id, display_name, emails, phones, organization, job_title, source, created_at, updated_at)
               VALUES (?, ?, ?, ?, ?, ?, 'manual', ?, ?)
             `).run(id, name, JSON.stringify(email ? [email] : []), JSON.stringify(phone ? [phone] : []), org ?? null, jobTitle ?? null, now, now);
-                executedResults.push({ tool: "add_contact", result: { success: true, id, name, email, phone } });
-              } catch (err2) {
-                executedResults.push({ tool: "add_contact", result: { error: `Failed to add contact: ${err2 instanceof Error ? err2.message : String(err2)}` } });
+                  executedResults.push({ tool: "add_contact", result: { success: true, id, name, email, phone } });
+                } catch (err2) {
+                  executedResults.push({ tool: "add_contact", result: { error: `Failed to add contact: ${err2 instanceof Error ? err2.message : String(err2)}` } });
+                }
               }
+              continue;
             }
-            continue;
-          }
-          if (tc.name === "analyze_image") {
-            const imagePath = tc.arguments["imagePath"];
-            const prompt = tc.arguments["prompt"] ?? "Describe this image in detail.";
-            try {
-              if (this.llm.routedChat) {
-                const response = await this.llm.routedChat({
-                  model: "",
-                  messages: [{ role: "user", content: `[Image: ${imagePath}]
+            if (tc.name === "analyze_image") {
+              const imagePath = tc.arguments["imagePath"];
+              const prompt = tc.arguments["prompt"] ?? "Describe this image in detail.";
+              try {
+                if (this.llm.routedChat) {
+                  const response = await this.llm.routedChat({
+                    model: "",
+                    messages: [{ role: "user", content: `[Image: ${imagePath}]
 ${prompt}` }]
-                }, "vision_fast");
+                  }, "vision_fast");
+                  executedResults.push({
+                    tool: "analyze_image",
+                    result: { description: response.message.content, model: response.model }
+                  });
+                } else {
+                  executedResults.push({
+                    tool: "analyze_image",
+                    result: { error: "Vision model not available. Download Moondream2 in Settings \u2192 AI Engine." }
+                  });
+                }
+              } catch (err) {
                 executedResults.push({
                   tool: "analyze_image",
-                  result: { description: response.message.content, model: response.model }
-                });
-              } else {
-                executedResults.push({
-                  tool: "analyze_image",
-                  result: { error: "Vision model not available. Download Moondream2 in Settings \u2192 AI Engine." }
+                  result: { error: err instanceof Error ? err.message : "Vision analysis failed" }
                 });
               }
-            } catch (err) {
+              continue;
+            }
+            if (tc.name === "knowledge_remove") {
+              const chunkId = tc.arguments["chunkId"];
+              if (!this.knowledgeCurator) {
+                this.knowledgeCurator = this.knowledge.createCurator({ db: this.db, llm: this.llm });
+              }
+              const result2 = await this.knowledgeCurator.removeFromGraph(chunkId);
               executedResults.push({
-                tool: "analyze_image",
-                result: { error: err instanceof Error ? err.message : "Vision analysis failed" }
+                tool: "knowledge_remove",
+                result: {
+                  success: result2.success,
+                  chunkId: result2.chunkId,
+                  detail: result2.detail
+                }
               });
+              continue;
             }
-            continue;
-          }
-          if (tc.name === "knowledge_remove") {
-            const chunkId = tc.arguments["chunkId"];
-            if (!this.knowledgeCurator) {
-              this.knowledgeCurator = this.knowledge.createCurator({ db: this.db, llm: this.llm });
-            }
-            const result2 = await this.knowledgeCurator.removeFromGraph(chunkId);
-            executedResults.push({
-              tool: "knowledge_remove",
-              result: {
-                success: result2.success,
-                chunkId: result2.chunkId,
-                detail: result2.detail
+            if (tc.name === "knowledge_recategorize") {
+              const chunkId = tc.arguments["chunkId"];
+              const newCategory = tc.arguments["newCategory"];
+              if (!this.knowledgeCurator) {
+                this.knowledgeCurator = this.knowledge.createCurator({ db: this.db, llm: this.llm });
               }
-            });
-            continue;
-          }
-          if (tc.name === "knowledge_recategorize") {
-            const chunkId = tc.arguments["chunkId"];
-            const newCategory = tc.arguments["newCategory"];
-            if (!this.knowledgeCurator) {
-              this.knowledgeCurator = this.knowledge.createCurator({ db: this.db, llm: this.llm });
+              const result2 = await this.knowledgeCurator.recategorize(chunkId, newCategory);
+              executedResults.push({
+                tool: "knowledge_recategorize",
+                result: {
+                  success: result2.success,
+                  chunkId: result2.chunkId,
+                  newCategory,
+                  detail: result2.detail
+                }
+              });
+              continue;
             }
-            const result2 = await this.knowledgeCurator.recategorize(chunkId, newCategory);
-            executedResults.push({
-              tool: "knowledge_recategorize",
-              result: {
-                success: result2.success,
-                chunkId: result2.chunkId,
-                newCategory,
-                detail: result2.detail
-              }
-            });
-            continue;
-          }
-          if (tc.name === "search_contacts") {
-            const query = (tc.arguments["query"] ?? "").toLowerCase();
-            try {
-              this.db.exec(`CREATE TABLE IF NOT EXISTS contacts (
+            if (tc.name === "search_contacts") {
+              const query = (tc.arguments["query"] ?? "").toLowerCase();
+              try {
+                this.db.exec(`CREATE TABLE IF NOT EXISTS contacts (
             id TEXT PRIMARY KEY, device_contact_id TEXT UNIQUE,
             display_name TEXT NOT NULL, given_name TEXT, family_name TEXT,
             emails TEXT NOT NULL DEFAULT '[]', phones TEXT NOT NULL DEFAULT '[]',
@@ -105247,438 +105565,460 @@ ${prompt}` }]
             source TEXT DEFAULT 'device', merged_from TEXT DEFAULT '[]',
             created_at TEXT NOT NULL, updated_at TEXT NOT NULL
           )`);
-              const rows = query ? this.db.prepare(`SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
+                const rows = query ? this.db.prepare(`SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
                  FROM contacts
                  WHERE LOWER(display_name) LIKE ? OR LOWER(emails) LIKE ? OR LOWER(organization) LIKE ? OR LOWER(phones) LIKE ?
                  ORDER BY interaction_count DESC LIMIT 10`).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) : this.db.prepare(`SELECT id, display_name, emails, phones, organization, relationship_type, birthday, source
                  FROM contacts ORDER BY display_name ASC LIMIT 50`).all();
-              if (rows.length === 0) {
-                executedResults.push({ tool: "search_contacts", result: { contacts: [], message: "No contacts found. The user can add contacts using the add_contact tool or import from Google Contacts in Settings > Connections." } });
-              } else {
-                executedResults.push({
-                  tool: "search_contacts",
-                  result: rows.map((r) => ({
-                    id: r.id,
-                    name: r.display_name,
-                    emails: JSON.parse(r.emails),
-                    phones: JSON.parse(r.phones),
-                    organization: r.organization,
-                    relationship: r.relationship_type,
-                    birthday: r.birthday,
-                    source: r.source ?? "device"
-                  }))
-                });
+                if (rows.length === 0) {
+                  executedResults.push({ tool: "search_contacts", result: { contacts: [], message: "No contacts found. The user can add contacts using the add_contact tool or import from Google Contacts in Settings > Connections." } });
+                } else {
+                  executedResults.push({
+                    tool: "search_contacts",
+                    result: rows.map((r) => ({
+                      id: r.id,
+                      name: r.display_name,
+                      emails: JSON.parse(r.emails),
+                      phones: JSON.parse(r.phones),
+                      organization: r.organization,
+                      relationship: r.relationship_type,
+                      birthday: r.birthday,
+                      source: r.source ?? "device"
+                    }))
+                  });
+                }
+              } catch (err) {
+                executedResults.push({ tool: "search_contacts", result: { error: `Contact search failed: ${err instanceof Error ? err.message : String(err)}` } });
               }
-            } catch (err) {
-              executedResults.push({ tool: "search_contacts", result: { error: `Contact search failed: ${err instanceof Error ? err.message : String(err)}` } });
+              continue;
             }
-            continue;
-          }
-          if (tc.name === "get_contact") {
-            const name = (tc.arguments["name"] ?? "").toLowerCase();
-            try {
-              const row = this.db.prepare(`SELECT id, display_name, given_name, family_name, emails, phones, organization,
+            if (tc.name === "get_contact") {
+              const name = (tc.arguments["name"] ?? "").toLowerCase();
+              try {
+                const row = this.db.prepare(`SELECT id, display_name, given_name, family_name, emails, phones, organization,
                     job_title, birthday, relationship_type, communication_frequency,
                     last_contact_date, interaction_count, tags
              FROM contacts
              WHERE LOWER(display_name) LIKE ?
              ORDER BY interaction_count DESC LIMIT 1`).get(`%${name}%`);
-              if (row) {
+                if (row) {
+                  executedResults.push({
+                    tool: "get_contact",
+                    result: {
+                      id: row.id,
+                      name: row.display_name,
+                      firstName: row.given_name,
+                      lastName: row.family_name,
+                      emails: JSON.parse(row.emails),
+                      phones: JSON.parse(row.phones),
+                      organization: row.organization,
+                      jobTitle: row.job_title,
+                      birthday: row.birthday,
+                      relationship: row.relationship_type,
+                      lastContact: row.last_contact_date,
+                      interactionCount: row.interaction_count,
+                      tags: JSON.parse(row.tags)
+                    }
+                  });
+                } else {
+                  executedResults.push({ tool: "get_contact", result: { found: false, message: `No contact found matching "${tc.arguments["name"]}"` } });
+                }
+              } catch {
+                executedResults.push({ tool: "get_contact", result: { error: "Contacts not available" } });
+              }
+              continue;
+            }
+            if (tc.name === "get_subscriptions") {
+              const statusFilter = tc.arguments["status"];
+              try {
+                const sql = statusFilter && statusFilter !== "all" ? "SELECT * FROM recurring_charges WHERE status = ? ORDER BY estimated_annual_cost DESC" : "SELECT * FROM recurring_charges ORDER BY estimated_annual_cost DESC";
+                const rows = statusFilter && statusFilter !== "all" ? this.db.prepare(sql).all(statusFilter) : this.db.prepare(sql).all();
                 executedResults.push({
-                  tool: "get_contact",
+                  tool: "get_subscriptions",
                   result: {
-                    id: row.id,
-                    name: row.display_name,
-                    firstName: row.given_name,
-                    lastName: row.family_name,
-                    emails: JSON.parse(row.emails),
-                    phones: JSON.parse(row.phones),
-                    organization: row.organization,
-                    jobTitle: row.job_title,
-                    birthday: row.birthday,
-                    relationship: row.relationship_type,
-                    lastContact: row.last_contact_date,
-                    interactionCount: row.interaction_count,
-                    tags: JSON.parse(row.tags)
+                    subscriptions: rows.map((r) => ({
+                      id: r.id,
+                      merchant: r.merchant_name,
+                      amount: r.typical_amount,
+                      frequency: r.frequency,
+                      annualCost: r.estimated_annual_cost,
+                      lastCharge: r.last_charge_date,
+                      status: r.status
+                    })),
+                    totalMonthly: rows.filter((r) => r.status === "active").reduce((sum, r) => sum + (r.frequency === "monthly" ? r.typical_amount : r.typical_amount / 12), 0),
+                    totalAnnual: rows.filter((r) => r.status === "active").reduce((sum, r) => sum + r.estimated_annual_cost, 0)
                   }
                 });
-              } else {
-                executedResults.push({ tool: "get_contact", result: { found: false, message: `No contact found matching "${tc.arguments["name"]}"` } });
+              } catch {
+                executedResults.push({ tool: "get_subscriptions", result: { subscriptions: [], message: "No financial data imported yet. Import a bank statement first." } });
               }
-            } catch {
-              executedResults.push({ tool: "get_contact", result: { error: "Contacts not available" } });
+              continue;
             }
-            continue;
-          }
-          if (tc.name === "get_subscriptions") {
-            const statusFilter = tc.arguments["status"];
-            try {
-              const sql = statusFilter && statusFilter !== "all" ? "SELECT * FROM recurring_charges WHERE status = ? ORDER BY estimated_annual_cost DESC" : "SELECT * FROM recurring_charges ORDER BY estimated_annual_cost DESC";
-              const rows = statusFilter && statusFilter !== "all" ? this.db.prepare(sql).all(statusFilter) : this.db.prepare(sql).all();
-              executedResults.push({
-                tool: "get_subscriptions",
-                result: {
-                  subscriptions: rows.map((r) => ({
-                    id: r.id,
-                    merchant: r.merchant_name,
-                    amount: r.typical_amount,
-                    frequency: r.frequency,
-                    annualCost: r.estimated_annual_cost,
-                    lastCharge: r.last_charge_date,
-                    status: r.status
-                  })),
-                  totalMonthly: rows.filter((r) => r.status === "active").reduce((sum, r) => sum + (r.frequency === "monthly" ? r.typical_amount : r.typical_amount / 12), 0),
-                  totalAnnual: rows.filter((r) => r.status === "active").reduce((sum, r) => sum + r.estimated_annual_cost, 0)
-                }
-              });
-            } catch {
-              executedResults.push({ tool: "get_subscriptions", result: { subscriptions: [], message: "No financial data imported yet. Import a bank statement first." } });
-            }
-            continue;
-          }
-          if (tc.name === "get_financial_summary") {
-            const days = tc.arguments["days"] || 30;
-            const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1e3).toISOString().slice(0, 10);
-            try {
-              const totalRow = this.db.prepare("SELECT COUNT(*) as count, SUM(amount) as total FROM stored_transactions WHERE date >= ?").get(cutoff);
-              const topMerchants = this.db.prepare(`SELECT normalized_merchant, SUM(amount) as total, COUNT(*) as count
+            if (tc.name === "get_financial_summary") {
+              const days = tc.arguments["days"] || 30;
+              const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1e3).toISOString().slice(0, 10);
+              try {
+                const totalRow = this.db.prepare("SELECT COUNT(*) as count, SUM(amount) as total FROM stored_transactions WHERE date >= ?").get(cutoff);
+                const topMerchants = this.db.prepare(`SELECT normalized_merchant, SUM(amount) as total, COUNT(*) as count
              FROM stored_transactions WHERE date >= ?
              GROUP BY normalized_merchant ORDER BY total DESC LIMIT 10`).all(cutoff);
-              const byCategory = this.db.prepare(`SELECT category, SUM(amount) as total, COUNT(*) as count
+                const byCategory = this.db.prepare(`SELECT category, SUM(amount) as total, COUNT(*) as count
              FROM stored_transactions WHERE date >= ? AND category != ''
              GROUP BY category ORDER BY total DESC`).all(cutoff);
-              executedResults.push({
-                tool: "get_financial_summary",
-                result: {
-                  period: `Last ${days} days`,
-                  transactionCount: totalRow?.count ?? 0,
-                  totalSpending: Math.abs(totalRow?.total ?? 0),
-                  topMerchants: topMerchants.map((r) => ({ merchant: r.normalized_merchant, total: Math.abs(r.total), count: r.count })),
-                  byCategory: byCategory.map((r) => ({ category: r.category, total: Math.abs(r.total), count: r.count }))
-                }
-              });
-            } catch {
-              executedResults.push({ tool: "get_financial_summary", result: { message: "No financial data imported yet. Import a bank statement first." } });
+                executedResults.push({
+                  tool: "get_financial_summary",
+                  result: {
+                    period: `Last ${days} days`,
+                    transactionCount: totalRow?.count ?? 0,
+                    totalSpending: Math.abs(totalRow?.total ?? 0),
+                    topMerchants: topMerchants.map((r) => ({ merchant: r.normalized_merchant, total: Math.abs(r.total), count: r.count })),
+                    byCategory: byCategory.map((r) => ({ category: r.category, total: Math.abs(r.total), count: r.count }))
+                  }
+                });
+              } catch {
+                executedResults.push({ tool: "get_financial_summary", result: { message: "No financial data imported yet. Import a bank statement first." } });
+              }
+              continue;
             }
-            continue;
-          }
-          if (tc.name === "get_health_entries") {
-            const days = tc.arguments["days"] || 7;
-            const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1e3).toISOString().slice(0, 10);
-            try {
-              const rows = this.db.prepare("SELECT * FROM health_entries WHERE date >= ? ORDER BY date DESC").all(cutoff);
-              executedResults.push({
-                tool: "get_health_entries",
-                result: {
-                  entries: rows.map((r) => ({
-                    id: r.id,
-                    date: r.date,
-                    mood: r.mood,
-                    energy: r.energy,
-                    waterGlasses: r.water_glasses,
-                    symptoms: JSON.parse(r.symptoms),
-                    medications: JSON.parse(r.medications),
-                    notes: r.notes
-                  })),
-                  averageMood: rows.filter((r) => r.mood !== null).length > 0 ? rows.filter((r) => r.mood !== null).reduce((sum, r) => sum + r.mood, 0) / rows.filter((r) => r.mood !== null).length : null,
-                  averageEnergy: rows.filter((r) => r.energy !== null).length > 0 ? rows.filter((r) => r.energy !== null).reduce((sum, r) => sum + r.energy, 0) / rows.filter((r) => r.energy !== null).length : null
-                }
-              });
-            } catch {
-              executedResults.push({ tool: "get_health_entries", result: { entries: [], message: "No health data recorded yet." } });
-            }
-            continue;
-          }
-          if (tc.name === "add_health_entry") {
-            const date = tc.arguments["date"] || (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-            const id = nanoid();
-            try {
-              this.db.prepare(`INSERT OR REPLACE INTO health_entries (id, date, timestamp, mood, energy, water_glasses, symptoms, medications, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(id, date, (/* @__PURE__ */ new Date()).toISOString(), tc.arguments["mood"] ?? null, tc.arguments["energy"] ?? null, tc.arguments["waterGlasses"] ?? null, JSON.stringify(tc.arguments["symptoms"] ?? []), JSON.stringify(tc.arguments["medications"] ?? []), tc.arguments["notes"] ?? null);
-              executedResults.push({
-                tool: "add_health_entry",
-                result: { success: true, id, date, message: `Health entry logged for ${date}` }
-              });
-            } catch (err) {
-              executedResults.push({ tool: "add_health_entry", result: { error: err instanceof Error ? err.message : "Failed to log health entry" } });
-            }
-            continue;
-          }
-          if (tc.name === "search_all_devices") {
-            executedResults.push({
-              tool: "search_all_devices",
-              result: { results: [], message: "Cross-device search requires paired devices. Set up the Compute Mesh in Settings to enable this." }
-            });
-            continue;
-          }
-          if (tc.name === "fill_web_form") {
-            executedResults.push({
-              tool: "fill_web_form",
-              result: { success: false, message: "Web form filling requires a connected browser. Open Settings \u2192 Browser Integration to connect." }
-            });
-            continue;
-          }
-          if (tc.name === "get_weather") {
-            if (this.weatherService) {
+            if (tc.name === "get_health_entries") {
+              const days = tc.arguments["days"] || 7;
+              const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1e3).toISOString().slice(0, 10);
               try {
-                const location = tc.arguments["location"];
-                const weatherResult = await this.weatherService.getCurrentWeather(location);
+                const rows = this.db.prepare("SELECT * FROM health_entries WHERE date >= ? ORDER BY date DESC").all(cutoff);
+                executedResults.push({
+                  tool: "get_health_entries",
+                  result: {
+                    entries: rows.map((r) => ({
+                      id: r.id,
+                      date: r.date,
+                      mood: r.mood,
+                      energy: r.energy,
+                      waterGlasses: r.water_glasses,
+                      symptoms: JSON.parse(r.symptoms),
+                      medications: JSON.parse(r.medications),
+                      notes: r.notes
+                    })),
+                    averageMood: rows.filter((r) => r.mood !== null).length > 0 ? rows.filter((r) => r.mood !== null).reduce((sum, r) => sum + r.mood, 0) / rows.filter((r) => r.mood !== null).length : null,
+                    averageEnergy: rows.filter((r) => r.energy !== null).length > 0 ? rows.filter((r) => r.energy !== null).reduce((sum, r) => sum + r.energy, 0) / rows.filter((r) => r.energy !== null).length : null
+                  }
+                });
+              } catch {
+                executedResults.push({ tool: "get_health_entries", result: { entries: [], message: "No health data recorded yet." } });
+              }
+              continue;
+            }
+            if (tc.name === "add_health_entry") {
+              const date = tc.arguments["date"] || (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+              const id = nanoid();
+              try {
+                this.db.prepare(`INSERT OR REPLACE INTO health_entries (id, date, timestamp, mood, energy, water_glasses, symptoms, medications, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(id, date, (/* @__PURE__ */ new Date()).toISOString(), tc.arguments["mood"] ?? null, tc.arguments["energy"] ?? null, tc.arguments["waterGlasses"] ?? null, JSON.stringify(tc.arguments["symptoms"] ?? []), JSON.stringify(tc.arguments["medications"] ?? []), tc.arguments["notes"] ?? null);
+                executedResults.push({
+                  tool: "add_health_entry",
+                  result: { success: true, id, date, message: `Health entry logged for ${date}` }
+                });
+              } catch (err) {
+                executedResults.push({ tool: "add_health_entry", result: { error: err instanceof Error ? err.message : "Failed to log health entry" } });
+              }
+              continue;
+            }
+            if (tc.name === "search_all_devices") {
+              executedResults.push({
+                tool: "search_all_devices",
+                result: { results: [], message: "Cross-device search requires paired devices. Set up the Compute Mesh in Settings to enable this." }
+              });
+              continue;
+            }
+            if (tc.name === "fill_web_form") {
+              executedResults.push({
+                tool: "fill_web_form",
+                result: { success: false, message: "Web form filling requires a connected browser. Open Settings \u2192 Browser Integration to connect." }
+              });
+              continue;
+            }
+            if (tc.name === "get_weather") {
+              if (this.weatherService) {
+                try {
+                  const location = tc.arguments["location"];
+                  const weatherResult = await this.weatherService.getCurrentWeather(location);
+                  executedResults.push({
+                    tool: "get_weather",
+                    result: weatherResult ?? { message: "Weather data not available. Configure a default city in Settings > Location." }
+                  });
+                } catch (err) {
+                  executedResults.push({
+                    tool: "get_weather",
+                    result: { error: err instanceof Error ? err.message : "Weather lookup failed" }
+                  });
+                }
+              } else {
                 executedResults.push({
                   tool: "get_weather",
-                  result: weatherResult ?? { message: "Weather data not available. Configure a default city in Settings > Location." }
+                  result: { message: "Weather service not available. Configure a default city in Settings > Location." }
+                });
+              }
+              continue;
+            }
+            if (tc.name === "send_text") {
+              executedResults.push({
+                tool: "send_text",
+                result: {
+                  success: false,
+                  message: "Text messaging will be supported in a future update. For now, please send the message manually.",
+                  draftedBody: tc.arguments["body"],
+                  phone: tc.arguments["phone"]
+                }
+              });
+              continue;
+            }
+            if ((tc.name === "draft_email" || tc.name === "send_email") && tc.arguments["body"]) {
+              const styled = await this.applyStyleToDraft(tc.arguments);
+              tc.arguments["body"] = styled.body;
+              if (styled.styleScore) {
+                this.lastStyleScore = styled.styleScore;
+              }
+            }
+            if (tc.name === "create_reminder") {
+              const text = tc.arguments["text"];
+              const dueAt = tc.arguments["dueAt"] ?? new Date(Date.now() + 36e5).toISOString();
+              const recurrence = tc.arguments["recurrence"];
+              try {
+                this.db.exec(`CREATE TABLE IF NOT EXISTS reminders (
+            id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL,
+            recurrence TEXT NOT NULL DEFAULT 'none', status TEXT NOT NULL DEFAULT 'pending',
+            snoozed_until TEXT, source TEXT NOT NULL DEFAULT 'chat',
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+          )`);
+                const id = `rem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+                this.db.prepare("INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(id, text, dueAt, recurrence ?? "none", "pending", "ai", nowIso, nowIso);
+                executedResults.push({
+                  tool: "create_reminder",
+                  result: { success: true, id, text, dueAt, recurrence }
                 });
               } catch (err) {
                 executedResults.push({
-                  tool: "get_weather",
-                  result: { error: err instanceof Error ? err.message : "Weather lookup failed" }
+                  tool: "create_reminder",
+                  result: { error: `Failed to create reminder: ${err instanceof Error ? err.message : String(err)}` }
                 });
               }
-            } else {
-              executedResults.push({
-                tool: "get_weather",
-                result: { message: "Weather service not available. Configure a default city in Settings > Location." }
-              });
-            }
-            continue;
-          }
-          if (tc.name === "send_text") {
-            executedResults.push({
-              tool: "send_text",
-              result: {
-                success: false,
-                message: "Text messaging will be supported in a future update. For now, please send the message manually.",
-                draftedBody: tc.arguments["body"],
-                phone: tc.arguments["phone"]
-              }
-            });
-            continue;
-          }
-          if ((tc.name === "draft_email" || tc.name === "send_email") && tc.arguments["body"]) {
-            const styled = await this.applyStyleToDraft(tc.arguments);
-            tc.arguments["body"] = styled.body;
-            if (styled.styleScore) {
-              this.lastStyleScore = styled.styleScore;
-            }
-          }
-          if (tc.name === "create_reminder") {
-            const text = tc.arguments["text"];
-            const dueAt = tc.arguments["dueAt"] ?? new Date(Date.now() + 36e5).toISOString();
-            const recurrence = tc.arguments["recurrence"];
-            try {
-              this.db.exec(`CREATE TABLE IF NOT EXISTS reminders (
-            id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL,
-            recurrence TEXT NOT NULL DEFAULT 'none', status TEXT NOT NULL DEFAULT 'pending',
-            snoozed_until TEXT, source TEXT NOT NULL DEFAULT 'chat',
-            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-          )`);
-              const id = `rem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-              const nowIso = (/* @__PURE__ */ new Date()).toISOString();
-              this.db.prepare("INSERT INTO reminders (id, text, due_at, recurrence, status, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(id, text, dueAt, recurrence ?? "none", "pending", "ai", nowIso, nowIso);
-              executedResults.push({
-                tool: "create_reminder",
-                result: { success: true, id, text, dueAt, recurrence }
-              });
-            } catch (err) {
-              executedResults.push({
-                tool: "create_reminder",
-                result: { error: `Failed to create reminder: ${err instanceof Error ? err.message : String(err)}` }
-              });
-            }
-            continue;
-          }
-          if (tc.name === "list_reminders") {
-            try {
-              this.db.exec(`CREATE TABLE IF NOT EXISTS reminders (
-            id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL,
-            recurrence TEXT NOT NULL DEFAULT 'none', status TEXT NOT NULL DEFAULT 'pending',
-            snoozed_until TEXT, source TEXT NOT NULL DEFAULT 'chat',
-            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-          )`);
-              const reminders = this.db.prepare("SELECT * FROM reminders WHERE status IN ('pending', 'snoozed') ORDER BY due_at ASC LIMIT 50").all();
-              executedResults.push({
-                tool: "list_reminders",
-                result: reminders.map((r) => ({
-                  id: r.id,
-                  text: r.text,
-                  dueAt: r.due_at,
-                  recurrence: r.recurrence,
-                  status: r.status,
-                  source: r.source ?? "user"
-                }))
-              });
-            } catch (err) {
-              executedResults.push({
-                tool: "list_reminders",
-                result: { error: `Failed to list reminders: ${err instanceof Error ? err.message : String(err)}` }
-              });
-            }
-            continue;
-          }
-          if (tc.name === "snooze_reminder") {
-            const reminderId = tc.arguments["id"];
-            const duration = tc.arguments["duration"] ?? "15min";
-            const now = Date.now();
-            let newDueAt;
-            const durationMatch = duration.match(/^(\d+)\s*(min|minute|m|hr|hour|h|day|d)s?$/i);
-            if (durationMatch) {
-              const amount = parseInt(durationMatch[1], 10);
-              const unit = durationMatch[2].toLowerCase();
-              const ms = unit.startsWith("h") ? amount * 36e5 : unit.startsWith("d") ? amount * 864e5 : amount * 6e4;
-              newDueAt = new Date(now + ms).toISOString();
-            } else if (duration.toLowerCase() === "tomorrow") {
-              const tomorrow = new Date(now);
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              tomorrow.setHours(9, 0, 0, 0);
-              newDueAt = tomorrow.toISOString();
-            } else {
-              newDueAt = new Date(now + 15 * 6e4).toISOString();
-            }
-            try {
-              this.db.prepare("UPDATE reminders SET status = ?, due_at = ? WHERE id = ?").run("snoozed", newDueAt, reminderId);
-              executedResults.push({
-                tool: "snooze_reminder",
-                result: { success: true, id: reminderId, snoozedUntil: newDueAt }
-              });
-            } catch (err) {
-              executedResults.push({
-                tool: "snooze_reminder",
-                result: { error: `Failed to snooze reminder: ${err instanceof Error ? err.message : String(err)}` }
-              });
-            }
-            continue;
-          }
-          if (tc.name === "dismiss_reminder") {
-            const reminderId = tc.arguments["id"];
-            try {
-              this.db.prepare("UPDATE reminders SET status = ? WHERE id = ?").run("dismissed", reminderId);
-              executedResults.push({
-                tool: "dismiss_reminder",
-                result: { success: true, id: reminderId }
-              });
-            } catch (err) {
-              executedResults.push({
-                tool: "dismiss_reminder",
-                result: { error: `Failed to dismiss reminder: ${err instanceof Error ? err.message : String(err)}` }
-              });
-            }
-            continue;
-          }
-          if (tc.name === "delete_reminder") {
-            const reminderId = tc.arguments["id"];
-            try {
-              this.db.prepare("DELETE FROM reminders WHERE id = ?").run(reminderId);
-              executedResults.push({
-                tool: "delete_reminder",
-                result: { success: true, id: reminderId }
-              });
-            } catch (err) {
-              executedResults.push({
-                tool: "delete_reminder",
-                result: { error: `Failed to delete reminder: ${err instanceof Error ? err.message : String(err)}` }
-              });
-            }
-            continue;
-          }
-          const actionType = this.allToolActionMap[tc.name];
-          if (!actionType) {
-            executedResults.push({
-              tool: tc.name,
-              result: { error: `Tool "${tc.name}" is not available. This capability may not be implemented yet.` }
-            });
-            continue;
-          }
-          const domain = this.autonomy.getDomainForAction(actionType);
-          const tier = this.autonomy.getDomainTier(domain);
-          const boundaries = this.boundaryEnforcer.checkBoundaries({
-            action: actionType,
-            payload: tc.arguments
-          });
-          const boundaryEscalation = this.boundaryEnforcer.shouldEscalate(boundaries);
-          const decision = boundaryEscalation ? "requires_approval" : this.autonomy.decide(actionType);
-          const agentAction = {
-            id: nanoid(),
-            action: actionType,
-            payload: tc.arguments,
-            reasoning: boundaryEscalation ? `LLM requested ${tc.name} \u2014 escalated: ${boundaries.map((b) => b.reason).join("; ")}` : `LLM requested ${tc.name} based on conversation context`,
-            domain,
-            tier,
-            status: "pending_approval",
-            createdAt: (/* @__PURE__ */ new Date()).toISOString(),
-            reasoningContext: reasoningCtx
-          };
-          if (decision === "auto_approve" && tier === "alter_ego" && this.alterEgoGuardrails) {
-            const guardrailResult = this.alterEgoGuardrails.evaluateAction({
-              action: actionType,
-              payload: tc.arguments,
-              risk: ACTION_RISK_MAP[actionType]
-            });
-            if (guardrailResult.decision === "BATCH_PENDING") {
-              agentAction.status = "pending_approval";
-              agentAction.reasoning = guardrailResult.reason;
-              this.db.prepare(`INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
-             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)`).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload), agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
-              actions.push(agentAction);
               continue;
             }
-            if (guardrailResult.decision === "DRAFT_FIRST") {
-              agentAction.status = "pending_approval";
-              agentAction.reasoning = guardrailResult.reason;
-              this.db.prepare(`INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
-             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)`).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload), agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
+            if (tc.name === "list_reminders") {
+              try {
+                this.db.exec(`CREATE TABLE IF NOT EXISTS reminders (
+            id TEXT PRIMARY KEY, text TEXT NOT NULL, due_at TEXT NOT NULL,
+            recurrence TEXT NOT NULL DEFAULT 'none', status TEXT NOT NULL DEFAULT 'pending',
+            snoozed_until TEXT, source TEXT NOT NULL DEFAULT 'chat',
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+          )`);
+                const reminders = this.db.prepare("SELECT * FROM reminders WHERE status IN ('pending', 'snoozed') ORDER BY due_at ASC LIMIT 50").all();
+                executedResults.push({
+                  tool: "list_reminders",
+                  result: reminders.map((r) => ({
+                    id: r.id,
+                    text: r.text,
+                    dueAt: r.due_at,
+                    recurrence: r.recurrence,
+                    status: r.status,
+                    source: r.source ?? "user"
+                  }))
+                });
+              } catch (err) {
+                executedResults.push({
+                  tool: "list_reminders",
+                  result: { error: `Failed to list reminders: ${err instanceof Error ? err.message : String(err)}` }
+                });
+              }
+              continue;
+            }
+            if (tc.name === "snooze_reminder") {
+              const reminderId = tc.arguments["id"];
+              const duration = tc.arguments["duration"] ?? "15min";
+              const now = Date.now();
+              let newDueAt;
+              const durationMatch = duration.match(/^(\d+)\s*(min|minute|m|hr|hour|h|day|d)s?$/i);
+              if (durationMatch) {
+                const amount = parseInt(durationMatch[1], 10);
+                const unit = durationMatch[2].toLowerCase();
+                const ms = unit.startsWith("h") ? amount * 36e5 : unit.startsWith("d") ? amount * 864e5 : amount * 6e4;
+                newDueAt = new Date(now + ms).toISOString();
+              } else if (duration.toLowerCase() === "tomorrow") {
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(9, 0, 0, 0);
+                newDueAt = tomorrow.toISOString();
+              } else {
+                newDueAt = new Date(now + 15 * 6e4).toISOString();
+              }
+              try {
+                this.db.prepare("UPDATE reminders SET status = ?, due_at = ? WHERE id = ?").run("snoozed", newDueAt, reminderId);
+                executedResults.push({
+                  tool: "snooze_reminder",
+                  result: { success: true, id: reminderId, snoozedUntil: newDueAt }
+                });
+              } catch (err) {
+                executedResults.push({
+                  tool: "snooze_reminder",
+                  result: { error: `Failed to snooze reminder: ${err instanceof Error ? err.message : String(err)}` }
+                });
+              }
+              continue;
+            }
+            if (tc.name === "dismiss_reminder") {
+              const reminderId = tc.arguments["id"];
+              try {
+                this.db.prepare("UPDATE reminders SET status = ? WHERE id = ?").run("dismissed", reminderId);
+                executedResults.push({
+                  tool: "dismiss_reminder",
+                  result: { success: true, id: reminderId }
+                });
+              } catch (err) {
+                executedResults.push({
+                  tool: "dismiss_reminder",
+                  result: { error: `Failed to dismiss reminder: ${err instanceof Error ? err.message : String(err)}` }
+                });
+              }
+              continue;
+            }
+            if (tc.name === "delete_reminder") {
+              const reminderId = tc.arguments["id"];
+              try {
+                this.db.prepare("DELETE FROM reminders WHERE id = ?").run(reminderId);
+                executedResults.push({
+                  tool: "delete_reminder",
+                  result: { success: true, id: reminderId }
+                });
+              } catch (err) {
+                executedResults.push({
+                  tool: "delete_reminder",
+                  result: { error: `Failed to delete reminder: ${err instanceof Error ? err.message : String(err)}` }
+                });
+              }
+              continue;
+            }
+            const actionType = this.allToolActionMap[tc.name];
+            if (!actionType) {
               executedResults.push({
                 tool: tc.name,
-                result: {
-                  draft: true,
-                  actionId: agentAction.id,
-                  draftPayload: tc.arguments,
-                  contactEmail: guardrailResult.contactEmail,
-                  reason: guardrailResult.reason
-                }
+                result: { error: `Tool "${tc.name}" is not available. This capability may not be implemented yet.` }
               });
-              actions.push(agentAction);
               continue;
             }
-          }
-          if (decision === "auto_approve") {
-            try {
-              const response = await this.ipc.sendAction(actionType, tc.arguments);
-              agentAction.status = response.status === "success" ? "executed" : "failed";
-              agentAction.executedAt = (/* @__PURE__ */ new Date()).toISOString();
-              agentAction.response = response;
-              if (response.status === "success") {
-                executedResults.push({ tool: tc.name, result: response.data });
-              } else {
-                const errMsg = response.error?.message ?? response.error?.code ?? "Action failed";
+            const domain = this.autonomy.getDomainForAction(actionType);
+            const tier = this.autonomy.getDomainTier(domain);
+            const boundaries = this.boundaryEnforcer.checkBoundaries({
+              action: actionType,
+              payload: tc.arguments
+            });
+            const boundaryEscalation = this.boundaryEnforcer.shouldEscalate(boundaries);
+            const decision = boundaryEscalation ? "requires_approval" : this.autonomy.decide(actionType);
+            const agentAction = {
+              id: nanoid(),
+              action: actionType,
+              payload: tc.arguments,
+              reasoning: boundaryEscalation ? `LLM requested ${tc.name} \u2014 escalated: ${boundaries.map((b) => b.reason).join("; ")}` : `LLM requested ${tc.name} based on conversation context`,
+              domain,
+              tier,
+              status: "pending_approval",
+              createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+              reasoningContext: reasoningCtx
+            };
+            if (decision === "auto_approve" && tier === "alter_ego" && this.alterEgoGuardrails) {
+              const guardrailResult = this.alterEgoGuardrails.evaluateAction({
+                action: actionType,
+                payload: tc.arguments,
+                risk: ACTION_RISK_MAP[actionType]
+              });
+              if (guardrailResult.decision === "BATCH_PENDING") {
+                agentAction.status = "pending_approval";
+                agentAction.reasoning = guardrailResult.reason;
+                this.db.prepare(`INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
+             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)`).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload), agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
+                actions.push(agentAction);
+                continue;
+              }
+              if (guardrailResult.decision === "DRAFT_FIRST") {
+                agentAction.status = "pending_approval";
+                agentAction.reasoning = guardrailResult.reason;
+                this.db.prepare(`INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
+             VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)`).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload), agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
+                executedResults.push({
+                  tool: tc.name,
+                  result: {
+                    draft: true,
+                    actionId: agentAction.id,
+                    draftPayload: tc.arguments,
+                    contactEmail: guardrailResult.contactEmail,
+                    reason: guardrailResult.reason
+                  }
+                });
+                actions.push(agentAction);
+                continue;
+              }
+            }
+            if (decision === "auto_approve") {
+              try {
+                const response = await this.ipc.sendAction(actionType, tc.arguments);
+                agentAction.status = response.status === "success" ? "executed" : "failed";
+                agentAction.executedAt = (/* @__PURE__ */ new Date()).toISOString();
+                agentAction.response = response;
+                if (response.status === "success") {
+                  executedResults.push({ tool: tc.name, result: response.data });
+                } else {
+                  const errMsg = response.error?.message ?? response.error?.code ?? "Action failed";
+                  executedResults.push({ tool: tc.name, result: { error: errMsg } });
+                }
+                if (tier === "alter_ego" && this.alterEgoStore && agentAction.status === "executed") {
+                  const receipt = {
+                    id: agentAction.id,
+                    actionType: agentAction.action,
+                    summary: this.summarizeAction(agentAction.action, agentAction.payload),
+                    reasoning: agentAction.reasoning,
+                    status: "executed",
+                    undoAvailable: true,
+                    undoExpiresAt: new Date(Date.now() + 3e4).toISOString(),
+                    weekGroup: this.alterEgoStore.getWeekGroup(/* @__PURE__ */ new Date()),
+                    createdAt: agentAction.createdAt,
+                    executedAt: agentAction.executedAt
+                  };
+                  this.alterEgoStore.logReceipt(receipt);
+                  this.alterEgoStore.acknowledgeAnomaly(agentAction.action);
+                }
+              } catch (execErr) {
+                agentAction.status = "failed";
+                const errMsg = execErr instanceof Error ? execErr.message : "Action execution failed";
                 executedResults.push({ tool: tc.name, result: { error: errMsg } });
               }
-              if (tier === "alter_ego" && this.alterEgoStore && agentAction.status === "executed") {
-                const receipt = {
-                  id: agentAction.id,
-                  actionType: agentAction.action,
-                  summary: this.summarizeAction(agentAction.action, agentAction.payload),
-                  reasoning: agentAction.reasoning,
-                  status: "executed",
-                  undoAvailable: true,
-                  undoExpiresAt: new Date(Date.now() + 3e4).toISOString(),
-                  weekGroup: this.alterEgoStore.getWeekGroup(/* @__PURE__ */ new Date()),
-                  createdAt: agentAction.createdAt,
-                  executedAt: agentAction.executedAt
-                };
-                this.alterEgoStore.logReceipt(receipt);
-                this.alterEgoStore.acknowledgeAnomaly(agentAction.action);
-              }
-            } catch (execErr) {
-              agentAction.status = "failed";
-              const errMsg = execErr instanceof Error ? execErr.message : "Action execution failed";
-              executedResults.push({ tool: tc.name, result: { error: errMsg } });
-            }
-          } else {
-            this.db.prepare(`
+            } else {
+              this.db.prepare(`
           INSERT INTO pending_actions (id, action, payload, reasoning, domain, tier, status, created_at, reasoning_context)
           VALUES (?, ?, ?, ?, ?, ?, 'pending_approval', ?, ?)
         `).run(agentAction.id, agentAction.action, JSON.stringify(agentAction.payload), agentAction.reasoning, agentAction.domain, agentAction.tier, agentAction.createdAt, reasoningCtx ? JSON.stringify(reasoningCtx) : null);
+            }
+            actions.push(agentAction);
+          } finally {
+            if (this.streamCallback) {
+              try {
+                const produced = executedResults.slice(resultsBeforeThisTool);
+                const last2 = produced[produced.length - 1];
+                const hadError = !!last2 && typeof last2.result === "object" && last2.result !== null && "error" in last2.result;
+                const summary = last2 ? typeof last2.result === "string" ? last2.result.slice(0, 200) : JSON.stringify(last2.result ?? {}).slice(0, 200) : "completed";
+                this.streamCallback({
+                  type: "subagent_tool_result",
+                  subagentId,
+                  subtaskId: tc.name,
+                  timestamp: Date.now(),
+                  data: {
+                    toolName: tc.name,
+                    toolStatus: hadError ? "error" : "success",
+                    toolResult: summary
+                  }
+                });
+              } catch {
+              }
+            }
           }
-          actions.push(agentAction);
         }
         return { actions, executedResults };
       }
@@ -105811,7 +106151,8 @@ ${retryHint}`;
                 { role: "system", content: "You are drafting an email. Output ONLY the email body text, nothing else." },
                 { role: "user", content: prompt }
               ],
-              temperature: 0.7
+              // Email drafting — natural voice, but more focused than pure chat.
+              temperature: TEMP_SYNTH
             });
             const generatedBody = response.message.content.trim();
             if (profile.isActive) {
@@ -106230,6 +106571,20 @@ var init_tool_hooks = __esm({
 });
 
 // packages/core/agent/subagent-executor.js
+function truncateAtSentenceBoundary(s, maxChars) {
+  if (s.length <= maxChars)
+    return s;
+  const window2 = s.slice(0, maxChars);
+  const sentenceEnd = Math.max(window2.lastIndexOf(". "), window2.lastIndexOf("! "), window2.lastIndexOf("? "), window2.lastIndexOf("\n\n"));
+  if (sentenceEnd > maxChars * 0.85) {
+    return window2.slice(0, sentenceEnd + 1) + "... [truncated]";
+  }
+  const structEnd = Math.max(window2.lastIndexOf("},"), window2.lastIndexOf('",'), window2.lastIndexOf("],"));
+  if (structEnd > maxChars * 0.85) {
+    return window2.slice(0, structEnd + 1) + "... [truncated]";
+  }
+  return window2 + "... [truncated]";
+}
 var SubagentExecutor;
 var init_subagent_executor = __esm({
   "packages/core/agent/subagent-executor.js"() {
@@ -106531,7 +106886,9 @@ Your subtask: ${subtask.description}`
                 timestamp: Date.now(),
                 data: { toolName: preResult.toolName, toolStatus: "completed" }
               });
-              const resultStr = JSON.stringify(postResult.result).slice(0, 2e3);
+              const fullResultStr = JSON.stringify(postResult.result);
+              const budget = this.getToolResultCharBudget();
+              const resultStr = truncateAtSentenceBoundary(fullResultStr, budget);
               const injected = postResult.injectedContext ? `
 ${postResult.injectedContext}` : "";
               messages.push({
@@ -106615,6 +106972,34 @@ ${postResult.injectedContext}` : "";
             result: { error: error.message },
             success: false
           };
+        }
+      }
+      /**
+       * Character budget for a single tool-call result inserted back into the
+       * conversation. Scales with hardware tier — small models have smaller
+       * effective context windows and need tighter truncation to leave room for
+       * system prompt + history + the next generation. Returns chars not tokens
+       * because the caller is string-based; ~4 chars/token rule of thumb.
+       */
+      getToolResultCharBudget() {
+        switch (this.hardwareTier) {
+          case "constrained":
+            return 1200;
+          // ~300 tokens
+          case "standard":
+            return 2400;
+          // ~600 tokens
+          case "performance":
+            return 4e3;
+          // ~1000 tokens
+          case "workstation":
+            return 6e3;
+          // ~1500 tokens
+          case "enthusiast":
+            return 8e3;
+          // ~2000 tokens
+          default:
+            return 2400;
         }
       }
       /**
@@ -107473,7 +107858,10 @@ var init_coordinator_agent = __esm({
       async processMessage(message, conversationId) {
         const assessment = this.classifier.classify(message);
         console.error(`[CoordinatorAgent] Complexity: ${assessment.complexity} | Domains: ${assessment.domains.join(", ")} | Reasoning: ${assessment.reasoning}`);
-        if (assessment.complexity === "simple" || assessment.complexity === "compound") {
+        if (assessment.complexity === "simple") {
+          return this.v1.processMessage(message, conversationId);
+        }
+        if (assessment.complexity === "compound" && assessment.domains.length <= 1) {
           return this.v1.processMessage(message, conversationId);
         }
         return this.processComplexRequest(message, assessment, conversationId);
@@ -108514,8 +108902,11 @@ function createCoordinatorAgent(config) {
     userName: config.userName,
     connectedServices: config.connectedServices,
     indexedDocCount: config.indexedDocCount,
+    hardwareTier: config.hardwareTier,
     styleProfileStore: config.styleProfileStore
   });
+  if (config.metricsLogPath)
+    v1.setMetricsLogPath(config.metricsLogPath);
   const coordinator = new CoordinatorAgent({
     v1,
     llm: config.llmProvider,
@@ -263043,7 +263434,10 @@ function createSemblanceCore(config) {
           dataDir: dataDir2,
           model: chatModel,
           styleProfileStore: styleProfileStore2,
-          hardwareTier
+          hardwareTier,
+          // AI metrics log — scanner fires, retries, recovery-mode activations.
+          // Appended to at runtime; grep-able NDJSON. No PII, only event types.
+          metricsLogPath: p.path.join(dataDir2, "ai-metrics.ndjson")
         });
         console.error("[SemblanceCore] v2 Coordinator agent initialized");
         console.error("[SemblanceCore] Loading extensions...");
@@ -269821,8 +270215,8 @@ var WireGuardManager = class {
     if (!(0, import_node_fs8.existsSync)(this.configPath))
       return;
     const peerSection = this.buildPeerSection(peer);
-    const { appendFileSync } = require("node:fs");
-    appendFileSync(this.configPath, "\n" + peerSection);
+    const { appendFileSync: appendFileSync2 } = require("node:fs");
+    appendFileSync2(this.configPath, "\n" + peerSection);
     console.log(`[WireGuard] Peer added: ${peer.allowedIps}`);
   }
   /**
@@ -273357,11 +273751,17 @@ var ConversationIndexer = class {
    * Index a conversation turn into the knowledge graph.
    * Only index after assistant response completes (not during streaming).
    * One chunk per turn, max 2000 chars (matching existing chunker limit).
+   *
+   * Assistant turns are rejected if they match fabrication patterns — we never
+   * want a hallucinated claim re-entering the graph as retrievable "context".
    */
   async indexTurn(params) {
     const { conversationId, turnId, role, content, timestamp } = params;
     if (!content || content.trim().length === 0)
       return;
+    if (role === "assistant" && this.looksLikeFabrication(content)) {
+      return;
+    }
     const indexContent = content.substring(0, 2e3);
     const sourcePath = `conversation://${conversationId}/${turnId}`;
     const conv = this.db.prepare("SELECT title, auto_title FROM conversations WHERE id = ?").get(conversationId);
@@ -273384,6 +273784,30 @@ var ConversationIndexer = class {
        VALUES (?, ?, ?, ?, ?)`).run(embeddingId, conversationId, turnId, result2.documentId, (/* @__PURE__ */ new Date()).toISOString());
   }
   /**
+   * Lightweight fabrication detection — mirrors the patterns in
+   * Orchestrator.scanForFabrication. Duplicated here instead of imported to
+   * keep this file independent of the orchestrator (circular-dep risk).
+   * When either module changes, both must be kept in sync.
+   */
+  looksLikeFabrication(response) {
+    const patterns = [
+      /your (?:meeting|appointment|call|event) (?:at|is at|starts at) \d{1,2}[:.]\d{2}/i,
+      /you have a (?:meeting|appointment|call|event) (?:at|with|scheduled)/i,
+      /I (?:checked|looked at|reviewed|found in|have access to) your (?:inbox|calendar|email|schedule|files)/i,
+      /according to your (?:calendar|inbox|email|schedule|files)/i,
+      /your (?:inbox|calendar) shows/i,
+      /you (?:received|have|got) (?:an? )?(?:email|message) from/i,
+      /(?:recent|new) emails? (?:about|from|regarding)/i,
+      /emails? (?:about|regarding) (?:leads?|prospects?|clients?|deals?|meetings?|projects?) (?:in|from|with)/i,
+      /(?:meeting|call) with (?!me\b|you\b|us\b)[A-Z][a-z]+ (?:at|about|regarding)/i,
+      /^you mentioned (?:that )?you/im,
+      /you (?:mentioned|told me|said)(?: that)? (?:you )?(?:want|need|have|are)/i,
+      /here are (?:the|your) (?:search results|files|documents|emails):?\s*$/im,
+      /I (?:also )?have access to your (?:files|emails|contacts|calendar)/i
+    ];
+    return patterns.some((p) => p.test(response));
+  }
+  /**
    * Semantic search across all conversation turns.
    * Uses LanceDB vector search filtered to source='conversation'.
    * Groups results by conversationId and returns enriched results.
@@ -273392,7 +273816,10 @@ var ConversationIndexer = class {
     const results = await this.knowledge.search(query, {
       limit: limit * 2,
       // Fetch extra to allow for dedup/grouping
-      source: "conversation"
+      source: "conversation",
+      includeConversations: true
+      // explicit opt-in — this function is the
+      // dedicated path for intentional dialogue recall
     });
     return this.enrichSearchResults(results, limit);
   }

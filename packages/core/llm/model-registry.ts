@@ -130,7 +130,7 @@ export const MODEL_CATALOG: readonly ModelRegistryEntry[] = [
     family: 'nomic-bert',
     parameterCount: '137M',
     quantization: 'Q8_0',
-    fileSizeBytes: 275_000_000, // ~275MB
+    fileSizeBytes: 146_146_432, // exact HF Content-Length (~139MB); previously listed as 275MB which broke size-aware isModelDownloaded check
     ramRequiredMb: 512,
     hfRepo: 'nomic-ai/nomic-embed-text-v1.5-GGUF',
     hfFilename: 'nomic-embed-text-v1.5.Q8_0.gguf',
