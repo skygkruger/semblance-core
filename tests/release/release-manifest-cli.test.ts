@@ -412,6 +412,16 @@ describe('release CLI subprocess behavior', () => {
     }
   });
 
+  it('rejects unknown verify and data-audit arguments', () => {
+    for (const script of ['scripts/semblance-verify.js', 'scripts/data-audit.js']) {
+      const result = spawnSync(process.execPath, [join(process.cwd(), script), '--unknown'], {
+        encoding: 'utf8',
+      });
+      expect(result.status, script).not.toBe(0);
+      expect(result.stderr, script).toBe('ARGUMENT_INVALID: Unknown argument: --unknown\n');
+    }
+  });
+
   it('accepts explicit paths for all three source repositories', () => {
     const result = spawnSync(process.execPath, [
       RELEASE_CLI,
@@ -471,5 +481,22 @@ describe('release CLI subprocess behavior', () => {
     expect(verify).toBeGreaterThan(download);
     expect(upload).toBeGreaterThan(verify);
     expect(workflow).not.toContain('tauri-apps/tauri-action');
+  });
+
+  it('stages only deterministic distributable packages for exact-set verification', () => {
+    const workflow = readFileSync(join(process.cwd(), '.github', 'workflows', 'release.yml'), 'utf8');
+
+    expect(workflow).not.toContain('bundle/**');
+    expect(workflow).not.toContain('release/artifacts/**');
+    expect(workflow).toContain('path: release-stage/*');
+    expect(workflow).toContain('semblance-macos-universal.dmg');
+    expect(workflow).toContain('semblance-linux-x86_64.deb');
+    expect(workflow).toContain('semblance-linux-x86_64.AppImage');
+    expect(workflow).toContain('semblance-linux-x86_64.rpm');
+    expect(workflow).toContain('semblance-windows-x86_64.msi');
+    expect(workflow).toContain('semblance-windows-x86_64-setup.exe');
+    expect(workflow).toContain('path: release/artifacts');
+    expect(workflow).toContain('--require-exact-artifacts');
+    expect(workflow).toContain('files: release/artifacts/*');
   });
 });

@@ -23,28 +23,51 @@ const { dirname, join, resolve } = require('path');
 const { writeFileSync, readFileSync, existsSync, mkdirSync } = require('fs');
 const os = require('os');
 
-const VERBOSE = process.argv.includes('--verbose');
-const DIFF_MODE = process.argv.includes('--diff');
-const JSON_MODE = process.argv.includes('--json');
-const FEATURE_FLAG = process.argv.find(a => a.startsWith('--feature='));
-const FEATURE_FILTER = FEATURE_FLAG ? FEATURE_FLAG.split('=')[1].toUpperCase() : null;
-
-function parseOutputPath(argv) {
-  const indices = argv.flatMap((value, index) => value === '--output' ? [index] : []);
-  if (indices.length === 0) return null;
-  if (indices.length > 1) throw new Error('--output may only be supplied once');
-  const value = argv[indices[0] + 1];
-  if (!value || value.startsWith('-')) throw new Error('--output requires a path');
-  return resolve(value);
+function parseArguments(argv) {
+  const booleans = new Set(['--verbose', '--diff', '--json']);
+  const seen = new Set();
+  const parsed = { outputPath: null, feature: null };
+  for (let index = 2; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (booleans.has(argument)) {
+      if (seen.has(argument)) throw new Error(`Duplicate argument: ${argument}`);
+      seen.add(argument);
+      continue;
+    }
+    if (argument === '--output') {
+      if (seen.has(argument)) throw new Error('Duplicate argument: --output');
+      const value = argv[index + 1];
+      if (!value || value.startsWith('-')) throw new Error('--output requires a path');
+      seen.add(argument);
+      parsed.outputPath = resolve(value);
+      index += 1;
+      continue;
+    }
+    if (argument.startsWith('--feature=')) {
+      if (seen.has('--feature')) throw new Error('Duplicate argument: --feature');
+      const value = argument.slice('--feature='.length);
+      if (!value) throw new Error('--feature requires a value');
+      seen.add('--feature');
+      parsed.feature = value.toUpperCase();
+      continue;
+    }
+    throw new Error(`Unknown argument: ${argument}`);
+  }
+  return parsed;
 }
 
-let OUTPUT_PATH = null;
+let CLI_ARGUMENTS = { outputPath: null, feature: null };
 let OUTPUT_ARGUMENT_ERROR = null;
 try {
-  OUTPUT_PATH = parseOutputPath(process.argv);
+  CLI_ARGUMENTS = parseArguments(process.argv);
 } catch (cause) {
   OUTPUT_ARGUMENT_ERROR = cause.message;
 }
+const VERBOSE = process.argv.includes('--verbose');
+const DIFF_MODE = process.argv.includes('--diff');
+const JSON_MODE = process.argv.includes('--json');
+const FEATURE_FILTER = CLI_ARGUMENTS.feature;
+const OUTPUT_PATH = CLI_ARGUMENTS.outputPath;
 
 // Allow install-and-verify.js to point this script at the installed binary
 const SIDECAR_PATH = process.env.SEMBLANCE_SIDECAR_OVERRIDE ||

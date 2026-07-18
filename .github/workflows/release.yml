@@ -91,10 +91,17 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: pnpm --dir packages/desktop exec tauri build --target universal-apple-darwin
+      - name: Stage deterministic macOS distributable
+        run: |
+          mkdir -p release-stage
+          DMG_DIR="packages/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg"
+          test "$(find "$DMG_DIR" -maxdepth 1 -type f -name '*.dmg' | wc -l | tr -d ' ')" = "1"
+          install -m 0644 "$(find "$DMG_DIR" -maxdepth 1 -type f -name '*.dmg' -print -quit)" \
+            release-stage/semblance-macos-universal.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos
-          path: packages/desktop/src-tauri/target/universal-apple-darwin/release/bundle/**
+          path: release-stage/*
           if-no-files-found: error
 
   build-linux:
@@ -123,10 +130,23 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: pnpm --dir packages/desktop exec tauri build --target x86_64-unknown-linux-gnu
+      - name: Stage deterministic Linux distributables
+        run: |
+          mkdir -p release-stage
+          BUNDLE_DIR="packages/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
+          test "$(find "$BUNDLE_DIR/deb" -maxdepth 1 -type f -name '*.deb' | wc -l | tr -d ' ')" = "1"
+          test "$(find "$BUNDLE_DIR/appimage" -maxdepth 1 -type f -name '*.AppImage' | wc -l | tr -d ' ')" = "1"
+          test "$(find "$BUNDLE_DIR/rpm" -maxdepth 1 -type f -name '*.rpm' | wc -l | tr -d ' ')" = "1"
+          install -m 0644 "$(find "$BUNDLE_DIR/deb" -maxdepth 1 -type f -name '*.deb' -print -quit)" \
+            release-stage/semblance-linux-x86_64.deb
+          install -m 0755 "$(find "$BUNDLE_DIR/appimage" -maxdepth 1 -type f -name '*.AppImage' -print -quit)" \
+            release-stage/semblance-linux-x86_64.AppImage
+          install -m 0644 "$(find "$BUNDLE_DIR/rpm" -maxdepth 1 -type f -name '*.rpm' -print -quit)" \
+            release-stage/semblance-linux-x86_64.rpm
       - uses: actions/upload-artifact@v4
         with:
           name: release-linux
-          path: packages/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/**
+          path: release-stage/*
           if-no-files-found: error
 
   build-windows:
@@ -163,10 +183,21 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: pnpm --dir packages/desktop exec tauri build --target x86_64-pc-windows-msvc
+      - name: Stage deterministic Windows distributables
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path release-stage | Out-Null
+          $bundle = "packages/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle"
+          $msi = @(Get-ChildItem "$bundle/msi/*.msi" -File)
+          $exe = @(Get-ChildItem "$bundle/nsis/*-setup.exe" -File)
+          if ($msi.Count -ne 1) { throw "Expected exactly one MSI, found $($msi.Count)" }
+          if ($exe.Count -ne 1) { throw "Expected exactly one NSIS setup EXE, found $($exe.Count)" }
+          Copy-Item $msi[0].FullName release-stage/semblance-windows-x86_64.msi
+          Copy-Item $exe[0].FullName release-stage/semblance-windows-x86_64-setup.exe
       - uses: actions/upload-artifact@v4
         with:
           name: release-windows
-          path: packages/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/**
+          path: release-stage/*
           if-no-files-found: error
 
   verify-artifacts:
@@ -209,4 +240,4 @@ jobs:
         with:
           draft: true
           prerelease: false
-          files: release/artifacts/**
+          files: release/artifacts/*

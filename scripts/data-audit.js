@@ -24,26 +24,41 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-const JSON_MODE   = process.argv.includes('--json');
-const STRICT_MODE = process.argv.includes('--strict');
-const VERBOSE     = process.argv.includes('--verbose');
-
-function parseOutputPath(argv) {
-  const indices = argv.flatMap((value, index) => value === '--output' ? [index] : []);
-  if (indices.length === 0) return null;
-  if (indices.length > 1) throw new Error('--output may only be supplied once');
-  const value = argv[indices[0] + 1];
-  if (!value || value.startsWith('-')) throw new Error('--output requires a path');
-  return path.resolve(value);
+function parseArguments(argv) {
+  const booleans = new Set(['--json', '--strict', '--verbose']);
+  const seen = new Set();
+  let outputPath = null;
+  for (let index = 2; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (booleans.has(argument)) {
+      if (seen.has(argument)) throw new Error(`Duplicate argument: ${argument}`);
+      seen.add(argument);
+      continue;
+    }
+    if (argument === '--output') {
+      if (seen.has(argument)) throw new Error('Duplicate argument: --output');
+      const value = argv[index + 1];
+      if (!value || value.startsWith('-')) throw new Error('--output requires a path');
+      seen.add(argument);
+      outputPath = path.resolve(value);
+      index += 1;
+      continue;
+    }
+    throw new Error(`Unknown argument: ${argument}`);
+  }
+  return outputPath;
 }
 
 let OUTPUT_PATH = null;
 let OUTPUT_ARGUMENT_ERROR = null;
 try {
-  OUTPUT_PATH = parseOutputPath(process.argv);
+  OUTPUT_PATH = parseArguments(process.argv);
 } catch (cause) {
   OUTPUT_ARGUMENT_ERROR = cause.message;
 }
+const JSON_MODE   = process.argv.includes('--json');
+const STRICT_MODE = process.argv.includes('--strict');
+const VERBOSE     = process.argv.includes('--verbose');
 
 const HOME             = os.homedir();
 const SEMBLANCE_DATA   = path.join(HOME, '.semblance', 'data');
