@@ -237,6 +237,38 @@ describe('release manifest v1', () => {
     });
 
     expect(result).toEqual({ valid: true, errors: [] });
+
+    const artifactReadFailure = verifyReleaseManifest(released, {
+      trustedKeys: TEST_PUBLIC_KEYS,
+      now: new Date('2026-07-18T12:00:00.000Z'),
+      artifactRoot: '/tmp/artifacts',
+      evidenceRoots: { core: '/tmp/core' },
+      hashFile: (path) => {
+        if (path.endsWith('semblance.zip')) throw new Error('ENOENT');
+        return evidenceHash;
+      },
+      resolveRealPath: (path) => path,
+      sourceProvenance: sourceProvenance(),
+    });
+    expect(artifactReadFailure.errors).toContain(
+      'Artifact desktop-bundle could not be hashed',
+    );
+
+    const evidenceReadFailure = verifyReleaseManifest(released, {
+      trustedKeys: TEST_PUBLIC_KEYS,
+      now: new Date('2026-07-18T12:00:00.000Z'),
+      artifactRoot: '/tmp/artifacts',
+      evidenceRoots: { core: '/tmp/core' },
+      hashFile: (path) => {
+        if (path.endsWith('release-tests.txt')) throw new Error('EACCES');
+        return artifactHash;
+      },
+      resolveRealPath: (path) => path,
+      sourceProvenance: sourceProvenance(),
+    });
+    expect(evidenceReadFailure.errors).toContain(
+      'Evidence release-tests could not be hashed',
+    );
   });
 
   it('rejects malformed inputs instead of throwing', () => {
@@ -282,6 +314,19 @@ describe('release manifest v1', () => {
     expect(verifyReleaseManifest(signed, {
       ...verificationOptions(),
       trustedKeys: malformed,
+    }).errors).toContainEqual(expect.stringContaining('validity'));
+
+    const informalDates = {
+      schemaVersion: 1 as const,
+      keys: [{
+        ...TEST_PUBLIC_KEYS.keys[0]!,
+        validFrom: 'January 1, 2024',
+        validUntil: 'January 1, 2030',
+      }],
+    };
+    expect(verifyReleaseManifest(signed, {
+      ...verificationOptions(),
+      trustedKeys: informalDates,
     }).errors).toContainEqual(expect.stringContaining('validity'));
 
     const reversedWindow = {
@@ -571,5 +616,34 @@ describe('release manifest v1', () => {
         JSON.stringify(candidate),
       ).toBe(validateSchema(candidate));
     }
+  });
+
+  it('matches JSON Schema RFC 3339 date-time validation for generatedAt', () => {
+    const ajv = new Ajv2020({ strict: true });
+    addFormats(ajv);
+    const validateSchema = ajv.compile(releaseManifestSchema);
+    const timestamps = [
+      '2026-07-18T17:05:00.000Z',
+      '2024-02-29t23:59:59+05:30',
+      '1990-12-31T23:59:60Z',
+      '2026-07-18 17:05:00-04',
+      'July 18, 2026',
+      '2026-02-29T17:05:00Z',
+      '2026-07-18T17:05:00',
+      '2026-07-18T24:00:00Z',
+      '2026-07-18T17:05:00+24:00',
+    ];
+
+    for (const generatedAt of timestamps) {
+      const candidate = { ...validFixture, generatedAt };
+      expect(
+        validateReleaseManifest(candidate).valid,
+        generatedAt,
+      ).toBe(validateSchema(candidate));
+    }
+    expect(validateReleaseManifest({
+      ...validFixture,
+      generatedAt: 'July 18, 2026',
+    }).valid).toBe(false);
   });
 });

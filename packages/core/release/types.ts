@@ -145,6 +145,9 @@ const FEATURE_KEYS = [
 const REPRESENTATIVE_PIN_KEYS = [
   'packageVersion', 'artifactHash', 'extensionManifestHash',
 ] as const;
+const RFC3339_DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
+const RFC3339_TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(z|([+-])(\d\d)(?::?(\d\d))?)$/i;
+const DAYS_PER_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -169,6 +172,76 @@ function isVersionMap(value: unknown): value is Record<string, number> {
     && Object.values(value).every(
       (version) => typeof version === 'number' && Number.isInteger(version) && version >= 0,
     );
+}
+
+function isLeapYear(year: number): boolean {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+function isRfc3339Date(value: string): boolean {
+  const match = RFC3339_DATE.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const maximumDay = month === 2 && isLeapYear(year) ? 29 : DAYS_PER_MONTH[month];
+  return month >= 1
+    && month <= 12
+    && day >= 1
+    && maximumDay !== undefined
+    && day <= maximumDay;
+}
+
+function isRfc3339Time(value: string): boolean {
+  const match = RFC3339_TIME.exec(value);
+  if (!match) return false;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const second = Number(match[3]);
+  const timezoneSign = match[5] === '-' ? -1 : 1;
+  const timezoneHour = Number(match[6] ?? 0);
+  const timezoneMinute = Number(match[7] ?? 0);
+  if (timezoneHour > 23 || timezoneMinute > 59) return false;
+  if (hour <= 23 && minute <= 59 && second < 60) return true;
+
+  // RFC 3339 permits a leap second only at the end of a UTC day.
+  const utcMinute = minute - timezoneMinute * timezoneSign;
+  const utcHour = hour - timezoneHour * timezoneSign - (utcMinute < 0 ? 1 : 0);
+  return (utcHour === 23 || utcHour === -1)
+    && (utcMinute === 59 || utcMinute === -1)
+    && second < 61;
+}
+
+function isRfc3339DateTime(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const parts = value.split(/t|\s/i);
+  return parts.length === 2
+    && parts[0] !== undefined
+    && parts[1] !== undefined
+    && isRfc3339Date(parts[0])
+    && isRfc3339Time(parts[1]);
+}
+
+function parseRfc3339DateTime(value: string): number {
+  const [datePart, timePart] = value.split(/t|\s/i);
+  const dateMatch = datePart ? RFC3339_DATE.exec(datePart) : null;
+  const timeMatch = timePart ? RFC3339_TIME.exec(timePart) : null;
+  if (!dateMatch || !timeMatch) return Number.NaN;
+
+  const second = Number(timeMatch[3]);
+  const wholeSecond = Math.min(Math.floor(second), 59);
+  const milliseconds = Math.floor((second - Math.floor(second)) * 1_000);
+  const date = new Date(0);
+  date.setUTCFullYear(Number(dateMatch[1]), Number(dateMatch[2]) - 1, Number(dateMatch[3]));
+  date.setUTCHours(Number(timeMatch[1]), Number(timeMatch[2]), wholeSecond, milliseconds);
+
+  const timezoneDirection = timeMatch[5] === '-' ? -1 : 1;
+  const timezoneOffset = (
+    Number(timeMatch[6] ?? 0) * 60
+    + Number(timeMatch[7] ?? 0)
+  ) * 60_000 * timezoneDirection;
+  const leapSecond = second >= 60 ? 1_000 : 0;
+  return date.getTime() + leapSecond - timezoneOffset;
 }
 
 function rejectUnknownProperties(
@@ -321,8 +394,8 @@ export function validateReleaseManifest(value: unknown): ReleaseValidationResult
 
   if (value.schemaVersion !== 1) errors.push('schemaVersion must equal 1');
   if (!isNonemptyString(value.releaseId)) errors.push('releaseId must be nonempty');
-  if (!isNonemptyString(value.generatedAt) || !Number.isFinite(Date.parse(value.generatedAt))) {
-    errors.push('generatedAt must be an ISO-8601 timestamp');
+  if (!isRfc3339DateTime(value.generatedAt)) {
+    errors.push('generatedAt must be an RFC 3339 date-time');
   }
   if (!isRecord(value.repositories)) {
     errors.push('repositories must be an object');
@@ -585,8 +658,11 @@ type KeyState = 'valid' | 'not-yet-valid' | 'expired' | 'invalid';
 
 function validAt(key: TrustedReleaseKeyV1, now: Date): KeyState {
   if (key.algorithm !== 'Ed25519') return 'invalid';
-  const validFrom = Date.parse(key.validFrom);
-  const validUntil = Date.parse(key.validUntil);
+  if (!isRfc3339DateTime(key.validFrom) || !isRfc3339DateTime(key.validUntil)) {
+    return 'invalid';
+  }
+  const validFrom = parseRfc3339DateTime(key.validFrom);
+  const validUntil = parseRfc3339DateTime(key.validUntil);
   if (
     !Number.isFinite(validFrom)
     || !Number.isFinite(validUntil)
@@ -699,8 +775,14 @@ export function verifyReleaseManifest(
       );
       continue;
     }
-    if (options.hashFile && options.hashFile(confined.path) !== artifact.sha256) {
-      errors.push(`Artifact ${artifact.name} hash does not match`);
+    if (options.hashFile) {
+      try {
+        if (options.hashFile(confined.path) !== artifact.sha256) {
+          errors.push(`Artifact ${artifact.name} hash does not match`);
+        }
+      } catch {
+        errors.push(`Artifact ${artifact.name} could not be hashed`);
+      }
     }
     const artifactKey = options.trustedKeys.keys.find(
       (candidate) => candidate.id === artifact.signatureKeyId,
@@ -730,8 +812,14 @@ export function verifyReleaseManifest(
             ? `Evidence ${evidence.id} real path could not be resolved`
           : `Evidence ${evidence.id} path escapes its repository root`,
       );
-    } else if (options.hashFile && options.hashFile(confined.path) !== evidence.sha256) {
-      errors.push(`Evidence ${evidence.id} hash does not match`);
+    } else if (options.hashFile) {
+      try {
+        if (options.hashFile(confined.path) !== evidence.sha256) {
+          errors.push(`Evidence ${evidence.id} hash does not match`);
+        }
+      } catch {
+        errors.push(`Evidence ${evidence.id} could not be hashed`);
+      }
     }
   }
 
