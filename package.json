@@ -27,6 +27,7 @@
     "test:startup": "vitest run tests/integration/startup-smoke.test.ts",
     "test:bracket": "vitest run tests/integration/bracket-event-roundtrip.test.ts",
     "test:integration": "vitest run tests/integration/",
+    "check:sidecar-bundle": "node scripts/bundle-sidecar.js --check",
     "verify:deploy": "bash scripts/post-deploy-verify.sh",
     "install-hooks": "node scripts/install-hooks.js",
     "install-verify": "node scripts/install-and-verify.js",
