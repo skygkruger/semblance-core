@@ -4,6 +4,7 @@ export const PRINCIPAL_ID_KEY = 'kernel.principalId';
 export const SIGNING_PRIVATE_KEY_KEY = 'kernel.signingPrivateKey';
 export const SIGNING_PUBLIC_KEY_KEY = 'kernel.signingPublicKey';
 export const ENTITLEMENT_BEARER_KEY = 'kernel.entitlement.bearer';
+export const ENTITLEMENT_SNAPSHOT_KEY = 'kernel.entitlement.snapshot';
 export const LICENSE_KEY = 'kernel.license.key';
 
 /** OAuth access token key for a provider. */

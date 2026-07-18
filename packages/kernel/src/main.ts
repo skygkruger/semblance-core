@@ -11,6 +11,7 @@ import { createSessionStore } from './session/session-store.js';
 import { createKernelReadiness, type KernelReadiness } from './readiness.js';
 import { createKernelIpcHandlers } from './ipc/handlers.js';
 import { createKernelIpcServer, type KernelIpcServer } from './ipc/server.js';
+import { createEntitlementService } from './entitlement/service.js';
 
 export interface KernelConfig {
   keyStore?: KeyStore;
@@ -37,6 +38,7 @@ export async function createKernel(config: KernelConfig): Promise<Kernel> {
     config.policyEpoch,
     config.defaultCapabilityTtlMs,
   );
+  const entitlement = createEntitlementService(keyStore);
 
   const ipcHandlers = createKernelIpcHandlers({
     buildHash: config.buildHash,
@@ -45,6 +47,7 @@ export async function createKernel(config: KernelConfig): Promise<Kernel> {
     identity,
     sessions,
     capabilityIssuer,
+    entitlement,
   });
 
   createKernelIpcServer(ipcHandlers);

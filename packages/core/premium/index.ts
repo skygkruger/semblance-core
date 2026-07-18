@@ -1,5 +1,5 @@
 export { PremiumGate } from './premium-gate.js';
-export type { LicenseTier, PremiumFeature, ActivationResult } from './premium-gate.js';
+export type { LicenseTier, PremiumFeature, ActivationResult, EntitlementSnapshot, EntitlementSnapshotSource } from './premium-gate.js';
 export { verifyFoundingToken } from './founding-token.js';
 export type { FoundingTokenResult, ReservationVerification } from './founding-token.js';
 export { FoundingReservationStore } from './founding-reservation-store.js';

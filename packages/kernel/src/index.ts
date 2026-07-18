@@ -34,6 +34,7 @@ export {
   SIGNING_PRIVATE_KEY_KEY,
   SIGNING_PUBLIC_KEY_KEY,
   ENTITLEMENT_BEARER_KEY,
+  ENTITLEMENT_SNAPSHOT_KEY,
   LICENSE_KEY,
   kernelOAuthAccessKey,
   kernelOAuthRefreshKey,
@@ -42,7 +43,13 @@ export {
 } from './keys/key-store.js';
 export { createConsentStore, type ConsentStore, type ConsentReceipt } from './policy/consent-store.js';
 export { createCapabilityIssuer, type IssueCapabilityRequest } from './policy/capability-issuer.js';
-export { createKernelIpcHandlers, type ProcessHelloRequest, type KernelIpcHandlers } from './ipc/handlers.js';
+export {
+  createKernelIpcHandlers,
+  type ProcessHelloRequest,
+  type KernelIpcHandlers,
+  type ActivateEntitlementRequest,
+  type EntitlementActivationResponse,
+} from './ipc/handlers.js';
 export { createKernelIpcServer, type KernelIpcServer } from './ipc/server.js';
 export { getDefaultKernelSocketPath } from './ipc/socket-path.js';
 export {
@@ -54,3 +61,26 @@ export {
   type KernelRpcError,
   type KernelSocketServer,
 } from './ipc/socket-server.js';
+export {
+  createEntitlementService,
+  EntitlementService,
+  type EntitlementActivationResult,
+} from './entitlement/service.js';
+export {
+  EntitlementStore,
+  type EntitlementSnapshot,
+  type StoredEntitlementRecord,
+} from './entitlement/store.js';
+export {
+  verifySignedEntitlementV1,
+  validateLegacySemLicenseKey,
+  verifyLegacySemKeySignature,
+  setEntitlementIssuerPublicKey,
+  resetEntitlementIssuerPublicKeysForTests,
+  DEFAULT_ENTITLEMENT_ISSUER_KEY_ID,
+  LEGACY_SEM_ISSUER_KEY_ID,
+  type EntitlementVerification,
+} from './entitlement/verifier.js';
+export { adaptLegacySemKey, LEGACY_SEM_SIGNATURE_PREFIX } from './entitlement/legacy-adapter.js';
+export { isReservationArtifact } from './entitlement/reservation-guard.js';
+export { entitlementSigningPayload } from './entitlement/signing-payload.js';

@@ -52,6 +52,11 @@ function buildRpcHandlers(kernel: Kernel) {
       }
       return kernel.ipc.validateSession(record.sessionId);
     },
+    'kernel.entitlement.snapshot': async () => kernel.ipc.getEntitlementSnapshot(),
+    'kernel.entitlement.activate': async (params: unknown) => {
+      const record = params as { bearer?: string; entitlement?: unknown };
+      return kernel.ipc.activateEntitlement(record);
+    },
   };
 }
 

@@ -8,6 +8,8 @@ import { isoAfterMs, sessionSigningPayload } from '../crypto/signing.js';
 import type { SessionStore, StoredSession } from '../session/session-store.js';
 import type { CapabilityIssuer, IssueCapabilityRequest } from '../policy/capability-issuer.js';
 import type { CapabilityGrantV1 } from '@semblance/protocol';
+import type { EntitlementService } from '../entitlement/service.js';
+import type { EntitlementSnapshot } from '../entitlement/store.js';
 
 export interface ProcessHelloRequest {
   hello: ProcessHelloV1;
@@ -26,6 +28,19 @@ export interface KernelIpcHandlers {
   handleProcessHello(request: ProcessHelloRequest): Promise<ProcessSessionV1>;
   validateSession(sessionId: string): Promise<ProcessSessionV1>;
   issueCapability(request: IssueCapabilityRequest): Promise<CapabilityGrantV1>;
+  getEntitlementSnapshot(): Promise<EntitlementSnapshot | null>;
+  activateEntitlement(request: ActivateEntitlementRequest): Promise<EntitlementActivationResponse>;
+}
+
+export interface ActivateEntitlementRequest {
+  bearer?: string;
+  entitlement?: unknown;
+}
+
+export interface EntitlementActivationResponse {
+  success: boolean;
+  snapshot?: EntitlementSnapshot;
+  error?: string;
 }
 
 export interface KernelIpcContext {
@@ -35,6 +50,7 @@ export interface KernelIpcContext {
   identity: DeviceIdentity;
   sessions: SessionStore;
   capabilityIssuer: CapabilityIssuer;
+  entitlement: EntitlementService;
 }
 
 export function createKernelIpcHandlers(context: KernelIpcContext): KernelIpcHandlers {
@@ -113,6 +129,35 @@ export function createKernelIpcHandlers(context: KernelIpcContext): KernelIpcHan
 
     async issueCapability(request: IssueCapabilityRequest): Promise<CapabilityGrantV1> {
       return context.capabilityIssuer.issue(request);
+    },
+
+    async getEntitlementSnapshot(): Promise<EntitlementSnapshot | null> {
+      return context.entitlement.getSnapshot();
+    },
+
+    async activateEntitlement(request: ActivateEntitlementRequest): Promise<EntitlementActivationResponse> {
+      if (request.entitlement !== undefined) {
+        const result = await context.entitlement.activate(request.entitlement as never);
+        return {
+          success: result.success,
+          snapshot: result.snapshot,
+          error: result.error,
+        };
+      }
+
+      if (typeof request.bearer !== 'string' || request.bearer.trim().length === 0) {
+        throw new KernelError(
+          'INVALID_ENTITLEMENT',
+          'kernel.entitlement.activate requires bearer or entitlement',
+        );
+      }
+
+      const result = await context.entitlement.activate(request.bearer);
+      return {
+        success: result.success,
+        snapshot: result.snapshot,
+        error: result.error,
+      };
     },
   };
 }
