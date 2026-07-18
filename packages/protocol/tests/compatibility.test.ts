@@ -156,4 +156,22 @@ describe('@semblance/protocol zod parity', () => {
     const fixture = loadFixture('sync-envelope-v1.json');
     expect(SyncEnvelopeV1.parse(fixture)).toMatchObject({ envelopeKind: 'encrypted_event' });
   });
+
+  it('rejects invalid ActionType in both JSON Schema and Zod', () => {
+    const fixture = loadFixture<Record<string, unknown>>('action-request-v1.json');
+    const invalid = { ...fixture, action: 'totally.invalid.action' };
+
+    const jsonResult = validateProtocolDocument('action-request-v1', invalid);
+    expect(jsonResult.compatible).toBe(false);
+    expect(() => ActionRequestV1.parse(invalid)).toThrow();
+  });
+
+  it('rejects sync envelopeKind/payload mismatch in both JSON Schema and Zod', () => {
+    const fixture = loadFixture<Record<string, unknown>>('sync-envelope-v1.json');
+    const invalid = { ...fixture, envelopeKind: 'policy_epoch' };
+
+    const jsonResult = validateProtocolDocument('sync-envelope-v1', invalid);
+    expect(jsonResult.compatible).toBe(false);
+    expect(() => SyncEnvelopeV1.parse(invalid)).toThrow();
+  });
 });
