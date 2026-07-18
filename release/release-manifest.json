@@ -4,12 +4,12 @@
   "generatedAt": "2026-07-18T21:41:11Z",
   "repositories": {
     "core": {
-      "sourceCommit": "2935a6583f93f10d5d4fa0a9a8492c1ef568dc19",
-      "sourceTreeHash": "683a323ae04b41dfb0993eb6671d46a4089062f5"
+      "sourceCommit": "a27d2ddba43e8e09ea168bb302d949f0b6e4db6b",
+      "sourceTreeHash": "d0d96ba196f06361b9998024d4fb6aa88dbf241e"
     },
     "representative": {
-      "sourceCommit": "1a7d0004ef2f365461c7fdf2c9557a5f543e8dfd",
-      "sourceTreeHash": "ed0b3e5bdd210246ab97e4cd8916b9379fd958bd",
+      "sourceCommit": "1439b5e027e6a196c1fcce2e0645e6cd35ce356f",
+      "sourceTreeHash": "303d179944889bc100b256c6860d8e77c5e31e67",
       "packageVersion": "0.1.0",
       "artifactHash": null,
       "extensionManifestHash": null
