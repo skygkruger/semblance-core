@@ -11,11 +11,47 @@ function evidenceError(code, message) {
   return cause;
 }
 
-function evidenceRecord(id, path) {
+function isObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isVerifyReport(value) {
+  return isObject(value)
+    && Array.isArray(value.allFeatures)
+    && Number.isInteger(value.totalPass)
+    && Number.isInteger(value.totalTests)
+    && typeof value.p0Pass === 'boolean'
+    && typeof value.p1Pass === 'boolean'
+    && typeof value.buildReady === 'boolean'
+    && typeof value.date === 'string';
+}
+
+function isDataAuditReport(value) {
+  return isObject(value)
+    && typeof value.timestamp === 'string'
+    && isObject(value.databases)
+    && Array.isArray(value.connectedServices)
+    && isObject(value.documentSources)
+    && Array.isArray(value.pipelineGaps)
+    && Array.isArray(value.pipelineHealthy)
+    && Array.isArray(value.handlerStubs)
+    && ['healthy', 'gaps-found', 'unknown'].includes(value.verdict);
+}
+
+function evidenceRecord(id, path, validate) {
   if (!existsSync(path) || !statSync(path).isFile()) {
     throw evidenceError('EVIDENCE_FILE_MISSING', `Required evidence output is missing: ${path}`);
   }
   const bytes = readFileSync(path);
+  let parsed;
+  try {
+    parsed = JSON.parse(bytes.toString('utf8'));
+  } catch {
+    throw evidenceError('EVIDENCE_JSON_INVALID', `Evidence is not valid JSON: ${path}`);
+  }
+  if (!validate(parsed)) {
+    throw evidenceError('EVIDENCE_JSON_INVALID', `Evidence has an unexpected report shape: ${path}`);
+  }
   return {
     id,
     path,
@@ -31,31 +67,39 @@ function generateEvidenceManifest({ verifyOutput, dataAuditOutput }) {
   return {
     schemaVersion: 1,
     evidence: [
-      evidenceRecord('semblance-verify', verifyOutput),
-      evidenceRecord('data-audit', dataAuditOutput),
+      evidenceRecord('semblance-verify', verifyOutput, isVerifyReport),
+      evidenceRecord('data-audit', dataAuditOutput, isDataAuditReport),
     ],
   };
 }
 
 function parseArgs(argv) {
+  const valueFlags = new Set(['output', 'verify-output', 'data-audit-output']);
   const options = {};
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
-    if (argument.startsWith('--') && argv[index + 1] && !argv[index + 1].startsWith('--')) {
-      options[argument.slice(2)] = argv[index + 1];
-      index += 1;
-    }
+    if (!argument.startsWith('--')) throw new Error(`Unexpected positional argument: ${argument}`);
+    const name = argument.slice(2);
+    if (!valueFlags.has(name)) throw new Error(`Unknown argument: --${name}`);
+    if (name in options) throw new Error(`Duplicate argument: --${name}`);
+    const value = argv[index + 1];
+    if (!value || value.startsWith('--')) throw new Error(`Missing value for --${name}`);
+    options[name] = value;
+    index += 1;
   }
   return options;
 }
 
 function runCli() {
-  const args = parseArgs(process.argv.slice(2));
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (cause) {
+    console.error(`ARGUMENT_INVALID: ${cause.message}`);
+    return 1;
+  }
   if (!args.output) {
-    console.error(
-      'Usage: node scripts/evidence-manifest.js --output <path> '
-      + '[--verify-output <path>] [--data-audit-output <path>]',
-    );
+    console.error('ARGUMENT_INVALID: --output requires a path');
     return 1;
   }
   const root = resolve(__dirname, '..');

@@ -54,7 +54,7 @@ console.log(ts.ok ? 'clean' : 'FAILED');
 process.stdout.write('  Release manifest... ');
 const releaseManifest = run(
   'node',
-  ['scripts/release-manifest.js', '--verify', '--schema-only'],
+  ['scripts/release-manifest.js', '--verify-source'],
   30000,
 );
 check(

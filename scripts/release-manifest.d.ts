@@ -19,6 +19,7 @@ export interface ReleaseRepositoryAdapter {
 export interface ReleaseManifestAdapters {
   trustedKeys: unknown;
   now?: Date;
+  phase?: 'source' | 'release';
   repositories: Record<'core' | 'representative' | 'website', ReleaseRepositoryAdapter>;
   artifactRoot: string;
   readFile(path: string): Buffer;

@@ -2,7 +2,7 @@
 'use strict';
 
 const { createHash, createPublicKey, verify: verifySignature } = require('node:crypto');
-const { readFileSync, realpathSync } = require('node:fs');
+const { readFileSync, readdirSync, realpathSync } = require('node:fs');
 const { dirname, isAbsolute, join, relative, resolve } = require('node:path');
 const { spawnSync } = require('node:child_process');
 
@@ -20,6 +20,29 @@ const ALL_STATES = new Set([
 ]);
 const ED25519_SPKI_PREFIX = Buffer.from('302a300506032b6570032100', 'hex');
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
+const GIT_OBJECT_PATTERN = /^[a-f0-9]{40,64}$/;
+const TOP_LEVEL_KEYS = [
+  'schemaVersion', 'releaseId', 'generatedAt', 'repositories', 'signedArtifacts',
+  'evidence', 'commerce', 'protocolVersions', 'modelRuntimeHashes',
+  'confidentialWorkloadMeasurements', 'infrastructurePolicyVersions',
+  'legalNoticesVersion', 'completedSlices', 'features', 'signatureKeyId', 'signature',
+];
+const SOURCE_KEYS = ['sourceCommit', 'sourceTreeHash'];
+const REPRESENTATIVE_SOURCE_KEYS = [
+  ...SOURCE_KEYS, 'packageVersion', 'artifactHash', 'extensionManifestHash',
+];
+const ARTIFACT_KEYS = ['name', 'path', 'sha256', 'signature', 'signatureKeyId'];
+const EVIDENCE_KEYS = ['id', 'repository', 'path', 'sha256', 'requiredForStates'];
+const FEATURE_KEYS = [
+  'id', 'name', 'repository', 'state', 'usesDigitalRepresentative',
+  'signedArtifactNames', 'evidenceIds', 'protocolVersions', 'modelRuntimeHashes',
+  'confidentialWorkloadMeasurements', 'infrastructurePolicyVersions',
+  'legalNoticesVersion', 'representativePins',
+];
+const REPRESENTATIVE_PIN_KEYS = ['packageVersion', 'artifactHash', 'extensionManifestHash'];
+const RFC3339_DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
+const RFC3339_TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(z|([+-])(\d\d)(?::?(\d\d))?)$/i;
+const DAYS_PER_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 function canonicalJSON(value) {
   if (value === null || value === undefined) return 'null';
@@ -50,49 +73,117 @@ function isStringArray(value) {
   return Array.isArray(value) && value.every(isNonemptyString);
 }
 
-function validateRequiredShape(manifest) {
-  const errors = [];
-  const requiredTopLevel = [
-    'schemaVersion', 'releaseId', 'generatedAt', 'repositories', 'signedArtifacts',
-    'evidence', 'commerce', 'protocolVersions', 'modelRuntimeHashes',
-    'confidentialWorkloadMeasurements', 'infrastructurePolicyVersions',
-    'legalNoticesVersion', 'completedSlices', 'features', 'signatureKeyId', 'signature',
-  ];
-  if (!isObject(manifest)) return [error('SCHEMA_INVALID', 'Manifest must be an object')];
-  for (const field of requiredTopLevel) {
-    if (!(field in manifest)) errors.push(error('SCHEMA_INVALID', `Missing required field ${field}`, field));
+function isUniqueStringArray(value) {
+  return isStringArray(value) && new Set(value).size === value.length;
+}
+
+function isVersionMap(value) {
+  return isObject(value) && Object.values(value).every(
+    (version) => Number.isInteger(version) && version >= 0,
+  );
+}
+
+function isRfc3339(value) {
+  if (typeof value !== 'string') return false;
+  const parts = value.split(/t|\s/i);
+  if (parts.length !== 2) return false;
+  const dateMatch = RFC3339_DATE.exec(parts[0]);
+  const timeMatch = RFC3339_TIME.exec(parts[1]);
+  if (!dateMatch || !timeMatch) return false;
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const maximumDay = month === 2
+    && year % 4 === 0
+    && (year % 100 !== 0 || year % 400 === 0)
+    ? 29
+    : DAYS_PER_MONTH[month];
+  if (month < 1 || month > 12 || day < 1 || maximumDay === undefined || day > maximumDay) {
+    return false;
   }
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+  const second = Number(timeMatch[3]);
+  const timezoneSign = timeMatch[5] === '-' ? -1 : 1;
+  const timezoneHour = Number(timeMatch[6] ?? 0);
+  const timezoneMinute = Number(timeMatch[7] ?? 0);
+  if (timezoneHour > 23 || timezoneMinute > 59) return false;
+  if (hour <= 23 && minute <= 59 && second < 60) return true;
+  const utcMinute = minute - timezoneMinute * timezoneSign;
+  const utcHour = hour - timezoneHour * timezoneSign - (utcMinute < 0 ? 1 : 0);
+  return (utcHour === 23 || utcHour === -1)
+    && (utcMinute === 59 || utcMinute === -1)
+    && second < 61;
+}
+
+function rejectUnknown(value, allowed, label, errors) {
+  for (const key of Object.keys(value)) {
+    if (!allowed.includes(key)) {
+      errors.push(error('SCHEMA_INVALID', `${label} has unknown property ${key}`, `${label}.${key}`));
+    }
+  }
+}
+
+function requireKeys(value, required, label, errors) {
+  for (const key of required) {
+    if (!(key in value)) {
+      errors.push(error('SCHEMA_INVALID', `${label} is missing ${key}`, `${label}.${key}`));
+    }
+  }
+}
+
+function hasDeepDuplicates(values) {
+  if (!Array.isArray(values)) return false;
+  const canonical = values.map(canonicalJSON);
+  return new Set(canonical).size !== canonical.length;
+}
+
+function validateManifestStructure(manifest) {
+  const errors = [];
+  if (!isObject(manifest)) return [error('SCHEMA_INVALID', 'Manifest must be an object')];
+  rejectUnknown(manifest, TOP_LEVEL_KEYS, 'manifest', errors);
+  requireKeys(manifest, TOP_LEVEL_KEYS, 'manifest', errors);
   if (manifest.schemaVersion !== 1) {
     errors.push(error('SCHEMA_INVALID', 'schemaVersion must equal 1', 'schemaVersion'));
   }
   if (!isNonemptyString(manifest.releaseId)) {
     errors.push(error('SCHEMA_INVALID', 'releaseId must be nonempty', 'releaseId'));
   }
-  if (!isNonemptyString(manifest.generatedAt) || !Number.isFinite(Date.parse(manifest.generatedAt))) {
-    errors.push(error('SCHEMA_INVALID', 'generatedAt must be a date-time', 'generatedAt'));
+  if (!isRfc3339(manifest.generatedAt)) {
+    errors.push(error('SCHEMA_INVALID', 'generatedAt must be an RFC 3339 date-time', 'generatedAt'));
   }
   if (!isObject(manifest.repositories)) {
     errors.push(error('SCHEMA_INVALID', 'repositories must be an object', 'repositories'));
   } else {
+    rejectUnknown(manifest.repositories, REPOSITORY_NAMES, 'repositories', errors);
+    requireKeys(manifest.repositories, REPOSITORY_NAMES, 'repositories', errors);
     for (const name of REPOSITORY_NAMES) {
       const repository = manifest.repositories[name];
-      if (!isObject(repository)
-        || !isNonemptyString(repository.sourceCommit)
-        || !isNonemptyString(repository.sourceTreeHash)) {
-        errors.push(error(
-          'SCHEMA_INVALID',
-          `${name} repository requires sourceCommit and sourceTreeHash`,
-          `repositories.${name}`,
-        ));
+      if (!isObject(repository)) {
+        errors.push(error('SCHEMA_INVALID', `${name} repository must be an object`, `repositories.${name}`));
+        continue;
+      }
+      const allowed = name === 'representative' ? REPRESENTATIVE_SOURCE_KEYS : SOURCE_KEYS;
+      rejectUnknown(repository, allowed, `repositories.${name}`, errors);
+      requireKeys(repository, allowed, `repositories.${name}`, errors);
+      if (typeof repository.sourceCommit !== 'string' || !GIT_OBJECT_PATTERN.test(repository.sourceCommit)) {
+        errors.push(error('SCHEMA_INVALID', `${name} sourceCommit is malformed`, `repositories.${name}.sourceCommit`));
+      }
+      if (typeof repository.sourceTreeHash !== 'string' || !GIT_OBJECT_PATTERN.test(repository.sourceTreeHash)) {
+        errors.push(error('SCHEMA_INVALID', `${name} sourceTreeHash is malformed`, `repositories.${name}.sourceTreeHash`));
       }
     }
     const representative = manifest.repositories.representative;
-    if (isObject(representative) && !isNonemptyString(representative.packageVersion)) {
-      errors.push(error(
-        'SCHEMA_INVALID',
-        'representative repository requires packageVersion',
-        'repositories.representative.packageVersion',
-      ));
+    if (isObject(representative)) {
+      if (!isNonemptyString(representative.packageVersion)) {
+        errors.push(error('SCHEMA_INVALID', 'representative packageVersion is invalid', 'repositories.representative.packageVersion'));
+      }
+      for (const field of ['artifactHash', 'extensionManifestHash']) {
+        const value = representative[field];
+        if (value !== null && (typeof value !== 'string' || !SHA256_PATTERN.test(value))) {
+          errors.push(error('SCHEMA_INVALID', `representative ${field} is invalid`, `repositories.representative.${field}`));
+        }
+      }
     }
   }
   for (const field of [
@@ -102,18 +193,34 @@ function validateRequiredShape(manifest) {
   ]) {
     if (!Array.isArray(manifest[field])) {
       errors.push(error('SCHEMA_INVALID', `${field} must be an array`, field));
+    } else if (hasDeepDuplicates(manifest[field])) {
+      errors.push(error('SCHEMA_INVALID', `${field} must not contain duplicates`, field));
     }
   }
-  if (!isObject(manifest.commerce)
-    || typeof manifest.commerce.newSalesEnabled !== 'boolean'
-    || !Array.isArray(manifest.commerce.freezeEvidence)) {
+  if (!isObject(manifest.commerce)) {
     errors.push(error('SCHEMA_INVALID', 'commerce is invalid', 'commerce'));
+  } else {
+    rejectUnknown(manifest.commerce, ['newSalesEnabled', 'freezeEvidence'], 'commerce', errors);
+    requireKeys(manifest.commerce, ['newSalesEnabled', 'freezeEvidence'], 'commerce', errors);
+    if (typeof manifest.commerce.newSalesEnabled !== 'boolean'
+      || !isUniqueStringArray(manifest.commerce.freezeEvidence)) {
+      errors.push(error('SCHEMA_INVALID', 'commerce is invalid', 'commerce'));
+    }
   }
-  if (!isObject(manifest.protocolVersions)
-    || Object.values(manifest.protocolVersions).some(
-      (version) => !Number.isInteger(version) || version < 0,
-    )) {
+  if (!isVersionMap(manifest.protocolVersions)) {
     errors.push(error('SCHEMA_INVALID', 'protocolVersions is invalid', 'protocolVersions'));
+  }
+  for (const field of [
+    'modelRuntimeHashes', 'confidentialWorkloadMeasurements', 'infrastructurePolicyVersions',
+  ]) {
+    if (!isUniqueStringArray(manifest[field])) {
+      errors.push(error('SCHEMA_INVALID', `${field} must be a unique string set`, field));
+    }
+  }
+  if (!Array.isArray(manifest.completedSlices)
+    || manifest.completedSlices.some((slice) => !Number.isInteger(slice) || slice < 1)
+    || new Set(manifest.completedSlices).size !== manifest.completedSlices.length) {
+    errors.push(error('SCHEMA_INVALID', 'completedSlices is invalid', 'completedSlices'));
   }
   if (!isNonemptyString(manifest.legalNoticesVersion)) {
     errors.push(error('SCHEMA_INVALID', 'legalNoticesVersion must be nonempty', 'legalNoticesVersion'));
@@ -123,43 +230,78 @@ function validateRequiredShape(manifest) {
   }
   if (Array.isArray(manifest.features)) {
     for (const [index, feature] of manifest.features.entries()) {
-      if (!isObject(feature)
-        || !isNonemptyString(feature.id)
+      const label = `features.${index}`;
+      if (!isObject(feature)) {
+        errors.push(error('SCHEMA_INVALID', 'Feature is invalid', label));
+        continue;
+      }
+      rejectUnknown(feature, FEATURE_KEYS, label, errors);
+      requireKeys(feature, FEATURE_KEYS, label, errors);
+      if (!isNonemptyString(feature.id)
         || !isNonemptyString(feature.name)
         || !REPOSITORY_NAMES.includes(feature.repository)
         || !ALL_STATES.has(feature.state)
         || typeof feature.usesDigitalRepresentative !== 'boolean'
-        || !isStringArray(feature.signedArtifactNames)
-        || !isStringArray(feature.evidenceIds)) {
-        errors.push(error('SCHEMA_INVALID', 'Feature is invalid', `features.${index}`));
+        || !isUniqueStringArray(feature.signedArtifactNames)
+        || !isUniqueStringArray(feature.evidenceIds)
+        || !isVersionMap(feature.protocolVersions)
+        || !isUniqueStringArray(feature.modelRuntimeHashes)
+        || !isUniqueStringArray(feature.confidentialWorkloadMeasurements)
+        || !isUniqueStringArray(feature.infrastructurePolicyVersions)
+        || !isNonemptyString(feature.legalNoticesVersion)
+        || (feature.representativePins !== null && !isObject(feature.representativePins))) {
+        errors.push(error('SCHEMA_INVALID', 'Feature is invalid', label));
+      }
+      if (isObject(feature.representativePins)) {
+        rejectUnknown(feature.representativePins, REPRESENTATIVE_PIN_KEYS, `${label}.representativePins`, errors);
+        requireKeys(feature.representativePins, REPRESENTATIVE_PIN_KEYS, `${label}.representativePins`, errors);
+        if (!isNonemptyString(feature.representativePins.packageVersion)
+          || typeof feature.representativePins.artifactHash !== 'string'
+          || !SHA256_PATTERN.test(feature.representativePins.artifactHash)
+          || typeof feature.representativePins.extensionManifestHash !== 'string'
+          || !SHA256_PATTERN.test(feature.representativePins.extensionManifestHash)) {
+          errors.push(error('SCHEMA_INVALID', 'representativePins is invalid', `${label}.representativePins`));
+        }
       }
     }
   }
   if (Array.isArray(manifest.signedArtifacts)) {
     for (const [index, artifact] of manifest.signedArtifacts.entries()) {
-      if (!isObject(artifact)
-        || !isNonemptyString(artifact.name)
+      const label = `signedArtifacts.${index}`;
+      if (!isObject(artifact)) {
+        errors.push(error('SCHEMA_INVALID', 'Signed artifact is invalid', label));
+        continue;
+      }
+      rejectUnknown(artifact, ARTIFACT_KEYS, label, errors);
+      requireKeys(artifact, ARTIFACT_KEYS, label, errors);
+      if (!isNonemptyString(artifact.name)
         || !isNonemptyString(artifact.path)
         || typeof artifact.sha256 !== 'string'
         || !SHA256_PATTERN.test(artifact.sha256)
-        || typeof artifact.signature !== 'string'
-        || typeof artifact.signatureKeyId !== 'string') {
-        errors.push(error('SCHEMA_INVALID', 'Signed artifact is invalid', `signedArtifacts.${index}`));
+        || !isNonemptyString(artifact.signature)
+        || !isNonemptyString(artifact.signatureKeyId)) {
+        errors.push(error('SCHEMA_INVALID', 'Signed artifact is invalid', label));
       }
     }
   }
   if (Array.isArray(manifest.evidence)) {
     for (const [index, evidence] of manifest.evidence.entries()) {
-      if (!isObject(evidence)
-        || !isNonemptyString(evidence.id)
+      const label = `evidence.${index}`;
+      if (!isObject(evidence)) {
+        errors.push(error('SCHEMA_INVALID', 'Evidence entry is invalid', label));
+        continue;
+      }
+      rejectUnknown(evidence, EVIDENCE_KEYS, label, errors);
+      requireKeys(evidence, EVIDENCE_KEYS, label, errors);
+      if (!isNonemptyString(evidence.id)
         || !REPOSITORY_NAMES.includes(evidence.repository)
         || !isNonemptyString(evidence.path)
         || typeof evidence.sha256 !== 'string'
         || !SHA256_PATTERN.test(evidence.sha256)
-        || !Array.isArray(evidence.requiredForStates)
+        || !isUniqueStringArray(evidence.requiredForStates)
         || evidence.requiredForStates.length === 0
         || evidence.requiredForStates.some((state) => !ALL_STATES.has(state))) {
-        errors.push(error('SCHEMA_INVALID', 'Evidence entry is invalid', `evidence.${index}`));
+        errors.push(error('SCHEMA_INVALID', 'Evidence entry is invalid', label));
       }
     }
   }
@@ -212,55 +354,105 @@ function hashFile(path, readFile) {
   return createHash('sha256').update(readFile(path)).digest('hex');
 }
 
-/**
- * Verify a release manifest with injected repository and filesystem adapters.
- * Concrete Git and filesystem adapters are constructed only by this script's CLI.
- */
-async function verifyReleaseManifest(manifest, adapters) {
-  const errors = validateRequiredShape(manifest);
-  if (errors.length > 0) return { valid: false, errors };
+function listFiles(root, current = root) {
+  return readdirSync(current, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(current, entry.name);
+    return entry.isDirectory() ? listFiles(root, path) : [relative(root, path).split('\\').join('/')];
+  });
+}
 
-  const now = adapters.now ?? new Date();
-  const releasedFeatures = manifest.features.filter((feature) => RELEASE_STATES.has(feature.state));
-  const requiresSignature = releasedFeatures.length > 0
-    || manifest.signatureKeyId.length > 0
-    || manifest.signature.length > 0;
+function equalStringSets(left, right) {
+  return canonicalJSON([...left].sort()) === canonicalJSON([...right].sort());
+}
 
-  if (requiresSignature) {
-    const key = activeTrustedKey(adapters.trustedKeys, manifest.signatureKeyId, now);
-    const { signature: _signature, ...signable } = manifest;
-    if (!key || !verifyEd25519(canonicalJSON(signable), manifest.signature, key.publicKey)) {
-      errors.push(error('SIGNATURE_INVALID', 'Release manifest signature is invalid', 'signature'));
+function validateManifestPolicy(manifest) {
+  const errors = [];
+  const artifactNames = new Set();
+  for (const artifact of manifest.signedArtifacts) {
+    if (artifactNames.has(artifact.name)) {
+      errors.push(error('SCHEMA_INVALID', `Duplicate signed artifact ${artifact.name}`, 'signedArtifacts'));
     }
+    artifactNames.add(artifact.name);
   }
-
-  for (const name of REPOSITORY_NAMES) {
-    const source = manifest.repositories[name];
-    const repository = adapters.repositories?.[name];
-    let ancestor = false;
-    try {
-      ancestor = Boolean(repository?.isAncestor(source.sourceCommit, repository.headCommit));
-    } catch {
-      ancestor = false;
+  const evidenceById = new Map();
+  for (const evidence of manifest.evidence) {
+    if (evidenceById.has(evidence.id)) {
+      errors.push(error('SCHEMA_INVALID', `Duplicate evidence ${evidence.id}`, 'evidence'));
     }
-    if (!ancestor) {
+    evidenceById.set(evidence.id, evidence);
+  }
+  const featureIds = new Set();
+  for (const feature of manifest.features) {
+    if (featureIds.has(feature.id)) {
+      errors.push(error('SCHEMA_INVALID', `Duplicate feature ${feature.id}`, 'features'));
+    }
+    featureIds.add(feature.id);
+
+    if (canonicalJSON(feature.protocolVersions) !== canonicalJSON(manifest.protocolVersions)
+      || !equalStringSets(feature.modelRuntimeHashes, manifest.modelRuntimeHashes)
+      || !equalStringSets(
+        feature.confidentialWorkloadMeasurements,
+        manifest.confidentialWorkloadMeasurements,
+      )
+      || !equalStringSets(
+        feature.infrastructurePolicyVersions,
+        manifest.infrastructurePolicyVersions,
+      )
+      || feature.legalNoticesVersion !== manifest.legalNoticesVersion) {
       errors.push(error(
-        'SOURCE_NOT_ANCESTOR',
-        `${name} sourceCommit is not an ancestor of HEAD`,
-        `repositories.${name}.sourceCommit`,
+        'POLICY_PIN_MISMATCH',
+        `Feature ${feature.id} policy pins do not match the manifest`,
+        `features.${feature.id}`,
       ));
     }
-    let actualTree = null;
-    try {
-      actualTree = repository?.treeHash(source.sourceCommit) ?? null;
-    } catch {
-      actualTree = null;
+
+    if (RELEASE_STATES.has(feature.state)) {
+      const missingArtifact = feature.signedArtifactNames.length === 0
+        || feature.signedArtifactNames.some((name) => !artifactNames.has(name));
+      const missingEvidence = feature.evidenceIds.length === 0
+        || feature.evidenceIds.some((id) => {
+          const evidence = evidenceById.get(id);
+          return !evidence || !evidence.requiredForStates.includes(feature.state);
+        });
+      if (missingArtifact || missingEvidence) {
+        errors.push(error(
+          'RELEASE_EVIDENCE_MISSING',
+          `Feature ${feature.id} cannot enter ${feature.state} without pinned artifacts and evidence`,
+          `features.${feature.id}.state`,
+        ));
+      }
     }
-    if (actualTree !== source.sourceTreeHash) {
+
+    if (feature.usesDigitalRepresentative) {
+      const pins = feature.representativePins;
+      const representative = manifest.repositories.representative;
+      const referencedArtifacts = manifest.signedArtifacts.filter(
+        (artifact) => feature.signedArtifactNames.includes(artifact.name),
+      );
+      const referencedEvidence = manifest.evidence.filter(
+        (evidence) => feature.evidenceIds.includes(evidence.id)
+          && evidence.repository === 'representative',
+      );
+      if (!isObject(pins)
+        || pins.packageVersion !== representative.packageVersion
+        || pins.artifactHash !== representative.artifactHash
+        || pins.extensionManifestHash !== representative.extensionManifestHash
+        || !referencedArtifacts.some((artifact) => artifact.sha256 === pins.artifactHash)
+        || ![
+          ...referencedArtifacts.map((artifact) => artifact.sha256),
+          ...referencedEvidence.map((evidence) => evidence.sha256),
+        ].includes(pins.extensionManifestHash)) {
+        errors.push(error(
+          'DR_PIN_MISSING',
+          `Feature ${feature.id} requires specifically referenced DR package and extension pins`,
+          `features.${feature.id}.representativePins`,
+        ));
+      }
+    } else if (feature.representativePins !== null) {
       errors.push(error(
-        'TREE_HASH_MISMATCH',
-        `${name} sourceTreeHash does not match the pinned commit`,
-        `repositories.${name}.sourceTreeHash`,
+        'DR_PIN_MISSING',
+        `Feature ${feature.id} must not declare DR pins`,
+        `features.${feature.id}.representativePins`,
       ));
     }
   }
@@ -272,47 +464,78 @@ async function verifyReleaseManifest(manifest, adapters) {
       'commerce.newSalesEnabled',
     ));
   }
-
-  const artifactNames = new Set(manifest.signedArtifacts.map((artifact) => artifact.name));
-  const evidenceById = new Map(manifest.evidence.map((evidence) => [evidence.id, evidence]));
-  for (const feature of releasedFeatures) {
-    const missingArtifact = feature.signedArtifactNames.length === 0
-      || feature.signedArtifactNames.some((name) => !artifactNames.has(name));
-    const missingEvidence = feature.evidenceIds.length === 0
-      || feature.evidenceIds.some((id) => {
-        const evidence = evidenceById.get(id);
-        return !evidence || !evidence.requiredForStates.includes(feature.state);
-      });
-    if (missingArtifact || missingEvidence) {
+  if (manifest.commerce.newSalesEnabled && manifest.commerce.freezeEvidence.length === 0) {
+    errors.push(error(
+      'COMMERCE_EVIDENCE_MISSING',
+      'New sales require commerce freeze evidence',
+      'commerce.freezeEvidence',
+    ));
+  }
+  for (const evidenceId of manifest.commerce.freezeEvidence) {
+    const evidence = evidenceById.get(evidenceId);
+    if (!evidence || (manifest.commerce.newSalesEnabled
+      && !evidence.requiredForStates.includes('Released'))) {
       errors.push(error(
-        'RELEASE_EVIDENCE_MISSING',
-        `Feature ${feature.id} cannot enter ${feature.state} without pinned artifacts and evidence`,
-        `features.${feature.id}.state`,
+        'COMMERCE_EVIDENCE_MISSING',
+        `Commerce freeze evidence ${evidenceId} is invalid`,
+        'commerce.freezeEvidence',
       ));
     }
-    if (feature.usesDigitalRepresentative) {
-      const pins = feature.representativePins;
-      const representative = manifest.repositories.representative;
-      if (!isObject(pins)
-        || pins.packageVersion !== representative.packageVersion
-        || pins.artifactHash !== representative.artifactHash
-        || pins.extensionManifestHash !== representative.extensionManifestHash
-        || !isNonemptyString(pins.artifactHash)
-        || !isNonemptyString(pins.extensionManifestHash)) {
-        errors.push(error(
-          'DR_PIN_MISSING',
-          `Feature ${feature.id} requires matching DR package and extension pins`,
-          `features.${feature.id}.representativePins`,
-        ));
-      }
+  }
+  return errors;
+}
+
+/**
+ * Verify a release manifest with injected repository and filesystem adapters.
+ * Concrete Git and filesystem adapters are constructed only by this script's CLI.
+ */
+async function verifyReleaseManifest(manifest, adapters) {
+  const errors = validateManifestStructure(manifest);
+  if (errors.length > 0) return { valid: false, errors };
+  errors.push(...validateManifestPolicy(manifest));
+
+  const now = adapters.now ?? new Date();
+  const phase = adapters.phase ?? 'release';
+
+  if (phase === 'release') {
+    const key = activeTrustedKey(adapters.trustedKeys, manifest.signatureKeyId, now);
+    const { signature: _signature, ...signable } = manifest;
+    if (!key || !verifyEd25519(canonicalJSON(signable), manifest.signature, key.publicKey)) {
+      errors.push(error('SIGNATURE_INVALID', 'Release manifest signature is invalid', 'signature'));
     }
   }
 
-  const requiredArtifacts = new Set(
-    releasedFeatures.flatMap((feature) => feature.signedArtifactNames),
-  );
+  for (const name of REPOSITORY_NAMES) {
+    const source = manifest.repositories[name];
+    const repository = adapters.repositories?.[name];
+    try {
+      if (!repository) throw new Error('repository adapter missing');
+      if (!repository.isAncestor(source.sourceCommit, repository.headCommit)) {
+        errors.push(error(
+          'SOURCE_NOT_ANCESTOR',
+          `${name} sourceCommit is not an ancestor of HEAD`,
+          `repositories.${name}.sourceCommit`,
+        ));
+      }
+      if (repository.treeHash(source.sourceCommit) !== source.sourceTreeHash) {
+        errors.push(error(
+          'TREE_HASH_MISMATCH',
+          `${name} sourceTreeHash does not match the pinned commit`,
+          `repositories.${name}.sourceTreeHash`,
+        ));
+      }
+    } catch {
+      errors.push(error(
+        'SOURCE_VERIFICATION_FAILED',
+        `${name} Git provenance verification failed`,
+        `repositories.${name}`,
+      ));
+    }
+  }
+
+  if (phase === 'source') return { valid: errors.length === 0, errors };
+
   for (const artifact of manifest.signedArtifacts) {
-    if (!requiredArtifacts.has(artifact.name)) continue;
     const path = confinedPath(adapters.artifactRoot, artifact.path, adapters.realpath);
     let actualHash = null;
     try {
@@ -337,12 +560,7 @@ async function verifyReleaseManifest(manifest, adapters) {
     }
   }
 
-  const requiredEvidence = new Set([
-    ...releasedFeatures.flatMap((feature) => feature.evidenceIds),
-    ...manifest.commerce.freezeEvidence,
-  ]);
   for (const evidence of manifest.evidence) {
-    if (!requiredEvidence.has(evidence.id)) continue;
     const repository = adapters.repositories?.[evidence.repository];
     const path = confinedPath(repository?.root, evidence.path, adapters.realpath);
     let actualHash = null;
@@ -364,14 +582,33 @@ async function verifyReleaseManifest(manifest, adapters) {
 }
 
 function parseArgs(argv) {
+  const booleanFlags = new Set([
+    'verify', 'verify-source', 'verify-release', 'require-legal-version',
+    'require-exact-artifacts',
+  ]);
+  const valueFlags = new Set([
+    'manifest', 'trusted-keys', 'core-repo', 'representative-repo',
+    'website-repo', 'artifact-root',
+  ]);
   const options = {};
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
-    if (argument.startsWith('--') && argv[index + 1] && !argv[index + 1].startsWith('--')) {
-      options[argument.slice(2)] = argv[index + 1];
+    if (!argument.startsWith('--')) {
+      throw new Error(`Unexpected positional argument: ${argument}`);
+    }
+    const name = argument.slice(2);
+    if (name in options) throw new Error(`Duplicate argument: --${name}`);
+    if (booleanFlags.has(name)) {
+      options[name] = true;
+    } else if (valueFlags.has(name)) {
+      const value = argv[index + 1];
+      if (!value || value.startsWith('--')) {
+        throw new Error(`Missing value for --${name}`);
+      }
+      options[name] = value;
       index += 1;
-    } else if (argument.startsWith('--')) {
-      options[argument.slice(2)] = true;
+    } else {
+      throw new Error(`Unknown argument: --${name}`);
     }
   }
   return options;
@@ -391,21 +628,36 @@ function gitRepositoryAdapter(root) {
     root: resolve(root),
     headCommit: head.stdout.trim(),
     isAncestor(sourceCommit, headCommit) {
-      return git(root, ['merge-base', '--is-ancestor', sourceCommit, headCommit]).status === 0;
+      const result = git(root, ['merge-base', '--is-ancestor', sourceCommit, headCommit]);
+      if (result.status === 0) return true;
+      if (result.status === 1) return false;
+      throw new Error(result.stderr.trim() || 'git merge-base failed');
     },
     treeHash(sourceCommit) {
       const result = git(root, ['rev-parse', `${sourceCommit}^{tree}`]);
-      return result.status === 0 ? result.stdout.trim() : null;
+      if (result.status !== 0) throw new Error(result.stderr.trim() || 'git rev-parse failed');
+      return result.stdout.trim();
     },
   };
 }
 
 async function runCli() {
-  const args = parseArgs(process.argv.slice(2));
-  if (!args.verify) {
-    console.error('Usage: node scripts/release-manifest.js --verify [options]');
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (cause) {
+    console.error(`ARGUMENT_INVALID: ${cause.message}`);
     return 1;
   }
+  const modes = ['verify', 'verify-source', 'verify-release'].filter((name) => args[name]);
+  if (modes.length !== 1) {
+    console.error(
+      'ARGUMENT_INVALID: choose exactly one of --verify-source or --verify-release '
+      + '(--verify aliases --verify-release)',
+    );
+    return 1;
+  }
+  const phase = args['verify-source'] ? 'source' : 'release';
   const root = resolve(__dirname, '..');
   const parent = dirname(root);
   const manifestPath = resolve(String(args.manifest ?? join(root, 'release', 'release-manifest.json')));
@@ -424,32 +676,38 @@ async function runCli() {
   try {
     manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
     trustedKeys = JSON.parse(readFileSync(trustedKeysPath, 'utf8'));
-    repositories = args['schema-only']
-      ? Object.fromEntries(REPOSITORY_NAMES.map((name) => {
-          const source = manifest.repositories[name];
-          return [name, {
-            root: repositoryPaths[name],
-            headCommit: source.sourceCommit,
-            isAncestor: () => true,
-            treeHash: () => source.sourceTreeHash,
-          }];
-        }))
-      : Object.fromEntries(
-          REPOSITORY_NAMES.map((name) => [name, gitRepositoryAdapter(repositoryPaths[name])]),
-        );
   } catch (cause) {
     console.error(`RELEASE_MANIFEST_READ_FAILED: ${cause.message}`);
+    return 1;
+  }
+  const inputErrors = validateManifestStructure(manifest);
+  if (inputErrors.length === 0) inputErrors.push(...validateManifestPolicy(manifest));
+  if (inputErrors.length > 0) {
+    for (const violation of inputErrors) {
+      console.error(`${violation.code}: ${violation.message}`);
+    }
+    return 1;
+  }
+  try {
+    repositories = Object.fromEntries(
+      REPOSITORY_NAMES.map((name) => [name, gitRepositoryAdapter(repositoryPaths[name])]),
+    );
+  } catch (cause) {
+    console.error(`SOURCE_VERIFICATION_FAILED: ${cause.message}`);
     return 1;
   }
 
   const result = await verifyReleaseManifest(manifest, {
     trustedKeys,
     repositories,
+    phase,
     artifactRoot: resolve(String(args['artifact-root'] ?? join(root, 'release', 'artifacts'))),
     readFile: readFileSync,
     realpath: realpathSync,
   });
-  if (args['require-legal-version'] && manifest.legalNoticesVersion === 'unversioned') {
+  if (phase === 'release'
+    && args['require-legal-version']
+    && manifest.legalNoticesVersion === 'unversioned') {
     result.errors.push(error(
       'LEGAL_VERSION_UNPINNED',
       'Release workflow requires a pinned legal notices version',
@@ -457,11 +715,49 @@ async function runCli() {
     ));
     result.valid = false;
   }
+  if (phase === 'release' && args['require-exact-artifacts']) {
+    const expected = new Set(manifest.signedArtifacts.map((artifact) => artifact.path));
+    let actual = [];
+    try {
+      actual = listFiles(resolve(String(
+        args['artifact-root'] ?? join(root, 'release', 'artifacts'),
+      )));
+    } catch (cause) {
+      result.errors.push(error(
+        'ARTIFACT_SET_MISMATCH',
+        `Could not enumerate built artifacts: ${cause.message}`,
+        'signedArtifacts',
+      ));
+    }
+    for (const path of actual) {
+      if (!expected.has(path)) {
+        result.errors.push(error(
+          'ARTIFACT_SET_MISMATCH',
+          `Built artifact is not pinned by the manifest: ${path}`,
+          'signedArtifacts',
+        ));
+      }
+    }
+    for (const path of expected) {
+      if (!actual.includes(path)) {
+        result.errors.push(error(
+          'ARTIFACT_SET_MISMATCH',
+          `Pinned artifact was not built: ${path}`,
+          'signedArtifacts',
+        ));
+      }
+    }
+    result.valid = result.errors.length === 0;
+  }
 
   for (const violation of result.errors) {
     console.error(`${violation.code}: ${violation.message}`);
   }
-  if (result.valid) console.log(`Release manifest verified: ${manifest.releaseId}`);
+  if (result.valid) {
+    console.log(
+      `Release manifest ${phase === 'source' ? 'source ' : ''}verified: ${manifest.releaseId}`,
+    );
+  }
   return result.valid ? 0 : 1;
 }
 

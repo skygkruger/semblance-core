@@ -16,6 +16,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: skygkruger/semblence-representative
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN }}
+          path: representative
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: skygkruger/semblance-run
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN }}
+          path: website
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 9
@@ -26,7 +40,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
       - name: Verify release truth baseline
-        run: pnpm release:verify:schema
+        run: >-
+          node scripts/release-manifest.js --verify-source
+          --core-repo "$GITHUB_WORKSPACE"
+          --representative-repo "$GITHUB_WORKSPACE/representative"
+          --website-repo "$GITHUB_WORKSPACE/website"
 
   test:
     name: Test Suite

@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,6 +10,7 @@ import { generateEvidenceManifest } from '../../scripts/evidence-manifest.js';
 import { verifyReleaseManifest } from '../../scripts/release-manifest.js';
 
 const FIXTURE_ROOT = join(process.cwd(), 'tests', 'fixtures', 'release-manifests');
+const RELEASE_CLI = join(process.cwd(), 'scripts', 'release-manifest.js');
 const PRIVATE_KEY = Buffer.from(
   '9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60',
   'hex',
@@ -91,9 +93,10 @@ const fixtureRepositories = {
 };
 
 describe('release manifest CLI verification', () => {
-  it('accepts the current unsigned truth baseline', async () => {
+  it('accepts the current unsigned truth baseline only in source mode', async () => {
     const result = await verifyReleaseManifest(currentManifest, {
       ...fixtureRepositories,
+      phase: 'source',
       repositories: {
         core: {
           ...fixtureRepositories.repositories.core,
@@ -116,6 +119,68 @@ describe('release manifest CLI verification', () => {
     expect(result).toEqual({ valid: true, errors: [] });
   });
 
+  it('rejects an unsigned manifest in release mode even without Released features', async () => {
+    const result = await verifyReleaseManifest(currentManifest, {
+      ...fixtureRepositories,
+      repositories: {
+        core: {
+          ...fixtureRepositories.repositories.core,
+          isAncestor: () => true,
+          treeHash: () => currentManifest.repositories.core.sourceTreeHash,
+        },
+        representative: {
+          ...fixtureRepositories.repositories.representative,
+          isAncestor: () => true,
+          treeHash: () => currentManifest.repositories.representative.sourceTreeHash,
+        },
+        website: {
+          ...fixtureRepositories.repositories.website,
+          isAncestor: () => true,
+          treeHash: () => currentManifest.repositories.website.sourceTreeHash,
+        },
+      },
+      phase: 'release',
+    });
+
+    expect(result.errors.map((item) => item.code)).toContain('SIGNATURE_INVALID');
+  });
+
+  it.each([
+    ['unknown top-level property', (manifest: Manifest) => { manifest.unexpected = true; }],
+    ['malformed source commit', (manifest: Manifest) => {
+      manifest.repositories.core!.sourceCommit = 'not-a-commit';
+    }],
+    ['missing policy field', (manifest: Manifest) => {
+      delete manifest.features[0]!.protocolVersions;
+    }],
+    ['duplicate completed slice', (manifest: Manifest) => {
+      manifest.completedSlices = [1, 1];
+    }],
+  ])('rejects malformed CLI input: %s', async (_name, mutate) => {
+    const manifest = loadFixture();
+    mutate(manifest);
+
+    const result = await verifyReleaseManifest(signManifest(manifest), {
+      ...fixtureRepositories,
+      phase: 'source',
+    });
+
+    expect(result.errors.map((item) => item.code)).toContain('SCHEMA_INVALID');
+  });
+
+  it('rejects feature policy pins that differ from the manifest', async () => {
+    const manifest = loadFixture();
+    manifest.features[0]!.protocolVersions = { releaseEvidence: 2 };
+    manifest.features[0]!.legalNoticesVersion = 'wrong';
+
+    const result = await verifyReleaseManifest(signManifest(manifest), {
+      ...fixtureRepositories,
+      phase: 'source',
+    });
+
+    expect(result.errors.map((item) => item.code)).toContain('POLICY_PIN_MISMATCH');
+  });
+
   it('never mutates the manifest in verification mode', async () => {
     const manifest = signManifest(loadFixture());
     const before = JSON.stringify(manifest);
@@ -135,6 +200,22 @@ describe('release manifest CLI verification', () => {
     });
 
     expect(result.errors.map((error) => error.code)).toContain('SOURCE_NOT_ANCESTOR');
+  });
+
+  it('distinguishes Git command failure from a valid non-ancestor result', async () => {
+    const result = await verifyReleaseManifest(signManifest(loadFixture()), {
+      ...fixtureRepositories,
+      repositories: {
+        ...fixtureRepositories.repositories,
+        core: {
+          ...fixtureRepositories.repositories.core,
+          isAncestor: () => { throw new Error('git crashed'); },
+        },
+      },
+    });
+
+    expect(result.errors.map((item) => item.code)).toContain('SOURCE_VERIFICATION_FAILED');
+    expect(result.errors.map((item) => item.code)).not.toContain('SOURCE_NOT_ANCESTOR');
   });
 
   it.each([
@@ -206,6 +287,47 @@ describe('release manifest CLI verification', () => {
     expect(result.errors.map((error) => error.code)).toContain('DR_PIN_MISSING');
   });
 
+  it('binds DR pins to specifically referenced artifact and evidence records', async () => {
+    const manifest = loadFixture();
+    manifest.repositories.representative!.artifactHash = '4'.repeat(64);
+    manifest.repositories.representative!.extensionManifestHash = '5'.repeat(64);
+    manifest.features[0] = {
+      ...manifest.features[0],
+      repository: 'representative',
+      usesDigitalRepresentative: true,
+      representativePins: {
+        packageVersion: '1.0.0',
+        artifactHash: '4'.repeat(64),
+        extensionManifestHash: '5'.repeat(64),
+      },
+    };
+
+    const result = await verifyReleaseManifest(signManifest(manifest), fixtureRepositories);
+    expect(result.errors.map((item) => item.code)).toContain('DR_PIN_MISSING');
+  });
+
+  it('verifies unreferenced manifest artifacts and evidence', async () => {
+    const manifest = loadFixture();
+    manifest.signedArtifacts.push({
+      name: 'orphan',
+      path: 'orphan.bin',
+      sha256: '6'.repeat(64),
+      signature: '',
+      signatureKeyId: 'test-release-key',
+    });
+    manifest.evidence.push({
+      id: 'orphan-evidence',
+      repository: 'website',
+      path: 'orphan.json',
+      sha256: '7'.repeat(64),
+      requiredForStates: ['Implemented'],
+    });
+
+    const result = await verifyReleaseManifest(signManifest(manifest), fixtureRepositories);
+    expect(result.errors.map((item) => item.code)).toContain('ARTIFACT_HASH_MISMATCH');
+    expect(result.errors.map((item) => item.code)).toContain('EVIDENCE_HASH_MISMATCH');
+  });
+
   it('returns COMMERCE_ENABLED_BEFORE_SLICE_7 for early commerce enablement', async () => {
     const manifest = loadFixture();
     manifest.commerce = { newSalesEnabled: true, freezeEvidence: ['runtime-verification'] };
@@ -222,8 +344,17 @@ describe('evidence manifest generation', () => {
     const directory = mkdtempSync(join(tmpdir(), 'semblance-evidence-'));
     const verifyOutput = join(directory, 'verify.json');
     const dataAuditOutput = join(directory, 'data-audit.json');
-    writeFileSync(verifyOutput, '{"buildReady":true}\n');
-    writeFileSync(dataAuditOutput, '{"verdict":"healthy"}\n');
+    writeFileSync(
+      verifyOutput,
+      '{"allFeatures":[],"totalPass":0,"totalTests":0,"p0Pass":true,'
+        + '"p1Pass":true,"buildReady":true,"date":"2026-07-18 12:00:00"}\n',
+    );
+    writeFileSync(
+      dataAuditOutput,
+      '{"timestamp":"2026-07-18T12:00:00.000Z","databases":{},'
+        + '"connectedServices":[],"documentSources":{},"pipelineGaps":[],'
+        + '"pipelineHealthy":[],"handlerStubs":[],"verdict":"healthy"}\n',
+    );
 
     const result = generateEvidenceManifest({ verifyOutput, dataAuditOutput });
 
@@ -240,11 +371,105 @@ describe('evidence manifest generation', () => {
   it('refuses a missing machine-readable output', () => {
     const directory = mkdtempSync(join(tmpdir(), 'semblance-evidence-'));
     const verifyOutput = join(directory, 'verify.json');
-    writeFileSync(verifyOutput, '{}');
+    writeFileSync(
+      verifyOutput,
+      '{"allFeatures":[],"totalPass":0,"totalTests":0,"p0Pass":false,'
+        + '"p1Pass":false,"buildReady":false,"date":"2026-07-18 12:00:00"}',
+    );
 
     expect(() => generateEvidenceManifest({
       verifyOutput,
       dataAuditOutput: join(directory, 'missing.json'),
     })).toThrowError(expect.objectContaining({ code: 'EVIDENCE_FILE_MISSING' }));
+  });
+
+  it('refuses JSON that is not the expected machine report shape', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'semblance-evidence-'));
+    const verifyOutput = join(directory, 'verify.json');
+    const dataAuditOutput = join(directory, 'data-audit.json');
+    writeFileSync(verifyOutput, '{"unrelated":true}');
+    writeFileSync(dataAuditOutput, '{"verdict":"healthy"}');
+
+    expect(() => generateEvidenceManifest({ verifyOutput, dataAuditOutput }))
+      .toThrowError(expect.objectContaining({ code: 'EVIDENCE_JSON_INVALID' }));
+  });
+});
+
+describe('release CLI subprocess behavior', () => {
+  it('rejects a flag consumed as a required output path', () => {
+    for (const [script, trailingFlag] of [
+      ['scripts/semblance-verify.js', '--diff'],
+      ['scripts/data-audit.js', '--strict'],
+      ['scripts/evidence-manifest.js', '--verify-output'],
+    ] as const) {
+      const result = spawnSync(
+        process.execPath,
+        [join(process.cwd(), script), '--output', trailingFlag],
+        { encoding: 'utf8' },
+      );
+      expect(result.status, script).not.toBe(0);
+      expect(result.stderr, script).toContain('ARGUMENT_INVALID');
+    }
+  });
+
+  it('accepts explicit paths for all three source repositories', () => {
+    const result = spawnSync(process.execPath, [
+      RELEASE_CLI,
+      '--verify-source',
+      '--core-repo', process.cwd(),
+      '--representative-repo', join(process.cwd(), '..', 'semblence-representative'),
+      '--website-repo', join(process.cwd(), '..', 'semblance-run'),
+    ], { encoding: 'utf8' });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toBe('Release manifest source verified: truth-baseline-2026-07-18\n');
+    expect(result.stderr).toBe('');
+  });
+
+  it('rejects a malformed manifest through the actual CLI', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'semblance-release-cli-'));
+    const manifestPath = join(directory, 'manifest.json');
+    writeFileSync(manifestPath, JSON.stringify({ ...currentManifest, unexpected: true }));
+    const result = spawnSync(process.execPath, [
+      RELEASE_CLI,
+      '--verify-source',
+      '--manifest', manifestPath,
+      '--core-repo', process.cwd(),
+      '--representative-repo', join(process.cwd(), '..', 'semblence-representative'),
+      '--website-repo', join(process.cwd(), '..', 'semblance-run'),
+    ], { encoding: 'utf8' });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toBe('SCHEMA_INVALID: manifest has unknown property unexpected\n');
+  });
+
+  it('rejects unsigned release verification with deterministic stderr', () => {
+    const result = spawnSync(process.execPath, [
+      RELEASE_CLI,
+      '--verify-release',
+      '--core-repo', process.cwd(),
+      '--representative-repo', join(process.cwd(), '..', 'semblence-representative'),
+      '--website-repo', join(process.cwd(), '..', 'semblance-run'),
+    ], { encoding: 'utf8' });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toBe('SIGNATURE_INVALID: Release manifest signature is invalid\n');
+  });
+
+  it('orders full-history source checks before build and artifact verification before upload', () => {
+    const workflow = readFileSync(join(process.cwd(), '.github', 'workflows', 'release.yml'), 'utf8');
+    const source = workflow.indexOf('Verify pinned release sources');
+    const build = workflow.indexOf('Build Tauri');
+    const download = workflow.indexOf('Download exact built artifacts');
+    const verify = workflow.indexOf('Verify downloaded release artifacts');
+    const upload = workflow.indexOf('Upload verified release assets');
+
+    expect(workflow).toContain('fetch-depth: 0');
+    expect(source).toBeGreaterThan(-1);
+    expect(source).toBeLessThan(build);
+    expect(download).toBeGreaterThan(build);
+    expect(verify).toBeGreaterThan(download);
+    expect(upload).toBeGreaterThan(verify);
+    expect(workflow).not.toContain('tauri-apps/tauri-action');
   });
 });

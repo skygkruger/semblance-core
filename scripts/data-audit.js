@@ -27,10 +27,23 @@ const fs = require('fs');
 const JSON_MODE   = process.argv.includes('--json');
 const STRICT_MODE = process.argv.includes('--strict');
 const VERBOSE     = process.argv.includes('--verbose');
-const OUTPUT_INDEX = process.argv.indexOf('--output');
-const OUTPUT_PATH = OUTPUT_INDEX >= 0 && process.argv[OUTPUT_INDEX + 1]
-  ? path.resolve(process.argv[OUTPUT_INDEX + 1])
-  : null;
+
+function parseOutputPath(argv) {
+  const indices = argv.flatMap((value, index) => value === '--output' ? [index] : []);
+  if (indices.length === 0) return null;
+  if (indices.length > 1) throw new Error('--output may only be supplied once');
+  const value = argv[indices[0] + 1];
+  if (!value || value.startsWith('-')) throw new Error('--output requires a path');
+  return path.resolve(value);
+}
+
+let OUTPUT_PATH = null;
+let OUTPUT_ARGUMENT_ERROR = null;
+try {
+  OUTPUT_PATH = parseOutputPath(process.argv);
+} catch (cause) {
+  OUTPUT_ARGUMENT_ERROR = cause.message;
+}
 
 const HOME             = os.homedir();
 const SEMBLANCE_DATA   = path.join(HOME, '.semblance', 'data');
@@ -389,8 +402,8 @@ function saveState() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  if (OUTPUT_INDEX >= 0 && !OUTPUT_PATH) {
-    console.error('Missing path after --output');
+  if (OUTPUT_ARGUMENT_ERROR) {
+    console.error(`ARGUMENT_INVALID: ${OUTPUT_ARGUMENT_ERROR}`);
     process.exit(2);
   }
   if (!JSON_MODE) {

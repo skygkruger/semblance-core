@@ -28,10 +28,23 @@ const DIFF_MODE = process.argv.includes('--diff');
 const JSON_MODE = process.argv.includes('--json');
 const FEATURE_FLAG = process.argv.find(a => a.startsWith('--feature='));
 const FEATURE_FILTER = FEATURE_FLAG ? FEATURE_FLAG.split('=')[1].toUpperCase() : null;
-const OUTPUT_INDEX = process.argv.indexOf('--output');
-const OUTPUT_PATH = OUTPUT_INDEX >= 0 && process.argv[OUTPUT_INDEX + 1]
-  ? resolve(process.argv[OUTPUT_INDEX + 1])
-  : null;
+
+function parseOutputPath(argv) {
+  const indices = argv.flatMap((value, index) => value === '--output' ? [index] : []);
+  if (indices.length === 0) return null;
+  if (indices.length > 1) throw new Error('--output may only be supplied once');
+  const value = argv[indices[0] + 1];
+  if (!value || value.startsWith('-')) throw new Error('--output requires a path');
+  return resolve(value);
+}
+
+let OUTPUT_PATH = null;
+let OUTPUT_ARGUMENT_ERROR = null;
+try {
+  OUTPUT_PATH = parseOutputPath(process.argv);
+} catch (cause) {
+  OUTPUT_ARGUMENT_ERROR = cause.message;
+}
 
 // Allow install-and-verify.js to point this script at the installed binary
 const SIDECAR_PATH = process.env.SEMBLANCE_SIDECAR_OVERRIDE ||
@@ -947,8 +960,8 @@ function diffReport(current, previous) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  if (OUTPUT_INDEX >= 0 && !OUTPUT_PATH) {
-    console.error('Missing path after --output');
+  if (OUTPUT_ARGUMENT_ERROR) {
+    console.error(`ARGUMENT_INVALID: ${OUTPUT_ARGUMENT_ERROR}`);
     process.exit(1);
   }
   const date = new Date().toISOString().replace('T', ' ').slice(0, 19);
