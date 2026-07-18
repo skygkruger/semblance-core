@@ -26,6 +26,12 @@ pub fn parse_gateway_ready_line(line: &str) -> Option<u32> {
         .and_then(|pid| pid.trim().parse().ok())
 }
 
+/// Parsed from model stdout: `MODEL_READY <pid>`.
+pub fn parse_model_ready_line(line: &str) -> Option<u32> {
+    line.strip_prefix("MODEL_READY ")
+        .and_then(|pid| pid.trim().parse().ok())
+}
+
 pub fn inprocess_transport_allowed(project_root: &Path) -> bool {
     if std::env::var("SEMBLANCE_INPROCESS_TRANSPORT").ok().as_deref() != Some("1") {
         return false;
@@ -69,10 +75,14 @@ pub struct RuntimeSpawnState {
     pub core_child: Arc<Mutex<Option<Child>>>,
     #[allow(dead_code)]
     pub gateway_child: Arc<Mutex<Option<Child>>>,
+    #[allow(dead_code)]
+    pub model_child: Arc<Mutex<Option<Child>>>,
     pub core_pid: Arc<Mutex<Option<u32>>>,
     pub gateway_pid: Arc<Mutex<Option<u32>>>,
+    pub model_pid: Arc<Mutex<Option<u32>>>,
     pub core_ready: Arc<Mutex<bool>>,
     pub gateway_ready: Arc<Mutex<bool>>,
+    pub model_ready: Arc<Mutex<bool>>,
     pub core_ipc_path: Arc<Mutex<Option<String>>>,
 }
 
@@ -81,10 +91,13 @@ impl RuntimeSpawnState {
         Self {
             core_child: Arc::new(Mutex::new(None)),
             gateway_child: Arc::new(Mutex::new(None)),
+            model_child: Arc::new(Mutex::new(None)),
             core_pid: Arc::new(Mutex::new(None)),
             gateway_pid: Arc::new(Mutex::new(None)),
+            model_pid: Arc::new(Mutex::new(None)),
             core_ready: Arc::new(Mutex::new(false)),
             gateway_ready: Arc::new(Mutex::new(false)),
+            model_ready: Arc::new(Mutex::new(false)),
             core_ipc_path: Arc::new(Mutex::new(None)),
         }
     }
@@ -145,6 +158,20 @@ pub async fn spawn_supervised_runtimes(
         &config.node_path,
         &gateway_script,
         gateway_env,
+        state.clone(),
+    )
+    .await?;
+
+    let model_script = resolve_runtime_script(
+        &config.sidecar_dir,
+        config.project_root,
+        "runtime-model-bridge",
+    )?;
+    let model_env = runtime_env_map(&config.kernel_socket_path, None, config.allow_inprocess);
+    spawn_model_child(
+        &config.node_path,
+        &model_script,
+        model_env,
         state,
     )
     .await?;
@@ -241,6 +268,50 @@ async fn spawn_gateway_child(
     });
 
     wait_for_flag(state.gateway_ready.clone(), "GATEWAY_READY", 60).await
+}
+
+async fn spawn_model_child(
+    node_path: &Path,
+    script: &ResolvedRuntimeScript,
+    env: HashMap<String, String>,
+    state: Arc<RuntimeSpawnState>,
+) -> Result<(), String> {
+    let mut child = build_runtime_command(node_path, script, env)
+        .spawn()
+        .map_err(|e| {
+            format!(
+                "Failed to spawn model runtime {:?}: {}",
+                script.script_arg, e
+            )
+        })?;
+
+    *state.model_pid.lock().await = child.id();
+    let stdout = child.stdout.take().ok_or("Failed to take model stdout")?;
+    let stderr = child.stderr.take().ok_or("Failed to take model stderr")?;
+    *state.model_child.lock().await = Some(child);
+
+    let ready_flag = state.model_ready.clone();
+    tauri::async_runtime::spawn(async move {
+        let reader = BufReader::new(stdout);
+        let mut lines = reader.lines();
+        while let Ok(Some(line)) = lines.next_line().await {
+            if let Some(reported_pid) = parse_model_ready_line(&line) {
+                eprintln!("[supervisor] Model ready pid={}", reported_pid);
+                *ready_flag.lock().await = true;
+                break;
+            }
+        }
+    });
+
+    tauri::async_runtime::spawn(async move {
+        let reader = BufReader::new(stderr);
+        let mut lines = reader.lines();
+        while let Ok(Some(line)) = lines.next_line().await {
+            eprintln!("[runtime-model] {}", line);
+        }
+    });
+
+    wait_for_flag(state.model_ready.clone(), "MODEL_READY", 60).await
 }
 
 fn build_runtime_command(
@@ -355,7 +426,7 @@ fn resolve_runtime_script(
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_core_ready_line, parse_gateway_ready_line};
+    use super::{parse_core_ready_line, parse_gateway_ready_line, parse_model_ready_line};
 
     #[test]
     fn parse_core_ready_extracts_pid_and_ipc() {
@@ -368,5 +439,10 @@ mod tests {
     #[test]
     fn parse_gateway_ready_extracts_pid() {
         assert_eq!(parse_gateway_ready_line("GATEWAY_READY 67890"), Some(67890));
+    }
+
+    #[test]
+    fn parse_model_ready_extracts_pid() {
+        assert_eq!(parse_model_ready_line("MODEL_READY 24680"), Some(24680));
     }
 }

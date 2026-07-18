@@ -5,7 +5,7 @@ import { decodeRuntimeRpcMessage, encodeRuntimeRpcMessage } from './framing.js';
 
 export interface KernelHandshakeOptions {
   socketPath: string;
-  processType: Extract<ProcessType, 'core' | 'gateway'>;
+  processType: Extract<ProcessType, 'core' | 'gateway' | 'model'>;
   processId: string;
   buildHash: string;
   policyEpoch: number;

@@ -30,8 +30,10 @@ pub struct SupervisorStatus {
     pub kernel_socket_path: Option<String>,
     pub core_pid: Option<u32>,
     pub gateway_pid: Option<u32>,
+    pub model_pid: Option<u32>,
     pub core_ready: bool,
     pub gateway_ready: bool,
+    pub model_ready: bool,
     pub core_ipc_path: Option<String>,
     /// True when core and gateway are both ready with different PIDs.
     pub distinct: bool,
@@ -226,8 +228,10 @@ impl SovereignSupervisor {
     pub async fn status(&self, sidecar_separate: bool) -> SupervisorStatus {
         let core_pid = *self.runtime_state.core_pid.lock().await;
         let gateway_pid = *self.runtime_state.gateway_pid.lock().await;
+        let model_pid = *self.runtime_state.model_pid.lock().await;
         let core_ready = *self.runtime_state.core_ready.lock().await;
         let gateway_ready = *self.runtime_state.gateway_ready.lock().await;
+        let model_ready = *self.runtime_state.model_ready.lock().await;
         let distinct = core_ready
             && gateway_ready
             && core_pid.is_some()
@@ -240,8 +244,10 @@ impl SovereignSupervisor {
             kernel_socket_path: self.kernel_socket_path.lock().await.clone(),
             core_pid,
             gateway_pid,
+            model_pid,
             core_ready,
             gateway_ready,
+            model_ready,
             core_ipc_path: self.runtime_state.core_ipc_path.lock().await.clone(),
             distinct,
             sidecar_separate,
@@ -306,6 +312,7 @@ impl RuntimeSpawnHandle {
 
         let core_pid = *self.runtime_state.core_pid.lock().await;
         let gateway_pid = *self.runtime_state.gateway_pid.lock().await;
+        let model_pid = *self.runtime_state.model_pid.lock().await;
         if core_pid.is_some() && gateway_pid.is_some() && core_pid == gateway_pid {
             return Err(format!(
                 "Process isolation violation: core and gateway share PID {:?}",
@@ -314,9 +321,10 @@ impl RuntimeSpawnHandle {
         }
 
         eprintln!(
-            "[supervisor] Supervised runtimes ready — core_pid={:?} gateway_pid={:?} distinct={}",
+            "[supervisor] Supervised runtimes ready — core_pid={:?} gateway_pid={:?} model_pid={:?} distinct={}",
             core_pid,
             gateway_pid,
+            model_pid,
             core_pid != gateway_pid
         );
 

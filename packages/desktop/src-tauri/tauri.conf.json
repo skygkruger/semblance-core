@@ -7,7 +7,7 @@
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "cd ../.. && npx tsc --build && cd packages/desktop && npm run build && node ../../scripts/bundle-sidecar.js && node ../../scripts/bundle-kernel-bridge.js && node ../../scripts/bundle-runtime-core.js && node ../../scripts/bundle-runtime-gateway.js"
+    "beforeBuildCommand": "cd ../.. && npx tsc --build && cd packages/desktop && npm run build && node ../../scripts/bundle-sidecar.js && node ../../scripts/bundle-kernel-bridge.js && node ../../scripts/bundle-runtime-core.js && node ../../scripts/bundle-runtime-gateway.js && node ../../scripts/bundle-runtime-model.js"
   },
   "app": {
     "windows": [
@@ -46,6 +46,7 @@
       "sidecar/kernel-bridge.cjs",
       "sidecar/runtime-core-bridge.cjs",
       "sidecar/runtime-gateway-bridge.cjs",
+      "sidecar/runtime-model-bridge.cjs",
       "sidecar/node_modules/**/*"
     ],
     "category": "Productivity",

@@ -1,0 +1,36 @@
+{
+  "name": "@semblance/runtime-model",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Supervised model runtime process — network-incapable local inference host",
+  "type": "module",
+  "main": "src/main.ts",
+  "types": "src/main.ts",
+  "exports": {
+    ".": {
+      "import": "./src/main.ts"
+    },
+    "./inventory": {
+      "import": "./src/inventory.ts"
+    },
+    "./resource-limits": {
+      "import": "./src/resource-limits.ts"
+    },
+    "./memory-clear": {
+      "import": "./src/memory-clear.ts"
+    },
+    "./network-policy": {
+      "import": "./src/network-policy.ts"
+    }
+  },
+  "scripts": {
+    "build": "node -e \"console.log('@semblance/runtime-model: bundled via scripts/bundle-runtime-model.js')\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@semblance/protocol": "workspace:*",
+    "@semblance/runtime-shared": "workspace:*"
+  },
+  "license": "MIT"
+}
