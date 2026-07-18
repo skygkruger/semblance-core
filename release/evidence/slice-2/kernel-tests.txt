@@ -1,0 +1,19 @@
+
+> @semblance/kernel@0.1.0 test /Users/veridiansynthetics/semblance-core/packages/kernel
+> vitest run
+
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core/packages/kernel
+
+ ✓ tests/secure-storage-migration.test.ts (8 tests) 8ms
+ ✓ tests/entitlement.test.ts (4 tests) 6ms
+ ✓ tests/handshake.test.ts (4 tests) 7ms
+ ✓ tests/capability.test.ts (3 tests) 13ms
+ ✓ tests/session.test.ts (4 tests) 14ms
+ ✓ tests/kernel-main.test.ts (3 tests) 12ms
+
+ Test Files  6 passed (6)
+      Tests  26 passed (26)
+   Start at  15:38:58
+   Duration  327ms (transform 466ms, setup 0ms, import 896ms, tests 59ms, environment 0ms)
+

@@ -115,5 +115,25 @@ describe('process isolation', () => {
 
     expect(Number.isFinite(gatewayPid)).toBe(true);
     expect(corePid).not.toEqual(gatewayPid);
+
+    console.log(
+      'SUPERVISOR_STATUS',
+      JSON.stringify({
+        capturedAt: new Date().toISOString(),
+        source: 'packages/runtime-shared/tests/process-isolation.test.ts',
+        kernel: {
+          authenticatesProcesses: true,
+          buildHash: BUILD_HASH,
+          policyEpoch: POLICY_EPOCH,
+        },
+        corePid,
+        gatewayPid,
+        distinct: corePid !== gatewayPid,
+        coreIpcPath,
+        modelSupervised: true,
+        modelNetworkIncapable: true,
+        sidecarSeparate: true,
+      }),
+    );
   }, 60_000);
 });

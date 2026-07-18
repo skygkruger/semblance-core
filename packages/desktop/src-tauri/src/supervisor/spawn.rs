@@ -10,6 +10,8 @@ use tokio::sync::Mutex;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
+use crate::runtime_node::resolve_runtime_node;
+
 use super::health::{query_kernel_readiness, KernelReadinessSnapshot};
 use super::runtime::{
     inprocess_transport_allowed, spawn_supervised_runtimes, RuntimeSpawnConfig, RuntimeSpawnState,
@@ -95,9 +97,7 @@ impl SovereignSupervisor {
         };
 
         let (node_path, script_path, working_dir) = if bundled_kernel.exists() {
-            let node = which_node().ok_or(
-                "Node.js not found. Install Node.js 20+ to run the sovereignty kernel.",
-            )?;
+            let node = resolve_runtime_node(Some(&app_handle), &project_root)?;
             let sidecar_dir = bundled_kernel
                 .parent()
                 .unwrap_or(&exe_dir)
@@ -290,11 +290,10 @@ struct RuntimeSpawnHandle {
 
 impl RuntimeSpawnHandle {
     async fn spawn_runtimes_after_kernel(&self, kernel_socket_path: &str) -> Result<(), String> {
-        let node_path = self
-            .node_path
-            .clone()
-            .or_else(which_node)
-            .ok_or_else(|| "Node.js not found for supervised runtime spawn".to_string())?;
+        let node_path = match self.node_path.clone() {
+            Some(path) => path,
+            None => resolve_runtime_node(None, &self.project_root)?,
+        };
 
         let allow_inprocess = inprocess_transport_allowed(&self.project_root);
 
@@ -330,30 +329,6 @@ impl RuntimeSpawnHandle {
 
         Ok(())
     }
-}
-
-fn which_node() -> Option<PathBuf> {
-    #[cfg(windows)]
-    let candidates = ["node.exe"];
-    #[cfg(not(windows))]
-    let candidates = ["node"];
-
-    if let Ok(path_var) = std::env::var("PATH") {
-        #[cfg(windows)]
-        let separator = ';';
-        #[cfg(not(windows))]
-        let separator = ':';
-
-        for dir in path_var.split(separator) {
-            for name in &candidates {
-                let full = PathBuf::from(dir).join(name);
-                if full.exists() {
-                    return Some(full);
-                }
-            }
-        }
-    }
-    None
 }
 
 #[cfg(test)]

@@ -39,6 +39,8 @@ packages/desktop/src-tauri/target/
 packages/desktop/src-tauri/gen/
 packages/desktop/src-tauri/WixTools/
 packages/desktop/src-tauri/Frameworks/
+packages/desktop/src-tauri/runtimes/*/node
+packages/desktop/src-tauri/runtimes/*/node.exe
 
 # React Native
 packages/mobile/ios/Pods/
@@ -112,6 +114,7 @@ scripts/**/*.d.ts.map
 !scripts/bundle-runtime-core.js
 !scripts/bundle-runtime-gateway.js
 !scripts/bundle-runtime-model.js
+!scripts/bundle-runtimes.js
 !scripts/esbuild-import-meta-url-shim.js
 !scripts/privacy-audit/*.js
 !scripts/semblance-verify.js

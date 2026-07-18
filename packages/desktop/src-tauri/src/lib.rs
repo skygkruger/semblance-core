@@ -28,6 +28,7 @@ use std::os::windows::process::CommandExt;
 mod deep_link;
 mod hardware;
 mod native_runtime;
+mod runtime_node;
 mod secure_storage;
 mod supervisor;
 use native_runtime::RuntimeStatus;
@@ -204,8 +205,8 @@ impl SidecarBridge {
         };
 
         let (node_path, script_path, working_dir) = if bundled_bridge.exists() {
-            // Production mode: bundled bridge.cjs, use system node
-            let node = which_node().ok_or("Node.js not found. Install Node.js 20+ to run Semblance.")?;
+            // Production mode: bundled bridge.cjs + bundled Node runtime
+            let node = runtime_node::resolve_runtime_node(Some(&app_handle), &project_root)?;
             let sidecar_dir = bundled_bridge.parent().unwrap_or(&exe_dir).to_path_buf();
             // Normalize all paths (strip UNC prefix if present) to avoid Node arg parsing bugs.
             let node = strip_unc(node);
@@ -3425,31 +3426,6 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-/// Find Node.js binary on the system PATH.
-fn which_node() -> Option<PathBuf> {
-    #[cfg(windows)]
-    let candidates = ["node.exe"];
-    #[cfg(not(windows))]
-    let candidates = ["node"];
-
-    if let Ok(path_var) = std::env::var("PATH") {
-        #[cfg(windows)]
-        let separator = ';';
-        #[cfg(not(windows))]
-        let separator = ':';
-
-        for dir in path_var.split(separator) {
-            for name in &candidates {
-                let full = PathBuf::from(dir).join(name);
-                if full.exists() {
-                    return Some(full);
-                }
-            }
-        }
-    }
-    None
 }
 
 /// Walk up directory tree to find the project root (contains package.json with "workspaces").

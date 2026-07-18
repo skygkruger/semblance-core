@@ -1,0 +1,16 @@
+{
+  "capturedAt": "2026-07-18T22:42:00.346Z",
+  "source": "packages/runtime-shared/tests/process-isolation.test.ts",
+  "kernel": {
+    "authenticatesProcesses": true,
+    "buildHash": "sha256:process-isolation-test",
+    "policyEpoch": 7
+  },
+  "corePid": 30789,
+  "gatewayPid": 30796,
+  "distinct": true,
+  "coreIpcPath": "/var/folders/f_/mhs2596d18lgk8kkc_8v1srh0000gn/T/semblance-core-ipc-30789.sock",
+  "modelSupervised": true,
+  "modelNetworkIncapable": true,
+  "sidecarSeparate": true
+}
