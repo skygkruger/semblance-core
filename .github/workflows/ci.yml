@@ -25,6 +25,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
+      - name: Verify release truth baseline
+        run: pnpm release:verify:schema
 
   test:
     name: Test Suite

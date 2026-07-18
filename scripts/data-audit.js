@@ -27,6 +27,10 @@ const fs = require('fs');
 const JSON_MODE   = process.argv.includes('--json');
 const STRICT_MODE = process.argv.includes('--strict');
 const VERBOSE     = process.argv.includes('--verbose');
+const OUTPUT_INDEX = process.argv.indexOf('--output');
+const OUTPUT_PATH = OUTPUT_INDEX >= 0 && process.argv[OUTPUT_INDEX + 1]
+  ? path.resolve(process.argv[OUTPUT_INDEX + 1])
+  : null;
 
 const HOME             = os.homedir();
 const SEMBLANCE_DATA   = path.join(HOME, '.semblance', 'data');
@@ -385,6 +389,10 @@ function saveState() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  if (OUTPUT_INDEX >= 0 && !OUTPUT_PATH) {
+    console.error('Missing path after --output');
+    process.exit(2);
+  }
   if (!JSON_MODE) {
     print();
     print(bold('\x1b[36mSEMBLANCE DATA AUDIT\x1b[0m'));
@@ -403,6 +411,10 @@ async function main() {
 
   renderVerdict(gaps, stubs);
   saveState();
+  if (OUTPUT_PATH) {
+    fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
+    fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(report, null, 2)}\n`);
+  }
 
   if (JSON_MODE) console.log(JSON.stringify(report, null, 2));
   process.exit(STRICT_MODE && (gaps.length > 0 || stubs.length > 0) ? 1 : 0);

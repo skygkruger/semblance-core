@@ -19,7 +19,7 @@
 'use strict';
 
 const { spawn } = require('child_process');
-const { join } = require('path');
+const { dirname, join, resolve } = require('path');
 const { writeFileSync, readFileSync, existsSync, mkdirSync } = require('fs');
 const os = require('os');
 
@@ -28,6 +28,10 @@ const DIFF_MODE = process.argv.includes('--diff');
 const JSON_MODE = process.argv.includes('--json');
 const FEATURE_FLAG = process.argv.find(a => a.startsWith('--feature='));
 const FEATURE_FILTER = FEATURE_FLAG ? FEATURE_FLAG.split('=')[1].toUpperCase() : null;
+const OUTPUT_INDEX = process.argv.indexOf('--output');
+const OUTPUT_PATH = OUTPUT_INDEX >= 0 && process.argv[OUTPUT_INDEX + 1]
+  ? resolve(process.argv[OUTPUT_INDEX + 1])
+  : null;
 
 // Allow install-and-verify.js to point this script at the installed binary
 const SIDECAR_PATH = process.env.SEMBLANCE_SIDECAR_OVERRIDE ||
@@ -37,6 +41,12 @@ const STATE_DIR = join(__dirname, '..', '.semblance-verify');
 const STATE_FILE = join(STATE_DIR, 'last-run.json');
 
 if (!existsSync(STATE_DIR)) mkdirSync(STATE_DIR, { recursive: true });
+
+function writeMachineOutput(report) {
+  if (!OUTPUT_PATH) return;
+  mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
+  writeFileSync(OUTPUT_PATH, `${JSON.stringify(report, null, 2)}\n`);
+}
 
 // ─── Sidecar Control ──────────────────────────────────────────────────────────
 
@@ -937,6 +947,10 @@ function diffReport(current, previous) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  if (OUTPUT_INDEX >= 0 && !OUTPUT_PATH) {
+    console.error('Missing path after --output');
+    process.exit(1);
+  }
   const date = new Date().toISOString().replace('T', ' ').slice(0, 19);
   console.log('\n' + '═'.repeat(55));
   console.log('  SEMBLANCE VERIFICATION — Starting sidecar...');
@@ -951,6 +965,16 @@ async function main() {
     console.log('\n  ❌ SIDECAR FAILED TO INITIALIZE\n');
     console.log('  Last sidecar stderr:');
     stderrLines.slice(-20).forEach(l => console.log('  ' + l));
+    writeMachineOutput({
+      allFeatures: [],
+      totalPass: 0,
+      totalTests: 0,
+      p0Pass: false,
+      p1Pass: false,
+      buildReady: false,
+      date,
+      fatalError: 'SIDECAR_FAILED_TO_INITIALIZE',
+    });
     killSidecar();
     process.exit(1);
   }
@@ -983,6 +1007,7 @@ async function main() {
   // Also write latest.json for machine consumption (update-state.js)
   const LATEST_FILE = join(STATE_DIR, 'latest.json');
   writeFileSync(LATEST_FILE, JSON.stringify(report, null, 2));
+  writeMachineOutput(report);
 
   if (JSON_MODE) {
     // Machine-readable output — consumed by scripts/update-state.js
@@ -1000,6 +1025,16 @@ async function main() {
 
 main().catch((err) => {
   console.error('\n💀 Verification script crashed:', err.message);
+  writeMachineOutput({
+    allFeatures: [],
+    totalPass: 0,
+    totalTests: 0,
+    p0Pass: false,
+    p1Pass: false,
+    buildReady: false,
+    date: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    fatalError: err.message,
+  });
   killSidecar();
   process.exit(1);
 });

@@ -19,6 +19,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check out pinned representative source
+        uses: actions/checkout@v4
+        with:
+          repository: skygkruger/semblence-representative
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN }}
+          path: representative
+      - name: Check out pinned website source
+        uses: actions/checkout@v4
+        with:
+          repository: skygkruger/semblance-run
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN }}
+          path: website
       - uses: pnpm/action-setup@v4
         with:
           version: 9
@@ -31,6 +43,14 @@ jobs:
       # Exclude startup-smoke (needs bundled sidecar + model files, macOS only)
       - run: pnpm exec vitest run --exclude '**/startup-smoke*'
       - run: node scripts/privacy-audit/index.js
+      - name: Verify pinned release artifacts and legal version
+        run: >-
+          node scripts/release-manifest.js --verify
+          --core-repo "$GITHUB_WORKSPACE"
+          --representative-repo "$GITHUB_WORKSPACE/representative"
+          --website-repo "$GITHUB_WORKSPACE/website"
+          --artifact-root "$GITHUB_WORKSPACE/release/artifacts"
+          --require-legal-version
 
   # ─── macOS Universal Binary ──────────────────────────────────────────────────
   build-macos:
