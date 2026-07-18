@@ -16,6 +16,15 @@ export class SessionStore {
     this.usedNonces.add(nonce);
   }
 
+  /** Atomically reserve a nonce. Returns false if already used (replay). */
+  reserveNonce(nonce: string): boolean {
+    if (this.usedNonces.has(nonce)) {
+      return false;
+    }
+    this.usedNonces.add(nonce);
+    return true;
+  }
+
   put(session: StoredSession): void {
     this.sessions.set(session.sessionId, session);
   }

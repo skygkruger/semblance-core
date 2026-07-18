@@ -72,7 +72,8 @@ export function createKernelIpcHandlers(context: KernelIpcContext): KernelIpcHan
         );
       }
 
-      if (context.sessions.hasNonce(hello.nonce)) {
+      // Reserve before any await so concurrent identical nonces cannot both succeed.
+      if (!context.sessions.reserveNonce(hello.nonce)) {
         throw new KernelError('REPLAYED_NONCE', `Nonce "${hello.nonce}" was already used`);
       }
 
@@ -98,7 +99,6 @@ export function createKernelIpcHandlers(context: KernelIpcContext): KernelIpcHan
         kernelSignature,
       });
 
-      context.sessions.markNonceUsed(hello.nonce);
       context.sessions.put({
         ...session,
         issuedAtMs: Date.now(),

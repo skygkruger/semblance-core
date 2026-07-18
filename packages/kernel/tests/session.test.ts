@@ -44,6 +44,28 @@ describe('kernel session lifecycle', () => {
     } satisfies Partial<KernelError>);
   });
 
+  it('rejects concurrent handshakes that reuse the same nonce', async () => {
+    const kernel = await createKernel({
+      keyStore: createMemoryKeyStore(),
+      buildHash: BUILD_HASH,
+      policyEpoch: POLICY_EPOCH,
+    });
+
+    const nonce = `nonce-${crypto.randomUUID()}`;
+    const results = await Promise.allSettled([
+      issueSession(kernel, nonce),
+      issueSession(kernel, nonce),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === 'fulfilled');
+    const rejected = results.filter((r) => r.status === 'rejected');
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({
+      code: 'REPLAYED_NONCE',
+    });
+  });
+
   it('rejects expired session validation', async () => {
     const kernel = await createKernel({
       keyStore: createMemoryKeyStore(),
