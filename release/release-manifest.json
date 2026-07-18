@@ -4,8 +4,8 @@
   "generatedAt": "2026-07-18T22:42:30Z",
   "repositories": {
     "core": {
-      "sourceCommit": "d36185a26595bc73697db32eeefb57fed7388c3e",
-      "sourceTreeHash": "dbdb5e27bc6b9e0c9517b95e86dae4f5cf8ceb05"
+      "sourceCommit": "e2d239a58601c465a43c4b227718874ff6a8618f",
+      "sourceTreeHash": "ecacf3d44f3f8c7eca5e87efb1afe45f279dc66a"
     },
     "representative": {
       "sourceCommit": "dcd6d71dcc7d6d367d4e6626635e16744185de4d",
