@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-18T17:05:00.000Z",
+  "releaseManifest": "release/release-manifest.json",
+  "claims": [
+    {
+      "featureId": "release-evidence-schema",
+      "claim": "The release and feature evidence contract is specified.",
+      "state": "Specified",
+      "evidenceIds": []
+    }
+  ]
+}

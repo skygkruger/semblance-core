@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "truth-baseline-2026-07-18",
+  "generatedAt": "2026-07-18T17:05:00.000Z",
+  "repositories": {
+    "core": {
+      "sourceCommit": "07673b1c5a17341407f6710fa79a4ba40453a3d0",
+      "sourceTreeHash": "b8e2c9c9cb988465cf30d4e638fc3e557c7223d4"
+    },
+    "representative": {
+      "sourceCommit": "81e37b125d691f822a5131e94ae3ee1e0f7adeae",
+      "sourceTreeHash": "01c04c506c1736a3547d717347d2258ba1b1aec7",
+      "packageVersion": "0.1.0",
+      "artifactHash": null,
+      "extensionManifestHash": null
+    },
+    "website": {
+      "sourceCommit": "cc796b46fff6e681bcb49248e93630c66e631988",
+      "sourceTreeHash": "8a76cb2670a718c521c373739b4d8754f52778a6"
+    }
+  },
+  "signedArtifacts": [],
+  "evidence": [],
+  "commerce": {
+    "newSalesEnabled": false,
+    "freezeEvidence": []
+  },
+  "protocolVersions": {
+    "releaseEvidence": 1
+  },
+  "modelRuntimeHashes": [],
+  "confidentialWorkloadMeasurements": [],
+  "infrastructurePolicyVersions": [],
+  "legalNoticesVersion": "unversioned",
+  "completedSlices": [],
+  "features": [
+    {
+      "id": "release-evidence-schema",
+      "name": "Release and feature evidence schema",
+      "repository": "core",
+      "state": "Specified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [],
+      "protocolVersions": {
+        "releaseEvidence": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "unversioned",
+      "representativePins": null
+    }
+  ],
+  "signatureKeyId": "",
+  "signature": ""
+}
