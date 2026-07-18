@@ -25,6 +25,7 @@ use tokio::sync::{oneshot, Mutex};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
+mod deep_link;
 mod hardware;
 mod native_runtime;
 use native_runtime::RuntimeStatus;
@@ -3023,20 +3024,22 @@ pub fn run() {
                 // The payload is a JSON string containing the URL(s)
                 if let Ok(urls) = serde_json::from_str::<Vec<String>>(payload_str) {
                     for url in urls {
-                        // Reservation links import recovery data; sem_ links still activate paid keys.
-                        if url.starts_with("semblance://activate") || url.starts_with("semblance://reservation/import") {
-                            if let Ok(parsed) = url::Url::parse(&url.replace("semblance://", "https://")) {
-                                // License key activation (sem_ format)
-                                if let Some(key) = parsed.query_pairs().find(|(k, _)| k == "key").map(|(_, v)| v.to_string()) {
-                                    eprintln!("[tauri] Deep link received: license key activation");
-                                    let _ = app_for_deeplink.emit("license-activate", serde_json::json!({ "key": key }));
-                                }
-                                // Legacy founding JWT maps only to reservation recovery.
-                                else if let Some(token) = parsed.query_pairs().find(|(k, _)| k == "token").map(|(_, v)| v.to_string()) {
-                                    eprintln!("[tauri] Deep link received: reservation import");
-                                    let _ = app_for_deeplink.emit("reservation-import", serde_json::json!({ "token": token }));
-                                }
+                        match deep_link::parse_deep_link(&url) {
+                            Some(deep_link::DeepLinkAction::ActivateLicense(key)) => {
+                                eprintln!("[tauri] Deep link received: license key activation");
+                                let _ = app_for_deeplink.emit(
+                                    "license-activate",
+                                    serde_json::json!({ "key": key }),
+                                );
                             }
+                            Some(deep_link::DeepLinkAction::ImportReservation(token)) => {
+                                eprintln!("[tauri] Deep link received: reservation import");
+                                let _ = app_for_deeplink.emit(
+                                    "reservation-import",
+                                    serde_json::json!({ "token": token }),
+                                );
+                            }
+                            None => {}
                         }
                     }
                 }

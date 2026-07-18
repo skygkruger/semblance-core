@@ -18,6 +18,11 @@ import type { AppState } from '../state/AppState';
 import { getLicenseStatus, activateLicenseKey, importFoundingReservation } from '../ipc/commands';
 import type { ActivationResult, ReservationImportResult } from '../ipc/types';
 import releaseManifest from '../../../../release/release-manifest.json';
+import {
+  openCheckout as openCheckoutUrl,
+  requestPortalUrl,
+  type CheckoutPlan,
+} from './license-commerce';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -37,16 +42,6 @@ export interface LicenseContextValue {
   manageSubscription: () => void;
   refresh: () => Promise<void>;
 }
-
-// ─── Payment Links ──────────────────────────────────────────────────────
-
-const PAYMENT_LINKS: Record<'monthly' | 'founding' | 'lifetime', string> = {
-  monthly: 'https://buy.stripe.com/7sYcN6dS98Ob7TYc4a1VK03',
-  founding: 'https://buy.stripe.com/5kQ8wQ8xP2pN1vA0ls1VK04',
-  lifetime: 'https://buy.stripe.com/8x23cw6pH7K71vAfgm1VK05',
-};
-
-const WORKER_URL = 'https://semblance-license-worker.conduit-gw.workers.dev';
 
 // ─── Context ────────────────────────────────────────────────────────────
 
@@ -121,43 +116,36 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const openCheckout = useCallback((plan: 'monthly' | 'founding' | 'lifetime') => {
-    if (!releaseManifest.commerce.newSalesEnabled) return;
-    const url = PAYMENT_LINKS[plan];
+  const openExternal = useCallback((url: string) => {
     import('@tauri-apps/plugin-shell').then((shell) => {
-      shell.open(url);
+      void shell.open(url);
     }).catch(() => {
       // Fallback for environments without shell plugin
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
     });
   }, []);
+
+  const openCheckout = useCallback((plan: CheckoutPlan) => {
+    openCheckoutUrl(
+      plan,
+      releaseManifest.commerce.newSalesEnabled,
+      openExternal,
+    );
+  }, [openExternal]);
 
   const manageSubscription = useCallback(() => {
     if (!licenseKey) return;
 
-    // Request a Stripe Billing Portal session from the license worker.
-    // The worker returns a portal URL which we open in the system browser.
-    // This fetch is intentional — it goes to our own infrastructure, not
-    // arbitrary network. The response is a single URL string, not user data.
-    fetch(`${WORKER_URL}/portal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ licenseKey }),
-    })
-      .then((res) => res.json() as Promise<{ url?: string; error?: string }>)
-      .then((data) => {
-        if (data.url) {
-          import('@tauri-apps/plugin-shell').then((shell) => {
-            shell.open(data.url!);
-          }).catch(() => {
-            window.open(data.url, '_blank');
-          });
+    requestPortalUrl(licenseKey)
+      .then((approvedUrl) => {
+        if (approvedUrl) {
+          openExternal(approvedUrl);
         }
       })
       .catch(() => {
         // Portal unavailable — silently fail, user can manage at stripe.com directly
       });
-  }, [licenseKey]);
+  }, [licenseKey, openExternal]);
 
   const value = useMemo((): LicenseContextValue => ({
     tier,

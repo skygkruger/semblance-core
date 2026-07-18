@@ -93,16 +93,14 @@ describe('verifyFoundingToken: Reservation import deep links', () => {
     expect(result.seat).toBe(1);
   });
 
-  it('maps the legacy activation URL to reservation import without entitlement fields', () => {
+  it('rejects the paid activation route for reservation tokens', () => {
     const url = `  semblance://activate?tier=founding&token=${VALID_TOKEN_SEAT_500}  `;
     const result = verifyFoundingToken(url);
-    expect(result.valid).toBe(true);
-    expect(result.seat).toBe(500);
-    expect(result).not.toHaveProperty('tier');
+    expect(result.valid).toBe(false);
   });
 
-  it('rejects a deep link URL without a token parameter', () => {
-    const url = 'semblance://activate?tier=founding';
+  it('rejects ambiguous reservation import parameters', () => {
+    const url = `semblance://reservation/import?token=${VALID_TOKEN_SEAT_1}&key=sem_paid`;
     const result = verifyFoundingToken(url);
     expect(result.valid).toBe(false);
   });

@@ -2,7 +2,7 @@
  * Founding Reservation Import — Integration / Wiring Tests
  *
  * Validates the full stack wiring: deep link → Rust handler → sidecar bridge →
- * reservation verification → encrypted reservation storage without entitlement.
+ * reservation verification → hash-only reservation storage without entitlement.
  *
  * These are structural wiring tests that verify files contain the correct
  * integration points. Actual deep link testing requires a running Tauri app.
@@ -57,9 +57,6 @@ describe('Phase 1: Founding Token Module', () => {
     expect(foundingTokenContent).toContain('500');
   });
 
-  it('founding-token.ts accepts reservation import deep links', () => {
-    expect(foundingTokenContent).toContain('semblance://reservation/import');
-  });
 });
 
 describe('Phase 1b: PremiumGate Founding Extension', () => {
@@ -122,10 +119,6 @@ describe('Phase 2: Tauri Deep Link Plugin', () => {
   it('lib.rs emits reservation-import event to frontend', () => {
     expect(libContent).toContain('reservation-import');
     expect(libContent).not.toContain('founding-activate');
-  });
-
-  it('lib.rs parses token from semblance://activate URL', () => {
-    expect(libContent).toContain('semblance://activate');
   });
 
   it('import_founding_reservation Tauri command exists', () => {

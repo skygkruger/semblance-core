@@ -73,16 +73,20 @@ function base64urlDecode(str: string): Buffer {
 export function verifyFoundingToken(token: string): ReservationVerification {
   // Strip deep link URL prefix if pasted as full URL
   let jwt = token.trim();
-  const isDeepLink =
-    jwt.startsWith('semblance://reservation/import?')
-    || jwt.startsWith('semblance://activate?');
-  if (isDeepLink) {
+  if (jwt.startsWith('semblance:')) {
     try {
-      const url = new URL(jwt.replace('semblance://', 'https://'));
+      const url = new URL(jwt);
       const tokenParam = url.searchParams.get('token');
-      if (tokenParam) {
-        jwt = tokenParam;
+      if (
+        url.hostname !== 'reservation'
+        || url.pathname !== '/import'
+        || url.searchParams.size !== 1
+        || !tokenParam
+        || tokenParam.startsWith('sem_')
+      ) {
+        return invalid('Invalid reservation import URL');
       }
+      jwt = tokenParam;
     } catch {
       return invalid('Invalid deep link URL format');
     }

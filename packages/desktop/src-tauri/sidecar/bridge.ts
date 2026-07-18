@@ -57,7 +57,6 @@ import {
   CalendarAdapter,
   PROVIDER_PRESETS,
 } from '../../../gateway/index.js';
-import { FileKeyStorage } from '../../../gateway/credentials/key-storage.js';
 import type { ServiceCredential } from '../../../gateway/credentials/types.js';
 import { EmailIndexer, type RawEmailMessage } from '../../../core/knowledge/email-indexer.js';
 import { CalendarIndexer } from '../../../core/knowledge/calendar-indexer.js';
@@ -755,19 +754,16 @@ async function handleInitialize(): Promise<unknown> {
   // Initialize PremiumGate and ConversationManager only if prefsDb opened successfully
   if (prefsDb) {
     // The reservation split must complete before PremiumGate can read authoritative
-    // entitlement. The key follows the existing credential secure-storage migration
-    // boundary; the file implementation is retained only for sidecar/headless runtimes.
-    const reservationKey = await new FileKeyStorage().getKey();
+    // entitlement. Reservations retain only one-way hashes and non-secret metadata;
+    // bearer JWTs are deleted and must be re-imported from the original email.
     const coreDbPath = join(dataDir, 'core.db');
     const migration = runReservationEntitlementSplit({
       db: prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
       databasePath: coreDbPath,
       backupPath: join(dataDir, 'core.pre-slice-1-reservation-entitlement-split.db'),
-      encryptionKey: reservationKey,
     });
     reservationStore = new FoundingReservationStore(
       prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
-      reservationKey,
     );
     console.error(`[sidecar] Reservation entitlement split: ${migration.status}`);
 
