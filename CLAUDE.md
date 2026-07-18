@@ -3,10 +3,12 @@
 
 ## CHECKED-IN DOCUMENTATION AUTHORITY — READ FIRST
 
-Architecture and implementation decisions use this checked-in authority chain, in order:
+The machine-verifiable registry at `semblence-representative/docs/release-manifests/document-authority.v1.json` is the sole list of canonical architecture documents. The checker validates every registered path, approval status, SHA-256, authority order, and reference to `release/document-authority-policy.v1.json`. Unknown, draft, malformed, moved, or hash-mismatched documents are non-authoritative.
 
-1. **Approved sovereign-platform design:** `semblence-representative/docs/superpowers/specs/2026-07-18-semblance-sovereign-platform-design.md`
-2. **Approved slice implementation plans:** `semblence-representative/docs/superpowers/plans/`
+Registered architecture and implementation decisions use this authority chain, in order:
+
+1. **Approved sovereign-platform design:** exact registered file
+2. **Approved slice implementation plans:** exact registered files, never directory-wide approval
 3. **Versioned protocol and security ADRs:** checked-in decisions implementing the approved design and applicable slice plan
 4. **Generated release evidence:** signed release manifests and their pinned evidence establish what a particular artifact has demonstrated
 
@@ -278,12 +280,6 @@ No vendor-required cloud, silent cloud fallback, or server-side canonical Person
 - `/diagnose` — Integration smoke test: `node scripts/smoke-test-sidecar.js`
 - `/review` — Code review (static analysis, architecture, design bible)
 - `/verify:json` — Machine-readable verify output: `node scripts/semblance-verify.js --json`
-- `update-state` — Auto-patch SEMBLANCE_STATE.md from verify output: `node scripts/update-state.js`
-- `update-state:dry` — Preview state patches without writing: `node scripts/update-state.js --dry-run`
-- `/session-start` — Automated Phase 1: read state, run baseline, detect regressions: `node scripts/session-start.js`
-- `/session-start:quick` — State review only (skip verify): `node scripts/session-start.js --skip-verify`
-- `/session-end` — Automated Phase 3: verify, diff, preflight, update state, END report: `node scripts/session-end.js`
-- `/session-end:build` — Session end for build sessions (includes install-verify): `node scripts/session-end.js --build`
 - `/checkpoint` — Log mid-session progress (survives compaction): `node scripts/checkpoint.js "description"`
 - `/checkpoint:read` — Read all checkpoints this session: `node scripts/checkpoint.js --read`
 - `/build-all` — Full build pipeline (preflight → bundle → build → install-verify): `node scripts/build-and-verify.js`
@@ -822,12 +818,13 @@ A pipeline is NOT complete when:
 
 ```
 SESSION START:
-  1. Read SEMBLANCE_STATE.md
-  2. Read SLICE_CONTRACTS.md for today's features (including DATA ASSERTIONS)
-  3. node scripts/semblance-verify.js   ← IPC baseline
-  4. node scripts/data-audit.js         ← DATA baseline (MANDATORY — NEW)
-  5. For data-movement features: write pipeline map → post to Sky → wait for approval
-  6. Post START report (must include data-audit output)
+  1. Verify the documentation authority registry and invariant policy
+  2. Read the current release manifest and its pinned generated evidence
+  3. Read SLICE_CONTRACTS.md for today's features (including DATA ASSERTIONS)
+  4. node scripts/semblance-verify.js   ← IPC baseline
+  5. node scripts/data-audit.js         ← DATA baseline (MANDATORY — NEW)
+  6. For data-movement features: write pipeline map → post to Sky → wait for approval
+  7. Post START report (must include data-audit output)
 
 WORK:
   - Diagnose: sidecar + data-audit — actual errors AND actual data state
@@ -840,8 +837,9 @@ SESSION END:
   2. node scripts/data-audit.js         ← DATA comparison (MANDATORY — NEW)
   3. node scripts/preflight.js
   4. Resolve all in-scope pipeline gaps (VERDICT must be HEALTHY)
-  5. Update SEMBLANCE_STATE.md
-  6. Post END report with before/after data-audit output
+  5. Write current results only to generated release/evidence outputs
+  6. Keep historical state/payment/session records read-only
+  7. Post END report with before/after data-audit output
 ```
 
 ### Mandatory Workflow for Any Data-Movement Feature
@@ -867,7 +865,7 @@ NEVER report a data-movement feature done without data-audit.js output confirmin
 
 ## WORKFLOW SYSTEM — MANDATORY SESSION DISCIPLINE
 
-**These documents are in the private representative repo. Claude Code must read and update them on every session.**
+Current session state comes from validated release/evidence manifests. Private historical records remain available for migration context but are read-only and are not routine session inputs.
 
 ### Cross-Repo Reference
 This repo: semblance-core (public)
@@ -875,9 +873,9 @@ Private docs: semblence-representative/docs/ (private repo, adjacent directory)
 
 ### Required Documents
 
-**1. SEMBLANCE_STATE.md** — Living memory. Read at session START. Write at session END.
+**1. SEMBLANCE_STATE.md** — Historical engineering log. Read-only; consult only when historical migration context is needed.
 `semblence-representative/docs/SEMBLANCE_STATE.md`
-Contains: current build state, feature verification status (✅⚠️❌🔲), environment prerequisites, cut list, active issues with exact error messages, session velocity, session log, locked decisions.
+Contains dated assertions, feature tables, issues, and session logs that do not establish current release state.
 
 **2. SLICE_CONTRACTS.md** — Top-down feature contracts. Read before implementing or fixing any feature.
 `semblence-representative/docs/SLICE_CONTRACTS.md`
@@ -896,10 +894,11 @@ Contains: 10-beat demo screenplay, beat-to-contract mapping, beat dependency gra
 ### Mandatory Session Flow
 ```
 SESSION START:
-  1. Read SEMBLANCE_STATE.md
-  2. Read SLICE_CONTRACTS.md for today's features
-  3. Run: node scripts/semblance-verify.js  (baseline)
-  4. Post START report to Sky
+  1. Verify the authority registry and invariant policy
+  2. Read the validated release manifest and pinned evidence
+  3. Read SLICE_CONTRACTS.md for today's features
+  4. Run: node scripts/semblance-verify.js  (baseline)
+  5. Post START report to Sky
 
 WORK:
   - Diagnose before fix (run sidecar, read actual error)
@@ -911,9 +910,8 @@ SESSION END:
   1. Run: node scripts/semblance-verify.js  (compare to baseline)
   2. Run: node scripts/preflight.js
   3. Run gap detection (adjacent code scan)
-  4. Run: node scripts/update-state.js  (auto-patch feature table)
-  5. Manually update remaining SEMBLANCE_STATE.md sections
-  6. Post END report to Sky
+  4. Generate current release/evidence outputs without editing historical records
+  5. Post END report to Sky
 ```
 
 A session without a START report and END report is an incomplete session.

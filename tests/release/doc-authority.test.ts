@@ -1,10 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { createHash } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
 import {
-  collectRepositoryMarkdown,
-  scanDocumentationAuthority,
-  type RepositoryMarkdown,
+  checkDocumentationAuthority,
+  checkStateWorkflowConsistency,
+  loadAuthorityWorkspace,
+  scanLegacyContradictions,
+  verifyAuthorityRegistry,
+  type AuthorityRegistry,
+  type AuthorityWorkspace,
 } from '../../scripts/check-doc-authority.js';
 
 const coreRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -14,99 +19,251 @@ const repositoryRoots = {
 };
 
 describe('documentation authority', () => {
-  it('has one checked-in architecture authority chain', () => {
-    const repositoryMarkdown = collectRepositoryMarkdown(repositoryRoots);
-    const result = scanDocumentationAuthority(repositoryMarkdown);
+  it('has one content-addressed checked-in architecture authority chain', () => {
+    const result = checkDocumentationAuthority(loadAuthorityWorkspace(repositoryRoots));
 
-    expect(result.missingAuthorities).toEqual([]);
-    expect(result.conflicts).toEqual([]);
+    expect(result.errors).toEqual([]);
+    expect(result.legacyConflicts).toEqual([]);
     expect(result.canonicalPaths).toEqual([
       'semblence-representative/docs/superpowers/specs/2026-07-18-semblance-sovereign-platform-design.md',
-      'semblence-representative/docs/superpowers/plans/',
+      'semblence-representative/docs/superpowers/plans/01-truth-baseline-and-release-governance.md',
+      'semblence-representative/docs/superpowers/plans/2026-07-18-semblance-sovereign-platform-program.md',
+      'semblance-core/release/release-manifest.json',
     ]);
   });
 
-  it('does not require a missing gitignored Build Bible', () => {
-    const repositoryMarkdown = collectRepositoryMarkdown(repositoryRoots);
+  it('does not auto-approve an unregistered draft plan', () => {
+    const workspace = validWorkspace({
+      'semblence-representative/docs/superpowers/plans/draft.md':
+        '# Draft\n**Status:** Draft plan\n',
+    });
 
-    expect(scanDocumentationAuthority(repositoryMarkdown).missingAuthorities)
-      .not.toContain('SEMBLANCE_BUILD_BIBLE.md');
+    const result = verifyAuthorityRegistry(workspace);
+
+    expect(result.errors).toEqual([]);
+    expect(result.canonicalPaths).not.toContain(
+      'semblence-representative/docs/superpowers/plans/draft.md',
+    );
   });
 
-  it('rejects a missing Build Bible claimed as active canonical authority', () => {
-    const fixture: RepositoryMarkdown = [{
-      path: 'semblance-core/CLAUDE.md',
-      content: '<!-- doc-authority: active -->\n'
-        + 'Read SEMBLANCE_BUILD_BIBLE.md. It is the mandatory canonical specification.',
-    }];
+  it('accepts an explicitly registered approved ADR', () => {
+    const workspace = validWorkspace();
+    const path = 'semblance-core/docs/decisions/ADR-0001.md';
+    workspace.files[path] = approvedDocument('Approved ADR', workspace);
+    workspace.registry.authorities.splice(2, 0, authorityEntry(
+      'approved-adr',
+      path,
+      'approved',
+      workspace.files[path],
+    ));
+    workspace.registry.approvedAdrPaths.push(path);
 
-    expect(scanDocumentationAuthority(fixture).missingAuthorities)
-      .toContain('SEMBLANCE_BUILD_BIBLE.md');
+    const result = verifyAuthorityRegistry(workspace);
+
+    expect(result.errors).toEqual([]);
+    expect(result.canonicalPaths).toContain(path);
   });
 
   it.each([
-    {
-      name: 'cloud prohibition conflicts with sovereign cloud',
-      left: 'No cloud sync. No cloud backup. No remote storage of any kind.',
-      right: 'Approved sovereign cloud and encrypted sync are permitted.',
-      expected: 'CLOUD_POLICY_CONFLICT',
-    },
-    {
-      name: 'zero app egress conflicts with direct commerce calls',
-      left: 'The Semblance app makes zero outbound calls. Ever.',
-      right: 'The app directly calls the commerce entitlement endpoint.',
-      expected: 'APP_EGRESS_CONFLICT',
-    },
-    {
-      name: 'reservation and entitlement semantics conflict',
-      left: 'A founding reservation JWT grants premium entitlement.',
-      right: 'A reservation JWT is reservation only and never an entitlement.',
-      expected: 'RESERVATION_ENTITLEMENT_CONFLICT',
-    },
-  ])('detects $name between active authorities', ({ left, right, expected }) => {
-    const fixture: RepositoryMarkdown = [
-      authorityFixture('docs/left.md', left),
-      authorityFixture('docs/right.md', right),
-    ];
+    ['draft registry status', 'draft', approvedDocument],
+    ['malformed ADR metadata', 'approved', () => '# ADR without status\n'],
+  ])('rejects a %s', (_name, status, contentFactory) => {
+    const workspace = validWorkspace();
+    const path = 'semblance-core/docs/decisions/ADR-0002.md';
+    workspace.files[path] = contentFactory('Approved ADR', workspace);
+    workspace.registry.authorities.splice(2, 0, authorityEntry(
+      'approved-adr',
+      path,
+      status,
+      workspace.files[path],
+    ));
+    workspace.registry.approvedAdrPaths.push(path);
 
-    expect(scanDocumentationAuthority(fixture).conflicts)
-      .toContainEqual(expect.objectContaining({ code: expected }));
+    expect(verifyAuthorityRegistry(workspace).errors).toContainEqual(
+      expect.objectContaining({
+        code: status === 'draft' ? 'AUTHORITY_STATUS_INVALID' : 'DOCUMENT_STATUS_INVALID',
+      }),
+    );
   });
 
-  it('does not rewrite historical logs as current truth', () => {
-    const fixture: RepositoryMarkdown = [
-      authorityFixture(
-        'docs/current.md',
-        'Approved sovereign cloud and encrypted sync are permitted. '
-          + 'A reservation JWT is reservation only and never an entitlement.',
-      ),
+  it.each([
+    ['hash tamper', (workspace: AuthorityWorkspace) => {
+      workspace.files[workspace.registry.authorities[0]!.path] += '\ntampered';
+    }, 'AUTHORITY_HASH_MISMATCH'],
+    ['path tamper', (workspace: AuthorityWorkspace) => {
+      workspace.registry.authorities[0]!.path = '../outside.md';
+    }, 'AUTHORITY_PATH_INVALID'],
+    ['policy hash tamper', (workspace: AuthorityWorkspace) => {
+      workspace.registry.invariantPolicy.sha256 = '0'.repeat(64);
+    }, 'INVARIANT_POLICY_HASH_MISMATCH'],
+  ])('rejects %s', (_name, tamper, code) => {
+    const workspace = validWorkspace();
+    tamper(workspace);
+
+    expect(verifyAuthorityRegistry(workspace).errors)
+      .toContainEqual(expect.objectContaining({ code }));
+  });
+
+  it('rejects an authority list outside the declared order', () => {
+    const workspace = validWorkspace();
+    workspace.registry.authorities.reverse();
+
+    expect(verifyAuthorityRegistry(workspace).errors)
+      .toContainEqual(expect.objectContaining({ code: 'AUTHORITY_ORDER_INVALID' }));
+  });
+
+  it('requires every canonical design, plan, and ADR to reference the invariant policy', () => {
+    const workspace = validWorkspace();
+    const plan = workspace.registry.authorities[1]!;
+    workspace.files[plan.path] = '# Plan\n**Status:** Approved plan\n';
+    plan.sha256 = sha256(workspace.files[plan.path]!);
+
+    expect(verifyAuthorityRegistry(workspace).errors)
+      .toContainEqual(expect.objectContaining({ code: 'INVARIANT_POLICY_REFERENCE_MISSING' }));
+  });
+
+  it('treats negated legacy phrases as non-conflicting', () => {
+    const conflicts = scanLegacyContradictions([
       {
-        path: 'docs/history.md',
-        content: '<!-- doc-authority: historical -->\n'
-          + 'No cloud sync. A founding reservation JWT grants premium entitlement.',
+        path: 'policy.md',
+        content: 'This policy does not prohibit cloud synchronization or encrypted backup. '
+          + 'The client must not contact a billing service directly. '
+          + 'A waitlist token does not unlock paid features.',
       },
-    ];
+      {
+        path: 'design.md',
+        content: 'User-authorized sovereign encrypted sync is permitted. '
+          + 'Reservation artifacts are reservation-only and confer no paid access.',
+      },
+    ]);
 
-    expect(scanDocumentationAuthority(fixture).conflicts).toEqual([]);
+    expect(conflicts).toEqual([]);
   });
 
-  it('preserves the active architecture invariants', () => {
-    const result = scanDocumentationAuthority(collectRepositoryMarkdown(repositoryRoots));
+  it('detects semantic paraphrases as defense in depth', () => {
+    const conflicts = scanLegacyContradictions([
+      {
+        path: 'legacy-a.md',
+        content: 'Remote synchronization and off-device backup are forbidden in every form. '
+          + 'The desktop client contacts the billing service itself. '
+          + 'A waitlist token unlocks paid features.',
+      },
+      {
+        path: 'policy-b.md',
+        content: 'User-authorized sovereign encrypted sync is permitted. '
+          + 'The application has no direct network path to commerce. '
+          + 'Reservation artifacts are reservation-only and confer no paid access.',
+      },
+    ]);
 
-    expect(result.invariants).toEqual(expect.objectContaining({
+    expect(conflicts.map((conflict) => conflict.code)).toEqual([
+      'CLOUD_POLICY_CONFLICT',
+      'APP_EGRESS_CONFLICT',
+      'RESERVATION_ENTITLEMENT_CONFLICT',
+    ]);
+  });
+
+  it('keeps SEMBLANCE_STATE historical and out of current session writes', () => {
+    const claude = loadAuthorityWorkspace(repositoryRoots)
+      .files['semblance-core/CLAUDE.md'];
+
+    expect(checkStateWorkflowConsistency(claude!)).toEqual([]);
+    expect(checkStateWorkflowConsistency(
+      'SESSION START: Read SEMBLANCE_STATE.md\n'
+        + 'SESSION END: Update SEMBLANCE_STATE.md',
+    )).toEqual([
+      expect.objectContaining({ code: 'STATE_WORKFLOW_INVALID' }),
+      expect.objectContaining({ code: 'STATE_WORKFLOW_INVALID' }),
+    ]);
+  });
+});
+
+function validWorkspace(extraFiles: Record<string, string> = {}): AuthorityWorkspace {
+  const policyPath = 'semblance-core/release/document-authority-policy.v1.json';
+  const policy = JSON.stringify({
+    schemaVersion: 1,
+    policyId: 'test-policy',
+    invariants: {
       zeroNetworkCore: true,
       gatewayOnlyEgress: true,
       noTelemetry: true,
       localCanonicalData: true,
-      actionAudit: true,
+      actionAndDisclosureAuditBeforeExecution: true,
       secureStorage: true,
-    }));
+      firstPartyPlaintextOnlyInAttestedConfidentialCompute: true,
+      byoAndSelfHostedAreUserControlledDestinations: true,
+      reservationArtifactsNeverGrantEntitlement: true,
+      historicalStateIsReadOnly: true,
+      currentStateRequiresGeneratedEvidence: true,
+    },
   });
-});
-
-function authorityFixture(path: string, content: string): RepositoryMarkdown[number] {
-  return {
-    path,
-    content: `<!-- doc-authority: active -->\n${content}`,
+  const policyHash = sha256(policy);
+  const files: Record<string, string> = {
+    [policyPath]: policy,
+    'semblence-representative/docs/design.md':
+      documentWithPolicy('Approved design', policyPath, policyHash),
+    'semblence-representative/docs/plan.md':
+      documentWithPolicy('Approved plan', policyPath, policyHash),
+    'semblance-core/release/evidence.json': '{"state":"Specified"}',
+    ...extraFiles,
   };
+  const registry: AuthorityRegistry = {
+    schemaVersion: 1,
+    registryId: 'test-registry',
+    authorityOrder: [
+      'approved-design',
+      'approved-plan',
+      'approved-adr',
+      'generated-evidence',
+    ],
+    invariantPolicy: { path: policyPath, sha256: policyHash },
+    approvedAdrPaths: [],
+    authorities: [
+      authorityEntry(
+        'approved-design',
+        'semblence-representative/docs/design.md',
+        'approved',
+        files['semblence-representative/docs/design.md']!,
+      ),
+      authorityEntry(
+        'approved-plan',
+        'semblence-representative/docs/plan.md',
+        'approved',
+        files['semblence-representative/docs/plan.md']!,
+      ),
+      authorityEntry(
+        'generated-evidence',
+        'semblance-core/release/evidence.json',
+        'generated-baseline',
+        files['semblance-core/release/evidence.json']!,
+      ),
+    ],
+  };
+  return { registry, files };
+}
+
+function authorityEntry(
+  type: AuthorityRegistry['authorities'][number]['type'],
+  path: string,
+  status: string,
+  content: string,
+): AuthorityRegistry['authorities'][number] {
+  return { type, path, status, sha256: sha256(content) };
+}
+
+function approvedDocument(status: string, workspace: AuthorityWorkspace): string {
+  return documentWithPolicy(
+    status,
+    workspace.registry.invariantPolicy.path,
+    workspace.registry.invariantPolicy.sha256,
+  );
+}
+
+function documentWithPolicy(status: string, policyPath: string, policyHash: string): string {
+  return `# Authority\n**Status:** ${status}\n`
+    + `**Invariant policy:** \`${policyPath}\` (\`sha256:${policyHash}\`)\n`;
+}
+
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
 }
