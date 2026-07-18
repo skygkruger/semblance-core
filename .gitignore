@@ -115,6 +115,7 @@ scripts/**/*.d.ts.map
 !scripts/bundle-runtime-gateway.js
 !scripts/bundle-runtime-model.js
 !scripts/bundle-runtimes.js
+!scripts/smoke-chat-slice2.js
 !scripts/esbuild-import-meta-url-shim.js
 !scripts/privacy-audit/*.js
 !scripts/semblance-verify.js
