@@ -36,7 +36,7 @@
     {
       "code": "UNSUPPORTED_TEST_COUNT",
       "description": "Unsupported test-count marketing claims",
-      "pattern": "6,?000\\+?|(?:over|more\\s+than)\\s+6,?000(?:\\s+passing)?\\s+tests"
+      "pattern": "(?:over|more\\s+than)\\s+6,?000(?:\\s+passing)?\\s+tests|\\b6,?000\\+\\s+tests|\\b6,?000\\s+passing\\s+tests"
     },
     {
       "code": "UNSUPPORTED_PLATFORM_AVAILABILITY",
