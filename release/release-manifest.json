@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "releaseId": "truth-baseline-2026-07-18",
-  "generatedAt": "2026-07-18T20:10:00.000Z",
+  "generatedAt": "2026-07-18T21:41:11Z",
   "repositories": {
     "core": {
       "sourceCommit": "eba7874431c09f2ed91e5a5dbc5fa99da7ed29eb",
       "sourceTreeHash": "0214199d1e108b21857d8ea55c565a109f9df6d1"
     },
     "representative": {
-      "sourceCommit": "d6727a5dda699eaf3c2fb2ca9229aeefda1b3600",
-      "sourceTreeHash": "0d3210bfde18ba6e93840eeaf8d15159c32d6795",
+      "sourceCommit": "ef38c0ee54dcf4dd928cd7dd0edea9f2e9e32600",
+      "sourceTreeHash": "68a63dd7ed5ada02da0e30a5b07d3b855eec0e2f",
       "packageVersion": "0.1.0",
       "artifactHash": null,
       "extensionManifestHash": null
@@ -26,132 +26,178 @@
       "repository": "core",
       "path": "release/evidence/slice-1/core/typecheck.txt",
       "sha256": "9efae39405ba947af53631c2b1f68f2a36bfddede4d1712c341f623c4c9d31d7",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "core-tests",
       "repository": "core",
       "path": "release/evidence/slice-1/core/tests.txt",
       "sha256": "bee1b95f0b6f4ef5c614f791b91913a90fc59f4416ff761922558bc02fb9988b",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "core-privacy-audit",
       "repository": "core",
       "path": "release/evidence/slice-1/core/privacy-audit.txt",
       "sha256": "0b22ff4ea3499223151903f65645ae52b4cf43f3e8e7f67aec0ae95daf455186",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "core-sidecar-smoke",
       "repository": "core",
       "path": "release/evidence/slice-1/core/sidecar-smoke.txt",
       "sha256": "e6be3e2e83430395b1939b8ce86fe7a71dd037c92ab582a782cc975a825ea8c9",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "core-adversarial-entitlement",
       "repository": "core",
       "path": "release/evidence/slice-1/core/adversarial-entitlement.txt",
       "sha256": "9ca194d432f14edb87521ae45e4a593c106d8d8863032b9acfd14aa50f5d815d",
-      "requiredForStates": ["AdversariallyVerified"]
+      "requiredForStates": [
+        "AdversariallyVerified"
+      ]
     },
     {
       "id": "core-packaged-runtime",
       "repository": "core",
       "path": "release/evidence/slice-1/core/packaged-runtime.txt",
       "sha256": "c237fad2fc0f8d28efc0c01350e5ee021df2cdbe16a52b3ae2b4c6300730854c",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "semblance-verify",
       "repository": "core",
       "path": "release/evidence/slice-1/semblance-verify.json",
       "sha256": "7150361d42e7ffc8c75d190d472bad9e9df78ab3c8324d088b0ae89734f9a663",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "data-audit",
       "repository": "core",
       "path": "release/evidence/slice-1/data-audit.json",
       "sha256": "d7362fd2988c6e85157cd4fa5abf7d25443cb06381b76cca8616c5eda3655f37",
-      "requiredForStates": ["DataVerified"]
+      "requiredForStates": [
+        "DataVerified"
+      ]
     },
     {
       "id": "public-claims",
       "repository": "core",
       "path": "release/public-claims.v1.json",
       "sha256": "398cb7868f09887c4c7ba3f0465b7cdfc053e680b9b3bc805d17a2439ad55183",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "representative-typecheck",
       "repository": "representative",
       "path": "docs/release-manifests/evidence/slice-1/representative/typecheck.txt",
       "sha256": "90facab9d7260cbdbdde4a163eaeff5d258105874f9fdeff6c5804c276f46b21",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "representative-tests",
       "repository": "representative",
       "path": "docs/release-manifests/evidence/slice-1/representative/tests.txt",
       "sha256": "9bc5fc05711631d60dfa9bc0a9bd58e2756acf2bb29dc9501c125e8473beb997",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "commerce-shadow",
       "repository": "representative",
       "path": "docs/release-manifests/evidence/slice-1/commerce-shadow.txt",
       "sha256": "d56d2254dcbccda9eb34a7ff8cdadbe14ccb567a4221a9488627292ddde8c635",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "commerce-freeze-evidence",
       "repository": "representative",
       "path": "docs/release-manifests/commerce-freeze-evidence.json",
-      "sha256": "c70ab2486dfa3f8e0f81b35e03b28897d52cd5ac523b802350ba9dc527fb4976",
-      "requiredForStates": ["Implemented"]
+      "sha256": "2087bcc8a2d51486eb68e40e66b605b4d8add1b88d10c9c2c18b3026264eff26",
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "migration-reservation-entitlement-split",
       "repository": "representative",
       "path": "docs/release-manifests/migrations/slice-1-reservation-entitlement-split.json",
       "sha256": "27d653ca42cbb2e8a474d238c146d9bc2ae22db96489f94aa35c1bbfbbff3fdf",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "migration-commerce-freeze",
       "repository": "representative",
       "path": "docs/release-manifests/migrations/slice-1-commerce-freeze.json",
       "sha256": "c34b74ed6d07dabf4516333654deabefb199b60903a0138503eec70d8405a858",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "website-links",
       "repository": "website",
       "path": "evidence/slice-1/website/links.txt",
       "sha256": "7784e3bfa0795fca6a550f4873099ffe427d270bd42acd0eaa0d81bd986d54fd",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "website-claims",
       "repository": "website",
       "path": "evidence/slice-1/website/claims.txt",
       "sha256": "c27f06a213546014e9812635e8d39b366b09d4b3d0707d842c34c4fde2ed8414",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
     },
     {
       "id": "website-waitlist-api",
       "repository": "website",
       "path": "evidence/slice-1/website/waitlist-api.txt",
       "sha256": "2a147fe701f68a9f363fdd3a8f543277a8d1e56efe4c0628a3e842365b27de2f",
-      "requiredForStates": ["Implemented"]
+      "requiredForStates": [
+        "Implemented"
+      ]
+    },
+    {
+      "id": "commerce-production",
+      "repository": "representative",
+      "path": "docs/release-manifests/evidence/slice-1/commerce-production.txt",
+      "sha256": "91da90c9ac8856af9339877266e82c98a9e47f1ecc74e14f241568c9d6529811",
+      "requiredForStates": [
+        "Implemented"
+      ]
     }
   ],
   "commerce": {
     "newSalesEnabled": false,
     "freezeEvidence": [
       "commerce-freeze-evidence",
+      "commerce-production",
       "commerce-shadow"
     ]
   },
@@ -162,7 +208,9 @@
   "confidentialWorkloadMeasurements": [],
   "infrastructurePolicyVersions": [],
   "legalNoticesVersion": "2026-07-18",
-  "completedSlices": [],
+  "completedSlices": [
+    1
+  ],
   "features": [
     {
       "id": "release-evidence-schema",
