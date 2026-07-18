@@ -108,6 +108,8 @@ scripts/**/*.js.map
 scripts/**/*.d.ts
 scripts/**/*.d.ts.map
 !scripts/bundle-sidecar.js
+!scripts/bundle-kernel-bridge.js
+!scripts/esbuild-import-meta-url-shim.js
 !scripts/privacy-audit/*.js
 !scripts/semblance-verify.js
 !scripts/session-start.js

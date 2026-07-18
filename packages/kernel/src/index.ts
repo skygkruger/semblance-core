@@ -44,3 +44,13 @@ export { createConsentStore, type ConsentStore, type ConsentReceipt } from './po
 export { createCapabilityIssuer, type IssueCapabilityRequest } from './policy/capability-issuer.js';
 export { createKernelIpcHandlers, type ProcessHelloRequest, type KernelIpcHandlers } from './ipc/handlers.js';
 export { createKernelIpcServer, type KernelIpcServer } from './ipc/server.js';
+export { getDefaultKernelSocketPath } from './ipc/socket-path.js';
+export {
+  createKernelSocketServer,
+  encodeKernelRpcMessage,
+  decodeKernelRpcMessage,
+  type KernelRpcRequest,
+  type KernelRpcResponse,
+  type KernelRpcError,
+  type KernelSocketServer,
+} from './ipc/socket-server.js';
