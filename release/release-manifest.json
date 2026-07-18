@@ -4,8 +4,8 @@
   "generatedAt": "2026-07-18T22:42:30Z",
   "repositories": {
     "core": {
-      "sourceCommit": "3cc7add2ff3a73383c3c2d8389b8a01b384023e7",
-      "sourceTreeHash": "20d0b9177cc3303c08347c1113926281c7938ada"
+      "sourceCommit": "39a4d43a303d8f6b6519890e907810d4b0f1f657",
+      "sourceTreeHash": "abbad22b929501111bda8329005f1ba58f4c9a43"
     },
     "representative": {
       "sourceCommit": "dcd6d71dcc7d6d367d4e6626635e16744185de4d",
@@ -242,7 +242,7 @@
       "id": "slice-2-exit-gate",
       "repository": "core",
       "path": "release/evidence/slice-2/slice-2-exit-gate.json",
-      "sha256": "f0eddc5efbe67ff2b9596f39da89349415e02c187b05fccf6d987e8b8eaf869b",
+      "sha256": "6183beaf3859e56747b6ce874975b34eaf86aba4d1e786e2b57f2a3e88ea050e",
       "requiredForStates": [
         "RuntimeVerified"
       ]
@@ -254,6 +254,15 @@
       "sha256": "cf0e71b61d95a449d5c2a4233803f3618eaacc4ba83eee01fb32810f7e6728e6",
       "requiredForStates": [
         "Implemented"
+      ]
+    },
+    {
+      "id": "slice-2-chat-smoke",
+      "repository": "core",
+      "path": "release/evidence/slice-2/chat-smoke.txt",
+      "sha256": "f1244f7817a26e734e4d8530a1356239b495c35a46a4183d87c0d9d5c1d648f7",
+      "requiredForStates": [
+        "RuntimeVerified"
       ]
     }
   ],
@@ -352,7 +361,8 @@
         "slice-2-bundled-runtime",
         "slice-2-supervisor-status",
         "slice-2-exit-gate",
-        "migration-slice-2-secure-storage"
+        "migration-slice-2-secure-storage",
+        "slice-2-chat-smoke"
       ],
       "protocolVersions": {
         "releaseEvidence": 1
