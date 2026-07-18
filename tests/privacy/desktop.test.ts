@@ -218,11 +218,11 @@ describe('Desktop Privacy: No Direct Network Calls in Frontend', () => {
 
 describe('Desktop Privacy: fetch() Allowlist Enforcement', () => {
   const srcFiles = collectFiles(DESKTOP_SRC, ['.ts', '.tsx']);
-  // Only LicenseContext.tsx is allowed to call fetch() — for user-initiated Stripe portal
-  // and license worker communication. All other files must use Tauri invoke().
+  // Only license-commerce.ts is allowed to call fetch() for user-initiated
+  // license worker communication. LicenseContext delegates to that boundary.
   // sound/desktop-sound-engine.ts uses fetch() to decode bundled WAV assets
   // from Vite/Tauri asset protocol URLs — local only, never network.
-  const FETCH_ALLOWLIST = new Set(['contexts/LicenseContext.tsx', 'sound/desktop-sound-engine.ts']);
+  const FETCH_ALLOWLIST = new Set(['contexts/license-commerce.ts', 'sound/desktop-sound-engine.ts']);
 
   it('only allowlisted files contain fetch() calls', () => {
     const violators: string[] = [];
@@ -231,7 +231,7 @@ describe('Desktop Privacy: fetch() Allowlist Enforcement', () => {
       if (FETCH_ALLOWLIST.has(relPath)) continue;
 
       const content = readFileSync(file, 'utf-8');
-      if (/\bfetch\s*\(/.test(content)) {
+      if (/\bfetch\s*\(|typeof fetch\s*=\s*fetch/.test(content)) {
         violators.push(relPath);
       }
     }
@@ -242,12 +242,19 @@ describe('Desktop Privacy: fetch() Allowlist Enforcement', () => {
     ).toEqual([]);
   });
 
-  it('LicenseContext.tsx exists and contains fetch (sanity check)', () => {
+  it('keeps fetch in license-commerce and out of LicenseContext', () => {
     const licenseCtx = srcFiles.find(f => f.replace(/\\/g, '/').endsWith('contexts/LicenseContext.tsx'));
+    const licenseCommerce = srcFiles.find(f => f.replace(/\\/g, '/').endsWith('contexts/license-commerce.ts'));
     expect(licenseCtx, 'LicenseContext.tsx must exist in desktop src').toBeDefined();
+    expect(licenseCommerce, 'license-commerce.ts must exist in desktop src').toBeDefined();
     if (licenseCtx) {
       const content = readFileSync(licenseCtx, 'utf-8');
-      expect(content).toMatch(/\bfetch\s*\(/);
+      expect(content).not.toMatch(/\bfetch\s*\(/);
+    }
+    if (licenseCommerce) {
+      const content = readFileSync(licenseCommerce, 'utf-8');
+      expect(content).toMatch(/typeof fetch\s*=\s*fetch/);
+      expect(content).toMatch(/\bfetcher\s*\(/);
     }
   });
 });

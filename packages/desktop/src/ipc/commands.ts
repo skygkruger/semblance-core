@@ -76,6 +76,7 @@ import type {
   SovereigntyReportData,
   SovereigntyReportVerifyResult,
   PrivacyStatusData,
+  ReservationImportResult,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -292,8 +293,8 @@ export function activateLicenseKey(key: string): Promise<ActivationResult> {
   return invoke<ActivationResult>('activate_license_key', { key });
 }
 
-export function activateFoundingToken(token: string): Promise<ActivationResult> {
-  return invoke<ActivationResult>('activate_founding_token', { token });
+export function importFoundingReservation(token: string): Promise<ReservationImportResult> {
+  return invoke<ReservationImportResult>('import_founding_reservation', { token });
 }
 
 export function disconnectLicense(): Promise<{ success: boolean }> {

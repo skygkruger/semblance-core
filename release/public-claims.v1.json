@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-18T20:05:00.000Z",
+  "releaseManifest": "release/release-manifest.json",
+  "salesFreeze": {
+    "newSalesEnabled": false,
+    "acquisitionMode": "reservation_waitlist_only",
+    "note": "New paid checkout and purchase CTAs are forbidden while commerce.newSalesEnabled is false. Existing-customer Stripe Customer Portal login remains allowed."
+  },
+  "allowedPlatforms": {
+    "availabilityMode": "development_targets_only",
+    "platforms": [
+      "macOS",
+      "Windows",
+      "Linux",
+      "iOS",
+      "Android"
+    ]
+  },
+  "forbiddenClaimPatterns": [
+    {
+      "code": "OS_LEVEL_ISOLATION",
+      "description": "Claims OS-level isolation as a shipped fact",
+      "pattern": "OS[- ]level(?:\\s+network)?\\s+isolation"
+    },
+    {
+      "code": "STRUCTURALLY_IMPOSSIBLE_EXFILTRATION",
+      "description": "Claims exfiltration is structurally impossible",
+      "pattern": "structurally\\s+impossible|exfiltration\\s+is\\s+structurally"
+    },
+    {
+      "code": "ZERO_CLOUD_ABSOLUTE",
+      "description": "Absolute zero-cloud or without-sending-a-byte claims",
+      "pattern": "without\\s+sending\\s+a(?:\\s+single)?\\s+byte|\\bzero\\s+cloud\\b"
+    },
+    {
+      "code": "ABSOLUTE_DATA_EGRESS_BAN",
+      "description": "Absolute present-tense claims that data never/nothing leaves",
+      "pattern": "\\bnothing\\s+leaves\\b|\\bdata\\s+never\\s+leaves\\b|\\bnever\\s+leaves\\s+your\\s+(?:hardware|device|machine)\\b"
+    },
+    {
+      "code": "UNSUPPORTED_TEST_COUNT",
+      "description": "Unsupported test-count marketing claims",
+      "pattern": "(?:over|more\\s+than)\\s+6,?000(?:\\s+passing)?\\s+tests|\\b6,?000\\+\\s+tests|\\b6,?000\\s+passing\\s+tests"
+    },
+    {
+      "code": "UNSUPPORTED_PLATFORM_AVAILABILITY",
+      "description": "Claims platforms as currently shipping or downloadable",
+      "pattern": "now\\s+available\\s+(?:on|for)|download\\s+(?:for|on)\\s+(?:macOS|Windows|Linux|iOS|Android)|ships\\s+(?:today|now)\\s+on|available\\s+today\\s+on"
+    }
+  ],
+  "paidCtaPatterns": [
+    {
+      "code": "PAID_CTA_DURING_FREEZE",
+      "description": "Purchase or Stripe checkout CTA while sales freeze is active (Customer Portal login is allowlisted)",
+      "pattern": "checkout\\.stripe\\.com|buy\\.stripe\\.com|billing\\.stripe\\.com/checkout|Become\\s+a\\s+founding\\s+member\\s*[—\\-]\\s*\\$\\d+|Buy\\s+now|Purchase\\s+now|Start\\s+checkout|Subscribe\\s+now|Get\\s+lifetime\\s+access\\s+now|Pay\\s+\\$\\d+"
+    }
+  ],
+  "claims": [
+    {
+      "featureId": "release-evidence-schema",
+      "claim": "The release and feature evidence contract is implemented.",
+      "state": "Implemented",
+      "evidenceIds": []
+    }
+  ]
+}

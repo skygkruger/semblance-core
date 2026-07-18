@@ -21,7 +21,7 @@ import {
 
 function makeLicenseKey(tier: string): string {
   const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-  return generateTestLicenseKey({ tier, exp: futureDate });
+  return generateTestLicenseKey({ tier, exp: futureDate, sub: 'paid-customer' });
 }
 
 beforeAll(() => {

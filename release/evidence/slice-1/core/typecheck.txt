@@ -1,0 +1,5 @@
+
+> semblance-core@1.0.0 typecheck /agent/repos/semblance-core
+> tsc --noEmit
+
+EXIT:0

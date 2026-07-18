@@ -64,9 +64,14 @@ import { EmailCategorizer } from '../../../core/agent/email-categorizer.js';
 import { ProactiveEngine } from '../../../core/agent/proactive-engine.js';
 import type { ActionType } from '../../../core/types/ipc.js';
 
-// Premium / Founding Member imports
-import { PremiumGate } from '../../../core/premium/index.js';
+// Paid entitlement and reservation imports
+import {
+  FoundingReservationStore,
+  PremiumGate,
+  runReservationEntitlementSplit,
+} from '../../../core/premium/index.js';
 import { extractLicenseKey } from '../../../core/premium/license-email-detector.js';
+import { nodeReservationMigrationAdapter } from './reservation-migration-node.js';
 
 // IP Adapter Registry — runtime access to @semblance/dr implementations
 import { ipAdapters } from '../../../core/extensions/ip-adapter-registry.js';
@@ -327,6 +332,7 @@ let clipboardRecentActions: Array<{ patternType: string; action: string; timesta
 
 // Premium state
 let premiumGate: PremiumGate | null = null;
+let reservationStore: FoundingReservationStore | null = null;
 
 // Sovereignty feature state
 let livingWillExporter: LivingWillExporter | null = null;
@@ -748,6 +754,24 @@ async function handleInitialize(): Promise<unknown> {
 
   // Initialize PremiumGate and ConversationManager only if prefsDb opened successfully
   if (prefsDb) {
+    // The reservation split must complete before PremiumGate can read authoritative
+    // entitlement. Reservations retain only one-way hashes and non-secret metadata;
+    // bearer JWTs are deleted and must be re-imported from the original email.
+    const coreDbPath = join(dataDir, 'core.db');
+    const migration = runReservationEntitlementSplit({
+      db: prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
+      databasePath: coreDbPath,
+      backupPath: join(dataDir, 'core.pre-slice-1-reservation-entitlement-split.db'),
+      adapter: nodeReservationMigrationAdapter,
+    });
+    if (migration.status !== 'deferred_secure_backup') {
+      reservationStore = new FoundingReservationStore(
+        prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
+        nodeReservationMigrationAdapter,
+      );
+    }
+    console.error(`[sidecar] Reservation entitlement split: ${migration.status}`);
+
     // keyStorage omitted intentionally: the sidecar is a standalone Node.js process and cannot
     // access Tauri's keychain plugins (stronghold/keychain are webview-context only). License key
     // storage in OS keychain is a frontend concern. PremiumGate falls back to SQLite metadata only;
@@ -6709,19 +6733,15 @@ async function handleRequest(req: Request): Promise<void> {
         respond(id, result);
         break;
 
-      // ── License / Founding Member ──
+      // ── Paid license / founding reservation ──
 
-      case 'license:activate_founding': {
-        if (!premiumGate) {
-          respondError(id, 'PremiumGate not initialized');
+      case 'reservation:import': {
+        if (!reservationStore) {
+          respondError(id, 'Reservation store not initialized');
           break;
         }
         const { token } = params as { token: string };
-        result = premiumGate.activateFoundingMember(token);
-        // Store founding token in prefs for portal access
-        if (result.success) {
-          setPref('active_license_key', token);
-        }
+        result = reservationStore.importReservation(token);
         respond(id, result);
         break;
       }

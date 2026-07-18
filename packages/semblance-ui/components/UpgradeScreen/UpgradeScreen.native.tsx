@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { Button } from '../Button/Button';
 import { LicenseActivation } from '../LicenseActivation/LicenseActivation';
 import type { UpgradeScreenProps } from './UpgradeScreen.types';
@@ -77,13 +78,17 @@ export function UpgradeScreen({
   currentTier,
   isFoundingMember,
   foundingSeat,
+  newSalesEnabled,
   onCheckout,
   onActivateKey,
+  onImportReservation,
   onManageSubscription,
   onBack,
 }: UpgradeScreenProps) {
   const { t } = useTranslation();
   const isActive = currentTier !== 'free';
+  const [reservationToken, setReservationToken] = useState('');
+  const [reservationMessage, setReservationMessage] = useState('');
 
   return (
     <ScrollView
@@ -113,7 +118,7 @@ export function UpgradeScreen({
         </Text>
       </View>
 
-      {!isActive && (
+      {!isActive && newSalesEnabled && (
         <View style={styles.plans}>
           {/* Monthly */}
           <OpalBorderView borderRadius={nativeRadius.lg}>
@@ -188,6 +193,15 @@ export function UpgradeScreen({
         </View>
       )}
 
+      {!isActive && !newSalesEnabled && (
+        <View style={styles.activeInfo}>
+          <Text style={styles.activeTier}>NEW SALES PAUSED</Text>
+          <Text style={styles.activeNote}>
+            Sales are paused while existing entitlements are migrated. Paid license activation remains available below.
+          </Text>
+        </View>
+      )}
+
       {isActive && isFoundingMember && foundingSeat !== null && (
         <View style={styles.activeInfo}>
           <Text style={styles.activeTier}>{t('screen.upgrade.active_founding', { seat: foundingSeat })}</Text>
@@ -217,6 +231,44 @@ export function UpgradeScreen({
         <Text style={styles.activationLabel}>{t('screen.upgrade.activation_label')}</Text>
         <LicenseActivation onActivate={onActivateKey} />
       </View>
+
+      {onImportReservation && (
+        <View style={styles.activation}>
+          <View style={styles.activationDivider} />
+          <Text style={styles.activationLabel}>FOUNDING RESERVATION RECOVERY</Text>
+          <TextInput
+            value={reservationToken}
+            onChangeText={setReservationToken}
+            placeholder="Paste reservation token"
+            accessibilityLabel="Founding reservation token"
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.reservationInput}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!reservationToken.trim()}
+            onPress={() => {
+              void onImportReservation(reservationToken.trim()).then((result) => {
+                setReservationMessage(
+                  result.valid
+                    ? `Reservation imported${result.seat === null ? '' : ` for seat #${result.seat}`}. This does not grant paid access.`
+                    : result.error ?? 'Reservation import failed',
+                );
+                if (result.valid) setReservationToken('');
+              });
+            }}
+          >
+            Import reservation
+          </Button>
+          {reservationMessage ? (
+            <Text style={styles.activeNote} accessibilityRole="alert">
+              {reservationMessage}
+            </Text>
+          ) : null}
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -350,5 +402,13 @@ const styles = StyleSheet.create({
     fontSize: nativeFontSize.xs,
     color: brandColors.sv2,
     textAlign: 'center',
+  },
+  reservationInput: {
+    borderWidth: 1,
+    borderColor: 'rgba(152,160,168,0.5)',
+    borderRadius: nativeRadius.md,
+    color: brandColors.sv1,
+    paddingHorizontal: nativeSpacing.s3,
+    paddingVertical: nativeSpacing.s2,
   },
 });

@@ -50,7 +50,21 @@ const ts = run('npx', ['tsc', '--noEmit'], 60000);
 check('TypeScript clean', ts.ok, ts.ok ? '' : 'compilation errors found');
 console.log(ts.ok ? 'clean' : 'FAILED');
 
-// ── 2. Tests (unit + bracket wiring — excludes hardware-dependent integration) ─
+// ── 2. Release truth baseline ──────────────────────────────────────────────
+process.stdout.write('  Release manifest... ');
+const releaseManifest = run(
+  'node',
+  ['scripts/release-manifest.js', '--verify-source'],
+  30000,
+);
+check(
+  'Release manifest',
+  releaseManifest.ok,
+  releaseManifest.ok ? '' : (releaseManifest.stderr.trim() || 'manifest verification failed'),
+);
+console.log(releaseManifest.ok ? 'PASS' : 'FAIL');
+
+// ── 3. Tests (unit + bracket wiring — excludes hardware-dependent integration) ─
 process.stdout.write('  Running tests (excluding startup-smoke)... ');
 const tests = run('npx', ['vitest', 'run', '--exclude', '**/startup-smoke*'], 300000);
 const testMatch = tests.stdout.match(/(\d+) passed/);
@@ -63,7 +77,7 @@ const testsOk = tests.ok && testsFailed === 0;
 check(`Tests (${testsPassed} passing, ${testsFailed} failing, ${testsSkipped} skipped)`, testsOk);
 console.log(testsOk ? `${testsPassed} passing` : `FAILED (${testsFailed} failures)`);
 
-// ── 3. Stub scan ──────────────────────────────────────────────────────────
+// ── 4. Stub scan ──────────────────────────────────────────────────────────
 process.stdout.write('  Scanning for stubs... ');
 const stubScan = run('grep', ['-rn', '--include=*.ts', 'TODO.*stub\\|PLACEHOLDER\\|not implemented', 'packages/core/', 'packages/gateway/'], 15000);
 const stubLines = stubScan.stdout.trim().split('\n').filter(l => l.trim() && !l.includes('node_modules'));
@@ -71,13 +85,13 @@ const noStubs = stubLines.length === 0;
 check(`No stubs (${noStubs ? '0' : stubLines.length} found)`, noStubs, noStubs ? '' : stubLines.slice(0, 3).join('; '));
 console.log(noStubs ? 'clean' : `${stubLines.length} stub(s) found`);
 
-// ── 4. Privacy audit ─────────────────────────────────────────────────────
+// ── 5. Privacy audit ─────────────────────────────────────────────────────
 process.stdout.write('  Privacy audit... ');
 const privacy = run('node', ['scripts/privacy-audit/index.js'], 30000);
 check('Privacy audit', privacy.ok, privacy.ok ? '' : 'network imports in AI Core');
 console.log(privacy.ok ? 'PASS' : 'FAIL');
 
-// ── 4b. AI golden-path contracts ───────────────────────────────────────────
+// ── 5b. AI golden-path contracts ───────────────────────────────────────────
 // Model-agnostic golden tests against a mock provider. Pin the orchestrator's
 // behavior (hallucination scanner, cold-start prompt selection, recovery mode,
 // multi-language conversational routing) independent of which real model runs
@@ -95,7 +109,7 @@ check(
 console.log(goldensOk ? `${goldenPass ? goldenPass[1] : '0'} passing` : 'FAILED');
 
 if (!FAST) {
-  // ── 5. Sidecar smoke ───────────────────────────────────────────────────
+  // ── 6. Sidecar smoke ───────────────────────────────────────────────────
   const sidecarPath = join(ROOT, 'packages', 'desktop', 'src-tauri', 'sidecar', 'bridge.cjs');
   if (!existsSync(sidecarPath)) {
     check('Sidecar bundle', false, 'bridge.cjs not found — run: node scripts/bundle-sidecar.js');
@@ -107,7 +121,7 @@ if (!FAST) {
     console.log(smoke.ok ? 'PASS' : 'FAIL');
   }
 
-  // ── 6. Verify P0 ─────────────────────────────────────────────────────
+  // ── 7. Verify P0 ─────────────────────────────────────────────────────
   process.stdout.write('  P0 verification... ');
   const verify = run('node', ['scripts/semblance-verify.js'], 300000);
   const p0Match = verify.stdout.match(/P0\s+(PASS|FAIL)/);
@@ -115,7 +129,7 @@ if (!FAST) {
   check('P0 gate', p0Ok, p0Ok ? '' : 'P0 features failing');
   console.log(p0Ok ? 'PASS' : 'FAIL');
 
-  // ── 7. Live AI golden suite (only if a provider resolves) ────────────
+  // ── 8. Live AI golden suite (only if a provider resolves) ────────────
   // These tests skip (not fail) when no reasoning provider is available, so
   // the gate never creates a dependency on Ollama or any specific model. When
   // a provider IS present, the assertions are exercised against it.

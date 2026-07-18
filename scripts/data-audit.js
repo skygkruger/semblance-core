@@ -24,6 +24,38 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
+function parseArguments(argv) {
+  const booleans = new Set(['--json', '--strict', '--verbose']);
+  const seen = new Set();
+  let outputPath = null;
+  for (let index = 2; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (booleans.has(argument)) {
+      if (seen.has(argument)) throw new Error(`Duplicate argument: ${argument}`);
+      seen.add(argument);
+      continue;
+    }
+    if (argument === '--output') {
+      if (seen.has(argument)) throw new Error('Duplicate argument: --output');
+      const value = argv[index + 1];
+      if (!value || value.startsWith('-')) throw new Error('--output requires a path');
+      seen.add(argument);
+      outputPath = path.resolve(value);
+      index += 1;
+      continue;
+    }
+    throw new Error(`Unknown argument: ${argument}`);
+  }
+  return outputPath;
+}
+
+let OUTPUT_PATH = null;
+let OUTPUT_ARGUMENT_ERROR = null;
+try {
+  OUTPUT_PATH = parseArguments(process.argv);
+} catch (cause) {
+  OUTPUT_ARGUMENT_ERROR = cause.message;
+}
 const JSON_MODE   = process.argv.includes('--json');
 const STRICT_MODE = process.argv.includes('--strict');
 const VERBOSE     = process.argv.includes('--verbose');
@@ -385,6 +417,10 @@ function saveState() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  if (OUTPUT_ARGUMENT_ERROR) {
+    console.error(`ARGUMENT_INVALID: ${OUTPUT_ARGUMENT_ERROR}`);
+    process.exit(2);
+  }
   if (!JSON_MODE) {
     print();
     print(bold('\x1b[36mSEMBLANCE DATA AUDIT\x1b[0m'));
@@ -403,6 +439,10 @@ async function main() {
 
   renderVerdict(gaps, stubs);
   saveState();
+  if (OUTPUT_PATH) {
+    fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
+    fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(report, null, 2)}\n`);
+  }
 
   if (JSON_MODE) console.log(JSON.stringify(report, null, 2));
   process.exit(STRICT_MODE && (gaps.length > 0 || stubs.length > 0) ? 1 : 0);

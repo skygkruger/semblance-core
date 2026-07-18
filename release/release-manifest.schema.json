@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/schemas/release-manifest.v1.json",
+  "title": "Semblance Release Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "releaseId",
+    "generatedAt",
+    "repositories",
+    "signedArtifacts",
+    "evidence",
+    "commerce",
+    "protocolVersions",
+    "modelRuntimeHashes",
+    "confidentialWorkloadMeasurements",
+    "infrastructurePolicyVersions",
+    "legalNoticesVersion",
+    "completedSlices",
+    "features",
+    "signatureKeyId",
+    "signature"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "releaseId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "repositories": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["core", "representative", "website"],
+      "properties": {
+        "core": { "$ref": "#/$defs/sourceRepository" },
+        "representative": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sourceCommit",
+            "sourceTreeHash",
+            "packageVersion",
+            "artifactHash",
+            "extensionManifestHash"
+          ],
+          "properties": {
+            "sourceCommit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40,64}$"
+            },
+            "sourceTreeHash": { "$ref": "#/$defs/gitObjectId" },
+            "packageVersion": { "type": "string", "minLength": 1 },
+            "artifactHash": {
+              "oneOf": [
+                { "$ref": "#/$defs/sha256" },
+                { "type": "null" }
+              ]
+            },
+            "extensionManifestHash": {
+              "oneOf": [
+                { "$ref": "#/$defs/sha256" },
+                { "type": "null" }
+              ]
+            }
+          }
+        },
+        "website": { "$ref": "#/$defs/sourceRepository" }
+      }
+    },
+    "signedArtifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/signedArtifact" },
+      "uniqueItems": true
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidence" },
+      "uniqueItems": true
+    },
+    "commerce": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["newSalesEnabled", "freezeEvidence"],
+      "properties": {
+        "newSalesEnabled": { "type": "boolean" },
+        "freezeEvidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "protocolVersions": { "$ref": "#/$defs/versionMap" },
+    "modelRuntimeHashes": { "$ref": "#/$defs/stringSet" },
+    "confidentialWorkloadMeasurements": { "$ref": "#/$defs/stringSet" },
+    "infrastructurePolicyVersions": { "$ref": "#/$defs/stringSet" },
+    "legalNoticesVersion": { "type": "string", "minLength": 1 },
+    "completedSlices": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1 },
+      "uniqueItems": true
+    },
+    "features": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/featureEvidence" },
+      "uniqueItems": true
+    },
+    "signatureKeyId": { "type": "string" },
+    "signature": {
+      "type": "string",
+      "contentEncoding": "base64"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "gitObjectId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40,64}$"
+    },
+    "sourceRepository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceCommit", "sourceTreeHash"],
+      "properties": {
+        "sourceCommit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40,64}$"
+        },
+        "sourceTreeHash": { "$ref": "#/$defs/gitObjectId" }
+      }
+    },
+    "repository": {
+      "enum": ["core", "representative", "website"]
+    },
+    "evidenceState": {
+      "enum": [
+        "Specified",
+        "Implemented",
+        "Wired",
+        "DataVerified",
+        "RuntimeVerified",
+        "AdversariallyVerified",
+        "Released",
+        "FieldProven"
+      ]
+    },
+    "stringSet": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "versionMap": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "signedArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "path",
+        "sha256",
+        "signature",
+        "signatureKeyId"
+      ],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "signature": {
+          "type": "string",
+          "minLength": 1,
+          "contentEncoding": "base64"
+        },
+        "signatureKeyId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "repository",
+        "path",
+        "sha256",
+        "requiredForStates"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "repository": { "$ref": "#/$defs/repository" },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "requiredForStates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidenceState" },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
+    "representativePins": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "packageVersion",
+            "artifactHash",
+            "extensionManifestHash"
+          ],
+          "properties": {
+            "packageVersion": { "type": "string", "minLength": 1 },
+            "artifactHash": { "$ref": "#/$defs/sha256" },
+            "extensionManifestHash": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "featureEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "repository",
+        "state",
+        "usesDigitalRepresentative",
+        "signedArtifactNames",
+        "evidenceIds",
+        "protocolVersions",
+        "modelRuntimeHashes",
+        "confidentialWorkloadMeasurements",
+        "infrastructurePolicyVersions",
+        "legalNoticesVersion",
+        "representativePins"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "repository": { "$ref": "#/$defs/repository" },
+        "state": { "$ref": "#/$defs/evidenceState" },
+        "usesDigitalRepresentative": { "type": "boolean" },
+        "signedArtifactNames": { "$ref": "#/$defs/stringSet" },
+        "evidenceIds": { "$ref": "#/$defs/stringSet" },
+        "protocolVersions": { "$ref": "#/$defs/versionMap" },
+        "modelRuntimeHashes": { "$ref": "#/$defs/stringSet" },
+        "confidentialWorkloadMeasurements": { "$ref": "#/$defs/stringSet" },
+        "infrastructurePolicyVersions": { "$ref": "#/$defs/stringSet" },
+        "legalNoticesVersion": { "type": "string", "minLength": 1 },
+        "representativePins": { "$ref": "#/$defs/representativePins" }
+      }
+    }
+  }
+}

@@ -13,12 +13,27 @@ env:
   RUST_BACKTRACE: short
 
 jobs:
-  # ─── Pre-Release CI ──────────────────────────────────────────────────────────
-  ci:
-    name: Pre-Release CI
+  source-gate:
+    name: Verify pinned release sources
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check out pinned representative source
+        uses: actions/checkout@v4
+        with:
+          repository: skygkruger/semblence-representative
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN }}
+          path: representative
+          fetch-depth: 0
+      - name: Check out pinned website source
+        uses: actions/checkout@v4
+        with:
+          repository: skygkruger/semblance-run
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN }}
+          path: website
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 9
@@ -28,14 +43,18 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
-      # Exclude startup-smoke (needs bundled sidecar + model files, macOS only)
       - run: pnpm exec vitest run --exclude '**/startup-smoke*'
       - run: node scripts/privacy-audit/index.js
+      - name: Verify pinned release sources
+        run: >-
+          node scripts/release-manifest.js --verify-source
+          --core-repo "$GITHUB_WORKSPACE"
+          --representative-repo "$GITHUB_WORKSPACE/representative"
+          --website-repo "$GITHUB_WORKSPACE/website"
 
-  # ─── macOS Universal Binary ──────────────────────────────────────────────────
   build-macos:
-    name: Build — macOS Universal
-    needs: ci
+    name: Build Tauri — macOS Universal
+    needs: source-gate
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -50,9 +69,7 @@ jobs:
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
       - run: pnpm install --frozen-lockfile
-
-      # Import signing certificate (when secrets are configured)
-      - name: Import Apple Certificate
+      - name: Import Apple certificate
         if: env.APPLE_CERTIFICATE != ''
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -65,33 +82,31 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions build.keychain
           rm certificate.p12
-
-      - name: Build Tauri (Universal)
-        uses: tauri-apps/tauri-action@v0
+      - name: Build Tauri
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS code signing
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          # macOS notarization
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          # Tauri update manifest signing
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm --dir packages/desktop exec tauri build --target universal-apple-darwin
+      - name: Stage deterministic macOS distributable
+        run: |
+          mkdir -p release-stage
+          DMG_DIR="packages/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg"
+          test "$(find "$DMG_DIR" -maxdepth 1 -type f -name '*.dmg' | wc -l | tr -d ' ')" = "1"
+          install -m 0644 "$(find "$DMG_DIR" -maxdepth 1 -type f -name '*.dmg' -print -quit)" \
+            release-stage/semblance-macos-universal.dmg
+      - uses: actions/upload-artifact@v4
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Semblance ${{ github.ref_name }}'
-          releaseBody: 'See the [changelog](https://github.com/skygkruger/semblance-core/blob/main/CHANGELOG.md) for details.'
-          releaseDraft: true
-          prerelease: false
-          args: --target universal-apple-darwin
-          projectPath: packages/desktop
+          name: release-macos
+          path: release-stage/*
+          if-no-files-found: error
 
-  # ─── Linux (x86_64) ─────────────────────────────────────────────────────────
   build-linux:
-    name: Build — Linux x86_64
-    needs: ci
+    name: Build Tauri — Linux x86_64
+    needs: source-gate
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -110,25 +125,33 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - run: pnpm install --frozen-lockfile
-
       - name: Build Tauri
-        uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm --dir packages/desktop exec tauri build --target x86_64-unknown-linux-gnu
+      - name: Stage deterministic Linux distributables
+        run: |
+          mkdir -p release-stage
+          BUNDLE_DIR="packages/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
+          test "$(find "$BUNDLE_DIR/deb" -maxdepth 1 -type f -name '*.deb' | wc -l | tr -d ' ')" = "1"
+          test "$(find "$BUNDLE_DIR/appimage" -maxdepth 1 -type f -name '*.AppImage' | wc -l | tr -d ' ')" = "1"
+          test "$(find "$BUNDLE_DIR/rpm" -maxdepth 1 -type f -name '*.rpm' | wc -l | tr -d ' ')" = "1"
+          install -m 0644 "$(find "$BUNDLE_DIR/deb" -maxdepth 1 -type f -name '*.deb' -print -quit)" \
+            release-stage/semblance-linux-x86_64.deb
+          install -m 0755 "$(find "$BUNDLE_DIR/appimage" -maxdepth 1 -type f -name '*.AppImage' -print -quit)" \
+            release-stage/semblance-linux-x86_64.AppImage
+          install -m 0644 "$(find "$BUNDLE_DIR/rpm" -maxdepth 1 -type f -name '*.rpm' -print -quit)" \
+            release-stage/semblance-linux-x86_64.rpm
+      - uses: actions/upload-artifact@v4
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Semblance ${{ github.ref_name }}'
-          releaseBody: 'See the [changelog](https://github.com/skygkruger/semblance-core/blob/main/CHANGELOG.md) for details.'
-          releaseDraft: true
-          prerelease: false
-          projectPath: packages/desktop
+          name: release-linux
+          path: release-stage/*
+          if-no-files-found: error
 
-  # ─── Windows (x86_64) ───────────────────────────────────────────────────────
   build-windows:
-    name: Build — Windows x86_64
-    needs: ci
+    name: Build Tauri — Windows x86_64
+    needs: source-gate
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -142,33 +165,79 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
-      - name: Install CMake
-        uses: jwlawson/actions-setup-cmake@v2
+      - uses: jwlawson/actions-setup-cmake@v2
       - run: pnpm install --frozen-lockfile
-
-      # Import Windows EV certificate (when secrets are configured)
-      - name: Import Windows Certificate
+      - name: Import Windows certificate
         if: env.WINDOWS_CERTIFICATE != ''
         env:
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        shell: powershell
         run: |
           $cert = [System.Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
           [System.IO.File]::WriteAllBytes("certificate.pfx", $cert)
           Import-PfxCertificate -FilePath certificate.pfx -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force)
           Remove-Item certificate.pfx
-        shell: powershell
-
       - name: Build Tauri
-        uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm --dir packages/desktop exec tauri build --target x86_64-pc-windows-msvc
+      - name: Stage deterministic Windows distributables
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path release-stage | Out-Null
+          $bundle = "packages/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle"
+          $msi = @(Get-ChildItem "$bundle/msi/*.msi" -File)
+          $exe = @(Get-ChildItem "$bundle/nsis/*-setup.exe" -File)
+          if ($msi.Count -ne 1) { throw "Expected exactly one MSI, found $($msi.Count)" }
+          if ($exe.Count -ne 1) { throw "Expected exactly one NSIS setup EXE, found $($exe.Count)" }
+          Copy-Item $msi[0].FullName release-stage/semblance-windows-x86_64.msi
+          Copy-Item $exe[0].FullName release-stage/semblance-windows-x86_64-setup.exe
+      - uses: actions/upload-artifact@v4
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Semblance ${{ github.ref_name }}'
-          releaseBody: 'See the [changelog](https://github.com/skygkruger/semblance-core/blob/main/CHANGELOG.md) for details.'
-          releaseDraft: true
+          name: release-windows
+          path: release-stage/*
+          if-no-files-found: error
+
+  verify-artifacts:
+    name: Verify exact built release artifacts
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: skygkruger/semblence-representative
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN }}
+          path: representative
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: skygkruger/semblance-run
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN }}
+          path: website
+          fetch-depth: 0
+      - name: Download exact built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release/artifacts
+          merge-multiple: true
+      - name: Verify downloaded release artifacts
+        run: >-
+          node scripts/release-manifest.js --verify-release
+          --core-repo "$GITHUB_WORKSPACE"
+          --representative-repo "$GITHUB_WORKSPACE/representative"
+          --website-repo "$GITHUB_WORKSPACE/website"
+          --artifact-root "$GITHUB_WORKSPACE/release/artifacts"
+          --require-exact-artifacts
+          --require-legal-version
+      - name: Upload verified release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
           prerelease: false
-          projectPath: packages/desktop
+          files: release/artifacts/*

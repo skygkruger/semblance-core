@@ -253,6 +253,14 @@ export interface ActivationResult {
   error?: string;
 }
 
+export interface ReservationImportResult {
+  valid: boolean;
+  kind: 'reservation_only';
+  seat: number | null;
+  imported?: boolean;
+  error?: string;
+}
+
 // ─── Network Monitor ────────────────────────────────────────────────────────
 
 export type NetworkPeriod = 'today' | 'week' | 'month';

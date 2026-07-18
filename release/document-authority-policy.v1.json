@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "policyId": "semblance-document-authority-invariants-v1",
+  "invariants": {
+    "zeroNetworkCore": true,
+    "gatewayOnlyEgress": true,
+    "noTelemetry": true,
+    "localCanonicalData": true,
+    "actionAndDisclosureAuditBeforeExecution": true,
+    "secureStorage": true,
+    "firstPartyPlaintextOnlyInAttestedConfidentialCompute": true,
+    "byoAndSelfHostedAreUserControlledDestinations": true,
+    "reservationArtifactsNeverGrantEntitlement": true,
+    "historicalStateIsReadOnly": true,
+    "currentStateRequiresGeneratedEvidence": true
+  },
+  "definitions": {
+    "zeroNetworkCore": "Core has no ambient local-network or internet entitlement and cannot open sockets or invoke arbitrary URLs.",
+    "gatewayOnlyEgress": "The Gateway is the only local process permitted to open local-network or internet sockets.",
+    "localCanonicalData": "Local identity, keys, policy, memory, and canonical user data remain authoritative.",
+    "firstPartyCloud": "First-party cloud plaintext processing is permitted only in an approved attested confidential-compute workload; there is no non-attested first-party fallback.",
+    "userControlledDestinations": "BYO providers and self-hosted nodes are distinct user-selected destinations governed by their own disclosure and trust policies.",
+    "historicalState": "SEMBLANCE_STATE.md and historical payment/session records are read-only migration evidence, never current release state."
+  }
+}

@@ -5,7 +5,8 @@
 // Called by tauri.conf.json beforeBuildCommand.
 
 const { execSync } = require('child_process');
-const { cpSync, mkdirSync, existsSync, rmSync, readFileSync } = require('fs');
+const { cpSync, mkdirSync, mkdtempSync, existsSync, rmSync, readFileSync } = require('fs');
+const { tmpdir } = require('os');
 const { join, resolve } = require('path');
 
 const ROOT = resolve(__dirname, '..');
@@ -14,6 +15,12 @@ const SIDECAR_MODULES = join(SIDECAR_DIR, 'node_modules');
 const ROOT_MODULES = join(ROOT, 'node_modules');
 // pnpm places workspace deps in package-local node_modules; check there as fallback
 const CORE_MODULES = join(ROOT, 'packages', 'core', 'node_modules');
+const TRACKED_BUNDLE = join(SIDECAR_DIR, 'bridge.cjs');
+const CHECK_ONLY = process.argv.includes('--check');
+const checkDir = CHECK_ONLY
+  ? mkdtempSync(join(tmpdir(), 'semblance-sidecar-check-'))
+  : null;
+const outputPath = checkDir ? join(checkDir, 'bridge.cjs') : TRACKED_BUNDLE;
 
 function findModuleDir(mod) {
   const rootPath = join(ROOT_MODULES, mod);
@@ -36,7 +43,7 @@ function findModuleDir(mod) {
   return null;
 }
 
-console.log('[bundle-sidecar] Bundling bridge.ts → bridge.cjs...');
+console.log(`[bundle-sidecar] ${CHECK_ONLY ? 'Checking' : 'Bundling'} bridge.ts → bridge.cjs...`);
 
 execSync(
   [
@@ -46,7 +53,7 @@ execSync(
     '--platform=node',
     '--target=node20',
     '--format=cjs',
-    `--outfile=${join(SIDECAR_DIR, 'bridge.cjs')}`,
+    `--outfile=${outputPath}`,
     '--external:better-sqlite3',
     '--external:@lancedb/lancedb',
     '--external:@lancedb/lancedb-win32-x64-msvc',
@@ -54,6 +61,39 @@ execSync(
   ].join(' '),
   { cwd: ROOT, stdio: 'inherit' }
 );
+
+if (CHECK_ONLY) {
+  const forbiddenSymbols = [
+    'activateFoundingMember',
+    'license:activate_founding',
+  ];
+  try {
+    if (!existsSync(TRACKED_BUNDLE)) {
+      throw new Error('Tracked bridge.cjs is missing; run node scripts/bundle-sidecar.js');
+    }
+    const expected = readFileSync(outputPath);
+    const tracked = readFileSync(TRACKED_BUNDLE);
+    if (!expected.equals(tracked)) {
+      throw new Error(
+        'Tracked bridge.cjs is stale; run node scripts/bundle-sidecar.js and commit it',
+      );
+    }
+    const bundleText = tracked.toString('utf8');
+    const forbidden = forbiddenSymbols.filter((symbol) => bundleText.includes(symbol));
+    if (forbidden.length > 0) {
+      throw new Error(
+        `Tracked bridge.cjs contains removed premium activation symbols: ${forbidden.join(', ')}`,
+      );
+    }
+    if (!bundleText.includes('reservation:import')) {
+      throw new Error('Tracked bridge.cjs is missing reservation-only import handling');
+    }
+    console.log('[bundle-sidecar] PASS: tracked bundle is current and reservation-only');
+  } finally {
+    rmSync(checkDir, { recursive: true, force: true });
+  }
+  process.exit(0);
+}
 
 console.log('[bundle-sidecar] Resolving all transitive dependencies...');
 

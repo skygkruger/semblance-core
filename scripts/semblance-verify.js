@@ -19,15 +19,55 @@
 'use strict';
 
 const { spawn } = require('child_process');
-const { join } = require('path');
+const { dirname, join, resolve } = require('path');
 const { writeFileSync, readFileSync, existsSync, mkdirSync } = require('fs');
 const os = require('os');
 
+function parseArguments(argv) {
+  const booleans = new Set(['--verbose', '--diff', '--json']);
+  const seen = new Set();
+  const parsed = { outputPath: null, feature: null };
+  for (let index = 2; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (booleans.has(argument)) {
+      if (seen.has(argument)) throw new Error(`Duplicate argument: ${argument}`);
+      seen.add(argument);
+      continue;
+    }
+    if (argument === '--output') {
+      if (seen.has(argument)) throw new Error('Duplicate argument: --output');
+      const value = argv[index + 1];
+      if (!value || value.startsWith('-')) throw new Error('--output requires a path');
+      seen.add(argument);
+      parsed.outputPath = resolve(value);
+      index += 1;
+      continue;
+    }
+    if (argument.startsWith('--feature=')) {
+      if (seen.has('--feature')) throw new Error('Duplicate argument: --feature');
+      const value = argument.slice('--feature='.length);
+      if (!value) throw new Error('--feature requires a value');
+      seen.add('--feature');
+      parsed.feature = value.toUpperCase();
+      continue;
+    }
+    throw new Error(`Unknown argument: ${argument}`);
+  }
+  return parsed;
+}
+
+let CLI_ARGUMENTS = { outputPath: null, feature: null };
+let OUTPUT_ARGUMENT_ERROR = null;
+try {
+  CLI_ARGUMENTS = parseArguments(process.argv);
+} catch (cause) {
+  OUTPUT_ARGUMENT_ERROR = cause.message;
+}
 const VERBOSE = process.argv.includes('--verbose');
 const DIFF_MODE = process.argv.includes('--diff');
 const JSON_MODE = process.argv.includes('--json');
-const FEATURE_FLAG = process.argv.find(a => a.startsWith('--feature='));
-const FEATURE_FILTER = FEATURE_FLAG ? FEATURE_FLAG.split('=')[1].toUpperCase() : null;
+const FEATURE_FILTER = CLI_ARGUMENTS.feature;
+const OUTPUT_PATH = CLI_ARGUMENTS.outputPath;
 
 // Allow install-and-verify.js to point this script at the installed binary
 const SIDECAR_PATH = process.env.SEMBLANCE_SIDECAR_OVERRIDE ||
@@ -37,6 +77,12 @@ const STATE_DIR = join(__dirname, '..', '.semblance-verify');
 const STATE_FILE = join(STATE_DIR, 'last-run.json');
 
 if (!existsSync(STATE_DIR)) mkdirSync(STATE_DIR, { recursive: true });
+
+function writeMachineOutput(report) {
+  if (!OUTPUT_PATH) return;
+  mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
+  writeFileSync(OUTPUT_PATH, `${JSON.stringify(report, null, 2)}\n`);
+}
 
 // ─── Sidecar Control ──────────────────────────────────────────────────────────
 
@@ -937,6 +983,10 @@ function diffReport(current, previous) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  if (OUTPUT_ARGUMENT_ERROR) {
+    console.error(`ARGUMENT_INVALID: ${OUTPUT_ARGUMENT_ERROR}`);
+    process.exit(1);
+  }
   const date = new Date().toISOString().replace('T', ' ').slice(0, 19);
   console.log('\n' + '═'.repeat(55));
   console.log('  SEMBLANCE VERIFICATION — Starting sidecar...');
@@ -951,6 +1001,16 @@ async function main() {
     console.log('\n  ❌ SIDECAR FAILED TO INITIALIZE\n');
     console.log('  Last sidecar stderr:');
     stderrLines.slice(-20).forEach(l => console.log('  ' + l));
+    writeMachineOutput({
+      allFeatures: [],
+      totalPass: 0,
+      totalTests: 0,
+      p0Pass: false,
+      p1Pass: false,
+      buildReady: false,
+      date,
+      fatalError: 'SIDECAR_FAILED_TO_INITIALIZE',
+    });
     killSidecar();
     process.exit(1);
   }
@@ -983,6 +1043,7 @@ async function main() {
   // Also write latest.json for machine consumption (update-state.js)
   const LATEST_FILE = join(STATE_DIR, 'latest.json');
   writeFileSync(LATEST_FILE, JSON.stringify(report, null, 2));
+  writeMachineOutput(report);
 
   if (JSON_MODE) {
     // Machine-readable output — consumed by scripts/update-state.js
@@ -1000,6 +1061,16 @@ async function main() {
 
 main().catch((err) => {
   console.error('\n💀 Verification script crashed:', err.message);
+  writeMachineOutput({
+    allFeatures: [],
+    totalPass: 0,
+    totalTests: 0,
+    p0Pass: false,
+    p1Pass: false,
+    buildReady: false,
+    date: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    fatalError: err.message,
+  });
   killSidecar();
   process.exit(1);
 });

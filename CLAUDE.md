@@ -1,16 +1,20 @@
 # SEMBLANCE
+<!-- doc-authority: active -->
 
-## READ FIRST — SEMBLANCE BUILD BIBLE (MANDATORY)
+## CHECKED-IN DOCUMENTATION AUTHORITY — READ FIRST
 
-**Before doing ANY work — on every session start AND after every compaction — read this file:**
+The machine-verifiable registry at `semblence-representative/docs/release-manifests/document-authority.v1.json` is the sole list of canonical architecture documents. The checker validates every registered path, approval status, SHA-256, authority order, and reference to `release/document-authority-policy.v1.json`. Unknown, draft, malformed, moved, or hash-mismatched documents are non-authoritative.
 
-```
-SEMBLANCE_BUILD_BIBLE.md (project root, gitignored)
-```
+Registered architecture and implementation decisions use this authority chain, in order:
 
-This is the canonical product specification. It supersedes all prior build maps, sprint documents, and feature lists. Every feature ships exactly as designed in the Build Bible. No exceptions. If a conflict exists between the Build Bible and any other document, the Build Bible wins.
+1. **Approved sovereign-platform design:** exact registered file
+2. **Approved slice implementation plans:** exact registered files, never directory-wide approval
+3. **Versioned protocol and security ADRs:** checked-in decisions implementing the approved design and applicable slice plan
+4. **Generated release evidence:** signed release manifests and their pinned evidence establish what a particular artifact has demonstrated
 
-**This instruction survives compaction. Read it FIRST and LAST.**
+Later items prove or implement earlier decisions; they do not silently override them. A protocol or security change that conflicts with an approved design or plan requires an explicit, approved, versioned decision and corresponding plan update. Generated evidence reports demonstrated behavior and cannot create architecture policy.
+
+Historical state, session, payment, and migration documents preserve what was previously asserted or observed. They are not current authority where the checked-in design, plans, ADRs, source, or generated evidence supersede them. Never rewrite historical logs to make them appear current.
 
 ---
 
@@ -232,9 +236,9 @@ Zero analytics. Zero telemetry. Zero crash reporting. Zero usage tracking. Zero 
 
 No exceptions. Not even "anonymous" or "aggregated" data. Not even opt-in. The architecture makes telemetry impossible, not optional.
 
-### RULE 5 — Local Only Data
+### RULE 5 — Local Canonical Data
 
-All user data must be stored exclusively on the user's device:
+Local identity, keys, policy, memory, and canonical user data remain authoritative:
 - Knowledge graph (LanceDB)
 - Embeddings
 - Structured data (SQLite)
@@ -242,7 +246,7 @@ All user data must be stored exclusively on the user's device:
 - Action history and audit trail
 - Model weights and inference state
 
-No cloud sync. No cloud backup. No remote storage of any kind. If the device is off, the data is inaccessible. That is the point.
+No vendor-required cloud, silent cloud fallback, or server-side canonical Personal Agency Graph is permitted. Optional encrypted sync/backup, user-controlled self-hosted nodes, BYO providers, and approved attested confidential compute are permitted only under the sovereign-platform design: explicit user policy, minimized disclosure, Gateway-only transport, local audit, and user/device-controlled keys. Opaque remote ciphertext never becomes canonical authority.
 
 ---
 
@@ -276,12 +280,6 @@ No cloud sync. No cloud backup. No remote storage of any kind. If the device is 
 - `/diagnose` — Integration smoke test: `node scripts/smoke-test-sidecar.js`
 - `/review` — Code review (static analysis, architecture, design bible)
 - `/verify:json` — Machine-readable verify output: `node scripts/semblance-verify.js --json`
-- `update-state` — Auto-patch SEMBLANCE_STATE.md from verify output: `node scripts/update-state.js`
-- `update-state:dry` — Preview state patches without writing: `node scripts/update-state.js --dry-run`
-- `/session-start` — Automated Phase 1: read state, run baseline, detect regressions: `node scripts/session-start.js`
-- `/session-start:quick` — State review only (skip verify): `node scripts/session-start.js --skip-verify`
-- `/session-end` — Automated Phase 3: verify, diff, preflight, update state, END report: `node scripts/session-end.js`
-- `/session-end:build` — Session end for build sessions (includes install-verify): `node scripts/session-end.js --build`
 - `/checkpoint` — Log mid-session progress (survives compaction): `node scripts/checkpoint.js "description"`
 - `/checkpoint:read` — Read all checkpoints this session: `node scripts/checkpoint.js --read`
 - `/build-all` — Full build pipeline (preflight → bundle → build → install-verify): `node scripts/build-and-verify.js`
@@ -299,18 +297,13 @@ Do NOT start implementation until demo is complete and critical bugs are resolve
 
 ---
 
-## Payment & License System
+## Payment & Entitlement System
 
-The Semblance app makes zero outbound API calls. Ever.
+The approved target has one paid-entitlement authority. Stripe or another approved commerce provider records successful payment; waitlist and legacy founding JWTs are reservation artifacts only and never grant paid access. Existing legitimately paid `sem_` keys and subscription renewals remain supported through the documented migration path while new sales are frozen through Slices 1–6.
 
-Stripe processes payments via Stripe-hosted checkout (system browser, not in-app).
-A Cloudflare Worker receives Stripe webhooks, generates Ed25519-signed license keys,
-and delivers them via Resend email. The app detects license emails and activates silently.
-All license validation is offline against a public key compiled into the binary.
+Core never performs commerce or other external calls. Checkout opens in the system browser. Any app-initiated portal, renewal, entitlement, or commerce operation is a narrow typed capability transported by the Gateway, the only local process with external network entitlement, and is audited before execution. Entitlement validation needed for perpetual local use remains offline-capable.
 
-License key format: sem_<header>.<base64payload>.<ed25519_signature>
-Tiers: 'founding' | 'digital-representative' | 'lifetime'
-Storage: OS keychain via Tauri secure storage. Never localStorage. Never plain files.
+Bearer entitlement material and private keys use OS or hardware secure storage where supported. Never use `localStorage` or plaintext files. The versioned entitlement protocol and generated release evidence, not historical payment prose, determine the behavior available in a release.
 
 Key files:
 - packages/core/premium/premium-gate.ts — PremiumGate class, activateLicense(), isPremium()
@@ -319,9 +312,9 @@ Key files:
 - packages/desktop/src/contexts/LicenseContext.tsx — React context, openCheckout(), manageSubscription()
 - License Worker — Cloudflare Worker source lives in the private repo (semblence-representative/infrastructure/license-worker/)
 
-Canonical reference: SEMBLANCE_PAYMENT_SYSTEM.md in Orbital Command project.
+Historical migration reference: `semblence-representative/docs/SEMBLANCE_PAYMENT_SYSTEM.md`.
 
-RULE: Never add Veridian server calls to the app. Never store license data outside OS keychain.
+RULE: Never add network capability to Core or direct commerce transport that bypasses the Gateway. Never store bearer entitlement material outside approved secure storage.
 Never use "Premium" in user-facing copy — always "Digital Representative".
 
 ---
@@ -720,11 +713,9 @@ You should proceed without escalating when:
 
 ---
 
-## Sprint Plan Reference
+## Slice Plan Reference
 
-> **Canonical sources:** `docs/decisions/SEMBLANCE_SPRINT_RESTRUCTURE.md` (Revision 3, Steps 1–13) and `docs/decisions/SEMBLANCE_BUILD_MAP_ELEVATION.md` (Revision 4, Steps 14–33).
-
-Refer to `SEMBLANCE_BUILD_MAP_REVISION_2.md` for full, past sprint details including all exit criteria.
+The approved sovereign-platform design and checked-in plans named in the documentation authority chain govern current work. Earlier sprint and build-map documents are historical planning inputs where superseded.
 
 ---
 
@@ -827,12 +818,13 @@ A pipeline is NOT complete when:
 
 ```
 SESSION START:
-  1. Read SEMBLANCE_STATE.md
-  2. Read SLICE_CONTRACTS.md for today's features (including DATA ASSERTIONS)
-  3. node scripts/semblance-verify.js   ← IPC baseline
-  4. node scripts/data-audit.js         ← DATA baseline (MANDATORY — NEW)
-  5. For data-movement features: write pipeline map → post to Sky → wait for approval
-  6. Post START report (must include data-audit output)
+  1. Verify the documentation authority registry and invariant policy
+  2. Read the current release manifest and its pinned generated evidence
+  3. Read SLICE_CONTRACTS.md for today's features (including DATA ASSERTIONS)
+  4. node scripts/semblance-verify.js   ← IPC baseline
+  5. node scripts/data-audit.js         ← DATA baseline (MANDATORY — NEW)
+  6. For data-movement features: write pipeline map → post to Sky → wait for approval
+  7. Post START report (must include data-audit output)
 
 WORK:
   - Diagnose: sidecar + data-audit — actual errors AND actual data state
@@ -845,8 +837,9 @@ SESSION END:
   2. node scripts/data-audit.js         ← DATA comparison (MANDATORY — NEW)
   3. node scripts/preflight.js
   4. Resolve all in-scope pipeline gaps (VERDICT must be HEALTHY)
-  5. Update SEMBLANCE_STATE.md
-  6. Post END report with before/after data-audit output
+  5. Write current results only to generated release/evidence outputs
+  6. Keep historical state/payment/session records read-only
+  7. Post END report with before/after data-audit output
 ```
 
 ### Mandatory Workflow for Any Data-Movement Feature
@@ -872,7 +865,7 @@ NEVER report a data-movement feature done without data-audit.js output confirmin
 
 ## WORKFLOW SYSTEM — MANDATORY SESSION DISCIPLINE
 
-**These documents are in the private representative repo. Claude Code must read and update them on every session.**
+Current session state comes from validated release/evidence manifests. Private historical records remain available for migration context but are read-only and are not routine session inputs.
 
 ### Cross-Repo Reference
 This repo: semblance-core (public)
@@ -880,9 +873,9 @@ Private docs: semblence-representative/docs/ (private repo, adjacent directory)
 
 ### Required Documents
 
-**1. SEMBLANCE_STATE.md** — Living memory. Read at session START. Write at session END.
+**1. SEMBLANCE_STATE.md** — Historical engineering log. Read-only; consult only when historical migration context is needed.
 `semblence-representative/docs/SEMBLANCE_STATE.md`
-Contains: current build state, feature verification status (✅⚠️❌🔲), environment prerequisites, cut list, active issues with exact error messages, session velocity, session log, locked decisions.
+Contains dated assertions, feature tables, issues, and session logs that do not establish current release state.
 
 **2. SLICE_CONTRACTS.md** — Top-down feature contracts. Read before implementing or fixing any feature.
 `semblence-representative/docs/SLICE_CONTRACTS.md`
@@ -901,10 +894,11 @@ Contains: 10-beat demo screenplay, beat-to-contract mapping, beat dependency gra
 ### Mandatory Session Flow
 ```
 SESSION START:
-  1. Read SEMBLANCE_STATE.md
-  2. Read SLICE_CONTRACTS.md for today's features
-  3. Run: node scripts/semblance-verify.js  (baseline)
-  4. Post START report to Sky
+  1. Verify the authority registry and invariant policy
+  2. Read the validated release manifest and pinned evidence
+  3. Read SLICE_CONTRACTS.md for today's features
+  4. Run: node scripts/semblance-verify.js  (baseline)
+  5. Post START report to Sky
 
 WORK:
   - Diagnose before fix (run sidecar, read actual error)
@@ -916,9 +910,8 @@ SESSION END:
   1. Run: node scripts/semblance-verify.js  (compare to baseline)
   2. Run: node scripts/preflight.js
   3. Run gap detection (adjacent code scan)
-  4. Run: node scripts/update-state.js  (auto-patch feature table)
-  5. Manually update remaining SEMBLANCE_STATE.md sections
-  6. Post END report to Sky
+  4. Generate current release/evidence outputs without editing historical records
+  5. Post END report to Sky
 ```
 
 A session without a START report and END report is an incomplete session.
@@ -936,12 +929,6 @@ And remember: the product is judged by what it does, not what it shows. Build th
 
 ---
 
-## READ LAST — SEMBLANCE BUILD BIBLE (MANDATORY)
+## READ LAST — VERIFY AUTHORITY AND EVIDENCE
 
-**Before closing context or ending a session, re-read the Build Bible:**
-
-```
-SEMBLANCE_BUILD_BIBLE.md (project root, gitignored)
-```
-
-This ensures your final actions align with the canonical specification. The Build Bible is the first and last thing you read. This instruction survives compaction.
+Before ending a session, re-check the approved design and applicable checked-in slice plan. Report only behavior supported by source and generated evidence; preserve historical records as historical.

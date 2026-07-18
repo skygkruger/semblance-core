@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "task-2-fixture",
+  "generatedAt": "2026-07-18T12:00:00.000Z",
+  "repositories": {
+    "core": {
+      "sourceCommit": "1111111111111111111111111111111111111111",
+      "sourceTreeHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "representative": {
+      "sourceCommit": "2222222222222222222222222222222222222222",
+      "sourceTreeHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "packageVersion": "1.0.0",
+      "artifactHash": null,
+      "extensionManifestHash": null
+    },
+    "website": {
+      "sourceCommit": "3333333333333333333333333333333333333333",
+      "sourceTreeHash": "cccccccccccccccccccccccccccccccccccccccc"
+    }
+  },
+  "signedArtifacts": [
+    {
+      "name": "desktop",
+      "path": "desktop.bin",
+      "sha256": "6521df166eb07efaf36eba5b6bedefd9d6a252e9c80bab1c99653700ec71473c",
+      "signature": "",
+      "signatureKeyId": "test-release-key"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "runtime-verification",
+      "repository": "core",
+      "path": "runtime.json",
+      "sha256": "3c2cc14b5c5beb243cf6ce364e02599dadd6ebccbd186c230f9f2139209ab7be",
+      "requiredForStates": ["Released"]
+    }
+  ],
+  "commerce": {
+    "newSalesEnabled": false,
+    "freezeEvidence": []
+  },
+  "protocolVersions": {
+    "releaseEvidence": 1
+  },
+  "modelRuntimeHashes": [],
+  "confidentialWorkloadMeasurements": [],
+  "infrastructurePolicyVersions": [],
+  "legalNoticesVersion": "2026-07-18",
+  "completedSlices": [1],
+  "features": [
+    {
+      "id": "desktop",
+      "name": "Desktop",
+      "repository": "core",
+      "state": "Released",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": ["desktop"],
+      "evidenceIds": ["runtime-verification"],
+      "protocolVersions": {
+        "releaseEvidence": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    }
+  ],
+  "signatureKeyId": "test-release-key",
+  "signature": ""
+}

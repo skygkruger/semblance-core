@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../Button/Button';
 import { LicenseActivation } from '../LicenseActivation/LicenseActivation';
@@ -17,13 +18,17 @@ export function UpgradeScreen({
   currentTier,
   isFoundingMember,
   foundingSeat,
+  newSalesEnabled,
   onCheckout,
   onActivateKey,
+  onImportReservation,
   onManageSubscription,
   onBack,
 }: UpgradeScreenProps) {
   const { t } = useTranslation();
   const isActive = currentTier !== 'free';
+  const [reservationToken, setReservationToken] = useState('');
+  const [reservationMessage, setReservationMessage] = useState('');
 
   return (
     <div className="upgrade-screen">
@@ -48,7 +53,7 @@ export function UpgradeScreen({
         </p>
       </div>
 
-      {!isActive && (
+      {!isActive && newSalesEnabled && (
         <div className="upgrade-screen__plans">
           {/* Monthly */}
           <div className="upgrade-screen__plan">
@@ -126,6 +131,16 @@ export function UpgradeScreen({
         </div>
       )}
 
+      {!isActive && !newSalesEnabled && (
+        <div className="upgrade-screen__active-info" role="status">
+          <p className="upgrade-screen__active-tier">NEW SALES PAUSED</p>
+          <p className="upgrade-screen__active-note">
+            Sales are paused while existing entitlements are migrated. Paid license
+            activation remains available below.
+          </p>
+        </div>
+      )}
+
       {isActive && isFoundingMember && foundingSeat !== null && (
         <div className="upgrade-screen__active-info">
           <p className="upgrade-screen__active-tier">{t('screen.upgrade.active_founding', { seat: foundingSeat })}</p>
@@ -155,6 +170,41 @@ export function UpgradeScreen({
         <p className="upgrade-screen__activation-label">{t('screen.upgrade.activation_label')}</p>
         <LicenseActivation onActivate={onActivateKey} />
       </div>
+
+      {onImportReservation && (
+        <div className="upgrade-screen__activation">
+          <div className="upgrade-screen__activation-divider" />
+          <p className="upgrade-screen__activation-label">FOUNDING RESERVATION RECOVERY</p>
+          <form
+            className="license-activation__form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void onImportReservation(reservationToken.trim()).then((result) => {
+                setReservationMessage(
+                  result.valid
+                    ? `Reservation imported${result.seat === null ? '' : ` for seat #${result.seat}`}. This does not grant paid access.`
+                    : result.error ?? 'Reservation import failed',
+                );
+                if (result.valid) setReservationToken('');
+              });
+            }}
+          >
+            <input
+              className="license-activation__input"
+              value={reservationToken}
+              onChange={(event) => setReservationToken(event.target.value)}
+              placeholder="Paste reservation token"
+              aria-label="Founding reservation token"
+            />
+            <Button variant="ghost" size="sm" type="submit" disabled={!reservationToken.trim()}>
+              Import reservation
+            </Button>
+          </form>
+          {reservationMessage && (
+            <p className="upgrade-screen__active-note" role="status">{reservationMessage}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

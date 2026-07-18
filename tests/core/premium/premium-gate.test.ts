@@ -17,7 +17,7 @@ let db: InstanceType<typeof Database>;
 let gate: PremiumGate;
 
 function makeLicenseKey(tier: string, exp?: string): string {
-  return generateTestLicenseKey({ tier, exp });
+  return generateTestLicenseKey({ tier, exp, sub: 'paid-customer' });
 }
 
 beforeAll(() => {
