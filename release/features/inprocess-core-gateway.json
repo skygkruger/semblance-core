@@ -1,0 +1,5 @@
+{
+  "feature": "inprocess-core-gateway",
+  "enabled": false,
+  "description": "Rollback flag for monolithic in-process Core+Gateway transport. MUST remain disabled in release manifests. When enabled (dev/tests only via SEMBLANCE_INPROCESS_TRANSPORT=1), core and gateway share transport instead of separate PIDs. Production supervisor refuses this flag when SEMBLANCE_RELEASE=1 or in non-debug builds."
+}

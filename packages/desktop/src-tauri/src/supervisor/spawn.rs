@@ -11,6 +11,9 @@ use tokio::sync::Mutex;
 use std::os::windows::process::CommandExt;
 
 use super::health::{query_kernel_readiness, KernelReadinessSnapshot};
+use super::runtime::{
+    inprocess_transport_allowed, spawn_supervised_runtimes, RuntimeSpawnConfig, RuntimeSpawnState,
+};
 
 /// Parsed from kernel stdout: `KERNEL_READY <socketPath>`.
 pub fn parse_kernel_ready_line(line: &str) -> Option<String> {
@@ -25,6 +28,13 @@ pub struct SupervisorStatus {
     pub kernel_pid: Option<u32>,
     pub kernel_ready: bool,
     pub kernel_socket_path: Option<String>,
+    pub core_pid: Option<u32>,
+    pub gateway_pid: Option<u32>,
+    pub core_ready: bool,
+    pub gateway_ready: bool,
+    pub core_ipc_path: Option<String>,
+    /// True when core and gateway are both ready with different PIDs.
+    pub distinct: bool,
     /// Legacy sidecar remains independent; true when AppBridge is managed elsewhere.
     pub sidecar_separate: bool,
 }
@@ -37,6 +47,10 @@ pub struct SovereignSupervisor {
     kernel_ready: Arc<Mutex<bool>>,
     kernel_socket_path: Arc<Mutex<Option<String>>>,
     cached_readiness: Arc<Mutex<Option<KernelReadinessSnapshot>>>,
+    runtime_state: Arc<RuntimeSpawnState>,
+    project_root: PathBuf,
+    sidecar_dir: PathBuf,
+    node_path: Option<PathBuf>,
 }
 
 impl SovereignSupervisor {
@@ -115,7 +129,7 @@ impl SovereignSupervisor {
                 return Err(format!("Kernel bridge script not found at {:?}", kernel_script));
             }
 
-            (tsx_path, kernel_script, project_root)
+            (tsx_path, kernel_script, project_root.clone())
         };
 
         let mut cmd = Command::new(&node_path);
@@ -149,11 +163,16 @@ impl SovereignSupervisor {
             kernel_ready: Arc::new(Mutex::new(false)),
             kernel_socket_path: Arc::new(Mutex::new(None)),
             cached_readiness: Arc::new(Mutex::new(None)),
+            runtime_state: Arc::new(RuntimeSpawnState::new()),
+            project_root: project_root.clone(),
+            sidecar_dir: working_dir.clone(),
+            node_path: Some(node_path.clone()),
         };
 
         let ready_flag = supervisor.kernel_ready.clone();
         let socket_path_store = supervisor.kernel_socket_path.clone();
         let cached_readiness = supervisor.cached_readiness.clone();
+        let runtime_supervisor = supervisor.clone_for_runtime_spawn();
 
         tauri::async_runtime::spawn(async move {
             let reader = BufReader::new(stdout);
@@ -178,6 +197,16 @@ impl SovereignSupervisor {
                             );
                         }
                     }
+
+                    if let Err(err) = runtime_supervisor
+                        .spawn_runtimes_after_kernel(&socket_path)
+                        .await
+                    {
+                        eprintln!(
+                            "[supervisor] Supervised runtime spawn failed (non-fatal): {}",
+                            err
+                        );
+                    }
                     break;
                 }
             }
@@ -195,11 +224,36 @@ impl SovereignSupervisor {
     }
 
     pub async fn status(&self, sidecar_separate: bool) -> SupervisorStatus {
+        let core_pid = *self.runtime_state.core_pid.lock().await;
+        let gateway_pid = *self.runtime_state.gateway_pid.lock().await;
+        let core_ready = *self.runtime_state.core_ready.lock().await;
+        let gateway_ready = *self.runtime_state.gateway_ready.lock().await;
+        let distinct = core_ready
+            && gateway_ready
+            && core_pid.is_some()
+            && gateway_pid.is_some()
+            && core_pid != gateway_pid;
+
         SupervisorStatus {
             kernel_pid: *self.kernel_pid.lock().await,
             kernel_ready: *self.kernel_ready.lock().await,
             kernel_socket_path: self.kernel_socket_path.lock().await.clone(),
+            core_pid,
+            gateway_pid,
+            core_ready,
+            gateway_ready,
+            core_ipc_path: self.runtime_state.core_ipc_path.lock().await.clone(),
+            distinct,
             sidecar_separate,
+        }
+    }
+
+    fn clone_for_runtime_spawn(&self) -> RuntimeSpawnHandle {
+        RuntimeSpawnHandle {
+            runtime_state: self.runtime_state.clone(),
+            project_root: self.project_root.clone(),
+            sidecar_dir: self.sidecar_dir.clone(),
+            node_path: self.node_path.clone(),
         }
     }
 
@@ -218,6 +272,55 @@ impl SovereignSupervisor {
         let snapshot = query_kernel_readiness(&socket_path).await?;
         *self.cached_readiness.lock().await = Some(snapshot.clone());
         serde_json::to_value(snapshot).map_err(|e| e.to_string())
+    }
+}
+
+struct RuntimeSpawnHandle {
+    runtime_state: Arc<RuntimeSpawnState>,
+    project_root: PathBuf,
+    sidecar_dir: PathBuf,
+    node_path: Option<PathBuf>,
+}
+
+impl RuntimeSpawnHandle {
+    async fn spawn_runtimes_after_kernel(&self, kernel_socket_path: &str) -> Result<(), String> {
+        let node_path = self
+            .node_path
+            .clone()
+            .or_else(which_node)
+            .ok_or_else(|| "Node.js not found for supervised runtime spawn".to_string())?;
+
+        let allow_inprocess = inprocess_transport_allowed(&self.project_root);
+
+        spawn_supervised_runtimes(
+            self.runtime_state.clone(),
+            RuntimeSpawnConfig {
+                project_root: &self.project_root,
+                sidecar_dir: self.sidecar_dir.clone(),
+                node_path,
+                kernel_socket_path: kernel_socket_path.to_string(),
+                allow_inprocess,
+            },
+        )
+        .await?;
+
+        let core_pid = *self.runtime_state.core_pid.lock().await;
+        let gateway_pid = *self.runtime_state.gateway_pid.lock().await;
+        if core_pid.is_some() && gateway_pid.is_some() && core_pid == gateway_pid {
+            return Err(format!(
+                "Process isolation violation: core and gateway share PID {:?}",
+                core_pid
+            ));
+        }
+
+        eprintln!(
+            "[supervisor] Supervised runtimes ready — core_pid={:?} gateway_pid={:?} distinct={}",
+            core_pid,
+            gateway_pid,
+            core_pid != gateway_pid
+        );
+
+        Ok(())
     }
 }
 

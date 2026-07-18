@@ -45,6 +45,13 @@ function buildRpcHandlers(kernel: Kernel) {
         sessionTtlMs: record.sessionTtlMs,
       });
     },
+    'kernel.validateSession': async (params: unknown) => {
+      const record = params as { sessionId?: string };
+      if (typeof record.sessionId !== 'string' || record.sessionId.length === 0) {
+        throw new Error('kernel.validateSession requires sessionId');
+      }
+      return kernel.ipc.validateSession(record.sessionId);
+    },
   };
 }
 

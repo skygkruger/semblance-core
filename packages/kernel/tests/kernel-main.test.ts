@@ -34,12 +34,14 @@ async function rpcCall(
       buffer = Buffer.concat([buffer, chunk]);
       const decoded = decodeKernelRpcMessage(buffer);
       if (decoded) {
-        socket.end();
         if (decoded.message.error) {
+          socket.destroy();
           reject(new Error(`${decoded.message.error.code}: ${decoded.message.error.message}`));
           return;
         }
-        resolve(decoded.message.result);
+        const result = decoded.message.result;
+        socket.end();
+        socket.on('close', () => resolve(result));
       }
     });
 
@@ -108,5 +110,37 @@ describe('kernel-main readiness protocol', () => {
 
     expect(session.sessionId).toMatch(/^session-/);
     expect(session.kernelSignature).toMatch(/^ed25519:/);
+  });
+
+  it('serves kernel.validateSession over the Unix domain socket', async () => {
+    const socketDir = mkdtempSync(join(tmpdir(), 'semblance-kernel-test-'));
+    const socketPath = join(socketDir, 'kernel.sock');
+
+    runtime = await bootKernelMain({
+      buildHash: BUILD_HASH,
+      policyEpoch: POLICY_EPOCH,
+      socketPath,
+    });
+
+    const hello = ProcessHelloV1.parse({
+      protocolVersion: 1,
+      processId: 'gateway-validate-test',
+      processType: 'gateway',
+      buildHash: BUILD_HASH,
+      nonce: `nonce-${crypto.randomUUID()}`,
+    });
+
+    const session = await rpcCall(socketPath, 'kernel.hello', {
+      hello,
+      policyEpoch: POLICY_EPOCH,
+      sessionPublicKey: 'ed25519:validate-session-pub',
+    }) as { sessionId: string };
+
+    const validated = await rpcCall(socketPath, 'kernel.validateSession', {
+      sessionId: session.sessionId,
+    }) as { sessionId: string; processType: string };
+
+    expect(validated.sessionId).toBe(session.sessionId);
+    expect(validated.processType).toBe('gateway');
   });
 });
