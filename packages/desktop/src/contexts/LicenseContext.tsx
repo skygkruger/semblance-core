@@ -15,8 +15,9 @@
 import { createContext, useContext, useCallback, useMemo, type ReactNode } from 'react';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import type { AppState } from '../state/AppState';
-import { getLicenseStatus, activateLicenseKey, activateFoundingToken as activateFoundingTokenIPC } from '../ipc/commands';
-import type { ActivationResult } from '../ipc/types';
+import { getLicenseStatus, activateLicenseKey, importFoundingReservation } from '../ipc/commands';
+import type { ActivationResult, ReservationImportResult } from '../ipc/types';
+import releaseManifest from '../../../../release/release-manifest.json';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -30,7 +31,8 @@ export interface LicenseContextValue {
   isFoundingMember: boolean;
   foundingSeat: number | null;
   activateKey: (key: string) => Promise<ActivationResult>;
-  activateFoundingToken: (token: string) => Promise<ActivationResult>;
+  importReservation: (token: string) => Promise<ReservationImportResult>;
+  newSalesEnabled: boolean;
   openCheckout: (plan: 'monthly' | 'founding' | 'lifetime') => void;
   manageSubscription: () => void;
   refresh: () => Promise<void>;
@@ -54,7 +56,13 @@ const DEFAULT_LICENSE: LicenseContextValue = {
   isFoundingMember: false,
   foundingSeat: null,
   activateKey: async () => ({ success: false, error: 'LicenseProvider not mounted' }),
-  activateFoundingToken: async () => ({ success: false, error: 'LicenseProvider not mounted' }),
+  importReservation: async () => ({
+    valid: false,
+    kind: 'reservation_only',
+    seat: null,
+    error: 'LicenseProvider not mounted',
+  }),
+  newSalesEnabled: false,
   openCheckout: () => {},
   manageSubscription: () => {},
   refresh: async () => {},
@@ -100,19 +108,21 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
     }
   }, [refresh]);
 
-  const activateFoundingToken = useCallback(async (token: string): Promise<ActivationResult> => {
+  const importReservation = useCallback(async (token: string): Promise<ReservationImportResult> => {
     try {
-      const result = await activateFoundingTokenIPC(token);
-      if (result.success) {
-        await refresh();
-      }
-      return result;
+      return await importFoundingReservation(token);
     } catch (err) {
-      return { success: false, error: String(err) };
+      return {
+        valid: false,
+        kind: 'reservation_only',
+        seat: null,
+        error: String(err),
+      };
     }
-  }, [refresh]);
+  }, []);
 
   const openCheckout = useCallback((plan: 'monthly' | 'founding' | 'lifetime') => {
+    if (!releaseManifest.commerce.newSalesEnabled) return;
     const url = PAYMENT_LINKS[plan];
     import('@tauri-apps/plugin-shell').then((shell) => {
       shell.open(url);
@@ -155,11 +165,12 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
     isFoundingMember,
     foundingSeat,
     activateKey,
-    activateFoundingToken,
+    importReservation,
+    newSalesEnabled: releaseManifest.commerce.newSalesEnabled,
     openCheckout,
     manageSubscription,
     refresh,
-  }), [tier, isPremium, isFoundingMember, foundingSeat, activateKey, activateFoundingToken, openCheckout, manageSubscription, refresh]);
+  }), [tier, isPremium, isFoundingMember, foundingSeat, activateKey, importReservation, openCheckout, manageSubscription, refresh]);
 
   return (
     <LicenseContext.Provider value={value}>

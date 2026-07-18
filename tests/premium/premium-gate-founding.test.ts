@@ -5,16 +5,15 @@
  * via PremiumGate with an in-memory SQLite database.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import Database from 'better-sqlite3';
 import { PremiumGate } from '../../packages/core/premium/premium-gate.js';
 import type { DatabaseHandle } from '../../packages/core/platform/types.js';
+import { setLicensePublicKey } from '../../packages/core/premium/license-keys.js';
 import {
-  VALID_TOKEN_SEAT_1,
-  VALID_TOKEN_SEAT_500,
-  WRONG_TIER_TOKEN,
-  TAMPERED_SIGNATURE_TOKEN,
-} from '../fixtures/founding-tokens.js';
+  LICENSE_TEST_PUBLIC_KEY_PEM,
+  generateTestLicenseKey,
+} from '../fixtures/license-keys.js';
 
 function createTestDb(): DatabaseHandle {
   const db = new Database(':memory:');
@@ -22,7 +21,11 @@ function createTestDb(): DatabaseHandle {
   return db as unknown as DatabaseHandle;
 }
 
-describe('PremiumGate: Founding Member Activation', () => {
+beforeAll(() => {
+  setLicensePublicKey(LICENSE_TEST_PUBLIC_KEY_PEM);
+});
+
+describe('PremiumGate: reservation tokens cannot activate entitlement', () => {
   let gate: PremiumGate;
   let db: DatabaseHandle;
 
@@ -38,108 +41,40 @@ describe('PremiumGate: Founding Member Activation', () => {
     expect(gate.getFoundingSeat()).toBeNull();
   });
 
-  it('activates a valid founding member token (seat #1)', () => {
-    const result = gate.activateFoundingMember(VALID_TOKEN_SEAT_1);
-    expect(result.success).toBe(true);
-    expect(result.tier).toBe('founding');
-    expect(result.error).toBeUndefined();
-
-    expect(gate.getLicenseTier()).toBe('founding');
-    expect(gate.isPremium()).toBe(true);
-    expect(gate.isFoundingMember()).toBe(true);
-    expect(gate.getFoundingSeat()).toBe(1);
-  });
-
-  it('activates a valid founding member token (seat #500)', () => {
-    const result = gate.activateFoundingMember(VALID_TOKEN_SEAT_500);
-    expect(result.success).toBe(true);
-    expect(result.tier).toBe('founding');
-
-    expect(gate.getFoundingSeat()).toBe(500);
-  });
-
-  it('rejects a tampered token', () => {
-    const result = gate.activateFoundingMember(TAMPERED_SIGNATURE_TOKEN);
-    expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
-
-    // Should remain at free tier
+  it('has no founding-reservation activation writer', () => {
+    expect('activateFoundingMember' in gate).toBe(false);
     expect(gate.getLicenseTier()).toBe('free');
-    expect(gate.isFoundingMember()).toBe(false);
-  });
-
-  it('rejects a wrong-tier token', () => {
-    const result = gate.activateFoundingMember(WRONG_TIER_TOKEN);
-    expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
-
-    expect(gate.getLicenseTier()).toBe('free');
-  });
-
-  it('handles duplicate activation idempotently', () => {
-    const first = gate.activateFoundingMember(VALID_TOKEN_SEAT_1);
-    expect(first.success).toBe(true);
-
-    // Activate again — should succeed and not create duplicate rows
-    const second = gate.activateFoundingMember(VALID_TOKEN_SEAT_1);
-    expect(second.success).toBe(true);
-    expect(gate.isFoundingMember()).toBe(true);
-    expect(gate.getFoundingSeat()).toBe(1);
-  });
-
-  it('updates seat number when activating with a different valid token', () => {
-    gate.activateFoundingMember(VALID_TOKEN_SEAT_1);
-    expect(gate.getFoundingSeat()).toBe(1);
-
-    gate.activateFoundingMember(VALID_TOKEN_SEAT_500);
-    expect(gate.getFoundingSeat()).toBe(500);
+    expect(gate.isPremium()).toBe(false);
   });
 });
 
-describe('PremiumGate: Founding Tier Feature Access', () => {
+describe('PremiumGate: paid sem_ founding entitlement', () => {
   let gate: PremiumGate;
 
   beforeEach(() => {
     const db = createTestDb();
     gate = new PremiumGate(db);
-    gate.activateFoundingMember(VALID_TOKEN_SEAT_1);
   });
 
-  it('founding members have premium access', () => {
+  it('keeps a valid paid founding key premium', () => {
+    const paidFoundingKey = generateTestLicenseKey({
+      tier: 'founding',
+      seat: 42,
+      sub: 'paid-customer',
+    });
+    const result = gate.activateLicense(paidFoundingKey);
+    expect(result).toMatchObject({ success: true, tier: 'founding' });
     expect(gate.isPremium()).toBe(true);
-  });
-
-  it('founding members can access all digital-representative features', () => {
-    // Founding tier rank equals digital-representative rank (both 1)
-    expect(gate.isFeatureAvailable('transaction-categorization')).toBe(true);
-    expect(gate.isFeatureAvailable('representative-drafting')).toBe(true);
-    expect(gate.isFeatureAvailable('subscription-cancellation')).toBe(true);
-    expect(gate.isFeatureAvailable('form-automation')).toBe(true);
-    expect(gate.isFeatureAvailable('health-tracking')).toBe(true);
-    expect(gate.isFeatureAvailable('living-will')).toBe(true);
-    expect(gate.isFeatureAvailable('witness-attestation')).toBe(true);
-    expect(gate.isFeatureAvailable('inheritance-protocol')).toBe(true);
-    expect(gate.isFeatureAvailable('proof-of-privacy')).toBe(true);
-  });
-
-  it('founding member tier never expires', () => {
-    // isPremium should return true even without expires_at
-    expect(gate.isPremium()).toBe(true);
-  });
-
-  it('getAvailableFeatures returns all features for founding members', () => {
-    const features = gate.getAvailableFeatures();
-    expect(features.length).toBeGreaterThan(0);
-    expect(features).toContain('transaction-categorization');
-    expect(features).toContain('representative-drafting');
+    expect(gate.isFoundingMember()).toBe(true);
+    expect(gate.getFoundingSeat()).toBe(42);
   });
 });
 
 describe('PremiumGate: LicenseTier type includes founding', () => {
-  it('founding is a valid tier value', () => {
+  it('founding is valid only through the paid sem_ license path', () => {
     const db = createTestDb();
     const gate = new PremiumGate(db);
-    gate.activateFoundingMember(VALID_TOKEN_SEAT_1);
+    gate.activateLicense(generateTestLicenseKey({ tier: 'founding', seat: 1 }));
     const tier = gate.getLicenseTier();
     expect(['free', 'founding', 'digital-representative', 'lifetime']).toContain(tier);
     expect(tier).toBe('founding');

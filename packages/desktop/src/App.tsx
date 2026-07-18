@@ -466,16 +466,11 @@ function AppContent() {
       // Not yet initialized — will be free tier by default
     });
 
-    const unlistenFoundingPromise = listen<{ token: string }>('founding-activate', async (event) => {
+    const unlistenReservationPromise = listen<{ token: string }>('reservation-import', async (event) => {
       try {
-        const result = await license.activateFoundingToken(event.payload.token);
-        if (result.success) {
-          if (!state.onboardingComplete) {
-            dispatch({ type: 'SET_ONBOARDING_STEP', step: 9 });
-          }
-        }
+        await license.importReservation(event.payload.token);
       } catch {
-        // Activation failed — user can try manual code entry
+        // Import failed — user can retry reservation recovery manually
       }
     });
 
@@ -492,7 +487,7 @@ function AppContent() {
     });
 
     return () => {
-      unlistenFoundingPromise.then((fn) => fn());
+      unlistenReservationPromise.then((fn) => fn());
       unlistenLicensePromise.then((fn) => fn());
       unlistenAutoDetectPromise.then((fn) => fn());
     };
@@ -639,8 +634,10 @@ function AppContent() {
                   currentTier={license.tier}
                   isFoundingMember={license.isFoundingMember}
                   foundingSeat={license.foundingSeat}
+                  newSalesEnabled={license.newSalesEnabled}
                   onCheckout={license.openCheckout}
                   onActivateKey={license.activateKey}
+                  onImportReservation={license.importReservation}
                   onManageSubscription={license.manageSubscription}
                   onBack={() => navigate('/settings')}
                 />

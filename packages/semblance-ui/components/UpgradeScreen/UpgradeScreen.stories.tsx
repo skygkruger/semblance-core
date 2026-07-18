@@ -11,6 +11,7 @@ export default meta;
 type Story = StoryObj<typeof UpgradeScreen>;
 
 const defaultHandlers = {
+  newSalesEnabled: true,
   onCheckout: (plan: 'monthly' | 'founding' | 'lifetime') => alert(`Checkout: ${plan}`),
   onActivateKey: async (key: string) => {
     await new Promise((r) => setTimeout(r, 1000));

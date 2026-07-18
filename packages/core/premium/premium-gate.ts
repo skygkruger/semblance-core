@@ -13,7 +13,6 @@
  */
 
 import type { DatabaseHandle } from '../platform/types.js';
-import { verifyFoundingToken } from './founding-token.js';
 import { verifyLicenseKeySignature } from './license-keys.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -291,51 +290,6 @@ export class PremiumGate {
       success: true,
       tier: tier as LicenseTier,
       expiresAt: expiresAt ?? undefined,
-    };
-  }
-
-  /**
-   * Activate a founding member token (JWT signed with Ed25519).
-   * Separate entry point from activateLicense() which handles sem_ format keys.
-   */
-  activateFoundingMember(token: string): ActivationResult {
-    const result = verifyFoundingToken(token);
-
-    if (!result.valid || !result.payload) {
-      return { success: false, error: result.error ?? 'Invalid founding member token' };
-    }
-
-    // Prevent downgrade — don't overwrite a higher-tier license with a lower one
-    const currentTier = this.getLicenseTier();
-    const currentRank = TIER_RANK[currentTier] ?? 0;
-    const newRank = TIER_RANK['founding'] ?? 0;
-    if (newRank < currentRank) {
-      return { success: false, error: `Cannot downgrade from ${currentTier} to founding. Your current license has higher privileges.` };
-    }
-
-    const now = new Date().toISOString();
-
-    // Upsert license metadata — founding membership never expires
-    this.db.prepare(`
-      INSERT INTO license (id, tier, activated_at, expires_at, founding_seat)
-      VALUES (1, 'founding', ?, NULL, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        tier = 'founding',
-        activated_at = excluded.activated_at,
-        expires_at = NULL,
-        founding_seat = excluded.founding_seat
-    `).run(now, result.payload.seat);
-
-    // Store founding token in OS keychain
-    if (this.keyStorage) {
-      this.keyStorage.setLicenseKey(token).catch(() => {
-        // Best-effort keychain storage
-      });
-    }
-
-    return {
-      success: true,
-      tier: 'founding',
     };
   }
 

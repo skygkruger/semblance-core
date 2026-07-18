@@ -1791,18 +1791,17 @@ async fn get_live_hardware_stats() -> Result<hardware::LiveHardwareStats, String
     Ok(hardware::get_live_stats())
 }
 
-// ─── Founding Member Activation (Deep Link) ─────────────────────────────────
+// ─── Founding Reservation Import (Deep Link) ────────────────────────────────
 
-/// Activate a founding member token via the sidecar bridge.
-/// Called from the frontend after receiving a deep link or manual code entry.
+/// Import a founding reservation token without granting paid entitlement.
 #[tauri::command]
-async fn activate_founding_token(
+async fn import_founding_reservation(
     state: tauri::State<'_, AppBridge>,
     token: String,
 ) -> Result<Value, String> {
     state
         .bridge
-        .call("license:activate_founding", serde_json::json!({ "token": token }))
+        .call("reservation:import", serde_json::json!({ "token": token }))
         .await
 }
 
@@ -3024,18 +3023,18 @@ pub fn run() {
                 // The payload is a JSON string containing the URL(s)
                 if let Ok(urls) = serde_json::from_str::<Vec<String>>(payload_str) {
                     for url in urls {
-                        // Parse semblance://activate?token=xxx or semblance://activate?key=sem_xxx
-                        if url.starts_with("semblance://activate") {
+                        // Reservation links import recovery data; sem_ links still activate paid keys.
+                        if url.starts_with("semblance://activate") || url.starts_with("semblance://reservation/import") {
                             if let Ok(parsed) = url::Url::parse(&url.replace("semblance://", "https://")) {
                                 // License key activation (sem_ format)
                                 if let Some(key) = parsed.query_pairs().find(|(k, _)| k == "key").map(|(_, v)| v.to_string()) {
                                     eprintln!("[tauri] Deep link received: license key activation");
                                     let _ = app_for_deeplink.emit("license-activate", serde_json::json!({ "key": key }));
                                 }
-                                // Founding token activation (JWT format)
+                                // Legacy founding JWT maps only to reservation recovery.
                                 else if let Some(token) = parsed.query_pairs().find(|(k, _)| k == "token").map(|(_, v)| v.to_string()) {
-                                    eprintln!("[tauri] Deep link received: founding activation");
-                                    let _ = app_for_deeplink.emit("founding-activate", serde_json::json!({ "token": token }));
+                                    eprintln!("[tauri] Deep link received: reservation import");
+                                    let _ = app_for_deeplink.emit("reservation-import", serde_json::json!({ "token": token }));
                                 }
                             }
                         }
@@ -3195,8 +3194,8 @@ pub fn run() {
             // Hardware & Runtime (Step 9)
             detect_hardware,
             get_live_hardware_stats,
-            // Founding Member Activation
-            activate_founding_token,
+            // Founding reservation import
+            import_founding_reservation,
             activate_license_key,
             get_license_status,
             disconnect_license,

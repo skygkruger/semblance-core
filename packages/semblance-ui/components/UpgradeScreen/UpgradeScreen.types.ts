@@ -5,10 +5,19 @@ export interface UpgradeScreenProps {
   isFoundingMember: boolean;
   /** Founding member seat number */
   foundingSeat: number | null;
+  /** Signed release-manifest switch for new checkout creation */
+  newSalesEnabled: boolean;
   /** Open checkout in system browser */
   onCheckout: (plan: 'monthly' | 'founding' | 'lifetime') => void;
   /** Activate a license key manually */
   onActivateKey: (key: string) => Promise<{ success: boolean; error?: string }>;
+  /** Import a legacy founding reservation without granting entitlement */
+  onImportReservation?: (token: string) => Promise<{
+    valid: boolean;
+    kind: 'reservation_only';
+    seat: number | null;
+    error?: string;
+  }>;
   /** Open subscription management portal */
   onManageSubscription?: () => void;
   /** Navigate back */

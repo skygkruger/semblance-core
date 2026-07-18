@@ -1,8 +1,8 @@
 /**
- * Founding Member Activation — Integration / Wiring Tests
+ * Founding Reservation Import — Integration / Wiring Tests
  *
  * Validates the full stack wiring: deep link → Rust handler → sidecar bridge →
- * PremiumGate → SQLite → license status query.
+ * reservation verification → encrypted reservation storage without entitlement.
  *
  * These are structural wiring tests that verify files contain the correct
  * integration points. Actual deep link testing requires a running Tauri app.
@@ -57,8 +57,8 @@ describe('Phase 1: Founding Token Module', () => {
     expect(foundingTokenContent).toContain('500');
   });
 
-  it('founding-token.ts strips deep link URL prefix', () => {
-    expect(foundingTokenContent).toContain('semblance://activate');
+  it('founding-token.ts accepts reservation import deep links', () => {
+    expect(foundingTokenContent).toContain('semblance://reservation/import');
   });
 });
 
@@ -71,8 +71,8 @@ describe('Phase 1b: PremiumGate Founding Extension', () => {
     expect(premiumGateContent).toContain("'founding': 1");
   });
 
-  it('activateFoundingMember method exists', () => {
-    expect(premiumGateContent).toContain('activateFoundingMember');
+  it('has no founding-reservation activation writer', () => {
+    expect(premiumGateContent).not.toContain('activateFoundingMember');
   });
 
   it('isFoundingMember method exists', () => {
@@ -93,8 +93,8 @@ describe('Phase 1b: PremiumGate Founding Extension', () => {
 
   it('premium index exports founding token types', () => {
     expect(premiumIndexContent).toContain('verifyFoundingToken');
-    expect(premiumIndexContent).toContain('FoundingTokenPayload');
     expect(premiumIndexContent).toContain('FoundingTokenResult');
+    expect(premiumIndexContent).toContain('ReservationVerification');
   });
 });
 
@@ -119,16 +119,17 @@ describe('Phase 2: Tauri Deep Link Plugin', () => {
     expect(libContent).toContain('deep-link://new-url');
   });
 
-  it('lib.rs emits founding-activate event to frontend', () => {
-    expect(libContent).toContain('founding-activate');
+  it('lib.rs emits reservation-import event to frontend', () => {
+    expect(libContent).toContain('reservation-import');
+    expect(libContent).not.toContain('founding-activate');
   });
 
   it('lib.rs parses token from semblance://activate URL', () => {
     expect(libContent).toContain('semblance://activate');
   });
 
-  it('activate_founding_token Tauri command exists', () => {
-    expect(libContent).toContain('fn activate_founding_token');
+  it('import_founding_reservation Tauri command exists', () => {
+    expect(libContent).toContain('fn import_founding_reservation');
   });
 
   it('get_license_status Tauri command exists', () => {
@@ -136,7 +137,7 @@ describe('Phase 2: Tauri Deep Link Plugin', () => {
   });
 
   it('commands registered in invoke_handler', () => {
-    expect(libContent).toContain('activate_founding_token,');
+    expect(libContent).toContain('import_founding_reservation,');
     expect(libContent).toContain('get_license_status,');
   });
 });
@@ -145,23 +146,25 @@ describe('Phase 2: Tauri Deep Link Plugin', () => {
 
 describe('Phase 3: Sidecar Bridge License Handlers', () => {
   it('bridge.ts imports PremiumGate', () => {
-    expect(bridgeContent).toContain("import { PremiumGate }");
+    expect(bridgeContent).toContain('PremiumGate,');
   });
 
   it('bridge.ts initializes premiumGate', () => {
     expect(bridgeContent).toContain('premiumGate = new PremiumGate');
   });
 
-  it('bridge.ts handles license:activate_founding method', () => {
-    expect(bridgeContent).toContain("case 'license:activate_founding'");
+  it('bridge.ts handles reservation:import method', () => {
+    expect(bridgeContent).toContain("case 'reservation:import'");
+    expect(bridgeContent).not.toContain("case 'license:activate_founding'");
   });
 
   it('bridge.ts handles license:status method', () => {
     expect(bridgeContent).toContain("case 'license:status'");
   });
 
-  it('license:activate_founding calls activateFoundingMember', () => {
-    expect(bridgeContent).toContain('activateFoundingMember');
+  it('reservation:import calls reservation storage, not PremiumGate', () => {
+    expect(bridgeContent).toContain('reservationStore.importReservation');
+    expect(bridgeContent).not.toContain('activateFoundingMember');
   });
 
   it('license:status returns tier, isPremium, isFoundingMember, foundingSeat', () => {
@@ -214,13 +217,12 @@ describe('Phase 4b: App.tsx Deep Link Listener', () => {
     expect(appContent).toContain("license.refresh()");
   });
 
-  it('App.tsx listens for founding-activate events', () => {
-    expect(appContent).toContain("listen<{ token: string }>('founding-activate'");
+  it('App.tsx listens for reservation-import events', () => {
+    expect(appContent).toContain("listen<{ token: string }>('reservation-import'");
   });
 
-  it('App.tsx calls activate_founding_token on deep link', () => {
-    // Founding token activation is now done via LicenseContext.activateFoundingToken()
-    expect(appContent).toContain("license.activateFoundingToken(event.payload.token)");
+  it('App.tsx imports reservation recovery from a deep link', () => {
+    expect(appContent).toContain("license.importReservation(event.payload.token)");
   });
 });
 
@@ -241,9 +243,9 @@ describe('Phase 4c: Founding Member Integration', () => {
     expect(licenseContextContent).toContain("type: 'SET_LICENSE'");
   });
 
-  it('App.tsx listens for founding-activate and calls activateFoundingToken', () => {
-    expect(appContent).toContain("listen<{ token: string }>('founding-activate'");
-    expect(appContent).toContain('license.activateFoundingToken');
+  it('App.tsx listens for reservation-import and calls importReservation', () => {
+    expect(appContent).toContain("listen<{ token: string }>('reservation-import'");
+    expect(appContent).toContain('license.importReservation');
   });
 
   it('App.tsx passes isFoundingMember and foundingSeat to UI', () => {

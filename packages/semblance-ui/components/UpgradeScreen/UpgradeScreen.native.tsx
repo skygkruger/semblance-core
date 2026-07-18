@@ -77,6 +77,7 @@ export function UpgradeScreen({
   currentTier,
   isFoundingMember,
   foundingSeat,
+  newSalesEnabled,
   onCheckout,
   onActivateKey,
   onManageSubscription,
@@ -113,7 +114,7 @@ export function UpgradeScreen({
         </Text>
       </View>
 
-      {!isActive && (
+      {!isActive && newSalesEnabled && (
         <View style={styles.plans}>
           {/* Monthly */}
           <OpalBorderView borderRadius={nativeRadius.lg}>
@@ -185,6 +186,15 @@ export function UpgradeScreen({
               </Button>
             </View>
           </OpalBorderView>
+        </View>
+      )}
+
+      {!isActive && !newSalesEnabled && (
+        <View style={styles.activeInfo}>
+          <Text style={styles.activeTier}>NEW SALES PAUSED</Text>
+          <Text style={styles.activeNote}>
+            Sales are paused while existing entitlements are migrated. Paid license activation remains available below.
+          </Text>
         </View>
       )}
 

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/contracts/reservation-token-v0.schema.json",
+  "title": "Legacy founding reservation JWT payload v0",
+  "description": "Compatibility contract only. A matching signed JWT is classified as reservation_only and is never paid entitlement.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sub", "iat", "seat"],
+  "properties": {
+    "sub": { "type": "string", "minLength": 1 },
+    "type": { "const": "founding" },
+    "tier": { "const": "founding" },
+    "iat": { "type": "integer", "minimum": 0 },
+    "seat": { "type": "integer", "minimum": 1, "maximum": 500 }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "type": { "const": "founding" },
+        "tier": {}
+      },
+      "required": ["type"],
+      "not": {
+        "properties": { "tier": {} },
+        "required": ["tier"]
+      }
+    },
+    {
+      "properties": {
+        "tier": { "const": "founding" },
+        "type": {}
+      },
+      "required": ["tier"],
+      "not": {
+        "properties": { "type": {} },
+        "required": ["type"]
+      }
+    }
+  ]
+}
