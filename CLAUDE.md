@@ -1,16 +1,18 @@
 # SEMBLANCE
+<!-- doc-authority: active -->
 
-## READ FIRST — SEMBLANCE BUILD BIBLE (MANDATORY)
+## CHECKED-IN DOCUMENTATION AUTHORITY — READ FIRST
 
-**Before doing ANY work — on every session start AND after every compaction — read this file:**
+Architecture and implementation decisions use this checked-in authority chain, in order:
 
-```
-SEMBLANCE_BUILD_BIBLE.md (project root, gitignored)
-```
+1. **Approved sovereign-platform design:** `semblence-representative/docs/superpowers/specs/2026-07-18-semblance-sovereign-platform-design.md`
+2. **Approved slice implementation plans:** `semblence-representative/docs/superpowers/plans/`
+3. **Versioned protocol and security ADRs:** checked-in decisions implementing the approved design and applicable slice plan
+4. **Generated release evidence:** signed release manifests and their pinned evidence establish what a particular artifact has demonstrated
 
-This is the canonical product specification. It supersedes all prior build maps, sprint documents, and feature lists. Every feature ships exactly as designed in the Build Bible. No exceptions. If a conflict exists between the Build Bible and any other document, the Build Bible wins.
+Later items prove or implement earlier decisions; they do not silently override them. A protocol or security change that conflicts with an approved design or plan requires an explicit, approved, versioned decision and corresponding plan update. Generated evidence reports demonstrated behavior and cannot create architecture policy.
 
-**This instruction survives compaction. Read it FIRST and LAST.**
+Historical state, session, payment, and migration documents preserve what was previously asserted or observed. They are not current authority where the checked-in design, plans, ADRs, source, or generated evidence supersede them. Never rewrite historical logs to make them appear current.
 
 ---
 
@@ -232,9 +234,9 @@ Zero analytics. Zero telemetry. Zero crash reporting. Zero usage tracking. Zero 
 
 No exceptions. Not even "anonymous" or "aggregated" data. Not even opt-in. The architecture makes telemetry impossible, not optional.
 
-### RULE 5 — Local Only Data
+### RULE 5 — Local Canonical Data
 
-All user data must be stored exclusively on the user's device:
+Local identity, keys, policy, memory, and canonical user data remain authoritative:
 - Knowledge graph (LanceDB)
 - Embeddings
 - Structured data (SQLite)
@@ -242,7 +244,7 @@ All user data must be stored exclusively on the user's device:
 - Action history and audit trail
 - Model weights and inference state
 
-No cloud sync. No cloud backup. No remote storage of any kind. If the device is off, the data is inaccessible. That is the point.
+No vendor-required cloud, silent cloud fallback, or server-side canonical Personal Agency Graph is permitted. Optional encrypted sync/backup, user-controlled self-hosted nodes, BYO providers, and approved attested confidential compute are permitted only under the sovereign-platform design: explicit user policy, minimized disclosure, Gateway-only transport, local audit, and user/device-controlled keys. Opaque remote ciphertext never becomes canonical authority.
 
 ---
 
@@ -299,18 +301,13 @@ Do NOT start implementation until demo is complete and critical bugs are resolve
 
 ---
 
-## Payment & License System
+## Payment & Entitlement System
 
-The Semblance app makes zero outbound API calls. Ever.
+The approved target has one paid-entitlement authority. Stripe or another approved commerce provider records successful payment; waitlist and legacy founding JWTs are reservation artifacts only and never grant paid access. Existing legitimately paid `sem_` keys and subscription renewals remain supported through the documented migration path while new sales are frozen through Slices 1–6.
 
-Stripe processes payments via Stripe-hosted checkout (system browser, not in-app).
-A Cloudflare Worker receives Stripe webhooks, generates Ed25519-signed license keys,
-and delivers them via Resend email. The app detects license emails and activates silently.
-All license validation is offline against a public key compiled into the binary.
+Core never performs commerce or other external calls. Checkout opens in the system browser. Any app-initiated portal, renewal, entitlement, or commerce operation is a narrow typed capability transported by the Gateway, the only local process with external network entitlement, and is audited before execution. Entitlement validation needed for perpetual local use remains offline-capable.
 
-License key format: sem_<header>.<base64payload>.<ed25519_signature>
-Tiers: 'founding' | 'digital-representative' | 'lifetime'
-Storage: OS keychain via Tauri secure storage. Never localStorage. Never plain files.
+Bearer entitlement material and private keys use OS or hardware secure storage where supported. Never use `localStorage` or plaintext files. The versioned entitlement protocol and generated release evidence, not historical payment prose, determine the behavior available in a release.
 
 Key files:
 - packages/core/premium/premium-gate.ts — PremiumGate class, activateLicense(), isPremium()
@@ -319,9 +316,9 @@ Key files:
 - packages/desktop/src/contexts/LicenseContext.tsx — React context, openCheckout(), manageSubscription()
 - License Worker — Cloudflare Worker source lives in the private repo (semblence-representative/infrastructure/license-worker/)
 
-Canonical reference: SEMBLANCE_PAYMENT_SYSTEM.md in Orbital Command project.
+Historical migration reference: `semblence-representative/docs/SEMBLANCE_PAYMENT_SYSTEM.md`.
 
-RULE: Never add Veridian server calls to the app. Never store license data outside OS keychain.
+RULE: Never add network capability to Core or direct commerce transport that bypasses the Gateway. Never store bearer entitlement material outside approved secure storage.
 Never use "Premium" in user-facing copy — always "Digital Representative".
 
 ---
@@ -720,11 +717,9 @@ You should proceed without escalating when:
 
 ---
 
-## Sprint Plan Reference
+## Slice Plan Reference
 
-> **Canonical sources:** `docs/decisions/SEMBLANCE_SPRINT_RESTRUCTURE.md` (Revision 3, Steps 1–13) and `docs/decisions/SEMBLANCE_BUILD_MAP_ELEVATION.md` (Revision 4, Steps 14–33).
-
-Refer to `SEMBLANCE_BUILD_MAP_REVISION_2.md` for full, past sprint details including all exit criteria.
+The approved sovereign-platform design and checked-in plans named in the documentation authority chain govern current work. Earlier sprint and build-map documents are historical planning inputs where superseded.
 
 ---
 
@@ -936,12 +931,6 @@ And remember: the product is judged by what it does, not what it shows. Build th
 
 ---
 
-## READ LAST — SEMBLANCE BUILD BIBLE (MANDATORY)
+## READ LAST — VERIFY AUTHORITY AND EVIDENCE
 
-**Before closing context or ending a session, re-read the Build Bible:**
-
-```
-SEMBLANCE_BUILD_BIBLE.md (project root, gitignored)
-```
-
-This ensures your final actions align with the canonical specification. The Build Bible is the first and last thing you read. This instruction survives compaction.
+Before ending a session, re-check the approved design and applicable checked-in slice plan. Report only behavior supported by source and generated evidence; preserve historical records as historical.
