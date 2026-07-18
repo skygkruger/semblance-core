@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/process-ack-v1.schema.json",
+  "title": "ProcessAckV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "helloNonce",
+    "processId",
+    "processType",
+    "buildHash",
+    "policyEpoch",
+    "principalId",
+    "deviceId",
+    "extensionInstanceId",
+    "sessionId",
+    "expiresAt",
+    "sessionPublicKey",
+    "kernelSignature"
+  ],
+  "properties": {
+    "protocolVersion": { "const": 1 },
+    "helloNonce": { "type": "string", "minLength": 1 },
+    "processId": { "type": "string", "minLength": 1 },
+    "processType": {
+      "type": "string",
+      "enum": ["kernel", "core", "gateway", "model", "extension-runner", "cloud-broker", "vault"]
+    },
+    "buildHash": { "type": "string", "minLength": 1 },
+    "policyEpoch": { "type": "integer", "minimum": 0 },
+    "principalId": { "type": "string", "minLength": 1 },
+    "deviceId": { "type": "string", "minLength": 1 },
+    "extensionInstanceId": { "type": ["string", "null"] },
+    "sessionId": { "type": "string", "minLength": 1 },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "sessionPublicKey": { "type": "string", "minLength": 1 },
+    "kernelSignature": { "type": "string", "minLength": 1 }
+  }
+}

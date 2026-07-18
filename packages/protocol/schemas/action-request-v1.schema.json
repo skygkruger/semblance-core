@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/action-request-v1.schema.json",
+  "title": "ActionRequestV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocolVersion", "id", "timestamp", "action", "payload", "source", "signature"],
+  "properties": {
+    "protocolVersion": { "const": 1 },
+    "id": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "action": { "type": "string" },
+    "payload": { "type": "object", "additionalProperties": true },
+    "source": { "const": "core" },
+    "signature": { "type": "string" }
+  }
+}

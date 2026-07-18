@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "envelopeKind": "encrypted_event",
+  "payload": {
+    "schemaVersion": 1,
+    "eventId": "sync-event-001",
+    "deviceId": "device-macbook-001",
+    "membershipEpoch": 2,
+    "domainId": "personal-agency-graph",
+    "causalParentIds": ["vault-event-001"],
+    "lamportClock": 42,
+    "vectorClock": {
+      "device-macbook-001": 42,
+      "device-phone-001": 17
+    },
+    "ciphertext": "aes256gcm:sync-ciphertext-base64",
+    "signature": "ed25519:sync-envelope-signature-base64"
+  }
+}

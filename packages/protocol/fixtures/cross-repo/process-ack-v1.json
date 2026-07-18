@@ -1,0 +1,15 @@
+{
+  "protocolVersion": 1,
+  "helloNonce": "nonce-7f3a9c2b1d4e",
+  "processId": "core-01HXYZ",
+  "processType": "core",
+  "buildHash": "sha256:abc123def456",
+  "policyEpoch": 3,
+  "principalId": "principal-local-001",
+  "deviceId": "device-macbook-001",
+  "extensionInstanceId": null,
+  "sessionId": "session-9b2c4d6e8f0a",
+  "expiresAt": "2026-07-19T12:00:00.000Z",
+  "sessionPublicKey": "ed25519:session-pub-key-base64",
+  "kernelSignature": "ed25519:kernel-signature-base64"
+}
