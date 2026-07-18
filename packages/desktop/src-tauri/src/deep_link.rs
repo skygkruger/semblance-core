@@ -22,6 +22,9 @@ pub(crate) fn parse_deep_link(input: &str) -> Option<DeepLinkAction> {
         ("semblance://activate", "key") if value.starts_with("sem_") => {
             Some(DeepLinkAction::ActivateLicense(value))
         }
+        ("semblance://activate", "token") if !value.starts_with("sem_") => {
+            Some(DeepLinkAction::ImportReservation(value))
+        }
         ("semblance://reservation/import", "token") if !value.starts_with("sem_") => {
             Some(DeepLinkAction::ImportReservation(value))
         }
@@ -68,7 +71,7 @@ mod tests {
     use super::{parse_deep_link, DeepLinkAction};
 
     #[test]
-    fn accepts_only_exact_paid_activation_route() {
+    fn exact_legacy_activate_token_routes_to_reservation_import() {
         assert_eq!(
             parse_deep_link("semblance://activate?key=sem_header.payload.signature"),
             Some(DeepLinkAction::ActivateLicense(
@@ -82,8 +85,11 @@ mod tests {
         assert_eq!(parse_deep_link("semblance://activate/?key=sem_valid"), None);
         assert_eq!(
             parse_deep_link("semblance://activate?token=legacy.jwt.value"),
-            None
+            Some(DeepLinkAction::ImportReservation(
+                "legacy.jwt.value".into()
+            ))
         );
+        assert_eq!(parse_deep_link("semblance://activate?token=sem_paid"), None);
     }
 
     #[test]

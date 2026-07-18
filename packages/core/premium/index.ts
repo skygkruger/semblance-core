@@ -11,6 +11,20 @@ export {
   rollbackReservationEntitlementSplit,
   runReservationEntitlementSplit,
 } from './migrations/reservation-entitlement-split.js';
-export { verifyLicenseKeySignature, setLicensePublicKey } from './license-keys.js';
-export type { LicenseKeyVerification } from './license-keys.js';
+export type {
+  ReservationEntitlementMigrationOptions,
+  ReservationEntitlementMigrationResult,
+  ReservationMigrationCheckpoint,
+  SecureMigrationBackupAdapter,
+} from './migrations/reservation-entitlement-split.js';
+export {
+  setLicensePublicKey,
+  validatePaidLicenseKey,
+  verifyLicenseKeySignature,
+} from './license-keys.js';
+export type {
+  LicenseKeyVerification,
+  PaidLicensePayload,
+  PaidLicenseValidation,
+} from './license-keys.js';
 export { extractLicenseKey } from './license-email-detector.js';

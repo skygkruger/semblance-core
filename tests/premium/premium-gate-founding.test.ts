@@ -74,7 +74,11 @@ describe('PremiumGate: LicenseTier type includes founding', () => {
   it('founding is valid only through the paid sem_ license path', () => {
     const db = createTestDb();
     const gate = new PremiumGate(db);
-    gate.activateLicense(generateTestLicenseKey({ tier: 'founding', seat: 1 }));
+    gate.activateLicense(generateTestLicenseKey({
+      tier: 'founding',
+      seat: 1,
+      sub: 'paid-customer',
+    }));
     const tier = gate.getLicenseTier();
     expect(['free', 'founding', 'digital-representative', 'lifetime']).toContain(tier);
     expect(tier).toBe('founding');

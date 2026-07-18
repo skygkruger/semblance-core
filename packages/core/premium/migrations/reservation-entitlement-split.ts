@@ -9,56 +9,74 @@ import {
 import { createHash } from 'node:crypto';
 import type { DatabaseHandle } from '../../platform/types.js';
 import { FoundingReservationStore } from '../founding-reservation-store.js';
-import { verifyLicenseKeySignature } from '../license-keys.js';
+import {
+  validatePaidLicenseKey,
+  type PaidLicensePayload,
+} from '../license-keys.js';
 
-export const RESERVATION_ENTITLEMENT_SCHEMA_VERSION = 2;
+export const RESERVATION_ENTITLEMENT_SCHEMA_VERSION = 3;
 export const RESERVATION_ENTITLEMENT_MIGRATION_ID =
   'slice-1-reservation-entitlement-split';
 
 export type ReservationMigrationCheckpoint =
-  | 'backup_complete'
   | 'paid_entitlement_preserved'
   | 'reservation_recorded'
   | 'bearer_deleted'
   | 'storage_sanitized'
   | 'complete';
 
+export interface SecureMigrationBackupAdapter {
+  /** Create an OS-protected backup artifact at backupPath. */
+  createBackup(db: DatabaseHandle, backupPath: string): void;
+  /** Hash the decrypted SQLite content without exposing it as a plaintext file. */
+  backupSha256(backupPath: string): string;
+  /** Restore decrypted SQLite content directly to databasePath. */
+  restoreBackup(backupPath: string, databasePath: string): void;
+}
+
 export interface ReservationEntitlementMigrationOptions {
   db: DatabaseHandle;
   databasePath: string;
   backupPath: string;
   failAfter?: ReservationMigrationCheckpoint;
+  platform?: NodeJS.Platform;
+  secureBackupAdapter?: SecureMigrationBackupAdapter;
 }
 
 export interface ReservationEntitlementMigrationResult {
-  status: 'migrated' | 'already_complete' | 'paid_entitlement_preserved';
-  checkpoint: ReservationMigrationCheckpoint;
-  backupSha256: string;
+  status:
+    | 'migrated'
+    | 'already_complete'
+    | 'paid_entitlement_preserved'
+    | 'deferred_secure_backup';
+  checkpoint: ReservationMigrationCheckpoint | null;
+  backupSha256: string | null;
 }
 
 interface CheckpointRow {
   checkpoint: ReservationMigrationCheckpoint;
 }
 
-interface PaidLicensePayload {
-  tier: 'founding' | 'digital-representative' | 'lifetime';
-  exp: string | null;
-  seat: number | null;
-}
-
 /**
  * Split legacy reservation JWTs from authoritative paid entitlement.
  *
- * The backup is a consistent SQLite copy produced before migration tables are
- * created. Every resumable database step records its checkpoint atomically
- * with that step. The backup hash is installation-specific runtime evidence;
- * it is never checked into the executable migration definition.
+ * The backup is created and hash-verified before migration tables are created.
+ * It is intentionally not a database checkpoint: every invocation verifies it
+ * before reading or mutating migration state. On Windows, destructive work is
+ * deferred unless an OS-protected backup adapter is explicitly supplied.
  */
 export function runReservationEntitlementSplit(
   options: ReservationEntitlementMigrationOptions,
 ): ReservationEntitlementMigrationResult {
+  const platform = options.platform ?? process.platform;
+  if (platform === 'win32' && !options.secureBackupAdapter) {
+    return {
+      status: 'deferred_secure_backup',
+      checkpoint: null,
+      backupSha256: null,
+    };
+  }
   const backupSha256 = ensureVerifiedBackup(options);
-  interruptAfter(options, 'backup_complete');
 
   ensureMigrationTable(options.db);
   const reservationStore = new FoundingReservationStore(options.db);
@@ -70,9 +88,15 @@ export function runReservationEntitlementSplit(
   let checkpoint = existing;
   if (!checkpoint) {
     const activeKey = getActiveLicenseKey(options.db);
-    if (activeKey && verifyLicenseKeySignature(activeKey).valid) {
+    const paidEntitlement = activeKey
+      ? validatePaidLicenseKey(activeKey)
+      : { valid: false as const };
+    const paidPayload = 'payload' in paidEntitlement
+      ? paidEntitlement.payload
+      : undefined;
+    if (activeKey && paidEntitlement.valid && paidPayload) {
       const preservePaidEntitlement = options.db.transaction(() => {
-        reconcilePaidMetadata(options.db, activeKey);
+        reconcilePaidMetadata(options.db, paidPayload);
         setCheckpoint(options.db, 'paid_entitlement_preserved');
       });
       preservePaidEntitlement();
@@ -98,7 +122,7 @@ export function runReservationEntitlementSplit(
   if (!paidEntitlementPreserved && checkpointRank(checkpoint) < checkpointRank('bearer_deleted')) {
     const deleteBearerMaterial = options.db.transaction(() => {
       const activeKey = getActiveLicenseKey(options.db);
-      if (activeKey && !verifyLicenseKeySignature(activeKey).valid) {
+      if (activeKey && !validatePaidLicenseKey(activeKey).valid) {
         options.db.pragma('secure_delete = ON');
         if (tableExists(options.db, 'license')) {
           options.db.prepare('DELETE FROM license WHERE id = 1').run();
@@ -136,13 +160,21 @@ export function runReservationEntitlementSplit(
 export function rollbackReservationEntitlementSplit(options: {
   databasePath: string;
   backupPath: string;
+  platform?: NodeJS.Platform;
+  secureBackupAdapter?: SecureMigrationBackupAdapter;
 }): { restoredSha256: string } {
+  const platform = options.platform ?? process.platform;
+  if (platform === 'win32' && !options.secureBackupAdapter) {
+    throw new Error('Windows rollback requires an OS-protected backup adapter');
+  }
   const markerPath = `${options.backupPath}.sha256`;
   if (!existsSync(options.backupPath) || !existsSync(markerPath)) {
     throw new Error('Reservation migration backup or hash marker is missing');
   }
   const expected = readFileSync(markerPath, 'utf8').trim();
-  const actual = sha256File(options.backupPath);
+  const actual = options.secureBackupAdapter
+    ? options.secureBackupAdapter.backupSha256(options.backupPath)
+    : sha256File(options.backupPath);
   if (expected !== actual) {
     throw new Error('Reservation migration backup hash verification failed');
   }
@@ -150,7 +182,11 @@ export function rollbackReservationEntitlementSplit(options: {
     const sidecarPath = `${options.databasePath}${suffix}`;
     if (existsSync(sidecarPath)) unlinkSync(sidecarPath);
   }
-  copyFileSync(options.backupPath, options.databasePath);
+  if (options.secureBackupAdapter) {
+    options.secureBackupAdapter.restoreBackup(options.backupPath, options.databasePath);
+  } else {
+    copyFileSync(options.backupPath, options.databasePath);
+  }
   const restoredSha256 = sha256File(options.databasePath);
   if (restoredSha256 !== expected) {
     throw new Error('Restored database hash verification failed');
@@ -163,11 +199,17 @@ function ensureVerifiedBackup(
 ): string {
   const markerPath = `${options.backupPath}.sha256`;
   if (!existsSync(options.backupPath)) {
-    const escaped = options.backupPath.replace(/'/g, "''");
-    options.db.exec(`VACUUM INTO '${escaped}'`);
+    if (options.secureBackupAdapter) {
+      options.secureBackupAdapter.createBackup(options.db, options.backupPath);
+    } else {
+      const escaped = options.backupPath.replace(/'/g, "''");
+      options.db.exec(`VACUUM INTO '${escaped}'`);
+    }
   }
-  restrictFileMode(options.backupPath);
-  const backupSha256 = sha256File(options.backupPath);
+  if (!options.secureBackupAdapter) restrictFileMode(options.backupPath);
+  const backupSha256 = options.secureBackupAdapter
+    ? options.secureBackupAdapter.backupSha256(options.backupPath)
+    : sha256File(options.backupPath);
   if (existsSync(markerPath)) {
     const expected = readFileSync(markerPath, 'utf8').trim();
     if (expected !== backupSha256) {
@@ -236,30 +278,7 @@ function tableExists(db: DatabaseHandle, name: string): boolean {
   ).get(name));
 }
 
-function decodePaidLicensePayload(key: string): PaidLicensePayload | null {
-  try {
-    const payloadSegment = key.slice(4).split('.')[1];
-    if (!payloadSegment) return null;
-    const payload = JSON.parse(
-      Buffer.from(payloadSegment, 'base64url').toString('utf8'),
-    ) as { tier?: unknown; exp?: unknown; seat?: unknown };
-    if (
-      payload.tier !== 'founding'
-      && payload.tier !== 'digital-representative'
-      && payload.tier !== 'lifetime'
-    ) return null;
-    return {
-      tier: payload.tier,
-      exp: typeof payload.exp === 'string' ? payload.exp : null,
-      seat: Number.isInteger(payload.seat) ? payload.seat as number : null,
-    };
-  } catch {
-    return null;
-  }
-}
-
 function checkpointRank(checkpoint: ReservationMigrationCheckpoint | null): number {
-  if (checkpoint === 'backup_complete') return 1;
   if (checkpoint === 'paid_entitlement_preserved' || checkpoint === 'reservation_recorded') return 2;
   if (checkpoint === 'bearer_deleted') return 3;
   if (checkpoint === 'storage_sanitized') return 4;
@@ -280,9 +299,7 @@ function sha256File(path: string): string {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
-function reconcilePaidMetadata(db: DatabaseHandle, key: string): void {
-  const payload = decodePaidLicensePayload(key);
-  if (!payload) return;
+function reconcilePaidMetadata(db: DatabaseHandle, payload: PaidLicensePayload): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS license (
       id INTEGER PRIMARY KEY CHECK (id = 1),

@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseHandle } from '../../packages/core/platform/types.js';
 import { FoundingReservationStore } from '../../packages/core/premium/founding-reservation-store.js';
+import { PremiumGate } from '../../packages/core/premium/premium-gate.js';
 import {
   rollbackReservationEntitlementSplit,
   runReservationEntitlementSplit,
@@ -22,6 +23,7 @@ import { VALID_TOKEN_SEAT_1 } from '../fixtures/founding-tokens.js';
 import {
   LICENSE_TEST_PUBLIC_KEY_PEM,
   generateTestLicenseKey,
+  generateTestLicenseKeyFromPayload,
 } from '../fixtures/license-keys.js';
 
 const dirs: string[] = [];
@@ -122,6 +124,101 @@ describe('reservation entitlement split migration', () => {
     }
   }
 
+  for (const [name, payload] of [
+    ['unsupported tier', { tier: 'enterprise', sub: 'paid-customer' }],
+    ['missing subject', { tier: 'lifetime' }],
+    ['empty subject', { tier: 'lifetime', sub: ' ' }],
+    ['missing founding seat', { tier: 'founding', sub: 'paid-customer' }],
+    ['invalid founding seat', { tier: 'founding', sub: 'paid-customer', seat: 0 }],
+    ['fractional founding seat', { tier: 'founding', sub: 'paid-customer', seat: 1.5 }],
+    ['expiring founding key', {
+      tier: 'founding',
+      sub: 'paid-customer',
+      seat: 1,
+      exp: '2099-01-01T00:00:00.000Z',
+    }],
+    ['subscription without expiration', {
+      tier: 'digital-representative',
+      sub: 'paid-customer',
+    }],
+    ['expired subscription', {
+      tier: 'digital-representative',
+      sub: 'paid-customer',
+      exp: '2020-01-01T00:00:00.000Z',
+    }],
+    ['invalid subscription date', {
+      tier: 'digital-representative',
+      sub: 'paid-customer',
+      exp: 'tomorrow',
+    }],
+    ['non-canonical subscription date', {
+      tier: 'digital-representative',
+      sub: 'paid-customer',
+      exp: '2099-01-01',
+    }],
+    ['subscription with seat', {
+      tier: 'digital-representative',
+      sub: 'paid-customer',
+      exp: '2099-01-01T00:00:00.000Z',
+      seat: 1,
+    }],
+    ['lifetime key with seat', {
+      tier: 'lifetime',
+      sub: 'paid-customer',
+      seat: 1,
+    }],
+  ] as const) {
+    it(`does not preserve stale premium for a signed ${name} payload`, () => {
+      const setup = fixture(generateTestLicenseKeyFromPayload(payload));
+      migrate(setup);
+
+      expect(setup.db.prepare('SELECT * FROM license WHERE id = 1').get()).toBeUndefined();
+      expect(setup.db.prepare(
+        "SELECT value FROM preferences WHERE key = 'active_license_key'",
+      ).get()).toBeUndefined();
+      expect((setup.db.prepare(
+        'SELECT COUNT(*) AS count FROM founding_reservations',
+      ).get() as { count: number }).count).toBe(0);
+    });
+  }
+
+  it('defers Windows migration without writing a plaintext backup and fails closed', () => {
+    const setup = fixture(VALID_TOKEN_SEAT_1);
+    const result = runReservationEntitlementSplit({
+      db: setup.db as unknown as DatabaseHandle,
+      databasePath: setup.dbPath,
+      backupPath: setup.backupPath,
+      platform: 'win32',
+    });
+
+    expect(result).toEqual({
+      status: 'deferred_secure_backup',
+      checkpoint: null,
+      backupSha256: null,
+    });
+    expect(existsSync(setup.backupPath)).toBe(false);
+    expect(existsSync(`${setup.backupPath}.sha256`)).toBe(false);
+    expect(setup.db.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
+    ).get()).toBeUndefined();
+    expect((setup.db.prepare(
+      "SELECT value FROM preferences WHERE key = 'active_license_key'",
+    ).get() as { value: string }).value).toBe(VALID_TOKEN_SEAT_1);
+    const gate = new PremiumGate(setup.db as unknown as DatabaseHandle);
+    expect(gate.isPremium()).toBe(false);
+    expect(gate.getLicenseTier()).toBe('free');
+    expect(gate.getFoundingSeat()).toBeNull();
+  });
+
+  it('requires the Windows secure adapter for rollback', () => {
+    const setup = fixture(VALID_TOKEN_SEAT_1);
+    expect(() => rollbackReservationEntitlementSplit({
+      databasePath: setup.dbPath,
+      backupPath: setup.backupPath,
+      platform: 'win32',
+    })).toThrow('Windows rollback requires an OS-protected backup adapter');
+  });
+
   it('sets restrictive modes on the actual backup and hash marker', () => {
     const setup = fixture(VALID_TOKEN_SEAT_1);
     migrate(setup);
@@ -199,7 +296,6 @@ describe('reservation entitlement split migration', () => {
   });
 
   for (const checkpoint of [
-    'backup_complete',
     'reservation_recorded',
     'bearer_deleted',
     'storage_sanitized',

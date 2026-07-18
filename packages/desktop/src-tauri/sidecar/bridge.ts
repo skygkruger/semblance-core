@@ -762,9 +762,11 @@ async function handleInitialize(): Promise<unknown> {
       databasePath: coreDbPath,
       backupPath: join(dataDir, 'core.pre-slice-1-reservation-entitlement-split.db'),
     });
-    reservationStore = new FoundingReservationStore(
-      prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
-    );
+    if (migration.status !== 'deferred_secure_backup') {
+      reservationStore = new FoundingReservationStore(
+        prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
+      );
+    }
     console.error(`[sidecar] Reservation entitlement split: ${migration.status}`);
 
     // keyStorage omitted intentionally: the sidecar is a standalone Node.js process and cannot

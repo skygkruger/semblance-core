@@ -33,17 +33,22 @@ export function generateTestLicenseKey(opts: {
   seat?: number;
   privateKeyPem?: string;
 }): string {
-  const header = base64urlEncode(JSON.stringify({ alg: 'EdDSA', typ: 'LIC' }));
-
   const payloadObj: Record<string, unknown> = { tier: opts.tier };
   if (opts.exp) payloadObj.exp = opts.exp;
   if (opts.sub) payloadObj.sub = opts.sub;
   if (opts.seat !== undefined) payloadObj.seat = opts.seat;
+  return generateTestLicenseKeyFromPayload(payloadObj, opts.privateKeyPem);
+}
 
+export function generateTestLicenseKeyFromPayload(
+  payloadObj: Record<string, unknown>,
+  privateKeyPem = LICENSE_TEST_PRIVATE_KEY_PEM,
+): string {
+  const header = base64urlEncode(JSON.stringify({ alg: 'EdDSA', typ: 'LIC' }));
   const payload = base64urlEncode(JSON.stringify(payloadObj));
   const signingInput = Buffer.from(`${header}.${payload}`);
 
-  const privateKey = createPrivateKey(opts.privateKeyPem ?? LICENSE_TEST_PRIVATE_KEY_PEM);
+  const privateKey = createPrivateKey(privateKeyPem);
   const signature = sign(null, signingInput, privateKey);
 
   return `sem_${header}.${payload}.${base64urlEncode(signature)}`;

@@ -13,7 +13,7 @@
  */
 
 import type { DatabaseHandle } from '../platform/types.js';
-import { verifyLicenseKeySignature } from './license-keys.js';
+import { validatePaidLicenseKey } from './license-keys.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -199,7 +199,27 @@ export class PremiumGate {
   getLicenseTier(): LicenseTier {
     const row = this.db.prepare('SELECT tier FROM license WHERE id = 1').get() as LicenseRow | undefined;
     if (!row) return 'free';
+    if (row.tier === 'founding' && this.hasPersistedReservationBearer()) {
+      return 'free';
+    }
     return row.tier as LicenseTier;
+  }
+
+  /**
+   * Fail closed while a Windows migration is deferred: legacy reservation JWTs
+   * persisted as active keys must never make stale founding metadata premium.
+   */
+  private hasPersistedReservationBearer(): boolean {
+    try {
+      const row = this.db.prepare(
+        "SELECT value FROM preferences WHERE key = 'active_license_key'",
+      ).get() as { value?: unknown } | undefined;
+      return typeof row?.value === 'string'
+        && row.value.length > 0
+        && !row.value.startsWith('sem_');
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -208,54 +228,11 @@ export class PremiumGate {
    * Three dot-separated segments where the payload decodes to JSON with tier+exp.
    */
   activateLicense(key: string): ActivationResult {
-    // Validate prefix
-    if (!key.startsWith('sem_')) {
-      return { success: false, error: 'Invalid license key format: must start with sem_' };
+    const validation = validatePaidLicenseKey(key);
+    if (!validation.valid || !validation.payload) {
+      return { success: false, error: validation.error ?? 'Invalid license key' };
     }
-
-    const withoutPrefix = key.slice(4); // Remove 'sem_'
-    const segments = withoutPrefix.split('.');
-
-    if (segments.length !== 3) {
-      return { success: false, error: 'Invalid license key format: expected 3 dot-separated segments' };
-    }
-
-    // Verify Ed25519 signature before trusting payload contents
-    const sigResult = verifyLicenseKeySignature(key);
-    if (!sigResult.valid) {
-      return { success: false, error: sigResult.error ?? 'Invalid license key signature' };
-    }
-
-    // Decode middle segment (base64url JSON)
-    let payload: { tier?: string; exp?: string; seat?: number };
-    try {
-      // Handle both standard base64 and base64url encoding
-      let b64 = segments[1]!.replace(/-/g, '+').replace(/_/g, '/');
-      const padding = b64.length % 4;
-      if (padding === 2) b64 += '==';
-      else if (padding === 3) b64 += '=';
-      const decoded = Buffer.from(b64, 'base64').toString('utf-8');
-      payload = JSON.parse(decoded);
-    } catch {
-      return { success: false, error: 'Invalid license key: could not decode payload' };
-    }
-
-    // Validate tier
-    const tier = payload.tier;
-    if (tier !== 'digital-representative' && tier !== 'lifetime' && tier !== 'founding') {
-      return { success: false, error: `Invalid license tier: ${tier}` };
-    }
-
-    // Parse expiration — founding and lifetime keys have no expiry
-    const expiresAt = payload.exp ?? null;
-    if (expiresAt && isNaN(new Date(expiresAt).getTime())) {
-      return { success: false, error: 'Invalid expiration date in license key' };
-    }
-
-    // Check if already expired
-    if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) {
-      return { success: false, error: 'License key has expired' };
-    }
+    const { tier, exp: expiresAt, seat } = validation.payload;
 
     // Prevent downgrade — don't overwrite a higher-tier license with a lower one
     const currentTier = this.getLicenseTier();
@@ -266,8 +243,6 @@ export class PremiumGate {
     }
 
     const now = new Date().toISOString();
-    const seat = tier === 'founding' && payload.seat ? payload.seat : null;
-
     // Upsert license metadata in SQLite (NO license key stored here)
     this.db.prepare(`
       INSERT INTO license (id, tier, activated_at, expires_at, founding_seat)
@@ -304,6 +279,7 @@ export class PremiumGate {
    * Returns the founding member seat number, or null if not a founding member.
    */
   getFoundingSeat(): number | null {
+    if (this.getLicenseTier() !== 'founding') return null;
     const row = this.db.prepare('SELECT founding_seat FROM license WHERE id = 1').get() as
       | { founding_seat: number | null }
       | undefined;
