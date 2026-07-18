@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { installEgressGuard } from '@semblance/core/security/egress-guard.js';
 import {
   createRuntimeLogger,
   performKernelHandshake,
@@ -50,6 +51,8 @@ export async function runModelRuntime(): Promise<ModelRuntimeReadiness> {
     policyEpoch: env.policyEpoch,
   });
   log.info('Kernel handshake complete', { sessionId: session.sessionId });
+
+  installEgressGuard();
 
   let inventory: ModelFileEntry[] = [];
   let modelStatus: ModelRuntimeReadiness['modelStatus'] = 'ready';

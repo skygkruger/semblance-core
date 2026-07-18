@@ -1860,6 +1860,21 @@ async fn disconnect_license(state: tauri::State<'_, AppBridge>) -> Result<Value,
         .await
 }
 
+/// Request a Stripe Customer Portal session URL via Gateway commerce transport.
+#[tauri::command]
+async fn request_license_portal_session(
+    state: tauri::State<'_, AppBridge>,
+    license_key: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "license:portal_session",
+            serde_json::json!({ "licenseKey": license_key }),
+        )
+        .await
+}
+
 // ─── Conversation Management Commands ────────────────────────────────────────
 
 #[tauri::command]
@@ -3250,6 +3265,7 @@ pub fn run() {
             activate_license_key,
             get_license_status,
             disconnect_license,
+            request_license_portal_session,
             // Conversation Management
             list_conversations,
             get_conversation,

@@ -25,6 +25,11 @@ import { ReminderStore } from '@semblance/core/knowledge/reminder-store.js';
 import { OAuthTokenManager } from './services/oauth-token-manager.js';
 import { GoogleDriveAdapter } from './services/google-drive-adapter.js';
 import { FileWriteAdapter } from './services/file-write-adapter.js';
+import {
+  COMMERCE_WORKER_HOST,
+  CommerceTransport,
+} from './services/commerce-transport.js';
+import { enablePermanentGatewayNetworkRole, installEgressGuard } from '@semblance/core/security/egress-guard.js';
 import type { ExtensionGatewayAdapter, GatewayExtensionContext } from '@semblance/core/extensions/types.js';
 
 export interface GatewayConfig {
@@ -62,6 +67,9 @@ export class Gateway {
    * starts the IPC listener, and wires the validation pipeline.
    */
   async start(): Promise<void> {
+    installEgressGuard();
+    enablePermanentGatewayNetworkRole();
+
     const dataDir = this.config.dataDir ?? join(homedir(), '.semblance', 'gateway');
     if (!existsSync(dataDir)) {
       mkdirSync(dataDir, { recursive: true });
@@ -191,6 +199,16 @@ export class Gateway {
       this.allowlist.addService({
         serviceName: 'Google Accounts',
         domain: 'accounts.google.com',
+        protocol: 'https',
+        addedBy: 'system',
+      });
+    }
+
+    // Commerce license worker (portal, waitlist, renewal)
+    if (!this.allowlist.isAllowed(COMMERCE_WORKER_HOST)) {
+      this.allowlist.addService({
+        serviceName: 'Semblance License Worker',
+        domain: COMMERCE_WORKER_HOST,
         protocol: 'https',
         addedBy: 'system',
       });
@@ -449,6 +467,20 @@ export { OAuthCallbackServer } from './services/oauth-callback-server.js';
 export type { CallbackServerResult, AuthCodeResult } from './services/oauth-callback-server.js';
 export { GoogleDriveAdapter, GOOGLE_DRIVE_READONLY_SCOPE } from './services/google-drive-adapter.js';
 export type { GoogleDriveConfig } from './services/google-drive-adapter.js';
+export {
+  CommerceTransport,
+  COMMERCE_WORKER_BASE_URL,
+  COMMERCE_WORKER_HOST,
+  approvedPortalUrl,
+} from './services/commerce-transport.js';
+export type {
+  CommerceOperation,
+  CommerceTransportDeps,
+  PortalSessionResult,
+  RenewalCheckResult,
+  WaitlistSubmitResult,
+} from './services/commerce-transport.js';
+export { gatewayFetch, gatewayHttpsGet } from './security/gateway-network.js';
 
 // Daemon mode
 export { DaemonManager } from './daemon/daemon-manager.js';

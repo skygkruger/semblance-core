@@ -56,7 +56,11 @@ import {
   EmailAdapter,
   CalendarAdapter,
   PROVIDER_PRESETS,
+  CommerceTransport,
+  gatewayFetch,
+  gatewayHttpsGet,
 } from '../../../gateway/index.js';
+import { installEgressGuard } from '../../../core/security/egress-guard.js';
 import type { ServiceCredential } from '../../../gateway/credentials/types.js';
 import { EmailIndexer, type RawEmailMessage } from '../../../core/knowledge/email-indexer.js';
 import { CalendarIndexer } from '../../../core/knowledge/calendar-indexer.js';
@@ -292,6 +296,13 @@ const pendingCallbacks = callbackProtocol.pendingCallbacks;
 
 let core: SemblanceCore | null = null;
 let gateway: Gateway | null = null;
+
+function getCommerceTransport(): CommerceTransport {
+  if (!gateway) {
+    throw new Error('Gateway not initialized');
+  }
+  return new CommerceTransport({ auditTrail: gateway.getAuditTrail() });
+}
 let prefsDb: Database.Database | null = null;
 let credentialStore: CredentialStore | null = null;
 let emailAdapter: EmailAdapter | null = null;
@@ -723,6 +734,8 @@ Core principles:
 // ─── Method Handlers ──────────────────────────────────────────────────────────
 
 async function handleInitialize(): Promise<unknown> {
+  installEgressGuard();
+
   dataDir = join(homedir(), '.semblance', 'data');
   if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 
@@ -4313,35 +4326,15 @@ async function downloadHfFile(
   const url = `https://huggingface.co/${entry.hfRepo}/resolve/main/${entry.hfFilename}`;
   console.error(`[sidecar] downloadHfFile FETCHING: ${modelId} from ${url}`);
   const { createWriteStream } = await import('node:fs');
-  const https = await import('node:https');
-  const http = await import('node:http');
 
-  // Use node:https instead of globalThis.fetch (undici) because Node.js on Windows
-  // gets ECONNRESET errors on HuggingFace CDN redirects due to IPv6/TLS issues.
-  // Force IPv4 (family: 4) to avoid the ECONNRESET on redirect targets.
-  function httpsGet(targetUrl: string, maxRedirects = 5): Promise<import('node:http').IncomingMessage> {
-    return new Promise((resolve, reject) => {
-      if (maxRedirects <= 0) { reject(new Error('Too many redirects')); return; }
-      const parsed = new URL(targetUrl);
-      const mod = parsed.protocol === 'https:' ? https : http;
-      const req = mod.get(targetUrl, { timeout: 60_000, family: 4 }, (res) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          res.resume(); // drain response
-          const redirectUrl = new URL(res.headers.location, targetUrl).href;
-          httpsGet(redirectUrl, maxRedirects - 1).then(resolve, reject);
-          return;
-        }
-        resolve(res);
-      });
-      req.on('error', reject);
-      req.on('timeout', () => { req.destroy(new Error('Request timed out (60s)')); });
-      // Wire up abort controller
-      if (download.abortController) {
-        const onAbort = () => { req.destroy(new Error('Download aborted')); };
-        download.abortController.signal.addEventListener('abort', onAbort, { once: true });
-        req.on('close', () => download.abortController?.signal.removeEventListener('abort', onAbort));
-      }
-    });
+  // Gateway-owned HTTPS download path (IPv4, redirect-safe) — not direct node:https in bridge.
+  async function httpsGet(targetUrl: string): Promise<import('node:http').IncomingMessage> {
+    const res = await gatewayHttpsGet(targetUrl, { timeoutMs: 60_000, maxRedirects: 5, family: 4 });
+    if (download.abortController?.signal.aborted) {
+      res.destroy();
+      throw new Error('Download aborted');
+    }
+    return res;
   }
 
   try {
@@ -5490,7 +5483,7 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
       tokenBody['code_verifier'] = codeVerifier;
     }
 
-    const tokenResponse = await globalThis.fetch(config.tokenUrl, {
+    const tokenResponse = await gatewayFetch(config.tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -5532,7 +5525,7 @@ async function handleConnectorAuth(params: { connectorId: string }): Promise<unk
     let userEmail: string | undefined;
     if (config.providerKey === 'google' || config.providerKey === 'google-calendar' || config.providerKey === 'google-drive') {
       try {
-        const userinfoResp = await globalThis.fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        const userinfoResp = await gatewayFetch('https://www.googleapis.com/oauth2/v2/userinfo', {
           headers: { Authorization: `Bearer ${tokenData.access_token as string}` },
         });
         if (userinfoResp.ok) {
@@ -5608,7 +5601,7 @@ async function handleConnectorDisconnect(params: { connectorId: string }): Promi
     const accessToken = tokenMgr.getAccessToken(config.providerKey);
     if (accessToken) {
       try {
-        await globalThis.fetch(config.revokeUrl, {
+        await gatewayFetch(config.revokeUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ token: accessToken }),
@@ -5639,7 +5632,7 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
         const clientSecret = process.env['SEMBLANCE_GOOGLE_CLIENT_SECRET'] ?? '';
         if (clientId) {
           try {
-            const resp = await globalThis.fetch('https://oauth2.googleapis.com/token', {
+            const resp = await gatewayFetch('https://oauth2.googleapis.com/token', {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
               body: new URLSearchParams({
@@ -5961,7 +5954,7 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
         calUrl.searchParams.set('singleEvents', 'true');
         calUrl.searchParams.set('orderBy', 'startTime');
 
-        const calResp = await globalThis.fetch(calUrl.toString(), {
+        const calResp = await gatewayFetch(calUrl.toString(), {
           headers: { Authorization: `Bearer ${calAccessToken}` },
         });
 
@@ -6791,6 +6784,22 @@ async function handleRequest(req: Request): Promise<void> {
         // Clear the stored key from prefs
         setPref('active_license_key', '');
         respond(id, { success: true });
+        break;
+      }
+
+      case 'license:portal_session': {
+        try {
+          const { licenseKey } = params as { licenseKey: string };
+          if (!licenseKey) {
+            respond(id, { url: null });
+            break;
+          }
+          const commerce = getCommerceTransport();
+          const portal = await commerce.createPortalSession(licenseKey);
+          respond(id, { url: portal.url });
+        } catch (err) {
+          respondError(id, err instanceof Error ? err.message : String(err));
+        }
         break;
       }
 
@@ -8067,7 +8076,7 @@ async function handleRequest(req: Request): Promise<void> {
       case 'test_brave_api_key': {
         const braveParams = params as { key: string };
         try {
-          const resp = await globalThis.fetch('https://api.search.brave.com/res/v1/web/search?q=test&count=1', {
+          const resp = await gatewayFetch('https://api.search.brave.com/res/v1/web/search?q=test&count=1', {
             headers: { 'X-Subscription-Token': braveParams.key, 'Accept': 'application/json' },
           });
           respond(id, { valid: resp.ok, status: resp.status });
@@ -8197,12 +8206,8 @@ async function handleRequest(req: Request): Promise<void> {
       case 'upgrade_submit_email': {
         const emailParams = params as { email: string };
         setPref('upgrade_email', emailParams.email);
-        // Send to waitlist endpoint (fire-and-forget — local storage is the primary record)
-        globalThis.fetch('https://semblance-license-worker.conduit-gw.workers.dev/waitlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailParams.email }),
-        }).catch(() => {}); // Best-effort — prefs storage is authoritative
+        // Send to waitlist endpoint via Gateway commerce transport (fire-and-forget)
+        void getCommerceTransport().submitWaitlist(emailParams.email).catch(() => {});
         respond(id, { success: true });
         break;
       }
@@ -10964,25 +10969,10 @@ async function handleRequest(req: Request): Promise<void> {
             break;
           }
 
-          const verifyResp = await globalThis.fetch(
-            'https://semblance-license-worker.conduit-gw.workers.dev/latest-key',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ licenseKey: currentKey }),
-              signal: AbortSignal.timeout(10000),
-            }
-          );
+          const renewal = await getCommerceTransport().checkRenewal(currentKey);
 
-          if (verifyResp.ok) {
-            const data = await verifyResp.json() as {
-              valid: boolean;
-              key?: string;
-              tier?: string;
-              expiresAt?: string | null;
-              isNewer?: boolean;
-              revoked?: boolean;
-            };
+          if (renewal.ok && renewal.data) {
+            const data = renewal.data;
 
             if (data.valid && data.isNewer && data.key && data.key !== currentKey) {
               // Worker has a newer key — activate it

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { installEgressGuard } from '@semblance/core/security/egress-guard.js';
 import type { ProcessSessionV1 } from '@semblance/protocol';
 import {
   createRuntimeIpcServer,
@@ -21,6 +22,8 @@ export interface CoreRuntimeReadiness {
 let activeSession: ProcessSessionV1 | null = null;
 
 export async function runCoreRuntime(): Promise<CoreRuntimeReadiness> {
+  installEgressGuard();
+
   const env = readRuntimeEnv();
   const log = createRuntimeLogger('core');
 

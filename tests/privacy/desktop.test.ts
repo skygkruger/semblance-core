@@ -218,11 +218,9 @@ describe('Desktop Privacy: No Direct Network Calls in Frontend', () => {
 
 describe('Desktop Privacy: fetch() Allowlist Enforcement', () => {
   const srcFiles = collectFiles(DESKTOP_SRC, ['.ts', '.tsx']);
-  // Only license-commerce.ts is allowed to call fetch() for user-initiated
-  // license worker communication. LicenseContext delegates to that boundary.
   // sound/desktop-sound-engine.ts uses fetch() to decode bundled WAV assets
   // from Vite/Tauri asset protocol URLs — local only, never network.
-  const FETCH_ALLOWLIST = new Set(['contexts/license-commerce.ts', 'sound/desktop-sound-engine.ts']);
+  const FETCH_ALLOWLIST = new Set(['sound/desktop-sound-engine.ts']);
 
   it('only allowlisted files contain fetch() calls', () => {
     const violators: string[] = [];
@@ -242,7 +240,7 @@ describe('Desktop Privacy: fetch() Allowlist Enforcement', () => {
     ).toEqual([]);
   });
 
-  it('keeps fetch in license-commerce and out of LicenseContext', () => {
+  it('keeps fetch out of license commerce and LicenseContext', () => {
     const licenseCtx = srcFiles.find(f => f.replace(/\\/g, '/').endsWith('contexts/LicenseContext.tsx'));
     const licenseCommerce = srcFiles.find(f => f.replace(/\\/g, '/').endsWith('contexts/license-commerce.ts'));
     expect(licenseCtx, 'LicenseContext.tsx must exist in desktop src').toBeDefined();
@@ -253,8 +251,7 @@ describe('Desktop Privacy: fetch() Allowlist Enforcement', () => {
     }
     if (licenseCommerce) {
       const content = readFileSync(licenseCommerce, 'utf-8');
-      expect(content).toMatch(/typeof fetch\s*=\s*fetch/);
-      expect(content).toMatch(/\bfetcher\s*\(/);
+      expect(content).not.toMatch(/\bfetch\s*\(/);
     }
   });
 });

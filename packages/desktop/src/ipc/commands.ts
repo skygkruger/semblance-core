@@ -301,6 +301,11 @@ export function disconnectLicense(): Promise<{ success: boolean }> {
   return invoke<{ success: boolean }>('disconnect_license');
 }
 
+export function requestLicensePortalSession(licenseKey: string): Promise<string | null> {
+  return invoke<{ url: string | null }>('request_license_portal_session', { licenseKey })
+    .then((result) => result.url);
+}
+
 // ─── Privacy Status ─────────────────────────────────────────────────────────
 
 export function getPrivacyStatus(): Promise<PrivacyStatusData> {

@@ -13,3 +13,14 @@ export {
 } from './sandbox-verifier.js';
 
 export type { SandboxViolation, SandboxStatus } from './sandbox-verifier.js';
+
+export {
+  EgressDeniedError,
+  GATEWAY_NETWORK_ROLE,
+  assertNetworkEntitled,
+  enablePermanentGatewayNetworkRole,
+  getOriginalFetch,
+  installEgressGuard,
+  isGatewayNetworkEntitled,
+  runWithGatewayNetwork,
+} from './egress-guard.js';
