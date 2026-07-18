@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "releaseId": "truth-baseline-2026-07-18",
-  "generatedAt": "2026-07-18T21:41:11Z",
+  "generatedAt": "2026-07-18T21:41:37Z",
   "repositories": {
     "core": {
-      "sourceCommit": "a27d2ddba43e8e09ea168bb302d949f0b6e4db6b",
-      "sourceTreeHash": "d0d96ba196f06361b9998024d4fb6aa88dbf241e"
+      "sourceCommit": "12d30e227f899c23e7a048f78a47348ce5221ae0",
+      "sourceTreeHash": "07beef2b966b1f7dc05531905e2e5e90c1495b09"
     },
     "representative": {
-      "sourceCommit": "1439b5e027e6a196c1fcce2e0645e6cd35ce356f",
-      "sourceTreeHash": "303d179944889bc100b256c6860d8e77c5e31e67",
+      "sourceCommit": "dcd6d71dcc7d6d367d4e6626635e16744185de4d",
+      "sourceTreeHash": "98c2ed9e991a4346742afc731980dac86688871e",
       "packageVersion": "0.1.0",
       "artifactHash": null,
       "extensionManifestHash": null
