@@ -1,0 +1,23 @@
+
+🔬 SIDECAR INTEGRATION SMOKE TEST
+
+Starting sidecar...
+Sending initialize (may take up to 3 minutes for model loading)...
+  ✅ initialize — sidecar initializes
+  ✅ initialize — returns onboardingComplete
+  ✅ initialize — inference engine: none
+  ⚠️  initialize — no active model (expected without Rust backend)
+  ✅ sidecar — reached Ready state
+
+  ✅ get_onboarding_complete — returns {"complete":false}
+  ✅ audit_get_chain_status — verified: true, entries: 0
+  ✅ hw_key_get_backend — backend: libsecret, hardware: true
+  ✅ get_knowledge_stats — documents: 0
+  ✅ list_conversations — returned 0 conversations
+  ⏳ Testing chat (send_message)...
+  ✅ send_message — correct error without Rust backend: "No AI model available. Go to Settings → AI Engine to download a model, or install Ollama (ollama.com) for GPU-accelerated inference."
+
+==================================================
+RESULTS: 10 passed, 0 failed
+==================================================
+EXIT:0

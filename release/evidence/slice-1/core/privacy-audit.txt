@@ -1,0 +1,42 @@
+========================================
+  SEMBLANCE PRIVACY AUDIT
+  Scanning packages/core/ for network violations
+========================================
+
+Scanning 330 TypeScript/JavaScript file(s)...
+  (Ollama localhost exception applied to 19 file(s) in packages/core/llm/)
+
+Scanning for dynamic code execution patterns...
+  Dynamic code execution patterns checked: 0 violation(s) found
+
+Scanning 0 Rust file(s)...
+
+========================================
+  DESKTOP PACKAGE AUDIT
+  Scanning packages/desktop/src/ for violations
+========================================
+
+Scanning 147 desktop frontend file(s)...
+
+Verifying Tauri configuration...
+  Updater: configured with GitHub Releases endpoint (OK)
+  CSP: configured and blocks external origins (OK)
+
+Checking desktop dependencies for banned packages...
+  Dependencies checked: 39 packages (OK)
+
+========================================
+  TRANSITIVE DEPENDENCY SCAN
+  Checking packages/core/ dependency tree
+========================================
+
+  No forbidden networking packages in dependency tree (OK)
+
+========================================
+RESULT: CLEAN
+No violations found.
+Core files scanned: 330
+Desktop files scanned: 147
+Tauri config: verified
+========================================
+EXIT:0

@@ -1,0 +1,1166 @@
+
+> semblance-core@1.0.0 test /agent/repos/semblance-core
+> vitest run
+
+
+ RUN  v4.0.18 /agent/repos/semblance-core
+
+ ❯ tests/integration/startup-smoke.test.ts (9 tests | 1 failed) 839ms
+     ✓ selects a valid model — either Ollama GPU or Qwen native 1ms
+     ✓ does not select a fast-tier model as the primary reasoning model 0ms
+     ✓ has no SqliteError in stderr 0ms
+     ✓ strips <think> tags from chat responses 17ms
+     ✓ initializes all core subsystems without errors 0ms
+     × loads NativeRuntime models on capable hardware (or uses Ollama) 15ms
+     ✓ has no unhandled errors or missing packages in stderr 0ms
+     ✓ has no deprecation warnings in stderr 0ms
+     ✓ conversation previews do not contain think tags 1ms
+ ✓ tests/core/ipc/tunnel-transport.test.ts (10 tests) 3024ms
+       ✓ retries on 5xx errors with backoff  3007ms
+ ✓ tests/core/privacy-audit.test.ts (5 tests) 4325ms
+     ✓ passes with the current codebase (ollama in llm/ is allowed)  997ms
+     ✓ blocks ollama import outside packages/core/llm/  971ms
+     ✓ blocks fetch() in packages/core/  1133ms
+     ✓ blocks http import in packages/core/  1221ms
+ ✓ tests/core/living-will/living-will-importer.test.ts (6 tests) 3382ms
+     ✓ imports archive and restores all sections  692ms
+     ✓ wrong passphrase returns error  672ms
+     ✓ verifies signature — warns on device mismatch but succeeds  672ms
+     ✓ reports warnings for version mismatch (newer archive version)  955ms
+     ✓ handles missing optional sections gracefully (partial archive)  375ms
+ ✓ tests/core/inheritance/activation-handler.test.ts (6 tests) 2506ms
+     ✓ successfully activates with valid package and passphrase  526ms
+     ✓ rejects activation with wrong passphrase  408ms
+     ✓ creates activation in time_locked state with correct expiry  401ms
+     ✓ allows cancel during time-lock state  396ms
+     ✓ rejects cancel when not in time_locked state  400ms
+     ✓ advances past time-lock when expired  372ms
+ ✓ tests/core/backup/backup-restoration.test.ts (7 tests) 2346ms
+     ✓ restores backup with correct passphrase — data matches  459ms
+     ✓ fails with wrong passphrase  388ms
+     ✓ warns but proceeds with unverifiable signature  395ms
+     ✓ inheritance packages marked invalid after restore  425ms
+     ✓ Knowledge Moment fires after 3+ sections restored  457ms
+ ✓ tests/core/backup/backup-creation.test.ts (8 tests) 1967ms
+     ✓ rolling window deletes oldest when maxBackups exceeded  645ms
+ ✓ tests/ui/health-dashboard.test.tsx (40 tests) 1511ms
+ ✓ tests/integration/mobile-remediation-verification.test.ts (38 tests) 1483ms
+     ✓ reminder-adapter exports buildReminderNotification and snoozeReminder  1174ms
+ ✓ tests/core/knowledge/kg-sync.test.ts (22 tests) 1876ms
+     ✓ truncates oldest entries when over 10MB cap  1853ms
+ ✓ tests/ui/financial-dashboard.test.tsx (45 tests) 1237ms
+ ✓ tests/core/crypto/key-derivation.test.ts (6 tests) 1162ms
+     ✓ produces deterministic output with the same salt  360ms
+     ✓ produces different output with different passphrases  404ms
+ ✓ tests/core/crypto/living-will-v2.test.ts (8 tests) 1220ms
+     ✓ v2 encrypt+decrypt roundtrip succeeds  401ms
+     ✓ v2 archive decryption fails with wrong passphrase  404ms
+ ✓ tests/core/crypto/inheritance-upgrade.test.ts (5 tests) 1012ms
+     ✓ v2 package encrypt+decrypt roundtrip via handler  395ms
+     ✓ v2 package activation fails with wrong passphrase  391ms
+ ✓ tests/desktop/settings-screens.test.tsx (56 tests) 1088ms
+ ✓ tests/core/living-will/archive-roundtrip.test.ts (2 tests) 797ms
+     ✓ full roundtrip: export -> import on fresh DB -> verify sections match  390ms
+     ✓ roundtrip with selective export preserves included sections  405ms
+ ✓ tests/core/living-will/living-will-exporter.test.ts (5 tests) 846ms
+ ✓ tests/core/importers/native-connectors.test.ts (85 tests) 1035ms
+ ✓ tests/semblance-ui/upgrade-email-capture.test.tsx (13 tests) 696ms
+ ✓ tests/core/living-will/archive-reader.test.ts (3 tests) 765ms
+     ✓ decrypts archive with correct passphrase and returns valid archive  378ms
+     ✓ decrypting with wrong passphrase throws error  385ms
+ ✓ tests/release/sidecar-bundle-freshness.test.ts (1 test) 646ms
+     ✓ matches bridge.ts and contains only reservation import behavior  643ms
+ ✓ tests/semblance-ui/LicenseActivation.test.tsx (5 tests) 478ms
+ ✓ tests/gateway/tools/filesystem-tools.test.ts (33 tests) 564ms
+     ✓ times out long commands  503ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ tests/desktop/conversation-history-panel.test.tsx (24 tests) 487ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ tests/desktop/digest.test.tsx (13 tests) 539ms
+ ✓ tests/sprint-f/binary-allowlist.test.ts (55 tests) 467ms
+ ✓ tests/core/reporting/sovereignty-report.test.ts (28 tests) 511ms
+ ✓ tests/core/inheritance/living-will-integration.test.ts (5 tests) 410ms
+     ✓ Knowledge Moment fires when 3+ sections restored on import  400ms
+ ✓ tests/integration/typecheck-clean.test.ts (4 tests) 27004ms
+     ✓ packages/core compiles with zero errors  6539ms
+     ✓ packages/gateway compiles with zero errors  5303ms
+     ✓ packages/semblance-ui compiles with zero errors  5050ms
+     ✓ packages/desktop compiles with zero errors  10110ms
+ ✓ tests/core/inheritance/activation-package.test.ts (5 tests) 416ms
+ ✓ tests/core/living-will/archive-builder.test.ts (5 tests) 401ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ tests/desktop/relationships-screen.test.tsx (5 tests) 413ms
+ ✓ tests/release/release-manifest-cli.test.ts (29 tests) 323ms
+ ✓ tests/desktop/network-monitor.test.tsx (13 tests) 346ms
+ ✓ tests/privacy/gateway-adapters.test.ts (6 tests) 320ms
+ ✓ tests/premium/reservation-entitlement-migration.test.ts (35 tests) 376ms
+ ✓ tests/semblance-ui/terms-acceptance-step.test.tsx (10 tests) 324ms
+ ✓ tests/desktop/pending-action.test.tsx (23 tests) 304ms
+ ✓ tests/core/platform/sqlite-vector-store.test.ts (20 tests) 290ms
+ ✓ tests/release/release-manifest.test.ts (16 tests) 244ms
+ ✓ tests/desktop/subscriptions.test.tsx (11 tests) 282ms
+ ✓ tests/core/attestation/integration.test.ts (6 tests) 212ms
+ ✓ tests/desktop/knowledge-moment-onboarding.test.tsx (16 tests) 267ms
+ ✓ tests/desktop/escalation-prompt.test.tsx (11 tests) 231ms
+ ✓ tests/semblance-ui/onboarding-datasources.test.tsx (11 tests) 161ms
+ ✓ tests/semblance-ui/agent-input-attachments.test.tsx (12 tests) 206ms
+ ✓ tests/core/knowledge/graph-visualization.test.ts (16 tests) 201ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ tests/desktop/onboarding-runtime.test.tsx (5 tests) 206ms
+ ✓ tests/semblance-ui/FeatureGate.test.tsx (4 tests) 183ms
+ ✓ tests/desktop/use-hardware-tier.test.ts (3 tests) 173ms
+ ✓ tests/integration/sprint-6-validation.test.ts (20 tests) 149ms
+ ✓ tests/desktop/voice-button.test.tsx (2 tests) 190ms
+ ✓ tests/privacy/no-node-builtins-in-core.test.ts (20 tests) 190ms
+ ✓ tests/audit/final-privacy-audit.test.ts (20 tests) 152ms
+ ✓ tests/gateway/cron-scheduler.test.ts (25 tests) 98ms
+ ✓ tests/gateway/caldav-adapter.test.ts (53 tests) 123ms
+ ✓ tests/integration/step10-web-reminders.test.ts (26 tests) 112ms
+ ✓ tests/semblance-ui/agent-input-voice.test.tsx (26 tests) 109ms
+ ✓ tests/core/security/cloud-bridge-credentials.test.ts (12 tests) 92ms
+ ✓ tests/core/web-intelligence.test.ts (31 tests) 121ms
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters return same count
+[LanceDB] Connecting to /tmp/semblance-cross-OHTk2v/lance
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters return same count
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters return same count
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters return same top result for a query
+[LanceDB] Connecting to /tmp/semblance-cross-WE13mY/lance
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters return same top result for a query
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters return same top result for a query
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters agree on relative ordering
+[LanceDB] Connecting to /tmp/semblance-cross-sNdMyI/lance
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters agree on relative ordering
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters agree on relative ordering
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters filter by sourceType consistently
+[LanceDB] Connecting to /tmp/semblance-cross-ZuHmV8/lance
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters filter by sourceType consistently
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters filter by sourceType consistently
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters delete by documentId consistently
+[LanceDB] Connecting to /tmp/semblance-cross-kW3ZKo/lance
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters delete by documentId consistently
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/vector-store-integration.test.ts > Cross-adapter consistency > both adapters delete by documentId consistently
+[LanceDB] Tables: []
+
+ ✓ tests/core/platform/vector-store-integration.test.ts (8 tests) 102ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ tests/desktop/onboarding-terms-step.test.tsx (2 tests) 116ms
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-3: fabrication in no-tool reply gets rejected and replaced
+[Orchestrator] Fabrication detected (pattern: you have a (?:meeting|appointment|call|event) (?:at|with|scheduled)). Replacing response.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-3: fabrication in no-tool reply gets rejected and replaced
+[Orchestrator] Fabrication detected (pattern: you have a (?:meeting|appointment|call|event) (?:at|with|scheduled)). Replacing response.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-4: conversation turn retrieved from history with fabrication is redacted on load
+[Orchestrator] Fabrication detected (pattern: you (?:received|have|got) (?:an? )?(?:email|message) from). Replacing response.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-4: conversation turn retrieved from history with fabrication is redacted on load
+[Orchestrator] Fabrication detected (pattern: you (?:received|have|got) (?:an? )?(?:email|message) from). Replacing response.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-7: over-long user message is truncated (32K cap) without throwing
+[Orchestrator] User message truncated from 40000 to 32000 chars
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-8: data query with no services connected → direct fallback, no LLM call
+[Orchestrator] Data query blocked — no connected services
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-9: recovery mode activates after 2 fabrication strikes
+[Orchestrator] Data query blocked — no connected services
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-9: recovery mode activates after 2 fabrication strikes
+[Orchestrator] Fabrication detected (pattern: your (?:meeting|appointment|call|event) (?:at|is at|starts at) \d{1,2}[:.]\d{2}). Replacing response.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-9: recovery mode activates after 2 fabrication strikes
+[Orchestrator] Fabrication detected (pattern: your (?:meeting|appointment|call|event) (?:at|is at|starts at) \d{1,2}[:.]\d{2}). Replacing response.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-9: recovery mode activates after 2 fabrication strikes
+[Orchestrator] Fabrication detected (pattern: you (?:received|have|got) (?:an? )?(?:email|message) from). Replacing response.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-9: recovery mode activates after 2 fabrication strikes
+[Orchestrator] Fabrication detected (pattern: you (?:received|have|got) (?:an? )?(?:email|message) from). Replacing response.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-10: proper noun + verb heuristic catches "Sarah requested..." fabrication
+[Orchestrator] Specific personal claim without tool backing — rejecting.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-10: proper noun + verb heuristic catches "Sarah requested..." fabrication
+[Orchestrator] Specific personal claim without tool backing — rejecting.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-11: direct-access claim without tool backing is rejected
+[Orchestrator] Fabrication detected (pattern: I (?:checked|looked at|reviewed|found in|have access to) your (?:inbox|calendar|email|schedule|files)). Replacing response.
+
+stderr | tests/ai-goldens/golden-paths.test.ts > AI golden paths > GP-11: direct-access claim without tool backing is rejected
+[Orchestrator] Fabrication detected (pattern: I (?:checked|looked at|reviewed|found in|have access to) your (?:inbox|calendar|email|schedule|files)). Replacing response.
+
+ ✓ tests/ai-goldens/golden-paths.test.ts (12 tests) 111ms
+ ✓ tests/core/importers/export-parsers-batch1.test.ts (98 tests) 68ms
+ ✓ tests/gateway/web-fetch-adapter.test.ts (23 tests) 88ms
+ ✓ tests/semblance-ui/connector-card.test.tsx (13 tests) 77ms
+ ✓ tests/sprint-f/system-command-gateway.test.ts (9 tests) 83ms
+ ✓ tests/desktop/voice-hardware-gate.test.tsx (3 tests) 89ms
+stderr | tests/integration/priority-systems.test.ts > 4. Task Decomposition + Multi-Agent Engine > ComplexityClassifier detects multi-domain requests as complex
+[ComplexityClassifier] complex | tools: [fetch_inbox, search_emails, send_email, draft_email, fetch_calendar, create_calendar_event, search_files, read_document] | domains: [email, calendar, files] | Multi-domain request spanning email, calendar, files with composite pattern detected
+
+stderr | tests/integration/priority-systems.test.ts > 4. Task Decomposition + Multi-Agent Engine > ComplexityClassifier detects simple conversational messages as simple
+[ComplexityClassifier] simple | tools: [] | domains: [] | No tool intent detected — conversational or single-tool
+
+stderr | tests/integration/priority-systems.test.ts > 4. Task Decomposition + Multi-Agent Engine > ComplexityClassifier detects single-domain tool use as simple/compound
+[ComplexityClassifier] compound | tools: [fetch_inbox, search_emails, send_email, draft_email] | domains: [email] | Multiple tools (fetch_inbox, search_emails, send_email, draft_email) within single domain
+
+stderr | tests/integration/priority-systems.test.ts > 6. Multi-Model Architecture — Correct Model for Job > InferenceRouter falls back to primary when fast provider is not set
+[InferenceRouter] Fast tier not loaded, falling back to reasoning
+
+ ✓ tests/integration/priority-systems.test.ts (62 tests) 85ms
+ ✓ tests/core/crypto/hardware-key-provider.test.ts (27 tests) 78ms
+ ✓ tests/core/agent/daily-digest.test.ts (12 tests) 92ms
+ ✓ tests/semblance-ui/document-panel.test.tsx (12 tests) 75ms
+ ✓ tests/gateway/imap-adapter.test.ts (41 tests) 76ms
+ ✓ tests/canary/recurring-failures.test.ts (10 tests) 80ms
+ ✓ tests/core/autonomy/alter-ego-verification.test.ts (17 tests) 88ms
+ ✓ tests/gateway/smtp-adapter.test.ts (30 tests) 81ms
+ ✓ tests/core/audit/merkle-chain.test.ts (27 tests) 74ms
+ ✓ tests/core/crypto/ed25519.test.ts (5 tests) 61ms
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should start with zero count
+[LanceDB] Connecting to /tmp/semblance-lance-jEgh2J
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should start with zero count
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should start with zero count
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should insert chunks and increase count
+[LanceDB] Connecting to /tmp/semblance-lance-u6kgtk
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should insert chunks and increase count
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should insert chunks and increase count
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should return empty results for search on empty store
+[LanceDB] Connecting to /tmp/semblance-lance-MvePp0
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should return empty results for search on empty store
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should return empty results for search on empty store
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should find nearest neighbors
+[LanceDB] Connecting to /tmp/semblance-lance-aZwdym
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should find nearest neighbors
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should find nearest neighbors
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should filter by sourceType
+[LanceDB] Connecting to /tmp/semblance-lance-tqT5Q6
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should filter by sourceType
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should filter by sourceType
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should delete by documentId
+[LanceDB] Connecting to /tmp/semblance-lance-aOUyUH
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should delete by documentId
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should delete by documentId
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should handle inserting empty array
+[LanceDB] Connecting to /tmp/semblance-lance-mKj3Jk
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should handle inserting empty array
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should handle inserting empty array
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should respect limit parameter in search
+[LanceDB] Connecting to /tmp/semblance-lance-1nOy6K
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should respect limit parameter in search
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should respect limit parameter in search
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should return results with all required fields
+[LanceDB] Connecting to /tmp/semblance-lance-Vfa8Lk
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should return results with all required fields
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should return results with all required fields
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should close without error
+[LanceDB] Connecting to /tmp/semblance-lance-Tgesbs
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should close without error
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should close without error
+[LanceDB] Tables: []
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should throw when inserting before initialize
+[LanceDB] Connecting to /tmp/semblance-lance-GznFJC
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should throw when inserting before initialize
+[LanceDB] Connected, listing tables
+
+stderr | tests/core/platform/desktop-vector-store.test.ts > LanceDBVectorStore (Desktop) > should throw when inserting before initialize
+[LanceDB] Tables: []
+
+ ✓ tests/core/platform/desktop-vector-store.test.ts (11 tests) 62ms
+ ✓ tests/semblance-ui/artifact-panel.test.tsx (15 tests) 75ms
+ ✓ tests/core/onboarding/alter-ego-week.test.ts (10 tests) 60ms
+ ✓ tests/core/autonomy/escalation-prompts.test.ts (6 tests) 68ms
+ ✓ tests/gateway/rate-limiter.test.ts (7 tests) 65ms
+ ✓ tests/integration/location-weather-e2e.test.ts (4 tests) 65ms
+stderr | tests/integration/bracket-event-roundtrip.test.ts > ComplexityClassifier — Action Detection > classifies multi-domain requests as complex, not simple
+[ComplexityClassifier] complex | tools: [fetch_inbox, search_emails, send_email, draft_email, fetch_calendar, create_calendar_event] | domains: [email, calendar] | Multi-domain request spanning email, calendar with composite pattern detected
+[ComplexityClassifier] complex | tools: [fetch_inbox, search_emails, send_email, draft_email, search_files, read_document, search_web, fetch_url] | domains: [email, files, web] | Request touches 3 domains: email, files, web
+[ComplexityClassifier] complex | tools: [fetch_calendar, create_calendar_event, search_web, fetch_url, get_weather] | domains: [calendar, web, location] | Request touches 3 domains: calendar, web, location
+[ComplexityClassifier] simple | tools: [] | domains: [] | No tool intent detected — conversational or single-tool
+[ComplexityClassifier] simple | tools: [] | domains: [] | No tool intent detected — conversational or single-tool
+[ComplexityClassifier] simple | tools: [] | domains: [] | No tool intent detected — conversational or single-tool
+
+ ✓ tests/integration/bracket-event-roundtrip.test.ts (11 tests) 51ms
+ ✓ tests/privacy/desktop.test.ts (21 tests) 81ms
+ ✓ tests/gateway/daemon-manager.test.ts (11 tests) 61ms
+ ✓ tests/core/onboarding/alter-ego-activation.test.ts (7 tests) 87ms
+ ✓ tests/core/agent/morning-brief-aggregation.test.ts (11 tests) 89ms
+ ✓ tests/core/crypto/attestation-upgrade.test.ts (8 tests) 62ms
+ ✓ tests/core/crypto/device-keypair.test.ts (1 test) 43ms
+ ✓ tests/gateway/social-oauth-adapters.test.ts (127 tests) 51ms
+ ✓ tests/integration/commerce-freeze.test.tsx (5 tests) 53ms
+ ✓ tests/core/voice/speech-synthesis-pipeline.test.ts (3 tests) 55ms
+ ✓ tests/mobile/import-digital-life-screen.test.tsx (1 test) 48ms
+ ✓ tests/core/knowledge/category-graph-integration.test.ts (5 tests) 53ms
+ ✓ tests/gateway/model-adapter.test.ts (12 tests) 54ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ tests/mobile/contacts-screen.test.tsx (5 tests) 51ms
+ ✓ tests/desktop/alter-ego-batch-review.test.tsx (5 tests) 53ms
+ ✓ tests/desktop/import-digital-life-view.test.tsx (4 tests) 58ms
+ ✓ tests/release/doc-authority.test.ts (13 tests) 56ms
+stdout | tests/i18n-components/briefing-card.test.tsx > BriefingCard — i18n smoke test > renders with mock briefing items
+[BriefingCard] mounted
+
+stdout | tests/i18n-components/briefing-card.test.tsx > BriefingCard — i18n smoke test > renders with userName and founding member props
+[BriefingCard] mounted
+
+ ✓ tests/i18n-components/briefing-card.test.tsx (2 tests) 54ms
+ ✓ tests/privacy/step9-privacy.test.ts (16 tests) 46ms
+ ✓ tests/core/importers/firefox-obsidian-parsers.test.ts (6 tests) 31ms
+stderr | tests/mobile/dark-pattern-badge.test.tsx > DarkPatternBadge (mobile) > mobile badge renders with correct flag data
+Warning: React does not recognize the `accessibilityLabel` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `accessibilitylabel` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at span
+    at Text (/agent/repos/semblance-core/tests/helpers/mock-react-native.ts:19:17)
+    at div
+    at View (/agent/repos/semblance-core/tests/helpers/mock-react-native.ts:18:17)
+    at div
+    at View (/agent/repos/semblance-core/tests/helpers/mock-react-native.ts:18:17)
+    at DarkPatternBadge (/agent/repos/semblance-core/packages/mobile/src/components/DarkPatternBadge.tsx:8:29)
+
+ ✓ tests/mobile/dark-pattern-badge.test.tsx (1 test) 42ms
+ ✓ tests/gateway/health-oauth-adapters.test.ts (96 tests) 40ms
+ ✓ tests/core/llm/provider-usage-guard.test.ts (7 tests) 49ms
+stdout | tests/gateway/tunnel-gateway-server.test.ts > TunnelGatewayServer > lifecycle > starts and reports running
+[TunnelGateway] Listening on 127.0.0.1:59184
+
+stdout | tests/gateway/tunnel-gateway-server.test.ts > TunnelGatewayServer > lifecycle > starts and reports running
+[TunnelGateway] Stopped
+
+stdout | tests/gateway/tunnel-gateway-server.test.ts > TunnelGatewayServer > end-to-end request/response > POST /action sends to validateAndExecute and returns response
+[TunnelGateway] Listening on 127.0.0.1:59355
+
+stdout | tests/gateway/tunnel-gateway-server.test.ts > TunnelGatewayServer > end-to-end request/response > POST /action sends to validateAndExecute and returns response
+[TunnelGateway] Stopped
+
+stdout | tests/gateway/tunnel-gateway-server.test.ts > TunnelGatewayServer > end-to-end request/response > GET /health returns ok
+[TunnelGateway] Listening on 127.0.0.1:59356
+
+stdout | tests/gateway/tunnel-gateway-server.test.ts > TunnelGatewayServer > end-to-end request/response > GET /health returns ok
+[TunnelGateway] Stopped
+
+stdout | tests/gateway/tunnel-gateway-server.test.ts > TunnelGatewayServer > end-to-end request/response > GET /info returns capabilities
+[TunnelGateway] Listening on 127.0.0.1:59357
+
+stdout | tests/gateway/tunnel-gateway-server.test.ts > TunnelGatewayServer > end-to-end request/response > GET /info returns capabilities
+[TunnelGateway] Stopped
+
+stdout | tests/gateway/tunnel-gateway-server.test.ts > TunnelGatewayServer > end-to-end request/response > returns 404 for unknown paths
+[TunnelGateway] Listening on 127.0.0.1:59358
+
+stdout | tests/gateway/tunnel-gateway-server.test.ts > TunnelGatewayServer > end-to-end request/response > returns 404 for unknown paths
+[TunnelGateway] Stopped
+
+ ✓ tests/gateway/tunnel-gateway-server.test.ts (6 tests) 41ms
+ ✓ tests/gateway/oauth-adapters.test.ts (86 tests) 41ms
+ ✓ tests/core/conversation-manager.test.ts (48 tests) 40ms
+ ✓ tests/desktop/cloud-storage-settings.test.tsx (4 tests) 47ms
+ ✓ tests/premium/reservation-contract.test.ts (3 tests) 45ms
+stderr | tests/core/agent/orchestrator-v2.test.ts > ComplexityClassifier > simple requests > classifies greetings as simple
+[ComplexityClassifier] simple | tools: [] | domains: [] | No tool intent detected — conversational or single-tool
+
+stderr | tests/core/agent/orchestrator-v2.test.ts > ComplexityClassifier > simple requests > classifies single-domain requests with multiple tool matches
+[ComplexityClassifier] compound | tools: [fetch_inbox, search_emails, send_email, draft_email] | domains: [email] | Multiple tools (fetch_inbox, search_emails, send_email, draft_email) within single domain
+
+stderr | tests/core/agent/orchestrator-v2.test.ts > ComplexityClassifier > simple requests > classifies weather queries as simple
+[ComplexityClassifier] simple | tools: [get_weather] | domains: [location] | Single tool: get_weather
+
+stderr | tests/core/agent/orchestrator-v2.test.ts > ComplexityClassifier > compound requests > classifies multi-tool single-domain requests
+[ComplexityClassifier] complex | tools: [fetch_inbox, search_emails, send_email, draft_email, fetch_calendar, create_calendar_event] | domains: [email, calendar] | Two-domain request with 6 tools — decomposition beneficial
+
+stderr | tests/core/agent/orchestrator-v2.test.ts > ComplexityClassifier > complex requests > classifies multi-domain requests as complex
+[ComplexityClassifier] complex | tools: [fetch_inbox, search_emails, send_email, draft_email, fetch_calendar, create_calendar_event, search_files, read_document] | domains: [email, calendar, files] | Multi-domain request spanning email, calendar, files with composite pattern detected
+
+stderr | tests/core/agent/orchestrator-v2.test.ts > ComplexityClassifier > complex requests > classifies "prepare for" with multiple domains as complex
+[ComplexityClassifier] complex | tools: [fetch_inbox, search_emails, send_email, draft_email, fetch_calendar, create_calendar_event] | domains: [email, calendar] | Multi-domain request spanning email, calendar with composite pattern detected
+
+stderr | tests/core/agent/orchestrator-v2.test.ts > ComplexityClassifier > complex requests > classifies morning brief with domains as complex
+[ComplexityClassifier] complex | tools: [fetch_inbox, search_emails, send_email, draft_email, fetch_calendar, create_calendar_event, get_weather] | domains: [email, calendar, location] | Multi-domain request spanning email, calendar, location with composite pattern detected
+
+stderr | tests/core/agent/orchestrator-v2.test.ts > ComplexityClassifier > complex requests > classifies research+action combos as complex
+[ComplexityClassifier] complex | tools: [fetch_inbox, search_emails, send_email, draft_email, search_web, fetch_url] | domains: [email, web] | Multi-domain request spanning email, web with composite pattern detected
+
+ ✓ tests/core/knowledge/graph-statistics.test.ts (5 tests) 59ms
+stderr | tests/core/agent/orchestrator-v2.test.ts > createCoordinatorAgent — integration > factory creates a working Orchestrator that processes simple messages via v1
+[ComplexityClassifier] simple | tools: [] | domains: [] | No tool intent detected — conversational or single-tool
+[CoordinatorAgent] Complexity: simple | Domains:  | Reasoning: No tool intent detected — conversational or single-tool
+
+stderr | tests/core/agent/orchestrator-v2.test.ts > createCoordinatorAgent — integration > factory-created orchestrator classifies complex requests and emits events
+[ComplexityClassifier] complex | tools: [fetch_inbox, search_emails, send_email, draft_email, fetch_calendar, create_calendar_event, search_files, read_document] | domains: [email, calendar, files] | Multi-domain request spanning email, calendar, files with composite pattern detected
+[CoordinatorAgent] Complexity: complex | Domains: email, calendar, files | Reasoning: Multi-domain request spanning email, calendar, files with composite pattern detected
+
+ ✓ tests/core/agent/orchestrator-v2.test.ts (44 tests) 40ms
+ ✓ tests/desktop/alter-ego-draft-review.test.tsx (5 tests) 38ms
+ ✓ tests/i18n/no-hardcoded-strings.test.ts (3 tests) 24ms
+ ✓ tests/desktop/clipboard-settings.test.tsx (4 tests) 37ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ tests/core/orchestrator-email.test.ts (11 tests) 35ms
+ ✓ tests/desktop/cloud-folder-picker.test.tsx (2 tests) 40ms
+ ✓ tests/desktop/dark-pattern-badge.test.tsx (3 tests) 39ms
+ ✓ tests/desktop/alter-ego-receipt.test.tsx (5 tests) 41ms
+ ✓ tests/i18n-components/connector-card.test.tsx (2 tests) 40ms
+ ✓ tests/core/agent/named-session-manager.test.ts (18 tests) 38ms
+ ✓ tests/core/agent/orchestrator.test.ts (10 tests) 35ms
+ ✓ tests/core/agent/morning-brief-synthesis.test.ts (6 tests) 51ms
+ ✓ tests/i18n-components/settings-root.test.tsx (2 tests) 40ms
+ ✓ tests/core/autonomy/escalation-boundaries.test.ts (6 tests) 24ms
+stderr | tests/core/agent/orchestrator-v2-phase2.test.ts > Skill bundle registration > coordinator accepts skill bundles
+[CoordinatorAgent] Registered skill bundle: Test Skill (2 tools)
+
+stderr | tests/core/agent/orchestrator-v2-phase2.test.ts > Canvas stream events > complex request emits stream events via callback and event bus
+[ComplexityClassifier] complex | tools: [fetch_inbox, search_emails, send_email, draft_email, fetch_calendar, create_calendar_event, search_files, read_document, search_web, fetch_url] | domains: [email, calendar, files, web] | Multi-domain request spanning email, calendar, files, web with composite pattern detected
+[CoordinatorAgent] Complexity: complex | Domains: email, calendar, files, web | Reasoning: Multi-domain request spanning email, calendar, files, web with composite pattern detected
+
+ ✓ tests/core/agent/orchestrator-v2-phase2.test.ts (12 tests) 44ms
+ ✓ tests/integration/mobile-integration.test.ts (46 tests) 38ms
+ ✓ tests/core/orchestrator-style.test.ts (9 tests) 33ms
+ ✓ tests/ui/components.test.ts (101 tests) 38ms
+stdout | tests/gateway/extension-adapters.test.ts > Gateway Extension Adapters > registerExtensionAdapters registers adapter with service registry
+[Gateway] Started and listening for IPC connections
+
+stdout | tests/gateway/extension-adapters.test.ts > Gateway Extension Adapters > registerExtensionAdapters registers adapter with service registry
+[Gateway] Stopped
+
+stdout | tests/gateway/extension-adapters.test.ts > Gateway Extension Adapters > oauthTokenManager accessible after start
+[Gateway] Started and listening for IPC connections
+
+stdout | tests/gateway/extension-adapters.test.ts > Gateway Extension Adapters > oauthTokenManager accessible after start
+[Gateway] Stopped
+
+ ✓ tests/gateway/extension-adapters.test.ts (2 tests) 76ms
+stderr | tests/core/email-indexer.test.ts > EmailIndexer > indexMessages > handles errors in individual messages gracefully
+[EmailIndexer] Failed to index message bad-1: TypeError: Cannot read properties of null (reading 'address')
+    at EmailIndexer.indexMessages (/agent/repos/semblance-core/packages/core/knowledge/email-indexer.ts:185:20)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /agent/repos/semblance-core/tests/core/email-indexer.test.ts:163:21
+    at file:///agent/repos/semblance-core/node_modules/.pnpm/@vitest+runner@4.0.18/node_modules/@vitest/runner/dist/index.js:915:20
+
+ ✓ tests/core/email-indexer.test.ts (21 tests) 30ms
+ ✓ tests/core/premium/keychain-migration.test.ts (24 tests) 39ms
+ ✓ tests/core/llm/ollama-provider.test.ts (8 tests) 31ms
+ ✓ tests/core/knowledge/knowledge-curator.test.ts (20 tests) 37ms
+ ✓ tests/core/importers/export-parsers-batch2.test.ts (75 tests) 34ms
+ ✓ tests/desktop/use-voice-input.test.ts (7 tests) 25ms
+ ✓ tests/core/knowledge/embedding-pipeline.test.ts (10 tests) 32ms
+stderr | tests/core/orchestrator-calendar.test.ts > Orchestrator — Calendar Tools > fetch_calendar tool > executes fetch_calendar as a local tool querying the local calendar index
+[Orchestrator] Data query blocked — no connected services
+
+ ✓ tests/core/orchestrator-calendar.test.ts (6 tests) 28ms
+stdout | tests/i18n-components/approval-card.test.tsx > ApprovalCard — i18n smoke test > renders with mock action data
+[ApprovalCard] mounted
+
+stdout | tests/i18n-components/approval-card.test.tsx > ApprovalCard — i18n smoke test > renders with data-out list and high risk
+[ApprovalCard] mounted
+
+ ✓ tests/i18n-components/approval-card.test.tsx (2 tests) 30ms
+ ✓ tests/desktop/voice-settings.test.tsx (3 tests) 29ms
+ ✓ tests/core/agent/morning-brief-scheduler.test.ts (6 tests) 31ms
+ ✓ tests/launch/launch-readiness.test.ts (4 tests) 27ms
+ ✓ tests/desktop/voice-onboarding.test.tsx (2 tests) 25ms
+ ✓ tests/i18n-components/agent-input.test.tsx (2 tests) 27ms
+ ✓ tests/desktop/location-settings.test.tsx (3 tests) 32ms
+ ✓ tests/core/proactive-engine.test.ts (13 tests) 26ms
+ ✓ tests/gateway/imap-adapter-actions.test.ts (14 tests) 26ms
+ ✓ tests/privacy/platform-adapter-guard.test.ts (17 tests) 20ms
+ ✓ tests/integration/desktop.test.ts (75 tests) 18ms
+ ✓ tests/core/calendar-indexer.test.ts (17 tests) 19ms
+ ✓ tests/gateway/credential-store.test.ts (20 tests) 23ms
+ ✓ tests/core/intent-manager.test.ts (28 tests) 23ms
+ ✓ tests/core/reminder-store.test.ts (31 tests) 25ms
+ ✓ tests/gateway/validation-pipeline.test.ts (14 tests) 45ms
+ ✓ tests/integration/cloud-storage-e2e.test.ts (4 tests) 30ms
+ ✓ tests/launch/storybook-config.test.ts (8 tests) 20ms
+ ✓ tests/integration/ios-mlx-bridge.test.ts (13 tests) 18ms
+ ✓ tests/i18n-components/privacy-badge.test.tsx (3 tests) 23ms
+ ✓ tests/core/alter-ego-store.test.ts (34 tests) 20ms
+ ✓ tests/integration/connector-wiring.test.ts (16 tests) 17ms
+ ✓ tests/integration/ipc-typed-commands.test.ts (5 tests) 21ms
+ ✓ tests/desktop/inbox.test.ts (17 tests) 17ms
+ ✓ tests/gateway/audit-query.test.ts (20 tests) 28ms
+ ✓ tests/core/alter-ego-guardrails.test.ts (29 tests) 20ms
+ ✓ tests/core/privacy-dashboard/comparison-statement-generator.test.ts (6 tests) 22ms
+stderr | tests/sprint-g/multi-account-oauth.test.ts > Sprint G — Multi-Account OAuth > schema migration > migration is idempotent — running twice produces no errors
+[OAuthTokenManager] Migrating to multi-account schema...
+[OAuthTokenManager] Migration complete: 0 → 0 rows
+
+stderr | tests/sprint-g/multi-account-oauth.test.ts > Sprint G — Multi-Account OAuth > schema migration > migrates existing single-account rows to multi-account with is_primary=1
+[OAuthTokenManager] Migrating to multi-account schema...
+[OAuthTokenManager] Migration complete: 1 → 1 rows
+
+stderr | tests/sprint-g/multi-account-oauth.test.ts > Sprint G — Multi-Account OAuth > schema migration > preserves existing data after migration
+[OAuthTokenManager] Migrating to multi-account schema...
+[OAuthTokenManager] Migration complete: 1 → 1 rows
+
+stderr | tests/sprint-g/multi-account-oauth.test.ts > Sprint G — Multi-Account OAuth > multi-account CRUD > storeAccountTokens creates a new account
+[OAuthTokenManager] Migrating to multi-account schema...
+[OAuthTokenManager] Migration complete: 0 → 0 rows
+
+stderr | tests/sprint-g/multi-account-oauth.test.ts > Sprint G — Multi-Account OAuth > multi-account CRUD > supports multiple accounts for same provider
+[OAuthTokenManager] Migrating to multi-account schema...
+[OAuthTokenManager] Migration complete: 0 → 0 rows
+
+stderr | tests/sprint-g/multi-account-oauth.test.ts > Sprint G — Multi-Account OAuth > multi-account CRUD > setPrimary changes the primary account
+[OAuthTokenManager] Migrating to multi-account schema...
+[OAuthTokenManager] Migration complete: 0 → 0 rows
+
+stderr | tests/sprint-g/multi-account-oauth.test.ts > Sprint G — Multi-Account OAuth > multi-account CRUD > removeAccount deletes a specific account
+[OAuthTokenManager] Migrating to multi-account schema...
+[OAuthTokenManager] Migration complete: 0 → 0 rows
+
+stderr | tests/sprint-g/multi-account-oauth.test.ts > Sprint G — Multi-Account OAuth > multi-account CRUD > getAccountTokens returns tokens for a specific account
+[OAuthTokenManager] Migrating to multi-account schema...
+[OAuthTokenManager] Migration complete: 0 → 0 rows
+
+stderr | tests/sprint-g/multi-account-oauth.test.ts > Sprint G — Multi-Account OAuth > multi-account CRUD > listAllAccounts returns accounts across all providers
+[OAuthTokenManager] Migrating to multi-account schema...
+[OAuthTokenManager] Migration complete: 0 → 0 rows
+
+stderr | tests/sprint-g/multi-account-oauth.test.ts > Sprint G — Multi-Account OAuth > backwards compatibility > getPrimaryAccount returns the primary account for a provider
+[OAuthTokenManager] Migrating to multi-account schema...
+[OAuthTokenManager] Migration complete: 0 → 0 rows
+
+ ✓ tests/sprint-g/multi-account-oauth.test.ts (10 tests) 19ms
+ ✓ tests/core/privacy-dashboard/privacy-dashboard-provider.test.ts (5 tests) 18ms
+ ✓ tests/gateway/network-monitor.test.ts (18 tests) 20ms
+ ✓ tests/core/contacts/relationship-analyzer.test.ts (14 tests) 29ms
+ ✓ tests/core/llm/model-storage.test.ts (14 tests) 20ms
+ ✓ tests/premium/founding-token.test.ts (13 tests) 10ms
+ ✓ tests/core/privacy-dashboard/proof-of-privacy-generator.test.ts (5 tests) 19ms
+ ✓ tests/gateway/oauth-callback-server.test.ts (4 tests) 21ms
+ ✓ tests/core/conversation-indexer.test.ts (17 tests) 18ms
+ ✓ tests/integration/android-llama-bridge.test.ts (13 tests) 19ms
+stderr | tests/core/llm/inference-router.test.ts > InferenceRouter > Task-aware routing > routedChat routes classify to reasoning provider when no fast provider
+[InferenceRouter] Fast tier not loaded, falling back to reasoning
+
+stderr | tests/core/llm/inference-router.test.ts > InferenceRouter > Task-aware routing > all task types route to a provider without error
+[InferenceRouter] Fast tier not loaded, falling back to reasoning
+
+stderr | tests/core/llm/inference-router.test.ts > InferenceRouter > Task-aware routing > all task types route to a provider without error
+[InferenceRouter] Fast tier not loaded, falling back to reasoning
+
+ ✓ tests/core/llm/inference-router.test.ts (34 tests) 24ms
+ ✓ tests/premium/premium-gate-founding.test.ts (4 tests) 10ms
+ ✓ tests/core/network/sharing-offer-handler.test.ts (7 tests) 19ms
+ ✓ tests/desktop/desktop-keychain-store.test.ts (11 tests) 12ms
+ ✓ tests/core/importers/import-watcher.test.ts (10 tests) 16ms
+ ✓ tests/gateway/tunnel-mesh.test.ts (23 tests) 18ms
+ ✓ tests/core/premium/license-key-gen.test.ts (16 tests) 19ms
+ ✓ tests/privacy/platform-adapter-usage.test.ts (15 tests) 18ms
+ ✓ tests/gateway/google-drive-adapter.test.ts (8 tests) 20ms
+ ✓ tests/core/network/network-integration.test.ts (4 tests) 18ms
+ ✓ tests/core/llm/model-registry.test.ts (45 tests) 14ms
+ ✓ tests/core/quick-capture.test.ts (23 tests) 25ms
+ ✓ tests/sprint-e/speculative-loader.test.ts (10 tests) 17ms
+ ✓ tests/core/witness/witness-exporter.test.ts (2 tests) 11ms
+ ✓ tests/core/email-categorizer.test.ts (9 tests) 15ms
+ ✓ tests/core/reminder-scheduler.test.ts (11 tests) 17ms
+ ✓ tests/gateway/cloud-bridge/phase4-advanced-routing.test.ts (21 tests) 16ms
+ ✓ tests/gateway/replay-protection.test.ts (10 tests) 16ms
+ ✓ tests/core/importers/import-pipeline.test.ts (8 tests) 15ms
+ ✓ tests/core/weather/weather-insight-tracker.test.ts (3 tests) 15ms
+ ✓ tests/core/extensions/orchestrator-extension.test.ts (3 tests) 15ms
+ ✓ tests/core/inheritance/inheritance-executor.test.ts (8 tests) 15ms
+ ✓ tests/core/performance/performance-profiling.test.ts (7 tests) 15ms
+ ✓ tests/core/intent-checkin.test.ts (15 tests) 14ms
+ ✓ tests/core/intent-check-action.test.ts (15 tests) 16ms
+ ✓ tests/core/knowledge-moment.test.ts (7 tests) 23ms
+ ✓ tests/gateway/audit-trail.test.ts (15 tests) 15ms
+stdout | tests/gateway/keychain-migration.test.ts > migrateCredentialsToKeychain > migrates service credentials to keychain
+[KeychainMigration] Migrated 1 credentials and 0 OAuth tokens to OS keychain
+
+stdout | tests/gateway/keychain-migration.test.ts > migrateCredentialsToKeychain > sets MIGRATED_SENTINEL in SQLite after migration
+[KeychainMigration] Migrated 1 credentials and 0 OAuth tokens to OS keychain
+
+stdout | tests/gateway/keychain-migration.test.ts > migrateCredentialsToKeychain > migrates multiple credentials
+[KeychainMigration] Migrated 3 credentials and 0 OAuth tokens to OS keychain
+
+stdout | tests/gateway/keychain-migration.test.ts > migrateCredentialsToKeychain > migrates OAuth tokens to keychain
+[KeychainMigration] Migrated 0 credentials and 1 OAuth tokens to OS keychain
+
+stdout | tests/gateway/keychain-migration.test.ts > migrateCredentialsToKeychain > sets MIGRATED_SENTINEL for OAuth tokens after migration
+[KeychainMigration] Migrated 0 credentials and 1 OAuth tokens to OS keychain
+
+stderr | tests/gateway/keychain-migration.test.ts > migrateCredentialsToKeychain > reports per-credential errors without stopping
+[KeychainMigration] Failed to migrate credential imap-1: Keychain write failed
+
+stdout | tests/gateway/keychain-migration.test.ts > migrateCredentialsToKeychain > reports per-credential errors without stopping
+[KeychainMigration] Migrated 1 credentials and 0 OAuth tokens to OS keychain
+
+stdout | tests/gateway/keychain-migration.test.ts > migrateCredentialsToKeychain > is idempotent — second run finds nothing to migrate
+[KeychainMigration] Migrated 1 credentials and 0 OAuth tokens to OS keychain
+
+ ✓ tests/gateway/keychain-migration.test.ts (10 tests) 24ms
+ ✓ tests/gateway/privacy-report.test.ts (11 tests) 15ms
+ ✓ tests/core/contacts/birthday-tracker.test.ts (6 tests) 12ms
+ ✓ tests/core/location/location-adapter.test.ts (10 tests) 6ms
+ ✓ tests/core/style-profile.test.ts (15 tests) 17ms
+ ✓ tests/core/auth/sensitive-action-guard.test.ts (6 tests) 10ms
+ ✓ tests/core/intent-drift.test.ts (10 tests) 15ms
+ ✓ tests/core/device-registry.test.ts (17 tests) 17ms
+ ✓ tests/core/platform/platform-adapter.test.ts (39 tests) 14ms
+ ✓ tests/launch/platform-checklist.test.ts (15 tests) 7ms
+ ✓ tests/sprint-e/preference-graph.test.ts (9 tests) 11ms
+ ✓ tests/core/premium/premium-gate-license-key.test.ts (6 tests) 16ms
+ ✓ tests/core/network/network-sync-engine.test.ts (5 tests) 10ms
+ ✓ tests/gateway/audit-migration.test.ts (13 tests) 14ms
+ ✓ tests/core/knowledge/document-store.test.ts (10 tests) 16ms
+ ✓ tests/core/task-router.test.ts (15 tests) 18ms
+ ✓ tests/core/escalation-engine.test.ts (11 tests) 14ms
+ ✓ tests/core/knowledge/retroactive-embedder.test.ts (11 tests) 13ms
+ ✓ tests/gateway/reminder-adapter.test.ts (12 tests) 13ms
+ ✓ tests/integration/step9-runtime.test.ts (11 tests) 11ms
+ ✓ tests/integration/autonomy-defaults.test.ts (27 tests) 13ms
+ ✓ tests/privacy/voice-privacy.test.ts (4 tests) 9ms
+ ✓ tests/core/contacts/entity-resolver.test.ts (8 tests) 15ms
+ ✓ tests/core/contacts/contact-frequency-monitor.test.ts (6 tests) 14ms
+ ✓ tests/gateway/allowlist-autoconfig.test.ts (10 tests) 13ms
+ ✓ tests/core/routing/sync.test.ts (31 tests) 14ms
+ ✓ tests/core/contacts/contact-store.test.ts (8 tests) 13ms
+ ✓ tests/sprint-e/event-bus-extended.test.ts (19 tests) 11ms
+ ✓ tests/core/network/network-config-store.test.ts (5 tests) 10ms
+ ✓ tests/integration/native-providers.test.ts (26 tests) 13ms
+ ✓ tests/core/audit/reasoning-context.test.ts (16 tests) 13ms
+ ✓ tests/core/contacts/contact-resolver.test.ts (8 tests) 13ms
+stderr | tests/gateway/channel-infra.test.ts > IMessageAdapter > starts and reports status
+[iMessage] No relay available
+
+ ✓ tests/gateway/channel-infra.test.ts (19 tests) 13ms
+ ✓ tests/core/network/revocation-handler.test.ts (6 tests) 11ms
+ ✓ tests/integration/ux-polish.test.ts (27 tests) 8ms
+ ✓ tests/core/premium/premium-gate.test.ts (6 tests) 12ms
+ ✓ tests/core/inheritance/inheritance-tracker.test.ts (4 tests) 9ms
+ ✓ tests/core/auth/biometric-auth-manager.test.ts (10 tests) 9ms
+ ✓ tests/core/llm/mobile-inference.test.ts (35 tests) 12ms
+ ✓ tests/core/llm/hardware-types.test.ts (10 tests) 5ms
+ ✓ tests/core/health-entry-store.test.ts (7 tests) 13ms
+ ✓ tests/gateway/plaid-adapter.test.ts (6 tests) 13ms
+ ✓ tests/core/llm/ipc-model-actions.test.ts (11 tests) 6ms
+ ✓ tests/core/alter-ego-orchestrator.test.ts (13 tests) 12ms
+ ✓ tests/core/ipc-web-reminder-actions.test.ts (31 tests) 9ms
+ ✓ tests/sprint-f/bridge-handlers.test.ts (33 tests) 11ms
+ ✓ tests/core/routing/discovery.test.ts (25 tests) 12ms
+ ✓ tests/gateway/cloud-bridge/routing-engine.test.ts (21 tests) 22ms
+ ✓ tests/core/extensions/extension-loader.test.ts (3 tests) 12ms
+ ✓ tests/sprint-e/commitment-tracker.test.ts (7 tests) 12ms
+ ✓ tests/core/privacy-dashboard/data-inventory-collector.test.ts (9 tests) 12ms
+ ✓ tests/mobile/native-notification-bridge.test.ts (15 tests) 9ms
+ ✓ tests/core/network/network-tracker.test.ts (4 tests) 11ms
+ ✓ tests/core/agent/autonomy.test.ts (12 tests) 11ms
+ ✓ tests/gateway/allowlist.test.ts (10 tests) 11ms
+ ✓ tests/core/inheritance/inheritance-config-store.test.ts (6 tests) 14ms
+ ✓ tests/core/intent-prompt-context.test.ts (8 tests) 10ms
+ ✓ tests/core/witness/witness-generator.test.ts (6 tests) 10ms
+ ✓ tests/ui/privacy-dashboard-sections.test.ts (20 tests) 8ms
+ ✓ tests/gateway/oauth-token-manager.test.ts (4 tests) 11ms
+ ✓ tests/gateway/file-write-adapter.test.ts (25 tests) 10ms
+ ✓ tests/core/agent/document-context-multi.test.ts (15 tests) 12ms
+ ✓ tests/sprint-g/skill-registry.test.ts (16 tests) 10ms
+ ✓ tests/core/llm/native-provider.test.ts (16 tests) 11ms
+ ✓ tests/core/agent/boundary-enforcer-wiring.test.ts (11 tests) 11ms
+ ✓ tests/core/inheritance/test-run-engine.test.ts (4 tests) 10ms
+ ✓ tests/core/location/location-reminder-parser.test.ts (3 tests) 4ms
+ ✓ tests/core/location/location-store.test.ts (5 tests) 8ms
+ ✓ tests/sprint-g/bridge-handlers.test.ts (31 tests) 13ms
+ ✓ tests/core/location/proximity-engine.test.ts (7 tests) 10ms
+ ✓ tests/privacy/cloud-storage-privacy.test.ts (5 tests) 8ms
+ ✓ tests/privacy/dynamic-import-protection.test.ts (14 tests) 6ms
+ ✓ tests/core/importers/parser-hardening.test.ts (51 tests) 9ms
+ ✓ tests/core/routing/aes-gcm-encryption.test.ts (13 tests) 9ms
+ ✓ tests/core/privacy-dashboard/action-history-aggregator.test.ts (3 tests) 7ms
+ ✓ tests/core/importers/linkedin-export-parser.test.ts (18 tests) 19ms
+ ✓ tests/integration/desktop-wiring.test.ts (49 tests) 10ms
+ ✓ tests/desktop/biometric-auth-desktop.test.ts (13 tests) 7ms
+ ✓ tests/core/auth/session-auth-state.test.ts (12 tests) 5ms
+ ✓ tests/desktop/knowledge-graph-interactions.test.ts (30 tests) 11ms
+ ✓ tests/privacy/step11-privacy.test.ts (7 tests) 10ms
+ ✓ tests/core/importers/twitter-archive-parser.test.ts (19 tests) 10ms
+ ✓ tests/desktop/sound-system.test.ts (43 tests) 10ms
+ ✓ tests/core/routing/task-delegation.test.ts (27 tests) 10ms
+ ✓ tests/core/voice/audio-resampler.test.ts (3 tests) 10ms
+ ✓ tests/core/ipc/transport.test.ts (18 tests) 10ms
+stderr | tests/gateway/event-bus.test.ts > SemblanceEventBus > error handling > handler error does not break other subscribers
+[EventBus] Handler error for cron.fired: Handler crash
+
+ ✓ tests/gateway/event-bus.test.ts (13 tests) 8ms
+ ✓ tests/core/cloud-storage/sync-orchestrator.test.ts (5 tests) 9ms
+stdout | tests/core/llm/vision-provider.test.ts > VisionProvider > tier configuration > load marks tier as loaded
+[VisionProvider] fast tier loaded: moondream2-f16
+
+stdout | tests/core/llm/vision-provider.test.ts > VisionProvider > tier configuration > unload marks tier as unloaded
+[VisionProvider] fast tier loaded: moondream2-f16
+
+stdout | tests/core/llm/vision-provider.test.ts > VisionProvider > tier configuration > unload marks tier as unloaded
+[VisionProvider] fast tier unloaded: moondream2-f16
+
+stdout | tests/core/llm/vision-provider.test.ts > VisionProvider > analyzeImage > returns response with model info when no bridge
+[VisionProvider] fast tier loaded: moondream2-f16
+
+stdout | tests/core/llm/vision-provider.test.ts > VisionProvider > analyzeImage > analyzeFromPath delegates to analyzeImage
+[VisionProvider] fast tier loaded: moondream2-f16
+
+stdout | tests/core/llm/vision-provider.test.ts > VisionProvider > analyzeImage > ocrDocument uses rich tier
+[VisionProvider] rich tier loaded: qwen2.5-vl-3b
+
+stdout | tests/core/llm/vision-provider.test.ts > VisionProvider > getStatus > reflects loaded state
+[VisionProvider] fast tier loaded: moondream2
+
+stdout | tests/core/llm/vision-provider.test.ts > VisionProvider > LLMProvider interface > isAvailable returns true when fast tier loaded
+[VisionProvider] fast tier loaded: moondream2
+
+ ✓ tests/core/llm/vision-provider.test.ts (15 tests) 11ms
+ ✓ tests/sprint-e/pattern-shift-detector.test.ts (3 tests) 11ms
+ ✓ tests/gateway/ipc-email-actions.test.ts (16 tests) 11ms
+ ✓ tests/core/platform/desktop-notifications.test.ts (11 tests) 10ms
+ ✓ tests/privacy/messaging-privacy.test.ts (3 tests) 5ms
+ ✓ tests/integration/mobile-feature-wiring.test.ts (35 tests) 9ms
+ ✓ tests/core/agent/content-sanitizer.test.ts (23 tests) 9ms
+ ✓ tests/core/llm/model-manager.test.ts (7 tests) 9ms
+stderr | tests/sprint-g/sub-agent-coordinator.test.ts > Sprint G — Sub-Agent Coordinator > creates a sub-agent and returns an ID
+[SubAgentCoordinator] Created sub-agent agent_ILx97ATRfFCMHQRf3sfyX for session work:email:drafts with 2 tools
+
+stderr | tests/sprint-g/sub-agent-coordinator.test.ts > Sprint G — Sub-Agent Coordinator > lists active sub-agents
+[SubAgentCoordinator] Created sub-agent agent_ovt7xHEgY26oKoYPk9ugN for session work:email:drafts with 1 tools
+
+stderr | tests/sprint-g/sub-agent-coordinator.test.ts > Sprint G — Sub-Agent Coordinator > lists active sub-agents
+[SubAgentCoordinator] Created sub-agent agent_2ohg6WzSIkqBjW1fmshvp for session personal:calendar:scheduler with 2 tools
+
+stderr | tests/sprint-g/sub-agent-coordinator.test.ts > Sprint G — Sub-Agent Coordinator > isToolAllowed enforces tool restrictions
+[SubAgentCoordinator] Created sub-agent agent_98Scb70A2WskToowkkChr for session restricted with 1 tools
+
+stderr | tests/sprint-g/sub-agent-coordinator.test.ts > Sprint G — Sub-Agent Coordinator > terminates a sub-agent
+[SubAgentCoordinator] Created sub-agent agent_tHeSdmKQ2Jx3ruDMxgJek for session temp with 1 tools
+
+stderr | tests/sprint-g/sub-agent-coordinator.test.ts > Sprint G — Sub-Agent Coordinator > terminates a sub-agent
+[SubAgentCoordinator] Terminated sub-agent agent_tHeSdmKQ2Jx3ruDMxgJek for session temp
+
+stderr | tests/sprint-g/sub-agent-coordinator.test.ts > Sprint G — Sub-Agent Coordinator > getActiveCount returns correct count
+[SubAgentCoordinator] Created sub-agent agent_3dafWuzsPLGGbO0ze4kM3 for session a with 0 tools
+
+stderr | tests/sprint-g/sub-agent-coordinator.test.ts > Sprint G — Sub-Agent Coordinator > supports system prompt override
+[SubAgentCoordinator] Created sub-agent agent_UQHMM7jwPQXbB30n6sNUK for session custom with 1 tools
+
+stderr | tests/sprint-g/sub-agent-coordinator.test.ts > Sprint G — Sub-Agent Coordinator > supports autonomy overrides
+[SubAgentCoordinator] Created sub-agent agent_84emOoLZxtnOLyQxYCJbc for session strict with 1 tools
+
+ ✓ tests/sprint-g/sub-agent-coordinator.test.ts (8 tests) 9ms
+ ✓ tests/gateway/signing.test.ts (11 tests) 6ms
+ ✓ tests/privacy/location-privacy.test.ts (4 tests) 8ms
+ ✓ tests/core/cloud-storage/folder-selector.test.ts (4 tests) 8ms
+ ✓ tests/gateway/validation-email-calendar.test.ts (37 tests) 16ms
+ ✓ tests/core/llm/mobile-model-manager.test.ts (39 tests) 10ms
+ ✓ tests/desktop/language-select.test.ts (39 tests) 7ms
+ ✓ tests/desktop/migration-runner.test.ts (10 tests) 9ms
+ ✓ tests/core/knowledge/connector-category-map.test.ts (9 tests) 7ms
+ ✓ tests/desktop/alter-ego-wiring.test.ts (31 tests) 9ms
+ ✓ tests/core/privacy-dashboard/privacy-tracker.test.ts (4 tests) 8ms
+ ✓ tests/gateway/oauth1-signer.test.ts (10 tests) 6ms
+ ✓ tests/core/location/commute-analyzer.test.ts (4 tests) 9ms
+ ✓ tests/core/messaging/message-drafter.test.ts (11 tests) 9ms
+ ✓ tests/core/cloud-storage/sync-state-store.test.ts (5 tests) 9ms
+ ✓ tests/sprint-e/autonomy-preference-integration.test.ts (7 tests) 8ms
+ ✓ tests/core/importers/apple-notes-whatsapp-parsers.test.ts (6 tests) 10ms
+ ✓ tests/core/weather/weather-service.test.ts (4 tests) 9ms
+ ✓ tests/core/knowledge/search-options.test.ts (11 tests) 8ms
+ ✓ tests/core/privacy-dashboard/premium-gate-integration.test.ts (4 tests) 8ms
+ ✓ tests/core/alter-ego-morning-brief.test.ts (5 tests) 8ms
+ ✓ tests/core/witness/witness-roundtrip.test.ts (1 test) 6ms
+ ✓ tests/core/importers/exif-parser.test.ts (4 tests) 12ms
+ ✓ tests/integration/voice-e2e.test.ts (5 tests) 10ms
+ ✓ tests/desktop/conversation-wiring.test.ts (58 tests) 9ms
+ ✓ tests/gateway/duckduckgo-adapter.test.ts (12 tests) 9ms
+ ✓ tests/core/backup/backup-nudge-tracker.test.ts (5 tests) 8ms
+ ✓ tests/core/routing/sync-trigger.test.ts (10 tests) 10ms
+ ✓ tests/core/premium/license-keys.test.ts (8 tests) 8ms
+ ✓ tests/integration/security-pass-validation.test.ts (40 tests) 9ms
+ ✓ tests/mobile/ux-polish.test.ts (27 tests) 9ms
+ ✓ tests/integration/founding-activation.test.ts (42 tests) 8ms
+ ✓ tests/core/witness/witness-verifier.test.ts (4 tests) 15ms
+ ✓ tests/mobile/mobile-keychain-store.test.ts (10 tests) 8ms
+ ✓ tests/core/network/context-assembler.test.ts (5 tests) 5ms
+ ✓ tests/core/agent/context-budget.test.ts (45 tests) 8ms
+ ✓ tests/mobile/inbox-provider.test.ts (16 tests) 9ms
+ ✓ tests/core/living-will/living-will-scheduler.test.ts (5 tests) 8ms
+ ✓ tests/gateway/web-search-adapter.test.ts (13 tests) 8ms
+ ✓ tests/core/llm/model-residency.test.ts (11 tests) 7ms
+ ✓ tests/ui/activity-reasoning-context.test.ts (5 tests) 5ms
+ ✓ tests/i18n/locale-completeness.test.ts (3 tests) 7ms
+ ✓ tests/gateway/socket-permissions.test.ts (5 tests) 4ms
+ ✓ tests/core/importers/chrome-history-parser.test.ts (6 tests) 8ms
+ ✓ tests/integration/mobile-model-management.test.ts (29 tests) 8ms
+ ✓ tests/mobile/feature-wiring-sprint2.test.ts (14 tests) 8ms
+ ✓ tests/gateway/cloud-bridge/cloud-bridge.test.ts (13 tests) 8ms
+ ✓ tests/core/location/location-insight-tracker.test.ts (3 tests) 8ms
+ ✓ tests/core/network/shared-context-store.test.ts (2 tests) 8ms
+ ✓ tests/core/network/peer-discovery.test.ts (4 tests) 7ms
+ ✓ tests/core/cloud-storage/storage-manager.test.ts (4 tests) 8ms
+ ✓ tests/core/cloud-storage/file-indexer-integration.test.ts (2 tests) 13ms
+ ✓ tests/integration/bridge-unification.test.ts (25 tests) 9ms
+stderr | tests/mobile/task-router.test.ts > TaskRouter > fallback on tunnel failure > falls back to local silently when tunnel fails
+[TaskRouter] Tunnel offload failed, falling back to local: Tunnel down
+
+ ✓ tests/mobile/task-router.test.ts (11 tests) 8ms
+ ✓ tests/integration/desktop-lifecycle.test.ts (36 tests) 8ms
+ ✓ tests/privacy/contacts-privacy.test.ts (3 tests) 13ms
+ ✓ tests/mobile/app-shell-navigation.test.ts (25 tests) 9ms
+ ✓ tests/core/cloud-storage/cloud-storage-client.test.ts (6 tests) 7ms
+ ✓ tests/core/privacy-dashboard/network-activity-aggregator.test.ts (4 tests) 7ms
+ ✓ tests/core/ipc/connector-payloads.test.ts (11 tests) 7ms
+ ✓ tests/desktop/intent-state.test.ts (17 tests) 9ms
+ ✓ tests/gateway/searxng-adapter.test.ts (13 tests) 7ms
+ ✓ tests/core/agent/ipc-client.test.ts (8 tests) 8ms
+ ✓ tests/core/voice/voice-adapter.test.ts (8 tests) 6ms
+ ✓ tests/integration/desktop-indexing.test.ts (23 tests) 7ms
+ ✓ tests/core/privacy-dashboard/digest-integration.test.ts (3 tests) 7ms
+ ✓ tests/core/extensions/boot-wiring.test.ts (2 tests) 7ms
+ ✓ tests/core/license-sync.test.ts (14 tests) 7ms
+ ✓ tests/core/voice/transcription-pipeline.test.ts (4 tests) 7ms
+ ✓ tests/sprint-e/bridge-handlers.test.ts (27 tests) 7ms
+ ✓ tests/mobile/feature-wiring-step10-11.test.ts (20 tests) 7ms
+ ✓ tests/core/location/autonomy-location.test.ts (2 tests) 5ms
+ ✓ tests/core/i18n-supported-languages.test.ts (35 tests) 7ms
+ ✓ tests/integration/step9-inference-routing.test.ts (11 tests) 7ms
+ ✓ tests/core/agent/artifact-parser.test.ts (20 tests) 8ms
+ ✓ tests/gateway/schema-validation.test.ts (14 tests) 7ms
+ ✓ tests/privacy/native-source-audit.test.ts (19 tests) 7ms
+ ✓ tests/mobile/integration/mobile-feature-parity.test.ts (9 tests) 5ms
+ ✓ tests/core/reminder-manager.test.ts (14 tests) 9ms
+ ✓ tests/integration/step9-embedding.test.ts (14 tests) 11ms
+ ✓ tests/core/importers/connector-registry.test.ts (13 tests) 9ms
+ ✓ tests/mobile/performance/mobile-performance.test.ts (6 tests) 5ms
+ ✓ tests/core/llm/ndjson-callback.test.ts (9 tests) 10ms
+ ✓ tests/core/voice/voice-conversation-manager.test.ts (5 tests) 7ms
+ ✓ tests/core/agent/attachments.test.ts (34 tests) 7ms
+ ✓ tests/integration/step9-model-download.test.ts (14 tests) 8ms
+ ✓ tests/core/voice/silence-detector.test.ts (3 tests) 5ms
+ ✓ tests/launch/landing-page.test.ts (6 tests) 5ms
+ ✓ tests/core/clipboard/clipboard-handler.test.ts (8 tests) 7ms
+ ✓ tests/core/clipboard/action-mapper.test.ts (5 tests) 6ms
+ ✓ tests/core/voice/voice-memory-budget.test.ts (5 tests) 5ms
+ ✓ tests/privacy/clipboard-privacy.test.ts (4 tests) 6ms
+ ✓ tests/core/agent/document-context.test.ts (9 tests) 7ms
+ ✓ tests/core/crypto/database-encryption.test.ts (7 tests) 6ms
+ ✓ tests/integration/desktop-audit.test.ts (18 tests) 6ms
+ ✓ tests/desktop/conversation-state.test.ts (17 tests) 8ms
+ ✓ tests/core/llm/inference-types.test.ts (16 tests) 5ms
+ ✓ tests/mobile/ios-mlx-bridge.test.ts (9 tests) 7ms
+ ✓ tests/mobile/android-llamacpp-bridge.test.ts (9 tests) 6ms
+ ✓ tests/desktop/filter-panel.test.ts (7 tests) 6ms
+ ✓ tests/core/auth/protected-features.test.ts (8 tests) 5ms
+ ✓ tests/core/clipboard/pattern-recognizer.test.ts (8 tests) 7ms
+ ✓ tests/core/extensions/proactive-extension.test.ts (2 tests) 8ms
+ ✓ tests/core/intent-orchestrator.test.ts (10 tests) 5ms
+ ✓ tests/core/cloud-storage/cloud-storage-ipc-types.test.ts (6 tests) 8ms
+ ✓ tests/integration/desktop-preferences.test.ts (23 tests) 6ms
+ ✓ tests/core/task-assessor.test.ts (14 tests) 6ms
+ ✓ tests/core/importers/registration.test.ts (4 tests) 7ms
+ ✓ tests/gateway/connector-router.test.ts (6 tests) 7ms
+ ✓ tests/integration/mobile-dependencies.test.ts (12 tests) 6ms
+ ✓ tests/integration/step9-onboarding.test.ts (22 tests) 6ms
+ ✓ tests/mobile/navigation/navigation-integration.test.ts (6 tests) 6ms
+ ✓ tests/mobile/knowledge-graph-screen.test.ts (4 tests) 4ms
+ ✓ tests/i18n/translation-keys.test.ts (4 tests) 6ms
+ ✓ tests/desktop/style-components.test.ts (19 tests) 6ms
+ ✓ tests/launch/marketing.test.ts (6 tests) 5ms
+ ✓ tests/core/weather/weather-web-fallback.test.ts (3 tests) 6ms
+ ✓ tests/core/security/sandbox-config.test.ts (13 tests) 5ms
+ ✓ tests/core/contacts/contacts-adapter.test.ts (8 tests) 5ms
+ ✓ tests/gateway/canvas-manager.test.ts (11 tests) 6ms
+ ✓ tests/core/backup/backup-manifest.test.ts (5 tests) 8ms
+ ✓ tests/ui/sovereignty-report-stories.test.ts (13 tests) 5ms
+ ✓ tests/gateway/credential-form.test.ts (12 tests) 6ms
+ ✓ tests/core/privacy-dashboard/privacy-guarantee-checker.test.ts (5 tests) 5ms
+ ✓ tests/desktop/intent-wiring.test.ts (16 tests) 6ms
+ ✓ tests/privacy/transitive-dependency-scan.test.ts (8 tests) 6ms
+ ✓ tests/core/living-will/selective-export.test.ts (5 tests) 4ms
+ ✓ tests/core/llm/hardware-detection.test.ts (7 tests) 7ms
+ ✓ tests/core/crypto/witness-upgrade.test.ts (6 tests) 5ms
+ ✓ tests/core/location/geocoding-service.test.ts (3 tests) 5ms
+ ✓ tests/desktop/chat-about-document-ui.test.ts (8 tests) 4ms
+ ✓ tests/core/knowledge/chunker.test.ts (8 tests) 5ms
+ ✓ tests/gateway/anomaly-detector.test.ts (9 tests) 6ms
+ ✓ tests/core/attestation/attestation-signer.test.ts (4 tests) 5ms
+ ✓ tests/desktop/web-search-chat-ui.test.ts (13 tests) 5ms
+ ✓ tests/desktop/quick-capture-input.test.ts (8 tests) 5ms
+ ✓ tests/core/clipboard/clipboard-adapter.test.ts (6 tests) 5ms
+ ✓ tests/gateway/pkce.test.ts (6 tests) 5ms
+ ✓ tests/mobile/graph-filter-sheet.test.ts (5 tests) 5ms
+ ✓ tests/launch/repo-hygiene.test.ts (5 tests) 5ms
+ ✓ tests/integration/desktop-routing.test.ts (4 tests) 5ms
+ ✓ tests/sprint-f/argument-validator.test.ts (20 tests) 6ms
+ ✓ tests/core/inheritance/notification-drafter.test.ts (5 tests) 6ms
+ ✓ tests/i18n/cjk-fonts.test.ts (2 tests) 3ms
+ ✓ tests/core/attestation/attestation-verifier.test.ts (4 tests) 5ms
+ ✓ tests/core/ingestion-sanitization.test.ts (7 tests) 7ms
+ ✓ tests/core/extensions/ui-slots.test.ts (4 tests) 5ms
+ ✓ tests/core/privacy-dashboard/proof-of-privacy-exporter.test.ts (3 tests) 5ms
+ ✓ tests/gateway/ipc-transport.test.ts (8 tests) 6ms
+ ✓ tests/mobile/adapters/mobile-adapters.test.ts (8 tests) 6ms
+ ✓ tests/mobile/mobile-biometric-auth.test.ts (5 tests) 7ms
+ ✓ tests/mobile/screens/network-graph-adversarial.test.ts (8 tests) 5ms
+ ✓ tests/core/knowledge/graph-export.test.ts (4 tests) 4ms
+ ✓ tests/mobile/screens/privacy-security-screens.test.ts (8 tests) 9ms
+ ✓ tests/desktop/settings-ai-engine.test.tsx (10 tests) 4ms
+ ✓ tests/core/privacy/sql-interpolation.test.ts (13 tests) 5ms
+ ✓ tests/core/finance/plaid-ipc.test.ts (4 tests) 4ms
+ ✓ tests/desktop/settings-web-search.test.tsx (11 tests) 4ms
+ ✓ tests/integration/screen-wiring.test.ts (5 tests) 5ms
+ ✓ tests/desktop/intent-onboarding.test.tsx (8 tests) 9ms
+ ✓ tests/core/messaging/phone-utils.test.ts (8 tests) 5ms
+ ✓ tests/launch/app-store.test.ts (5 tests) 4ms
+ ✓ tests/core/weather/weather-cache.test.ts (3 tests) 4ms
+ ✓ tests/desktop/knowledge-graph-view.test.ts (4 tests) 5ms
+ ✓ tests/gateway/tls-certificate.test.ts (5 tests) 4ms
+ ✓ tests/core/location/location-privacy.test.ts (8 tests) 7ms
+ ✓ tests/privacy/finance-privacy.test.ts (2 tests) 6ms
+ ✓ tests/integration/onboarding-flow.test.ts (4 tests) 9ms
+ ✓ tests/core/crypto/migration.test.ts (5 tests) 4ms
+ ✓ tests/launch/documentation.test.ts (6 tests) 7ms
+ ✓ tests/core/premium/license-email-detector.test.ts (8 tests) 4ms
+ ✓ tests/i18n/interpolation.test.ts (2 tests) 8ms
+ ✓ tests/mobile/screens/sovereignty-screens.test.ts (8 tests) 6ms
+ ✓ tests/desktop/intent-screen.test.ts (5 tests) 4ms
+ ✓ tests/launch/ci-config.test.ts (6 tests) 4ms
+ ✓ tests/integration/verify-test-count.test.ts (5 tests) 4ms
+ ✓ tests/i18n/config-init.test.ts (4 tests) 4ms
+ ✓ tests/desktop/alter-ego-settings.test.ts (6 tests) 4ms
+ ✓ tests/core/backup/external-drive-detector.test.ts (6 tests) 4ms
+ ✓ tests/core/messaging/messaging-adapter.test.ts (8 tests) 5ms
+ ✓ tests/mobile/migration-runner.test.ts (7 tests) 4ms
+ ✓ tests/mobile/tab-navigation.test.ts (3 tests) 7ms
+ ✓ tests/core/cloud-storage/cloud-storage-settings-state.test.ts (2 tests) 4ms
+ ✓ tests/mobile/quick-capture-widget.test.ts (4 tests) 4ms
+ ✓ tests/launch/community.test.ts (4 tests) 4ms
+ ✓ tests/core/credentials/keychain-store-interface.test.ts (7 tests) 4ms
+ ✓ tests/core/voice/tts-preprocessor.test.ts (3 tests) 7ms
+ ✓ tests/core/location/virtual-meeting-detector.test.ts (4 tests) 4ms
+ ✓ tests/core/inheritance/inheritance-mode-guard.test.ts (2 tests) 4ms
+ ✓ tests/desktop/daily-digest-ui.test.ts (6 tests) 4ms
+ ✓ tests/core/voice/whisper-model-manager.test.ts (5 tests) 4ms
+ ✓ tests/desktop/messaging-ui.test.ts (4 tests) 4ms
+ ✓ tests/core/voice/voice-resource-coordinator.test.ts (3 tests) 4ms
+ ✓ tests/core/voice/piper-model-manager.test.ts (4 tests) 4ms
+ ✓ tests/desktop/alter-ego-state.test.ts (5 tests) 4ms
+ ✓ tests/core/voice-capable.test.ts (6 tests) 4ms
+ ✓ tests/core/voice/voice-autonomy.test.ts (3 tests) 4ms
+ ✓ tests/core/witness/witness-format.test.ts (2 tests) 4ms
+ ✓ tests/desktop/weather-card.test.ts (2 tests) 4ms
+ ✓ tests/core/location/location-permission.test.ts (2 tests) 3ms
+ ↓ tests/ai-goldens/live-provider.test.ts (3 tests | 3 skipped)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/integration/startup-smoke.test.ts > Startup Smoke Test > loads NativeRuntime models on capable hardware (or uses Ollama)
+AssertionError: expected '[sidecar] No .env file found in: /age…' to contain 'Embedding model loaded'
+
+- Expected
++ Received
+
+- Embedding model loaded
++ [sidecar] No .env file found in: /agent/repos/semblance-core/packages/desktop/src-tauri/sidecar/.env, /home/ubuntu/.semblance/.env, /agent/repos/semblance-core/.env, /agent/repos/semblance-core/.env
++ [sidecar] SEMBLANCE_GOOGLE_CLIENT_ID: NOT SET
++ [sidecar] SEMBLANCE_SLACK_CLIENT_ID: NOT SET
++ [sidecar] Bridge process started, waiting for initialize command
++ [sidecar] Preferences DB ready
++ [sidecar] Reservation entitlement split: already_complete
++ [sidecar] ConversationManager ready
++ [sidecar] Creating Gateway...
++ [sidecar] Gateway created, calling start()...
++ [sidecar] Gateway started
++ [sidecar] Documents DB ready (knowledge/documents.db)
++ [sidecar] Creating SemblanceCore...
++ [sidecar] SemblanceCore created, calling initialize...
++ [SemblanceCore] Opening core.db...
++ [SemblanceCore] ModelManager ready, checking LLM availability...
++ [sidecar] NativeRuntime channel error: NativeRuntime not available (standalone test)
++ [SemblanceCore] LLM availability check took 1ms, available: false
++ [SemblanceCore] Ollama is not running. LLM features will be unavailable until Ollama starts.
++ [SemblanceCore] Chat model selected: qwen3-4b-instruct-q4_k_m
++ [LanceDB] Connecting to /home/ubuntu/.semblance/data/knowledge
++ [LanceDB] Connected, listing tables
++ [LanceDB] Tables: []
++ [SemblanceCore] Knowledge graph initialized
++ [SemblanceCore] Connecting IPC client...
++ [SocketTransport] Connecting to /home/ubuntu/.semblance/gateway.sock...
++ [SocketTransport] Connected to /home/ubuntu/.semblance/gateway.sock
++ [SemblanceCore] Connected to Gateway via IPC (0ms)
++ [SemblanceCore] IPC step complete, creating orchestrator...
++ [SemblanceCore] Creating v2 coordinator agent...
++ [SemblanceCore] Hardware tier: standard (16014MB RAM)
++ [SemblanceCore] v2 Coordinator agent initialized
++ [SemblanceCore] Loading extensions...
++ [SemblanceCore] Extensions loaded in 2ms
++ [SemblanceCore] All subsystems initialized
++ [sidecar] Core initialized
++ [sidecar] ConversationIndexer initialized
++ [sidecar] IntentManager initialized
++ [sidecar] WeatherService wired into orchestrator
++ [sidecar] Prompt config wired: name=Semblance, services=0, docs=0
++ [sidecar] AlterEgoGuardrails initialized
++ [sidecar] Email + Calendar adapters registered with Gateway
++ [sidecar] ConnectorRouter wired to Gateway for 20 connectors
++ [sidecar] Ollama not running — will use NativeRuntime CPU inference
++ [sidecar] NativeRuntime not available
++ [sidecar] WARNING: No inference model available. Chat will prompt user to download a model.
++ [sidecar] Ready
++ [sidecar] PreferenceGraph initialized
++ [sidecar] PreferenceGraph wired into AutonomyManager
++ [sidecar] SpeculativeLoader initialized
++ [sidecar] CommitmentTracker initialized
++ [sidecar] PatternShiftDetector initialized
++ [sidecar] CronScheduler firing job: tunnel-sync (Tunnel Knowledge Sync)
++ [sidecar] CronScheduler initialized + tick loop started
++ [sidecar] DaemonManager wake detection started
++ [sidecar] CanvasManager initialized for event bus handlers
++ [sidecar] Orchestrator event subscriptions wired (8 handlers)
++ [sidecar] Sprint E initialization complete
++ [sidecar] Hardware Bridge initialized — 2 binaries allowlisted
++ [sidecar] Multi-account OAuth migration checked
++ [sidecar] ChannelRegistry initialized with event bus
++ [sidecar] Signal, Slack, WhatsApp channel adapters registered
++ [sidecar] SkillRegistry initialized — 0 skills installed
++ [sidecar] SubAgentCoordinator initialized
++ [sidecar] Sprint G initialization complete
++ [sidecar] BrowserCDPAdapter initialized (lazy connect)
++ [sidecar] Registered 9 browser CDP tools with orchestrator
++ [sidecar] Session context provider wired into v2 coordinator
++ [sidecar] Subagent stream events wired to canvas + NDJSON
++ [sidecar] Cloud Bridge chat handler wired for hybrid execution
++ [sidecar] Registered 11 filesystem + terminal tools with orchestrator
++ [sidecar] AlterEgoWeekEngine: available via ipAdapters.alterEgoWeekEngine
++ [sidecar] ImportEverythingOrchestrator initialized
++ [sidecar] Sprint G.5 initialization complete
++ [sidecar] Cloud Bridge initialized (mode: off — user must enable in Settings)
++ [sidecar] Cron job tunnel-sync completed
++ [sidecar] CronScheduler firing job: reminder-check (Reminder Due Check)
++ [sidecar] Cron job reminder-check completed
++ [sidecar] CronScheduler firing job: connector-resync (Connector Re-Sync)
++ [sidecar] Connector re-sync: 0 account syncs queued
++ [sidecar] Cron job connector-resync completed
++ [WhatsApp] Adapter disabled — baileys package not installed
++ [sidecar] All channel adapters started
++ [sidecar] handleSendMessage — core initialized: true
++ [sidecar] handleSendMessage — orchestrator available: true
++
+
+ ❯ tests/integration/startup-smoke.test.ts:168:25
+    166|     } else if (!nativeTimeout) {
+    167|       // Native path: at minimum embedding + reasoning must load
+    168|       expect(stderrLog).toContain('Embedding model loaded');
+       |                         ^
+    169|       expect(stderrLog).toContain('Reasoning model loaded');
+    170|     } else {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 499 passed | 1 skipped (501)
+      Tests  1 failed | 6673 passed | 3 skipped (6677)
+   Start at  20:01:27
+   Duration  92.06s (transform 13.57s, setup 85.12s, import 40.14s, tests 79.59s, environment 20.10s)
+
+ ELIFECYCLE  Test failed. See above for more details.
+EXIT:1

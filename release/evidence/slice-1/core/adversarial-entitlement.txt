@@ -1,0 +1,13 @@
+
+ RUN  v4.0.18 /agent/repos/semblance-core
+
+ ✓ tests/premium/reservation-entitlement-migration.test.ts (35 tests) 608ms
+
+ Test Files  1 passed (1)
+      Tests  35 passed (35)
+   Start at  20:01:28
+   Duration  1.35s (transform 236ms, setup 362ms, import 163ms, tests 608ms, environment 0ms)
+
+EXIT:0
+
+ABSENT: tests/integration/commerce-freeze.test.ts (not present in tree; not executed)
