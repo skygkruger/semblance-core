@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-18T19:45:00.000Z",
+  "generatedAt": "2026-07-18T20:05:00.000Z",
   "releaseManifest": "release/release-manifest.json",
   "salesFreeze": {
     "newSalesEnabled": false,
     "acquisitionMode": "reservation_waitlist_only",
-    "note": "New paid checkout and purchase CTAs are forbidden while commerce.newSalesEnabled is false."
+    "note": "New paid checkout and purchase CTAs are forbidden while commerce.newSalesEnabled is false. Existing-customer Stripe Customer Portal login remains allowed."
   },
   "allowedPlatforms": {
     "availabilityMode": "development_targets_only",
@@ -31,7 +31,12 @@
     {
       "code": "ZERO_CLOUD_ABSOLUTE",
       "description": "Absolute zero-cloud or without-sending-a-byte claims",
-      "pattern": "without\\s+sending\\s+a(?:\\s+single)?\\s+byte|zero\\s+cloud(?!\\s+fallback)|zero\\s+cloud\\s+transmissions"
+      "pattern": "without\\s+sending\\s+a(?:\\s+single)?\\s+byte|\\bzero\\s+cloud\\b"
+    },
+    {
+      "code": "ABSOLUTE_DATA_EGRESS_BAN",
+      "description": "Absolute present-tense claims that data never/nothing leaves",
+      "pattern": "\\bnothing\\s+leaves\\b|\\bdata\\s+never\\s+leaves\\b|\\bnever\\s+leaves\\s+your\\s+(?:hardware|device|machine)\\b"
     },
     {
       "code": "UNSUPPORTED_TEST_COUNT",
@@ -47,8 +52,8 @@
   "paidCtaPatterns": [
     {
       "code": "PAID_CTA_DURING_FREEZE",
-      "description": "Purchase or Stripe checkout CTA while sales freeze is active",
-      "pattern": "checkout\\.stripe\\.com|buy\\.stripe\\.com|billing\\.stripe\\.com/(?:p/login|checkout)|Become\\s+a\\s+founding\\s+member\\s*[—\\-]\\s*\\$\\d+|Buy\\s+now|Purchase\\s+now|Start\\s+checkout|Subscribe\\s+now|Get\\s+lifetime\\s+access\\s+now|Pay\\s+\\$\\d+"
+      "description": "Purchase or Stripe checkout CTA while sales freeze is active (Customer Portal login is allowlisted)",
+      "pattern": "checkout\\.stripe\\.com|buy\\.stripe\\.com|billing\\.stripe\\.com/checkout|Become\\s+a\\s+founding\\s+member\\s*[—\\-]\\s*\\$\\d+|Buy\\s+now|Purchase\\s+now|Start\\s+checkout|Subscribe\\s+now|Get\\s+lifetime\\s+access\\s+now|Pay\\s+\\$\\d+"
     }
   ],
   "claims": [
