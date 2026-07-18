@@ -28,6 +28,7 @@ use std::os::windows::process::CommandExt;
 mod deep_link;
 mod hardware;
 mod native_runtime;
+mod secure_storage;
 use native_runtime::RuntimeStatus;
 
 // ─── Data Types ────────────────────────────────────────────────────────────
@@ -3352,6 +3353,10 @@ pub fn run() {
             ipc_send,
             // Upgrade Email
             upgrade_submit_email,
+            // Kernel secure storage (OS keychain)
+            secure_storage::secure_storage_get,
+            secure_storage::secure_storage_set,
+            secure_storage::secure_storage_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
