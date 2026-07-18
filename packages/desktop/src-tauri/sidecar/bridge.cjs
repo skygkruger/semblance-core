@@ -271010,7 +271010,7 @@ function reconcilePaidMetadata(db, payload) {
   const existing = db.prepare(
     "SELECT tier, activated_at, founding_seat FROM license WHERE id = 1"
   ).get();
-  const foundingSeat = existing?.tier === payload.tier ? existing.founding_seat : payload.tier === "founding" ? payload.seat : null;
+  const foundingSeat = payload.tier === "founding" ? payload.seat : existing?.tier === payload.tier ? existing.founding_seat : null;
   db.prepare(`
     INSERT OR REPLACE INTO license (
       id, tier, activated_at, expires_at, founding_seat

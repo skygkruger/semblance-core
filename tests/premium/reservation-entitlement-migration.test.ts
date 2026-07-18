@@ -144,6 +144,24 @@ describe('reservation entitlement split migration', () => {
     });
   });
 
+  it('uses the signed founding key seat when founding tier already matches', () => {
+    const paidKey = generateTestLicenseKey({
+      tier: 'founding',
+      seat: 73,
+      sub: 'paid-customer',
+    });
+    const setup = fixture(paidKey, 'founding');
+    migrate(setup);
+
+    const row = setup.db.prepare(
+      'SELECT tier, founding_seat FROM license WHERE id = 1',
+    ).get() as { tier: string; founding_seat: number | null };
+    expect(row).toEqual({
+      tier: 'founding',
+      founding_seat: 73,
+    });
+  });
+
   it('corrects seat metadata only when the paid tier changes', () => {
     const paidKey = generateTestLicenseKey({
       tier: 'digital-representative',
