@@ -279,7 +279,6 @@ export class PremiumGate {
    * Returns the founding member seat number, or null if not a founding member.
    */
   getFoundingSeat(): number | null {
-    if (this.getLicenseTier() !== 'founding') return null;
     const row = this.db.prepare('SELECT founding_seat FROM license WHERE id = 1').get() as
       | { founding_seat: number | null }
       | undefined;

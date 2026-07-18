@@ -71,6 +71,7 @@ import {
   runReservationEntitlementSplit,
 } from '../../../core/premium/index.js';
 import { extractLicenseKey } from '../../../core/premium/license-email-detector.js';
+import { nodeReservationMigrationAdapter } from './reservation-migration-node.js';
 
 // IP Adapter Registry — runtime access to @semblance/dr implementations
 import { ipAdapters } from '../../../core/extensions/ip-adapter-registry.js';
@@ -761,10 +762,12 @@ async function handleInitialize(): Promise<unknown> {
       db: prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
       databasePath: coreDbPath,
       backupPath: join(dataDir, 'core.pre-slice-1-reservation-entitlement-split.db'),
+      adapter: nodeReservationMigrationAdapter,
     });
     if (migration.status !== 'deferred_secure_backup') {
       reservationStore = new FoundingReservationStore(
         prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle,
+        nodeReservationMigrationAdapter,
       );
     }
     console.error(`[sidecar] Reservation entitlement split: ${migration.status}`);

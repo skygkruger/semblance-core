@@ -19,6 +19,7 @@ import {
   type ReservationMigrationCheckpoint,
 } from '../../packages/core/premium/migrations/reservation-entitlement-split.js';
 import { setLicensePublicKey } from '../../packages/core/premium/license-keys.js';
+import { nodeReservationMigrationAdapter } from '../../packages/desktop/src-tauri/sidecar/reservation-migration-node.js';
 import { VALID_TOKEN_SEAT_1 } from '../fixtures/founding-tokens.js';
 import {
   LICENSE_TEST_PUBLIC_KEY_PEM,
@@ -75,6 +76,7 @@ function migrate(
     db: setup.db as unknown as DatabaseHandle,
     databasePath: setup.dbPath,
     backupPath: setup.backupPath,
+    adapter: nodeReservationMigrationAdapter,
     failAfter,
   });
 }
@@ -123,6 +125,42 @@ describe('reservation entitlement split migration', () => {
       });
     }
   }
+
+  it('preserves seat metadata when paid tier already matches', () => {
+    const paidKey = generateTestLicenseKey({
+      tier: 'digital-representative',
+      exp: '2099-01-01T00:00:00.000Z',
+      sub: 'paid-customer',
+    });
+    const setup = fixture(paidKey, 'digital-representative');
+    migrate(setup);
+
+    const row = setup.db.prepare(
+      'SELECT tier, founding_seat FROM license WHERE id = 1',
+    ).get() as { tier: string; founding_seat: number | null };
+    expect(row).toEqual({
+      tier: 'digital-representative',
+      founding_seat: 1,
+    });
+  });
+
+  it('corrects seat metadata only when the paid tier changes', () => {
+    const paidKey = generateTestLicenseKey({
+      tier: 'digital-representative',
+      exp: '2099-01-01T00:00:00.000Z',
+      sub: 'paid-customer',
+    });
+    const setup = fixture(paidKey, 'founding');
+    migrate(setup);
+
+    const row = setup.db.prepare(
+      'SELECT tier, founding_seat FROM license WHERE id = 1',
+    ).get() as { tier: string; founding_seat: number | null };
+    expect(row).toEqual({
+      tier: 'digital-representative',
+      founding_seat: null,
+    });
+  });
 
   for (const [name, payload] of [
     ['unsupported tier', { tier: 'enterprise', sub: 'paid-customer' }],
@@ -188,7 +226,7 @@ describe('reservation entitlement split migration', () => {
       db: setup.db as unknown as DatabaseHandle,
       databasePath: setup.dbPath,
       backupPath: setup.backupPath,
-      platform: 'win32',
+      adapter: { ...nodeReservationMigrationAdapter, platform: 'win32' },
     });
 
     expect(result).toEqual({
@@ -207,7 +245,7 @@ describe('reservation entitlement split migration', () => {
     const gate = new PremiumGate(setup.db as unknown as DatabaseHandle);
     expect(gate.isPremium()).toBe(false);
     expect(gate.getLicenseTier()).toBe('free');
-    expect(gate.getFoundingSeat()).toBeNull();
+    expect(gate.getFoundingSeat()).toBe(1);
   });
 
   it('requires the Windows secure adapter for rollback', () => {
@@ -215,7 +253,7 @@ describe('reservation entitlement split migration', () => {
     expect(() => rollbackReservationEntitlementSplit({
       databasePath: setup.dbPath,
       backupPath: setup.backupPath,
-      platform: 'win32',
+      adapter: { ...nodeReservationMigrationAdapter, platform: 'win32' },
     })).toThrow('Windows rollback requires an OS-protected backup adapter');
   });
 
@@ -280,6 +318,7 @@ describe('reservation entitlement split migration', () => {
     rollbackReservationEntitlementSplit({
       databasePath: setup.dbPath,
       backupPath: setup.backupPath,
+      adapter: nodeReservationMigrationAdapter,
     });
     expect(existsSync(`${setup.dbPath}-wal`)).toBe(false);
     expect(existsSync(`${setup.dbPath}-shm`)).toBe(false);
@@ -309,6 +348,7 @@ describe('reservation entitlement split migration', () => {
 
       const store = new FoundingReservationStore(
         setup.db as unknown as DatabaseHandle,
+        nodeReservationMigrationAdapter,
       );
       expect(store.count()).toBe(1);
       expect(store.list()[0]).toMatchObject({ kind: 'reservation_only', seat: 1 });

@@ -5,6 +5,7 @@ export type { FoundingTokenResult, ReservationVerification } from './founding-to
 export { FoundingReservationStore } from './founding-reservation-store.js';
 export type {
   FoundingReservation,
+  ReservationHasher,
   ReservationImportResult,
 } from './founding-reservation-store.js';
 export {
@@ -15,6 +16,7 @@ export type {
   ReservationEntitlementMigrationOptions,
   ReservationEntitlementMigrationResult,
   ReservationMigrationCheckpoint,
+  ReservationMigrationPlatformAdapter,
   SecureMigrationBackupAdapter,
 } from './migrations/reservation-entitlement-split.js';
 export {

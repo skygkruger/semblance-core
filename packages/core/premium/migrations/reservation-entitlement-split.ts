@@ -1,14 +1,8 @@
-import {
-  chmodSync,
-  copyFileSync,
-  existsSync,
-  readFileSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs';
-import { createHash } from 'node:crypto';
 import type { DatabaseHandle } from '../../platform/types.js';
-import { FoundingReservationStore } from '../founding-reservation-store.js';
+import {
+  FoundingReservationStore,
+  type ReservationHasher,
+} from '../founding-reservation-store.js';
 import {
   validatePaidLicenseKey,
   type PaidLicensePayload,
@@ -34,12 +28,23 @@ export interface SecureMigrationBackupAdapter {
   restoreBackup(backupPath: string, databasePath: string): void;
 }
 
+export interface ReservationMigrationPlatformAdapter extends ReservationHasher {
+  platform: 'win32' | 'posix';
+  exists(path: string): boolean;
+  readText(path: string): string;
+  writePrivateText(path: string, content: string): void;
+  restrictToOwner(path: string): void;
+  remove(path: string): void;
+  copy(sourcePath: string, destinationPath: string): void;
+  sha256File(path: string): string;
+}
+
 export interface ReservationEntitlementMigrationOptions {
   db: DatabaseHandle;
   databasePath: string;
   backupPath: string;
+  adapter: ReservationMigrationPlatformAdapter;
   failAfter?: ReservationMigrationCheckpoint;
-  platform?: NodeJS.Platform;
   secureBackupAdapter?: SecureMigrationBackupAdapter;
 }
 
@@ -68,8 +73,7 @@ interface CheckpointRow {
 export function runReservationEntitlementSplit(
   options: ReservationEntitlementMigrationOptions,
 ): ReservationEntitlementMigrationResult {
-  const platform = options.platform ?? process.platform;
-  if (platform === 'win32' && !options.secureBackupAdapter) {
+  if (options.adapter.platform === 'win32' && !options.secureBackupAdapter) {
     return {
       status: 'deferred_secure_backup',
       checkpoint: null,
@@ -79,7 +83,7 @@ export function runReservationEntitlementSplit(
   const backupSha256 = ensureVerifiedBackup(options);
 
   ensureMigrationTable(options.db);
-  const reservationStore = new FoundingReservationStore(options.db);
+  const reservationStore = new FoundingReservationStore(options.db, options.adapter);
   const existing = getCheckpoint(options.db);
   if (existing === 'complete') {
     return { status: 'already_complete', checkpoint: 'complete', backupSha256 };
@@ -160,34 +164,33 @@ export function runReservationEntitlementSplit(
 export function rollbackReservationEntitlementSplit(options: {
   databasePath: string;
   backupPath: string;
-  platform?: NodeJS.Platform;
+  adapter: ReservationMigrationPlatformAdapter;
   secureBackupAdapter?: SecureMigrationBackupAdapter;
 }): { restoredSha256: string } {
-  const platform = options.platform ?? process.platform;
-  if (platform === 'win32' && !options.secureBackupAdapter) {
+  if (options.adapter.platform === 'win32' && !options.secureBackupAdapter) {
     throw new Error('Windows rollback requires an OS-protected backup adapter');
   }
   const markerPath = `${options.backupPath}.sha256`;
-  if (!existsSync(options.backupPath) || !existsSync(markerPath)) {
+  if (!options.adapter.exists(options.backupPath) || !options.adapter.exists(markerPath)) {
     throw new Error('Reservation migration backup or hash marker is missing');
   }
-  const expected = readFileSync(markerPath, 'utf8').trim();
+  const expected = options.adapter.readText(markerPath).trim();
   const actual = options.secureBackupAdapter
     ? options.secureBackupAdapter.backupSha256(options.backupPath)
-    : sha256File(options.backupPath);
+    : options.adapter.sha256File(options.backupPath);
   if (expected !== actual) {
     throw new Error('Reservation migration backup hash verification failed');
   }
   for (const suffix of ['-wal', '-shm']) {
     const sidecarPath = `${options.databasePath}${suffix}`;
-    if (existsSync(sidecarPath)) unlinkSync(sidecarPath);
+    if (options.adapter.exists(sidecarPath)) options.adapter.remove(sidecarPath);
   }
   if (options.secureBackupAdapter) {
     options.secureBackupAdapter.restoreBackup(options.backupPath, options.databasePath);
   } else {
-    copyFileSync(options.backupPath, options.databasePath);
+    options.adapter.copy(options.backupPath, options.databasePath);
   }
-  const restoredSha256 = sha256File(options.databasePath);
+  const restoredSha256 = options.adapter.sha256File(options.databasePath);
   if (restoredSha256 !== expected) {
     throw new Error('Restored database hash verification failed');
   }
@@ -198,7 +201,7 @@ function ensureVerifiedBackup(
   options: ReservationEntitlementMigrationOptions,
 ): string {
   const markerPath = `${options.backupPath}.sha256`;
-  if (!existsSync(options.backupPath)) {
+  if (!options.adapter.exists(options.backupPath)) {
     if (options.secureBackupAdapter) {
       options.secureBackupAdapter.createBackup(options.db, options.backupPath);
     } else {
@@ -206,19 +209,19 @@ function ensureVerifiedBackup(
       options.db.exec(`VACUUM INTO '${escaped}'`);
     }
   }
-  if (!options.secureBackupAdapter) restrictFileMode(options.backupPath);
+  if (!options.secureBackupAdapter) options.adapter.restrictToOwner(options.backupPath);
   const backupSha256 = options.secureBackupAdapter
     ? options.secureBackupAdapter.backupSha256(options.backupPath)
-    : sha256File(options.backupPath);
-  if (existsSync(markerPath)) {
-    const expected = readFileSync(markerPath, 'utf8').trim();
+    : options.adapter.sha256File(options.backupPath);
+  if (options.adapter.exists(markerPath)) {
+    const expected = options.adapter.readText(markerPath).trim();
     if (expected !== backupSha256) {
       throw new Error('Reservation migration backup hash verification failed');
     }
   } else {
-    writeFileSync(markerPath, `${backupSha256}\n`, { mode: 0o600 });
+    options.adapter.writePrivateText(markerPath, `${backupSha256}\n`);
   }
-  restrictFileMode(markerPath);
+  options.adapter.restrictToOwner(markerPath);
   return backupSha256;
 }
 
@@ -295,10 +298,6 @@ function interruptAfter(
   }
 }
 
-function sha256File(path: string): string {
-  return createHash('sha256').update(readFileSync(path)).digest('hex');
-}
-
 function reconcilePaidMetadata(db: DatabaseHandle, payload: PaidLicensePayload): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS license (
@@ -310,8 +309,15 @@ function reconcilePaidMetadata(db: DatabaseHandle, payload: PaidLicensePayload):
     )
   `);
   const existing = db.prepare(
-    'SELECT activated_at FROM license WHERE id = 1',
-  ).get() as { activated_at: string } | undefined;
+    'SELECT tier, activated_at, founding_seat FROM license WHERE id = 1',
+  ).get() as {
+    tier: string;
+    activated_at: string;
+    founding_seat: number | null;
+  } | undefined;
+  const foundingSeat = existing?.tier === payload.tier
+    ? existing.founding_seat
+    : payload.tier === 'founding' ? payload.seat : null;
   db.prepare(`
     INSERT OR REPLACE INTO license (
       id, tier, activated_at, expires_at, founding_seat
@@ -320,14 +326,6 @@ function reconcilePaidMetadata(db: DatabaseHandle, payload: PaidLicensePayload):
     payload.tier,
     existing?.activated_at ?? new Date().toISOString(),
     payload.exp,
-    payload.tier === 'founding' ? payload.seat : null,
+    foundingSeat,
   );
-}
-
-function restrictFileMode(path: string): void {
-  try {
-    chmodSync(path, 0o600);
-  } catch (error) {
-    if (process.platform !== 'win32') throw error;
-  }
 }

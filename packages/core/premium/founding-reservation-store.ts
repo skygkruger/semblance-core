@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import type { DatabaseHandle } from '../platform/types.js';
 import {
   verifyFoundingToken,
@@ -14,6 +13,10 @@ export interface FoundingReservation {
 
 export interface ReservationImportResult extends ReservationVerification {
   imported?: boolean;
+}
+
+export interface ReservationHasher {
+  sha256(data: string): string;
 }
 
 interface ReservationRow {
@@ -33,9 +36,11 @@ interface ReservationRow {
  */
 export class FoundingReservationStore {
   private readonly db: DatabaseHandle;
+  private readonly hasher: ReservationHasher;
 
-  constructor(db: DatabaseHandle) {
+  constructor(db: DatabaseHandle, hasher: ReservationHasher) {
     this.db = db;
+    this.hasher = hasher;
     this.ensureTable();
   }
 
@@ -44,8 +49,8 @@ export class FoundingReservationStore {
     if (!verification.valid) return verification;
 
     const normalized = extractToken(token);
-    const tokenHash = createHash('sha256').update(normalized).digest('hex');
-    const metadata = decodeMetadata(normalized);
+    const tokenHash = this.hasher.sha256(normalized);
+    const metadata = decodeMetadata(normalized, this.hasher);
     const existing = this.db.prepare(
       'SELECT token_hash FROM founding_reservations WHERE token_hash = ?',
     ).get(tokenHash);
@@ -146,7 +151,7 @@ function extractToken(input: string): string {
   return trimmed;
 }
 
-function decodeMetadata(token: string): {
+function decodeMetadata(token: string, hasher: ReservationHasher): {
   subjectHash: string | null;
   issuedAt: number | null;
 } {
@@ -158,7 +163,7 @@ function decodeMetadata(token: string): {
     ) as { sub?: unknown; iat?: unknown };
     return {
       subjectHash: typeof payload.sub === 'string'
-        ? createHash('sha256').update(payload.sub).digest('hex')
+        ? hasher.sha256(payload.sub)
         : null,
       issuedAt: typeof payload.iat === 'number' ? payload.iat : null,
     };

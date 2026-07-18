@@ -109520,7 +109520,6 @@ var init_premium_gate = __esm({
        * Returns the founding member seat number, or null if not a founding member.
        */
       getFoundingSeat() {
-        if (this.getLicenseTier() !== "founding") return null;
         const row = this.db.prepare("SELECT founding_seat FROM license WHERE id = 1").get();
         if (!row) return null;
         return row.founding_seat ?? null;
@@ -227199,7 +227198,7 @@ var require_tools2 = __commonJS({
     var libmime = require_libmime();
     var { resolveCharset } = require_charsets2();
     var { compiler } = require_imap_handler();
-    var { createHash: createHash10 } = require("crypto");
+    var { createHash: createHash9 } = require("crypto");
     var { JPDecoder } = require_jp_decoder();
     var iconv = require_lib17();
     var FLAG_COLORS = ["red", "orange", "yellow", "green", "blue", "purple", "grey"];
@@ -227589,7 +227588,7 @@ var require_tools2 = __commonJS({
             } catch {
             }
           }
-          map2.id = map2.emailId || createHash10("md5").update([path2, mailbox.uidValidity?.toString() || "", map2.uid.toString()].join(":")).digest("hex");
+          map2.id = map2.emailId || createHash9("md5").update([path2, mailbox.uidValidity?.toString() || "", map2.uid.toString()].join(":")).digest("hex");
         }
         if (map2.flags) {
           let flagColor = tools.getFlagColor(map2.flags);
@@ -254317,14 +254316,14 @@ __export(firefox_history_parser_exports, {
   FirefoxHistoryParser: () => FirefoxHistoryParser
 });
 function deterministicId(url) {
-  const hash = (0, import_node_crypto11.createHash)("sha256").update(url).digest("hex").slice(0, 12);
+  const hash = (0, import_node_crypto10.createHash)("sha256").update(url).digest("hex").slice(0, 12);
   return `ffx_${hash}`;
 }
-var import_node_crypto11, FirefoxHistoryParser;
+var import_node_crypto10, FirefoxHistoryParser;
 var init_firefox_history_parser = __esm({
   "packages/core/importers/browser/firefox-history-parser.ts"() {
     "use strict";
-    import_node_crypto11 = require("node:crypto");
+    import_node_crypto10 = require("node:crypto");
     FirefoxHistoryParser = class {
       sourceType = "browser_history";
       supportedFormats = ["firefox_sqlite"];
@@ -254446,14 +254445,14 @@ function webkitTimestampToMs(timestamp) {
   return (timestamp + WEBKIT_EPOCH_OFFSET) * 1e3;
 }
 function deterministicId2(url) {
-  const hash = (0, import_node_crypto12.createHash)("sha256").update(url).digest("hex").slice(0, 12);
+  const hash = (0, import_node_crypto11.createHash)("sha256").update(url).digest("hex").slice(0, 12);
   return `saf_${hash}`;
 }
-var import_node_crypto12, WEBKIT_EPOCH_OFFSET, SafariHistoryParser;
+var import_node_crypto11, WEBKIT_EPOCH_OFFSET, SafariHistoryParser;
 var init_safari_history_parser = __esm({
   "packages/core/importers/browser/safari-history-parser.ts"() {
     "use strict";
-    import_node_crypto12 = require("node:crypto");
+    import_node_crypto11 = require("node:crypto");
     WEBKIT_EPOCH_OFFSET = 978307200;
     SafariHistoryParser = class {
       sourceType = "browser_history";
@@ -254580,14 +254579,14 @@ function chromiumTimestampToMs(chromiumUsec) {
   return Number(unixUsec / 1000n);
 }
 function deterministicId3(url) {
-  const hash = (0, import_node_crypto13.createHash)("sha256").update(url).digest("hex").slice(0, 12);
+  const hash = (0, import_node_crypto12.createHash)("sha256").update(url).digest("hex").slice(0, 12);
   return `edg_${hash}`;
 }
-var import_node_crypto13, CHROMIUM_EPOCH_OFFSET_USEC, EDGE_PATH_FRAGMENTS, EdgeHistoryParser;
+var import_node_crypto12, CHROMIUM_EPOCH_OFFSET_USEC, EDGE_PATH_FRAGMENTS, EdgeHistoryParser;
 var init_edge_history_parser = __esm({
   "packages/core/importers/browser/edge-history-parser.ts"() {
     "use strict";
-    import_node_crypto13 = require("node:crypto");
+    import_node_crypto12 = require("node:crypto");
     CHROMIUM_EPOCH_OFFSET_USEC = 11644473600000000n;
     EDGE_PATH_FRAGMENTS = [
       "microsoft edge",
@@ -254727,14 +254726,14 @@ function chromiumTimestampToMs2(chromiumUsec) {
   return Number(unixUsec / 1000n);
 }
 function deterministicId4(url) {
-  const hash = (0, import_node_crypto14.createHash)("sha256").update(url).digest("hex").slice(0, 12);
+  const hash = (0, import_node_crypto13.createHash)("sha256").update(url).digest("hex").slice(0, 12);
   return `arc_${hash}`;
 }
-var import_node_crypto14, CHROMIUM_EPOCH_OFFSET_USEC2, ARC_PATH_FRAGMENTS, ArcHistoryParser;
+var import_node_crypto13, CHROMIUM_EPOCH_OFFSET_USEC2, ARC_PATH_FRAGMENTS, ArcHistoryParser;
 var init_arc_history_parser = __esm({
   "packages/core/importers/browser/arc-history-parser.ts"() {
     "use strict";
-    import_node_crypto14 = require("node:crypto");
+    import_node_crypto13 = require("node:crypto");
     CHROMIUM_EPOCH_OFFSET_USEC2 = 11644473600000000n;
     ARC_PATH_FRAGMENTS = [
       "arc/user data",
@@ -270717,19 +270716,20 @@ function invalid(error) {
 }
 
 // packages/core/premium/founding-reservation-store.ts
-var import_node_crypto9 = require("node:crypto");
 var FoundingReservationStore = class {
   db;
-  constructor(db) {
+  hasher;
+  constructor(db, hasher) {
     this.db = db;
+    this.hasher = hasher;
     this.ensureTable();
   }
   importReservation(token) {
     const verification = verifyFoundingToken(token);
     if (!verification.valid) return verification;
     const normalized = extractToken(token);
-    const tokenHash = (0, import_node_crypto9.createHash)("sha256").update(normalized).digest("hex");
-    const metadata = decodeMetadata(normalized);
+    const tokenHash = this.hasher.sha256(normalized);
+    const metadata = decodeMetadata(normalized, this.hasher);
     const existing = this.db.prepare(
       "SELECT token_hash FROM founding_reservations WHERE token_hash = ?"
     ).get(tokenHash);
@@ -270817,7 +270817,7 @@ function extractToken(input) {
   }
   return trimmed;
 }
-function decodeMetadata(token) {
+function decodeMetadata(token, hasher) {
   try {
     const payloadSegment = token.split(".")[1];
     if (!payloadSegment) return { subjectHash: null, issuedAt: null };
@@ -270825,7 +270825,7 @@ function decodeMetadata(token) {
       Buffer.from(payloadSegment, "base64url").toString("utf8")
     );
     return {
-      subjectHash: typeof payload.sub === "string" ? (0, import_node_crypto9.createHash)("sha256").update(payload.sub).digest("hex") : null,
+      subjectHash: typeof payload.sub === "string" ? hasher.sha256(payload.sub) : null,
       issuedAt: typeof payload.iat === "number" ? payload.iat : null
     };
   } catch {
@@ -270834,14 +270834,11 @@ function decodeMetadata(token) {
 }
 
 // packages/core/premium/migrations/reservation-entitlement-split.ts
-var import_node_fs10 = require("node:fs");
-var import_node_crypto10 = require("node:crypto");
 init_license_keys();
 var RESERVATION_ENTITLEMENT_SCHEMA_VERSION = 3;
 var RESERVATION_ENTITLEMENT_MIGRATION_ID = "slice-1-reservation-entitlement-split";
 function runReservationEntitlementSplit(options) {
-  const platform8 = options.platform ?? process.platform;
-  if (platform8 === "win32" && !options.secureBackupAdapter) {
+  if (options.adapter.platform === "win32" && !options.secureBackupAdapter) {
     return {
       status: "deferred_secure_backup",
       checkpoint: null,
@@ -270850,7 +270847,7 @@ function runReservationEntitlementSplit(options) {
   }
   const backupSha256 = ensureVerifiedBackup(options);
   ensureMigrationTable(options.db);
-  const reservationStore2 = new FoundingReservationStore(options.db);
+  const reservationStore2 = new FoundingReservationStore(options.db, options.adapter);
   const existing = getCheckpoint(options.db);
   if (existing === "complete") {
     return { status: "already_complete", checkpoint: "complete", backupSha256 };
@@ -270918,7 +270915,7 @@ function runReservationEntitlementSplit(options) {
 }
 function ensureVerifiedBackup(options) {
   const markerPath = `${options.backupPath}.sha256`;
-  if (!(0, import_node_fs10.existsSync)(options.backupPath)) {
+  if (!options.adapter.exists(options.backupPath)) {
     if (options.secureBackupAdapter) {
       options.secureBackupAdapter.createBackup(options.db, options.backupPath);
     } else {
@@ -270926,18 +270923,18 @@ function ensureVerifiedBackup(options) {
       options.db.exec(`VACUUM INTO '${escaped}'`);
     }
   }
-  if (!options.secureBackupAdapter) restrictFileMode(options.backupPath);
-  const backupSha256 = options.secureBackupAdapter ? options.secureBackupAdapter.backupSha256(options.backupPath) : sha256File(options.backupPath);
-  if ((0, import_node_fs10.existsSync)(markerPath)) {
-    const expected = (0, import_node_fs10.readFileSync)(markerPath, "utf8").trim();
+  if (!options.secureBackupAdapter) options.adapter.restrictToOwner(options.backupPath);
+  const backupSha256 = options.secureBackupAdapter ? options.secureBackupAdapter.backupSha256(options.backupPath) : options.adapter.sha256File(options.backupPath);
+  if (options.adapter.exists(markerPath)) {
+    const expected = options.adapter.readText(markerPath).trim();
     if (expected !== backupSha256) {
       throw new Error("Reservation migration backup hash verification failed");
     }
   } else {
-    (0, import_node_fs10.writeFileSync)(markerPath, `${backupSha256}
-`, { mode: 384 });
+    options.adapter.writePrivateText(markerPath, `${backupSha256}
+`);
   }
-  restrictFileMode(markerPath);
+  options.adapter.restrictToOwner(markerPath);
   return backupSha256;
 }
 function ensureMigrationTable(db) {
@@ -271000,9 +270997,6 @@ function interruptAfter(options, checkpoint) {
     throw new Error(`Interrupted after ${checkpoint}`);
   }
 }
-function sha256File(path2) {
-  return (0, import_node_crypto10.createHash)("sha256").update((0, import_node_fs10.readFileSync)(path2)).digest("hex");
-}
 function reconcilePaidMetadata(db, payload) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS license (
@@ -271014,8 +271008,9 @@ function reconcilePaidMetadata(db, payload) {
     )
   `);
   const existing = db.prepare(
-    "SELECT activated_at FROM license WHERE id = 1"
+    "SELECT tier, activated_at, founding_seat FROM license WHERE id = 1"
   ).get();
+  const foundingSeat = existing?.tier === payload.tier ? existing.founding_seat : payload.tier === "founding" ? payload.seat : null;
   db.prepare(`
     INSERT OR REPLACE INTO license (
       id, tier, activated_at, expires_at, founding_seat
@@ -271024,15 +271019,8 @@ function reconcilePaidMetadata(db, payload) {
     payload.tier,
     existing?.activated_at ?? (/* @__PURE__ */ new Date()).toISOString(),
     payload.exp,
-    payload.tier === "founding" ? payload.seat : null
+    foundingSeat
   );
-}
-function restrictFileMode(path2) {
-  try {
-    (0, import_node_fs10.chmodSync)(path2, 384);
-  } catch (error) {
-    if (process.platform !== "win32") throw error;
-  }
 }
 
 // packages/core/premium/index.ts
@@ -271045,6 +271033,23 @@ function extractLicenseKey(emailBody) {
   if (!match || !match[1]) return null;
   return match[1];
 }
+
+// packages/desktop/src-tauri/sidecar/reservation-migration-node.ts
+var import_node_fs10 = require("node:fs");
+var import_node_crypto9 = require("node:crypto");
+var nodeReservationMigrationAdapter = {
+  platform: process.platform === "win32" ? "win32" : "posix",
+  exists: import_node_fs10.existsSync,
+  readText: (path2) => (0, import_node_fs10.readFileSync)(path2, "utf8"),
+  writePrivateText: (path2, content) => (0, import_node_fs10.writeFileSync)(path2, content, { mode: 384 }),
+  restrictToOwner: (path2) => {
+    if (process.platform !== "win32") (0, import_node_fs10.chmodSync)(path2, 384);
+  },
+  remove: import_node_fs10.unlinkSync,
+  copy: import_node_fs10.copyFileSync,
+  sha256: (data) => (0, import_node_crypto9.createHash)("sha256").update(data, "utf8").digest("hex"),
+  sha256File: (path2) => (0, import_node_crypto9.createHash)("sha256").update((0, import_node_fs10.readFileSync)(path2)).digest("hex")
+};
 
 // packages/desktop/src-tauri/sidecar/bridge.ts
 init_ip_adapter_registry();
@@ -276649,7 +276654,7 @@ var ConnectorRouter = class {
 };
 
 // packages/gateway/services/base-pkce-adapter.ts
-var import_node_crypto15 = require("node:crypto");
+var import_node_crypto14 = require("node:crypto");
 
 // packages/gateway/services/base-oauth-adapter.ts
 init_zod();
@@ -276842,11 +276847,11 @@ var BaseOAuthAdapter = class {
 
 // packages/gateway/services/base-pkce-adapter.ts
 function generateCodeVerifier(length = 64) {
-  const bytes = (0, import_node_crypto15.randomBytes)(length);
+  const bytes = (0, import_node_crypto14.randomBytes)(length);
   return bytes.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "").slice(0, 128);
 }
 function deriveCodeChallenge(codeVerifier) {
-  return (0, import_node_crypto15.createHash)("sha256").update(codeVerifier).digest("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+  return (0, import_node_crypto14.createHash)("sha256").update(codeVerifier).digest("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 var BasePKCEAdapter = class extends BaseOAuthAdapter {
   codeVerifier = null;
@@ -279496,12 +279501,12 @@ var StravaAdapter = class extends BaseOAuthAdapter {
 };
 
 // packages/gateway/services/oauth1-signer.ts
-var import_node_crypto16 = require("node:crypto");
+var import_node_crypto15 = require("node:crypto");
 function percentEncode(value) {
   return encodeURIComponent(value).replace(/!/g, "%21").replace(/\*/g, "%2A").replace(/'/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29");
 }
 function generateNonce() {
-  return (0, import_node_crypto16.randomBytes)(16).toString("hex");
+  return (0, import_node_crypto15.randomBytes)(16).toString("hex");
 }
 function getTimestamp() {
   return Math.floor(Date.now() / 1e3).toString();
@@ -279517,7 +279522,7 @@ function buildSignatureBaseString(method, baseUrl, params) {
 }
 function signHmacSha1(baseString, consumerSecret, tokenSecret = "") {
   const signingKey = `${percentEncode(consumerSecret)}&${percentEncode(tokenSecret)}`;
-  return (0, import_node_crypto16.createHmac)("sha1", signingKey).update(baseString).digest("base64");
+  return (0, import_node_crypto15.createHmac)("sha1", signingKey).update(baseString).digest("base64");
 }
 function generateOAuth1Header(credentials, params) {
   const nonce = generateNonce();
@@ -281184,7 +281189,7 @@ var TodoistAdapter = class extends BaseOAuthAdapter {
 };
 
 // packages/gateway/services/lastfm/lastfm-adapter.ts
-var import_node_crypto17 = require("node:crypto");
+var import_node_crypto16 = require("node:crypto");
 init_oauth_callback_server();
 var PROVIDER_KEY7 = "lastfm";
 var API_BASE13 = "https://ws.audioscrobbler.com/2.0/";
@@ -281459,7 +281464,7 @@ var LastFmAdapter = class {
       sigString += key + params[key];
     }
     sigString += this.apiSecret;
-    return (0, import_node_crypto17.createHash)("md5").update(sigString).digest("hex");
+    return (0, import_node_crypto16.createHash)("md5").update(sigString).digest("hex");
   }
   /**
    * Get the stored username. Throws if not authenticated.
@@ -281474,7 +281479,7 @@ var LastFmAdapter = class {
 };
 
 // packages/gateway/services/letterboxd/letterboxd-adapter.ts
-var import_node_crypto18 = require("node:crypto");
+var import_node_crypto17 = require("node:crypto");
 var PROVIDER_KEY8 = "letterboxd";
 var API_BASE14 = "https://api.letterboxd.com/api/v0";
 var LetterboxdAdapter = class {
@@ -281739,7 +281744,7 @@ var LetterboxdAdapter = class {
     const finalUrl = urlObj.toString();
     const bodyStr = body ?? "";
     const sigInput = `${method.toUpperCase()}\0${finalUrl}\0${bodyStr}`;
-    const signature = (0, import_node_crypto18.createHmac)("sha256", this.apiSecret).update(sigInput).digest("hex");
+    const signature = (0, import_node_crypto17.createHmac)("sha256", this.apiSecret).update(sigInput).digest("hex");
     const headers = {
       Authorization: `Signature ${signature}`
     };
@@ -287575,11 +287580,13 @@ async function handleInitialize() {
     const migration = runReservationEntitlementSplit({
       db: prefsDb,
       databasePath: coreDbPath,
-      backupPath: (0, import_node_path15.join)(dataDir, "core.pre-slice-1-reservation-entitlement-split.db")
+      backupPath: (0, import_node_path15.join)(dataDir, "core.pre-slice-1-reservation-entitlement-split.db"),
+      adapter: nodeReservationMigrationAdapter
     });
     if (migration.status !== "deferred_secure_backup") {
       reservationStore = new FoundingReservationStore(
-        prefsDb
+        prefsDb,
+        nodeReservationMigrationAdapter
       );
     }
     console.error(`[sidecar] Reservation entitlement split: ${migration.status}`);
@@ -290548,9 +290555,9 @@ async function downloadHfFile(entry, targetPath, modelId, displayName) {
     download.downloadedBytes = expectedBytes > 0 ? expectedBytes : receivedBytes;
     download.speedBytesPerSec = 0;
     if (entry.sha256) {
-      const { createHash: createHash10 } = await import("node:crypto");
+      const { createHash: createHash9 } = await import("node:crypto");
       const { createReadStream } = await import("node:fs");
-      const hash = createHash10("sha256");
+      const hash = createHash9("sha256");
       const readStream = createReadStream(targetPath);
       for await (const chunk2 of readStream) {
         hash.update(chunk2);
@@ -291315,9 +291322,9 @@ async function handleConnectorAuth(params) {
     let codeVerifier = null;
     let codeChallenge = null;
     if (config.usePKCE) {
-      const { randomBytes: randomBytes9, createHash: createHash10 } = await import("node:crypto");
+      const { randomBytes: randomBytes9, createHash: createHash9 } = await import("node:crypto");
       codeVerifier = randomBytes9(32).toString("base64url");
-      codeChallenge = createHash10("sha256").update(codeVerifier).digest("base64url");
+      codeChallenge = createHash9("sha256").update(codeVerifier).digest("base64url");
       console.error(`[sidecar] PKCE flow \u2014 generated code_verifier (${codeVerifier.length} chars)`);
     }
     const authUrl = new URL(config.authUrl);
@@ -294739,7 +294746,7 @@ async function handleRequest(req) {
         }
         try {
           if (!attestationSigner) {
-            const { createHash: createHash10, randomBytes: randomBytes9 } = await import("node:crypto");
+            const { createHash: createHash9, randomBytes: randomBytes9 } = await import("node:crypto");
             const keyMaterial = randomBytes9(32);
             attestationSigner = new AttestationSigner({
               signingKey: keyMaterial,
