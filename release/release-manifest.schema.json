@@ -68,11 +68,13 @@
     },
     "signedArtifacts": {
       "type": "array",
-      "items": { "$ref": "#/$defs/signedArtifact" }
+      "items": { "$ref": "#/$defs/signedArtifact" },
+      "uniqueItems": true
     },
     "evidence": {
       "type": "array",
-      "items": { "$ref": "#/$defs/evidence" }
+      "items": { "$ref": "#/$defs/evidence" },
+      "uniqueItems": true
     },
     "commerce": {
       "type": "object",
@@ -99,7 +101,8 @@
     },
     "features": {
       "type": "array",
-      "items": { "$ref": "#/$defs/featureEvidence" }
+      "items": { "$ref": "#/$defs/featureEvidence" },
+      "uniqueItems": true
     },
     "signatureKeyId": { "type": "string" },
     "signature": {
@@ -195,6 +198,7 @@
         "requiredForStates": {
           "type": "array",
           "items": { "$ref": "#/$defs/evidenceState" },
+          "minItems": 1,
           "uniqueItems": true
         }
       }

@@ -10,7 +10,9 @@ import {
   validateReleaseManifest,
   verifyReleaseManifest,
   type ReleaseManifestV1,
+  type SourceProvenanceVerifier,
   type TrustedReleaseKeysV1,
+  type VerifyReleaseManifestOptions,
 } from '../../packages/core/release/types.js';
 
 const TEST_PRIVATE_KEY = Buffer.from(
@@ -92,6 +94,40 @@ function signText(value: string): string {
   return signEd25519(Buffer.from(value, 'utf-8'), TEST_PRIVATE_KEY).toString('base64');
 }
 
+function sourceProvenance(overrides?: {
+  repository?: 'core' | 'representative' | 'website';
+  ancestor?: boolean;
+  treeHash?: string | null;
+  throws?: boolean;
+}): Record<'core' | 'representative' | 'website', SourceProvenanceVerifier> {
+  const hashes = { core: HASH_A, representative: HASH_B, website: HASH_C };
+  return Object.fromEntries(
+    (['core', 'representative', 'website'] as const).map((repository) => [
+      repository,
+      {
+        headCommit: 'f'.repeat(40),
+        isAncestor: () => {
+          if (overrides?.repository === repository && overrides.throws) throw new Error('git unavailable');
+          return overrides?.repository === repository ? (overrides.ancestor ?? true) : true;
+        },
+        treeHash: () => (
+          overrides?.repository === repository
+            ? (overrides.treeHash ?? hashes[repository])
+            : hashes[repository]
+        ),
+      },
+    ]),
+  ) as unknown as Record<'core' | 'representative' | 'website', SourceProvenanceVerifier>;
+}
+
+function verificationOptions() {
+  return {
+    trustedKeys: TEST_PUBLIC_KEYS,
+    now: new Date('2026-07-18T12:00:00.000Z'),
+    sourceProvenance: sourceProvenance(),
+  };
+}
+
 describe('release manifest v1', () => {
   beforeAll(() => {
     initDesktopPlatform();
@@ -143,16 +179,10 @@ describe('release manifest v1', () => {
   it('verifies canonical manifest signature without self-reference', () => {
     const signed = signFixtureManifest(validFixture);
 
-    expect(verifyReleaseManifest(signed, {
-      trustedKeys: TEST_PUBLIC_KEYS,
-      now: new Date('2026-07-18T12:00:00.000Z'),
-    }).valid).toBe(true);
+    expect(verifyReleaseManifest(signed, verificationOptions()).valid).toBe(true);
     expect(verifyReleaseManifest(
       { ...signed, legalNoticesVersion: 'tampered' },
-      {
-        trustedKeys: TEST_PUBLIC_KEYS,
-        now: new Date('2026-07-18T12:00:00.000Z'),
-      },
+      verificationOptions(),
     ).valid).toBe(false);
   });
 
@@ -161,9 +191,10 @@ describe('release manifest v1', () => {
 
     expect(verifyReleaseManifest(signed, {
       trustedKeys: { schemaVersion: 1, keys: [] },
+      sourceProvenance: sourceProvenance(),
     }).errors).toContainEqual(expect.stringContaining('Unknown'));
     expect(verifyReleaseManifest(signed, {
-      trustedKeys: TEST_PUBLIC_KEYS,
+      ...verificationOptions(),
       now: new Date('2031-01-01T00:00:00.000Z'),
     }).errors).toContainEqual(expect.stringContaining('expired'));
   });
@@ -201,13 +232,8 @@ describe('release manifest v1', () => {
       artifactRoot: '/tmp/artifacts',
       evidenceRoots: { core: '/tmp/core' },
       hashFile: (path) => path.endsWith('semblance.zip') ? artifactHash : evidenceHash,
-      sourceProvenance: {
-        core: {
-          headCommit: 'f'.repeat(40),
-          isAncestor: () => true,
-          treeHash: () => HASH_A,
-        },
-      },
+      resolveRealPath: (path) => path,
+      sourceProvenance: sourceProvenance(),
     });
 
     expect(result).toEqual({ valid: true, errors: [] });
@@ -218,5 +244,332 @@ describe('release manifest v1', () => {
       ...validFixture,
       signedArtifacts: [null],
     })).toEqual(expect.objectContaining({ valid: false }));
+  });
+
+  it('requires provenance verifiers for every repository', () => {
+    const signed = signFixtureManifest(validFixture);
+
+    expect(verifyReleaseManifest(signed, {
+      trustedKeys: TEST_PUBLIC_KEYS,
+    } as VerifyReleaseManifestOptions).errors).toContainEqual(
+      expect.stringContaining('core provenance verifier'),
+    );
+    expect(verifyReleaseManifest(signed, {
+      ...verificationOptions(),
+      sourceProvenance: sourceProvenance({ repository: 'core', ancestor: false }),
+    }).errors).toContainEqual(expect.stringContaining('not an ancestor'));
+    expect(verifyReleaseManifest(signed, {
+      ...verificationOptions(),
+      sourceProvenance: sourceProvenance({ repository: 'website', treeHash: '0'.repeat(64) }),
+    }).errors).toContainEqual(expect.stringContaining('tree'));
+    expect(verifyReleaseManifest(signed, {
+      ...verificationOptions(),
+      sourceProvenance: sourceProvenance({ repository: 'representative', throws: true }),
+    }).errors).toContainEqual(expect.stringContaining('provenance verification failed'));
+  });
+
+  it('rejects not-yet-valid, malformed-date, and unsupported-algorithm keys', () => {
+    const signed = signFixtureManifest(validFixture);
+    expect(verifyReleaseManifest(signed, {
+      ...verificationOptions(),
+      now: new Date('2020-01-01T00:00:00.000Z'),
+    }).errors).toContainEqual(expect.stringContaining('not yet valid'));
+
+    const malformed = {
+      schemaVersion: 1 as const,
+      keys: [{ ...TEST_PUBLIC_KEYS.keys[0]!, validFrom: 'not-a-date' }],
+    };
+    expect(verifyReleaseManifest(signed, {
+      ...verificationOptions(),
+      trustedKeys: malformed,
+    }).errors).toContainEqual(expect.stringContaining('validity'));
+
+    const reversedWindow = {
+      schemaVersion: 1 as const,
+      keys: [{
+        ...TEST_PUBLIC_KEYS.keys[0]!,
+        validFrom: '2030-01-01T00:00:00.000Z',
+        validUntil: '2024-01-01T00:00:00.000Z',
+      }],
+    };
+    expect(verifyReleaseManifest(signed, {
+      ...verificationOptions(),
+      trustedKeys: reversedWindow,
+    }).errors).toContainEqual(expect.stringContaining('window'));
+
+    const unsupported = {
+      schemaVersion: 1 as const,
+      keys: [{ ...TEST_PUBLIC_KEYS.keys[0]!, algorithm: 'RSA' as 'Ed25519' }],
+    };
+    expect(verifyReleaseManifest(signed, {
+      ...verificationOptions(),
+      trustedKeys: unsupported,
+    }).errors).toContainEqual(expect.stringContaining('algorithm'));
+  });
+
+  it('requires commerce evidence to name Released evidence and verifies its hash', () => {
+    const commerceHash = '9'.repeat(64);
+    const enabled = signFixtureManifest({
+      ...validFixture,
+      completedSlices: [1, 7],
+      commerce: { newSalesEnabled: true, freezeEvidence: ['slice-7-commerce-freeze'] },
+      evidence: [{
+        id: 'slice-7-commerce-freeze',
+        repository: 'website',
+        path: 'evidence/commerce-freeze.json',
+        sha256: commerceHash,
+        requiredForStates: ['Released'],
+      }],
+    });
+
+    expect(verifyReleaseManifest(enabled, {
+      ...verificationOptions(),
+      evidenceRoots: { website: '/tmp/website' },
+      hashFile: () => commerceHash,
+      resolveRealPath: (path) => path,
+    })).toEqual({ valid: true, errors: [] });
+    expect(validateReleaseManifest({
+      ...enabled,
+      commerce: { newSalesEnabled: true, freezeEvidence: ['arbitrary-string'] },
+    }).errors).toContainEqual(expect.stringContaining('missing freeze evidence'));
+    expect(validateReleaseManifest({
+      ...validFixture,
+      commerce: { newSalesEnabled: false, freezeEvidence: ['arbitrary-string'] },
+    }).errors).toContainEqual(expect.stringContaining('missing freeze evidence'));
+    expect(verifyReleaseManifest(enabled, {
+      ...verificationOptions(),
+      evidenceRoots: { website: '/tmp/website' },
+      hashFile: () => '0'.repeat(64),
+      resolveRealPath: (path) => path,
+    }).errors).toContainEqual(expect.stringContaining('hash does not match'));
+  });
+
+  it('rejects a symlink-resolved artifact path outside its real root', () => {
+    const artifactHash = 'd'.repeat(64);
+    const evidenceHash = 'e'.repeat(64);
+    const released = signFixtureManifest({
+      ...validFixture,
+      signedArtifacts: [{
+        name: 'desktop-bundle',
+        path: 'bundles/semblance.zip',
+        sha256: artifactHash,
+        signature: signText(artifactHash),
+        signatureKeyId: TEST_KEY_ID,
+      }],
+      evidence: [{
+        id: 'release-tests',
+        repository: 'core',
+        path: 'evidence/release-tests.txt',
+        sha256: evidenceHash,
+        requiredForStates: ['Released'],
+      }],
+      features: [{
+        ...validFixture.features[0]!,
+        state: 'Released',
+        signedArtifactNames: ['desktop-bundle'],
+        evidenceIds: ['release-tests'],
+      }],
+    });
+
+    const result = verifyReleaseManifest(released, {
+      ...verificationOptions(),
+      artifactRoot: '/tmp/artifacts',
+      evidenceRoots: { core: '/tmp/core' },
+      hashFile: (path) => path.endsWith('semblance.zip') ? artifactHash : evidenceHash,
+      resolveRealPath: (path) => path.endsWith('semblance.zip') ? '/tmp/outside/semblance.zip' : path,
+    });
+
+    expect(result.errors).toContainEqual(expect.stringContaining('real path escapes'));
+
+    const traversing = signFixtureManifest({
+      ...released,
+      signedArtifacts: [{
+        ...released.signedArtifacts[0]!,
+        path: '../outside/semblance.zip',
+      }],
+    });
+    expect(verifyReleaseManifest(traversing, {
+      ...verificationOptions(),
+      artifactRoot: '/tmp/artifacts',
+      evidenceRoots: { core: '/tmp/core' },
+      hashFile: (path) => path.endsWith('semblance.zip') ? artifactHash : evidenceHash,
+      resolveRealPath: (path) => path,
+    }).errors).toContainEqual(expect.stringContaining('artifact root'));
+
+    expect(verifyReleaseManifest(released, {
+      ...verificationOptions(),
+      artifactRoot: '/tmp/artifacts',
+      evidenceRoots: { core: '/tmp/core' },
+      hashFile: (path) => path.endsWith('semblance.zip') ? artifactHash : evidenceHash,
+      resolveRealPath: () => {
+        throw new Error('realpath unavailable');
+      },
+    }).errors).toContainEqual(expect.stringContaining('could not be resolved'));
+  });
+
+  it('enforces FieldProven evidence and policy pin matching', () => {
+    const artifactHash = 'd'.repeat(64);
+    const evidenceHash = 'e'.repeat(64);
+    const fieldProven = signFixtureManifest({
+      ...validFixture,
+      signedArtifacts: [{
+        name: 'desktop-bundle',
+        path: 'bundle.zip',
+        sha256: artifactHash,
+        signature: signText(artifactHash),
+        signatureKeyId: TEST_KEY_ID,
+      }],
+      evidence: [{
+        id: 'field-proof',
+        repository: 'core',
+        path: 'field-proof.json',
+        sha256: evidenceHash,
+        requiredForStates: ['FieldProven'],
+      }],
+      features: [{
+        ...validFixture.features[0]!,
+        state: 'FieldProven',
+        signedArtifactNames: ['desktop-bundle'],
+        evidenceIds: ['field-proof'],
+      }],
+    });
+    const options = {
+      ...verificationOptions(),
+      artifactRoot: '/tmp/artifacts',
+      evidenceRoots: { core: '/tmp/core' },
+      hashFile: (path: string) => path.endsWith('.zip') ? artifactHash : evidenceHash,
+      resolveRealPath: (path: string) => path,
+    };
+
+    expect(verifyReleaseManifest(fieldProven, options)).toEqual({ valid: true, errors: [] });
+    for (const featurePatch of [
+      { protocolVersions: { releaseEvidence: 2 } },
+      { modelRuntimeHashes: ['0'.repeat(64)] },
+      { confidentialWorkloadMeasurements: ['measurement'] },
+      { infrastructurePolicyVersions: ['policy-v2'] },
+      { legalNoticesVersion: 'wrong' },
+    ]) {
+      const result = validateReleaseManifest({
+        ...fieldProven,
+        features: [{ ...fieldProven.features[0]!, ...featurePatch }],
+      });
+      expect(result.valid).toBe(false);
+    }
+  });
+
+  it('binds DR pins to referenced and verified artifact/evidence records', () => {
+    const drHash = '4'.repeat(64);
+    const extensionHash = '5'.repeat(64);
+    const drRelease = signFixtureManifest({
+      ...validFixture,
+      repositories: {
+        ...validFixture.repositories,
+        representative: {
+          ...validFixture.repositories.representative,
+          artifactHash: drHash,
+          extensionManifestHash: extensionHash,
+        },
+      },
+      signedArtifacts: [{
+        name: 'dr-package',
+        path: 'dr.tgz',
+        sha256: drHash,
+        signature: signText(drHash),
+        signatureKeyId: TEST_KEY_ID,
+      }],
+      evidence: [{
+        id: 'dr-extension-manifest',
+        repository: 'representative',
+        path: 'extension-manifest.json',
+        sha256: extensionHash,
+        requiredForStates: ['Released'],
+      }],
+      features: [{
+        ...validFixture.features[0]!,
+        repository: 'representative',
+        state: 'Released',
+        usesDigitalRepresentative: true,
+        signedArtifactNames: ['dr-package'],
+        evidenceIds: ['dr-extension-manifest'],
+        representativePins: {
+          packageVersion: '1.0.0',
+          artifactHash: drHash,
+          extensionManifestHash: extensionHash,
+        },
+      }],
+    });
+    const options = {
+      ...verificationOptions(),
+      artifactRoot: '/tmp/artifacts',
+      evidenceRoots: { representative: '/tmp/representative' },
+      hashFile: (path: string) => path.endsWith('.tgz') ? drHash : extensionHash,
+      resolveRealPath: (path: string) => path,
+    };
+
+    expect(verifyReleaseManifest(drRelease, options)).toEqual({ valid: true, errors: [] });
+    const unbound = {
+      ...drRelease,
+      evidence: [{
+        ...drRelease.evidence[0]!,
+        sha256: '6'.repeat(64),
+      }],
+    };
+    expect(validateReleaseManifest(unbound).errors).toContainEqual(
+      expect.stringContaining('extension manifest pin'),
+    );
+    const unboundPackage = {
+      ...drRelease,
+      signedArtifacts: [{
+        ...drRelease.signedArtifacts[0]!,
+        sha256: '6'.repeat(64),
+      }],
+    };
+    expect(validateReleaseManifest(unboundPackage).errors).toContainEqual(
+      expect.stringContaining('DR artifact pin'),
+    );
+  });
+
+  it('keeps runtime structural acceptance in parity with JSON Schema', () => {
+    const ajv = new Ajv2020({ strict: true });
+    addFormats(ajv);
+    const validateSchema = ajv.compile(releaseManifestSchema);
+    const cases: unknown[] = [
+      validFixture,
+      { ...validFixture, unexpected: true },
+      { ...validFixture, completedSlices: [1, 1] },
+      { ...validFixture, modelRuntimeHashes: [''] },
+      { ...validFixture, infrastructurePolicyVersions: ['v1', 'v1'] },
+      { ...validFixture, commerce: { ...validFixture.commerce, unexpected: true } },
+      { ...validFixture, features: [validFixture.features[0]!, validFixture.features[0]!] },
+      {
+        ...validFixture,
+        evidence: [{
+          id: 'empty-states',
+          repository: 'core',
+          path: 'evidence.json',
+          sha256: '8'.repeat(64),
+          requiredForStates: [],
+        }],
+      },
+      {
+        ...validFixture,
+        features: [{ ...validFixture.features[0]!, unexpected: true }],
+      },
+      {
+        ...validFixture,
+        features: [{
+          ...validFixture.features[0]!,
+          usesDigitalRepresentative: true,
+          representativePins: { packageVersion: '1.0.0' },
+        }],
+      },
+    ];
+
+    for (const candidate of cases) {
+      expect(
+        validateReleaseManifest(candidate).valid,
+        JSON.stringify(candidate),
+      ).toBe(validateSchema(candidate));
+    }
   });
 });

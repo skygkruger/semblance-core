@@ -4,8 +4,8 @@
   "generatedAt": "2026-07-18T17:05:00.000Z",
   "repositories": {
     "core": {
-      "sourceCommit": "07673b1c5a17341407f6710fa79a4ba40453a3d0",
-      "sourceTreeHash": "b8e2c9c9cb988465cf30d4e638fc3e557c7223d4"
+      "sourceCommit": "1adbd51650ddb590e99b6c141bc07babf95680ce",
+      "sourceTreeHash": "99aa0160f4c47bf7fcfad070222283edcbae0080"
     },
     "representative": {
       "sourceCommit": "81e37b125d691f822a5131e94ae3ee1e0f7adeae",
@@ -32,13 +32,13 @@
   "confidentialWorkloadMeasurements": [],
   "infrastructurePolicyVersions": [],
   "legalNoticesVersion": "unversioned",
-  "completedSlices": [],
+  "completedSlices": [1],
   "features": [
     {
       "id": "release-evidence-schema",
       "name": "Release and feature evidence schema",
       "repository": "core",
-      "state": "Specified",
+      "state": "Implemented",
       "usesDigitalRepresentative": false,
       "signedArtifactNames": [],
       "evidenceIds": [],

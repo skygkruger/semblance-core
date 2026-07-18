@@ -5,8 +5,8 @@
   "claims": [
     {
       "featureId": "release-evidence-schema",
-      "claim": "The release and feature evidence contract is specified.",
-      "state": "Specified",
+      "claim": "The release and feature evidence contract is implemented.",
+      "state": "Implemented",
       "evidenceIds": []
     }
   ]
