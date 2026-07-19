@@ -1,13 +1,10 @@
 // Knowledge Graph Merkle Delta Sync — Sovereignty-preserving sync over tunnel.
 //
-// Only derived metadata and entity relationships sync between devices.
-// Raw document content, email bodies, and message content NEVER sync.
-// Delta-based: Merkle root comparison identifies changes, only deltas transmitted.
-//
-// What syncs: contacts, calendar events, preferences, named session metadata.
-// What never syncs: raw document chunks, email bodies, conversation history.
+// Gateway transports ciphertext envelopes only — it never decrypts sync payloads.
+// Decryption and merge authority live in @semblance/sync on the receiving device.
 
 import { sha256 } from '@semblance/core';
+import type { SyncEnvelopeV1 } from '@semblance/sync';
 import type { SemblanceEventBus } from '../events/event-bus.js';
 
 export type KGSyncCategory = 'contacts' | 'calendar' | 'preferences' | 'named_sessions';
@@ -145,12 +142,20 @@ export interface KGSyncResult {
   deltasReceived: number;
   syncedAt: string;
   error?: string;
+  /** Ciphertext-only envelopes relayed — Gateway never decrypts these. */
+  relayedEnvelopes?: SyncEnvelopeV1[];
 }
 
 interface KGSyncStore {
   getEntitiesByCategory(category: string): Array<{ id: string; data: Record<string, unknown>; updatedAt: string }>;
   applyDelta(delta: KGSyncDelta): void;
   getMerkleRoot(): string;
+}
+
+/** Ciphertext envelope transport — Gateway relays without decryption. */
+export interface CiphertextEnvelopeTransport {
+  pushEnvelopes(envelopes: SyncEnvelopeV1[]): Promise<{ accepted: number }>;
+  pullEnvelopes(sinceLamport?: number): Promise<SyncEnvelopeV1[]>;
 }
 
 // Transport interface (subset of TunnelTransport)
@@ -182,6 +187,19 @@ export class TunnelKGSync {
     this.store = config.store ?? null;
     this.deviceId = config.deviceId;
     this.eventBus = config.eventBus ?? null;
+  }
+
+  /**
+   * Relay ciphertext sync envelopes without decrypting.
+   * Gateway is transport-only — merge authority stays on devices.
+   */
+  async relayEncryptedEnvelopes(
+    transport: CiphertextEnvelopeTransport,
+    outgoing: SyncEnvelopeV1[],
+  ): Promise<{ accepted: number; pulled: SyncEnvelopeV1[] }> {
+    const pushResult = await transport.pushEnvelopes(outgoing);
+    const pulled = await transport.pullEnvelopes();
+    return { accepted: pushResult.accepted, pulled };
   }
 
   /**

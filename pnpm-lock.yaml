@@ -112,6 +112,9 @@ importers:
       '@semblance/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@semblance/sync':
+        specifier: workspace:*
+        version: link:../sync
       better-sqlite3:
         specifier: ^11.10.0
         version: 11.10.0
@@ -294,6 +297,9 @@ importers:
       '@semblance/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@semblance/sync':
+        specifier: workspace:*
+        version: link:../sync
       '@semblance/vault':
         specifier: workspace:*
         version: link:../vault

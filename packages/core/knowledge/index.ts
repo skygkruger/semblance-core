@@ -43,6 +43,13 @@ export { chunkText } from './chunker.js';
 export type { ChunkerConfig, Chunk } from './chunker.js';
 export { buildKGDelta, applyKGDelta, documentToSyncEntry, KG_SYNC_MAX_BYTES } from './kg-sync.js';
 export type { KGSyncEntry, KGSyncDelta, KGSyncImportResult } from './kg-sync.js';
+export {
+  KG_SYNC_DOMAIN_ID,
+  kgDeltaToSyncEnvelope,
+  syncEnvelopeToKGDelta,
+  mergeKGSyncEvents,
+} from './kg-sync.js';
+export type { KGSyncEnvelopeContext, KGSyncEnvelopeDecryptContext } from './kg-sync.js';
 export { KnowledgeCurator } from './knowledge-curator.js';
 export type { ChunkItem, CurationResult, CategorySuggestion } from './knowledge-curator.js';
 export {

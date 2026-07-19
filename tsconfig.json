@@ -22,6 +22,8 @@
       "@semblance/extension-runner": ["./packages/extension-runner/src/index.ts"],
       "@semblance/gateway": ["./packages/gateway/index.ts"],
       "@semblance/gateway/*": ["./packages/gateway/*"],
+      "@semblance/sync": ["./packages/sync/src/index.ts"],
+      "@semblance/sync/*": ["./packages/sync/src/*"],
       "@semblance/ui": ["./packages/semblance-ui/index.ts"],
       "@semblance/ui/*": ["./packages/semblance-ui/*"],
       "@semblance/desktop/*": ["./packages/desktop/src/*"],

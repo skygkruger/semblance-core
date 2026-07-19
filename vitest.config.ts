@@ -54,6 +54,7 @@ export default defineConfig({
       { find: '@semblance/core', replacement: resolve(__dirname, 'packages/core') },
       { find: '@semblance/vault', replacement: resolve(__dirname, 'packages/vault') },
       { find: '@semblance/protocol', replacement: resolve(__dirname, 'packages/protocol') },
+      { find: '@semblance/sync', replacement: resolve(__dirname, 'packages/sync/src/index.ts') },
       { find: '@semblance/extension-sdk', replacement: resolve(__dirname, 'packages/extension-sdk/src/index.ts') },
       { find: '@semblance/extension-runner', replacement: resolve(__dirname, 'packages/extension-runner/src/index.ts') },
       { find: '@semblance/gateway', replacement: resolve(__dirname, 'packages/gateway') },

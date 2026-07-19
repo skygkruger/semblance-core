@@ -48,8 +48,11 @@ import { bootstrapLocalVault, type LocalVaultBootstrap } from '../../../vault/sr
 import {
   createSyncSecureStorageAdapter,
   SovereigntyRootService,
+  SyncEventService,
   type SovereigntyRootService as SyncRootService,
+  type SyncEventService as SyncEventServiceType,
 } from '../../../sync/src/index.js';
+import { openMembershipStore } from '../../../sync/src/membership/store.js';
 import { createLLMProvider, BitNetProvider, InferenceRouter } from '../../../core/llm/index.js';
 import type { NativeRuntimeBridge } from '../../../core/llm/native-bridge-types.js';
 import { getPlatform } from '../../../core/platform/index.js';
@@ -384,6 +387,7 @@ const pendingCallbacks = callbackProtocol.pendingCallbacks;
 let core: SemblanceCore | null = null;
 let localVault: LocalVaultBootstrap | null = null;
 let syncRootService: SyncRootService | null = null;
+let syncEventService: SyncEventServiceType | null = null;
 let gateway: Gateway | null = null;
 
 function getCommerceTransport(): CommerceTransport {
@@ -5090,6 +5094,12 @@ async function handleShutdown(): Promise<unknown> {
     console.error('[sidecar] Local vault shut down');
   }
 
+  if (syncEventService) {
+    syncEventService.close();
+    syncEventService = null;
+    console.error('[sidecar] Sync event service shut down');
+  }
+
   if (syncRootService) {
     syncRootService.close();
     syncRootService = null;
@@ -6087,14 +6097,26 @@ async function runStyleExtraction(
 
 async function initializeSyncRoot(sidecarDataDir: string): Promise<void> {
   const keyStore = createFileKeyStore(join(sidecarDataDir, 'sync-keystore.json'));
+  const secureStorage = createSyncSecureStorageAdapter(keyStore);
   syncRootService = await SovereigntyRootService.initialize({
     dataDir: sidecarDataDir,
-    secureStorage: createSyncSecureStorageAdapter(keyStore),
+    secureStorage,
   });
   const status = await syncRootService.getStatus();
   console.error(
     `[sidecar] Sovereignty root ready (rootId=${status.rootId}, epoch=${status.membershipEpoch}, devices=${status.activeDeviceCount})`,
   );
+
+  const membershipStore = openMembershipStore(sidecarDataDir);
+  syncEventService = await SyncEventService.initialize({
+    dataDir: sidecarDataDir,
+    secureStorage,
+    membershipStore,
+    onRebuildIndexes: async (events) => {
+      console.error(`[sidecar] Sync merge rebuilt indexes for ${events.length} vault events`);
+    },
+  });
+  console.error('[sidecar] Sync event service ready');
 }
 
 async function initializeKernelEntitlement(sidecarDataDir: string): Promise<void> {
@@ -11238,6 +11260,65 @@ async function handleRequest(req: Request): Promise<void> {
             authorizedByDeviceIds: revokeParams.authorizedByDeviceIds ?? [],
           });
           respond(id, { success: true, result, status: await syncRootService.getStatus() });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:push_events': {
+        if (!syncEventService) {
+          respondError(id, 'Sync event service not initialized');
+          break;
+        }
+        try {
+          const pushParams = params as {
+            domainId?: string;
+            events?: Array<{ eventType: string; payload: unknown; causalParentIds?: string[] }>;
+          };
+          if (!pushParams.domainId || !pushParams.events || pushParams.events.length === 0) {
+            respondError(id, 'domainId and non-empty events array are required');
+            break;
+          }
+          const result = await syncEventService.pushEvents({
+            domainId: pushParams.domainId,
+            events: pushParams.events,
+          });
+          respond(id, {
+            success: true,
+            pushedCount: result.pushed.length,
+            envelopes: result.pushed,
+            auditEntry: result.auditEntry,
+          });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:pull_merge': {
+        if (!syncEventService) {
+          respondError(id, 'Sync event service not initialized');
+          break;
+        }
+        try {
+          const pullParams = params as {
+            incomingEnvelopes?: import('@semblance/protocol').SyncEnvelopeV1[];
+            createCheckpoint?: boolean;
+          };
+          const result = await syncEventService.pullMerge({
+            incomingEnvelopes: pullParams.incomingEnvelopes ?? [],
+            createCheckpoint: pullParams.createCheckpoint ?? true,
+          });
+          respond(id, {
+            success: true,
+            appliedEventIds: result.appliedEventIds,
+            skippedEventIds: result.skippedEventIds,
+            conflicts: result.conflicts,
+            mergedCount: result.merged.length,
+            checkpoint: result.checkpoint,
+            auditEntry: result.auditEntry,
+          });
         } catch (err) {
           respondError(id, (err as Error).message);
         }

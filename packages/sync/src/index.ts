@@ -85,3 +85,76 @@ export {
   hashSovereigntyRootAnchor,
   type SovereigntyRootServiceOptions,
 } from './root/sovereignty-root.js';
+
+export {
+  domainKeyStorageKey,
+  deriveEpochBoundDomainKey,
+  encryptWithDomainKey,
+  decryptWithDomainKey,
+  getOrCreateDomainMasterKey,
+  loadEpochBoundDomainKey,
+  rotateDomainKeyForEpoch,
+} from './keys/domain-keys.js';
+
+export type {
+  VaultEventPlaintext,
+  DecryptedVaultEvent,
+  MergedVaultEvent,
+  MergeResult,
+  ConflictRecord,
+  SyncAuditEntry,
+  SyncCheckpoint,
+  PushEventsResult,
+  PullMergeResult,
+  RebuildIndexesCallback,
+  VectorClock,
+} from './events/types.js';
+
+export {
+  createSignedEncryptedVaultEvent,
+  decryptAndVerifyVaultEvent,
+  wrapEncryptedEventEnvelope,
+  computeNextVectorClock,
+  computeNextLamportClock,
+  EncryptedEventEnvelopeV1,
+  SyncEnvelopeV1,
+  type CreateVaultEventEnvelopeInput,
+  type DecryptVaultEventEnvelopeInput,
+} from './events/envelope.js';
+
+export {
+  dominates,
+  areConcurrent,
+  mergeVectorClocks,
+  buildConflictMarker,
+  createConflictGroupId,
+  hasCausalDependency,
+} from './events/conflict.js';
+
+export {
+  mergeVaultEvents,
+  advanceMergeState,
+  type MergeableEvent,
+  type CausalMergeOptions,
+} from './events/merge.js';
+
+export {
+  appendSignedAuditEntry,
+  createSignedCheckpoint,
+  verifyAuditEntry,
+  verifyAuditChain,
+  verifyCheckpoint,
+  checkpointDigest,
+  latestAuditChainHash,
+  getAuditGenesisHash,
+} from './events/audit.js';
+
+export { SyncEventStore, openSyncEventStore } from './events/store.js';
+
+export {
+  SyncEventService,
+  createSyncEventService,
+  type SyncEventServiceOptions,
+  type PushVaultEventsInput,
+  type PullMergeInput,
+} from './events/sync-event-service.js';
