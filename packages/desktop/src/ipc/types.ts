@@ -969,6 +969,37 @@ export interface TodaySnapshotResult {
   isEmpty: boolean;
 }
 
+// ─── Proof Center Types ─────────────────────────────────────────────────────
+
+export type ProofEvidenceStatus =
+  | 'current'
+  | 'historical'
+  | 'pending'
+  | 'stale'
+  | 'tampered'
+  | 'unavailable';
+
+export interface ProofClassEntryResult {
+  readonly id: string;
+  readonly title: string;
+  readonly status: ProofEvidenceStatus;
+  readonly summary: string;
+  readonly artifactId: string | null;
+  readonly version: string | null;
+  readonly evidenceId: string | null;
+  readonly inspectedAt: string;
+  readonly degradedReason?: string;
+  readonly details?: Readonly<Record<string, unknown>>;
+}
+
+export interface ProofCenterSnapshotResult {
+  readonly assembledAt: string;
+  readonly offlineInspectable: true;
+  readonly classes: readonly ProofClassEntryResult[];
+  readonly degradedCount: number;
+  readonly isEmpty: boolean;
+}
+
 // ─── Morning Brief Types ────────────────────────────────────────────────────
 
 export interface MorningBriefItem {

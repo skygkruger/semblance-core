@@ -894,6 +894,10 @@ export function getTodaySnapshot(): Promise<import('./types.js').TodaySnapshotRe
   return sidecarCall<import('./types.js').TodaySnapshotResult>('today:get_snapshot');
 }
 
+export function getProofCenterSnapshot(): Promise<import('./types.js').ProofCenterSnapshotResult> {
+  return sidecarCall<import('./types.js').ProofCenterSnapshotResult>('proof:get_center_snapshot');
+}
+
 export function getWeather(): Promise<import('./types.js').WeatherResult> {
   return invoke<import('./types.js').WeatherResult>('weather_get_current');
 }

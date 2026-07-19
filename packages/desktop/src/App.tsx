@@ -25,6 +25,7 @@ import { RelationshipsScreen } from './screens/RelationshipsScreen';
 import { ConnectionsScreen } from './screens/ConnectionsScreen';
 import { MorningBriefScreen } from './screens/MorningBriefScreen';
 import { TodayScreen } from './screens/TodayScreen';
+import { ProofScreen } from './screens/ProofScreen';
 import { KnowledgeGraphScreen } from './screens/KnowledgeGraphScreen';
 import { IntentScreen } from './screens/IntentScreen';
 import { FinancialDashboardScreen } from './screens/FinancialDashboardScreen';
@@ -160,6 +161,14 @@ function SunriseIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2v4" /><path d="m4.93 10.93 2.83 2.83" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m19.07 10.93-2.83 2.83" />
       <path d="M22 22H2" /><path d="M16 6l-4 4-4-4" /><path d="M16 18a4 4 0 0 0-8 0" />
+    </svg>
+  );
+}
+function ProofIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="m9 12 2 2 4-4" />
     </svg>
   );
 }
@@ -302,6 +311,7 @@ const navSections: NavSection[] = [
     label: 'TRUST & SOVEREIGNTY',
     items: [
       { id: 'work', label: 'Work', icon: <WorkIcon /> },
+      { id: 'proof', label: 'Proof', icon: <ProofIcon /> },
       { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
       { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
       { id: 'sovereignty-report', label: 'Sovereignty', icon: <ScrollIcon /> },
@@ -622,6 +632,7 @@ function AppContent() {
           <Route path="/vault" element={<VaultScreen />} />
           <Route path="/connections" element={<ConnectionsScreen />} />
           <Route path="/work" element={<WorkScreen />} />
+          <Route path="/proof" element={<ProofScreen />} />
           <Route path="/activity" element={<ActivityScreen />} />
           <Route path="/privacy" element={<PrivacyScreen />} />
           <Route path="/sovereignty-report" element={<SovereigntyReportScreen />} />

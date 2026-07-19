@@ -260,6 +260,9 @@ import {
 // Morning Brief / Daily Digest / Weather / Style / Dark Pattern / Document Context / Health / Cloud Storage / Graph Vis
 import { MorningBriefGenerator } from '../../../core/agent/morning-brief.js';
 import { buildTodaySnapshot } from '../../../core/agent/today/index.js';
+import { buildProofCenterSnapshot } from '../../../core/proof-center/index.js';
+import { getDigitalRepresentativeArtifactStatus } from '../../../core/extensions/loader.js';
+import { CURRENT_MEASUREMENT_POLICY_VERSION } from '@semblance/kernel';
 import {
   createPlanStore,
   enrichPlanView,
@@ -3975,6 +3978,186 @@ function handlePlansUpdate(params: UpdatePlanInput & { planId?: string }): Deleg
     steps: params.steps,
   });
   return persistSyncedPlanView(updated);
+}
+
+function collectConnectedServicesForProof(): Array<{ connectorId: string; lastSyncedAt: string | null }> {
+  const connectedList: Array<{ connectorId: string; lastSyncedAt: string | null }> = [];
+  try {
+    const tokenMgr = ensureOAuthTokenManager();
+    const connectorRegistry = createDefaultConnectorRegistry();
+    for (const connector of connectorRegistry.listAll()) {
+      const oauthCfg = getOAuthConfigForConnector(connector.id);
+      if (oauthCfg) {
+        const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
+        if (accessToken) {
+          connectedList.push({
+            connectorId: connector.id,
+            lastSyncedAt: getPref(`connector_last_sync_${connector.id}`) ?? null,
+          });
+        }
+      }
+      if (connector.authType === 'native') {
+        const nativeState = getPref(`connector_state_${connector.id}`);
+        if (nativeState === 'connected') {
+          connectedList.push({
+            connectorId: connector.id,
+            lastSyncedAt: getPref(`connector_last_sync_${connector.id}`) ?? null,
+          });
+        }
+      }
+    }
+  } catch {
+    // Connector registry may not be initialized in degraded startup
+  }
+  return connectedList;
+}
+
+async function buildProofCenterSnapshotFromSidecar() {
+  ensureExecutionDestinationStores();
+
+  const extensionArtifact = getDigitalRepresentativeArtifactStatus();
+  const executionPolicyDoc = executionDestinationPolicyStore?.get() ?? null;
+  const executionReceipts = executionReceiptStore?.listRecent(20).map((receipt) => ({
+    id: receipt.id,
+    requestId: receipt.requestId,
+    timestamp: receipt.timestamp,
+    status: receipt.status,
+    destination: receipt.destination,
+  })) ?? [];
+
+  let entitlementSummary: {
+    active: boolean;
+    entitlementId: string | null;
+    tier: string | null;
+    revocationEpoch: number | null;
+  } | null = null;
+  if (entitlementService) {
+    try {
+      const snapshot = await entitlementService.getSnapshot();
+      if (snapshot) {
+        entitlementSummary = {
+          active: snapshot.active,
+          entitlementId: snapshot.entitlement.entitlementId,
+          tier: snapshot.tier,
+          revocationEpoch: snapshot.entitlement.revocationEpoch,
+        };
+      }
+    } catch {
+      entitlementSummary = null;
+    }
+  }
+
+  let voucherSummary: { remainingCount: number; lastRedeemedAt: string | null } | null = null;
+  const voucherWallet = (globalThis as { __voucherWallet?: { count?: () => number; listRecentRedemptions?: () => Array<{ redeemedAt: string }> } }).__voucherWallet;
+  if (voucherWallet && typeof voucherWallet.count === 'function') {
+    const recent = typeof voucherWallet.listRecentRedemptions === 'function'
+      ? voucherWallet.listRecentRedemptions()
+      : [];
+    voucherSummary = {
+      remainingCount: voucherWallet.count(),
+      lastRedeemedAt: recent[0]?.redeemedAt ?? null,
+    };
+  }
+
+  let syncDevices: Array<{ deviceId: string; label: string | null; keyEpoch: number | null; lastSeenAt: string | null }> | null = null;
+  if (tunnelPairingCoordinator) {
+    try {
+      const devices = await tunnelPairingCoordinator.listPairedDevices();
+      syncDevices = devices.map((device) => ({
+        deviceId: device.deviceId,
+        label: device.displayName ?? null,
+        keyEpoch: null,
+        lastSeenAt: device.lastSeenAt ?? null,
+      }));
+    } catch {
+      syncDevices = null;
+    }
+  } else if (deviceRegistry) {
+    try {
+      const devices = deviceRegistry.getDevices();
+      syncDevices = devices.map((device) => ({
+        deviceId: device.id,
+        label: device.name ?? null,
+        keyEpoch: null,
+        lastSeenAt: device.lastSeen ?? null,
+      }));
+    } catch {
+      syncDevices = null;
+    }
+  }
+
+  let pendingTombstones = 0;
+  let completedDeletions = 0;
+  if (prefsDb) {
+    try {
+      const pendingRow = prefsDb.prepare(
+        'SELECT COUNT(*) as count FROM vault_deletion_completion WHERE pending = 1',
+      ).get() as { count: number } | undefined;
+      pendingTombstones = pendingRow?.count ?? 0;
+    } catch {
+      pendingTombstones = 0;
+    }
+    try {
+      const completedRow = prefsDb.prepare(
+        'SELECT COUNT(*) as count FROM vault_deletion_receipts',
+      ).get() as { count: number } | undefined;
+      completedDeletions = completedRow?.count ?? 0;
+    } catch {
+      completedDeletions = 0;
+    }
+  }
+
+  const activeModelPref = getPref('active_model') ?? getPref('bitnet_active_model') ?? null;
+  const inferenceEnginePref = getPref('inference_engine') ?? null;
+
+  return buildProofCenterSnapshot({
+    auditTrail: gateway?.getAuditTrail() ?? null,
+    actionLifecycleStore: gateway?.getActionLifecycleStore() ?? null,
+    connectedServices: collectConnectedServicesForProof(),
+    executionPolicy: executionPolicyDoc
+      ? {
+          schemaVersion: executionPolicyDoc.schemaVersion,
+          capabilityCount: Object.keys(executionPolicyDoc.capabilities ?? {}).length,
+          updatedAt: getPref('execution_destination_policy_updated_at') ?? null,
+        }
+      : null,
+    executionReceipts,
+    extensionStatus: {
+      configured: extensionArtifact.configured,
+      loaded: extensionArtifact.loadedViaRunner || extensionArtifact.valid,
+      manifestId: extensionArtifact.manifestId ?? null,
+      manifestHash: releaseManifestRepresentativeHash(),
+    },
+    activeModel: {
+      modelId: activeModelPref,
+      provider: inferenceEnginePref,
+      inferenceEngine: inferenceEnginePref,
+    },
+    entitlement: entitlementSummary,
+    vouchers: voucherSummary,
+    syncDevices,
+    deletionState: {
+      pendingTombstones,
+      completedDeletions,
+      retentionPolicyId: getPref('memory_retention_policy_id') ?? 'retention-memory-default-365d',
+      lastExportAt: getPref('living_will_last_export_at') ?? null,
+    },
+    measurementPolicy: {
+      version: CURRENT_MEASUREMENT_POLICY_VERSION,
+      allowedWorkloads: 1,
+    },
+  });
+}
+
+function releaseManifestRepresentativeHash(): string | null {
+  try {
+    const manifest = require('../../../../release/release-manifest.json') as {
+      repositories?: { representative?: { extensionManifestHash?: string | null } };
+    };
+    return manifest.repositories?.representative?.extensionManifestHash ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function buildRepresentativeEmailWorkflowDeps(): RepresentativeEmailWorkflowDeps {
@@ -11145,6 +11328,16 @@ async function handleRequest(req: Request): Promise<void> {
             signingKey: gateway.getSigningKey(),
           });
           respond(id, receipt);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'proof:get_center_snapshot': {
+        try {
+          const snapshot = await buildProofCenterSnapshotFromSidecar();
+          respond(id, snapshot);
         } catch (err) {
           respondError(id, (err as Error).message);
         }
