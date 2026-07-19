@@ -34,6 +34,7 @@ import {
   encryptConfidentialResponse,
   prepareConfidentialTask,
 } from '../src/confidential/task-crypto.js';
+import { VoucherWallet } from '../src/confidential/voucher-wallet.js';
 import type {
   ExecutionRequest,
   GatewayOpaqueTransport,
@@ -131,6 +132,21 @@ function createAttestationClient(nonceGuard = createAttestationNonceGuard()): At
     expectedWorkloadId: TEST_WORKLOAD_ID,
     nonceGuard,
   });
+}
+
+function createTestVoucherWallet(): VoucherWallet {
+  const wallet = new VoucherWallet();
+  wallet.addBatch([
+    {
+      serial: 'f'.repeat(64),
+      coarseClass: 'inference-standard',
+      quantity: 1,
+      billingPeriod: '2026-07',
+      issuerKeyId: 'test-voucher-key',
+      signature: 'test-signature',
+    },
+  ]);
+  return wallet;
 }
 
 const X25519_SPKI_PREFIX = Buffer.from('302a300506032b656e032100', 'hex');
@@ -269,6 +285,7 @@ describe('CloudBroker confidential destination', () => {
         throw new Error('BYO execute must not be called for confidential destination');
       }),
       executeConfidential: vi.fn(async (request) => {
+        expect(request.voucher.spentDigest).toMatch(/^[0-9a-f]{64}$/);
         const plaintextJson = decryptTaskWithWorkload(
           request.deviceEphemeralPublicKey,
           request.ciphertext,
@@ -298,6 +315,7 @@ describe('CloudBroker confidential destination', () => {
       gatewayTransport,
       localTransport,
       attestationClient: createAttestationClient(nonceGuard),
+      voucherWallet: createTestVoucherWallet(),
     });
 
     const result = await broker.execute(baseRequest());
@@ -319,6 +337,7 @@ describe('CloudBroker confidential destination', () => {
       gatewayTransport,
       localTransport,
       attestationClient: createAttestationClient(nonceGuard),
+      voucherWallet: createTestVoucherWallet(),
     });
 
     const result = await broker.execute(baseRequest({
@@ -349,6 +368,7 @@ describe('CloudBroker confidential destination', () => {
         expectedWorkloadId: TEST_WORKLOAD_ID,
         nonceGuard,
       }),
+      voucherWallet: createTestVoucherWallet(),
     });
 
     const result = await broker.execute(baseRequest({
@@ -371,6 +391,7 @@ describe('CloudBroker confidential destination', () => {
       gatewayTransport,
       localTransport,
       attestationClient: createAttestationClient(nonceGuard),
+      voucherWallet: createTestVoucherWallet(),
     });
 
     const result = await broker.execute(baseRequest({
@@ -393,6 +414,7 @@ describe('CloudBroker confidential destination', () => {
       gatewayTransport,
       localTransport,
       attestationClient: createAttestationClient(nonceGuard),
+      voucherWallet: createTestVoucherWallet(),
     });
 
     await broker.execute(baseRequest({

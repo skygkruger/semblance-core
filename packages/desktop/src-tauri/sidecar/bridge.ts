@@ -2383,6 +2383,7 @@ async function handleInitialize(): Promise<unknown> {
 
     const { CloudBroker } = require('../../../cloud-broker/src/index.js');
     const { AttestationClient } = require('../../../cloud-broker/src/confidential/attestation-client.js');
+    const { VoucherWallet } = require('../../../cloud-broker/src/confidential/voucher-wallet.js');
     const { OpaqueExecutionTransport } = require('../../../gateway/transports/opaque-execution.js');
 
     const CONFIDENTIAL_WORKLOAD_ID = 'semblance-confidential-inference-v1';
@@ -2416,12 +2417,41 @@ async function handleInitialize(): Promise<unknown> {
         if (!baseUrl || !authToken) return null;
         return { baseUrl, authToken };
       },
+      getObliviousRelayEndpoint: async () => {
+        const baseUrl = process.env['SEMBLANCE_PRIVACY_RELAY_URL']
+          ?? await sidecarKeychainStore.get('semblance.privacy-relay', 'base_url');
+        const authToken = process.env['SEMBLANCE_PRIVACY_RELAY_TOKEN']
+          ?? await sidecarKeychainStore.get('semblance.privacy-relay', 'auth_token');
+        if (!baseUrl || !authToken) return null;
+        return { baseUrl, authToken };
+      },
     });
+
+    const voucherWallet = new VoucherWallet();
+    const storedVouchersRaw = await sidecarKeychainStore.get('semblance.vouchers', 'batch');
+    if (storedVouchersRaw) {
+      try {
+        const parsed = JSON.parse(storedVouchersRaw) as Array<{
+          serial: string;
+          coarseClass: 'inference-small' | 'inference-standard' | 'inference-large';
+          quantity: number;
+          billingPeriod: string;
+          issuerKeyId: string;
+          signature: string;
+        }>;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          voucherWallet.addBatch(parsed);
+        }
+      } catch {
+        console.error('[sidecar] Failed to load voucher batch from keychain');
+      }
+    }
 
     const cloudBroker = new CloudBroker({
       policyDecider: decideExecutionDestination,
       gatewayTransport: opaqueExecutionTransport,
       attestationClient,
+      voucherWallet,
       localTransport: {
         execute: async (localParams: {
           messages: Array<{ role: string; content: string }>;
@@ -2451,6 +2481,7 @@ async function handleInitialize(): Promise<unknown> {
     });
 
     (globalThis as any).__cloudBroker = cloudBroker;
+    (globalThis as any).__voucherWallet = voucherWallet;
     ensureExecutionDestinationStores();
 
     console.error('[sidecar] Cloud Bridge initialized (mode: off — user must enable in Settings)');

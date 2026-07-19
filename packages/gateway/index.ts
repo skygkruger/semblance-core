@@ -536,6 +536,18 @@ export {
   type OpaqueExecutionTransportDeps,
   type SelfHostedNodeCredential,
 } from './transports/opaque-execution.js';
+export {
+  ObliviousRelayTransport,
+  assertRelayLogHasNoAccountLinkage,
+  buildOpaqueEnvelope,
+  decodeOpaqueEnvelope,
+  opaqueEnvelopeSchema,
+  type ObliviousRelayDeps,
+  type ObliviousRelayEndpoint,
+  type ObliviousRelayForwardResult,
+  type ObliviousRelayLogEntry,
+  type OpaqueEnvelope,
+} from './transports/oblivious-relay.js';
 
 // Daemon mode
 export { DaemonManager } from './daemon/daemon-manager.js';

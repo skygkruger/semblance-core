@@ -13,6 +13,11 @@ import type { AuditTrail } from '../audit/trail.js';
 import { runWithGatewayNetwork } from '@semblance/core/security/egress-guard.js';
 import type { CloudBridgeAdapter } from '../cloud-bridge/cloud-bridge-adapter.js';
 import { createExecutionV1Client } from './execution-v1-client.js';
+import {
+  buildOpaqueEnvelope,
+  ObliviousRelayTransport,
+  type ObliviousRelayEndpoint,
+} from './oblivious-relay.js';
 
 const executionMessageSchema = z.object({
   role: z.string().min(1),
@@ -47,6 +52,14 @@ export const confidentialExecutionRequestSchema = z.object({
   subagentId: z.string().min(1),
   domain: z.string().min(1),
   taskType: z.string().min(1),
+  voucher: z.object({
+    spentDigest: z.string().length(64),
+    coarseClass: z.string().min(1),
+    quantity: z.number().int().positive(),
+    billingPeriod: z.string().min(1),
+    signature: z.string().min(1),
+    issuerKeyId: z.string().min(1),
+  }),
 }).strict();
 
 export type OpaqueExecutionRequest = z.infer<typeof opaqueExecutionRequestSchema>;
@@ -81,6 +94,7 @@ export interface OpaqueExecutionTransportDeps {
   readonly auditTrail?: AuditTrail;
   readonly getSelfHostedNode?: (nodeId: string) => Promise<SelfHostedNodeCredential | null>;
   readonly getConfidentialEndpoint?: () => Promise<ConfidentialWorkloadEndpoint | null>;
+  readonly getObliviousRelayEndpoint?: () => Promise<ObliviousRelayEndpoint | null>;
   readonly fetchImpl?: typeof fetch;
 }
 
@@ -109,6 +123,7 @@ export class OpaqueExecutionTransport {
   private readonly auditTrail?: AuditTrail;
   private readonly getSelfHostedNode: (nodeId: string) => Promise<SelfHostedNodeCredential | null>;
   private readonly getConfidentialEndpoint: () => Promise<ConfidentialWorkloadEndpoint | null>;
+  private readonly getObliviousRelayEndpoint: () => Promise<ObliviousRelayEndpoint | null>;
   private readonly fetchImpl: typeof fetch;
 
   constructor(deps: OpaqueExecutionTransportDeps) {
@@ -116,6 +131,7 @@ export class OpaqueExecutionTransport {
     this.auditTrail = deps.auditTrail;
     this.getSelfHostedNode = deps.getSelfHostedNode ?? (async () => null);
     this.getConfidentialEndpoint = deps.getConfidentialEndpoint ?? (async () => null);
+    this.getObliviousRelayEndpoint = deps.getObliviousRelayEndpoint ?? (async () => null);
     this.fetchImpl = deps.fetchImpl ?? globalThis.fetch;
   }
 
@@ -244,9 +260,7 @@ export class OpaqueExecutionTransport {
       throw new Error('Confidential workload endpoint not configured');
     }
 
-    const wireBody = {
-      requestId: auditRequestId,
-      destination: 'confidential',
+    const relayPayload = {
       deviceEphemeralPublicKey: request.deviceEphemeralPublicKey,
       ciphertext: request.ciphertext,
       iv: request.iv,
@@ -254,30 +268,13 @@ export class OpaqueExecutionTransport {
       promptContentHash: request.promptContentHash,
       model: request.model,
       maxTokens: request.maxTokens,
-      subagentId: request.subagentId,
-      domain: request.domain,
-      taskType: request.taskType,
+      voucher: request.voucher,
     };
 
-    assertConfidentialCiphertextOnly(wireBody);
+    assertConfidentialCiphertextOnly(relayPayload);
 
-    const response = await runWithGatewayNetwork(() =>
-      this.fetchImpl(`${endpoint.baseUrl.replace(/\/$/, '')}/confidential/v1/tasks`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${endpoint.authToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(wireBody),
-      }),
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Confidential workload request failed: ${response.status} ${errorText}`);
-    }
-
-    const payload = await response.json() as {
+    const relayEndpoint = await this.getObliviousRelayEndpoint();
+    let payload: {
       ciphertext: string;
       iv: string;
       authTag: string;
@@ -285,6 +282,39 @@ export class OpaqueExecutionTransport {
       model?: string;
       provider?: string;
     };
+
+    if (relayEndpoint) {
+      const obliviousRelay = new ObliviousRelayTransport({
+        getRelayEndpoint: async () => relayEndpoint,
+        fetchImpl: this.fetchImpl,
+      });
+      const envelope = buildOpaqueEnvelope(relayPayload);
+      const relayResult = await obliviousRelay.forward(envelope);
+      const decodedJson = Buffer.from(relayResult.responsePayload, 'base64url').toString('utf8');
+      const expectedHash = createHash('sha256').update(decodedJson, 'utf8').digest('hex');
+      if (expectedHash !== relayResult.responsePayloadHash) {
+        throw new Error('oblivious_relay_response_hash_mismatch');
+      }
+      payload = JSON.parse(decodedJson) as typeof payload;
+    } else {
+      const response = await runWithGatewayNetwork(() =>
+        this.fetchImpl(`${endpoint.baseUrl.replace(/\/$/, '')}/confidential/v1/tasks`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${endpoint.authToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(relayPayload),
+        }),
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Confidential workload request failed: ${response.status} ${errorText}`);
+      }
+
+      payload = await response.json() as typeof payload;
+    }
 
     if (!payload.ciphertext || !payload.iv || !payload.authTag) {
       throw new Error('Confidential workload returned invalid ciphertext envelope');

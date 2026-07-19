@@ -115,6 +115,14 @@ export interface ConfidentialGatewayRequest {
   readonly subagentId: string;
   readonly domain: string;
   readonly taskType: string;
+  readonly voucher: {
+    readonly spentDigest: string;
+    readonly coarseClass: string;
+    readonly quantity: number;
+    readonly billingPeriod: string;
+    readonly signature: string;
+    readonly issuerKeyId: string;
+  };
 }
 
 export interface ConfidentialGatewayResponse {

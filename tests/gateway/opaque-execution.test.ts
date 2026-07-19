@@ -326,6 +326,14 @@ describe('OpaqueExecutionTransport', () => {
       subagentId: 'sub-conf',
       domain: 'chat',
       taskType: 'reasoning',
+      voucher: {
+        spentDigest: 'f'.repeat(64),
+        coarseClass: 'inference-standard',
+        quantity: 1,
+        billingPeriod: '2026-07',
+        signature: 'sig',
+        issuerKeyId: 'key-1',
+      },
     });
 
     expect(confidentialFetch).toHaveBeenCalledOnce();
@@ -357,6 +365,14 @@ describe('OpaqueExecutionTransport', () => {
       subagentId: 'sub-conf',
       domain: 'chat',
       taskType: 'reasoning',
+      voucher: {
+        spentDigest: 'a'.repeat(64),
+        coarseClass: 'inference-standard',
+        quantity: 1,
+        billingPeriod: '2026-07',
+        signature: 'sig',
+        issuerKeyId: 'key-1',
+      },
       messages: [{ role: 'user', content: 'plaintext leak' }],
     } as never)).rejects.toThrow('confidential_transport_plaintext_field:messages');
   });

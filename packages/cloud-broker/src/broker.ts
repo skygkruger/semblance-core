@@ -7,6 +7,7 @@ import {
   decryptConfidentialResponse,
   prepareConfidentialTask,
 } from './confidential/task-crypto.js';
+import { VoucherWallet } from './confidential/voucher-wallet.js';
 import { createByoDestinationAdapter } from './destinations/byo.js';
 import { createConfidentialDestinationAdapter } from './destinations/confidential.js';
 import { createLocalDestinationAdapter } from './destinations/local.js';
@@ -25,6 +26,7 @@ export interface CloudBrokerConfig {
   readonly gatewayTransport: GatewayOpaqueTransport;
   readonly localTransport: LocalExecutionTransport;
   readonly attestationClient?: AttestationClient;
+  readonly voucherWallet?: VoucherWallet;
   readonly defaultMaxDisclosureBytes?: number;
 }
 
@@ -39,6 +41,7 @@ export class CloudBroker {
   private readonly selfHostedAdapter: Pick<GatewayOpaqueTransport, 'execute'>;
   private readonly confidentialAdapter: Pick<GatewayOpaqueTransport, 'executeConfidential'>;
   private readonly attestationClient?: AttestationClient;
+  private readonly voucherWallet?: VoucherWallet;
   private readonly defaultMaxDisclosureBytes: number;
 
   constructor(config: CloudBrokerConfig) {
@@ -48,6 +51,7 @@ export class CloudBroker {
     this.selfHostedAdapter = createSelfHostedDestinationAdapter(config.gatewayTransport);
     this.confidentialAdapter = createConfidentialDestinationAdapter(config.gatewayTransport);
     this.attestationClient = config.attestationClient;
+    this.voucherWallet = config.voucherWallet;
     this.defaultMaxDisclosureBytes = config.defaultMaxDisclosureBytes ?? DEFAULT_MAX_DISCLOSURE_BYTES;
   }
 
@@ -195,6 +199,21 @@ export class CloudBroker {
       };
     }
 
+    if (!this.voucherWallet) {
+      return {
+        status: 'reject',
+        reason: 'confidential_voucher_wallet_unconfigured',
+      };
+    }
+
+    const voucherSpend = this.voucherWallet.spendRandom();
+    if (!voucherSpend) {
+      return {
+        status: 'reject',
+        reason: 'no_voucher_available',
+      };
+    }
+
     const attestation = await this.attestationClient.verifyAndBind({
       evidence: request.attestationEvidence,
     });
@@ -243,6 +262,7 @@ export class CloudBroker {
         subagentId: request.subagentId,
         domain: request.domain,
         taskType: request.taskType,
+        voucher: voucherSpend.proof,
       });
 
       const decrypted = decryptConfidentialResponse(encryptedTask.sessionMaterial, {

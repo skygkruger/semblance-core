@@ -21,6 +21,16 @@ export {
   type SessionKeyMaterial,
 } from './confidential/task-crypto.js';
 export {
+  createMemoryVoucherWalletStore,
+  VoucherWallet,
+  type StoredVoucher,
+  type VoucherCoarseClass,
+  type VoucherSpendProof,
+  type VoucherSpendResult,
+  type VoucherWalletConfig,
+  type VoucherWalletStore,
+} from './confidential/voucher-wallet.js';
+export {
   createDefaultExecutionDestinationPolicy,
   DEFAULT_CAPABILITY_IDS,
   loadExecutionDestinationPolicy,
