@@ -1,0 +1,10 @@
+{
+  "protocolVersion": "execution/v1",
+  "compatibleWith": ["execution/v1"],
+  "status": "healthy",
+  "nodeId": "self-host-node-001",
+  "uptimeSeconds": 3600,
+  "modelsAvailable": 1,
+  "activeSessions": 2,
+  "checkedAt": "2026-07-18T12:00:06.000Z"
+}

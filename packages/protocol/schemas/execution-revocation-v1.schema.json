@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/execution-revocation-v1.schema.json",
+  "title": "ExecutionRevocationV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "revocationId",
+    "targetType",
+    "targetId",
+    "reason",
+    "revokedAt",
+    "revokedBy",
+    "signature"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "const": "execution/v1"
+    },
+    "revocationId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "targetType": {
+      "type": "string",
+      "enum": [
+        "session",
+        "device",
+        "node"
+      ]
+    },
+    "targetId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revokedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revokedBy": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signature": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

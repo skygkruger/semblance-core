@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/execution-task-envelope-v1.schema.json",
+  "title": "ExecutionTaskEnvelopeV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "taskId",
+    "sessionId",
+    "idempotencyKey",
+    "modelId",
+    "ciphertext",
+    "iv",
+    "authTag",
+    "taskHash",
+    "expiresAt",
+    "clientSignature"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "const": "execution/v1"
+    },
+    "taskId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sessionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "modelId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ciphertext": {
+      "type": "string",
+      "minLength": 1
+    },
+    "iv": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authTag": {
+      "type": "string",
+      "minLength": 1
+    },
+    "taskHash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "clientSignature": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

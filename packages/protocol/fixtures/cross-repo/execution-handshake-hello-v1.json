@@ -1,0 +1,7 @@
+{
+  "protocolVersion": "execution/v1",
+  "clientId": "gateway-device-001",
+  "clientPublicKey": "MCowBQYDK2VwAyEA1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab=",
+  "nonce": "hello-nonce-001",
+  "timestamp": "2026-07-18T12:00:00.000Z"
+}

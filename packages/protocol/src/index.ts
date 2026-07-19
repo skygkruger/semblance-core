@@ -8,3 +8,4 @@ export * from './proof.js';
 export * from './vault.js';
 export * from './sync.js';
 export * from './compatibility.js';
+export * from './execution/v1/index.js';

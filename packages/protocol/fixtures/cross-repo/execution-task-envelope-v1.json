@@ -1,0 +1,13 @@
+{
+  "protocolVersion": "execution/v1",
+  "taskId": "task-001",
+  "sessionId": "session-001",
+  "idempotencyKey": "idempotency-task-req-001",
+  "modelId": "llama-3.2-3b",
+  "ciphertext": "ZW5jcnlwdGVkLXRhc2stcGF5bG9hZA==",
+  "iv": "aXYtMTItYnl0ZXM=",
+  "authTag": "YXV0aC10YWctMTYtYnl0ZXM=",
+  "taskHash": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  "expiresAt": "2026-07-18T12:05:00.000Z",
+  "clientSignature": "MEUCIQDexampleClientTaskSignatureBase64EncodedForFixturePurposesOnly="
+}

@@ -1,0 +1,10 @@
+{
+  "protocolVersion": "execution/v1",
+  "compatibleWith": ["execution/v1"],
+  "sessionId": "session-001",
+  "nodeId": "self-host-node-001",
+  "clientId": "gateway-device-001",
+  "sessionKey": "c2Vzc2lvbi1rZXktMzItYnl0ZXMtYmFzZTY0ZW5jb2RlZA==",
+  "expiresAt": "2026-07-18T13:00:00.000Z",
+  "nodeSignature": "MEUCIQDexampleNodeSessionSignatureBase64EncodedForFixturePurposesOnly="
+}

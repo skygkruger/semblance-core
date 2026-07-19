@@ -1,0 +1,10 @@
+{
+  "protocolVersion": "execution/v1",
+  "revocationId": "revocation-001",
+  "targetType": "session",
+  "targetId": "session-001",
+  "reason": "user_requested_disconnect",
+  "revokedAt": "2026-07-18T12:00:07.000Z",
+  "revokedBy": "gateway-device-001",
+  "signature": "MEUCIQDexampleRevocationSignatureBase64EncodedForFixturePurposesOnly="
+}

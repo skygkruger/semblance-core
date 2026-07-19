@@ -12,6 +12,7 @@ import { buildDisclosureReceipt, type DisclosureReceipt } from '@semblance/cloud
 import type { AuditTrail } from '../audit/trail.js';
 import { runWithGatewayNetwork } from '@semblance/core/security/egress-guard.js';
 import type { CloudBridgeAdapter } from '../cloud-bridge/cloud-bridge-adapter.js';
+import { createExecutionV1Client } from './execution-v1-client.js';
 
 const executionMessageSchema = z.object({
   role: z.string().min(1),
@@ -177,46 +178,44 @@ export class OpaqueExecutionTransport {
     }
 
     const startTime = Date.now();
-    const body = {
-      model: request.model,
-      messages: request.messages,
-      max_tokens: request.maxTokens,
-      temperature: request.temperature,
-    };
+    const client = createExecutionV1Client({
+      baseUrl: node.baseUrl,
+      clientId: `gateway-${nodeId}`,
+      authToken: node.authToken,
+      fetchImpl: this.fetchImpl,
+    });
 
-    const response = await runWithGatewayNetwork(() =>
-      this.fetchImpl(`${node.baseUrl.replace(/\/$/, '')}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${node.authToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
+    const health = await runWithGatewayNetwork(() => client.getHealth());
+    if (health.status === 'unhealthy') {
+      throw new Error(`Self-hosted node unhealthy: ${nodeId}`);
+    }
+
+    const inventory = await runWithGatewayNetwork(() => client.getInventory());
+    const modelAvailable = inventory.models.some((entry) => entry.modelId === request.model);
+    if (!modelAvailable) {
+      throw new Error(`Self-hosted node ${nodeId} does not expose model ${request.model}`);
+    }
+
+    const taskResult = await runWithGatewayNetwork(() =>
+      client.submitTask({
+        modelId: request.model,
+        messages: request.messages,
+        maxTokens: request.maxTokens,
+        temperature: request.temperature,
+        idempotencyKey: requestId,
       }),
     );
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      throw new Error(`Self-hosted node error (${response.status}): ${errorText.slice(0, 500)}`);
-    }
-
-    const data = await response.json() as {
-      choices?: Array<{ message?: { role?: string; content?: string } }>;
-      usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
-      model?: string;
-    };
-
-    const choice = data.choices?.[0];
-    const tokensIn = data.usage?.prompt_tokens ?? 0;
-    const tokensOut = data.usage?.completion_tokens ?? 0;
+    const tokensIn = taskResult.tokensUsed.prompt;
+    const tokensOut = taskResult.tokensUsed.completion;
 
     return {
       requestId,
       provider: 'self_hosted',
-      model: data.model ?? request.model,
+      model: taskResult.modelId,
       message: {
         role: 'assistant',
-        content: choice?.message?.content ?? '',
+        content: taskResult.content,
       },
       tokensUsed: {
         prompt: tokensIn,

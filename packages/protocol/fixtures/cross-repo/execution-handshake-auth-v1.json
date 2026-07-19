@@ -1,0 +1,8 @@
+{
+  "protocolVersion": "execution/v1",
+  "clientId": "gateway-device-001",
+  "nodeId": "self-host-node-001",
+  "nodeNonce": "node-nonce-001",
+  "clientSignature": "MEUCIQDexampleClientSignatureBase64EncodedForFixturePurposesOnly1234567890=",
+  "timestamp": "2026-07-18T12:00:02.000Z"
+}

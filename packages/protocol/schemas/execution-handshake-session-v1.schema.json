@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/execution-handshake-session-v1.schema.json",
+  "title": "ExecutionHandshakeSessionV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "compatibleWith",
+    "sessionId",
+    "nodeId",
+    "clientId",
+    "sessionKey",
+    "expiresAt",
+    "nodeSignature"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "const": "execution/v1"
+    },
+    "compatibleWith": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "const": "execution/v1"
+      }
+    },
+    "sessionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nodeId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clientId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sessionKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nodeSignature": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "protocolVersion": "execution/v1",
+  "receiptId": "receipt-001",
+  "taskId": "task-001",
+  "idempotencyKey": "idempotency-task-req-001",
+  "nodeId": "self-host-node-001",
+  "modelId": "llama-3.2-3b",
+  "taskHash": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  "responseHash": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+  "responseCiphertext": "ZW5jcnlwdGVkLXJlc3BvbnNlLXBheWxvYWQ=",
+  "responseIv": "cmVzcG9uc2UtaXY=",
+  "responseAuthTag": "cmVzcG9uc2UtYXV0aA==",
+  "tokensUsed": {
+    "prompt": 12,
+    "completion": 24,
+    "total": 36
+  },
+  "durationMs": 150,
+  "completedAt": "2026-07-18T12:00:05.000Z",
+  "nodeSignature": "MEUCIQDexampleNodeReceiptSignatureBase64EncodedForFixturePurposesOnly="
+}
