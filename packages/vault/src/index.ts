@@ -62,6 +62,43 @@ export {
   type VaultEventLogOptions,
 } from './event-log/index.js';
 export {
+  AgencyEntityType,
+  AgencyGraphEdgeV1,
+  AgencyGraphEntityV1,
+  AgencyGraphSnapshotV1,
+  type DecryptedVaultEvent,
+} from './agency-graph/types.js';
+export {
+  AgencyGraphStore,
+  computeAgencyGraphSnapshotHash,
+  createAgencyGraphStore,
+} from './agency-graph/store.js';
+export {
+  queryAgencyGraph,
+  listAgencyGraphEntitiesByType,
+  type AgencyGraphQueryResult,
+} from './agency-graph/query.js';
+export {
+  projectDocumentsFromEvents,
+  DocumentProjectionPayloadV1,
+  type DocumentProjectionRecord,
+  type DocumentProjectionSnapshot,
+} from './projections/documents.js';
+export {
+  projectVectorsFromEvents,
+  VectorChunkProjectionPayloadV1,
+  type VectorProjectionRecord,
+  type VectorProjectionSnapshot,
+} from './projections/vector.js';
+export {
+  projectAgencyGraphFromEvents,
+  rebuildAgencyGraphSnapshotFromEvents,
+  ActionResultPayloadV1,
+  OutcomeRecordedPayloadV1,
+  DeletedPayloadV1,
+  type AgencyGraphProjectionDelta,
+} from './projections/agency-graph.js';
+export {
   assertCorrectionChain,
   assertSourceRefsPresent,
   AssertionStatus,
