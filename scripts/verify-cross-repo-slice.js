@@ -203,11 +203,13 @@ function verifySlice8Completion(manifest, coreRoot) {
   const errors = [];
   const slice8Complete = Array.isArray(manifest.completedSlices)
     && manifest.completedSlices.includes(8);
+  const slice9Complete = Array.isArray(manifest.completedSlices)
+    && manifest.completedSlices.includes(9);
   if (!slice8Complete) {
     return errors;
   }
 
-  if (manifest.releaseId !== 'byo-self-hosted-execution-2026-07-18') {
+  if (!slice9Complete && manifest.releaseId !== 'byo-self-hosted-execution-2026-07-18') {
     errors.push(error(
       'SLICE_8_RELEASE_ID_MISMATCH',
       'releaseId must be byo-self-hosted-execution-2026-07-18 when Slice 8 is complete',
