@@ -171,6 +171,51 @@ export {
 } from './relay/client.js';
 
 export {
+  OFFLINE_DECRYPTED_DELETION_CAVEAT,
+  DeletionPropagationService,
+  createDeletionPropagationService,
+  type DeletionTombstoneRecord,
+  type PendingOfflineDeletion,
+  type DeletionPropagationState,
+} from './revocation/deletion-service.js';
+
+export {
+  rekeyCheckpointStorageKey,
+  rotateDomainMasterKeyForRevocation,
+  loadArchivedDomainMasterKey,
+  saveRekeyCheckpoint,
+  loadRekeyCheckpoint,
+  startOrResumeRekey,
+  loadEpochKeyForDevice,
+  type RekeyCheckpoint,
+  type RekeyProgressResult,
+} from './revocation/rekey-service.js';
+
+export {
+  RevokedDeviceError,
+  PostRevocationEventError,
+  assertDeviceNotRevoked,
+  assertEventMembershipEpoch,
+  enforceDeviceRevocation,
+  type RevocationEnforcementResult,
+} from './revocation/enforcement.js';
+
+export {
+  ComputeMeshRouter,
+  ComputeNotDataAuthoritativeError,
+  assertComputeNotDataAuthoritative,
+  buildComputeExecutionReceipt,
+  createComputeMeshRouter,
+  hashComputePayload,
+  type DeviceHealthSnapshot,
+  type ComputeCapabilityProfile,
+  type ComputeRouteDecision,
+  type ComputeMeshRouterOptions,
+  type ComputeExecutionReceipt,
+  type ComputeExecutionReceiptPayload,
+} from './mesh/compute-router.js';
+
+export {
   SYNC_RELAY_GENESIS_HEAD,
   FORBIDDEN_RELAY_PLAINTEXT_FIELDS,
   SyncRelayIntegrityError,

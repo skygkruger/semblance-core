@@ -50,9 +50,14 @@ import {
   SovereigntyRootService,
   SyncEventService,
   SyncRelayClient,
+  ComputeMeshRouter,
+  buildComputeExecutionReceipt,
+  getOrCreateDeviceKeys,
   type SovereigntyRootService as SyncRootService,
   type SyncEventService as SyncEventServiceType,
   type SyncRelayClient as SyncRelayClientType,
+  type ComputeMeshRouter as ComputeMeshRouterType,
+  type ComputeExecutionReceipt,
 } from '../../../sync/src/index.js';
 import { openMembershipStore } from '../../../sync/src/membership/store.js';
 import { createLLMProvider, BitNetProvider, InferenceRouter } from '../../../core/llm/index.js';
@@ -393,6 +398,7 @@ let localVault: LocalVaultBootstrap | null = null;
 let syncRootService: SyncRootService | null = null;
 let syncEventService: SyncEventServiceType | null = null;
 let syncRelayClient: SyncRelayClientType | null = null;
+let computeMeshRouter: ComputeMeshRouterType | null = null;
 let gatewaySyncRelayAdapter: GatewaySyncRelayAdapter | null = null;
 let gatewayDirectPeerTransport: GatewayDirectPeerTransport | null = null;
 let gateway: Gateway | null = null;
@@ -6178,7 +6184,19 @@ async function initializeSyncRelayClient(): Promise<void> {
     directPeerTransport: gatewayDirectPeerTransport,
   });
 
+  computeMeshRouter = new ComputeMeshRouter({
+    localDeviceId: status.ownerDeviceId,
+    localDeviceType: 'desktop',
+    localModelTier: '7B',
+    localHealth: {
+      reachable: true,
+      memoryPressure: 'normal',
+      lastSeenAt: new Date().toISOString(),
+    },
+  });
+
   console.error('[sidecar] Sync relay client ready');
+  console.error('[sidecar] Compute mesh router ready');
 }
 
 function requireSyncRelayClient(): SyncRelayClientType {
@@ -11504,6 +11522,77 @@ async function handleRequest(req: Request): Promise<void> {
           const client = requireSyncRelayClient();
           const response = client.handleIncomingExchange(exchangeParams.request);
           respond(id, { success: true, response });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'compute:route_task': {
+        if (!computeMeshRouter || !syncRootService) {
+          respondError(id, 'Compute mesh router not initialized');
+          break;
+        }
+        try {
+          const routeParams = params as {
+            taskType?: 'inference' | 'embedding' | 'analysis';
+            complexity?: 'lightweight' | 'medium' | 'heavy';
+            computePayload?: unknown;
+          };
+          if (!routeParams.taskType || !routeParams.complexity) {
+            respondError(id, 'taskType and complexity are required');
+            break;
+          }
+          const decision = computeMeshRouter.routeTask({
+            taskType: routeParams.taskType,
+            complexity: routeParams.complexity,
+            computePayload: routeParams.computePayload ?? { taskRef: 'sidecar-route' },
+          });
+          respond(id, { success: true, decision });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'compute:build_receipt': {
+        if (!computeMeshRouter || !syncRootService) {
+          respondError(id, 'Compute mesh router not initialized');
+          break;
+        }
+        try {
+          const receiptParams = params as {
+            receiptId?: string;
+            taskType?: 'inference' | 'embedding' | 'analysis';
+            modelId?: string;
+            modelProvenance?: string;
+            computePayload?: unknown;
+            routeReason?: string;
+          };
+          if (!receiptParams.receiptId || !receiptParams.taskType || !receiptParams.modelId) {
+            respondError(id, 'receiptId, taskType, and modelId are required');
+            break;
+          }
+          const keyStore = createFileKeyStore(join(dataDir, 'sync-keystore.json'));
+          const secureStorage = createSyncSecureStorageAdapter(keyStore);
+          const deviceKeys = await getOrCreateDeviceKeys(secureStorage);
+          const decision = computeMeshRouter.routeTask({
+            taskType: receiptParams.taskType,
+            complexity: 'heavy',
+            computePayload: receiptParams.computePayload ?? { taskRef: receiptParams.receiptId },
+          });
+          const receipt: ComputeExecutionReceipt = buildComputeExecutionReceipt({
+            receiptId: receiptParams.receiptId,
+            taskType: receiptParams.taskType,
+            executedOnDeviceId: deviceKeys.deviceId,
+            executedOnDeviceType: 'desktop',
+            modelId: receiptParams.modelId,
+            modelProvenance: receiptParams.modelProvenance ?? 'local-sidecar',
+            computePayload: receiptParams.computePayload ?? { taskRef: receiptParams.receiptId },
+            routeReason: receiptParams.routeReason ?? decision.reason,
+            devicePrivateKey: deviceKeys.privateKey,
+          });
+          respond(id, { success: true, receipt, decision, dataAuthoritative: false });
         } catch (err) {
           respondError(id, (err as Error).message);
         }
