@@ -97,7 +97,7 @@ jobs:
         run: |
           $cfg = @{
             build = @{
-              beforeBuildCommand = "cd ../.. && cd packages/desktop && npm run build && node ../../scripts/bundle-sidecar.js --copy-natives-only && node ../../scripts/bundle-kernel-bridge.js && node ../../scripts/bundle-runtime-core.js && node ../../scripts/bundle-runtime-gateway.js && node ../../scripts/bundle-runtime-model.js && node ../../scripts/bundle-runtimes.js"
+              beforeBuildCommand = "cd ../.. && cd packages/desktop && npx vite build && node ../../scripts/bundle-sidecar.js --copy-natives-only && node ../../scripts/bundle-kernel-bridge.js && node ../../scripts/bundle-runtime-core.js && node ../../scripts/bundle-runtime-gateway.js && node ../../scripts/bundle-runtime-model.js && node ../../scripts/bundle-runtimes.js"
             }
           } | ConvertTo-Json -Depth 5 -Compress
           Set-Content -Path field-proof-tauri.overlay.json -Value $cfg -Encoding utf8
