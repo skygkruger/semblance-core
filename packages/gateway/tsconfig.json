@@ -18,6 +18,8 @@
     "paths": {
       "@semblance/core": ["core/index.ts"],
       "@semblance/core/*": ["core/*"],
+      "@semblance/kernel": ["kernel/src/index.ts"],
+      "@semblance/kernel/*": ["kernel/src/*"],
       "@semblance/vault": ["vault/src/index.ts"],
       "@semblance/vault/*": ["vault/src/*"]
     }

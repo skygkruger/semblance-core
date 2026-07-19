@@ -103,3 +103,39 @@ export {
 export { adaptLegacySemKey, LEGACY_SEM_SIGNATURE_PREFIX } from './entitlement/legacy-adapter.js';
 export { isReservationArtifact } from './entitlement/reservation-guard.js';
 export { entitlementSigningPayload } from './entitlement/signing-payload.js';
+export {
+  type ActionState,
+  type ActionEvent,
+  type ActionRecord,
+  type ReversibleActionMetadata,
+  type CreateActionRecordParams,
+  REVERSIBLE_ACTION_TYPES,
+  IllegalActionTransitionError,
+  ActionReconcileBlockedError,
+} from './actions/types.js';
+export {
+  applyTransition,
+  isLegalTransition,
+  nextState,
+  listLegalEvents,
+  listAllStates,
+  listAllEvents,
+} from './actions/state-machine.js';
+export {
+  ActionLifecycleStore,
+  createActionLifecycleStore,
+  createInMemoryActionLifecycleStore,
+} from './actions/idempotency-store.js';
+export {
+  reconcileUnknownAction,
+  applyReconcileOutcome,
+  assertSafeToRedispatch,
+  type ExternalConfirmationChecker,
+  type ExternalConfirmationResult,
+  type ReconcileOutcome,
+} from './actions/reconciler.js';
+export {
+  executeAuditedAction,
+  type ExecuteAuditedActionParams,
+  type ExecuteAuditedActionResult,
+} from './actions/lifecycle.js';

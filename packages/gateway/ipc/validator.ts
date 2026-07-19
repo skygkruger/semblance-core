@@ -10,7 +10,14 @@ import {
   verifySignature,
 } from '@semblance/core';
 import type { ActionType } from '@semblance/core';
+import {
+  createInMemoryActionLifecycleStore,
+  executeAuditedAction,
+  type ActionLifecycleStore,
+  type ExternalConfirmationChecker,
+} from '@semblance/kernel';
 import type { AuditTrail } from '../audit/trail.js';
+import { assertAuditPendingBeforeDispatch } from '../audit/trail.js';
 import type { Allowlist } from '../security/allowlist.js';
 import type { RateLimiter } from '../security/rate-limiter.js';
 import type { AnomalyDetector } from '../security/anomaly-detector.js';
@@ -24,6 +31,9 @@ export interface ValidatorDeps {
   rateLimiter: RateLimiter;
   anomalyDetector: AnomalyDetector;
   serviceRegistry: ServiceRegistry;
+  actionLifecycleStore?: ActionLifecycleStore;
+  externalConfirmationChecker?: ExternalConfirmationChecker;
+  dispatchTimeoutMs?: number;
 }
 
 type RejectionReason =
@@ -251,39 +261,40 @@ export async function validateAndExecute(
     // Non-burst anomalies are logged but don't block
   }
 
-  // --- Step 6: Log BEFORE execution (status: pending) ---
-  const pendingAuditId = deps.auditTrail.append({
-    requestId: request.id,
-    timestamp: new Date().toISOString(),
-    action: request.action,
-    direction: 'request',
-    status: 'pending',
-    payloadHash,
-    signature: request.signature,
-    metadata: anomalyResult.flagged
-      ? { anomalies: anomalyResult.anomalies.map(a => a.message) }
-      : undefined,
-    estimatedTimeSavedSeconds: getDefaultTimeSaved(request.action),
-  });
-
-  // --- Step 7: Execute action via service adapter ---
+  // --- Step 6–8: Kernel action lifecycle with audit-before-dispatch ---
   deps.rateLimiter.record(request.action);
 
-  let executionResult: { success: boolean; data?: unknown; error?: { code: string; message: string } };
-  try {
-    const adapter = deps.serviceRegistry.getAdapter(request.action);
-    executionResult = await adapter.execute(request.action, request.payload);
-  } catch (err) {
-    executionResult = {
-      success: false,
-      error: {
-        code: 'EXECUTION_ERROR',
-        message: err instanceof Error ? err.message : 'Unknown execution error',
-      },
-    };
-  }
+  const actionLifecycleStore = deps.actionLifecycleStore ?? createInMemoryActionLifecycleStore();
+  const lifecycleResult = await executeAuditedAction({
+    store: actionLifecycleStore,
+    idempotencyKey: request.id,
+    requestId: request.id,
+    actionType: request.action,
+    payloadHash,
+    auditCorrelationId: request.id,
+    externalChecker: deps.externalConfirmationChecker,
+    dispatchTimeoutMs: deps.dispatchTimeoutMs,
+    logAuditPending: () => deps.auditTrail.logPending({
+      requestId: request.id,
+      action: request.action,
+      payloadHash,
+      signature: request.signature,
+      metadata: anomalyResult.flagged
+        ? { anomalies: anomalyResult.anomalies.map(a => a.message) }
+        : undefined,
+      estimatedTimeSavedSeconds: getDefaultTimeSaved(request.action),
+    }),
+    assertAuditPendingBeforeDispatch: (auditPendingId) => {
+      assertAuditPendingBeforeDispatch(deps.auditTrail, request.id, auditPendingId);
+    },
+    execute: async () => {
+      const adapter = deps.serviceRegistry.getAdapter(request.action);
+      return adapter.execute(request.action, request.payload);
+    },
+  });
 
-  // --- Step 8: Log AFTER execution ---
+  const executionResult = lifecycleResult.execution;
+
   const responseAuditId = deps.auditTrail.append({
     requestId: request.id,
     timestamp: new Date().toISOString(),
@@ -292,13 +303,16 @@ export async function validateAndExecute(
     status: executionResult.success ? 'success' : 'error',
     payloadHash,
     signature: request.signature,
-    metadata: executionResult.error
-      ? { error: executionResult.error }
-      : undefined,
+    metadata: {
+      actionId: lifecycleResult.record.actionId,
+      actionState: lifecycleResult.record.state,
+      ...(executionResult.error ? { error: executionResult.error } : {}),
+      ...(executionResult.timedOut ? { timedOut: true } : {}),
+      ...(lifecycleResult.record.reversible ? { reversible: lifecycleResult.record.reversible } : {}),
+    },
     estimatedTimeSavedSeconds: getDefaultTimeSaved(request.action),
   });
 
-  // --- Step 9: Return ActionResponse ---
   return {
     requestId: request.id,
     timestamp: new Date().toISOString(),

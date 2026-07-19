@@ -17,6 +17,7 @@ import { AnomalyDetector } from './security/anomaly-detector.js';
 import { ServiceRegistry } from './services/registry.js';
 import { GatewayTransport } from './ipc/transport.js';
 import { validateAndExecute } from './ipc/validator.js';
+import { createActionLifecycleStore } from '@semblance/kernel';
 import { ReminderAdapter } from './services/reminder-adapter.js';
 import { WebSearchAdapterFactory } from './services/web-search-factory.js';
 import { WebFetchAdapter } from './services/web-fetch-adapter.js';
@@ -51,6 +52,8 @@ export class Gateway {
   private configDb: Database.Database | null = null;
   private reminderDb: Database.Database | null = null;
   private auditTrail: AuditTrail | null = null;
+  private actionLifecycleDb: Database.Database | null = null;
+  private actionLifecycleStore: ReturnType<typeof createActionLifecycleStore> | null = null;
   private allowlist: Allowlist | null = null;
   private rateLimiter: RateLimiter | null = null;
   private anomalyDetector: AnomalyDetector | null = null;
@@ -78,9 +81,11 @@ export class Gateway {
     // Initialize SQLite databases
     this.auditDb = new Database(join(dataDir, 'audit.db'));
     this.configDb = new Database(join(dataDir, 'config.db'));
+    this.actionLifecycleDb = new Database(join(dataDir, 'actions.db'));
 
     // Initialize components
     this.auditTrail = new AuditTrail(this.auditDb);
+    this.actionLifecycleStore = createActionLifecycleStore(this.actionLifecycleDb);
     this.allowlist = new Allowlist(this.configDb);
     const keyManager = new KeyManager(this.configDb);
     const signingKey = keyManager.getKey();
@@ -246,6 +251,7 @@ export class Gateway {
           rateLimiter: this.rateLimiter!,
           anomalyDetector: this.anomalyDetector!,
           serviceRegistry: this.serviceRegistry!,
+          actionLifecycleStore: this.actionLifecycleStore!,
         });
       },
       onError: (error: Error) => {
@@ -288,6 +294,12 @@ export class Gateway {
     if (this.auditDb) {
       this.auditDb.close();
       this.auditDb = null;
+    }
+
+    if (this.actionLifecycleDb) {
+      this.actionLifecycleDb.close();
+      this.actionLifecycleDb = null;
+      this.actionLifecycleStore = null;
     }
 
     if (this.configDb) {
@@ -425,7 +437,7 @@ export class Gateway {
 }
 
 // Re-export key types and classes for consumers
-export { AuditTrail } from './audit/trail.js';
+export { AuditTrail, assertAuditPendingBeforeDispatch, AuditPendingMissingError } from './audit/trail.js';
 export { TIME_SAVED_DEFAULTS, TIME_SAVED_GRANULAR, getDefaultTimeSaved } from './audit/time-saved-defaults.js';
 export { Allowlist } from './security/allowlist.js';
 export { KeyManager } from './security/signing.js';

@@ -119,6 +119,31 @@ export class AuditTrail {
   }
 
   /**
+   * Log a durable pending audit entry before Gateway dispatch.
+   * Every outbound action must call this before execution.
+   */
+  logPending(params: {
+    requestId: string;
+    action: ActionType;
+    payloadHash: string;
+    signature: string;
+    metadata?: Record<string, unknown>;
+    estimatedTimeSavedSeconds?: number;
+  }): string {
+    return this.append({
+      requestId: params.requestId,
+      timestamp: new Date().toISOString(),
+      action: params.action,
+      direction: 'request',
+      status: 'pending',
+      payloadHash: params.payloadHash,
+      signature: params.signature,
+      metadata: params.metadata,
+      estimatedTimeSavedSeconds: params.estimatedTimeSavedSeconds,
+    });
+  }
+
+  /**
    * Append an entry to the audit trail. Returns the entry ID.
    * This is the ONLY write method. There is no update. There is no delete.
    */
@@ -238,5 +263,36 @@ export class AuditTrail {
   count(): number {
     const row = this.db.prepare('SELECT COUNT(*) as count FROM audit_log').get() as { count: number };
     return row.count;
+  }
+}
+
+export class AuditPendingMissingError extends Error {
+  readonly requestId: string;
+  readonly auditPendingId: string;
+
+  constructor(requestId: string, auditPendingId: string) {
+    super(`Missing durable pending audit entry ${auditPendingId} for request ${requestId}`);
+    this.name = 'AuditPendingMissingError';
+    this.requestId = requestId;
+    this.auditPendingId = auditPendingId;
+  }
+}
+
+/**
+ * Ensure a pending audit entry exists before Gateway dispatch.
+ * Throws if the pending entry is missing or not in pending/request state.
+ */
+export function assertAuditPendingBeforeDispatch(
+  auditTrail: AuditTrail,
+  requestId: string,
+  auditPendingId: string,
+): void {
+  const entries = auditTrail.getByRequestId(requestId);
+  const pending = entries.find((entry) => entry.id === auditPendingId);
+  if (!pending) {
+    throw new AuditPendingMissingError(requestId, auditPendingId);
+  }
+  if (pending.status !== 'pending' || pending.direction !== 'request') {
+    throw new AuditPendingMissingError(requestId, auditPendingId);
   }
 }
