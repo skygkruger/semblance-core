@@ -52,6 +52,11 @@ jobs:
             node scripts/bundle-sidecar.js
           fi
           test -f "$BRIDGE"
+      - name: Copy sidecar native modules (LanceDB / sqlite)
+        # bridge.cjs marks @lancedb/lancedb + better-sqlite3 external; Tauri
+        # packages sidecar/node_modules at install time. CI must materialize
+        # the same tree or initialize fails with MODULE_NOT_FOUND.
+        run: node scripts/bundle-sidecar.js --copy-natives-only
       - name: Capture launch-floor evidence
         run: node scripts/capture-launch-floor.js
       - name: Verify launch-floor evidence
