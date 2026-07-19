@@ -294,7 +294,7 @@ async function main() {
   writeFileSync(outPath, `${JSON.stringify(evidence, null, 2)}\n`, 'utf8');
   console.log(`Wrote PASS evidence: ${outPath}`);
 
-  const Ajv = require('ajv');
+  const Ajv = require('ajv/dist/2020');
   const addFormats = require('ajv-formats');
   const ajv = new Ajv({ allErrors: true, strict: false });
   addFormats(ajv);

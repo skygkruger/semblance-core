@@ -20,7 +20,7 @@
 
 const { readFileSync, existsSync } = require('node:fs');
 const { join, resolve } = require('node:path');
-const Ajv = require('ajv');
+const Ajv = require('ajv/dist/2020');
 const addFormats = require('ajv-formats');
 
 const ROOT = resolve(__dirname, '..');
