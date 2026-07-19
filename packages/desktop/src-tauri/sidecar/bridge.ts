@@ -260,6 +260,16 @@ import {
 // Morning Brief / Daily Digest / Weather / Style / Dark Pattern / Document Context / Health / Cloud Storage / Graph Vis
 import { MorningBriefGenerator } from '../../../core/agent/morning-brief.js';
 import { buildTodaySnapshot } from '../../../core/agent/today/index.js';
+import {
+  createPlanStore,
+  enrichPlanView,
+  syncPlanWithActionLifecycle,
+  type PlanStore,
+  type PlanStatus,
+  type CreatePlanInput,
+  type UpdatePlanInput,
+  type DelegatedPlanView,
+} from '../../../core/agent/planning/index.js';
 import { DailyDigestGenerator } from '../../../core/agent/daily-digest.js';
 import { WeatherService } from '../../../core/weather/weather-service.js';
 import { LocationStore } from '../../../core/location/location-store.js';
@@ -425,6 +435,7 @@ let entitlementService: EntitlementService | null = null;
 let entitlementSnapshotSource: KernelEntitlementSnapshotSource | null = null;
 let reservationStore: FoundingReservationStore | null = null;
 let representativeEmailWorkflowStore: RepresentativeEmailWorkflowStore | null = null;
+let planStore: PlanStore | null = null;
 
 // Sovereignty feature state
 let livingWillExporter: LivingWillExporter | null = null;
@@ -1086,6 +1097,7 @@ async function handleInitialize(): Promise<unknown> {
   await Promise.race([gateway.start(), gatewayTimeout]);
   console.error('[sidecar] Gateway started');
   representativeEmailWorkflowStore = createRepresentativeEmailWorkflowStore(join(dataDir, 'actions.db'));
+  planStore = createPlanStore(dataDir);
 
   // Seed allowlist with Google API domains (needed for Gmail, Calendar, Drive)
   try {
@@ -3833,6 +3845,82 @@ async function handleGetMeetingPrep(params: { event_id: string }): Promise<unkno
 async function handleProactiveRun(): Promise<unknown[]> {
   if (!proactiveEngine) return [];
   return await proactiveEngine.run();
+}
+
+function persistSyncedPlanView(plan: import('../../../core/agent/planning/plan-types.js').DelegatedPlan): DelegatedPlanView {
+  if (!planStore) {
+    throw new Error('Plan store not initialized');
+  }
+  const actionStore = gateway?.getActionLifecycleStore() ?? null;
+  const synced = syncPlanWithActionLifecycle(plan, actionStore);
+  const view = enrichPlanView(synced, actionStore);
+  if (
+    synced.status !== plan.status
+    || JSON.stringify(synced.steps) !== JSON.stringify(plan.steps)
+  ) {
+    planStore.update(plan.id, {
+      status: synced.status,
+      steps: [...synced.steps],
+    });
+  }
+  return view;
+}
+
+function handlePlansList(params: {
+  statuses?: PlanStatus[];
+  limit?: number;
+  offset?: number;
+}): DelegatedPlanView[] {
+  if (!planStore) {
+    return [];
+  }
+  const plans = planStore.list({
+    statuses: params.statuses,
+    limit: params.limit ?? 100,
+    offset: params.offset ?? 0,
+  });
+  return plans.map((plan) => persistSyncedPlanView(plan));
+}
+
+function handlePlansGet(params: { planId?: string }): DelegatedPlanView | null {
+  if (!planStore || !params.planId) {
+    return null;
+  }
+  const plan = planStore.get(params.planId);
+  if (!plan) {
+    return null;
+  }
+  return persistSyncedPlanView(plan);
+}
+
+function handlePlansCreate(params: CreatePlanInput): DelegatedPlanView {
+  if (!planStore) {
+    throw new Error('Plan store not initialized');
+  }
+  if (!params.title?.trim()) {
+    throw new Error('title is required');
+  }
+  if (!Array.isArray(params.steps) || params.steps.length === 0) {
+    throw new Error('steps are required');
+  }
+  const plan = planStore.create(params);
+  return persistSyncedPlanView(plan);
+}
+
+function handlePlansUpdate(params: UpdatePlanInput & { planId?: string }): DelegatedPlanView {
+  if (!planStore || !params.planId) {
+    throw new Error('Plan store not initialized');
+  }
+  const existing = planStore.get(params.planId);
+  if (!existing) {
+    throw new Error(`Plan not found: ${params.planId}`);
+  }
+  const updated = planStore.update(params.planId, {
+    title: params.title,
+    status: params.status,
+    steps: params.steps,
+  });
+  return persistSyncedPlanView(updated);
 }
 
 function buildRepresentativeEmailWorkflowDeps(): RepresentativeEmailWorkflowDeps {
@@ -10871,6 +10959,57 @@ async function handleRequest(req: Request): Promise<void> {
             action: getWorkAction(gateway.getActionLifecycleStore(), result.record.actionId),
             error: result.execution.error,
           });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'plans:list': {
+        try {
+          const listParams = (params ?? {}) as {
+            statuses?: PlanStatus[];
+            limit?: number;
+            offset?: number;
+          };
+          respond(id, handlePlansList(listParams));
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'plans:get': {
+        try {
+          const getParams = params as { planId?: string };
+          if (!getParams.planId) {
+            respondError(id, 'planId is required');
+            break;
+          }
+          const plan = handlePlansGet(getParams);
+          if (!plan) {
+            respondError(id, `Plan not found: ${getParams.planId}`);
+            break;
+          }
+          respond(id, plan);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'plans:create': {
+        try {
+          respond(id, handlePlansCreate(params as CreatePlanInput));
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'plans:update': {
+        try {
+          respond(id, handlePlansUpdate(params as UpdatePlanInput & { planId?: string }));
         } catch (err) {
           respondError(id, (err as Error).message);
         }

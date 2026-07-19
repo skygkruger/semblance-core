@@ -128,6 +128,25 @@ export type {
   MemoryPromotionWriter,
   PromotedMemoryAssertion,
 } from './memory/memory-promotion.js';
+export {
+  createPlanStore,
+  enrichPlanView,
+  syncPlanWithActionLifecycle,
+  createDelegatedPlan,
+  updateDelegatedPlan,
+  linkStepActionRequest,
+  markStepComplete,
+  markStepFailed,
+  attachStepOutcome,
+  computePlanProgress,
+  type PlanStore,
+  type DelegatedPlan,
+  type DelegatedPlanView,
+  type PlanStatus,
+  type PlanStep,
+  type CreatePlanInput,
+  type UpdatePlanInput,
+} from './planning/index.js';
 
 import type { LLMProvider } from '../llm/types.js';
 import type { KnowledgeGraph } from '../knowledge/index.js';

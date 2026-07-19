@@ -85,6 +85,10 @@ import type {
   WorkActionView,
   WorkApproveActionResult,
   ActionReceipt,
+  DelegatedPlanView,
+  DelegatedPlanStatus,
+  CreateDelegatedPlanInput,
+  UpdateDelegatedPlanInput,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -1537,6 +1541,26 @@ export function approveWorkAction(actionId: string): Promise<WorkApproveActionRe
 
 export function getActionReceipt(actionId: string): Promise<ActionReceipt> {
   return sidecarCall<ActionReceipt>('proof:get_receipt', { actionId });
+}
+
+export function listDelegatedPlans(
+  statuses?: DelegatedPlanStatus[],
+  limit = 50,
+  offset = 0,
+): Promise<DelegatedPlanView[]> {
+  return sidecarCall<DelegatedPlanView[]>('plans:list', { statuses, limit, offset });
+}
+
+export function getDelegatedPlan(planId: string): Promise<DelegatedPlanView> {
+  return sidecarCall<DelegatedPlanView>('plans:get', { planId });
+}
+
+export function createDelegatedPlan(input: CreateDelegatedPlanInput): Promise<DelegatedPlanView> {
+  return sidecarCall<DelegatedPlanView>('plans:create', input);
+}
+
+export function updateDelegatedPlan(input: UpdateDelegatedPlanInput): Promise<DelegatedPlanView> {
+  return sidecarCall<DelegatedPlanView>('plans:update', input);
 }
 
 // ─── Cloud Bridge ──────────────────────────────────────────────────────────

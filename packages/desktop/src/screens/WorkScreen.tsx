@@ -6,9 +6,16 @@ import { ShimmerDescription } from '../components/ShimmerDescription';
 import {
   approveWorkAction,
   getActionReceipt,
+  listDelegatedPlans,
   listWorkActions,
 } from '../ipc/commands';
-import type { ActionReceipt, WorkActionState, WorkActionView } from '../ipc/types';
+import type {
+  ActionReceipt,
+  DelegatedPlanStatus,
+  DelegatedPlanView,
+  WorkActionState,
+  WorkActionView,
+} from '../ipc/types';
 
 const COLORS = {
   background: '#0B0E11',
@@ -28,6 +35,8 @@ const STATE_FILTERS: Array<{ id: 'all' | WorkActionState; label: string }> = [
   { id: 'completed', label: 'Completed' },
 ];
 
+const PLAN_STATUSES: DelegatedPlanStatus[] = ['active', 'blocked', 'completed'];
+
 function stateColor(state: WorkActionState): string {
   switch (state) {
     case 'completed':
@@ -45,6 +54,23 @@ function stateColor(state: WorkActionState): string {
   }
 }
 
+function planStatusColor(status: DelegatedPlanStatus): string {
+  switch (status) {
+    case 'completed':
+      return COLORS.veridian;
+    case 'failed':
+    case 'cancelled':
+      return '#B07A8A';
+    case 'blocked':
+      return '#B09A8A';
+    case 'active':
+      return COLORS.veridian;
+    case 'draft':
+    default:
+      return COLORS.silver;
+  }
+}
+
 function formatTimestamp(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -54,6 +80,7 @@ function formatTimestamp(value: string): string {
 export function WorkScreen() {
   const [loading, setLoading] = useState(true);
   const [actions, setActions] = useState<WorkActionView[]>([]);
+  const [plans, setPlans] = useState<DelegatedPlanView[]>([]);
   const [filter, setFilter] = useState<'all' | WorkActionState>('all');
   const [error, setError] = useState<string | null>(null);
   const [busyActionId, setBusyActionId] = useState<string | null>(null);
@@ -64,8 +91,12 @@ export function WorkScreen() {
     setLoading(true);
     setError(null);
     try {
-      const next = await listWorkActions(100, 0);
-      setActions(next);
+      const [nextActions, nextPlans] = await Promise.all([
+        listWorkActions(100, 0),
+        listDelegatedPlans(PLAN_STATUSES, 50, 0),
+      ]);
+      setActions(nextActions);
+      setPlans(nextPlans);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -139,17 +170,102 @@ export function WorkScreen() {
               Work
             </h1>
             <ShimmerDescription>
-              Proposed, approved, and completed actions with audit correlation and proof receipts.
+              Delegated plans, proposed actions, and completed work with audit correlation and proof receipts.
             </ShimmerDescription>
           </GhostSprite>
         </ContentBracket>
+
+        <section style={{ marginTop: '1.5rem' }}>
+          <h2
+            style={{
+              fontFamily: '"Fraunces", serif',
+              fontSize: '1.25rem',
+              fontWeight: 500,
+              color: COLORS.text,
+              marginBottom: '0.75rem',
+            }}
+          >
+            Delegated plans
+          </h2>
+          {loading ? (
+            <Card>
+              <p style={{ color: COLORS.silver }}>Loading plans…</p>
+            </Card>
+          ) : plans.length === 0 ? (
+            <Card>
+              <p style={{ color: COLORS.silver }}>
+                No active, blocked, or completed plans yet. When Semblance delegates multi-step work, it will appear here.
+              </p>
+            </Card>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+              {plans.map((plan) => (
+                <Card key={plan.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <span
+                          style={{
+                            color: planStatusColor(plan.status),
+                            fontSize: '0.75rem',
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {plan.status}
+                        </span>
+                        <span style={{ color: COLORS.silver, fontSize: '0.85rem' }}>
+                          {plan.progress.completedSteps}/{plan.progress.totalSteps} steps
+                        </span>
+                      </div>
+                      <p style={{ color: COLORS.text, margin: '0 0 0.35rem 0', fontWeight: 500 }}>
+                        {plan.title}
+                      </p>
+                      <p style={{ color: COLORS.silver, margin: 0, fontSize: '0.85rem' }}>
+                        {plan.progress.percentComplete}% complete · updated {formatTimestamp(plan.updatedAt)}
+                      </p>
+                      {plan.steps.length > 0 && (
+                        <ul style={{ color: COLORS.silver, margin: '0.75rem 0 0 0', paddingLeft: '1.1rem', fontSize: '0.85rem' }}>
+                          {plan.steps.slice(0, 4).map((step) => (
+                            <li key={step.id} style={{ marginBottom: '0.25rem' }}>
+                              {step.title}
+                              {' · '}
+                              <span style={{ color: planStatusColor(step.status as DelegatedPlanStatus) }}>
+                                {step.status}
+                              </span>
+                              {step.outcome?.summary ? ` — ${step.outcome.summary}` : ''}
+                              {step.failure?.message ? ` — ${step.failure.message}` : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <h2
+          style={{
+            fontFamily: '"Fraunces", serif',
+            fontSize: '1.25rem',
+            fontWeight: 500,
+            color: COLORS.text,
+            marginBottom: '0.75rem',
+          }}
+        >
+          Actions
+        </h2>
 
         <div
           style={{
             display: 'flex',
             gap: '0.5rem',
             flexWrap: 'wrap',
-            margin: '1.5rem 0',
+            margin: '0 0 1.5rem 0',
           }}
         >
           {STATE_FILTERS.map((item) => {

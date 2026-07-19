@@ -1357,3 +1357,81 @@ export interface ActionReceipt {
     readonly value: string;
   };
 }
+
+export type DelegatedPlanStatus =
+  | 'draft'
+  | 'active'
+  | 'blocked'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+export type DelegatedPlanStepStatus =
+  | 'pending'
+  | 'ready'
+  | 'in_progress'
+  | 'completed'
+  | 'failed'
+  | 'blocked'
+  | 'cancelled';
+
+export interface DelegatedPlanStepFailure {
+  readonly code?: string;
+  readonly message: string;
+}
+
+export interface DelegatedPlanStepOutcome {
+  readonly measuredAt: string;
+  readonly summary: string;
+  readonly timeSavedSeconds?: number;
+  readonly actionState?: string;
+  readonly actionId?: string;
+}
+
+export interface DelegatedPlanStepView {
+  readonly id: string;
+  readonly title: string;
+  readonly dependsOn: readonly string[];
+  readonly responsibleCapability: string;
+  readonly status: DelegatedPlanStepStatus;
+  readonly actionRequestId?: string;
+  readonly failure?: DelegatedPlanStepFailure;
+  readonly outcome?: DelegatedPlanStepOutcome;
+}
+
+export interface DelegatedPlanProgress {
+  readonly totalSteps: number;
+  readonly completedSteps: number;
+  readonly failedSteps: number;
+  readonly blockedSteps: number;
+  readonly readySteps: number;
+  readonly inProgressSteps: number;
+  readonly percentComplete: number;
+}
+
+export interface DelegatedPlanView {
+  readonly id: string;
+  readonly title: string;
+  readonly status: DelegatedPlanStatus;
+  readonly steps: readonly DelegatedPlanStepView[];
+  readonly progress: DelegatedPlanProgress;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateDelegatedPlanInput {
+  readonly title: string;
+  readonly steps: Array<{
+    readonly title: string;
+    readonly dependsOn?: readonly string[];
+    readonly responsibleCapability: string;
+  }>;
+  readonly status?: DelegatedPlanStatus;
+}
+
+export interface UpdateDelegatedPlanInput {
+  readonly planId: string;
+  readonly title?: string;
+  readonly status?: DelegatedPlanStatus;
+  readonly steps?: readonly DelegatedPlanStepView[];
+}
