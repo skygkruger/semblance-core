@@ -548,6 +548,13 @@ export {
   type ObliviousRelayLogEntry,
   type OpaqueEnvelope,
 } from './transports/oblivious-relay.js';
+export {
+  GatewaySyncRelayAdapter,
+  GatewayDirectPeerTransport,
+  type SyncRelayEndpoint,
+  type GatewaySyncRelayAdapterDeps,
+  type GatewayDirectPeerTransportDeps,
+} from './transports/sync-relay-adapter.js';
 
 // Daemon mode
 export { DaemonManager } from './daemon/daemon-manager.js';
