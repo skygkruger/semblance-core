@@ -424,13 +424,65 @@ function verifyMigrationEvidence(manifest, representativeRoot) {
   return errors;
 }
 
-function verifyCommerceFreeze(manifest, representativeRoot) {
+function verifyCommerceFreeze(manifest, representativeRoot, coreRoot) {
   const errors = [];
+  const slice7Complete = Array.isArray(manifest.completedSlices)
+    && manifest.completedSlices.includes(7);
+  const salesEnabledEvidence = (manifest.evidence ?? []).find(
+    (entry) => entry.id === 'slice-7-new-sales-enabled',
+  );
+
+  if (slice7Complete && salesEnabledEvidence) {
+    if (manifest.commerce?.newSalesEnabled !== true) {
+      errors.push(error(
+        'COMMERCE_SALES_DISABLED',
+        'commerce.newSalesEnabled must be true when Slice 7 is complete',
+        'commerce.newSalesEnabled',
+      ));
+    }
+
+    const salesEvidenceAbsolute = join(coreRoot, salesEnabledEvidence.path);
+    if (!existsSync(salesEvidenceAbsolute)) {
+      errors.push(error(
+        'COMMERCE_SALES_EVIDENCE_MISSING',
+        `Slice 7 sales evidence missing: ${salesEnabledEvidence.path}`,
+        salesEnabledEvidence.path,
+      ));
+    } else if (sha256File(salesEvidenceAbsolute) !== salesEnabledEvidence.sha256) {
+      errors.push(error(
+        'COMMERCE_SALES_EVIDENCE_HASH_MISMATCH',
+        'Slice 7 sales evidence hash does not match manifest',
+        `evidence.${salesEnabledEvidence.id}`,
+      ));
+    }
+
+    const exitGateEvidence = (manifest.evidence ?? []).find(
+      (entry) => entry.id === 'slice-7-exit-gate',
+    );
+    if (exitGateEvidence) {
+      const exitGateAbsolute = join(coreRoot, exitGateEvidence.path);
+      if (!existsSync(exitGateAbsolute)) {
+        errors.push(error(
+          'SLICE_7_EXIT_GATE_MISSING',
+          `Slice 7 exit gate evidence missing: ${exitGateEvidence.path}`,
+          exitGateEvidence.path,
+        ));
+      } else if (sha256File(exitGateAbsolute) !== exitGateEvidence.sha256) {
+        errors.push(error(
+          'SLICE_7_EXIT_GATE_HASH_MISMATCH',
+          'Slice 7 exit gate evidence hash does not match manifest',
+          `evidence.${exitGateEvidence.id}`,
+        ));
+      }
+    }
+
+    return errors;
+  }
 
   if (manifest.commerce?.newSalesEnabled !== false) {
     errors.push(error(
       'COMMERCE_SALES_ENABLED',
-      'commerce.newSalesEnabled must be false for Slice 1',
+      'commerce.newSalesEnabled must be false before Slice 7 sales evidence is pinned',
       'commerce.newSalesEnabled',
     ));
   }
@@ -559,7 +611,7 @@ function verifyCrossRepoSlice(options) {
   errors.push(...verifyLegalVersion(manifest, websiteRoot));
   errors.push(...verifyEvidenceHashes(manifest, repositories));
   errors.push(...verifyMigrationEvidence(manifest, representativeRoot));
-  errors.push(...verifyCommerceFreeze(manifest, representativeRoot));
+  errors.push(...verifyCommerceFreeze(manifest, representativeRoot, coreRoot));
 
   return { valid: errors.length === 0, errors };
 }

@@ -287,9 +287,10 @@ describe('Slice 7 exit gate — commerce worker contracts (private repo)', () =>
   });
 });
 
-describe('Slice 7 exit gate — release manifest pre-evidence state', () => {
-  it('documents commerce freeze until evidence commit flips newSalesEnabled', () => {
-    expect(releaseManifest.commerce.newSalesEnabled).toBe(false);
-    expect(releaseManifest.completedSlices).toEqual([1, 2, 3, 4, 5, 6]);
+describe('Slice 7 exit gate — release manifest evidence state', () => {
+  it('documents commerce sales enabled after exit gate evidence', () => {
+    expect(releaseManifest.commerce.newSalesEnabled).toBe(true);
+    expect(releaseManifest.completedSlices).toContain(7);
+    expect(releaseManifest.releaseId).toBe('entitlements-commerce-2026-07-18');
   });
 });

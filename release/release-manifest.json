@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "releaseId": "signed-digital-representative-2026-07-18",
-  "generatedAt": "2026-07-19T03:46:00Z",
+  "releaseId": "entitlements-commerce-2026-07-18",
+  "generatedAt": "2026-07-19T04:02:30Z",
   "repositories": {
     "core": {
-      "sourceCommit": "b777e9335719c7eed68a2a6478d2429ac58f882d",
-      "sourceTreeHash": "2a85ce8e94a23c949af949fd7e9898f86c7781d5"
+      "sourceCommit": "d3bae133fdfddc63aca98c5b9bea12c8c4a36138",
+      "sourceTreeHash": "50d130e309268c96f48179d467b2b19ca3eeec2d"
     },
     "representative": {
-      "sourceCommit": "51d17f2",
-      "sourceTreeHash": "3380d1faf3ec2a9b78f8a86719b421912eedcec2",
+      "sourceCommit": "89405cdf94a8e1b5ff7c8208af79148a68a6ea18",
+      "sourceTreeHash": "cf75b09083b2b09f426dfe8cb8d303aa1c1e8079",
       "packageVersion": "0.1.0",
       "artifactHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa",
       "extensionManifestHash": "8ff4eb6ec9a66afa0fa080daf63b7c1f6365db067437c43db28f5fd117f073be"
     },
     "website": {
-      "sourceCommit": "8c441b2de5fc3efcc7d9987b8027919fe8f95bbc",
-      "sourceTreeHash": "23859f5683112d161b5364b8d5b72b0b48be51ab"
+      "sourceCommit": "c9deac01af9ad428ca07b5c778aeb9a700d25860",
+      "sourceTreeHash": "2af601a91d61ed6c960601ec0e817a6a73e29b79"
     }
   },
   "signedArtifacts": [],
@@ -126,7 +126,8 @@
       "path": "docs/release-manifests/evidence/slice-1/commerce-shadow.txt",
       "sha256": "d56d2254dcbccda9eb34a7ff8cdadbe14ccb567a4221a9488627292ddde8c635",
       "requiredForStates": [
-        "Implemented"
+        "Implemented",
+        "Released"
       ]
     },
     {
@@ -135,7 +136,8 @@
       "path": "docs/release-manifests/commerce-freeze-evidence.json",
       "sha256": "2087bcc8a2d51486eb68e40e66b605b4d8add1b88d10c9c2c18b3026264eff26",
       "requiredForStates": [
-        "Implemented"
+        "Implemented",
+        "Released"
       ]
     },
     {
@@ -189,7 +191,8 @@
       "path": "docs/release-manifests/evidence/slice-1/commerce-production.txt",
       "sha256": "91da90c9ac8856af9339877266e82c98a9e47f1ecc74e14f241568c9d6529811",
       "requiredForStates": [
-        "Implemented"
+        "Implemented",
+        "Released"
       ]
     },
     {
@@ -545,10 +548,57 @@
       "requiredForStates": [
         "RuntimeVerified"
       ]
+    },
+    {
+      "id": "slice-7-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-7/slice-7-exit-gate.json",
+      "sha256": "516e32c70415b11407a15edd7271716d8297f6df0586f4619ce6361e049eb0c1",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-7-exit-gate-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-7/exit-gate.txt",
+      "sha256": "cb93c25840ba28b52e444e782019e3c0b3ae4c50fde03df8451017120b84e8bb",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-7-capability-preview",
+      "repository": "core",
+      "path": "release/evidence/slice-7/capability-preview.txt",
+      "sha256": "afbf2d73cdcb446f75e46ff41ad8dfd31a7a4e47a1f131e2f9e1d6c605eb0d1e",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-7-commerce-worker-tests",
+      "repository": "representative",
+      "path": "docs/release-manifests/evidence/slice-7/commerce-worker-tests.txt",
+      "sha256": "f4862bf9080e1ac09255e1645ef00c29f89aaa28f5a126b8c0a5a91fb94d93ab",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-7-new-sales-enabled",
+      "repository": "core",
+      "path": "release/evidence/slice-7/new-sales-enabled.txt",
+      "sha256": "195b3e3f1c941146605efc6858de2366be8c49bc1a187548375d539b91ef47a6",
+      "requiredForStates": [
+        "Implemented"
+      ]
     }
   ],
   "commerce": {
-    "newSalesEnabled": false,
+    "newSalesEnabled": true,
     "freezeEvidence": [
       "commerce-freeze-evidence",
       "commerce-production",
@@ -568,7 +618,8 @@
     3,
     4,
     5,
-    6
+    6,
+    7
   ],
   "features": [
     {
@@ -766,6 +817,29 @@
         "artifactHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa",
         "extensionManifestHash": "8ff4eb6ec9a66afa0fa080daf63b7c1f6365db067437c43db28f5fd117f073be"
       }
+    },
+    {
+      "id": "entitlements-commerce-founding",
+      "name": "Entitlements, commerce, founding conversion",
+      "repository": "core",
+      "state": "RuntimeVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-7-exit-gate",
+        "slice-7-exit-gate-tests",
+        "slice-7-capability-preview",
+        "slice-7-commerce-worker-tests",
+        "slice-7-new-sales-enabled"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
     }
   ],
   "signatureKeyId": "",

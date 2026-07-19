@@ -202,8 +202,11 @@ describe('Slice 6 exit gate', () => {
     expect(result.error).toContain('Reservation artifacts never grant paid entitlement');
   });
 
-  it('asserts commerce.newSalesEnabled remains false in release manifest', () => {
-    expect(releaseManifest.commerce.newSalesEnabled).toBe(false);
+  it('records commerce freeze in Slice 6 exit gate evidence', () => {
+    const slice6Gate = JSON.parse(
+      readFileSync(join(process.cwd(), 'release/evidence/slice-6/slice-6-exit-gate.json'), 'utf8'),
+    ) as { exitGate: { commerceNewSalesDisabled: { Implemented: boolean } } };
+    expect(slice6Gate.exitGate.commerceNewSalesDisabled.Implemented).toBe(true);
   });
 
   it('accepts kernel-signed test entitlement for execution', () => {

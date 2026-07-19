@@ -1,0 +1,14 @@
+Slice 7 commerce.newSalesEnabled gate
+=====================================
+
+release-manifest.json commerce.newSalesEnabled: true
+releaseId: entitlements-commerce-2026-07-18
+completedSlices includes: 7
+
+Evidence commit flips sales only after exit gate tests passed:
+- tests/slice-7/exit-gate.test.ts (11/11)
+- infrastructure/commerce-worker tests (34/34)
+- CapabilityPreview wired via LicenseCapabilityGate in LicenseContext
+
+Checkout opens in system browser via LicenseContext.openCheckout → license-commerce.ts.
+Unpaid users see CapabilityPreview at premium intent boundaries; no local entitlement grant.

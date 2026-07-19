@@ -1,0 +1,23 @@
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+
+ ✓ tests/semblance-ui/CapabilityPreview.test.tsx (5 tests)
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+
+CapabilityPreview: renders gated capabilities, founding/redeem CTAs, never grants premium.
+
+LicenseCapabilityGate: unpaid users see CapabilityPreview; premium content blocked.
+
+Callers (grep LicenseCapabilityGate / CapabilityPreview):
+- packages/desktop/src/contexts/LicenseContext.tsx (LicenseCapabilityGate → CapabilityPreview)
+- packages/desktop/src/screens/WitnessScreen.tsx
+- packages/desktop/src/screens/SemblanceNetworkScreen.tsx
+- packages/desktop/src/screens/LivingWillScreen.tsx
+- packages/desktop/src/screens/InheritanceScreen.tsx
+- packages/desktop/src/screens/HealthDashboardScreen.tsx
+- packages/desktop/src/screens/FinancialDashboardScreen.tsx
+- packages/desktop/src/screens/DigestScreen.tsx
+- packages/desktop/src/screens/AlterEgoWeekScreen.tsx
+- packages/desktop/src/screens/AdversarialDashboardScreen.tsx
