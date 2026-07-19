@@ -958,6 +958,14 @@ export interface TodaySnapshotResult {
       source: string;
     }>;
   };
+  agencyVerticals: Array<{
+    domain: string;
+    title: string;
+    summary: string;
+    mode: 'executed' | 'simulated' | 'gated';
+    completedAt: string;
+    linkId: string | null;
+  }>;
   isEmpty: boolean;
 }
 

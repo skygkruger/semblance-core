@@ -270,6 +270,14 @@ import {
   type UpdatePlanInput,
   type DelegatedPlanView,
 } from '../../../core/agent/planning/index.js';
+import {
+  createOutcomeLinker,
+  type OutcomeLinker,
+} from '../../../core/agent/proactive/outcome-linker.js';
+import type {
+  AgencyDomain,
+  DomainVerticalInput,
+} from '../../../core/agent/agency/domain-vertical-port.js';
 import { DailyDigestGenerator } from '../../../core/agent/daily-digest.js';
 import { WeatherService } from '../../../core/weather/weather-service.js';
 import { LocationStore } from '../../../core/location/location-store.js';
@@ -409,6 +417,7 @@ let calendarIndexer: CalendarIndexer | null = null;
 let emailCategorizer: EmailCategorizer | null = null;
 let _refreshPromptConfig: () => void = () => {}; // set during initializeCore
 let proactiveEngine: ProactiveEngine | null = null;
+let outcomeLinker: OutcomeLinker | null = null;
 
 // Step 7 state (finance/digest moved to @semblance/dr — access via ipAdapters)
 let escalationEngine: EscalationEngine | null = null;
@@ -1098,6 +1107,10 @@ async function handleInitialize(): Promise<unknown> {
   console.error('[sidecar] Gateway started');
   representativeEmailWorkflowStore = createRepresentativeEmailWorkflowStore(join(dataDir, 'actions.db'));
   planStore = createPlanStore(dataDir);
+  outcomeLinker = createOutcomeLinker(dataDir, {
+    escalationEngine: escalationEngine ?? undefined,
+  });
+  ipAdapters.registerOutcomeLinker(outcomeLinker);
 
   // Seed allowlist with Google API domains (needed for Gmail, Calendar, Drive)
   try {
@@ -2555,6 +2568,7 @@ async function handleInitialize(): Promise<unknown> {
         emailIndexer,
         calendarIndexer,
         autonomy: autonomyForProactive,
+        outcomeLinker: outcomeLinker ?? undefined,
       });
       proactiveEngine.onEvent((event, data) => emit(event, data));
       proactiveEngine.startPeriodicRun();
@@ -3845,6 +3859,46 @@ async function handleGetMeetingPrep(params: { event_id: string }): Promise<unkno
 async function handleProactiveRun(): Promise<unknown[]> {
   if (!proactiveEngine) return [];
   return await proactiveEngine.run();
+}
+
+function handleProactiveRecordOutcome(params: {
+  linkId?: string;
+  value?: unknown;
+  measured?: boolean;
+  userConfirmed?: boolean;
+}): unknown {
+  if (!outcomeLinker) {
+    throw new Error('Outcome linker not initialized');
+  }
+  if (!params.linkId) {
+    throw new Error('linkId is required');
+  }
+  return outcomeLinker.recordOutcome({
+    linkId: params.linkId,
+    value: params.value ?? null,
+    measured: params.measured,
+    userConfirmed: params.userConfirmed,
+  });
+}
+
+async function handleAgencyRunVertical(params: {
+  domain?: AgencyDomain;
+  input?: DomainVerticalInput;
+}): Promise<unknown> {
+  const runner = ipAdapters.runDomainVertical;
+  if (!runner) {
+    throw new Error('Agency domain verticals are not loaded');
+  }
+  if (!params.domain) {
+    throw new Error('domain is required');
+  }
+  return runner(params.domain, params.input ?? {});
+}
+
+function handleAgencyListVerticalResults(params: { limit?: number }): unknown {
+  const lister = ipAdapters.listDomainVerticalResults;
+  if (!lister) return [];
+  return lister(params.limit ?? 20);
 }
 
 function persistSyncedPlanView(plan: import('../../../core/agent/planning/plan-types.js').DelegatedPlan): DelegatedPlanView {
@@ -7137,6 +7191,38 @@ async function handleRequest(req: Request): Promise<void> {
         respond(id, result);
         break;
 
+      case 'proactive:record_outcome': {
+        try {
+          respond(id, handleProactiveRecordOutcome(params as {
+            linkId?: string;
+            value?: unknown;
+            measured?: boolean;
+            userConfirmed?: boolean;
+          }));
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'agency:run_vertical': {
+        try {
+          result = await handleAgencyRunVertical(params as {
+            domain?: AgencyDomain;
+            input?: DomainVerticalInput;
+          });
+          respond(id, result);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'agency:list_vertical_results': {
+        respond(id, handleAgencyListVerticalResults(params as { limit?: number }));
+        break;
+      }
+
       case 'action:approve':
         result = await handleActionApprove(params as { action_id: string });
         respond(id, result);
@@ -8212,6 +8298,7 @@ async function handleRequest(req: Request): Promise<void> {
             proactiveEngine: proactiveEngine ?? null,
             intentManager: intentManager ?? null,
             representativeWorkflowStore: representativeEmailWorkflowStore ?? null,
+            listAgencyVerticalResults: ipAdapters.listDomainVerticalResults ?? undefined,
           });
           respond(id, snapshot);
         } catch (snapshotErr) {
@@ -9245,6 +9332,7 @@ async function handleRequest(req: Request): Promise<void> {
                 emailIndexer,
                 calendarIndexer,
                 autonomy,
+                outcomeLinker: outcomeLinker ?? undefined,
               });
               proactiveEngine.onEvent((event, data) => emit(event, data));
               // Run once to generate initial insights, then start periodic background scans

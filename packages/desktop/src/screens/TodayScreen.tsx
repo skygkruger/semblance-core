@@ -306,6 +306,38 @@ export function TodayScreen() {
         </Card>
 
         <Card>
+          <SectionHeader title="Agency verticals" count={snapshot.agencyVerticals.length} />
+          {snapshot.agencyVerticals.length === 0 ? (
+            <EmptySection message="No domain vertical workflows completed yet. Run agency workflows from Work or sidecar IPC." />
+          ) : (
+            snapshot.agencyVerticals.map((vertical) => (
+              <ItemRow
+                key={`${vertical.domain}-${vertical.completedAt}`}
+                title={`${vertical.domain}: ${vertical.title}`}
+                subtitle={vertical.summary}
+                meta={`${vertical.mode}${vertical.linkId ? ` · link ${vertical.linkId}` : ''} · ${formatTimestamp(vertical.completedAt)}`}
+                accent={vertical.mode === 'gated' ? COLORS.caution : COLORS.veridian}
+              />
+            ))
+          )}
+          <button
+            type="button"
+            onClick={() => navigate('/work')}
+            style={{
+              marginTop: 12,
+              background: 'transparent',
+              border: 'none',
+              color: COLORS.veridian,
+              fontSize: 12,
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            Open work →
+          </button>
+        </Card>
+
+        <Card>
           <SectionHeader title="Provenance" count={snapshot.provenance.totalDocuments} />
           {snapshot.provenance.totalDocuments === 0 ? (
             <EmptySection message="Vault is empty — index files or connect data sources to populate provenance." />

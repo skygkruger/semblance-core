@@ -4,6 +4,18 @@
 
 import type { UISlotComponent } from './types.js';
 
+/** Named UI slots used by core screens and DR extensions. */
+export const UI_SLOT_NAMES = {
+  todayAgencyVerticals: 'today-agency-verticals',
+  workAgencyVerticals: 'work-agency-verticals',
+  financialDashboard: 'financial-dashboard',
+  representativeDashboard: 'representative-dashboard',
+  wellnessDashboard: 'wellness-dashboard',
+  formFillFlow: 'form-fill-flow',
+} as const;
+
+export type UISlotName = typeof UI_SLOT_NAMES[keyof typeof UI_SLOT_NAMES];
+
 const slots: Map<string, UISlotComponent[]> = new Map();
 
 /**

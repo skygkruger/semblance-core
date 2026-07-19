@@ -101,6 +101,7 @@ describe('buildTodaySnapshot — empty vault honesty', () => {
     expect(snapshot.completedActions).toEqual([]);
     expect(snapshot.pendingDecisions).toEqual([]);
     expect(snapshot.outcomes).toEqual([]);
+    expect(snapshot.agencyVerticals).toEqual([]);
     expect(snapshot.inbox.triage).toEqual([]);
     expect(snapshot.inbox.pendingReplies).toEqual([]);
     expect(snapshot.inbox.representativeActions).toEqual([]);

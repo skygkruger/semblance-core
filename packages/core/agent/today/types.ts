@@ -81,6 +81,15 @@ export interface TodayRepresentativeActionItem {
   readonly source: string;
 }
 
+export interface TodayAgencyVerticalItem {
+  readonly domain: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly mode: 'executed' | 'simulated' | 'gated';
+  readonly completedAt: string;
+  readonly linkId: string | null;
+}
+
 export interface TodayInboxStrip {
   readonly triage: TodayInboxTriageItem[];
   readonly pendingReplies: TodayInboxReplyItem[];
@@ -97,5 +106,6 @@ export interface TodaySnapshot {
   readonly outcomes: TodayMeasuredOutcome[];
   readonly provenance: TodayProvenanceSummary;
   readonly inbox: TodayInboxStrip;
+  readonly agencyVerticals: TodayAgencyVerticalItem[];
   readonly isEmpty: boolean;
 }

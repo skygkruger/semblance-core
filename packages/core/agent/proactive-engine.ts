@@ -17,6 +17,7 @@ import type { CalendarIndexer, IndexedCalendarEvent } from '../knowledge/calenda
 import type { AutonomyTier } from './types.js';
 import { AutonomyManager } from './autonomy.js';
 import type { ExtensionInsightTracker } from '../extensions/types.js';
+import type { OutcomeLinker } from './proactive/outcome-linker.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -161,6 +162,7 @@ export class ProactiveEngine {
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private eventHandler: ProactiveEventHandler | null = null;
   private extensionTrackers: ExtensionInsightTracker[] = [];
+  private outcomeLinker: OutcomeLinker | null = null;
 
   constructor(config: {
     db: DatabaseHandle;
@@ -169,6 +171,7 @@ export class ProactiveEngine {
     calendarIndexer: CalendarIndexer;
     autonomy: AutonomyManager;
     pollIntervalMs?: number;
+    outcomeLinker?: OutcomeLinker;
   }) {
     this.db = config.db;
     this.knowledge = config.knowledge;
@@ -176,7 +179,17 @@ export class ProactiveEngine {
     this.calendarIndexer = config.calendarIndexer;
     this.autonomy = config.autonomy;
     this.pollIntervalMs = config.pollIntervalMs ?? 15 * 60 * 1000; // default 15 minutes
+    this.outcomeLinker = config.outcomeLinker ?? null;
     this.db.exec(CREATE_INSIGHTS_TABLE);
+  }
+
+  /** Access the outcome linker when wired by the sidecar. */
+  getOutcomeLinker(): OutcomeLinker | null {
+    return this.outcomeLinker;
+  }
+
+  setOutcomeLinker(linker: OutcomeLinker): void {
+    this.outcomeLinker = linker;
   }
 
   onEvent(handler: ProactiveEventHandler): void {
@@ -571,6 +584,14 @@ export class ProactiveEngine {
       insight.expiresAt,
       insight.estimatedTimeSavedSeconds,
     );
+
+    if (this.outcomeLinker && insight.suggestedAction) {
+      try {
+        this.outcomeLinker.createLinkFromInsight(insight);
+      } catch {
+        // Outcome linking is best-effort — insight storage remains authoritative.
+      }
+    }
   }
 
   private looksLikeQuestion(text: string): boolean {

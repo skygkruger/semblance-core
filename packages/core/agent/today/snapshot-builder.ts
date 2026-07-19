@@ -14,9 +14,11 @@ import type {
   TodayPendingDecision,
   TodayProvenanceSummary,
   TodayRepresentativeActionItem,
+  TodayAgencyVerticalItem,
   TodayRisk,
   TodaySnapshot,
 } from './types.js';
+import type { DomainVerticalResult } from '../agency/domain-vertical-port.js';
 
 const RECENT_CHANGE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const COMPLETED_ACTION_LIMIT = 20;
@@ -31,6 +33,7 @@ export interface TodaySnapshotDeps {
   readonly proactiveEngine: ProactiveEngine | null;
   readonly intentManager: IntentManager | null;
   readonly representativeWorkflowStore: RepresentativeEmailWorkflowStore | null;
+  readonly listAgencyVerticalResults?: (limit?: number) => DomainVerticalResult[];
   readonly now?: () => Date;
 }
 
@@ -468,12 +471,35 @@ function gatherInboxStrip(deps: TodaySnapshotDeps): TodayInboxStrip {
   return { triage, pendingReplies, representativeActions };
 }
 
+function gatherAgencyVerticals(deps: TodaySnapshotDeps): TodayAgencyVerticalItem[] {
+  if (!deps.listAgencyVerticalResults) return [];
+
+  try {
+    const results = deps.listAgencyVerticalResults(8);
+    return results.map((result: DomainVerticalResult) => ({
+      domain: result.domain,
+      title: result.insight?.title ?? `${result.domain} vertical`,
+      summary: result.insight?.summary
+        ?? result.error
+        ?? (result.gated ? 'Digital Representative required' : 'Workflow completed'),
+      mode: result.gated
+        ? 'gated'
+        : (result.action?.mode ?? 'simulated'),
+      completedAt: result.completedAt,
+      linkId: result.linkId,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 function computeIsEmpty(snapshot: Omit<TodaySnapshot, 'isEmpty'>): boolean {
   return snapshot.changes.length === 0
     && snapshot.risks.length === 0
     && snapshot.completedActions.length === 0
     && snapshot.pendingDecisions.length === 0
     && snapshot.outcomes.length === 0
+    && snapshot.agencyVerticals.length === 0
     && snapshot.inbox.triage.length === 0
     && snapshot.inbox.pendingReplies.length === 0
     && snapshot.inbox.representativeActions.length === 0;
@@ -490,6 +516,7 @@ export function buildTodaySnapshot(deps: TodaySnapshotDeps): TodaySnapshot {
   const outcomes = gatherMeasuredOutcomes(deps, now);
   const provenance = gatherProvenance(deps);
   const inbox = gatherInboxStrip(deps);
+  const agencyVerticals = gatherAgencyVerticals(deps);
 
   const partial: Omit<TodaySnapshot, 'isEmpty'> = {
     assembledAt: now.toISOString(),
@@ -501,6 +528,7 @@ export function buildTodaySnapshot(deps: TodaySnapshotDeps): TodaySnapshot {
     outcomes,
     provenance,
     inbox,
+    agencyVerticals,
   };
 
   return {
