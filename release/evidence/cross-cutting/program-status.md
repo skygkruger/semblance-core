@@ -44,9 +44,26 @@ Canonical: `release/release-trains.v1.json`
 
 Cleared since prior cross-cutting pin: outage-safety, corruption-safety, accessibility (automated), supply-chain, diagnostic-privacy. Task-based screen-reader review remains documented at `release/evidence/a11y/task-based-checklist.md` (not required for automated a11y gate).
 
+## Field evidence capture harnesses
+
+Capture scripts write evidence **only when checks actually pass**. Operators pin JSON under `release/evidence/field/` after review; CI uploads artifacts but does **not** auto-commit.
+
+| Gate | Capture | Verify |
+|------|---------|--------|
+| Windows launch-floor | `node scripts/capture-launch-floor.js` (win32 only) | `node scripts/verify-field-evidence.js --launch-floor` |
+| Installer three-VM matrix | Per VM: `node scripts/capture-installer-vm.js --vm-id vm-a --installer-path path.msi --result-out vm-a.json` then `node scripts/aggregate-installer-matrix.js --vm-a vm-a.json --vm-b vm-b.json --vm-c vm-c.json` | `node scripts/verify-field-evidence.js --installer-matrix` |
+| Mobile device acceptance | `node scripts/capture-mobile-acceptance.js --interactive` or `--from-checklist checklist.json` | `node scripts/verify-field-evidence.js --mobile-acceptance` |
+| Task-based a11y (partial) | `node scripts/run-task-based-a11y.js` | Manual SR checklist still required |
+
+**Windows CI:** `.github/workflows/field-proof-windows.yml` (workflow_dispatch). Always runs launch-floor on `windows-latest`. Installer matrix runs when `build_msi=true` or `installer_url` is supplied; otherwise matrix is deferred (no fake PASS). Same-version reinstall proxy for CI: `SEMBLANCE_INSTALLER_MATRIX_ALLOW_SAME_VERSION_REENSTALL=1`.
+
+**PowerShell wrapper:** `.\scripts\windows-launch-floor-bench.ps1`
+
+**Mobile protocol:** `semblence-representative/docs/MOBILE_DEVICE_ACCEPTANCE.md`
+
 ## Next steps
 
-1. Capture Windows launch-floor + three-VM installer evidence; pin JSON via schemas under `release/evidence/schemas/`
-2. Run mobile device acceptance on physical iOS/Android; pin evidence
-3. Complete task-based SR checklist before claiming full accessibility FieldProven
+1. Run Windows field-proof workflow or local Windows captures; pin `launch-floor.v1.json` and `installer-matrix.v1.json`
+2. Run mobile device acceptance on physical iOS/Android; pin evidence via `capture-mobile-acceptance.js`
+3. Complete task-based SR checklist (`run-task-based-a11y.js` automates fixtures only)
 4. Promote trains to FieldProven only when those three evidence files validate

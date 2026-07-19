@@ -150,6 +150,11 @@ scripts/**/*.d.ts.map
 !scripts/generate-notices.js
 !scripts/supply-chain-gate.js
 !scripts/verify-field-evidence.js
+!scripts/capture-launch-floor.js
+!scripts/capture-installer-vm.js
+!scripts/aggregate-installer-matrix.js
+!scripts/capture-mobile-acceptance.js
+!scripts/run-task-based-a11y.js
 
 # Vitest config compiled output
 vitest.config.js

@@ -13,7 +13,8 @@
 const { spawn } = require('child_process');
 const { join } = require('path');
 
-const SIDECAR_PATH = join(__dirname, '..', 'packages', 'desktop', 'src-tauri', 'sidecar', 'bridge.cjs');
+const SIDECAR_PATH = process.env.SEMBLANCE_SIDECAR_OVERRIDE
+  || join(__dirname, '..', 'packages', 'desktop', 'src-tauri', 'sidecar', 'bridge.cjs');
 
 let passed = 0;
 let failed = 0;
