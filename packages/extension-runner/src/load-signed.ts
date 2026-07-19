@@ -13,10 +13,19 @@ import type {
 } from './trust-checker.js';
 import { createArtifactOnlyExtensionTrustChecker } from './trust-checker.js';
 import type { ExtensionInitContextLike } from './client-adapters.js';
-import { buildExtensionInitContext } from './client-adapters.js';
+import {
+  buildExtensionInitContext,
+  buildExtensionInitContextV1,
+  buildExtensionRunnerClientsV1,
+} from './client-adapters.js';
 import { extractExtensionArtifact, importExtractedExtension } from './extract-artifact.js';
+import {
+  createPermissionEnforcedClientsV1,
+  type ExtensionGrantedPermissions,
+} from './permission-enforcement.js';
 import { createExtensionSandbox } from './sandbox.js';
 import type { ExtensionRunnerClients } from '@semblance/extension-sdk';
+import { extractRequestedPermissions } from '@semblance/kernel';
 
 export interface SemblanceExtensionLike {
   id: string;
@@ -40,6 +49,8 @@ export interface LoadSignedDigitalRepresentativeOptions {
   trustChecker?: ExtensionTrustChecker;
   /** Ownership origin for revocation degraded-policy handling. */
   ownership?: ExtensionOwnership;
+  /** User-granted permission subset — runner cannot exceed this set. */
+  grantedPermissions?: ExtensionGrantedPermissions;
 }
 
 export interface LoadSignedDigitalRepresentativeResult {
@@ -176,15 +187,41 @@ export async function loadSignedDigitalRepresentative(
     }
 
     const extension = (module.createExtension as () => SemblanceExtensionLike)();
+    const requested = extractRequestedPermissions(evaluation.manifest);
+    const granted = options.grantedPermissions ?? requested;
+    const declaredManifest = {
+      uiSlots: [...requested.uiSlots],
+      schedules: [...requested.schedules],
+      migration: { schemaVersion: 0, uninstall: 'ask' as const },
+    };
+    const enforcedClients = createPermissionEnforcedClientsV1({
+      base: options.clients,
+      granted,
+      extensionId: evaluation.manifest.id,
+      dataDir: options.dataDir ?? '/tmp/semblance-extension',
+      declared: declaredManifest,
+    });
+    const initContextV1 = buildExtensionInitContextV1({
+      extensionId: evaluation.manifest.id,
+      dataDir: options.dataDir ?? '/tmp/semblance-extension',
+      clients: buildExtensionRunnerClientsV1(enforcedClients),
+      declaredManifest,
+    });
     const initContext = buildExtensionInitContext({
-      clients: options.clients,
+      clients: enforcedClients,
       dataDir: options.dataDir,
       model: options.model,
       legacy: options.legacyContext,
     });
 
     if (extension.initialize) {
-      await sandbox.run(async () => extension.initialize!(initContext));
+      await sandbox.run(async () => {
+        if (options.grantedPermissions) {
+          await extension.initialize!(initContextV1 as unknown as ExtensionInitContextLike);
+        } else {
+          await extension.initialize!(initContext);
+        }
+      });
     }
 
     return {

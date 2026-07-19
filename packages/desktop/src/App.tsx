@@ -43,6 +43,7 @@ import { CloudStorageSettingsScreen } from './screens/CloudStorageSettingsScreen
 import { SemblanceNetworkScreen } from './screens/SemblanceNetworkScreen';
 import { TunnelPairingScreen } from './screens/TunnelPairingScreen';
 import { CloudBridgeScreen } from './screens/CloudBridgeScreen';
+import { CapabilitiesScreen } from './screens/CapabilitiesScreen';
 
 import { AlterEgoWeekScreen } from './screens/AlterEgoWeekScreen';
 import { ImportEverythingScreen } from './screens/ImportEverythingScreen';
@@ -264,6 +265,14 @@ function GlobeIcon() {
     </svg>
   );
 }
+function CapabilitiesNavIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v3" /><path d="M12 18v3" /><path d="M3 12h3" /><path d="M18 12h3" />
+      <rect x="7" y="7" width="10" height="10" rx="2" />
+    </svg>
+  );
+}
 function CloudBridgeIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -321,7 +330,8 @@ const navSections: NavSection[] = [
   {
     label: 'CLOUD CONNECTIVITY',
     items: [
-      { id: 'cloud-bridge', label: 'Capabilities', icon: <CloudBridgeIcon /> },
+      { id: 'capabilities', label: 'Capabilities', icon: <CapabilitiesNavIcon /> },
+      { id: 'cloud-bridge', label: 'Execution destinations', icon: <CloudBridgeIcon /> },
     ],
   },
 ];
@@ -659,6 +669,7 @@ function AppContent() {
           <Route path="/import" element={<ImportEverythingScreen />} />
           <Route path="/semblance-network" element={<SemblanceNetworkScreen />} />
           <Route path="/tunnel-pairing" element={<TunnelPairingScreen />} />
+          <Route path="/capabilities" element={<CapabilitiesScreen />} />
           <Route path="/cloud-bridge" element={<CloudBridgeScreen />} />
           <Route
             path="/upgrade"

@@ -282,3 +282,27 @@ export {
   type ExtensionTrustCheckRequest,
   type ExtensionTrustChecker,
 } from './extension/publisher-policy.js';
+export {
+  EXTENSION_INSTALL_SCHEMA_VERSION,
+  ExtensionInstallStore,
+  createDefaultExtensionInstallDocument,
+  createExtensionInstallStore,
+  loadExtensionInstallDocument,
+  normalizeExtensionInstallDocument,
+  saveExtensionInstallDocument,
+  type AvailableExtensionSummary,
+  type ExtensionInstallDocument,
+  type InstallExtensionInput,
+  type InstallExtensionResult,
+  type InstalledExtensionRecord,
+} from './extension/install-store.js';
+export {
+  emptyPermissionBundle,
+  extractRequestedPermissions,
+  isGrantedSubsetOfRequested,
+  narrowGrantedPermissions,
+  permissionBundleFromInput,
+  validateExplicitInstallGrant,
+  type ExtensionPermissionBundle,
+  type ExplicitGrantValidation,
+} from './extension/permissions.js';

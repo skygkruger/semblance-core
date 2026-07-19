@@ -443,6 +443,7 @@ let extensionPublisherTrustStore: {
   saveTrust: () => import('@semblance/kernel').ExtensionPublisherTrustDocument;
   saveRevocation: () => import('@semblance/kernel').ExtensionRevocationDocument;
 } | null = null;
+let extensionInstallStore: import('@semblance/kernel').ExtensionInstallStore | null = null;
 const attestationNonceGuard: AttestationNonceGuard = createAttestationNonceGuard();
 let documentsDb: Database.Database | null = null;
 let emailIndexer: EmailIndexer | null = null;
@@ -1035,6 +1036,54 @@ function ensureExtensionPublisherTrustStore(): void {
   (globalThis as any).__extensionPublisherTrustStore = extensionPublisherTrustStore;
 }
 
+function ensureExtensionInstallStore(): void {
+  if (extensionInstallStore) {
+    return;
+  }
+  const { createExtensionInstallStore } = require('@semblance/kernel');
+  extensionInstallStore = createExtensionInstallStore(dataDir);
+  (globalThis as any).__extensionInstallStore = extensionInstallStore;
+}
+
+async function loadInstalledExtensionRuntime(
+  record: import('@semblance/kernel').InstalledExtensionRecord,
+): Promise<{ loaded: boolean; error?: string }> {
+  if (!core?.agent || !record.enabled || record.revoked) {
+    return { loaded: false, error: 'Core agent unavailable or extension disabled' };
+  }
+  try {
+    const { loadSignedDigitalRepresentative } = require('@semblance/extension-runner');
+    const { buildExtensionRunnerClients } = require('../../../core/extensions/runner-clients.js');
+    const premiumGateInstance = premiumGate ?? new PremiumGate(prefsDb as never);
+    const runnerClients = buildExtensionRunnerClients({
+      ipc: core.agent.ipcClient,
+      knowledge: core.knowledge,
+      premiumGate: premiumGateInstance,
+    });
+    const result = await loadSignedDigitalRepresentative({
+      manifestPath: record.manifestPath,
+      artifactPath: record.artifactPath,
+      clients: runnerClients,
+      dataDir,
+      trustChecker: extensionPublisherTrustStore?.createTrustChecker(),
+      ownership: record.ownership,
+      grantedPermissions: record.grantedPermissions,
+    });
+    if (!result.ok || !result.extension) {
+      return { loaded: false, error: result.error ?? 'Extension load failed' };
+    }
+    if (result.extension.tools && result.extension.tools.length > 0) {
+      core.agent.registerTools(result.extension.tools as never);
+    }
+    return { loaded: true };
+  } catch (error) {
+    return {
+      loaded: false,
+      error: error instanceof Error ? error.message : 'Extension runtime load failed',
+    };
+  }
+}
+
 function recordExecutionRunReceipt(params: {
   requestId: string;
   domain: string;
@@ -1075,6 +1124,7 @@ async function handleInitialize(): Promise<unknown> {
   ensureExecutionDestinationStores();
   ensureCloudBudgetStore();
   ensureExtensionPublisherTrustStore();
+  ensureExtensionInstallStore();
 
   try {
     await initializeSyncRoot(dataDir);
@@ -1249,6 +1299,7 @@ async function handleInitialize(): Promise<unknown> {
 
     console.error('[sidecar] Creating SemblanceCore...');
     ensureExtensionPublisherTrustStore();
+  ensureExtensionInstallStore();
     core = createSemblanceCore({
       dataDir,
       llmProvider: nativeLlm,
@@ -13078,6 +13129,7 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'extension:list_publishers': {
         ensureExtensionPublisherTrustStore();
+  ensureExtensionInstallStore();
         if (!extensionPublisherTrustStore) {
           respondError(id, 'Extension publisher trust store not initialized');
           break;
@@ -13091,6 +13143,7 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'extension:trust_publisher': {
         ensureExtensionPublisherTrustStore();
+  ensureExtensionInstallStore();
         if (!extensionPublisherTrustStore) {
           respondError(id, 'Extension publisher trust store not initialized');
           break;
@@ -13127,6 +13180,7 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'extension:revoke_publisher': {
         ensureExtensionPublisherTrustStore();
+  ensureExtensionInstallStore();
         if (!extensionPublisherTrustStore) {
           respondError(id, 'Extension publisher trust store not initialized');
           break;
@@ -13161,6 +13215,154 @@ async function handleRequest(req: Request): Promise<void> {
           break;
         }
         respondError(id, 'Invalid extension:revoke_publisher params: publisherKeyId or manifestId required');
+        break;
+      }
+
+      case 'extension:list_installed': {
+        ensureExtensionInstallStore();
+        if (!extensionInstallStore) {
+          respondError(id, 'Extension install store not initialized');
+          break;
+        }
+        respond(id, {
+          installed: extensionInstallStore.listInstalled(),
+          available: extensionInstallStore.listAvailable(),
+        });
+        break;
+      }
+
+      case 'extension:inspect': {
+        ensureExtensionInstallStore();
+        if (!extensionInstallStore) {
+          respondError(id, 'Extension install store not initialized');
+          break;
+        }
+        const inspectParams = params as { manifestId?: string };
+        if (typeof inspectParams.manifestId !== 'string' || inspectParams.manifestId.length === 0) {
+          respondError(id, 'Invalid extension:inspect params: manifestId required');
+          break;
+        }
+        const inspected = extensionInstallStore.inspect(inspectParams.manifestId);
+        if (!inspected) {
+          respondError(id, `Extension '${inspectParams.manifestId}' not found`);
+          break;
+        }
+        respond(id, { extension: inspected });
+        break;
+      }
+
+      case 'extension:install': {
+        ensureExtensionPublisherTrustStore();
+        ensureExtensionInstallStore();
+        if (!extensionInstallStore || !extensionPublisherTrustStore) {
+          respondError(id, 'Extension install store not initialized');
+          break;
+        }
+        const installParams = params as {
+          manifestPath?: string;
+          artifactPath?: string;
+          grantedPermissions?: unknown;
+          ownership?: 'marketplace' | 'user-local';
+        };
+        const { permissionBundleFromInput } = require('@semblance/kernel');
+        const grantedPermissions = permissionBundleFromInput(installParams.grantedPermissions);
+        if (
+          typeof installParams.manifestPath !== 'string'
+          || installParams.manifestPath.length === 0
+          || !grantedPermissions
+        ) {
+          respondError(id, 'Invalid extension:install params: manifestPath and grantedPermissions required');
+          break;
+        }
+        const installResult = extensionInstallStore.install({
+          manifestPath: installParams.manifestPath,
+          artifactPath: installParams.artifactPath,
+          grantedPermissions,
+          ownership: installParams.ownership,
+          trustChecker: extensionPublisherTrustStore.createTrustChecker(),
+          installsRoot: join(dataDir, 'extensions', 'installed'),
+          catalogRoot: join(dataDir, 'extensions', 'catalog'),
+        });
+        if (!installResult.success || !installResult.extension) {
+          respondError(id, installResult.error ?? 'Extension install failed');
+          break;
+        }
+        const runtime = await loadInstalledExtensionRuntime(installResult.extension);
+        respond(id, {
+          success: true,
+          extension: installResult.extension,
+          runtimeLoaded: runtime.loaded,
+          runtimeError: runtime.error ?? null,
+        });
+        break;
+      }
+
+      case 'extension:set_permissions': {
+        ensureExtensionInstallStore();
+        if (!extensionInstallStore) {
+          respondError(id, 'Extension install store not initialized');
+          break;
+        }
+        const setParams = params as { manifestId?: string; grantedPermissions?: unknown };
+        const { permissionBundleFromInput: parseGranted } = require('@semblance/kernel');
+        const nextGranted = parseGranted(setParams.grantedPermissions);
+        if (
+          typeof setParams.manifestId !== 'string'
+          || setParams.manifestId.length === 0
+          || !nextGranted
+        ) {
+          respondError(id, 'Invalid extension:set_permissions params');
+          break;
+        }
+        const setResult = extensionInstallStore.setPermissions(setParams.manifestId, nextGranted);
+        if (!setResult.success) {
+          respondError(id, setResult.error ?? 'Failed to update permissions');
+          break;
+        }
+        respond(id, { success: true, extension: setResult.extension });
+        break;
+      }
+
+      case 'extension:revoke': {
+        ensureExtensionInstallStore();
+        if (!extensionInstallStore) {
+          respondError(id, 'Extension install store not initialized');
+          break;
+        }
+        const revokeExtParams = params as { manifestId?: string };
+        if (typeof revokeExtParams.manifestId !== 'string' || revokeExtParams.manifestId.length === 0) {
+          respondError(id, 'Invalid extension:revoke params: manifestId required');
+          break;
+        }
+        const revokeExtResult = extensionInstallStore.revoke(revokeExtParams.manifestId);
+        if (!revokeExtResult.success) {
+          respondError(id, revokeExtResult.error ?? 'Failed to revoke extension');
+          break;
+        }
+        respond(id, { success: true, extension: revokeExtResult.extension });
+        break;
+      }
+
+      case 'extension:uninstall': {
+        ensureExtensionInstallStore();
+        if (!extensionInstallStore) {
+          respondError(id, 'Extension install store not initialized');
+          break;
+        }
+        const uninstallParams = params as { manifestId?: string; retainUserData?: boolean };
+        if (typeof uninstallParams.manifestId !== 'string' || uninstallParams.manifestId.length === 0) {
+          respondError(id, 'Invalid extension:uninstall params: manifestId required');
+          break;
+        }
+        const uninstallResult = extensionInstallStore.uninstall(
+          uninstallParams.manifestId,
+          uninstallParams.retainUserData === true,
+        );
+        if (!uninstallResult.success) {
+          respondError(id, uninstallResult.error ?? 'Failed to uninstall extension');
+          break;
+        }
+        respond(id, { success: true });
         break;
       }
 

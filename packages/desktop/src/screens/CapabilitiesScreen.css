@@ -1,0 +1,226 @@
+.capabilities-screen {
+  min-height: 100%;
+  padding: 24px 0 48px;
+}
+
+.capabilities-screen__header {
+  margin-bottom: 24px;
+}
+
+.capabilities-screen__title {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  margin: 0 0 8px;
+}
+
+.capabilities-screen__subtitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.capabilities-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) 1fr;
+  gap: 16px;
+}
+
+.capabilities-list-panel,
+.capabilities-detail-panel {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.capabilities-panel-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8593A4;
+  margin: 0 0 12px;
+}
+
+.capabilities-extension-list {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.capabilities-extension-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #171B1F;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #A8B4C0;
+}
+
+.capabilities-extension-item--active {
+  border-color: rgba(110, 207, 163, 0.32);
+  box-shadow: 0 0 0 1px rgba(110, 207, 163, 0.12);
+}
+
+.capabilities-extension-item--revoked {
+  opacity: 0.65;
+}
+
+.capabilities-extension-item__name {
+  display: block;
+  font-size: 13px;
+  color: #EEF1F4;
+}
+
+.capabilities-extension-item__meta {
+  display: block;
+  font-size: 11px;
+  color: #5E6B7C;
+  margin-top: 4px;
+}
+
+.capabilities-extension-item__badge {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #B07A8A;
+}
+
+.capabilities-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.capabilities-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.capabilities-btn {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: #171B1F;
+  color: #A8B4C0;
+  font-size: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.capabilities-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.capabilities-btn--primary {
+  background: rgba(110, 207, 163, 0.12);
+  border-color: rgba(110, 207, 163, 0.32);
+  color: #6ECFA3;
+}
+
+.capabilities-btn--caution {
+  color: #B09A8A;
+}
+
+.capabilities-btn--critical {
+  color: #B07A8A;
+}
+
+.capabilities-permission-section {
+  margin-bottom: 14px;
+}
+
+.capabilities-permission-section__header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.capabilities-permission-section__label {
+  font-size: 12px;
+  color: #8593A4;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.capabilities-permission-section__count {
+  font-size: 11px;
+  color: #5E6B7C;
+}
+
+.capabilities-permission-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.capabilities-permission-item {
+  font-size: 13px;
+  color: #A8B4C0;
+}
+
+.capabilities-permission-item--granted {
+  color: #6ECFA3;
+}
+
+.capabilities-permission-item--denied {
+  color: #B07A8A;
+}
+
+.capabilities-permission-item__select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.capabilities-banner {
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.capabilities-banner--critical {
+  background: rgba(176, 122, 138, 0.12);
+  color: #B07A8A;
+}
+
+.capabilities-banner--info {
+  background: rgba(110, 207, 163, 0.08);
+  color: #6ECFA3;
+}
+
+.capabilities-inspect-panel {
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  padding-top: 12px;
+}
+
+.capabilities-inspect-panel pre {
+  margin: 8px 0 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: #0B0E11;
+  color: #8593A4;
+  font-size: 11px;
+  overflow: auto;
+  max-height: 240px;
+}
+
+@media (max-width: 960px) {
+  .capabilities-layout {
+    grid-template-columns: 1fr;
+  }
+}

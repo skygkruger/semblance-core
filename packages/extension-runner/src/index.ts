@@ -49,6 +49,18 @@ export {
   type ExtensionSandboxOptions,
 } from './sandbox.js';
 
+export {
+  PermissionEnforcementError,
+  createEnforcingGatewayClient,
+  createEnforcingScheduleClient,
+  createEnforcingUiSlotClient,
+  createEnforcingVaultClient,
+  createPermissionEnforcedClientsV1,
+  createTestEnforcedClients,
+  type CreatePermissionEnforcedClientsOptions,
+  type ExtensionGrantedPermissions,
+} from './permission-enforcement.js';
+
 export type {
   ExtensionActionReceiptV1,
   ExtensionApiV1,
