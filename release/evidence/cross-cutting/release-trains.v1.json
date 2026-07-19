@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-19T19:05:00Z",
+  "releaseId": "cross-cutting-release-hardening-2026-07-19",
+  "notes": "Release train maturity reflects code-proven slice exit gates and cross-cutting matrix runnable gates. FieldProven remains deferred for hardware/installer/performance gates.",
+  "trains": [
+    {
+      "id": "A",
+      "name": "Sovereign Foundation",
+      "slices": [1, 2],
+      "status": "RuntimeVerified",
+      "fieldProvenBlockers": [
+        "Installer three clean launch-floor VMs not yet executed",
+        "Performance Windows launch-floor benchmark deferred"
+      ],
+      "evidenceIds": [
+        "slice-2-exit-gate",
+        "slice-2-process-isolation",
+        "slice-2-egress-adversarial",
+        "slice-2-kernel-tests",
+        "slice-2-bundled-runtime"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Local Intelligence",
+      "slices": [3, 4, 5],
+      "status": "RuntimeVerified",
+      "fieldProvenBlockers": [
+        "Real-data strict audit requires connected OAuth sources on user machine"
+      ],
+      "evidenceIds": [
+        "slice-3-exit-gate",
+        "slice-4-exit-gate",
+        "slice-5-exit-gate"
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Paid Agency",
+      "slices": [6, 7],
+      "status": "RuntimeVerified",
+      "fieldProvenBlockers": [
+        "Broad paid launch FieldProven pending installer and performance gates"
+      ],
+      "evidenceIds": [
+        "slice-6-exit-gate",
+        "slice-7-exit-gate",
+        "slice-6-signed-artifact",
+        "slice-7-new-sales-enabled"
+      ]
+    },
+    {
+      "id": "D",
+      "name": "User-Controlled Cloud",
+      "slices": [8],
+      "status": "RuntimeVerified",
+      "fieldProvenBlockers": [],
+      "evidenceIds": [
+        "slice-8-exit-gate",
+        "slice-8-semblance-node-conformance"
+      ]
+    },
+    {
+      "id": "E",
+      "name": "Confidential Semblance Cloud",
+      "slices": [9],
+      "status": "AdversariallyVerified",
+      "fieldProvenBlockers": [
+        "Confidential-compute marketing requires Released evidence; attestation field proof pending production workload deployment"
+      ],
+      "evidenceIds": [
+        "slice-9-exit-gate",
+        "slice-9-confidential-broker-tests"
+      ]
+    },
+    {
+      "id": "F",
+      "name": "Full Personal Agency",
+      "slices": [10],
+      "status": "AdversariallyVerified",
+      "fieldProvenBlockers": [],
+      "evidenceIds": [
+        "slice-10-exit-gate",
+        "slice-10-proof-center-tests",
+        "slice-10-today-snapshot-tests"
+      ]
+    },
+    {
+      "id": "G",
+      "name": "Sovereign Network",
+      "slices": [11, 12],
+      "status": "AdversariallyVerified",
+      "fieldProvenBlockers": [
+        "Mobile physical device acceptance deferred",
+        "Encrypted sync field proof pending multi-device acceptance"
+      ],
+      "evidenceIds": [
+        "slice-11-exit-gate",
+        "slice-12-exit-gate",
+        "slice-11-sync-revocation-tests",
+        "slice-12-extension-conformance"
+      ]
+    },
+    {
+      "id": "H",
+      "name": "Shared Sovereignty",
+      "slices": [13],
+      "status": "AdversariallyVerified",
+      "fieldProvenBlockers": [
+        "Shared-space field proof pending multi-member acceptance testing"
+      ],
+      "evidenceIds": [
+        "slice-13-exit-gate",
+        "slice-13-shared-space-kernel-tests",
+        "slice-13-shared-space-vault-tests",
+        "slice-13-shared-space-proof-export-tests"
+      ]
+    }
+  ]
+}

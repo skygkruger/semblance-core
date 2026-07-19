@@ -1,0 +1,4 @@
+Program stop conditions
+────────────────────────────────────────────────────────────
+  PASS  no detectable stop-condition violations
+────────────────────────────────────────────────────────────
