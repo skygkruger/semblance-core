@@ -13,6 +13,7 @@ import { BiometricGate } from './auth/BiometricGate';
 import { OnboardingFlow } from './screens/OnboardingFlow';
 import { ChatScreen } from './screens/ChatScreen';
 import { FilesScreen } from './screens/FilesScreen';
+import { VaultScreen } from './screens/VaultScreen';
 import { ActivityScreen } from './screens/ActivityScreen';
 import { PrivacyScreen } from './screens/PrivacyScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -62,6 +63,14 @@ function FolderIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+    </svg>
+  );
+}
+function VaultIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   );
 }
@@ -253,6 +262,7 @@ const navSections: NavSection[] = [
       { id: 'morning-brief', label: 'Brief', icon: <SunriseIcon /> },
       { id: 'knowledge', label: 'Knowledge', icon: <BrainIcon /> },
       { id: 'files', label: 'Files', icon: <FolderIcon /> },
+      { id: 'vault', label: 'Vault', icon: <VaultIcon /> },
     ],
   },
   {
@@ -598,6 +608,7 @@ function AppContent() {
           <Route path="/morning-brief" element={<MorningBriefScreen />} />
           <Route path="/knowledge" element={<KnowledgeGraphScreen />} />
           <Route path="/files" element={<FilesScreen />} />
+          <Route path="/vault" element={<VaultScreen />} />
           <Route path="/connections" element={<ConnectionsScreen />} />
           <Route path="/activity" element={<ActivityScreen />} />
           <Route path="/privacy" element={<PrivacyScreen />} />

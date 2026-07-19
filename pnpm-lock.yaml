@@ -87,6 +87,9 @@ importers:
       '@noble/curves':
         specifier: ^1.9.7
         version: 1.9.7
+      '@semblance/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       better-sqlite3:
         specifier: ^11.10.0
         version: 11.10.0

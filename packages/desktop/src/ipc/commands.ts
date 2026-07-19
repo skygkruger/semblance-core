@@ -77,6 +77,11 @@ import type {
   SovereigntyReportVerifyResult,
   PrivacyStatusData,
   ReservationImportResult,
+  VaultSourceSummary,
+  VaultAssertionSummary,
+  VaultSurfaceStatus,
+  VaultSurfaceExport,
+  VaultDeleteSourceResult,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -1485,6 +1490,28 @@ export function clearAllData(): Promise<void> {
   return invoke<void>('sidecar_request', {
     request: { method: 'clear_all_data', params: {} },
   });
+}
+
+// ─── Vault Surface ──────────────────────────────────────────────────────────
+
+export function listVaultSources(): Promise<VaultSourceSummary[]> {
+  return sidecarCall<VaultSourceSummary[]>('vault:list_sources');
+}
+
+export function listVaultAssertions(): Promise<VaultAssertionSummary[]> {
+  return sidecarCall<VaultAssertionSummary[]>('vault:list_assertions');
+}
+
+export function getVaultStatus(): Promise<VaultSurfaceStatus> {
+  return sidecarCall<VaultSurfaceStatus>('vault:get_status');
+}
+
+export function exportVaultSnapshot(): Promise<VaultSurfaceExport> {
+  return sidecarCall<VaultSurfaceExport>('vault:export');
+}
+
+export function deleteVaultSource(sourceId: string): Promise<VaultDeleteSourceResult> {
+  return sidecarCall<VaultDeleteSourceResult>('vault:delete_source', { sourceId });
 }
 
 // ─── Cloud Bridge ──────────────────────────────────────────────────────────

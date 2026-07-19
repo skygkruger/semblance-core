@@ -14,6 +14,9 @@ export { CoreIPCClient } from './ipc-client.js';
 export type { IPCClient, IPCClientConfig } from './ipc-client.js';
 export { OrchestratorImpl } from './orchestrator.js';
 export type { Orchestrator, OrchestratorResponse, SystemPromptConfig } from './orchestrator.js';
+export type { VaultChatGrounding, VaultChatChunk } from './context/vault-chat-grounding.js';
+export { buildVaultChatContext } from './context/vault-context-builder.js';
+export { extractVaultSourceCitations, validateVaultCitations } from './context/citation-validator.js';
 // Orchestrator v2 — multi-agent coordination
 export { CoordinatorAgent } from './coordinator-agent.js';
 export { ComplexityClassifier } from './complexity-classifier.js';
@@ -70,6 +73,38 @@ export type {
   IncomingTaskHandler,
 } from './device-handoff.js';
 
+export {
+  MemoryProposalStore,
+  MemoryProposalError,
+  createMemoryProposal,
+  confirmProposal,
+  correctProposal,
+  dismissProposal,
+  proposeFromPreferenceSignal,
+  formatPreferenceSignalAsMemoryText,
+  extractEvidenceSourceIdsFromPreferenceEvidence,
+  canConfirmProposal,
+} from './memory/memory-proposal.js';
+export type {
+  MemoryProposal,
+  MemoryProposalStatus,
+  MemoryDerivationMethod,
+  CreateMemoryProposalInput,
+  ConfirmMemoryProposalOptions,
+  CorrectMemoryProposalInput,
+} from './memory/memory-proposal.js';
+export {
+  MemoryPromotionError,
+  promoteConfirmedMemory,
+  buildPromotedMemoryAssertion,
+  isPromotableMemory,
+  isEvidenceBacked,
+} from './memory/memory-promotion.js';
+export type {
+  MemoryPromotionWriter,
+  PromotedMemoryAssertion,
+} from './memory/memory-promotion.js';
+
 import type { LLMProvider } from '../llm/types.js';
 import type { KnowledgeGraph } from '../knowledge/index.js';
 import type { IPCClient } from './ipc-client.js';
@@ -83,6 +118,7 @@ import type { SemblanceExtension } from '../extensions/types.js';
 import type { StyleProfileStore } from '../style/style-profile.js';
 import type { CoordinatorConfig, OrchestratorEventEmitter } from './orchestrator-v2-types.js';
 import type { HardwareProfileTier } from '../llm/hardware-types.js';
+import type { VaultChatGrounding } from './context/vault-chat-grounding.js';
 
 /**
  * Create an Orchestrator instance.
@@ -101,6 +137,7 @@ export function createOrchestrator(config: {
   connectedServices?: string[];
   indexedDocCount?: number;
   styleProfileStore?: StyleProfileStore;
+  vaultChatGrounding?: VaultChatGrounding;
 }): Orchestrator {
   const p = getPlatform();
   const db = p.sqlite.openDatabase(p.path.join(config.dataDir, 'agent.db'));
@@ -120,6 +157,7 @@ export function createOrchestrator(config: {
     connectedServices: config.connectedServices,
     indexedDocCount: config.indexedDocCount,
     styleProfileStore: config.styleProfileStore,
+    vaultChatGrounding: config.vaultChatGrounding,
   });
 
   // Wire extension tools
@@ -160,6 +198,7 @@ export function createCoordinatorAgent(config: {
   eventBus?: OrchestratorEventEmitter;
   /** Path where AI metrics (scanner fires, retries, etc.) should be appended. */
   metricsLogPath?: string;
+  vaultChatGrounding?: VaultChatGrounding;
 }): Orchestrator {
   const p = getPlatform();
   const db = p.sqlite.openDatabase(p.path.join(config.dataDir, 'agent.db'));
@@ -181,6 +220,7 @@ export function createCoordinatorAgent(config: {
     indexedDocCount: config.indexedDocCount,
     hardwareTier: config.hardwareTier,
     styleProfileStore: config.styleProfileStore,
+    vaultChatGrounding: config.vaultChatGrounding,
   });
 
   // Wire metrics log path if provided (non-critical — silent no-op when unset).

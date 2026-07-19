@@ -171,6 +171,57 @@ export {
   type RollbackResult,
 } from './migration/index.js';
 export {
+  createQueryLimitedVaultReadGrant,
+  type CreateQueryLimitedVaultReadGrantParams,
+} from './chat/grant-factory.js';
+export {
+  VaultChatGroundingImpl,
+  type VaultChatGrounding,
+  type VaultChatChunk,
+  type VaultChatGroundingOptions,
+} from './chat/vault-chat-grounding.js';
+export {
+  bootstrapLocalVault,
+  type BootstrapLocalVaultOptions,
+  type LocalVaultBootstrap,
+} from './bootstrap/local-vault.js';
+export {
+  createVaultSurfaceOps,
+  createVaultSurfaceReadGrant,
+  findDocumentIdForSourceId,
+  projectVaultAssertions,
+  projectVaultSources,
+  type VaultAssertionSummary,
+  type VaultSourceSummary,
+  type VaultSurfaceExport,
+  type VaultSurfaceOps,
+  type VaultSurfaceOpsOptions,
+  type VaultSurfaceStatus,
+} from './surface/index.js';
+export {
+  appendFileDeletedToVault,
+  buildFileIngestEventId,
+  buildFileIngestPayload,
+  buildFileDeletionEventId,
+  buildFileSourceId,
+  buildFileSourceUri,
+  createVaultFileIngestHooks,
+  hashAbsolutePath,
+  ingestFileToVault,
+  ingestScannedFilesToVault,
+  scannedFileToIngestInput,
+  type AppendFileDeletedToVaultParams,
+  type AppendFileDeletedToVaultResult,
+  type CreateVaultFileIngestHooksOptions,
+  type IngestFileToVaultParams,
+  type IngestFileToVaultResult,
+  type IngestScannedFilesToVaultParams,
+  type ScannedFileIngestInput,
+  type VaultFileIngestDeletedParams as VaultPackageFileIngestDeletedParams,
+  type VaultFileIngestHooks as VaultPackageFileIngestHooks,
+  type VaultFileIngestIndexedParams as VaultPackageFileIngestIndexedParams,
+} from './ingest/index.js';
+export {
   DeletionTombstonePayloadV1,
   DeletionCompletionTracker,
   VaultContentEraser,

@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "releaseId": "vault-agency-graph-2026-07-18",
-  "generatedAt": "2026-07-18T19:16:00Z",
+  "releaseId": "local-chat-vault-memory-2026-07-18",
+  "generatedAt": "2026-07-18T20:05:00Z",
   "repositories": {
     "core": {
-      "sourceCommit": "872867fea219c4369fe5886fb7c1bd27674b1416",
-      "sourceTreeHash": "aa2237236cdd7b546d6673ab8682b1de207e54ae"
+      "sourceCommit": "03fc64d23f1af24c244fa299eead4c83dfb5f579",
+      "sourceTreeHash": "9d6592ac0607916f98f82068054404e4785fb06d"
     },
     "representative": {
       "sourceCommit": "dcd6d71dcc7d6d367d4e6626635e16744185de4d",
@@ -309,6 +309,52 @@
       "requiredForStates": [
         "Implemented"
       ]
+    },
+    {
+      "id": "slice-4-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-4/slice-4-exit-gate.json",
+      "sha256": "7a1d953b85c80b281a04b0bfc939ee8aa5b14f81fe95dffaee46da0027db1a19",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-4-exit-gate-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-4/exit-gate.txt",
+      "sha256": "a7953decb27c58ce362572de8920ff935ac0a772a9f3e94f0272a87bfbf73f4f",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-4-grounded-chat",
+      "repository": "core",
+      "path": "release/evidence/slice-4/grounded-chat.txt",
+      "sha256": "8c2f888445d0bfd2563b9bbaf383ccc42bcc2b54c2beaf50ba75401205bd97bb",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-4-memory-persist",
+      "repository": "core",
+      "path": "release/evidence/slice-4/memory-persist.txt",
+      "sha256": "5da9515c9b47c59a7eb1e2c3527af09351065ac7c9cb8581aee4acf43350e68d",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-4-egress",
+      "repository": "core",
+      "path": "release/evidence/slice-4/egress.txt",
+      "sha256": "8295c2292e766e9918d86f5a6530833a33d3adc737ca4055bad74926f5126b13",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
     }
   ],
   "commerce": {
@@ -329,7 +375,8 @@
   "completedSlices": [
     1,
     2,
-    3
+    3,
+    4
   ],
   "features": [
     {
@@ -432,6 +479,29 @@
         "slice-3-exit-gate",
         "slice-3-supervisor-or-rebuild",
         "migration-slice-3-vault-strangler"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "local-chat-vault-memory",
+      "name": "Local chat, files, and grounded memory",
+      "repository": "core",
+      "state": "RuntimeVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-4-exit-gate",
+        "slice-4-exit-gate-tests",
+        "slice-4-grounded-chat",
+        "slice-4-memory-persist",
+        "slice-4-egress"
       ],
       "protocolVersions": {
         "releaseEvidence": 1

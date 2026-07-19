@@ -21,6 +21,8 @@ import { PremiumGate } from './premium/premium-gate.js';
 import { StyleProfileStore } from './style/style-profile.js';
 import { ipAdapters } from './extensions/ip-adapter-registry.js';
 import type { ExtensionInitContext } from './extensions/types.js';
+import type { VaultFileIngestHooks } from './knowledge/vault-file-ingest.js';
+import type { VaultChatGrounding } from './agent/context/vault-chat-grounding.js';
 
 // Re-export shared types
 export * from './types/index.js';
@@ -53,6 +55,9 @@ export type {
   EntityMention,
 } from './knowledge/types.js';
 
+export type { VaultChatGrounding, VaultChatChunk } from './agent/context/vault-chat-grounding.js';
+export { buildVaultChatContext } from './agent/context/vault-context-builder.js';
+export { extractVaultSourceCitations, validateVaultCitations } from './agent/context/citation-validator.js';
 export { createKnowledgeGraph } from './knowledge/index.js';
 export type { KnowledgeGraph } from './knowledge/index.js';
 
@@ -241,6 +246,10 @@ export interface SemblanceCoreConfig {
    * Used by mobile to inject MobileGatewayTransport (in-process web search/fetch).
    */
   ipcTransport?: import('./ipc/transport.js').IPCTransport;
+  /** Optional vault file ingest hooks — dual-write indexed files into vault event log. */
+  vaultIngest?: VaultFileIngestHooks;
+  /** Optional vault-backed chat retrieval — replaces primary knowledge.search when set. */
+  vaultChatGrounding?: VaultChatGrounding;
 }
 
 // Default socket path varies by platform
@@ -350,6 +359,7 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
           dataDir: knowledgeDir,
           llmProvider: llm,
           embeddingModel,
+          vaultIngest: config?.vaultIngest,
         });
         const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Knowledge graph init timed out after 10s')), 10_000)
@@ -417,6 +427,7 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
           model: chatModel,
           styleProfileStore,
           hardwareTier,
+          vaultChatGrounding: config?.vaultChatGrounding,
           // AI metrics log — scanner fires, retries, recovery-mode activations.
           // Appended to at runtime; grep-able NDJSON. No PII, only event types.
           metricsLogPath: p.path.join(dataDir, 'ai-metrics.ndjson'),

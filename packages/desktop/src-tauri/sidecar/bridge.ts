@@ -44,6 +44,7 @@ import { mkdirSync, existsSync, readFileSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
 import { createSemblanceCore, type SemblanceCore, type ChatMessage } from '../../../core/index.js';
+import { bootstrapLocalVault, type LocalVaultBootstrap } from '../../../vault/src/index.js';
 import { createLLMProvider, BitNetProvider, InferenceRouter } from '../../../core/llm/index.js';
 import type { NativeRuntimeBridge } from '../../../core/llm/native-bridge-types.js';
 import { getPlatform } from '../../../core/platform/index.js';
@@ -152,6 +153,23 @@ import { SystemCommandGateway } from '../../../gateway/system/system-command-gat
 // Sprint E: Intelligence Depth
 import { PreferenceGraph } from '../../../core/agent/preference-graph.js';
 import { runAllPreferenceDetectors } from '../../../core/agent/preference-detectors.js';
+import {
+  MemoryProposalStore,
+  confirmProposal as confirmMemoryProposal,
+  correctProposal as correctMemoryProposal,
+  dismissProposal as dismissMemoryProposal,
+} from '../../../core/agent/memory/memory-proposal.js';
+import {
+  promoteConfirmedMemory,
+  type MemoryPromotionWriter,
+} from '../../../core/agent/memory/memory-promotion.js';
+import {
+  confirmAssertion,
+  createProvenanceRecord,
+  createRetentionPolicy,
+  createSourceRef,
+  proposeAssertion,
+} from '../../../vault/src/index.js';
 import { SpeculativeLoader } from '../../../core/agent/speculative-loader.js';
 import { CommitmentTracker } from '../../../core/agent/commitment-tracker.js';
 import { PatternShiftDetector } from '../../../core/agent/pattern-shift-detector.js';
@@ -295,6 +313,7 @@ const pendingCallbacks = callbackProtocol.pendingCallbacks;
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let core: SemblanceCore | null = null;
+let localVault: LocalVaultBootstrap | null = null;
 let gateway: Gateway | null = null;
 
 function getCommerceTransport(): CommerceTransport {
@@ -386,6 +405,7 @@ let eventBus: SemblanceEventBus | null = null;
 
 // Sprint E: Intelligence Depth
 let preferenceGraph: PreferenceGraph | null = null;
+let memoryProposalStore: MemoryProposalStore | null = null;
 let speculativeLoader: SpeculativeLoader | null = null;
 let commitmentTracker: CommitmentTracker | null = null;
 let patternShiftDetector: PatternShiftDetector | null = null;
@@ -650,6 +670,88 @@ function setPref(key: string, value: string): void {
   ).run(key, value);
 }
 
+const DEFAULT_MEMORY_RETENTION = createRetentionPolicy({
+  policyId: 'retention-memory-default-365d',
+  retainUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+});
+
+function mapPromotionDerivationMethod(
+  method: import('../../../core/agent/memory/memory-proposal.js').MemoryDerivationMethod,
+): 'inferred' | 'direct_extraction' | 'user_stated' | 'corrected' {
+  switch (method) {
+    case 'direct_extraction':
+      return 'direct_extraction';
+    case 'corrected':
+      return 'corrected';
+    case 'user_stated':
+      return 'user_stated';
+    default:
+      return 'inferred';
+  }
+}
+
+function createBridgeMemoryPromotionWriter(): MemoryPromotionWriter {
+  return {
+    promoteAssertion(assertion) {
+      if (!localVault) {
+        throw new Error('Local vault not initialized');
+      }
+
+      const sourceRefs = assertion.evidenceSourceIds.map((sourceId) => {
+        const [sourceType] = sourceId.split(':');
+        return createSourceRef({
+          sourceId,
+          sourceType: sourceType ?? 'memory',
+          uri: `memory://${sourceId}`,
+          ingestedAt: assertion.createdAt,
+        });
+      });
+
+      const derivationMethod =
+        assertion.derivationMethod === 'corrected' && sourceRefs.length === 0
+          ? 'user_stated'
+          : mapPromotionDerivationMethod(assertion.derivationMethod);
+      const provenance = createProvenanceRecord({
+        sourceRefs,
+        derivationMethod,
+        confidence: assertion.confidence,
+        sensitivity: 'personal',
+        retention: DEFAULT_MEMORY_RETENTION,
+      });
+
+      const proposed = proposeAssertion({
+        assertionId: assertion.assertionId,
+        subject: assertion.subject,
+        predicate: assertion.predicate,
+        object: assertion.object,
+        provenance,
+        createdAt: assertion.createdAt,
+      });
+
+      const confirmed = confirmAssertion(proposed, {
+        confirmedAt: new Date().toISOString(),
+        sourceRefs,
+        userConfirmation:
+          derivationMethod === 'inferred' && sourceRefs.length === 0 ? true : undefined,
+      });
+
+      localVault.eventLog.writer.append({
+        eventId: `event-${assertion.assertionId}`,
+        dataDomain: 'personal',
+        deviceId: hostname(),
+        membershipEpoch: 1,
+        eventType: 'assertion_confirmed',
+        sourceRefs,
+        sensitivity: 'personal',
+        occurredAt: new Date().toISOString(),
+        payloadPlaintext: JSON.stringify({ assertion: confirmed }),
+      });
+
+      return { assertionId: confirmed.assertionId };
+    },
+  };
+}
+
 // ─── Conversation Storage ─────────────────────────────────────────────────────
 // The Orchestrator creates conversations/conversation_turns tables in core.db.
 // We write to them directly for streaming chat (since we bypass the Orchestrator's
@@ -883,8 +985,17 @@ async function handleInitialize(): Promise<unknown> {
   });
 
   try {
+    console.error('[sidecar] Bootstrapping local vault...');
+    localVault = bootstrapLocalVault({ dataDir });
+    console.error('[sidecar] Local vault ready (event log + ingest hooks + chat grounding)');
+
     console.error('[sidecar] Creating SemblanceCore...');
-    core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
+    core = createSemblanceCore({
+      dataDir,
+      llmProvider: nativeLlm,
+      vaultIngest: localVault.fileIngestHooks,
+      vaultChatGrounding: localVault.chatGrounding,
+    });
     console.error('[sidecar] SemblanceCore created, calling initialize...');
     // 60s timeout — core.initialize includes LanceDB, knowledge graph, IPC, and extensions
     const initTimeout = new Promise<never>((_, reject) =>
@@ -1457,7 +1568,9 @@ async function handleInitialize(): Promise<unknown> {
 
     // Preference Graph
     preferenceGraph = new PreferenceGraph(dbHandle);
+    memoryProposalStore = new MemoryProposalStore(dbHandle);
     console.error('[sidecar] PreferenceGraph initialized');
+    console.error('[sidecar] MemoryProposalStore initialized');
 
     // Wire preference graph into autonomy manager
     if (core?.agent?.autonomy?.setPreferenceGraph) {
@@ -4262,6 +4375,12 @@ async function handleShutdown(): Promise<unknown> {
   if (core) {
     await core.shutdown();
     console.error('[sidecar] Core shut down');
+  }
+
+  if (localVault) {
+    localVault.close();
+    localVault = null;
+    console.error('[sidecar] Local vault shut down');
   }
 
   if (gateway) {
@@ -10026,6 +10145,127 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      case 'memory:list_proposals': {
+        if (!memoryProposalStore) { respond(id, []); break; }
+        const mlParams = params as { status?: 'proposed' | 'confirmed' | 'corrected' | 'dismissed' };
+        respond(id, memoryProposalStore.list(mlParams.status));
+        break;
+      }
+
+      case 'memory:confirm': {
+        if (!memoryProposalStore) { respondError(id, 'MemoryProposalStore not initialized'); break; }
+        try {
+          const mcParams = params as { id: string; user_confirmation?: boolean };
+          const existing = memoryProposalStore.getById(mcParams.id);
+          if (!existing) {
+            respondError(id, `Memory proposal not found: ${mcParams.id}`);
+            break;
+          }
+          const confirmed = confirmMemoryProposal(existing, {
+            userConfirmation: mcParams.user_confirmation === true,
+          });
+          memoryProposalStore.save(confirmed);
+          if (localVault) {
+            await promoteConfirmedMemory(confirmed, createBridgeMemoryPromotionWriter());
+          }
+          respond(id, { success: true, proposal: confirmed });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'memory:correct': {
+        if (!memoryProposalStore) { respondError(id, 'MemoryProposalStore not initialized'); break; }
+        try {
+          const mcrParams = params as {
+            id: string;
+            text: string;
+            evidence_source_ids?: string[];
+            confidence?: number;
+          };
+          const existing = memoryProposalStore.getById(mcrParams.id);
+          if (!existing) {
+            respondError(id, `Memory proposal not found: ${mcrParams.id}`);
+            break;
+          }
+          const corrected = correctMemoryProposal(existing, {
+            text: mcrParams.text,
+            evidenceSourceIds: mcrParams.evidence_source_ids,
+            confidence: mcrParams.confidence,
+          });
+          memoryProposalStore.save(corrected);
+          if (localVault) {
+            await promoteConfirmedMemory(corrected, createBridgeMemoryPromotionWriter());
+          }
+          respond(id, { success: true, proposal: corrected });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'memory:dismiss': {
+        if (!memoryProposalStore) { respondError(id, 'MemoryProposalStore not initialized'); break; }
+        try {
+          const mdParams = params as { id: string };
+          const existing = memoryProposalStore.getById(mdParams.id);
+          if (!existing) {
+            respondError(id, `Memory proposal not found: ${mdParams.id}`);
+            break;
+          }
+          const dismissed = dismissMemoryProposal(existing);
+          memoryProposalStore.save(dismissed);
+          respond(id, { success: true, proposal: dismissed });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'vault:list_sources': {
+        if (!localVault) { respond(id, []); break; }
+        respond(id, localVault.surface.listSources());
+        break;
+      }
+
+      case 'vault:list_assertions': {
+        if (!localVault) { respond(id, []); break; }
+        respond(id, localVault.surface.listAssertions());
+        break;
+      }
+
+      case 'vault:get_status': {
+        if (!localVault) {
+          respond(id, { sourceCount: 0, assertionCount: 0, eventCount: 0, hasVaultEvents: false });
+          break;
+        }
+        respond(id, localVault.surface.getStatus());
+        break;
+      }
+
+      case 'vault:export': {
+        if (!localVault) { respondError(id, 'Local vault not initialized'); break; }
+        respond(id, localVault.surface.exportSnapshot());
+        break;
+      }
+
+      case 'vault:delete_source': {
+        if (!localVault) { respondError(id, 'Local vault not initialized'); break; }
+        try {
+          const deleteParams = params as { sourceId: string };
+          if (!deleteParams.sourceId) {
+            respondError(id, 'sourceId is required');
+            break;
+          }
+          const result = localVault.surface.deleteSource(deleteParams.sourceId);
+          respond(id, { success: true, deletion: result });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
       case 'speculative_cache_status': {
         if (!speculativeLoader) { respond(id, { entries: 0, hitRate: 0, oldestEntryAge: 'none' }); break; }
         respond(id, speculativeLoader.getStatus());
@@ -10890,6 +11130,9 @@ async function handleRequest(req: Request): Promise<void> {
             });
             for (const signal of signals) {
               preferenceGraph.recordSignal(signal);
+              if (memoryProposalStore) {
+                memoryProposalStore.recordPreferenceSignal(signal);
+              }
             }
           }
           // 2. Run pattern shift detection

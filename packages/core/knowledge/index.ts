@@ -15,6 +15,7 @@ import { SemanticSearch } from './search.js';
 import { EmbeddingPipeline } from './embedding-pipeline.js';
 import { KnowledgeCurator } from './knowledge-curator.js';
 import { scanDirectory, readFileContent } from './file-scanner.js';
+import type { VaultFileIngestHooks } from './vault-file-ingest.js';
 
 export type {
   Document,
@@ -50,6 +51,12 @@ export {
   visualizationGraphToShadowComparable,
 } from './agency-graph-shadow.js';
 export { isVaultCanonicalReadEnabled } from './vault-strangler.js';
+export type {
+  VaultFileIngestDeletedParams,
+  VaultFileIngestFileInfo,
+  VaultFileIngestHooks,
+  VaultFileIngestIndexedParams,
+} from './vault-file-ingest.js';
 export type {
   AgencyGraphShadowSnapshot,
   ShadowComparableEdge,
@@ -108,6 +115,9 @@ export interface KnowledgeGraph {
   /** Delete a document and its chunks */
   deleteDocument(id: string): Promise<void>;
 
+  /** Remove a local file index entry by absolute source path (vault tombstone when hooks wired) */
+  removeIndexedFile(sourcePath: string): Promise<boolean>;
+
   /** Access the underlying SemanticSearch instance (used by extensions) */
   readonly semanticSearch: SemanticSearch;
 
@@ -135,6 +145,10 @@ class KnowledgeGraphImpl implements KnowledgeGraph {
     this.vectorStore = vectorStore;
     this.indexer = indexer;
     this.semanticSearch = semanticSearch;
+  }
+
+  async removeIndexedFile(sourcePath: string): Promise<boolean> {
+    return this.indexer.removeDocumentBySourcePath(sourcePath);
   }
 
   async indexDocument(doc: {
@@ -253,6 +267,7 @@ export async function createKnowledgeGraph(config: {
   llmProvider: LLMProvider;
   embeddingModel?: string;
   embeddingDimensions?: number;
+  vaultIngest?: VaultFileIngestHooks;
 }): Promise<KnowledgeGraph> {
   const p = getPlatform();
   const dataDir = config.dataDir;
@@ -288,6 +303,7 @@ export async function createKnowledgeGraph(config: {
     vectorStore,
     embeddingModel,
     embeddingPipeline,
+    vaultIngest: config.vaultIngest,
   });
 
   const semanticSearch = new SemanticSearch({

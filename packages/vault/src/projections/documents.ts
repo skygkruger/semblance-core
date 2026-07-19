@@ -8,6 +8,10 @@ export const DocumentProjectionPayloadV1 = z
     title: z.string().min(1),
     mimeType: z.string().optional(),
     sourcePath: z.string().optional(),
+    pathHash: z.string().optional(),
+    contentHash: z.string().optional(),
+    lastModified: z.string().optional(),
+    extension: z.string().optional(),
     byteLength: z.number().int().nonnegative().optional(),
     relatedPersonIds: z.array(z.string().min(1)).optional(),
   })

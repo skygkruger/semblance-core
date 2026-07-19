@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slice": 4,
+  "releaseId": "local-chat-vault-memory-2026-07-18",
+  "generatedAt": "2026-07-18T20:00:00.000Z",
+  "exitGate": {
+    "vaultFileIngest": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-4/exit-gate.txt",
+      "notes": "exit-gate.test.ts ingests 3 fixture files and asserts vault source count matches file count"
+    },
+    "groundedChatCitations": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-4/grounded-chat.txt",
+      "notes": "VaultChatGroundingImpl retrieve returns authorized source; fabricated [[source:...]] citation rejected"
+    },
+    "memoryCorrectionPersist": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-4/memory-persist.txt",
+      "notes": "MemoryProposalStore reload preserves corrected proposal; promotion writes assertion_confirmed vault event"
+    },
+    "chatFilePathEgressDenied": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-4/egress.txt",
+      "notes": "installEgressGuard denies fetch from Core-like context; vault chat/file modules import without network"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 4,
+  "runtimeVerifiedExitItems": 4,
+  "honestBlockers": []
+}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DirectoryPicker, ProgressBar, Card, StatusIndicator, SkeletonCard } from '@semblance/ui';
-import { startIndexing, getKnowledgeStats } from '../ipc/commands';
+import { startIndexing, getKnowledgeStats, getVaultStatus } from '../ipc/commands';
 import { ContentBracket } from '../components/ContentBracket';
 import { GhostSprite } from '../components/GhostSprite';
 import { ShimmerDescription } from '../components/ShimmerDescription';
@@ -13,12 +13,17 @@ export function FilesScreen() {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(true);
+  const [vaultStatus, setVaultStatus] = useState<{ sourceCount: number; hasVaultEvents: boolean } | null>(null);
 
   // Fetch knowledge stats on mount
   useEffect(() => {
     setLoading(true);
-    getKnowledgeStats().then((stats) => {
+    Promise.all([
+      getKnowledgeStats(),
+      getVaultStatus().catch(() => ({ sourceCount: 0, assertionCount: 0, eventCount: 0, hasVaultEvents: false })),
+    ]).then(([stats, vault]) => {
       dispatch({ type: 'SET_KNOWLEDGE_STATS', stats });
+      setVaultStatus({ sourceCount: vault.sourceCount, hasVaultEvents: vault.hasVaultEvents });
     }).catch((err) => {
       console.error('[FilesScreen] failed to get knowledge stats:', err);
     }).finally(() => setLoading(false));
@@ -69,6 +74,9 @@ export function FilesScreen() {
     }).catch((err) => {
       console.error('[FilesScreen] failed to refresh knowledge stats:', err);
     });
+    getVaultStatus()
+      .then((vault) => setVaultStatus({ sourceCount: vault.sourceCount, hasVaultEvents: vault.hasVaultEvents }))
+      .catch(() => setVaultStatus({ sourceCount: 0, hasVaultEvents: false }));
   }, [dispatch]));
 
   const handleAddFolder = useCallback(async () => {
@@ -176,6 +184,21 @@ export function FilesScreen() {
             </div>
           )}
         </div>
+
+        {/* Vault ingest status */}
+        {vaultStatus?.hasVaultEvents ? (
+          <>
+            <div className="settings-section-header bracket-section" style={{ marginTop: 24 }}>Vault</div>
+            <div className="settings-row settings-row--static">
+              <div className="flex items-center gap-2">
+                <StatusIndicator status="success" />
+                <span className="settings-row__label" style={{ color: '#A8B4C0', fontSize: 12, fontFamily: "'DM Mono', monospace", letterSpacing: '0.04em' }}>
+                  {vaultStatus.sourceCount} source{vaultStatus.sourceCount === 1 ? '' : 's'} ingested into encrypted vault
+                </span>
+              </div>
+            </div>
+          </>
+        ) : null}
 
         {/* Knowledge Stats */}
         <div className="settings-section-header bracket-section" style={{ marginTop: 24 }}>{t('screen.files.section_stats')}</div>
