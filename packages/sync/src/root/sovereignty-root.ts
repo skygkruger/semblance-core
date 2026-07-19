@@ -12,10 +12,13 @@ import { openMembershipStore, type MembershipStore } from '../membership/store.j
 import {
   addDeviceMembership,
   assertMonotonicEpoch,
-  revokeDeviceMembership,
   type AddDeviceInput,
   type RevokeDeviceInput,
 } from '../membership/revocation.js';
+import {
+  enforceDeviceRevocation,
+  type RevocationEnforcementResult,
+} from '../revocation/enforcement.js';
 import {
   generateRecoveryShares,
   persistRecoveryShares,
@@ -122,11 +125,12 @@ export class SovereigntyRootService {
     });
   }
 
-  async revokeDevice(input: RevokeDeviceInput): Promise<MembershipOperationResult> {
+  async revokeDevice(input: RevokeDeviceInput): Promise<RevocationEnforcementResult> {
     const root = this.requireRoot();
     const rootPrivateKey = await this.requireRootPrivateKey();
-    return revokeDeviceMembership({
+    return enforceDeviceRevocation({
       store: this.store,
+      secureStorage: this.secureStorage,
       rootId: root.rootId,
       rootPrivateKey,
       input,

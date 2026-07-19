@@ -17,6 +17,10 @@ import {
 } from './envelope.js';
 import { mergeVaultEvents, type MergeableEvent } from './merge.js';
 import { openSyncEventStore, type SyncEventStore } from './store.js';
+import {
+  assertDeviceNotRevoked,
+  assertEventMembershipEpoch,
+} from '../revocation/enforcement.js';
 import type {
   PullMergeResult,
   PushEventsResult,
@@ -111,6 +115,7 @@ export class SyncEventService {
 
   async pushEvents(input: PushVaultEventsInput): Promise<PushEventsResult> {
     const deviceKeys = await this.requireLocalDeviceKeys();
+    assertDeviceNotRevoked(this.membershipStore, deviceKeys.deviceId);
     const membershipEpoch = this.getMembershipEpoch();
     const localEvents = this.store.listMergeableEvents();
     const parentLamports = localEvents.map((event) => event.lamportClock);
@@ -177,6 +182,8 @@ export class SyncEventService {
       }
 
       const payload = envelope.payload as EncryptedEventEnvelopeV1;
+      assertEventMembershipEpoch(this.membershipStore, payload);
+
       const plaintext = await decryptAndVerifyVaultEvent({
         envelope: payload,
         devicePublicKeys,
