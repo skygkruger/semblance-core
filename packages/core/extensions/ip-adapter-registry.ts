@@ -11,6 +11,11 @@ import type {
   FollowUpTrackerPort,
   RepresentativeEmailDrafterPort,
 } from '../agent/representative-email-workflow.js';
+import type {
+  DomainVerticalResultsLister,
+  DomainVerticalRunner,
+} from '../agent/agency/domain-vertical-port.js';
+import type { OutcomeLinker } from '../agent/proactive/outcome-linker.js';
 
 class IPAdapterRegistry {
   private _statementParser: IStatementParser | null = null;
@@ -22,6 +27,9 @@ class IPAdapterRegistry {
   private _alterEgoWeekEngine: IAlterEgoWeekEngine | null = null;
   private _emailDrafter: RepresentativeEmailDrafterPort | null = null;
   private _followUpTracker: FollowUpTrackerPort | null = null;
+  private _runDomainVertical: DomainVerticalRunner | null = null;
+  private _listDomainVerticalResults: DomainVerticalResultsLister | null = null;
+  private _outcomeLinker: OutcomeLinker | null = null;
 
   // ─── Registration ─────────────────────────────────────────────────────
 
@@ -57,6 +65,18 @@ class IPAdapterRegistry {
   }): void {
     this._emailDrafter = deps.emailDrafter;
     this._followUpTracker = deps.followUpTracker;
+  }
+
+  registerAgencyVerticals(deps: {
+    runDomainVertical: DomainVerticalRunner;
+    listRecentResults: DomainVerticalResultsLister;
+  }): void {
+    this._runDomainVertical = deps.runDomainVertical;
+    this._listDomainVerticalResults = deps.listRecentResults;
+  }
+
+  registerOutcomeLinker(linker: OutcomeLinker): void {
+    this._outcomeLinker = linker;
   }
 
   // ─── Getters ──────────────────────────────────────────────────────────
@@ -95,6 +115,18 @@ class IPAdapterRegistry {
 
   get followUpTracker(): FollowUpTrackerPort | null {
     return this._followUpTracker;
+  }
+
+  get runDomainVertical(): DomainVerticalRunner | null {
+    return this._runDomainVertical;
+  }
+
+  get listDomainVerticalResults(): DomainVerticalResultsLister | null {
+    return this._listDomainVerticalResults;
+  }
+
+  get outcomeLinker(): OutcomeLinker | null {
+    return this._outcomeLinker;
   }
 
   get isDRLoaded(): boolean {

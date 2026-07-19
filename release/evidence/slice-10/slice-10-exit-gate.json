@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "slice": 10,
+  "releaseId": "today-proactive-agency-2026-07-19",
+  "generatedAt": "2026-07-19T08:52:00.000Z",
+  "exitGate": {
+    "todayOfflineEmptyVault": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-10/exit-gate.txt",
+      "notes": "Today snapshot returns truthful empty with Universal Inbox sections and no fabricated rows"
+    },
+    "workPlansOffline": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-10/exit-gate.txt",
+      "notes": "Delegated plan store lists persisted plans offline from local SQLite"
+    },
+    "proofCenterOfflineAcceptance": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-10/exit-gate.txt",
+      "notes": "All eleven proof classes pass offline acceptance including tampered/stale/pending/unavailable degraded cases"
+    },
+    "agencyDomainVerticalsOutcomeProof": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-10/exit-gate.txt",
+      "notes": "Each of eight agency domains produces auditRef and outcome linkId when premium allowed"
+    },
+    "proofAggregatorNoNetworkImports": {
+      "AdversariallyVerified": true,
+      "evidence": "release/evidence/slice-10/proof-center-tests.txt",
+      "notes": "Proof center aggregator source contains no fetch/http/https/net imports"
+    },
+    "todayUniversalInboxShape": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-10/today-snapshot-tests.txt",
+      "notes": "Today snapshot includes inbox.triage, pendingReplies, and representativeActions arrays"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 6,
+  "runtimeVerifiedExitItems": 5,
+  "honestBlockers": []
+}

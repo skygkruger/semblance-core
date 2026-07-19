@@ -259,6 +259,28 @@ import {
 
 // Morning Brief / Daily Digest / Weather / Style / Dark Pattern / Document Context / Health / Cloud Storage / Graph Vis
 import { MorningBriefGenerator } from '../../../core/agent/morning-brief.js';
+import { buildTodaySnapshot } from '../../../core/agent/today/index.js';
+import { buildProofCenterSnapshot } from '../../../core/proof-center/index.js';
+import { getDigitalRepresentativeArtifactStatus } from '../../../core/extensions/loader.js';
+import { CURRENT_MEASUREMENT_POLICY_VERSION } from '@semblance/kernel';
+import {
+  createPlanStore,
+  enrichPlanView,
+  syncPlanWithActionLifecycle,
+  type PlanStore,
+  type PlanStatus,
+  type CreatePlanInput,
+  type UpdatePlanInput,
+  type DelegatedPlanView,
+} from '../../../core/agent/planning/index.js';
+import {
+  createOutcomeLinker,
+  type OutcomeLinker,
+} from '../../../core/agent/proactive/outcome-linker.js';
+import type {
+  AgencyDomain,
+  DomainVerticalInput,
+} from '../../../core/agent/agency/domain-vertical-port.js';
 import { DailyDigestGenerator } from '../../../core/agent/daily-digest.js';
 import { WeatherService } from '../../../core/weather/weather-service.js';
 import { LocationStore } from '../../../core/location/location-store.js';
@@ -398,6 +420,7 @@ let calendarIndexer: CalendarIndexer | null = null;
 let emailCategorizer: EmailCategorizer | null = null;
 let _refreshPromptConfig: () => void = () => {}; // set during initializeCore
 let proactiveEngine: ProactiveEngine | null = null;
+let outcomeLinker: OutcomeLinker | null = null;
 
 // Step 7 state (finance/digest moved to @semblance/dr — access via ipAdapters)
 let escalationEngine: EscalationEngine | null = null;
@@ -424,6 +447,7 @@ let entitlementService: EntitlementService | null = null;
 let entitlementSnapshotSource: KernelEntitlementSnapshotSource | null = null;
 let reservationStore: FoundingReservationStore | null = null;
 let representativeEmailWorkflowStore: RepresentativeEmailWorkflowStore | null = null;
+let planStore: PlanStore | null = null;
 
 // Sovereignty feature state
 let livingWillExporter: LivingWillExporter | null = null;
@@ -1085,6 +1109,11 @@ async function handleInitialize(): Promise<unknown> {
   await Promise.race([gateway.start(), gatewayTimeout]);
   console.error('[sidecar] Gateway started');
   representativeEmailWorkflowStore = createRepresentativeEmailWorkflowStore(join(dataDir, 'actions.db'));
+  planStore = createPlanStore(dataDir);
+  outcomeLinker = createOutcomeLinker(dataDir, {
+    escalationEngine: escalationEngine ?? undefined,
+  });
+  ipAdapters.registerOutcomeLinker(outcomeLinker);
 
   // Seed allowlist with Google API domains (needed for Gmail, Calendar, Drive)
   try {
@@ -2542,6 +2571,7 @@ async function handleInitialize(): Promise<unknown> {
         emailIndexer,
         calendarIndexer,
         autonomy: autonomyForProactive,
+        outcomeLinker: outcomeLinker ?? undefined,
       });
       proactiveEngine.onEvent((event, data) => emit(event, data));
       proactiveEngine.startPeriodicRun();
@@ -3832,6 +3862,302 @@ async function handleGetMeetingPrep(params: { event_id: string }): Promise<unkno
 async function handleProactiveRun(): Promise<unknown[]> {
   if (!proactiveEngine) return [];
   return await proactiveEngine.run();
+}
+
+function handleProactiveRecordOutcome(params: {
+  linkId?: string;
+  value?: unknown;
+  measured?: boolean;
+  userConfirmed?: boolean;
+}): unknown {
+  if (!outcomeLinker) {
+    throw new Error('Outcome linker not initialized');
+  }
+  if (!params.linkId) {
+    throw new Error('linkId is required');
+  }
+  return outcomeLinker.recordOutcome({
+    linkId: params.linkId,
+    value: params.value ?? null,
+    measured: params.measured,
+    userConfirmed: params.userConfirmed,
+  });
+}
+
+async function handleAgencyRunVertical(params: {
+  domain?: AgencyDomain;
+  input?: DomainVerticalInput;
+}): Promise<unknown> {
+  const runner = ipAdapters.runDomainVertical;
+  if (!runner) {
+    throw new Error('Agency domain verticals are not loaded');
+  }
+  if (!params.domain) {
+    throw new Error('domain is required');
+  }
+  return runner(params.domain, params.input ?? {});
+}
+
+function handleAgencyListVerticalResults(params: { limit?: number }): unknown {
+  const lister = ipAdapters.listDomainVerticalResults;
+  if (!lister) return [];
+  return lister(params.limit ?? 20);
+}
+
+function persistSyncedPlanView(plan: import('../../../core/agent/planning/plan-types.js').DelegatedPlan): DelegatedPlanView {
+  if (!planStore) {
+    throw new Error('Plan store not initialized');
+  }
+  const actionStore = gateway?.getActionLifecycleStore() ?? null;
+  const synced = syncPlanWithActionLifecycle(plan, actionStore);
+  const view = enrichPlanView(synced, actionStore);
+  if (
+    synced.status !== plan.status
+    || JSON.stringify(synced.steps) !== JSON.stringify(plan.steps)
+  ) {
+    planStore.update(plan.id, {
+      status: synced.status,
+      steps: [...synced.steps],
+    });
+  }
+  return view;
+}
+
+function handlePlansList(params: {
+  statuses?: PlanStatus[];
+  limit?: number;
+  offset?: number;
+}): DelegatedPlanView[] {
+  if (!planStore) {
+    return [];
+  }
+  const plans = planStore.list({
+    statuses: params.statuses,
+    limit: params.limit ?? 100,
+    offset: params.offset ?? 0,
+  });
+  return plans.map((plan) => persistSyncedPlanView(plan));
+}
+
+function handlePlansGet(params: { planId?: string }): DelegatedPlanView | null {
+  if (!planStore || !params.planId) {
+    return null;
+  }
+  const plan = planStore.get(params.planId);
+  if (!plan) {
+    return null;
+  }
+  return persistSyncedPlanView(plan);
+}
+
+function handlePlansCreate(params: CreatePlanInput): DelegatedPlanView {
+  if (!planStore) {
+    throw new Error('Plan store not initialized');
+  }
+  if (!params.title?.trim()) {
+    throw new Error('title is required');
+  }
+  if (!Array.isArray(params.steps) || params.steps.length === 0) {
+    throw new Error('steps are required');
+  }
+  const plan = planStore.create(params);
+  return persistSyncedPlanView(plan);
+}
+
+function handlePlansUpdate(params: UpdatePlanInput & { planId?: string }): DelegatedPlanView {
+  if (!planStore || !params.planId) {
+    throw new Error('Plan store not initialized');
+  }
+  const existing = planStore.get(params.planId);
+  if (!existing) {
+    throw new Error(`Plan not found: ${params.planId}`);
+  }
+  const updated = planStore.update(params.planId, {
+    title: params.title,
+    status: params.status,
+    steps: params.steps,
+  });
+  return persistSyncedPlanView(updated);
+}
+
+function collectConnectedServicesForProof(): Array<{ connectorId: string; lastSyncedAt: string | null }> {
+  const connectedList: Array<{ connectorId: string; lastSyncedAt: string | null }> = [];
+  try {
+    const tokenMgr = ensureOAuthTokenManager();
+    const connectorRegistry = createDefaultConnectorRegistry();
+    for (const connector of connectorRegistry.listAll()) {
+      const oauthCfg = getOAuthConfigForConnector(connector.id);
+      if (oauthCfg) {
+        const accessToken = tokenMgr.getAccessToken(oauthCfg.providerKey);
+        if (accessToken) {
+          connectedList.push({
+            connectorId: connector.id,
+            lastSyncedAt: getPref(`connector_last_sync_${connector.id}`) ?? null,
+          });
+        }
+      }
+      if (connector.authType === 'native') {
+        const nativeState = getPref(`connector_state_${connector.id}`);
+        if (nativeState === 'connected') {
+          connectedList.push({
+            connectorId: connector.id,
+            lastSyncedAt: getPref(`connector_last_sync_${connector.id}`) ?? null,
+          });
+        }
+      }
+    }
+  } catch {
+    // Connector registry may not be initialized in degraded startup
+  }
+  return connectedList;
+}
+
+async function buildProofCenterSnapshotFromSidecar() {
+  ensureExecutionDestinationStores();
+
+  const extensionArtifact = getDigitalRepresentativeArtifactStatus();
+  const executionPolicyDoc = executionDestinationPolicyStore?.get() ?? null;
+  const executionReceipts = executionReceiptStore?.listRecent(20).map((receipt) => ({
+    id: receipt.id,
+    requestId: receipt.requestId,
+    timestamp: receipt.timestamp,
+    status: receipt.status,
+    destination: receipt.destination,
+  })) ?? [];
+
+  let entitlementSummary: {
+    active: boolean;
+    entitlementId: string | null;
+    tier: string | null;
+    revocationEpoch: number | null;
+  } | null = null;
+  if (entitlementService) {
+    try {
+      const snapshot = await entitlementService.getSnapshot();
+      if (snapshot) {
+        entitlementSummary = {
+          active: snapshot.active,
+          entitlementId: snapshot.entitlement.entitlementId,
+          tier: snapshot.tier,
+          revocationEpoch: snapshot.entitlement.revocationEpoch,
+        };
+      }
+    } catch {
+      entitlementSummary = null;
+    }
+  }
+
+  let voucherSummary: { remainingCount: number; lastRedeemedAt: string | null } | null = null;
+  const voucherWallet = (globalThis as { __voucherWallet?: { count?: () => number; listRecentRedemptions?: () => Array<{ redeemedAt: string }> } }).__voucherWallet;
+  if (voucherWallet && typeof voucherWallet.count === 'function') {
+    const recent = typeof voucherWallet.listRecentRedemptions === 'function'
+      ? voucherWallet.listRecentRedemptions()
+      : [];
+    voucherSummary = {
+      remainingCount: voucherWallet.count(),
+      lastRedeemedAt: recent[0]?.redeemedAt ?? null,
+    };
+  }
+
+  let syncDevices: Array<{ deviceId: string; label: string | null; keyEpoch: number | null; lastSeenAt: string | null }> | null = null;
+  if (tunnelPairingCoordinator) {
+    try {
+      const devices = await tunnelPairingCoordinator.listPairedDevices();
+      syncDevices = devices.map((device) => ({
+        deviceId: device.deviceId,
+        label: device.displayName ?? null,
+        keyEpoch: null,
+        lastSeenAt: device.lastSeenAt ?? null,
+      }));
+    } catch {
+      syncDevices = null;
+    }
+  } else if (deviceRegistry) {
+    try {
+      const devices = deviceRegistry.getDevices();
+      syncDevices = devices.map((device) => ({
+        deviceId: device.id,
+        label: device.name ?? null,
+        keyEpoch: null,
+        lastSeenAt: device.lastSeen ?? null,
+      }));
+    } catch {
+      syncDevices = null;
+    }
+  }
+
+  let pendingTombstones = 0;
+  let completedDeletions = 0;
+  if (prefsDb) {
+    try {
+      const pendingRow = prefsDb.prepare(
+        'SELECT COUNT(*) as count FROM vault_deletion_completion WHERE pending = 1',
+      ).get() as { count: number } | undefined;
+      pendingTombstones = pendingRow?.count ?? 0;
+    } catch {
+      pendingTombstones = 0;
+    }
+    try {
+      const completedRow = prefsDb.prepare(
+        'SELECT COUNT(*) as count FROM vault_deletion_receipts',
+      ).get() as { count: number } | undefined;
+      completedDeletions = completedRow?.count ?? 0;
+    } catch {
+      completedDeletions = 0;
+    }
+  }
+
+  const activeModelPref = getPref('active_model') ?? getPref('bitnet_active_model') ?? null;
+  const inferenceEnginePref = getPref('inference_engine') ?? null;
+
+  return buildProofCenterSnapshot({
+    auditTrail: gateway?.getAuditTrail() ?? null,
+    actionLifecycleStore: gateway?.getActionLifecycleStore() ?? null,
+    connectedServices: collectConnectedServicesForProof(),
+    executionPolicy: executionPolicyDoc
+      ? {
+          schemaVersion: executionPolicyDoc.schemaVersion,
+          capabilityCount: Object.keys(executionPolicyDoc.capabilities ?? {}).length,
+          updatedAt: getPref('execution_destination_policy_updated_at') ?? null,
+        }
+      : null,
+    executionReceipts,
+    extensionStatus: {
+      configured: extensionArtifact.configured,
+      loaded: extensionArtifact.loadedViaRunner || extensionArtifact.valid,
+      manifestId: extensionArtifact.manifestId ?? null,
+      manifestHash: releaseManifestRepresentativeHash(),
+    },
+    activeModel: {
+      modelId: activeModelPref,
+      provider: inferenceEnginePref,
+      inferenceEngine: inferenceEnginePref,
+    },
+    entitlement: entitlementSummary,
+    vouchers: voucherSummary,
+    syncDevices,
+    deletionState: {
+      pendingTombstones,
+      completedDeletions,
+      retentionPolicyId: getPref('memory_retention_policy_id') ?? 'retention-memory-default-365d',
+      lastExportAt: getPref('living_will_last_export_at') ?? null,
+    },
+    measurementPolicy: {
+      version: CURRENT_MEASUREMENT_POLICY_VERSION,
+      allowedWorkloads: 1,
+    },
+  });
+}
+
+function releaseManifestRepresentativeHash(): string | null {
+  try {
+    const manifest = require('../../../../release/release-manifest.json') as {
+      repositories?: { representative?: { extensionManifestHash?: string | null } };
+    };
+    return manifest.repositories?.representative?.extensionManifestHash ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function buildRepresentativeEmailWorkflowDeps(): RepresentativeEmailWorkflowDeps {
@@ -7048,6 +7374,38 @@ async function handleRequest(req: Request): Promise<void> {
         respond(id, result);
         break;
 
+      case 'proactive:record_outcome': {
+        try {
+          respond(id, handleProactiveRecordOutcome(params as {
+            linkId?: string;
+            value?: unknown;
+            measured?: boolean;
+            userConfirmed?: boolean;
+          }));
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'agency:run_vertical': {
+        try {
+          result = await handleAgencyRunVertical(params as {
+            domain?: AgencyDomain;
+            input?: DomainVerticalInput;
+          });
+          respond(id, result);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'agency:list_vertical_results': {
+        respond(id, handleAgencyListVerticalResults(params as { limit?: number }));
+        break;
+      }
+
       case 'action:approve':
         result = await handleActionApprove(params as { action_id: string });
         respond(id, result);
@@ -8113,6 +8471,24 @@ async function handleRequest(req: Request): Promise<void> {
         respond(id, { success: true });
         break;
       }
+      case 'today:get_snapshot': {
+        try {
+          const snapshot = buildTodaySnapshot({
+            prefsDb: prefsDb as import('../../../../core/platform/types.js').DatabaseHandle | null,
+            documentsDb: documentsDb as import('../../../../core/platform/types.js').DatabaseHandle | null,
+            actionLifecycleStore: gateway?.getActionLifecycleStore() ?? null,
+            auditTrail: gateway?.getAuditTrail() ?? null,
+            proactiveEngine: proactiveEngine ?? null,
+            intentManager: intentManager ?? null,
+            representativeWorkflowStore: representativeEmailWorkflowStore ?? null,
+            listAgencyVerticalResults: ipAdapters.listDomainVerticalResults ?? undefined,
+          });
+          respond(id, snapshot);
+        } catch (snapshotErr) {
+          respondError(id, (snapshotErr as Error).message);
+        }
+        break;
+      }
       case 'weather_get_current': {
         if (!weatherService && prefsDb && core) {
           try {
@@ -9139,6 +9515,7 @@ async function handleRequest(req: Request): Promise<void> {
                 emailIndexer,
                 calendarIndexer,
                 autonomy,
+                outcomeLinker: outcomeLinker ?? undefined,
               });
               proactiveEngine.onEvent((event, data) => emit(event, data));
               // Run once to generate initial insights, then start periodic background scans
@@ -10859,6 +11236,57 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      case 'plans:list': {
+        try {
+          const listParams = (params ?? {}) as {
+            statuses?: PlanStatus[];
+            limit?: number;
+            offset?: number;
+          };
+          respond(id, handlePlansList(listParams));
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'plans:get': {
+        try {
+          const getParams = params as { planId?: string };
+          if (!getParams.planId) {
+            respondError(id, 'planId is required');
+            break;
+          }
+          const plan = handlePlansGet(getParams);
+          if (!plan) {
+            respondError(id, `Plan not found: ${getParams.planId}`);
+            break;
+          }
+          respond(id, plan);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'plans:create': {
+        try {
+          respond(id, handlePlansCreate(params as CreatePlanInput));
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'plans:update': {
+        try {
+          respond(id, handlePlansUpdate(params as UpdatePlanInput & { planId?: string }));
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
       case 'dr:run_email_workflow': {
         try {
           result = await handleDrRunEmailWorkflow(params as {
@@ -10900,6 +11328,16 @@ async function handleRequest(req: Request): Promise<void> {
             signingKey: gateway.getSigningKey(),
           });
           respond(id, receipt);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'proof:get_center_snapshot': {
+        try {
+          const snapshot = await buildProofCenterSnapshotFromSidecar();
+          respond(id, snapshot);
         } catch (err) {
           respondError(id, (err as Error).message);
         }

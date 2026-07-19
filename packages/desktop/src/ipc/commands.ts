@@ -85,6 +85,10 @@ import type {
   WorkActionView,
   WorkApproveActionResult,
   ActionReceipt,
+  DelegatedPlanView,
+  DelegatedPlanStatus,
+  CreateDelegatedPlanInput,
+  UpdateDelegatedPlanInput,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -886,6 +890,14 @@ export function dismissMorningBrief(id: string): Promise<void> {
   return invoke<void>('brief_dismiss', { id });
 }
 
+export function getTodaySnapshot(): Promise<import('./types.js').TodaySnapshotResult> {
+  return sidecarCall<import('./types.js').TodaySnapshotResult>('today:get_snapshot');
+}
+
+export function getProofCenterSnapshot(): Promise<import('./types.js').ProofCenterSnapshotResult> {
+  return sidecarCall<import('./types.js').ProofCenterSnapshotResult>('proof:get_center_snapshot');
+}
+
 export function getWeather(): Promise<import('./types.js').WeatherResult> {
   return invoke<import('./types.js').WeatherResult>('weather_get_current');
 }
@@ -1533,6 +1545,26 @@ export function approveWorkAction(actionId: string): Promise<WorkApproveActionRe
 
 export function getActionReceipt(actionId: string): Promise<ActionReceipt> {
   return sidecarCall<ActionReceipt>('proof:get_receipt', { actionId });
+}
+
+export function listDelegatedPlans(
+  statuses?: DelegatedPlanStatus[],
+  limit = 50,
+  offset = 0,
+): Promise<DelegatedPlanView[]> {
+  return sidecarCall<DelegatedPlanView[]>('plans:list', { statuses, limit, offset });
+}
+
+export function getDelegatedPlan(planId: string): Promise<DelegatedPlanView> {
+  return sidecarCall<DelegatedPlanView>('plans:get', { planId });
+}
+
+export function createDelegatedPlan(input: CreateDelegatedPlanInput): Promise<DelegatedPlanView> {
+  return sidecarCall<DelegatedPlanView>('plans:create', input);
+}
+
+export function updateDelegatedPlan(input: UpdateDelegatedPlanInput): Promise<DelegatedPlanView> {
+  return sidecarCall<DelegatedPlanView>('plans:update', input);
 }
 
 // ─── Cloud Bridge ──────────────────────────────────────────────────────────

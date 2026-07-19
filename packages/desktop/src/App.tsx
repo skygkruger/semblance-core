@@ -24,6 +24,8 @@ import { NetworkMonitorScreen } from './screens/NetworkMonitorScreen';
 import { RelationshipsScreen } from './screens/RelationshipsScreen';
 import { ConnectionsScreen } from './screens/ConnectionsScreen';
 import { MorningBriefScreen } from './screens/MorningBriefScreen';
+import { TodayScreen } from './screens/TodayScreen';
+import { ProofScreen } from './screens/ProofScreen';
 import { KnowledgeGraphScreen } from './screens/KnowledgeGraphScreen';
 import { IntentScreen } from './screens/IntentScreen';
 import { FinancialDashboardScreen } from './screens/FinancialDashboardScreen';
@@ -162,6 +164,14 @@ function SunriseIcon() {
     </svg>
   );
 }
+function ProofIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
 function BrainIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -267,7 +277,7 @@ const navSections: NavSection[] = [
     label: 'CORE',
     items: [
       { id: 'chat', label: 'Chat', icon: <ChatIcon /> },
-      { id: 'morning-brief', label: 'Brief', icon: <SunriseIcon /> },
+      { id: 'today', label: 'Today', icon: <SunriseIcon /> },
       { id: 'knowledge', label: 'Knowledge', icon: <BrainIcon /> },
       { id: 'files', label: 'Files', icon: <FolderIcon /> },
       { id: 'vault', label: 'Vault', icon: <VaultIcon /> },
@@ -301,6 +311,7 @@ const navSections: NavSection[] = [
     label: 'TRUST & SOVEREIGNTY',
     items: [
       { id: 'work', label: 'Work', icon: <WorkIcon /> },
+      { id: 'proof', label: 'Proof', icon: <ProofIcon /> },
       { id: 'activity', label: 'Activity', icon: <ClockIcon /> },
       { id: 'privacy', label: 'Privacy', icon: <ShieldIcon /> },
       { id: 'sovereignty-report', label: 'Sovereignty', icon: <ScrollIcon /> },
@@ -613,6 +624,7 @@ function AppContent() {
         <div key={location.pathname} className="page-enter h-full">
         <Routes>
           <Route path="/chat" element={<ChatScreen />} />
+          <Route path="/today" element={<TodayScreen />} />
           <Route path="/inbox" element={<InboxScreen />} />
           <Route path="/morning-brief" element={<MorningBriefScreen />} />
           <Route path="/knowledge" element={<KnowledgeGraphScreen />} />
@@ -620,6 +632,7 @@ function AppContent() {
           <Route path="/vault" element={<VaultScreen />} />
           <Route path="/connections" element={<ConnectionsScreen />} />
           <Route path="/work" element={<WorkScreen />} />
+          <Route path="/proof" element={<ProofScreen />} />
           <Route path="/activity" element={<ActivityScreen />} />
           <Route path="/privacy" element={<PrivacyScreen />} />
           <Route path="/sovereignty-report" element={<SovereigntyReportScreen />} />

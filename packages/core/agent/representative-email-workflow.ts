@@ -88,6 +88,7 @@ export interface RepresentativeEmailWorkflowStore {
   save(record: RepresentativeEmailWorkflowRecord): void;
   get(workflowId: string): RepresentativeEmailWorkflowRecord | null;
   getByActionId(actionId: string): RepresentativeEmailWorkflowRecord | null;
+  listRecent(limit: number): RepresentativeEmailWorkflowRecord[];
 }
 
 export interface RunRepresentativeEmailWorkflowInput {
@@ -230,6 +231,9 @@ export function createRepresentativeEmailWorkflowStore(dbPath: string): Represen
   const getByActionStmt = db.prepare(
     'SELECT * FROM representative_email_workflows WHERE action_id = ?',
   );
+  const listRecentStmt = db.prepare(
+    'SELECT * FROM representative_email_workflows ORDER BY updated_at DESC LIMIT ?',
+  );
 
   function rowToRecord(row: WorkflowRow): RepresentativeEmailWorkflowRecord {
     return {
@@ -270,6 +274,10 @@ export function createRepresentativeEmailWorkflowStore(dbPath: string): Represen
     getByActionId(actionId) {
       const row = getByActionStmt.get(actionId) as WorkflowRow | undefined;
       return row ? rowToRecord(row) : null;
+    },
+    listRecent(limit) {
+      const rows = listRecentStmt.all(limit) as WorkflowRow[];
+      return rows.map(rowToRecord);
     },
   };
 }

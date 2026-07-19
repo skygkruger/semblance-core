@@ -1,0 +1,11 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+
+ ✓ tests/core/proof-center/snapshot-builder.test.ts (3 tests) 5ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  01:52:13
+   Duration  208ms (transform 49ms, setup 90ms, import 29ms, tests 5ms, environment 0ms)
+

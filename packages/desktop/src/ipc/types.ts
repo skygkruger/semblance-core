@@ -877,6 +877,129 @@ export interface PrivacyStatusData {
   timeSavedSeconds: number;
 }
 
+// ─── Today Snapshot Types ───────────────────────────────────────────────────
+
+export interface TodaySnapshotResult {
+  assembledAt: string;
+  date: string;
+  changes: Array<{
+    id: string;
+    title: string;
+    source: string;
+    sourcePath: string | null;
+    updatedAt: string;
+    changeType: 'indexed' | 'updated';
+  }>;
+  risks: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    description: string;
+    domain: string;
+    severity: 'high' | 'medium' | 'low';
+    source: string;
+    createdAt: string;
+  }>;
+  completedActions: Array<{
+    id: string;
+    actionType: string;
+    description: string;
+    completedAt: string;
+    estimatedTimeSavedSeconds: number;
+    auditRef: string | null;
+    source: string;
+  }>;
+  pendingDecisions: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    description: string;
+    domain: string;
+    createdAt: string;
+    source: string;
+  }>;
+  outcomes: Array<{
+    id: string;
+    title: string;
+    measuredAt: string;
+    timeSavedSeconds: number;
+    source: string;
+    auditRef: string | null;
+  }>;
+  provenance: {
+    documentCountBySource: Record<string, number>;
+    totalDocuments: number;
+    lastIndexedAt: string | null;
+    auditChainValid: boolean | null;
+    connectedSources: string[];
+  };
+  inbox: {
+    triage: Array<{
+      id: string;
+      title: string;
+      summary: string;
+      priority: 'high' | 'medium' | 'low';
+      source: string;
+      createdAt: string;
+    }>;
+    pendingReplies: Array<{
+      id: string;
+      subject: string;
+      from: string;
+      snippet: string;
+      receivedAt: string;
+      priority: 'high' | 'normal' | 'low';
+    }>;
+    representativeActions: Array<{
+      id: string;
+      subject: string;
+      status: string;
+      updatedAt: string;
+      source: string;
+    }>;
+  };
+  agencyVerticals: Array<{
+    domain: string;
+    title: string;
+    summary: string;
+    mode: 'executed' | 'simulated' | 'gated';
+    completedAt: string;
+    linkId: string | null;
+  }>;
+  isEmpty: boolean;
+}
+
+// ─── Proof Center Types ─────────────────────────────────────────────────────
+
+export type ProofEvidenceStatus =
+  | 'current'
+  | 'historical'
+  | 'pending'
+  | 'stale'
+  | 'tampered'
+  | 'unavailable';
+
+export interface ProofClassEntryResult {
+  readonly id: string;
+  readonly title: string;
+  readonly status: ProofEvidenceStatus;
+  readonly summary: string;
+  readonly artifactId: string | null;
+  readonly version: string | null;
+  readonly evidenceId: string | null;
+  readonly inspectedAt: string;
+  readonly degradedReason?: string;
+  readonly details?: Readonly<Record<string, unknown>>;
+}
+
+export interface ProofCenterSnapshotResult {
+  readonly assembledAt: string;
+  readonly offlineInspectable: true;
+  readonly classes: readonly ProofClassEntryResult[];
+  readonly degradedCount: number;
+  readonly isEmpty: boolean;
+}
+
 // ─── Morning Brief Types ────────────────────────────────────────────────────
 
 export interface MorningBriefItem {
@@ -1272,4 +1395,82 @@ export interface ActionReceipt {
     readonly algorithm: 'hmac-sha256' | 'ed25519';
     readonly value: string;
   };
+}
+
+export type DelegatedPlanStatus =
+  | 'draft'
+  | 'active'
+  | 'blocked'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+export type DelegatedPlanStepStatus =
+  | 'pending'
+  | 'ready'
+  | 'in_progress'
+  | 'completed'
+  | 'failed'
+  | 'blocked'
+  | 'cancelled';
+
+export interface DelegatedPlanStepFailure {
+  readonly code?: string;
+  readonly message: string;
+}
+
+export interface DelegatedPlanStepOutcome {
+  readonly measuredAt: string;
+  readonly summary: string;
+  readonly timeSavedSeconds?: number;
+  readonly actionState?: string;
+  readonly actionId?: string;
+}
+
+export interface DelegatedPlanStepView {
+  readonly id: string;
+  readonly title: string;
+  readonly dependsOn: readonly string[];
+  readonly responsibleCapability: string;
+  readonly status: DelegatedPlanStepStatus;
+  readonly actionRequestId?: string;
+  readonly failure?: DelegatedPlanStepFailure;
+  readonly outcome?: DelegatedPlanStepOutcome;
+}
+
+export interface DelegatedPlanProgress {
+  readonly totalSteps: number;
+  readonly completedSteps: number;
+  readonly failedSteps: number;
+  readonly blockedSteps: number;
+  readonly readySteps: number;
+  readonly inProgressSteps: number;
+  readonly percentComplete: number;
+}
+
+export interface DelegatedPlanView {
+  readonly id: string;
+  readonly title: string;
+  readonly status: DelegatedPlanStatus;
+  readonly steps: readonly DelegatedPlanStepView[];
+  readonly progress: DelegatedPlanProgress;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateDelegatedPlanInput {
+  readonly title: string;
+  readonly steps: Array<{
+    readonly title: string;
+    readonly dependsOn?: readonly string[];
+    readonly responsibleCapability: string;
+  }>;
+  readonly status?: DelegatedPlanStatus;
+}
+
+export interface UpdateDelegatedPlanInput {
+  readonly planId: string;
+  readonly title?: string;
+  readonly status?: DelegatedPlanStatus;
+  readonly steps?: readonly DelegatedPlanStepView[];
 }
