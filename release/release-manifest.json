@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "entitlements-commerce-2026-07-18",
-  "generatedAt": "2026-07-19T04:02:30Z",
+  "generatedAt": "2026-07-19T04:07:28Z",
   "repositories": {
     "core": {
       "sourceCommit": "d3bae133fdfddc63aca98c5b9bea12c8c4a36138",
@@ -15,8 +15,8 @@
       "extensionManifestHash": "8ff4eb6ec9a66afa0fa080daf63b7c1f6365db067437c43db28f5fd117f073be"
     },
     "website": {
-      "sourceCommit": "c9deac01af9ad428ca07b5c778aeb9a700d25860",
-      "sourceTreeHash": "2af601a91d61ed6c960601ec0e817a6a73e29b79"
+      "sourceCommit": "08ecca3a87809f026418edd62505f76ae3b3f146",
+      "sourceTreeHash": "1db15f82c1d80c9386c206285c8f0a9e0dcd09d2"
     }
   },
   "signedArtifacts": [],
@@ -97,7 +97,7 @@
       "id": "public-claims",
       "repository": "core",
       "path": "release/public-claims.v1.json",
-      "sha256": "398cb7868f09887c4c7ba3f0465b7cdfc053e680b9b3bc805d17a2439ad55183",
+      "sha256": "451ba55b88b0c363dd9c4c793b05864448a6121f59fd5e36e60f735f41bb3c87",
       "requiredForStates": [
         "Implemented"
       ]

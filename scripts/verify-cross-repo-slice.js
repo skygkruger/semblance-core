@@ -175,6 +175,40 @@ function verifyPublicClaims(coreRoot, websiteRoot) {
   return errors;
 }
 
+function verifyPublicClaimsSalesFlag(manifest, coreRoot) {
+  const errors = [];
+  const claimsPath = join(coreRoot, 'release', 'public-claims.v1.json');
+  if (!existsSync(claimsPath)) {
+    errors.push(error(
+      'PUBLIC_CLAIMS_SALES_MISMATCH',
+      'release/public-claims.v1.json missing for sales-flag coherence check',
+      'public-claims.v1.json',
+    ));
+    return errors;
+  }
+  let claims;
+  try {
+    claims = JSON.parse(readFileSync(claimsPath, 'utf8'));
+  } catch {
+    errors.push(error(
+      'PUBLIC_CLAIMS_SALES_MISMATCH',
+      'release/public-claims.v1.json is not valid JSON',
+      'public-claims.v1.json',
+    ));
+    return errors;
+  }
+  const claimsEnabled = claims?.salesFreeze?.newSalesEnabled === true;
+  const manifestEnabled = manifest?.commerce?.newSalesEnabled === true;
+  if (claimsEnabled !== manifestEnabled) {
+    errors.push(error(
+      'PUBLIC_CLAIMS_SALES_MISMATCH',
+      `public-claims salesFreeze.newSalesEnabled (${claimsEnabled}) must match commerce.newSalesEnabled (${manifestEnabled})`,
+      'public-claims.v1.json',
+    ));
+  }
+  return errors;
+}
+
 function verifyReservationFixture(coreRoot, websiteRoot, representativeRoot) {
   const errors = [];
   const coreFixture = join(coreRoot, 'release', 'contracts', 'legacy-waitlist-token.fixture.json');
@@ -607,6 +641,7 @@ function verifyCrossRepoSlice(options) {
 
   errors.push(...verifySourcePins(manifest, repositories));
   errors.push(...verifyPublicClaims(coreRoot, websiteRoot));
+  errors.push(...verifyPublicClaimsSalesFlag(manifest, coreRoot));
   errors.push(...verifyReservationFixture(coreRoot, websiteRoot, representativeRoot));
   errors.push(...verifyLegalVersion(manifest, websiteRoot));
   errors.push(...verifyEvidenceHashes(manifest, repositories));
