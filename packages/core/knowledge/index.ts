@@ -49,6 +49,7 @@ export {
   toShadowComparableGraph,
   visualizationGraphToShadowComparable,
 } from './agency-graph-shadow.js';
+export { isVaultCanonicalReadEnabled } from './vault-strangler.js';
 export type {
   AgencyGraphShadowSnapshot,
   ShadowComparableEdge,

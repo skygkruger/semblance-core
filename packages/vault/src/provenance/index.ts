@@ -19,8 +19,6 @@ export {
   RetentionPolicyV1,
   validateRequiredProvenanceFields,
   type CreateProvenanceRecordInput,
-  type ProvenanceRecordV1,
-  type RetentionPolicyV1,
 } from './provenance-record.js';
 export {
   assertCorrectionChain,
@@ -36,6 +34,5 @@ export {
   type CorrectAssertionInput,
   type ProposeAssertionInput,
   type SupersedeAssertionInput,
-  type VaultAssertionV1,
   type VaultProvenanceErrorCode,
 } from './assertion.js';
