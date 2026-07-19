@@ -211,6 +211,14 @@ import type { ImportSummary } from '../../../core/importers/import-pipeline.js';
 // OAuth imports (Gateway)
 import { OAuthTokenManager } from '../../../gateway/services/oauth-token-manager.js';
 import { OAuthCallbackServer } from '../../../gateway/services/oauth-callback-server.js';
+import { createCredentialCapabilityClient } from '../../../gateway/credentials/credential-capability-client.js';
+import { getEncryptionKey } from '../../../gateway/credentials/encryption.js';
+import {
+  createConnectorSecretStore,
+  createCapabilityScopedCredentialService,
+  migrateLegacyOAuthTokensToKernel,
+  createMemoryKeyStore,
+} from '../../../kernel/src/index.js';
 import { oauthClients, UNCONFIGURED_CLIENT_ID } from '../../../gateway/config/oauth-clients.js';
 import { registerAllConnectors, wireConnectorRouter } from '../../../gateway/services/connector-registration.js';
 import type { ConnectorRouter } from '../../../gateway/services/connector-router.js';
@@ -473,6 +481,10 @@ const activeDownloads: Map<string, ActiveDownload> = new Map();
 
 // OAuth token manager state
 let oauthTokenManager: OAuthTokenManager | null = null;
+const SIDECAR_GATEWAY_PRINCIPAL_ID = 'sidecar-gateway';
+const SIDECAR_GATEWAY_SESSION_ID = 'session-sidecar-gateway';
+let sidecarConnectorCredentialClient: ReturnType<typeof createCredentialCapabilityClient> | null = null;
+let sidecarConnectorSecretStore: ReturnType<typeof createConnectorSecretStore> | null = null;
 // Connector router (lazy-initialized on first sync)
 let connectorRouter: ConnectorRouter | null = null;
 
@@ -5372,13 +5384,57 @@ async function runStyleExtraction(
 
 // ─── Connector Auth Handlers ────────────────────────────────────────────────
 
+function ensureSidecarConnectorCredentialStack(): {
+  secretStore: ReturnType<typeof createConnectorSecretStore>;
+  credentialClient: ReturnType<typeof createCredentialCapabilityClient>;
+} {
+  if (sidecarConnectorSecretStore && sidecarConnectorCredentialClient) {
+    return {
+      secretStore: sidecarConnectorSecretStore,
+      credentialClient: sidecarConnectorCredentialClient,
+    };
+  }
+
+  const keyStore = createMemoryKeyStore();
+  const secretStore = createConnectorSecretStore(keyStore);
+  const scopedCredential = createCapabilityScopedCredentialService({
+    secretStore,
+    localPrincipalId: SIDECAR_GATEWAY_PRINCIPAL_ID,
+    localDeviceId: 'sidecar-local-device',
+    localProcessId: `sidecar-gateway-${process.pid}`,
+  });
+  const credentialClient = createCredentialCapabilityClient({
+    backend: scopedCredential,
+    principalId: SIDECAR_GATEWAY_PRINCIPAL_ID,
+    sessionId: SIDECAR_GATEWAY_SESSION_ID,
+    defaultPurpose: 'Sidecar gateway connector operation',
+  });
+
+  sidecarConnectorSecretStore = secretStore;
+  sidecarConnectorCredentialClient = credentialClient;
+  return { secretStore, credentialClient };
+}
+
 function ensureOAuthTokenManager(): OAuthTokenManager {
   if (oauthTokenManager) return oauthTokenManager;
   if (!prefsDb) throw new Error('Database not initialized');
   const gatewayDataDir = join(dataDir || join(homedir(), '.semblance'), 'gateway');
   if (!existsSync(gatewayDataDir)) mkdirSync(gatewayDataDir, { recursive: true });
   const oauthDb = new Database(join(gatewayDataDir, 'oauth.db'));
-  oauthTokenManager = new OAuthTokenManager(oauthDb);
+  const { secretStore, credentialClient } = ensureSidecarConnectorCredentialStack();
+  oauthTokenManager = new OAuthTokenManager(oauthDb, undefined, undefined, {
+    connectorSecretStore: secretStore,
+    credentialClient,
+  });
+
+  void migrateLegacyOAuthTokensToKernel(
+    oauthDb,
+    secretStore,
+    getEncryptionKey(),
+  ).catch((err: unknown) => {
+    console.error('[sidecar] OAuth token migration to kernel store failed:', err);
+  });
+
   return oauthTokenManager;
 }
 

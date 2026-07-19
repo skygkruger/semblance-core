@@ -41,6 +41,25 @@ export {
   kernelCloudApiKey,
   kernelCloudMetadataKey,
 } from './keys/key-store.js';
+export {
+  ConnectorSecretStore,
+  createConnectorSecretStore,
+  connectorSecretKey,
+  migrateLegacyOAuthTokensToKernel,
+  type ConnectorSecretKind,
+  type LegacyOAuthMigrationResult,
+} from './credentials/connector-secret-store.js';
+export {
+  CapabilityScopedCredentialService,
+  createCapabilityScopedCredentialService,
+  type CapabilityScopedCredentialConfig,
+  type CredentialAccessGrant,
+  type IssueCredentialAccessParams,
+} from './credentials/capability-scoped-credential.js';
+export {
+  CredentialAccessError,
+  type CredentialAccessErrorCode,
+} from './credentials/credential-access-error.js';
 export { createConsentStore, type ConsentStore, type ConsentReceipt } from './policy/consent-store.js';
 export { createCapabilityIssuer, type IssueCapabilityRequest } from './policy/capability-issuer.js';
 export {
