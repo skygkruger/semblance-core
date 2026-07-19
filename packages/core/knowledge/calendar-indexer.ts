@@ -12,6 +12,7 @@ import { nanoid } from 'nanoid';
 import type { KnowledgeGraph } from './index.js';
 import type { LLMProvider } from '../llm/types.js';
 import { sanitizeRetrievedContent } from '../agent/content-sanitizer.js';
+import type { VaultConnectorIngestHooks } from './vault-connector-ingest.js';
 
 /** Minimal event bus interface to avoid cross-boundary imports (core cannot import gateway). */
 interface EventBusLike {
@@ -94,6 +95,7 @@ export class CalendarIndexer {
   private embeddingModel: string;
   private eventHandler: CalendarIndexEventHandler | null = null;
   private eventBus: EventBusLike | null = null;
+  private vaultIngest: VaultConnectorIngestHooks | null = null;
   private calendarTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private syncIntervalMs: number;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
@@ -105,6 +107,7 @@ export class CalendarIndexer {
     embeddingModel?: string;
     syncIntervalMs?: number;
     eventBus?: EventBusLike;
+    vaultIngest?: VaultConnectorIngestHooks;
   }) {
     this.db = config.db;
     this.knowledge = config.knowledge;
@@ -112,6 +115,7 @@ export class CalendarIndexer {
     this.embeddingModel = config.embeddingModel ?? 'nomic-embed-text';
     this.syncIntervalMs = config.syncIntervalMs ?? 15 * 60 * 1000; // default 15 minutes
     this.eventBus = config.eventBus ?? null;
+    this.vaultIngest = config.vaultIngest ?? null;
     this.db.exec(CREATE_CALENDAR_INDEX_TABLE);
   }
 
@@ -241,6 +245,15 @@ export class CalendarIndexer {
         });
 
         indexed++;
+
+        if (this.vaultIngest) {
+          await this.vaultIngest.onCalendarEventIndexed({
+            event,
+            accountId,
+            indexedEventId: id,
+            occurredAt: now,
+          });
+        }
 
         // Emit calendar.created event for new events
         if (this.eventBus) {

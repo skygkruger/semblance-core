@@ -58,6 +58,11 @@ export type {
   VaultFileIngestIndexedParams,
 } from './vault-file-ingest.js';
 export type {
+  VaultConnectorCalendarIndexedParams,
+  VaultConnectorEmailIndexedParams,
+  VaultConnectorIngestHooks,
+} from './vault-connector-ingest.js';
+export type {
   AgencyGraphShadowSnapshot,
   ShadowComparableEdge,
   ShadowComparableGraph,

@@ -199,6 +199,37 @@ export {
   type VaultSurfaceStatus,
 } from './surface/index.js';
 export {
+  listVaultConnectedSources,
+  type VaultConnectedSourceDomain,
+} from './query/connected-sources.js';
+export {
+  buildCalendarIngestEventId,
+  buildCalendarIngestPayload,
+  buildCalendarSourceId,
+  buildCalendarSourceUri,
+  buildEmailIngestEventId,
+  buildEmailIngestPayload,
+  buildEmailSourceId,
+  buildEmailSourceUri,
+  createVaultConnectorIngestHooks,
+  ingestCalendarEventToVault,
+  ingestCalendarEventsToVault,
+  ingestEmailMessageToVault,
+  ingestEmailMessagesToVault,
+  type ConnectorCalendarEventInput,
+  type ConnectorEmailMessageInput,
+  type CreateVaultConnectorIngestHooksOptions,
+  type IngestCalendarEventToVaultParams,
+  type IngestCalendarEventToVaultResult,
+  type IngestCalendarEventsToVaultParams,
+  type IngestEmailMessageToVaultParams,
+  type IngestEmailMessageToVaultResult,
+  type IngestEmailMessagesToVaultParams,
+  type VaultConnectorCalendarIndexedParams as VaultPackageConnectorCalendarIndexedParams,
+  type VaultConnectorEmailIndexedParams as VaultPackageConnectorEmailIndexedParams,
+  type VaultConnectorIngestHooks as VaultPackageConnectorIngestHooks,
+} from './ingest/index.js';
+export {
   appendFileDeletedToVault,
   buildFileIngestEventId,
   buildFileIngestPayload,

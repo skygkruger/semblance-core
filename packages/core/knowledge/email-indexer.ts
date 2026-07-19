@@ -13,6 +13,7 @@ import { nanoid } from 'nanoid';
 import type { KnowledgeGraph } from './index.js';
 import type { LLMProvider } from '../llm/types.js';
 import { sanitizeRetrievedContent } from '../agent/content-sanitizer.js';
+import type { VaultConnectorIngestHooks } from './vault-connector-ingest.js';
 
 /** Minimal event bus interface to avoid cross-boundary imports (core cannot import gateway). */
 interface EventBusLike {
@@ -105,6 +106,7 @@ export class EmailIndexer {
   private embeddingModel: string;
   private eventHandler: EmailIndexEventHandler | null = null;
   private eventBus: EventBusLike | null = null;
+  private vaultIngest: VaultConnectorIngestHooks | null = null;
   private syncIntervalMs: number;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -115,6 +117,7 @@ export class EmailIndexer {
     embeddingModel?: string;
     syncIntervalMs?: number;
     eventBus?: EventBusLike;
+    vaultIngest?: VaultConnectorIngestHooks;
   }) {
     this.db = config.db;
     this.knowledge = config.knowledge;
@@ -122,6 +125,7 @@ export class EmailIndexer {
     this.embeddingModel = config.embeddingModel ?? 'nomic-embed-text';
     this.syncIntervalMs = config.syncIntervalMs ?? 5 * 60 * 1000; // default 5 minutes
     this.eventBus = config.eventBus ?? null;
+    this.vaultIngest = config.vaultIngest ?? null;
     this.db.exec(CREATE_EMAIL_INDEX_TABLE);
   }
 
@@ -215,6 +219,15 @@ export class EmailIndexer {
         });
 
         indexed++;
+
+        if (this.vaultIngest) {
+          await this.vaultIngest.onEmailIndexed({
+            message: msg,
+            accountId,
+            indexedEmailId: id,
+            occurredAt: now,
+          });
+        }
 
         // Emit event bus event for each newly indexed email
         if (this.eventBus) {

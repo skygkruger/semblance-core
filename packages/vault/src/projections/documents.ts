@@ -14,6 +14,17 @@ export const DocumentProjectionPayloadV1 = z
     extension: z.string().optional(),
     byteLength: z.number().int().nonnegative().optional(),
     relatedPersonIds: z.array(z.string().min(1)).optional(),
+    connectorDomain: z.enum(['email', 'calendar']).optional(),
+    accountId: z.string().optional(),
+    messageId: z.string().optional(),
+    eventId: z.string().optional(),
+    snippet: z.string().optional(),
+    from: z.string().optional(),
+    fromName: z.string().optional(),
+    receivedAt: z.string().optional(),
+    startTime: z.string().optional(),
+    endTime: z.string().optional(),
+    organizer: z.string().optional(),
   })
   .strict();
 export type DocumentProjectionPayloadV1 = z.infer<typeof DocumentProjectionPayloadV1>;

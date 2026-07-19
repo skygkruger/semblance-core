@@ -5,6 +5,10 @@ import { hostname } from 'node:os';
 import Database from 'better-sqlite3';
 import { createEventLog, type VaultEventLog } from '../event-log/index.js';
 import { createVaultFileIngestHooks, type VaultFileIngestHooks } from '../ingest/file-ingest.js';
+import {
+  createVaultConnectorIngestHooks,
+  type VaultConnectorIngestHooks,
+} from '../ingest/connector-ingest.js';
 import { VaultChatGroundingImpl, type VaultChatGrounding } from '../chat/vault-chat-grounding.js';
 import { createVaultSurfaceOps, type VaultSurfaceOps } from '../surface/vault-surface.js';
 
@@ -22,6 +26,9 @@ export interface BootstrapLocalVaultOptions {
 export interface LocalVaultBootstrap {
   eventLog: VaultEventLog;
   fileIngestHooks: VaultFileIngestHooks;
+  connectorIngestHooks: VaultConnectorIngestHooks;
+  deviceId: string;
+  membershipEpoch: number;
   chatGrounding: VaultChatGrounding;
   surface: VaultSurfaceOps;
   close: () => void;
@@ -72,6 +79,12 @@ export function bootstrapLocalVault(options: BootstrapLocalVaultOptions): LocalV
     membershipEpoch,
   });
 
+  const connectorIngestHooks = createVaultConnectorIngestHooks({
+    eventLog,
+    deviceId,
+    membershipEpoch,
+  });
+
   const chatGrounding = new VaultChatGroundingImpl({
     eventLog,
     principalId,
@@ -89,6 +102,9 @@ export function bootstrapLocalVault(options: BootstrapLocalVaultOptions): LocalV
   return {
     eventLog,
     fileIngestHooks,
+    connectorIngestHooks,
+    deviceId,
+    membershipEpoch,
     chatGrounding,
     surface,
     close: () => {

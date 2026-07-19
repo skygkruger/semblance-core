@@ -222,6 +222,10 @@ import {
 import { oauthClients, UNCONFIGURED_CLIENT_ID } from '../../../gateway/config/oauth-clients.js';
 import { registerAllConnectors, wireConnectorRouter } from '../../../gateway/services/connector-registration.js';
 import type { ConnectorRouter } from '../../../gateway/services/connector-router.js';
+import {
+  ingressConnectorCalendarEvents,
+  ingressConnectorEmailMessages,
+} from '../../../gateway/ingress/connector-ingress.js';
 
 // Morning Brief / Daily Digest / Weather / Style / Dark Pattern / Document Context / Health / Cloud Storage / Graph Vis
 import { MorningBriefGenerator } from '../../../core/agent/morning-brief.js';
@@ -5949,6 +5953,7 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
             knowledge: core!.knowledge,
             llm: core!.llm,
             eventBus: eventBus ?? undefined,
+            vaultIngest: localVault?.connectorIngestHooks,
           });
           emailIndexer.onEvent((event, data) => emit(event, data));
         }
@@ -5978,6 +5983,25 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
         if (fetchResult.success && fetchResult.data) {
           const rawData = fetchResult.data as { messages?: unknown[] } | unknown[];
           const messages = Array.isArray(rawData) ? rawData : (rawData.messages ?? []);
+
+          if (localVault && messages.length > 0) {
+            try {
+              const vaultIngress = ingressConnectorEmailMessages({
+                messages,
+                accountId: syncAccountId,
+                accountEmail: fetchOverrides.userEmailOverride ?? null,
+                eventLog: localVault.eventLog,
+                deviceId: localVault.deviceId,
+                membershipEpoch: localVault.membershipEpoch,
+              });
+              console.error(
+                `[sidecar] Vault email ingress: ${vaultIngress.ingested} ingested, ${vaultIngress.skipped} skipped (account: ${syncAccountId})`,
+              );
+            } catch (vaultIngressErr) {
+              console.error('[sidecar] Vault email ingress failed (non-fatal):', vaultIngressErr);
+            }
+          }
+
           const emailIndexed = await emailIndexer.indexMessages(
             messages as RawEmailMessage[],
             syncAccountId,
@@ -6094,6 +6118,7 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
             knowledge: core!.knowledge,
             llm: core!.llm,
             eventBus: eventBus ?? undefined,
+            vaultIngest: localVault?.connectorIngestHooks,
           });
           calendarIndexer.onEvent((event, data) => emit(event, data));
         }
@@ -6177,6 +6202,23 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
           reminders: [],
           lastModified: ev.updated ?? new Date().toISOString(),
         }));
+
+        if (localVault && mappedEvents.length > 0) {
+          try {
+            const vaultIngress = ingressConnectorCalendarEvents({
+              events: mappedEvents,
+              accountId: calSyncAccountId,
+              eventLog: localVault.eventLog,
+              deviceId: localVault.deviceId,
+              membershipEpoch: localVault.membershipEpoch,
+            });
+            console.error(
+              `[sidecar] Vault calendar ingress: ${vaultIngress.ingested} ingested, ${vaultIngress.skipped} skipped (account: ${calSyncAccountId})`,
+            );
+          } catch (vaultIngressErr) {
+            console.error('[sidecar] Vault calendar ingress failed (non-fatal):', vaultIngressErr);
+          }
+        }
 
         const calIndexed = await calendarIndexer.indexEvents(mappedEvents, calSyncAccountId);
         console.error(`[sidecar] Post-sync: ${calIndexed} calendar events indexed via REST API (account: ${calSyncAccountId})`);
