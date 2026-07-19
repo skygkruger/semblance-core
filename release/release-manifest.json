@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "releaseId": "shared-space-sovereignty-2026-07-19",
-  "generatedAt": "2026-07-19T18:35:41Z",
+  "releaseId": "cross-cutting-release-hardening-2026-07-19",
+  "generatedAt": "2026-07-19T19:05:09Z",
   "repositories": {
     "core": {
-      "sourceCommit": "154a0919d84607eb446b54c06d21df3e658e2854",
-      "sourceTreeHash": "c08b8280926b6a5c263df768071e07f17ffccdd8"
+      "sourceCommit": "a6ce9caf2c98dc62bd68651e7d97bbc1c7aee58b",
+      "sourceTreeHash": "50fc633d536bb68fb2ea45f9e87035990afaaf88"
     },
     "representative": {
-      "sourceCommit": "349df71eed30ba87f6b8f1679af3337526c668a2",
-      "sourceTreeHash": "43158828f6e4e93d1a53b2378690daaee800a635",
+      "sourceCommit": "17c72af955e087a255c2c60acd3e2e5306ff7343",
+      "sourceTreeHash": "3587212219473c575a5488552daac7b7cf697310",
       "packageVersion": "0.1.0",
       "artifactHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa",
-      "extensionManifestHash": "8ff4eb6ec9a66afa0fa080daf63b7c1f6365db067437c43db28f5fd117f073be"
+      "extensionManifestHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa"
     },
     "website": {
-      "sourceCommit": "0c0d0789947b229e24b22c500d3889e5a5697e2a",
-      "sourceTreeHash": "6b84973d48230c60e18e4dbc66c017a3bbd58604"
+      "sourceCommit": "378c045c3c44987201a99929c96373d7a7757ba9",
+      "sourceTreeHash": "109d5f2ceeee656b48806dbb564a55cecd77607f"
     },
     "semblanceNode": {
       "repositoryUrl": "https://github.com/skygkruger/semblance-node",
@@ -24,7 +24,15 @@
       "sourceTreeHash": "f69cbabe7c2b29299639da5ec87167618045465d"
     }
   },
-  "signedArtifacts": [],
+  "signedArtifacts": [
+    {
+      "name": "com.semblance.dr",
+      "path": "release/evidence/slice-6/signed-artifact.txt",
+      "sha256": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa",
+      "signature": "source-phase-unsigned",
+      "signatureKeyId": "source-unverified"
+    }
+  ],
   "evidence": [
     {
       "id": "core-typecheck",
@@ -872,6 +880,42 @@
         "RuntimeVerified",
         "AdversariallyVerified"
       ]
+    },
+    {
+      "id": "cross-cutting-gate-matrix",
+      "repository": "core",
+      "path": "release/evidence/cross-cutting/gate-matrix.json",
+      "sha256": "326170d94ae80e4ddb4c6bc6a6ada29999c67c5f42cb3d80c45da4f4613e28c9",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "cross-cutting-stop-conditions",
+      "repository": "core",
+      "path": "release/evidence/cross-cutting/stop-conditions.txt",
+      "sha256": "892b524bae1ea0494a9bc0f3736d5676558ac96911fe6846eec1cb71dd01608e",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "cross-cutting-release-trains",
+      "repository": "core",
+      "path": "release/evidence/cross-cutting/release-trains.v1.json",
+      "sha256": "aa1d8807bf01988ea9741741ba7291326a52e21e5bb226100e0226b11a282f66",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "cross-cutting-program-status",
+      "repository": "core",
+      "path": "release/evidence/cross-cutting/program-status.md",
+      "sha256": "c24c32a7859c55cf308718bf179a9ff46bc473945ede2b11615999e91297fdde",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
     }
   ],
   "commerce": {
@@ -883,7 +927,9 @@
     ]
   },
   "protocolVersions": {
-    "releaseEvidence": 1
+    "releaseEvidence": 1,
+    "execution": 1,
+    "extensionManifest": 1
   },
   "modelRuntimeHashes": [],
   "confidentialWorkloadMeasurements": [],
@@ -917,7 +963,9 @@
         "public-claims"
       ],
       "protocolVersions": {
-        "releaseEvidence": 1
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -937,7 +985,9 @@
         "migration-reservation-entitlement-split"
       ],
       "protocolVersions": {
-        "releaseEvidence": 1
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -958,7 +1008,9 @@
         "migration-commerce-freeze"
       ],
       "protocolVersions": {
-        "releaseEvidence": 1
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -984,7 +1036,9 @@
         "slice-2-chat-smoke"
       ],
       "protocolVersions": {
-        "releaseEvidence": 1
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -1007,7 +1061,9 @@
         "migration-slice-3-vault-strangler"
       ],
       "protocolVersions": {
-        "releaseEvidence": 1
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -1030,7 +1086,9 @@
         "slice-4-egress"
       ],
       "protocolVersions": {
-        "releaseEvidence": 1
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -1057,7 +1115,9 @@
         "slice-5-work-proof"
       ],
       "protocolVersions": {
-        "releaseEvidence": 1
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -1089,7 +1149,9 @@
         "slice-6-representative-tests"
       ],
       "protocolVersions": {
-        "releaseEvidence": 1
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -1098,7 +1160,7 @@
       "representativePins": {
         "packageVersion": "0.1.0",
         "artifactHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa",
-        "extensionManifestHash": "8ff4eb6ec9a66afa0fa080daf63b7c1f6365db067437c43db28f5fd117f073be"
+        "extensionManifestHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa"
       }
     },
     {
@@ -1116,7 +1178,9 @@
         "slice-7-new-sales-enabled"
       ],
       "protocolVersions": {
-        "releaseEvidence": 1
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -1141,7 +1205,8 @@
       ],
       "protocolVersions": {
         "releaseEvidence": 1,
-        "execution": 1
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -1165,7 +1230,8 @@
       ],
       "protocolVersions": {
         "releaseEvidence": 1,
-        "execution": 1
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -1179,7 +1245,9 @@
       "repository": "core",
       "state": "AdversariallyVerified",
       "usesDigitalRepresentative": true,
-      "signedArtifactNames": [],
+      "signedArtifactNames": [
+        "com.semblance.dr"
+      ],
       "evidenceIds": [
         "slice-10-exit-gate",
         "slice-10-exit-gate-tests",
@@ -1188,13 +1256,18 @@
       ],
       "protocolVersions": {
         "releaseEvidence": 1,
-        "execution": 1
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
       "infrastructurePolicyVersions": [],
       "legalNoticesVersion": "2026-07-18",
-      "representativePins": null
+      "representativePins": {
+        "packageVersion": "0.1.0",
+        "artifactHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa",
+        "extensionManifestHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa"
+      }
     },
     {
       "id": "mobile-sync-mesh",
@@ -1211,7 +1284,8 @@
       ],
       "protocolVersions": {
         "releaseEvidence": 1,
-        "execution": 1
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],
@@ -1234,6 +1308,7 @@
       ],
       "protocolVersions": {
         "releaseEvidence": 1,
+        "execution": 1,
         "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
@@ -1257,7 +1332,33 @@
         "slice-13-shared-space-proof-export-tests"
       ],
       "protocolVersions": {
-        "releaseEvidence": 1
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "cross-cutting-gate-matrix",
+      "name": "Cross-cutting gate matrix and program hardening",
+      "repository": "core",
+      "state": "RuntimeVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "cross-cutting-gate-matrix",
+        "cross-cutting-stop-conditions",
+        "cross-cutting-release-trains",
+        "cross-cutting-program-status"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],

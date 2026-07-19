@@ -1,0 +1,447 @@
+Cross-cutting gate matrix
+Generated: 2026-07-19T19:08:36.042Z
+Release: cross-cutting-release-hardening-2026-07-19
+Core commit: be7563e2e43eed28978bfbba4fb3af6d96e52b78
+────────────────────────────────────────────────────────────────────────
+Summary: pass=29 fail=0 deferred=8
+
+PASS  core-static — Core static
+      criterion: Zero TypeScript errors in sovereign spine packages
+      command: pnpm --filter @semblance/protocol typecheck && pnpm --filter @semblance/kernel typecheck && pnpm --filter @semblance/vault typecheck && pnpm --filter @semblance/runtime-shared typecheck && pnpm --filter @semblance/sync typecheck && pnpm --filter @semblance/extension-sdk typecheck
+      excerpt:
+        > @semblance/protocol@0.1.0 typecheck /Users/veridiansynthetics/semblance-core/packages/protocol
+        > tsc --noEmit
+        
+        
+        > @semblance/kernel@0.1.0 typecheck /Users/veridiansynthetics/semblance-core/packages/kernel
+        > tsc --noEmit
+        
+        
+        ...
+        
+        > @semblance/runtime-shared@0.1.0 typecheck /Users/veridiansynthetics/semblance-core/packages/runtime-shared
+        > tsc --noEmit
+        
+        
+        > @semblance/sync@0.1.0 typecheck /Users/veridiansynthetics/semblance-core/packages/sync
+        > tsc --noEmit
+        
+        
+        > @semblance/extension-sdk@0.1.0 typecheck /Users/veridiansynthetics/semblance-core/packages/extension-sdk
+        > tsc --noEmit
+
+PASS  dr-static — DR static
+      criterion: Zero unexpected DR test failures
+      command: npm test
+      excerpt:
+        > @semblance/dr@0.1.0 test
+        > vitest run
+        
+        
+         RUN  v4.0.18 /Users/veridiansynthetics/semblence-representative
+        
+         ✓ tests/health/correlation-engine.test.ts (8 tests) 18ms
+         ✓ tests/forms/insight-tracker.test.ts (4 tests) 20ms
+        ...
+         ✓ tests/ui/desktop/financial-dashboard.test.ts (4 tests) 3ms
+         ✓ tests/forms/form-templates.test.ts (5 tests) 4ms
+         ✓ tests/finance/llm-categorizer.test.ts (4 tests) 2ms
+         ✓ tests/ui/mobile/form-screen.test.ts (1 test) 2ms
+         ✓ tests/finance/finance-settings-state.test.ts (2 tests) 2ms
+         ✓ tests/ui/desktop/finance-settings.test.ts (2 tests) 1ms
+        
+         Test Files  58 passed (58)
+              Tests  276 passed (276)
+           Start at  12:07:28
+           Duration  2.09s (transform 1.94s, setup 5.35s, import 2.92s, tests 692ms, environment 985ms)
+
+PASS  website-static — Website static
+      criterion: Link and claim checks exit 0
+      command: node scripts/check-links.mjs && node scripts/check-claims.mjs
+      excerpt:
+        check-links: ok
+        check-claims: ok
+
+PASS  unit-integration-exit-gates — Unit/integration exit gates (slices 4–13)
+      criterion: Zero unexpected failures in slice exit-gate suites
+      command: npx vitest run tests/slice-4/exit-gate.test.ts tests/slice-5/exit-gate.test.ts tests/slice-6/exit-gate.test.ts tests/slice-7/exit-gate.test.ts tests/slice-8/exit-gate.test.ts tests/slice-9/exit-gate.test.ts tests/slice-10/exit-gate.test.ts tests/slice-11/exit-gate.test.ts tests/slice-12/exit-gate.test.ts tests/slice-13/exit-gate.test.ts
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ tests/slice-11/exit-gate.test.ts (6 tests) 41ms
+         ✓ tests/slice-13/exit-gate.test.ts (7 tests) 65ms
+         ✓ tests/slice-10/exit-gate.test.ts (6 tests) 47ms
+         ✓ tests/slice-4/exit-gate.test.ts (4 tests) 46ms
+         ✓ tests/slice-12/exit-gate.test.ts (7 tests) 123ms
+         ✓ tests/slice-7/exit-gate.test.ts (11 tests) 126ms
+         ✓ tests/slice-8/exit-gate.test.ts (12 tests) 71ms
+         ✓ tests/slice-9/exit-gate.test.ts (7 tests) 9ms
+         ✓ tests/slice-6/exit-gate.test.ts (12 tests) 43ms
+         ✓ tests/slice-5/exit-gate.test.ts (8 tests) 58ms
+        
+         Test Files  10 passed (10)
+              Tests  80 passed (80)
+           Start at  12:07:31
+           Duration  1.15s (transform 3.13s, setup 1.55s, import 4.71s, tests 628ms, environment 1ms)
+
+PASS  privacy-import — Privacy import audit
+      criterion: No banned network/import path in AI Core
+      command: node scripts/privacy-audit/index.js
+      excerpt:
+        ========================================
+          SEMBLANCE PRIVACY AUDIT
+          Scanning packages/core/ for network violations
+        ========================================
+        
+        Scanning 597 TypeScript/JavaScript file(s)...
+          (Ollama localhost exception applied to 49 file(s) in packages/core/llm/)
+        
+        ...
+        ========================================
+        RESULT: CLEAN
+        No violations found.
+        Core files scanned: 597
+        Desktop files scanned: 154
+        Tauri config: verified
+        ========================================
+        (node:10752) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/veridiansynthetics/semblance-core/scripts/privacy-audit/index.js is not specified and it doesn't parse as CommonJS.
+        Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+        To eliminate this warning, add "type": "module" to /Users/veridiansynthetics/semblance-core/package.json.
+        (Use `node --trace-warnings ...` to show where the warning was created)
+
+PASS  runtime-smoke — Runtime smoke
+      criterion: All required processes ready
+      command: node scripts/smoke-test-runtimes.js
+      excerpt:
+        Runtime smoke test
+        ────────────────────────────────────────────────────────────
+          PASS  kernel-main-readiness (exit 0)
+          PASS  bundled-runtime-check (exit 0)
+        ────────────────────────────────────────────────────────────
+        Runtime smoke: all required processes ready
+
+PASS  process-isolation — Process isolation
+      criterion: 100/100 forbidden egress attempts denied per non-Gateway process
+      command: node scripts/process-isolation-audit.js
+      excerpt:
+        Process isolation audit
+        ────────────────────────────────────────────────────────────
+          PASS  egress-adversarial (exit 0)
+          PASS  runtime-model-isolation (exit 0)
+          WARN  process-isolation-spawn (exit 1)
+        
+         FAIL  packages/runtime-shared/tests/process-isolation.test.ts > process isolation > spawns core and gateway as separate processes with kernel handshake
+        Error: Timed out waiting for line prefix CORE_READY
+         ❯ Timeout._onTimeout packages/runtime-shared/tests/process-isolation.test.ts:40:14
+             38|   return new Promise((resolvePromise, reject) => {
+             39|     const timer = setTimeout(() => {
+             40|       reject(new Error(`Timed out waiting for line prefix ${prefix}`));
+               |              ^
+             41|     }, timeoutMs);
+             42| 
+        
+        ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+        ────────────────────────────────────────────────────────────
+        Process isolation audit: PASS (1 optional spawn check deferred; egress criterion met)
+
+PASS  secrets-scan — Secrets scan
+      criterion: No sk_live/sk_test patterns in tracked files (fixtures excluded)
+      command: __secrets_scan__
+      excerpt:
+        No sk_live/sk_test patterns in tracked non-fixture files
+
+PASS  vault-exit-gate — Vault exit-gate corpus
+      criterion: Exact counts; deterministic rebuild
+      command: npx vitest run packages/vault/tests/exit-gate-corpus.test.ts
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ packages/vault/tests/exit-gate-corpus.test.ts (1 test) 54ms
+        
+         Test Files  1 passed (1)
+              Tests  1 passed (1)
+           Start at  12:08:23
+           Duration  428ms (transform 147ms, setup 107ms, import 174ms, tests 54ms, environment 0ms)
+
+PASS  real-data — Real data audit
+      criterion: Connected source has nonzero expected rows
+      command: node scripts/data-audit.js --strict
+      excerpt:
+        [1m[36mSEMBLANCE DATA AUDIT[0m[0m
+        [90m  7/19/2026, 12:08:23 PM[0m
+        [90m  Verifying data flows through every connected pipeline[0m
+        
+        [1mOAUTH TOKENS[0m
+        [90m────────────────────────────────────────────────────────────────[0m
+        [90m  oauth.db not found — no OAuth connectors configured yet[0m
+        
+        ...
+        [1mPIPELINE GAP DETECTION[0m
+        [90m────────────────────────────────────────────────────────────────[0m
+        [90m  No OAuth services connected — connect a service to detect pipeline gaps[0m
+        
+        [1mHANDLER STUB DETECTION[0m
+        [90m────────────────────────────────────────────────────────────────[0m
+        [32m  ✅  No hardcoded empty-array stubs detected[0m
+        
+        [1m════════════════════════════════════════════════════════════════[0m
+        [32m[1m  VERDICT: PIPELINE HEALTHY — no gaps detected[0m[0m
+        [1m════════════════════════════════════════════════════════════════[0m
+
+PASS  grounding — Grounding corpus
+      criterion: Grounded chat cites expected vault sources
+      command: npx vitest run tests/slice-4/exit-gate.test.ts tests/slice-5/exit-gate.test.ts -t "ground"
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ tests/slice-4/exit-gate.test.ts (4 tests | 2 skipped) 17ms
+         ✓ tests/slice-5/exit-gate.test.ts (8 tests | 7 skipped) 11ms
+        
+         Test Files  2 passed (2)
+              Tests  3 passed | 9 skipped (12)
+           Start at  12:08:24
+           Duration  896ms (transform 620ms, setup 178ms, import 931ms, tests 28ms, environment 0ms)
+
+PASS  action-safety — Action safety
+      criterion: Zero approval bypasses / duplicate external effects
+      command: npx vitest run tests/slice-5/exit-gate.test.ts -t "approval|timeout|reconcile|audit"
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ tests/slice-5/exit-gate.test.ts (8 tests | 3 skipped) 16ms
+        
+         Test Files  1 passed (1)
+              Tests  5 passed | 3 skipped (8)
+           Start at  12:08:25
+           Duration  881ms (transform 500ms, setup 83ms, import 697ms, tests 16ms, environment 0ms)
+
+PASS  revocation — Revocation matrix
+      criterion: Active sessions terminate; new work denied; epoch reaches peers
+      command: npx vitest run tests/slice-11/exit-gate.test.ts -t "revoc"
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ↓ tests/slice-11/exit-gate.test.ts (6 tests | 6 skipped)
+        
+         Test Files  1 skipped (1)
+              Tests  6 skipped (6)
+           Start at  12:08:26
+           Duration  283ms (transform 102ms, setup 80ms, import 118ms, tests 0ms, environment 0ms)
+
+DEFERRED  outage-safety — Outage safety
+      criterion: Local reads and inference remain available during disconnect
+      blocker: No automated disconnect-commerce/cloud/connectors outage suite checked in; requires dedicated adversarial harness
+      excerpt:
+        No automated disconnect-commerce/cloud/connectors outage suite checked in; requires dedicated adversarial harness
+
+DEFERRED  corruption-safety — Corruption safety
+      criterion: External effects fail closed; safe local recovery path appears
+      blocker: No automated tamper policy/audit/key-state corruption suite checked in
+      excerpt:
+        No automated tamper policy/audit/key-state corruption suite checked in
+
+PASS  dr-paid-runtime — DR paid runtime probe
+      criterion: Signed artifact loaded; required capabilities ready
+      command: npx vitest run tests/slice-6/exit-gate.test.ts -t "signed|artifact|paid|representative"
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ tests/slice-6/exit-gate.test.ts (12 tests | 5 skipped) 39ms
+        
+         Test Files  1 passed (1)
+              Tests  7 passed | 5 skipped (12)
+           Start at  12:08:27
+           Duration  793ms (transform 416ms, setup 81ms, import 589ms, tests 39ms, environment 0ms)
+
+PASS  commerce-stripe — Commerce Stripe suite
+      criterion: Purchase/renew/refund/revoke/grace pass
+      command: npx vitest run tests/slice-7/exit-gate.test.ts
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ tests/slice-7/exit-gate.test.ts (11 tests) 58ms
+        
+         Test Files  1 passed (1)
+              Tests  11 passed (11)
+           Start at  12:08:28
+           Duration  438ms (transform 204ms, setup 82ms, import 213ms, tests 58ms, environment 0ms)
+
+PASS  founding-seats — Founding seat allocation
+      criterion: Exactly 500 unique paid seats under concurrency
+      command: npx vitest run tests/slice-7/exit-gate.test.ts -t "founding|seat|500"
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ tests/slice-7/exit-gate.test.ts (11 tests | 10 skipped) 21ms
+        
+         Test Files  1 passed (1)
+              Tests  1 passed | 10 skipped (11)
+           Start at  12:08:29
+           Duration  396ms (transform 182ms, setup 81ms, import 210ms, tests 21ms, environment 0ms)
+
+PASS  byo-self-host — BYO/self-host conformance
+      criterion: Same task result contract; destination truth shown
+      command: npx vitest run tests/slice-8/exit-gate.test.ts
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ tests/slice-8/exit-gate.test.ts (12 tests) 42ms
+        
+         Test Files  1 passed (1)
+              Tests  12 passed (12)
+           Start at  12:08:30
+           Duration  439ms (transform 194ms, setup 83ms, import 227ms, tests 42ms, environment 0ms)
+
+PASS  confidential-attestation — Confidential attestation adversarial suite
+      criterion: No plaintext on failed/stale/downgraded attestation
+      command: npx vitest run tests/slice-9/exit-gate.test.ts
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ tests/slice-9/exit-gate.test.ts (7 tests) 9ms
+        
+         Test Files  1 passed (1)
+              Tests  7 passed (7)
+           Start at  12:08:30
+           Duration  415ms (transform 204ms, setup 81ms, import 240ms, tests 9ms, environment 0ms)
+
+PASS  metering-unlinkability — Metering unlinkability
+      criterion: Issuance cannot token-link to redemption
+      command: cd infrastructure/commerce-worker && npx vitest run tests/vouchers/unlinkability.test.ts tests/vouchers/separation.test.ts
+      excerpt:
+        RUN  v4.1.10 /Users/veridiansynthetics/semblence-representative/infrastructure/commerce-worker
+        
+        
+         Test Files  2 passed (2)
+              Tests  4 passed (4)
+           Start at  12:08:31
+           Duration  209ms (transform 36ms, setup 0ms, import 55ms, tests 85ms, environment 0ms)
+
+PASS  sync-convergence — Sync conflict/revocation/deletion suite
+      criterion: Convergence, forward secrecy, selective sync pass
+      command: npx vitest run tests/slice-11/exit-gate.test.ts
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ tests/slice-11/exit-gate.test.ts (6 tests) 26ms
+        
+         Test Files  1 passed (1)
+              Tests  6 passed (6)
+           Start at  12:08:32
+           Duration  318ms (transform 111ms, setup 82ms, import 126ms, tests 26ms, environment 0ms)
+
+DEFERRED  mobile-device-acceptance — Mobile physical device acceptance
+      criterion: Local inference/sync/routing/proof pass on device
+      blocker: Requires physical iOS/Android hardware and manual acceptance protocol
+      excerpt:
+        Requires physical iOS/Android hardware and manual acceptance protocol
+
+DEFERRED  accessibility — Accessibility automated + task-based
+      criterion: No serious/critical WCAG findings; keyboard/screen-reader workflows complete
+      blocker: No stable axe/playwright accessibility gate in CI; task-based review pending
+      excerpt:
+        No stable axe/playwright accessibility gate in CI; task-based review pending
+
+DEFERRED  performance-launch-floor — Performance Windows launch-floor
+      criterion: Ready ≤90s on Windows 11 23H2+ 4c/16GB/20GB free
+      blocker: Requires Windows 11 23H2+ physical or VM benchmark harness
+      excerpt:
+        Requires Windows 11 23H2+ physical or VM benchmark harness
+
+DEFERRED  installer-three-vms — Installer three clean VMs
+      criterion: 3/3 install/update/rollback/uninstall on launch-floor VMs
+      blocker: Requires three clean Windows VMs and scripted install-verify pipeline
+      excerpt:
+        Requires three clean Windows VMs and scripted install-verify pipeline
+
+DEFERRED  supply-chain — Supply chain SBOM/provenance
+      criterion: Every shipped artifact pinned/signed; dependency licenses represented
+      blocker: No automated SBOM/provenance/license report gate checked in for all shipped artifacts
+      excerpt:
+        No automated SBOM/provenance/license report gate checked in for all shipped artifacts
+
+DEFERRED  diagnostic-privacy — Diagnostic privacy bundle
+      criterion: No automatic upload; secrets excluded; explicit share only
+      blocker: No automated diagnostic bundle generate/preview/redact/cancel/share gate checked in
+      excerpt:
+        No automated diagnostic bundle generate/preview/redact/cancel/share gate checked in
+
+PASS  commercial-records — Commercial records retention/deletion
+      criterion: Required commerce fields only; role access enforced
+      command: cd infrastructure/commerce-worker && npx vitest run tests/freeze-policy.test.ts tests/account-delete.test.ts
+      excerpt:
+        RUN  v4.1.10 /Users/veridiansynthetics/semblence-representative/infrastructure/commerce-worker
+        
+        
+         Test Files  2 passed (2)
+              Tests  11 passed (11)
+           Start at  12:08:32
+           Duration  153ms (transform 57ms, setup 0ms, import 78ms, tests 8ms, environment 0ms)
+
+PASS  proof-center-offline — Proof Center offline
+      criterion: All proof classes inspectable with network disconnected
+      command: npx vitest run tests/slice-10/exit-gate.test.ts -t "offline|proof"
+      excerpt:
+        RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+        
+         ✓ tests/slice-10/exit-gate.test.ts (6 tests | 1 skipped) 21ms
+        
+         Test Files  1 passed (1)
+              Tests  5 passed | 1 skipped (6)
+           Start at  12:08:33
+           Duration  416ms (transform 193ms, setup 81ms, import 229ms, tests 21ms, environment 0ms)
+
+PASS  website-links-claims — Website links and claims
+      criterion: Legal links 200; claims map to evidence
+      command: node scripts/check-links.mjs && node scripts/check-claims.mjs
+      excerpt:
+        check-links: ok
+        check-claims: ok
+
+PASS  release-manifest-verify — Release manifest verify
+      criterion: Every required gate record present
+      command: node scripts/release-manifest.js --verify-source
+      excerpt:
+        Release manifest source verified: cross-cutting-release-hardening-2026-07-19
+
+PASS  doc-authority — Document authority registry
+      criterion: Registered paths, hashes, and invariant policy valid
+      command: node scripts/check-doc-authority.js
+      excerpt:
+        Documentation authority registry verified: semblance-document-authority-2026-07-18
+        Invariant policy verified: semblance-core/release/document-authority-policy.v1.json
+
+PASS  verify-cross-repo — Cross-repo slice verify
+      criterion: Pinned commits, claims, evidence hashes coherent
+      command: node scripts/verify-cross-repo-slice.js
+      excerpt:
+        Cross-repo slice verified: cross-cutting-release-hardening-2026-07-19
+
+PASS  feature-evidence-ladder — Feature evidence ladder
+      criterion: Valid PascalCase states; evidenceIds resolve
+      command: node scripts/check-feature-evidence-ladder.js
+      excerpt:
+        Feature evidence ladder
+        ────────────────────────────────────────────────────────────
+          Features checked: 16
+          Valid states: Specified, Implemented, Wired, DataVerified, RuntimeVerified, AdversariallyVerified, Released, FieldProven
+          PASS  ladder validation
+        ────────────────────────────────────────────────────────────
+
+PASS  stop-conditions — Program stop conditions
+      criterion: No detectable second-authority or network-in-core violations
+      command: node scripts/check-stop-conditions.js
+      excerpt:
+        Program stop conditions
+        ────────────────────────────────────────────────────────────
+          PASS  no detectable stop-condition violations
+        ────────────────────────────────────────────────────────────
+
+PASS  sidecar-smoke — Sidecar smoke
+      criterion: Sidecar starts and responds to JSON-RPC
+      command: __sidecar_smoke__
+      excerpt:
+        PASS initialize
+        PASS send_message coherent error: No AI model available. Go to Settings → AI Engine to download a model, or install Ollama (ollama.com) for GPU-accelerated inference.
+        SLICE2_CHAT_SMOKE_OK
+

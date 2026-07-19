@@ -331,7 +331,7 @@ function isForbiddenPackage(pkgName) {
 function scanTransitiveDeps() {
   const violations = [];
   try {
-    const output = execSyncImport('pnpm list --depth 10 --json --filter @semblance/core', {
+    const output = execSyncImport('pnpm list --depth 10 --json --prod --filter @semblance/core', {
       cwd: ROOT_DIR,
       encoding: 'utf-8',
       timeout: 30000,

@@ -19,6 +19,7 @@ const { join } = require('path');
 
 const ROOT = join(__dirname, '..');
 const FAST = process.argv.includes('--fast');
+const CROSS_CUTTING = process.argv.includes('--cross-cutting');
 
 let passed = 0;
 let failed = 0;
@@ -148,6 +149,13 @@ if (!FAST) {
     liveOk ? '' : 'Live AI golden tests failed against an active provider — real model behaviour regressed',
   );
   console.log(liveOk ? (livePassed === 0 ? 'skipped (no provider)' : `${livePassed} passing`) : 'FAILED');
+}
+
+if (CROSS_CUTTING) {
+  process.stdout.write('  Cross-cutting gate matrix... ');
+  const matrix = run('node', ['scripts/cross-cutting-gate-matrix.js'], 900000);
+  check('Cross-cutting gate matrix', matrix.ok, matrix.ok ? '' : 'runnable cross-cutting gate failed');
+  console.log(matrix.ok ? 'PASS' : 'FAIL');
 }
 
 // ── Summary ───────────────────────────────────────────────────────────────
