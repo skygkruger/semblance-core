@@ -18,7 +18,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@semblance/extension-sdk": "workspace:*"
+    "@semblance/extension-sdk": "workspace:*",
+    "@semblance/kernel": "workspace:*"
   },
   "license": "MIT"
 }

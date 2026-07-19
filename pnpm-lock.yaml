@@ -276,6 +276,9 @@ importers:
       '@semblance/extension-sdk':
         specifier: workspace:*
         version: link:../extension-sdk
+      '@semblance/kernel':
+        specifier: workspace:*
+        version: link:../kernel
 
   packages/extension-sdk:
     dependencies:
@@ -334,6 +337,9 @@ importers:
 
   packages/kernel:
     dependencies:
+      '@semblance/extension-sdk':
+        specifier: workspace:*
+        version: link:../extension-sdk
       '@semblance/protocol':
         specifier: workspace:*
         version: link:../protocol
@@ -368,6 +374,12 @@ importers:
       '@react-navigation/native-stack':
         specifier: ^7.0.0
         version: 7.13.0(@react-navigation/native@7.1.28(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.0(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native-safe-area-context@5.7.0(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.0(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native-screens@4.24.0(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.0(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.0(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
+      '@semblance/core':
+        specifier: workspace:*
+        version: link:../core
+      '@semblance/sync':
+        specifier: workspace:*
+        version: link:../sync
       '@semblance/ui':
         specifier: workspace:*
         version: link:../semblance-ui

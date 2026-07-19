@@ -259,6 +259,10 @@ export interface SemblanceCoreConfig {
   signedDrManifestPath?: string;
   /** Signed DR artifact path (overrides SEMBLANCE_DR_ARTIFACT). */
   signedDrArtifactPath?: string;
+  /** Kernel publisher trust checker for signed extension loading. */
+  extensionTrustChecker?: import('@semblance/extension-runner').ExtensionTrustChecker;
+  /** Ownership origin for signed extension revocation policy. */
+  extensionOwnership?: import('@semblance/extension-runner').ExtensionOwnership;
 }
 
 // Default socket path varies by platform
@@ -468,6 +472,8 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
             styleProfileStore,
             recurringDetector: ipAdapters.recurringDetector,
           },
+          trustChecker: config?.extensionTrustChecker,
+          ownership: config?.extensionOwnership ?? 'marketplace',
         });
         const drStatus = getDigitalRepresentativeArtifactStatus();
         if (premiumGate.isPremium()) {

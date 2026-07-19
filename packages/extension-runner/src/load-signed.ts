@@ -2,15 +2,30 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import {
   loadDrPublisherKeys,
-  verifySignedExtensionArtifact,
+  EXTENSION_API_V1,
   type DrPublisherKeyRecord,
   type KernelEntitlementSnapshot,
 } from '@semblance/extension-sdk';
+import type {
+  ExtensionOwnership,
+  ExtensionPublisherTrustEvaluation,
+  ExtensionTrustChecker,
+} from './trust-checker.js';
+import { createArtifactOnlyExtensionTrustChecker } from './trust-checker.js';
 import type { ExtensionInitContextLike } from './client-adapters.js';
-import { buildExtensionInitContext } from './client-adapters.js';
+import {
+  buildExtensionInitContext,
+  buildExtensionInitContextV1,
+  buildExtensionRunnerClientsV1,
+} from './client-adapters.js';
 import { extractExtensionArtifact, importExtractedExtension } from './extract-artifact.js';
+import {
+  createPermissionEnforcedClientsV1,
+  type ExtensionGrantedPermissions,
+} from './permission-enforcement.js';
 import { createExtensionSandbox } from './sandbox.js';
 import type { ExtensionRunnerClients } from '@semblance/extension-sdk';
+import { extractRequestedPermissions } from '@semblance/kernel';
 
 export interface SemblanceExtensionLike {
   id: string;
@@ -30,6 +45,12 @@ export interface LoadSignedDigitalRepresentativeOptions {
   dataDir?: string;
   model?: string;
   legacyContext?: Partial<ExtensionInitContextLike>;
+  /** Kernel publisher trust checker — defaults to artifact-only verification. */
+  trustChecker?: ExtensionTrustChecker;
+  /** Ownership origin for revocation degraded-policy handling. */
+  ownership?: ExtensionOwnership;
+  /** User-granted permission subset — runner cannot exceed this set. */
+  grantedPermissions?: ExtensionGrantedPermissions;
 }
 
 export interface LoadSignedDigitalRepresentativeResult {
@@ -39,6 +60,9 @@ export interface LoadSignedDigitalRepresentativeResult {
   manifestId?: string;
   manifestVersion?: string;
   artifactValid?: boolean;
+  quarantined?: boolean;
+  degradedPolicy?: boolean;
+  trustLevel?: string;
 }
 
 export interface VerifySignedArtifactPathsOptions {
@@ -46,6 +70,8 @@ export interface VerifySignedArtifactPathsOptions {
   artifactPath?: string;
   publisherKeys?: DrPublisherKeyRecord[];
   coreVersion?: string;
+  trustChecker?: ExtensionTrustChecker;
+  ownership?: ExtensionOwnership;
 }
 
 export interface VerifySignedArtifactPathsResult {
@@ -56,6 +82,9 @@ export interface VerifySignedArtifactPathsResult {
 }
 
 const DEFAULT_CORE_VERSION = '1.0.0';
+
+/** Frozen Extension API generation loaded by the signed runner. */
+export const LOADED_EXTENSION_API = EXTENSION_API_V1;
 
 export function resolveArtifactPath(manifestPath: string, artifactPath?: string): string {
   if (artifactPath) {
@@ -70,6 +99,29 @@ export function resolveArtifactPath(manifestPath: string, artifactPath?: string)
   return join(dirname(resolve(manifestPath)), manifest.artifactRelativePath);
 }
 
+function resolveTrustChecker(
+  options: Pick<VerifySignedArtifactPathsOptions, 'trustChecker' | 'publisherKeys'>,
+): ExtensionTrustChecker {
+  if (options.trustChecker) {
+    return options.trustChecker;
+  }
+  return createArtifactOnlyExtensionTrustChecker(options.publisherKeys ?? loadDrPublisherKeys());
+}
+
+function evaluateTrust(
+  options: VerifySignedArtifactPathsOptions,
+  manifest: unknown,
+  artifactBytes: Buffer,
+): ExtensionPublisherTrustEvaluation {
+  const trustChecker = resolveTrustChecker(options);
+  return trustChecker.checkTrust({
+    manifest,
+    artifactBytes,
+    coreVersion: options.coreVersion ?? DEFAULT_CORE_VERSION,
+    ownership: options.ownership,
+  });
+}
+
 export function verifySignedArtifactPaths(
   options: VerifySignedArtifactPathsOptions,
 ): VerifySignedArtifactPathsResult {
@@ -78,18 +130,13 @@ export function verifySignedArtifactPaths(
     const artifactPath = resolveArtifactPath(manifestPath, options.artifactPath);
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as unknown;
     const artifactBytes = readFileSync(artifactPath);
-    const verification = verifySignedExtensionArtifact({
-      manifest,
-      artifactBytes,
-      coreVersion: options.coreVersion ?? DEFAULT_CORE_VERSION,
-      publisherKeys: options.publisherKeys ?? loadDrPublisherKeys(),
-    });
+    const evaluation = evaluateTrust(options, manifest, artifactBytes);
 
     return {
       present: true,
-      valid: verification.valid,
-      error: verification.error,
-      manifestId: verification.manifest?.id,
+      valid: evaluation.allowed,
+      error: evaluation.allowed ? undefined : evaluation.reason,
+      manifestId: evaluation.manifest?.id,
     };
   } catch (error) {
     return {
@@ -108,18 +155,16 @@ export async function loadSignedDigitalRepresentative(
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as unknown;
   const artifactBytes = readFileSync(artifactPath);
 
-  const verification = verifySignedExtensionArtifact({
-    manifest,
-    artifactBytes,
-    coreVersion: options.coreVersion ?? DEFAULT_CORE_VERSION,
-    publisherKeys: options.publisherKeys ?? loadDrPublisherKeys(),
-  });
+  const evaluation = evaluateTrust(options, manifest, artifactBytes);
 
-  if (!verification.valid || !verification.manifest) {
+  if (!evaluation.allowed || !evaluation.manifest) {
     return {
       ok: false,
-      error: verification.error ?? 'Signed artifact verification failed',
+      error: evaluation.reason ?? 'Signed artifact verification failed',
       artifactValid: false,
+      quarantined: evaluation.quarantined,
+      degradedPolicy: evaluation.degradedPolicy,
+      trustLevel: evaluation.trustLevel,
     };
   }
 
@@ -142,23 +187,51 @@ export async function loadSignedDigitalRepresentative(
     }
 
     const extension = (module.createExtension as () => SemblanceExtensionLike)();
+    const requested = extractRequestedPermissions(evaluation.manifest);
+    const granted = options.grantedPermissions ?? requested;
+    const declaredManifest = {
+      uiSlots: [...requested.uiSlots],
+      schedules: [...requested.schedules],
+      migration: { schemaVersion: 0, uninstall: 'ask' as const },
+    };
+    const enforcedClients = createPermissionEnforcedClientsV1({
+      base: options.clients,
+      granted,
+      extensionId: evaluation.manifest.id,
+      dataDir: options.dataDir ?? '/tmp/semblance-extension',
+      declared: declaredManifest,
+    });
+    const initContextV1 = buildExtensionInitContextV1({
+      extensionId: evaluation.manifest.id,
+      dataDir: options.dataDir ?? '/tmp/semblance-extension',
+      clients: buildExtensionRunnerClientsV1(enforcedClients),
+      declaredManifest,
+    });
     const initContext = buildExtensionInitContext({
-      clients: options.clients,
+      clients: enforcedClients,
       dataDir: options.dataDir,
       model: options.model,
       legacy: options.legacyContext,
     });
 
     if (extension.initialize) {
-      await sandbox.run(async () => extension.initialize!(initContext));
+      await sandbox.run(async () => {
+        if (options.grantedPermissions) {
+          await extension.initialize!(initContextV1 as unknown as ExtensionInitContextLike);
+        } else {
+          await extension.initialize!(initContext);
+        }
+      });
     }
 
     return {
       ok: true,
       extension,
-      manifestId: verification.manifest.id,
-      manifestVersion: verification.manifest.version,
+      manifestId: evaluation.manifest.id,
+      manifestVersion: evaluation.manifest.version,
       artifactValid: true,
+      degradedPolicy: evaluation.degradedPolicy,
+      trustLevel: evaluation.trustLevel,
     };
   } catch (error) {
     return {

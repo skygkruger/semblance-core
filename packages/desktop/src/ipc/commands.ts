@@ -1738,3 +1738,86 @@ export function cloudBudgetSetDisabled(
     { disabled },
   );
 }
+
+// ─── Extension permission center (Slice 12) ───────────────────────────────────
+
+export interface ExtensionPermissionBundleIPC {
+  dataCapabilities: string[];
+  actionCapabilities: string[];
+  networkDestinations: string[];
+  tools: string[];
+  insightTypes: string[];
+  uiSlots: string[];
+  schedules: string[];
+  entitlement: string | null;
+}
+
+export interface InstalledExtensionIPC {
+  manifestId: string;
+  publisher: string;
+  version: string;
+  manifestPath: string;
+  artifactPath: string;
+  installDir: string;
+  installedAt: string;
+  revoked: boolean;
+  enabled: boolean;
+  ownership: 'marketplace' | 'user-local';
+  requestedPermissions: ExtensionPermissionBundleIPC;
+  grantedPermissions: ExtensionPermissionBundleIPC;
+  migrationUninstall: 'delete' | 'retain_user_data' | 'ask';
+}
+
+export interface AvailableExtensionIPC {
+  manifestId: string;
+  publisher: string;
+  version: string;
+  manifestPath: string;
+  artifactPath: string;
+  requestedPermissions: ExtensionPermissionBundleIPC;
+}
+
+export function extensionListInstalled(): Promise<{
+  installed: InstalledExtensionIPC[];
+  available: AvailableExtensionIPC[];
+}> {
+  return sidecarCall<{ installed: InstalledExtensionIPC[]; available: AvailableExtensionIPC[] }>(
+    'extension:list_installed',
+  );
+}
+
+export function extensionInspect(manifestId: string): Promise<{ extension: InstalledExtensionIPC | AvailableExtensionIPC }> {
+  return sidecarCall<{ extension: InstalledExtensionIPC | AvailableExtensionIPC }>('extension:inspect', { manifestId });
+}
+
+export function extensionInstall(params: {
+  manifestPath: string;
+  artifactPath?: string;
+  grantedPermissions: ExtensionPermissionBundleIPC;
+  ownership?: 'marketplace' | 'user-local';
+}): Promise<{
+  success: boolean;
+  extension: InstalledExtensionIPC;
+  runtimeLoaded: boolean;
+  runtimeError: string | null;
+}> {
+  return sidecarCall('extension:install', params as unknown as Record<string, unknown>);
+}
+
+export function extensionSetPermissions(
+  manifestId: string,
+  grantedPermissions: ExtensionPermissionBundleIPC,
+): Promise<{ success: boolean; extension: InstalledExtensionIPC }> {
+  return sidecarCall('extension:set_permissions', { manifestId, grantedPermissions });
+}
+
+export function extensionRevoke(manifestId: string): Promise<{ success: boolean; extension: InstalledExtensionIPC }> {
+  return sidecarCall('extension:revoke', { manifestId });
+}
+
+export function extensionUninstall(
+  manifestId: string,
+  retainUserData = false,
+): Promise<{ success: boolean }> {
+  return sidecarCall('extension:uninstall', { manifestId, retainUserData });
+}

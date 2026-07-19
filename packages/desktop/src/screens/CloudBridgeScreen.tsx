@@ -1,4 +1,4 @@
-// Capabilities — user-controlled execution destination policy and BYO providers.
+// Execution destinations — user-controlled cloud routing and BYO providers.
 // @i18n-pending — i18n translation keys will be added in the localization pass
 
 import { useState, useEffect, useCallback } from 'react';
@@ -319,8 +319,8 @@ export function CloudBridgeScreen() {
     return (
       <div className="page-scroll">
         <div className="page-layout">
-          <h1 className="page-title" style={{ fontSize: 28, color: COLORS.text }}>Capabilities</h1>
-          <SkeletonCard variant="generic" message="Loading capabilities" subMessage="Retrieving destination policy" showSpinner />
+          <h1 className="page-title" style={{ fontSize: 28, color: COLORS.text }}>Execution destinations</h1>
+          <SkeletonCard variant="generic" message="Loading destinations" subMessage="Retrieving destination policy" showSpinner />
         </div>
       </div>
     );
@@ -331,7 +331,7 @@ export function CloudBridgeScreen() {
       <div className="page-layout">
         <ContentBracket>
         <GhostSprite insight="You choose where each capability runs — local, self-hosted, or your own provider. Nothing leaves without your policy.">
-        <h1 className="page-title cloud-bridge__title cloud-bridge__title--capabilities" style={{ fontSize: 28 }}>Capabilities</h1>
+        <h1 className="page-title cloud-bridge__title cloud-bridge__title--capabilities" style={{ fontSize: 28 }}>Execution destinations</h1>
         <div className="cloud-bridge__shimmer-desc cloud-bridge__shimmer-desc--capabilities">
           Control execution destinations, disclosure ceilings, and proof receipts
         </div>

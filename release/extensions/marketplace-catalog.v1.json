@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "disclaimer": "Catalog entries indicate publisher signature and review level only. Semblance does not endorse third-party capabilities beyond the stated review level.",
+  "entries": [
+    {
+      "schemaVersion": 1,
+      "manifestId": "com.example.conformance.demo",
+      "publisher": "com.example.dev",
+      "version": "1.0.0",
+      "artifactHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "manifestHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "minCoreVersion": "1.0.0",
+      "reviewLevel": "publisher-verified",
+      "pricing": {
+        "model": "free",
+        "currency": "USD",
+        "amountCents": 0,
+        "revenueShareBps": 1500
+      },
+      "compatibilityNotes": "Sample catalog entry for Slice 12 marketplace-lite verification. Hashes are placeholders until a signed artifact is published."
+    }
+  ]
+}

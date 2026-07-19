@@ -10,6 +10,14 @@ export const ExtensionPermissions = z
   .strict();
 export type ExtensionPermissions = z.infer<typeof ExtensionPermissions>;
 
+export const ExtensionMigrationPolicy = z
+  .object({
+    schemaVersion: z.number().int().nonnegative(),
+    uninstall: z.enum(['delete', 'retain_user_data', 'ask']),
+  })
+  .strict();
+export type ExtensionMigrationPolicy = z.infer<typeof ExtensionMigrationPolicy>;
+
 export const UnsignedExtensionManifest = z
   .object({
     id: z.string().min(1),
@@ -19,6 +27,7 @@ export const UnsignedExtensionManifest = z
     artifactRelativePath: z.string().min(1),
     artifactHash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
     permissions: ExtensionPermissions,
+    migration: ExtensionMigrationPolicy.optional(),
     createdAt: z.string().datetime(),
     expiresAt: z.string().datetime().nullable(),
   })

@@ -30,6 +30,10 @@ export interface LoadExtensionsOptions {
   model?: string;
   /** Legacy in-process context handles for dev fallback only. */
   legacyContext?: Record<string, unknown>;
+  /** Kernel publisher trust checker — consult before loading signed artifacts. */
+  trustChecker?: import('@semblance/extension-runner').ExtensionTrustChecker;
+  /** Ownership origin for revocation degraded-policy handling. */
+  ownership?: import('@semblance/extension-runner').ExtensionOwnership;
 }
 
 export interface DigitalRepresentativeArtifactStatus {
@@ -104,6 +108,8 @@ function probeSignedArtifact(
     artifactPath: signedPaths.artifactPath,
     publisherKeys: options?.publisherKeys,
     coreVersion: options?.coreVersion ?? DEFAULT_CORE_VERSION,
+    trustChecker: options?.trustChecker,
+    ownership: options?.ownership,
   });
 
   return {
@@ -143,6 +149,8 @@ export async function loadExtensions(options?: LoadExtensionsOptions): Promise<S
         dataDir: options.dataDir,
         model: options.model,
         legacyContext: options.legacyContext,
+        trustChecker: options.trustChecker,
+        ownership: options.ownership,
       });
 
       if (result.ok && result.extension) {
