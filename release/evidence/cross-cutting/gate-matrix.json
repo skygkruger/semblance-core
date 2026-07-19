@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-19T21:39:24.221Z",
+  "generatedAt": "2026-07-19T22:42:29.718Z",
   "releaseId": "field-proof-multi-model-2026-07-19",
-  "coreCommit": "5c5effd9928097a412b1724dd435a84f45785767",
+  "coreCommit": "de3bfadb3074115fc0a478e09b2212e4a5ec51d7",
   "programSection": "17-cross-cutting-test-and-evidence-matrix",
   "summary": {
-    "pass": 36,
+    "pass": 37,
     "fail": 0,
-    "DeferredFieldProof": 2
+    "DeferredFieldProof": 1
   },
   "gates": [
     {
@@ -19,7 +19,7 @@
       "exitCode": 0,
       "command": "pnpm --filter @semblance/protocol typecheck && pnpm --filter @semblance/kernel typecheck && pnpm --filter @semblance/vault typecheck && pnpm --filter @semblance/runtime-shared typecheck && pnpm --filter @semblance/sync typecheck && pnpm --filter @semblance/extension-sdk typecheck",
       "excerpt": "> @semblance/protocol@0.1.0 typecheck /Users/veridiansynthetics/semblance-core/packages/protocol\n> tsc --noEmit\n\n\n> @semblance/kernel@0.1.0 typecheck /Users/veridiansynthetics/semblance-core/packages/kernel\n> tsc --noEmit\n\n\n...\n\n> @semblance/runtime-shared@0.1.0 typecheck /Users/veridiansynthetics/semblance-core/packages/runtime-shared\n> tsc --noEmit\n\n\n> @semblance/sync@0.1.0 typecheck /Users/veridiansynthetics/semblance-core/packages/sync\n> tsc --noEmit\n\n\n> @semblance/extension-sdk@0.1.0 typecheck /Users/veridiansynthetics/semblance-core/packages/extension-sdk\n> tsc --noEmit",
-      "ranAt": "2026-07-19T21:38:04.695Z"
+      "ranAt": "2026-07-19T22:41:11.458Z"
     },
     {
       "id": "dr-static",
@@ -29,8 +29,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npm test",
-      "excerpt": "> @semblance/dr@0.1.0 test\n> vitest run\n\n\n RUN  v4.0.18 /Users/veridiansynthetics/semblence-representative\n\n ✓ tests/representative/follow-up-tracker.test.ts (7 tests) 14ms\n ✓ tests/representative/cancellation-engine.test.ts (10 tests) 21ms\n...\n ✓ tests/representative/email-drafter.test.ts (8 tests) 3ms\n ✓ tests/finance/finance-settings-state.test.ts (2 tests) 3ms\n ✓ tests/ui/desktop/finance-settings.test.ts (2 tests) 2ms\n ✓ tests/ui/mobile/form-screen.test.ts (1 test) 2ms\n\n Test Files  58 passed (58)\n      Tests  276 passed (276)\n   Start at  14:38:05\n   Duration  3.13s (transform 2.96s, setup 8.49s, import 4.77s, tests 1.21s, environment 1.52s)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:38:08.293Z"
+      "excerpt": "> @semblance/dr@0.1.0 test\n> vitest run\n\n\n RUN  v4.0.18 /Users/veridiansynthetics/semblence-representative\n\n ✓ tests/health/health-insights.test.ts (5 tests) 21ms\n ✓ tests/representative/action-manager.test.ts (13 tests) 61ms\n...\n ✓ tests/health/privacy.test.ts (5 tests) 3ms\n ✓ tests/finance/finance-settings-state.test.ts (2 tests) 3ms\n ✓ tests/ui/mobile/form-screen.test.ts (1 test) 2ms\n ✓ tests/ui/desktop/finance-settings.test.ts (2 tests) 2ms\n\n Test Files  58 passed (58)\n      Tests  276 passed (276)\n   Start at  15:41:11\n   Duration  2.55s (transform 2.31s, setup 7.06s, import 3.47s, tests 834ms, environment 1.19s)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:41:14.438Z"
     },
     {
       "id": "website-static",
@@ -41,7 +41,7 @@
       "exitCode": 0,
       "command": "node scripts/check-links.mjs && node scripts/check-claims.mjs",
       "excerpt": "check-links: ok\ncheck-claims: ok",
-      "ranAt": "2026-07-19T21:38:08.434Z"
+      "ranAt": "2026-07-19T22:41:14.568Z"
     },
     {
       "id": "unit-integration-exit-gates",
@@ -51,8 +51,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-4/exit-gate.test.ts tests/slice-5/exit-gate.test.ts tests/slice-6/exit-gate.test.ts tests/slice-7/exit-gate.test.ts tests/slice-8/exit-gate.test.ts tests/slice-9/exit-gate.test.ts tests/slice-10/exit-gate.test.ts tests/slice-11/exit-gate.test.ts tests/slice-12/exit-gate.test.ts tests/slice-13/exit-gate.test.ts",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-11/exit-gate.test.ts (6 tests) 53ms\n ✓ tests/slice-10/exit-gate.test.ts (6 tests) 48ms\n ✓ tests/slice-13/exit-gate.test.ts (7 tests) 76ms\n ✓ tests/slice-12/exit-gate.test.ts (7 tests) 162ms\n ✓ tests/slice-4/exit-gate.test.ts (4 tests) 69ms\n ✓ tests/slice-7/exit-gate.test.ts (11 tests) 183ms\n ✓ tests/slice-8/exit-gate.test.ts (12 tests) 123ms\n ✓ tests/slice-9/exit-gate.test.ts (7 tests) 15ms\n ✓ tests/slice-6/exit-gate.test.ts (12 tests) 58ms\n ✓ tests/slice-5/exit-gate.test.ts (8 tests) 74ms\n\n Test Files  10 passed (10)\n      Tests  80 passed (80)\n   Start at  14:38:09\n   Duration  1.70s (transform 4.64s, setup 2.55s, import 6.81s, tests 861ms, environment 1ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:38:10.737Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-11/exit-gate.test.ts (6 tests) 48ms\n ✓ tests/slice-10/exit-gate.test.ts (6 tests) 47ms\n ✓ tests/slice-13/exit-gate.test.ts (7 tests) 73ms\n ✓ tests/slice-12/exit-gate.test.ts (7 tests) 132ms\n ✓ tests/slice-4/exit-gate.test.ts (4 tests) 66ms\n ✓ tests/slice-7/exit-gate.test.ts (11 tests) 146ms\n ✓ tests/slice-8/exit-gate.test.ts (12 tests) 116ms\n ✓ tests/slice-9/exit-gate.test.ts (7 tests) 15ms\n ✓ tests/slice-6/exit-gate.test.ts (12 tests) 54ms\n ✓ tests/slice-5/exit-gate.test.ts (8 tests) 73ms\n\n Test Files  10 passed (10)\n      Tests  80 passed (80)\n   Start at  15:41:15\n   Duration  1.41s (transform 4.01s, setup 1.99s, import 5.77s, tests 771ms, environment 1ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:41:16.552Z"
     },
     {
       "id": "privacy-import",
@@ -62,8 +62,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "node scripts/privacy-audit/index.js",
-      "excerpt": "========================================\n  SEMBLANCE PRIVACY AUDIT\n  Scanning packages/core/ for network violations\n========================================\n\nScanning 1098 TypeScript/JavaScript file(s)...\n  (Ollama localhost exception applied to 57 file(s) in packages/core/llm/)\n\n...\n========================================\nRESULT: CLEAN\nNo violations found.\nCore files scanned: 1098\nDesktop files scanned: 278\nTauri config: verified\n========================================\n(node:73851) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/veridiansynthetics/semblance-core/scripts/privacy-audit/index.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /Users/veridiansynthetics/semblance-core/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)",
-      "ranAt": "2026-07-19T21:38:11.560Z"
+      "excerpt": "========================================\n  SEMBLANCE PRIVACY AUDIT\n  Scanning packages/core/ for network violations\n========================================\n\nScanning 1098 TypeScript/JavaScript file(s)...\n  (Ollama localhost exception applied to 57 file(s) in packages/core/llm/)\n\n...\n========================================\nRESULT: CLEAN\nNo violations found.\nCore files scanned: 1098\nDesktop files scanned: 278\nTauri config: verified\n========================================\n(node:38183) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/veridiansynthetics/semblance-core/scripts/privacy-audit/index.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /Users/veridiansynthetics/semblance-core/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)",
+      "ranAt": "2026-07-19T22:41:17.326Z"
     },
     {
       "id": "runtime-smoke",
@@ -74,7 +74,7 @@
       "exitCode": 0,
       "command": "node scripts/smoke-test-runtimes.js",
       "excerpt": "Runtime smoke test\n────────────────────────────────────────────────────────────\n  PASS  kernel-main-readiness (exit 0)\n  PASS  bundled-runtime-check (exit 0)\n────────────────────────────────────────────────────────────\nRuntime smoke: all required processes ready",
-      "ranAt": "2026-07-19T21:38:12.523Z"
+      "ranAt": "2026-07-19T22:41:19.126Z"
     },
     {
       "id": "process-isolation",
@@ -85,7 +85,7 @@
       "exitCode": 0,
       "command": "node scripts/process-isolation-audit.js",
       "excerpt": "Process isolation audit\n────────────────────────────────────────────────────────────\n  PASS  egress-adversarial (exit 0)\n  PASS  runtime-model-isolation (exit 0)\n  WARN  process-isolation-spawn (exit 1)\n\n FAIL  packages/runtime-shared/tests/process-isolation.test.ts > process isolation > spawns core and gateway as separate processes with kernel handshake\nError: Timed out waiting for line prefix CORE_READY\n ❯ Timeout._onTimeout packages/runtime-shared/tests/process-isolation.test.ts:40:14\n     38|   return new Promise((resolvePromise, reject) => {\n     39|     const timer = setTimeout(() => {\n     40|       reject(new Error(`Timed out waiting for line prefix ${prefix}`));\n       |              ^\n     41|     }, timeoutMs);\n     42| \n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n────────────────────────────────────────────────────────────\nProcess isolation audit: PASS (1 optional spawn check deferred; egress criterion met)",
-      "ranAt": "2026-07-19T21:39:01.844Z"
+      "ranAt": "2026-07-19T22:42:07.511Z"
     },
     {
       "id": "secrets-scan",
@@ -96,7 +96,7 @@
       "exitCode": 0,
       "command": "__secrets_scan__",
       "excerpt": "No sk_live/sk_test patterns in tracked non-fixture files",
-      "ranAt": "2026-07-19T21:39:02.803Z"
+      "ranAt": "2026-07-19T22:42:08.461Z"
     },
     {
       "id": "vault-exit-gate",
@@ -106,8 +106,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run packages/vault/tests/exit-gate-corpus.test.ts",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ packages/vault/tests/exit-gate-corpus.test.ts (1 test) 53ms\n\n Test Files  1 passed (1)\n      Tests  1 passed (1)\n   Start at  14:39:03\n   Duration  455ms (transform 160ms, setup 118ms, import 191ms, tests 53ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:03.762Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ packages/vault/tests/exit-gate-corpus.test.ts (1 test) 65ms\n\n Test Files  1 passed (1)\n      Tests  1 passed (1)\n   Start at  15:42:09\n   Duration  720ms (transform 222ms, setup 193ms, import 224ms, tests 65ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:10.112Z"
     },
     {
       "id": "real-data",
@@ -117,8 +117,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "node scripts/data-audit.js --strict",
-      "excerpt": "\u001b[1m\u001b[36mSEMBLANCE DATA AUDIT\u001b[0m\u001b[0m\n\u001b[90m  7/19/2026, 2:39:03 PM\u001b[0m\n\u001b[90m  Verifying data flows through every connected pipeline\u001b[0m\n\n\u001b[1mOAUTH TOKENS\u001b[0m\n\u001b[90m────────────────────────────────────────────────────────────────\u001b[0m\n\u001b[90m  oauth.db not found — no OAuth connectors configured yet\u001b[0m\n\n...\n\u001b[1mPIPELINE GAP DETECTION\u001b[0m\n\u001b[90m────────────────────────────────────────────────────────────────\u001b[0m\n\u001b[90m  No OAuth services connected — connect a service to detect pipeline gaps\u001b[0m\n\n\u001b[1mHANDLER STUB DETECTION\u001b[0m\n\u001b[90m────────────────────────────────────────────────────────────────\u001b[0m\n\u001b[32m  ✅  No hardcoded empty-array stubs detected\u001b[0m\n\n\u001b[1m════════════════════════════════════════════════════════════════\u001b[0m\n\u001b[32m\u001b[1m  VERDICT: PIPELINE HEALTHY — no gaps detected\u001b[0m\u001b[0m\n\u001b[1m════════════════════════════════════════════════════════════════\u001b[0m",
-      "ranAt": "2026-07-19T21:39:03.836Z"
+      "excerpt": "\u001b[1m\u001b[36mSEMBLANCE DATA AUDIT\u001b[0m\u001b[0m\n\u001b[90m  7/19/2026, 3:42:10 PM\u001b[0m\n\u001b[90m  Verifying data flows through every connected pipeline\u001b[0m\n\n\u001b[1mOAUTH TOKENS\u001b[0m\n\u001b[90m────────────────────────────────────────────────────────────────\u001b[0m\n\u001b[90m  oauth.db not found — no OAuth connectors configured yet\u001b[0m\n\n...\n\u001b[1mPIPELINE GAP DETECTION\u001b[0m\n\u001b[90m────────────────────────────────────────────────────────────────\u001b[0m\n\u001b[90m  No OAuth services connected — connect a service to detect pipeline gaps\u001b[0m\n\n\u001b[1mHANDLER STUB DETECTION\u001b[0m\n\u001b[90m────────────────────────────────────────────────────────────────\u001b[0m\n\u001b[32m  ✅  No hardcoded empty-array stubs detected\u001b[0m\n\n\u001b[1m════════════════════════════════════════════════════════════════\u001b[0m\n\u001b[32m\u001b[1m  VERDICT: PIPELINE HEALTHY — no gaps detected\u001b[0m\u001b[0m\n\u001b[1m════════════════════════════════════════════════════════════════\u001b[0m",
+      "ranAt": "2026-07-19T22:42:10.191Z"
     },
     {
       "id": "grounding",
@@ -128,8 +128,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-4/exit-gate.test.ts tests/slice-5/exit-gate.test.ts -t \"ground\"",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-4/exit-gate.test.ts (4 tests | 2 skipped) 29ms\n ✓ tests/slice-5/exit-gate.test.ts (8 tests | 7 skipped) 12ms\n\n Test Files  2 passed (2)\n      Tests  3 passed | 9 skipped (12)\n   Start at  14:39:04\n   Duration  1.06s (transform 776ms, setup 203ms, import 1.13s, tests 41ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:05.301Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-4/exit-gate.test.ts (4 tests | 2 skipped) 21ms\n ✓ tests/slice-5/exit-gate.test.ts (8 tests | 7 skipped) 12ms\n\n Test Files  2 passed (2)\n      Tests  3 passed | 9 skipped (12)\n   Start at  15:42:10\n   Duration  1.02s (transform 739ms, setup 206ms, import 1.08s, tests 34ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:11.625Z"
     },
     {
       "id": "action-safety",
@@ -139,8 +139,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-5/exit-gate.test.ts -t \"approval|timeout|reconcile|audit\"",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-5/exit-gate.test.ts (8 tests | 3 skipped) 19ms\n\n Test Files  1 passed (1)\n      Tests  5 passed | 3 skipped (8)\n   Start at  14:39:06\n   Duration  1.06s (transform 602ms, setup 94ms, import 839ms, tests 19ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:07.449Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-5/exit-gate.test.ts (8 tests | 3 skipped) 24ms\n\n Test Files  1 passed (1)\n      Tests  5 passed | 3 skipped (8)\n   Start at  15:42:12\n   Duration  1.01s (transform 580ms, setup 89ms, import 804ms, tests 24ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:13.057Z"
     },
     {
       "id": "revocation",
@@ -150,8 +150,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-11/exit-gate.test.ts -t \"revoc\"",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ↓ tests/slice-11/exit-gate.test.ts (6 tests | 6 skipped)\n\n Test Files  1 skipped (1)\n      Tests  6 skipped (6)\n   Start at  14:39:07\n   Duration  326ms (transform 123ms, setup 94ms, import 139ms, tests 0ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:08.222Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ↓ tests/slice-11/exit-gate.test.ts (6 tests | 6 skipped)\n\n Test Files  1 skipped (1)\n      Tests  6 skipped (6)\n   Start at  15:42:13\n   Duration  329ms (transform 122ms, setup 91ms, import 141ms, tests 0ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:13.872Z"
     },
     {
       "id": "outage-safety",
@@ -161,8 +161,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/adversarial/outage-safety.test.ts",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/adversarial/outage-safety.test.ts (5 tests) 11ms\n\n Test Files  1 passed (1)\n      Tests  5 passed (5)\n   Start at  14:39:08\n   Duration  1.03s (transform 598ms, setup 91ms, import 832ms, tests 11ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:09.687Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/adversarial/outage-safety.test.ts (5 tests) 11ms\n\n Test Files  1 passed (1)\n      Tests  5 passed (5)\n   Start at  15:42:14\n   Duration  989ms (transform 567ms, setup 91ms, import 790ms, tests 11ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:15.292Z"
     },
     {
       "id": "corruption-safety",
@@ -172,8 +172,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/adversarial/corruption-safety.test.ts",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/adversarial/corruption-safety.test.ts (2 tests) 11ms\n\n Test Files  1 passed (1)\n      Tests  2 passed (2)\n   Start at  14:39:10\n   Duration  937ms (transform 526ms, setup 96ms, import 738ms, tests 11ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:11.061Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/adversarial/corruption-safety.test.ts (2 tests) 11ms\n\n Test Files  1 passed (1)\n      Tests  2 passed (2)\n   Start at  15:42:15\n   Duration  923ms (transform 515ms, setup 89ms, import 729ms, tests 11ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:16.655Z"
     },
     {
       "id": "dr-paid-runtime",
@@ -183,8 +183,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-6/exit-gate.test.ts -t \"signed|artifact|paid|representative\"",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-6/exit-gate.test.ts (12 tests | 5 skipped) 54ms\n\n Test Files  1 passed (1)\n      Tests  7 passed | 5 skipped (12)\n   Start at  14:39:11\n   Duration  1.48s (transform 940ms, setup 93ms, import 1.23s, tests 54ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:12.989Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-6/exit-gate.test.ts (12 tests | 5 skipped) 47ms\n\n Test Files  1 passed (1)\n      Tests  7 passed | 5 skipped (12)\n   Start at  15:42:17\n   Duration  959ms (transform 511ms, setup 97ms, import 719ms, tests 47ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:18.443Z"
     },
     {
       "id": "commerce-stripe",
@@ -194,8 +194,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-7/exit-gate.test.ts",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-7/exit-gate.test.ts (11 tests) 67ms\n\n Test Files  1 passed (1)\n      Tests  11 passed (11)\n   Start at  14:39:13\n   Duration  498ms (transform 236ms, setup 91ms, import 243ms, tests 67ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:13.937Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-7/exit-gate.test.ts (11 tests) 70ms\n\n Test Files  1 passed (1)\n      Tests  11 passed (11)\n   Start at  15:42:18\n   Duration  565ms (transform 268ms, setup 98ms, import 284ms, tests 70ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:19.457Z"
     },
     {
       "id": "founding-seats",
@@ -205,8 +205,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-7/exit-gate.test.ts -t \"founding|seat|500\"",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-7/exit-gate.test.ts (11 tests | 10 skipped) 27ms\n\n Test Files  1 passed (1)\n      Tests  1 passed | 10 skipped (11)\n   Start at  14:39:14\n   Duration  469ms (transform 217ms, setup 96ms, import 251ms, tests 27ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:14.837Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-7/exit-gate.test.ts (11 tests | 10 skipped) 26ms\n\n Test Files  1 passed (1)\n      Tests  1 passed | 10 skipped (11)\n   Start at  15:42:19\n   Duration  475ms (transform 217ms, setup 97ms, import 250ms, tests 26ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:20.357Z"
     },
     {
       "id": "byo-self-host",
@@ -216,8 +216,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-8/exit-gate.test.ts",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-8/exit-gate.test.ts (12 tests) 112ms\n\n Test Files  1 passed (1)\n      Tests  12 passed (12)\n   Start at  14:39:15\n   Duration  568ms (transform 231ms, setup 92ms, import 268ms, tests 112ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:15.812Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-8/exit-gate.test.ts (12 tests) 107ms\n\n Test Files  1 passed (1)\n      Tests  12 passed (12)\n   Start at  15:42:20\n   Duration  569ms (transform 230ms, setup 92ms, import 269ms, tests 107ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:21.355Z"
     },
     {
       "id": "confidential-attestation",
@@ -227,8 +227,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-9/exit-gate.test.ts",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-9/exit-gate.test.ts (7 tests) 10ms\n\n Test Files  1 passed (1)\n      Tests  7 passed (7)\n   Start at  14:39:16\n   Duration  499ms (transform 252ms, setup 93ms, import 298ms, tests 10ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:16.745Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-9/exit-gate.test.ts (7 tests) 10ms\n\n Test Files  1 passed (1)\n      Tests  7 passed (7)\n   Start at  15:42:21\n   Duration  482ms (transform 239ms, setup 93ms, import 281ms, tests 10ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:22.278Z"
     },
     {
       "id": "metering-unlinkability",
@@ -238,8 +238,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "cd infrastructure/commerce-worker && npx vitest run tests/vouchers/unlinkability.test.ts tests/vouchers/separation.test.ts",
-      "excerpt": "RUN  v4.1.10 /Users/veridiansynthetics/semblence-representative/infrastructure/commerce-worker\n\n\n Test Files  2 passed (2)\n      Tests  4 passed (4)\n   Start at  14:39:17\n   Duration  267ms (transform 41ms, setup 0ms, import 67ms, tests 122ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:17.434Z"
+      "excerpt": "RUN  v4.1.10 /Users/veridiansynthetics/semblence-representative/infrastructure/commerce-worker\n\n\n Test Files  2 passed (2)\n      Tests  4 passed (4)\n   Start at  15:42:22\n   Duration  235ms (transform 41ms, setup 0ms, import 68ms, tests 93ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:22.944Z"
     },
     {
       "id": "sync-convergence",
@@ -249,8 +249,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-11/exit-gate.test.ts",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-11/exit-gate.test.ts (6 tests) 30ms\n\n Test Files  1 passed (1)\n      Tests  6 passed (6)\n   Start at  14:39:17\n   Duration  359ms (transform 119ms, setup 95ms, import 139ms, tests 30ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:18.211Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-11/exit-gate.test.ts (6 tests) 31ms\n\n Test Files  1 passed (1)\n      Tests  6 passed (6)\n   Start at  15:42:23\n   Duration  363ms (transform 123ms, setup 95ms, import 140ms, tests 31ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:23.722Z"
     },
     {
       "id": "mobile-device-acceptance",
@@ -262,7 +262,7 @@
       "command": "node scripts/verify-field-evidence.js --mobile-acceptance",
       "blocker": "Pinned mobile device acceptance evidence not yet captured on physical hardware",
       "excerpt": "Field evidence verifier (mobile-acceptance)\n  gate:   mobile-device-acceptance\n  status: DeferredFieldProof\n  detail: Evidence file missing: /Users/veridiansynthetics/semblance-core/release/evidence/field/mobile-acceptance.v1.json",
-      "ranAt": "2026-07-19T21:39:18.281Z"
+      "ranAt": "2026-07-19T22:42:23.793Z"
     },
     {
       "id": "accessibility",
@@ -273,7 +273,7 @@
       "exitCode": 0,
       "command": "node scripts/a11y-gate.js",
       "excerpt": "Accessibility gate (axe-core + jsdom)\nFixtures: /Users/veridiansynthetics/semblance-core/tests/fixtures/a11y\nStorybook static: not built (skipped)\nScanned: 3 file(s)\n  PASS  tests/fixtures/a11y/chat-landmarks.html\n  PASS  tests/fixtures/a11y/proof-landmarks.html\n  PASS  tests/fixtures/a11y/settings-landmarks.html\n\nSummary: 3 passed, 0 failed\nTask-based SR checklist: release/evidence/a11y/task-based-checklist.md\nNot implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package\nNot implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package\nNot implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package",
-      "ranAt": "2026-07-19T21:39:18.990Z"
+      "ranAt": "2026-07-19T22:42:24.491Z"
     },
     {
       "id": "performance-launch-floor",
@@ -284,19 +284,18 @@
       "exitCode": 0,
       "command": "node scripts/verify-field-evidence.js --launch-floor",
       "excerpt": "Field evidence verifier (launch-floor)\n  gate:   performance-launch-floor\n  status: pass\n  detail: Valid field evidence for performance-launch-floor\n  file:   /Users/veridiansynthetics/semblance-core/release/evidence/field/launch-floor.v1.json",
-      "ranAt": "2026-07-19T21:39:19.076Z"
+      "ranAt": "2026-07-19T22:42:24.579Z"
     },
     {
       "id": "installer-three-vms",
       "name": "Installer three clean VMs",
       "passCriterion": "3/3 install/update/rollback/uninstall on launch-floor VMs",
       "repo": "core",
-      "status": "DeferredFieldProof",
-      "exitCode": 2,
+      "status": "pass",
+      "exitCode": 0,
       "command": "node scripts/verify-field-evidence.js --installer-matrix",
-      "blocker": "Pinned three-VM installer matrix evidence not yet captured",
-      "excerpt": "Field evidence verifier (installer-matrix)\n  gate:   installer-three-vms\n  status: DeferredFieldProof\n  detail: Evidence file missing: /Users/veridiansynthetics/semblance-core/release/evidence/field/installer-matrix.v1.json",
-      "ranAt": "2026-07-19T21:39:19.141Z"
+      "excerpt": "Field evidence verifier (installer-matrix)\n  gate:   installer-three-vms\n  status: pass\n  detail: Valid field evidence for installer-three-vms\n  file:   /Users/veridiansynthetics/semblance-core/release/evidence/field/installer-matrix.v1.json",
+      "ranAt": "2026-07-19T22:42:24.665Z"
     },
     {
       "id": "supply-chain",
@@ -307,7 +306,7 @@
       "exitCode": 0,
       "command": "node scripts/supply-chain-gate.js",
       "excerpt": "Supply-chain gate\n  SBOM:    /Users/veridiansynthetics/semblance-core/release/sbom/semblance.cdx.json\n  Notices: /Users/veridiansynthetics/semblance-core/release/legal/THIRD_PARTY_NOTICES.md\n  legalNoticesVersion: 2026-07-18\n  npm+cargo components: 1770\n\nPASS — SBOM, notices, license allowlist, and key evidence hashes verified",
-      "ranAt": "2026-07-19T21:39:19.203Z"
+      "ranAt": "2026-07-19T22:42:24.727Z"
     },
     {
       "id": "diagnostic-privacy",
@@ -317,8 +316,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/adversarial/diagnostic-privacy.test.ts",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/adversarial/diagnostic-privacy.test.ts (5 tests) 4ms\n\n Test Files  1 passed (1)\n      Tests  5 passed (5)\n   Start at  14:39:19\n   Duration  248ms (transform 38ms, setup 103ms, import 17ms, tests 4ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:19.892Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/adversarial/diagnostic-privacy.test.ts (5 tests) 4ms\n\n Test Files  1 passed (1)\n      Tests  5 passed (5)\n   Start at  15:42:25\n   Duration  212ms (transform 36ms, setup 97ms, import 16ms, tests 4ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:25.376Z"
     },
     {
       "id": "commercial-records",
@@ -328,8 +327,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "cd infrastructure/commerce-worker && npx vitest run tests/freeze-policy.test.ts tests/account-delete.test.ts",
-      "excerpt": "RUN  v4.1.10 /Users/veridiansynthetics/semblence-representative/infrastructure/commerce-worker\n\n\n Test Files  2 passed (2)\n      Tests  11 passed (11)\n   Start at  14:39:20\n   Duration  171ms (transform 63ms, setup 0ms, import 87ms, tests 10ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:20.486Z"
+      "excerpt": "RUN  v4.1.10 /Users/veridiansynthetics/semblence-representative/infrastructure/commerce-worker\n\n\n Test Files  2 passed (2)\n      Tests  11 passed (11)\n   Start at  15:42:25\n   Duration  168ms (transform 56ms, setup 0ms, import 80ms, tests 10ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:25.955Z"
     },
     {
       "id": "proof-center-offline",
@@ -339,8 +338,8 @@
       "status": "pass",
       "exitCode": 0,
       "command": "npx vitest run tests/slice-10/exit-gate.test.ts -t \"offline|proof\"",
-      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-10/exit-gate.test.ts (6 tests | 1 skipped) 25ms\n\n Test Files  1 passed (1)\n      Tests  5 passed | 1 skipped (6)\n   Start at  14:39:20\n   Duration  505ms (transform 238ms, setup 114ms, import 271ms, tests 25ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
-      "ranAt": "2026-07-19T21:39:21.419Z"
+      "excerpt": "RUN  v4.0.18 /Users/veridiansynthetics/semblance-core\n\n ✓ tests/slice-10/exit-gate.test.ts (6 tests | 1 skipped) 26ms\n\n Test Files  1 passed (1)\n      Tests  5 passed | 1 skipped (6)\n   Start at  15:42:26\n   Duration  489ms (transform 235ms, setup 91ms, import 276ms, tests 26ms, environment 0ms)\n\nnpm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.",
+      "ranAt": "2026-07-19T22:42:26.894Z"
     },
     {
       "id": "website-links-claims",
@@ -351,7 +350,7 @@
       "exitCode": 0,
       "command": "node scripts/check-links.mjs && node scripts/check-claims.mjs",
       "excerpt": "check-links: ok\ncheck-claims: ok",
-      "ranAt": "2026-07-19T21:39:21.547Z"
+      "ranAt": "2026-07-19T22:42:27.024Z"
     },
     {
       "id": "release-manifest-verify",
@@ -362,7 +361,7 @@
       "exitCode": 0,
       "command": "node scripts/release-manifest.js --verify-source",
       "excerpt": "Release manifest source verified: field-proof-multi-model-2026-07-19",
-      "ranAt": "2026-07-19T21:39:21.696Z"
+      "ranAt": "2026-07-19T22:42:27.171Z"
     },
     {
       "id": "doc-authority",
@@ -373,7 +372,7 @@
       "exitCode": 0,
       "command": "node scripts/check-doc-authority.js",
       "excerpt": "Documentation authority registry verified: semblance-document-authority-2026-07-18\nInvariant policy verified: semblance-core/release/document-authority-policy.v1.json",
-      "ranAt": "2026-07-19T21:39:22.414Z"
+      "ranAt": "2026-07-19T22:42:27.897Z"
     },
     {
       "id": "verify-cross-repo",
@@ -384,7 +383,7 @@
       "exitCode": 0,
       "command": "node scripts/verify-cross-repo-slice.js",
       "excerpt": "Cross-repo slice verified: field-proof-multi-model-2026-07-19",
-      "ranAt": "2026-07-19T21:39:22.581Z"
+      "ranAt": "2026-07-19T22:42:28.063Z"
     },
     {
       "id": "feature-evidence-ladder",
@@ -395,7 +394,7 @@
       "exitCode": 0,
       "command": "node scripts/check-feature-evidence-ladder.js",
       "excerpt": "Feature evidence ladder\n────────────────────────────────────────────────────────────\n  Features checked: 17\n  Valid states: Specified, Implemented, Wired, DataVerified, RuntimeVerified, AdversariallyVerified, Released, FieldProven\n  PASS  ladder validation\n────────────────────────────────────────────────────────────",
-      "ranAt": "2026-07-19T21:39:22.637Z"
+      "ranAt": "2026-07-19T22:42:28.117Z"
     },
     {
       "id": "stop-conditions",
@@ -406,7 +405,7 @@
       "exitCode": 0,
       "command": "node scripts/check-stop-conditions.js",
       "excerpt": "Program stop conditions\n────────────────────────────────────────────────────────────\n  PASS  no detectable stop-condition violations\n────────────────────────────────────────────────────────────",
-      "ranAt": "2026-07-19T21:39:23.566Z"
+      "ranAt": "2026-07-19T22:42:29.064Z"
     },
     {
       "id": "multi-model-architecture",
@@ -417,7 +416,7 @@
       "exitCode": 0,
       "command": "node scripts/audit-multi-model.js",
       "excerpt": "✅ tauri-runtimes-resource: tauri.conf.json bundles runtimes/**/*\n✅ tauri-sidecar-bridges: bundles 4 sidecar bridges\n✅ bundle-runtimes-exists: scripts/bundle-runtimes.js\n✅ bundle-runtimes-check: [bundle-runtimes] OK darwin-arm64 node=v25.9.0 sha256=c8bc91c8219053214a7adfb4ff03cf784d1fe20a0eaf172551d338a68ac2181e\n✅ registry-recommend-exports: found 2 required markers\n✅ bridge-multi-model-handlers: found 6 required markers\n✅ onboarding-download-reasoning: handleStartModelDownloads uses getRecommendedReasoningModel(tier)\n✅ onboarding-flow-wiring: found 4 required markers\n✅ settings-ai-engine-activate: found 2 required markers\n✅ inference-router-bitnet-gate: found 3 required markers\n✅ create-llm-no-pre-bitnet: createLLMProvider does not pre-attach BitNet to router\n✅ settings-mutual-exclusion-prefs: BitNet/standard activate handlers clear opposing pref\n\nMulti-model audit: PASS (12/12)",
-      "ranAt": "2026-07-19T21:39:23.681Z"
+      "ranAt": "2026-07-19T22:42:29.179Z"
     },
     {
       "id": "sidecar-smoke",
@@ -428,7 +427,7 @@
       "exitCode": 0,
       "command": "__sidecar_smoke__",
       "excerpt": "PASS initialize\nPASS send_message coherent error: No AI model available. Go to Settings → AI Engine to download a model, or install Ollama (ollama.com) for GPU-accelerated inference.\nSLICE2_CHAT_SMOKE_OK",
-      "ranAt": "2026-07-19T21:39:24.221Z"
+      "ranAt": "2026-07-19T22:42:29.717Z"
     }
   ]
 }

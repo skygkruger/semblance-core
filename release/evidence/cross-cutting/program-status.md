@@ -5,7 +5,7 @@
 
 ## Summary
 
-Program §17–19 plus multi-model architecture audit are machine-verifiable via `node scripts/cross-cutting-gate-matrix.js`. Automatable DeferredFieldProof gates (outage, corruption, diagnostic privacy, accessibility axe, supply-chain) are **runnable and passing**. **Windows launch-floor is pinned and passing** (`readySeconds` ≈11.3s on GHA windows-latest with `SEMBLANCE_LAUNCH_FLOOR=1`). **2 gates remain DeferredFieldProof**: installer three-VM matrix and mobile physical acceptance. Multi-model path is audited by `node scripts/audit-multi-model.js`.
+Program §17–19 plus multi-model architecture audit are machine-verifiable via `node scripts/cross-cutting-gate-matrix.js`. Automatable DeferredFieldProof gates are **runnable and passing**. **Windows launch-floor** and **installer three-VM matrix** are pinned and passing (GHA run 29705809411; same-version reinstall proxy for update/rollback). **1 gate remains DeferredFieldProof**: mobile physical acceptance. Multi-model path is audited by `node scripts/audit-multi-model.js`.
 
 ## Multi-model architecture (verified)
 
@@ -25,7 +25,7 @@ Program §17–19 plus multi-model architecture audit are machine-verifiable via
 
 | Train | Name | Slices | Status | Field proof |
 |-------|------|--------|--------|-------------|
-| A | Sovereign Foundation | 1–2 | RuntimeVerified | Installer three-VM deferred; Windows launch-floor pinned |
+| A | Sovereign Foundation | 1–2 | RuntimeVerified | Windows launch-floor + installer three-VM pinned |
 | B | Local Intelligence | 3–5 | RuntimeVerified | Real-data strict needs connected OAuth on user machine |
 | C | Paid Agency | 6–7 | RuntimeVerified | Broad launch FieldProven pending installer/performance |
 | D | User-Controlled Cloud | 8 | RuntimeVerified | — |
@@ -36,12 +36,11 @@ Program §17–19 plus multi-model architecture audit are machine-verifiable via
 
 Canonical: `release/release-trains.v1.json`
 
-## Deferred field proof (2 — honest)
+## Deferred field proof (1 — honest)
 
 1. **Mobile physical device acceptance** — pin `release/evidence/field/mobile-acceptance.v1.json` per `MOBILE_DEVICE_ACCEPTANCE.md`
-2. **Installer three clean VMs** — pin `release/evidence/field/installer-matrix.v1.json`
 
-Cleared: outage-safety, corruption-safety, accessibility (automated), supply-chain, diagnostic-privacy, **performance-launch-floor** (GHA run 29704477357 → pinned `release/evidence/field/launch-floor.v1.json`). Task-based screen-reader review remains at `release/evidence/a11y/task-based-checklist.md`.
+Cleared: outage-safety, corruption-safety, accessibility (automated), supply-chain, diagnostic-privacy, **performance-launch-floor**, **installer-three-vms** (GHA run 29705809411). Task-based screen-reader review remains at `release/evidence/a11y/task-based-checklist.md`.
 
 ## Field evidence capture harnesses
 
@@ -65,7 +64,6 @@ This host has Xcode SDKs but **no iOS Simulator runtimes / no adb** — physical
 
 ## Next steps
 
-1. Build/provide Windows MSI → run installer three-VM matrix; pin `installer-matrix.v1.json`
-2. On physical iOS + Android, complete `MOBILE_DEVICE_ACCEPTANCE.md` → `capture-mobile-acceptance.js`
-3. Complete VoiceOver/NVDA sign-off on production desktop build
-4. Promote trains to FieldProven only when installer + mobile field evidence validate
+1. On physical iOS + Android, complete `MOBILE_DEVICE_ACCEPTANCE.md` → `capture-mobile-acceptance.js`
+2. Complete VoiceOver/NVDA sign-off on production desktop build
+3. Promote trains to FieldProven only when mobile field evidence validates

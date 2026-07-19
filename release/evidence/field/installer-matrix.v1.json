@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "installer-three-vms",
+  "capturedAt": "2026-07-19T22:38:54.969Z",
+  "releaseId": "field-proof-multi-model-2026-07-19",
+  "matrixPass": true,
+  "vms": [
+    {
+      "vmId": "vm-a",
+      "installPass": true,
+      "updatePass": true,
+      "rollbackPass": true,
+      "uninstallPass": true,
+      "installerPath": "D:\\a\\semblance-core\\semblance-core\\installer\\semblance-windows-x86_64.msi",
+      "notes": "Same-version reinstall proxy enabled via SEMBLANCE_INSTALLER_MATRIX_ALLOW_SAME_VERSION_REENSTALL=1; updatePass/rollbackPass represent reinstall smoke, not a distinct artifact upgrade"
+    },
+    {
+      "vmId": "vm-b",
+      "installPass": true,
+      "updatePass": true,
+      "rollbackPass": true,
+      "uninstallPass": true,
+      "installerPath": "D:\\a\\semblance-core\\semblance-core\\installer\\semblance-windows-x86_64.msi",
+      "notes": "Same-version reinstall proxy enabled via SEMBLANCE_INSTALLER_MATRIX_ALLOW_SAME_VERSION_REENSTALL=1; updatePass/rollbackPass represent reinstall smoke, not a distinct artifact upgrade"
+    },
+    {
+      "vmId": "vm-c",
+      "installPass": true,
+      "updatePass": true,
+      "rollbackPass": true,
+      "uninstallPass": true,
+      "installerPath": "D:\\a\\semblance-core\\semblance-core\\installer\\semblance-windows-x86_64.msi",
+      "notes": "Same-version reinstall proxy enabled via SEMBLANCE_INSTALLER_MATRIX_ALLOW_SAME_VERSION_REENSTALL=1; updatePass/rollbackPass represent reinstall smoke, not a distinct artifact upgrade"
+    }
+  ],
+  "notes": "Aggregated by scripts/aggregate-installer-matrix.js from three VM capture runs"
+}

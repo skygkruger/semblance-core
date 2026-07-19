@@ -885,7 +885,7 @@
       "id": "cross-cutting-gate-matrix",
       "repository": "core",
       "path": "release/evidence/cross-cutting/gate-matrix.json",
-      "sha256": "a0aeba4bacebf0d40e52a705fbcb5f374f332710400dc7686e0394dc686b2835",
+      "sha256": "39c1c5cd2c11d7914f27a60d2e3e75ef161f996f0bee2114a33d5b808d22a026",
       "requiredForStates": [
         "RuntimeVerified"
       ]
@@ -903,7 +903,7 @@
       "id": "cross-cutting-release-trains",
       "repository": "core",
       "path": "release/evidence/cross-cutting/release-trains.v1.json",
-      "sha256": "821de779be2645359adef9ad32074a4b1ad133ae60e826aecf6a9964cb28e9b9",
+      "sha256": "ac24486abfde5771b42ae3e0c9734e50b1336999106ac68f2df322ecbba2c181",
       "requiredForStates": [
         "RuntimeVerified"
       ]
@@ -912,7 +912,7 @@
       "id": "cross-cutting-program-status",
       "repository": "core",
       "path": "release/evidence/cross-cutting/program-status.md",
-      "sha256": "c7623411c5ea9bba9e055e07ee9fcc754b7e49cdaca5854db3bcd0a66ee909ef",
+      "sha256": "c17bc0eacaec90e606f32d76416f8e8562a225dd8ea43354b126de8ee6d263fb",
       "requiredForStates": [
         "RuntimeVerified"
       ]
