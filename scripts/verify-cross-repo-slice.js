@@ -492,10 +492,22 @@ function verifySlice13Completion(manifest, coreRoot) {
     return errors;
   }
 
-  if (manifest.releaseId !== 'shared-space-sovereignty-2026-07-19') {
+  const crossCuttingComplete = manifest.releaseId === 'cross-cutting-release-hardening-2026-07-19'
+    || (manifest.evidence ?? []).some((entry) => entry.id === 'cross-cutting-gate-matrix');
+
+  if (!crossCuttingComplete && manifest.releaseId !== 'shared-space-sovereignty-2026-07-19') {
     errors.push(error(
       'SLICE_13_RELEASE_ID_MISMATCH',
-      'releaseId must be shared-space-sovereignty-2026-07-19 when Slice 13 is complete',
+      'releaseId must be shared-space-sovereignty-2026-07-19 when Slice 13 is complete '
+      + 'and cross-cutting evidence is not pinned',
+      'releaseId',
+    ));
+  }
+
+  if (crossCuttingComplete && manifest.releaseId !== 'cross-cutting-release-hardening-2026-07-19') {
+    errors.push(error(
+      'CROSS_CUTTING_RELEASE_ID_MISMATCH',
+      'releaseId must be cross-cutting-release-hardening-2026-07-19 when cross-cutting evidence is pinned',
       'releaseId',
     ));
   }
@@ -532,6 +544,63 @@ function verifySlice13Completion(manifest, coreRoot) {
         `evidence.${evidenceId}`,
       ));
     }
+  }
+
+  return errors;
+}
+
+function verifyCrossCuttingCompletion(manifest, coreRoot) {
+  const errors = [];
+  const slice13Complete = Array.isArray(manifest.completedSlices)
+    && manifest.completedSlices.includes(13);
+  const crossCuttingPinned = (manifest.evidence ?? []).some(
+    (entry) => entry.id === 'cross-cutting-gate-matrix',
+  );
+  const crossCuttingRelease = manifest.releaseId === 'cross-cutting-release-hardening-2026-07-19';
+
+  if (!slice13Complete || (!crossCuttingPinned && !crossCuttingRelease)) {
+    return errors;
+  }
+
+  const requiredEvidenceIds = [
+    'cross-cutting-gate-matrix',
+    'cross-cutting-stop-conditions',
+    'cross-cutting-release-trains',
+  ];
+
+  for (const evidenceId of requiredEvidenceIds) {
+    const entry = (manifest.evidence ?? []).find((item) => item.id === evidenceId);
+    if (!entry) {
+      errors.push(error(
+        'CROSS_CUTTING_EVIDENCE_MISSING',
+        `Cross-cutting evidence entry missing: ${evidenceId}`,
+        `evidence.${evidenceId}`,
+      ));
+      continue;
+    }
+    const absolute = join(coreRoot, entry.path);
+    if (!existsSync(absolute)) {
+      errors.push(error(
+        'CROSS_CUTTING_EVIDENCE_MISSING',
+        `Cross-cutting evidence file missing: ${entry.path}`,
+        entry.path,
+      ));
+    } else if (sha256File(absolute) !== entry.sha256) {
+      errors.push(error(
+        'CROSS_CUTTING_EVIDENCE_HASH_MISMATCH',
+        `Cross-cutting evidence ${evidenceId} hash does not match manifest`,
+        `evidence.${evidenceId}`,
+      ));
+    }
+  }
+
+  const trainsPath = join(coreRoot, 'release', 'release-trains.v1.json');
+  if (!existsSync(trainsPath)) {
+    errors.push(error(
+      'CROSS_CUTTING_TRAINS_MISSING',
+      'release/release-trains.v1.json is missing',
+      'release/release-trains.v1.json',
+    ));
   }
 
   return errors;
@@ -1040,6 +1109,7 @@ function verifyCrossRepoSlice(options) {
   errors.push(...verifySlice11Completion(manifest, coreRoot));
   errors.push(...verifySlice12Completion(manifest, coreRoot));
   errors.push(...verifySlice13Completion(manifest, coreRoot));
+  errors.push(...verifyCrossCuttingCompletion(manifest, coreRoot));
 
   return { valid: errors.length === 0, errors };
 }
@@ -1115,6 +1185,7 @@ module.exports = {
   verifySlice11Completion,
   verifySlice12Completion,
   verifySlice13Completion,
+  verifyCrossCuttingCompletion,
 };
 
 if (require.main === module) {

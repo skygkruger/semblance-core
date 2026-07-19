@@ -7,6 +7,7 @@ const { dirname, isAbsolute, join, relative, resolve } = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const REPOSITORY_NAMES = ['core', 'representative', 'website'];
+const OPTIONAL_REPOSITORY_NAMES = ['semblanceNode'];
 const RELEASE_STATES = new Set(['Released', 'FieldProven']);
 const ALL_STATES = new Set([
   'Specified',
@@ -155,15 +156,23 @@ function validateManifestStructure(manifest) {
   if (!isObject(manifest.repositories)) {
     errors.push(error('SCHEMA_INVALID', 'repositories must be an object', 'repositories'));
   } else {
-    rejectUnknown(manifest.repositories, REPOSITORY_NAMES, 'repositories', errors);
+    const repositoryNames = [...REPOSITORY_NAMES];
+    for (const name of OPTIONAL_REPOSITORY_NAMES) {
+      if (isObject(manifest.repositories?.[name])) repositoryNames.push(name);
+    }
+    rejectUnknown(manifest.repositories, repositoryNames, 'repositories', errors);
     requireKeys(manifest.repositories, REPOSITORY_NAMES, 'repositories', errors);
-    for (const name of REPOSITORY_NAMES) {
+    for (const name of repositoryNames) {
       const repository = manifest.repositories[name];
       if (!isObject(repository)) {
         errors.push(error('SCHEMA_INVALID', `${name} repository must be an object`, `repositories.${name}`));
         continue;
       }
-      const allowed = name === 'representative' ? REPRESENTATIVE_SOURCE_KEYS : SOURCE_KEYS;
+      const allowed = name === 'representative'
+        ? REPRESENTATIVE_SOURCE_KEYS
+        : name === 'semblanceNode'
+          ? [...SOURCE_KEYS, 'repositoryUrl']
+          : SOURCE_KEYS;
       rejectUnknown(repository, allowed, `repositories.${name}`, errors);
       requireKeys(repository, allowed, `repositories.${name}`, errors);
       if (typeof repository.sourceCommit !== 'string' || !GIT_OBJECT_PATTERN.test(repository.sourceCommit)) {
