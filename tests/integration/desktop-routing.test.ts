@@ -31,7 +31,8 @@ describe('Desktop Routing — Route Configuration', () => {
     }
   });
 
-  it('App.tsx contains Route elements for morning-brief and knowledge', () => {
+  it('App.tsx contains Route elements for today, morning-brief and knowledge', () => {
+    expect(appContent).toContain('path="/today"');
     expect(appContent).toContain('path="/morning-brief"');
     expect(appContent).toContain('path="/knowledge"');
   });

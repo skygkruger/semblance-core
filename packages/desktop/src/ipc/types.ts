@@ -877,6 +877,90 @@ export interface PrivacyStatusData {
   timeSavedSeconds: number;
 }
 
+// ─── Today Snapshot Types ───────────────────────────────────────────────────
+
+export interface TodaySnapshotResult {
+  assembledAt: string;
+  date: string;
+  changes: Array<{
+    id: string;
+    title: string;
+    source: string;
+    sourcePath: string | null;
+    updatedAt: string;
+    changeType: 'indexed' | 'updated';
+  }>;
+  risks: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    description: string;
+    domain: string;
+    severity: 'high' | 'medium' | 'low';
+    source: string;
+    createdAt: string;
+  }>;
+  completedActions: Array<{
+    id: string;
+    actionType: string;
+    description: string;
+    completedAt: string;
+    estimatedTimeSavedSeconds: number;
+    auditRef: string | null;
+    source: string;
+  }>;
+  pendingDecisions: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    description: string;
+    domain: string;
+    createdAt: string;
+    source: string;
+  }>;
+  outcomes: Array<{
+    id: string;
+    title: string;
+    measuredAt: string;
+    timeSavedSeconds: number;
+    source: string;
+    auditRef: string | null;
+  }>;
+  provenance: {
+    documentCountBySource: Record<string, number>;
+    totalDocuments: number;
+    lastIndexedAt: string | null;
+    auditChainValid: boolean | null;
+    connectedSources: string[];
+  };
+  inbox: {
+    triage: Array<{
+      id: string;
+      title: string;
+      summary: string;
+      priority: 'high' | 'medium' | 'low';
+      source: string;
+      createdAt: string;
+    }>;
+    pendingReplies: Array<{
+      id: string;
+      subject: string;
+      from: string;
+      snippet: string;
+      receivedAt: string;
+      priority: 'high' | 'normal' | 'low';
+    }>;
+    representativeActions: Array<{
+      id: string;
+      subject: string;
+      status: string;
+      updatedAt: string;
+      source: string;
+    }>;
+  };
+  isEmpty: boolean;
+}
+
 // ─── Morning Brief Types ────────────────────────────────────────────────────
 
 export interface MorningBriefItem {

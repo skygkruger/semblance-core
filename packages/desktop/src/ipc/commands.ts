@@ -886,6 +886,10 @@ export function dismissMorningBrief(id: string): Promise<void> {
   return invoke<void>('brief_dismiss', { id });
 }
 
+export function getTodaySnapshot(): Promise<import('./types.js').TodaySnapshotResult> {
+  return sidecarCall<import('./types.js').TodaySnapshotResult>('today:get_snapshot');
+}
+
 export function getWeather(): Promise<import('./types.js').WeatherResult> {
   return invoke<import('./types.js').WeatherResult>('weather_get_current');
 }

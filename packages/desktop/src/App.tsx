@@ -24,6 +24,7 @@ import { NetworkMonitorScreen } from './screens/NetworkMonitorScreen';
 import { RelationshipsScreen } from './screens/RelationshipsScreen';
 import { ConnectionsScreen } from './screens/ConnectionsScreen';
 import { MorningBriefScreen } from './screens/MorningBriefScreen';
+import { TodayScreen } from './screens/TodayScreen';
 import { KnowledgeGraphScreen } from './screens/KnowledgeGraphScreen';
 import { IntentScreen } from './screens/IntentScreen';
 import { FinancialDashboardScreen } from './screens/FinancialDashboardScreen';
@@ -267,7 +268,7 @@ const navSections: NavSection[] = [
     label: 'CORE',
     items: [
       { id: 'chat', label: 'Chat', icon: <ChatIcon /> },
-      { id: 'morning-brief', label: 'Brief', icon: <SunriseIcon /> },
+      { id: 'today', label: 'Today', icon: <SunriseIcon /> },
       { id: 'knowledge', label: 'Knowledge', icon: <BrainIcon /> },
       { id: 'files', label: 'Files', icon: <FolderIcon /> },
       { id: 'vault', label: 'Vault', icon: <VaultIcon /> },
@@ -613,6 +614,7 @@ function AppContent() {
         <div key={location.pathname} className="page-enter h-full">
         <Routes>
           <Route path="/chat" element={<ChatScreen />} />
+          <Route path="/today" element={<TodayScreen />} />
           <Route path="/inbox" element={<InboxScreen />} />
           <Route path="/morning-brief" element={<MorningBriefScreen />} />
           <Route path="/knowledge" element={<KnowledgeGraphScreen />} />

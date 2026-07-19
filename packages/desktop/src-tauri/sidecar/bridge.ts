@@ -259,6 +259,7 @@ import {
 
 // Morning Brief / Daily Digest / Weather / Style / Dark Pattern / Document Context / Health / Cloud Storage / Graph Vis
 import { MorningBriefGenerator } from '../../../core/agent/morning-brief.js';
+import { buildTodaySnapshot } from '../../../core/agent/today/index.js';
 import { DailyDigestGenerator } from '../../../core/agent/daily-digest.js';
 import { WeatherService } from '../../../core/weather/weather-service.js';
 import { LocationStore } from '../../../core/location/location-store.js';
@@ -8111,6 +8112,23 @@ async function handleRequest(req: Request): Promise<void> {
         const dismissParams = params as { id: string };
         if (morningBriefGenerator) morningBriefGenerator.dismiss(dismissParams.id);
         respond(id, { success: true });
+        break;
+      }
+      case 'today:get_snapshot': {
+        try {
+          const snapshot = buildTodaySnapshot({
+            prefsDb: prefsDb as import('../../../../core/platform/types.js').DatabaseHandle | null,
+            documentsDb: documentsDb as import('../../../../core/platform/types.js').DatabaseHandle | null,
+            actionLifecycleStore: gateway?.getActionLifecycleStore() ?? null,
+            auditTrail: gateway?.getAuditTrail() ?? null,
+            proactiveEngine: proactiveEngine ?? null,
+            intentManager: intentManager ?? null,
+            representativeWorkflowStore: representativeEmailWorkflowStore ?? null,
+          });
+          respond(id, snapshot);
+        } catch (snapshotErr) {
+          respondError(id, (snapshotErr as Error).message);
+        }
         break;
       }
       case 'weather_get_current': {
