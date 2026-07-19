@@ -7,6 +7,10 @@ import type { IDarkPatternDetector } from '../defense/interfaces.js';
 import type { StyleAdapter } from '../style/style-adapter.js';
 import type { IWeeklyDigestGenerator } from '../digest/interfaces.js';
 import type { IAlterEgoWeekEngine } from '../agent/alter-ego-week-types.js';
+import type {
+  FollowUpTrackerPort,
+  RepresentativeEmailDrafterPort,
+} from '../agent/representative-email-workflow.js';
 
 class IPAdapterRegistry {
   private _statementParser: IStatementParser | null = null;
@@ -16,6 +20,8 @@ class IPAdapterRegistry {
   private _styleAdapter: StyleAdapter | null = null;
   private _weeklyDigestGenerator: IWeeklyDigestGenerator | null = null;
   private _alterEgoWeekEngine: IAlterEgoWeekEngine | null = null;
+  private _emailDrafter: RepresentativeEmailDrafterPort | null = null;
+  private _followUpTracker: FollowUpTrackerPort | null = null;
 
   // ─── Registration ─────────────────────────────────────────────────────
 
@@ -43,6 +49,14 @@ class IPAdapterRegistry {
 
   registerAlterEgoWeek(alterEgoWeekEngine: IAlterEgoWeekEngine): void {
     this._alterEgoWeekEngine = alterEgoWeekEngine;
+  }
+
+  registerRepresentativeWorkflow(deps: {
+    emailDrafter: RepresentativeEmailDrafterPort;
+    followUpTracker: FollowUpTrackerPort;
+  }): void {
+    this._emailDrafter = deps.emailDrafter;
+    this._followUpTracker = deps.followUpTracker;
   }
 
   // ─── Getters ──────────────────────────────────────────────────────────
@@ -73,6 +87,14 @@ class IPAdapterRegistry {
 
   get alterEgoWeekEngine(): IAlterEgoWeekEngine | null {
     return this._alterEgoWeekEngine;
+  }
+
+  get emailDrafter(): RepresentativeEmailDrafterPort | null {
+    return this._emailDrafter;
+  }
+
+  get followUpTracker(): FollowUpTrackerPort | null {
+    return this._followUpTracker;
   }
 
   get isDRLoaded(): boolean {
