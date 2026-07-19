@@ -2,7 +2,7 @@
   "name": "@semblance/extension-sdk",
   "version": "0.1.0",
   "private": true,
-  "description": "Signed Digital Representative extension manifest verification",
+  "description": "Frozen Extension API v1 — signed capability manifests, mediated clients, and artifact verification",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -3,6 +3,12 @@
  * Extensions receive these typed interfaces — never raw db/fs/network handles.
  */
 
+import type { ExtensionHealthClient } from './health.js';
+import type { ExtensionMigrationClient } from './migration.js';
+import type { ExtensionReceiptClient } from './receipt.js';
+import type { ExtensionScheduleClient } from './schedule.js';
+import type { ExtensionUiSlotClient } from './ui-slot.js';
+
 export interface VaultDocumentSummary {
   id: string;
   title: string;
@@ -61,8 +67,18 @@ export interface KernelEntitlementClient {
   isPremium(): boolean;
 }
 
+/** Slice 6 runner client bundle (vault/gateway/kernel). */
 export interface ExtensionRunnerClients {
   vault: VaultClient;
   gateway: GatewayActionClient;
   kernel: KernelEntitlementClient;
+}
+
+/** Extension API v1 mediated capability clients (no raw handles). */
+export interface ExtensionRunnerClientsV1 extends ExtensionRunnerClients {
+  uiSlots: ExtensionUiSlotClient;
+  schedules: ExtensionScheduleClient;
+  health: ExtensionHealthClient;
+  migration: ExtensionMigrationClient;
+  receipts: ExtensionReceiptClient;
 }

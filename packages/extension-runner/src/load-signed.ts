@@ -3,6 +3,7 @@ import { dirname, join, resolve } from 'node:path';
 import {
   loadDrPublisherKeys,
   verifySignedExtensionArtifact,
+  EXTENSION_API_V1,
   type DrPublisherKeyRecord,
   type KernelEntitlementSnapshot,
 } from '@semblance/extension-sdk';
@@ -56,6 +57,9 @@ export interface VerifySignedArtifactPathsResult {
 }
 
 const DEFAULT_CORE_VERSION = '1.0.0';
+
+/** Frozen Extension API generation loaded by the signed runner. */
+export const LOADED_EXTENSION_API = EXTENSION_API_V1;
 
 export function resolveArtifactPath(manifestPath: string, artifactPath?: string): string {
   if (artifactPath) {
