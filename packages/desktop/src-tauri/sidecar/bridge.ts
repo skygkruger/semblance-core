@@ -1852,6 +1852,21 @@ async function handleInitialize(): Promise<unknown> {
     userName,
   });
 
+  // Launch-floor timing returns immediately after Ready — later Sprint E/G init
+  // (cron fire, daemon wake, etc.) must not block the initialize RPC response.
+  if (launchFloorMode) {
+    console.error('[sidecar] SEMBLANCE_LAUNCH_FLOOR=1 — returning initialize after Ready');
+    return {
+      success: true,
+      inferenceEngine,
+      activeModel,
+      availableModels,
+      onboardingComplete,
+      userName,
+      launchFloor: true,
+    };
+  }
+
   // ── Ollama Health Check (mid-session fallback) ──────────────────────────────
   // If using Ollama, periodically check it's still running. If it crashes,
   // fall back to BitNet without losing the conversation.

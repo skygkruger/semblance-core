@@ -90,7 +90,7 @@ jobs:
         run: |
           $cfg = @{
             build = @{
-              beforeBuildCommand = "cd packages/desktop && npm run build && node ../../scripts/bundle-runtimes.js"
+              beforeBuildCommand = "cd .. && npm run build && node ../../scripts/bundle-runtimes.js"
             }
           } | ConvertTo-Json -Depth 5 -Compress
           Set-Content -Path field-proof-tauri.overlay.json -Value $cfg -Encoding utf8

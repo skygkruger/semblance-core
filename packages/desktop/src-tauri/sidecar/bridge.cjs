@@ -288081,6 +288081,19 @@ async function handleInitialize() {
     onboardingComplete,
     userName
   });
+  if (launchFloorMode) {
+    console.error("[sidecar] SEMBLANCE_LAUNCH_FLOOR=1 — returning initialize after Ready");
+    return {
+      success: true,
+      inferenceEngine,
+      activeModel,
+      availableModels,
+      onboardingComplete,
+      userName,
+      launchFloor: true
+    };
+  }
+
   if (inferenceEngine === "ollama" && core) {
     const HEALTH_CHECK_INTERVAL = 3e4;
     setInterval(async () => {
