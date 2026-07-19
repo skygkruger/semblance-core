@@ -2,11 +2,16 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import {
   loadDrPublisherKeys,
-  verifySignedExtensionArtifact,
   EXTENSION_API_V1,
   type DrPublisherKeyRecord,
   type KernelEntitlementSnapshot,
 } from '@semblance/extension-sdk';
+import type {
+  ExtensionOwnership,
+  ExtensionPublisherTrustEvaluation,
+  ExtensionTrustChecker,
+} from './trust-checker.js';
+import { createArtifactOnlyExtensionTrustChecker } from './trust-checker.js';
 import type { ExtensionInitContextLike } from './client-adapters.js';
 import { buildExtensionInitContext } from './client-adapters.js';
 import { extractExtensionArtifact, importExtractedExtension } from './extract-artifact.js';
@@ -31,6 +36,10 @@ export interface LoadSignedDigitalRepresentativeOptions {
   dataDir?: string;
   model?: string;
   legacyContext?: Partial<ExtensionInitContextLike>;
+  /** Kernel publisher trust checker — defaults to artifact-only verification. */
+  trustChecker?: ExtensionTrustChecker;
+  /** Ownership origin for revocation degraded-policy handling. */
+  ownership?: ExtensionOwnership;
 }
 
 export interface LoadSignedDigitalRepresentativeResult {
@@ -40,6 +49,9 @@ export interface LoadSignedDigitalRepresentativeResult {
   manifestId?: string;
   manifestVersion?: string;
   artifactValid?: boolean;
+  quarantined?: boolean;
+  degradedPolicy?: boolean;
+  trustLevel?: string;
 }
 
 export interface VerifySignedArtifactPathsOptions {
@@ -47,6 +59,8 @@ export interface VerifySignedArtifactPathsOptions {
   artifactPath?: string;
   publisherKeys?: DrPublisherKeyRecord[];
   coreVersion?: string;
+  trustChecker?: ExtensionTrustChecker;
+  ownership?: ExtensionOwnership;
 }
 
 export interface VerifySignedArtifactPathsResult {
@@ -74,6 +88,29 @@ export function resolveArtifactPath(manifestPath: string, artifactPath?: string)
   return join(dirname(resolve(manifestPath)), manifest.artifactRelativePath);
 }
 
+function resolveTrustChecker(
+  options: Pick<VerifySignedArtifactPathsOptions, 'trustChecker' | 'publisherKeys'>,
+): ExtensionTrustChecker {
+  if (options.trustChecker) {
+    return options.trustChecker;
+  }
+  return createArtifactOnlyExtensionTrustChecker(options.publisherKeys ?? loadDrPublisherKeys());
+}
+
+function evaluateTrust(
+  options: VerifySignedArtifactPathsOptions,
+  manifest: unknown,
+  artifactBytes: Buffer,
+): ExtensionPublisherTrustEvaluation {
+  const trustChecker = resolveTrustChecker(options);
+  return trustChecker.checkTrust({
+    manifest,
+    artifactBytes,
+    coreVersion: options.coreVersion ?? DEFAULT_CORE_VERSION,
+    ownership: options.ownership,
+  });
+}
+
 export function verifySignedArtifactPaths(
   options: VerifySignedArtifactPathsOptions,
 ): VerifySignedArtifactPathsResult {
@@ -82,18 +119,13 @@ export function verifySignedArtifactPaths(
     const artifactPath = resolveArtifactPath(manifestPath, options.artifactPath);
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as unknown;
     const artifactBytes = readFileSync(artifactPath);
-    const verification = verifySignedExtensionArtifact({
-      manifest,
-      artifactBytes,
-      coreVersion: options.coreVersion ?? DEFAULT_CORE_VERSION,
-      publisherKeys: options.publisherKeys ?? loadDrPublisherKeys(),
-    });
+    const evaluation = evaluateTrust(options, manifest, artifactBytes);
 
     return {
       present: true,
-      valid: verification.valid,
-      error: verification.error,
-      manifestId: verification.manifest?.id,
+      valid: evaluation.allowed,
+      error: evaluation.allowed ? undefined : evaluation.reason,
+      manifestId: evaluation.manifest?.id,
     };
   } catch (error) {
     return {
@@ -112,18 +144,16 @@ export async function loadSignedDigitalRepresentative(
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as unknown;
   const artifactBytes = readFileSync(artifactPath);
 
-  const verification = verifySignedExtensionArtifact({
-    manifest,
-    artifactBytes,
-    coreVersion: options.coreVersion ?? DEFAULT_CORE_VERSION,
-    publisherKeys: options.publisherKeys ?? loadDrPublisherKeys(),
-  });
+  const evaluation = evaluateTrust(options, manifest, artifactBytes);
 
-  if (!verification.valid || !verification.manifest) {
+  if (!evaluation.allowed || !evaluation.manifest) {
     return {
       ok: false,
-      error: verification.error ?? 'Signed artifact verification failed',
+      error: evaluation.reason ?? 'Signed artifact verification failed',
       artifactValid: false,
+      quarantined: evaluation.quarantined,
+      degradedPolicy: evaluation.degradedPolicy,
+      trustLevel: evaluation.trustLevel,
     };
   }
 
@@ -160,9 +190,11 @@ export async function loadSignedDigitalRepresentative(
     return {
       ok: true,
       extension,
-      manifestId: verification.manifest.id,
-      manifestVersion: verification.manifest.version,
+      manifestId: evaluation.manifest.id,
+      manifestVersion: evaluation.manifest.version,
       artifactValid: true,
+      degradedPolicy: evaluation.degradedPolicy,
+      trustLevel: evaluation.trustLevel,
     };
   } catch (error) {
     return {

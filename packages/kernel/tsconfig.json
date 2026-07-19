@@ -10,5 +10,5 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "tests", "node_modules"],
-  "references": [{ "path": "../protocol" }]
+  "references": [{ "path": "../protocol" }, { "path": "../extension-sdk" }]
 }

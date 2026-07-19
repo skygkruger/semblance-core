@@ -10,5 +10,5 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "tests", "node_modules"],
-  "references": [{ "path": "../extension-sdk" }]
+  "references": [{ "path": "../extension-sdk" }, { "path": "../kernel" }]
 }

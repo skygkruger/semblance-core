@@ -22,6 +22,14 @@ export {
 } from './extract-artifact.js';
 
 export {
+  createArtifactOnlyExtensionTrustChecker,
+  type ExtensionOwnership,
+  type ExtensionPublisherTrustEvaluation,
+  type ExtensionTrustCheckRequest,
+  type ExtensionTrustChecker,
+} from './trust-checker.js';
+
+export {
   loadSignedDigitalRepresentative,
   resolveArtifactPath,
   verifySignedArtifactPaths,

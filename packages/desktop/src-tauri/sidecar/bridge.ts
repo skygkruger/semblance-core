@@ -436,6 +436,13 @@ let cloudBudgetStore: {
   getSummary: () => import('@semblance/kernel').CloudBudgetSpendSummary;
   store: import('@semblance/kernel').CloudBudgetStore;
 } | null = null;
+let extensionPublisherTrustStore: {
+  trustStore: import('@semblance/kernel').ExtensionPublisherTrustStore;
+  revocationStore: import('@semblance/kernel').ExtensionRevocationStore;
+  createTrustChecker: () => import('@semblance/kernel').ExtensionTrustChecker;
+  saveTrust: () => import('@semblance/kernel').ExtensionPublisherTrustDocument;
+  saveRevocation: () => import('@semblance/kernel').ExtensionRevocationDocument;
+} | null = null;
 const attestationNonceGuard: AttestationNonceGuard = createAttestationNonceGuard();
 let documentsDb: Database.Database | null = null;
 let emailIndexer: EmailIndexer | null = null;
@@ -999,6 +1006,35 @@ function ensureCloudBudgetStore(): void {
   (globalThis as any).__cloudBudgetStore = cloudBudgetStore;
 }
 
+function ensureExtensionPublisherTrustStore(): void {
+  if (extensionPublisherTrustStore) {
+    return;
+  }
+
+  const {
+    ExtensionPublisherTrustStore,
+    ExtensionRevocationStore,
+    createKernelExtensionTrustChecker,
+    loadExtensionPublisherTrustDocument,
+    loadExtensionRevocationDocument,
+    saveExtensionPublisherTrustDocument,
+    saveExtensionRevocationDocument,
+  } = require('@semblance/kernel');
+  const trustPath = join(dataDir, 'extension-publisher-trust.json');
+  const revocationPath = join(dataDir, 'extension-revocation.json');
+  const trustStore = new ExtensionPublisherTrustStore(loadExtensionPublisherTrustDocument(trustPath));
+  const revocationStore = new ExtensionRevocationStore(loadExtensionRevocationDocument(revocationPath));
+
+  extensionPublisherTrustStore = {
+    trustStore,
+    revocationStore,
+    createTrustChecker: () => createKernelExtensionTrustChecker(trustStore, revocationStore),
+    saveTrust: () => saveExtensionPublisherTrustDocument(trustPath, trustStore.getDocument()),
+    saveRevocation: () => saveExtensionRevocationDocument(revocationPath, revocationStore.getDocument()),
+  };
+  (globalThis as any).__extensionPublisherTrustStore = extensionPublisherTrustStore;
+}
+
 function recordExecutionRunReceipt(params: {
   requestId: string;
   domain: string;
@@ -1038,6 +1074,7 @@ async function handleInitialize(): Promise<unknown> {
   if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
   ensureExecutionDestinationStores();
   ensureCloudBudgetStore();
+  ensureExtensionPublisherTrustStore();
 
   try {
     await initializeSyncRoot(dataDir);
@@ -1211,11 +1248,14 @@ async function handleInitialize(): Promise<unknown> {
     console.error('[sidecar] Local vault ready (event log + ingest hooks + chat grounding)');
 
     console.error('[sidecar] Creating SemblanceCore...');
+    ensureExtensionPublisherTrustStore();
     core = createSemblanceCore({
       dataDir,
       llmProvider: nativeLlm,
       vaultIngest: localVault.fileIngestHooks,
       vaultChatGrounding: localVault.chatGrounding,
+      extensionTrustChecker: extensionPublisherTrustStore?.createTrustChecker(),
+      extensionOwnership: 'marketplace',
     });
     console.error('[sidecar] SemblanceCore created, calling initialize...');
     // 60s timeout — core.initialize includes LanceDB, knowledge graph, IPC, and extensions
@@ -13033,6 +13073,94 @@ async function handleRequest(req: Request): Promise<void> {
           budget: cloudBudgetStore.get(),
           summary: cloudBudgetStore.getSummary(),
         });
+        break;
+      }
+
+      case 'extension:list_publishers': {
+        ensureExtensionPublisherTrustStore();
+        if (!extensionPublisherTrustStore) {
+          respondError(id, 'Extension publisher trust store not initialized');
+          break;
+        }
+        respond(id, {
+          publishers: extensionPublisherTrustStore.trustStore.listPublishers(),
+          revocations: extensionPublisherTrustStore.revocationStore.listRevocations(),
+        });
+        break;
+      }
+
+      case 'extension:trust_publisher': {
+        ensureExtensionPublisherTrustStore();
+        if (!extensionPublisherTrustStore) {
+          respondError(id, 'Extension publisher trust store not initialized');
+          break;
+        }
+        const trustParams = params as {
+          publisherId?: string;
+          displayName?: string;
+          keyId?: string;
+          publicKeyPem?: string;
+          trustLevel?: 'user-trusted' | 'organization-trusted';
+        };
+        if (
+          typeof trustParams.publisherId !== 'string'
+          || typeof trustParams.displayName !== 'string'
+          || typeof trustParams.keyId !== 'string'
+          || typeof trustParams.publicKeyPem !== 'string'
+          || (trustParams.trustLevel !== 'user-trusted' && trustParams.trustLevel !== 'organization-trusted')
+        ) {
+          respondError(id, 'Invalid extension:trust_publisher params');
+          break;
+        }
+        const publisher = extensionPublisherTrustStore.trustStore.trustPublisher({
+          publisherId: trustParams.publisherId,
+          displayName: trustParams.displayName,
+          keyId: trustParams.keyId,
+          publicKeyPem: trustParams.publicKeyPem,
+          trustLevel: trustParams.trustLevel,
+          trustedBy: 'user',
+        });
+        extensionPublisherTrustStore.saveTrust();
+        respond(id, { success: true, publisher });
+        break;
+      }
+
+      case 'extension:revoke_publisher': {
+        ensureExtensionPublisherTrustStore();
+        if (!extensionPublisherTrustStore) {
+          respondError(id, 'Extension publisher trust store not initialized');
+          break;
+        }
+        const revokeParams = params as {
+          publisherKeyId?: string;
+          manifestId?: string;
+          artifactHash?: string | null;
+          reason?: string;
+        };
+        if (typeof revokeParams.reason !== 'string' || revokeParams.reason.length === 0) {
+          respondError(id, 'Invalid extension:revoke_publisher params: reason required');
+          break;
+        }
+        if (typeof revokeParams.publisherKeyId === 'string' && revokeParams.publisherKeyId.length > 0) {
+          const revocation = extensionPublisherTrustStore.revocationStore.revokePublisher({
+            publisherKeyId: revokeParams.publisherKeyId,
+            reason: revokeParams.reason,
+          });
+          extensionPublisherTrustStore.saveRevocation();
+          respond(id, { success: true, revocation, scope: 'publisher' });
+          break;
+        }
+        if (typeof revokeParams.manifestId === 'string' && revokeParams.manifestId.length > 0) {
+          const revocation = extensionPublisherTrustStore.revocationStore.revokeArtifact({
+            manifestId: revokeParams.manifestId,
+            artifactHash: revokeParams.artifactHash ?? null,
+            reason: revokeParams.reason,
+          });
+          extensionPublisherTrustStore.saveRevocation();
+          respond(id, { success: true, revocation, scope: 'artifact' });
+          break;
+        }
+        respondError(id, 'Invalid extension:revoke_publisher params: publisherKeyId or manifestId required');
         break;
       }
 

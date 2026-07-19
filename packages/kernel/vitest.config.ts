@@ -11,6 +11,7 @@ export default defineConfig({
       '@semblance/gateway': resolve(__dirname, '../gateway'),
       '@semblance/core': resolve(__dirname, '../core'),
       '@semblance/protocol': resolve(__dirname, '../protocol'),
+      '@semblance/extension-sdk': resolve(__dirname, '../extension-sdk/src/index.ts'),
     },
   },
 });
