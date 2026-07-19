@@ -4,6 +4,8 @@ import type {
   ExecutionDestinationPolicyInput,
 } from '@semblance/kernel';
 import type { DisclosureReceipt } from './disclosure-receipt.js';
+import type { ConfidentialProofBundle } from '../../proof/src/confidential-proof-bundle.js';
+import type { VoucherCoarseClass } from './confidential/voucher-wallet.js';
 
 export type PolicyDecider = typeof decideExecutionDestination;
 
@@ -32,6 +34,8 @@ export interface ExecutionRequest {
   readonly attestationEvidence?: unknown;
   /** Maximum minimized plaintext bytes permitted for confidential disclosure. */
   readonly maxDisclosureBytes?: number;
+  /** Voucher coarse class for confidential budget/pricing checks. */
+  readonly modelClass?: VoucherCoarseClass;
 }
 
 export interface ExecutionSuccessResult {
@@ -47,6 +51,7 @@ export interface ExecutionSuccessResult {
     readonly tokensAfter: number;
   };
   readonly disclosureReceipt?: DisclosureReceipt;
+  readonly confidentialProof?: ConfidentialProofBundle;
 }
 
 export interface ExecutionAskResult {

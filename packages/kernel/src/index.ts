@@ -223,3 +223,16 @@ export {
   type AttestationVerificationResult,
   type ConfidentialAttestationEvidence,
 } from './confidential/attestation-verifier.js';
+export {
+  CloudBudgetStore,
+  createCloudBudgetStore,
+  createDefaultCloudBudgetDocument,
+  loadCloudBudgetDocument,
+  normalizeCloudBudgetDocument,
+  saveCloudBudgetDocument,
+  type CloudBudgetCheckInput,
+  type CloudBudgetCheckResult,
+  type CloudBudgetDestination,
+  type CloudBudgetDocument,
+  type CloudBudgetSpendSummary,
+} from './budget/cloud-budget-store.js';

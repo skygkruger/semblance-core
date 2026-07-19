@@ -1,6 +1,15 @@
-import { createHash } from 'node:crypto';
-import { CONFIDENTIAL_NO_FALLBACK } from '@semblance/kernel';
+import { createHash, randomBytes } from 'node:crypto';
+import {
+  CONFIDENTIAL_NO_FALLBACK,
+  type CloudBudgetStore,
+  type ConfidentialAttestationEvidence,
+} from '@semblance/kernel';
 import type { ExecutionDestinationDecision } from '@semblance/kernel';
+import {
+  buildConfidentialProofBundle,
+  type ConfidentialProofBundle,
+} from '../../proof/src/confidential-proof-bundle.js';
+import { resolveUnitPriceCents } from '../../proof/src/usage-receipt.js';
 import { AttestationClient } from './confidential/attestation-client.js';
 import {
   DEFAULT_MAX_DISCLOSURE_BYTES,
@@ -27,7 +36,9 @@ export interface CloudBrokerConfig {
   readonly localTransport: LocalExecutionTransport;
   readonly attestationClient?: AttestationClient;
   readonly voucherWallet?: VoucherWallet;
+  readonly cloudBudgetStore?: CloudBudgetStore;
   readonly defaultMaxDisclosureBytes?: number;
+  readonly proofSigningKey?: Buffer;
 }
 
 function hashContent(content: string): string {
@@ -42,7 +53,9 @@ export class CloudBroker {
   private readonly confidentialAdapter: Pick<GatewayOpaqueTransport, 'executeConfidential'>;
   private readonly attestationClient?: AttestationClient;
   private readonly voucherWallet?: VoucherWallet;
+  private readonly cloudBudgetStore?: CloudBudgetStore;
   private readonly defaultMaxDisclosureBytes: number;
+  private readonly proofSigningKey: Buffer;
 
   constructor(config: CloudBrokerConfig) {
     this.policyDecider = config.policyDecider;
@@ -52,7 +65,9 @@ export class CloudBroker {
     this.confidentialAdapter = createConfidentialDestinationAdapter(config.gatewayTransport);
     this.attestationClient = config.attestationClient;
     this.voucherWallet = config.voucherWallet;
+    this.cloudBudgetStore = config.cloudBudgetStore;
     this.defaultMaxDisclosureBytes = config.defaultMaxDisclosureBytes ?? DEFAULT_MAX_DISCLOSURE_BYTES;
+    this.proofSigningKey = config.proofSigningKey ?? randomBytes(32);
   }
 
   decide(request: ExecutionRequest): ExecutionDestinationDecision {
@@ -206,6 +221,29 @@ export class CloudBroker {
       };
     }
 
+    const modelClass = request.modelClass ?? 'inference-standard';
+    const estimatedCostCents = resolveUnitPriceCents(modelClass);
+
+    if (this.cloudBudgetStore) {
+      const budgetCheck = this.cloudBudgetStore.checkBeforeDisclosure({
+        estimatedCostCents,
+        destination: 'confidential',
+        modelClass,
+        voucherAvailable: this.voucherWallet.unspentCount() > 0,
+      });
+      if (!budgetCheck.allowed) {
+        return {
+          status: 'reject',
+          reason: budgetCheck.reason,
+        };
+      }
+    } else if (this.voucherWallet.unspentCount() === 0) {
+      return {
+        status: 'reject',
+        reason: 'no_voucher_available',
+      };
+    }
+
     const voucherSpend = this.voucherWallet.spendRandom();
     if (!voucherSpend) {
       return {
@@ -247,6 +285,7 @@ export class CloudBroker {
 
     const encryptedTask = prepared;
     const model = request.model ?? 'confidential-default';
+    const evidence = request.attestationEvidence as ConfidentialAttestationEvidence | undefined;
 
     try {
       const remoteResult = await this.confidentialAdapter.executeConfidential({
@@ -272,6 +311,36 @@ export class CloudBroker {
       });
 
       const minimization = minimizeTask(request.messages, request.excludedCategories);
+      const actualCostCents = resolveUnitPriceCents(voucherSpend.proof.coarseClass);
+      this.cloudBudgetStore?.recordSpend(actualCostCents);
+
+      let confidentialProof: ConfidentialProofBundle | undefined;
+      if (evidence) {
+        confidentialProof = buildConfidentialProofBundle({
+          requestId: request.requestId,
+          purpose: `${request.domain}.${request.taskType}`,
+          disclosedFieldNames: ['messages', 'maxTokens', 'temperature', 'subagentId', 'domain', 'taskType'],
+          disclosedBytes: encryptedTask.disclosureBytes,
+          promptContentHash: encryptedTask.promptContentHash,
+          responseContentHash: remoteResult.responseContentHash,
+          evidenceId: evidence.evidenceId,
+          workloadId: evidence.workloadId,
+          measurement: evidence.measurement,
+          policyVersion: evidence.policyVersion,
+          tcbVersion: evidence.tcbVersion,
+          issuerKeyId: evidence.issuerKeyId,
+          validFrom: evidence.validFrom,
+          validUntil: evidence.validUntil,
+          modelClass: voucherSpend.proof.coarseClass,
+          quantity: voucherSpend.proof.quantity,
+          spentDigest: voucherSpend.proof.spentDigest,
+          billingPeriod: voucherSpend.proof.billingPeriod,
+          redeemedAt: voucherSpend.usageReceipt.redeemedAt,
+          voucherIssuerKeyId: voucherSpend.proof.issuerKeyId,
+          result: 'success',
+          signingKey: this.proofSigningKey,
+        });
+      }
 
       return {
         status: 'success',
@@ -285,6 +354,7 @@ export class CloudBroker {
           tokensBefore: minimization.tokensBefore,
           tokensAfter: minimization.tokensAfter,
         },
+        confidentialProof,
       };
     } catch {
       return {
