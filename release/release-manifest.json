@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "releaseId": "gmail-calendar-actions-2026-07-18",
-  "generatedAt": "2026-07-18T20:14:00Z",
+  "releaseId": "signed-digital-representative-2026-07-18",
+  "generatedAt": "2026-07-19T03:46:00Z",
   "repositories": {
     "core": {
-      "sourceCommit": "48147d03a59e68309ffac0deb4a8d9a9955d71b8",
-      "sourceTreeHash": "1b4a8767bad08b2eaa2025c3bbb2dfc61362fd93"
+      "sourceCommit": "b777e9335719c7eed68a2a6478d2429ac58f882d",
+      "sourceTreeHash": "2a85ce8e94a23c949af949fd7e9898f86c7781d5"
     },
     "representative": {
-      "sourceCommit": "dcd6d71dcc7d6d367d4e6626635e16744185de4d",
-      "sourceTreeHash": "98c2ed9e991a4346742afc731980dac86688871e",
+      "sourceCommit": "51d17f2",
+      "sourceTreeHash": "3380d1faf3ec2a9b78f8a86719b421912eedcec2",
       "packageVersion": "0.1.0",
-      "artifactHash": null,
-      "extensionManifestHash": null
+      "artifactHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa",
+      "extensionManifestHash": "8ff4eb6ec9a66afa0fa080daf63b7c1f6365db067437c43db28f5fd117f073be"
     },
     "website": {
       "sourceCommit": "8c441b2de5fc3efcc7d9987b8027919fe8f95bbc",
@@ -436,6 +436,115 @@
       "requiredForStates": [
         "RuntimeVerified"
       ]
+    },
+    {
+      "id": "slice-6-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-6/slice-6-exit-gate.json",
+      "sha256": "adc95837ef82cd803c507290ebec597e5dede144d57b90f22e710b629e776695",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-6-exit-gate-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-6/exit-gate.txt",
+      "sha256": "b967ede715a0885b6b394d80a81011e59fdc43219b528e1da27ef49438099cad",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-6-signed-artifact",
+      "repository": "core",
+      "path": "release/evidence/slice-6/signed-artifact.txt",
+      "sha256": "b88b6575b62430a59342331c63d5bc348d728705e0f6e7f35bf13caafdcf6b73",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-6-paid-readiness",
+      "repository": "core",
+      "path": "release/evidence/slice-6/paid-readiness.txt",
+      "sha256": "3ffaf5cb9b1b8a4c6793da3a7cac06dfae8a1d54e93ef84d673dc11b16aefa5a",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-6-sandbox-egress",
+      "repository": "core",
+      "path": "release/evidence/slice-6/sandbox-egress.txt",
+      "sha256": "b99ab5d117f864ab4d79225b4c5631e768ec3f362e0d78d9c235617b17d9bb32",
+      "requiredForStates": [
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-6-representative-workflow",
+      "repository": "core",
+      "path": "release/evidence/slice-6/representative-workflow.txt",
+      "sha256": "581e499dd9c5ed89a43af840cef04e34016950e8784bb7640e0865e668646565",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-6-restart-persist",
+      "repository": "core",
+      "path": "release/evidence/slice-6/restart-persist.txt",
+      "sha256": "6b72b7a3ee3d4001df6761c97bd8ca494461f4130e89614fa69733c8c8882124",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-6-reservation-jwt",
+      "repository": "core",
+      "path": "release/evidence/slice-6/reservation-jwt.txt",
+      "sha256": "95472556a03f91ccf837d2d67fcaf31135558e01ae6a8ecd745b04ea34f82f6f",
+      "requiredForStates": [
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-6-commerce-freeze",
+      "repository": "core",
+      "path": "release/evidence/slice-6/commerce-freeze.txt",
+      "sha256": "1392c3a989339970bc841f01f42d59878e6ac028e0ef0fa14ccaa5236c6fdfab",
+      "requiredForStates": [
+        "Implemented"
+      ]
+    },
+    {
+      "id": "slice-6-representative-prove-pack",
+      "repository": "representative",
+      "path": "docs/release-manifests/evidence/slice-6/representative/prove-pack.txt",
+      "sha256": "141a9aebbcbedbf02a74f4bc506cd44826c222d5f0a11f24f5d1e280fac62848",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-6-representative-typecheck",
+      "repository": "representative",
+      "path": "docs/release-manifests/evidence/slice-6/representative/typecheck.txt",
+      "sha256": "9787acb0ff7dc73a853e4ef41b9bbd5c39741761f445290df446512b3da91b8c",
+      "requiredForStates": [
+        "Implemented"
+      ]
+    },
+    {
+      "id": "slice-6-representative-tests",
+      "repository": "representative",
+      "path": "docs/release-manifests/evidence/slice-6/representative/tests.txt",
+      "sha256": "5b9237c5125d6ef8298bb5849ac38a35582436d5b5a3e0c4448dda1e1bbe3008",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
     }
   ],
   "commerce": {
@@ -458,7 +567,8 @@
     2,
     3,
     4,
-    5
+    5,
+    6
   ],
   "features": [
     {
@@ -620,6 +730,42 @@
       "infrastructurePolicyVersions": [],
       "legalNoticesVersion": "2026-07-18",
       "representativePins": null
+    },
+    {
+      "id": "signed-digital-representative",
+      "name": "Signed Digital Representative extension and first agency workflow",
+      "repository": "representative",
+      "state": "RuntimeVerified",
+      "usesDigitalRepresentative": true,
+      "signedArtifactNames": [
+        "com.semblance.dr"
+      ],
+      "evidenceIds": [
+        "slice-6-exit-gate",
+        "slice-6-exit-gate-tests",
+        "slice-6-signed-artifact",
+        "slice-6-paid-readiness",
+        "slice-6-sandbox-egress",
+        "slice-6-representative-workflow",
+        "slice-6-restart-persist",
+        "slice-6-reservation-jwt",
+        "slice-6-commerce-freeze",
+        "slice-6-representative-prove-pack",
+        "slice-6-representative-typecheck",
+        "slice-6-representative-tests"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": {
+        "packageVersion": "0.1.0",
+        "artifactHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa",
+        "extensionManifestHash": "8ff4eb6ec9a66afa0fa080daf63b7c1f6365db067437c43db28f5fd117f073be"
+      }
     }
   ],
   "signatureKeyId": "",

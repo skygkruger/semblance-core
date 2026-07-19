@@ -1,0 +1,11 @@
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+
+ ✓ tests/slice-6/exit-gate.test.ts (12 tests) 456ms
+     ✓ blocks revoked entitlement from executing workflow  406ms
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  20:46:30
+   Duration  2.71s (transform 439ms, setup 132ms, import 2.02s, tests 456ms, environment 0ms)
+

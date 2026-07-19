@@ -1,0 +1,10 @@
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+
+ ✓ tests/slice-6/exit-gate.test.ts (12 tests | 11 skipped) 12ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 11 skipped (12)
+   Start at  20:46:44
+   Duration  757ms (transform 381ms, setup 95ms, import 555ms, tests 12ms, environment 0ms)
+
