@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/shared-space-consent-v1.schema.json",
+  "title": "SharedSpaceConsentV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocolVersion",
+    "consentRecordId",
+    "sharedSpaceId",
+    "memberId",
+    "personalRootId",
+    "requestedRole",
+    "consentTextHash",
+    "grantedAt",
+    "memberSignature"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "protocolVersion": {
+      "const": "shared-space/v1"
+    },
+    "consentRecordId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sharedSpaceId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^sspace-[0-9a-f-]{36}$"
+    },
+    "memberId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "personalRootId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requestedRole": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "admin",
+        "member",
+        "viewer"
+      ]
+    },
+    "consentTextHash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "grantedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "memberSignature": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": "shared-space/v1",
+  "intentId": "pub-intent-001",
+  "sharedSpaceId": "sspace-550e8400-e29b-41d4-a716-446655440000",
+  "publisherMemberId": "member-alice-001",
+  "personalRootId": "root-personal-alice-001",
+  "sourceRecordId": "personal-record-001",
+  "sourceRecordHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "targetDomainId": "shared-calendar",
+  "membershipEpoch": 1,
+  "requiresDualApproval": true,
+  "publisherSignature": "ed25519:signature-publication-intent-v1",
+  "createdAt": "2026-07-19T12:10:00.000Z"
+}

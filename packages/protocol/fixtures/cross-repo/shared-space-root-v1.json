@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": "shared-space/v1",
+  "sharedSpaceId": "sspace-550e8400-e29b-41d4-a716-446655440000",
+  "sharedSpaceRootPublicKey": "ed25519:MCowBQYDK2VwAyEA1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab",
+  "membershipEpoch": 0,
+  "recoveryThreshold": 2,
+  "recoveryTotal": 3,
+  "recoverySecretHash": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+  "createdAt": "2026-07-19T12:00:00.000Z",
+  "updatedAt": "2026-07-19T12:00:00.000Z",
+  "rootSignature": "ed25519:signature-root-anchor-v1"
+}

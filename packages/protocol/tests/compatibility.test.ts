@@ -52,6 +52,13 @@ const fixtureBySchemaId: Record<ProtocolSchemaId, string> = {
   'execution-receipt-v1': 'execution-receipt-v1.json',
   'execution-health-v1': 'execution-health-v1.json',
   'execution-revocation-v1': 'execution-revocation-v1.json',
+  'shared-space-root-v1': 'shared-space-root-v1.json',
+  'shared-space-membership-v1': 'shared-space-membership-v1.json',
+  'shared-space-consent-v1': 'shared-space-consent-v1.json',
+  'shared-space-publication-intent-v1': 'shared-space-publication-intent-v1.json',
+  'shared-space-key-rotation-v1': 'shared-space-key-rotation-v1.json',
+  'shared-space-departure-v1': 'shared-space-departure-v1.json',
+  'shared-space-recovery-v1': 'shared-space-recovery-v1.json',
 };
 
 describe('@semblance/protocol compatibility', () => {

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/shared-space-departure-v1.schema.json",
+  "title": "SharedSpaceDepartureV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocolVersion",
+    "sharedSpaceId",
+    "membershipEpoch",
+    "departingMemberId",
+    "personalRootId",
+    "keyRotationId",
+    "authorizedByMemberIds",
+    "occurredAt",
+    "rootSignature"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "protocolVersion": {
+      "const": "shared-space/v1"
+    },
+    "sharedSpaceId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^sspace-[0-9a-f-]{36}$"
+    },
+    "membershipEpoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "departingMemberId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "personalRootId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "keyRotationId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorizedByMemberIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rootSignature": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

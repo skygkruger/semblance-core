@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/shared-space-recovery-v1.schema.json",
+  "title": "SharedSpaceRecoveryV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocolVersion",
+    "sharedSpaceId",
+    "membershipEpoch",
+    "recoveryThreshold",
+    "submittedShares",
+    "reconstructedSecretHash",
+    "authorizedOwnerMemberIds",
+    "newRootPublicKey",
+    "occurredAt",
+    "rootSignature"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "protocolVersion": {
+      "const": "shared-space/v1"
+    },
+    "sharedSpaceId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^sspace-[0-9a-f-]{36}$"
+    },
+    "membershipEpoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recoveryThreshold": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "submittedShares": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "index",
+          "shareHex"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "shareHex": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "reconstructedSecretHash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorizedOwnerMemberIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "newRootPublicKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rootSignature": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

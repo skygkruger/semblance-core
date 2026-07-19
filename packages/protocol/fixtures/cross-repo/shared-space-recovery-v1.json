@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": "shared-space/v1",
+  "sharedSpaceId": "sspace-550e8400-e29b-41d4-a716-446655440000",
+  "membershipEpoch": 3,
+  "recoveryThreshold": 2,
+  "submittedShares": [
+    { "index": 1, "shareHex": "aabbccdd00112233445566778899aabbccdd00112233445566778899aabb" },
+    { "index": 2, "shareHex": "112233445566778899aabbccddeeff00112233445566778899aabbccdd" }
+  ],
+  "reconstructedSecretHash": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+  "authorizedOwnerMemberIds": ["member-owner-001", "member-coowner-002"],
+  "newRootPublicKey": "ed25519:MCowBQYDK2VwAyEAnewrootpublickeynewrootpublickeynewrootpublickeynew",
+  "occurredAt": "2026-07-19T12:20:00.000Z",
+  "rootSignature": "ed25519:signature-recovery-v1"
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": "shared-space/v1",
+  "sharedSpaceId": "sspace-550e8400-e29b-41d4-a716-446655440000",
+  "membershipEpoch": 2,
+  "departingMemberId": "member-alice-001",
+  "personalRootId": "root-personal-alice-001",
+  "keyRotationId": "rotation-departure-001",
+  "authorizedByMemberIds": ["member-owner-001"],
+  "occurredAt": "2026-07-19T12:14:00.000Z",
+  "rootSignature": "ed25519:signature-departure-v1"
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/shared-space-key-rotation-v1.schema.json",
+  "title": "SharedSpaceKeyRotationV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocolVersion",
+    "sharedSpaceId",
+    "membershipEpoch",
+    "priorMasterKeyFingerprint",
+    "newMasterKeyFingerprint",
+    "trigger",
+    "memberKeyEnvelopes",
+    "authorizedByMemberIds",
+    "occurredAt",
+    "rootSignature"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "protocolVersion": {
+      "const": "shared-space/v1"
+    },
+    "sharedSpaceId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^sspace-[0-9a-f-]{36}$"
+    },
+    "membershipEpoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "priorMasterKeyFingerprint": {
+      "type": "string",
+      "minLength": 1
+    },
+    "newMasterKeyFingerprint": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trigger": {
+      "type": "string",
+      "enum": [
+        "member_added",
+        "member_departed",
+        "recovery",
+        "scheduled"
+      ]
+    },
+    "memberKeyEnvelopes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "memberId",
+          "encryptedMasterKey"
+        ],
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "encryptedMasterKey": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "authorizedByMemberIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rootSignature": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": "shared-space/v1",
+  "sharedSpaceId": "sspace-550e8400-e29b-41d4-a716-446655440000",
+  "membershipEpoch": 1,
+  "operation": "add",
+  "memberId": "member-alice-001",
+  "personalRootId": "root-personal-alice-001",
+  "memberPublicKey": "ed25519:MCowBQYDK2VwAyEAalicepublickeyalicepublickeyalicepublickeyalicepub",
+  "role": "member",
+  "consentRecordId": "consent-alice-001",
+  "priorEventHash": null,
+  "authorizedByMemberIds": ["member-owner-001"],
+  "sharedKeyEnvelope": "shared-aes256gcm:envelope-for-alice-v1",
+  "occurredAt": "2026-07-19T12:05:00.000Z",
+  "rootSignature": "ed25519:signature-membership-add-v1"
+}
