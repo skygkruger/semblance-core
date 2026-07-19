@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "releaseId": "mobile-sync-mesh-2026-07-19",
-  "generatedAt": "2026-07-19T17:08:49Z",
+  "releaseId": "signed-capability-ecosystem-2026-07-19",
+  "generatedAt": "2026-07-19T17:25:21Z",
   "repositories": {
     "core": {
       "sourceCommit": "7ae319499520ee202f333097f172fb4a8ed64da9",
@@ -783,6 +783,45 @@
         "RuntimeVerified",
         "AdversariallyVerified"
       ]
+    },
+    {
+      "id": "slice-12-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-12/slice-12-exit-gate.json",
+      "sha256": "95628e1b4ec8b01655657996d8785f7a8a2570220ed619ed98bcd085a3d3b16a",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-12-exit-gate-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-12/exit-gate.txt",
+      "sha256": "e0928b7fc550c850ae3faf048008b361d047469ae664851b0e5678d0ee0dba6f",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-12-extension-conformance",
+      "repository": "core",
+      "path": "release/evidence/slice-12/extension-conformance.txt",
+      "sha256": "6b20544cf60615bbc0250874b94d07765ccc74c9a9f5a2824e094deac08c0a7d",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-12-marketplace-catalog-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-12/marketplace-catalog-tests.txt",
+      "sha256": "f491855d2f038215aabb3effe7a05e5e03453231c81b62ec66cd5f5c8664a8bb",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
     }
   ],
   "commerce": {
@@ -811,7 +850,8 @@
     8,
     9,
     10,
-    11
+    11,
+    12
   ],
   "features": [
     {
@@ -1121,6 +1161,29 @@
       "protocolVersions": {
         "releaseEvidence": 1,
         "execution": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "signed-capability-ecosystem",
+      "name": "Signed capability ecosystem and extension conformance",
+      "repository": "core",
+      "state": "AdversariallyVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-12-exit-gate",
+        "slice-12-exit-gate-tests",
+        "slice-12-extension-conformance",
+        "slice-12-marketplace-catalog-tests"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1,
+        "extensionManifest": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],

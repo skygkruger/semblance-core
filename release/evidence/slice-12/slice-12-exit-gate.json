@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "slice": 12,
+  "releaseId": "signed-capability-ecosystem-2026-07-19",
+  "generatedAt": "2026-07-19T17:25:21.000Z",
+  "exitGate": {
+    "sampleThirdPartyExtensionPassesConformance": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-12/extension-conformance.txt",
+      "notes": "Signed third-party fixture loads through sandbox + permission-enforced clients"
+    },
+    "installsWithExplicitPermissions": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-12/install-e2e.test.ts",
+      "notes": "ExtensionInstallStore + bridge-equivalent trust checker require explicit grants"
+    },
+    "cannotExceedGrantedPermissions": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-12/extension-conformance.txt",
+      "notes": "Undeclared network, vault, gateway, UI slot, and schedule access blocked at runtime"
+    },
+    "uninstallsAccordingToDeclaredPolicy": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-12/extension-conformance.txt",
+      "notes": "delete, retain_user_data, and ask migration policies honored on uninstall"
+    },
+    "trustAndRevocationEnforced": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-12/exit-gate.txt",
+      "notes": "Revoked marketplace publishers cannot install; kernel trust checker consulted"
+    },
+    "sdkNoRawHandles": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-12/exit-gate.txt",
+      "notes": "Extension SDK exports mediated clients only; assertSdkSurfaceNoRawHandles passes"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 6,
+  "runtimeVerifiedExitItems": 6,
+  "honestBlockers": []
+}

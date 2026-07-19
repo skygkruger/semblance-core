@@ -1,0 +1,11 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+
+ ✓ packages/kernel/tests/marketplace-catalog.test.ts (3 tests) 7ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  10:25:21
+   Duration  246ms (transform 65ms, setup 93ms, import 57ms, tests 7ms, environment 0ms)
+
