@@ -219,6 +219,13 @@ import {
   migrateLegacyOAuthTokensToKernel,
   createMemoryKeyStore,
 } from '../../../kernel/src/index.js';
+import {
+  listWorkActions,
+  getWorkAction,
+  approveWorkAction,
+  getActionReceipt,
+} from '../../../proof/src/index.js';
+import { assertAuditPendingBeforeDispatch } from '../../../gateway/audit/trail.js';
 import { oauthClients, UNCONFIGURED_CLIENT_ID } from '../../../gateway/config/oauth-clients.js';
 import { registerAllConnectors, wireConnectorRouter } from '../../../gateway/services/connector-registration.js';
 import type { ConnectorRouter } from '../../../gateway/services/connector-router.js';
@@ -10370,6 +10377,117 @@ async function handleRequest(req: Request): Promise<void> {
           }
           const result = localVault.surface.deleteSource(deleteParams.sourceId);
           respond(id, { success: true, deletion: result });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'work:list_actions': {
+        if (!gateway) { respond(id, []); break; }
+        try {
+          const listParams = (params ?? {}) as { limit?: number; offset?: number };
+          const actions = listWorkActions({
+            store: gateway.getActionLifecycleStore(),
+            limit: listParams.limit ?? 100,
+            offset: listParams.offset ?? 0,
+            autonomyTier: 'partner',
+          });
+          respond(id, actions);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'work:get_action': {
+        if (!gateway) { respondError(id, 'Gateway not initialized'); break; }
+        try {
+          const getParams = params as { actionId?: string };
+          if (!getParams.actionId) {
+            respondError(id, 'actionId is required');
+            break;
+          }
+          const action = getWorkAction(
+            gateway.getActionLifecycleStore(),
+            getParams.actionId,
+          );
+          if (!action) {
+            respondError(id, `Action not found: ${getParams.actionId}`);
+            break;
+          }
+          respond(id, action);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'work:approve_action': {
+        if (!gateway) { respondError(id, 'Gateway not initialized'); break; }
+        try {
+          const approveParams = params as { actionId?: string };
+          if (!approveParams.actionId) {
+            respondError(id, 'actionId is required');
+            break;
+          }
+          const record = gateway.getActionLifecycleStore().getRecord(approveParams.actionId);
+          if (!record) {
+            respondError(id, `Action not found: ${approveParams.actionId}`);
+            break;
+          }
+          const result = await approveWorkAction({
+            store: gateway.getActionLifecycleStore(),
+            actionId: approveParams.actionId,
+            idempotencyKey: record.idempotencyKey,
+            requestId: record.requestId,
+            actionType: record.actionType,
+            payloadHash: record.payloadHash,
+            auditCorrelationId: record.auditCorrelationId,
+            logAuditPending: () => gateway!.getAuditTrail().logPending({
+              requestId: record.requestId,
+              action: record.actionType,
+              payloadHash: record.payloadHash,
+              signature: `work-approve:${record.actionId}`,
+            }),
+            assertAuditPendingBeforeDispatch: (auditPendingId) => {
+              assertAuditPendingBeforeDispatch(
+                gateway!.getAuditTrail(),
+                record.requestId,
+                auditPendingId,
+              );
+            },
+            execute: async () => {
+              const adapter = gateway!.getServiceRegistry().getAdapter(record.actionType);
+              return adapter.execute(record.actionType, {});
+            },
+          });
+          respond(id, {
+            success: result.execution.success,
+            action: getWorkAction(gateway.getActionLifecycleStore(), result.record.actionId),
+            error: result.execution.error,
+          });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'proof:get_receipt': {
+        if (!gateway) { respondError(id, 'Gateway not initialized'); break; }
+        try {
+          const receiptParams = params as { actionId?: string };
+          if (!receiptParams.actionId) {
+            respondError(id, 'actionId is required');
+            break;
+          }
+          const receipt = getActionReceipt({
+            store: gateway.getActionLifecycleStore(),
+            auditTrail: gateway.getAuditTrail(),
+            actionId: receiptParams.actionId,
+            signingKey: gateway.getSigningKey(),
+          });
+          respond(id, receipt);
         } catch (err) {
           respondError(id, (err as Error).message);
         }

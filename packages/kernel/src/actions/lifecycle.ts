@@ -252,3 +252,45 @@ export async function executeAuditedAction(
 
   return dispatchAndExecute(record, params);
 }
+
+export async function approveAndDispatchAction(
+  params: ExecuteAuditedActionParams & { actionId: string },
+): Promise<ExecuteAuditedActionResult> {
+  const record = params.store.getRecord(params.actionId);
+  if (!record) {
+    throw new Error(`Action not found: ${params.actionId}`);
+  }
+
+  if (record.state === 'completed') {
+    return {
+      record,
+      execution: { success: true, data: { idempotent: true }, timedOut: false },
+    };
+  }
+
+  if (record.state === 'failed' || record.state === 'rejected') {
+    return {
+      record,
+      execution: {
+        success: false,
+        error: {
+          code: 'IDEMPOTENT_FAILURE',
+          message: record.failureReason ?? `Action ${record.actionId} already ${record.state}`,
+        },
+        timedOut: false,
+      },
+    };
+  }
+
+  let dispatchable = record;
+  if (record.state === 'proposed') {
+    dispatchable = applyTransition(record, 'approve');
+    params.store.updateRecord(dispatchable);
+  }
+
+  if (dispatchable.state === 'approved' || dispatchable.state === 'dispatched') {
+    return dispatchAndExecute(dispatchable, params);
+  }
+
+  throw new Error(`Action ${params.actionId} cannot be dispatched from state ${dispatchable.state}`);
+}

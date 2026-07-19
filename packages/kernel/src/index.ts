@@ -149,6 +149,7 @@ export {
 } from './actions/reconciler.js';
 export {
   executeAuditedAction,
+  approveAndDispatchAction,
   type ExecuteAuditedActionParams,
   type ExecuteAuditedActionResult,
 } from './actions/lifecycle.js';

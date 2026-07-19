@@ -109,6 +109,13 @@ export class ActionLifecycleStore {
     }
     this.saveRecord(record);
   }
+
+  listRecords(limit = 100, offset = 0): ActionRecord[] {
+    const rows = this.db.prepare(
+      'SELECT record_json FROM action_records ORDER BY updated_at DESC LIMIT ? OFFSET ?',
+    ).all(limit, offset) as Array<{ record_json: string }>;
+    return rows.map((row) => JSON.parse(row.record_json) as ActionRecord);
+  }
 }
 
 export function createActionLifecycleStore(db: Database.Database): ActionLifecycleStore {

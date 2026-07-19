@@ -57,6 +57,7 @@ export class Gateway {
   private auditTrail: AuditTrail | null = null;
   private actionLifecycleDb: Database.Database | null = null;
   private actionLifecycleStore: ReturnType<typeof createActionLifecycleStore> | null = null;
+  private keyManager: KeyManager | null = null;
   private allowlist: Allowlist | null = null;
   private rateLimiter: RateLimiter | null = null;
   private anomalyDetector: AnomalyDetector | null = null;
@@ -99,8 +100,8 @@ export class Gateway {
     this.auditTrail = new AuditTrail(this.auditDb);
     this.actionLifecycleStore = createActionLifecycleStore(this.actionLifecycleDb);
     this.allowlist = new Allowlist(this.configDb);
-    const keyManager = new KeyManager(this.configDb);
-    const signingKey = keyManager.getKey();
+    this.keyManager = new KeyManager(this.configDb);
+    const signingKey = this.keyManager.getKey();
 
     // Write the signing key to a shared file so the Core process can read it
     const signingKeyPath = this.config.signingKeyPath ?? join(homedir(), '.semblance', 'signing.key');
@@ -108,7 +109,7 @@ export class Gateway {
     if (!existsSync(signingKeyDir)) {
       mkdirSync(signingKeyDir, { recursive: true });
     }
-    keyManager.writeKeyFile(signingKeyPath);
+    this.keyManager.writeKeyFile(signingKeyPath);
 
     this.rateLimiter = new RateLimiter(this.config.rateLimiter);
     this.anomalyDetector = new AnomalyDetector(this.config.anomalyDetector);
@@ -359,6 +360,22 @@ export class Gateway {
   getServiceRegistry(): ServiceRegistry {
     if (!this.serviceRegistry) throw new Error('Gateway not started');
     return this.serviceRegistry;
+  }
+
+  /**
+   * Get the kernel action lifecycle store (proposed/dispatched/completed actions).
+   */
+  getActionLifecycleStore(): ReturnType<typeof createActionLifecycleStore> {
+    if (!this.actionLifecycleStore) throw new Error('Gateway not started');
+    return this.actionLifecycleStore;
+  }
+
+  /**
+   * Get the Gateway HMAC signing key for action receipt proofs.
+   */
+  getSigningKey(): Buffer {
+    if (!this.keyManager) throw new Error('Gateway not started');
+    return this.keyManager.getKey();
   }
 
   /**

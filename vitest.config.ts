@@ -40,7 +40,7 @@ export default defineConfig({
     'process.env.NODE_ENV': '"test"',
   },
   test: {
-    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx', 'packages/*/tests/**/*.test.ts'],
     testTimeout: 10000,
     setupFiles: ['./tests/setup/dom-setup.ts'],
   },
@@ -56,6 +56,7 @@ export default defineConfig({
       { find: '@semblance/protocol', replacement: resolve(__dirname, 'packages/protocol') },
       { find: '@semblance/gateway', replacement: resolve(__dirname, 'packages/gateway') },
       { find: '@semblance/kernel', replacement: resolve(__dirname, 'packages/kernel/src/index.ts') },
+      { find: '@semblance/proof', replacement: resolve(__dirname, 'packages/proof/src/index.ts') },
       { find: '@semblance/ui', replacement: resolve(__dirname, 'packages/semblance-ui') },
       { find: '@semblance/desktop', replacement: resolve(__dirname, 'packages/desktop/src') },
       { find: '@tauri-apps/api/core', replacement: resolve(__dirname, 'tests/helpers/mock-tauri.ts') },
