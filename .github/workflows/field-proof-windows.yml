@@ -90,12 +90,14 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         # Skip monorepo `tsc --build` (broken path resolution on clean CI) and
-        # skip esbuild sidecar rebundle (use checked-in *.cjs). Still build UI + runtimes.
+        # skip esbuild sidecar rebundle (use checked-in *.cjs). Still build UI,
+        # copy sidecar natives, and bundle runtimes. beforeBuildCommand cwd is the
+        # nearest package.json dir (packages/desktop), same as tauri.conf.json.
         shell: pwsh
         run: |
           $cfg = @{
             build = @{
-              beforeBuildCommand = "cd .. && npm run build && node ../../scripts/bundle-runtimes.js"
+              beforeBuildCommand = "cd ../.. && cd packages/desktop && npm run build && node ../../scripts/bundle-sidecar.js --copy-natives-only && node ../../scripts/bundle-kernel-bridge.js && node ../../scripts/bundle-runtime-core.js && node ../../scripts/bundle-runtime-gateway.js && node ../../scripts/bundle-runtime-model.js && node ../../scripts/bundle-runtimes.js"
             }
           } | ConvertTo-Json -Depth 5 -Compress
           Set-Content -Path field-proof-tauri.overlay.json -Value $cfg -Encoding utf8
