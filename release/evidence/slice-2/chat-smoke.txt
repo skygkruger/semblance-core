@@ -1,0 +1,3 @@
+PASS initialize
+PASS send_message coherent error: No AI model available. Go to Settings → AI Engine to download a model, or install Ollama (ollama.com) for GPU-accelerated inference.
+SLICE2_CHAT_SMOKE_OK

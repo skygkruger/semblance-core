@@ -15,12 +15,11 @@
 import { createContext, useContext, useCallback, useMemo, type ReactNode } from 'react';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import type { AppState } from '../state/AppState';
-import { getLicenseStatus, activateLicenseKey, importFoundingReservation } from '../ipc/commands';
+import { getLicenseStatus, activateLicenseKey, importFoundingReservation, requestLicensePortalSession } from '../ipc/commands';
 import type { ActivationResult, ReservationImportResult } from '../ipc/types';
 import releaseManifest from '../../../../release/release-manifest.json';
 import {
   openCheckout as openCheckoutUrl,
-  requestPortalUrl,
   type CheckoutPlan,
 } from './license-commerce';
 
@@ -136,7 +135,7 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
   const manageSubscription = useCallback(() => {
     if (!licenseKey) return;
 
-    requestPortalUrl(licenseKey)
+    requestLicensePortalSession(licenseKey)
       .then((approvedUrl) => {
         if (approvedUrl) {
           openExternal(approvedUrl);

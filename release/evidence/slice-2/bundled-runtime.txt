@@ -1,0 +1,10 @@
+[bundle-runtimes] Platform triple: darwin-arm64
+[bundle-runtimes] Bundled /opt/homebrew/Cellar/node/25.9.0/bin/node -> /Users/veridiansynthetics/semblance-core/packages/desktop/src-tauri/runtimes/darwin-arm64/node (v25.9.0, sha256=c8bc91c8219053214a7adfb4ff03cf784d1fe20a0eaf172551d338a68ac2181e)
+[bundle-runtimes] OK darwin-arm64 node=v25.9.0 sha256=c8bc91c8219053214a7adfb4ff03cf784d1fe20a0eaf172551d338a68ac2181e
+[bundle-runtimes] Platform triple: darwin-arm64
+[bundle-runtimes] OK darwin-arm64 node=v25.9.0 sha256=c8bc91c8219053214a7adfb4ff03cf784d1fe20a0eaf172551d338a68ac2181e
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+

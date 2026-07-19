@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "releaseId": "truth-baseline-2026-07-18",
-  "generatedAt": "2026-07-18T21:41:37Z",
+  "releaseId": "kernel-process-spine-2026-07-18",
+  "generatedAt": "2026-07-18T22:42:30Z",
   "repositories": {
     "core": {
-      "sourceCommit": "12d30e227f899c23e7a048f78a47348ce5221ae0",
-      "sourceTreeHash": "07beef2b966b1f7dc05531905e2e5e90c1495b09"
+      "sourceCommit": "e2d239a58601c465a43c4b227718874ff6a8618f",
+      "sourceTreeHash": "ecacf3d44f3f8c7eca5e87efb1afe45f279dc66a"
     },
     "representative": {
       "sourceCommit": "dcd6d71dcc7d6d367d4e6626635e16744185de4d",
@@ -191,6 +191,79 @@
       "requiredForStates": [
         "Implemented"
       ]
+    },
+    {
+      "id": "slice-2-process-isolation",
+      "repository": "core",
+      "path": "release/evidence/slice-2/process-isolation.txt",
+      "sha256": "0d4715237ed49d0a6d109a4a4a69c3830a11eda7ffdf15b648b35fcd1193e96f",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-2-egress-adversarial",
+      "repository": "core",
+      "path": "release/evidence/slice-2/egress-adversarial.txt",
+      "sha256": "5acaa2c95fdea1406098b94cee5c26226c45cddc5434ba02b344cf20fa76b4b2",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-2-kernel-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-2/kernel-tests.txt",
+      "sha256": "772aea410608e92a98bfae7ddadf630bab6279f4bba42818a419ada6338521da",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-2-bundled-runtime",
+      "repository": "core",
+      "path": "release/evidence/slice-2/bundled-runtime.txt",
+      "sha256": "c9b8e73fa8e15054be5cf3ac98f68912805c8d0322b1f65b7de26197535df215",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-2-supervisor-status",
+      "repository": "core",
+      "path": "release/evidence/slice-2/supervisor-status.json",
+      "sha256": "2ab83278be9d949dea5f3022c651d340ba93877fb04a331c9dbe5ae5c4c10e8c",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-2-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-2/slice-2-exit-gate.json",
+      "sha256": "6183beaf3859e56747b6ce874975b34eaf86aba4d1e786e2b57f2a3e88ea050e",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "migration-slice-2-secure-storage",
+      "repository": "representative",
+      "path": "docs/release-manifests/migrations/slice-2-secure-storage.json",
+      "sha256": "cf0e71b61d95a449d5c2a4233803f3618eaacc4ba83eee01fb32810f7e6728e6",
+      "requiredForStates": [
+        "Implemented"
+      ]
+    },
+    {
+      "id": "slice-2-chat-smoke",
+      "repository": "core",
+      "path": "release/evidence/slice-2/chat-smoke.txt",
+      "sha256": "f1244f7817a26e734e4d8530a1356239b495c35a46a4183d87c0d9d5c1d648f7",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
     }
   ],
   "commerce": {
@@ -209,7 +282,8 @@
   "infrastructurePolicyVersions": [],
   "legalNoticesVersion": "2026-07-18",
   "completedSlices": [
-    1
+    1,
+    2
   ],
   "features": [
     {
@@ -263,6 +337,32 @@
         "commerce-freeze-evidence",
         "commerce-shadow",
         "migration-commerce-freeze"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "kernel-process-spine",
+      "name": "Sovereignty kernel and process spine",
+      "repository": "core",
+      "state": "RuntimeVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-2-process-isolation",
+        "slice-2-egress-adversarial",
+        "slice-2-kernel-tests",
+        "slice-2-bundled-runtime",
+        "slice-2-supervisor-status",
+        "slice-2-exit-gate",
+        "migration-slice-2-secure-storage",
+        "slice-2-chat-smoke"
       ],
       "protocolVersions": {
         "releaseEvidence": 1

@@ -1,0 +1,7 @@
+{
+  "protocolVersion": 1,
+  "processId": "core-01HXYZ",
+  "processType": "core",
+  "buildHash": "sha256:abc123def456",
+  "nonce": "nonce-7f3a9c2b1d4e"
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/action-response-v1.schema.json",
+  "title": "ActionResponseV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocolVersion", "requestId", "timestamp", "status", "auditRef"],
+  "properties": {
+    "protocolVersion": { "const": 1 },
+    "requestId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "status": {
+      "type": "string",
+      "enum": ["success", "error", "requires_approval", "rate_limited"]
+    },
+    "data": {},
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    },
+    "auditRef": { "type": "string" },
+    "executedOn": { "type": "string", "enum": ["local", "remote"] },
+    "remoteDeviceId": { "type": "string" },
+    "remoteDeviceName": { "type": "string" }
+  }
+}

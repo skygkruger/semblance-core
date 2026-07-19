@@ -7,7 +7,7 @@
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "cd ../.. && npx tsc --build && cd packages/desktop && npm run build && node ../../scripts/bundle-sidecar.js"
+    "beforeBuildCommand": "cd ../.. && npx tsc --build && cd packages/desktop && npm run build && node ../../scripts/bundle-sidecar.js && node ../../scripts/bundle-kernel-bridge.js && node ../../scripts/bundle-runtime-core.js && node ../../scripts/bundle-runtime-gateway.js && node ../../scripts/bundle-runtime-model.js && node ../../scripts/bundle-runtimes.js"
   },
   "app": {
     "windows": [
@@ -43,7 +43,12 @@
     ],
     "resources": [
       "sidecar/bridge.cjs",
-      "sidecar/node_modules/**/*"
+      "sidecar/kernel-bridge.cjs",
+      "sidecar/runtime-core-bridge.cjs",
+      "sidecar/runtime-gateway-bridge.cjs",
+      "sidecar/runtime-model-bridge.cjs",
+      "sidecar/node_modules/**/*",
+      "runtimes/**/*"
     ],
     "category": "Productivity",
     "copyright": "\u00a9 2026 Veridian Synthetics",

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/vault-event-v1.schema.json",
+  "title": "VaultEventV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "deviceId",
+    "membershipEpoch",
+    "eventType",
+    "sourceRefs",
+    "sensitivity",
+    "occurredAt",
+    "payloadCiphertext",
+    "signature"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "eventId": { "type": "string", "minLength": 1 },
+    "deviceId": { "type": "string", "minLength": 1 },
+    "membershipEpoch": { "type": "integer", "minimum": 0 },
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "source_ingested",
+        "assertion_proposed",
+        "assertion_confirmed",
+        "corrected",
+        "action_result",
+        "outcome_recorded",
+        "deleted"
+      ]
+    },
+    "sourceRefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schemaVersion", "sourceId", "sourceType", "uri", "ingestedAt"],
+        "properties": {
+          "schemaVersion": { "const": 1 },
+          "sourceId": { "type": "string", "minLength": 1 },
+          "sourceType": { "type": "string", "minLength": 1 },
+          "uri": { "type": "string", "minLength": 1 },
+          "ingestedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": ["public", "personal", "sensitive", "restricted"]
+    },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "payloadCiphertext": { "type": "string", "minLength": 1 },
+    "signature": { "type": "string", "minLength": 1 }
+  }
+}

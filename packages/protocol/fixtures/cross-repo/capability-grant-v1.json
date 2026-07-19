@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "capabilityId": "cap-email-fetch-001",
+  "principalId": "principal-local-001",
+  "deviceId": "device-macbook-001",
+  "processId": "core-01HXYZ",
+  "sessionId": "session-9b2c4d6e8f0a",
+  "processType": "core",
+  "extensionInstanceId": null,
+  "workflowId": "wf-inbox-triage",
+  "consentReceiptId": "receipt-consent-001",
+  "executionDestination": "gateway",
+  "resource": "gateway",
+  "operations": ["email.fetch"],
+  "purpose": "Fetch inbox messages for triage",
+  "dataScope": {
+    "domains": ["email"],
+    "accounts": ["user@example.com"],
+    "sources": ["gmail"],
+    "recordClasses": ["message"]
+  },
+  "constraints": {
+    "domains": ["email"],
+    "resultLimit": 50,
+    "sensitivityCeiling": "personal"
+  },
+  "issuedAt": "2026-07-18T12:00:00.000Z",
+  "expiresAt": "2026-07-18T12:05:00.000Z",
+  "policyEpoch": 3,
+  "revocationEpoch": 0,
+  "auditCorrelationId": "audit-cap-001",
+  "signature": "ed25519:capability-signature-base64"
+}

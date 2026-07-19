@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/proof-receipt-v1.schema.json",
+  "title": "ProofReceiptV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "receiptId",
+    "receiptType",
+    "principalId",
+    "deviceId",
+    "workflowId",
+    "capabilityId",
+    "occurredAt",
+    "evidenceHash",
+    "priorReceiptHash",
+    "policyEpoch",
+    "signature"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "receiptId": { "type": "string", "minLength": 1 },
+    "receiptType": {
+      "type": "string",
+      "enum": ["consent", "vault_access", "disclosure", "action", "attestation", "usage", "sync", "deletion"]
+    },
+    "principalId": { "type": "string", "minLength": 1 },
+    "deviceId": { "type": "string", "minLength": 1 },
+    "workflowId": { "type": "string", "minLength": 1 },
+    "capabilityId": { "type": ["string", "null"] },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "evidenceHash": { "type": "string", "minLength": 1 },
+    "priorReceiptHash": { "type": ["string", "null"] },
+    "policyEpoch": { "type": "integer", "minimum": 0 },
+    "signature": { "type": "string", "minLength": 1 }
+  }
+}

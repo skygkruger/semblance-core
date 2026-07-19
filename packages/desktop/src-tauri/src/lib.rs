@@ -28,6 +28,9 @@ use std::os::windows::process::CommandExt;
 mod deep_link;
 mod hardware;
 mod native_runtime;
+mod runtime_node;
+mod secure_storage;
+mod supervisor;
 use native_runtime::RuntimeStatus;
 
 // ─── Data Types ────────────────────────────────────────────────────────────
@@ -202,8 +205,8 @@ impl SidecarBridge {
         };
 
         let (node_path, script_path, working_dir) = if bundled_bridge.exists() {
-            // Production mode: bundled bridge.cjs, use system node
-            let node = which_node().ok_or("Node.js not found. Install Node.js 20+ to run Semblance.")?;
+            // Production mode: bundled bridge.cjs + bundled Node runtime
+            let node = runtime_node::resolve_runtime_node(Some(&app_handle), &project_root)?;
             let sidecar_dir = bundled_bridge.parent().unwrap_or(&exe_dir).to_path_buf();
             // Normalize all paths (strip UNC prefix if present) to avoid Node arg parsing bugs.
             let node = strip_unc(node);
@@ -732,6 +735,27 @@ impl SidecarBridge {
 /// Wrapper struct for Tauri managed state.
 struct AppBridge {
     bridge: SidecarBridge,
+}
+
+/// Managed sovereignty kernel supervisor (Slice 2.4).
+struct ManagedSupervisor {
+    supervisor: supervisor::SovereignSupervisor,
+}
+
+#[tauri::command]
+async fn supervisor_kernel_readiness(
+    state: tauri::State<'_, ManagedSupervisor>,
+) -> Result<Value, String> {
+    state.supervisor.kernel_readiness().await
+}
+
+#[tauri::command]
+async fn supervisor_status(
+    supervisor_state: tauri::State<'_, ManagedSupervisor>,
+    app: tauri::AppHandle,
+) -> Result<supervisor::SupervisorStatus, String> {
+    let sidecar_separate = app.try_state::<AppBridge>().is_some();
+    Ok(supervisor_state.supervisor.status(sidecar_separate).await)
 }
 
 // ─── Tauri Commands ────────────────────────────────────────────────────────
@@ -1834,6 +1858,21 @@ async fn disconnect_license(state: tauri::State<'_, AppBridge>) -> Result<Value,
     state
         .bridge
         .call("license:disconnect", serde_json::json!({}))
+        .await
+}
+
+/// Request a Stripe Customer Portal session URL via Gateway commerce transport.
+#[tauri::command]
+async fn request_license_portal_session(
+    state: tauri::State<'_, AppBridge>,
+    license_key: String,
+) -> Result<Value, String> {
+    state
+        .bridge
+        .call(
+            "license:portal_session",
+            serde_json::json!({ "licenseKey": license_key }),
+        )
         .await
 }
 
@@ -3064,6 +3103,31 @@ pub fn run() {
             // Create NativeRuntime for direct llama.cpp inference
             let native_runtime = native_runtime::create_runtime();
 
+            // Spawn sovereignty kernel beside legacy sidecar (non-fatal on failure).
+            let kernel_project_root = project_root.clone();
+            let app_handle_kernel = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                match supervisor::SovereignSupervisor::spawn_kernel(
+                    kernel_project_root,
+                    app_handle_kernel.clone(),
+                )
+                .await
+                {
+                    Ok(supervisor) => {
+                        app_handle_kernel.manage(ManagedSupervisor { supervisor });
+                        eprintln!(
+                            "[tauri] SovereignSupervisor managed — kernel readiness available"
+                        );
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "[tauri] Kernel spawn failed (non-fatal, chat uses legacy sidecar): {}",
+                            e
+                        );
+                    }
+                }
+            });
+
             // Spawn the sidecar asynchronously
             let app_handle_clone = app_handle.clone();
             tauri::async_runtime::spawn(async move {
@@ -3202,6 +3266,7 @@ pub fn run() {
             activate_license_key,
             get_license_status,
             disconnect_license,
+            request_license_portal_session,
             // Conversation Management
             list_conversations,
             get_conversation,
@@ -3352,34 +3417,15 @@ pub fn run() {
             ipc_send,
             // Upgrade Email
             upgrade_submit_email,
+            // Kernel secure storage (OS keychain)
+            secure_storage::secure_storage_get,
+            secure_storage::secure_storage_set,
+            secure_storage::secure_storage_delete,
+            supervisor_kernel_readiness,
+            supervisor_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-/// Find Node.js binary on the system PATH.
-fn which_node() -> Option<PathBuf> {
-    #[cfg(windows)]
-    let candidates = ["node.exe"];
-    #[cfg(not(windows))]
-    let candidates = ["node"];
-
-    if let Ok(path_var) = std::env::var("PATH") {
-        #[cfg(windows)]
-        let separator = ';';
-        #[cfg(not(windows))]
-        let separator = ':';
-
-        for dir in path_var.split(separator) {
-            for name in &candidates {
-                let full = PathBuf::from(dir).join(name);
-                if full.exists() {
-                    return Some(full);
-                }
-            }
-        }
-    }
-    None
 }
 
 /// Walk up directory tree to find the project root (contains package.json with "workspaces").

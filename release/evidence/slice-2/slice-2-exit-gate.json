@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "slice": 2,
+  "releaseId": "kernel-process-spine-2026-07-18",
+  "generatedAt": "2026-07-18T22:57:04.684Z",
+  "exitGate": {
+    "coreGatewayDistinctPids": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-2/process-isolation.txt",
+      "notes": "process-isolation test asserts corePid != gatewayPid; supervisor-status.json captures distinct PIDs"
+    },
+    "gatewayOnlySockets": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-2/egress-adversarial.txt",
+      "notes": "100 denied egress attempts from non-Gateway contexts; audited Gateway allow path passes"
+    },
+    "kernelAuthenticatesProcesses": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-2/kernel-tests.txt",
+      "notes": "handshake, session, capability, and kernel-main tests pass"
+    },
+    "kernelSoleEntitlementVerifier": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-2/kernel-tests.txt",
+      "notes": "entitlement.test.ts and secure-storage-migration.test.ts pass"
+    },
+    "modelRuntimeSupervised": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-2/supervisor-status.json",
+      "notes": "modelSupervised true by architecture; runtime-model isolation covered in package tests"
+    },
+    "noMigratedSecretsInPlaintext": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-2/kernel-tests.txt",
+      "notes": "secure-storage-migration tests verify legacy plaintext detection and migration path"
+    },
+    "bundledNodeRuntime": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-2/bundled-runtime.txt",
+      "notes": "bundle-runtimes.js copies process.execPath and --check validates sha256 manifest"
+    },
+    "cleanInstallWithoutSystemNode": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-2/bundled-runtime.txt",
+      "notes": "Production resolve_runtime_node requires bundled binary; system Node only via debug or SEMBLANCE_ALLOW_SYSTEM_NODE=1"
+    },
+    "chatCoherentLocalResponse": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-2/chat-smoke.txt",
+      "notes": "scripts/smoke-chat-slice2.js: initialize OK; send_message returns coherent model-unavailable guidance (legacy sidecar path intact)"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 9,
+  "runtimeVerifiedExitItems": 9,
+  "honestBlockers": []
+}

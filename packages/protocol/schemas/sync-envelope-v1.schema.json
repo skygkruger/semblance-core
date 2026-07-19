@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/sync-envelope-v1.schema.json",
+  "title": "SyncEnvelopeV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "envelopeKind",
+    "payload"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "envelopeKind": {
+      "type": "string",
+      "enum": [
+        "device_membership",
+        "policy_epoch",
+        "encrypted_event"
+      ]
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "envelopeKind": {
+            "const": "device_membership"
+          }
+        },
+        "required": [
+          "envelopeKind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "rootId",
+              "membershipEpoch",
+              "operation",
+              "deviceId",
+              "devicePublicKey",
+              "priorEventHash",
+              "authorizedByDeviceIds",
+              "quorumProof",
+              "domainKeyEnvelopes",
+              "occurredAt",
+              "rootSignature"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "rootId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "membershipEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "revoke",
+                  "rotate_root",
+                  "change_recovery",
+                  "transfer_owner"
+                ]
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "devicePublicKey": {
+                "type": "string",
+                "minLength": 1
+              },
+              "priorEventHash": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "authorizedByDeviceIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "quorumProof": {
+                "type": "string",
+                "minLength": 1
+              },
+              "domainKeyEnvelopes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "domainId",
+                    "recipientDeviceId",
+                    "encryptedKey"
+                  ],
+                  "properties": {
+                    "domainId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "recipientDeviceId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "encryptedKey": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              },
+              "occurredAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "rootSignature": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "envelopeKind": {
+            "const": "policy_epoch"
+          }
+        },
+        "required": [
+          "envelopeKind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "rootId",
+              "policyEpoch",
+              "priorPolicyEventHash",
+              "policyDocumentHash",
+              "authorizedByDeviceIds",
+              "quorumProof",
+              "occurredAt",
+              "rootSignature"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "rootId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "policyEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "priorPolicyEventHash": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "policyDocumentHash": {
+                "type": "string",
+                "minLength": 1
+              },
+              "authorizedByDeviceIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "quorumProof": {
+                "type": "string",
+                "minLength": 1
+              },
+              "occurredAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "rootSignature": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "envelopeKind": {
+            "const": "encrypted_event"
+          }
+        },
+        "required": [
+          "envelopeKind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "eventId",
+              "deviceId",
+              "membershipEpoch",
+              "domainId",
+              "causalParentIds",
+              "lamportClock",
+              "vectorClock",
+              "ciphertext",
+              "signature"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "eventId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "membershipEpoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "domainId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "causalParentIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "lamportClock": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "vectorClock": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "ciphertext": {
+                "type": "string",
+                "minLength": 1
+              },
+              "signature": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

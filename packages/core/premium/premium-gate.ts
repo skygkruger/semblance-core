@@ -48,6 +48,21 @@ export interface ActivationResult {
   error?: string;
 }
 
+export interface EntitlementSnapshot {
+  active: boolean;
+  tier: LicenseTier;
+  validUntil: string | null;
+  seat: number | null;
+}
+
+/**
+ * Authoritative entitlement view supplied by the sovereignty kernel.
+ * When set, PremiumGate consults this snapshot instead of SQLite metadata.
+ */
+export interface EntitlementSnapshotSource {
+  getSnapshot(): EntitlementSnapshot | null;
+}
+
 interface LicenseRow {
   tier: string;
   activated_at: string;
@@ -106,11 +121,24 @@ const TIER_RANK: Record<LicenseTier, number> = {
 export class PremiumGate {
   private db: DatabaseHandle;
   private keyStorage: LicenseKeyStorage | null;
+  private entitlementSource: EntitlementSnapshotSource | null = null;
 
   constructor(db: DatabaseHandle, keyStorage?: LicenseKeyStorage) {
     this.db = db;
     this.keyStorage = keyStorage ?? null;
     this.ensureTable();
+  }
+
+  /**
+   * Wire kernel-backed entitlement verification. When provided, isPremium() and
+   * getLicenseTier() consult the kernel snapshot first (offline-capable).
+   */
+  setEntitlementSource(source: EntitlementSnapshotSource | null): void {
+    this.entitlementSource = source;
+  }
+
+  private getAuthoritativeSnapshot(): EntitlementSnapshot | null {
+    return this.entitlementSource?.getSnapshot() ?? null;
   }
 
   private ensureTable(): void {
@@ -176,6 +204,11 @@ export class PremiumGate {
    * Returns true if current license is founding, digital-representative, or lifetime AND not expired.
    */
   isPremium(): boolean {
+    const kernelSnapshot = this.getAuthoritativeSnapshot();
+    if (this.entitlementSource) {
+      return kernelSnapshot?.active === true && kernelSnapshot.tier !== 'free';
+    }
+
     const tier = this.getLicenseTier();
     if (tier === 'free') return false;
 
@@ -197,6 +230,14 @@ export class PremiumGate {
    * Returns the current license tier, or 'free' if no license.
    */
   getLicenseTier(): LicenseTier {
+    const kernelSnapshot = this.getAuthoritativeSnapshot();
+    if (this.entitlementSource) {
+      if (!kernelSnapshot?.active) {
+        return 'free';
+      }
+      return kernelSnapshot.tier;
+    }
+
     const row = this.db.prepare('SELECT tier FROM license WHERE id = 1').get() as LicenseRow | undefined;
     if (!row) return 'free';
     if (row.tier === 'founding' && this.hasPersistedReservationBearer()) {
@@ -279,6 +320,14 @@ export class PremiumGate {
    * Returns the founding member seat number, or null if not a founding member.
    */
   getFoundingSeat(): number | null {
+    const kernelSnapshot = this.getAuthoritativeSnapshot();
+    if (this.entitlementSource) {
+      if (!kernelSnapshot?.active || kernelSnapshot.tier !== 'founding') {
+        return null;
+      }
+      return kernelSnapshot.seat;
+    }
+
     const row = this.db.prepare('SELECT founding_seat FROM license WHERE id = 1').get() as
       | { founding_seat: number | null }
       | undefined;

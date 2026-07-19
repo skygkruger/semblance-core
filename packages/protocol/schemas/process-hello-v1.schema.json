@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/process-hello-v1.schema.json",
+  "title": "ProcessHelloV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocolVersion", "processId", "processType", "buildHash", "nonce"],
+  "properties": {
+    "protocolVersion": { "const": 1 },
+    "processId": { "type": "string", "minLength": 1 },
+    "processType": {
+      "type": "string",
+      "enum": ["kernel", "core", "gateway", "model", "extension-runner", "cloud-broker", "vault"]
+    },
+    "buildHash": { "type": "string", "minLength": 1 },
+    "nonce": { "type": "string", "minLength": 1 }
+  }
+}

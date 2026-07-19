@@ -6,9 +6,6 @@ const PAYMENT_LINKS: Record<CheckoutPlan, string> = {
   lifetime: 'https://buy.stripe.com/8x23cw6pH7K71vAfgm1VK05',
 };
 
-const WORKER_URL = 'https://semblance-license-worker.conduit-gw.workers.dev';
-const APPROVED_PORTAL_HOSTS = new Set(['billing.stripe.com']);
-
 export type ExternalOpener = (url: string) => void | Promise<void>;
 
 export function openCheckout(
@@ -21,23 +18,9 @@ export function openCheckout(
   return true;
 }
 
-export async function requestPortalUrl(
-  licenseKey: string,
-  fetcher: typeof fetch = fetch,
-): Promise<string | null> {
-  const response = await fetcher(`${WORKER_URL}/portal`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ licenseKey }),
-  });
-  if (!response.ok) return null;
-
-  const data = await response.json() as { url?: unknown };
-  if (typeof data.url !== 'string') return null;
-  return approvedPortalUrl(data.url);
-}
-
+/** Pure URL validation — network fetch happens in Gateway commerce transport only. */
 export function approvedPortalUrl(input: string): string | null {
+  const APPROVED_PORTAL_HOSTS = new Set(['billing.stripe.com']);
   try {
     const parsed = new URL(input);
     if (

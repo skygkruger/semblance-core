@@ -26,3 +26,5 @@ serde_json = "1"
 sysinfo = "0.32"
 llama-cpp-2 = { version = "0.1.141", features = ["mtmd"] }
 url = "2"
+keyring = "3"
+sha2 = "0.10"

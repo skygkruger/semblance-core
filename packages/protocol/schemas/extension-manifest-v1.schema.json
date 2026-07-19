@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/extension-manifest-v1.schema.json",
+  "title": "ExtensionManifestV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "publisher",
+    "version",
+    "platformApi",
+    "contentHash",
+    "entitlement",
+    "dataCapabilities",
+    "actionCapabilities",
+    "networkDestinations",
+    "tools",
+    "insightTypes",
+    "uiSlots",
+    "schedules",
+    "modelRequirements",
+    "runtimeRequirements",
+    "migration",
+    "validFrom",
+    "validUntil",
+    "signatureKeyId",
+    "signature"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "publisher": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "platformApi": { "type": "string", "minLength": 1 },
+    "contentHash": { "type": "string", "minLength": 1 },
+    "entitlement": { "type": ["string", "null"] },
+    "dataCapabilities": { "type": "array", "items": { "type": "string" } },
+    "actionCapabilities": { "type": "array", "items": { "type": "string" } },
+    "networkDestinations": { "type": "array", "items": { "type": "string" } },
+    "tools": { "type": "array", "items": { "type": "string" } },
+    "insightTypes": { "type": "array", "items": { "type": "string" } },
+    "uiSlots": { "type": "array", "items": { "type": "string" } },
+    "schedules": { "type": "array", "items": { "type": "string" } },
+    "modelRequirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["modelClass", "minimumContext", "localRequired"],
+        "properties": {
+          "modelClass": { "type": "string", "minLength": 1 },
+          "minimumContext": { "type": "integer", "minimum": 1 },
+          "localRequired": { "type": "boolean" }
+        }
+      }
+    },
+    "runtimeRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memoryMiB", "cpuShares", "platformApi"],
+      "properties": {
+        "memoryMiB": { "type": "integer", "minimum": 1 },
+        "cpuShares": { "type": "number", "exclusiveMinimum": 0 },
+        "platformApi": { "type": "string", "minLength": 1 }
+      }
+    },
+    "migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "uninstall"],
+      "properties": {
+        "schemaVersion": { "type": "integer", "minimum": 0 },
+        "uninstall": { "type": "string", "enum": ["delete", "retain_user_data", "ask"] }
+      }
+    },
+    "validFrom": { "type": "string", "format": "date-time" },
+    "validUntil": { "type": ["string", "null"], "format": "date-time" },
+    "signatureKeyId": { "type": "string", "minLength": 1 },
+    "signature": { "type": "string", "minLength": 1 }
+  }
+}

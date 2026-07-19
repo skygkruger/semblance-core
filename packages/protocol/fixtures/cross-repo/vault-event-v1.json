@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "eventId": "vault-event-001",
+  "deviceId": "device-macbook-001",
+  "membershipEpoch": 2,
+  "eventType": "source_ingested",
+  "sourceRefs": [
+    {
+      "schemaVersion": 1,
+      "sourceId": "email-msg-001",
+      "sourceType": "email",
+      "uri": "email://gmail/INBOX/abc123",
+      "ingestedAt": "2026-07-18T11:59:00.000Z"
+    }
+  ],
+  "sensitivity": "personal",
+  "occurredAt": "2026-07-18T12:00:00.000Z",
+  "payloadCiphertext": "aes256gcm:ciphertext-base64",
+  "signature": "ed25519:vault-event-signature-base64"
+}

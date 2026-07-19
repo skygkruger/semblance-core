@@ -1,0 +1,12 @@
+{
+  "protocolVersion": 1,
+  "id": "req-email-fetch-001",
+  "timestamp": "2026-07-18T12:00:01.000Z",
+  "action": "email.fetch",
+  "payload": {
+    "folder": "INBOX",
+    "limit": 25
+  },
+  "source": "core",
+  "signature": "hmac-sha256:request-signature-base64"
+}

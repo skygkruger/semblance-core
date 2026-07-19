@@ -6,9 +6,13 @@ import type { DatabaseHandle } from '../../packages/core/platform/types.js';
 import { PremiumGate } from '../../packages/core/premium/premium-gate.js';
 import { setLicensePublicKey } from '../../packages/core/premium/license-keys.js';
 import {
+  approvedPortalUrl,
   openCheckout,
-  requestPortalUrl,
 } from '../../packages/desktop/src/contexts/license-commerce.js';
+import {
+  CommerceTransport,
+} from '../../packages/gateway/services/commerce-transport.js';
+import { runWithGatewayNetwork } from '../../packages/core/security/egress-guard.js';
 import { UpgradeScreen } from '../../packages/semblance-ui/components/UpgradeScreen/UpgradeScreen.web.js';
 import {
   LICENSE_TEST_PUBLIC_KEY_PEM,
@@ -58,26 +62,31 @@ describe('release-manifest commerce freeze behavior', () => {
     expect(opener).not.toHaveBeenCalled();
   });
 
-  it('requires a successful portal response and an exact Stripe HTTPS host', async () => {
+  it('requires a successful portal response and an exact Stripe HTTPS host via Gateway transport', async () => {
     const response = (ok: boolean, url: unknown) => vi.fn(async () => ({
       ok,
       json: async () => ({ url }),
     })) as unknown as typeof fetch;
 
-    await expect(requestPortalUrl('sem_key', response(false, 'https://billing.stripe.com/p/session')))
-      .resolves.toBeNull();
-    await expect(requestPortalUrl('sem_key', response(true, 'http://billing.stripe.com/p/session')))
-      .resolves.toBeNull();
-    await expect(requestPortalUrl('sem_key', response(true, 'https://billing.stripe.com.evil.test/p/session')))
-      .resolves.toBeNull();
-    await expect(requestPortalUrl('sem_key', response(true, 'https://billing.stripe.com:444/p/session')))
-      .resolves.toBeNull();
-    await expect(requestPortalUrl('sem_key', response(true, 'https://evil.test/?next=https://billing.stripe.com')))
-      .resolves.toBeNull();
-    await expect(requestPortalUrl('sem_key', response(true, 'not a url')))
-      .resolves.toBeNull();
-    await expect(requestPortalUrl('sem_key', response(true, 'https://billing.stripe.com/p/session_123')))
-      .resolves.toBe('https://billing.stripe.com/p/session_123');
+    const transport = (fetchImpl: typeof fetch) => new CommerceTransport({ fetchImpl });
+
+    await expect(runWithGatewayNetwork(() => transport(response(false, 'https://billing.stripe.com/p/session')).createPortalSession('sem_key')))
+      .resolves.toEqual({ url: null });
+    await expect(runWithGatewayNetwork(() => transport(response(true, 'http://billing.stripe.com/p/session')).createPortalSession('sem_key')))
+      .resolves.toEqual({ url: null });
+    await expect(runWithGatewayNetwork(() => transport(response(true, 'https://billing.stripe.com.evil.test/p/session')).createPortalSession('sem_key')))
+      .resolves.toEqual({ url: null });
+    await expect(runWithGatewayNetwork(() => transport(response(true, 'https://billing.stripe.com:444/p/session')).createPortalSession('sem_key')))
+      .resolves.toEqual({ url: null });
+    await expect(runWithGatewayNetwork(() => transport(response(true, 'https://evil.test/?next=https://billing.stripe.com')).createPortalSession('sem_key')))
+      .resolves.toEqual({ url: null });
+    await expect(runWithGatewayNetwork(() => transport(response(true, 'not a url')).createPortalSession('sem_key')))
+      .resolves.toEqual({ url: null });
+    await expect(runWithGatewayNetwork(() => transport(response(true, 'https://billing.stripe.com/p/session_123')).createPortalSession('sem_key')))
+      .resolves.toEqual({ url: 'https://billing.stripe.com/p/session_123' });
+
+    expect(approvedPortalUrl('https://billing.stripe.com/p/session_123'))
+      .toBe('https://billing.stripe.com/p/session_123');
   });
 
   it('keeps paid activation and renewal capability independent of the freeze', () => {

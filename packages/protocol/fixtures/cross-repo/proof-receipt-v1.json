@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "proof-receipt-001",
+  "receiptType": "action",
+  "principalId": "principal-local-001",
+  "deviceId": "device-macbook-001",
+  "workflowId": "wf-inbox-triage",
+  "capabilityId": "cap-email-fetch-001",
+  "occurredAt": "2026-07-18T12:00:03.000Z",
+  "evidenceHash": "sha256:evidence-hash",
+  "priorReceiptHash": null,
+  "policyEpoch": 3,
+  "signature": "ed25519:proof-receipt-signature-base64"
+}

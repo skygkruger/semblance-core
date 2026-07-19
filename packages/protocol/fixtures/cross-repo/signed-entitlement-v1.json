@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "entitlementId": "ent-dr-lifetime-001",
+  "memberId": "member-sky-001",
+  "tier": "digital-representative",
+  "validFrom": "2026-01-01T00:00:00.000Z",
+  "validUntil": null,
+  "offlineGraceDays": 30,
+  "revocationEpoch": 0,
+  "issuerKeyId": "semblance-issuer-v1",
+  "signature": "ed25519:entitlement-signature-base64"
+}

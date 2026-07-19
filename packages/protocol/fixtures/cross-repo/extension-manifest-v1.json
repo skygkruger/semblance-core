@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "com.semblance.dr",
+  "publisher": "Veridian Synthetics",
+  "version": "1.0.0",
+  "platformApi": "2026-07-18",
+  "contentHash": "sha256:manifest-content-hash",
+  "entitlement": "digital-representative",
+  "dataCapabilities": ["email.read"],
+  "actionCapabilities": ["email.send"],
+  "networkDestinations": ["api.google.com"],
+  "tools": ["inbox_triage"],
+  "insightTypes": ["morning_brief"],
+  "uiSlots": ["settings.digital_representative"],
+  "schedules": ["daily_digest"],
+  "modelRequirements": [
+    {
+      "modelClass": "small",
+      "minimumContext": 8192,
+      "localRequired": true
+    }
+  ],
+  "runtimeRequirements": {
+    "memoryMiB": 512,
+    "cpuShares": 1,
+    "platformApi": "2026-07-18"
+  },
+  "migration": {
+    "schemaVersion": 1,
+    "uninstall": "retain_user_data"
+  },
+  "validFrom": "2026-07-01T00:00:00.000Z",
+  "validUntil": null,
+  "signatureKeyId": "publisher-key-v1",
+  "signature": "ed25519:manifest-signature-base64"
+}
