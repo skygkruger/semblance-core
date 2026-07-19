@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { ChatBubble, AgentInput, StatusIndicator, DocumentPanel, ArtifactPanel, ConversationHistoryPanel, ApprovalCard, AlterEgoDraftReview, AlterEgoReceipt, AlterEgoBatchReview, ActionCard, ToolStepCard, getToolDisplayName } from '@semblance/ui';
 import type { ArtifactItem, ToolStepCardProps } from '@semblance/ui';
 import { MessageDraftCard } from '../components/MessageDraftCard';
@@ -45,10 +46,12 @@ import {
 } from '../ipc/commands';
 import { validateAttachment, mimeFromExtension } from '@semblance/core/agent/attachments';
 import { createDesktopVoiceAdapter } from '@semblance/core/platform/desktop-voice';
+import { VaultCitationChips, stripVaultCitationMarkers } from '../components/VaultCitationChips';
 import type { DocumentContext, ChatMessage, ChatActionItem } from '../state/AppState';
 
 export function ChatScreen() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const state = useAppState();
   const dispatch = useAppDispatch();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1535,10 +1538,12 @@ export function ChatScreen() {
                     <ChatBubble
                       role={msg.role}
                       content={msg.role === 'assistant'
-                        ? msg.content
-                            .replace(/<artifact\s+[^>]*>[\s\S]*?<\/artifact>/g, '')
-                            .replace(/<\/?artifact[^>]*>/g, '')
-                            .trim()
+                        ? stripVaultCitationMarkers(
+                            msg.content
+                              .replace(/<artifact\s+[^>]*>[\s\S]*?<\/artifact>/g, '')
+                              .replace(/<\/?artifact[^>]*>/g, '')
+                              .trim(),
+                          )
                         : msg.content}
                       timestamp={msg.timestamp}
                       streaming={isStreaming}
@@ -1552,6 +1557,15 @@ export function ChatScreen() {
                       } : undefined}
                     />
                   )}
+
+                  {msg.role === 'assistant' && !isStreaming ? (
+                    <div className="chat-bubble chat-bubble--assistant">
+                      <VaultCitationChips
+                        content={msg.content}
+                        onSourceClick={(sourceId) => navigate('/vault', { state: { highlightSourceId: sourceId } })}
+                      />
+                    </div>
+                  ) : null}
 
                   {/* Inline actions — show completed actions during orchestration, pending only after */}
                   {msg.actions && msg.actions.length > 0 && (() => {

@@ -6,6 +6,7 @@ import Database from 'better-sqlite3';
 import { createEventLog, type VaultEventLog } from '../event-log/index.js';
 import { createVaultFileIngestHooks, type VaultFileIngestHooks } from '../ingest/file-ingest.js';
 import { VaultChatGroundingImpl, type VaultChatGrounding } from '../chat/vault-chat-grounding.js';
+import { createVaultSurfaceOps, type VaultSurfaceOps } from '../surface/vault-surface.js';
 
 const LOCAL_PRINCIPAL_ID = 'principal-local-sidecar';
 const ROOT_KEY_FILENAME = 'root.key';
@@ -22,6 +23,7 @@ export interface LocalVaultBootstrap {
   eventLog: VaultEventLog;
   fileIngestHooks: VaultFileIngestHooks;
   chatGrounding: VaultChatGrounding;
+  surface: VaultSurfaceOps;
   close: () => void;
 }
 
@@ -76,10 +78,19 @@ export function bootstrapLocalVault(options: BootstrapLocalVaultOptions): LocalV
     deviceId,
   });
 
+  const surface = createVaultSurfaceOps({
+    eventLog,
+    db,
+    rootKey,
+    deviceId,
+    principalId,
+  });
+
   return {
     eventLog,
     fileIngestHooks,
     chatGrounding,
+    surface,
     close: () => {
       eventLog.close();
       db.close();

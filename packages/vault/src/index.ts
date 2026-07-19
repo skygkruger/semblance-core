@@ -186,6 +186,19 @@ export {
   type LocalVaultBootstrap,
 } from './bootstrap/local-vault.js';
 export {
+  createVaultSurfaceOps,
+  createVaultSurfaceReadGrant,
+  findDocumentIdForSourceId,
+  projectVaultAssertions,
+  projectVaultSources,
+  type VaultAssertionSummary,
+  type VaultSourceSummary,
+  type VaultSurfaceExport,
+  type VaultSurfaceOps,
+  type VaultSurfaceOpsOptions,
+  type VaultSurfaceStatus,
+} from './surface/index.js';
+export {
   appendFileDeletedToVault,
   buildFileIngestEventId,
   buildFileIngestPayload,

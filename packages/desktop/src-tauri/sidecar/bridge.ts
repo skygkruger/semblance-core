@@ -10223,6 +10223,49 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      case 'vault:list_sources': {
+        if (!localVault) { respond(id, []); break; }
+        respond(id, localVault.surface.listSources());
+        break;
+      }
+
+      case 'vault:list_assertions': {
+        if (!localVault) { respond(id, []); break; }
+        respond(id, localVault.surface.listAssertions());
+        break;
+      }
+
+      case 'vault:get_status': {
+        if (!localVault) {
+          respond(id, { sourceCount: 0, assertionCount: 0, eventCount: 0, hasVaultEvents: false });
+          break;
+        }
+        respond(id, localVault.surface.getStatus());
+        break;
+      }
+
+      case 'vault:export': {
+        if (!localVault) { respondError(id, 'Local vault not initialized'); break; }
+        respond(id, localVault.surface.exportSnapshot());
+        break;
+      }
+
+      case 'vault:delete_source': {
+        if (!localVault) { respondError(id, 'Local vault not initialized'); break; }
+        try {
+          const deleteParams = params as { sourceId: string };
+          if (!deleteParams.sourceId) {
+            respondError(id, 'sourceId is required');
+            break;
+          }
+          const result = localVault.surface.deleteSource(deleteParams.sourceId);
+          respond(id, { success: true, deletion: result });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
       case 'speculative_cache_status': {
         if (!speculativeLoader) { respond(id, { entries: 0, hitRate: 0, oldestEntryAge: 'none' }); break; }
         respond(id, speculativeLoader.getStatus());

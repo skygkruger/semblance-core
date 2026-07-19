@@ -1163,3 +1163,53 @@ export interface ModelDownloadState {
   status: 'pending' | 'downloading' | 'complete' | 'error';
   error?: string;
 }
+
+// ─── Vault Surface ──────────────────────────────────────────────────────────
+
+export interface VaultSourceSummary {
+  sourceId: string;
+  sourceType: string;
+  documentId: string;
+  title: string;
+  mimeType: string | null;
+  ingestedAt: string;
+  pathHash: string | null;
+  deleted: boolean;
+  retentionUntil: string | null;
+}
+
+export interface VaultAssertionSummary {
+  assertionId: string;
+  status: string;
+  subject: string;
+  predicate: string;
+  object: string;
+  confidence: number;
+  derivationMethod: string;
+  sourceIds: string[];
+  retentionUntil: string | null;
+  createdAt: string;
+  corrected: boolean;
+}
+
+export interface VaultSurfaceStatus {
+  sourceCount: number;
+  assertionCount: number;
+  eventCount: number;
+  hasVaultEvents: boolean;
+}
+
+export interface VaultSurfaceExport {
+  exportedAt: string;
+  sources: VaultSourceSummary[];
+  assertions: VaultAssertionSummary[];
+}
+
+export interface VaultDeleteSourceResult {
+  success: boolean;
+  deletion?: {
+    tombstoneEventId: string;
+    deletionReceiptHash: string;
+    documentCount: number;
+  };
+}
