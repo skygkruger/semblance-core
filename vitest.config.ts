@@ -40,6 +40,8 @@ export default defineConfig({
     extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.jsx', '.js', '.json'],
     alias: {
       '@semblance/core': resolve(__dirname, 'packages/core'),
+      '@semblance/vault': resolve(__dirname, 'packages/vault'),
+      '@semblance/protocol': resolve(__dirname, 'packages/protocol'),
       '@semblance/gateway': resolve(__dirname, 'packages/gateway'),
       '@semblance/ui': resolve(__dirname, 'packages/semblance-ui'),
       '@semblance/desktop': resolve(__dirname, 'packages/desktop/src'),

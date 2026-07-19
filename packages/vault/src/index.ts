@@ -171,6 +171,21 @@ export {
   type RollbackResult,
 } from './migration/index.js';
 export {
+  createQueryLimitedVaultReadGrant,
+  type CreateQueryLimitedVaultReadGrantParams,
+} from './chat/grant-factory.js';
+export {
+  VaultChatGroundingImpl,
+  type VaultChatGrounding,
+  type VaultChatChunk,
+  type VaultChatGroundingOptions,
+} from './chat/vault-chat-grounding.js';
+export {
+  bootstrapLocalVault,
+  type BootstrapLocalVaultOptions,
+  type LocalVaultBootstrap,
+} from './bootstrap/local-vault.js';
+export {
   appendFileDeletedToVault,
   buildFileIngestEventId,
   buildFileIngestPayload,

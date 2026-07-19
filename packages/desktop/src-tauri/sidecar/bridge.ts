@@ -44,6 +44,7 @@ import { mkdirSync, existsSync, readFileSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
 import { createSemblanceCore, type SemblanceCore, type ChatMessage } from '../../../core/index.js';
+import { bootstrapLocalVault, type LocalVaultBootstrap } from '../../../vault/src/index.js';
 import { createLLMProvider, BitNetProvider, InferenceRouter } from '../../../core/llm/index.js';
 import type { NativeRuntimeBridge } from '../../../core/llm/native-bridge-types.js';
 import { getPlatform } from '../../../core/platform/index.js';
@@ -295,6 +296,7 @@ const pendingCallbacks = callbackProtocol.pendingCallbacks;
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let core: SemblanceCore | null = null;
+let localVault: LocalVaultBootstrap | null = null;
 let gateway: Gateway | null = null;
 
 function getCommerceTransport(): CommerceTransport {
@@ -883,8 +885,17 @@ async function handleInitialize(): Promise<unknown> {
   });
 
   try {
+    console.error('[sidecar] Bootstrapping local vault...');
+    localVault = bootstrapLocalVault({ dataDir });
+    console.error('[sidecar] Local vault ready (event log + ingest hooks + chat grounding)');
+
     console.error('[sidecar] Creating SemblanceCore...');
-    core = createSemblanceCore({ dataDir, llmProvider: nativeLlm });
+    core = createSemblanceCore({
+      dataDir,
+      llmProvider: nativeLlm,
+      vaultIngest: localVault.fileIngestHooks,
+      vaultChatGrounding: localVault.chatGrounding,
+    });
     console.error('[sidecar] SemblanceCore created, calling initialize...');
     // 60s timeout — core.initialize includes LanceDB, knowledge graph, IPC, and extensions
     const initTimeout = new Promise<never>((_, reject) =>
@@ -4262,6 +4273,12 @@ async function handleShutdown(): Promise<unknown> {
   if (core) {
     await core.shutdown();
     console.error('[sidecar] Core shut down');
+  }
+
+  if (localVault) {
+    localVault.close();
+    localVault = null;
+    console.error('[sidecar] Local vault shut down');
   }
 
   if (gateway) {

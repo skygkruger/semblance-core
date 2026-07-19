@@ -43,6 +43,8 @@ import type { AlterEgoGuardrails } from './alter-ego-guardrails.js';
 import { AdaptiveContextBudget } from './context-budget.js';
 import type { AlterEgoStore } from './alter-ego-store.js';
 import { ACTION_RISK_MAP } from './autonomy.js';
+import type { VaultChatGrounding, VaultChatChunk } from './context/vault-chat-grounding.js';
+import { extractVaultSourceCitations } from './context/citation-validator.js';
 
 // --- Conversation Storage ---
 
@@ -941,6 +943,7 @@ export class OrchestratorImpl implements Orchestrator {
   private allTools: ToolDefinition[] = [...BASE_TOOLS];
   private allLocalTools: Set<string> = new Set(BASE_LOCAL_TOOLS);
   private allToolActionMap: Record<string, ActionType> = { ...BASE_TOOL_ACTION_MAP };
+  private vaultChatGrounding: VaultChatGrounding | null = null;
 
   constructor(config: {
     llm: LLMProvider;
@@ -964,6 +967,7 @@ export class OrchestratorImpl implements Orchestrator {
     connectedServices?: string[];
     indexedDocCount?: number;
     hardwareTier?: 'constrained' | 'standard' | 'performance' | 'workstation' | 'enthusiast';
+    vaultChatGrounding?: VaultChatGrounding;
   }) {
     this.llm = config.llm;
     this.knowledge = config.knowledge;
@@ -984,7 +988,7 @@ export class OrchestratorImpl implements Orchestrator {
     this.alterEgoGuardrails = config.alterEgoGuardrails ?? null;
     this.alterEgoStore = config.alterEgoStore ?? null;
     this.weatherService = config.weatherService ?? null;
-    // Use the 'email' domain as a representative autonomy tier for the prompt —
+    this.vaultChatGrounding = config.vaultChatGrounding ?? null;
     // email is the most common action domain and Partner is the onboarding default
     const representativeTier = this.autonomy.getDomainTier('email');
     this.promptConfig = {
@@ -1304,10 +1308,19 @@ export class OrchestratorImpl implements Orchestrator {
     // as "context" or it hallucinates, indexes that hallucination, and compounds the
     // error on every subsequent turn. Conversation recall must be an explicit tool call.
     const kgLimit = this.contextBudget.calculateKnowledgeLimit(this.model);
-    const context = await this.knowledge.search(message, {
-      limit: kgLimit,
-      excludeSources: ['conversation'],
-    });
+    let context: SearchResult[];
+    let activeVaultGrantId: string | null = null;
+
+    if (this.vaultChatGrounding) {
+      const vaultGrounded = await this.vaultChatGrounding.retrieve(message, kgLimit);
+      activeVaultGrantId = vaultGrounded.grantId;
+      context = this.vaultChunksToSearchResults(vaultGrounded.chunks);
+    } else {
+      context = await this.knowledge.search(message, {
+        limit: kgLimit,
+        excludeSources: ['conversation'],
+      });
+    }
 
     // Step 3: Build conversation history
     const history = conversationId ? await this.getConversation(convId) : [];
@@ -1577,6 +1590,10 @@ export class OrchestratorImpl implements Orchestrator {
     // Guard against empty responses — show a helpful fallback instead of blank bubble
     if (!finalMessage || finalMessage.trim().length === 0) {
       finalMessage = "I wasn't able to generate a response. Could you try rephrasing your question?";
+    }
+
+    if (this.vaultChatGrounding && activeVaultGrantId) {
+      finalMessage = this.enforceVaultCitationPolicy(finalMessage, activeVaultGrantId);
     }
 
     // DEFENSE 2: Post-generation fabrication scan.
@@ -2078,6 +2095,51 @@ export class OrchestratorImpl implements Orchestrator {
   }
 
   // --- Private helpers ---
+
+  private vaultChunksToSearchResults(chunks: VaultChatChunk[]): SearchResult[] {
+    const now = new Date().toISOString();
+    return chunks.map((chunk, index) => ({
+      chunk: {
+        id: chunk.sourceId,
+        documentId: chunk.sourceId,
+        content: chunk.text,
+        chunkIndex: 0,
+        metadata: { vaultSourceId: chunk.sourceId },
+      },
+      document: {
+        id: chunk.sourceId,
+        source: 'local_file',
+        title: chunk.title,
+        content: chunk.text,
+        contentHash: '',
+        mimeType: 'text/plain',
+        createdAt: now,
+        updatedAt: now,
+        indexedAt: now,
+        metadata: { vaultGrounded: true },
+      },
+      score: Math.max(0.1, 1 - index * 0.01),
+    }));
+  }
+
+  private enforceVaultCitationPolicy(message: string, grantId: string): string {
+    if (!this.vaultChatGrounding) {
+      return message;
+    }
+
+    const citedSourceIds = extractVaultSourceCitations(message);
+    if (citedSourceIds.length === 0) {
+      return message;
+    }
+
+    const validation = this.vaultChatGrounding.validateCitations(grantId, citedSourceIds);
+    if (validation.ok) {
+      return message;
+    }
+
+    const rejectedList = validation.rejected.join(', ');
+    return `${message}\n\n(Some cited sources were rejected because they were not returned for this query: ${rejectedList})`;
+  }
 
   private buildMessages(
     message: string,
