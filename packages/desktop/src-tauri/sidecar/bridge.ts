@@ -44,7 +44,7 @@ import { mkdirSync, existsSync, readFileSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
 import { createSemblanceCore, type SemblanceCore, type ChatMessage } from '../../../core/index.js';
-import { bootstrapLocalVault, type LocalVaultBootstrap } from '../../../vault/src/index.js';
+import { bootstrapLocalVault, SharedSpaceVaultService, type LocalVaultBootstrap, type SharedSpaceVaultService as SharedSpaceVaultServiceType } from '../../../vault/src/index.js';
 import {
   createSyncSecureStorageAdapter,
   SovereigntyRootService,
@@ -401,6 +401,7 @@ let localVault: LocalVaultBootstrap | null = null;
 let syncRootService: SyncRootService | null = null;
 let syncEventService: SyncEventServiceType | null = null;
 let sharedSpaceService: SharedSpaceServiceType | null = null;
+let sharedSpaceVaultService: SharedSpaceVaultServiceType | null = null;
 let syncRelayClient: SyncRelayClientType | null = null;
 let computeMeshRouter: ComputeMeshRouterType | null = null;
 let gatewaySyncRelayAdapter: GatewaySyncRelayAdapter | null = null;
@@ -1142,6 +1143,7 @@ async function handleInitialize(): Promise<unknown> {
   } catch (sharedSpaceErr) {
     console.error('[sidecar] Shared-space store initialization failed:', sharedSpaceErr);
     sharedSpaceService = null;
+    sharedSpaceVaultService = null;
   }
 
   // ──── STEP 1: Open preferences DB FIRST ────
@@ -5232,6 +5234,7 @@ async function handleShutdown(): Promise<unknown> {
   if (sharedSpaceService) {
     sharedSpaceService.close();
     sharedSpaceService = null;
+    sharedSpaceVaultService = null;
     console.error('[sidecar] Shared-space store shut down');
   }
 
@@ -6254,6 +6257,10 @@ function initializeSharedSpaceStore(sidecarDataDir: string): void {
   sharedSpaceService = SharedSpaceService.initialize({
     dataDir: sidecarDataDir,
     secureStorage,
+  });
+  sharedSpaceVaultService = SharedSpaceVaultService.initialize({
+    dataDir: sidecarDataDir,
+    sharedSpaceService,
   });
   console.error('[sidecar] Shared-space store ready');
 }
@@ -11618,6 +11625,127 @@ async function handleRequest(req: Request): Promise<void> {
             result,
             status: sharedSpaceService.getStatus(departParams.sharedSpaceId),
           });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'shared_space:publish': {
+        if (!sharedSpaceVaultService) {
+          respondError(id, 'Shared-space vault service not initialized');
+          break;
+        }
+        try {
+          const publishParams = params as {
+            sharedSpaceId?: string;
+            actorMemberId?: string;
+            actorPersonalRootId?: string;
+            actorRole?: 'owner' | 'admin' | 'member' | 'viewer';
+            personalRecord?: { recordId?: string; recordHash?: string; payloadPlaintext?: string };
+            consent?: import('@semblance/protocol').SharedSpaceConsentV1;
+          };
+          if (
+            !publishParams.sharedSpaceId
+            || !publishParams.actorMemberId
+            || !publishParams.actorPersonalRootId
+            || !publishParams.actorRole
+            || !publishParams.personalRecord?.recordId
+            || !publishParams.personalRecord.recordHash
+            || !publishParams.personalRecord.payloadPlaintext
+            || !publishParams.consent
+          ) {
+            respondError(
+              id,
+              'sharedSpaceId, actorMemberId, actorPersonalRootId, actorRole, personalRecord, and consent are required',
+            );
+            break;
+          }
+          const result = sharedSpaceVaultService.publish({
+            sharedSpaceId: publishParams.sharedSpaceId,
+            actorMemberId: publishParams.actorMemberId,
+            actorPersonalRootId: publishParams.actorPersonalRootId,
+            actorRole: publishParams.actorRole,
+            personalRecord: {
+              recordId: publishParams.personalRecord.recordId,
+              recordHash: publishParams.personalRecord.recordHash,
+              payloadPlaintext: publishParams.personalRecord.payloadPlaintext,
+            },
+            consent: publishParams.consent,
+          });
+          respond(id, { success: true, result });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'shared_space:approve': {
+        if (!sharedSpaceVaultService) {
+          respondError(id, 'Shared-space vault service not initialized');
+          break;
+        }
+        try {
+          const approveParams = params as {
+            actionId?: string;
+            approverMemberId?: string;
+            actorMemberId?: string;
+            actorPersonalRootId?: string;
+            actorRole?: 'owner' | 'admin' | 'member' | 'viewer';
+            consent?: import('@semblance/protocol').SharedSpaceConsentV1;
+            personalRecord?: { recordId?: string; recordHash?: string; payloadPlaintext?: string };
+          };
+          if (
+            !approveParams.actionId
+            || !approveParams.approverMemberId
+            || !approveParams.actorMemberId
+            || !approveParams.actorPersonalRootId
+            || !approveParams.actorRole
+          ) {
+            respondError(
+              id,
+              'actionId, approverMemberId, actorMemberId, actorPersonalRootId, and actorRole are required',
+            );
+            break;
+          }
+          const result = sharedSpaceVaultService.approve({
+            actionId: approveParams.actionId,
+            approverMemberId: approveParams.approverMemberId,
+            actorMemberId: approveParams.actorMemberId,
+            actorPersonalRootId: approveParams.actorPersonalRootId,
+            actorRole: approveParams.actorRole,
+            consent: approveParams.consent,
+            personalRecord: approveParams.personalRecord?.recordId
+              ? {
+                  recordId: approveParams.personalRecord.recordId,
+                  recordHash: approveParams.personalRecord.recordHash ?? '',
+                  payloadPlaintext: approveParams.personalRecord.payloadPlaintext ?? '',
+                }
+              : undefined,
+          });
+          respond(id, { success: true, result });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'shared_space:list_shared': {
+        if (!sharedSpaceVaultService) {
+          respondError(id, 'Shared-space vault service not initialized');
+          break;
+        }
+        try {
+          const listParams = params as { sharedSpaceId?: string; viewerMemberId?: string };
+          if (!listParams.sharedSpaceId || !listParams.viewerMemberId) {
+            respondError(id, 'sharedSpaceId and viewerMemberId are required');
+            break;
+          }
+          const events = sharedSpaceVaultService.listShared({
+            sharedSpaceId: listParams.sharedSpaceId,
+            viewerMemberId: listParams.viewerMemberId,
+          });
+          respond(id, { success: true, events });
         } catch (err) {
           respondError(id, (err as Error).message);
         }

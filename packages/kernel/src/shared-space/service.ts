@@ -119,3 +119,19 @@ export {
   createSharedSpaceSecureStorage,
   type SharedSpaceSecureStorage,
 } from './secure-storage.js';
+export {
+  evaluateSharedAction,
+  decideOrgScopedExecutionDestination,
+  SENSITIVE_SHARED_ACTIONS,
+  SharedSpacePolicyError,
+  type CapabilityScope,
+  type EvaluateSharedActionInput,
+  type OrgScopedExecutionDestinationInput,
+  type SensitiveSharedAction,
+  type SharedActionEvaluation,
+  type SharedSpacePolicyAction,
+  type SharedSpacePolicyActor,
+  type SharedSpacePolicyApproval,
+  type SharedSpacePolicyActionRequest,
+  type SharedSpacePolicySpace,
+} from './policy.js';

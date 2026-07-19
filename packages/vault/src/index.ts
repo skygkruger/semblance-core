@@ -276,3 +276,16 @@ export {
   type VaultContentEraserOptions,
   type VaultDeletionResult,
 } from './deletion/index.js';
+export {
+  SharedSpaceVaultService,
+  approveSharedSpaceAction,
+  publishPersonalToSharedSpace,
+  projectSharedEventsForMember,
+  SharedSpaceEventLog,
+  openSharedSpaceEventLog,
+  createInMemorySharedSpaceEventLog,
+  type PersonalVaultRecordRef,
+  type PublishPersonalToSharedSpaceResult,
+  type SharedSpaceProjectedEvent,
+  type SharedSpaceVaultServiceOptions,
+} from './shared-space/service.js';
