@@ -38,7 +38,7 @@ export async function createKernel(config: KernelConfig): Promise<Kernel> {
     config.policyEpoch,
     config.defaultCapabilityTtlMs,
   );
-  const entitlement = createEntitlementService(keyStore);
+  const entitlement = createEntitlementService(keyStore, { deviceId: identity.deviceId });
 
   const ipcHandlers = createKernelIpcHandlers({
     buildHash: config.buildHash,

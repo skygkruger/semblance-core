@@ -196,7 +196,7 @@ describe('Slice 6 exit gate', () => {
   });
 
   it('rejects reservation JWT for paid entitlement activation', async () => {
-    const service = createEntitlementService(createMemoryKeyStore());
+    const service = createEntitlementService(createMemoryKeyStore(), { deviceId: 'slice6-device' });
     const result = await service.activate(VALID_TOKEN_SEAT_1);
     expect(result.success).toBe(false);
     expect(result.error).toContain('Reservation artifacts never grant paid entitlement');

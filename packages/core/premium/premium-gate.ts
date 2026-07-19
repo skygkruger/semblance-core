@@ -271,8 +271,16 @@ export class PremiumGate {
    * Activate a license key.
    * Key format: sem_<base64url(header)>.<base64url(payload)>.<base64url(signature)>
    * Three dot-separated segments where the payload decodes to JSON with tier+exp.
+   *
+   * When a kernel entitlement source is wired, activation must go through the kernel.
    */
   activateLicense(key: string): ActivationResult {
+    if (this.entitlementSource) {
+      return {
+        success: false,
+        error: 'Paid entitlement activation is kernel-authoritative. Use kernel entitlement service.',
+      };
+    }
     const validation = validatePaidLicenseKey(key);
     if (!validation.valid || !validation.payload) {
       return { success: false, error: validation.error ?? 'Invalid license key' };
@@ -355,8 +363,16 @@ export class PremiumGate {
   /**
    * Disconnect / deactivate the current license.
    * Clears both SQLite metadata and OS keychain key.
+   * Kernel-backed deployments must clear kernel entitlement separately.
    */
   async disconnect(): Promise<void> {
+    if (this.entitlementSource) {
+      this.db.prepare('DELETE FROM license WHERE id = 1').run();
+      if (this.keyStorage) {
+        await this.keyStorage.deleteLicenseKey().catch(() => {});
+      }
+      return;
+    }
     // Clear keychain first
     if (this.keyStorage) {
       await this.keyStorage.deleteLicenseKey().catch(() => {});
