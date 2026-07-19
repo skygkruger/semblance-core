@@ -14,6 +14,10 @@ export class SandboxViolationError extends Error {
 
 export interface ExtensionSandboxOptions {
   allowedWritePaths: string[];
+  /** Wall-clock limit for extension code execution (default 30s). */
+  executionTimeoutMs?: number;
+  /** Maximum heap growth allowed during a single run (default 256 MiB). */
+  maxHeapDeltaMiB?: number;
 }
 
 export interface ExtensionSandbox {
@@ -56,8 +60,23 @@ interface SandboxState {
   patched: boolean;
 }
 
+const DEFAULT_EXECUTION_TIMEOUT_MS = 30_000;
+const DEFAULT_MAX_HEAP_DELTA_MIB = 256;
+
+function checkHeapDelta(startHeap: number, maxHeapDeltaMiB: number): void {
+  const deltaMiB = (process.memoryUsage().heapUsed - startHeap) / (1024 * 1024);
+  if (deltaMiB > maxHeapDeltaMiB) {
+    throw new SandboxViolationError(
+      'memory',
+      `Heap delta ${deltaMiB.toFixed(1)}MiB exceeds limit ${maxHeapDeltaMiB}MiB`,
+    );
+  }
+}
+
 export function createExtensionSandbox(options: ExtensionSandboxOptions): ExtensionSandbox {
   const allowedWritePaths = options.allowedWritePaths.map(normalizePath);
+  const executionTimeoutMs = options.executionTimeoutMs ?? DEFAULT_EXECUTION_TIMEOUT_MS;
+  const maxHeapDeltaMiB = options.maxHeapDeltaMiB ?? DEFAULT_MAX_HEAP_DELTA_MIB;
   const state: SandboxState = {
     originalFetch: globalThis.fetch,
     originalEnv: process.env,
@@ -168,9 +187,36 @@ export function createExtensionSandbox(options: ExtensionSandboxOptions): Extens
   return {
     async run<T>(fn: () => T | Promise<T>): Promise<T> {
       activate();
+      const startHeap = process.memoryUsage().heapUsed;
+      let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+      let memoryHandle: ReturnType<typeof setInterval> | undefined;
       try {
-        return await fn();
+        checkHeapDelta(startHeap, maxHeapDeltaMiB);
+        memoryHandle = setInterval(() => {
+          checkHeapDelta(startHeap, maxHeapDeltaMiB);
+        }, 10);
+        const work = Promise.resolve().then(() => fn());
+        const timed = new Promise<T>((resolve, reject) => {
+          timeoutHandle = setTimeout(() => {
+            reject(
+              new SandboxViolationError(
+                'timeout',
+                `Execution exceeded ${executionTimeoutMs}ms`,
+              ),
+            );
+          }, executionTimeoutMs);
+          work.then(resolve, reject);
+        });
+        const result = await timed;
+        checkHeapDelta(startHeap, maxHeapDeltaMiB);
+        return result;
       } finally {
+        if (memoryHandle) {
+          clearInterval(memoryHandle);
+        }
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
         deactivate();
       }
     },

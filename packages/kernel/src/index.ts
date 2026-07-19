@@ -306,3 +306,20 @@ export {
   type ExtensionPermissionBundle,
   type ExplicitGrantValidation,
 } from './extension/permissions.js';
+export {
+  MARKETPLACE_CATALOG_SCHEMA_VERSION,
+  MARKETPLACE_NO_ENDORSEMENT_DISCLAIMER,
+  MARKETPLACE_REVIEW_LEVELS,
+  assertMarketplaceStoresNoUserContent,
+  createDefaultMarketplaceCatalog,
+  loadMarketplaceCatalog,
+  normalizeMarketplaceCatalog,
+  publishMarketplaceEntry,
+  verifyMarketplaceCatalogEntry,
+  type MarketplaceCatalogDocumentV1,
+  type MarketplaceCatalogEntryV1,
+  type MarketplacePricingDeclarationV1,
+  type MarketplaceReviewLevel,
+  type VerifyMarketplaceEntryInput,
+  type VerifyMarketplaceEntryResult,
+} from './extension/marketplace-catalog.js';
