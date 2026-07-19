@@ -9,6 +9,7 @@ const AUTH_TAG_LENGTH = 16;
 const KEY_LENGTH = 32;
 const HKDF_INFO = 'semblance-vault-domain-aes-256-gcm-v1';
 const CIPHERTEXT_PREFIX = 'aes256gcm:';
+export const REDACTED_PAYLOAD_CIPHERTEXT = 'redacted:';
 
 export class DomainKeyStore {
   private readonly rootKey: Buffer;
@@ -57,7 +58,26 @@ export class DomainKeyStore {
     return `${CIPHERTEXT_PREFIX}${packed.toString('base64')}`;
   }
 
+  rotateDomainKey(domain: VaultDataDomain): Buffer {
+    const normalized = domain.trim();
+    if (normalized.length === 0) {
+      throw new Error('Vault data domain must not be empty');
+    }
+
+    const rotated = randomBytes(KEY_LENGTH);
+    this.cache.set(normalized, rotated);
+    return rotated;
+  }
+
+  destroyCachedDomainKey(domain: VaultDataDomain): void {
+    this.cache.delete(domain.trim());
+  }
+
   decryptPayload(domain: VaultDataDomain, payloadCiphertext: string): string {
+    if (payloadCiphertext === 'redacted:') {
+      throw new Error('Vault payload was cryptographically erased');
+    }
+
     if (!payloadCiphertext.startsWith(CIPHERTEXT_PREFIX)) {
       throw new Error('Unsupported vault payload ciphertext format');
     }

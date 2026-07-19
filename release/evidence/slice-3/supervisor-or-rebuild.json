@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "slice": 3,
+  "releaseId": "vault-agency-graph-2026-07-18",
+  "generatedAt": "2026-07-18T19:15:00.000Z",
+  "corpus": {
+    "sourceIngestedEvents": 20,
+    "documentsAfterDeletion": 19,
+    "tombstoneEvents": 1,
+    "deletedDocumentId": "corpus-doc-07"
+  },
+  "projections": {
+    "documentCountBeforeDeletion": 20,
+    "documentCountAfterDeletion": 19,
+    "vectorChunkCountBeforeDeletion": 20,
+    "vectorChunkCountAfterDeletion": 19,
+    "rebuildDeterministic": true
+  },
+  "queries": {
+    "expectedCount": 10,
+    "passedCount": 10,
+    "queries": [
+      "alpha",
+      "bravo",
+      "charlie",
+      "delta",
+      "echo",
+      "foxtrot",
+      "golf",
+      "hotel",
+      "india",
+      "juliet"
+    ]
+  },
+  "rollback": {
+    "verified": true,
+    "restoredFiles": [
+      "vault-events.db",
+      "documents.db"
+    ]
+  },
+  "deletion": {
+    "tombstoneEventId": "corpus-tombstone-07",
+    "proofRetained": true,
+    "backupBlobPurged": true,
+    "offlineDevicePendingBeforeAck": "device-exit-gate-offline"
+  },
+  "evidencePaths": {
+    "vaultTests": "release/evidence/slice-3/vault-tests.txt",
+    "exitGateCorpus": "release/evidence/slice-3/exit-gate-corpus.txt"
+  }
+}

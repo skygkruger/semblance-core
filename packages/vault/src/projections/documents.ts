@@ -40,11 +40,26 @@ function parsePayload(event: DecryptedVaultEvent): DocumentProjectionPayloadV1 |
   return parsed.success ? parsed.data : null;
 }
 
+function collectDeletedDocumentIds(events: DecryptedVaultEvent[]): Set<string> {
+  const deleted = new Set<string>();
+  for (const event of events) {
+    if (event.eventType !== 'deleted') {
+      continue;
+    }
+    const payload = event.payload as { entityType?: string; entityId?: string } | null;
+    if (payload?.entityType === 'document' && payload.entityId) {
+      deleted.add(payload.entityId);
+    }
+  }
+  return deleted;
+}
+
 export function projectDocumentsFromEvents(
   events: DecryptedVaultEvent[],
 ): DocumentProjectionSnapshot {
   const documents: DocumentProjectionRecord[] = [];
   const seen = new Set<string>();
+  const deletedDocumentIds = collectDeletedDocumentIds(events);
 
   const ordered = [...events].sort((a, b) => {
     if (a.sequence !== b.sequence) {
@@ -56,6 +71,10 @@ export function projectDocumentsFromEvents(
   for (const event of ordered) {
     const payload = parsePayload(event);
     if (!payload) {
+      continue;
+    }
+
+    if (deletedDocumentIds.has(payload.documentId)) {
       continue;
     }
 
@@ -83,4 +102,20 @@ export function projectDocumentsFromEvents(
     documents,
     documentCount: documents.length,
   };
+}
+
+export function searchDocumentsByQuery(
+  events: DecryptedVaultEvent[],
+  query: string,
+): DocumentProjectionRecord[] {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (normalizedQuery.length === 0) {
+    return [];
+  }
+
+  const snapshot = projectDocumentsFromEvents(events);
+  return snapshot.documents.filter((document) => {
+    const haystack = `${document.title} ${document.documentId}`.toLowerCase();
+    return haystack.includes(normalizedQuery);
+  });
 }

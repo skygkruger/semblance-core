@@ -162,6 +162,14 @@ export class VaultEventLogWriter {
     return this.tipChainHash;
   }
 
+  resyncTipChainHash(): string {
+    const tip = this.selectTipStmt.get() as { chain_hash: string } | undefined;
+    if (tip) {
+      this.tipChainHash = tip.chain_hash;
+    }
+    return this.tipChainHash;
+  }
+
   release(): void {
     if (this.released) {
       return;

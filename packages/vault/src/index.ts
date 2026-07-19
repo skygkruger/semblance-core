@@ -15,6 +15,7 @@ export {
   DomainKeyStore,
   VAULT_DATA_DOMAINS,
   deriveVaultSigningKey,
+  REDACTED_PAYLOAD_CIPHERTEXT,
   type VaultDataDomain,
 } from './crypto/domain-keys.js';
 export {
@@ -81,6 +82,7 @@ export {
 export {
   projectDocumentsFromEvents,
   DocumentProjectionPayloadV1,
+  searchDocumentsByQuery,
   type DocumentProjectionRecord,
   type DocumentProjectionSnapshot,
 } from './projections/documents.js';
@@ -168,3 +170,27 @@ export {
   type PreMigrationBackupSnapshot,
   type RollbackResult,
 } from './migration/index.js';
+export {
+  DeletionTombstonePayloadV1,
+  DeletionCompletionTracker,
+  VaultContentEraser,
+  attemptDecryptRedactedPayload,
+  computeDeletionReceiptHash,
+  createDeletionCompletionTracker,
+  createDeletionTombstoneInput,
+  createVaultContentEraser,
+  decryptedEventsFromReadResults,
+  generateDeletionRecordReference,
+  initializeDeletionSchema,
+  parseDeletionTombstonePayload,
+  readDecryptedEvents,
+  VAULT_DELETION_COMPLETION_SCHEMA,
+  type CreateDeletionTombstoneOptions,
+  type DeletionCompletionDevice,
+  type DeletionCompletionStatus,
+  type DeletionTombstoneAppendInput,
+  type DeleteVaultContentOptions,
+  type MinimizedDeletionProof,
+  type VaultContentEraserOptions,
+  type VaultDeletionResult,
+} from './deletion/index.js';

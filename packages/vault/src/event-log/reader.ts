@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { CapabilityGrantV1 } from '@semblance/protocol';
 import { assertVaultCapability, type VaultCapabilityGuardContext } from '../capabilities/guard.js';
-import { DomainKeyStore } from '../crypto/domain-keys.js';
+import { DomainKeyStore, REDACTED_PAYLOAD_CIPHERTEXT } from '../crypto/domain-keys.js';
 import { initializeVaultEventLogSchema } from '../crypto/encrypted-sqlite.js';
 import { VaultEventLogError } from './errors.js';
 import { assertVaultEventLogIntegrity } from './integrity.js';
@@ -106,7 +106,10 @@ export class VaultEventLogReader {
     }
 
     const event = rowToVaultEvent(row);
-    const payloadPlaintext = this.domainKeys.decryptPayload(row.dataDomain, row.payloadCiphertext);
+    const payloadPlaintext =
+      row.payloadCiphertext === REDACTED_PAYLOAD_CIPHERTEXT
+        ? JSON.stringify({ schemaVersion: 1, redacted: true })
+        : this.domainKeys.decryptPayload(row.dataDomain, row.payloadCiphertext);
 
     return {
       sequence: row.sequence,

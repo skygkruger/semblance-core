@@ -44,9 +44,24 @@ function parseVectorPayload(event: DecryptedVaultEvent): VectorChunkProjectionPa
   return parsed.success ? parsed.data : null;
 }
 
+function collectDeletedDocumentIds(events: DecryptedVaultEvent[]): Set<string> {
+  const deleted = new Set<string>();
+  for (const event of events) {
+    if (event.eventType !== 'deleted') {
+      continue;
+    }
+    const payload = event.payload as { entityType?: string; entityId?: string } | null;
+    if (payload?.entityType === 'document' && payload.entityId) {
+      deleted.add(payload.entityId);
+    }
+  }
+  return deleted;
+}
+
 export function projectVectorsFromEvents(events: DecryptedVaultEvent[]): VectorProjectionSnapshot {
   const chunks: VectorProjectionRecord[] = [];
   const seen = new Set<string>();
+  const deletedDocumentIds = collectDeletedDocumentIds(events);
 
   const ordered = [...events].sort((a, b) => {
     if (a.sequence !== b.sequence) {
@@ -58,6 +73,9 @@ export function projectVectorsFromEvents(events: DecryptedVaultEvent[]): VectorP
   for (const event of ordered) {
     const vectorPayload = parseVectorPayload(event);
     if (vectorPayload) {
+      if (deletedDocumentIds.has(vectorPayload.documentId)) {
+        continue;
+      }
       const key = `${vectorPayload.documentId}:${vectorPayload.chunkIndex}`;
       if (!seen.has(key)) {
         seen.add(key);
@@ -75,6 +93,9 @@ export function projectVectorsFromEvents(events: DecryptedVaultEvent[]): VectorP
 
     const documentPayload = parseDocumentPayload(event);
     if (documentPayload) {
+      if (deletedDocumentIds.has(documentPayload.documentId)) {
+        continue;
+      }
       const key = `${documentPayload.documentId}:0`;
       if (!seen.has(key)) {
         seen.add(key);

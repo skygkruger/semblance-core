@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "slice": 3,
+  "releaseId": "vault-agency-graph-2026-07-18",
+  "generatedAt": "2026-07-18T19:15:00.000Z",
+  "exitGate": {
+    "twentyDocumentCorpus": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-3/exit-gate-corpus.txt",
+      "notes": "exit-gate-corpus.test.ts creates 20 source_ingested events and asserts exactly 20 canonical source events"
+    },
+    "tenQueriesTenSources": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-3/exit-gate-corpus.txt",
+      "notes": "10 keyword queries each return exactly one matching document with correct source ref"
+    },
+    "deterministicRebuild": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-3/exit-gate-corpus.txt",
+      "notes": "Agency graph rebuild from ordered and shuffled events produces identical snapshot hash; document and vector projections match"
+    },
+    "legacyRollback": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-3/exit-gate-corpus.txt",
+      "notes": "createPreMigrationBackup + rollbackFromBackup restores vault-events.db and documents.db byte-identical to backup"
+    },
+    "deletionIrretrievable": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-3/exit-gate-corpus.txt",
+      "notes": "Deleted corpus-doc-07 absent from documents, vectors, and active graph; redacted ciphertext undecryptable; backup blob purged"
+    },
+    "cryptographicErasure": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-3/vault-tests.txt",
+      "notes": "deletion.test.ts verifies redacted ciphertext and destroyed content keys; prior domain key cannot decrypt erased payload"
+    },
+    "offlineDeletionCompletion": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-3/vault-tests.txt",
+      "notes": "DeletionCompletionTracker reports pending offline device until markDeviceComplete"
+    },
+    "vaultCapabilityGuard": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-3/vault-tests.txt",
+      "notes": "capability-guard.test.ts enforces principal, expiry, domain, sensitivity, and operation constraints"
+    },
+    "encryptedEventLogIntegrity": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-3/vault-tests.txt",
+      "notes": "event-log.test.ts verifies append, duplicate rejection, tamper/truncation/reorder detection"
+    },
+    "stranglerMigrationRollback": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-3/vault-tests.txt",
+      "notes": "migration.test.ts inventory, dry-run, domain import, and rollback verified"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 10,
+  "runtimeVerifiedExitItems": 10,
+  "honestBlockers": []
+}
