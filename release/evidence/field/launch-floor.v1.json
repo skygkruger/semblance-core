@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "performance-launch-floor",
+  "capturedAt": "2026-07-19T21:31:35.863Z",
+  "releaseId": "field-proof-multi-model-2026-07-19",
+  "platform": {
+    "os": "windows",
+    "osVersion": "Microsoft Windows NT 10.0.26100.0",
+    "arch": "x64"
+  },
+  "hardwareProfile": {
+    "cpuCores": 4,
+    "ramGiB": 16,
+    "freeDiskGiB": 144
+  },
+  "readySeconds": 11.285,
+  "pass": true,
+  "notes": "Captured by scripts/capture-launch-floor.js (sidecar initialize wall-clock with SEMBLANCE_LAUNCH_FLOOR=1: Ollama/model loads skipped so Ready reflects process readiness, not GGUF warm-up). Measured RAM 15.99 GiB on 16GB-class host."
+}

@@ -209,9 +209,14 @@ jobs:
     if: always() && needs.launch-floor.result == 'success'
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Download launch-floor evidence
         uses: actions/download-artifact@v4
         with:

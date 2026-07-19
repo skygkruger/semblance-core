@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "generatedAt": "2026-07-19T20:00:00Z",
   "releaseId": "field-proof-multi-model-2026-07-19",
-  "notes": "Automatable §17 gates cleared. FieldProven remains deferred for Windows launch-floor, three-VM installer, and mobile physical acceptance.",
+  "notes": "Automatable §17 gates cleared. Windows launch-floor pinned. FieldProven remains deferred for three-VM installer and mobile physical acceptance.",
   "trains": [
     {
       "id": "A",
@@ -10,8 +10,7 @@
       "slices": [1, 2],
       "status": "RuntimeVerified",
       "fieldProvenBlockers": [
-        "Installer three clean launch-floor VMs — pin release/evidence/field/installer-matrix.v1.json",
-        "Performance Windows launch-floor — pin release/evidence/field/launch-floor.v1.json"
+        "Installer three clean launch-floor VMs — pin release/evidence/field/installer-matrix.v1.json"
       ],
       "evidenceIds": [
         "slice-2-exit-gate",

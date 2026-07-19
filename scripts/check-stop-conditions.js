@@ -87,7 +87,12 @@ function walkFiles(dir, files = []) {
 function isTestOrAdversarialPath(relPath) {
   if (relPath.includes('/tests/')) return true;
   if (relPath.endsWith('.test.ts') || relPath.endsWith('.test.js')) return true;
-  if (relPath === 'packages/extension-runner/src/sandbox.ts') return true;
+  if (
+    relPath === 'packages/extension-runner/src/sandbox.ts'
+    || relPath === 'packages/extension-runner/src/sandbox.js'
+  ) {
+    return true;
+  }
   return false;
 }
 
