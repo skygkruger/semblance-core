@@ -41,8 +41,17 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Bundle sidecar
-        run: node scripts/bundle-sidecar.js
+      - name: Ensure sidecar bridge is present
+        shell: bash
+        run: |
+          BRIDGE="packages/desktop/src-tauri/sidecar/bridge.cjs"
+          if [[ -f "$BRIDGE" ]]; then
+            echo "Using checked-in $BRIDGE ($(wc -c < "$BRIDGE") bytes)"
+          else
+            echo "Checked-in bridge.cjs missing; attempting bundle-sidecar.js"
+            node scripts/bundle-sidecar.js
+          fi
+          test -f "$BRIDGE"
       - name: Capture launch-floor evidence
         run: node scripts/capture-launch-floor.js
       - name: Verify launch-floor evidence
@@ -95,7 +104,6 @@ jobs:
     needs: [build-windows-msi]
     if: always()
     outputs:
-      msi_path: ${{ steps.resolve.outputs.msi_path }}
       matrix_enabled: ${{ steps.resolve.outputs.matrix_enabled }}
     steps:
       - uses: actions/checkout@v4
@@ -105,6 +113,7 @@ jobs:
         with:
           name: field-windows-msi
           path: installer
+        continue-on-error: true
       - name: Download MSI from URL
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_msi != 'true' && github.event.inputs.installer_url != ''
         shell: powershell
@@ -116,20 +125,20 @@ jobs:
       - id: resolve
         shell: powershell
         run: |
+          New-Item -ItemType Directory -Force -Path installer | Out-Null
           $msi = Get-ChildItem -Path installer -Filter *.msi -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($null -ne $msi) {
-            "msi_path=$($msi.FullName)" >> $env:GITHUB_OUTPUT
-            "matrix_enabled=true" >> $env:GITHUB_OUTPUT
+            "matrix_enabled=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
             Write-Host "Installer resolved: $($msi.FullName)"
           } else {
-            "matrix_enabled=false" >> $env:GITHUB_OUTPUT
-            Write-Host "::warning::Installer matrix deferred — set build_msi=true or provide installer_url"
+            "matrix_enabled=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            Write-Host "::warning::Installer matrix deferred - set build_msi=true or provide installer_url"
           }
       - name: Publish resolved MSI artifact
         if: steps.resolve.outputs.matrix_enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: field-windows-msi
+          name: field-windows-msi-resolved
           path: installer/*.msi
           if-no-files-found: error
 
@@ -155,20 +164,15 @@ jobs:
       - name: Download MSI
         uses: actions/download-artifact@v4
         with:
-          name: field-windows-msi
+          name: field-windows-msi-resolved
           path: installer
       - name: Locate MSI
         id: msi
         shell: powershell
         run: |
-          $candidates = @()
-          if ("${{ needs.resolve-installer.outputs.msi_path }}" -ne "") {
-            $candidates += "${{ needs.resolve-installer.outputs.msi_path }}"
-          }
-          $candidates += Get-ChildItem -Path installer -Filter *.msi -Recurse -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
-          $msi = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-          if (-not $msi) { throw "MSI not found for installer matrix" }
-          "path=$msi" >> $env:GITHUB_OUTPUT
+          $msi = Get-ChildItem -Path installer -Filter *.msi -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($null -eq $msi) { throw "MSI not found for installer matrix" }
+          "path=$($msi.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
       - name: Capture VM installer lifecycle
         env:
           SEMBLANCE_INSTALLER_MATRIX_ALLOW_SAME_VERSION_REENSTALL: '1'
