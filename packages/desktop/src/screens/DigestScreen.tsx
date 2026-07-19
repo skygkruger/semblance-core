@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, ProgressBar, FeatureGate } from '@semblance/ui';
+import { Card, ProgressBar } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
 import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
@@ -10,7 +10,7 @@ import { EmptyFeatureState } from '../components/EmptyFeatureState';
 import { ShimmerDescription } from '../components/ShimmerDescription';
 import { getLatestDigest, listDigests, generateDigest, getDailyDigest, dismissDailyDigest } from '../ipc/commands';
 import { DailyDigestCard } from '../components/DailyDigestCard';
-import { useLicense } from '../contexts/LicenseContext';
+import { useLicense, LicenseCapabilityGate } from '../contexts/LicenseContext';
 import type { DailyDigestResult } from '../ipc/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ export function DigestScreen() {
   if (!license.isPremium) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 24 }}>
-        <FeatureGate feature="representative-dashboard" isPremium={false} onLearnMore={() => license.openCheckout?.('monthly')} />
+        <LicenseCapabilityGate feature="representative-dashboard" />
       </div>
     );
   }

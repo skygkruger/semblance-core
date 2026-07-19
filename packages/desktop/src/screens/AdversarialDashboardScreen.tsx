@@ -8,8 +8,8 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { getDarkPatternFlags, dismissDarkPatternFlag, getFinancialDashboard, prefGet } from '../ipc/commands';
-import { useLicense } from '../contexts/LicenseContext';
-import { Card, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { useLicense, LicenseCapabilityGate } from '../contexts/LicenseContext';
+import { Card, SkeletonCard } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
 import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
@@ -102,11 +102,7 @@ export function AdversarialDashboardScreen() {
         height: '100%',
         padding: 24,
       }}>
-        <FeatureGate
-          feature="dark-pattern-detection"
-          isPremium={false}
-          onLearnMore={() => navigate('/upgrade')}
-        />
+        <LicenseCapabilityGate feature="dark-pattern-detection" />
       </div>
     );
   }

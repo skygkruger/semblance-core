@@ -7,7 +7,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Button, FeatureGate, SkeletonCard, StatusIndicator } from '@semblance/ui';
+import { Card, Button, SkeletonCard, StatusIndicator } from '@semblance/ui';
+import { useLicense, LicenseCapabilityGate } from '../contexts/LicenseContext';
 import { ContentBracket } from '../components/ContentBracket';
 import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
@@ -144,11 +145,7 @@ export function AlterEgoWeekScreen() {
         height: '100%',
         padding: 24,
       }}>
-        <FeatureGate
-          feature="alter-ego-week"
-          isPremium={false}
-          onLearnMore={() => navigate('/upgrade')}
-        />
+        <LicenseCapabilityGate feature="alter-ego-week" />
       </div>
     );
   }
