@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "releaseId": "entitlements-commerce-2026-07-18",
-  "generatedAt": "2026-07-19T04:07:28Z",
+  "releaseId": "byo-self-hosted-execution-2026-07-18",
+  "generatedAt": "2026-07-19T05:35:13Z",
   "repositories": {
     "core": {
-      "sourceCommit": "652680eeb00bf3e3517616c8c9fecdc59cc0f8e5",
-      "sourceTreeHash": "82871e6a6aca98284da2cb7a710a8e74cc0c3bb9"
+      "sourceCommit": "939e86bcc06fe6ee16f049a42da0e7ece113271e",
+      "sourceTreeHash": "f6279986a4c7fd6017d1588765a2395eb5b0e755"
     },
     "representative": {
       "sourceCommit": "89405cdf94a8e1b5ff7c8208af79148a68a6ea18",
@@ -17,6 +17,11 @@
     "website": {
       "sourceCommit": "08ecca3a87809f026418edd62505f76ae3b3f146",
       "sourceTreeHash": "1db15f82c1d80c9386c206285c8f0a9e0dcd09d2"
+    },
+    "semblanceNode": {
+      "repositoryUrl": "https://github.com/skygkruger/semblance-node",
+      "sourceCommit": "f636b13d76be59cddb5cf3679b16be9331487692",
+      "sourceTreeHash": "f69cbabe7c2b29299639da5ec87167618045465d"
     }
   },
   "signedArtifacts": [],
@@ -595,6 +600,62 @@
       "requiredForStates": [
         "Implemented"
       ]
+    },
+    {
+      "id": "slice-8-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-8/slice-8-exit-gate.json",
+      "sha256": "83a48c681107cf71e458b69796ce0f9af17f4fc2588da06b718369d5d14a8a41",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-8-exit-gate-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-8/exit-gate.txt",
+      "sha256": "cf08cc9171c243afaf802373d727cb4ec5e70fb06be4765516d9239e8b1d91b0",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-8-kernel-execution-policy",
+      "repository": "core",
+      "path": "release/evidence/slice-8/kernel-execution-policy.txt",
+      "sha256": "1c34d5c3831a3eb8efc58f62de3db07cc52498d7c6e96a02e19d74d342a264a5",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-8-cloud-broker-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-8/cloud-broker-tests.txt",
+      "sha256": "afaeaeb5a4dc0c9a11ce2ad7d99248500371f5d023f6205a21f888c5843b9a21",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-8-protocol-execution-v1",
+      "repository": "core",
+      "path": "release/evidence/slice-8/protocol-execution-v1.txt",
+      "sha256": "1cb9bce92cec15fcf6918b3c0476c7ee9d7825517aec1551719516a4a5f997e3",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-8-semblance-node-conformance",
+      "repository": "core",
+      "path": "release/evidence/slice-8/semblance-node-conformance.txt",
+      "sha256": "29c36b98495468402b6d7719b7f5fbcc0f4171cb50ec63176e1b1ec0e0889262",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
     }
   ],
   "commerce": {
@@ -619,7 +680,8 @@
     4,
     5,
     6,
-    7
+    7,
+    8
   ],
   "features": [
     {
@@ -834,6 +896,31 @@
       ],
       "protocolVersions": {
         "releaseEvidence": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "byo-self-hosted-execution",
+      "name": "BYO and self-hosted execution destinations",
+      "repository": "core",
+      "state": "RuntimeVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-8-exit-gate",
+        "slice-8-exit-gate-tests",
+        "slice-8-kernel-execution-policy",
+        "slice-8-cloud-broker-tests",
+        "slice-8-protocol-execution-v1",
+        "slice-8-semblance-node-conformance"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1,
+        "execution": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],

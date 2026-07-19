@@ -1,0 +1,13 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+
+ ✓ packages/cloud-broker/tests/no-network-imports.test.ts (1 test) 3ms
+ ✓ packages/cloud-broker/tests/destination-policy-store.test.ts (4 tests) 5ms
+ ✓ packages/cloud-broker/tests/broker.test.ts (5 tests) 4ms
+
+ Test Files  3 passed (3)
+      Tests  10 passed (10)
+   Start at  22:35:12
+   Duration  331ms (transform 199ms, setup 286ms, import 171ms, tests 12ms, environment 0ms)
+
