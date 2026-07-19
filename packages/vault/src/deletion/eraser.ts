@@ -6,7 +6,8 @@ import type { DecryptedVaultEvent } from '../agency-graph/types.js';
 import { DomainKeyStore, deriveVaultSigningKey } from '../crypto/domain-keys.js';
 import { EncryptedSqliteStore } from '../crypto/encrypted-sqlite.js';
 import type { VaultEventLogWriter } from '../event-log/writer.js';
-import type { VaultEventLogReader, VaultEventReadResult } from '../event-log/reader.js';
+import type { VaultEventLogReader } from '../event-log/reader.js';
+import type { VaultEventReadResult } from '../event-log/types.js';
 import {
   computeVaultEventChainHash,
   mapRowRecord,
@@ -116,6 +117,9 @@ export class VaultContentEraser {
   private readonly redactSourceEventStmt: Database.Statement;
   private readonly updateEventIntegrityStmt: Database.Statement;
   private readonly upsertMetaStmt: Database.Statement;
+  private readonly insertReceiptStmt: Database.Statement;
+  private readonly markContentKeyDestroyedStmt: Database.Statement;
+  private readonly isContentKeyDestroyedStmt: Database.Statement;
   private readonly signingKey: Buffer;
 
   constructor(options: VaultContentEraserOptions) {
