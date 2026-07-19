@@ -1,0 +1,38 @@
+export {
+  assertSourceRefsPresent,
+  createSourceRef,
+  hasNonEmptySourceRefs,
+  mergeSourceRefs,
+  parseSourceRef,
+  parseSourceRefs,
+  type CreateSourceRefInput,
+  type SourceRefV1,
+} from './source-ref.js';
+export {
+  createProvenanceRecord,
+  createRetentionPolicy,
+  DerivationMethod,
+  isInferredDerivation,
+  parseProvenanceRecord,
+  parseRetentionPolicy,
+  ProvenanceRecordV1,
+  RetentionPolicyV1,
+  validateRequiredProvenanceFields,
+  type CreateProvenanceRecordInput,
+} from './provenance-record.js';
+export {
+  assertCorrectionChain,
+  AssertionStatus,
+  confirmAssertion,
+  correctAssertion,
+  parseAssertion,
+  proposeAssertion,
+  supersedeAssertion,
+  VaultAssertionV1,
+  VaultProvenanceError,
+  type ConfirmAssertionInput,
+  type CorrectAssertionInput,
+  type ProposeAssertionInput,
+  type SupersedeAssertionInput,
+  type VaultProvenanceErrorCode,
+} from './assertion.js';

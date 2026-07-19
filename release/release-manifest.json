@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "releaseId": "kernel-process-spine-2026-07-18",
-  "generatedAt": "2026-07-18T22:42:30Z",
+  "releaseId": "vault-agency-graph-2026-07-18",
+  "generatedAt": "2026-07-18T19:16:00Z",
   "repositories": {
     "core": {
-      "sourceCommit": "e2d239a58601c465a43c4b227718874ff6a8618f",
-      "sourceTreeHash": "ecacf3d44f3f8c7eca5e87efb1afe45f279dc66a"
+      "sourceCommit": "872867fea219c4369fe5886fb7c1bd27674b1416",
+      "sourceTreeHash": "aa2237236cdd7b546d6673ab8682b1de207e54ae"
     },
     "representative": {
       "sourceCommit": "dcd6d71dcc7d6d367d4e6626635e16744185de4d",
@@ -264,6 +264,51 @@
       "requiredForStates": [
         "RuntimeVerified"
       ]
+    },
+    {
+      "id": "slice-3-vault-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-3/vault-tests.txt",
+      "sha256": "c0bc6dbf4b6b7410a3727491bbcf2d5829a920267c85711274d85186736a2fe1",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-3-exit-gate-corpus",
+      "repository": "core",
+      "path": "release/evidence/slice-3/exit-gate-corpus.txt",
+      "sha256": "4ec98327d10ce414a0903f7b2f222b9b30519859b206f23fd138bc13c07e1a8e",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-3-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-3/slice-3-exit-gate.json",
+      "sha256": "0ffc9f468cfc4546f698553f8b18e8058109eafa6dd6d739e20631e7597ef8d0",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-3-supervisor-or-rebuild",
+      "repository": "core",
+      "path": "release/evidence/slice-3/supervisor-or-rebuild.json",
+      "sha256": "24816468d04f28d5465e5583b43877507b939366de9147e9ca428123dfb951d1",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "migration-slice-3-vault-strangler",
+      "repository": "representative",
+      "path": "docs/release-manifests/migrations/slice-3-vault-strangler.json",
+      "sha256": "1226c505205de708f20ab9f9ead6bfdc475d8a4db8f6c0d98806938a2af99ac6",
+      "requiredForStates": [
+        "Implemented"
+      ]
     }
   ],
   "commerce": {
@@ -283,7 +328,8 @@
   "legalNoticesVersion": "2026-07-18",
   "completedSlices": [
     1,
-    2
+    2,
+    3
   ],
   "features": [
     {
@@ -363,6 +409,29 @@
         "slice-2-exit-gate",
         "migration-slice-2-secure-storage",
         "slice-2-chat-smoke"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "vault-agency-graph",
+      "name": "Encrypted vault, provenance, and Personal Agency Graph",
+      "repository": "core",
+      "state": "RuntimeVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-3-vault-tests",
+        "slice-3-exit-gate-corpus",
+        "slice-3-exit-gate",
+        "slice-3-supervisor-or-rebuild",
+        "migration-slice-3-vault-strangler"
       ],
       "protocolVersions": {
         "releaseEvidence": 1

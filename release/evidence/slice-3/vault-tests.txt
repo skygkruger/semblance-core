@@ -1,0 +1,40 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core/packages/vault
+
+ ✓ tests/capability-guard.test.ts > assertVaultCapability > rejects wrong principal 1ms
+ ✓ tests/capability-guard.test.ts > assertVaultCapability > rejects expired grant 0ms
+ ✓ tests/capability-guard.test.ts > assertVaultCapability > rejects excessive result limit 0ms
+ ✓ tests/capability-guard.test.ts > assertVaultCapability > rejects wrong data domain 0ms
+ ✓ tests/capability-guard.test.ts > assertVaultCapability > rejects sensitivity above ceiling 0ms
+ ✓ tests/capability-guard.test.ts > assertVaultCapability > rejects operation not permitted 0ms
+ ✓ tests/capability-guard.test.ts > assertVaultCapability > allows a valid read when all constraints pass 0ms
+ ✓ tests/capability-guard.test.ts > createVaultCapabilityClient > authorizes read and write through typed methods without exposing raw stores 1ms
+ ✓ tests/provenance.test.ts > vault provenance assertions > requires source refs, derivation, confidence, sensitivity, and retention 2ms
+ ✓ tests/provenance.test.ts > vault provenance assertions > rejects inferred to confirmed without source refs or user confirmation 1ms
+ ✓ tests/provenance.test.ts > vault provenance assertions > accepts inferred to confirmed with user confirmation 0ms
+ ✓ tests/provenance.test.ts > vault provenance assertions > links correction chain through priorAssertionId 1ms
+ ✓ tests/event-log.test.ts > vault event log > appends and reads events with encrypted payload roundtrip 10ms
+ ✓ tests/event-log.test.ts > vault event log > rejects duplicate event IDs 1ms
+ ✓ tests/event-log.test.ts > vault event log > detects tampering when ciphertext is modified 1ms
+ ✓ tests/event-log.test.ts > vault event log > detects truncation when events are deleted 1ms
+ ✓ tests/event-log.test.ts > vault event log > detects reordering when sequence values are swapped 1ms
+ ✓ tests/event-log.test.ts > vault event log > refuses a second concurrent writer for the same database 3ms
+ ✓ tests/event-log.test.ts > vault event log > derives distinct domain keys for documents, agency, and preferences 2ms
+ ✓ tests/agency-graph.test.ts > agency graph projection > projects entities, documents, commitments, preferences, actions, and outcomes from events 12ms
+ ✓ tests/agency-graph.test.ts > agency graph projection > rebuild is deterministic and produces stable snapshot hash 1ms
+ ✓ tests/agency-graph.test.ts > agency graph projection > shadow-compares against a legacy visualization fixture 1ms
+ ✓ tests/deletion.test.ts > vault deletion lifecycle > removes deleted content from active store and projections 22ms
+ ✓ tests/deletion.test.ts > vault deletion lifecycle > cryptographically erases content so prior ciphertext cannot be decrypted 9ms
+ ✓ tests/deletion.test.ts > vault deletion lifecycle > tracks pending deletion completion for offline devices 9ms
+ ✓ tests/migration.test.ts > vault legacy migration > inventory finds expected counts from fixture databases and adapters 18ms
+ ✓ tests/migration.test.ts > vault legacy migration > generates a dry-run report with would-import IDs and zero conflicts on empty vault 6ms
+ ✓ tests/migration.test.ts > vault legacy migration > imports the documents domain into the vault event log with stable source IDs 10ms
+ ✓ tests/migration.test.ts > vault legacy migration > rollback restores pre-migration sqlite state from backup snapshot 7ms
+ ✓ tests/exit-gate-corpus.test.ts > Slice 3 exit gate corpus > indexes 20 documents, answers 10 queries, rebuilds deterministically, rollbacks, and erases deletions 69ms
+
+ Test Files  7 passed (7)
+      Tests  30 passed (30)
+   Start at  19:14:59
+   Duration  411ms (transform 850ms, setup 0ms, import 1.49s, tests 195ms, environment 1ms)
+

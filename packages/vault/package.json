@@ -1,0 +1,31 @@
+{
+  "name": "@semblance/vault",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Semblance encrypted vault — capability-scoped data plane",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@semblance/protocol": "workspace:*",
+    "better-sqlite3": "^12.6.2",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "license": "MIT"
+}

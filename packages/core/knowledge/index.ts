@@ -44,6 +44,19 @@ export { buildKGDelta, applyKGDelta, documentToSyncEntry, KG_SYNC_MAX_BYTES } fr
 export type { KGSyncEntry, KGSyncDelta, KGSyncImportResult } from './kg-sync.js';
 export { KnowledgeCurator } from './knowledge-curator.js';
 export type { ChunkItem, CurationResult, CategorySuggestion } from './knowledge-curator.js';
+export {
+  shadowCompareAgencyGraph,
+  toShadowComparableGraph,
+  visualizationGraphToShadowComparable,
+} from './agency-graph-shadow.js';
+export { isVaultCanonicalReadEnabled } from './vault-strangler.js';
+export type {
+  AgencyGraphShadowSnapshot,
+  ShadowComparableEdge,
+  ShadowComparableGraph,
+  ShadowComparableNode,
+  ShadowCompareResult,
+} from './agency-graph-shadow.js';
 
 export interface KnowledgeGraph {
   /** Index a document into the knowledge graph */
