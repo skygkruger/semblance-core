@@ -59,3 +59,16 @@ export {
   type ConfidentialProofBundle,
   type VerifyConfidentialProofBundleParams,
 } from './confidential-proof-bundle.js';
+export {
+  buildSharedSpaceProofExport,
+  serializeSharedSpaceProofExport,
+  validateSharedSpaceProofExport,
+  PERSONAL_VAULT_CONTENT_FIELDS,
+  type BuildSharedSpaceProofExportInput,
+  type SharedSpaceProofActionEvidence,
+  type SharedSpaceProofExport,
+  type SharedSpaceProofExportValidation,
+  type SharedSpaceProofMembershipEvidence,
+  type SharedSpaceProofPolicyEvidence,
+  type SharedSpaceProofRetentionBoundaries,
+} from './shared-space/export.js';

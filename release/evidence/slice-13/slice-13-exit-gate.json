@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "slice": 13,
+  "releaseId": "shared-space-sovereignty-2026-07-19",
+  "generatedAt": "2026-07-19T18:35:41.000Z",
+  "exitGate": {
+    "twoUsersShareSelectedRecordsAndActions": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-13/exit-gate.txt",
+      "notes": "Explicit publication with dual approval writes shared events visible to active members only"
+    },
+    "privateGraphsCryptographicallyInaccessible": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-13/shared-space-kernel-tests.txt",
+      "notes": "Personal vault key envelopes decrypt only with owner private key material"
+    },
+    "administratorsCannotAccessPersonalVaults": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-13/shared-space-kernel-tests.txt",
+      "notes": "Admin role cannot read or decrypt another member personal vault envelope"
+    },
+    "dualApprovalRequiredForSensitivePublish": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-13/shared-space-vault-tests.txt",
+      "notes": "publish_personal_to_shared stays needs_approval until two distinct active members approve"
+    },
+    "orgDestinationPolicyDoesNotOverridePersonal": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-13/shared-space-kernel-tests.txt",
+      "notes": "decideOrgScopedExecutionDestination preserves user preference for user-scoped data"
+    },
+    "proofExportContainsNoPersonalVaultContent": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-13/shared-space-proof-export-tests.txt",
+      "notes": "Organization proof export hashes payloads and excludes personal plaintext and record IDs"
+    },
+    "departedMemberCannotDecryptFutureSharedEnvelopes": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-13/exit-gate.txt",
+      "notes": "Key rotation on departure blocks future envelope decryption and empty projections for departed members"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 7,
+  "runtimeVerifiedExitItems": 7,
+  "honestBlockers": []
+}

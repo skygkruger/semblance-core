@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": "shared-space/v1",
+  "consentRecordId": "consent-alice-001",
+  "sharedSpaceId": "sspace-550e8400-e29b-41d4-a716-446655440000",
+  "memberId": "member-alice-001",
+  "personalRootId": "root-personal-alice-001",
+  "requestedRole": "member",
+  "consentTextHash": "consent-text-hash-alice-v1",
+  "grantedAt": "2026-07-19T12:04:30.000Z",
+  "memberSignature": "ed25519:signature-consent-alice-v1"
+}

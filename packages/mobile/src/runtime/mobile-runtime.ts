@@ -66,6 +66,10 @@ import { createMobileMessagingAdapter } from '../native/messaging-bridge';
 
 // Inference bridges
 import { createMobileInferenceBridge } from '../inference/unified-bridge';
+import type {
+  MobileSharedSpaceItemSummary,
+  MobileSharedSpaceSummary,
+} from '../services/shared-space-client.js';
 
 export interface MobileRuntimeState {
   /** Whether the runtime has been initialized */
@@ -97,6 +101,10 @@ export interface MobileRuntimeState {
   progress: number;
   /** Current initialization step description */
   progressLabel: string;
+  /** Shared-space summaries synced to this peer (Slice 13) */
+  sharedSpaceSummaries: MobileSharedSpaceSummary[];
+  /** Shared-space workflow item summaries for peer UI */
+  sharedSpaceItems: Array<MobileSharedSpaceItemSummary & { sharedSpaceId: string }>;
 }
 
 const initialState: MobileRuntimeState = {
@@ -112,6 +120,8 @@ const initialState: MobileRuntimeState = {
   error: null,
   progress: 0,
   progressLabel: '',
+  sharedSpaceSummaries: [],
+  sharedSpaceItems: [],
 };
 
 // Singleton runtime state

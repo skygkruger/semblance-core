@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/shared-space-root-v1.schema.json",
+  "title": "SharedSpaceRootV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocolVersion",
+    "sharedSpaceId",
+    "sharedSpaceRootPublicKey",
+    "membershipEpoch",
+    "recoveryThreshold",
+    "recoveryTotal",
+    "recoverySecretHash",
+    "createdAt",
+    "updatedAt",
+    "rootSignature"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "protocolVersion": {
+      "const": "shared-space/v1"
+    },
+    "sharedSpaceId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^sspace-[0-9a-f-]{36}$"
+    },
+    "sharedSpaceRootPublicKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "membershipEpoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recoveryThreshold": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "recoveryTotal": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "recoverySecretHash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rootSignature": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

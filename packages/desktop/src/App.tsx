@@ -44,6 +44,7 @@ import { SemblanceNetworkScreen } from './screens/SemblanceNetworkScreen';
 import { TunnelPairingScreen } from './screens/TunnelPairingScreen';
 import { CloudBridgeScreen } from './screens/CloudBridgeScreen';
 import { CapabilitiesScreen } from './screens/CapabilitiesScreen';
+import { SharedSpacesScreen } from './screens/SharedSpacesScreen';
 
 import { AlterEgoWeekScreen } from './screens/AlterEgoWeekScreen';
 import { ImportEverythingScreen } from './screens/ImportEverythingScreen';
@@ -297,6 +298,7 @@ const navSections: NavSection[] = [
     items: [
       { id: 'inbox', label: 'Inbox', icon: <InboxIcon /> },
       { id: 'relationships', label: 'Relationships', icon: <ContactsIcon /> },
+      { id: 'shared-spaces', label: 'Shared Spaces', icon: <ContactsIcon /> },
       { id: 'connections', label: 'Connections', icon: <PlugIcon /> },
       { id: 'import', label: 'Import', icon: <DownloadIcon /> },
     ],
@@ -647,6 +649,7 @@ function AppContent() {
           <Route path="/privacy" element={<PrivacyScreen />} />
           <Route path="/sovereignty-report" element={<SovereigntyReportScreen />} />
           <Route path="/relationships" element={<RelationshipsScreen />} />
+          <Route path="/shared-spaces" element={<SharedSpacesScreen />} />
           <Route path="/digest" element={<DigestScreen />} />
           <Route path="/finance" element={<FinancialDashboardScreen />} />
           <Route path="/health" element={<HealthDashboardScreen />} />

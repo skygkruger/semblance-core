@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/shared-space-membership-v1.schema.json",
+  "title": "SharedSpaceMembershipEventV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocolVersion",
+    "sharedSpaceId",
+    "membershipEpoch",
+    "operation",
+    "memberId",
+    "personalRootId",
+    "memberPublicKey",
+    "role",
+    "consentRecordId",
+    "priorEventHash",
+    "authorizedByMemberIds",
+    "sharedKeyEnvelope",
+    "occurredAt",
+    "rootSignature"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "protocolVersion": {
+      "const": "shared-space/v1"
+    },
+    "sharedSpaceId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^sspace-[0-9a-f-]{36}$"
+    },
+    "membershipEpoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "add",
+        "remove",
+        "role_change"
+      ]
+    },
+    "memberId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "personalRootId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "memberPublicKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "admin",
+        "member",
+        "viewer"
+      ]
+    },
+    "consentRecordId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "priorEventHash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "authorizedByMemberIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "sharedKeyEnvelope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rootSignature": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

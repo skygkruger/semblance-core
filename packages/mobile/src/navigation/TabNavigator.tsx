@@ -71,6 +71,7 @@ import { DashboardHubScreen } from '../screens/DashboardHubScreen.js';
 import { ConnectionsScreen } from '../screens/ConnectionsScreen.js';
 import { FilesScreen } from '../screens/FilesScreen.js';
 import { ActivityScreen } from '../screens/ActivityScreen.js';
+import { SharedSpacesScreen } from '../screens/SharedSpacesScreen.js';
 import { IntentScreen } from '../screens/IntentScreen.js';
 import { DigestScreen } from '../screens/DigestScreen.js';
 import { NetworkMonitorScreen } from '../screens/NetworkMonitorScreen.js';
@@ -178,6 +179,7 @@ function WorkTabStack() {
       <WorkStack.Screen name="Work" component={ActivityScreen} />
       <WorkStack.Screen name="Activity" component={ActivityScreen} />
       <WorkStack.Screen name="Intent" component={IntentScreen} />
+      <WorkStack.Screen name="SharedSpaces" component={SharedSpacesScreen} />
     </WorkStack.Navigator>
   );
 }
