@@ -1821,3 +1821,98 @@ export function extensionUninstall(
 ): Promise<{ success: boolean }> {
   return sidecarCall('extension:uninstall', { manifestId, retainUserData });
 }
+
+// ─── Shared Space (Slice 13) ────────────────────────────────────────────────
+
+export interface SharedSpaceStatusIPC {
+  sharedSpaceId: string;
+  sharedSpaceRootPublicKey: string;
+  membershipEpoch: number;
+  recoveryThreshold: number;
+  recoveryTotal: number;
+  activeMemberCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SharedSpaceMemberIPC {
+  memberId: string;
+  personalRootId: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  consentRecordId: string;
+  joinedAt: string;
+  departedAt: string | null;
+  epochAdded: number;
+}
+
+export interface SharedSpaceProjectedEventIPC {
+  sequence: number;
+  eventId: string;
+  publisherMemberId: string;
+  membershipEpoch: number;
+  eventType: string;
+  sourcePersonalRecordId: string | null;
+  payloadPlaintext: string;
+  occurredAt: string;
+}
+
+export interface SharedSpacePendingApprovalIPC {
+  actionId: string;
+  sharedSpaceId: string;
+  actionType: string;
+  scope: string;
+  actorMemberId: string;
+  targetMemberId: string | null;
+  intentJson: string;
+  createdAt: string;
+  approvals: Array<{ approverMemberId: string; approvedAt: string }>;
+}
+
+export function sharedSpaceStatus(params: { sharedSpaceId?: string } = {}): Promise<{
+  spaces?: SharedSpaceStatusIPC[];
+  status?: SharedSpaceStatusIPC;
+  members?: SharedSpaceMemberIPC[];
+}> {
+  return sidecarCall('shared_space:status', params);
+}
+
+export function sharedSpaceListShared(params: {
+  sharedSpaceId: string;
+  viewerMemberId: string;
+}): Promise<{ success: boolean; events: SharedSpaceProjectedEventIPC[] }> {
+  return sidecarCall('shared_space:list_shared', params);
+}
+
+export function sharedSpaceListPending(params: {
+  sharedSpaceId: string;
+}): Promise<{ success: boolean; pending: SharedSpacePendingApprovalIPC[] }> {
+  return sidecarCall('shared_space:list_pending', params);
+}
+
+export function sharedSpacePublish(params: {
+  sharedSpaceId: string;
+  actorMemberId: string;
+  actorPersonalRootId: string;
+  actorRole: 'owner' | 'admin' | 'member' | 'viewer';
+  personalRecord: { recordId: string; recordHash: string; payloadPlaintext: string };
+  consent: Record<string, unknown>;
+}): Promise<{
+  success: boolean;
+  result?: { status: 'published' | 'needs_approval' | 'denied'; reason?: string; actionId?: string };
+  status?: 'published' | 'needs_approval' | 'denied';
+  reason?: string;
+}> {
+  return sidecarCall('shared_space:publish', params);
+}
+
+export function sharedSpaceApprove(params: {
+  actionId: string;
+  approverMemberId: string;
+  actorMemberId: string;
+  actorPersonalRootId: string;
+  actorRole: 'owner' | 'admin' | 'member' | 'viewer';
+  consent?: Record<string, unknown>;
+  personalRecord?: { recordId: string; recordHash?: string; payloadPlaintext?: string };
+}): Promise<{ success: boolean; status?: 'published' | 'needs_approval' | 'denied'; reason?: string }> {
+  return sidecarCall('shared_space:approve', params);
+}

@@ -360,6 +360,47 @@ export class SharedSpaceEventLog {
     }));
   }
 
+  listPendingApprovals(sharedSpaceId: string): Array<{
+    actionId: string;
+    sharedSpaceId: string;
+    actionType: string;
+    scope: string;
+    actorMemberId: string;
+    targetMemberId: string | null;
+    intentJson: string;
+    createdAt: string;
+    approvals: Array<{ approverMemberId: string; approvedAt: string }>;
+  }> {
+    const rows = this.db.prepare(`
+      SELECT action_id, shared_space_id, action_type, scope, actor_member_id,
+             target_member_id, intent_json, created_at
+      FROM shared_space_pending_approvals
+      WHERE shared_space_id = ?
+      ORDER BY created_at ASC
+    `).all(sharedSpaceId) as Array<{
+      action_id: string;
+      shared_space_id: string;
+      action_type: string;
+      scope: string;
+      actor_member_id: string;
+      target_member_id: string | null;
+      intent_json: string;
+      created_at: string;
+    }>;
+
+    return rows.map((row) => ({
+      actionId: row.action_id,
+      sharedSpaceId: row.shared_space_id,
+      actionType: row.action_type,
+      scope: row.scope,
+      actorMemberId: row.actor_member_id,
+      targetMemberId: row.target_member_id,
+      intentJson: row.intent_json,
+      createdAt: row.created_at,
+      approvals: this.listApprovals(row.action_id),
+    }));
+  }
+
   deletePendingApproval(actionId: string): void {
     this.db.prepare('DELETE FROM shared_space_pending_approvals WHERE action_id = ?').run(actionId);
     this.db.prepare('DELETE FROM shared_space_approvals WHERE action_id = ?').run(actionId);

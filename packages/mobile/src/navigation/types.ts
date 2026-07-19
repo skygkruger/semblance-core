@@ -28,6 +28,7 @@ export type WorkStackParamList = {
   Work: undefined;
   Activity: undefined;
   Intent: undefined;
+  SharedSpaces: undefined;
 };
 
 /** Vault tab stack */
@@ -77,6 +78,7 @@ export type CapabilitiesStackParamList = {
   KnowledgeGraph: undefined;
   NetworkMonitor: undefined;
   Relationships: undefined;
+  SharedSpaces: undefined;
 };
 
 /** Legacy aliases kept for tests and nested imports */

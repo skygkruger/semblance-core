@@ -11752,6 +11752,25 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      case 'shared_space:list_pending': {
+        if (!sharedSpaceVaultService) {
+          respondError(id, 'Shared-space vault service not initialized');
+          break;
+        }
+        try {
+          const pendingParams = params as { sharedSpaceId?: string };
+          if (!pendingParams.sharedSpaceId) {
+            respondError(id, 'sharedSpaceId is required');
+            break;
+          }
+          const pending = sharedSpaceVaultService.listPendingApprovals(pendingParams.sharedSpaceId);
+          respond(id, { success: true, pending });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
       case 'sync:push_events': {
         if (!syncEventService) {
           respondError(id, 'Sync event service not initialized');

@@ -196,6 +196,13 @@ export function SettingsScreen() {
         title: t('nav.connections'),
         items: [
           {
+            id: 'shared-spaces',
+            label: 'Shared Spaces',
+            type: 'navigate' as const,
+            description: 'Collaborate on explicitly shared commitments and plans',
+            onPress: () => navigation.navigate('SharedSpaces'),
+          },
+          {
             id: 'connections',
             label: t('screen.connections.title'),
             type: 'navigate' as const,

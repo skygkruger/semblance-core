@@ -121,6 +121,10 @@ export class SharedSpaceVaultService {
     });
   }
 
+  listPendingApprovals(sharedSpaceId: string): ReturnType<SharedSpaceEventLog['listPendingApprovals']> {
+    return this.eventLog.listPendingApprovals(sharedSpaceId);
+  }
+
   evaluateAdminPersonalRead(input: {
     sharedSpaceId: string;
     actorMemberId: string;
