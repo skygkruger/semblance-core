@@ -28,11 +28,15 @@ export interface ExecutionRequest {
   readonly model?: string;
   /** Self-hosted node id when policy selects self_hosted. */
   readonly selfHostedNodeId?: string;
+  /** Pre-fetched attestation evidence for confidential destination (avoids broker fetch). */
+  readonly attestationEvidence?: unknown;
+  /** Maximum minimized plaintext bytes permitted for confidential disclosure. */
+  readonly maxDisclosureBytes?: number;
 }
 
 export interface ExecutionSuccessResult {
   readonly status: 'success';
-  readonly destination: ExecutionDestinationDecision['destination'];
+  readonly destination: Exclude<ExecutionDestinationDecision['destination'], 'ask' | 'reject'>;
   readonly content: string;
   readonly tokensUsed: { prompt: number; completion: number; total: number };
   readonly model: string;
@@ -98,9 +102,35 @@ export interface OpaqueGatewayResponse {
   readonly disclosureReceipt: DisclosureReceipt;
 }
 
+export interface ConfidentialGatewayRequest {
+  readonly requestId: string;
+  readonly destination: 'confidential';
+  readonly deviceEphemeralPublicKey: string;
+  readonly ciphertext: string;
+  readonly iv: string;
+  readonly authTag: string;
+  readonly promptContentHash: string;
+  readonly model: string;
+  readonly maxTokens: number;
+  readonly subagentId: string;
+  readonly domain: string;
+  readonly taskType: string;
+}
+
+export interface ConfidentialGatewayResponse {
+  readonly ciphertext: string;
+  readonly iv: string;
+  readonly authTag: string;
+  readonly tokensUsed: { prompt: number; completion: number; total: number };
+  readonly model: string;
+  readonly provider: string;
+  readonly responseContentHash: string;
+}
+
 /** Injected transport — Broker never opens sockets. */
 export interface GatewayOpaqueTransport {
   execute(request: OpaqueGatewayRequest): Promise<OpaqueGatewayResponse>;
+  executeConfidential(request: ConfidentialGatewayRequest): Promise<ConfidentialGatewayResponse>;
 }
 
 export interface LocalExecutionTransport {

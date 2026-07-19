@@ -2382,7 +2382,21 @@ async function handleInitialize(): Promise<unknown> {
     };
 
     const { CloudBroker } = require('../../../cloud-broker/src/index.js');
+    const { AttestationClient } = require('../../../cloud-broker/src/confidential/attestation-client.js');
     const { OpaqueExecutionTransport } = require('../../../gateway/transports/opaque-execution.js');
+
+    const CONFIDENTIAL_WORKLOAD_ID = 'semblance-confidential-inference-v1';
+
+    const attestationClient = new AttestationClient({
+      fetcher: {
+        fetchEvidence: async () => {
+          throw new Error('Attestation evidence must be supplied inline via execution request params');
+        },
+      },
+      verifier: verifyAttestation,
+      expectedWorkloadId: CONFIDENTIAL_WORKLOAD_ID,
+      nonceGuard: attestationNonceGuard,
+    });
 
     const opaqueExecutionTransport = new OpaqueExecutionTransport({
       adapter: cloudAdapter,
@@ -2394,11 +2408,20 @@ async function handleInitialize(): Promise<unknown> {
         if (!baseUrl || !authToken) return null;
         return { nodeId, baseUrl, authToken };
       },
+      getConfidentialEndpoint: async () => {
+        const baseUrl = process.env['SEMBLANCE_CONFIDENTIAL_WORKLOAD_URL']
+          ?? await sidecarKeychainStore.get('semblance.confidential', 'base_url');
+        const authToken = process.env['SEMBLANCE_CONFIDENTIAL_WORKLOAD_TOKEN']
+          ?? await sidecarKeychainStore.get('semblance.confidential', 'auth_token');
+        if (!baseUrl || !authToken) return null;
+        return { baseUrl, authToken };
+      },
     });
 
     const cloudBroker = new CloudBroker({
       policyDecider: decideExecutionDestination,
       gatewayTransport: opaqueExecutionTransport,
+      attestationClient,
       localTransport: {
         execute: async (localParams: {
           messages: Array<{ role: string; content: string }>;
@@ -12000,6 +12023,58 @@ async function handleRequest(req: Request): Promise<void> {
         const listParams = params as { limit?: number };
         const limit = typeof listParams.limit === 'number' ? listParams.limit : 20;
         respond(id, { receipts: executionReceiptStore.listRecent(limit) });
+        break;
+      }
+
+      case 'confidential:execute': {
+        const broker = (globalThis as any).__cloudBroker;
+        if (!broker) {
+          respondError(id, 'Cloud Broker not initialized');
+          break;
+        }
+        try {
+          ensureExecutionDestinationStores();
+          const runParams = params as {
+            requestId?: string;
+            domain?: string;
+            taskType?: string;
+            attestationEvidence?: unknown;
+            maxDisclosureBytes?: number;
+            policyInput?: ExecutionDestinationPolicyInput;
+          };
+          const { nanoid } = require('nanoid');
+          const requestId = runParams.requestId ?? nanoid();
+          const policyInput: ExecutionDestinationPolicyInput = runParams.policyInput ?? {
+            sensitivity: 20,
+            localFeasibility: false,
+            destinationTrust: {
+              byo: 'none',
+              selfHosted: 'none',
+              confidential: 'attested',
+            },
+            userPreference: 'confidential',
+            disclosureCeiling: 80,
+            attestationAvailable: true,
+            localOnlyKillSwitch: false,
+            explicitConsent: true,
+          };
+          const result = await broker.execute({
+            ...params,
+            requestId,
+            policyInput,
+            attestationEvidence: runParams.attestationEvidence,
+            maxDisclosureBytes: runParams.maxDisclosureBytes,
+          });
+          recordExecutionRunReceipt({
+            requestId,
+            domain: runParams.domain ?? 'chat',
+            taskType: runParams.taskType ?? 'reasoning',
+            result,
+          });
+          respond(id, result);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
         break;
       }
 

@@ -1,6 +1,14 @@
 import { createHash } from 'node:crypto';
+import { CONFIDENTIAL_NO_FALLBACK } from '@semblance/kernel';
 import type { ExecutionDestinationDecision } from '@semblance/kernel';
+import { AttestationClient } from './confidential/attestation-client.js';
+import {
+  DEFAULT_MAX_DISCLOSURE_BYTES,
+  decryptConfidentialResponse,
+  prepareConfidentialTask,
+} from './confidential/task-crypto.js';
 import { createByoDestinationAdapter } from './destinations/byo.js';
+import { createConfidentialDestinationAdapter } from './destinations/confidential.js';
 import { createLocalDestinationAdapter } from './destinations/local.js';
 import { createSelfHostedDestinationAdapter } from './destinations/self-hosted.js';
 import { minimizeTask } from './task-minimizer.js';
@@ -16,6 +24,8 @@ export interface CloudBrokerConfig {
   readonly policyDecider: PolicyDecider;
   readonly gatewayTransport: GatewayOpaqueTransport;
   readonly localTransport: LocalExecutionTransport;
+  readonly attestationClient?: AttestationClient;
+  readonly defaultMaxDisclosureBytes?: number;
 }
 
 function hashContent(content: string): string {
@@ -27,12 +37,18 @@ export class CloudBroker {
   private readonly localAdapter: LocalExecutionTransport;
   private readonly byoAdapter: Pick<GatewayOpaqueTransport, 'execute'>;
   private readonly selfHostedAdapter: Pick<GatewayOpaqueTransport, 'execute'>;
+  private readonly confidentialAdapter: Pick<GatewayOpaqueTransport, 'executeConfidential'>;
+  private readonly attestationClient?: AttestationClient;
+  private readonly defaultMaxDisclosureBytes: number;
 
   constructor(config: CloudBrokerConfig) {
     this.policyDecider = config.policyDecider;
     this.localAdapter = createLocalDestinationAdapter(config.localTransport);
     this.byoAdapter = createByoDestinationAdapter(config.gatewayTransport);
     this.selfHostedAdapter = createSelfHostedDestinationAdapter(config.gatewayTransport);
+    this.confidentialAdapter = createConfidentialDestinationAdapter(config.gatewayTransport);
+    this.attestationClient = config.attestationClient;
+    this.defaultMaxDisclosureBytes = config.defaultMaxDisclosureBytes ?? DEFAULT_MAX_DISCLOSURE_BYTES;
   }
 
   decide(request: ExecutionRequest): ExecutionDestinationDecision {
@@ -55,6 +71,10 @@ export class CloudBroker {
         status: 'reject',
         reason: decision.reason,
       };
+    }
+
+    if (decision.destination === 'confidential') {
+      return this.executeConfidential(request, decision);
     }
 
     const minimization = minimizeTask(request.messages, request.excludedCategories);
@@ -155,5 +175,102 @@ export class CloudBroker {
       status: 'reject',
       reason: `unsupported_destination:${decision.destination}`,
     };
+  }
+
+  private async executeConfidential(
+    request: ExecutionRequest,
+    decision: ExecutionDestinationDecision,
+  ): Promise<ExecutionResult> {
+    if (CONFIDENTIAL_NO_FALLBACK && decision.destination !== 'confidential') {
+      return {
+        status: 'reject',
+        reason: 'confidential_no_fallback',
+      };
+    }
+
+    if (!this.attestationClient) {
+      return {
+        status: 'reject',
+        reason: 'confidential_attestation_client_unconfigured',
+      };
+    }
+
+    const attestation = await this.attestationClient.verifyAndBind({
+      evidence: request.attestationEvidence,
+    });
+
+    if (!attestation.allowed || !attestation.boundEphemeralPublicKey) {
+      return {
+        status: 'reject',
+        reason: attestation.reason,
+      };
+    }
+
+    const maxDisclosureBytes = request.maxDisclosureBytes ?? this.defaultMaxDisclosureBytes;
+    const prepared = prepareConfidentialTask({
+      messages: request.messages,
+      excludedCategories: request.excludedCategories,
+      maxDisclosureBytes,
+      workloadEphemeralPublicKey: attestation.boundEphemeralPublicKey,
+      maxTokens: request.maxTokens,
+      temperature: request.temperature,
+      subagentId: request.subagentId,
+      domain: request.domain,
+      taskType: request.taskType,
+    });
+
+    if ('ok' in prepared) {
+      return {
+        status: 'reject',
+        reason: prepared.reason,
+      };
+    }
+
+    const encryptedTask = prepared;
+    const model = request.model ?? 'confidential-default';
+
+    try {
+      const remoteResult = await this.confidentialAdapter.executeConfidential({
+        requestId: request.requestId,
+        destination: 'confidential',
+        deviceEphemeralPublicKey: encryptedTask.deviceEphemeralPublicKey,
+        ciphertext: encryptedTask.ciphertext,
+        iv: encryptedTask.iv,
+        authTag: encryptedTask.authTag,
+        promptContentHash: encryptedTask.promptContentHash,
+        model,
+        maxTokens: request.maxTokens,
+        subagentId: request.subagentId,
+        domain: request.domain,
+        taskType: request.taskType,
+      });
+
+      const decrypted = decryptConfidentialResponse(encryptedTask.sessionMaterial, {
+        ciphertext: remoteResult.ciphertext,
+        iv: remoteResult.iv,
+        authTag: remoteResult.authTag,
+      });
+
+      const minimization = minimizeTask(request.messages, request.excludedCategories);
+
+      return {
+        status: 'success',
+        destination: 'confidential',
+        content: decrypted.content,
+        tokensUsed: remoteResult.tokensUsed,
+        model: remoteResult.model,
+        provider: remoteResult.provider,
+        reason: decision.reason,
+        minimization: {
+          tokensBefore: minimization.tokensBefore,
+          tokensAfter: minimization.tokensAfter,
+        },
+      };
+    } catch {
+      return {
+        status: 'reject',
+        reason: 'confidential_execution_failed',
+      };
+    }
   }
 }

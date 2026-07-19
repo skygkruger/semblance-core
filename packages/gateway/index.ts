@@ -527,8 +527,12 @@ export { gatewayFetch, gatewayHttpsGet } from './security/gateway-network.js';
 export {
   OpaqueExecutionTransport,
   opaqueExecutionRequestSchema,
+  confidentialExecutionRequestSchema,
   type OpaqueExecutionRequest,
   type OpaqueExecutionResponse,
+  type ConfidentialExecutionRequest,
+  type ConfidentialExecutionResponse,
+  type ConfidentialWorkloadEndpoint,
   type OpaqueExecutionTransportDeps,
   type SelfHostedNodeCredential,
 } from './transports/opaque-execution.js';
