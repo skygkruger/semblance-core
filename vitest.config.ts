@@ -58,6 +58,7 @@ export default defineConfig({
       { find: '@semblance/extension-runner', replacement: resolve(__dirname, 'packages/extension-runner/src/index.ts') },
       { find: '@semblance/gateway', replacement: resolve(__dirname, 'packages/gateway') },
       { find: '@semblance/kernel', replacement: resolve(__dirname, 'packages/kernel/src/index.ts') },
+      { find: '@semblance/cloud-broker', replacement: resolve(__dirname, 'packages/cloud-broker/src/index.ts') },
       { find: '@semblance/proof', replacement: resolve(__dirname, 'packages/proof/src/index.ts') },
       { find: '@semblance/ui', replacement: resolve(__dirname, 'packages/semblance-ui') },
       { find: '@semblance/desktop', replacement: resolve(__dirname, 'packages/desktop/src') },
