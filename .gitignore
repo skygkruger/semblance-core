@@ -139,6 +139,11 @@ scripts/**/*.d.ts.map
 !scripts/check-doc-authority.d.ts
 !scripts/verify-cross-repo-slice.js
 !scripts/verify-cross-repo-slice.d.ts
+!scripts/cross-cutting-gate-matrix.js
+!scripts/smoke-test-runtimes.js
+!scripts/process-isolation-audit.js
+!scripts/check-feature-evidence-ladder.js
+!scripts/check-stop-conditions.js
 
 # Vitest config compiled output
 vitest.config.js
