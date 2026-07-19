@@ -35,7 +35,9 @@
     "i18next": "^24.0.0",
     "react-i18next": "^15.0.0",
     "i18next-resources-to-backend": "^1.2.0",
-    "@semblance/ui": "workspace:*"
+    "@semblance/ui": "workspace:*",
+    "@semblance/core": "workspace:*",
+    "@semblance/sync": "workspace:*"
   },
   "devDependencies": {
     "@react-native/babel-preset": "^0.76.0",
