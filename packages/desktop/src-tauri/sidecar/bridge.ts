@@ -228,6 +228,8 @@ import {
   createCapabilityScopedCredentialService,
   migrateLegacyOAuthTokensToKernel,
   createMemoryKeyStore,
+  decideExecutionDestination,
+  type ExecutionDestinationPolicyInput,
 } from '../../../kernel/src/index.js';
 import {
   listWorkActions,
@@ -11772,6 +11774,16 @@ async function handleRequest(req: Request): Promise<void> {
           return (s ?? 0) + p.estimatedCost;
         }, null as number | null);
         respond(id, { providers, totalRequests, totalCost });
+        break;
+      }
+
+      case 'execution:decide_destination': {
+        try {
+          const decision = decideExecutionDestination(params as ExecutionDestinationPolicyInput);
+          respond(id, decision);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
         break;
       }
 
