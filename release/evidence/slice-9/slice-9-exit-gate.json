@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "slice": 9,
+  "releaseId": "attested-confidential-compute-2026-07-19",
+  "generatedAt": "2026-07-19T08:31:00.000Z",
+  "exitGate": {
+    "staleAttestationNoPlaintext": {
+      "AdversariallyVerified": true,
+      "evidence": "release/evidence/slice-9/exit-gate.txt",
+      "notes": "Wrong measurement rejects before executeConfidential transport"
+    },
+    "noNonAttestedFallback": {
+      "AdversariallyVerified": true,
+      "evidence": "release/evidence/slice-9/exit-gate.txt",
+      "notes": "Invalid attestation never falls back to BYO or local"
+    },
+    "gatewayCiphertextOnly": {
+      "AdversariallyVerified": true,
+      "evidence": "release/evidence/slice-9/exit-gate.txt",
+      "notes": "Opaque execution transport bans plaintext fields on confidential schema"
+    },
+    "noAccountLinkedTaskHistory": {
+      "AdversariallyVerified": true,
+      "evidence": "release/evidence/slice-9/exit-gate.txt",
+      "notes": "Relay, workload, and commerce redemption stores reject account linkage fields"
+    },
+    "localProofReceiptVerifies": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-9/proof-receipt-tests.txt",
+      "notes": "Confidential proof bundle verifies disclosure + attestation + usage receipts"
+    },
+    "cloudBudgetFailClosed": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-9/cloud-budget-tests.txt",
+      "notes": "Local cloud-disable and budget limits block disclosure before transport"
+    },
+    "confidentialBrokerPath": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-9/confidential-broker-tests.txt",
+      "notes": "CloudBroker confidential path encrypt/decrypt with attestation gate"
+    },
+    "capabilitiesBudgetUiWired": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-9/exit-gate.txt",
+      "notes": "CloudBudgetPanel wired through CloudBridgeScreen and cloud_budget IPC"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 8,
+  "runtimeVerifiedExitItems": 7,
+  "honestBlockers": []
+}
