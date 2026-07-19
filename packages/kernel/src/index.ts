@@ -76,6 +76,20 @@ export {
   type AutonomyCapabilityEvaluation,
 } from './policy/autonomy-capability-map.js';
 export {
+  decideExecutionDestination,
+  isExecutionDestinationRemote,
+  type ExecutionDestinationChoice,
+  type ExecutionDestinationDecision,
+  type ExecutionDestinationPolicyInput,
+  type DestinationTrustFacts,
+  type DestinationTrustStatus,
+  type ExecutionCostFacts,
+  type ExecutionLatencyFacts,
+  type ExecutionRetentionFacts,
+  type RemoteExecutionDestination,
+  type UserDestinationPreference,
+} from './policy/execution-destination-policy.js';
+export {
   createKernelIpcHandlers,
   type ProcessHelloRequest,
   type KernelIpcHandlers,

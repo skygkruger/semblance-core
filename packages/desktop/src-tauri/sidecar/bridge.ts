@@ -228,6 +228,8 @@ import {
   createCapabilityScopedCredentialService,
   migrateLegacyOAuthTokensToKernel,
   createMemoryKeyStore,
+  decideExecutionDestination,
+  type ExecutionDestinationPolicyInput,
 } from '../../../kernel/src/index.js';
 import {
   listWorkActions,
@@ -371,6 +373,15 @@ let messageProcessingLock: Promise<void> = Promise.resolve();
 // Abort controller for cancelling in-progress message generation
 let activeMessageAbortController: AbortController | null = null;
 let dataDir = '';
+let executionDestinationPolicyStore: {
+  get: () => import('../../../cloud-broker/src/destination-policy-store.js').ExecutionDestinationPolicyDocument;
+  set: (
+    next: import('../../../cloud-broker/src/destination-policy-store.js').ExecutionDestinationPolicyDocument,
+  ) => import('../../../cloud-broker/src/destination-policy-store.js').ExecutionDestinationPolicyDocument;
+} | null = null;
+let executionReceiptStore: ReturnType<
+  typeof import('../../../cloud-broker/src/execution-receipt-store.js').createExecutionReceiptStore
+> | null = null;
 let documentsDb: Database.Database | null = null;
 let emailIndexer: EmailIndexer | null = null;
 let calendarIndexer: CalendarIndexer | null = null;
@@ -879,11 +890,69 @@ Core principles:
 
 // ─── Method Handlers ──────────────────────────────────────────────────────────
 
+function ensureExecutionDestinationStores(): void {
+  if (executionDestinationPolicyStore && executionReceiptStore) {
+    return;
+  }
+
+  const {
+    loadExecutionDestinationPolicy,
+    saveExecutionDestinationPolicy,
+  } = require('../../../cloud-broker/src/destination-policy-store.js');
+  const { createExecutionReceiptStore } = require('../../../cloud-broker/src/execution-receipt-store.js');
+  const executionPolicyPath = join(dataDir, 'execution-destination-policy.json');
+  const executionReceiptPath = join(dataDir, 'execution-receipts.json');
+  let executionDestinationPolicy = loadExecutionDestinationPolicy(executionPolicyPath);
+  executionReceiptStore = createExecutionReceiptStore(executionReceiptPath);
+  executionDestinationPolicyStore = {
+    get: () => executionDestinationPolicy,
+    set: (next) => {
+      executionDestinationPolicy = saveExecutionDestinationPolicy(executionPolicyPath, next);
+      return executionDestinationPolicy;
+    },
+  };
+  (globalThis as any).__executionDestinationPolicy = executionDestinationPolicyStore;
+  (globalThis as any).__executionReceiptStore = executionReceiptStore;
+}
+
+function recordExecutionRunReceipt(params: {
+  requestId: string;
+  domain: string;
+  taskType: string;
+  result: {
+    status: 'success' | 'ask' | 'reject';
+    reason?: string;
+    destination?: string;
+    model?: string;
+    provider?: string;
+    disclosureReceipt?: unknown;
+  };
+}): void {
+  if (!executionReceiptStore) return;
+  const { resolveCapabilityId } = require('../../../cloud-broker/src/destination-policy-store.js');
+  const { nanoid } = require('nanoid');
+  executionReceiptStore.append({
+    id: nanoid(),
+    requestId: params.requestId,
+    capabilityId: resolveCapabilityId(params.domain, params.taskType),
+    domain: params.domain,
+    taskType: params.taskType,
+    status: params.result.status,
+    destination: params.result.status === 'success' ? (params.result.destination ?? null) : null,
+    reason: params.result.reason ?? params.result.status,
+    timestamp: new Date().toISOString(),
+    model: params.result.model ?? null,
+    provider: params.result.provider ?? null,
+    disclosureReceipt: (params.result.disclosureReceipt as import('../../../cloud-broker/src/disclosure-receipt.js').DisclosureReceipt | undefined) ?? null,
+  });
+}
+
 async function handleInitialize(): Promise<unknown> {
   installEgressGuard();
 
   dataDir = join(homedir(), '.semblance', 'data');
   if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+  ensureExecutionDestinationStores();
 
   // ──── STEP 1: Open preferences DB FIRST ────
   // Preferences (onboarding state, user name, autonomy tiers) are independent
@@ -2076,22 +2145,21 @@ async function handleInitialize(): Promise<unknown> {
         console.error('[sidecar] Subagent stream events wired to canvas + NDJSON');
       }
 
-      // Wire Cloud Bridge chat handler for hybrid local+cloud execution.
-      // When a subtask has modelTier 'cloud_bridge', the executor calls this
-      // handler which routes through the Gateway's Cloud Bridge routing engine.
+      // Wire Cloud Bridge chat handler through Cloud Broker + Kernel policy.
+      // Broker minimizes tasks and dispatches via Gateway opaque transport only.
       if ('setCloudBridgeChatHandler' in core.agent) {
         (core.agent as any).setCloudBridgeChatHandler(async (params: any) => {
+          const broker = (globalThis as any).__cloudBroker;
+          if (!broker) throw new Error('Cloud Broker not initialized');
           const cb = (globalThis as any).__cloudBridge;
           if (!cb) throw new Error('Cloud Bridge not initialized');
           const engine = cb.engine;
           const policy = engine.getPolicy();
 
-          // Check if Cloud Bridge is enabled
           if (policy.mode === 'off') {
             throw new Error('Cloud Bridge is disabled');
           }
 
-          // Use cost optimizer to select provider+model
           const estimate = engine.costOptimizer.estimate(
             params.messages,
             params.maxTokens,
@@ -2103,29 +2171,66 @@ async function handleInitialize(): Promise<unknown> {
             throw new Error('No affordable Cloud Bridge option available');
           }
 
-          // Build and minimize the request
-          const request = engine.buildRequest(
-            { route: 'cloud_bridge', reason: 'hybrid execution', provider: estimate.provider, model: estimate.model },
-            params.messages,
-            { subagentId: params.subagentId, taskType: params.taskType, domain: params.domain, maxTokens: params.maxTokens, temperature: params.temperature },
-          );
+          const { nanoid: brokerNanoid } = require('nanoid');
+          const { buildExecutionPolicyInput } = require('../../../cloud-broker/src/policy-input-builder.js');
+          const requestId = brokerNanoid();
+          const promptText = params.messages.map((m: { content: string }) => m.content).join(' ');
+          const sensitivity = Math.min(100, Math.max(0, Math.round(promptText.length / 50)));
+          const hasProvider = Boolean(cb.registry.getProvider(estimate.provider));
+          const destinationPolicy = executionDestinationPolicyStore?.get()
+            ?? require('../../../cloud-broker/src/destination-policy-store.js').createDefaultExecutionDestinationPolicy();
+          const estimatedCostCents = estimate.estimatedCost ?? 0;
 
-          // Minimize prompt before sending
-          const minimized = engine.promptMinimizer.minimize(request.messages, policy.excludedCategories);
-          request.messages = minimized.messages;
+          const result = await broker.execute({
+            requestId,
+            messages: params.messages,
+            maxTokens: params.maxTokens,
+            temperature: params.temperature,
+            subagentId: params.subagentId,
+            domain: params.domain,
+            taskType: params.taskType,
+            excludedCategories: policy.excludedCategories,
+            provider: estimate.provider,
+            model: estimate.model,
+            policyInput: buildExecutionPolicyInput({
+              policyDocument: destinationPolicy,
+              domain: params.domain,
+              taskType: params.taskType,
+              sensitivity,
+              localFeasibility: true,
+              destinationTrust: {
+                byo: hasProvider ? 'verified' : 'none',
+                selfHosted: 'verified',
+                confidential: 'none',
+              },
+              explicitConsent: policy.mode !== 'off' && policy.mode !== 'manual',
+              estimatedCostCents,
+              estimatedLatencyMs: 5_000,
+            }),
+          });
 
-          // Execute through Cloud Bridge
-          const response = await engine.executeCloudRequest(request);
-          if (!response) throw new Error('Cloud Bridge request failed');
+          recordExecutionRunReceipt({
+            requestId,
+            domain: params.domain,
+            taskType: params.taskType,
+            result,
+          });
+
+          if (result.status === 'ask') {
+            throw new Error(`Execution requires consent: ${result.reason}`);
+          }
+          if (result.status === 'reject') {
+            throw new Error(`Execution rejected: ${result.reason}`);
+          }
 
           return {
-            content: response.message.content,
-            tokensUsed: response.tokensUsed,
-            model: response.model,
-            provider: response.provider,
+            content: result.content,
+            tokensUsed: result.tokensUsed,
+            model: result.model,
+            provider: result.provider,
           };
         });
-        console.error('[sidecar] Cloud Bridge chat handler wired for hybrid execution');
+        console.error('[sidecar] Cloud Broker chat handler wired for hybrid execution');
       }
     }
 
@@ -2271,6 +2376,55 @@ async function handleInitialize(): Promise<unknown> {
       adapter: cloudAdapter,
       engine: cloudRoutingEngine,
     };
+
+    const { CloudBroker } = require('../../../cloud-broker/src/index.js');
+    const { OpaqueExecutionTransport } = require('../../../gateway/transports/opaque-execution.js');
+
+    const opaqueExecutionTransport = new OpaqueExecutionTransport({
+      adapter: cloudAdapter,
+      auditTrail: gateway?.getAuditTrail(),
+      getSelfHostedNode: async (nodeId: string) => {
+        const service = `semblance.self-hosted.${nodeId}`;
+        const baseUrl = await sidecarKeychainStore.get(service, 'base_url');
+        const authToken = await sidecarKeychainStore.get(service, 'auth_token');
+        if (!baseUrl || !authToken) return null;
+        return { nodeId, baseUrl, authToken };
+      },
+    });
+
+    const cloudBroker = new CloudBroker({
+      policyDecider: decideExecutionDestination,
+      gatewayTransport: opaqueExecutionTransport,
+      localTransport: {
+        execute: async (localParams: {
+          messages: Array<{ role: string; content: string }>;
+          maxTokens: number;
+          temperature: number;
+        }) => {
+          if (!core?.llm) {
+            throw new Error('Local LLM not available');
+          }
+          const response = await core.llm.chat({
+            model: 'primary',
+            messages: localParams.messages.map((message) => ({
+              role: message.role as 'user' | 'assistant' | 'system',
+              content: message.content,
+            })),
+            maxTokens: localParams.maxTokens,
+            temperature: localParams.temperature,
+          });
+          return {
+            content: response.message.content,
+            tokensUsed: response.tokensUsed ?? { prompt: 0, completion: 0, total: 0 },
+            model: response.model ?? 'primary',
+            provider: 'local',
+          };
+        },
+      },
+    });
+
+    (globalThis as any).__cloudBroker = cloudBroker;
+    ensureExecutionDestinationStores();
 
     console.error('[sidecar] Cloud Bridge initialized (mode: off — user must enable in Settings)');
   } catch (cloudBridgeErr) {
@@ -11772,6 +11926,81 @@ async function handleRequest(req: Request): Promise<void> {
           return (s ?? 0) + p.estimatedCost;
         }, null as number | null);
         respond(id, { providers, totalRequests, totalCost });
+        break;
+      }
+
+      case 'execution:decide_destination': {
+        try {
+          const decision = decideExecutionDestination(params as ExecutionDestinationPolicyInput);
+          respond(id, decision);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'execution:get_destination_policy': {
+        ensureExecutionDestinationStores();
+        const policyStore = executionDestinationPolicyStore;
+        if (!policyStore) {
+          respondError(id, 'Execution destination policy store not initialized');
+          break;
+        }
+        respond(id, policyStore.get());
+        break;
+      }
+
+      case 'execution:set_destination_policy': {
+        ensureExecutionDestinationStores();
+        const policyStore = executionDestinationPolicyStore;
+        if (!policyStore) {
+          respondError(id, 'Execution destination policy store not initialized');
+          break;
+        }
+        const { normalizeExecutionDestinationPolicy } = require('../../../cloud-broker/src/destination-policy-store.js');
+        const nextPolicy = policyStore.set(normalizeExecutionDestinationPolicy(params));
+        respond(id, { success: true, policy: nextPolicy });
+        break;
+      }
+
+      case 'execution:list_receipts': {
+        ensureExecutionDestinationStores();
+        if (!executionReceiptStore) {
+          respondError(id, 'Execution receipt store not initialized');
+          break;
+        }
+        const listParams = params as { limit?: number };
+        const limit = typeof listParams.limit === 'number' ? listParams.limit : 20;
+        respond(id, { receipts: executionReceiptStore.listRecent(limit) });
+        break;
+      }
+
+      case 'execution:run': {
+        const broker = (globalThis as any).__cloudBroker;
+        if (!broker) {
+          respondError(id, 'Cloud Broker not initialized');
+          break;
+        }
+        try {
+          ensureExecutionDestinationStores();
+          const runParams = params as {
+            requestId?: string;
+            domain?: string;
+            taskType?: string;
+          };
+          const { nanoid } = require('nanoid');
+          const requestId = runParams.requestId ?? nanoid();
+          const result = await broker.execute({ ...params, requestId });
+          recordExecutionRunReceipt({
+            requestId,
+            domain: runParams.domain ?? 'chat',
+            taskType: runParams.taskType ?? 'reasoning',
+            result,
+          });
+          respond(id, result);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
         break;
       }
 

@@ -1,0 +1,15 @@
+{
+  "protocolVersion": "execution/v1",
+  "nodeId": "self-host-node-001",
+  "models": [
+    {
+      "modelId": "llama-3.2-3b",
+      "displayName": "Llama 3.2 3B",
+      "contextLength": 8192,
+      "capabilities": ["chat", "completion"],
+      "contentHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
+  ],
+  "inventoryHash": "fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+  "generatedAt": "2026-07-18T12:00:03.000Z"
+}

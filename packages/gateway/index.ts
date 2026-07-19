@@ -524,6 +524,14 @@ export type {
   WaitlistSubmitResult,
 } from './services/commerce-transport.js';
 export { gatewayFetch, gatewayHttpsGet } from './security/gateway-network.js';
+export {
+  OpaqueExecutionTransport,
+  opaqueExecutionRequestSchema,
+  type OpaqueExecutionRequest,
+  type OpaqueExecutionResponse,
+  type OpaqueExecutionTransportDeps,
+  type SelfHostedNodeCredential,
+} from './transports/opaque-execution.js';
 
 // Daemon mode
 export { DaemonManager } from './daemon/daemon-manager.js';

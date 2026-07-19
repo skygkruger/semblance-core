@@ -1,0 +1,7 @@
+{
+  "protocolVersion": "execution/v1",
+  "idempotencyKey": "idempotency-task-req-001",
+  "clientId": "gateway-device-001",
+  "scope": "task",
+  "createdAt": "2026-07-18T12:00:04.000Z"
+}

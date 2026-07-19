@@ -1,0 +1,11 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+
+ ✓ packages/kernel/tests/execution-destination-policy.test.ts (24 tests) 3ms
+
+ Test Files  1 passed (1)
+      Tests  24 passed (24)
+   Start at  22:35:11
+   Duration  183ms (transform 32ms, setup 82ms, import 11ms, tests 3ms, environment 0ms)
+

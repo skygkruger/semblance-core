@@ -23,6 +23,7 @@ const { dirname, isAbsolute, join, relative, resolve } = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const REPOSITORY_NAMES = ['core', 'representative', 'website'];
+const OPTIONAL_REPOSITORY_NAMES = ['semblanceNode'];
 const LEGAL_VERSION_PATTERN = /Legal version:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/;
 const MIGRATION_EVIDENCE_IDS = [
   'migration-reservation-entitlement-split',
@@ -47,7 +48,7 @@ function sha256File(path) {
 
 function parseArgs(argv) {
   const valueFlags = new Set([
-    'manifest', 'core-repo', 'representative-repo', 'website-repo',
+    'manifest', 'core-repo', 'representative-repo', 'website-repo', 'node-repo',
   ]);
   const options = {};
   for (let index = 0; index < argv.length; index += 1) {
@@ -148,6 +149,115 @@ function verifySourcePins(manifest, repositories) {
       ));
     }
   }
+  return errors;
+}
+
+function verifyOptionalSourcePins(manifest, repositories) {
+  const errors = [];
+  for (const name of OPTIONAL_REPOSITORY_NAMES) {
+    const source = manifest.repositories?.[name];
+    const repository = repositories[name];
+    if (!isObject(source)) continue;
+    if (!repository) {
+      errors.push(error(
+        'SOURCE_VERIFICATION_FAILED',
+        `${name} repository adapter missing for pinned manifest entry`,
+        `repositories.${name}`,
+      ));
+      continue;
+    }
+    try {
+      if (!repository.isAncestor(source.sourceCommit, repository.headCommit)) {
+        errors.push(error(
+          'SOURCE_NOT_ANCESTOR',
+          `${name} sourceCommit is not an ancestor of HEAD`,
+          `repositories.${name}.sourceCommit`,
+        ));
+      }
+      if (repository.treeHash(source.sourceCommit) !== source.sourceTreeHash) {
+        errors.push(error(
+          'TREE_HASH_MISMATCH',
+          `${name} sourceTreeHash does not match the pinned commit`,
+          `repositories.${name}.sourceTreeHash`,
+        ));
+      }
+      if (typeof source.repositoryUrl === 'string' && source.repositoryUrl.length === 0) {
+        errors.push(error(
+          'SOURCE_VERIFICATION_FAILED',
+          `${name} repositoryUrl must be a non-empty string`,
+          `repositories.${name}.repositoryUrl`,
+        ));
+      }
+    } catch (cause) {
+      errors.push(error(
+        'SOURCE_VERIFICATION_FAILED',
+        `${name} Git provenance verification failed: ${cause.message}`,
+        `repositories.${name}`,
+      ));
+    }
+  }
+  return errors;
+}
+
+function verifySlice8Completion(manifest, coreRoot) {
+  const errors = [];
+  const slice8Complete = Array.isArray(manifest.completedSlices)
+    && manifest.completedSlices.includes(8);
+  if (!slice8Complete) {
+    return errors;
+  }
+
+  if (manifest.releaseId !== 'byo-self-hosted-execution-2026-07-18') {
+    errors.push(error(
+      'SLICE_8_RELEASE_ID_MISMATCH',
+      'releaseId must be byo-self-hosted-execution-2026-07-18 when Slice 8 is complete',
+      'releaseId',
+    ));
+  }
+
+  if (!isObject(manifest.repositories?.semblanceNode)) {
+    errors.push(error(
+      'SLICE_8_NODE_PIN_MISSING',
+      'repositories.semblanceNode must be pinned when Slice 8 is complete',
+      'repositories.semblanceNode',
+    ));
+  }
+
+  const requiredEvidenceIds = [
+    'slice-8-exit-gate',
+    'slice-8-exit-gate-tests',
+    'slice-8-kernel-execution-policy',
+    'slice-8-cloud-broker-tests',
+    'slice-8-protocol-execution-v1',
+    'slice-8-semblance-node-conformance',
+  ];
+
+  for (const evidenceId of requiredEvidenceIds) {
+    const entry = (manifest.evidence ?? []).find((item) => item.id === evidenceId);
+    if (!entry) {
+      errors.push(error(
+        'SLICE_8_EVIDENCE_MISSING',
+        `Slice 8 evidence entry missing: ${evidenceId}`,
+        `evidence.${evidenceId}`,
+      ));
+      continue;
+    }
+    const absolute = join(coreRoot, entry.path);
+    if (!existsSync(absolute)) {
+      errors.push(error(
+        'SLICE_8_EVIDENCE_MISSING',
+        `Slice 8 evidence file missing: ${entry.path}`,
+        entry.path,
+      ));
+    } else if (sha256File(absolute) !== entry.sha256) {
+      errors.push(error(
+        'SLICE_8_EVIDENCE_HASH_MISMATCH',
+        `Slice 8 evidence ${evidenceId} hash does not match manifest`,
+        `evidence.${evidenceId}`,
+      ));
+    }
+  }
+
   return errors;
 }
 
@@ -640,6 +750,7 @@ function verifyCrossRepoSlice(options) {
   const websiteRoot = repositories.website.root;
 
   errors.push(...verifySourcePins(manifest, repositories));
+  errors.push(...verifyOptionalSourcePins(manifest, repositories));
   errors.push(...verifyPublicClaims(coreRoot, websiteRoot));
   errors.push(...verifyPublicClaimsSalesFlag(manifest, coreRoot));
   errors.push(...verifyReservationFixture(coreRoot, websiteRoot, representativeRoot));
@@ -647,6 +758,7 @@ function verifyCrossRepoSlice(options) {
   errors.push(...verifyEvidenceHashes(manifest, repositories));
   errors.push(...verifyMigrationEvidence(manifest, representativeRoot));
   errors.push(...verifyCommerceFreeze(manifest, representativeRoot, coreRoot));
+  errors.push(...verifySlice8Completion(manifest, coreRoot));
 
   return { valid: errors.length === 0, errors };
 }
@@ -676,6 +788,9 @@ function runCli() {
       args['representative-repo'] ?? join(parent, 'semblence-representative'),
     )),
     website: resolve(String(args['website-repo'] ?? join(parent, 'semblance-run'))),
+    semblanceNode: resolve(String(
+      args['node-repo'] ?? join(parent, 'semblance-node'),
+    )),
   };
 
   let manifest;
@@ -686,10 +801,15 @@ function runCli() {
     return 1;
   }
 
+  const repositoryNames = [...REPOSITORY_NAMES];
+  if (isObject(manifest.repositories?.semblanceNode)) {
+    repositoryNames.push('semblanceNode');
+  }
+
   let repositories;
   try {
     repositories = Object.fromEntries(
-      REPOSITORY_NAMES.map((name) => [name, gitRepositoryAdapter(repositoryPaths[name])]),
+      repositoryNames.map((name) => [name, gitRepositoryAdapter(repositoryPaths[name])]),
     );
   } catch (cause) {
     console.error(`SOURCE_VERIFICATION_FAILED: ${cause.message}`);

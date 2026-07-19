@@ -310,7 +310,7 @@ const navSections: NavSection[] = [
   {
     label: 'CLOUD CONNECTIVITY',
     items: [
-      { id: 'cloud-bridge', label: 'Cloud Bridge', icon: <CloudBridgeIcon /> },
+      { id: 'cloud-bridge', label: 'Capabilities', icon: <CloudBridgeIcon /> },
     ],
   },
 ];

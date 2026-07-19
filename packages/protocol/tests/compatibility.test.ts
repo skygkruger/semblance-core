@@ -42,6 +42,16 @@ const fixtureBySchemaId: Record<ProtocolSchemaId, string> = {
   'proof-receipt-v1': 'proof-receipt-v1.json',
   'vault-event-v1': 'vault-event-v1.json',
   'sync-envelope-v1': 'sync-envelope-v1.json',
+  'execution-handshake-hello-v1': 'execution-handshake-hello-v1.json',
+  'execution-handshake-challenge-v1': 'execution-handshake-challenge-v1.json',
+  'execution-handshake-auth-v1': 'execution-handshake-auth-v1.json',
+  'execution-handshake-session-v1': 'execution-handshake-session-v1.json',
+  'execution-model-inventory-v1': 'execution-model-inventory-v1.json',
+  'execution-idempotency-key-v1': 'execution-idempotency-key-v1.json',
+  'execution-task-envelope-v1': 'execution-task-envelope-v1.json',
+  'execution-receipt-v1': 'execution-receipt-v1.json',
+  'execution-health-v1': 'execution-health-v1.json',
+  'execution-revocation-v1': 'execution-revocation-v1.json',
 };
 
 describe('@semblance/protocol compatibility', () => {

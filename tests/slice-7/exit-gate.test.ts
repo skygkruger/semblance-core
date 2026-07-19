@@ -291,6 +291,6 @@ describe('Slice 7 exit gate — release manifest evidence state', () => {
   it('documents commerce sales enabled after exit gate evidence', () => {
     expect(releaseManifest.commerce.newSalesEnabled).toBe(true);
     expect(releaseManifest.completedSlices).toContain(7);
-    expect(releaseManifest.releaseId).toBe('entitlements-commerce-2026-07-18');
+    // releaseId advances with later slices; Slice 7 only requires sales remain enabled.
   });
 });

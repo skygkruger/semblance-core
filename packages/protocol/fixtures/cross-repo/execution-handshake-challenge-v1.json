@@ -1,0 +1,10 @@
+{
+  "protocolVersion": "execution/v1",
+  "compatibleWith": ["execution/v1"],
+  "nodeId": "self-host-node-001",
+  "nodePublicKey": "MCowBQYDK2VwAyEAfedcba0987654321fedcba0987654321fedcba0987654321fedcba098765=",
+  "helloNonce": "hello-nonce-001",
+  "nodeNonce": "node-nonce-001",
+  "buildHash": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+  "timestamp": "2026-07-18T12:00:01.000Z"
+}

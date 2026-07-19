@@ -1594,3 +1594,66 @@ export function cloudBridgeGetUsage(): Promise<{
 }> {
   return sidecarCall('cloud_bridge_get_usage');
 }
+
+// ─── Execution destination policy (Capabilities) ─────────────────────────────
+
+export type CapabilityDestinationPreference = 'local' | 'self_hosted' | 'byo' | 'ask';
+export type CapabilityModelClass = 'fast' | 'balanced' | 'reasoning';
+
+export interface CapabilityDestinationConfigIPC {
+  destinationPreference: CapabilityDestinationPreference;
+  disclosureCeiling: number;
+  modelClass: CapabilityModelClass;
+  budgetCents: number;
+  latencyMaxMs: number;
+}
+
+export interface ExecutionDestinationPolicyIPC {
+  schemaVersion: 1;
+  localOnlyKillSwitch: boolean;
+  capabilities: Record<string, CapabilityDestinationConfigIPC>;
+  updatedAt: string;
+}
+
+export interface ExecutionRunReceiptIPC {
+  id: string;
+  requestId: string;
+  capabilityId: string;
+  domain: string;
+  taskType: string;
+  status: 'success' | 'ask' | 'reject';
+  destination: string | null;
+  reason: string;
+  timestamp: string;
+  model: string | null;
+  provider: string | null;
+  disclosureReceipt: {
+    schemaVersion: 1;
+    label: 'byo' | 'self_hosted';
+    requestId: string;
+    destination: 'byo' | 'self_hosted';
+    provider: string;
+    model: string;
+    promptContentHash: string;
+    responseContentHash: string;
+    timestamp: string;
+    tokensUsed: { prompt: number; completion: number; total: number };
+  } | null;
+}
+
+export function executionGetDestinationPolicy(): Promise<ExecutionDestinationPolicyIPC> {
+  return sidecarCall<ExecutionDestinationPolicyIPC>('execution:get_destination_policy');
+}
+
+export function executionSetDestinationPolicy(
+  policy: ExecutionDestinationPolicyIPC,
+): Promise<{ success: boolean; policy: ExecutionDestinationPolicyIPC }> {
+  return sidecarCall<{ success: boolean; policy: ExecutionDestinationPolicyIPC }>(
+    'execution:set_destination_policy',
+    policy as unknown as Record<string, unknown>,
+  );
+}
+
+export function executionListReceipts(limit = 20): Promise<{ receipts: ExecutionRunReceiptIPC[] }> {
+  return sidecarCall<{ receipts: ExecutionRunReceiptIPC[] }>('execution:list_receipts', { limit });
+}

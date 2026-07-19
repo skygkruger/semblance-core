@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/protocol/execution-receipt-v1.schema.json",
+  "title": "ExecutionReceiptV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "receiptId",
+    "taskId",
+    "idempotencyKey",
+    "nodeId",
+    "modelId",
+    "taskHash",
+    "responseHash",
+    "responseCiphertext",
+    "responseIv",
+    "responseAuthTag",
+    "tokensUsed",
+    "durationMs",
+    "completedAt",
+    "nodeSignature"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "const": "execution/v1"
+    },
+    "receiptId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "taskId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nodeId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "modelId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "taskHash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "responseHash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "responseCiphertext": {
+      "type": "string",
+      "minLength": 1
+    },
+    "responseIv": {
+      "type": "string",
+      "minLength": 1
+    },
+    "responseAuthTag": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tokensUsed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prompt",
+        "completion",
+        "total"
+      ],
+      "properties": {
+        "prompt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "durationMs": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "completedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nodeSignature": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
